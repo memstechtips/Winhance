@@ -1,29 +1,38 @@
 # Winhance - Windows Enhancement Utility 🚀
 
-**Winhance** is a PowerShell GUI application designed to optimize and customize your Windows experience. <br> From software management to system optimizations and customization, Winhance provides functions to enhance Windows 10 and 11 systems.<br><br>Winhance features most of the same enhancements as [UnattendedWinstall](https://github.com/memstechtips/UnattendedWinstall) without needing to do a clean install of Windows.
+**Winhance** is a PowerShell GUI application designed to optimize and customize your Windows experience. <br> From software management to system optimizations and customization, Winhance provides functions to enhance Windows 10 and 11 systems.<br><br>**Winhance** features most of the same enhancements as [UnattendedWinstall](https://github.com/memstechtips/UnattendedWinstall) without needing to do a clean install of Windows.
+
+![image](https://github.com/user-attachments/assets/01b70777-f384-4ba4-8fc1-7dca81250f5a)
 
 ## Requirements 💻
-- Windows 10/11
-  - *Tested on Windows 10 22H2 and Windows 11 24H2*
+- Windows 11
+  - *Tested on Windows 11 24H2*
+  - *Most things should work on Windows 10 22H2 but there are some issues*
 - Windows PowerShell 5.1 (Preinstalled in above versions)
 
 ## Usage Instructions 📜
-
 To use **Winhance**, follow these steps to launch PowerShell as an Administrator and run the installation script:
 
 1. **Open PowerShell as Administrator:**
-   - **Windows 10/11**: Right-click on the **Start** button and select **Windows PowerShell (Admin)** or **Windows Terminal (Admin)**. </br> PowerShell will open in a new window.
+   - **Windows 10/11**: Right-click on the **Start** button and select **Windows PowerShell (Admin)** or **Windows Terminal (Admin)**
+   - PowerShell will open in a new window.
 
 2. **Confirm Administrator Privileges**: 
    - If prompted by the User Account Control (UAC), click **Yes** to allow PowerShell to run as an administrator.
 
-3. **Paste and Run the Command**:
+3. **Enable PowerShell Script Execution:**
+   - Run the following command to allow script execution:
+   ```powershell
+   Set-ExecutionPolicy Unrestricted
+   ```
+
+4. **Paste and Run the Command**:
    - Copy the following command:
-     ```powershell
-     irm "https://github.com/memstechtips/Winhance/raw/main/Winhance.ps1" | iex
-     ```
-   - To paste into PowerShell, **Right-Click** or press **Ctrl + V** in the PowerShell or Terminal window. </br> This should automatically paste your copied command.
-   - Press **Enter** to execute the command.
+   ```powershell
+   irm "https://github.com/memstechtips/Winhance/raw/main/Winhance.ps1" | iex
+   ```
+   - To paste into PowerShell, **Right-Click** or press **Ctrl + V** in the PowerShell or Terminal window
+   - Press **Enter** to execute the command
 
 This command will download and execute the **Winhance** application directly from GitHub.
 
@@ -65,7 +74,7 @@ This command will download and execute the **Winhance** application directly fro
 ---
 > [!NOTE]
 > This tool is currently in development. Any issues can be reported using the Issues tab.<br>
-> Also, I'm not a developer, I'm just enjoying playing around and learning as I go.<br><br>
+> Also, I'm not a developer, I'm just enjoying learning more about scripting/programming and learning as I go.<br><br>
 > Please also understand that I prefer to develop and work on these projects independently.<br>I do value other people's insights and appreciate any feedback, but don't take it personally if a pull request is not accepted.
 
 ### Support the Project
