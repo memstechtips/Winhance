@@ -65,7 +65,7 @@ Add-Type -AssemblyName PresentationCore
 Add-Type -AssemblyName WindowsBase
 Add-Type -AssemblyName System.Windows.Forms
 
-# Update the SystemParametersInfo declaration to include all required parameters (for Wallaper Functions)
+# Update the SystemParametersInfo declaration to include all required parameters (for Wallpaper Functions)
 Add-Type -TypeDefinition @"
 using System;
 using System.Runtime.InteropServices;
