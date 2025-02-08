@@ -90,4 +90,11 @@ If you have feedback, suggestions, or need help with Winhance, please join the d
 [![Join the Discussion](https://img.shields.io/badge/Join-the%20Discussion-2D9F2D?style=for-the-badge&logo=github&logoColor=white)](https://github.com/memstechtips/Winhance/discussions)
 [![Join Discord Community](https://img.shields.io/badge/Join-Discord%20Community-5865F2?style=for-the-badge&logo=discord&logoColor=white)](https://www.discord.gg/zWGANV8QAX)
 
+### TODO:
+- Create separate/individual checkboxes for apps that can be removed with some presets. 
+- Implement fix for "can't open links" due to Edge removal. 
+- Fix removal of Legacy MS Edge on Windows 10.
+- Implement jobs/background tasks for long running tasks. 
+- Implement better WinGet installation on Windows 10.
+- Add a "create Winhance desktop shortcut" option.
 ---
