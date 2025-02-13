@@ -59,13 +59,14 @@ using namespace Microsoft.Win32
 using namespace System.Windows
 using namespace System.Windows.Controls
 using namespace System.Windows.Media
+using namespace WinhanceExtensions
 
 Add-Type -AssemblyName PresentationFramework
 Add-Type -AssemblyName PresentationCore
 Add-Type -AssemblyName WindowsBase
 Add-Type -AssemblyName System.Windows.Forms
 
-# Update the SystemParametersInfo declaration to include all required parameters (for Wallaper Functions)
+# Update the SystemParametersInfo declaration to include all required parameters (for Wallpaper Functions)
 Add-Type -TypeDefinition @"
 using System;
 using System.Runtime.InteropServices;
@@ -417,6 +418,51 @@ class RegistryHelper {
 $SCRIPT:LogPath = "$env:TEMP\Winhance-Log_$(Get-Date -Format 'yyyyMMdd-HHmmss').log"
 $SCRIPT:LogEnabled = $true
 $SCRIPT:Version = "25.02.06"
+
+# === Theme Config ===
+$SCRIPT:isDarkMode = $true
+$SCRIPT:ThemeColors = @{
+    Dark  = @{
+        MainBackground       = "#1F2022"
+        ContentBackground    = "#2B2D30"
+        SecondaryBackground  = "#1F2022"
+        TextColor            = "#FFFFFF"
+        SubTextColor         = "#99A3A4"
+        AccentColor          = "#FFDE00"
+        CheckBoxFillColor    = "#FFFFFF"      
+        CheckBoxBorderColor  = "#FFDE00"  
+        TooltipBackground    = "#2B2D30"
+        TooltipForeground    = "#FFFFFF"
+        TooltipBorderBrush   = "#FFDE00"
+        SliderAccentColor    = "#FFDE00"
+        ButtonBorderColor    = "#FFDE00"
+        ButtonHoverTextColor = "#202124"
+    }
+    Light = @{
+        MainBackground       = "#F6F8FC"         
+        ContentBackground    = "#FFFFFF"        
+        SecondaryBackground  = "#F6F8FC"     
+        TextColor            = "#202124"               
+        SubTextColor         = "#5F6368"            
+        AccentColor          = "#424242"             
+        CheckBoxFillColor    = "#424242"       
+        CheckBoxBorderColor  = "#424242"     
+        TooltipBackground    = "#FFFFFF"      
+        TooltipForeground    = "#202124"
+        TooltipBorderBrush   = "#424242"
+        SliderAccentColor    = "#424242"       
+        ButtonBorderColor    = "#424242"       
+        ButtonHoverTextColor = "#FFFFFF"    
+    }
+}
+
+# Cache variables for package status
+$SCRIPT:InstalledCapabilities = $null
+$SCRIPT:InstalledPackages = $null
+
+# Global paths
+$SCRIPT:ConfigPath = Join-Path $env:ProgramFiles "Winhance\Config"
+$SCRIPT:PreferencesFile = Join-Path $script:ConfigPath "preferences.json"
 
 # ====================================================================================================
 # Registry Base Keys
@@ -3351,7 +3397,7 @@ $SCRIPT:RegConfig = @{
             BaseKey      = [BaseKey]::Services
             SubKeySuffix = "WSearch"
             Name         = "Start"
-            Recommended  = [ValuePair]::new(3, [RegistryValueKind]::DWord)
+            Recommended  = [ValuePair]::new(2, [RegistryValueKind]::DWord) # Auto Startup due to Search Issues if Manual
             DefaultValue = 2
             Description  = "Windows Search"
         },
@@ -3757,6 +3803,147 @@ $SCRIPT:RegConfig = @{
 # ====================================================================================================
 
 # =================================
+# Loading Screen Functions
+# =================================
+
+function Show-LoadingScreen {
+
+    $loadingXaml = @'
+<Window
+    xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+    xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+    Title="Loading"
+    Width="450"
+    Height="250"
+    WindowStyle="None"
+    AllowsTransparency="True"
+    Background="Transparent"
+    WindowStartupLocation="CenterScreen"
+    ResizeMode="NoResize"
+    ShowInTaskbar="False">
+    <Border 
+        x:Name="MainBorder"
+        Background="{DynamicResource MainBackground}"
+        BorderBrush="{DynamicResource AccentColor}"
+        BorderThickness="0"
+        CornerRadius="8">
+        <Grid>
+            <StackPanel VerticalAlignment="Center" HorizontalAlignment="Center">
+                <!-- Title with Icon -->
+                <StackPanel 
+                    Orientation="Horizontal" 
+                    HorizontalAlignment="Center"
+                    Margin="0,0,0,10">
+                    <TextBlock
+                        Margin="0,-2,5,0"
+                        FontFamily="Segoe UI Emoji"
+                        FontSize="55"
+                        Foreground="{DynamicResource TextColor}"
+                        Text="&#x1F680;" />
+                    <TextBlock
+                        FontFamily="Helvetica Neue"
+                        FontSize="55"
+                        FontWeight="Light"
+                        Foreground="{DynamicResource TextColor}"
+                        Text="Winhance" />
+                </StackPanel>
+                <!-- Loading Text -->
+                <TextBlock 
+                    Text="loading, please wait..."
+                    FontSize="14"
+                    FontStyle="Italic"
+                    Margin="0,0,0,20"
+                    Foreground="{DynamicResource SubTextColor}"
+                    HorizontalAlignment="Center"/>
+                <!-- Progress Bar -->
+                <ProgressBar 
+                    IsIndeterminate="True"
+                    Width="250"
+                    Height="8"
+                    Background="Transparent"
+                    BorderBrush="{DynamicResource AccentColor}"
+                    Foreground="{DynamicResource AccentColor}"/>
+            </StackPanel>
+        </Grid>
+    </Border>
+</Window>
+'@
+
+    # Create a new runspace just for the loading window
+    $runspace = [runspacefactory]::CreateRunspace()
+    $runspace.ApartmentState = "STA"
+    $runspace.ThreadOptions = "ReuseThread"
+    $runspace.Open()
+    
+    # Create a synchronized hashtable just for window communication
+    $sync = [hashtable]::Synchronized(@{
+        ShouldClose = $false
+    })
+    
+    # Pass minimal variables to the runspace
+    $runspace.SessionStateProxy.SetVariable('sync', $sync)
+    $runspace.SessionStateProxy.SetVariable('loadingXaml', $loadingXaml)
+    $runspace.SessionStateProxy.SetVariable('ThemeColors', $script:ThemeColors)
+    $runspace.SessionStateProxy.SetVariable('isDarkMode', $script:isDarkMode)
+    
+    # Create PowerShell instance for loading screen
+    $ps = [powershell]::Create().AddScript({
+        Add-Type -AssemblyName PresentationFramework
+        Add-Type -AssemblyName PresentationCore
+        Add-Type -AssemblyName WindowsBase
+        
+        # Create loading window
+        $reader = New-Object System.IO.StringReader $loadingXaml
+        $xmlReader = [System.Xml.XmlReader]::Create($reader)
+        $loadingWindow = [System.Windows.Markup.XamlReader]::Load($xmlReader)
+        
+        # Apply theme
+        $currentTheme = $ThemeColors[$( if ($isDarkMode) { 'Dark' } else { 'Light' })]
+        $loadingWindow.Resources = New-Object System.Windows.ResourceDictionary
+        
+        foreach ($key in $currentTheme.Keys) {
+            if ($currentTheme[$key] -match '^#') {
+                $brush = New-Object System.Windows.Media.SolidColorBrush
+                $color = [System.Windows.Media.ColorConverter]::ConvertFromString($currentTheme[$key])
+                $brush.Color = $color
+                $loadingWindow.Resources.Add($key, $brush)
+            }
+            else {
+                $loadingWindow.Resources.Add($key, $currentTheme[$key])
+            }
+        }
+        
+        # Make window draggable
+        $mainBorder = $loadingWindow.FindName("MainBorder")
+        $mainBorder.Add_MouseLeftButtonDown({
+            $loadingWindow.DragMove()
+        })
+        
+        # Create timer to check for close signal
+        $timer = New-Object System.Windows.Threading.DispatcherTimer
+        $timer.Interval = [TimeSpan]::FromMilliseconds(100)
+        $timer.Add_Tick({
+            if ($sync.ShouldClose) {
+                $timer.Stop()
+                $loadingWindow.Close()
+            }
+        })
+        $timer.Start()
+        
+        # Show window
+        [void]$loadingWindow.ShowDialog()
+    })
+    
+    $ps.Runspace = $runspace
+    
+    # Start loading screen without waiting
+    $handle = $ps.BeginInvoke()
+    
+    # Return the sync hashtable so we can close the window later
+    return $sync
+}
+
+# =================================
 # Logging Functions
 # =================================
 function Start-Log {
@@ -4078,7 +4265,7 @@ function RunAsTI($cmd, $arg) {
 # Customize Screen Helpers
 # =================================
 
-# Helper function to get current theme
+# Helper function to get current Windows theme
 function Get-CurrentTheme {
     try {
         $themeSettings = $SCRIPT:RegSettings.Personalization | 
@@ -4142,6 +4329,118 @@ function Set-Wallpaper {
 # ==================================
 # Winhance GUI Helper Functions
 # ==================================
+
+# Function to load user preferences
+function Get-UserPreferences {
+    Write-Log -Message "Loading preferences from: $script:PreferencesFile" -Severity "INFO"
+    
+    if (Test-Path $script:PreferencesFile) {
+        try {
+            $preferences = Get-Content $script:PreferencesFile | ConvertFrom-Json
+            Write-Log -Message "Successfully loaded preferences" -Severity "INFO"
+            return $preferences
+        }
+        catch {
+            Write-Log -Message "Error reading preferences: $_" -Severity "ERROR"
+            return $null
+        }
+    }
+    else {
+        Write-Log -Message "Preferences file not found" -Severity "INFO"
+        return $null
+    }
+}
+
+# Function to save user preferences
+function Save-UserPreferences {
+    param (
+        [Parameter(Mandatory = $true)]
+        [object]$Preferences
+    )
+    
+    Write-Log -Message "Attempting to save preferences to: $script:PreferencesFile" -Severity "INFO"
+    
+    try {
+        # Ensure directory exists
+        $configDir = Split-Path $script:PreferencesFile -Parent
+        if (-not (Test-Path $configDir)) {
+            Write-Log -Message "Creating config directory: $configDir" -Severity "INFO"
+            $null = New-Item -ItemType Directory -Path $configDir -Force
+        }
+
+        # Convert and save preferences
+        $jsonContent = $Preferences | ConvertTo-Json
+        [System.IO.File]::WriteAllText($script:PreferencesFile, $jsonContent, [System.Text.Encoding]::UTF8)
+        
+        Write-Log -Message "Successfully saved preferences" -Severity "SUCCESS"
+        return $true
+    }
+    catch {
+        Write-Log -Message "Error saving preferences: $_" -Severity "ERROR"
+        return $false
+    }
+}
+
+# Function to initialize theme based on preferences or system settings
+function Initialize-AppTheme {
+    Write-Log -Message "Starting theme initialization" -Severity "INFO"
+    $preferences = Get-UserPreferences
+    
+    if ($preferences -and ($null -ne $preferences.IsDarkMode)) {
+        # Use saved theme preference
+        $script:isDarkMode = $preferences.IsDarkMode
+        Write-Log -Message "Using saved theme preference. isDarkMode: $script:isDarkMode" -Severity "INFO"
+    }
+    else {
+        # Use system theme
+        $script:isDarkMode = Get-CurrentTheme
+        Write-Log -Message "Using system theme. isDarkMode: $script:isDarkMode" -Severity "INFO"
+    }
+    
+    Write-Log -Message "Applying initial theme" -Severity "INFO"
+    Switch-Theme -isDarkMode $script:isDarkMode
+    Write-Log -Message "Theme initialization complete" -Severity "INFO"
+}
+
+# Helper function to find children of a specific type
+function FindChildren {
+    param(
+        [System.Windows.DependencyObject]$parent,
+        [type]$childType
+    )
+    
+    $children = New-Object System.Collections.Generic.List[System.Object]
+    
+    if (-not $parent) { return $children }
+    
+    try {
+        $childCount = [System.Windows.Media.VisualTreeHelper]::GetChildrenCount($parent)
+        
+        for ($i = 0; $i -lt $childCount; $i++) {
+            $child = [System.Windows.Media.VisualTreeHelper]::GetChild($parent, $i)
+            
+            if ($child) {
+                if ($child.GetType() -eq $childType) {
+                    $children.Add($child)
+                }
+                
+                # Recursively find children
+                $childrenOfChild = FindChildren $child $childType
+                if ($childrenOfChild -and $childrenOfChild.Count -gt 0) {
+                    foreach ($descendant in $childrenOfChild) {
+                        $children.Add($descendant)
+                    }
+                }
+            }
+        }
+    }
+    catch {
+        Write-Log -Message "Error in FindChildren: $_" -Severity 'ERROR'
+    }
+    
+    return $children
+}
+
 # Helper function to force UI update
 function Update-WPFControls {
     # Process UI events
@@ -4149,6 +4448,7 @@ function Update-WPFControls {
     # Process dispatcher queue
     $script:Window.Dispatcher.Invoke([Action] {}, [System.Windows.Threading.DispatcherPriority]::Background)
 }
+
 # Helper function to show messageboxes
 function Show-MessageBox {
     [CmdletBinding()]
@@ -4232,7 +4532,7 @@ function Write-Status {
     Update-WPFControls
 }
 
-# Function to highlight selected nav button
+# Highlight selected nav button
 function Set-NavigationButtonSelected {
     param (
         [Parameter(Mandatory)]
@@ -4242,23 +4542,154 @@ function Set-NavigationButtonSelected {
     # Get the navigation panel
     $NavigationPanel = $window.FindName("NavigationPanel")
     
-    # Verify navigation panel exists
     if (-not $NavigationPanel) {
         Write-Error "NavigationPanel not found or not initialized."
         return
     }
 
+    # Get theme-appropriate background colors
+    $defaultBg = $window.Resources["NavigationButtonBackground"]  # Secondary background
+    $selectedBg = $window.Resources["MainContainerBorderBrush"]  # Content background (#303030 in dark mode)
+
     # Reset all navigation buttons to default state
     foreach ($child in $NavigationPanel.Children) {
         if ($child -is [System.Windows.Controls.Button]) {
-            $child.Background = [System.Windows.Media.BrushConverter]::new().ConvertFromString("#202020")
-            $child.Foreground = [System.Windows.Media.Brushes]::White
+            $child.Background = $defaultBg
         }
     }
 
     # Set selected button state
-    $SelectedButton.Background = [System.Windows.Media.BrushConverter]::new().ConvertFromString("#303030")
-    $SelectedButton.Foreground = [System.Windows.Media.Brushes]::White
+    $SelectedButton.Background = $selectedBg
+}
+
+# Switch between light and dark mode
+function Switch-Theme {
+    param (
+        [bool]$isDarkMode
+    )
+    
+    try {
+        # Select active theme
+        $theme = if ($isDarkMode) { $script:ThemeColors.Dark } else { $script:ThemeColors.Light }
+        
+        # Convert colors to brushes once for commonly used colors
+        $themeColor = [System.Windows.Media.BrushConverter]::new().ConvertFromString($theme.TextColor)
+        $themeSubColor = [System.Windows.Media.BrushConverter]::new().ConvertFromString($theme.SubTextColor)
+        $themeContentBg = [System.Windows.Media.BrushConverter]::new().ConvertFromString($theme.ContentBackground)
+
+        # Update all dynamic resources
+        $window.Resources["PrimaryTextColor"] = $themeColor
+        $window.Resources["HelpIconForeground"] = $themeColor
+        $window.Resources["TooltipBackground"] = [System.Windows.Media.BrushConverter]::new().ConvertFromString($theme.TooltipBackground)
+        $window.Resources["TooltipForeground"] = [System.Windows.Media.BrushConverter]::new().ConvertFromString($theme.TooltipForeground)
+        $window.Resources["TooltipBorderBrush"] = [System.Windows.Media.BrushConverter]::new().ConvertFromString($theme.TooltipBorderBrush)
+        $window.Resources["CheckBoxForeground"] = $themeColor
+        $window.Resources["CheckBoxFillColor"] = [System.Windows.Media.BrushConverter]::new().ConvertFromString($theme.CheckBoxFillColor)
+        $window.Resources["CheckBoxBorderBrush"] = [System.Windows.Media.BrushConverter]::new().ConvertFromString($theme.CheckBoxBorderColor)
+        $window.Resources["ContentSectionBorderBrush"] = [System.Windows.Media.BrushConverter]::new().ConvertFromString($theme.SecondaryBackground)
+        $window.Resources["MainContainerBorderBrush"] = $themeContentBg
+        $window.Resources["PrimaryButtonForeground"] = $themeColor
+        $window.Resources["ButtonBorderBrush"] = [System.Windows.Media.BrushConverter]::new().ConvertFromString($theme.ButtonBorderColor)
+        $window.Resources["ButtonHoverTextColor"] = [System.Windows.Media.BrushConverter]::new().ConvertFromString($theme.ButtonHoverTextColor)
+        $window.Resources["SliderAccentColor"] = [System.Windows.Media.BrushConverter]::new().ConvertFromString($theme.AccentColor)
+        $window.Resources["ButtonHoverBackground"] = [System.Windows.Media.BrushConverter]::new().ConvertFromString($theme.AccentColor)
+        $window.Resources["ButtonHoverForeground"] = [System.Windows.Media.BrushConverter]::new().ConvertFromString("Black")
+        $window.Resources["ButtonDisabledForeground"] = [System.Windows.Media.BrushConverter]::new().ConvertFromString("#D3D3D3")
+        $window.Resources["ButtonDisabledBorderBrush"] = [System.Windows.Media.BrushConverter]::new().ConvertFromString("#FFEB99")
+        $window.Resources["ButtonDisabledHoverBackground"] = [System.Windows.Media.BrushConverter]::new().ConvertFromString("#A9A9A9")
+        $window.Resources["ButtonDisabledHoverForeground"] = [System.Windows.Media.BrushConverter]::new().ConvertFromString("#C0C0C0")
+        $window.Resources["NavigationButtonBackground"] = [System.Windows.Media.BrushConverter]::new().ConvertFromString($theme.SecondaryBackground)
+        $window.Resources["NavigationButtonForeground"] = $themeColor
+        $window.Resources["SliderTrackBackground"] = [System.Windows.Media.BrushConverter]::new().ConvertFromString("#404040")
+        $window.Resources["SliderAccentColor"] = [System.Windows.Media.BrushConverter]::new().ConvertFromString($theme.SliderAccentColor)
+        $window.Resources["TickBarForeground"] = $themeColor
+
+        # Update main window background
+        $mainBorder = $window.Content
+        if ($mainBorder -is [System.Windows.Controls.Border]) {
+            $mainBorder.Background = [System.Windows.Media.BrushConverter]::new().ConvertFromString($theme.MainBackground)
+        }
+
+        # Update dynamically generated content
+        # Software & Apps Screen
+        if ($script:installSoftwareContent) {
+            # Handle static content
+            if ($script:installSoftwareContent -is [System.Windows.Controls.Panel]) {
+                $textBlocks = FindChildren -parent $script:installSoftwareContent -childType ([System.Windows.Controls.TextBlock])
+                foreach ($textBlock in $textBlocks) {
+                    $textBlock.Foreground = $themeColor
+                }
+            }
+            
+            # Special handling for Grid items
+            $grids = FindChildren -parent $script:installSoftwareContent -childType ([System.Windows.Controls.Grid])
+            foreach ($grid in $grids) {
+                $textBlocks = FindChildren -parent $grid -childType ([System.Windows.Controls.TextBlock])
+                foreach ($textBlock in $textBlocks) {
+                    $textBlock.Foreground = $themeColor
+                }
+            }
+        }
+
+        # Remove Apps section
+        if ($script:removeAppsContent) {
+            # Update all text in remove apps content
+            $textBlocks = FindChildren -parent $script:removeAppsContent -childType ([System.Windows.Controls.TextBlock])
+            foreach ($textBlock in $textBlocks) {
+                $textBlock.Foreground = $themeColor
+            }
+
+            # Handle checkboxes in remove apps content
+            if ($script:chkPanel) {
+                $checkboxes = FindChildren -parent $script:chkPanel -childType ([System.Windows.Controls.CheckBox])
+                foreach ($checkbox in $checkboxes) {
+                    $checkbox.Foreground = $themeColor
+
+                    # Update text within checkbox content if it's a StackPanel
+                    if ($checkbox.Content -is [System.Windows.Controls.StackPanel]) {
+                        $contentTextBlocks = FindChildren -parent $checkbox.Content -childType ([System.Windows.Controls.TextBlock])
+                        foreach ($textBlock in $contentTextBlocks) {
+                            $textBlock.Foreground = $themeColor
+                        }
+                    }
+                }
+            }
+        }
+
+        # Status text elements
+        $statusTextElements = @(
+            $script:softAppsStatusText,
+            $script:optimizeStatusText,
+            $script:customizeStatusText,
+            $script:aboutStatusText
+        ) | Where-Object { $_ }
+
+        foreach ($statusText in $statusTextElements) {
+            $statusText.Foreground = $themeSubColor
+        }
+
+        # Update navigation button selection for current screen
+        if ($script:CurrentScreen -and $script:navigationPanel) {
+            $currentButton = $null
+            switch ($script:CurrentScreen) {
+                'SoftAppsScreen' { $currentButton = $script:SoftwareAppsNavButton }
+                'OptimizeScreen' { $currentButton = $script:OptimizeNavButton }
+                'CustomizeScreen' { $currentButton = $script:CustomizeNavButton }
+                'AboutScreen' { $currentButton = $script:AboutNavButton }
+            }
+            
+            if ($currentButton) {
+                Set-NavigationButtonSelected -SelectedButton $currentButton
+            }
+        }
+
+        # Force layout updates
+        $window.UpdateLayout()
+    }
+    catch {
+        Write-Log -Message "Error in Switch-Theme: $_" -Severity 'ERROR'
+        throw
+    }
 }
 
 # Function to switch screens
@@ -5290,58 +5721,74 @@ function Install-Xbox {
 # Remove Windows Apps Functions
 # =================================
 
-# Define Bloatware Windows Apps
-$Bloatappx = @{
-    # 3D/Mixed Reality Apps
+# Define all Windows AppX Packages
+$WindowsPackages = @{
+    # 3D/Mixed Reality
     "Microsoft.Microsoft3DViewer"            = @{
+        Category     = "3D/Mixed Reality"
         FriendlyName = "3D Viewer"
         PackageName  = "Microsoft.Microsoft3DViewer"
     }
     "Microsoft.MixedReality.Portal"          = @{
+        Category     = "3D/Mixed Reality"
         FriendlyName = "Mixed Reality Portal"
         PackageName  = "Microsoft.MixedReality.Portal"
     }
 
-    # Bing/Search Apps
+    # Bing/Search
     "Microsoft.BingSearch"                   = @{
+        Category     = "Bing/Search"
         FriendlyName = "Bing Search"
         PackageName  = "Microsoft.BingSearch"
     }
     "Microsoft.BingNews"                     = @{
+        Category     = "Bing/Search"
         FriendlyName = "News"
         PackageName  = "Microsoft.BingNews"
     }
     "Microsoft.BingWeather"                  = @{
+        Category     = "Bing/Search"
         FriendlyName = "Weather"
         PackageName  = "Microsoft.BingWeather"
     }
 
-    # Camera/Media Apps
+    # Camera/Media
     "Microsoft.WindowsCamera"                = @{
+        Category     = "Camera/Media"
         FriendlyName = "Camera"
         PackageName  = "Microsoft.WindowsCamera"
     }
     "Clipchamp.Clipchamp"                    = @{
+        Category     = "Camera/Media"
         FriendlyName = "Clipchamp"
         PackageName  = "Clipchamp.Clipchamp"
     }
 
-    # System Utility Apps
+    # System Utilities
     "Microsoft.WindowsAlarms"                = @{
+        Category     = "System Utilities"
         FriendlyName = "Alarms & Clock"
         PackageName  = "Microsoft.WindowsAlarms"
     }
     "Microsoft.549981C3F5F10"                = @{
+        Category     = "System Utilities"
         FriendlyName = "Cortana"
         PackageName  = "Microsoft.549981C3F5F10"
     }
     "Microsoft.GetHelp"                      = @{
+        Category     = "System Utilities"
         FriendlyName = "Get Help"
         PackageName  = "Microsoft.GetHelp"
     }
+    "Microsoft.WindowsCalculator"            = @{
+        Category     = "System Utilities"
+        FriendlyName = "Calculator"
+        PackageName  = "Microsoft.WindowsCalculator"
+    }
 
-    # System Tools
+    # Development
     "Microsoft.Windows.DevHome"              = @{
+        Category         = "Development"
         FriendlyName     = "Dev Home"
         PackageName      = "Microsoft.Windows.DevHome"
         RegistrySettings = @(
@@ -5356,186 +5803,67 @@ $Bloatappx = @{
         )
     }
 
-    # Family & Communication
+    # Communication & Family
     "MicrosoftCorporationII.MicrosoftFamily" = @{
+        Category     = "Communication"
         FriendlyName = "Microsoft Family"
         PackageName  = "MicrosoftCorporationII.MicrosoftFamily"
     }
     "microsoft.windowscommunicationsapps"    = @{
+        Category     = "Communication"
         FriendlyName = "Mail and Calendar"
         PackageName  = "microsoft.windowscommunicationsapps"
     }
+    "Microsoft.SkypeApp"                     = @{
+        Category     = "Communication"
+        FriendlyName = "Skype"
+        PackageName  = "Microsoft.SkypeApp"
+    }
+    "MSTeams"                                = @{
+        Category         = "Communication"
+        FriendlyName     = "Microsoft Teams"
+        PackageName      = "MSTeams"
+        RegistrySettings = @(
+            [pscustomobject]@{
+                BaseKey      = [BaseKey]::TaskbarChat
+                Name         = "ChatIcon"
+                Recommended  = [ValuePair]::new(3, [RegistryValueKind]::DWord)
+                DefaultValue = $null
+                Description  = "Hide Chat/Teams icon from taskbar"
+            }
+        )
+    }
 
-    # Feedback & Telemetry
+    # System Tools
     "Microsoft.WindowsFeedbackHub"           = @{
+        Category     = "System Tools"
         FriendlyName = "Feedback Hub"
         PackageName  = "Microsoft.WindowsFeedbackHub"
     }
-
-    # Maps & Location
     "Microsoft.WindowsMaps"                  = @{
+        Category     = "System Tools"
         FriendlyName = "Maps"
         PackageName  = "Microsoft.WindowsMaps"
     }
+    "Microsoft.WindowsTerminal"              = @{
+        Category     = "System Tools"
+        FriendlyName = "Terminal"
+        PackageName  = "Microsoft.WindowsTerminal"
+    }
 
-    # Office Apps
+    # Office & Productivity
     "Microsoft.MicrosoftOfficeHub"           = @{
+        Category     = "Office"
         FriendlyName = "Office Hub"
         PackageName  = "Microsoft.MicrosoftOfficeHub"
     }
     "Microsoft.Office.OneNote"               = @{
+        Category     = "Office"
         FriendlyName = "OneNote"
         PackageName  = "Microsoft.Office.OneNote"
     }
-
-    # Paint Apps
-    "Microsoft.MSPaint"                      = @{
-        FriendlyName = "Paint 3D"
-        PackageName  = "Microsoft.MSPaint"
-    }
-
-    # People & Social
-    "Microsoft.People"                       = @{
-        FriendlyName = "People"
-        PackageName  = "Microsoft.People"
-    }
-
-    # Power Automate
-    "Microsoft.PowerAutomateDesktop"         = @{
-        FriendlyName = "Power Automate"
-        PackageName  = "Microsoft.PowerAutomateDesktop"
-    }
-
-    # Quick Assist
-    "MicrosoftCorporationII.QuickAssist"     = @{
-        FriendlyName = "Quick Assist"
-        PackageName  = "MicrosoftCorporationII.QuickAssist"
-    }
-
-    # Games & Entertainment
-    "Microsoft.MicrosoftSolitaireCollection" = @{
-        FriendlyName = "Solitaire Collection"
-        PackageName  = "Microsoft.MicrosoftSolitaireCollection"
-    }
-
-    # Productivity Apps
-    "Microsoft.MicrosoftStickyNotes"         = @{
-        FriendlyName = "Sticky Notes"
-        PackageName  = "Microsoft.MicrosoftStickyNotes"
-    }
-
-    # Getting Started
-    "Microsoft.Getstarted"                   = @{
-        FriendlyName = "Get Started"
-        PackageName  = "Microsoft.Getstarted"
-    }
-
-    # To Do
-    "Microsoft.Todos"                        = @{
-        FriendlyName = "To Do"
-        PackageName  = "Microsoft.Todos"
-    }
-
-    # Sound Recorder
-    "Microsoft.WindowsSoundRecorder"         = @{
-        FriendlyName = "Sound Recorder"
-        PackageName  = "Microsoft.WindowsSoundRecorder"
-    }
-
-    # Phone Link
-    "Microsoft.YourPhone"                    = @{
-        FriendlyName = "Phone Link"
-        PackageName  = "Microsoft.YourPhone"
-    }
-
-    # Copilot Related
-    "Microsoft.Windows.Ai.Copilot.Provider"  = @{
-        FriendlyName     = "Copilot Provider"
-        PackageName      = "Microsoft.Windows.Ai.Copilot.Provider"
-        RegistrySettings = @(
-            [pscustomobject]@{
-                BaseKey      = [BaseKey]::CloudContent
-                Name         = "TurnOffWindowsCopilot"
-                Recommended  = [ValuePair]::new(1, [RegistryValueKind]::DWord)
-                DefaultValue = $null
-                Description  = "Disable Windows Copilot system-wide"
-            }
-        )
-    }
-    "Microsoft.Copilot"                      = @{
-        FriendlyName     = "Copilot"
-        PackageName      = "Microsoft.Copilot"
-        RegistrySettings = @(
-            [pscustomobject]@{
-                BaseKey      = [BaseKey]::CUExplorerAdvanced
-                Name         = "ShowCopilotButton"
-                Recommended  = [ValuePair]::new(0, [RegistryValueKind]::DWord)
-                DefaultValue = $null
-                Description  = "Hide Copilot button from taskbar"
-            }
-        )
-    }
-    "Microsoft.Copilot_8wekyb3d8bbwe"        = @{
-        FriendlyName = "Copilot (Store)"
-        PackageName  = "Microsoft.Copilot_8wekyb3d8bbwe"
-    }
-
-    # Meeting Apps
-    "Microsoft.WindowsMeetNow"               = @{
-        FriendlyName     = "Meet Now"
-        PackageName      = "Microsoft.WindowsMeetNow"
-        RegistrySettings = @(
-            [pscustomobject]@{
-                BaseKey      = [BaseKey]::LMPolicyExplorer
-                Name         = "HideSCAMeetNow"
-                Recommended  = [ValuePair]::new(1, [RegistryValueKind]::DWord)
-                DefaultValue = $null
-                Description  = "Hide Meet Now button"
-            }
-        )
-    }
-
-    # Communication Apps
-    "Microsoft.SkypeApp"                     = @{
-        FriendlyName = "Skype"
-        PackageName  = "Microsoft.SkypeApp"
-    }
-}
-
-# Define potentially useful Windows Apps
-$UsefulAppx = @{
-    # Xbox Related Apps
-    "Microsoft.Xbox.TCUI"               = @{
-        FriendlyName = "Xbox"
-        PackageName  = "Microsoft.Xbox.TCUI"
-    }
-    "Microsoft.XboxApp"                 = @{
-        FriendlyName = "Xbox"
-        PackageName  = "Microsoft.XboxApp"
-    }
-    "Microsoft.XboxGameOverlay"         = @{
-        FriendlyName = "Xbox"
-        PackageName  = "Microsoft.XboxGameOverlay"
-    }
-    "Microsoft.XboxGamingOverlay"       = @{
-        FriendlyName = "Xbox"
-        PackageName  = "Microsoft.XboxGamingOverlay"
-    }
-    "Microsoft.XboxIdentityProvider"    = @{
-        FriendlyName = "Xbox"
-        PackageName  = "Microsoft.XboxIdentityProvider"
-    }
-    "Microsoft.XboxSpeechToTextOverlay" = @{
-        FriendlyName = "Xbox"
-        PackageName  = "Microsoft.XboxSpeechToTextOverlay"
-    }
-    "Microsoft.GamingApp"               = @{
-        FriendlyName = "Xbox"
-        PackageName  = "Microsoft.GamingApp"
-    }
-
-    # Outlook
-    "Microsoft.OutlookForWindows"       = @{
+    "Microsoft.OutlookForWindows"            = @{
+        Category         = "Office"
         FriendlyName     = "New Outlook"
         PackageName      = "Microsoft.OutlookForWindows"
         RegistrySettings = @(
@@ -5557,53 +5885,164 @@ $UsefulAppx = @{
         )
     }
 
-    # Store
-    "Microsoft.WindowsStore"            = @{
-        FriendlyName = "Microsoft Store"
-        PackageName  = "Microsoft.WindowsStore"
+    # Graphics & Images
+    "Microsoft.MSPaint"                      = @{
+        Category     = "Graphics"
+        FriendlyName = "Paint 3D"
+        PackageName  = "Microsoft.MSPaint"
     }
-
-    # Basic Windows Apps
-    "Microsoft.Paint"                   = @{
+    "Microsoft.Paint"                        = @{
+        Category     = "Graphics"
         FriendlyName = "Paint"
         PackageName  = "Microsoft.Paint"
     }
-    "Microsoft.WindowsCalculator"       = @{
-        FriendlyName = "Calculator"
-        PackageName  = "Microsoft.WindowsCalculator"
-    }
-    "Microsoft.Windows.Photos"          = @{
+    "Microsoft.Windows.Photos"               = @{
+        Category     = "Graphics"
         FriendlyName = "Photos"
         PackageName  = "Microsoft.Windows.Photos"
     }
-
-    # Media Apps
-    "Microsoft.ZuneMusic"               = @{
-        FriendlyName = "Groove Music"
-        PackageName  = "Microsoft.ZuneMusic"
-    }
-    "Microsoft.ZuneVideo"               = @{
-        FriendlyName = "Movies & TV"
-        PackageName  = "Microsoft.ZuneVideo"
-    }
-
-    # Screenshot Tool
-    "Microsoft.ScreenSketch"            = @{
+    "Microsoft.ScreenSketch"                 = @{
+        Category     = "Graphics"
         FriendlyName = "Snip & Sketch"
         PackageName  = "Microsoft.ScreenSketch"
     }
 
-    # Teams
-    "MSTeams"                           = @{
-        FriendlyName     = "Microsoft Teams"
-        PackageName      = "MSTeams"
+    # Social & People
+    "Microsoft.People"                       = @{
+        Category     = "Social"
+        FriendlyName = "People"
+        PackageName  = "Microsoft.People"
+    }
+
+    # Automation
+    "Microsoft.PowerAutomateDesktop"         = @{
+        Category     = "Automation"
+        FriendlyName = "Power Automate"
+        PackageName  = "Microsoft.PowerAutomateDesktop"
+    }
+
+    # Support Tools
+    "MicrosoftCorporationII.QuickAssist"     = @{
+        Category     = "Support"
+        FriendlyName = "Quick Assist"
+        PackageName  = "MicrosoftCorporationII.QuickAssist"
+    }
+
+    # Games & Entertainment
+    "Microsoft.MicrosoftSolitaireCollection" = @{
+        Category     = "Games"
+        FriendlyName = "Solitaire Collection"
+        PackageName  = "Microsoft.MicrosoftSolitaireCollection"
+    }
+    "Xbox"                                   = @{
+        Category     = "Games"
+        FriendlyName = "Xbox"
+        PackageName  = "Xbox"
+        Description  = "Includes Xbox App, Game Bar, Gaming Services, and Identity Provider"
+        SubPackages  = @(
+            "Microsoft.Xbox.TCUI",
+            "Microsoft.XboxApp",
+            "Microsoft.XboxGameOverlay",
+            "Microsoft.XboxGamingOverlay",
+            "Microsoft.XboxIdentityProvider",
+            "Microsoft.GamingApp"
+        )
+    }
+
+    # Windows Store
+    "Microsoft.WindowsStore"                 = @{
+        Category     = "Store"
+        FriendlyName = "Microsoft Store"
+        PackageName  = "Microsoft.WindowsStore"
+    }
+
+    # Media Players
+    "Microsoft.ZuneMusic"                    = @{
+        Category     = "Media"
+        FriendlyName = "Groove Music"
+        PackageName  = "Microsoft.ZuneMusic"
+    }
+    "Microsoft.ZuneVideo"                    = @{
+        Category     = "Media"
+        FriendlyName = "Movies & TV"
+        PackageName  = "Microsoft.ZuneVideo"
+    }
+    "Microsoft.WindowsSoundRecorder"         = @{
+        Category     = "Media"
+        FriendlyName = "Sound Recorder"
+        PackageName  = "Microsoft.WindowsSoundRecorder"
+    }
+
+    # Productivity Tools
+    "Microsoft.MicrosoftStickyNotes"         = @{
+        Category     = "Productivity"
+        FriendlyName = "Sticky Notes"
+        PackageName  = "Microsoft.MicrosoftStickyNotes"
+    }
+    "Microsoft.Getstarted"                   = @{
+        Category     = "Productivity"
+        FriendlyName = "Get Started"
+        PackageName  = "Microsoft.Getstarted"
+    }
+    "Microsoft.Todos"                        = @{
+        Category     = "Productivity"
+        FriendlyName = "To Do"
+        PackageName  = "Microsoft.Todos"
+    }
+    "Microsoft.WindowsNotepad"               = @{
+        Category     = "Productivity"
+        FriendlyName = "Notepad"
+        PackageName  = "Microsoft.WindowsNotepad"
+    }
+
+    # Phone Integration
+    "Microsoft.YourPhone"                    = @{
+        Category     = "Phone"
+        FriendlyName = "Phone Link"
+        PackageName  = "Microsoft.YourPhone"
+    }
+
+    # AI & Copilot
+    "Copilot"                                = @{
+        Category         = "AI"
+        FriendlyName     = "Copilot"
+        PackageName      = "Copilot"
+        Description      = "Includes Copilot, its provider, and Store components"
+        SubPackages      = @(
+            "Microsoft.Windows.Ai.Copilot.Provider",
+            "Microsoft.Copilot",
+            "Microsoft.Copilot_8wekyb3d8bbwe"
+        )
         RegistrySettings = @(
             [pscustomobject]@{
-                BaseKey      = [BaseKey]::TaskbarChat
-                Name         = "ChatIcon"
-                Recommended  = [ValuePair]::new(3, [RegistryValueKind]::DWord)
+                BaseKey      = [BaseKey]::CloudContent
+                Name         = "TurnOffWindowsCopilot"
+                Recommended  = [ValuePair]::new(1, [RegistryValueKind]::DWord)
                 DefaultValue = $null
-                Description  = "Hide Chat/Teams icon from taskbar"
+                Description  = "Disable Windows Copilot system-wide"
+            },
+            [pscustomobject]@{
+                BaseKey      = [BaseKey]::CUExplorerAdvanced
+                Name         = "ShowCopilotButton"
+                Recommended  = [ValuePair]::new(0, [RegistryValueKind]::DWord)
+                DefaultValue = $null
+                Description  = "Hide Copilot button from taskbar"
+            }
+        )
+    }
+
+    # Meeting Tools
+    "Microsoft.WindowsMeetNow"               = @{
+        Category         = "Meetings"
+        FriendlyName     = "Meet Now"
+        PackageName      = "Microsoft.WindowsMeetNow"
+        RegistrySettings = @(
+            [pscustomobject]@{
+                BaseKey      = [BaseKey]::LMPolicyExplorer
+                Name         = "HideSCAMeetNow"
+                Recommended  = [ValuePair]::new(1, [RegistryValueKind]::DWord)
+                DefaultValue = $null
+                Description  = "Hide Meet Now button"
             }
         )
     }
@@ -5644,8 +6083,756 @@ $LegacyCapabilities = @{
         Name         = "Microsoft.Windows.WordPad"
     }
     "Microsoft.Windows.MSPaint"        = @{
-        FriendlyName = "Paint"
+        FriendlyName = "Paint (Legacy)"
         Name         = "Microsoft.Windows.MSPaint"
+    }
+}
+
+# ====================================
+# Remove Windows Apps Helper Functions
+# ====================================
+
+# Function to test installation status
+function Test-PackageInstalled {
+    param (
+        [string[]]$PackageNames,
+        [bool]$isCapability = $false,
+        [string]$specialType = ""
+    )
+    
+    # Handle special types first
+    switch ($specialType) {
+        "Edge" { return Test-EdgeInstalled }
+        "OneDrive" { return Test-OneDriveInstalled }
+        "Recall" { return Test-RecallEnabled }
+    }
+    
+    # Handle regular packages and capabilities
+    foreach ($pkg in $PackageNames) {
+        if ($isCapability) {
+            $isInstalled = Get-WindowsCapability -Online | Where-Object { $_.Name -like "$pkg*" } | Where-Object State -eq "Installed"
+            if ($isInstalled) { return $true }
+        }
+        else {
+            $isInstalled = Get-AppxPackage -AllUsers | Where-Object { $_.Name -eq $pkg }
+            if ($isInstalled) { return $true }
+        }
+    }
+    return $false
+}
+
+# Function to create status indicator
+function New-StatusIndicator {
+    param (
+        [string]$packageName,
+        [string[]]$subPackages,
+        [bool]$isCapability = $false
+    )
+    
+    # Create ellipse directly
+    $indicator = New-Object System.Windows.Shapes.Ellipse
+    $indicator.Width = 8
+    $indicator.Height = 8
+    $indicator.VerticalAlignment = "Center"
+    $indicator.Margin = [System.Windows.Thickness]::new(0, 0, 5, 0)
+    
+    # Check installation status
+    $isInstalled = if ($packageName -in @("Edge", "OneDrive", "Recall")) {
+        Test-PackageInstalled -PackageNames @() -specialType $packageName
+    }
+    elseif ($subPackages) {
+        Test-PackageInstalled -PackageNames $subPackages
+    }
+    else {
+        Test-PackageInstalled -PackageNames @($packageName) -isCapability $isCapability
+    }
+    
+    # Set color based on installation status
+    $indicator.Fill = if ($isInstalled) { 
+        [System.Windows.Media.BrushConverter]::new().ConvertFromString("#00FF00") 
+    }
+    else { 
+        [System.Windows.Media.BrushConverter]::new().ConvertFromString("#FF0000") 
+    }
+
+    # Add tooltip
+    $tooltip = New-Object System.Windows.Controls.ToolTip
+    $tooltip.Style = $window.FindResource("CustomTooltipStyle")
+    $tooltip.Content = if ($isInstalled) { "Installed" } else { "Not Installed" }
+    $indicator.ToolTip = $tooltip
+    
+    return $indicator
+}
+
+function New-AppCheckBox {
+    param (
+        [string]$friendlyName,
+        [string]$packageName,
+        [string[]]$subPackages,
+        [bool]$isCapability = $false,
+        [string]$description,
+        $tag = $null
+    )
+    
+    # Create checkbox directly
+    $chk = New-Object System.Windows.Controls.CheckBox
+    $chk.FontSize = 14
+    $chk.Margin = [System.Windows.Thickness]::new(5)
+    $chk.IsChecked = $true
+    $chk.Foreground = [System.Windows.Media.Brushes]::White
+    $chk.Style = $window.FindResource("CustomCheckBoxStyle")
+    
+    # Create stack panel for content
+    $stackPanel = New-Object System.Windows.Controls.StackPanel
+    $stackPanel.Orientation = "Horizontal"
+    $chk.Content = $stackPanel
+    
+    # Add status indicator
+    $indicator = New-StatusIndicator -packageName $packageName -subPackages $subPackages -isCapability $isCapability
+    [void]$stackPanel.Children.Add($indicator)
+    
+    # Add text
+    $textBlock = New-Object System.Windows.Controls.TextBlock
+    $textBlock.Text = $friendlyName
+    $textBlock.Margin = [System.Windows.Thickness]::new(5, 0, 0, 0)
+    [void]$stackPanel.Children.Add($textBlock)
+    
+    # Add help icon if description is provided
+    if ($description) {
+        $helpIcon = New-Object System.Windows.Controls.TextBlock
+        $helpIcon.Style = $window.FindResource("HelpIconStyle")
+        $helpIcon.Margin = [System.Windows.Thickness]::new(10, 0, 0, 0)
+        
+        $tooltip = New-Object System.Windows.Controls.ToolTip
+        $tooltip.Style = $window.FindResource("CustomTooltipStyle")
+        $tooltip.Content = $description
+        $helpIcon.ToolTip = $tooltip
+        
+        [void]$stackPanel.Children.Add($helpIcon)
+    }
+    
+    # Set tag
+    if ($tag) {
+        $chk.Tag = $tag
+    }
+    elseif ($subPackages) {
+        $chk.Tag = @{
+            PackageName = $packageName
+            SubPackages = $subPackages
+            IsGroup     = $true
+        }
+    }
+    else {
+        $chk.Tag = @{
+            PackageName  = $packageName
+            IsCapability = $isCapability
+        }
+    }
+    
+    return $chk
+}
+
+# Function to initialize package checkboxes
+function Initialize-PackageCheckboxes {
+    # Prepare all items for sorting
+    $sortedItems = @()
+
+    # Add Edge, OneDrive, and Recall
+    $sortedItems += @{
+        Key         = "Edge"
+        Value       = @{
+            FriendlyName = "Microsoft Edge"
+            PackageName  = "Edge"
+            IsSpecial    = $true
+        }
+        IsInstalled = Test-PackageInstalled -PackageNames @() -specialType "Edge"
+    }
+
+    $sortedItems += @{
+        Key         = "OneDrive"
+        Value       = @{
+            FriendlyName = "OneDrive"
+            PackageName  = "OneDrive"
+            IsSpecial    = $true
+        }
+        IsInstalled = Test-PackageInstalled -PackageNames @() -specialType "OneDrive"
+    }
+
+    $sortedItems += @{
+        Key         = "Recall"
+        Value       = @{
+            FriendlyName = "Recall"
+            PackageName  = "Recall"
+            IsSpecial    = $true
+        }
+        IsInstalled = Test-PackageInstalled -PackageNames @() -specialType "Recall"
+    }
+
+    # Add regular packages
+    $sortedItems += $WindowsPackages.GetEnumerator() | ForEach-Object {
+        $isInstalled = if ($_.Value.SubPackages) {
+            Test-PackageInstalled -PackageNames $_.Value.SubPackages
+        }
+        else {
+            Test-PackageInstalled -PackageNames @($_.Value.PackageName)
+        }
+        
+        @{
+            Key         = $_.Key
+            Value       = $_.Value
+            IsInstalled = $isInstalled
+        }
+    }
+
+    # Add legacy capabilities
+    $sortedItems += $LegacyCapabilities.GetEnumerator() | ForEach-Object {
+        @{
+            Key          = $_.Key
+            Value        = $_.Value
+            IsInstalled  = Test-PackageInstalled -PackageNames @($_.Value.Name) -isCapability $true
+            IsCapability = $true
+        }
+    }
+
+    # Sort items: Installed first (alphabetically) then Not installed (alphabetically)
+    $sortedItems = $sortedItems | Sort-Object -Property `
+        @{ Expression = { -not $_.IsInstalled }; Ascending = $true },
+        @{ Expression = { $_.Value.FriendlyName }; Ascending = $true }
+
+    # Create checkboxes for all items
+    foreach ($item in $sortedItems) {
+        $chk = if ($item.Value.IsSpecial) {
+            New-AppCheckBox -friendlyName $item.Value.FriendlyName -packageName $item.Value.PackageName -tag $item.Key
+        }
+        elseif ($item.IsCapability) {
+            New-AppCheckBox -friendlyName $item.Value.FriendlyName -packageName $item.Value.Name -isCapability $true
+        }
+        else {
+            New-AppCheckBox -friendlyName $item.Value.FriendlyName `
+                -packageName $item.Value.PackageName `
+                -subPackages $item.Value.SubPackages `
+                -description $item.Value.Description
+        }
+        
+        [void]$script:uniformGrid.Children.Add($chk)
+        $script:checkBoxes += $chk
+        Add-CheckboxEventHandlers -Checkbox $chk
+    }
+
+    # Add separator between installed and not installed packages
+    $currentItems = $script:uniformGrid.Children.Count
+    $emptySpacesNeeded = 4 - ($currentItems % 4)
+    if ($emptySpacesNeeded -ne 4) {
+        Add-EmptySpaces -Grid $script:uniformGrid -Count $emptySpacesNeeded
+    }
+}
+
+# Function to initialize package status cache
+function Initialize-PackageStatusCache {
+    Write-Log "[INFO] Initializing package status cache"
+    
+    try {
+        # Cache all installed capabilities
+        Write-Log "[INFO] Caching installed capabilities"
+        $script:InstalledCapabilities = @(Get-WindowsCapability -Online | 
+            Where-Object State -eq "Installed" | 
+            Select-Object -ExpandProperty Name)
+        Write-Log "[INFO] Cached $($script:InstalledCapabilities.Count) capabilities"
+        
+        # Cache all installed packages
+        Write-Log "[INFO] Caching installed packages"
+        $script:InstalledPackages = @(Get-AppxPackage -AllUsers | 
+            Select-Object -ExpandProperty Name)
+        Write-Log "[INFO] Cached $($script:InstalledPackages.Count) packages"
+        
+        Write-Log "[INFO] Package status cache initialized successfully"
+    }
+    catch {
+        Write-Log "[ERROR] Failed to initialize package status cache: $_"
+        throw
+    }
+}
+
+# Function to refresh package status cache
+function Update-PackageStatusCache {
+    Write-Log "[INFO] Refreshing package status cache"
+    $script:InstalledCapabilities = $null
+    $script:InstalledPackages = $null
+    Initialize-PackageStatusCache
+    Write-Log "[INFO] Package status cache refresh completed"
+}
+
+# Function to initialize the bloatware removal UI components
+function Initialize-BloatwareUI {
+    # Cache package status first
+    Initialize-PackageStatusCache
+    
+    # Get the panel that will contain our controls
+    $script:chkPanel = $window.FindName("chkPanel")
+    if (-not $script:chkPanel) {
+        throw "chkPanel element not found. Ensure the XAML has a StackPanel with x:Name='chkPanel'."
+    }
+
+    # Initialize the main components
+    $script:mainPanel = New-Object System.Windows.Controls.StackPanel
+    $script:mainPanel.Margin = [System.Windows.Thickness]::new(10)
+
+    $script:uniformGrid = [System.Windows.Controls.Primitives.UniformGrid]::new()
+    $script:uniformGrid.Columns = 4
+    $script:uniformGrid.Margin = [System.Windows.Thickness]::new(0, 10, 0, 10)
+
+    # Initialize checkboxes array
+    $script:checkBoxes = @()
+
+    # Create and add the select all checkbox
+    Initialize-SelectAllCheckbox
+    
+    # Add select all and initial spacing
+    [void]$script:uniformGrid.Children.Add($script:selectAllChk)
+    Add-EmptySpaces -Grid $script:uniformGrid -Count 3
+    
+    # Initialize all package checkboxes
+    Initialize-PackageCheckboxes
+    
+    # Add everything to the panels
+    [void]$script:mainPanel.Children.Add($script:uniformGrid)
+    [void]$script:chkPanel.Children.Add($script:mainPanel)
+
+    # Remove apps button initialized in main script controls
+}
+
+# Function to initialize the select all checkbox
+function Initialize-SelectAllCheckbox {
+    $script:selectAllChk = New-Object System.Windows.Controls.CheckBox
+    $script:selectAllChk.Content = "Select All"
+    $script:selectAllChk.FontSize = 14
+    $script:selectAllChk.FontWeight = [System.Windows.FontWeights]::Bold
+    $script:selectAllChk.Margin = [System.Windows.Thickness]::new(5)
+    $script:selectAllChk.IsChecked = $true
+    $script:selectAllChk.Foreground = [System.Windows.Media.BrushConverter]::new().ConvertFromString("#FFDE00")
+    $script:selectAllChk.Style = $window.FindResource("CustomCheckBoxStyle")
+
+    # Add event handlers
+    $script:handlingSelectAll = $false
+    Add-SelectAllEventHandlers -Checkbox $script:selectAllChk
+}
+
+# Function to initialize the remove apps button
+function Initialize-RemoveAppsButton {
+    # Create a DockPanel for layout
+    $dockPanel = New-Object System.Windows.Controls.DockPanel
+    $dockPanel.LastChildFill = $false
+    $dockPanel.Margin = [System.Windows.Thickness]::new(0, 10, 0, 0)
+
+    # Create button
+    $script:removeAppsButton = New-Object System.Windows.Controls.Button
+    $script:removeAppsButton.Content = "Remove Apps"
+    $script:removeAppsButton.Width = 130
+    $script:removeAppsButton.Height = 35
+    $script:removeAppsButton.Style = $window.FindResource("PrimaryButtonStyle")
+    
+    # Set button to dock right
+    [System.Windows.Controls.DockPanel]::SetDock($script:removeAppsButton, [System.Windows.Controls.Dock]::Right)
+    $script:removeAppsButton.Margin = [System.Windows.Thickness]::new(10, 0, 10, 0)
+
+    # Create info text panel
+    $infoPanel = New-Object System.Windows.Controls.StackPanel
+    $infoPanel.Orientation = "Horizontal"
+    $infoPanel.VerticalAlignment = "Center"
+    
+    # Create icon
+    $icon = New-Object System.Windows.Controls.TextBlock
+    $icon.Text = [char]::ConvertFromUtf32(0xE946)
+    $icon.FontFamily = New-Object System.Windows.Media.FontFamily("Segoe MDL2 Assets")
+    $icon.FontSize = 14
+    $icon.Foreground = [System.Windows.Media.Brushes]::Gray
+    $icon.VerticalAlignment = "Center"
+    $icon.Margin = [System.Windows.Thickness]::new(0, 0, 5, 0)
+
+    # Create text
+    $text = New-Object System.Windows.Controls.TextBlock
+    $text.Text = "Check all apps you don't want on your PC. Windows might try to add them back later, but Winhance will keep removing them for you."
+    $text.FontStyle = [System.Windows.FontStyles]::Italic
+    $text.Foreground = [System.Windows.Media.Brushes]::Gray
+    $text.VerticalAlignment = "Center"
+    $text.TextWrapping = [System.Windows.TextWrapping]::NoWrap  # Prevent wrapping
+
+    # Add elements to info panel
+    [void]$infoPanel.Children.Add($icon)
+    [void]$infoPanel.Children.Add($text)
+
+    # Set info panel to dock left
+    [System.Windows.Controls.DockPanel]::SetDock($infoPanel, [System.Windows.Controls.Dock]::Left)
+    $infoPanel.Margin = [System.Windows.Thickness]::new(10, 0, 0, 0)
+
+    # Add both elements to dock panel
+    [void]$dockPanel.Children.Add($script:removeAppsButton)
+    [void]$dockPanel.Children.Add($infoPanel)
+
+    # Add dock panel to the content area
+    $removeAppsContent = $window.FindName("RemoveAppsContent")
+    $removeAppsContent.Children.Insert(1, $dockPanel)
+}
+
+# Helper function to add empty spaces to a grid
+function Add-EmptySpaces {
+    param (
+        [Parameter(Mandatory = $true)]
+        [System.Windows.Controls.Primitives.UniformGrid]$Grid,
+        
+        [Parameter(Mandatory = $true)]
+        [int]$Count
+    )
+
+    1..$Count | ForEach-Object {
+        $emptySpace = New-Object System.Windows.Controls.Label
+        [void]$Grid.Children.Add($emptySpace)
+    }
+}
+
+# Function to add select all checkbox event handlers
+function Add-SelectAllEventHandlers {
+    param (
+        [Parameter(Mandatory = $true)]
+        [System.Windows.Controls.CheckBox]$Checkbox
+    )
+
+    $Checkbox.add_Checked({
+        if (-not $script:handlingSelectAll) {
+            foreach ($chk in $script:checkBoxes) {
+                $chk.IsChecked = $true
+            }
+        }
+    })
+
+    $Checkbox.add_Unchecked({
+        if (-not $script:handlingSelectAll) {
+            foreach ($chk in $script:checkBoxes) {
+                $chk.IsChecked = $false
+            }
+        }
+    })
+}
+
+# Function to update select all checkbox state
+function Update-SelectAllState {
+    $script:handlingSelectAll = $true
+    $allChecked = $true
+    
+    foreach ($chk in $script:checkBoxes) {
+        if ($chk -ne $script:selectAllChk -and -not $chk.IsChecked) {
+            $allChecked = $false
+            break
+        }
+    }
+    
+    $script:selectAllChk.IsChecked = $allChecked
+    $script:handlingSelectAll = $false
+}
+
+# Function to add event handlers to a checkbox
+function Add-CheckboxEventHandlers {
+    param (
+        [Parameter(Mandatory = $true)]
+        [System.Windows.Controls.CheckBox]$Checkbox
+    )
+
+    if ($Checkbox -ne $script:selectAllChk) {
+        $Checkbox.add_Checked({ Update-SelectAllState })
+        $Checkbox.add_Unchecked({ Update-SelectAllState })
+    }
+}
+
+# Function to update the package status
+function Update-PackageStatus {
+    try {
+        Write-Status "Updating package status..." -TargetScreen SoftAppsScreen
+        Write-Log "[INFO] Starting package status update"
+        
+        # Refresh the package status cache
+        try {
+            Update-PackageStatusCache
+        }
+        catch {
+            Write-Log "[ERROR] Failed to update package status cache: $_"
+            throw
+        }
+        
+        # Set handling flag to prevent triggering events
+        $script:handlingSelectAll = $true
+        
+        # Update checkbox states
+        $sortedBoxes = @()
+        
+        Write-Log "[INFO] Processing checkboxes"
+        foreach ($checkbox in $script:checkBoxes) {
+            try {
+                if ($checkbox -ne $script:selectAllChk) {
+                    $tag = $checkbox.Tag
+                    
+                    # Get installation status using cached data
+                    $isInstalled = if ($tag -is [string]) {
+                        Write-Log "[DEBUG] Processing special type: $tag"
+                        Test-PackageInstalled -PackageNames @() -specialType $tag
+                    } elseif ($tag.SubPackages) {
+                        Write-Log "[DEBUG] Processing sub-packages: $($tag.SubPackages -join ',')"
+                        Test-PackageInstalled -PackageNames $tag.SubPackages
+                    } else {
+                        Write-Log "[DEBUG] Processing package: $($tag.PackageName) (Capability: $($tag.IsCapability))"
+                        Test-PackageInstalled -PackageNames @($tag.PackageName) -isCapability $tag.IsCapability
+                    }
+                    
+                    # Verify checkbox content structure
+                    if ($null -eq $checkbox.Content) {
+                        Write-Log "[ERROR] Checkbox content is null"
+                        continue
+                    }
+                    
+                    $stackPanel = $checkbox.Content
+                    if ($stackPanel.Children.Count -lt 2) {
+                        Write-Log "[ERROR] Stack panel has insufficient children: $($stackPanel.Children.Count)"
+                        continue
+                    }
+                    
+                    # Update indicator
+                    $indicator = $stackPanel.Children[0]
+                    if ($null -ne $indicator) {
+                        $indicator.Fill = if ($isInstalled) {
+                            [System.Windows.Media.BrushConverter]::new().ConvertFromString("#00FF00")
+                        } else {
+                            [System.Windows.Media.BrushConverter]::new().ConvertFromString("#FF0000")
+                        }
+                        if ($null -ne $indicator.ToolTip) {
+                            $indicator.ToolTip.Content = if ($isInstalled) { "Installed" } else { "Not Installed" }
+                        }
+                    }
+                    
+                    # Add to sorted list
+                    $friendlyName = $stackPanel.Children[1].Text
+                    Write-Log "[DEBUG] Adding to sorted list: $friendlyName (Installed: $isInstalled)"
+                    $sortedBoxes += @{
+                        Checkbox = $checkbox
+                        IsInstalled = $isInstalled
+                        FriendlyName = $friendlyName
+                    }
+                }
+            }
+            catch {
+                Write-Log "[ERROR] Failed processing checkbox: $_"
+                # Continue with next checkbox instead of breaking
+                continue
+            }
+        }
+        
+        Write-Log "[INFO] Sorting checkboxes"
+        # Sort and reorder checkboxes
+        $sortedBoxes = $sortedBoxes | Sort-Object -Property `
+            @{ Expression = { -not $_.IsInstalled }; Ascending = $true }, 
+            @{ Expression = { $_.FriendlyName }; Ascending = $true }
+        
+        Write-Log "[INFO] Updating UI"
+        # Update UI
+        try {
+            $script:uniformGrid.Children.Clear()
+            [void]$script:uniformGrid.Children.Add($script:selectAllChk)
+            Add-EmptySpaces -Grid $script:uniformGrid -Count 3
+            
+            foreach ($item in $sortedBoxes) {
+                [void]$script:uniformGrid.Children.Add($item.Checkbox)
+            }
+            
+            # Complete the last row if needed
+            $currentItems = $script:uniformGrid.Children.Count
+            $emptySpacesNeeded = 4 - ($currentItems % 4)
+            if ($emptySpacesNeeded -ne 4) {
+                Add-EmptySpaces -Grid $script:uniformGrid -Count $emptySpacesNeeded
+            }
+        }
+        catch {
+            Write-Log "[ERROR] Failed updating UI layout: $_"
+            throw
+        }
+        
+        # Reset handling flag
+        $script:handlingSelectAll = $false
+        
+        Write-Log "[INFO] Package status update completed successfully"
+        Write-Status "Package status update complete." -TargetScreen SoftAppsScreen
+    }
+    catch {
+        Write-Log "[ERROR] Critical error in Update-PackageStatus: $_"
+        Write-Status "Failed to update package status. Check logs for details." -TargetScreen SoftAppsScreen
+        # Don't rethrow - we want to prevent the script from exiting
+        $script:handlingSelectAll = $false  # Ensure flag is reset
+    }
+}
+
+# Function to get and sort checkboxes based on installation status
+function Update-CheckboxesOrder {
+    $sortedBoxes = @()
+    
+    foreach ($checkbox in $script:checkBoxes) {
+        if ($checkbox -ne $script:selectAllChk) {
+            $tag = $checkbox.Tag
+            
+            # Get installation status
+            $isInstalled = if ($tag -is [string]) {
+                Test-PackageInstalled -PackageNames @() -specialType $tag
+            } elseif ($tag.SubPackages) {
+                Test-PackageInstalled -PackageNames $tag.SubPackages
+            } else {
+                Test-PackageInstalled -PackageNames @($tag.PackageName) -isCapability $tag.IsCapability
+            }
+            
+            # Update indicator
+            Update-CheckboxIndicator -Checkbox $checkbox -IsInstalled $isInstalled
+            
+            # Add to sorted list
+            $sortedBoxes += @{
+                Checkbox = $checkbox
+                IsInstalled = $isInstalled
+                FriendlyName = Get-FriendlyName -Tag $tag -Checkbox $checkbox
+            }
+        }
+    }
+    
+    # Sort the boxes
+    $sortedBoxes = $sortedBoxes | Sort-Object -Property `
+        @{ Expression = { -not $_.IsInstalled }; Ascending = $true }, 
+        @{ Expression = { $_.FriendlyName }; Ascending = $true }
+    
+    # Update the UI with sorted boxes
+    Update-UniformGridLayout -SortedBoxes $sortedBoxes
+}
+
+# Function to update a checkbox's indicator
+function Update-CheckboxIndicator {
+    param (
+        [Parameter(Mandatory = $true)]
+        [System.Windows.Controls.CheckBox]$Checkbox,
+        
+        [Parameter(Mandatory = $true)]
+        [bool]$IsInstalled
+    )
+    
+    $stackPanel = $Checkbox.Content
+    $indicator = $stackPanel.Children[0]
+    $indicator.Fill = if ($IsInstalled) {
+        [System.Windows.Media.BrushConverter]::new().ConvertFromString("#00FF00")
+    } else {
+        [System.Windows.Media.BrushConverter]::new().ConvertFromString("#FF0000")
+    }
+    $indicator.ToolTip.Content = if ($IsInstalled) { "Installed" } else { "Not Installed" }
+    $Checkbox.IsChecked = $false
+}
+
+# Function to get friendly name for a checkbox
+function Get-FriendlyName {
+    param (
+        [Parameter(Mandatory = $true)]
+        $Tag,
+        
+        [Parameter(Mandatory = $true)]
+        [System.Windows.Controls.CheckBox]$Checkbox
+    )
+    
+    if ($Tag -is [string]) {
+        switch ($Tag) {
+            "Edge" { "Microsoft Edge" }
+            "OneDrive" { "OneDrive" }
+            "Recall" { "Recall" }
+            default { $Tag }
+        }
+    } else {
+        $Checkbox.Content.Children[1].Text
+    }
+}
+
+# Function to update the UniformGrid layout
+function Update-UniformGridLayout {
+    param (
+        [Parameter(Mandatory = $true)]
+        [Array]$SortedBoxes
+    )
+    
+    $script:uniformGrid.Children.Clear()
+    
+    # Add Select All checkbox
+    [void]$script:uniformGrid.Children.Add($script:selectAllChk)
+    
+    # Add empty spaces for first row
+    Add-EmptySpaces -Grid $script:uniformGrid -Count 3
+    
+    # Add all checkboxes in their new order
+    foreach ($item in $SortedBoxes) {
+        [void]$script:uniformGrid.Children.Add($item.Checkbox)
+    }
+    
+    # Complete the last row if needed
+    $currentItems = $script:uniformGrid.Children.Count
+    $emptySpacesNeeded = 4 - ($currentItems % 4)
+    if ($emptySpacesNeeded -ne 4) {
+        Add-EmptySpaces -Grid $script:uniformGrid -Count $emptySpacesNeeded
+    }
+}
+
+# Function to check Edge installation
+function Test-EdgeInstalled {
+    try {
+        # Check for Microsoft Edge process path
+        $edgePath = (Get-ItemProperty "HKLM:\SOFTWARE\Microsoft\Windows\CurrentVersion\App Paths\msedge.exe" -ErrorAction SilentlyContinue)."(Default)"
+        return [bool]$edgePath
+    }
+    catch {
+        return $false
+    }
+}
+
+function Test-OneDriveInstalled {
+    try {
+        # Check multiple indicators of OneDrive installation
+        $indicators = @{
+            # Check if OneDrive process exists
+            ProcessExists  = [bool](Get-Process -Name "OneDrive" -ErrorAction SilentlyContinue)
+            
+            # Check registry uninstall keys
+            RegistryExists = [bool](Get-ItemProperty "HKLM:\SOFTWARE\Microsoft\Windows\CurrentVersion\Uninstall\OneDriveSetup.exe" -ErrorAction SilentlyContinue) -or
+            [bool](Get-ItemProperty "HKCU:\SOFTWARE\Microsoft\Windows\CurrentVersion\Uninstall\OneDriveSetup.exe" -ErrorAction SilentlyContinue)
+            
+            # Check AppX package
+            AppXExists     = [bool](Get-AppxPackage -Name "*OneDrive*" -ErrorAction SilentlyContinue)
+            
+            # Check critical OneDrive folders
+            FoldersExist   = (Test-Path "$env:LOCALAPPDATA\Microsoft\OneDrive") -or
+                          (Test-Path "$env:ProgramFiles\Microsoft\OneDrive") -or
+                          (Test-Path "${env:ProgramFiles(x86)}\Microsoft\OneDrive")
+            
+            # Check OneDrive scheduled tasks
+            TasksExist     = [bool](Get-ScheduledTask | Where-Object { $_.TaskName -match 'OneDrive' -and $_.TaskName -ne 'OneDriveRemoval' } -ErrorAction SilentlyContinue)
+            
+            # Check startup entry
+            StartupExists  = [bool](Get-ItemProperty "HKCU:\SOFTWARE\Microsoft\Windows\CurrentVersion\Run" -Name "OneDriveSetup" -ErrorAction SilentlyContinue)
+        }
+        
+        # Consider OneDrive installed if at least two indicators are true
+        $positiveIndicators = ($indicators.Values | Where-Object { $_ -eq $true }).Count
+        return $positiveIndicators -ge 2
+        
+    }
+    catch {
+        Write-Warning "Error checking OneDrive installation status: $($_.Exception.Message)"
+        return $false
+    }
+}
+
+# Function to check Recall feature
+function Test-RecallEnabled {
+    try {
+        $feature = Get-WindowsOptionalFeature -Online -FeatureName "Recall" -ErrorAction SilentlyContinue
+        return $feature.State -eq "Enabled"
+    }
+    catch {
+        return $false
     }
 }
 
@@ -6011,6 +7198,36 @@ del /F /Q "%~f0"
             continue
         }
     }
+
+    # Additional cleanup for stubborn setup files
+    $setupFiles = @(
+        "$env:SystemRoot\System32\OneDriveSetup.exe",
+        "$env:SystemRoot\SysWOW64\OneDriveSetup.exe"
+    )
+
+    foreach ($file in $setupFiles) {
+        if (Test-Path $file) {
+            try {
+                # Take ownership and grant full permissions
+                $null = Start-Process "takeown.exe" -ArgumentList "/F `"$file`"" -Wait -NoNewWindow -PassThru -ErrorAction SilentlyContinue
+                $null = Start-Process "icacls.exe" -ArgumentList "`"$file`" /grant administrators:F" -Wait -NoNewWindow -PassThru -ErrorAction SilentlyContinue
+            
+                # Attempt direct removal
+                Remove-Item -Path $file -Force -ErrorAction SilentlyContinue
+            
+                # If file still exists, schedule it for deletion on next reboot
+                if (Test-Path $file) {
+                    $pendingRename = "$file.pending"
+                    Move-Item -Path $file -Destination $pendingRename -Force -ErrorAction SilentlyContinue
+                    Start-Process "cmd.exe" -ArgumentList "/c del /F /Q `"$pendingRename`"" -WindowStyle Hidden -ErrorAction SilentlyContinue
+                }
+            }
+            catch {
+                # Continue if cleanup fails
+                continue
+            }
+        }
+    }
 }
 
 # Function to Remove-Onedrive
@@ -6058,33 +7275,6 @@ function Remove-OneDrive {
             Write-Status -Message "Scheduled task created to run OneDriveRemoval.ps1 at startup." -TargetScreen SoftAppsScreen
             Update-WPFControls
 
-            # Prompt user about cleaning up their OneDrive data
-            $cleanupMessage = "Would you like to remove local OneDrive folders and data?`n`n" +
-            "NOTE: This will delete all local OneDrive data from your computer. Your files will still be available through OneDrive.com if you've previously synced them.`n`n" +
-            "This step is optional and should only be performed if you:`n" +
-            "- Are sure your files are synced to OneDrive.com`n" +
-            "- No longer need local copies of your OneDrive files`n" +
-            "- Understand how to access your files from OneDrive.com`n`n" +
-            "This action cannot be undone."
-
-            $cleanupResult = Show-MessageBox -Message $cleanupMessage -Title "OneDrive Data Cleanup" -Buttons YesNo -Icon Warning
-
-            if ($cleanupResult -eq [System.Windows.Forms.DialogResult]::Yes) {
-                Write-Status -Message "Cleaning up OneDrive folders..." -TargetScreen SoftAppsScreen
-                Update-WPFControls
-                
-                $oneDriveFolders = @(
-                    "$env:USERPROFILE\OneDrive",
-                    "$env:LOCALAPPDATA\Microsoft\OneDrive",
-                    "$env:PROGRAMDATA\Microsoft OneDrive"
-                )
-                foreach ($folder in $oneDriveFolders) {
-                    if (Test-Path $folder) {
-                        Remove-Item -Path $folder -Recurse -Force -ErrorAction SilentlyContinue
-                    }
-                }
-            }
-
             Show-MessageBox -Message "OneDrive has been successfully removed from your system.`n`nA startup task was created to prevent it from reinstalling.`nIf you experience issues, you can delete the 'OneDriveRemoval' task in Task Scheduler." -Title "Success" -Buttons OK -Icon Information
             Write-Status -Message "OneDrive removal completed successfully!" -TargetScreen SoftAppsScreen
             Update-WPFControls
@@ -6107,104 +7297,7 @@ function Remove-OneDrive {
 
 # Function to remove the selected apps (Including Edge and OneDrive), create removal script and scheduled task
 function Remove-SelectedBloatware {
-    function Process-Child {
-        param (
-            $child,
-            [System.Collections.ArrayList]$bloatScriptContent,
-            [ref]$hasNormalApps,
-            [ref]$hasEdge,
-            [ref]$hasOneDrive
-        )
-    
-        if ($child -is [System.Windows.Controls.CheckBox] -and $child.IsChecked -eq $true) {
-            if ($child.Content -eq "Select All") {
-                Write-Status "Skipping 'Select All' checkbox."
-                return
-            }
-    
-            Write-Status "Processing checkbox: $($child.Content)"
-    
-            # Handle special cases first
-            switch ($child.Tag) {
-                "Edge" {
-                    $hasEdge.Value = $true
-                    Remove-Edge
-                    return
-                }
-                "OneDrive" {
-                    $hasOneDrive.Value = $true
-                    Remove-OneDrive
-                    return
-                }
-                "Recall" {
-                    $hasNormalApps.Value = $true
-                    Write-Status "Adding Recall disable command to script..."
-                    # Add Recall disable command to script
-                    $bloatScriptContent.Add("# Disable Recall Feature") | Out-Null
-                    $bloatScriptContent.Add('$result = Dism /Online /Disable-Feature /Featurename:Recall /NoRestart 2>&1') | Out-Null
-                    $bloatScriptContent.Add('if ($LASTEXITCODE -ne 0 -and $LASTEXITCODE -ne 3010) { throw "Failed to disable Recall feature. Exit code: $LASTEXITCODE" }') | Out-Null
-                    
-                    # Execute Recall disable immediately
-                    try {
-                        $result = Dism /Online /Disable-Feature /Featurename:Recall /NoRestart 2>&1
-                        if ($LASTEXITCODE -eq 0 -or $LASTEXITCODE -eq 3010) {
-                            Write-Status "Recall feature disabled successfully."
-                        }
-                        else {
-                            Write-Status "Failed to disable Recall feature. Error: $($result -join '\n')"
-                        }
-                    }
-                    catch {
-                        Write-Status "Error disabling Recall: $($_.Exception.Message)"
-                    }
-                    return
-                }
-            }
-    
-            # Handle regular app removal and capabilities based on tag type
-            $hasNormalApps.Value = $true
-            if ($child.Content -eq "Useless Bloatware") {
-                # Handle appx package removal
-                foreach ($appName in $child.Tag) {
-                    Process-AppRemoval -AppName $appName -BloatScriptContent $bloatScriptContent
-                    Process-RegistrySettings -AppName $appName -BloatScriptContent $bloatScriptContent
-                }
-            
-                # Handle capabilities removal - execute only, don't add to script
-                Write-Status "Processing Legacy Windows Features..."
-                try {
-                    Get-WindowsCapability -Online | 
-                    Where-Object { $LegacyCapabilities.Keys -contains ($_.Name -split '~')[0] } |
-                    ForEach-Object {
-                        $friendlyName = $LegacyCapabilities[($_.Name -split '~')[0]].FriendlyName
-                        Write-Status "Removing Legacy Feature: $friendlyName"
-                        Remove-WindowsCapability -Online -Name $_.Name -ErrorAction SilentlyContinue | Out-Null
-                    }
-                }
-                catch {
-                    Write-Status "Error removing Legacy Features: $($_.Exception.Message)"
-                }
-            }
-            elseif ($child.Tag -is [Array]) {
-                foreach ($appName in $child.Tag) {
-                    Process-AppRemoval -AppName $appName -BloatScriptContent $bloatScriptContent
-                    Process-RegistrySettings -AppName $appName -BloatScriptContent $bloatScriptContent
-                }
-            }
-            else {
-                $appName = $child.Tag.Trim()
-                Process-AppRemoval -AppName $appName -BloatScriptContent $bloatScriptContent
-                Process-RegistrySettings -AppName $appName -BloatScriptContent $bloatScriptContent
-            }
-        }
-    
-        if ($child -is [System.Windows.Controls.Panel]) {
-            foreach ($nestedChild in $child.Children) {
-                Process-Child -child $nestedChild -bloatScriptContent $bloatScriptContent -hasNormalApps $hasNormalApps -hasEdge $hasEdge -hasOneDrive $hasOneDrive
-            }
-        }
-    }
-    
+    # Keep these helper functions from your original implementation
     function Process-AppRemoval {
         param (
             [string]$AppName,
@@ -6213,70 +7306,88 @@ function Remove-SelectedBloatware {
     
         Write-Status "Removing app: $AppName" -TargetScreen SoftAppsScreen
         
-        # Add to the standalone script (without Write-Status commands)
-        $bloatScriptContent.Add("Get-AppxPackage -AllUsers | Where-Object { `$_.Name -eq '$AppName' } | ForEach-Object { Remove-AppxPackage -Package `$_.PackageFullName -AllUsers -ErrorAction SilentlyContinue }") | Out-Null
+        # Check if this is a package group (like Xbox) that has subpackages
+        $appConfig = $WindowsPackages[$AppName]
+        $packagesToRemove = @()
         
-        # Get all packages matching the app name
-        $packages = Get-AppxPackage -AllUsers | Where-Object { $_.Name -eq $AppName }
-        
-        if (-not $packages) {
-            Write-Status "No packages found for $AppName" -TargetScreen SoftAppsScreen
-            return
+        if ($appConfig.SubPackages) {
+            Write-Status "Processing package group: $($appConfig.FriendlyName)" -TargetScreen SoftAppsScreen
+            $packagesToRemove = $appConfig.SubPackages
+            
+            # Add subpackage removal to script
+            $bloatScriptContent.Add("# Remove $($appConfig.FriendlyName) package group") | Out-Null
+            foreach ($subPackage in $appConfig.SubPackages) {
+                $bloatScriptContent.Add("Get-AppxPackage -AllUsers | Where-Object { `$_.Name -eq '$subPackage' } | ForEach-Object { Remove-AppxPackage -Package `$_.PackageFullName -AllUsers -ErrorAction SilentlyContinue }") | Out-Null
+            }
+        } else {
+            $packagesToRemove = @($AppName)
+            # Add to the standalone script (without Write-Status commands)
+            $bloatScriptContent.Add("Get-AppxPackage -AllUsers | Where-Object { `$_.Name -eq '$AppName' } | ForEach-Object { Remove-AppxPackage -Package `$_.PackageFullName -AllUsers -ErrorAction SilentlyContinue }") | Out-Null
         }
-    
-        # Log all found packages before removal
-        foreach ($pkg in $packages) {
-            Write-Status "Found package: $($pkg.PackageFullName) (Architecture: $($pkg.Architecture), Version: $($pkg.Version))" -TargetScreen SoftAppsScreen
-        }
         
-        foreach ($package in $packages) {
-            Write-Status "Removing package: $($package.PackageFullName)" -TargetScreen SoftAppsScreen
-            try {
-                # First try to remove provisioned package if it exists
-                $provPackage = Get-AppxProvisionedPackage -Online | 
-                Where-Object { $_.DisplayName -eq $AppName }
-                if ($provPackage) {
-                    Write-Status "Removing provisioned package first: $($provPackage.PackageName)" -TargetScreen SoftAppsScreen
-                    Remove-AppxProvisionedPackage -Online -PackageName $provPackage.PackageName -ErrorAction SilentlyContinue | Out-Null
-                }
-    
-                # Create a separate PowerShell process for package removal
-                $script = {
-                    param($packageFullName)
-                    try {
-                        Remove-AppxPackage -Package $packageFullName -AllUsers -ErrorAction Stop
-                        return @{
-                            Success = $true
-                            Message = "Successfully removed package"
+        # Process each package
+        foreach ($packageName in $packagesToRemove) {
+            $packages = Get-AppxPackage -AllUsers | Where-Object { $_.Name -eq $packageName }
+            
+            if (-not $packages) {
+                Write-Status "No packages found for $packageName" -TargetScreen SoftAppsScreen
+                continue
+            }
+        
+            # Log all found packages before removal
+            foreach ($pkg in $packages) {
+                Write-Status "Found package: $($pkg.PackageFullName) (Architecture: $($pkg.Architecture), Version: $($pkg.Version))" -TargetScreen SoftAppsScreen
+            }
+            
+            foreach ($package in $packages) {
+                Write-Status "Removing package: $($package.PackageFullName)" -TargetScreen SoftAppsScreen
+                try {
+                    # First try to remove provisioned package if it exists
+                    $provPackage = Get-AppxProvisionedPackage -Online | 
+                    Where-Object { $_.DisplayName -eq $packageName }
+                    if ($provPackage) {
+                        Write-Status "Removing provisioned package first: $($provPackage.PackageName)" -TargetScreen SoftAppsScreen
+                        Remove-AppxProvisionedPackage -Online -PackageName $provPackage.PackageName -ErrorAction SilentlyContinue | Out-Null
+                    }
+        
+                    # Create a separate PowerShell process for package removal
+                    $script = {
+                        param($packageFullName)
+                        try {
+                            Remove-AppxPackage -Package $packageFullName -AllUsers -ErrorAction Stop
+                            return @{
+                                Success = $true
+                                Message = "Successfully removed package"
+                            }
+                        }
+                        catch {
+                            return @{
+                                Success = $false
+                                Message = $_.Exception.Message
+                            }
                         }
                     }
-                    catch {
-                        return @{
-                            Success = $false
-                            Message = $_.Exception.Message
+                    
+                    $job = Start-Job -ScriptBlock $script -ArgumentList $package.PackageFullName
+                    $completed = Wait-Job -Job $job -Timeout 30
+                    
+                    if ($completed) {
+                        $result = Receive-Job -Job $job
+                        if ($result.Success) {
+                            Write-Status "Successfully removed $($package.PackageFullName)" -TargetScreen SoftAppsScreen
                         }
-                    }
-                }
-                
-                $job = Start-Job -ScriptBlock $script -ArgumentList $package.PackageFullName
-                $completed = Wait-Job -Job $job -Timeout 30
-                
-                if ($completed) {
-                    $result = Receive-Job -Job $job
-                    if ($result.Success) {
-                        Write-Status "Successfully removed $($package.PackageFullName)" -TargetScreen SoftAppsScreen
+                        else {
+                            Write-Status "Error removing $($package.PackageFullName): $($result.Message)" -TargetScreen SoftAppsScreen
+                        }
                     }
                     else {
-                        Write-Status "Error removing $($package.PackageFullName): $($result.Message)" -TargetScreen SoftAppsScreen
+                        Write-Status "Package removal timed out: $($package.PackageFullName)" -TargetScreen SoftAppsScreen
                     }
+                    Remove-Job -Job $job -Force
                 }
-                else {
-                    Write-Status "Package removal timed out: $($package.PackageFullName)" -TargetScreen SoftAppsScreen
+                catch {
+                    Write-Status "Error processing package $($package.PackageFullName): $($_.Exception.Message)" -TargetScreen SoftAppsScreen
                 }
-                Remove-Job -Job $job -Force
-            }
-            catch {
-                Write-Status "Error processing package $($package.PackageFullName): $($_.Exception.Message)" -TargetScreen SoftAppsScreen
             }
         }
     }
@@ -6287,14 +7398,8 @@ function Remove-SelectedBloatware {
             [System.Collections.ArrayList]$bloatScriptContent
         )
     
-        # Look up app configuration in both arrays
-        $appConfig = $null
-        if ($Bloatappx.ContainsKey($AppName)) {
-            $appConfig = $Bloatappx[$AppName]
-        }
-        elseif ($UsefulAppx.ContainsKey($AppName)) {
-            $appConfig = $UsefulAppx[$AppName]
-        }
+        # Look up app configuration in WindowsPackages
+        $appConfig = $WindowsPackages[$AppName]
     
         if ($appConfig -and $appConfig.RegistrySettings) {
             Write-Status "Processing registry settings for $($appConfig.FriendlyName)"
@@ -6348,79 +7453,153 @@ function Remove-SelectedBloatware {
     }
 
     # Initialize flags to track what types of items are selected
-    $hasNormalApps = [ref]$false
-    $hasEdge = [ref]$false
-    $hasOneDrive = [ref]$false
+    $hasApps = $false
+    $hasEdge = $false
+    $hasOneDrive = $false
+    $hasRecall = $false
+    $hasCapabilities = $false
 
-    # First, handle Edge and OneDrive separately
-    foreach ($child in $uniformGrid.Children) {
-        if ($child -is [System.Windows.Controls.CheckBox] -and $child.IsChecked -eq $true) {
-            if ($child.Content -eq "Select All") { continue }
-            
-            # Process Edge and OneDrive immediately
-            switch ($child.Tag) {
-                "Edge" { 
-                    Remove-Edge
+    # Initialize content for the standalone script using ArrayList
+    $bloatScriptContent = [System.Collections.ArrayList]@(
+        "# BloatRemoval.ps1",
+        "# Standalone script to remove selected bloatware",
+        "# Source: Winhance (https://github.com/memstechtips/Winhance)",
+        ""
+    )
+
+    # Find UniformGrid and check selected items
+    $mainPanel = $chkPanel.Children[0]
+    $uniformGrid = $mainPanel.Children[0]
+    foreach ($item in $uniformGrid.Children) {
+        if ($item -is [System.Windows.Controls.CheckBox] -and $item.IsChecked) {
+            # Skip "Select All" checkbox
+            if ($item.Content -is [System.Windows.Controls.StackPanel] -and 
+                $item.Content.Children[1].Text -eq "Select All") { continue }
+
+            if ($item.Tag -is [hashtable]) {
+                if ($item.Tag.IsCapability) {
+                    $hasCapabilities = $true
                 }
-                "OneDrive" { 
-                    Remove-OneDrive
-                }
-                default { 
-                    $hasNormalApps.Value = $true 
+                else {
+                    $hasApps = $true
                 }
             }
+            elseif ($item.Tag -eq "Edge") { $hasEdge = $true }
+            elseif ($item.Tag -eq "OneDrive") { $hasOneDrive = $true }
+            elseif ($item.Tag -eq "Recall") { $hasRecall = $true }
         }
     }
 
-    # Then handle normal apps with warning
-    if ($hasNormalApps.Value) {
-        $result = Show-MessageBox -Message "You're about to remove apps from your system that could cause instability.`nMissing apps will have to be reinstalled individually.`nAre you sure you want to continue?" -Title "Warning" -Buttons "YesNo" -Icon "Warning"
+    # Show warning if any items are selected
+    if ($hasApps -or $hasCapabilities) {
+        $result = Show-MessageBox -Message "You're about to remove apps and features from your system that could cause instability.`nMissing items will have to be reinstalled individually.`nAre you sure you want to continue?" -Title "Warning" -Buttons "YesNo" -Icon "Warning"
 
-        if ($result -eq [System.Windows.Forms.DialogResult]::Yes) {
-            # Initialize content for the standalone script using ArrayList
-            $bloatScriptContent = [System.Collections.ArrayList]@(
-                "# BloatRemoval.ps1",
-                "# Standalone script to remove selected bloatware",
-                "# Source: Winhance (https://github.com/memstechtips/Winhance)",
-                ""
-            )
+        if ($result -ne [System.Windows.Forms.DialogResult]::Yes) {
+            Write-Status "Operation canceled by the user." -TargetScreen SoftAppsScreen
+            return
+        }
+    }
 
-            # Process only non-Edge/OneDrive items
-            foreach ($child in $uniformGrid.Children) {
-                if ($child -is [System.Windows.Controls.CheckBox] -and $child.IsChecked -eq $true) {
-                    if ($child.Content -eq "Select All" -or $child.Tag -eq "Edge" -or $child.Tag -eq "OneDrive") { 
-                        continue 
-                    }
-                    Process-Child -child $child -bloatScriptContent $bloatScriptContent -hasNormalApps $hasNormalApps -hasEdge $hasEdge -hasOneDrive $hasOneDrive
-                }
-                elseif ($child -is [System.Windows.Controls.Panel]) {
-                    foreach ($nestedChild in $child.Children) {
-                        if ($nestedChild.Tag -ne "Edge" -and $nestedChild.Tag -ne "OneDrive") {
-                            Process-Child -child $nestedChild -bloatScriptContent $bloatScriptContent -hasNormalApps $hasNormalApps -hasEdge $hasEdge -hasOneDrive $hasOneDrive
+    # Process Edge removal
+    if ($hasEdge) {
+        Remove-Edge
+    }
+
+    # Process OneDrive removal
+    if ($hasOneDrive) {
+        Remove-OneDrive
+    }
+
+    # Process Recall feature
+    if ($hasRecall) {
+        Write-Status "Disabling Recall feature..." -TargetScreen SoftAppsScreen
+        $bloatScriptContent.Add("# Disable Recall Feature") | Out-Null
+        $bloatScriptContent.Add('$result = Dism /Online /Disable-Feature /Featurename:Recall /NoRestart 2>&1') | Out-Null
+        $bloatScriptContent.Add('if ($LASTEXITCODE -ne 0 -and $LASTEXITCODE -ne 3010) { throw "Failed to disable Recall feature. Exit code: $LASTEXITCODE" }') | Out-Null
+        
+        try {
+            $result = Dism /Online /Disable-Feature /Featurename:Recall /NoRestart 2>&1
+            if ($LASTEXITCODE -eq 0 -or $LASTEXITCODE -eq 3010) {
+                Write-Status "Recall feature disabled successfully." -TargetScreen SoftAppsScreen
+            }
+            else {
+                Write-Status "Failed to disable Recall feature. Error: $($result -join '\n')" -TargetScreen SoftAppsScreen
+            }
+        }
+        catch {
+            Write-Status "Error disabling Recall: $($_.Exception.Message)" -TargetScreen SoftAppsScreen
+        }
+    }
+
+    # Process apps and capabilities
+    foreach ($item in $uniformGrid.Children) {
+        if ($item -is [System.Windows.Controls.CheckBox] -and $item.IsChecked) {
+            # Skip "Select All" checkbox
+            if ($item.Content -eq "Select All") { continue }
+
+            if ($item.Tag -is [hashtable]) {
+                if ($item.Tag.IsCapability) {
+                    # Process capability removal
+                    Write-Status "Processing capability: $($item.Tag.PackageName)" -TargetScreen SoftAppsScreen
+                    
+                    # Add to script
+                    $bloatScriptContent.Add("# Remove capability: $($item.Tag.PackageName)") | Out-Null
+                    $bloatScriptContent.Add('Get-WindowsCapability -Online | Where-Object { $_.Name -like "' + $item.Tag.PackageName + '*" } | Remove-WindowsCapability -Online') | Out-Null
+                    
+                    # Execute immediately
+                    try {
+                        Get-WindowsCapability -Online | 
+                        Where-Object { $_.Name -like "$($item.Tag.PackageName)*" } |
+                        ForEach-Object {
+                            Write-Status "Removing capability: $($_.Name)" -TargetScreen SoftAppsScreen
+                            Remove-WindowsCapability -Online -Name $_.Name -ErrorAction SilentlyContinue | Out-Null
                         }
                     }
+                    catch {
+                        Write-Status "Error removing capability $($item.Tag.PackageName): $($_.Exception.Message)" -TargetScreen SoftAppsScreen
+                    }
+                }
+                else {
+                    # Process app removal
+                    Write-Status "Processing app: $($item.Tag.PackageName)" -TargetScreen SoftAppsScreen
+                    Process-AppRemoval -AppName $item.Tag.PackageName -BloatScriptContent $bloatScriptContent
+                    Process-RegistrySettings -AppName $item.Tag.PackageName -BloatScriptContent $bloatScriptContent
                 }
             }
-
-            # Save and register the script
-            $scriptPath = "$env:ProgramFiles\Winhance\Scripts\BloatRemoval.ps1"
-            if (-not (Test-Path -Path (Split-Path -Parent $scriptPath))) {
-                New-Item -ItemType Directory -Path (Split-Path -Parent $scriptPath) -Force
-            }
-            $bloatScriptContent | Set-Content -Path $scriptPath -Force
-            Write-Status "Standalone script saved at $scriptPath" -TargetScreen SoftAppsScreen
-
-            # Register the scheduled task
-            Register-ScheduledTask -TaskName "Winhance\BloatRemoval" -Action (New-ScheduledTaskAction -Execute "powershell.exe" -Argument "-File `"$scriptPath`"") -Trigger (New-ScheduledTaskTrigger -AtStartup) -User "SYSTEM" -RunLevel Highest -Settings (New-ScheduledTaskSettingsSet -DontStopIfGoingOnBatteries -AllowStartIfOnBatteries) -Force
-            Write-Status "Scheduled task created to run BloatRemoval.ps1 at startup." -TargetScreen SoftAppsScreen
-
-            Write-Status "Selected apps removed." -TargetScreen SoftAppsScreen
-            Show-MessageBox -Message "Selected apps removed.`n`nA startup task was created to prevent apps from reinstalling. If you experience issues with automatic app removal in the future, you can delete the 'BloatRemoval' task in Task Scheduler." -Title "Success" -Buttons "OK" -Icon "Information"
-        }
-        else {
-            Write-Status "Operation canceled by the user." -TargetScreen SoftAppsScreen
         }
     }
+
+    # Updates Installed/Not Installed Package Status
+    Update-PackageStatus
+
+    # Save and register the script if we have content
+    if ($bloatScriptContent.Count -gt 4) {
+        # If we added any content beyond the header
+        $scriptPath = "$env:ProgramFiles\Winhance\Scripts\BloatRemoval.ps1"
+        if (-not (Test-Path -Path (Split-Path -Parent $scriptPath))) {
+            New-Item -ItemType Directory -Path (Split-Path -Parent $scriptPath) -Force
+        }
+        $bloatScriptContent | Set-Content -Path $scriptPath -Force
+        Write-Status "Standalone script saved at $scriptPath" -TargetScreen SoftAppsScreen
+
+        # Register the scheduled task
+        Register-ScheduledTask -TaskName "Winhance\BloatRemoval" `
+            -Action (New-ScheduledTaskAction -Execute "powershell.exe" -Argument "-File `"$scriptPath`"") `
+            -Trigger (New-ScheduledTaskTrigger -AtStartup) `
+            -User "SYSTEM" `
+            -RunLevel Highest `
+            -Settings (New-ScheduledTaskSettingsSet -DontStopIfGoingOnBatteries -AllowStartIfOnBatteries) `
+            -Force
+
+        Write-Status "Scheduled task created to run BloatRemoval.ps1 at startup." -TargetScreen SoftAppsScreen
+        Write-Status "Selected items removed." -TargetScreen SoftAppsScreen
+        
+        Show-MessageBox -Message "Selected items removed.`n`nA startup task was created to prevent apps from reinstalling. If you experience issues with automatic removal in the future, you can delete the 'BloatRemoval' task in Task Scheduler." `
+            -Title "Success" `
+            -Buttons "OK" `
+            -Icon "Information"
+    }
+    
 }
 
 # =================================
@@ -8145,6 +9324,7 @@ TSz1QZdkum5Y3uC7wc7paXh1rm11nwluCC7jiA==
 # XAML definition and window creation for the application interface
 # ====================================================================================================
 
+# Main Window
 $xaml = @'
 <Window
 	xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
@@ -8152,8 +9332,8 @@ $xaml = @'
 	xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
 	xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
     Title="Winhance"
-    Width="1050"
-    Height="615"
+    Width="1280"
+    Height="720"
     Background="Transparent"
     WindowStartupLocation="CenterScreen"
     WindowStyle="None"
@@ -8170,11 +9350,36 @@ $xaml = @'
             UseAeroCaptionButtons="False"/>
     </WindowChrome.WindowChrome>
     <Window.Resources>
+        <!-- Theme Color Resources -->
+        <SolidColorBrush x:Key="PrimaryTextColor" Color="#FFFFFF"/>
+        <SolidColorBrush x:Key="HelpIconForeground" Color="#FFFFFF"/>
+        <SolidColorBrush x:Key="TooltipBackground" Color="#2B2D30"/>
+        <SolidColorBrush x:Key="TooltipForeground" Color="#FFFFFF"/>
+        <SolidColorBrush x:Key="TooltipBorderBrush" Color="#FFDE00"/>
+        <SolidColorBrush x:Key="CheckBoxForeground" Color="#FFFFFF"/>
+        <SolidColorBrush x:Key="CheckBoxFillColor" Color="#FFFFFF"/>
+        <SolidColorBrush x:Key="CheckBoxBorderBrush" Color="#FFDE00"/>
+        <SolidColorBrush x:Key="ContentSectionBorderBrush" Color="#1F2022"/>
+        <SolidColorBrush x:Key="MainContainerBorderBrush" Color="#2B2D30"/>
+        <SolidColorBrush x:Key="PrimaryButtonForeground" Color="#FFFFFF"/>
+        <SolidColorBrush x:Key="ButtonHoverBackground" Color="#FFDE00"/>
+        <SolidColorBrush x:Key="ButtonHoverForeground" Color="#202124"/>
+        <SolidColorBrush x:Key="ButtonBorderBrush" Color="#FFDE00"/>
+        <SolidColorBrush x:Key="ButtonHoverTextColor" Color="#202124"/>
+        <SolidColorBrush x:Key="ButtonDisabledForeground" Color="#99A3A4"/>
+        <SolidColorBrush x:Key="ButtonDisabledBorderBrush" Color="#2B2D30"/>
+        <SolidColorBrush x:Key="ButtonDisabledHoverBackground" Color="#2B2D30"/>
+        <SolidColorBrush x:Key="ButtonDisabledHoverForeground" Color="#99A3A4"/>
+        <SolidColorBrush x:Key="NavigationButtonBackground" Color="#1F2022"/>
+        <SolidColorBrush x:Key="NavigationButtonForeground" Color="#FFFFFF"/>
+        <SolidColorBrush x:Key="SliderTrackBackground" Color="#2B2D30"/>
+        <SolidColorBrush x:Key="SliderAccentColor" Color="#FFDE00"/>
+        <SolidColorBrush x:Key="TickBarForeground" Color="#FFFFFF"/>
         <!--  Button Style for Primary Buttons  -->
         <Style x:Key="PrimaryButtonStyle" TargetType="Button">
             <Setter Property="Background" Value="Transparent" />
-            <Setter Property="Foreground" Value="White" />
-            <Setter Property="BorderBrush" Value="#FFDE00" />
+            <Setter Property="Foreground" Value="{DynamicResource PrimaryButtonForeground}" />
+            <Setter Property="BorderBrush" Value="{DynamicResource ButtonBorderBrush}" />
             <Setter Property="FontFamily" Value="Futura" />
             <Setter Property="FontSize" Value="16" />
             <Setter Property="Width" Value="80" />
@@ -8186,10 +9391,10 @@ $xaml = @'
                 <Setter.Value>
                     <ControlTemplate TargetType="Button">
                         <Border
-                            Background="{TemplateBinding Background}"
-                            BorderBrush="{TemplateBinding BorderBrush}"
-                            BorderThickness="2"
-                            CornerRadius="5">
+                    Background="{TemplateBinding Background}"
+                    BorderBrush="{TemplateBinding BorderBrush}"
+                    BorderThickness="2"
+                    CornerRadius="5">
                             <ContentPresenter HorizontalAlignment="Center" VerticalAlignment="Center" />
                         </Border>
                     </ControlTemplate>
@@ -8198,33 +9403,24 @@ $xaml = @'
             <Style.Triggers>
                 <!--  Hover State for Enabled Button  -->
                 <Trigger Property="IsMouseOver" Value="True">
-                    <Setter Property="Background" Value="#FFDE00" />
-                    <Setter Property="Foreground" Value="Black" />
-                    <Setter Property="BorderBrush" Value="#FFDE00" />
+                    <Setter Property="Background" Value="{DynamicResource ButtonBorderBrush}" />
+                    <Setter Property="Foreground" Value="{DynamicResource ButtonHoverTextColor}" />
+                    <Setter Property="BorderBrush" Value="{DynamicResource ButtonBorderBrush}" />
                 </Trigger>
                 <!--  Disabled State  -->
                 <Trigger Property="IsEnabled" Value="False">
                     <Setter Property="Background" Value="Transparent" />
-                    <Setter Property="Foreground" Value="#D3D3D3" />
-                    <Setter Property="BorderBrush" Value="#FFEB99" />
+                    <Setter Property="Foreground" Value="{DynamicResource ButtonDisabledForeground}" />
+                    <Setter Property="BorderBrush" Value="{DynamicResource ButtonDisabledBorderBrush}" />
                     <Setter Property="Cursor" Value="Arrow" />
                 </Trigger>
-                <!--  Disabled Hover State  -->
-                <MultiTrigger>
-                    <MultiTrigger.Conditions>
-                        <Condition Property="IsEnabled" Value="False" />
-                        <Condition Property="IsMouseOver" Value="True" />
-                    </MultiTrigger.Conditions>
-                    <Setter Property="Background" Value="#A9A9A9" />
-                    <Setter Property="Foreground" Value="#C0C0C0" />
-                </MultiTrigger>
             </Style.Triggers>
         </Style>
         <Style x:Key="NavigationButtonStyle" TargetType="Button">
             <Setter Property="Width" Value="70" />
             <Setter Property="Height" Value="70" />
-            <Setter Property="Background" Value="#202020" />
-            <Setter Property="Foreground" Value="White" />
+            <Setter Property="Background" Value="{DynamicResource NavigationButtonBackground}" />
+            <Setter Property="Foreground" Value="{DynamicResource NavigationButtonForeground}" />
             <Setter Property="FontFamily" Value="Segoe UI Emoji" />
             <!-- Default font family -->
             <Setter Property="Template">
@@ -8265,14 +9461,16 @@ $xaml = @'
             </Setter>
         </Style>
         <DropShadowEffect x:Key="ShadowEffect" ShadowDepth="5" BlurRadius="10" Color="Black" />
+        <DropShadowEffect x:Key="LightShadowEffect" ShadowDepth="5" BlurRadius="10" Color="Black" Opacity="0.5" />
+        <!-- Tooltip Style -->
         <Style x:Key="CustomTooltipStyle" TargetType="ToolTip">
-            <Setter Property="Background" Value="#333333" />
-            <Setter Property="Foreground" Value="White" />
+            <Setter Property="Background" Value="{DynamicResource TooltipBackground}" />
+            <Setter Property="Foreground" Value="{DynamicResource TooltipForeground}" />
             <Setter Property="FontFamily" Value="Segoe UI" />
             <Setter Property="FontSize" Value="12" />
             <Setter Property="Padding" Value="10" />
             <Setter Property="BorderThickness" Value="1" />
-            <Setter Property="BorderBrush" Value="#FFDE00" />
+            <Setter Property="BorderBrush" Value="{DynamicResource TooltipBorderBrush}" />
             <Setter Property="MaxWidth" Value="400" />
             <Setter Property="HorizontalContentAlignment" Value="Left" />
         </Style>
@@ -8282,7 +9480,7 @@ $xaml = @'
             <Setter Property="FontFamily" Value="Segoe MDL2 Assets" />
             <Setter Property="FontSize" Value="16" />
             <Setter Property="FontWeight" Value="Normal" />
-            <Setter Property="Foreground" Value="White" />
+            <Setter Property="Foreground" Value="{DynamicResource HelpIconForeground}" />
             <Setter Property="VerticalAlignment" Value="Center" />
         </Style>
         <!-- Slider Thumb Style (Pill/Vertical Line) -->
@@ -8291,13 +9489,13 @@ $xaml = @'
                 <Setter.Value>
                     <ControlTemplate TargetType="Thumb">
                         <Rectangle 
-                    Stroke="#FFDE00"
+                    Stroke="{DynamicResource SliderAccentColor}"
                     StrokeThickness="2"
-                    Fill="#FFDE00"
+                    Fill="{DynamicResource SliderAccentColor}"
                     Width="12"       
-                            Height="28"                          
-                            RadiusX="2"
-                            RadiusY="2">
+                    Height="28"                          
+                    RadiusX="2"
+                    RadiusY="2">
                             <Rectangle.RenderTransform>
                                 <TranslateTransform Y="-1"/>
                             </Rectangle.RenderTransform>
@@ -8347,7 +9545,7 @@ $xaml = @'
             </Setter>
         </Style>
         <Style x:Key="ToggleSliderStyle" TargetType="Slider">
-            <Setter Property="Foreground" Value="#FFDE00"/>
+            <Setter Property="Foreground" Value="{DynamicResource SliderAccentColor}"/>
             <Setter Property="Background" Value="#404040"/>
             <Setter Property="Minimum" Value="0"/>
             <Setter Property="Maximum" Value="1"/>
@@ -8396,7 +9594,7 @@ $xaml = @'
         </Style>
 
         <Style x:Key="UACSliderStyle" TargetType="Slider">
-            <Setter Property="Foreground" Value="#FFDE00"/>
+            <Setter Property="Foreground" Value="{DynamicResource SliderAccentColor}"/>
             <Setter Property="Background" Value="#404040"/>
             <Setter Property="Minimum" Value="0"/>
             <Setter Property="Maximum" Value="2"/>
@@ -8419,7 +9617,7 @@ $xaml = @'
                                 </Track.IncreaseRepeatButton>
                             </Track>
                             <TickBar 
-                        Fill="White"
+                        Fill="{DynamicResource TickBarForeground}"
                         Placement="Top"
                         Height="4"
                         Margin="0,-15,0,0"/>
@@ -8430,9 +9628,9 @@ $xaml = @'
         </Style>
         <!-- Checkbox Style -->
         <Style x:Key="CustomCheckBoxStyle" TargetType="CheckBox">
-            <Setter Property="Foreground" Value="White"/>
+            <Setter Property="Foreground" Value="{DynamicResource CheckBoxForeground}"/>
             <Setter Property="Background" Value="Transparent"/>
-            <Setter Property="BorderBrush" Value="#FFDE00"/>
+            <Setter Property="BorderBrush" Value="{DynamicResource CheckBoxBorderBrush}"/>
             <Setter Property="Cursor" Value="Hand"/>
             <Setter Property="Template">
                 <Setter.Value>
@@ -8443,27 +9641,28 @@ $xaml = @'
                                 <ColumnDefinition Width="*"/>
                             </Grid.ColumnDefinitions>
                             <Border x:Name="CheckBoxBorder" 
-                            Width="17" Height="17" 
-                            BorderThickness="1.5"
-                            BorderBrush="{TemplateBinding BorderBrush}"
-                            Background="{TemplateBinding Background}"
-                            CornerRadius="3">
+                        Width="17" Height="17" 
+                        BorderThickness="1.5"
+                        BorderBrush="{TemplateBinding BorderBrush}"
+                        Background="{TemplateBinding Background}"
+                        CornerRadius="3">
                                 <Border x:Name="InnerFill"
-                                Margin="3"
-                                Background="Transparent"
-                                CornerRadius="1"/>
+                            Margin="3"
+                            Background="Transparent"
+                            CornerRadius="1"/>
                             </Border>
                             <ContentPresenter Grid.Column="1"
-                                    Margin="10,0,0,0"
-                                    VerticalAlignment="Center"
-                                    HorizontalAlignment="Left"/>
+                        Margin="10,0,0,0"
+                        VerticalAlignment="Center"
+                        HorizontalAlignment="Left"/>
                         </Grid>
                         <ControlTemplate.Triggers>
                             <Trigger Property="IsChecked" Value="True">
-                                <Setter TargetName="InnerFill" Property="Background" Value="White"/>
+                                <Setter TargetName="InnerFill" Property="Background" Value="{DynamicResource CheckBoxFillColor}"/>
                             </Trigger>
                             <Trigger Property="IsMouseOver" Value="True">
-                                <Setter TargetName="CheckBoxBorder" Property="BorderBrush" Value="#FFE94D"/>
+                                <Setter TargetName="CheckBoxBorder" Property="BorderBrush" Value="{DynamicResource CheckBoxBorderBrush}"/>
+                                <Setter TargetName="CheckBoxBorder" Property="Opacity" Value="0.8"/>
                             </Trigger>
                         </ControlTemplate.Triggers>
                     </ControlTemplate>
@@ -8487,14 +9686,14 @@ $xaml = @'
                     Margin="0,-2,5,0"
                     FontFamily="Segoe UI Emoji"
                     FontSize="18"
-                    Foreground="White"
+                    Foreground="{DynamicResource PrimaryTextColor}"
                     Text="&#x1F680;" />
                 <!--  Program Name  -->
                 <TextBlock
                     FontFamily="Helvetica Neue"
                     FontSize="18"
                     FontWeight="Light"
-                    Foreground="White">
+                    Foreground="{DynamicResource PrimaryTextColor}">
 					<Run Text="Winhance "/>
 					<Run
                         FontSize="12"
@@ -8503,8 +9702,92 @@ $xaml = @'
                         Text="by Memory" />
                 </TextBlock>
             </DockPanel>
-            <!--  Close Button in Top-Right Corner  -->
+            <!-- Buttons in Top-Right Corner  -->
             <DockPanel HorizontalAlignment="Right" VerticalAlignment="Top">
+                <Button
+x:Name="ThemeToggleButton"
+Width="28"
+Height="28"
+Background="Transparent"
+Content="&#xE793;"
+FontFamily="Segoe MDL2 Assets"
+FontSize="12"
+Foreground="{DynamicResource PrimaryTextColor}"
+Margin="0,0,5,0">
+                    <WindowChrome.IsHitTestVisibleInChrome>True</WindowChrome.IsHitTestVisibleInChrome>
+                    <Button.Template>
+                        <ControlTemplate TargetType="Button">
+                            <Border
+            x:Name="border"
+            Background="Transparent"
+            BorderBrush="Transparent"
+            BorderThickness="1">
+                                <ContentPresenter HorizontalAlignment="Center" VerticalAlignment="Center" />
+                            </Border>
+                            <ControlTemplate.Triggers>
+                                <Trigger Property="IsMouseOver" Value="True">
+                                    <Setter TargetName="border" Property="Background" Value="#404040" />
+                                </Trigger>
+                            </ControlTemplate.Triggers>
+                        </ControlTemplate>
+                    </Button.Template>
+                </Button>
+                <Button
+    x:Name="MinimizeButton"
+    Width="28"
+    Height="28"
+    Background="Transparent"
+    Content="&#xE949;"
+    FontFamily="Segoe MDL2 Assets"
+    FontSize="12"
+    Foreground="{DynamicResource PrimaryTextColor}"
+    Margin="0,0,5,0">
+                    <WindowChrome.IsHitTestVisibleInChrome>True</WindowChrome.IsHitTestVisibleInChrome>
+                    <Button.Template>
+                        <ControlTemplate TargetType="Button">
+                            <Border
+                x:Name="border"
+                Background="Transparent"
+                BorderBrush="Transparent"
+                BorderThickness="1">
+                                <ContentPresenter HorizontalAlignment="Center" VerticalAlignment="Center" />
+                            </Border>
+                            <ControlTemplate.Triggers>
+                                <Trigger Property="IsMouseOver" Value="True">
+                                    <Setter TargetName="border" Property="Background" Value="#404040" />
+                                </Trigger>
+                            </ControlTemplate.Triggers>
+                        </ControlTemplate>
+                    </Button.Template>
+                </Button>
+                <Button
+    x:Name="MaximizeButton"
+    Width="28"
+    Height="28"
+    Background="Transparent"
+    Content="&#xE739;"
+    FontFamily="Segoe MDL2 Assets"
+    FontSize="12"
+    Foreground="{DynamicResource PrimaryTextColor}"
+    Margin="0,0,5,0">
+                    <WindowChrome.IsHitTestVisibleInChrome>True</WindowChrome.IsHitTestVisibleInChrome>
+                    <Button.Template>
+                        <ControlTemplate TargetType="Button">
+                            <Border
+                x:Name="border"
+                Background="Transparent"
+                BorderBrush="Transparent"
+                BorderThickness="1">
+                                <ContentPresenter HorizontalAlignment="Center" VerticalAlignment="Center" />
+                            </Border>
+                            <ControlTemplate.Triggers>
+                                <Trigger Property="IsMouseOver" Value="True">
+                                    <Setter TargetName="border" Property="Background" Value="#404040" />
+                                </Trigger>
+                            </ControlTemplate.Triggers>
+                        </ControlTemplate>
+                    </Button.Template>
+                </Button>
                 <Button
                     x:Name="CloseButton"
                     Width="28"
@@ -8514,7 +9797,7 @@ $xaml = @'
                     FontFamily="Segoe MDL2 Assets"
                     FontSize="12"
                     FontWeight="ExtraLight"
-                    Foreground="White">
+                    Foreground="{DynamicResource PrimaryTextColor}">
                     <WindowChrome.IsHitTestVisibleInChrome>True</WindowChrome.IsHitTestVisibleInChrome>
                     <Button.Template>
                         <ControlTemplate TargetType="Button">
@@ -8548,19 +9831,19 @@ $xaml = @'
           Margin="10,56,0,0">
                 <!-- Top Navigation Buttons -->
                 <Button x:Name="SoftwareAppsNavButton" 
-            Style="{StaticResource NavigationButtonStyle}" 
+            Style="{DynamicResource NavigationButtonStyle}" 
             Tag="&#x1F4BF;"
             Margin="0,0,0,10"
             Content="Software &amp; Apps"/>
 
                 <Button x:Name="OptimizeNavButton"
-            Style="{StaticResource NavigationButtonStyle}" 
+            Style="{DynamicResource NavigationButtonStyle}" 
             Tag="&#x1F680;"
             Margin="0,0,0,10"
             Content="Optimize"/>
 
                 <Button x:Name="CustomizeNavButton"
-            Style="{StaticResource NavigationButtonStyle}" 
+            Style="{DynamicResource NavigationButtonStyle}" 
             Tag="&#x1F3A8;"
             Margin="0,0,0,10"
             Content="Customize"/>
@@ -8570,129 +9853,129 @@ $xaml = @'
 
                 <!-- About Button -->
                 <Button x:Name="AboutNavButton"
-            Style="{StaticResource NavigationButtonStyle}" 
+            Style="{DynamicResource NavigationButtonStyle}" 
             Tag="&#xE946;" 
             FontFamily="Segoe MDL2 Assets"
             Margin="0,0,0,10"
             Content="About" />
             </StackPanel>
             <!-- Software and Apps Screen -->
-            <StackPanel x:Name="SoftAppsScreen" Width="943" Height="550" HorizontalAlignment="Left" VerticalAlignment="Top" Margin="93,56,0,0" Visibility="Collapsed">
+            <StackPanel x:Name="SoftAppsScreen" Width="943" Height="550" HorizontalAlignment="Left" VerticalAlignment="Top" Margin="93,56,0,0" >
                 <!-- Header -->
                 <DockPanel HorizontalAlignment="Left" VerticalAlignment="Center">
-                    <TextBlock Width="80" Height="70" Margin="0,0,0,0" DockPanel.Dock="Left" FontFamily="Segoe UI Emoji" FontSize="60" Foreground="White" Text="&#x1F4BF;"  LineHeight="70" LineStackingStrategy="BlockLineHeight" />
+                    <TextBlock Width="80" Height="70" Margin="0,0,0,0" DockPanel.Dock="Left" FontFamily="Segoe UI Emoji" FontSize="60" Foreground="{DynamicResource PrimaryTextColor}" Text="&#x1F4BF;"  LineHeight="70" LineStackingStrategy="BlockLineHeight" />
                     <StackPanel VerticalAlignment="Center">
-                        <TextBlock Height="35" VerticalAlignment="Top" FontFamily="Helvetica Neue" FontSize="32" FontWeight="Bold" Foreground="White" Text="Software &amp; Apps" />
+                        <TextBlock Height="35" VerticalAlignment="Top" FontFamily="Helvetica Neue" FontSize="32" FontWeight="Bold" Foreground="{DynamicResource PrimaryTextColor}" Text="Software &amp; Apps" />
                         <TextBlock x:Name="SoftAppsStatusText" Height="22" Margin="0,5,0,0" VerticalAlignment="Bottom" FontFamily="Helvetica Neue" FontSize="14" Foreground="DarkGray" Text="Manage software installation and removal" />
                     </StackPanel>
                 </DockPanel>
 
                 <!-- Main Content -->
-                <Border x:Name="SoftAppsMainContentBorder" Margin="0,5,0,0" Background="#303030" CornerRadius="10" Height="470">
+                <Border x:Name="SoftAppsMainContentBorder" Margin="0,5,0,0" Background="{DynamicResource MainContainerBorderBrush}" CornerRadius="10" Height="470">
                     <ScrollViewer VerticalScrollBarVisibility="Auto" HorizontalScrollBarVisibility="Disabled">
                         <StackPanel Margin="10">
                             <!-- Install Software Section -->
                             <StackPanel>
-                                <Border x:Name="InstallSoftwareHeader" Background="#202020" CornerRadius="5" Margin="0,5,0,5" Effect="{StaticResource ShadowEffect}">
+                                <Border x:Name="InstallSoftwareHeader" Background="{DynamicResource ContentSectionBorderBrush}" CornerRadius="5" Margin="0,5,0,5" Effect="{StaticResource ShadowEffect}">
                                     <DockPanel VerticalAlignment="Center" HorizontalAlignment="Stretch">
-                                        <TextBlock Text="Install Software" HorizontalAlignment="Left" VerticalAlignment="Center" FontSize="18" FontWeight="Bold" Foreground="White" Padding="10" DockPanel.Dock="Left" />
-                                        <TextBlock Text="&#xE70D;" FontFamily="Segoe MDL2 Assets" HorizontalAlignment="Right" VerticalAlignment="Center" FontSize="16" Foreground="White" Padding="10" DockPanel.Dock="Right" />
+                                        <TextBlock Text="Install Software" HorizontalAlignment="Left" VerticalAlignment="Center" FontSize="18" FontWeight="Bold" Foreground="{DynamicResource PrimaryTextColor}" Padding="10" DockPanel.Dock="Left" />
+                                        <TextBlock Text="&#xE70D;" FontFamily="Segoe MDL2 Assets" HorizontalAlignment="Right" VerticalAlignment="Center" FontSize="16" Foreground="{DynamicResource PrimaryTextColor}" Padding="10" DockPanel.Dock="Right" />
                                     </DockPanel>
                                 </Border>
-                                <Border Background="#202020" CornerRadius="5" Margin="5,0,5,5">
+                                <Border Background="{DynamicResource ContentSectionBorderBrush}" CornerRadius="5" Margin="5,0,5,5" Effect="{StaticResource LightShadowEffect}">
                                     <StackPanel x:Name="InstallSoftwareContent" Margin="0,10,0,10" Visibility="Collapsed">
                                         <Grid Margin="10,5">
                                             <Grid.ColumnDefinitions>
                                                 <ColumnDefinition Width="*" />
                                                 <ColumnDefinition Width="Auto" />
                                             </Grid.ColumnDefinitions>
-                                            <TextBlock Text="Microsoft Store" VerticalAlignment="Center" Foreground="White" FontSize="14" Margin="10,0,0,0" Grid.Column="0" />
-                                            <Button Style="{StaticResource PrimaryButtonStyle}" Content="Install" Width="80" Height="30" HorizontalAlignment="Right" Grid.Column="1" x:Name="InstallStore" />
+                                            <TextBlock Text="Microsoft Store" VerticalAlignment="Center" Foreground="{DynamicResource PrimaryTextColor}" FontSize="14" Margin="10,0,0,0" Grid.Column="0" />
+                                            <Button Style="{DynamicResource PrimaryButtonStyle}" Content="Install" Width="80" Height="30" HorizontalAlignment="Right" Grid.Column="1" x:Name="InstallStore" />
                                         </Grid>
                                         <Grid Margin="10,5">
                                             <Grid.ColumnDefinitions>
                                                 <ColumnDefinition Width="*" />
                                                 <ColumnDefinition Width="Auto" />
                                             </Grid.ColumnDefinitions>
-                                            <TextBlock Text="UniGetUI" VerticalAlignment="Center" Foreground="White" FontSize="14" Margin="10,0,0,0" Grid.Column="0" />
-                                            <Button Style="{StaticResource PrimaryButtonStyle}" Content="Install" Width="80" Height="30" HorizontalAlignment="Right" Grid.Column="1" x:Name="InstallUniGetUI" />
+                                            <TextBlock Text="UniGetUI" VerticalAlignment="Center" Foreground="{DynamicResource PrimaryTextColor}" FontSize="14" Margin="10,0,0,0" Grid.Column="0" />
+                                            <Button Style="{DynamicResource PrimaryButtonStyle}" Content="Install" Width="80" Height="30" HorizontalAlignment="Right" Grid.Column="1" x:Name="InstallUniGetUI" />
                                         </Grid>
                                         <Grid Margin="10,5">
                                             <Grid.ColumnDefinitions>
                                                 <ColumnDefinition Width="*" />
                                                 <ColumnDefinition Width="Auto" />
                                             </Grid.ColumnDefinitions>
-                                            <TextBlock Text="Thorium Browser" VerticalAlignment="Center" Foreground="White" FontSize="14" Margin="10,0,0,0" Grid.Column="0" />
-                                            <Button Style="{StaticResource PrimaryButtonStyle}" Content="Install" Width="80" Height="30" HorizontalAlignment="Right" Grid.Column="1" x:Name="InstallThorium" />
+                                            <TextBlock Text="Thorium Browser" VerticalAlignment="Center" Foreground="{DynamicResource PrimaryTextColor}" FontSize="14" Margin="10,0,0,0" Grid.Column="0" />
+                                            <Button Style="{DynamicResource PrimaryButtonStyle}" Content="Install" Width="80" Height="30" HorizontalAlignment="Right" Grid.Column="1" x:Name="InstallThorium" />
                                         </Grid>
                                         <Grid Margin="10,5">
                                             <Grid.ColumnDefinitions>
                                                 <ColumnDefinition Width="*" />
                                                 <ColumnDefinition Width="Auto" />
                                             </Grid.ColumnDefinitions>
-                                            <TextBlock Text="Firefox" VerticalAlignment="Center" Foreground="White" FontSize="14" Margin="10,0,0,0" Grid.Column="0" />
-                                            <Button Style="{StaticResource PrimaryButtonStyle}" Content="Install" Width="80" Height="30" HorizontalAlignment="Right" Grid.Column="1" x:Name="InstallFirefox" />
+                                            <TextBlock Text="Firefox" VerticalAlignment="Center" Foreground="{DynamicResource PrimaryTextColor}" FontSize="14" Margin="10,0,0,0" Grid.Column="0" />
+                                            <Button Style="{DynamicResource PrimaryButtonStyle}" Content="Install" Width="80" Height="30" HorizontalAlignment="Right" Grid.Column="1" x:Name="InstallFirefox" />
                                         </Grid>
                                         <Grid Margin="10,5">
                                             <Grid.ColumnDefinitions>
                                                 <ColumnDefinition Width="*" />
                                                 <ColumnDefinition Width="Auto" />
                                             </Grid.ColumnDefinitions>
-                                            <TextBlock Text="Chrome" VerticalAlignment="Center" Foreground="White" FontSize="14" Margin="10,0,0,0" Grid.Column="0" />
-                                            <Button Style="{StaticResource PrimaryButtonStyle}" Content="Install" Width="80" Height="30" HorizontalAlignment="Right" Grid.Column="1" x:Name="InstallChrome" />
+                                            <TextBlock Text="Chrome" VerticalAlignment="Center" Foreground="{DynamicResource PrimaryTextColor}" FontSize="14" Margin="10,0,0,0" Grid.Column="0" />
+                                            <Button Style="{DynamicResource PrimaryButtonStyle}" Content="Install" Width="80" Height="30" HorizontalAlignment="Right" Grid.Column="1" x:Name="InstallChrome" />
                                         </Grid>
                                         <Grid Margin="10,5">
                                             <Grid.ColumnDefinitions>
                                                 <ColumnDefinition Width="*" />
                                                 <ColumnDefinition Width="Auto" />
                                             </Grid.ColumnDefinitions>
-                                            <TextBlock Text="Brave" VerticalAlignment="Center" Foreground="White" FontSize="14" Margin="10,0,0,0" Grid.Column="0" />
-                                            <Button Style="{StaticResource PrimaryButtonStyle}" Content="Install" Width="80" Height="30" HorizontalAlignment="Right" Grid.Column="1" x:Name="InstallBrave" />
+                                            <TextBlock Text="Brave" VerticalAlignment="Center" Foreground="{DynamicResource PrimaryTextColor}" FontSize="14" Margin="10,0,0,0" Grid.Column="0" />
+                                            <Button Style="{DynamicResource PrimaryButtonStyle}" Content="Install" Width="80" Height="30" HorizontalAlignment="Right" Grid.Column="1" x:Name="InstallBrave" />
                                         </Grid>
                                         <Grid Margin="10,5">
                                             <Grid.ColumnDefinitions>
                                                 <ColumnDefinition Width="*" />
                                                 <ColumnDefinition Width="Auto" />
                                             </Grid.ColumnDefinitions>
-                                            <TextBlock Text="Microsoft Edge" VerticalAlignment="Center" Foreground="White" FontSize="14" Margin="10,0,0,0" Grid.Column="0" />
-                                            <Button Style="{StaticResource PrimaryButtonStyle}" Content="Install" Width="80" Height="30" HorizontalAlignment="Right" Grid.Column="1" x:Name="InstallEdge" />
+                                            <TextBlock Text="Microsoft Edge" VerticalAlignment="Center" Foreground="{DynamicResource PrimaryTextColor}" FontSize="14" Margin="10,0,0,0" Grid.Column="0" />
+                                            <Button Style="{DynamicResource PrimaryButtonStyle}" Content="Install" Width="80" Height="30" HorizontalAlignment="Right" Grid.Column="1" x:Name="InstallEdge" />
                                         </Grid>
                                         <Grid Margin="10,5">
                                             <Grid.ColumnDefinitions>
                                                 <ColumnDefinition Width="*" />
                                                 <ColumnDefinition Width="Auto" />
                                             </Grid.ColumnDefinitions>
-                                            <TextBlock Text="Microsoft Edge WebView" VerticalAlignment="Center" Foreground="White" FontSize="14" Margin="10,0,0,0" Grid.Column="0" />
-                                            <Button Style="{StaticResource PrimaryButtonStyle}" Content="Install" Width="80" Height="30" HorizontalAlignment="Right" Grid.Column="1" x:Name="InstallEdgeWebView" />
+                                            <TextBlock Text="Microsoft Edge WebView" VerticalAlignment="Center" Foreground="{DynamicResource PrimaryTextColor}" FontSize="14" Margin="10,0,0,0" Grid.Column="0" />
+                                            <Button Style="{DynamicResource PrimaryButtonStyle}" Content="Install" Width="80" Height="30" HorizontalAlignment="Right" Grid.Column="1" x:Name="InstallEdgeWebView" />
                                         </Grid>
                                         <Grid Margin="10,5">
                                             <Grid.ColumnDefinitions>
                                                 <ColumnDefinition Width="*" />
                                                 <ColumnDefinition Width="Auto" />
                                             </Grid.ColumnDefinitions>
-                                            <TextBlock Text="Microsoft OneDrive" VerticalAlignment="Center" Foreground="White" FontSize="14" Margin="10,0,0,0" Grid.Column="0" />
-                                            <Button Style="{StaticResource PrimaryButtonStyle}" Content="Install" Width="80" Height="30" HorizontalAlignment="Right" Grid.Column="1" x:Name="InstallOneDrive" />
+                                            <TextBlock Text="Microsoft OneDrive" VerticalAlignment="Center" Foreground="{DynamicResource PrimaryTextColor}" FontSize="14" Margin="10,0,0,0" Grid.Column="0" />
+                                            <Button Style="{DynamicResource PrimaryButtonStyle}" Content="Install" Width="80" Height="30" HorizontalAlignment="Right" Grid.Column="1" x:Name="InstallOneDrive" />
                                         </Grid>
                                         <Grid Margin="10,5">
                                             <Grid.ColumnDefinitions>
                                                 <ColumnDefinition Width="*" />
                                                 <ColumnDefinition Width="Auto" />
                                             </Grid.ColumnDefinitions>
-                                            <TextBlock Text="Xbox App for Windows" VerticalAlignment="Center" Foreground="White" FontSize="14" Margin="10,0,0,0" Grid.Column="0" />
-                                            <Button Style="{StaticResource PrimaryButtonStyle}" Content="Install" Width="80" Height="30" HorizontalAlignment="Right" Grid.Column="1" x:Name="InstallXbox" />
+                                            <TextBlock Text="Xbox App for Windows" VerticalAlignment="Center" Foreground="{DynamicResource PrimaryTextColor}" FontSize="14" Margin="10,0,0,0" Grid.Column="0" />
+                                            <Button Style="{DynamicResource PrimaryButtonStyle}" Content="Install" Width="80" Height="30" HorizontalAlignment="Right" Grid.Column="1" x:Name="InstallXbox" />
                                         </Grid>
                                     </StackPanel>
                                 </Border>
                             </StackPanel>
                             <!-- Remove Windows Apps Section -->
                             <StackPanel>
-                                <Border x:Name="RemoveAppsHeader" Background="#202020" CornerRadius="5" Margin="0,5,0,5" Effect="{StaticResource ShadowEffect}">
+                                <Border x:Name="RemoveAppsHeader" Background="{DynamicResource ContentSectionBorderBrush}" CornerRadius="5" Margin="0,5,0,5" Effect="{StaticResource ShadowEffect}">
                                     <DockPanel VerticalAlignment="Center" HorizontalAlignment="Stretch">
-                                        <TextBlock Text="Remove Windows Apps" HorizontalAlignment="Left" VerticalAlignment="Center" FontSize="18" FontWeight="Bold" Foreground="White" Padding="10" DockPanel.Dock="Left" />
-                                        <TextBlock Text="&#xE70D;" FontFamily="Segoe MDL2 Assets" HorizontalAlignment="Right" VerticalAlignment="Center" FontSize="16" Foreground="White" Padding="10" DockPanel.Dock="Right" />
+                                        <TextBlock Text="Remove Windows Apps" HorizontalAlignment="Left" VerticalAlignment="Center" FontSize="18" FontWeight="Bold" Foreground="{DynamicResource PrimaryTextColor}" Padding="10" DockPanel.Dock="Left" />
+                                        <TextBlock Text="&#xE70D;" FontFamily="Segoe MDL2 Assets" HorizontalAlignment="Right" VerticalAlignment="Center" FontSize="16" Foreground="{DynamicResource PrimaryTextColor}" Padding="10" DockPanel.Dock="Right" />
                                     </DockPanel>
                                 </Border>
-                                <Border Background="#202020" CornerRadius="5" Margin="5,0,5,5">
+                                <Border Background="{DynamicResource ContentSectionBorderBrush}" CornerRadius="5" Margin="5,0,5,5" Effect="{StaticResource LightShadowEffect}">
                                     <StackPanel x:Name="RemoveAppsContent" Margin="0,10,0,10">
                                         <!-- Add a dedicated container for the dynamic checkboxes -->
                                         <StackPanel x:Name="chkPanel" Margin="0,0,0,10"></StackPanel>
@@ -8708,30 +9991,30 @@ $xaml = @'
             <StackPanel x:Name="OptimizeScreen" Width="943" Height="550" HorizontalAlignment="Left" VerticalAlignment="Top" Margin="93,56,0,0" Visibility="Collapsed">
                 <!-- Header -->
                 <DockPanel HorizontalAlignment="Left" VerticalAlignment="Center">
-                    <TextBlock Width="80" Height="70" Margin="0,0,0,0" DockPanel.Dock="Left" FontFamily="Segoe UI Emoji" FontSize="60" Foreground="White" Text="&#x1F680;"  LineHeight="70" LineStackingStrategy="BlockLineHeight" />
+                    <TextBlock Width="80" Height="70" Margin="0,0,0,0" DockPanel.Dock="Left" FontFamily="Segoe UI Emoji" FontSize="60" Foreground="{DynamicResource PrimaryTextColor}" Text="&#x1F680;"  LineHeight="70" LineStackingStrategy="BlockLineHeight" />
                     <StackPanel VerticalAlignment="Center">
-                        <TextBlock Height="35" VerticalAlignment="Top" FontFamily="Helvetica Neue" FontSize="32" FontWeight="Bold" Foreground="White" Text="Optimizations" />
+                        <TextBlock Height="35" VerticalAlignment="Top" FontFamily="Helvetica Neue" FontSize="32" FontWeight="Bold" Foreground="{DynamicResource PrimaryTextColor}" Text="Optimizations" />
                         <DockPanel LastChildFill="False" Width="861">
                             <TextBlock x:Name="OptimizeStatusText" Height="22" DockPanel.Dock="Left" VerticalAlignment="Bottom" FontFamily="Helvetica Neue" FontSize="14" Foreground="DarkGray" Text="Optimize your system settings and performance" />
-                            <Button x:Name="OptimizeDefaultsButton" DockPanel.Dock="Right" Style="{StaticResource PrimaryButtonStyle}" Content="Defaults" Width="80" Height="30" Margin="0,0,5,0"/>
-                            <Button x:Name="OptimizeApplyButton" DockPanel.Dock="Right" Style="{StaticResource PrimaryButtonStyle}" Content="Apply" Width="80" Height="30" Margin="0,0,10,0"/>
+                            <Button x:Name="OptimizeDefaultsButton" DockPanel.Dock="Right" Style="{DynamicResource PrimaryButtonStyle}" Content="Defaults" Width="80" Height="30" Margin="0,0,5,0"/>
+                            <Button x:Name="OptimizeApplyButton" DockPanel.Dock="Right" Style="{DynamicResource PrimaryButtonStyle}" Content="Apply" Width="80" Height="30" Margin="0,0,10,0"/>
                         </DockPanel>
                     </StackPanel>
                 </DockPanel>
                 <!-- Main Content -->
-                <Border x:Name="OptimizeMainContentBorder" Margin="0,5,0,0" Background="#303030" CornerRadius="10" Height="470">
+                <Border x:Name="OptimizeMainContentBorder" Margin="0,5,0,0" Background="{DynamicResource MainContainerBorderBrush}" CornerRadius="10" Height="470">
                     <ScrollViewer VerticalScrollBarVisibility="Auto" HorizontalScrollBarVisibility="Disabled">
                         <StackPanel Margin="10">
-                            <Border x:Name="WindowsSecurityHeaderBorder" Background="#202020" CornerRadius="5" Margin="0,5,0,5" Effect="{StaticResource ShadowEffect}">
+                            <Border x:Name="WindowsSecurityHeaderBorder" Background="{DynamicResource ContentSectionBorderBrush}" CornerRadius="5" Margin="0,5,0,5" Effect="{StaticResource ShadowEffect}">
                                 <DockPanel VerticalAlignment="Center" HorizontalAlignment="Stretch">
-                                    <TextBlock Text="Windows Security Settings" HorizontalAlignment="Left" VerticalAlignment="Center" FontSize="18" FontWeight="Bold" Foreground="White" Padding="10" DockPanel.Dock="Left" />
-                                    <TextBlock Text="&#xE70D;" FontFamily="Segoe MDL2 Assets" HorizontalAlignment="Right" VerticalAlignment="Center" FontSize="16" Foreground="White" Padding="10" DockPanel.Dock="Right" />
+                                    <TextBlock Text="Windows Security Settings" HorizontalAlignment="Left" VerticalAlignment="Center" FontSize="18" FontWeight="Bold" Foreground="{DynamicResource PrimaryTextColor}" Padding="10" DockPanel.Dock="Left" />
+                                    <TextBlock Text="&#xE70D;" FontFamily="Segoe MDL2 Assets" HorizontalAlignment="Right" VerticalAlignment="Center" FontSize="16" Foreground="{DynamicResource PrimaryTextColor}" Padding="10" DockPanel.Dock="Right" />
                                 </DockPanel>
                             </Border>
 
                             <!-- Windows Security Section -->
-                            <Border Background="#202020" CornerRadius="5" Margin="5,0,5,5">
-                                <StackPanel x:Name="WindowsSecurityContent" Margin="0,10,0,10" Visibility="Collapsed">
+                            <Border Background="{DynamicResource ContentSectionBorderBrush}" CornerRadius="5" Margin="5,0,5,5" Effect="{StaticResource LightShadowEffect}">
+                                <StackPanel x:Name="WindowsSecurityContent" Margin="0,10,0,10" >
                                     <!-- UAC Notification Level Section -->
                                     <Grid Margin="10,0,0,10">
                                         <Grid.ColumnDefinitions>
@@ -8743,15 +10026,9 @@ $xaml = @'
                                         <StackPanel Orientation="Vertical" VerticalAlignment="Top">
                                             <TextBlock 
                                 Text="UAC Notification Level (Recommended: Low)" 
-                                Foreground="White" 
+                                Foreground="{DynamicResource PrimaryTextColor}"
                                 FontSize="14" 
-                                Margin="25,0,0,0"/>
-                                            <TextBlock 
-                                x:Name="UACSliderValue" 
-                                Text="Current: Low" 
-                                Foreground="#FFDE00" 
-                                FontSize="14" 
-                                Margin="25,5,0,0"/>
+                                Margin="25,20,0,0"/>
                                         </StackPanel>
 
                                         <!-- Right: Slider -->
@@ -8763,14 +10040,14 @@ $xaml = @'
                                                     <ColumnDefinition Width="*"/>
                                                     <ColumnDefinition Width="*"/>
                                                 </Grid.ColumnDefinitions>
-                                                <TextBlock Text="Low" Foreground="White" HorizontalAlignment="Left"/>
-                                                <TextBlock Text="Moderate" Foreground="White" Grid.Column="1" HorizontalAlignment="Center"/>
-                                                <TextBlock Text="High" Foreground="White" Grid.Column="2" HorizontalAlignment="Right"/>
+                                                <TextBlock Text="Low" Foreground="{DynamicResource PrimaryTextColor}" HorizontalAlignment="Left"/>
+                                                <TextBlock Text="Moderate" Foreground="{DynamicResource PrimaryTextColor}" Grid.Column="1" HorizontalAlignment="Center"/>
+                                                <TextBlock Text="High" Foreground="{DynamicResource PrimaryTextColor}" Grid.Column="2" HorizontalAlignment="Right"/>
                                             </Grid>
 
                                             <!-- Slider Control -->
                                             <Slider x:Name="UACSlider" 
-                                Style="{StaticResource UACSliderStyle}"
+                                Style="{DynamicResource UACSliderStyle}"
                                 Minimum="0"
                                 Maximum="2"
                                 TickFrequency="1"/>
@@ -8786,9 +10063,9 @@ $xaml = @'
 
                                         <!-- Left: Label with Tooltip -->
                                         <StackPanel Orientation="Horizontal" VerticalAlignment="Center" Margin="0,0,40,0">
-                                            <TextBlock Style="{StaticResource HelpIconStyle}" Margin="0,0,10,0">
+                                            <TextBlock Style="{DynamicResource HelpIconStyle}" Margin="0,0,10,0">
                                                 <TextBlock.ToolTip>
-                                                    <ToolTip Style="{StaticResource CustomTooltipStyle}">
+                                                    <ToolTip Style="{DynamicResource CustomTooltipStyle}">
                                                         <TextBlock>
                                              Enabled:
  <LineBreak/>                                           
@@ -8826,14 +10103,14 @@ $xaml = @'
                                             <TextBlock
                                 Text="Windows Security Suite"
                                 VerticalAlignment="Center"
-                                Foreground="White"
+                                Foreground="{DynamicResource PrimaryTextColor}"
                                 FontSize="14" />
                                         </StackPanel>
 
                                         <!-- Right: Buttons -->
                                         <StackPanel Grid.Column="1" Orientation="Horizontal">
                                             <Button
-                                Style="{StaticResource PrimaryButtonStyle}"
+                                Style="{DynamicResource PrimaryButtonStyle}"
                                 Content="Enable"
                                 Width="80"
                                 Height="30"
@@ -8841,7 +10118,7 @@ $xaml = @'
                                 x:Name="EnableWindowsSecurityButton"/>
 
                                             <Button
-                                Style="{StaticResource PrimaryButtonStyle}"
+                                Style="{DynamicResource PrimaryButtonStyle}"
                                 Content="Disable"
                                 Width="80"
                                 Height="30"
@@ -8853,21 +10130,21 @@ $xaml = @'
                             </Border>
 
                             <!-- Select All Checkbox -->
-                            <Border Background="#202020" CornerRadius="5" Margin="5,5,5,5">
+                            <Border Background="{DynamicResource ContentSectionBorderBrush}" CornerRadius="5" Margin="5,5,5,5" Effect="{StaticResource LightShadowEffect}">
                                 <StackPanel Orientation="Horizontal" Margin="10">
                                     <CheckBox x:Name="OptimizeSelectAllCheckbox"
 Content="Select All"
-Style="{StaticResource CustomCheckBoxStyle}"
+Style="{DynamicResource CustomCheckBoxStyle}"
 FontSize="14"
 Margin="27,0,0,0"/>
                                 </StackPanel>
                             </Border>
                             <!-- Privacy Settings -->
-                            <Border Background="#202020" CornerRadius="5" Margin="5,5,5,5">
+                            <Border Background="{DynamicResource ContentSectionBorderBrush}" CornerRadius="5" Margin="5,5,5,5" Effect="{StaticResource LightShadowEffect}">
                                 <StackPanel Orientation="Horizontal" Margin="10">
-                                    <TextBlock Style="{StaticResource HelpIconStyle}" Margin="0,0,10,0">
+                                    <TextBlock Style="{DynamicResource HelpIconStyle}" Margin="0,0,10,0">
                                         <TextBlock.ToolTip>
-                                            <ToolTip Style="{StaticResource CustomTooltipStyle}">
+                                            <ToolTip Style="{DynamicResource CustomTooltipStyle}">
                                                 <TextBlock>
                                    Disables:
 <LineBreak />- Activity History &amp; User Activity Tracking
@@ -8899,17 +10176,17 @@ Margin="27,0,0,0"/>
                     </TextBlock>
                                     <CheckBox x:Name="PrivacyCheckBox"
                              Content="Privacy Settings"
-                             Style="{StaticResource CustomCheckBoxStyle}"
+                             Style="{DynamicResource CustomCheckBoxStyle}"
                              FontSize="14"/>
                                 </StackPanel>
                             </Border>
 
                             <!-- Gaming Optimizations -->
-                            <Border Background="#202020" CornerRadius="5" Margin="5,5,5,5">
+                            <Border Background="{DynamicResource ContentSectionBorderBrush}" CornerRadius="5" Margin="5,5,5,5" Effect="{StaticResource LightShadowEffect}">
                                 <StackPanel Orientation="Horizontal" Margin="10">
-                                    <TextBlock Style="{StaticResource HelpIconStyle}" Margin="0,0,10,0">
+                                    <TextBlock Style="{DynamicResource HelpIconStyle}" Margin="0,0,10,0">
                                         <TextBlock.ToolTip>
-                                            <ToolTip Style="{StaticResource CustomTooltipStyle}">
+                                            <ToolTip Style="{DynamicResource CustomTooltipStyle}">
                                                 <TextBlock>
                                  - Enables Game Mode
 <LineBreak />- Disables Game Bar &amp; Game DVR
@@ -8930,17 +10207,17 @@ Margin="27,0,0,0"/>
                     </TextBlock>
                                     <CheckBox x:Name="GamingOptimizationsCheckBox"
                              Content="Gaming Optimizations"
-                             Style="{StaticResource CustomCheckBoxStyle}"
+                             Style="{DynamicResource CustomCheckBoxStyle}"
                              FontSize="14"/>
                                 </StackPanel>
                             </Border>
 
                             <!-- Windows Updates -->
-                            <Border Background="#202020" CornerRadius="5" Margin="5,5,5,5">
+                            <Border Background="{DynamicResource ContentSectionBorderBrush}" CornerRadius="5" Margin="5,5,5,5" Effect="{StaticResource LightShadowEffect}">
                                 <StackPanel Orientation="Horizontal" Margin="10">
-                                    <TextBlock Style="{StaticResource HelpIconStyle}" Margin="0,0,10,0">
+                                    <TextBlock Style="{DynamicResource HelpIconStyle}" Margin="0,0,10,0">
                                         <TextBlock.ToolTip>
-                                            <ToolTip Style="{StaticResource CustomTooltipStyle}">
+                                            <ToolTip Style="{DynamicResource CustomTooltipStyle}">
                                                 <TextBlock>
                                     Disables:
 <LineBreak />- Automatic Updates
@@ -8956,17 +10233,17 @@ Margin="27,0,0,0"/>
                     </TextBlock>
                                     <CheckBox x:Name="WindowsUpdatesCheckBox"
                              Content="Windows Updates"
-                             Style="{StaticResource CustomCheckBoxStyle}"
+                             Style="{DynamicResource CustomCheckBoxStyle}"
                              FontSize="14"/>
                                 </StackPanel>
                             </Border>
 
                             <!-- Power Settings -->
-                            <Border Background="#202020" CornerRadius="5" Margin="5,5,5,5">
+                            <Border Background="{DynamicResource ContentSectionBorderBrush}" CornerRadius="5" Margin="5,5,5,5" Effect="{StaticResource LightShadowEffect}">
                                 <StackPanel Orientation="Horizontal" Margin="10">
-                                    <TextBlock Style="{StaticResource HelpIconStyle}" Margin="0,0,10,0">
+                                    <TextBlock Style="{DynamicResource HelpIconStyle}" Margin="0,0,10,0">
                                         <TextBlock.ToolTip>
-                                            <ToolTip Style="{StaticResource CustomTooltipStyle}">
+                                            <ToolTip Style="{DynamicResource CustomTooltipStyle}">
                                                 <TextBlock>
                                     - Ultimate Power Plan (Max Performance)
 <LineBreak />- Disables Hibernate, Sleep, and Fast Boot
@@ -8984,17 +10261,17 @@ Margin="27,0,0,0"/>
                     </TextBlock>
                                     <CheckBox x:Name="PowerSettingsCheckBox"
                              Content="Power Settings"
-                             Style="{StaticResource CustomCheckBoxStyle}"
+                             Style="{DynamicResource CustomCheckBoxStyle}"
                              FontSize="14"/>
                                 </StackPanel>
                             </Border>
 
                             <!-- Tasks -->
-                            <Border Background="#202020" CornerRadius="5" Margin="5,5,5,5">
+                            <Border Background="{DynamicResource ContentSectionBorderBrush}" CornerRadius="5" Margin="5,5,5,5" Effect="{StaticResource LightShadowEffect}">
                                 <StackPanel Orientation="Horizontal" Margin="10">
-                                    <TextBlock Style="{StaticResource HelpIconStyle}" Margin="0,0,10,0">
+                                    <TextBlock Style="{DynamicResource HelpIconStyle}" Margin="0,0,10,0">
                                         <TextBlock.ToolTip>
-                                            <ToolTip Style="{StaticResource CustomTooltipStyle}">
+                                            <ToolTip Style="{DynamicResource CustomTooltipStyle}">
                                                 <TextBlock>
 Configures:
 <LineBreak />- Windows Compatibility Appraiser
@@ -9061,17 +10338,17 @@ Configures:
                     </TextBlock>
                                     <CheckBox x:Name="TasksCheckBox"
                              Content="Scheduled Tasks"
-                             Style="{StaticResource CustomCheckBoxStyle}"
+                             Style="{DynamicResource CustomCheckBoxStyle}"
                              FontSize="14"/>
                                 </StackPanel>
                             </Border>
 
                             <!-- Services -->
-                            <Border Background="#202020" CornerRadius="5" Margin="5,5,5,5">
+                            <Border Background="{DynamicResource ContentSectionBorderBrush}" CornerRadius="5" Margin="5,5,5,5" Effect="{StaticResource LightShadowEffect}">
                                 <StackPanel Orientation="Horizontal" Margin="10">
-                                    <TextBlock Style="{StaticResource HelpIconStyle}" Margin="0,0,10,0">
+                                    <TextBlock Style="{DynamicResource HelpIconStyle}" Margin="0,0,10,0">
                                         <TextBlock.ToolTip>
-                                            <ToolTip Style="{StaticResource CustomTooltipStyle}">
+                                            <ToolTip Style="{DynamicResource CustomTooltipStyle}">
                                                 <TextBlock>
 Disables:
 <LineBreak />- AllJoyn Router Service
@@ -9095,7 +10372,7 @@ Disables:
                     </TextBlock>
                                     <CheckBox x:Name="ServicesCheckBox"
                              Content="Windows Services"
-                             Style="{StaticResource CustomCheckBoxStyle}"
+                             Style="{DynamicResource CustomCheckBoxStyle}"
                              FontSize="14"/>
                                 </StackPanel>
                             </Border>
@@ -9105,26 +10382,26 @@ Disables:
             </StackPanel>
 
             <!-- Customize Screen -->
-            <StackPanel x:Name="CustomizeScreen" Width="943" Height="550" HorizontalAlignment="Left" VerticalAlignment="Top" Margin="93,56,0,0" >
+            <StackPanel x:Name="CustomizeScreen" Width="943" Height="550" HorizontalAlignment="Left" VerticalAlignment="Top" Margin="93,56,0,0" Visibility="Collapsed">
                 <!-- Header -->
                 <DockPanel HorizontalAlignment="Left" VerticalAlignment="Center">
-                    <TextBlock Width="80" Height="70" Margin="0,0,0,0" DockPanel.Dock="Left" FontFamily="Segoe UI Emoji" FontSize="60" Foreground="White" Text="&#x1F3A8;"  LineHeight="70" LineStackingStrategy="BlockLineHeight" />
+                    <TextBlock Width="80" Height="70" Margin="0,0,0,0" DockPanel.Dock="Left" FontFamily="Segoe UI Emoji" FontSize="60" Foreground="{DynamicResource PrimaryTextColor}" Text="&#x1F3A8;"  LineHeight="70" LineStackingStrategy="BlockLineHeight" />
                     <StackPanel VerticalAlignment="Center">
-                        <TextBlock Height="35" VerticalAlignment="Top" FontFamily="Helvetica Neue" FontSize="32" FontWeight="Bold" Foreground="White" Text="Customize" />
+                        <TextBlock Height="35" VerticalAlignment="Top" FontFamily="Helvetica Neue" FontSize="32" FontWeight="Bold" Foreground="{DynamicResource PrimaryTextColor}" Text="Customize" />
                         <DockPanel LastChildFill="False" Width="861">
                             <TextBlock x:Name="CustomizeStatusText" Height="22" DockPanel.Dock="Left" VerticalAlignment="Bottom" FontFamily="Helvetica Neue" FontSize="14" Foreground="DarkGray" Text="Customize your system's appearance and behavior" />
-                            <Button x:Name="CustomizeDefaultsButton" DockPanel.Dock="Right" Style="{StaticResource PrimaryButtonStyle}" Content="Defaults" Width="80" Height="30" Margin="0,0,5,0"/>
-                            <Button x:Name="CustomizeApplyButton" DockPanel.Dock="Right" Style="{StaticResource PrimaryButtonStyle}" Content="Apply" Width="80" Height="30" Margin="0,0,10,0"/>
+                            <Button x:Name="CustomizeDefaultsButton" DockPanel.Dock="Right" Style="{DynamicResource PrimaryButtonStyle}" Content="Defaults" Width="80" Height="30" Margin="0,0,5,0"/>
+                            <Button x:Name="CustomizeApplyButton" DockPanel.Dock="Right" Style="{DynamicResource PrimaryButtonStyle}" Content="Apply" Width="80" Height="30" Margin="0,0,10,0"/>
                         </DockPanel>
                     </StackPanel>
                 </DockPanel>
 
                 <!-- Main Content -->
-                <Border x:Name="CustomizeMainContentBorder" Margin="0,5,0,0" Background="#303030" CornerRadius="10" Height="470">
+                <Border x:Name="CustomizeMainContentBorder" Margin="0,5,0,0" Background="{DynamicResource MainContainerBorderBrush}" CornerRadius="10" Height="470" >
                     <ScrollViewer VerticalScrollBarVisibility="Auto" HorizontalScrollBarVisibility="Disabled">
                         <StackPanel Margin="10">
                             <!-- Theme Settings -->
-                            <Border Background="#202020" CornerRadius="5" Margin="5,5,5,5">
+                            <Border Background="{DynamicResource ContentSectionBorderBrush}" CornerRadius="5" Margin="5,5,5,5" Effect="{StaticResource LightShadowEffect}">
                                 <StackPanel Margin="10">
                                     <!-- Dark Mode -->
                                     <Grid>
@@ -9138,18 +10415,18 @@ Disables:
             Text="&#xE793;"
             FontFamily="Segoe MDL2 Assets"
             VerticalAlignment="Center" 
-            Foreground="White" 
+            Foreground="{DynamicResource PrimaryTextColor}" 
             FontSize="20"
             Margin="25,0,0,0" />
                                             <TextBlock 
             Text="Dark Mode" 
             VerticalAlignment="Center" 
-            Foreground="White" 
+            Foreground="{DynamicResource PrimaryTextColor}" 
             FontSize="14" 
             Margin="8,0,0,0" />
                                         </StackPanel>
                                         <Slider x:Name="DarkModeSlider" 
-                   Style="{StaticResource ToggleSliderStyle}" 
+                   Style="{DynamicResource ToggleSliderStyle}" 
                    Grid.Column="1"
                    HorizontalAlignment="Right"/>
                                     </Grid>
@@ -9157,21 +10434,21 @@ Disables:
                             </Border>
 
                             <!-- Select All Checkbox -->
-                            <Border Background="#202020" CornerRadius="5" Margin="5,5,5,5">
+                            <Border Background="{DynamicResource ContentSectionBorderBrush}" CornerRadius="5" Margin="5,5,5,5" Effect="{StaticResource LightShadowEffect}">
                                 <StackPanel Orientation="Horizontal" Margin="10">
                                     <CheckBox x:Name="CustomizeSelectAllCheckbox"
                  Content="Select All"
-                 Style="{StaticResource CustomCheckBoxStyle}"
+                 Style="{DynamicResource CustomCheckBoxStyle}"
                  FontSize="14"
                  Margin="27,0,0,0"/>
                                 </StackPanel>
                             </Border>
                             <!-- Taskbar Section -->
-                            <Border Background="#202020" CornerRadius="5" Margin="5,5,5,5">
+                            <Border Background="{DynamicResource ContentSectionBorderBrush}" CornerRadius="5" Margin="5,5,5,5" Effect="{StaticResource LightShadowEffect}">
                                 <StackPanel Orientation="Horizontal" Margin="10">
-                                    <TextBlock Style="{StaticResource HelpIconStyle}" Margin="0,0,10,0">
+                                    <TextBlock Style="{DynamicResource HelpIconStyle}" Margin="0,0,10,0">
                                         <TextBlock.ToolTip>
-                                            <ToolTip Style="{StaticResource CustomTooltipStyle}">
+                                            <ToolTip Style="{DynamicResource CustomTooltipStyle}">
                                                 <TextBlock>
 - Hides Windows Chat icon
 <LineBreak />- Disables News and Interests feed
@@ -9187,17 +10464,17 @@ Disables:
                         </TextBlock>
                                     <CheckBox x:Name="TaskbarCheckBox"
                                  Content="Taskbar"
-                                 Style="{StaticResource CustomCheckBoxStyle}"
+                                 Style="{DynamicResource CustomCheckBoxStyle}"
                                  FontSize="14"/>
                                 </StackPanel>
                             </Border>
 
                             <!-- Start Menu Section -->
-                            <Border Background="#202020" CornerRadius="5" Margin="5,5,5,5">
+                            <Border Background="{DynamicResource ContentSectionBorderBrush}" CornerRadius="5" Margin="5,5,5,5" Effect="{StaticResource LightShadowEffect}">
                                 <StackPanel Orientation="Horizontal" Margin="10">
-                                    <TextBlock Style="{StaticResource HelpIconStyle}" Margin="0,0,10,0">
+                                    <TextBlock Style="{DynamicResource HelpIconStyle}" Margin="0,0,10,0">
                                         <TextBlock.ToolTip>
-                                            <ToolTip Style="{StaticResource CustomTooltipStyle}">
+                                            <ToolTip Style="{DynamicResource CustomTooltipStyle}">
                                                 <TextBlock>
                                         - Removes all pinned apps
 <LineBreak />- Sets "More Pins" layout (less recommended)
@@ -9207,17 +10484,17 @@ Disables:
                         </TextBlock>
                                     <CheckBox x:Name="StartMenuCheckBox"
                                  Content="Start Menu"
-                                 Style="{StaticResource CustomCheckBoxStyle}"
+                                 Style="{DynamicResource CustomCheckBoxStyle}"
                                  FontSize="14"/>
                                 </StackPanel>
                             </Border>
 
                             <!-- Explorer Section -->
-                            <Border Background="#202020" CornerRadius="5" Margin="5,5,5,5">
+                            <Border Background="{DynamicResource ContentSectionBorderBrush}" CornerRadius="5" Margin="5,5,5,5" Effect="{StaticResource LightShadowEffect}">
                                 <StackPanel Orientation="Horizontal" Margin="10">
-                                    <TextBlock Style="{StaticResource HelpIconStyle}" Margin="0,0,10,0">
+                                    <TextBlock Style="{DynamicResource HelpIconStyle}" Margin="0,0,10,0">
                                         <TextBlock.ToolTip>
-                                            <ToolTip Style="{StaticResource CustomTooltipStyle}">
+                                            <ToolTip Style="{DynamicResource CustomTooltipStyle}">
                                                 <TextBlock>
                                         - Enables long file paths (32,767 chars)
 <LineBreak />- Disables Windows Spotlight wallpaper feature
@@ -9260,17 +10537,17 @@ Disables:
                         </TextBlock>
                                     <CheckBox x:Name="ExplorerCheckBox"
                                  Content="Explorer"
-                                 Style="{StaticResource CustomCheckBoxStyle}"
+                                 Style="{DynamicResource CustomCheckBoxStyle}"
                                  FontSize="14"/>
                                 </StackPanel>
                             </Border>
 
                             <!-- Notifications Section -->
-                            <Border Background="#202020" CornerRadius="5" Margin="5,5,5,5">
+                            <Border Background="{DynamicResource ContentSectionBorderBrush}" CornerRadius="5" Margin="5,5,5,5" Effect="{StaticResource LightShadowEffect}">
                                 <StackPanel Orientation="Horizontal" Margin="10">
-                                    <TextBlock Style="{StaticResource HelpIconStyle}" Margin="0,0,10,0">
+                                    <TextBlock Style="{DynamicResource HelpIconStyle}" Margin="0,0,10,0">
                                         <TextBlock.ToolTip>
-                                            <ToolTip Style="{StaticResource CustomTooltipStyle}">
+                                            <ToolTip Style="{DynamicResource CustomTooltipStyle}">
                                                 <TextBlock>
                                         Disables:
 <LineBreak />- Notifications (Incl. Lock Screen)
@@ -9286,17 +10563,17 @@ Disables:
                         </TextBlock>
                                     <CheckBox x:Name="NotificationsCheckBox"
                                  Content="Notifications"
-                                 Style="{StaticResource CustomCheckBoxStyle}"
+                                 Style="{DynamicResource CustomCheckBoxStyle}"
                                  FontSize="14"/>
                                 </StackPanel>
                             </Border>
 
                             <!-- Sound Section -->
-                            <Border Background="#202020" CornerRadius="5" Margin="5,5,5,5">
+                            <Border Background="{DynamicResource ContentSectionBorderBrush}" CornerRadius="5" Margin="5,5,5,5" Effect="{StaticResource LightShadowEffect}">
                                 <StackPanel Orientation="Horizontal" Margin="10">
-                                    <TextBlock Style="{StaticResource HelpIconStyle}" Margin="0,0,10,0">
+                                    <TextBlock Style="{DynamicResource HelpIconStyle}" Margin="0,0,10,0">
                                         <TextBlock.ToolTip>
-                                            <ToolTip Style="{StaticResource CustomTooltipStyle}">
+                                            <ToolTip Style="{DynamicResource CustomTooltipStyle}">
                                                 <TextBlock>
                                         Disables: 
 <LineBreak />- Startup sounds
@@ -9309,17 +10586,17 @@ Disables:
                         </TextBlock>
                                     <CheckBox x:Name="SoundCheckBox"
                                  Content="Sound"
-                                 Style="{StaticResource CustomCheckBoxStyle}"
+                                 Style="{DynamicResource CustomCheckBoxStyle}"
                                  FontSize="14"/>
                                 </StackPanel>
                             </Border>
 
                             <!-- Accessibility Section -->
-                            <Border Background="#202020" CornerRadius="5" Margin="5,5,5,5">
+                            <Border Background="{DynamicResource ContentSectionBorderBrush}" CornerRadius="5" Margin="5,5,5,5" Effect="{StaticResource LightShadowEffect}">
                                 <StackPanel Orientation="Horizontal" Margin="10">
-                                    <TextBlock Style="{StaticResource HelpIconStyle}" Margin="0,0,10,0">
+                                    <TextBlock Style="{DynamicResource HelpIconStyle}" Margin="0,0,10,0">
                                         <TextBlock.ToolTip>
-                                            <ToolTip Style="{StaticResource CustomTooltipStyle}">
+                                            <ToolTip Style="{DynamicResource CustomTooltipStyle}">
                                                 <TextBlock>
                                         - Disables self voice and self scan features
 <LineBreak />- Disables activation and warning sounds
@@ -9337,17 +10614,17 @@ Disables:
                         </TextBlock>
                                     <CheckBox x:Name="AccessibilityCheckBox"
                                  Content="Accessibility"
-                                 Style="{StaticResource CustomCheckBoxStyle}"
+                                 Style="{DynamicResource CustomCheckBoxStyle}"
                                  FontSize="14"/>
                                 </StackPanel>
                             </Border>
 
                             <!-- Search Section -->
-                            <Border Background="#202020" CornerRadius="5" Margin="5,5,5,5">
+                            <Border Background="{DynamicResource ContentSectionBorderBrush}" CornerRadius="5" Margin="5,5,5,5" Effect="{StaticResource LightShadowEffect}">
                                 <StackPanel Orientation="Horizontal" Margin="10">
-                                    <TextBlock Style="{StaticResource HelpIconStyle}" Margin="0,0,10,0">
+                                    <TextBlock Style="{DynamicResource HelpIconStyle}" Margin="0,0,10,0">
                                         <TextBlock.ToolTip>
-                                            <ToolTip Style="{StaticResource CustomTooltipStyle}">
+                                            <ToolTip Style="{DynamicResource CustomTooltipStyle}">
                                                 <TextBlock>
                                         Disables: 
 <LineBreak />- Search history &amp; highlights
@@ -9361,7 +10638,7 @@ Disables:
                         </TextBlock>
                                     <CheckBox x:Name="SearchCheckBox"
                                  Content="Search"
-                                 Style="{StaticResource CustomCheckBoxStyle}"
+                                 Style="{DynamicResource CustomCheckBoxStyle}"
                                  FontSize="14"/>
                                 </StackPanel>
                             </Border>
@@ -9389,7 +10666,7 @@ Disables:
             DockPanel.Dock="Left"
             FontFamily="Segoe MDL2 Assets"
             FontSize="68"
-            Foreground="White"
+            Foreground="{DynamicResource PrimaryTextColor}"
             Text="&#xE946;" />
                     <StackPanel VerticalAlignment="Center">
                         <TextBlock
@@ -9398,7 +10675,7 @@ Disables:
                 FontFamily="Helvetica Neue"
                 FontSize="32"
                 FontWeight="Bold"
-                Foreground="White"
+                Foreground="{DynamicResource PrimaryTextColor}"
                 Text="About" />
                         <TextBlock
                 x:Name="AboutStatusText"
@@ -9414,7 +10691,7 @@ Disables:
                 <!-- Main Content -->
                 <Border x:Name="AboutMainContentBorder"
         Margin="0,5,0,0"
-        Background="#303030"
+        Background="{DynamicResource MainContainerBorderBrush}"
         CornerRadius="10"
         Height="470">
                     <Grid Margin="10,10,10,10">
@@ -9423,13 +10700,13 @@ Disables:
                     FontFamily="Helvetica Neue"
                     FontSize="16"
                     FontWeight="Bold"
-                    Foreground="White"
+                    Foreground="{DynamicResource PrimaryTextColor}"
                     Margin="10,10,0,10"
                     Text="Winhance" />
                             <TextBlock
     FontFamily="Helvetica Neue"
     FontSize="14"
-    Foreground="LightGray"
+    Foreground="{DynamicResource PrimaryTextColor}"
     Margin="10,0,0,10">
     <Run Text="Winhance is a PowerShell GUI application designed to optimize and customize Windows 10 and 11 systems." />
     <LineBreak />
@@ -9450,35 +10727,42 @@ Disables:
     <Run Text="- General PC optimizations" />
                             </TextBlock>
                             <TextBlock
-                    FontFamily="Helvetica Neue"
-                    FontSize="14"
-                    Foreground="LightGray"
-                    Margin="10,10,0,10"
-                    Text="Version: 1.0" />
+    FontFamily="Helvetica Neue"
+    FontSize="14"
+    Foreground="{DynamicResource PrimaryTextColor}"
+    Margin="10,10,0,10"
+    Text="Create Winhance Desktop Shortcut" />
+                            <Button
+    x:Name="CreateShortcutButton"
+    Style="{DynamicResource PrimaryButtonStyle}"
+    Content="Create"
+    HorizontalAlignment="Left"
+    VerticalAlignment="Center"
+    Margin="10,0,0,10" />
                             <TextBlock
                     FontFamily="Helvetica Neue"
                     FontSize="14"
-                    Foreground="LightGray"
+                    Foreground="{DynamicResource PrimaryTextColor}"
                     Margin="10,10,0,10"
                     Text="Author: Memory" />
                             <StackPanel Orientation="Horizontal" Margin="0,10,0,0">
                                 <Button
                         x:Name="GitHubButton"
-                        Style="{StaticResource PrimaryButtonStyle}"
+                        Style="{DynamicResource PrimaryButtonStyle}"
                         Content="GitHub"
                         HorizontalAlignment="Left"
                         VerticalAlignment="Center"
                         Margin="10,0,0,0" />
                                 <Button
                         x:Name="WebsiteButton"
-                        Style="{StaticResource PrimaryButtonStyle}"
+                        Style="{DynamicResource PrimaryButtonStyle}"
                         Content="Website"
                         HorizontalAlignment="Left"
                         Margin="10,0,0,0"
                         VerticalAlignment="Center" />
                                 <Button
                         x:Name="YouTubeButton"
-                        Style="{StaticResource PrimaryButtonStyle}"
+                        Style="{DynamicResource PrimaryButtonStyle}"
                         Content="YouTube"
                         HorizontalAlignment="Left"
                         Margin="10,0,0,0"
@@ -9487,12 +10771,12 @@ Disables:
                             <TextBlock
                     FontFamily="Helvetica Neue"
                     FontSize="14"
-                    Foreground="LightGray"
+                    Foreground="{DynamicResource PrimaryTextColor}"
                     Margin="10,20,0,10"
                     Text="Support the Project" />
                             <Button
                     x:Name="SupportButton"
-                    Style="{StaticResource PrimaryButtonStyle}"
+                    Style="{DynamicResource PrimaryButtonStyle}"
                     Content="PayPal"
                     HorizontalAlignment="Left"
                     VerticalAlignment="Center"
@@ -9516,6 +10800,9 @@ try {
         Write-Status "Failed to load XAML."
         Pause
     }
+    
+    # Set window to not show automatically
+    $window.Visibility = 'Hidden'
 }
 catch {
     Write-Status "Error loading XAML: $($_.Exception.Message)"
@@ -9538,8 +10825,13 @@ $script:optimizeScreen = $window.FindName("OptimizeScreen")
 $script:customizeScreen = $window.FindName("CustomizeScreen")
 $script:aboutScreen = $window.FindName("AboutScreen")
 
-# Navigation Buttons
+# Window Control Buttons
 $closeButton = $window.FindName("CloseButton")
+$MinimizeButton = $window.FindName("MinimizeButton")
+$MaximizeButton = $window.FindName("MaximizeButton")
+$ThemeToggleButton = $window.FindName("ThemeToggleButton")
+
+# Navigation Buttons
 $softwareAppsNavButton = $window.FindName("SoftwareAppsNavButton")
 $optimizeNavButton = $window.FindName("OptimizeNavButton")
 $customizeNavButton = $window.FindName("CustomizeNavButton")
@@ -9566,6 +10858,8 @@ $installEdgeWebView = $window.FindName("InstallEdgeWebView")
 $installOneDrive = $window.FindName("InstallOneDrive")
 $installXbox = $window.FindName("InstallXbox")
 
+Initialize-RemoveAppsButton
+
 # =================================
 # Optimize Screen Controls
 # =================================
@@ -9574,7 +10868,6 @@ $OptimizeApplyButton = $window.FindName("OptimizeApplyButton")
 $windowsSecurityHeaderBorder = $window.FindName("WindowsSecurityHeaderBorder")
 $windowsSecurityContent = $window.FindName("WindowsSecurityContent")
 $uacSlider = $window.FindName("UACSlider")
-$uacSliderValue = $window.FindName("UACSliderValue")
 $enableWindowsSecurityButton = $window.FindName("EnableWindowsSecurityButton")
 $disableWindowsSecurityButton = $window.FindName("DisableWindowsSecurityButton")
 
@@ -9582,7 +10875,6 @@ $disableWindowsSecurityButton = $window.FindName("DisableWindowsSecurityButton")
 $uacSlider.Minimum = 0
 $uacSlider.Maximum = 2
 $uacSlider.Value = Update-UACNotificationLevel -Mode Get
-$uacSliderValue.Text = "Current: $(@("Low","Moderate","High")[$uacSlider.Value])"
 
 # Optimize Checkboxes
 $optimizeSelectAllCheckbox = $window.FindName("OptimizeSelectAllCheckbox")
@@ -9631,19 +10923,15 @@ $customizeCheckboxes = @(
     $searchCheckBox
 )
 
-# Initialize Dark Mode state
+# Initialize Dark Mode state (windows theme)
 $darkModeSlider.Value = if (Get-CurrentTheme) { 1 } else { 0 }
 
 # About Screen
+$CreateShortcutButton = $window.FindName("CreateShortcutButton")
 $gitHubButton = $window.FindName("GitHubButton")
 $websiteButton = $window.FindName("WebsiteButton")
 $youTubeButton = $window.FindName("YouTubeButton")
 $supportButton = $window.FindName("SupportButton")
-
-# Initialize screens
-Initialize-Screens
-# Initialize Software Install Handlers
-Initialize-InstallationHandlers
 
 #region 7. Event Handlers
 # ====================================================================================================
@@ -9653,30 +10941,73 @@ Initialize-InstallationHandlers
 # =================================
 # Main Window GUI Handlers
 # =================================
-# Close Button
-$CloseButton.Add_Click({
-        # Define paths
-        $configPath = Join-Path $env:ProgramFiles "Winhance\Config"
-        $preferencesFile = Join-Path $configPath "preferences.json"
-        $showDialog = $true
 
-        # Check if the user has previously opted out
-        if (Test-Path $preferencesFile) {
-            try {
-                $preferences = Get-Content $preferencesFile | ConvertFrom-Json
-                if ($preferences.DontShowSupport) {
-                    $showDialog = $false
-                }
-            }
-            catch {
-                # If there's an error reading preferences, show the dialog anyway
-                $showDialog = $true
+# Theme Toggle Button Handler
+$ThemeToggleButton.Add_Click({
+    try {
+        Write-Log -Message "Theme toggle button clicked" -Severity "INFO"
+        Write-Log -Message "Current isDarkMode before toggle: $script:isDarkMode" -Severity "INFO"
+        
+        # Toggle theme using script variable
+        $script:isDarkMode = !$script:isDarkMode
+        Write-Log -Message "Switching to $( if ($script:isDarkMode) { 'dark' } else { 'light' } ) mode" -Severity "INFO"
+        
+        Switch-Theme -isDarkMode $script:isDarkMode
+        
+        # Create new preferences hashtable
+        $newPreferences = @{}
+        
+        # Get existing preferences and copy them
+        $existingPreferences = Get-UserPreferences
+        if ($existingPreferences) {
+            $existingPreferences.PSObject.Properties | ForEach-Object {
+                $newPreferences[$_.Name] = $_.Value
             }
         }
+        
+        # Update or add the theme preference
+        $newPreferences["IsDarkMode"] = $script:isDarkMode
+        
+        # Save updated preferences
+        $saveResult = Save-UserPreferences -Preferences $newPreferences
+        if (-not $saveResult) {
+            Write-Log -Message "Failed to save theme preference" -Severity "WARNING"
+        }
+    }
+    catch {
+        Write-Log -Message "Error in theme toggle handler: $_" -Severity "ERROR"
+    }
+})
 
-        if ($showDialog) {
-            $heart = [char]0x2764
-            $response = Show-MessageBox -Message "Thanks for using Winhance! $heart
+# Minimize Button
+$MinimizeButton.Add_Click({ $window.WindowState = 'Minimized' })
+
+# Maximize Button
+$MaximizeButton.Add_Click({
+        if ($window.WindowState -eq 'Maximized') {
+            $window.WindowState = 'Normal'
+            $MaximizeButton.Content = [char]0xE739
+        }
+        else {
+            $window.WindowState = 'Maximized'
+            $MaximizeButton.Content = [char]0xE923
+        }
+    })
+
+
+# Close Button Handler
+$CloseButton.Add_Click({
+    $showDialog = $true
+    $preferences = Get-UserPreferences
+
+    # Check if the user has previously opted out
+    if ($preferences -and $preferences.DontShowSupport) {
+        $showDialog = $false
+    }
+
+    if ($showDialog) {
+        $heart = [char]0x2764
+        $response = Show-MessageBox -Message "Thanks for using Winhance! $heart
 
 If you found this tool helpful, please consider:
 
@@ -9684,33 +11015,30 @@ If you found this tool helpful, please consider:
 - Giving us a Star on GitHub
 
 Click 'Yes' to show your support!" `
-                -Title "Support Winhance" `
-                -Buttons "YesNo" `
-                -Icon "Information"
+            -Title "Support Winhance" `
+            -Buttons "YesNo" `
+            -Icon "Information"
 
-            if ($response -eq 'Yes') {
-                Start-Process "https://github.com/memstechtips/Winhance"
-                Start-Process "https://paypal.me/memstech"
+        if ($response -eq 'Yes') {
+            Start-Process "https://github.com/memstechtips/Winhance"
+            Start-Process "https://paypal.me/memstech"
+        }
+        else {
+            # Update preferences to not show dialog again
+            if ($preferences) {
+                $preferences.DontShowSupport = $true
             }
             else {
-                # If they click No, save that preference
-                try {
-                    if (-not (Test-Path $configPath)) {
-                        New-Item -ItemType Directory -Path $configPath -Force | Out-Null
-                    }
-
-                    @{
-                        DontShowSupport = $true
-                    } | ConvertTo-Json | Set-Content -Path $preferencesFile -Force
-                }
-                catch {
-                    Write-Status "Unable to save preference: $($_.Exception.Message)" -TargetScreen "SoftAppsScreen"
+                $preferences = @{
+                    DontShowSupport = $true
                 }
             }
+            Save-UserPreferences -Preferences $preferences
         }
+    }
     
-        Exit
-    })
+    Exit
+})
 
 $window.Add_SizeChanged({
         # Get the window's current size
@@ -9773,8 +11101,8 @@ $window.Add_MouseDoubleClick({
 
 # Screen switching event handlers
 $SoftwareAppsNavButton.Add_Click({
-        Switch-Screen -SelectedButton $SoftwareAppsNavButton -TargetScreenName 'SoftAppsScreen'
-    })
+    Switch-Screen -SelectedButton $SoftwareAppsNavButton -TargetScreenName 'SoftAppsScreen'
+})
 
 $OptimizeNavButton.Add_Click({
         Switch-Screen -SelectedButton $OptimizeNavButton -TargetScreenName 'OptimizeScreen'
@@ -9802,235 +11130,23 @@ $installSoftwareHeader.Add_MouseDown({
         }
     })
 
+# Header click handler for expanding/collapsing content
 $removeAppsHeader.Add_MouseDown({
-        if ($removeAppsContent.Visibility -eq "Collapsed") {
-            $removeAppsContent.Visibility = "Visible"
-        }
-        else {
-            $removeAppsContent.Visibility = "Collapsed"
-        }
-    })
+    if ($removeAppsContent.Visibility -eq "Collapsed") {
+        $removeAppsContent.Visibility = "Visible"
+    }
+    else {
+        $removeAppsContent.Visibility = "Collapsed"
+    }
+})
 
 # Note: Installation handled by Initialize-InstallationHandlers
 
 # =================================
 # Remove Bloatware Handlers
 # =================================
-# Reset to store dynamic checkboxes
-$checkBoxes = @()
 
-$chkPanel = $window.FindName("chkPanel")
-if (-not $chkPanel) {
-    throw "chkPanel element not found. Ensure the XAML has a StackPanel with x:Name='chkPanel'."
-}
-
-# Clear existing content in the panel
-$chkPanel.Children.Clear()
-
-# Create a UniformGrid for dynamic checkboxes
-$uniformGrid = New-Object System.Windows.Controls.Primitives.UniformGrid
-$uniformGrid.Columns = 6 # Limit to 6 checkboxes per row
-$uniformGrid.Margin = [System.Windows.Thickness]::new(10)
-
-# Add "Select All" checkbox
-$selectAllChk = New-Object System.Windows.Controls.CheckBox
-$selectAllChk.Content = "Select All"
-$selectAllChk.IsChecked = $true
-$selectAllChk.FontSize = 14
-$selectAllChk.FontWeight = "Bold"
-$selectAllChk.Foreground = [System.Windows.Media.BrushConverter]::new().ConvertFromString("#FFDE00")
-$selectAllChk.Margin = [System.Windows.Thickness]::new(6)
-$selectAllChk.Style = $window.FindResource("CustomCheckBoxStyle")
-$uniformGrid.Children.Add($selectAllChk)
-
-# Track seen apps to avoid duplicates
-$seenApps = @{}
-
-foreach ($app in $UsefulAppx.GetEnumerator()) {
-    if (-not $seenApps.ContainsKey($app.Value.FriendlyName)) {
-        # Special handling for "Xbox" group
-        if ($app.Value.FriendlyName -eq "Xbox") {
-            $xboxPackages = $UsefulAppx.GetEnumerator() | 
-            Where-Object { $_.Value.FriendlyName -eq "Xbox" } | 
-            ForEach-Object { $_.Key }
-            
-            $chk = New-Object System.Windows.Controls.CheckBox
-            $chk.Content = "Xbox"
-            $chk.IsChecked = $true
-            $chk.FontSize = 14
-            $chk.Foreground = [System.Windows.Media.Brushes]::White
-            $chk.Margin = [System.Windows.Thickness]::new(5)
-            $chk.Tag = $xboxPackages
-            $chk.Style = $window.FindResource("CustomCheckBoxStyle")
-            $uniformGrid.Children.Add($chk)
-            $checkBoxes += $chk
-            $seenApps[$app.Value.FriendlyName] = $true
-            continue
-        }
-
-        # Default handling for other apps
-        $chk = New-Object System.Windows.Controls.CheckBox
-        $chk.Content = $app.Value.FriendlyName
-        $chk.IsChecked = $true
-        $chk.FontSize = 14
-        $chk.Foreground = [System.Windows.Media.Brushes]::White
-        $chk.Margin = [System.Windows.Thickness]::new(5)
-        $chk.Tag = $app.Key
-        $chk.Style = $window.FindResource("CustomCheckBoxStyle")
-        $uniformGrid.Children.Add($chk)
-        $checkBoxes += $chk
-        $seenApps[$app.Value.FriendlyName] = $true
-    }
-}
-
-# Add Microsoft Edge checkbox
-$chk = New-Object System.Windows.Controls.CheckBox
-$chk.Content = "Microsoft Edge"
-$chk.IsChecked = $true
-$chk.FontSize = 14
-$chk.Foreground = [System.Windows.Media.Brushes]::White
-$chk.Margin = [System.Windows.Thickness]::new(5)
-$chk.Tag = "Edge"  # Special tag to identify Edge
-$chk.Style = $window.FindResource("CustomCheckBoxStyle")
-$uniformGrid.Children.Add($chk)
-$checkBoxes += $chk
-
-# Add OneDrive checkbox
-$chk = New-Object System.Windows.Controls.CheckBox
-$chk.Content = "OneDrive"
-$chk.IsChecked = $true
-$chk.FontSize = 14
-$chk.Foreground = [System.Windows.Media.Brushes]::White
-$chk.Margin = [System.Windows.Thickness]::new(5)
-$chk.Tag = "OneDrive"  # Special tag to identify OneDrive
-$chk.Style = $window.FindResource("CustomCheckBoxStyle")
-$uniformGrid.Children.Add($chk)
-$checkBoxes += $chk
-
-# Add Recall checkbox
-$chk = New-Object System.Windows.Controls.CheckBox
-$chk.Content = "Recall"
-$chk.IsChecked = $true
-$chk.FontSize = 14
-$chk.Foreground = [System.Windows.Media.Brushes]::White
-$chk.Margin = [System.Windows.Thickness]::new(5)
-$chk.Tag = "Recall"  # Special tag to identify Recall
-$chk.Style = $window.FindResource("CustomCheckBoxStyle")
-$uniformGrid.Children.Add($chk)
-$checkBoxes += $chk
-
-# Add "Useless Bloatware" checkbox
-$chk = New-Object System.Windows.Controls.CheckBox
-$chk.Content = "Useless Bloatware"
-$chk.IsChecked = $true
-$chk.FontSize = 14
-$chk.Foreground = [System.Windows.Media.Brushes]::White
-$chk.Margin = [System.Windows.Thickness]::new(5)
-$chk.Tag = @($Bloatappx.Keys)
-$chk.Style = $window.FindResource("CustomCheckBoxStyle")
-$uniformGrid.Children.Add($chk)
-$checkBoxes += $chk
-
-# Add the tooltip symbol next to the "Useless Bloatware" checkbox
-$helpIcon = New-Object System.Windows.Controls.TextBlock
-$helpIcon.Margin = [System.Windows.Thickness]::new(6, 0, 0, 0)
-
-# Apply the HelpIconStyle from XAML
-$helpIconStyle = $window.FindResource("HelpIconStyle")
-if ($helpIconStyle -ne $null) {
-    $helpIcon.Style = $helpIconStyle
-}
-
-# Generate friendly names as a string for the tooltip
-$BloatList = $Bloatappx.GetEnumerator() | ForEach-Object {
-    "- $($_.Value.FriendlyName)"
-} | Out-String
-
-$LegacyList = "`nLegacy Features:`n" + ($LegacyCapabilities.GetEnumerator() | ForEach-Object {
-        "- $($_.Value.FriendlyName)"
-    } | Out-String)
-
-# Add tooltip content
-$tooltip = New-Object System.Windows.Controls.ToolTip
-$tooltip.Content = "Useless Bloatware: `n$BloatList$LegacyList"
-
-# Apply the CustomTooltipStyle
-$customTooltipStyle = $window.FindResource("CustomTooltipStyle")
-if ($customTooltipStyle -ne $null) {
-    $tooltip.Style = $customTooltipStyle
-}
-
-$helpIcon.ToolTip = $tooltip
-
-# Add the tooltip symbol to the same row in the grid
-$uniformGrid.Children.Add($helpIcon) 
-
-# Add the UniformGrid to the chkPanel
-$chkPanel.Children.Add($uniformGrid)
-
-# Add "Select All" functionality
-$handlingSelectAll = $false
-
-$selectAllChk.Add_Checked({
-        if (-not $handlingSelectAll) {
-            foreach ($chk in $checkBoxes) {
-                $chk.IsChecked = $true
-            }
-        }
-    })
-
-$selectAllChk.Add_Unchecked({
-        if (-not $handlingSelectAll) {
-            foreach ($chk in $checkBoxes) {
-                $chk.IsChecked = $false
-            }
-        }
-    })
-
-# Function to update "Select All" state
-function Update-SelectAllState {
-    # Prevent cascading updates
-    $handlingSelectAll = $true
-
-    # Determine if all checkboxes (excluding "Select All") are checked
-    $allChecked = $true
-    foreach ($chk in $checkBoxes) {
-        if ($chk -ne $selectAllChk -and $chk.IsChecked -ne $true) {
-            $allChecked = $false
-            break
-        }
-    }
-    
-    # Update the "Select All" checkbox state
-    $selectAllChk.IsChecked = $allChecked
-
-    # Allow cascading updates again
-    $handlingSelectAll = $false
-}
-
-# Add event handlers to each dynamically created checkbox
-foreach ($chk in $checkBoxes) {
-    if ($chk -ne $selectAllChk) {
-        $chk.Add_Checked({ Update-SelectAllState })
-        $chk.Add_Unchecked({ Update-SelectAllState })
-    }
-}
-
-# Add "Remove Selected Apps" button below the checkboxes but above static content
-$removeAppsButton = New-Object System.Windows.Controls.Button
-$removeAppsButton.Content = "Remove Apps"
-$removeAppsButton.Width = 130
-$removeAppsButton.Height = 35
-$removeAppsButton.HorizontalAlignment = "Right"
-$removeAppsButton.Margin = [System.Windows.Thickness]::new(0, 0, 10, 0)
-$removeAppsButton.Style = $window.FindResource("PrimaryButtonStyle")
-
-# Insert the button at the correct position in RemoveAppsContent
-$removeAppsContent = $window.FindName("RemoveAppsContent")
-$removeAppsContent.Children.Insert(1, $removeAppsButton) # Insert after chkPanel but before static content
-
-# Call Remove-SelectedBloatware when removing bloatware
-$RemoveAppsButton.Add_Click({ Remove-SelectedBloatware })
+$script:removeAppsButton.add_Click({ Remove-SelectedBloatware })
 
 # ==========================
 # Optimize Screen Handlers
@@ -10051,10 +11167,8 @@ $UACSlider.Add_ValueChanged({
         try {
             $levelNames = @("Low", "Moderate", "High")
             Update-UACNotificationLevel -Mode Set -Level $this.Value
-            $UACSliderValue.Text = "Current: $($levelNames[$this.Value])"
         }
         catch {
-            $UACSliderValue.Text = "Error: Update Failed"
             [System.Media.SystemSounds]::Hand.Play()
             Write-Log "UAC slider update failed: $($_.Exception.Message)" -Severity Error
         }
@@ -10487,6 +11601,17 @@ $CustomizeDefaultsButton.Add_Click({
 # About Screen Handlers
 # ==========================
 
+$CreateShortcutButton.Add_Click({
+        $WshShell = New-Object -ComObject WScript.Shell
+        $Shortcut = $WshShell.CreateShortcut("$env:USERPROFILE\Desktop\Winhance.lnk")
+        $Shortcut.TargetPath = "powershell.exe"
+        $Shortcut.Arguments = "-ExecutionPolicy Bypass -Command `"Start-Process powershell -ArgumentList '-NoProfile -ExecutionPolicy Bypass -Command `"`"irm \`"https://github.com/memstechtips/Winhance/raw/main/Winhance.ps1\`" | iex`"`"' -Verb RunAs`""
+        $Shortcut.IconLocation = "powershell.exe,0"
+        $Shortcut.Save()
+    
+        [System.Windows.MessageBox]::Show("Desktop shortcut created successfully!", "Success", [System.Windows.MessageBoxButton]::OK, [System.Windows.MessageBoxImage]::Information)
+    })
+
 $GitHubButton.Add_Click({
         Start-Process "https://github.com/memstechtips"
     })
@@ -10503,17 +11628,11 @@ $SupportButton.Add_Click({
         Start-Process "https://paypal.me/memstech"
     })
 
-
 #region 8. Main Execution
 # ====================================================================================================
 # Main Execution
 # Application startup and main window display
 # ====================================================================================================
-
-# Make window draggable
-$window.Add_MouseLeftButtonDown({
-        $window.DragMove()
-    }) | Out-Null
 
 # Display disclaimer message before showing main window
 $agreement = Show-MessageBox -Message "Welcome to Winhance!
@@ -10535,13 +11654,29 @@ if ($agreement -ne 'OK') {
     exit
 }
 
-# Create registry backup and initialize logging
+# Initialize logging
 Start-Log
 Write-Log -Message "Script started" -Severity 'INFO'
 
-$backupPath = Backup-Registry
-if ($backupPath) {
-    Show-MessageBox -Message "Welcome to Winhance!
+try {
+    # Show loading screen
+    $loadingScreen = Show-LoadingScreen
+    
+    # Create registry backup
+    $backupPath = Backup-Registry
+    
+    # Initialize all required components
+    Initialize-Screens
+    Initialize-InstallationHandlers
+    Initialize-BloatwareUI
+    Initialize-AppTheme
+    
+    # Close loading screen
+    $loadingScreen.ShouldClose = $true
+    
+    # Show backup message if needed
+    if ($backupPath) {
+        Show-MessageBox -Message "Welcome to Winhance!
 
 A registry backup has been created at:
 $backupPath
@@ -10550,15 +11685,26 @@ The log file is being saved to:
 $SCRIPT:LogPath
 
 You can use the registry file to restore your registry if needed." `
-        -Title "Backup Information" `
-        -Buttons "OK" `
-        -Icon "Information"
-}
-
-# Show the window
-try {
+            -Title "Backup Information" `
+            -Buttons "OK" `
+            -Icon "Information"
+    }
+    
+    # Make window visible and draggable
+    $window.Visibility = 'Visible'
+    $window.Add_MouseLeftButtonDown({
+        $window.DragMove()
+    })
+    
+    # Show the window
     Clear-Host
-    $window.ShowDialog() | Out-Null
+    [void]$window.ShowDialog()
+}
+catch {
+    Write-Log -Message "Error during application startup: $_" -Severity 'ERROR'
+    if ($loadingScreen) {
+        $loadingScreen.ShouldClose = $true
+    }
 }
 finally {
     Stop-Log
