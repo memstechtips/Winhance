@@ -417,7 +417,7 @@ class RegistryHelper {
 # === Logging Configuration ===
 $SCRIPT:LogPath = "$env:TEMP\Winhance-Log_$(Get-Date -Format 'yyyyMMdd-HHmmss').log"
 $SCRIPT:LogEnabled = $true
-$SCRIPT:Version = "25.02.06"
+$SCRIPT:Version = "25.02.13"
 
 # === Theme Config ===
 $SCRIPT:isDarkMode = $true
