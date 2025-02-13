@@ -2,12 +2,12 @@
 
 **Winhance** is a PowerShell GUI application designed to optimize and customize your Windows experience. <br> From software management to system optimizations and customization, Winhance provides functions to enhance Windows 10 and 11 systems.<br><br>**Winhance** features most of the same enhancements as [UnattendedWinstall](https://github.com/memstechtips/UnattendedWinstall) without needing to do a clean install of Windows.
 
-![image](https://github.com/user-attachments/assets/01b70777-f384-4ba4-8fc1-7dca81250f5a)
+![image](https://github.com/user-attachments/assets/eda81081-6430-41a2-baaa-4e06120b2cab)
 
 ## Requirements 💻
 - Windows 11
   - *Tested on Windows 11 24H2*
-  - *Most things should work on Windows 10 22H2 but there are some issues*
+  - *Most things should work on Windows 10 22H2 but there are some issues like Microsoft Edge (legacy) removal*
 - Windows PowerShell 5.1 (Preinstalled in above versions)
 
 ## Usage Instructions 📜
@@ -91,10 +91,8 @@ If you have feedback, suggestions, or need help with Winhance, please join the d
 [![Join Discord Community](https://img.shields.io/badge/Join-Discord%20Community-5865F2?style=for-the-badge&logo=discord&logoColor=white)](https://www.discord.gg/zWGANV8QAX)
 
 ### TODO:
-- Create separate/individual checkboxes for apps that can be removed with some presets. 
 - Implement fix for "can't open links" due to Edge removal. 
 - Fix removal of Legacy MS Edge on Windows 10.
 - Implement jobs/background tasks for long running tasks. 
 - Implement better WinGet installation on Windows 10.
-- Add a "create Winhance desktop shortcut" option.
 ---
