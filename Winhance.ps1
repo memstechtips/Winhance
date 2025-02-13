@@ -11010,7 +11010,6 @@ $CloseButton.Add_Click({
         $response = Show-MessageBox -Message "Thanks for using Winhance! $heart
 
 If you found this tool helpful, please consider:
-
 - Making a small donation via PayPal
 - Giving us a Star on GitHub
 
@@ -11024,19 +11023,27 @@ Click 'Yes' to show your support!" `
             Start-Process "https://paypal.me/memstech"
         }
         else {
-            # Update preferences to not show dialog again
+            # Create new preferences hashtable
+            $newPreferences = @{}
+
+            # Get existing preferences and copy them
             if ($preferences) {
-                $preferences.DontShowSupport = $true
-            }
-            else {
-                $preferences = @{
-                    DontShowSupport = $true
+                $preferences.PSObject.Properties | ForEach-Object {
+                    $newPreferences[$_.Name] = $_.Value
                 }
             }
-            Save-UserPreferences -Preferences $preferences
+
+            # Update or add the DontShowSupport preference
+            $newPreferences["DontShowSupport"] = $true
+
+            # Save updated preferences
+            $saveResult = Save-UserPreferences -Preferences $newPreferences
+            if (-not $saveResult) {
+                Write-Log -Message "Failed to save support preference" -Severity "WARNING"
+            }
         }
     }
-    
+
     Exit
 })
 
