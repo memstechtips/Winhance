@@ -4,6 +4,16 @@
 
 ![image](https://github.com/user-attachments/assets/eda81081-6430-41a2-baaa-4e06120b2cab)
 
+## Changelog 📑
+
+### Main Branch:
+- [View Main Changelog](https://github.com/Nigel1992/Winhance/commits/main/Winhance.ps1)
+
+### TEST Branch:
+- [View TEST Changelog](https://github.com/Nigel1992/Winhance/commits/Nigel1992-test/Winhance.ps1)
+
+
+
 ## Requirements 💻
 - Windows 11
   - *Tested on Windows 11 24H2*
