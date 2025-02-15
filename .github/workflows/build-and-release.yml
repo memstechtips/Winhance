@@ -37,6 +37,13 @@ jobs:
           name: Winhance-EXE
           path: Winhance.exe
 
+      - name: Generate Release Notes
+        id: generate_release_notes
+        shell: pwsh
+        run: |
+          $releaseNotes = "Release notes for ${{ github.ref_name }}"
+          echo "release_notes=$releaseNotes" >> $env:GITHUB_OUTPUT
+
       - name: Create Release
         id: create_release
         uses: actions/create-release@v1
@@ -47,31 +54,7 @@ jobs:
           release_name: Release ${{ github.ref_name }}
           draft: false
           prerelease: false
-
-      - name: Add Release Notes
-        uses: actions/checkout@v3
-        with:
-          ref: ${{ github.ref_name }}
-          token: ${{ secrets.GITHUB_TOKEN }}
-          id: checkout_release
-
-      - name: Generate Release Notes
-        uses: actions/checkout@v3
-        with:
-          ref: ${{ github.ref_name }}
-          token: ${{ secrets.GITHUB_TOKEN }}
-          id: checkout_release
-
-      - name: Update Release with Notes
-        uses: actions/create-release@v1
-        env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-        with:
-          tag_name: ${{ github.ref_name }}
-          release_name: Release ${{ github.ref_name }}
-          draft: false
-          prerelease: false
-          body: ${{ steps.checkout_release.outputs.release_notes }}
+          body: ${{ steps.generate_release_notes.outputs.release_notes }}
 
       - name: Upload Release Asset
         uses: actions/upload-release-asset@v1
