@@ -1,0 +1,84 @@
+name: Build and Release
+
+on:
+  push:
+    branches:
+      - main
+    tags:
+      - 'v*.*.*'
+
+jobs:
+  build:
+    runs-on: windows-latest
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v3
+
+      - name: Install PS2EXE
+        shell: pwsh
+        run: |
+          pwsh -Command "Install-Module ps2exe -Force -Scope CurrentUser"
+
+      - name: Convert PowerShell to EXE
+        shell: pwsh
+        run: |
+          pwsh -Command "try {
+            Invoke-ps2exe -InputFile './Winhance.ps1' -OutputFile './Winhance.exe' -NoConsole -IconFile './Winhance.ico'
+          } catch {
+            Write-Error 'Failed to convert PowerShell script to EXE: $($_.Exception.Message)'
+            Write-Error 'Exception details: $($_.Exception | Format-List * -Force | Out-String)'
+            exit 1
+          }"
+
+      - name: Upload Artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: Winhance-EXE
+          path: Winhance.exe
+
+      - name: Create Release
+        id: create_release
+        uses: actions/create-release@v1
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        with:
+          tag_name: ${{ github.ref_name }}
+          release_name: Release ${{ github.ref_name }}
+          draft: false
+          prerelease: false
+
+      - name: Add Release Notes
+        uses: actions/checkout@v3
+        with:
+          ref: ${{ github.ref_name }}
+          token: ${{ secrets.GITHUB_TOKEN }}
+          id: checkout_release
+
+      - name: Generate Release Notes
+        uses: actions/checkout@v3
+        with:
+          ref: ${{ github.ref_name }}
+          token: ${{ secrets.GITHUB_TOKEN }}
+          id: checkout_release
+
+      - name: Update Release with Notes
+        uses: actions/create-release@v1
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        with:
+          tag_name: ${{ github.ref_name }}
+          release_name: Release ${{ github.ref_name }}
+          draft: false
+          prerelease: false
+          body: ${{ steps.checkout_release.outputs.release_notes }}
+
+      - name: Upload Release Asset
+        uses: actions/upload-release-asset@v1
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        with:
+          upload_url: ${{ steps.create_release.outputs.upload_url }}
+          asset_path: Winhance.exe
+          asset_name: Winhance.exe
+          asset_content_type: application/vnd.microsoft.portable-executable
