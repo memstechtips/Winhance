@@ -11609,15 +11609,38 @@ $CustomizeDefaultsButton.Add_Click({
 # ==========================
 
 $CreateShortcutButton.Add_Click({
+    try {
+        # Get the Desktop path
+        $DesktopPath = [System.Environment]::GetFolderPath("Desktop")
+
+        # Ensure the Desktop path exists
+        if (-not (Test-Path $DesktopPath)) {
+            throw "Desktop path does not exist: $DesktopPath"
+        }
+
+        # Create the WScript Shell object
         $WshShell = New-Object -ComObject WScript.Shell
-        $Shortcut = $WshShell.CreateShortcut("$env:USERPROFILE\Desktop\Winhance.lnk")
+
+        # Create the shortcut on the Desktop
+        $Shortcut = $WshShell.CreateShortcut("$DesktopPath\Winhance.lnk")
         $Shortcut.TargetPath = "powershell.exe"
         $Shortcut.Arguments = "-ExecutionPolicy Bypass -Command `"Start-Process powershell -ArgumentList '-NoProfile -ExecutionPolicy Bypass -Command `"`"irm \`"https://github.com/memstechtips/Winhance/raw/main/Winhance.ps1\`" | iex`"`"' -Verb RunAs`""
         $Shortcut.IconLocation = "powershell.exe,0"
+        
+        # Save the shortcut
         $Shortcut.Save()
-    
-        [System.Windows.MessageBox]::Show("Desktop shortcut created successfully!", "Success", [System.Windows.MessageBoxButton]::OK, [System.Windows.MessageBoxImage]::Information)
-    })
+
+        # Success message
+        Write-Host "Shortcut created successfully at $DesktopPath\Winhance.lnk"
+    }
+    catch {
+        # Error handling
+        Write-Host "Error: $_" -ForegroundColor Red
+    }
+})
+
+
+
 
 $GitHubButton.Add_Click({
         Start-Process "https://github.com/memstechtips"
