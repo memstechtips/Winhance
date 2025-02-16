@@ -1,0 +1,6 @@
+# Ignore everything
+*
+
+# But keep the .ps1 files
+!*.ps1
+!*.gitignore
