@@ -417,7 +417,7 @@ class RegistryHelper {
 # === Logging Configuration ===
 $SCRIPT:LogPath = "$env:TEMP\Winhance-Log_$(Get-Date -Format 'yyyyMMdd-HHmmss').log"
 $SCRIPT:LogEnabled = $true
-$SCRIPT:Version = "25.02.13"
+$SCRIPT:Version = "25.02.17"
 
 # === Theme Config ===
 $SCRIPT:isDarkMode = $true
@@ -2211,1589 +2211,6 @@ $SCRIPT:RegConfig = @{
             Description  = "Disables the last used voice activation setting"
         }
     )
-    Accessibility   = @(
-        [pscustomobject]@{
-            BaseKey      = [BaseKey]::EaseOfAccess
-            Name         = "selfvoice"
-            Recommended  = [ValuePair]::new(0, [RegistryValueKind]::DWord)
-            DefaultValue = $null
-            Description  = "Disables self voice feature"
-        },
-        [pscustomobject]@{
-            BaseKey      = [BaseKey]::EaseOfAccess
-            Name         = "selfscan"
-            Recommended  = [ValuePair]::new(0, [RegistryValueKind]::DWord)
-            DefaultValue = $null
-            Description  = "Disables self scan feature"
-        },
-        [pscustomobject]@{
-            BaseKey      = [BaseKey]::Accessibility
-            Name         = "Sound on Activation"
-            Recommended  = [ValuePair]::new("0", [RegistryValueKind]::String)
-            DefaultValue = $null
-            Description  = "Disables activation sounds"
-        },
-        [pscustomobject]@{
-            BaseKey      = [BaseKey]::Accessibility
-            Name         = "Warning Sounds"
-            Recommended  = [ValuePair]::new("0", [RegistryValueKind]::String)
-            DefaultValue = $null
-            Description  = "Disables warning sounds"
-        },
-        [pscustomobject]@{
-            BaseKey      = [BaseKey]::Accessibility
-            SubKeySuffix = "HighContrast"
-            Name         = "Flags"
-            Recommended  = [ValuePair]::new("4194", [RegistryValueKind]::String)
-            DefaultValue = $null
-            Description  = "Configures high contrast settings"
-        },
-        [pscustomobject]@{
-            BaseKey      = [BaseKey]::Accessibility
-            SubKeySuffix = "Keyboard Response"
-            Name         = "Flags"
-            Recommended  = [ValuePair]::new("2", [RegistryValueKind]::String)
-            DefaultValue = $null
-            Description  = "Configures keyboard response settings"
-        },
-        [pscustomobject]@{
-            BaseKey      = [BaseKey]::Accessibility
-            SubKeySuffix = "Keyboard Response"
-            Name         = "AutoRepeatRate"
-            Recommended  = [ValuePair]::new("0", [RegistryValueKind]::String)
-            DefaultValue = $null
-            Description  = "Sets auto-repeat rate"
-        },
-        [pscustomobject]@{
-            BaseKey      = [BaseKey]::Accessibility
-            SubKeySuffix = "Keyboard Response"
-            Name         = "AutoRepeatDelay"
-            Recommended  = [ValuePair]::new("0", [RegistryValueKind]::String)
-            DefaultValue = $null
-            Description  = "Sets auto-repeat delay"
-        },
-        [pscustomobject]@{
-            BaseKey      = [BaseKey]::Accessibility
-            SubKeySuffix = "MouseKeys"
-            Name         = "Flags"
-            Recommended  = [ValuePair]::new("130", [RegistryValueKind]::String)
-            DefaultValue = $null
-            Description  = "Configures mouse keys settings"
-        },
-        [pscustomobject]@{
-            BaseKey      = [BaseKey]::Accessibility
-            SubKeySuffix = "MouseKeys"
-            Name         = "MaximumSpeed"
-            Recommended  = [ValuePair]::new("39", [RegistryValueKind]::String)
-            DefaultValue = $null
-            Description  = "Sets maximum mouse keys speed"
-        },
-        [pscustomobject]@{
-            BaseKey      = [BaseKey]::Accessibility
-            SubKeySuffix = "MouseKeys"
-            Name         = "TimeToMaximumSpeed"
-            Recommended  = [ValuePair]::new("3000", [RegistryValueKind]::String)
-            DefaultValue = $null
-            Description  = "Sets time to reach maximum speed"
-        },
-        [pscustomobject]@{
-            BaseKey      = [BaseKey]::Accessibility
-            SubKeySuffix = "StickyKeys"
-            Name         = "Flags"
-            Recommended  = [ValuePair]::new("2", [RegistryValueKind]::String)
-            DefaultValue = $null
-            Description  = "Configures sticky keys settings"
-        },
-        [pscustomobject]@{
-            BaseKey      = [BaseKey]::Accessibility
-            SubKeySuffix = "ToggleKeys"
-            Name         = "Flags"
-            Recommended  = [ValuePair]::new("34", [RegistryValueKind]::String)
-            DefaultValue = $null
-            Description  = "Configures toggle keys settings"
-        },
-        [pscustomobject]@{
-            BaseKey      = [BaseKey]::Accessibility
-            SubKeySuffix = "SoundSentry"
-            Name         = "Flags"
-            Recommended  = [ValuePair]::new("0", [RegistryValueKind]::String)
-            DefaultValue = $null
-            Description  = "Configures sound sentry settings"
-        },
-        [pscustomobject]@{
-            BaseKey      = [BaseKey]::Accessibility
-            SubKeySuffix = "SoundSentry"
-            Name         = "FSTextEffect"
-            Recommended  = [ValuePair]::new("0", [RegistryValueKind]::String)
-            DefaultValue = $null
-            Description  = "Disables fullscreen text effect"
-        },
-        [pscustomobject]@{
-            BaseKey      = [BaseKey]::Accessibility
-            SubKeySuffix = "SoundSentry"
-            Name         = "TextEffect"
-            Recommended  = [ValuePair]::new("0", [RegistryValueKind]::String)
-            DefaultValue = $null
-            Description  = "Disables text effect"
-        },
-        [pscustomobject]@{
-            BaseKey      = [BaseKey]::Accessibility
-            SubKeySuffix = "SoundSentry"
-            Name         = "WindowsEffect"
-            Recommended  = [ValuePair]::new("0", [RegistryValueKind]::String)
-            DefaultValue = $null
-            Description  = "Disables windows effect"
-        },
-        [pscustomobject]@{
-            BaseKey      = [BaseKey]::Accessibility
-            SubKeySuffix = "SlateLaunch"
-            Name         = "ATapp"
-            Recommended  = [ValuePair]::new("", [RegistryValueKind]::String)
-            DefaultValue = $null
-            Description  = "Configures slate launch app"
-        },
-        [pscustomobject]@{
-            BaseKey      = [BaseKey]::Accessibility
-            SubKeySuffix = "SlateLaunch"
-            Name         = "LaunchAT"
-            Recommended  = [ValuePair]::new(0, [RegistryValueKind]::DWord)
-            DefaultValue = $null
-            Description  = "Disables automatic launch of accessibility tools"
-        },
-        [pscustomobject]@{
-            BaseKey      = [BaseKey]::Explorer
-            SubKeySuffix = "ScreenMagnifier"
-            Name         = "FollowCaret"
-            Recommended  = [ValuePair]::new(0, [RegistryValueKind]::DWord)
-            DefaultValue = $null
-            Description  = "Disables magnifier following caret"
-        },
-        [pscustomobject]@{
-            BaseKey      = [BaseKey]::Explorer
-            SubKeySuffix = "ScreenMagnifier"
-            Name         = "FollowNarrator"
-            Recommended  = [ValuePair]::new(0, [RegistryValueKind]::DWord)
-            DefaultValue = $null
-            Description  = "Disables magnifier following narrator"
-        },
-        [pscustomobject]@{
-            BaseKey      = [BaseKey]::Explorer
-            SubKeySuffix = "ScreenMagnifier"
-            Name         = "FollowMouse"
-            Recommended  = [ValuePair]::new(0, [RegistryValueKind]::DWord)
-            DefaultValue = $null
-            Description  = "Disables magnifier following mouse"
-        },
-        [pscustomobject]@{
-            BaseKey      = [BaseKey]::Explorer
-            SubKeySuffix = "ScreenMagnifier"
-            Name         = "FollowFocus"
-            Recommended  = [ValuePair]::new(0, [RegistryValueKind]::DWord)
-            DefaultValue = $null
-            Description  = "Disables magnifier following focus"
-        }
-    )
-    Search          = @(
-        [pscustomobject]@{
-            BaseKey      = [BaseKey]::SearchSettings
-            Name         = "IsDynamicSearchBoxEnabled"
-            Recommended  = [ValuePair]::new(0, [RegistryValueKind]::DWord)
-            DefaultValue = $null
-            Description  = "Disables search highlights"
-        },
-        [pscustomobject]@{
-            BaseKey      = [BaseKey]::SearchSettings
-            Name         = "IsDeviceSearchHistoryEnabled"
-            Recommended  = [ValuePair]::new(0, [RegistryValueKind]::DWord)
-            DefaultValue = $null
-            Description  = "Disables search history"
-        },
-        [pscustomobject]@{
-            BaseKey      = [BaseKey]::SearchSettings
-            Name         = "SafeSearchMode"
-            Recommended  = [ValuePair]::new(0, [RegistryValueKind]::DWord)
-            DefaultValue = $null
-            Description  = "Disables safe search"
-        },
-        [pscustomobject]@{
-            BaseKey      = [BaseKey]::SearchSettings
-            Name         = "IsAADCloudSearchEnabled"
-            Recommended  = [ValuePair]::new(0, [RegistryValueKind]::DWord)
-            DefaultValue = $null
-            Description  = "Disables cloud content search for work/school account"
-        },
-        [pscustomobject]@{
-            BaseKey      = [BaseKey]::SearchSettings
-            Name         = "IsMSACloudSearchEnabled"
-            Recommended  = [ValuePair]::new(0, [RegistryValueKind]::DWord)
-            DefaultValue = $null
-            Description  = "Disables cloud content search for Microsoft account"
-        },
-        [pscustomobject]@{
-            BaseKey      = [BaseKey]::ExplorerPolicies
-            Name         = "DisableSearchBoxSuggestions"
-            Recommended  = [ValuePair]::new(1, [RegistryValueKind]::DWord)
-            DefaultValue = $null
-            Description  = "Disables web search in the Start menu"
-        }
-    )
-    Services        = @(
-        # Disabled Services
-        [pscustomobject]@{
-            BaseKey      = [BaseKey]::Services
-            SubKeySuffix = "AJRouter"
-            Name         = "Start"
-            Recommended  = [ValuePair]::new(4, [RegistryValueKind]::DWord)
-            DefaultValue = 2
-            Description  = "AllJoyn Router Service"
-        },
-        [pscustomobject]@{
-            BaseKey      = [BaseKey]::Services
-            SubKeySuffix = "AppVClient"
-            Name         = "Start"
-            Recommended  = [ValuePair]::new(4, [RegistryValueKind]::DWord)
-            DefaultValue = 2
-            Description  = "Application Virtualization Client"
-        },
-        [pscustomobject]@{
-            BaseKey      = [BaseKey]::Services
-            SubKeySuffix = "AssignedAccessManagerSvc"
-            Name         = "Start"
-            Recommended  = [ValuePair]::new(4, [RegistryValueKind]::DWord)
-            DefaultValue = 2
-            Description  = "Assigned Access Manager Service"
-        },
-        [pscustomobject]@{
-            BaseKey      = [BaseKey]::Services
-            SubKeySuffix = "DiagTrack"
-            Name         = "Start"
-            Recommended  = [ValuePair]::new(4, [RegistryValueKind]::DWord)
-            DefaultValue = 2
-            Description  = "Connected User Experiences and Telemetry"
-        },
-        [pscustomobject]@{
-            BaseKey      = [BaseKey]::Services
-            SubKeySuffix = "DialogBlockingService"
-            Name         = "Start"
-            Recommended  = [ValuePair]::new(4, [RegistryValueKind]::DWord)
-            DefaultValue = 2
-            Description  = "Dialog Blocking Service"
-        },
-        [pscustomobject]@{
-            BaseKey      = [BaseKey]::Services
-            SubKeySuffix = "NetTcpPortSharing"
-            Name         = "Start"
-            Recommended  = [ValuePair]::new(4, [RegistryValueKind]::DWord)
-            DefaultValue = 2
-            Description  = "Net.Tcp Port Sharing Service"
-        },
-        [pscustomobject]@{
-            BaseKey      = [BaseKey]::Services
-            SubKeySuffix = "RemoteAccess"
-            Name         = "Start"
-            Recommended  = [ValuePair]::new(4, [RegistryValueKind]::DWord)
-            DefaultValue = 2
-            Description  = "Remote Access Connection Manager"
-        },
-        [pscustomobject]@{
-            BaseKey      = [BaseKey]::Services
-            SubKeySuffix = "RemoteRegistry"
-            Name         = "Start"
-            Recommended  = [ValuePair]::new(4, [RegistryValueKind]::DWord)
-            DefaultValue = 2
-            Description  = "Remote Registry Service"
-        },
-        [pscustomobject]@{
-            BaseKey      = [BaseKey]::Services
-            SubKeySuffix = "UevAgentService"
-            Name         = "Start"
-            Recommended  = [ValuePair]::new(4, [RegistryValueKind]::DWord)
-            DefaultValue = 2
-            Description  = "User Experience Virtualization Service"
-        },
-        [pscustomobject]@{
-            BaseKey      = [BaseKey]::Services
-            SubKeySuffix = "shpamsvc"
-            Name         = "Start"
-            Recommended  = [ValuePair]::new(4, [RegistryValueKind]::DWord)
-            DefaultValue = 2
-            Description  = "Shared Protection Access Manager"
-        },
-        [pscustomobject]@{
-            BaseKey      = [BaseKey]::Services
-            SubKeySuffix = "ssh-agent"
-            Name         = "Start"
-            Recommended  = [ValuePair]::new(4, [RegistryValueKind]::DWord)
-            DefaultValue = 2
-            Description  = "OpenSSH Authentication Agent"
-        },
-        [pscustomobject]@{
-            BaseKey      = [BaseKey]::Services
-            SubKeySuffix = "tzautoupdate"
-            Name         = "Start"
-            Recommended  = [ValuePair]::new(4, [RegistryValueKind]::DWord)
-            DefaultValue = 2
-            Description  = "Auto Time Zone Updater"
-        },
-        [pscustomobject]@{
-            BaseKey      = [BaseKey]::Services
-            SubKeySuffix = "uhssvc"
-            Name         = "Start"
-            Recommended  = [ValuePair]::new(4, [RegistryValueKind]::DWord)
-            DefaultValue = 2
-            Description  = "Microsoft Update Health Service"
-        },
-
-        # Manual Services
-        [pscustomobject]@{
-            BaseKey      = [BaseKey]::Services
-            SubKeySuffix = "ALG"
-            Name         = "Start"
-            Recommended  = [ValuePair]::new(3, [RegistryValueKind]::DWord)
-            DefaultValue = 2
-            Description  = "Application Layer Gateway Service"
-        },
-        [pscustomobject]@{
-            BaseKey      = [BaseKey]::Services
-            SubKeySuffix = "AppIDSvc"
-            Name         = "Start"
-            Recommended  = [ValuePair]::new(3, [RegistryValueKind]::DWord)
-            DefaultValue = 2
-            Description  = "Application Identity"
-        },
-        [pscustomobject]@{
-            BaseKey      = [BaseKey]::Services
-            SubKeySuffix = "AppMgmt"
-            Name         = "Start"
-            Recommended  = [ValuePair]::new(3, [RegistryValueKind]::DWord)
-            DefaultValue = 2
-            Description  = "Application Management"
-        },
-        [pscustomobject]@{
-            BaseKey      = [BaseKey]::Services
-            SubKeySuffix = "AppReadiness"
-            Name         = "Start"
-            Recommended  = [ValuePair]::new(3, [RegistryValueKind]::DWord)
-            DefaultValue = 2
-            Description  = "App Readiness"
-        },
-        [pscustomobject]@{
-            BaseKey      = [BaseKey]::Services
-            SubKeySuffix = "AppXSvc"
-            Name         = "Start"
-            Recommended  = [ValuePair]::new(3, [RegistryValueKind]::DWord)
-            DefaultValue = 2
-            Description  = "AppX Deployment Service"
-        },
-        [pscustomobject]@{
-            BaseKey      = [BaseKey]::Services
-            SubKeySuffix = "Appinfo"
-            Name         = "Start"
-            Recommended  = [ValuePair]::new(3, [RegistryValueKind]::DWord)
-            DefaultValue = 2
-            Description  = "Application Information"
-        },
-        [pscustomobject]@{
-            BaseKey      = [BaseKey]::Services
-            SubKeySuffix = "AxInstSV"
-            Name         = "Start"
-            Recommended  = [ValuePair]::new(3, [RegistryValueKind]::DWord)
-            DefaultValue = 2
-            Description  = "ActiveX Installer"
-        },
-        [pscustomobject]@{
-            BaseKey      = [BaseKey]::Services
-            SubKeySuffix = "BDESVC"
-            Name         = "Start"
-            Recommended  = [ValuePair]::new(3, [RegistryValueKind]::DWord)
-            DefaultValue = 2
-            Description  = "BitLocker Drive Encryption Service"
-        },
-        [pscustomobject]@{
-            BaseKey      = [BaseKey]::Services
-            SubKeySuffix = "BITS"
-            Name         = "Start"
-            Recommended  = [ValuePair]::new(3, [RegistryValueKind]::DWord)
-            DefaultValue = 2
-            Description  = "Background Intelligent Transfer Service"
-        },
-        [pscustomobject]@{
-            BaseKey      = [BaseKey]::Services
-            SubKeySuffix = "BTAGService"
-            Name         = "Start"
-            Recommended  = [ValuePair]::new(3, [RegistryValueKind]::DWord)
-            DefaultValue = 2
-            Description  = "Bluetooth Audio Gateway Service"
-        },
-        [pscustomobject]@{
-            BaseKey      = [BaseKey]::Services
-            SubKeySuffix = "Browser"
-            Name         = "Start"
-            Recommended  = [ValuePair]::new(3, [RegistryValueKind]::DWord)
-            DefaultValue = 2
-            Description  = "Computer Browser"
-        },
-        [pscustomobject]@{
-            BaseKey      = [BaseKey]::Services
-            SubKeySuffix = "CDPSvc"
-            Name         = "Start"
-            Recommended  = [ValuePair]::new(3, [RegistryValueKind]::DWord)
-            DefaultValue = 2
-            Description  = "Connected Devices Platform Service"
-        },
-        [pscustomobject]@{
-            BaseKey      = [BaseKey]::Services
-            SubKeySuffix = "COMSysApp"
-            Name         = "Start"
-            Recommended  = [ValuePair]::new(3, [RegistryValueKind]::DWord)
-            DefaultValue = 2
-            Description  = "COM+ System Application"
-        },
-        [pscustomobject]@{
-            BaseKey      = [BaseKey]::Services
-            SubKeySuffix = "CertPropSvc"
-            Name         = "Start"
-            Recommended  = [ValuePair]::new(3, [RegistryValueKind]::DWord)
-            DefaultValue = 2
-            Description  = "Certificate Propagation"
-        },
-        [pscustomobject]@{
-            BaseKey      = [BaseKey]::Services
-            SubKeySuffix = "ClipSVC"
-            Name         = "Start"
-            Recommended  = [ValuePair]::new(3, [RegistryValueKind]::DWord)
-            DefaultValue = 2
-            Description  = "Client License Service"
-        },
-        [pscustomobject]@{
-            BaseKey      = [BaseKey]::Services
-            SubKeySuffix = "CscService"
-            Name         = "Start"
-            Recommended  = [ValuePair]::new(3, [RegistryValueKind]::DWord)
-            DefaultValue = 2
-            Description  = "Offline Files"
-        },
-        [pscustomobject]@{
-            BaseKey      = [BaseKey]::Services
-            SubKeySuffix = "DcpSvc"
-            Name         = "Start"
-            Recommended  = [ValuePair]::new(3, [RegistryValueKind]::DWord)
-            DefaultValue = 2
-            Description  = "Data Collection and Publishing Service"
-        },
-        [pscustomobject]@{
-            BaseKey      = [BaseKey]::Services
-            SubKeySuffix = "DevQueryBroker"
-            Name         = "Start"
-            Recommended  = [ValuePair]::new(3, [RegistryValueKind]::DWord)
-            DefaultValue = 2
-            Description  = "DevQuery Background Discovery Broker"
-        },
-        [pscustomobject]@{
-            BaseKey      = [BaseKey]::Services
-            SubKeySuffix = "DeviceAssociationService"
-            Name         = "Start"
-            Recommended  = [ValuePair]::new(3, [RegistryValueKind]::DWord)
-            DefaultValue = 2
-            Description  = "Device Association Service"
-        },
-        [pscustomobject]@{
-            BaseKey      = [BaseKey]::Services
-            SubKeySuffix = "DeviceInstall"
-            Name         = "Start"
-            Recommended  = [ValuePair]::new(3, [RegistryValueKind]::DWord)
-            DefaultValue = 2
-            Description  = "Device Install Service"
-        },
-        [pscustomobject]@{
-            BaseKey      = [BaseKey]::Services
-            SubKeySuffix = "DisplayEnhancementService"
-            Name         = "Start"
-            Recommended  = [ValuePair]::new(3, [RegistryValueKind]::DWord)
-            DefaultValue = 2
-            Description  = "Display Enhancement Service"
-        },
-        [pscustomobject]@{
-            BaseKey      = [BaseKey]::Services
-            SubKeySuffix = "DmEnrollmentSvc"
-            Name         = "Start"
-            Recommended  = [ValuePair]::new(3, [RegistryValueKind]::DWord)
-            DefaultValue = 2
-            Description  = "Device Management Enrollment Service"
-        },
-        [pscustomobject]@{
-            BaseKey      = [BaseKey]::Services
-            SubKeySuffix = "DoSvc"
-            Name         = "Start"
-            Recommended  = [ValuePair]::new(3, [RegistryValueKind]::DWord)
-            DefaultValue = 2
-            Description  = "Delivery Optimization"
-        },
-        [pscustomobject]@{
-            BaseKey      = [BaseKey]::Services
-            SubKeySuffix = "DsSvc"
-            Name         = "Start"
-            Recommended  = [ValuePair]::new(3, [RegistryValueKind]::DWord)
-            DefaultValue = 2
-            Description  = "Data Sharing Service"
-        },
-        [pscustomobject]@{
-            BaseKey      = [BaseKey]::Services
-            SubKeySuffix = "DsmSvc"
-            Name         = "Start"
-            Recommended  = [ValuePair]::new(3, [RegistryValueKind]::DWord)
-            DefaultValue = 2
-            Description  = "Device Setup Manager"
-        },
-        [pscustomobject]@{
-            BaseKey      = [BaseKey]::Services
-            SubKeySuffix = "EFS"
-            Name         = "Start"
-            Recommended  = [ValuePair]::new(3, [RegistryValueKind]::DWord)
-            DefaultValue = 2
-            Description  = "Encrypting File System"
-        },
-        [pscustomobject]@{
-            BaseKey      = [BaseKey]::Services
-            SubKeySuffix = "EapHost"
-            Name         = "Start"
-            Recommended  = [ValuePair]::new(3, [RegistryValueKind]::DWord)
-            DefaultValue = 2
-            Description  = "Extensible Authentication Protocol"
-        },
-        [pscustomobject]@{
-            BaseKey      = [BaseKey]::Services
-            SubKeySuffix = "EntAppSvc"
-            Name         = "Start"
-            Recommended  = [ValuePair]::new(3, [RegistryValueKind]::DWord)
-            DefaultValue = 2
-            Description  = "Enterprise App Management Service"
-        },
-        [pscustomobject]@{
-            BaseKey      = [BaseKey]::Services
-            SubKeySuffix = "FDResPub"
-            Name         = "Start"
-            Recommended  = [ValuePair]::new(3, [RegistryValueKind]::DWord)
-            DefaultValue = 2
-            Description  = "Function Discovery Resource Publication"
-        },
-        [pscustomobject]@{
-            BaseKey      = [BaseKey]::Services
-            SubKeySuffix = "Fax"
-            Name         = "Start"
-            Recommended  = [ValuePair]::new(3, [RegistryValueKind]::DWord)
-            DefaultValue = 2
-            Description  = "Fax Service"
-        },
-        [pscustomobject]@{
-            BaseKey      = [BaseKey]::Services
-            SubKeySuffix = "FrameServer"
-            Name         = "Start"
-            Recommended  = [ValuePair]::new(3, [RegistryValueKind]::DWord)
-            DefaultValue = 2
-            Description  = "Windows Camera Frame Server"
-        },
-        [pscustomobject]@{
-            BaseKey      = [BaseKey]::Services
-            SubKeySuffix = "FrameServerMonitor"
-            Name         = "Start"
-            Recommended  = [ValuePair]::new(3, [RegistryValueKind]::DWord)
-            DefaultValue = 2
-            Description  = "Windows Camera Frame Server Monitor"
-        },
-        [pscustomobject]@{
-            BaseKey      = [BaseKey]::Services
-            SubKeySuffix = "GraphicsPerfSvc"
-            Name         = "Start"
-            Recommended  = [ValuePair]::new(3, [RegistryValueKind]::DWord)
-            DefaultValue = 2
-            Description  = "Graphics Performance Monitor Service"
-        },
-        [pscustomobject]@{
-            BaseKey      = [BaseKey]::Services
-            SubKeySuffix = "HvHost"
-            Name         = "Start"
-            Recommended  = [ValuePair]::new(3, [RegistryValueKind]::DWord)
-            DefaultValue = 2
-            Description  = "HV Host Service"
-        },
-        [pscustomobject]@{
-            BaseKey      = [BaseKey]::Services
-            SubKeySuffix = "IKEEXT"
-            Name         = "Start"
-            Recommended  = [ValuePair]::new(3, [RegistryValueKind]::DWord)
-            DefaultValue = 2
-            Description  = "IKE and AuthIP IPsec Keying Modules"
-        },
-        [pscustomobject]@{
-            BaseKey      = [BaseKey]::Services
-            SubKeySuffix = "InstallService"
-            Name         = "Start"
-            Recommended  = [ValuePair]::new(3, [RegistryValueKind]::DWord)
-            DefaultValue = 2
-            Description  = "Microsoft Store Install Service"
-        },
-        [pscustomobject]@{
-            BaseKey      = [BaseKey]::Services
-            SubKeySuffix = "InventorySvc"
-            Name         = "Start"
-            Recommended  = [ValuePair]::new(3, [RegistryValueKind]::DWord)
-            DefaultValue = 2
-            Description  = "Inventory and Compatibility Assessment Service"
-        },
-        [pscustomobject]@{
-            BaseKey      = [BaseKey]::Services
-            SubKeySuffix = "IpxlatCfgSvc"
-            Name         = "Start"
-            Recommended  = [ValuePair]::new(3, [RegistryValueKind]::DWord)
-            DefaultValue = 2
-            Description  = "IP Translation Configuration Service"
-        },
-        [pscustomobject]@{
-            BaseKey      = [BaseKey]::Services
-            SubKeySuffix = "KtmRm"
-            Name         = "Start"
-            Recommended  = [ValuePair]::new(3, [RegistryValueKind]::DWord)
-            DefaultValue = 2
-            Description  = "KtmRm for Distributed Transaction Coordinator"
-        },
-        [pscustomobject]@{
-            BaseKey      = [BaseKey]::Services
-            SubKeySuffix = "LicenseManager"
-            Name         = "Start"
-            Recommended  = [ValuePair]::new(3, [RegistryValueKind]::DWord)
-            DefaultValue = 2
-            Description  = "Windows License Manager Service"
-        },
-        [pscustomobject]@{
-            BaseKey      = [BaseKey]::Services
-            SubKeySuffix = "LxpSvc"
-            Name         = "Start"
-            Recommended  = [ValuePair]::new(3, [RegistryValueKind]::DWord)
-            DefaultValue = 2
-            Description  = "Language Experience Service"
-        },
-        [pscustomobject]@{
-            BaseKey      = [BaseKey]::Services
-            SubKeySuffix = "MSDTC"
-            Name         = "Start"
-            Recommended  = [ValuePair]::new(3, [RegistryValueKind]::DWord)
-            DefaultValue = 2
-            Description  = "Distributed Transaction Coordinator"
-        },
-        [pscustomobject]@{
-            BaseKey      = [BaseKey]::Services
-            SubKeySuffix = "MSiSCSI"
-            Name         = "Start"
-            Recommended  = [ValuePair]::new(3, [RegistryValueKind]::DWord)
-            DefaultValue = 2
-            Description  = "Microsoft iSCSI Initiator Service"
-        },
-        [pscustomobject]@{
-            BaseKey      = [BaseKey]::Services
-            SubKeySuffix = "MapsBroker"
-            Name         = "Start"
-            Recommended  = [ValuePair]::new(3, [RegistryValueKind]::DWord)
-            DefaultValue = 2
-            Description  = "Downloaded Maps Manager"
-        },
-        [pscustomobject]@{
-            BaseKey      = [BaseKey]::Services
-            SubKeySuffix = "McpManagementService"
-            Name         = "Start"
-            Recommended  = [ValuePair]::new(3, [RegistryValueKind]::DWord)
-            DefaultValue = 2
-            Description  = "Microsoft Connectivity Platform Management Service"
-        },
-        [pscustomobject]@{
-            BaseKey      = [BaseKey]::Services
-            SubKeySuffix = "MicrosoftEdgeElevationService"
-            Name         = "Start"
-            Recommended  = [ValuePair]::new(3, [RegistryValueKind]::DWord)
-            DefaultValue = 2
-            Description  = "Microsoft Edge Elevation Service"
-        },
-        [pscustomobject]@{
-            BaseKey      = [BaseKey]::Services
-            SubKeySuffix = "MixedRealityOpenXRSvc"
-            Name         = "Start"
-            Recommended  = [ValuePair]::new(3, [RegistryValueKind]::DWord)
-            DefaultValue = 2
-            Description  = "Mixed Reality OpenXR Service"
-        },
-        [pscustomobject]@{
-            BaseKey      = [BaseKey]::Services
-            SubKeySuffix = "MsKeyboardFilter"
-            Name         = "Start"
-            Recommended  = [ValuePair]::new(3, [RegistryValueKind]::DWord)
-            DefaultValue = 2
-            Description  = "Microsoft Keyboard Filter"
-        },
-        [pscustomobject]@{
-            BaseKey      = [BaseKey]::Services
-            SubKeySuffix = "NaturalAuthentication"
-            Name         = "Start"
-            Recommended  = [ValuePair]::new(3, [RegistryValueKind]::DWord)
-            DefaultValue = 2
-            Description  = "Natural Authentication"
-        },
-        [pscustomobject]@{
-            BaseKey      = [BaseKey]::Services
-            SubKeySuffix = "NcaSvc"
-            Name         = "Start"
-            Recommended  = [ValuePair]::new(3, [RegistryValueKind]::DWord)
-            DefaultValue = 2
-            Description  = "Network Connectivity Assistant"
-        },
-        [pscustomobject]@{
-            BaseKey      = [BaseKey]::Services
-            SubKeySuffix = "NcbService"
-            Name         = "Start"
-            Recommended  = [ValuePair]::new(3, [RegistryValueKind]::DWord)
-            DefaultValue = 2
-            Description  = "Network Connection Broker"
-        },
-        [pscustomobject]@{
-            BaseKey      = [BaseKey]::Services
-            SubKeySuffix = "NcdAutoSetup"
-            Name         = "Start"
-            Recommended  = [ValuePair]::new(3, [RegistryValueKind]::DWord)
-            DefaultValue = 2
-            Description  = "Network Connected Devices Auto-Setup"
-        },
-        [pscustomobject]@{
-            BaseKey      = [BaseKey]::Services
-            SubKeySuffix = "Netman"
-            Name         = "Start"
-            Recommended  = [ValuePair]::new(3, [RegistryValueKind]::DWord)
-            DefaultValue = 2
-            Description  = "Network Connections"
-        },
-        [pscustomobject]@{
-            BaseKey      = [BaseKey]::Services
-            SubKeySuffix = "NgcCtnrSvc"
-            Name         = "Start"
-            Recommended  = [ValuePair]::new(3, [RegistryValueKind]::DWord)
-            DefaultValue = 2
-            Description  = "Microsoft Passport Container"
-        },
-        [pscustomobject]@{
-            BaseKey      = [BaseKey]::Services
-            SubKeySuffix = "NgcSvc"
-            Name         = "Start"
-            Recommended  = [ValuePair]::new(3, [RegistryValueKind]::DWord)
-            DefaultValue = 2
-            Description  = "Microsoft Passport"
-        },
-        [pscustomobject]@{
-            BaseKey      = [BaseKey]::Services
-            SubKeySuffix = "NlaSvc"
-            Name         = "Start"
-            Recommended  = [ValuePair]::new(3, [RegistryValueKind]::DWord)
-            DefaultValue = 2
-            Description  = "Network Location Awareness"
-        },
-        [pscustomobject]@{
-            BaseKey      = [BaseKey]::Services
-            SubKeySuffix = "PNRPAutoReg"
-            Name         = "Start"
-            Recommended  = [ValuePair]::new(3, [RegistryValueKind]::DWord)
-            DefaultValue = 2
-            Description  = "PNRP Machine Name Publication Service"
-        },
-        [pscustomobject]@{
-            BaseKey      = [BaseKey]::Services
-            SubKeySuffix = "PNRPsvc"
-            Name         = "Start"
-            Recommended  = [ValuePair]::new(3, [RegistryValueKind]::DWord)
-            DefaultValue = 2
-            Description  = "Peer Name Resolution Protocol"
-        },
-        [pscustomobject]@{
-            BaseKey      = [BaseKey]::Services
-            SubKeySuffix = "PcaSvc"
-            Name         = "Start"
-            Recommended  = [ValuePair]::new(3, [RegistryValueKind]::DWord)
-            DefaultValue = 2
-            Description  = "Program Compatibility Assistant Service"
-        },
-        [pscustomobject]@{
-            BaseKey      = [BaseKey]::Services
-            SubKeySuffix = "PeerDistSvc"
-            Name         = "Start"
-            Recommended  = [ValuePair]::new(3, [RegistryValueKind]::DWord)
-            DefaultValue = 2
-            Description  = "BranchCache"
-        },
-        [pscustomobject]@{
-            BaseKey      = [BaseKey]::Services
-            SubKeySuffix = "PerfHost"
-            Name         = "Start"
-            Recommended  = [ValuePair]::new(3, [RegistryValueKind]::DWord)
-            DefaultValue = 2
-            Description  = "Performance Counter DLL Host"
-        },
-        [pscustomobject]@{
-            BaseKey      = [BaseKey]::Services
-            SubKeySuffix = "PhoneSvc"
-            Name         = "Start"
-            Recommended  = [ValuePair]::new(3, [RegistryValueKind]::DWord)
-            DefaultValue = 2
-            Description  = "Phone Service"
-        },
-        [pscustomobject]@{
-            BaseKey      = [BaseKey]::Services
-            SubKeySuffix = "PlugPlay"
-            Name         = "Start"
-            Recommended  = [ValuePair]::new(3, [RegistryValueKind]::DWord)
-            DefaultValue = 2
-            Description  = "Plug and Play"
-        },
-        [pscustomobject]@{
-            BaseKey      = [BaseKey]::Services
-            SubKeySuffix = "PolicyAgent"
-            Name         = "Start"
-            Recommended  = [ValuePair]::new(3, [RegistryValueKind]::DWord)
-            DefaultValue = 2
-            Description  = "IPsec Policy Agent"
-        },
-        [pscustomobject]@{
-            BaseKey      = [BaseKey]::Services
-            SubKeySuffix = "PrintNotify"
-            Name         = "Start"
-            Recommended  = [ValuePair]::new(3, [RegistryValueKind]::DWord)
-            DefaultValue = 2
-            Description  = "Printer Extensions and Notifications"
-        },
-        [pscustomobject]@{
-            BaseKey      = [BaseKey]::Services
-            SubKeySuffix = "PushToInstall"
-            Name         = "Start"
-            Recommended  = [ValuePair]::new(3, [RegistryValueKind]::DWord)
-            DefaultValue = 2
-            Description  = "Windows PushToInstall Service"
-        },
-        [pscustomobject]@{
-            BaseKey      = [BaseKey]::Services
-            SubKeySuffix = "QWAVE"
-            Name         = "Start"
-            Recommended  = [ValuePair]::new(3, [RegistryValueKind]::DWord)
-            DefaultValue = 2
-            Description  = "Quality Windows Audio Video Experience"
-        },
-        [pscustomobject]@{
-            BaseKey      = [BaseKey]::Services
-            SubKeySuffix = "RasAuto"
-            Name         = "Start"
-            Recommended  = [ValuePair]::new(3, [RegistryValueKind]::DWord)
-            DefaultValue = 2
-            Description  = "Remote Access Auto Connection Manager"
-        },
-        [pscustomobject]@{
-            BaseKey      = [BaseKey]::Services
-            SubKeySuffix = "RasMan"
-            Name         = "Start"
-            Recommended  = [ValuePair]::new(3, [RegistryValueKind]::DWord)
-            DefaultValue = 2
-            Description  = "Remote Access Connection Manager"
-        },
-        [pscustomobject]@{
-            BaseKey      = [BaseKey]::Services
-            SubKeySuffix = "RetailDemo"
-            Name         = "Start"
-            Recommended  = [ValuePair]::new(3, [RegistryValueKind]::DWord)
-            DefaultValue = 2
-            Description  = "Retail Demo Service"
-        },
-        [pscustomobject]@{
-            BaseKey      = [BaseKey]::Services
-            SubKeySuffix = "RmSvc"
-            Name         = "Start"
-            Recommended  = [ValuePair]::new(3, [RegistryValueKind]::DWord)
-            DefaultValue = 2
-            Description  = "Radio Management Service"
-        },
-        [pscustomobject]@{
-            BaseKey      = [BaseKey]::Services
-            SubKeySuffix = "RpcLocator"
-            Name         = "Start"
-            Recommended  = [ValuePair]::new(3, [RegistryValueKind]::DWord)
-            DefaultValue = 2
-            Description  = "Remote Procedure Call (RPC) Locator"
-        },
-        [pscustomobject]@{
-            BaseKey      = [BaseKey]::Services
-            SubKeySuffix = "SCPolicySvc"
-            Name         = "Start"
-            Recommended  = [ValuePair]::new(3, [RegistryValueKind]::DWord)
-            DefaultValue = 2
-            Description  = "Smart Card Removal Policy"
-        },
-        [pscustomobject]@{
-            BaseKey      = [BaseKey]::Services
-            SubKeySuffix = "SCardSvr"
-            Name         = "Start"
-            Recommended  = [ValuePair]::new(3, [RegistryValueKind]::DWord)
-            DefaultValue = 2
-            Description  = "Smart Card"
-        },
-        [pscustomobject]@{
-            BaseKey      = [BaseKey]::Services
-            SubKeySuffix = "SDRSVC"
-            Name         = "Start"
-            Recommended  = [ValuePair]::new(3, [RegistryValueKind]::DWord)
-            DefaultValue = 2
-            Description  = "Windows Backup"
-        },
-        [pscustomobject]@{
-            BaseKey      = [BaseKey]::Services
-            SubKeySuffix = "SEMgrSvc"
-            Name         = "Start"
-            Recommended  = [ValuePair]::new(3, [RegistryValueKind]::DWord)
-            DefaultValue = 2
-            Description  = "Payments and NFC/SE Manager"
-        },
-        [pscustomobject]@{
-            BaseKey      = [BaseKey]::Services
-            SubKeySuffix = "SensorDataService"
-            Name         = "Start"
-            Recommended  = [ValuePair]::new(3, [RegistryValueKind]::DWord)
-            DefaultValue = 2
-            Description  = "Sensor Data Service"
-        },
-        [pscustomobject]@{
-            BaseKey      = [BaseKey]::Services
-            SubKeySuffix = "SensorService"
-            Name         = "Start"
-            Recommended  = [ValuePair]::new(3, [RegistryValueKind]::DWord)
-            DefaultValue = 2
-            Description  = "Sensor Service"
-        },
-        [pscustomobject]@{
-            BaseKey      = [BaseKey]::Services
-            SubKeySuffix = "SensrSvc"
-            Name         = "Start"
-            Recommended  = [ValuePair]::new(3, [RegistryValueKind]::DWord)
-            DefaultValue = 2
-            Description  = "Sensor Monitoring Service"
-        },
-        [pscustomobject]@{
-            BaseKey      = [BaseKey]::Services
-            SubKeySuffix = "SessionEnv"
-            Name         = "Start"
-            Recommended  = [ValuePair]::new(3, [RegistryValueKind]::DWord)
-            DefaultValue = 2
-            Description  = "Remote Desktop Configuration"
-        },
-        [pscustomobject]@{
-            BaseKey      = [BaseKey]::Services
-            SubKeySuffix = "SharedAccess"
-            Name         = "Start"
-            Recommended  = [ValuePair]::new(3, [RegistryValueKind]::DWord)
-            DefaultValue = 2
-            Description  = "Internet Connection Sharing"
-        },
-        [pscustomobject]@{
-            BaseKey      = [BaseKey]::Services
-            SubKeySuffix = "SharedRealitySvc"
-            Name         = "Start"
-            Recommended  = [ValuePair]::new(3, [RegistryValueKind]::DWord)
-            DefaultValue = 2
-            Description  = "Spatial Data Service"
-        },
-        [pscustomobject]@{
-            BaseKey      = [BaseKey]::Services
-            SubKeySuffix = "SmsRouter"
-            Name         = "Start"
-            Recommended  = [ValuePair]::new(3, [RegistryValueKind]::DWord)
-            DefaultValue = 2
-            Description  = "Microsoft Windows SMS Router Service"
-        },
-        [pscustomobject]@{
-            BaseKey      = [BaseKey]::Services
-            SubKeySuffix = "SstpSvc"
-            Name         = "Start"
-            Recommended  = [ValuePair]::new(3, [RegistryValueKind]::DWord)
-            DefaultValue = 2
-            Description  = "Secure Socket Tunneling Protocol Service"
-        },
-        [pscustomobject]@{
-            BaseKey      = [BaseKey]::Services
-            SubKeySuffix = "StateRepository"
-            Name         = "Start"
-            Recommended  = [ValuePair]::new(3, [RegistryValueKind]::DWord)
-            DefaultValue = 2
-            Description  = "State Repository Service"
-        },
-        [pscustomobject]@{
-            BaseKey      = [BaseKey]::Services
-            SubKeySuffix = "StiSvc"
-            Name         = "Start"
-            Recommended  = [ValuePair]::new(3, [RegistryValueKind]::DWord)
-            DefaultValue = 2
-            Description  = "Windows Image Acquisition"
-        },
-        [pscustomobject]@{
-            BaseKey      = [BaseKey]::Services
-            SubKeySuffix = "StorSvc"
-            Name         = "Start"
-            Recommended  = [ValuePair]::new(3, [RegistryValueKind]::DWord)
-            DefaultValue = 2
-            Description  = "Storage Service"
-        },
-        [pscustomobject]@{
-            BaseKey      = [BaseKey]::Services
-            SubKeySuffix = "TabletInputService"
-            Name         = "Start"
-            Recommended  = [ValuePair]::new(3, [RegistryValueKind]::DWord)
-            DefaultValue = 2
-            Description  = "Touch Keyboard and Handwriting Panel Service"
-        },
-        [pscustomobject]@{
-            BaseKey      = [BaseKey]::Services
-            SubKeySuffix = "TapiSrv"
-            Name         = "Start"
-            Recommended  = [ValuePair]::new(3, [RegistryValueKind]::DWord)
-            DefaultValue = 2
-            Description  = "Telephony"
-        },
-        [pscustomobject]@{
-            BaseKey      = [BaseKey]::Services
-            SubKeySuffix = "TextInputManagementService"
-            Name         = "Start"
-            Recommended  = [ValuePair]::new(3, [RegistryValueKind]::DWord)
-            DefaultValue = 2
-            Description  = "Text Input Management Service"
-        },
-        [pscustomobject]@{
-            BaseKey      = [BaseKey]::Services
-            SubKeySuffix = "TieringEngineService"
-            Name         = "Start"
-            Recommended  = [ValuePair]::new(3, [RegistryValueKind]::DWord)
-            DefaultValue = 2
-            Description  = "Storage Tiers Management"
-        },
-        [pscustomobject]@{
-            BaseKey      = [BaseKey]::Services
-            SubKeySuffix = "TimeBrokerSvc"
-            Name         = "Start"
-            Recommended  = [ValuePair]::new(3, [RegistryValueKind]::DWord)
-            DefaultValue = 2
-            Description  = "Time Broker"
-        },
-        [pscustomobject]@{
-            BaseKey      = [BaseKey]::Services
-            SubKeySuffix = "TokenBroker"
-            Name         = "Start"
-            Recommended  = [ValuePair]::new(3, [RegistryValueKind]::DWord)
-            DefaultValue = 2
-            Description  = "Web Account Manager"
-        },
-        [pscustomobject]@{
-            BaseKey      = [BaseKey]::Services
-            SubKeySuffix = "TroubleshootingSvc"
-            Name         = "Start"
-            Recommended  = [ValuePair]::new(3, [RegistryValueKind]::DWord)
-            DefaultValue = 2
-            Description  = "Recommended Troubleshooting Service"
-        },
-        [pscustomobject]@{
-            BaseKey      = [BaseKey]::Services
-            SubKeySuffix = "TrustedInstaller"
-            Name         = "Start"
-            Recommended  = [ValuePair]::new(3, [RegistryValueKind]::DWord)
-            DefaultValue = 2
-            Description  = "Windows Modules Installer"
-        },
-        [pscustomobject]@{
-            BaseKey      = [BaseKey]::Services
-            SubKeySuffix = "UI0Detect"
-            Name         = "Start"
-            Recommended  = [ValuePair]::new(3, [RegistryValueKind]::DWord)
-            DefaultValue = 2
-            Description  = "Interactive Services Detection"
-        },
-        [pscustomobject]@{
-            BaseKey      = [BaseKey]::Services
-            SubKeySuffix = "UmRdpService"
-            Name         = "Start"
-            Recommended  = [ValuePair]::new(3, [RegistryValueKind]::DWord)
-            DefaultValue = 2
-            Description  = "Remote Desktop Services UserMode Port Redirector"
-        },
-        [pscustomobject]@{
-            BaseKey      = [BaseKey]::Services
-            SubKeySuffix = "UsoSvc"
-            Name         = "Start"
-            Recommended  = [ValuePair]::new(3, [RegistryValueKind]::DWord)
-            DefaultValue = 2
-            Description  = "Update Orchestrator Service"
-        },
-        [pscustomobject]@{
-            BaseKey      = [BaseKey]::Services
-            SubKeySuffix = "VSS"
-            Name         = "Start"
-            Recommended  = [ValuePair]::new(3, [RegistryValueKind]::DWord)
-            DefaultValue = 2
-            Description  = "Volume Shadow Copy"
-        },
-        [pscustomobject]@{
-            BaseKey      = [BaseKey]::Services
-            SubKeySuffix = "VacSvc"
-            Name         = "Start"
-            Recommended  = [ValuePair]::new(3, [RegistryValueKind]::DWord)
-            DefaultValue = 2
-            Description  = "Volumetric Audio Compositor Service"
-        },
-        [pscustomobject]@{
-            BaseKey      = [BaseKey]::Services
-            SubKeySuffix = "W32Time"
-            Name         = "Start"
-            Recommended  = [ValuePair]::new(3, [RegistryValueKind]::DWord)
-            DefaultValue = 2
-            Description  = "Windows Time"
-        },
-        [pscustomobject]@{
-            BaseKey      = [BaseKey]::Services
-            SubKeySuffix = "WEPHOSTSVC"
-            Name         = "Start"
-            Recommended  = [ValuePair]::new(3, [RegistryValueKind]::DWord)
-            DefaultValue = 2
-            Description  = "Windows Event Collection Service"
-        },
-        [pscustomobject]@{
-            BaseKey      = [BaseKey]::Services
-            SubKeySuffix = "WFDSConMgrSvc"
-            Name         = "Start"
-            Recommended  = [ValuePair]::new(3, [RegistryValueKind]::DWord)
-            DefaultValue = 2
-            Description  = "Wi-Fi Direct Services Connection Manager Service"
-        },
-        [pscustomobject]@{
-            BaseKey      = [BaseKey]::Services
-            SubKeySuffix = "WMPNetworkSvc"
-            Name         = "Start"
-            Recommended  = [ValuePair]::new(3, [RegistryValueKind]::DWord)
-            DefaultValue = 2
-            Description  = "Windows Media Player Network Sharing Service"
-        },
-        [pscustomobject]@{
-            BaseKey      = [BaseKey]::Services
-            SubKeySuffix = "WManSvc"
-            Name         = "Start"
-            Recommended  = [ValuePair]::new(3, [RegistryValueKind]::DWord)
-            DefaultValue = 2
-            Description  = "Windows Management Service"
-        },
-        [pscustomobject]@{
-            BaseKey      = [BaseKey]::Services
-            SubKeySuffix = "WPDBusEnum"
-            Name         = "Start"
-            Recommended  = [ValuePair]::new(3, [RegistryValueKind]::DWord)
-            DefaultValue = 2
-            Description  = "Portable Device Enumerator Service"
-        },
-        [pscustomobject]@{
-            BaseKey      = [BaseKey]::Services
-            SubKeySuffix = "WSearch"
-            Name         = "Start"
-            Recommended  = [ValuePair]::new(2, [RegistryValueKind]::DWord) # Auto Startup due to Search Issues if Manual
-            DefaultValue = 2
-            Description  = "Windows Search"
-        },
-        [pscustomobject]@{
-            BaseKey      = [BaseKey]::Services
-            SubKeySuffix = "WaaSMedicSvc"
-            Name         = "Start"
-            Recommended  = [ValuePair]::new(3, [RegistryValueKind]::DWord)
-            DefaultValue = 2
-            Description  = "Windows Update Medic Service"
-        },
-        [pscustomobject]@{
-            BaseKey      = [BaseKey]::Services
-            SubKeySuffix = "WalletService"
-            Name         = "Start"
-            Recommended  = [ValuePair]::new(3, [RegistryValueKind]::DWord)
-            DefaultValue = 2
-            Description  = "WalletService"
-        },
-        [pscustomobject]@{
-            BaseKey      = [BaseKey]::Services
-            SubKeySuffix = "WarpJITSvc"
-            Name         = "Start"
-            Recommended  = [ValuePair]::new(3, [RegistryValueKind]::DWord)
-            DefaultValue = 2
-            Description  = "WarpJITSvc"
-        },
-        [pscustomobject]@{
-            BaseKey      = [BaseKey]::Services
-            SubKeySuffix = "WbioSrvc"
-            Name         = "Start"
-            Recommended  = [ValuePair]::new(3, [RegistryValueKind]::DWord)
-            DefaultValue = 2
-            Description  = "Windows Biometric Service"
-        },
-        [pscustomobject]@{
-            BaseKey      = [BaseKey]::Services
-            SubKeySuffix = "WdiServiceHost"
-            Name         = "Start"
-            Recommended  = [ValuePair]::new(3, [RegistryValueKind]::DWord)
-            DefaultValue = 2
-            Description  = "Diagnostic Service Host"
-        },
-        [pscustomobject]@{
-            BaseKey      = [BaseKey]::Services
-            SubKeySuffix = "WdiSystemHost"
-            Name         = "Start"
-            Recommended  = [ValuePair]::new(3, [RegistryValueKind]::DWord)
-            DefaultValue = 2
-            Description  = "Diagnostic System Host"
-        },
-        [pscustomobject]@{
-            BaseKey      = [BaseKey]::Services
-            SubKeySuffix = "WebClient"
-            Name         = "Start"
-            Recommended  = [ValuePair]::new(3, [RegistryValueKind]::DWord)
-            DefaultValue = 2
-            Description  = "WebClient"
-        },
-        [pscustomobject]@{
-            BaseKey      = [BaseKey]::Services
-            SubKeySuffix = "Wecsvc"
-            Name         = "Start"
-            Recommended  = [ValuePair]::new(3, [RegistryValueKind]::DWord)
-            DefaultValue = 2
-            Description  = "Windows Event Collector"
-        },
-        [pscustomobject]@{
-            BaseKey      = [BaseKey]::Services
-            SubKeySuffix = "WerSvc"
-            Name         = "Start"
-            Recommended  = [ValuePair]::new(3, [RegistryValueKind]::DWord)
-            DefaultValue = 2
-            Description  = "Windows Error Reporting Service"
-        },
-        [pscustomobject]@{
-            BaseKey      = [BaseKey]::Services
-            SubKeySuffix = "WiaRpc"
-            Name         = "Start"
-            Recommended  = [ValuePair]::new(3, [RegistryValueKind]::DWord)
-            DefaultValue = 2
-            Description  = "Still Image Acquisition Events"
-        },
-        [pscustomobject]@{
-            BaseKey      = [BaseKey]::Services
-            SubKeySuffix = "WinHttpAutoProxySvc"
-            Name         = "Start"
-            Recommended  = [ValuePair]::new(3, [RegistryValueKind]::DWord)
-            DefaultValue = 2
-            Description  = "WinHTTP Web Proxy Auto-Discovery Service"
-        },
-        [pscustomobject]@{
-            BaseKey      = [BaseKey]::Services
-            SubKeySuffix = "WinRM"
-            Name         = "Start"
-            Recommended  = [ValuePair]::new(3, [RegistryValueKind]::DWord)
-            DefaultValue = 2
-            Description  = "Windows Remote Management"
-        },
-        [pscustomobject]@{
-            BaseKey      = [BaseKey]::Services
-            SubKeySuffix = "WpcMonSvc"
-            Name         = "Start"
-            Recommended  = [ValuePair]::new(3, [RegistryValueKind]::DWord)
-            DefaultValue = 2
-            Description  = "Parental Controls"
-        },
-        [pscustomobject]@{
-            BaseKey      = [BaseKey]::Services
-            SubKeySuffix = "WpnService"
-            Name         = "Start"
-            Recommended  = [ValuePair]::new(3, [RegistryValueKind]::DWord)
-            DefaultValue = 2
-            Description  = "Windows Push Notifications System Service"
-        },
-        [pscustomobject]@{
-            BaseKey      = [BaseKey]::Services
-            SubKeySuffix = "bthserv"
-            Name         = "Start"
-            Recommended  = [ValuePair]::new(3, [RegistryValueKind]::DWord)
-            DefaultValue = 2
-            Description  = "Bluetooth Support Service"
-        },
-        [pscustomobject]@{
-            BaseKey      = [BaseKey]::Services
-            SubKeySuffix = "defragsvc"
-            Name         = "Start"
-            Recommended  = [ValuePair]::new(3, [RegistryValueKind]::DWord)
-            DefaultValue = 2
-            Description  = "Optimize drives"
-        },
-        [pscustomobject]@{
-            BaseKey      = [BaseKey]::Services
-            SubKeySuffix = "dot3svc"
-            Name         = "Start"
-            Recommended  = [ValuePair]::new(3, [RegistryValueKind]::DWord)
-            DefaultValue = 2
-            Description  = "Wired AutoConfig"
-        },
-        [pscustomobject]@{
-            BaseKey      = [BaseKey]::Services
-            SubKeySuffix = "edgeupdate"
-            Name         = "Start"
-            Recommended  = [ValuePair]::new(3, [RegistryValueKind]::DWord)
-            DefaultValue = 2
-            Description  = "Microsoft Edge Update Service"
-        },
-        [pscustomobject]@{
-            BaseKey      = [BaseKey]::Services
-            SubKeySuffix = "edgeupdatem"
-            Name         = "Start"
-            Recommended  = [ValuePair]::new(3, [RegistryValueKind]::DWord)
-            DefaultValue = 2
-            Description  = "Microsoft Edge Update Service (edgeupdatem)"
-        },
-        [pscustomobject]@{
-            BaseKey      = [BaseKey]::Services
-            SubKeySuffix = "fdPHost"
-            Name         = "Start"
-            Recommended  = [ValuePair]::new(3, [RegistryValueKind]::DWord)
-            DefaultValue = 2
-            Description  = "Function Discovery Provider Host"
-        },
-        [pscustomobject]@{
-            BaseKey      = [BaseKey]::Services
-            SubKeySuffix = "fhsvc"
-            Name         = "Start"
-            Recommended  = [ValuePair]::new(3, [RegistryValueKind]::DWord)
-            DefaultValue = 2
-            Description  = "File History Service"
-        },
-        [pscustomobject]@{
-            BaseKey      = [BaseKey]::Services
-            SubKeySuffix = "hidserv"
-            Name         = "Start"
-            Recommended  = [ValuePair]::new(3, [RegistryValueKind]::DWord)
-            DefaultValue = 2
-            Description  = "Human Interface Device Service"
-        },
-        [pscustomobject]@{
-            BaseKey      = [BaseKey]::Services
-            SubKeySuffix = "icssvc"
-            Name         = "Start"
-            Recommended  = [ValuePair]::new(3, [RegistryValueKind]::DWord)
-            DefaultValue = 2
-            Description  = "Windows Mobile Hotspot Service"
-        },
-        [pscustomobject]@{
-            BaseKey      = [BaseKey]::Services
-            SubKeySuffix = "lfsvc"
-            Name         = "Start"
-            Recommended  = [ValuePair]::new(3, [RegistryValueKind]::DWord)
-            DefaultValue = 2
-            Description  = "Geolocation Service"
-        },
-        [pscustomobject]@{
-            BaseKey      = [BaseKey]::Services
-            SubKeySuffix = "lltdsvc"
-            Name         = "Start"
-            Recommended  = [ValuePair]::new(3, [RegistryValueKind]::DWord)
-            DefaultValue = 2
-            Description  = "Link-Layer Topology Discovery Mapper"
-        },
-        [pscustomobject]@{
-            BaseKey      = [BaseKey]::Services
-            SubKeySuffix = "msiserver"
-            Name         = "Start"
-            Recommended  = [ValuePair]::new(3, [RegistryValueKind]::DWord)
-            DefaultValue = 2
-            Description  = "Windows Installer"
-        },
-        [pscustomobject]@{
-            BaseKey      = [BaseKey]::Services
-            SubKeySuffix = "netprofm"
-            Name         = "Start"
-            Recommended  = [ValuePair]::new(3, [RegistryValueKind]::DWord)
-            DefaultValue = 2
-            Description  = "Network List Service"
-        },
-        [pscustomobject]@{
-            BaseKey      = [BaseKey]::Services
-            SubKeySuffix = "p2pimsvc"
-            Name         = "Start"
-            Recommended  = [ValuePair]::new(3, [RegistryValueKind]::DWord)
-            DefaultValue = 2
-            Description  = "Peer Networking Identity Manager"
-        },
-        [pscustomobject]@{
-            BaseKey      = [BaseKey]::Services
-            SubKeySuffix = "p2psvc"
-            Name         = "Start"
-            Recommended  = [ValuePair]::new(3, [RegistryValueKind]::DWord)
-            DefaultValue = 2
-            Description  = "Peer Networking Grouping"
-        },
-        [pscustomobject]@{
-            BaseKey      = [BaseKey]::Services
-            SubKeySuffix = "perceptionsimulation"
-            Name         = "Start"
-            Recommended  = [ValuePair]::new(3, [RegistryValueKind]::DWord)
-            DefaultValue = 2
-            Description  = "Windows Perception Simulation Service"
-        },
-        [pscustomobject]@{
-            BaseKey      = [BaseKey]::Services
-            SubKeySuffix = "pla"
-            Name         = "Start"
-            Recommended  = [ValuePair]::new(3, [RegistryValueKind]::DWord)
-            DefaultValue = 2
-            Description  = "Performance Logs & Alerts"
-        },
-        [pscustomobject]@{
-            BaseKey      = [BaseKey]::Services
-            SubKeySuffix = "seclogon"
-            Name         = "Start"
-            Recommended  = [ValuePair]::new(3, [RegistryValueKind]::DWord)
-            DefaultValue = 2
-            Description  = "Secondary Logon"
-        },
-        [pscustomobject]@{
-            BaseKey      = [BaseKey]::Services
-            SubKeySuffix = "smphost"
-            Name         = "Start"
-            Recommended  = [ValuePair]::new(3, [RegistryValueKind]::DWord)
-            DefaultValue = 2
-            Description  = "Microsoft Storage Spaces SMP"
-        },
-        [pscustomobject]@{
-            BaseKey      = [BaseKey]::Services
-            SubKeySuffix = "spectrum"
-            Name         = "Start"
-            Recommended  = [ValuePair]::new(3, [RegistryValueKind]::DWord)
-            DefaultValue = 2
-            Description  = "Windows Perception Service"
-        },
-        [pscustomobject]@{
-            BaseKey      = [BaseKey]::Services
-            SubKeySuffix = "sppsvc"
-            Name         = "Start"
-            Recommended  = [ValuePair]::new(3, [RegistryValueKind]::DWord)
-            DefaultValue = 2
-            Description  = "Software Protection"
-        },
-        [pscustomobject]@{
-            BaseKey      = [BaseKey]::Services
-            SubKeySuffix = "svsvc"
-            Name         = "Start"
-            Recommended  = [ValuePair]::new(3, [RegistryValueKind]::DWord)
-            DefaultValue = 2
-            Description  = "Spot Verifier"
-        },
-        [pscustomobject]@{
-            BaseKey      = [BaseKey]::Services
-            SubKeySuffix = "swprv"
-            Name         = "Start"
-            Recommended  = [ValuePair]::new(3, [RegistryValueKind]::DWord)
-            DefaultValue = 2
-            Description  = "Microsoft Software Shadow Copy Provider"
-        },
-        [pscustomobject]@{
-            BaseKey      = [BaseKey]::Services
-            SubKeySuffix = "upnphost"
-            Name         = "Start"
-            Recommended  = [ValuePair]::new(3, [RegistryValueKind]::DWord)
-            DefaultValue = 2
-            Description  = "UPnP Device Host"
-        },
-        [pscustomobject]@{
-            BaseKey      = [BaseKey]::Services
-            SubKeySuffix = "vds"
-            Name         = "Start"
-            Recommended  = [ValuePair]::new(3, [RegistryValueKind]::DWord)
-            DefaultValue = 2
-            Description  = "Virtual Disk"
-        },
-        [pscustomobject]@{
-            BaseKey      = [BaseKey]::Services
-            SubKeySuffix = "wbengine"
-            Name         = "Start"
-            Recommended  = [ValuePair]::new(3, [RegistryValueKind]::DWord)
-            DefaultValue = 2
-            Description  = "Block Level Backup Engine Service"
-        },
-        [pscustomobject]@{
-            BaseKey      = [BaseKey]::Services
-            SubKeySuffix = "wcncsvc"
-            Name         = "Start"
-            Recommended  = [ValuePair]::new(3, [RegistryValueKind]::DWord)
-            DefaultValue = 2
-            Description  = "Windows Connect Now - Config Registrar"
-        },
-        [pscustomobject]@{
-            BaseKey      = [BaseKey]::Services
-            SubKeySuffix = "wercplsupport"
-            Name         = "Start"
-            Recommended  = [ValuePair]::new(3, [RegistryValueKind]::DWord)
-            DefaultValue = 2
-            Description  = "Problem Reports Control Panel Support"
-        },
-        [pscustomobject]@{
-            BaseKey      = [BaseKey]::Services
-            SubKeySuffix = "wisvc"
-            Name         = "Start"
-            Recommended  = [ValuePair]::new(3, [RegistryValueKind]::DWord)
-            DefaultValue = 2
-            Description  = "Windows Insider Service"
-        },
-        [pscustomobject]@{
-            BaseKey      = [BaseKey]::Services
-            SubKeySuffix = "wlidsvc"
-            Name         = "Start"
-            Recommended  = [ValuePair]::new(3, [RegistryValueKind]::DWord)
-            DefaultValue = 2
-            Description  = "Microsoft Account Sign-in Assistant"
-        },
-        [pscustomobject]@{
-            BaseKey      = [BaseKey]::Services
-            SubKeySuffix = "wlpasvc"
-            Name         = "Start"
-            Recommended  = [ValuePair]::new(3, [RegistryValueKind]::DWord)
-            DefaultValue = 2
-            Description  = "Local Profile Assistant Service"
-        },
-        [pscustomobject]@{
-            BaseKey      = [BaseKey]::Services
-            SubKeySuffix = "wmiApSrv"
-            Name         = "Start"
-            Recommended  = [ValuePair]::new(3, [RegistryValueKind]::DWord)
-            DefaultValue = 2
-            Description  = "WMI Performance Adapter"
-        },
-        [pscustomobject]@{
-            BaseKey      = [BaseKey]::Services
-            SubKeySuffix = "workfolderssvc"
-            Name         = "Start"
-            Recommended  = [ValuePair]::new(3, [RegistryValueKind]::DWord)
-            DefaultValue = 2
-            Description  = "Work Folders"
-        },
-        [pscustomobject]@{
-            BaseKey      = [BaseKey]::Services
-            SubKeySuffix = "wuauserv"
-            Name         = "Start"
-            Recommended  = [ValuePair]::new(3, [RegistryValueKind]::DWord)
-            DefaultValue = 2
-            Description  = "Windows Update"
-        },
-        [pscustomobject]@{
-            BaseKey      = [BaseKey]::Services
-            SubKeySuffix = "wudfsvc"
-            Name         = "Start"
-            Recommended  = [ValuePair]::new(3, [RegistryValueKind]::DWord)
-            DefaultValue = 2
-            Description  = "Windows Driver Foundation - User-mode Driver Framework"
-        }
-    )
 }
 
 #region 4. Function Definitions
@@ -3807,9 +2224,14 @@ $SCRIPT:RegConfig = @{
 # =================================
 
 function Show-LoadingScreen {
+    # Ensure we're in STA mode
+    if ([System.Threading.Thread]::CurrentThread.GetApartmentState() -ne 'STA') {
+        Write-Error "Loading screen requires Single-Threaded Apartment (STA) mode"
+        return $null
+    }
 
     $loadingXaml = @'
-<Window
+    <Window
     xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
     xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
     Title="Loading"
@@ -3869,78 +2291,86 @@ function Show-LoadingScreen {
 </Window>
 '@
 
-    # Create a new runspace just for the loading window
-    $runspace = [runspacefactory]::CreateRunspace()
-    $runspace.ApartmentState = "STA"
-    $runspace.ThreadOptions = "ReuseThread"
-    $runspace.Open()
-    
-    # Create a synchronized hashtable just for window communication
-    $sync = [hashtable]::Synchronized(@{
-        ShouldClose = $false
-    })
-    
-    # Pass minimal variables to the runspace
-    $runspace.SessionStateProxy.SetVariable('sync', $sync)
-    $runspace.SessionStateProxy.SetVariable('loadingXaml', $loadingXaml)
-    $runspace.SessionStateProxy.SetVariable('ThemeColors', $script:ThemeColors)
-    $runspace.SessionStateProxy.SetVariable('isDarkMode', $script:isDarkMode)
-    
-    # Create PowerShell instance for loading screen
-    $ps = [powershell]::Create().AddScript({
+    try {
+        # Load required assemblies
         Add-Type -AssemblyName PresentationFramework
         Add-Type -AssemblyName PresentationCore
         Add-Type -AssemblyName WindowsBase
-        
-        # Create loading window
-        $reader = New-Object System.IO.StringReader $loadingXaml
-        $xmlReader = [System.Xml.XmlReader]::Create($reader)
-        $loadingWindow = [System.Windows.Markup.XamlReader]::Load($xmlReader)
-        
-        # Apply theme
-        $currentTheme = $ThemeColors[$( if ($isDarkMode) { 'Dark' } else { 'Light' })]
-        $loadingWindow.Resources = New-Object System.Windows.ResourceDictionary
-        
-        foreach ($key in $currentTheme.Keys) {
-            if ($currentTheme[$key] -match '^#') {
-                $brush = New-Object System.Windows.Media.SolidColorBrush
-                $color = [System.Windows.Media.ColorConverter]::ConvertFromString($currentTheme[$key])
-                $brush.Color = $color
-                $loadingWindow.Resources.Add($key, $brush)
-            }
-            else {
-                $loadingWindow.Resources.Add($key, $currentTheme[$key])
-            }
-        }
-        
-        # Make window draggable
-        $mainBorder = $loadingWindow.FindName("MainBorder")
-        $mainBorder.Add_MouseLeftButtonDown({
-            $loadingWindow.DragMove()
+
+        # Create a synchronized hashtable for thread-safe communication
+        $sync = [hashtable]::Synchronized(@{
+            Window = $null
+            ShouldClose = $false
         })
-        
-        # Create timer to check for close signal
-        $timer = New-Object System.Windows.Threading.DispatcherTimer
-        $timer.Interval = [TimeSpan]::FromMilliseconds(100)
-        $timer.Add_Tick({
-            if ($sync.ShouldClose) {
-                $timer.Stop()
-                $loadingWindow.Close()
+
+        # Create the runspace
+        $runspace = [runspacefactory]::CreateRunspace()
+        $runspace.ApartmentState = "STA"
+        $runspace.ThreadOptions = "ReuseThread"
+        $runspace.Open()
+
+        # Pass variables to the runspace
+        $runspace.SessionStateProxy.SetVariable('sync', $sync)
+        $runspace.SessionStateProxy.SetVariable('loadingXaml', $loadingXaml)
+        $runspace.SessionStateProxy.SetVariable('ThemeColors', $script:ThemeColors)
+        $runspace.SessionStateProxy.SetVariable('isDarkMode', $script:isDarkMode)
+
+        # Create PowerShell instance
+        $ps = [powershell]::Create().AddScript({
+            # Create loading window
+            $reader = New-Object System.IO.StringReader $loadingXaml
+            $xmlReader = [System.Xml.XmlReader]::Create($reader)
+            $sync.Window = [System.Windows.Markup.XamlReader]::Load($xmlReader)
+
+            # Apply theme (your existing theming code)
+            $currentTheme = $ThemeColors[$( if ($isDarkMode) { 'Dark' } else { 'Light' })]
+            $sync.Window.Resources = New-Object System.Windows.ResourceDictionary
+
+            foreach ($key in $currentTheme.Keys) {
+                if ($currentTheme[$key] -match '^#') {
+                    $brush = New-Object System.Windows.Media.SolidColorBrush
+                    $color = [System.Windows.Media.ColorConverter]::ConvertFromString($currentTheme[$key])
+                    $brush.Color = $color
+                    $sync.Window.Resources.Add($key, $brush)
+                }
+                else {
+                    $sync.Window.Resources.Add($key, $currentTheme[$key])
+                }
             }
+
+            # Make window draggable
+            $mainBorder = $sync.Window.FindName("MainBorder")
+            $mainBorder.Add_MouseLeftButtonDown({
+                $sync.Window.DragMove()
+            })
+
+            # Create timer to check for close signal
+            $timer = New-Object System.Windows.Threading.DispatcherTimer
+            $timer.Interval = [TimeSpan]::FromMilliseconds(100)
+            $timer.Add_Tick({
+                if ($sync.ShouldClose) {
+                    $timer.Stop()
+                    $sync.Window.Close()
+                }
+            })
+            $timer.Start()
+
+            # Show window
+            $sync.Window.ShowDialog()
         })
-        $timer.Start()
-        
-        # Show window
-        [void]$loadingWindow.ShowDialog()
-    })
-    
-    $ps.Runspace = $runspace
-    
-    # Start loading screen without waiting
-    $handle = $ps.BeginInvoke()
-    
-    # Return the sync hashtable so we can close the window later
-    return $sync
+
+        $ps.Runspace = $runspace
+
+        # Start loading screen
+        $handle = $ps.BeginInvoke()
+
+        # Return the sync object for controlling the loading screen
+        return $sync
+    }
+    catch {
+        Write-Error "Failed to create loading screen: $_"
+        return $null
+    }
 }
 
 # =================================
@@ -4190,7 +2620,7 @@ $SCRIPT:RegSettings = ConvertTo-RegistrySettings
 # Invoke Registry Settings helper function
 function Invoke-Settings {
     param(
-        [ValidateSet('Privacy', 'Gaming', 'Updates', 'Taskbar', 'Explorer', 'Accessibility', 'Search', 'Notifications', 'Sound', 'Services', 'All')]
+        [ValidateSet('Privacy', 'Gaming', 'Updates', 'Taskbar', 'Explorer', 'Notifications', 'Sound', 'All')]
         [string[]] $Categories, 
         [RegistryAction] $Action = [RegistryAction]::Apply,
         [switch] $SuppressMessage
@@ -6296,8 +4726,8 @@ function Initialize-PackageCheckboxes {
 
     # Sort items: Installed first (alphabetically) then Not installed (alphabetically)
     $sortedItems = $sortedItems | Sort-Object -Property `
-        @{ Expression = { -not $_.IsInstalled }; Ascending = $true },
-        @{ Expression = { $_.Value.FriendlyName }; Ascending = $true }
+    @{ Expression = { -not $_.IsInstalled }; Ascending = $true },
+    @{ Expression = { $_.Value.FriendlyName }; Ascending = $true }
 
     # Create checkboxes for all items
     foreach ($item in $sortedItems) {
@@ -6498,20 +4928,20 @@ function Add-SelectAllEventHandlers {
     )
 
     $Checkbox.add_Checked({
-        if (-not $script:handlingSelectAll) {
-            foreach ($chk in $script:checkBoxes) {
-                $chk.IsChecked = $true
+            if (-not $script:handlingSelectAll) {
+                foreach ($chk in $script:checkBoxes) {
+                    $chk.IsChecked = $true
+                }
             }
-        }
-    })
+        })
 
     $Checkbox.add_Unchecked({
-        if (-not $script:handlingSelectAll) {
-            foreach ($chk in $script:checkBoxes) {
-                $chk.IsChecked = $false
+            if (-not $script:handlingSelectAll) {
+                foreach ($chk in $script:checkBoxes) {
+                    $chk.IsChecked = $false
+                }
             }
-        }
-    })
+        })
 }
 
 # Function to update select all checkbox state
@@ -6574,10 +5004,12 @@ function Update-PackageStatus {
                     $isInstalled = if ($tag -is [string]) {
                         Write-Log "[DEBUG] Processing special type: $tag"
                         Test-PackageInstalled -PackageNames @() -specialType $tag
-                    } elseif ($tag.SubPackages) {
+                    }
+                    elseif ($tag.SubPackages) {
                         Write-Log "[DEBUG] Processing sub-packages: $($tag.SubPackages -join ',')"
                         Test-PackageInstalled -PackageNames $tag.SubPackages
-                    } else {
+                    }
+                    else {
                         Write-Log "[DEBUG] Processing package: $($tag.PackageName) (Capability: $($tag.IsCapability))"
                         Test-PackageInstalled -PackageNames @($tag.PackageName) -isCapability $tag.IsCapability
                     }
@@ -6599,7 +5031,8 @@ function Update-PackageStatus {
                     if ($null -ne $indicator) {
                         $indicator.Fill = if ($isInstalled) {
                             [System.Windows.Media.BrushConverter]::new().ConvertFromString("#00FF00")
-                        } else {
+                        }
+                        else {
                             [System.Windows.Media.BrushConverter]::new().ConvertFromString("#FF0000")
                         }
                         if ($null -ne $indicator.ToolTip) {
@@ -6611,8 +5044,8 @@ function Update-PackageStatus {
                     $friendlyName = $stackPanel.Children[1].Text
                     Write-Log "[DEBUG] Adding to sorted list: $friendlyName (Installed: $isInstalled)"
                     $sortedBoxes += @{
-                        Checkbox = $checkbox
-                        IsInstalled = $isInstalled
+                        Checkbox     = $checkbox
+                        IsInstalled  = $isInstalled
                         FriendlyName = $friendlyName
                     }
                 }
@@ -6627,8 +5060,8 @@ function Update-PackageStatus {
         Write-Log "[INFO] Sorting checkboxes"
         # Sort and reorder checkboxes
         $sortedBoxes = $sortedBoxes | Sort-Object -Property `
-            @{ Expression = { -not $_.IsInstalled }; Ascending = $true }, 
-            @{ Expression = { $_.FriendlyName }; Ascending = $true }
+        @{ Expression = { -not $_.IsInstalled }; Ascending = $true }, 
+        @{ Expression = { $_.FriendlyName }; Ascending = $true }
         
         Write-Log "[INFO] Updating UI"
         # Update UI
@@ -6678,9 +5111,11 @@ function Update-CheckboxesOrder {
             # Get installation status
             $isInstalled = if ($tag -is [string]) {
                 Test-PackageInstalled -PackageNames @() -specialType $tag
-            } elseif ($tag.SubPackages) {
+            }
+            elseif ($tag.SubPackages) {
                 Test-PackageInstalled -PackageNames $tag.SubPackages
-            } else {
+            }
+            else {
                 Test-PackageInstalled -PackageNames @($tag.PackageName) -isCapability $tag.IsCapability
             }
             
@@ -6689,8 +5124,8 @@ function Update-CheckboxesOrder {
             
             # Add to sorted list
             $sortedBoxes += @{
-                Checkbox = $checkbox
-                IsInstalled = $isInstalled
+                Checkbox     = $checkbox
+                IsInstalled  = $isInstalled
                 FriendlyName = Get-FriendlyName -Tag $tag -Checkbox $checkbox
             }
         }
@@ -6698,8 +5133,8 @@ function Update-CheckboxesOrder {
     
     # Sort the boxes
     $sortedBoxes = $sortedBoxes | Sort-Object -Property `
-        @{ Expression = { -not $_.IsInstalled }; Ascending = $true }, 
-        @{ Expression = { $_.FriendlyName }; Ascending = $true }
+    @{ Expression = { -not $_.IsInstalled }; Ascending = $true }, 
+    @{ Expression = { $_.FriendlyName }; Ascending = $true }
     
     # Update the UI with sorted boxes
     Update-UniformGridLayout -SortedBoxes $sortedBoxes
@@ -6719,7 +5154,8 @@ function Update-CheckboxIndicator {
     $indicator = $stackPanel.Children[0]
     $indicator.Fill = if ($IsInstalled) {
         [System.Windows.Media.BrushConverter]::new().ConvertFromString("#00FF00")
-    } else {
+    }
+    else {
         [System.Windows.Media.BrushConverter]::new().ConvertFromString("#FF0000")
     }
     $indicator.ToolTip.Content = if ($IsInstalled) { "Installed" } else { "Not Installed" }
@@ -6743,7 +5179,8 @@ function Get-FriendlyName {
             "Recall" { "Recall" }
             default { $Tag }
         }
-    } else {
+    }
+    else {
         $Checkbox.Content.Children[1].Text
     }
 }
@@ -7319,7 +5756,8 @@ function Remove-SelectedBloatware {
             foreach ($subPackage in $appConfig.SubPackages) {
                 $bloatScriptContent.Add("Get-AppxPackage -AllUsers | Where-Object { `$_.Name -eq '$subPackage' } | ForEach-Object { Remove-AppxPackage -Package `$_.PackageFullName -AllUsers -ErrorAction SilentlyContinue }") | Out-Null
             }
-        } else {
+        }
+        else {
             $packagesToRemove = @($AppName)
             # Add to the standalone script (without Write-Status commands)
             $bloatScriptContent.Add("Get-AppxPackage -AllUsers | Where-Object { `$_.Name -eq '$AppName' } | ForEach-Object { Remove-AppxPackage -Package `$_.PackageFullName -AllUsers -ErrorAction SilentlyContinue }") | Out-Null
@@ -8875,165 +7313,6 @@ function Set-DefaultPowerSettings {
     cmd /c "reg add `"HKLM\System\ControlSet001\Control\Power\PowerSettings\2a737441-1930-4402-8d77-b2bebba308a3\d4e98f31-5ffe-4ce1-be31-1b38b384c009`" /v `"Attributes`" /t REG_DWORD /d `"1`" /f >nul 2>&1"
 }
 
-# Function to change Windows Scheduled Tasks settings
-function Invoke-ScheduledTaskSettings {
-    param(
-        [Parameter(Mandatory)]
-        [TaskAction]$Action = [TaskAction]::Apply,
-        [switch]$SuppressMessage
-    )
-
-    $successCount = 0
-    $protectedTasks = @()
-    $nonExistentTasks = @()
-
-    # Define the list of scheduled tasks to manage
-    $ScheduledTasksList = @(
-        # Telemetry & Experience
-        "Microsoft\Windows\Application Experience\Microsoft Compatibility Appraiser",
-        "Microsoft\Windows\Application Experience\PcaPatchDbTask",
-        "Microsoft\Windows\Application Experience\SdbinstMergeDbTask",
-        "Microsoft\Windows\Customer Experience Improvement Program\Consolidator",
-        "Microsoft\Windows\Customer Experience Improvement Program\UsbCeip",
-        "Microsoft\Windows\Flighting\FeatureConfig\UsageDataFlushing",
-        "Microsoft\Windows\Flighting\FeatureConfig\UsageDataReporting",
-        "Microsoft\Windows\Feedback\Siuf\DmClient",
-        "Microsoft\Windows\Feedback\Siuf\DmClientOnScenarioDownload",
-
-        # Features you might not use
-        "Microsoft\Windows\Maps\MapsToastTask",
-        "Microsoft\Windows\Maps\MapsUpdateTask",
-        "Microsoft\Windows\Shell\FamilySafetyMonitor",
-        "Microsoft\Windows\Shell\FamilySafetyRefreshTask",
-        "Microsoft\Windows\Shell\IndexerAutomaticMaintenance",
-        "Microsoft\Windows\XblGameSave\XblGameSaveTask",
-        "Microsoft\Windows\Work Folders\Work Folders Logon Synchronization",
-        "Microsoft\Windows\Work Folders\Work Folders Maintenance Work",
-        "Microsoft\Windows\Windows Media Sharing\UpdateLibrary",
-        "Microsoft\Windows\WwanSvc\NotificationTask",
-        "Microsoft\Windows\WwanSvc\OobeDiscovery",
-
-        # Windows Error Reporting
-        "Microsoft\Windows\Windows Error Reporting\QueueReporting",
-
-        # Office & OneDrive (if not using)
-        "Microsoft\Office\Office Automatic Updates",
-        "Microsoft\Office\Office ClickToRun Service Monitor",
-        "Microsoft\Office\OfficeTelemetryAgentFallBack",
-        "Microsoft\Office\OfficeTelemetryAgentLogOn",
-
-        # Diagnostic Tasks
-        "Microsoft\Windows\Diagnosis\Scheduled",
-        "Microsoft\Windows\DiskDiagnostic\Microsoft-Windows-DiskDiagnosticDataCollector",
-        "Microsoft\Windows\MemoryDiagnostic\ProcessMemoryDiagnosticEvents",
-        "Microsoft\Windows\Power Efficiency Diagnostics\AnalyzeSystem",
-
-        # Unnecessary System Tasks
-        "Microsoft\Windows\Autochk\Proxy",
-        "Microsoft\Windows\Defrag\ScheduledDefrag",
-        "Microsoft\Windows\RemoteAssistance\RemoteAssistanceTask",
-        "Microsoft\Windows\Time Synchronization\ForceSynchronizeTime",
-        "Microsoft\Windows\UpdateOrchestrator\Report policies",
-        "Microsoft\Windows\UpdateOrchestrator\Schedule Scan",
-        "Microsoft\Windows\WindowsUpdate\Scheduled Start",
-        "Microsoft\Windows\WaaSMedic\PerformRemediation",
-        "Microsoft\Windows\InstallService\ScanForUpdates",
-        "Microsoft\Windows\InstallService\ScanForUpdatesAsUser",
-        "Microsoft\Windows\DiskFootprint\Diagnostics",
-        "Microsoft\Windows\FileHistory\File History (maintenance mode)",
-        "Microsoft\Windows\PI\Sqm-Tasks",
-        "Microsoft\Windows\Application Experience\ProgramDataUpdater",
-        "Microsoft\Windows\Application Experience\MareBackup",
-    
-        # Location & Sync Tasks
-        "Microsoft\Windows\Location\WindowsActionDialog",
-        "Microsoft\Windows\Location\Notifications",
-        "Microsoft\Windows\Mobile Broadband Accounts\MNO Metadata Parser",
-        "Microsoft\Windows\Device Setup\Metadata Refresh",
-        "Microsoft\Windows\International\Synchronize Language Settings",
-
-        # Retail & Demo
-        "Microsoft\Windows\Retail Demo\CleanupOfflineContent",
-        "Microsoft\Windows\PushToInstall\LoginCheck",
-        "Microsoft\Windows\PushToInstall\Registration",
-
-        # Unnecessary App Tasks
-        "Microsoft\Windows\AppID\SmartScreenSpecific",
-        "Microsoft\Windows\Application Experience\StartupAppTask",
-        "Microsoft\Windows\CloudExperienceHost\CreateObjectTask",
-        "Microsoft\Windows\HelloFace\FODCleanupTask",
-        "Microsoft\Windows\Subscription\EnableLicenseAcquisition",
-        "Microsoft\Windows\UNP\RunUpdateNotificationMgr"
-    )
-
-    foreach ($task in $ScheduledTasksList) {
-        try {
-            # The task path must start with \ and end with \
-            $taskPath = "\{0}\" -f [string]::Join('\', $task.Split('\')[0..($task.Split('\').Length - 2)])
-            $taskName = $task.Split('\')[-1]
-            
-            Write-Log "Attempting to process task: $taskName in path: $taskPath" -Severity 'INFO'
-            
-            $taskObj = Get-ScheduledTask -TaskName $taskName -TaskPath $taskPath -ErrorAction Stop
-            
-            if ($null -ne $taskObj) {
-                if ($Action -eq [TaskAction]::Apply) {
-                    Disable-ScheduledTask -InputObject $taskObj -ErrorAction Stop | Out-Null
-                    Write-Log "Disabled task: $task" -Severity 'SUCCESS'
-                }
-                else {
-                    Enable-ScheduledTask -InputObject $taskObj -ErrorAction Stop | Out-Null
-                    Write-Log "Enabled task: $task" -Severity 'SUCCESS'
-                }
-                $successCount++
-            }
-        }
-        catch {
-            if ($_.Exception.Message -like "*Access is denied*") {
-                $protectedTasks += $task
-                Write-Log "Protected task (access denied): $task" -Severity 'WARNING'
-            }
-            elseif ($_.Exception.Message -like "*No matching MSFT_ScheduledTask*") {
-                $nonExistentTasks += $task
-                Write-Log "Task not found on system: $task" -Severity 'INFO'
-            }
-            else {
-                Write-Log "Failed to process task: $task - $($_.Exception.Message)" -Severity 'ERROR'
-            }
-            continue
-        }
-    }
-
-    # Show completion message if not suppressed
-    if (-not $SuppressMessage) {
-        $actionWord = if ($Action -eq [TaskAction]::Apply) { "disabled" } else { "enabled" }
-        
-        $message = "Successfully $actionWord $successCount scheduled tasks."
-        
-        if ($protectedTasks.Count -gt 0) {
-            $message += "`n`nSkipped $($protectedTasks.Count) protected system tasks."
-        }
-        
-        if ($nonExistentTasks.Count -gt 0) {
-            $message += "`n`nSkipped $($nonExistentTasks.Count) tasks that are not present on your system."
-        }
-
-        # Only show detailed lists if there weren't too many items
-        if (($protectedTasks.Count + $nonExistentTasks.Count) -lt 10) {
-            if ($protectedTasks.Count -gt 0) {
-                $message += "`n`nProtected tasks:`n"
-                $message += $protectedTasks | ForEach-Object { "- $_" } | Out-String
-            }
-            
-            if ($nonExistentTasks.Count -gt 0) {
-                $message += "`n`nNot present on system:`n"
-                $message += $nonExistentTasks | ForEach-Object { "- $_" } | Out-String
-            }
-        }
-        
-        Show-MessageBox -Message $message.TrimEnd() -Title "Scheduled Tasks Manager"
-    }
-}
 
 # NOTE
 # Privacy Settings, Gaming Optimizations, Windows Updates, Scheduled Tasks and Windows Services are handled by the Invoke-Settings function.
@@ -9316,7 +7595,7 @@ TSz1QZdkum5Y3uC7wc7paXh1rm11nwluCC7jiA==
 }
 
 # NOTE
-# Taskbar, Explorer, Notifications, Sound, Accessibility and Search are handled by the Invoke-Settings function.
+# Taskbar, Explorer, Notifications and Sound are handled by the Invoke-Settings function.
 
 #region 5. GUI Definition
 # ====================================================================================================
@@ -9860,7 +8139,7 @@ Margin="0,0,5,0">
             Content="About" />
             </StackPanel>
             <!-- Software and Apps Screen -->
-            <StackPanel x:Name="SoftAppsScreen" Width="943" Height="550" HorizontalAlignment="Left" VerticalAlignment="Top" Margin="93,56,0,0" >
+            <StackPanel x:Name="SoftAppsScreen" Width="943" Height="550" HorizontalAlignment="Left" VerticalAlignment="Top" Margin="93,56,0,0" Visibility="Collapsed">
                 <!-- Header -->
                 <DockPanel HorizontalAlignment="Left" VerticalAlignment="Center">
                     <TextBlock Width="80" Height="70" Margin="0,0,0,0" DockPanel.Dock="Left" FontFamily="Segoe UI Emoji" FontSize="60" Foreground="{DynamicResource PrimaryTextColor}" Text="&#x1F4BF;"  LineHeight="70" LineStackingStrategy="BlockLineHeight" />
@@ -10265,124 +8544,13 @@ Margin="27,0,0,0"/>
                              FontSize="14"/>
                                 </StackPanel>
                             </Border>
-
-                            <!-- Tasks -->
-                            <Border Background="{DynamicResource ContentSectionBorderBrush}" CornerRadius="5" Margin="5,5,5,5" Effect="{StaticResource LightShadowEffect}">
-                                <StackPanel Orientation="Horizontal" Margin="10">
-                                    <TextBlock Style="{DynamicResource HelpIconStyle}" Margin="0,0,10,0">
-                                        <TextBlock.ToolTip>
-                                            <ToolTip Style="{DynamicResource CustomTooltipStyle}">
-                                                <TextBlock>
-Configures:
-<LineBreak />- Windows Compatibility Appraiser
-<LineBreak />- Program Compatibility Database Updater
-<LineBreak />- Sync Database Merge Task
-<LineBreak />- Customer Experience Improvement Program Consolidator
-<LineBreak />- USB Customer Experience Improvement
-<LineBreak />- Usage Data Flushing
-<LineBreak />- Usage Data Reporting
-<LineBreak />- Windows Feedback Client
-<LineBreak />- Windows Feedback Client Download
-<LineBreak />- Maps Toast Notifications
-<LineBreak />- Maps Update Task
-<LineBreak />- Family Safety Monitor
-<LineBreak />- Family Safety Refresh
-<LineBreak />- Windows Search Indexer Maintenance
-<LineBreak />- Xbox Game Save Task
-<LineBreak />- Work Folders Logon Sync
-<LineBreak />- Work Folders Maintenance
-<LineBreak />- Windows Media Library Update
-<LineBreak />- Wireless WAN Notifications
-<LineBreak />- Wireless WAN Discovery
-<LineBreak />- Windows Error Reporting
-<LineBreak />- Office Automatic Updates
-<LineBreak />- Office ClickToRun Monitor
-<LineBreak />- Office Telemetry Agent Fallback
-<LineBreak />- Office Telemetry Agent Logon
-<LineBreak />- Windows Diagnostic Task
-<LineBreak />- Disk Diagnostic Data Collector
-<LineBreak />- Memory Diagnostic Events
-<LineBreak />- Power Efficiency Analysis
-<LineBreak />- Disk Check Proxy
-<LineBreak />- Scheduled Disk Defragmentation
-<LineBreak />- Remote Assistance Task
-<LineBreak />- Force Time Synchronization
-<LineBreak />- Update Policy Reporting
-<LineBreak />- Windows Update Scan
-<LineBreak />- Windows Update Scheduled Start
-<LineBreak />- Windows Update Remediation
-<LineBreak />- Windows Update Scanner
-<LineBreak />- User Update Scanner
-<LineBreak />- Disk Footprint Diagnostics
-<LineBreak />- File History Maintenance
-<LineBreak />- Windows SQM Tasks
-<LineBreak />- Program Data Updater
-<LineBreak />- Mare Backup Task
-<LineBreak />- Location Dialog
-<LineBreak />- Location Notifications
-<LineBreak />- Mobile Broadband Parser
-<LineBreak />- Device Metadata Refresh
-<LineBreak />- Language Settings Sync
-<LineBreak />- Retail Demo Cleanup
-<LineBreak />- Push Install Login Check
-<LineBreak />- Push Install Registration
-<LineBreak />- SmartScreen Specific Task
-<LineBreak />- Startup Application Task
-<LineBreak />- Cloud Experience Object
-<LineBreak />- Windows Hello Cleanup
-<LineBreak />- License Acquisition Task
-<LineBreak />- Update Notification Manager
-                                                </TextBlock>
-                                            </ToolTip>
-                                        </TextBlock.ToolTip>
-                    </TextBlock>
-                                    <CheckBox x:Name="TasksCheckBox"
-                             Content="Scheduled Tasks"
-                             Style="{DynamicResource CustomCheckBoxStyle}"
-                             FontSize="14"/>
-                                </StackPanel>
-                            </Border>
-
-                            <!-- Services -->
-                            <Border Background="{DynamicResource ContentSectionBorderBrush}" CornerRadius="5" Margin="5,5,5,5" Effect="{StaticResource LightShadowEffect}">
-                                <StackPanel Orientation="Horizontal" Margin="10">
-                                    <TextBlock Style="{DynamicResource HelpIconStyle}" Margin="0,0,10,0">
-                                        <TextBlock.ToolTip>
-                                            <ToolTip Style="{DynamicResource CustomTooltipStyle}">
-                                                <TextBlock>
-Disables:
-<LineBreak />- AllJoyn Router Service
-<LineBreak />- Application Virtualization Client
-<LineBreak />- Assigned Access Manager Service
-<LineBreak />- Connected User Experiences and Telemetry
-<LineBreak />- Dialog Blocking Service
-<LineBreak />- Net.Tcp Port Sharing Service
-<LineBreak />- Remote Access Connection Manager
-<LineBreak />- Remote Registry Service
-<LineBreak />- User Experience Virtualization Service
-<LineBreak />- Shared Protection Access Manager
-<LineBreak />- OpenSSH Authentication Agent
-<LineBreak />- Auto Time Zone Updater
-<LineBreak />- Microsoft Update Health Service
-<LineBreak />
-<LineBreak />Sets other services to "Manual" where allowed.
-                                                </TextBlock>
-                                            </ToolTip>
-                                        </TextBlock.ToolTip>
-                    </TextBlock>
-                                    <CheckBox x:Name="ServicesCheckBox"
-                             Content="Windows Services"
-                             Style="{DynamicResource CustomCheckBoxStyle}"
-                             FontSize="14"/>
-                                </StackPanel>
-                            </Border>
                         </StackPanel>
                     </ScrollViewer>
                 </Border>
             </StackPanel>
 
             <!-- Customize Screen -->
-            <StackPanel x:Name="CustomizeScreen" Width="943" Height="550" HorizontalAlignment="Left" VerticalAlignment="Top" Margin="93,56,0,0" Visibility="Collapsed">
+            <StackPanel x:Name="CustomizeScreen" Width="943" Height="550" HorizontalAlignment="Left" VerticalAlignment="Top" Margin="93,56,0,0" >
                 <!-- Header -->
                 <DockPanel HorizontalAlignment="Left" VerticalAlignment="Center">
                     <TextBlock Width="80" Height="70" Margin="0,0,0,0" DockPanel.Dock="Left" FontFamily="Segoe UI Emoji" FontSize="60" Foreground="{DynamicResource PrimaryTextColor}" Text="&#x1F3A8;"  LineHeight="70" LineStackingStrategy="BlockLineHeight" />
@@ -10590,59 +8758,6 @@ Disables:
                                  FontSize="14"/>
                                 </StackPanel>
                             </Border>
-
-                            <!-- Accessibility Section -->
-                            <Border Background="{DynamicResource ContentSectionBorderBrush}" CornerRadius="5" Margin="5,5,5,5" Effect="{StaticResource LightShadowEffect}">
-                                <StackPanel Orientation="Horizontal" Margin="10">
-                                    <TextBlock Style="{DynamicResource HelpIconStyle}" Margin="0,0,10,0">
-                                        <TextBlock.ToolTip>
-                                            <ToolTip Style="{DynamicResource CustomTooltipStyle}">
-                                                <TextBlock>
-                                        - Disables self voice and self scan features
-<LineBreak />- Disables activation and warning sounds
-<LineBreak />- Configures high contrast settings
-<LineBreak />- Configures keyboard response settings
-<LineBreak />- Sets auto-repeat rate and delay
-<LineBreak />- Configures mouse keys settings and speed
-<LineBreak />- Configures sticky keys and toggle keys
-<LineBreak />- Disables sound sentry effects
-<LineBreak />- Disables automatic launch of accessibility tools
-<LineBreak />- Disables screen magnifier features
-                                                </TextBlock>
-                                            </ToolTip>
-                                        </TextBlock.ToolTip>
-                        </TextBlock>
-                                    <CheckBox x:Name="AccessibilityCheckBox"
-                                 Content="Accessibility"
-                                 Style="{DynamicResource CustomCheckBoxStyle}"
-                                 FontSize="14"/>
-                                </StackPanel>
-                            </Border>
-
-                            <!-- Search Section -->
-                            <Border Background="{DynamicResource ContentSectionBorderBrush}" CornerRadius="5" Margin="5,5,5,5" Effect="{StaticResource LightShadowEffect}">
-                                <StackPanel Orientation="Horizontal" Margin="10">
-                                    <TextBlock Style="{DynamicResource HelpIconStyle}" Margin="0,0,10,0">
-                                        <TextBlock.ToolTip>
-                                            <ToolTip Style="{DynamicResource CustomTooltipStyle}">
-                                                <TextBlock>
-                                        Disables: 
-<LineBreak />- Search history &amp; highlights
-<LineBreak />- Safe search
-<LineBreak />- Cloud content search for work/school account
-<LineBreak />- Cloud content search for Microsoft account
-<LineBreak />- Disable web search in start menu
-                                                </TextBlock>
-                                            </ToolTip>
-                                        </TextBlock.ToolTip>
-                        </TextBlock>
-                                    <CheckBox x:Name="SearchCheckBox"
-                                 Content="Search"
-                                 Style="{DynamicResource CustomCheckBoxStyle}"
-                                 FontSize="14"/>
-                                </StackPanel>
-                            </Border>
-
                         </StackPanel>
                     </ScrollViewer>
                 </Border>
@@ -10882,17 +8997,13 @@ $privacyCheckBox = $window.FindName("PrivacyCheckBox")
 $gamingOptimizationsCheckBox = $window.FindName("GamingOptimizationsCheckBox")
 $windowsUpdatesCheckBox = $window.FindName("WindowsUpdatesCheckBox")
 $powerSettingsCheckBox = $window.FindName("PowerSettingsCheckBox")
-$tasksCheckBox = $window.FindName("TasksCheckBox")
-$servicesCheckBox = $window.FindName("ServicesCheckBox")
 
 # Create array of optimize checkboxes for easier management
 $optimizeCheckboxes = @(
     $privacyCheckBox,
     $gamingOptimizationsCheckBox,
     $windowsUpdatesCheckBox,
-    $powerSettingsCheckBox,
-    $tasksCheckBox,
-    $servicesCheckBox
+    $powerSettingsCheckBox
 )
 
 # =================================
@@ -10909,8 +9020,6 @@ $startMenuCheckBox = $window.FindName("StartMenuCheckBox")
 $explorerCheckBox = $window.FindName("ExplorerCheckBox")
 $notificationsCheckBox = $window.FindName("NotificationsCheckBox")
 $soundCheckBox = $window.FindName("SoundCheckBox")
-$accessibilityCheckBox = $window.FindName("AccessibilityCheckBox")
-$searchCheckBox = $window.FindName("SearchCheckBox")
 
 # Create array of all customize checkboxes
 $customizeCheckboxes = @(
@@ -10918,9 +9027,7 @@ $customizeCheckboxes = @(
     $startMenuCheckBox,
     $explorerCheckBox,
     $notificationsCheckBox,
-    $soundCheckBox,
-    $accessibilityCheckBox,
-    $searchCheckBox
+    $soundCheckBox
 )
 
 # Initialize Dark Mode state (windows theme)
@@ -10944,40 +9051,40 @@ $supportButton = $window.FindName("SupportButton")
 
 # Theme Toggle Button Handler
 $ThemeToggleButton.Add_Click({
-    try {
-        Write-Log -Message "Theme toggle button clicked" -Severity "INFO"
-        Write-Log -Message "Current isDarkMode before toggle: $script:isDarkMode" -Severity "INFO"
+        try {
+            Write-Log -Message "Theme toggle button clicked" -Severity "INFO"
+            Write-Log -Message "Current isDarkMode before toggle: $script:isDarkMode" -Severity "INFO"
         
-        # Toggle theme using script variable
-        $script:isDarkMode = !$script:isDarkMode
-        Write-Log -Message "Switching to $( if ($script:isDarkMode) { 'dark' } else { 'light' } ) mode" -Severity "INFO"
+            # Toggle theme using script variable
+            $script:isDarkMode = !$script:isDarkMode
+            Write-Log -Message "Switching to $( if ($script:isDarkMode) { 'dark' } else { 'light' } ) mode" -Severity "INFO"
         
-        Switch-Theme -isDarkMode $script:isDarkMode
+            Switch-Theme -isDarkMode $script:isDarkMode
         
-        # Create new preferences hashtable
-        $newPreferences = @{}
+            # Create new preferences hashtable
+            $newPreferences = @{}
         
-        # Get existing preferences and copy them
-        $existingPreferences = Get-UserPreferences
-        if ($existingPreferences) {
-            $existingPreferences.PSObject.Properties | ForEach-Object {
-                $newPreferences[$_.Name] = $_.Value
+            # Get existing preferences and copy them
+            $existingPreferences = Get-UserPreferences
+            if ($existingPreferences) {
+                $existingPreferences.PSObject.Properties | ForEach-Object {
+                    $newPreferences[$_.Name] = $_.Value
+                }
+            }
+        
+            # Update or add the theme preference
+            $newPreferences["IsDarkMode"] = $script:isDarkMode
+        
+            # Save updated preferences
+            $saveResult = Save-UserPreferences -Preferences $newPreferences
+            if (-not $saveResult) {
+                Write-Log -Message "Failed to save theme preference" -Severity "WARNING"
             }
         }
-        
-        # Update or add the theme preference
-        $newPreferences["IsDarkMode"] = $script:isDarkMode
-        
-        # Save updated preferences
-        $saveResult = Save-UserPreferences -Preferences $newPreferences
-        if (-not $saveResult) {
-            Write-Log -Message "Failed to save theme preference" -Severity "WARNING"
+        catch {
+            Write-Log -Message "Error in theme toggle handler: $_" -Severity "ERROR"
         }
-    }
-    catch {
-        Write-Log -Message "Error in theme toggle handler: $_" -Severity "ERROR"
-    }
-})
+    })
 
 # Minimize Button
 $MinimizeButton.Add_Click({ $window.WindowState = 'Minimized' })
@@ -10997,55 +9104,55 @@ $MaximizeButton.Add_Click({
 
 # Close Button Handler
 $CloseButton.Add_Click({
-    $showDialog = $true
-    $preferences = Get-UserPreferences
+        $showDialog = $true
+        $preferences = Get-UserPreferences
 
-    # Check if the user has previously opted out
-    if ($preferences -and $preferences.DontShowSupport) {
-        $showDialog = $false
-    }
+        # Check if the user has previously opted out
+        if ($preferences -and $preferences.DontShowSupport) {
+            $showDialog = $false
+        }
 
-    if ($showDialog) {
-        $heart = [char]0x2764
-        $response = Show-MessageBox -Message "Thanks for using Winhance! $heart
+        if ($showDialog) {
+            $heart = [char]0x2764
+            $response = Show-MessageBox -Message "Thanks for using Winhance! $heart
 
 If you found this tool helpful, please consider:
 - Making a small donation via PayPal
 - Giving us a Star on GitHub
 
 Click 'Yes' to show your support!" `
-            -Title "Support Winhance" `
-            -Buttons "YesNo" `
-            -Icon "Information"
+                -Title "Support Winhance" `
+                -Buttons "YesNo" `
+                -Icon "Information"
 
-        if ($response -eq 'Yes') {
-            Start-Process "https://github.com/memstechtips/Winhance"
-            Start-Process "https://paypal.me/memstech"
-        }
-        else {
-            # Create new preferences hashtable
-            $newPreferences = @{}
+            if ($response -eq 'Yes') {
+                Start-Process "https://github.com/memstechtips/Winhance"
+                Start-Process "https://paypal.me/memstech"
+            }
+            else {
+                # Create new preferences hashtable
+                $newPreferences = @{}
 
-            # Get existing preferences and copy them
-            if ($preferences) {
-                $preferences.PSObject.Properties | ForEach-Object {
-                    $newPreferences[$_.Name] = $_.Value
+                # Get existing preferences and copy them
+                if ($preferences) {
+                    $preferences.PSObject.Properties | ForEach-Object {
+                        $newPreferences[$_.Name] = $_.Value
+                    }
+                }
+
+                # Update or add the DontShowSupport preference
+                $newPreferences["DontShowSupport"] = $true
+
+                # Save updated preferences
+                $saveResult = Save-UserPreferences -Preferences $newPreferences
+                if (-not $saveResult) {
+                    Write-Log -Message "Failed to save support preference" -Severity "WARNING"
                 }
             }
-
-            # Update or add the DontShowSupport preference
-            $newPreferences["DontShowSupport"] = $true
-
-            # Save updated preferences
-            $saveResult = Save-UserPreferences -Preferences $newPreferences
-            if (-not $saveResult) {
-                Write-Log -Message "Failed to save support preference" -Severity "WARNING"
-            }
         }
-    }
 
-    Exit
-})
+        Exit
+    })
 
 $window.Add_SizeChanged({
         # Get the window's current size
@@ -11108,8 +9215,8 @@ $window.Add_MouseDoubleClick({
 
 # Screen switching event handlers
 $SoftwareAppsNavButton.Add_Click({
-    Switch-Screen -SelectedButton $SoftwareAppsNavButton -TargetScreenName 'SoftAppsScreen'
-})
+        Switch-Screen -SelectedButton $SoftwareAppsNavButton -TargetScreenName 'SoftAppsScreen'
+    })
 
 $OptimizeNavButton.Add_Click({
         Switch-Screen -SelectedButton $OptimizeNavButton -TargetScreenName 'OptimizeScreen'
@@ -11139,13 +9246,13 @@ $installSoftwareHeader.Add_MouseDown({
 
 # Header click handler for expanding/collapsing content
 $removeAppsHeader.Add_MouseDown({
-    if ($removeAppsContent.Visibility -eq "Collapsed") {
-        $removeAppsContent.Visibility = "Visible"
-    }
-    else {
-        $removeAppsContent.Visibility = "Collapsed"
-    }
-})
+        if ($removeAppsContent.Visibility -eq "Collapsed") {
+            $removeAppsContent.Visibility = "Visible"
+        }
+        else {
+            $removeAppsContent.Visibility = "Collapsed"
+        }
+    })
 
 # Note: Installation handled by Initialize-InstallationHandlers
 
@@ -11209,157 +9316,128 @@ foreach ($checkbox in $optimizeCheckboxes) {
 
 # Optimize Screen Apply Button Handler
 $OptimizeApplyButton.Add_Click({
-        [System.Windows.Input.Mouse]::OverrideCursor = [System.Windows.Input.Cursors]::Wait
+    [System.Windows.Input.Mouse]::OverrideCursor = [System.Windows.Input.Cursors]::Wait
+
+    try {
+        $results = @{
+            Privacy  = $false
+            Gaming   = $false
+            Updates  = $false
+            Power    = $false
+        }
     
-        try {
-            $results = @{
-                Privacy  = $false
-                Gaming   = $false
-                Updates  = $false
-                Power    = $false
-                Tasks    = $false
-                Services = $false
-            }
-        
-            # Build list of selected operations
-            $selectedCategories = @()
-            if ($privacyCheckBox.IsChecked) { 
-                $selectedCategories += 'Privacy'
-                $results.Privacy = $true
-            }
-            if ($gamingOptimizationsCheckBox.IsChecked) { 
-                $selectedCategories += 'Gaming'
-                $results.Gaming = $true
-            }
-            if ($windowsUpdatesCheckBox.IsChecked) { 
-                $selectedCategories += 'Updates'
-                $results.Updates = $true
-            }
-            if ($servicesCheckBox.IsChecked) { 
-                $selectedCategories += 'Services'
-                $results.Services = $true
-            }
-        
-            if ($selectedCategories.Count -gt 0) {
-                Write-Status "Applying registry optimizations..." -TargetScreen OptimizeScreen
-                Update-WPFControls
-                Invoke-Settings -Categories $selectedCategories -Action Apply -SuppressMessage
-            }
-        
-            if ($powerSettingsCheckBox.IsChecked) {
-                Write-Status "Configuring power settings..." -TargetScreen OptimizeScreen
-                Update-WPFControls
-                Set-RecommendedPowerSettings | Out-Null
-                $results.Power = $true
-            }
-        
-            if ($tasksCheckBox.IsChecked) {
-                Write-Status "Configuring scheduled tasks. Please wait..." -TargetScreen OptimizeScreen
-                Update-WPFControls
-                Invoke-ScheduledTaskSettings -Action Apply -SuppressMessage
-                $results.Tasks = $true
-            }
-        
-            # Construct final message
-            $message = "Optimization completed:`n"
-            if ($results.Privacy) { $message += "`n[+] Privacy settings optimized" }
-            if ($results.Gaming) { $message += "`n[+] Gaming optimizations applied" }
-            if ($results.Updates) { $message += "`n[+] Windows Update settings configured" }
-            if ($results.Power) { $message += "`n[+] Power settings optimized for performance" }
-            if ($results.Tasks) { $message += "`n[+] Scheduled tasks optimized" }
-            if ($results.Services) { $message += "`n[+] Windows services optimized" }
-            $message += "`n`nPlease restart your computer for all changes to take effect."
-        
-            Write-Status "Optimizations complete" -TargetScreen OptimizeScreen
+        # Build list of selected operations
+        $selectedCategories = @()
+        if ($privacyCheckBox.IsChecked) { 
+            $selectedCategories += 'Privacy'
+            $results.Privacy = $true
+        }
+        if ($gamingOptimizationsCheckBox.IsChecked) { 
+            $selectedCategories += 'Gaming'
+            $results.Gaming = $true
+        }
+        if ($windowsUpdatesCheckBox.IsChecked) { 
+            $selectedCategories += 'Updates'
+            $results.Updates = $true
+        }
+    
+        if ($selectedCategories.Count -gt 0) {
+            Write-Status "Applying registry optimizations..." -TargetScreen OptimizeScreen
             Update-WPFControls
-            Show-MessageBox -Message $message -Title "Optimization Complete" -Icon Information
+            Invoke-Settings -Categories $selectedCategories -Action Apply -SuppressMessage
         }
-        catch {
-            Write-Log "Error during optimization: $($_.Exception.Message)" -Severity 'ERROR'
-            Write-Status "Error occurred during optimization" -TargetScreen OptimizeScreen
-            Show-MessageBox -Message "An error occurred during optimization.`n`n$($_.Exception.Message)" -Title "Error" -Icon Error
+    
+        if ($powerSettingsCheckBox.IsChecked) {
+            Write-Status "Configuring power settings..." -TargetScreen OptimizeScreen
+            Update-WPFControls
+            Set-RecommendedPowerSettings | Out-Null
+            $results.Power = $true
         }
-        finally {
-            [System.Windows.Input.Mouse]::OverrideCursor = $null
-        }
-    })
+    
+        # Construct final message
+        $message = "Optimization completed:`n"
+        if ($results.Privacy) { $message += "`n[+] Privacy settings optimized" }
+        if ($results.Gaming) { $message += "`n[+] Gaming optimizations applied" }
+        if ($results.Updates) { $message += "`n[+] Windows Update settings configured" }
+        if ($results.Power) { $message += "`n[+] Power settings optimized for performance" }
+        $message += "`n`nPlease restart your computer for all changes to take effect."
+    
+        Write-Status "Optimizations complete" -TargetScreen OptimizeScreen
+        Update-WPFControls
+        Show-MessageBox -Message $message -Title "Optimization Complete" -Icon Information
+    }
+    catch {
+        Write-Log "Error during optimization: $($_.Exception.Message)" -Severity 'ERROR'
+        Write-Status "Error occurred during optimization" -TargetScreen OptimizeScreen
+        Show-MessageBox -Message "An error occurred during optimization.`n`n$($_.Exception.Message)" -Title "Error" -Icon Error
+    }
+    finally {
+        [System.Windows.Input.Mouse]::OverrideCursor = $null
+    }
+})
 
 # Optimize Screen Defaults Button Handler
 $OptimizeDefaultsButton.Add_Click({
-        [System.Windows.Input.Mouse]::OverrideCursor = [System.Windows.Input.Cursors]::Wait
-        try {
-            $results = @{
-                Privacy  = $false
-                Gaming   = $false
-                Updates  = $false
-                Power    = $false
-                Tasks    = $false
-                Services = $false
-            }
+    [System.Windows.Input.Mouse]::OverrideCursor = [System.Windows.Input.Cursors]::Wait
+    try {
+        $results = @{
+            Privacy  = $false
+            Gaming   = $false
+            Updates  = $false
+            Power    = $false
+        }
 
-            # Handle registry-based settings first
-            $selectedCategories = @()
-            if ($privacyCheckBox.IsChecked) { 
-                $selectedCategories += 'Privacy'
-                $results.Privacy = $true
-            }
-            if ($gamingOptimizationsCheckBox.IsChecked) { 
-                $selectedCategories += 'Gaming'
-                $results.Gaming = $true
-            }
-            if ($windowsUpdatesCheckBox.IsChecked) { 
-                $selectedCategories += 'Updates'
-                $results.Updates = $true
-            }
-            if ($servicesCheckBox.IsChecked) { 
-                $selectedCategories += 'Services'
-                $results.Services = $true
-            }
+        # Handle registry-based settings first
+        $selectedCategories = @()
+        if ($privacyCheckBox.IsChecked) { 
+            $selectedCategories += 'Privacy'
+            $results.Privacy = $true
+        }
+        if ($gamingOptimizationsCheckBox.IsChecked) { 
+            $selectedCategories += 'Gaming'
+            $results.Gaming = $true
+        }
+        if ($windowsUpdatesCheckBox.IsChecked) { 
+            $selectedCategories += 'Updates'
+            $results.Updates = $true
+        }
 
-            if ($selectedCategories.Count -gt 0) {
-                Write-Status "Restoring default registry settings..." -TargetScreen OptimizeScreen
-                Update-WPFControls
-                Invoke-Settings -Categories $selectedCategories -Action Rollback
-            }
-
-            # Handle non-registry settings
-            if ($powerSettingsCheckBox.IsChecked) {
-                Write-Status "Restoring default power settings..." -TargetScreen OptimizeScreen
-                Update-WPFControls
-                Set-DefaultPowerSettings
-                $results.Power = $true
-            }
-            if ($tasksCheckBox.IsChecked) {
-                Write-Status "Restoring default scheduled tasks. Please wait..." -TargetScreen OptimizeScreen
-                Update-WPFControls
-                Invoke-ScheduledTaskSettings -Action Rollback
-                $results.Tasks = $true
-            }
-
-            # Construct final message
-            $message = "Default settings restored:`n"
-            if ($results.Privacy) { $message += "`n[+] Privacy settings restored to Windows defaults" }
-            if ($results.Gaming) { $message += "`n[+] Gaming optimizations reverted to default" }
-            if ($results.Updates) { $message += "`n[+] Windows Update settings restored to default" }
-            if ($results.Power) { $message += "`n[+] Power settings restored to balanced plan" }
-            if ($results.Tasks) { $message += "`n[+] Scheduled tasks restored to default state" }
-            if ($results.Services) { $message += "`n[+] Windows services restored to default configuration" }
-            $message += "`n`nPlease restart your computer for all changes to take effect."
-
-            Write-Status "Defaults restored" -TargetScreen OptimizeScreen
+        if ($selectedCategories.Count -gt 0) {
+            Write-Status "Restoring default registry settings..." -TargetScreen OptimizeScreen
             Update-WPFControls
-            Show-MessageBox -Message $message -Title "Restore Complete" -Icon Information
+            Invoke-Settings -Categories $selectedCategories -Action Rollback
+        }
 
-            # Uncheck all boxes including Select All AFTER processing
-            $optimizeSelectAllCheckbox.IsChecked = $false
-            foreach ($checkbox in $optimizeCheckboxes) {
-                $checkbox.IsChecked = $false
-            }
+        # Handle non-registry settings
+        if ($powerSettingsCheckBox.IsChecked) {
+            Write-Status "Restoring default power settings..." -TargetScreen OptimizeScreen
+            Update-WPFControls
+            Set-DefaultPowerSettings
+            $results.Power = $true
         }
-        finally {
-            [System.Windows.Input.Mouse]::OverrideCursor = $null
+
+        # Construct final message
+        $message = "Default settings restored:`n"
+        if ($results.Privacy) { $message += "`n[+] Privacy settings restored to Windows defaults" }
+        if ($results.Gaming) { $message += "`n[+] Gaming optimizations reverted to default" }
+        if ($results.Updates) { $message += "`n[+] Windows Update settings restored to default" }
+        if ($results.Power) { $message += "`n[+] Power settings restored to balanced plan" }
+        $message += "`n`nPlease restart your computer for all changes to take effect."
+
+        Write-Status "Defaults restored" -TargetScreen OptimizeScreen
+        Update-WPFControls
+        Show-MessageBox -Message $message -Title "Restore Complete" -Icon Information
+
+        # Uncheck all boxes including Select All AFTER processing
+        $optimizeSelectAllCheckbox.IsChecked = $false
+        foreach ($checkbox in $optimizeCheckboxes) {
+            $checkbox.IsChecked = $false
         }
-    })
+    }
+    finally {
+        [System.Windows.Input.Mouse]::OverrideCursor = $null
+    }
+})
 
 # ==========================
 # Customize Screen Handlers
@@ -11433,191 +9511,179 @@ foreach ($checkbox in $customizeCheckboxes) {
 
 # Customize Screen Apply Button Handler
 $CustomizeApplyButton.Add_Click({
-        [System.Windows.Input.Mouse]::OverrideCursor = [System.Windows.Input.Cursors]::Wait
-        try {
-            $results = @{
-                Taskbar       = $false
-                StartMenu     = $false
-                Explorer      = $false
-                Notifications = $false
-                Sound         = $false
-                Accessibility = $false
-                Search        = $false
-            }
-    
-            $selectedCategories = @()
-            $windowsVersion = Get-WindowsVersion
-    
-            if ($taskbarCheckBox.IsChecked) { 
-                $selectedCategories += 'Taskbar'
-                $results.Taskbar = $true
-            }
-            if ($startMenuCheckBox.IsChecked) { 
-                $selectedCategories += 'StartMenu'
-                $results.StartMenu = $true
-            }
-            if ($explorerCheckBox.IsChecked) { 
-                $selectedCategories += 'Explorer'
-                $results.Explorer = $true
-            }
-            if ($notificationsCheckBox.IsChecked) { 
-                $selectedCategories += 'Notifications'
-                $results.Notifications = $true
-            }
-            if ($soundCheckBox.IsChecked) { 
-                $selectedCategories += 'Sound'
-                $results.Sound = $true
-            }
-            if ($accessibilityCheckBox.IsChecked) { 
-                $selectedCategories += 'Accessibility'
-                $results.Accessibility = $true
-            }
-            if ($searchCheckBox.IsChecked) { 
-                $selectedCategories += 'Search'
-                $results.Search = $true
+    [System.Windows.Input.Mouse]::OverrideCursor = [System.Windows.Input.Cursors]::Wait
+    try {
+        $results = @{
+            Taskbar       = $false
+            StartMenu     = $false
+            Explorer      = $false
+            Notifications = $false
+            Sound         = $false
+        }
+
+        $selectedCategories = @()
+        $windowsVersion = Get-WindowsVersion
+
+        if ($taskbarCheckBox.IsChecked) { 
+            $selectedCategories += 'Taskbar'
+            $results.Taskbar = $true
+        }
+        if ($startMenuCheckBox.IsChecked) { 
+            $selectedCategories += 'StartMenu'
+            $results.StartMenu = $true
+        }
+        if ($explorerCheckBox.IsChecked) { 
+            $selectedCategories += 'Explorer'
+            $results.Explorer = $true
+        }
+        if ($notificationsCheckBox.IsChecked) { 
+            $selectedCategories += 'Notifications'
+            $results.Notifications = $true
+        }
+        if ($soundCheckBox.IsChecked) { 
+            $selectedCategories += 'Sound'
+            $results.Sound = $true
+        }
+
+        if ($selectedCategories.Count -gt 0) {
+            Write-Status "Applying customization settings..." -TargetScreen CustomizeScreen
+            Update-WPFControls
+
+            # Handle Start Menu differently based on Windows version
+            if ($results.StartMenu) {
+                if ($windowsVersion -ge 22000) {
+                    # Windows 11 - use binary replacement method
+                    $startMenuSuccess = Reset-Windows11StartMenu
+                    if (-not $startMenuSuccess) {
+                        $results.StartMenu = $false  # Mark as failed
+                    }
+                }
+                else {
+                    # Windows 10 - use existing method
+                    $startMenuSuccess = Reset-Windows10StartMenu
+                    if (-not $startMenuSuccess) {
+                        $results.StartMenu = $false  # Mark as failed
+                    }
+                }
+                # Remove StartMenu from categories since we handled it separately
+                $selectedCategories = $selectedCategories | Where-Object { $_ -ne 'StartMenu' }
             }
 
+            # Apply remaining settings using existing method
             if ($selectedCategories.Count -gt 0) {
-                Write-Status "Applying customization settings..." -TargetScreen CustomizeScreen
-                Update-WPFControls
-
-                # Handle Start Menu differently based on Windows version
-                if ($results.StartMenu) {
-                    if ($windowsVersion -ge 22000) {
-                        # Windows 11 - use binary replacement method
-                        $startMenuSuccess = Reset-Windows11StartMenu
-                        if (-not $startMenuSuccess) {
-                            $results.StartMenu = $false  # Mark as failed
-                        }
-                    }
-                    else {
-                        # Windows 10 - use existing method
-                        $startMenuSuccess = Reset-Windows10StartMenu
-                        if (-not $startMenuSuccess) {
-                            $results.StartMenu = $false  # Mark as failed
-                        }
-                    }
-                    # Remove StartMenu from categories since we handled it separately
-                    $selectedCategories = $selectedCategories | Where-Object { $_ -ne 'StartMenu' }
-                }
-
-                # Apply remaining settings using existing method
-                if ($selectedCategories.Count -gt 0) {
-                    Invoke-Settings -Categories $selectedCategories -Action Apply
-                }
-
-                # Construct final message
-                $message = "Customization completed:`n"
-                if ($results.Taskbar) { $message += "`n[+] Taskbar settings applied" }
-                if ($results.StartMenu) { $message += "`n[+] Start Menu settings applied" }
-                if ($results.Explorer) { $message += "`n[+] Explorer settings applied" }
-                if ($results.Notifications) { $message += "`n[+] Notification settings applied" }
-                if ($results.Sound) { $message += "`n[+] Sound settings applied" }
-                if ($results.Accessibility) { $message += "`n[+] Accessibility settings applied" }
-                if ($results.Search) { $message += "`n[+] Search settings applied" }
-                $message += "`n`nPlease restart your computer for all changes to take effect."
-
-                Write-Status "Customization complete" -TargetScreen CustomizeScreen
-                Update-WPFControls
-                Show-MessageBox -Message $message -Title "Customization Complete" -Icon Information
+                Invoke-Settings -Categories $selectedCategories -Action Apply
             }
+
+            # Construct final message
+            $message = "Customization completed:`n"
+            if ($results.Taskbar) { $message += "`n[+] Taskbar settings applied" }
+            if ($results.StartMenu) { $message += "`n[+] Start Menu settings applied" }
+            if ($results.Explorer) { $message += "`n[+] Explorer settings applied" }
+            if ($results.Notifications) { $message += "`n[+] Notification settings applied" }
+            if ($results.Sound) { $message += "`n[+] Sound settings applied" }
+            $message += "`n`nPlease restart your computer for all changes to take effect."
+
+            Write-Status "Customization complete" -TargetScreen CustomizeScreen
+            Update-WPFControls
+            Show-MessageBox -Message $message -Title "Customization Complete" -Icon Information
         }
-        finally {
-            [System.Windows.Input.Mouse]::OverrideCursor = $null
-        }
-    })
+    }
+    finally {
+        [System.Windows.Input.Mouse]::OverrideCursor = $null
+    }
+})
 
 # Customize Screen Apply Button Handler
 $CustomizeDefaultsButton.Add_Click({
-        [System.Windows.Input.Mouse]::OverrideCursor = [System.Windows.Input.Cursors]::Wait
-        try {
-            $results = @{
-                Taskbar       = $false
-                StartMenu     = $false
-                Explorer      = $false
-                Notifications = $false
-                Sound         = $false
-                Accessibility = $false
-                Search        = $false
-            }
-        
-            $selectedCategories = @()
-        
-            if ($taskbarCheckBox.IsChecked) { 
-                $selectedCategories += 'Taskbar'
-                $results.Taskbar = $true
-            }
-            if ($startMenuCheckBox.IsChecked) { 
-                $selectedCategories += 'StartMenu'
-                $results.StartMenu = $true
-            }
-            if ($explorerCheckBox.IsChecked) { 
-                $selectedCategories += 'Explorer'
-                $results.Explorer = $true
-            }
-            if ($notificationsCheckBox.IsChecked) { 
-                $selectedCategories += 'Notifications'
-                $results.Notifications = $true
-            }
-            if ($soundCheckBox.IsChecked) { 
-                $selectedCategories += 'Sound'
-                $results.Sound = $true
-            }
-            if ($accessibilityCheckBox.IsChecked) { 
-                $selectedCategories += 'Accessibility'
-                $results.Accessibility = $true
-            }
-            if ($searchCheckBox.IsChecked) { 
-                $selectedCategories += 'Search'
-                $results.Search = $true
-            }
-
-            if ($selectedCategories.Count -gt 0) {
-                Write-Status "Restoring default customization settings..." -TargetScreen CustomizeScreen
-                Update-WPFControls
-                Invoke-Settings -Categories $selectedCategories -Action Rollback
-
-                # Construct final message
-                $message = "Default settings restored:`n"
-                if ($results.Taskbar) { $message += "`n[+] Taskbar settings restored" }
-                if ($results.StartMenu) { $message += "`n[+] Start Menu settings restored" }
-                if ($results.Explorer) { $message += "`n[+] Explorer settings restored" }
-                if ($results.Notifications) { $message += "`n[+] Notification settings restored" }
-                if ($results.Sound) { $message += "`n[+] Sound settings restored" }
-                if ($results.Accessibility) { $message += "`n[+] Accessibility settings restored" }
-                if ($results.Search) { $message += "`n[+] Search settings restored" }
-                $message += "`n`nPlease restart your computer for all changes to take effect."
-
-                Write-Status "Defaults restored" -TargetScreen CustomizeScreen
-                Update-WPFControls
-                Show-MessageBox -Message $message -Title "Restore Complete" -Icon Information
-            }
-        
-            # Uncheck all boxes including Select All
-            $customizeSelectAllCheckbox.IsChecked = $false
-            foreach ($checkbox in $customizeCheckboxes) {
-                $checkbox.IsChecked = $false
-            }
+    [System.Windows.Input.Mouse]::OverrideCursor = [System.Windows.Input.Cursors]::Wait
+    try {
+        $results = @{
+            Taskbar       = $false
+            StartMenu     = $false
+            Explorer      = $false
+            Notifications = $false
+            Sound         = $false
         }
-        finally {
-            [System.Windows.Input.Mouse]::OverrideCursor = $null
+    
+        $selectedCategories = @()
+    
+        if ($taskbarCheckBox.IsChecked) { 
+            $selectedCategories += 'Taskbar'
+            $results.Taskbar = $true
         }
-    })
+        if ($explorerCheckBox.IsChecked) { 
+            $selectedCategories += 'Explorer'
+            $results.Explorer = $true
+        }
+        if ($notificationsCheckBox.IsChecked) { 
+            $selectedCategories += 'Notifications'
+            $results.Notifications = $true
+        }
+        if ($soundCheckBox.IsChecked) { 
+            $selectedCategories += 'Sound'
+            $results.Sound = $true
+        }
+
+        if ($selectedCategories.Count -gt 0) {
+            Write-Status "Restoring default customization settings..." -TargetScreen CustomizeScreen
+            Update-WPFControls
+            Invoke-Settings -Categories $selectedCategories -Action Rollback
+
+            # Construct final message
+            $message = "Default settings restored:`n"
+            if ($results.Taskbar) { $message += "`n[+] Taskbar settings restored" }
+            if ($results.StartMenu) { $message += "`n[+] Start Menu settings restored" }
+            if ($results.Explorer) { $message += "`n[+] Explorer settings restored" }
+            if ($results.Notifications) { $message += "`n[+] Notification settings restored" }
+            if ($results.Sound) { $message += "`n[+] Sound settings restored" }
+            $message += "`n`nPlease restart your computer for all changes to take effect."
+
+            Write-Status "Defaults restored" -TargetScreen CustomizeScreen
+            Update-WPFControls
+            Show-MessageBox -Message $message -Title "Restore Complete" -Icon Information
+        }
+    
+        # Uncheck all boxes including Select All
+        $customizeSelectAllCheckbox.IsChecked = $false
+        foreach ($checkbox in $customizeCheckboxes) {
+            $checkbox.IsChecked = $false
+        }
+    }
+    finally {
+        [System.Windows.Input.Mouse]::OverrideCursor = $null
+    }
+})
 
 # ==========================
 # About Screen Handlers
 # ==========================
 
 $CreateShortcutButton.Add_Click({
+    try {
+        # Get the actual desktop path using the system method
+        $desktopPath = [System.Environment]::GetFolderPath([System.Environment+SpecialFolder]::Desktop)
+
+        if (-not $desktopPath) {
+            [System.Windows.MessageBox]::Show("Could not find a valid desktop path.", "Error", [System.Windows.MessageBoxButton]::OK, [System.Windows.MessageBoxImage]::Error)
+            return
+        }
+
+        # Create the full path for the shortcut
+        $shortcutPath = Join-Path $desktopPath "Winhance.lnk"
+
         $WshShell = New-Object -ComObject WScript.Shell
-        $Shortcut = $WshShell.CreateShortcut("$env:USERPROFILE\Desktop\Winhance.lnk")
+        $Shortcut = $WshShell.CreateShortcut($shortcutPath)
         $Shortcut.TargetPath = "powershell.exe"
         $Shortcut.Arguments = "-ExecutionPolicy Bypass -Command `"Start-Process powershell -ArgumentList '-NoProfile -ExecutionPolicy Bypass -Command `"`"irm \`"https://github.com/memstechtips/Winhance/raw/main/Winhance.ps1\`" | iex`"`"' -Verb RunAs`""
         $Shortcut.IconLocation = "powershell.exe,0"
         $Shortcut.Save()
     
         [System.Windows.MessageBox]::Show("Desktop shortcut created successfully!", "Success", [System.Windows.MessageBoxButton]::OK, [System.Windows.MessageBoxImage]::Information)
-    })
+    }
+    catch {
+        [System.Windows.MessageBox]::Show("An error occurred while creating the shortcut: $($_.Exception.Message)", "Error", [System.Windows.MessageBoxButton]::OK, [System.Windows.MessageBoxImage]::Error)
+    }
+})
 
 $GitHubButton.Add_Click({
         Start-Process "https://github.com/memstechtips"
@@ -11668,6 +9734,10 @@ Write-Log -Message "Script started" -Severity 'INFO'
 try {
     # Show loading screen
     $loadingScreen = Show-LoadingScreen
+
+    if ($null -eq $loadingScreen) {
+        Write-Log -Message "Failed to create loading screen" -Severity 'WARNING'
+    }
     
     # Create registry backup
     $backupPath = Backup-Registry
@@ -11678,8 +9748,10 @@ try {
     Initialize-BloatwareUI
     Initialize-AppTheme
     
-    # Close loading screen
-    $loadingScreen.ShouldClose = $true
+    # Close loading screen (with null check)
+    if ($loadingScreen) {
+        $loadingScreen.ShouldClose = $true
+    }
     
     # Show backup message if needed
     if ($backupPath) {
@@ -11700,8 +9772,8 @@ You can use the registry file to restore your registry if needed." `
     # Make window visible and draggable
     $window.Visibility = 'Visible'
     $window.Add_MouseLeftButtonDown({
-        $window.DragMove()
-    })
+            $window.DragMove()
+        })
     
     # Show the window
     Clear-Host
@@ -11709,9 +9781,23 @@ You can use the registry file to restore your registry if needed." `
 }
 catch {
     Write-Log -Message "Error during application startup: $_" -Severity 'ERROR'
+    
+    # Additional detailed error logging
+    Write-Log -Message "Error Details:" -Severity 'ERROR'
+    Write-Log -Message "Exception Type: $($_.Exception.GetType().FullName)" -Severity 'ERROR'
+    Write-Log -Message "Stack Trace: $($_.ScriptStackTrace)" -Severity 'ERROR'
+    
+    # Ensure loading screen is closed
     if ($loadingScreen) {
         $loadingScreen.ShouldClose = $true
     }
+    
+    # Optional: Show error message to user
+    Show-MessageBox -Message "An error occurred during startup:
+$($_.Exception.Message)" `
+        -Title "Startup Error" `
+        -Buttons "OK" `
+        -Icon "Error"
 }
 finally {
     Stop-Log
