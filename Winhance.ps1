@@ -11626,18 +11626,21 @@ $CreateShortcutButton.Add_Click({
         $Shortcut.TargetPath = "powershell.exe"
         $Shortcut.Arguments = "-ExecutionPolicy Bypass -Command `"Start-Process powershell -ArgumentList '-NoProfile -ExecutionPolicy Bypass -Command `"`"irm \`"https://github.com/memstechtips/Winhance/raw/main/Winhance.ps1\`" | iex`"`"' -Verb RunAs`""
         $Shortcut.IconLocation = "powershell.exe,0"
-        
+
         # Save the shortcut
         $Shortcut.Save()
 
-        # Success message
+        # Success message (popup)
+        [System.Windows.MessageBox]::Show("Shortcut created successfully at $DesktopPath\Winhance.lnk", "Success", [System.Windows.MessageBoxButton]::OK, [System.Windows.MessageBoxImage]::Information)
         Write-Host "Shortcut created successfully at $DesktopPath\Winhance.lnk"
     }
     catch {
-        # Error handling
+        # Error handling (popup)
+        [System.Windows.MessageBox]::Show("Error: $_", "Error", [System.Windows.MessageBoxButton]::OK, [System.Windows.MessageBoxImage]::Error)
         Write-Host "Error: $_" -ForegroundColor Red
     }
 })
+
 
 
 
