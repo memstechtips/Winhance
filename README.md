@@ -33,6 +33,13 @@ To use **Winhance**, follow these steps to launch PowerShell as an Administrator
    ```
    - To paste into PowerShell, **Right-Click** or press **Ctrl + V** in the PowerShell or Terminal window
    - Press **Enter** to execute the command
+   - If you receive an error 'This script contains malicious content and has been blocked by your antivirus software.':
+     - Open **Windows Security**
+     - Click **Virus & threat Protection**
+     - Click **Manage Settings** under **Virus & threat protection settings**
+     - Disable **Real-time protection**
+     - Click **Yes** on the UAC prompt
+     - Re-run the command in powershell
 
 This command will download and execute the **Winhance** application directly from GitHub.
 
