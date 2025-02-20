@@ -677,9 +677,25 @@ $SCRIPT:BaseKeys = @{
         Hive   = [RegistryHive]::LocalMachine
         SubKey = "SOFTWARE\Policies\Microsoft\Windows\Windows Feeds"
     }
+    [BaseKey]::TaskbarFeeds                      = [pscustomobject]@{
+        Hive   = [RegistryHive]::CurrentUser
+        SubKey = "Software\Microsoft\Windows\CurrentVersion\Feeds"
+    }
     [BaseKey]::PolicyManagerNews                 = [pscustomobject]@{
         Hive   = [RegistryHive]::LocalMachine
         SubKey = "SOFTWARE\Microsoft\PolicyManager\default\NewsAndInterests"
+    }
+    [BaseKey]::WeatherService                     = [pscustomobject]@{
+        Hive   = [RegistryHive]::LocalMachine
+        SubKey = "SOFTWARE\Microsoft\Windows\CurrentVersion\WeatherService"
+    }
+    [BaseKey]::WeatherExperience                  = [pscustomobject]@{
+        Hive   = [RegistryHive]::CurrentUser
+        SubKey = "Software\Microsoft\Windows\CurrentVersion\WeatherExperience"
+    }
+    [BaseKey]::WeatherBar                         = [pscustomobject]@{
+        Hive   = [RegistryHive]::CurrentUser
+        SubKey = "Software\Microsoft\Windows\CurrentVersion\WeatherBar"
     }
     [BaseKey]::TaskbarDsh                        = [pscustomobject]@{
         Hive   = [RegistryHive]::LocalMachine
@@ -1580,27 +1596,92 @@ $SCRIPT:RegConfig = @{
             DefaultValue = $null
             Description  = "Windows Chat icon visibility"
         },
+         # Disable News and Interests
+        [pscustomobject]@{
+            BaseKey      = [BaseKey]::PolicyManagerNews
+            Name         = "AllowNewsAndInterests"
+            Recommended  = [ValuePair]::new(0, [RegistryValueKind]::DWord)
+            DefaultValue = $null
+            Description  = "Disables News and Interests at policy level"
+        },
+        [pscustomobject]@{
+            BaseKey      = [BaseKey]::TaskbarFeeds
+            Name         = "ShellFeedsTaskbarViewMode"
+            Recommended  = [ValuePair]::new(2, [RegistryValueKind]::DWord)
+            DefaultValue = $null
+            Description  = "Disables taskbar feeds view"
+        },
         [pscustomobject]@{
             BaseKey      = [BaseKey]::TaskbarFeeds
             Name         = "EnableFeeds"
             Recommended  = [ValuePair]::new(0, [RegistryValueKind]::DWord)
             DefaultValue = $null
-            Description  = "Disable news and interests feed"
+            Description  = "Disables feeds completely"
+        },
+        # Weather Removal Settings
+        [pscustomobject]@{
+            BaseKey      = [BaseKey]::WeatherService
+            Name         = "DisableWeatherService"
+            Recommended  = [ValuePair]::new(1, [RegistryValueKind]::DWord)
+            DefaultValue = $null
+            Description  = "Disables Windows Weather Service"
         },
         [pscustomobject]@{
-            BaseKey      = [BaseKey]::PolicyManagerNews
-            Name         = "value"
+            BaseKey      = [BaseKey]::WeatherExperience
+            Name         = "WeatherEnabled"
             Recommended  = [ValuePair]::new(0, [RegistryValueKind]::DWord)
             DefaultValue = $null
-            Description  = "Block news and interests"
+            Description  = "Disables Weather Experience"
         },
         [pscustomobject]@{
-            BaseKey      = [BaseKey]::TaskbarDsh
-            Name         = "AllowNewsAndInterests"
+            BaseKey      = [BaseKey]::WeatherBar
+            Name         = "WeatherEnabled"
             Recommended  = [ValuePair]::new(0, [RegistryValueKind]::DWord)
             DefaultValue = $null
-            Description  = "Disable news and interests"
+            Description  = "Disables Weather Bar"
         },
+        [pscustomobject]@{
+            BaseKey      = [BaseKey]::ContentDeliveryManager
+            Name         = "SubscribedContent-338387Enabled"
+            Recommended  = [ValuePair]::new(0, [RegistryValueKind]::DWord)
+            DefaultValue = $null
+            Description  = "Disables Weather content updates"
+        },
+        [pscustomobject]@{
+            BaseKey      = [BaseKey]::TaskbarFeeds
+            Name         = "WeatherEnabled"
+            Recommended  = [ValuePair]::new(0, [RegistryValueKind]::DWord)
+            DefaultValue = $null
+            Description  = "Disables Weather in taskbar feeds"
+        },
+        [pscustomobject]@{
+            BaseKey      = [BaseKey]::TaskbarFeeds
+            Name         = "WeatherViewMode"
+            Recommended  = [ValuePair]::new(0, [RegistryValueKind]::DWord)
+            DefaultValue = $null
+            Description  = "Disables Weather view mode"
+        },        
+        [pscustomobject]@{
+            BaseKey      = [BaseKey]::CloudContent
+            Name         = "DisableWindowsSpotlightFeatures"
+            Recommended  = [ValuePair]::new(1, [RegistryValueKind]::DWord)
+            DefaultValue = $null
+            Description  = "Disables Windows Spotlight features"
+        },
+        [pscustomobject]@{
+            BaseKey      = [BaseKey]::ContentDeliveryManager
+            Name         = "SubscribedContent-338393Enabled"
+            Recommended  = [ValuePair]::new(0, [RegistryValueKind]::DWord)
+            DefaultValue = $null
+            Description  = "Disables news related content delivery"
+        },
+        [pscustomobject]@{
+            BaseKey      = [BaseKey]::CUExplorerAdvanced
+            Name         = "TaskbarMn"
+            Recommended  = [ValuePair]::new(0, [RegistryValueKind]::DWord)
+            DefaultValue = $null
+            Description  = "Disables taskbar news and interests"
+                },
         [pscustomobject]@{
             BaseKey      = [BaseKey]::LMPolicyExplorer
             Name         = "HideSCAMeetNow"
