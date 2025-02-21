@@ -472,6 +472,7 @@ $SCRIPT:PreferencesFile = Join-Path $script:ConfigPath "preferences.json"
 #   SubKey - Base registry path/subkey
 # These act as reusable base paths that can be combined with SubKeySuffix values in RegConfig
 # ====================================================================================================
+
 $SCRIPT:BaseKeys = @{
     [BaseKey]::System                            = [pscustomobject]@{
         Hive   = [RegistryHive]::LocalMachine
@@ -1864,24 +1865,10 @@ $SCRIPT:RegConfig = @{
         },
         [pscustomobject]@{
             BaseKey      = [BaseKey]::CUExplorerAdvanced
-            Name         = "JointResize"
-            Recommended  = [ValuePair]::new(0, [RegistryValueKind]::DWord)
-            DefaultValue = $null
-            Description  = "Disables Joint Resize"
-        },
-        [pscustomobject]@{
-            BaseKey      = [BaseKey]::CUExplorerAdvanced
             Name         = "MultiTaskingAltTabFilter"
             Recommended  = [ValuePair]::new(3, [RegistryValueKind]::DWord)
             DefaultValue = $null
             Description  = "Sets Alt+Tab to show open windows only"
-        },
-        [pscustomobject]@{
-            BaseKey      = [BaseKey]::Explorer
-            Name         = "ShowFrequent"
-            Recommended  = [ValuePair]::new(0, [RegistryValueKind]::DWord)
-            DefaultValue = $null
-            Description  = "Hides frequent folders in Quick Access"
         },
         [pscustomobject]@{
             BaseKey      = [BaseKey]::Explorer
@@ -6137,7 +6124,6 @@ function Update-UACNotificationLevel {
     }
 }
 
-
 # Function to Enable Windows Security Suite
 # Source Script: https://raw.githubusercontent.com/FR33THYFR33THY/Ultimate-Windows-Optimization-Guide/refs/heads/main/8%20Advanced/7%20Security.ps1
 function Enable-WindowsSecuritySuite {
@@ -8618,7 +8604,7 @@ Margin="27,0,0,0"/>
                                         <TextBlock.ToolTip>
                                             <ToolTip Style="{DynamicResource CustomTooltipStyle}">
                                                 <TextBlock>
-- Hides Windows Chat icon
+                                        - Hides Windows Chat icon
 <LineBreak />- Disables News and Interests feed
 <LineBreak />- Hides Meet Now button
 <LineBreak />- Hides Task View button
@@ -9519,6 +9505,7 @@ $CustomizeApplyButton.Add_Click({
             Explorer      = $false
             Notifications = $false
             Sound         = $false
+            SnapAssist    = $false  # Added SnapAssist tracking
         }
 
         $selectedCategories = @()
@@ -9543,6 +9530,12 @@ $CustomizeApplyButton.Add_Click({
         if ($soundCheckBox.IsChecked) { 
             $selectedCategories += 'Sound'
             $results.Sound = $true
+        }
+
+        # Add SnapAssist restoration
+        $snapResult = Enable-SnapAssistWithLogging
+        if ($snapResult) {
+            $results.SnapAssist = $true
         }
 
         if ($selectedCategories.Count -gt 0) {
@@ -9603,6 +9596,7 @@ $CustomizeDefaultsButton.Add_Click({
             Explorer      = $false
             Notifications = $false
             Sound         = $false
+            SnapAssist    = $false  # Added SnapAssist tracking
         }
     
         $selectedCategories = @()
@@ -9622,6 +9616,12 @@ $CustomizeDefaultsButton.Add_Click({
         if ($soundCheckBox.IsChecked) { 
             $selectedCategories += 'Sound'
             $results.Sound = $true
+        }
+
+        # Add SnapAssist restoration
+        $snapResult = Enable-SnapAssistWithLogging
+        if ($snapResult) {
+            $results.SnapAssist = $true
         }
 
         if ($selectedCategories.Count -gt 0) {
@@ -9653,6 +9653,132 @@ $CustomizeDefaultsButton.Add_Click({
         [System.Windows.Input.Mouse]::OverrideCursor = $null
     }
 })
+
+# Add the Enable-SnapAssistWithLogging function
+function Enable-SnapAssistWithLogging {
+    Write-Log "Starting Snap Assist restoration..."
+    
+    try {
+        # Enable Snap Windows registry setting
+        Set-ItemProperty -Path "HKCU:\Control Panel\Desktop" -Name "WindowArrangementActive" -Value 1 -ErrorAction SilentlyContinue
+        Write-Log "Set WindowArrangementActive"
+        
+        # Enable Snap Assist features
+        $advancedPath = "HKCU:\Software\Microsoft\Windows\CurrentVersion\Explorer\Advanced"
+        $snapSettings = @{
+            "EnableSnapAssistFlyout" = 1
+            "SnapAssist" = 1
+            "EnableSnapBar" = 1
+            "EnableSnapBarSuggestions" = 1
+            "JointResize" = 1
+            "SnapFill" = 1
+            "SnapAssistSettings" = 1
+        }
+        
+        foreach ($setting in $snapSettings.GetEnumerator()) {
+            Set-ItemProperty -Path $advancedPath -Name $setting.Key -Value $setting.Value -ErrorAction SilentlyContinue
+            Write-Log "Set $($setting.Key) to $($setting.Value)"
+        }
+
+        Write-Log "All Snap Assist registry settings applied successfully"
+        Write-Log "Restarting Explorer to apply changes..."
+        
+        # Restart Explorer
+        Stop-Process -Name "explorer" -Force -ErrorAction SilentlyContinue
+        Start-Process "explorer"
+        
+        Write-Log "Snap Assist restoration completed successfully"
+        return $true
+    }
+    catch {
+        Write-Log "Error during Snap Assist restoration: $_"
+        return $false
+    }
+}
+
+# Add the Enable-SnapAssistWithLogging function
+function Enable-SnapAssistWithLogging {
+    Write-Log "Starting Snap Assist restoration..."
+    
+    try {
+        # Enable Snap Windows registry setting
+        Set-ItemProperty -Path "HKCU:\Control Panel\Desktop" -Name "WindowArrangementActive" -Value 1 -ErrorAction SilentlyContinue
+        Write-Log "Set WindowArrangementActive"
+        
+        # Enable Snap Assist features
+        $advancedPath = "HKCU:\Software\Microsoft\Windows\CurrentVersion\Explorer\Advanced"
+        $snapSettings = @{
+            "EnableSnapAssistFlyout" = 1
+            "SnapAssist" = 1
+            "EnableSnapBar" = 1
+            "EnableSnapBarSuggestions" = 1
+            "JointResize" = 1
+            "SnapFill" = 1
+            "SnapAssistSettings" = 1
+        }
+        
+        foreach ($setting in $snapSettings.GetEnumerator()) {
+            Set-ItemProperty -Path $advancedPath -Name $setting.Key -Value $setting.Value -ErrorAction SilentlyContinue
+            Write-Log "Set $($setting.Key) to $($setting.Value)"
+        }
+
+        Write-Log "All Snap Assist registry settings applied successfully"
+        Write-Log "Restarting Explorer to apply changes..."
+        
+        # Restart Explorer
+        Stop-Process -Name "explorer" -Force -ErrorAction SilentlyContinue
+        Start-Process "explorer"
+        
+        Write-Log "Snap Assist restoration completed successfully"
+        return $true
+    }
+    catch {
+        Write-Log "Error during Snap Assist restoration: $_"
+        return $false
+    }
+}
+
+# Add the Enable-SnapAssistWithLogging function
+function Enable-SnapAssistWithLogging {
+    Write-Log "Starting Snap Assist restoration..."
+    
+    try {
+        # Enable Snap Windows registry setting
+        Set-ItemProperty -Path "HKCU:\Control Panel\Desktop" -Name "WindowArrangementActive" -Value 1 -ErrorAction SilentlyContinue
+        Write-Log "Set WindowArrangementActive"
+        
+        # Enable Snap Assist features
+        $advancedPath = "HKCU:\Software\Microsoft\Windows\CurrentVersion\Explorer\Advanced"
+        $snapSettings = @{
+            "EnableSnapAssistFlyout" = 1
+            "SnapAssist" = 1
+            "EnableSnapBar" = 1
+            "EnableSnapBarSuggestions" = 1
+            "JointResize" = 1
+            "SnapFill" = 1
+            "SnapAssistSettings" = 1
+        }
+        
+        foreach ($setting in $snapSettings.GetEnumerator()) {
+            Set-ItemProperty -Path $advancedPath -Name $setting.Key -Value $setting.Value -ErrorAction SilentlyContinue
+            Write-Log "Set $($setting.Key) to $($setting.Value)"
+        }
+
+        Write-Log "All Snap Assist registry settings applied successfully"
+        Write-Log "Restarting Explorer to apply changes..."
+        
+        # Restart Explorer
+        Stop-Process -Name "explorer" -Force -ErrorAction SilentlyContinue
+        Start-Process "explorer"
+        
+        Write-Log "Snap Assist restoration completed successfully"
+        return $true
+    }
+    catch {
+        Write-Log "Error during Snap Assist restoration: $_"
+        return $false
+    }
+}
 
 # ==========================
 # About Screen Handlers
