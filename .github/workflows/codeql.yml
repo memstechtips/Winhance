@@ -17,12 +17,12 @@ jobs:
         uses: actions/checkout@v2
 
       - name: Set up CodeQL
-        uses: github/codeql-action/setup-codeql@v2.0.0  # Use an explicit version number
+        uses: github/codeql-action/setup-codeql@v2  # Use v2, which is the latest stable version
 
       - name: Autobuild
-        uses: github/codeql-action/autobuild@v2
+        uses: github/codeql-action/autobuild@v2  # Use v2 for the autobuild action
 
       - name: Analyze
-        uses: github/codeql-action/analyze@v2
+        uses: github/codeql-action/analyze@v2  # Use v2 for the analyze action
         with:
           category: "security"  # Optional, specify a category like 'security'
