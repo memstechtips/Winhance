@@ -2,10 +2,10 @@ name: "CodeQL Analysis"
 on:
   push:
     branches:
-      - main  # or your default branch
+      - main  # Replace with your default branch
   pull_request:
     branches:
-      - main  # or your target branch for PRs
+      - main  # Replace with your PR target branch
 
 jobs:
   analyze:
@@ -17,12 +17,12 @@ jobs:
         uses: actions/checkout@v2
 
       - name: Set up CodeQL
-        uses: github/codeql-action/setup-codeql@v2  # Use v2, which is the latest stable version
+        uses: github/codeql-action/setup-codeql@v2
 
       - name: Autobuild
-        uses: github/codeql-action/autobuild@v2  # Use v2 for the autobuild action
+        uses: github/codeql-action/autobuild@v2
 
       - name: Analyze
-        uses: github/codeql-action/analyze@v2  # Use v2 for the analyze action
+        uses: github/codeql-action/analyze@v2
         with:
-          category: "security"  # Optional, specify a category like 'security'
+          category: "security"
