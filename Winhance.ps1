@@ -5063,49 +5063,100 @@ $AppInstallConfigs = @{
 
 # Generic installation handler function
 function Initialize-InstallationHandlers {
-    foreach ($button in $AppInstallConfigs.Keys) {
-        $config = $AppInstallConfigs[$button]
-        $buttonVar = Get-Variable -Name $button
-        
-        $scriptBlock = {
-            [System.Windows.Input.Mouse]::OverrideCursor = [System.Windows.Input.Cursors]::Wait
-            try {
-                $config = $AppInstallConfigs[$this.Name]
-                
-                Write-Status "Preparing to install $($config.FriendlyName). Please wait..."
-                Update-WPFControls
-                
-                if ($config.CustomInstall) {
-                    Write-Status "Installing $($config.FriendlyName). This might take a while..."
-                    Update-WPFControls
-                    $scriptBlock = [ScriptBlock]::Create($config.Function)
-                    & $scriptBlock
-                }
-                else {
-                    Write-Status "Starting installation of $($config.FriendlyName). This process might take several minutes..."
+    # Create a hashtable to store button configurations
+    $script:AppInstallConfigs = @{
+        'InstallStore' = @{
+            FriendlyName = "Microsoft Store"
+            CustomInstall = $true
+            Function = ${function:Install-Store}.ToString()
+        }
+        'InstallUniGetUI' = @{
+            AppName = "Microsoft.DesktopAppInstaller"
+            FriendlyName = "App Installer (WinGet)"
+        }
+        'InstallThorium' = @{
+            AppName = "thorium.browser"
+            FriendlyName = "Thorium Browser"
+        }
+        'InstallFirefox' = @{
+            AppName = "Mozilla.Firefox"
+            FriendlyName = "Firefox"
+        }
+        'InstallChrome' = @{
+            AppName = "Google.Chrome"
+            FriendlyName = "Chrome"
+        }
+        'InstallBrave' = @{
+            AppName = "Brave.Browser"
+            FriendlyName = "Brave"
+        }
+        'InstallEdge' = @{
+            AppName = "Microsoft.Edge"
+            FriendlyName = "Edge"
+        }
+        'InstallEdgeWebView' = @{
+            AppName = "Microsoft.EdgeWebView2Runtime"
+            FriendlyName = "Edge WebView2 Runtime"
+        }
+        'InstallOneDrive' = @{
+            AppName = "Microsoft.OneDrive"
+            FriendlyName = "OneDrive"
+        }
+        'InstallXbox' = @{
+            AppName = "Microsoft.GamingApp"
+            FriendlyName = "Xbox"
+        }
+    }
+
+    # Iterate through each button configuration
+    foreach ($buttonName in $AppInstallConfigs.Keys) {
+        $button = $window.FindName($buttonName)
+        if ($button) {
+            $config = $AppInstallConfigs[$buttonName]
+            
+            # Create the click handler
+            $scriptBlock = {
+                param($sender, $e)
+                [System.Windows.Input.Mouse]::OverrideCursor = [System.Windows.Input.Cursors]::Wait
+                try {
+                    $buttonName = $sender.Name
+                    $config = $script:AppInstallConfigs[$buttonName]
+                    
+                    Write-Status "Preparing to install $($config.FriendlyName). Please wait..." -TargetScreen "SoftAppsScreen"
                     Update-WPFControls
                     
-                    Install-AppWithWinGet -AppName $config.AppName -FriendlyName $config.FriendlyName
+                    if ($config.CustomInstall) {
+                        Write-Status "Installing $($config.FriendlyName). This might take a while..." -TargetScreen "SoftAppsScreen"
+                        Update-WPFControls
+                        $scriptBlock = [ScriptBlock]::Create($config.Function)
+                        & $scriptBlock
+                    }
+                    else {
+                        Write-Status "Starting installation of $($config.FriendlyName). This process might take several minutes..." -TargetScreen "SoftAppsScreen"
+                        Update-WPFControls
+                        Install-AppWithWinGet -AppName $config.AppName -FriendlyName $config.FriendlyName
+                    }
+                    Update-WPFControls
                 }
-                Update-WPFControls
+                catch {
+                    Write-Log "Error installing $($config.FriendlyName): $($_.Exception.Message)" -Severity 'ERROR'
+                    Write-Status "Error installing $($config.FriendlyName). Please try again or check the logs." -TargetScreen "SoftAppsScreen"
+                    Update-WPFControls
+                    Show-MessageBox -Message "Failed to install $($config.FriendlyName)`n`n$($_.Exception.Message)" -Title "Installation Error" -Icon Error
+                }
+                finally {
+                    [System.Windows.Input.Mouse]::OverrideCursor = $null
+                }
             }
-            catch {
-                Write-Log "Error installing $($config.FriendlyName): $($_.Exception.Message)" -Severity 'ERROR'
-                Write-Status "Error installing $($config.FriendlyName). Please try again or check the logs."
-                Update-WPFControls
-                Show-MessageBox -Message "Failed to install $($config.FriendlyName)`n`n$($_.Exception.Message)" -Title "Installation Error" -Icon Error
-            }
-            finally {
-                [System.Windows.Input.Mouse]::OverrideCursor = $null
-            }
+            
+            # Add the click handler to the button
+            $button.Add_Click($scriptBlock)
         }
-        
-        # Set the button name property for reference in the script block
-        $buttonVar.Value.Name = $button
-        $buttonVar.Value.Add_Click($scriptBlock)
+        else {
+            Write-Log "Button '$buttonName' not found in XAML" -Severity 'WARNING'
+        }
     }
 }
-
 
 # Function to install Microsoft Store and Remove Winhance Removal script and scheduled task
 function Install-Store {
@@ -10071,30 +10122,6 @@ Margin="0,0,5,0">
  <LineBreak/>                                           
  Windows Security Defaults (Recommended)
  <LineBreak/><LineBreak/>
- Disabled:
- <LineBreak/>
- All Windows Security Removed (Not Recommended):
- <LineBreak/>
- - Defender Windows Security Settings
- <LineBreak/>
- - Smartscreen
- <LineBreak/>
- - Defender Services
- <LineBreak/>
- - Defender Drivers
- <LineBreak/>
- - Windows Defender Firewall
- <LineBreak/>
- - Spectre Meltdown
- <LineBreak/>
- - Data Execution Prevention
- <LineBreak/>
- - Open File Security Warning
- <LineBreak/>
- - Windows Defender Default Definitions
- <LineBreak/>
- - Windows Defender Applicationguard
- <LineBreak/><LineBreak/>
  This will leave the PC completely vulnerable.
                                                         </TextBlock>
                                                     </ToolTip>
@@ -10450,7 +10477,7 @@ Disables:
                                         <TextBlock.ToolTip>
                                             <ToolTip Style="{DynamicResource CustomTooltipStyle}">
                                                 <TextBlock>
-- Hides Windows Chat icon
+                                        - Hides Windows Chat icon
 <LineBreak />- Disables News and Interests feed
 <LineBreak />- Hides Meet Now button
 <LineBreak />- Hides Task View button
@@ -10797,16 +10824,34 @@ try {
     $window = [System.Windows.Markup.XamlReader]::Load($xmlReader)
 
     if (-not $window) {
-        Write-Status "Failed to load XAML."
-        Pause
+        Write-Log "Failed to load XAML window." -Severity 'ERROR'
+        throw "Failed to load XAML window."
     }
     
-    # Set window to not show automatically
+    # Ensure window properties are set before making visible
+    $window.Width = 1280
+    $window.Height = 720
+    $window.WindowStartupLocation = [System.Windows.WindowStartupLocation]::CenterScreen
     $window.Visibility = 'Hidden'
+
+    # Initialize screens after window is loaded
+    $window.Add_Loaded({
+        try {
+            Initialize-Screens
+            Initialize-InstallationHandlers
+            Initialize-BloatwareUI
+            Initialize-AppTheme
+        }
+        catch {
+            Write-Log "Error during initialization: $_" -Severity 'ERROR'
+            Show-MessageBox -Message "Error during initialization: $($_.Exception.Message)" -Title "Initialization Error" -Icon Error
+        }
+    })
 }
 catch {
-    Write-Status "Error loading XAML: $($_.Exception.Message)"
-    Pause
+    Write-Log "Error loading XAML: $($_.Exception.Message)" -Severity 'ERROR'
+    Show-MessageBox -Message "Error loading XAML: $($_.Exception.Message)" -Title "XAML Error" -Icon Error
+    throw
 }
 
 #region 6. Control Management
