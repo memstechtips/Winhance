@@ -8534,6 +8534,7 @@ Margin="27,0,0,0"/>
 <LineBreak />- Display Always On, Brightness at 100%
 <LineBreak />- Battery Saver Disabled
 <LineBreak />- Critical Battery Actions Disabled
+<LineBreak />- Note: This will pause desktop wallpaper slideshow functionality
                                                 </TextBlock>
                                             </ToolTip>
                                         </TextBlock.ToolTip>
