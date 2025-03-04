@@ -6602,7 +6602,7 @@ Windows Registry Editor Version 5.00
 "270D"=-
 "2707"=-
 "2500"=-
-"@
+@
     Set-Content -Path "$env:TEMP\SecurityOn.reg" -Value $MultilineComment -Force
     
     # enable scheduled tasks
@@ -8568,7 +8568,16 @@ Margin="27,0,0,0"/>
                                     <CheckBox x:Name="PowerSettingsCheckBox"
                              Content="Power Settings"
                              Style="{DynamicResource CustomCheckBoxStyle}"
-                             FontSize="14"/>
+                             FontSize="14">
+                                        <CheckBox.ToolTip>
+                                            <ToolTip>
+                                                <TextBlock TextWrapping="Wrap" MaxWidth="300">
+                                                    Applies Ultimate Power Plan for maximum performance.
+                                                    Note: This will pause desktop wallpaper slideshow functionality.
+                                                </TextBlock>
+                                            </ToolTip>
+                                        </CheckBox.ToolTip>
+                                    </CheckBox>
                                 </StackPanel>
                             </Border>
                         </StackPanel>
