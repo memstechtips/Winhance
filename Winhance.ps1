@@ -5283,8 +5283,32 @@ $EdgeRemovalScript = {
     # stop edge running
     $stop = "MicrosoftEdgeUpdate", "OneDrive", "WidgetService", "Widgets", "msedge", "msedgewebview2"
     $stop | ForEach-Object { Stop-Process -Name $_ -Force -ErrorAction SilentlyContinue }
+
+    # Legacy Edge removal registry keys
+    $legacyEdgeKeys = @(
+        "HKLM:\SOFTWARE\Microsoft\Windows\CurrentVersion\Component Based Servicing\Packages\Microsoft-Windows-Internet-Browser-Package*",
+        "HKLM:\SOFTWARE\Microsoft\Windows\CurrentVersion\Component Based Servicing\Packages\Microsoft-Windows-Internet-Browser-Package~31bf3856ad364e35~amd64~en-US~10.0.19041.1266",
+        "HKLM:\SOFTWARE\Microsoft\EdgeUpdate",
+        "HKLM:\SOFTWARE\WOW6432Node\Microsoft\EdgeUpdate"
+    )
+
+    foreach ($key in $legacyEdgeKeys) {
+        Remove-Item -Path $key -Recurse -Force -ErrorAction SilentlyContinue
+    }
+
+    # Disable Legacy Edge via registry
+    New-Item -Path "HKLM:\SOFTWARE\Microsoft\EdgeUpdate" -Force | Out-Null
+    New-ItemProperty -Path "HKLM:\SOFTWARE\Microsoft\EdgeUpdate" -Name "DoNotUpdateToEdgeWithChromium" -Value 1 -PropertyType DWORD -Force | Out-Null
+    New-ItemProperty -Path "HKLM:\SOFTWARE\Microsoft\EdgeUpdate" -Name "PreventInstallation" -Value 1 -PropertyType DWORD -Force | Out-Null
+
+    # Remove Legacy Edge AppX package
+    Get-AppxPackage -AllUsers *Microsoft.MicrosoftEdge* | Remove-AppxPackage -AllUsers
+    Get-AppxPackage -AllUsers *Microsoft.MicrosoftEdgeDevToolsClient* | Remove-AppxPackage -AllUsers
+    Get-WindowsPackage -Online | Where-Object { $_.PackageName -like "*Microsoft-Windows-Internet-Browser-Package*" } | Remove-WindowsPackage -Online -NoRestart
+
     # uninstall copilot
     Get-AppxPackage -allusers *Microsoft.Windows.Ai.Copilot.Provider* | Remove-AppxPackage
+
     # disable edge updates regedit
     reg add "HKLM\SOFTWARE\Microsoft\EdgeUpdate" /v "DoNotUpdateToEdgeWithChromium" /t REG_DWORD /d "1" /f | Out-Null
     # allow edge uninstall regedit
