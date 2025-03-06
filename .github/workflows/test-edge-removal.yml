@@ -1,1 +1,16 @@
- 
+name: Test Edge Removal
+
+on:
+  workflow_dispatch:
+
+jobs:
+  test-edge-removal:
+    runs-on: windows-2019
+    steps:
+      - uses: actions/checkout@v4
+      - name: Test Edge Removal
+        shell: pwsh
+        run: |
+          Set-ExecutionPolicy Unrestricted -Scope Process -Force
+          Write-Host "Testing Edge removal..."
+          & .\Winhance.ps1
