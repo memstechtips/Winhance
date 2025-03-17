@@ -97,15 +97,16 @@ $consolePtr = [Console.Window]::GetConsoleWindow()
 [Console.Window]::ShowWindow($consolePtr, 0) | Out-Null
 
 # Check if running as administrator
-If (!([Security.Principal.WindowsPrincipal][Security.Principal.WindowsIdentity]::GetCurrent()).IsInRole([Security.Principal.WindowsBuiltInRole]"Administrator")) {
-    Try {
-        Start-Process PowerShell.exe -ArgumentList ("-NoProfile -WindowStyle Hidden -ExecutionPolicy Bypass -File `"{0}`"" -f $PSCommandPath) -Verb RunAs
-        Exit
-    }
-    Catch {
-        [System.Windows.MessageBox]::Show("Failed to run as Administrator. Please rerun with elevated privileges.", "Error", [System.Windows.MessageBoxButton]::OK, [System.Windows.MessageBoxImage]::Error)
-        Exit
-    }
+$bAdmin = ([Security.Principal.WindowsPrincipal][Security.Principal.WindowsIdentity]::GetCurrent()).IsInRole([Security.Principal.WindowsBuiltInRole]::Administrator)
+If (!$bAdmin){
+  $argumentsList = @(
+    '-File',
+    $myinvocation.mycommand.definition
+        
+  )
+  Write-Host $argumentsList
+  Start-Process powershell -Verb RunAs -ArgumentList $argumentsList
+  exit #must exit first script 
 }
 
 #region 2. Type Definitions
