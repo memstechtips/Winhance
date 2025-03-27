@@ -7186,83 +7186,193 @@ Margin="0,0,5,0">
                                 <Border Background="{DynamicResource ContentSectionBorderBrush}" CornerRadius="5" Margin="5,0,5,5" Effect="{StaticResource LightShadowEffect}">
                                     <StackPanel x:Name="InstallSoftwareContent" Margin="0,10,0,10" Visibility="Collapsed">
                                         <Grid Margin="10,5">
+                                            <Grid.Style>
+                                                <Style TargetType="Grid">
+                                                    <Style.Triggers>
+                                                        <Trigger Property="IsMouseOver" Value="True">
+                                                            <Setter Property="Background" Value="Gray"/>
+                                                            <Setter Property="Opacity" Value="1.0"/>
+                                                            <Setter Property="Cursor" Value="Hand"/>
+                                                        </Trigger>
+                                                    </Style.Triggers>
+                                                </Style>
+                                            </Grid.Style>
                                             <Grid.ColumnDefinitions>
                                                 <ColumnDefinition Width="*" />
                                                 <ColumnDefinition Width="Auto" />
                                             </Grid.ColumnDefinitions>
-                                            <TextBlock Text="Microsoft Store" VerticalAlignment="Center" Foreground="{DynamicResource PrimaryTextColor}" FontSize="14" Margin="10,0,0,0" Grid.Column="0" />
+                                            <TextBlock Text="Microsoft Store" VerticalAlignment="Center" Foreground="{DynamicResource PrimaryTextColor}" FontSize="14" Margin="10,0,0,0" Grid.Column="0" Opacity="0.5"/>
                                             <Button Style="{DynamicResource PrimaryButtonStyle}" Content="Install" Width="80" Height="30" HorizontalAlignment="Right" Grid.Column="1" x:Name="InstallStore" />
                                         </Grid>
                                         <Grid Margin="10,5">
+                                            <Grid.Style>
+                                                <Style TargetType="Grid">
+                                                    <Style.Triggers>
+                                                        <Trigger Property="IsMouseOver" Value="True">
+                                                            <Setter Property="Background" Value="Gray"/>
+                                                            <Setter Property="Opacity" Value="1.0"/>
+                                                            <Setter Property="Cursor" Value="Hand"/>
+                                                        </Trigger>
+                                                    </Style.Triggers>
+                                                </Style>
+                                            </Grid.Style>
                                             <Grid.ColumnDefinitions>
                                                 <ColumnDefinition Width="*" />
                                                 <ColumnDefinition Width="Auto" />
                                             </Grid.ColumnDefinitions>
-                                            <TextBlock Text="UniGetUI" VerticalAlignment="Center" Foreground="{DynamicResource PrimaryTextColor}" FontSize="14" Margin="10,0,0,0" Grid.Column="0" />
+                                            <TextBlock Text="UniGetUI" VerticalAlignment="Center" Foreground="{DynamicResource PrimaryTextColor}" FontSize="14" Margin="10,0,0,0" Grid.Column="0" Opacity="0.5"/>
                                             <Button Style="{DynamicResource PrimaryButtonStyle}" Content="Install" Width="80" Height="30" HorizontalAlignment="Right" Grid.Column="1" x:Name="InstallUniGetUI" />
                                         </Grid>
                                         <Grid Margin="10,5">
+                                            <Grid.Style>
+                                                <Style TargetType="Grid">
+                                                    <Style.Triggers>
+                                                        <Trigger Property="IsMouseOver" Value="True">
+                                                            <Setter Property="Background" Value="Gray" />
+                                                            <Setter Property="Opacity" Value="1.0"/>
+                                                            <Setter Property="Cursor" Value="Hand"/>
+                                                        </Trigger>
+                                                    </Style.Triggers>
+                                                </Style>
+                                            </Grid.Style>
                                             <Grid.ColumnDefinitions>
                                                 <ColumnDefinition Width="*" />
                                                 <ColumnDefinition Width="Auto" />
                                             </Grid.ColumnDefinitions>
-                                            <TextBlock Text="Thorium Browser" VerticalAlignment="Center" Foreground="{DynamicResource PrimaryTextColor}" FontSize="14" Margin="10,0,0,0" Grid.Column="0" />
+                                            <TextBlock Text="Thorium Browser" VerticalAlignment="Center" Foreground="{DynamicResource PrimaryTextColor}" FontSize="14" Margin="10,0,0,0" Grid.Column="0" Opacity="0.5"/>
                                             <Button Style="{DynamicResource PrimaryButtonStyle}" Content="Install" Width="80" Height="30" HorizontalAlignment="Right" Grid.Column="1" x:Name="InstallThorium" />
                                         </Grid>
                                         <Grid Margin="10,5">
+                                            <Grid.Style>
+                                                <Style TargetType="Grid">
+                                                    <Style.Triggers>
+                                                        <Trigger Property="IsMouseOver" Value="True">
+                                                            <Setter Property="Background" Value="Gray"/>
+                                                            <Setter Property="Opacity" Value="1.0"/>
+                                                            <Setter Property="Cursor" Value="Hand"/>
+                                                        </Trigger>
+                                                    </Style.Triggers>
+                                                </Style>
+                                            </Grid.Style>
                                             <Grid.ColumnDefinitions>
                                                 <ColumnDefinition Width="*" />
                                                 <ColumnDefinition Width="Auto" />
                                             </Grid.ColumnDefinitions>
-                                            <TextBlock Text="Firefox" VerticalAlignment="Center" Foreground="{DynamicResource PrimaryTextColor}" FontSize="14" Margin="10,0,0,0" Grid.Column="0" />
+                                            <TextBlock Text="Firefox" VerticalAlignment="Center" Foreground="{DynamicResource PrimaryTextColor}" FontSize="14" Margin="10,0,0,0" Grid.Column="0" Opacity="0.5"/>
                                             <Button Style="{DynamicResource PrimaryButtonStyle}" Content="Install" Width="80" Height="30" HorizontalAlignment="Right" Grid.Column="1" x:Name="InstallFirefox" />
                                         </Grid>
                                         <Grid Margin="10,5">
+                                            <Grid.Style>
+                                                <Style TargetType="Grid">
+                                                    <Style.Triggers>
+                                                        <Trigger Property="IsMouseOver" Value="True">
+                                                            <Setter Property="Background" Value="Gray"/>
+                                                            <Setter Property="Opacity" Value="1.0"/>
+                                                            <Setter Property="Cursor" Value="Hand"/>
+                                                        </Trigger>
+                                                    </Style.Triggers>
+                                                </Style>
+                                            </Grid.Style>
                                             <Grid.ColumnDefinitions>
                                                 <ColumnDefinition Width="*" />
                                                 <ColumnDefinition Width="Auto" />
                                             </Grid.ColumnDefinitions>
-                                            <TextBlock Text="Chrome" VerticalAlignment="Center" Foreground="{DynamicResource PrimaryTextColor}" FontSize="14" Margin="10,0,0,0" Grid.Column="0" />
+                                            <TextBlock Text="Chrome" VerticalAlignment="Center" Foreground="{DynamicResource PrimaryTextColor}" FontSize="14" Margin="10,0,0,0" Grid.Column="0" Opacity="0.5"/>
                                             <Button Style="{DynamicResource PrimaryButtonStyle}" Content="Install" Width="80" Height="30" HorizontalAlignment="Right" Grid.Column="1" x:Name="InstallChrome" />
                                         </Grid>
                                         <Grid Margin="10,5">
+                                            <Grid.Style>
+                                                <Style TargetType="Grid">
+                                                    <Style.Triggers>
+                                                        <Trigger Property="IsMouseOver" Value="True">
+                                                            <Setter Property="Background" Value="Gray"/>
+                                                            <Setter Property="Opacity" Value="1.0"/>
+                                                            <Setter Property="Cursor" Value="Hand"/>
+                                                        </Trigger>
+                                                    </Style.Triggers>
+                                                </Style>
+                                            </Grid.Style>
                                             <Grid.ColumnDefinitions>
                                                 <ColumnDefinition Width="*" />
                                                 <ColumnDefinition Width="Auto" />
                                             </Grid.ColumnDefinitions>
-                                            <TextBlock Text="Brave" VerticalAlignment="Center" Foreground="{DynamicResource PrimaryTextColor}" FontSize="14" Margin="10,0,0,0" Grid.Column="0" />
+                                            <TextBlock Text="Brave" VerticalAlignment="Center" Foreground="{DynamicResource PrimaryTextColor}" FontSize="14" Margin="10,0,0,0" Grid.Column="0" Opacity="0.5"/>
                                             <Button Style="{DynamicResource PrimaryButtonStyle}" Content="Install" Width="80" Height="30" HorizontalAlignment="Right" Grid.Column="1" x:Name="InstallBrave" />
                                         </Grid>
                                         <Grid Margin="10,5">
+                                            <Grid.Style>
+                                                <Style TargetType="Grid">
+                                                    <Style.Triggers>
+                                                        <Trigger Property="IsMouseOver" Value="True">
+                                                            <Setter Property="Background" Value="Gray"/>
+                                                            <Setter Property="Opacity" Value="1.0"/>
+                                                            <Setter Property="Cursor" Value="Hand"/>
+                                                        </Trigger>
+                                                    </Style.Triggers>
+                                                </Style>
+                                            </Grid.Style>
                                             <Grid.ColumnDefinitions>
                                                 <ColumnDefinition Width="*" />
                                                 <ColumnDefinition Width="Auto" />
                                             </Grid.ColumnDefinitions>
-                                            <TextBlock Text="Microsoft Edge" VerticalAlignment="Center" Foreground="{DynamicResource PrimaryTextColor}" FontSize="14" Margin="10,0,0,0" Grid.Column="0" />
+                                            <TextBlock Text="Microsoft Edge" VerticalAlignment="Center" Foreground="{DynamicResource PrimaryTextColor}" FontSize="14" Margin="10,0,0,0" Grid.Column="0" Opacity="0.5"/>
                                             <Button Style="{DynamicResource PrimaryButtonStyle}" Content="Install" Width="80" Height="30" HorizontalAlignment="Right" Grid.Column="1" x:Name="InstallEdge" />
                                         </Grid>
                                         <Grid Margin="10,5">
+                                            <Grid.Style>
+                                                <Style TargetType="Grid">
+                                                    <Style.Triggers>
+                                                        <Trigger Property="IsMouseOver" Value="True">
+                                                            <Setter Property="Background" Value="Gray"/>
+                                                            <Setter Property="Opacity" Value="1.0"/>
+                                                            <Setter Property="Cursor" Value="Hand"/>
+                                                        </Trigger>
+                                                    </Style.Triggers>
+                                                </Style>
+                                            </Grid.Style>
                                             <Grid.ColumnDefinitions>
                                                 <ColumnDefinition Width="*" />
                                                 <ColumnDefinition Width="Auto" />
                                             </Grid.ColumnDefinitions>
-                                            <TextBlock Text="Microsoft Edge WebView" VerticalAlignment="Center" Foreground="{DynamicResource PrimaryTextColor}" FontSize="14" Margin="10,0,0,0" Grid.Column="0" />
+                                            <TextBlock Text="Microsoft Edge WebView" VerticalAlignment="Center" Foreground="{DynamicResource PrimaryTextColor}" FontSize="14" Margin="10,0,0,0" Grid.Column="0" Opacity="0.5"/>
                                             <Button Style="{DynamicResource PrimaryButtonStyle}" Content="Install" Width="80" Height="30" HorizontalAlignment="Right" Grid.Column="1" x:Name="InstallEdgeWebView" />
                                         </Grid>
                                         <Grid Margin="10,5">
+                                            <Grid.Style>
+                                                <Style TargetType="Grid">
+                                                    <Style.Triggers>
+                                                        <Trigger Property="IsMouseOver" Value="True">
+                                                            <Setter Property="Background" Value="Gray"/>
+                                                            <Setter Property="Opacity" Value="1.0"/>
+                                                            <Setter Property="Cursor" Value="Hand"/>
+                                                        </Trigger>
+                                                    </Style.Triggers>
+                                                </Style>
+                                            </Grid.Style>
                                             <Grid.ColumnDefinitions>
                                                 <ColumnDefinition Width="*" />
                                                 <ColumnDefinition Width="Auto" />
                                             </Grid.ColumnDefinitions>
-                                            <TextBlock Text="Microsoft OneDrive" VerticalAlignment="Center" Foreground="{DynamicResource PrimaryTextColor}" FontSize="14" Margin="10,0,0,0" Grid.Column="0" />
+                                            <TextBlock Text="Microsoft OneDrive" VerticalAlignment="Center" Foreground="{DynamicResource PrimaryTextColor}" FontSize="14" Margin="10,0,0,0" Grid.Column="0" Opacity="0.5"/>
                                             <Button Style="{DynamicResource PrimaryButtonStyle}" Content="Install" Width="80" Height="30" HorizontalAlignment="Right" Grid.Column="1" x:Name="InstallOneDrive" />
                                         </Grid>
                                         <Grid Margin="10,5">
+                                            <Grid.Style>
+                                                <Style TargetType="Grid">
+                                                    <Style.Triggers>
+                                                        <Trigger Property="IsMouseOver" Value="True">
+                                                            <Setter Property="Background" Value="Gray"/>
+                                                            <Setter Property="Opacity" Value="1.0"/>
+                                                            <Setter Property="Cursor" Value="Hand"/>
+                                                        </Trigger>
+                                                    </Style.Triggers>
+                                                </Style>
+                                            </Grid.Style>
                                             <Grid.ColumnDefinitions>
                                                 <ColumnDefinition Width="*" />
                                                 <ColumnDefinition Width="Auto" />
                                             </Grid.ColumnDefinitions>
-                                            <TextBlock Text="Xbox App for Windows" VerticalAlignment="Center" Foreground="{DynamicResource PrimaryTextColor}" FontSize="14" Margin="10,0,0,0" Grid.Column="0" />
+                                            <TextBlock Text="Xbox App for Windows" VerticalAlignment="Center" Foreground="{DynamicResource PrimaryTextColor}" FontSize="14" Margin="10,0,0,0" Grid.Column="0" Opacity="0.5"/>
                                             <Button Style="{DynamicResource PrimaryButtonStyle}" Content="Install" Width="80" Height="30" HorizontalAlignment="Right" Grid.Column="1" x:Name="InstallXbox" />
                                         </Grid>
                                     </StackPanel>
