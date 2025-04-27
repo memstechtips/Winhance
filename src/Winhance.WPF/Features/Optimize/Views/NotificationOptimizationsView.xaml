@@ -1,0 +1,78 @@
+<UserControl x:Class="Winhance.WPF.Features.Optimize.Views.NotificationOptimizationsView"
+             xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
+             xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
+             xmlns:local="clr-namespace:Winhance.WPF.Features.Optimize.Views"
+             xmlns:viewmodels="clr-namespace:Winhance.WPF.Features.Optimize.ViewModels"
+             d:DataContext="{d:DesignInstance Type=viewmodels:NotificationOptimizationsViewModel}"
+             mc:Ignorable="d">
+
+    <Border Background="{DynamicResource ContentSectionBorderBrush}"
+            CornerRadius="5"
+            Margin="5,0,5,5"
+            Effect="{StaticResource LightShadowEffect}">
+        <StackPanel Margin="0,10,0,10">
+            <!-- Settings -->
+            <ItemsControl ItemsSource="{Binding Settings}">
+                <ItemsControl.ItemsPanel>
+                    <ItemsPanelTemplate>
+                        <UniformGrid Columns="4"/>
+                    </ItemsPanelTemplate>
+                </ItemsControl.ItemsPanel>
+                <ItemsControl.ItemTemplate>
+                    <DataTemplate>
+                        <Grid>
+                            <!-- Regular setting checkbox -->
+                            <StackPanel Orientation="Horizontal"
+                                    Visibility="{Binding IsVisible, Converter={StaticResource BooleanToVisibilityConverter}}">
+                                <ToggleButton Style="{StaticResource MaterialToggleSwitch}"
+                                              IsChecked="{Binding IsSelected, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}"
+                                              Margin="15,5,0,5"
+                                              HorizontalAlignment="Left"
+                                              VerticalAlignment="Center"
+                                              Content="">
+                                    <ToggleButton.ToolTip>
+                                        <ToolTip>
+                                            <ContentPresenter Content="{Binding}"
+                                                    ContentTemplate="{StaticResource RegistrySettingTooltipTemplate}"/>
+                                        </ToolTip>
+                                    </ToggleButton.ToolTip>
+                                </ToggleButton>
+                                <TextBlock Text="{Binding FullName}"
+                                           Style="{StaticResource AppItemTextStyle}"
+                                           VerticalAlignment="Center">
+                                    <TextBlock.ToolTip>
+                                        <ToolTip>
+                                            <ContentPresenter Content="{Binding}"
+                                                    ContentTemplate="{StaticResource RegistrySettingTooltipTemplate}"/>
+                                        </ToolTip>
+                                    </TextBlock.ToolTip>
+                                </TextBlock>
+
+                                <!-- Warning Icon (visible only when registry value is null) -->
+                                <TextBlock Text="&#xEA76;"
+                                           FontFamily="{StaticResource MaterialSymbolsFont}"
+                                           FontSize="18"
+                                           Foreground="#FF2800"
+                                           Margin="5,5,0,0"
+                                           VerticalAlignment="Center"
+                                           Visibility="{Binding IsRegistryValueNull, Converter={StaticResource BooleanToVisibilityConverter}}">
+                                    <TextBlock.ToolTip>
+                                        <ToolTip>
+                                            <TextBlock TextWrapping="Wrap"
+                                                    MaxWidth="300">
+                                                Registry key or value doesn't exist and Windows is using default settings.<LineBreak/>
+                                                Recommendation: Toggle setting to desired state to set explicitly or ignore if you want to continue using Windows default settings.
+                                            </TextBlock>
+                                        </ToolTip>
+                                    </TextBlock.ToolTip>
+                                </TextBlock>
+                            </StackPanel>
+                        </Grid>
+                    </DataTemplate>
+                </ItemsControl.ItemTemplate>
+            </ItemsControl>
+        </StackPanel>
+    </Border>
+</UserControl>

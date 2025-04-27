@@ -1,0 +1,189 @@
+<Window x:Class="Winhance.WPF.Features.Common.Views.UnifiedConfigurationDialog"
+        xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
+        xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
+        xmlns:local="clr-namespace:Winhance.WPF.Features.Common.Views"
+        xmlns:controls="clr-namespace:Winhance.WPF.Features.Common.Controls"
+        xmlns:materialDesign="http://materialdesigninxaml.net/winfx/xaml/themes"
+        mc:Ignorable="d"
+        Title="{Binding Title}"
+        Height="500"
+        Width="800"
+        WindowStartupLocation="CenterOwner"
+        ResizeMode="NoResize"
+        ShowInTaskbar="False"
+        Background="{DynamicResource WindowBackground}"
+        Foreground="{DynamicResource PrimaryTextColor}"
+        Topmost="True"
+        WindowStyle="None"
+        BorderThickness="0"
+        AllowsTransparency="True">
+    
+    <Window.Resources>
+        <BooleanToVisibilityConverter x:Key="BooleanToVisibilityConverter" />
+    </Window.Resources>
+    
+    <!-- Main Content -->
+    <Border BorderThickness="1"
+            BorderBrush="{DynamicResource ButtonBorderBrush}"
+            CornerRadius="8">
+        <Grid>
+            <Grid.RowDefinitions>
+                <RowDefinition Height="Auto"/>
+                <RowDefinition Height="*"/>
+            </Grid.RowDefinitions>
+            
+            <!-- Custom Title Bar -->
+            <Border Grid.Row="0"
+                    Background="{DynamicResource ContentSectionBorderBrush}"
+                    BorderBrush="{DynamicResource ButtonBorderBrush}"
+                    BorderThickness="0,0,0,1"
+                    CornerRadius="8,8,0,0"
+                    MouseLeftButtonDown="Border_MouseLeftButtonDown">
+                <Grid Height="32">
+                    <Grid.ColumnDefinitions>
+                        <ColumnDefinition Width="*"/>
+                        <ColumnDefinition Width="Auto"/>
+                    </Grid.ColumnDefinitions>
+                    
+                    <TextBlock Text="{Binding Title}"
+                               VerticalAlignment="Center"
+                               Margin="15,0,0,0"
+                               FontWeight="SemiBold"
+                               Foreground="{DynamicResource PrimaryTextColor}"/>
+                    
+                    <Button Grid.Column="1"
+                            Style="{StaticResource WindowCloseButton}"
+                            Click="CloseButton_Click"
+                            Margin="0,0,5,0"
+                            VerticalAlignment="Center">
+                            <materialDesign:PackIcon Kind="Close"
+                                                                         Width="18"
+                                                                         Height="18"/>
+                                                                         </Button>
+                </Grid>
+            </Border>
+            
+            <!-- Dialog Content -->
+            <Grid Grid.Row="1" Margin="20">
+                <Grid.RowDefinitions>
+                    <RowDefinition Height="Auto"/>
+                    <RowDefinition Height="*"/>
+                    <RowDefinition Height="Auto"/>
+                </Grid.RowDefinitions>
+        
+        <!-- Header -->
+        <DockPanel Grid.Row="0" Margin="0,0,0,15" Style="{StaticResource DialogHeaderStyle}">
+            <materialDesign:PackIcon Kind="FileImport"
+                                    Width="32"
+                                    Height="32"
+                                    Margin="0,0,10,0"
+                                    VerticalAlignment="Top"
+                                    Foreground="{DynamicResource PrimaryTextColor}"
+                                    DockPanel.Dock="Left"/>
+            <StackPanel>
+                <TextBlock Text="{Binding Title}"
+                           FontSize="20"
+                           FontWeight="SemiBold"
+                           Margin="0,0,0,8"
+                           Foreground="{DynamicResource PrimaryTextColor}"/>
+                <TextBlock Text="{Binding Description}"
+                           TextWrapping="Wrap"
+                           Style="{StaticResource DialogTextBlockStyle}"/>
+            </StackPanel>
+        </DockPanel>
+        
+                <!-- Section Selector -->
+                <Grid Grid.Row="1">
+                    <Grid.ColumnDefinitions>
+                        <ColumnDefinition Width="*"/>
+                    </Grid.ColumnDefinitions>
+            
+            <!-- Sections List -->
+            <Border Background="{DynamicResource ContentSectionBorderBrush}"
+                    BorderBrush="{DynamicResource ButtonBorderBrush}"
+                    BorderThickness="1"
+                    CornerRadius="5"
+                    Padding="10"
+                    Effect="{StaticResource LightShadowEffect}">
+                <ScrollViewer Grid.Column="0"
+                              Style="{StaticResource ModernScrollViewer}"
+                              VerticalScrollBarVisibility="Auto"
+                              Margin="0,5">
+                    <ItemsControl ItemsSource="{Binding Sections}">
+                    <ItemsControl.ItemTemplate>
+                        <DataTemplate>
+                            <Grid Margin="0,8">
+                                <Grid.ColumnDefinitions>
+                                    <ColumnDefinition Width="Auto"/>
+                                    <ColumnDefinition Width="*"/>
+                                </Grid.ColumnDefinitions>
+                                
+                                <!-- Checkbox -->
+                                <CheckBox Grid.Column="0"
+                                          Style="{StaticResource CustomCheckBox}"
+                                          IsChecked="{Binding IsSelected}"
+                                          VerticalAlignment="Center"
+                                          IsEnabled="{Binding IsAvailable}"/>
+                                
+                                <!-- Section Info -->
+                                <StackPanel Grid.Column="1"
+                                            Margin="10,0,0,0">
+                                    <TextBlock Text="{Binding Name}"
+                                               FontWeight="SemiBold"
+                                               Foreground="{DynamicResource PrimaryTextColor}"/>
+                                    <TextBlock Text="{Binding Description}"
+                                               TextWrapping="Wrap"
+                                               Foreground="{DynamicResource SecondaryTextColor}"
+                                               FontSize="12"/>
+                                    
+                                    <!-- Item Count -->
+                                    <TextBlock Text="{Binding ItemCount, StringFormat='{}{0} items'}"
+                                               Foreground="{DynamicResource TertiaryTextColor}"
+                                               FontSize="11"
+                                               Margin="0,2,0,0"/>
+                                    
+                                    <!-- Availability Indicator -->
+                                    <TextBlock Text="Not available in this configuration"
+                                               Foreground="#E74C3C"
+                                               FontSize="11"
+                                               FontStyle="Italic">
+                                        <TextBlock.Style>
+                                            <Style TargetType="TextBlock">
+                                                <Setter Property="Visibility" Value="Collapsed"/>
+                                                <Style.Triggers>
+                                                    <DataTrigger Binding="{Binding IsAvailable}" Value="False">
+                                                        <Setter Property="Visibility" Value="Visible"/>
+                                                    </DataTrigger>
+                                                </Style.Triggers>
+                                            </Style>
+                                        </TextBlock.Style>
+                                    </TextBlock>
+                                </StackPanel>
+                            </Grid>
+                        </DataTemplate>
+                    </ItemsControl.ItemTemplate>
+                    </ItemsControl>
+                </ScrollViewer>
+                    </Border>
+                </Grid>
+        
+                <!-- Buttons -->
+                <StackPanel Grid.Row="2"
+                            Orientation="Horizontal"
+                            HorizontalAlignment="Right"
+                            Margin="0,15,0,0">
+                    <Button Content="Cancel"
+                            Style="{StaticResource DialogButtonStyle}"
+                            Margin="0,0,10,0"
+                            Command="{Binding CancelCommand}"/>
+                    <Button Content="OK"
+                            Style="{StaticResource DialogButtonStyle}"
+                            Command="{Binding OkCommand}"
+                            IsDefault="True"/>
+                </StackPanel>
+            </Grid>
+        </Grid>
+    </Border>
+</Window>

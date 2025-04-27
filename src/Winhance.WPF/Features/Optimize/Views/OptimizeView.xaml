@@ -1,0 +1,626 @@
+<UserControl x:Class="Winhance.WPF.Features.Optimize.Views.OptimizeView"
+             xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
+             xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
+             xmlns:viewModels="clr-namespace:Winhance.WPF.Features.Optimize.ViewModels"
+             xmlns:optimize="clr-namespace:Winhance.WPF.Features.Optimize.Views"
+             xmlns:materialDesign="http://materialdesigninxaml.net/winfx/xaml/themes"
+             xmlns:commonControls="clr-namespace:Winhance.WPF.Features.Common.Controls"
+             d:DataContext="{d:DesignInstance Type=viewModels:OptimizeViewModel}"
+             mc:Ignorable="d">
+
+    <Grid>
+        <!-- Header -->
+        <DockPanel Height="70"
+                   VerticalAlignment="Top">
+            <TextBlock Text="&#xEB9B;"
+                       FontFamily="{StaticResource MaterialSymbolsFont}"
+                       FontSize="60"
+                       Margin="10,0,10,0"
+                       DockPanel.Dock="Left"
+                       VerticalAlignment="Center"
+                       Foreground="{DynamicResource PrimaryTextColor}"/>
+
+            <StackPanel VerticalAlignment="Center">
+                <TextBlock Height="35"
+                           VerticalAlignment="Top"
+                           FontFamily="Helvetica Neue"
+                           FontSize="32"
+                           FontWeight="Bold"
+                           Foreground="{DynamicResource PrimaryTextColor}"
+                           Text="Optimizations"/>
+
+                <TextBlock Height="22"
+                           Margin="0,5,0,0"
+                           VerticalAlignment="Bottom"
+                           FontFamily="Helvetica Neue"
+                           FontSize="14"
+                           Foreground="{DynamicResource SubTextColor}"
+                           Text="{Binding StatusText}"/>
+            </StackPanel>
+        </DockPanel>
+
+        <!-- Main Content -->
+        <Border Margin="0,80,0,0"
+                Background="{DynamicResource MainContainerBorderBrush}"
+                CornerRadius="10">
+            <ScrollViewer Style="{StaticResource ModernScrollViewer}"
+                          VerticalScrollBarVisibility="Auto"
+                          HorizontalScrollBarVisibility="Disabled">
+                <Grid>
+                    <Grid.RowDefinitions>
+                        <RowDefinition Height="*"/>
+                        <RowDefinition Height="Auto"/>
+                    </Grid.RowDefinitions>
+
+                    <StackPanel Grid.Row="0"
+                            Margin="10">
+                        <!-- Info Section with Search Box and Config Buttons -->
+                        <Border Background="{DynamicResource ContentSectionBorderBrush}"
+                                BorderBrush="{DynamicResource ButtonBorderBrush}"
+                                BorderThickness="1"
+                                CornerRadius="5"
+                                Margin="0,5,0,10"
+                                Padding="10,5"
+                                HorizontalAlignment="Stretch"
+                                Width="Auto"
+                                Height="80">
+                            <Grid>
+                                <Grid.RowDefinitions>
+                                    <RowDefinition Height="Auto"/>
+                                    <RowDefinition Height="Auto"/>
+                                </Grid.RowDefinitions>
+
+                                <!-- Row 0: Status indicators -->
+                                <Grid Grid.Row="0"
+                                        Margin="0,5,0,0">
+                                    <Grid.ColumnDefinitions>
+                                        <ColumnDefinition Width="*"/>
+                                    </Grid.ColumnDefinitions>
+
+                                    <!-- Status Indicators -->
+                                    <StackPanel Orientation="Horizontal"
+                                                VerticalAlignment="Center">
+                                        <!-- Registry Value Status -->
+                                        <StackPanel Orientation="Horizontal">
+                                            <TextBlock Text="&#xEA76;"
+                                                       FontFamily="{StaticResource MaterialSymbolsFont}"
+                                                       FontSize="18"
+                                                       Foreground="#FF2800"
+                                                       Margin="5,0,5,0"
+                                                       VerticalAlignment="Center"/>
+                                            <TextBlock Text="Registry Value Missing, Toggle Setting to Set Explicitly"
+                                                       Foreground="{DynamicResource PrimaryTextColor}"
+                                                       FontSize="13"
+                                                       VerticalAlignment="Center"/>
+                                        </StackPanel>
+                                    </StackPanel>
+                                </Grid>
+
+                                <!-- Row 1: Info text (left) + Search box (middle) + Config buttons (right) -->
+                                <Grid Grid.Row="1"
+                                        Margin="0,0,0,5">
+                                    <Grid.ColumnDefinitions>
+                                        <ColumnDefinition Width="Auto"/>
+                                        <ColumnDefinition Width="*"/>
+                                        <ColumnDefinition Width="Auto"/>
+                                        <ColumnDefinition Width="Auto"/>
+                                    </Grid.ColumnDefinitions>
+
+                                    <!-- Info Text (left side) -->
+                                    <Grid Grid.Column="0">
+                                        <Grid.ColumnDefinitions>
+                                            <ColumnDefinition Width="Auto"/>
+                                            <ColumnDefinition Width="*"/>
+                                        </Grid.ColumnDefinitions>
+
+                                        <!-- Info Icon -->
+                                        <materialDesign:PackIcon Grid.Column="0"
+                                                                 Kind="Information"
+                                                                 Width="24"
+                                                                 Height="32"
+                                                                 Margin="0,0,5,-5"
+                                                                 Foreground="Gray"
+                                                                 VerticalAlignment="Center"/>
+
+                                        <!-- Info Text -->
+                                        <TextBlock Grid.Column="1"
+                                                   VerticalAlignment="Center"
+                                                   HorizontalAlignment="Left"
+                                                   Style="{StaticResource AppInfoTextStyle}"
+                                                   FontSize="12"
+                                                   TextWrapping="Wrap"
+                                                   MaxHeight="40"
+                                                   Margin="0,0,0,-5"
+                                                   Text="Some Settings Require a Restart to Fully Apply Changes. Use the Search Box to find settings quickly. The Save and Import Config buttons in the main window help you manage your preferred selections."/>
+                                    </Grid>
+
+                                    <!-- Search Box (middle) -->
+                                    <StackPanel Grid.Column="2"
+                                                HorizontalAlignment="Right"
+                                                VerticalAlignment="Center"
+                                                Margin="10,0,10,0">
+                                        <commonControls:SearchBox Width="200"
+                                                                  SearchText="{Binding SearchText, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}"/>
+                                    </StackPanel>
+
+                                </Grid>
+                            </Grid>
+                        </Border>
+
+                        <!-- Windows Security Section -->
+                        <StackPanel Visibility="{Binding WindowsSecuritySettingsViewModel.HasVisibleSettings, Converter={StaticResource BooleanToVisibilityConverter}}">
+                            <Border x:Name="WindowsSecurityHeaderBorder"
+                                    Background="{DynamicResource ContentSectionBorderBrush}"
+                                    CornerRadius="5"
+                                    Margin="0,5,0,5"
+                                    Effect="{StaticResource ShadowEffect}"
+                                    Cursor="Hand">
+                                <DockPanel x:Name="WindowsSecurityHeader"
+                                           VerticalAlignment="Center"
+                                           HorizontalAlignment="Stretch">
+                                    <!-- Category Icon -->
+                                    <TextBlock Text="&#xE32A;"
+                                               FontFamily="{StaticResource MaterialSymbolsFont}"
+                                               FontSize="24"
+                                               Margin="15,10,5,10"
+                                               Foreground="{DynamicResource PrimaryTextColor}"
+                                               VerticalAlignment="Center"
+                                               DockPanel.Dock="Left"/>
+                                    <!-- Selection Indicator -->
+                                    <TextBlock x:Name="WindowsSecurityToggleIcon"
+                                               Text="&#xE5CA;"
+                                               FontFamily="{StaticResource MaterialSymbolsFont}"
+                                               FontSize="20"
+                                               Margin="5,10,5,10"
+                                               Foreground="{DynamicResource ControlFillColor}"
+                                               VerticalAlignment="Center"
+                                               Visibility="{Binding WindowsSecuritySettingsViewModel.IsSelected, Converter={StaticResource BooleanToVisibilityConverter}}"
+                                               DockPanel.Dock="Left"/>
+                                    <!-- Category Name -->
+                                    <TextBlock Text="Windows Security Settings"
+                                               FontSize="14"
+                                               FontWeight="SemiBold"
+                                               Margin="5,10,0,10"
+                                               Foreground="{DynamicResource PrimaryTextColor}"
+                                               VerticalAlignment="Center"
+                                               DockPanel.Dock="Left"/>
+                                    <!-- Hidden Button to handle the toggle command -->
+                                    <Button x:Name="WindowsSecurityToggleButton"
+                                            Command="{Binding ToggleWindowsSecurityCommand}"
+                                            Opacity="0"
+                                            Width="0"
+                                            Height="0"/>
+                                    <materialDesign:PackIcon x:Name="WindowsSecurityHeaderIcon"
+                                                             Kind="ChevronDown"
+                                                             Width="24"
+                                                             Height="24"
+                                                             HorizontalAlignment="Right"
+                                                             VerticalAlignment="Center"
+                                                             Foreground="{DynamicResource PrimaryTextColor}"
+                                                             Margin="0,0,10,0"
+                                                             DockPanel.Dock="Right"/>
+                                </DockPanel>
+                            </Border>
+                            <optimize:WindowsSecurityOptimizationsView x:Name="WindowsSecurityContent"
+                                    DataContext="{Binding WindowsSecuritySettingsViewModel}"/>
+                        </StackPanel>
+
+                        <!-- Privacy Settings Section -->
+                        <StackPanel Visibility="{Binding PrivacyOptimizationsViewModel.HasVisibleSettings, Converter={StaticResource BooleanToVisibilityConverter}}">
+                            <Border x:Name="PrivacyHeaderBorder"
+                                    Background="{DynamicResource ContentSectionBorderBrush}"
+                                    CornerRadius="5"
+                                    Margin="0,5,0,5"
+                                    Effect="{StaticResource ShadowEffect}"
+                                    Cursor="Hand">
+                                <DockPanel x:Name="PrivacyHeader"
+                                           VerticalAlignment="Center"
+                                           HorizontalAlignment="Stretch">
+                                    <!-- Category Icon -->
+                                    <TextBlock Text="&#xE897;"
+                                               FontFamily="{StaticResource MaterialSymbolsFont}"
+                                               FontSize="24"
+                                               Margin="15,10,5,10"
+                                               Foreground="{DynamicResource PrimaryTextColor}"
+                                               VerticalAlignment="Center"
+                                               DockPanel.Dock="Left"/>
+                                    <!-- Selection Indicator -->
+                                    <TextBlock x:Name="PrivacyToggleIcon"
+                                               Text="&#xE5CA;"
+                                               FontFamily="{StaticResource MaterialSymbolsFont}"
+                                               FontSize="20"
+                                               Margin="5,10,5,10"
+                                               Foreground="{DynamicResource ControlFillColor}"
+                                               VerticalAlignment="Center"
+                                               Visibility="{Binding PrivacyOptimizationsViewModel.IsSelected, Converter={StaticResource BooleanToVisibilityConverter}}"
+                                               DockPanel.Dock="Left"/>
+                                    <!-- Category Name -->
+                                    <TextBlock Text="Privacy Settings"
+                                               FontSize="14"
+                                               FontWeight="SemiBold"
+                                               Margin="5,10,0,10"
+                                               Foreground="{DynamicResource PrimaryTextColor}"
+                                               VerticalAlignment="Center"
+                                               DockPanel.Dock="Left"/>
+                                    <!-- Hidden Button to handle the toggle command -->
+                                    <Button x:Name="PrivacyToggleButton"
+                                            Command="{Binding TogglePrivacyCommand}"
+                                            Opacity="0"
+                                            Width="0"
+                                            Height="0"/>
+                                    <materialDesign:PackIcon x:Name="PrivacyHeaderIcon"
+                                                             Kind="ChevronDown"
+                                                             Width="24"
+                                                             Height="24"
+                                                             HorizontalAlignment="Right"
+                                                             VerticalAlignment="Center"
+                                                             Foreground="{DynamicResource PrimaryTextColor}"
+                                                             Margin="0,0,10,0"
+                                                             DockPanel.Dock="Right"/>
+                                </DockPanel>
+                            </Border>
+                            <optimize:PrivacyOptimizationsView DataContext="{Binding PrivacyOptimizationsViewModel}"/>
+                        </StackPanel>
+
+                        <!-- Gaming Optimizations Section -->
+                        <StackPanel Visibility="{Binding GamingandPerformanceOptimizationsViewModel.HasVisibleSettings, Converter={StaticResource BooleanToVisibilityConverter}}">
+                            <Border x:Name="GamingHeaderBorder"
+                                    Background="{DynamicResource ContentSectionBorderBrush}"
+                                    CornerRadius="5"
+                                    Margin="0,5,0,5"
+                                    Effect="{StaticResource ShadowEffect}"
+                                    Cursor="Hand">
+                                <DockPanel x:Name="GamingHeader"
+                                           VerticalAlignment="Center"
+                                           HorizontalAlignment="Stretch">
+                                    <!-- Category Icon -->
+                                    <TextBlock Text="&#xE338;"
+                                               FontFamily="{StaticResource MaterialSymbolsFont}"
+                                               FontSize="24"
+                                               Margin="15,10,5,10"
+                                               Foreground="{DynamicResource PrimaryTextColor}"
+                                               VerticalAlignment="Center"
+                                               DockPanel.Dock="Left"/>
+                                    <!-- Selection Indicator -->
+                                    <TextBlock x:Name="GamingToggleIcon"
+                                               Text="&#xE5CA;"
+                                               FontFamily="{StaticResource MaterialSymbolsFont}"
+                                               FontSize="20"
+                                               Margin="5,10,5,10"
+                                               Foreground="{DynamicResource ControlFillColor}"
+                                               VerticalAlignment="Center"
+                                               Visibility="{Binding GamingandPerformanceOptimizationsViewModel.IsSelected, Converter={StaticResource BooleanToVisibilityConverter}}"
+                                               DockPanel.Dock="Left"/>
+                                    <!-- Category Name -->
+                                    <TextBlock Text="Gaming and Performance"
+                                               FontSize="14"
+                                               FontWeight="SemiBold"
+                                               Margin="5,10,0,10"
+                                               Foreground="{DynamicResource PrimaryTextColor}"
+                                               VerticalAlignment="Center"
+                                               DockPanel.Dock="Left"/>
+                                    <!-- Hidden Button to handle the toggle command -->
+                                    <Button x:Name="GamingToggleButton"
+                                            Command="{Binding ToggleGamingCommand}"
+                                            Opacity="0"
+                                            Width="0"
+                                            Height="0"/>
+                                    <materialDesign:PackIcon x:Name="GamingHeaderIcon"
+                                                             Kind="ChevronDown"
+                                                             Width="24"
+                                                             Height="24"
+                                                             HorizontalAlignment="Right"
+                                                             VerticalAlignment="Center"
+                                                             Foreground="{DynamicResource PrimaryTextColor}"
+                                                             Margin="0,0,10,0"
+                                                             DockPanel.Dock="Right"/>
+                                </DockPanel>
+                            </Border>
+                            <optimize:GamingandPerformanceOptimizationsView DataContext="{Binding GamingandPerformanceOptimizationsViewModel}"/>
+                        </StackPanel>
+
+                        <!-- Windows Updates Section -->
+                        <StackPanel Visibility="{Binding UpdateOptimizationsViewModel.HasVisibleSettings, Converter={StaticResource BooleanToVisibilityConverter}}">
+                            <Border x:Name="UpdatesHeaderBorder"
+                                    Background="{DynamicResource ContentSectionBorderBrush}"
+                                    CornerRadius="5"
+                                    Margin="0,5,0,5"
+                                    Effect="{StaticResource ShadowEffect}"
+                                    Cursor="Hand">
+                                <DockPanel x:Name="UpdatesHeader"
+                                           VerticalAlignment="Center"
+                                           HorizontalAlignment="Stretch">
+                                    <!-- Category Icon -->
+                                    <TextBlock Text="&#xE627;"
+                                               FontFamily="{StaticResource MaterialSymbolsFont}"
+                                               FontSize="24"
+                                               Margin="15,10,5,10"
+                                               Foreground="{DynamicResource PrimaryTextColor}"
+                                               VerticalAlignment="Center"
+                                               DockPanel.Dock="Left"/>
+                                    <!-- Selection Indicator -->
+                                    <TextBlock x:Name="UpdatesToggleIcon"
+                                               Text="&#xE5CA;"
+                                               FontFamily="{StaticResource MaterialSymbolsFont}"
+                                               FontSize="20"
+                                               Margin="5,10,5,10"
+                                               Foreground="{DynamicResource ControlFillColor}"
+                                               VerticalAlignment="Center"
+                                               Visibility="{Binding UpdateOptimizationsViewModel.IsSelected, Converter={StaticResource BooleanToVisibilityConverter}}"
+                                               DockPanel.Dock="Left"/>
+                                    <!-- Category Name -->
+                                    <TextBlock Text="Windows Updates"
+                                               FontSize="14"
+                                               FontWeight="SemiBold"
+                                               Margin="5,10,0,10"
+                                               Foreground="{DynamicResource PrimaryTextColor}"
+                                               VerticalAlignment="Center"
+                                               DockPanel.Dock="Left"/>
+                                    <!-- Hidden Button to handle the toggle command -->
+                                    <Button x:Name="UpdatesToggleButton"
+                                            Command="{Binding ToggleUpdatesCommand}"
+                                            Opacity="0"
+                                            Width="0"
+                                            Height="0"/>
+                                    <materialDesign:PackIcon x:Name="UpdatesHeaderIcon"
+                                                             Kind="ChevronDown"
+                                                             Width="24"
+                                                             Height="24"
+                                                             HorizontalAlignment="Right"
+                                                             VerticalAlignment="Center"
+                                                             Foreground="{DynamicResource PrimaryTextColor}"
+                                                             Margin="0,0,10,0"
+                                                             DockPanel.Dock="Right"/>
+                                </DockPanel>
+                            </Border>
+                            <optimize:UpdateOptimizationsView DataContext="{Binding UpdateOptimizationsViewModel}"/>
+                        </StackPanel>
+
+                        <!-- Power Settings Section -->
+                        <StackPanel Visibility="{Binding PowerSettingsViewModel.HasVisibleSettings, Converter={StaticResource BooleanToVisibilityConverter}}">
+                            <Border x:Name="PowerHeaderBorder"
+                                    Background="{DynamicResource ContentSectionBorderBrush}"
+                                    CornerRadius="5"
+                                    Margin="0,5,0,5"
+                                    Effect="{StaticResource ShadowEffect}"
+                                    Cursor="Hand">
+                                <DockPanel x:Name="PowerHeader"
+                                           VerticalAlignment="Center"
+                                           HorizontalAlignment="Stretch">
+                                    <!-- Category Icon -->
+                                    <TextBlock Text="&#xE63C;"
+                                               FontFamily="{StaticResource MaterialSymbolsFont}"
+                                               FontSize="24"
+                                               Margin="15,10,5,10"
+                                               Foreground="{DynamicResource PrimaryTextColor}"
+                                               VerticalAlignment="Center"
+                                               DockPanel.Dock="Left"/>
+                                    <!-- Selection Indicator -->
+                                    <TextBlock x:Name="PowerToggleIcon"
+                                               Text="&#xE5CA;"
+                                               FontFamily="{StaticResource MaterialSymbolsFont}"
+                                               FontSize="20"
+                                               Margin="5,10,5,10"
+                                               Foreground="{DynamicResource ControlFillColor}"
+                                               VerticalAlignment="Center"
+                                               Visibility="{Binding PowerSettingsViewModel.IsSelected, Converter={StaticResource BooleanToVisibilityConverter}}"
+                                               DockPanel.Dock="Left"/>
+                                    <!-- Category Name -->
+                                    <TextBlock Text="Power Settings"
+                                               FontSize="14"
+                                               FontWeight="SemiBold"
+                                               Margin="5,10,0,10"
+                                               Foreground="{DynamicResource PrimaryTextColor}"
+                                               VerticalAlignment="Center"
+                                               DockPanel.Dock="Left"/>
+                                    <!-- Hidden Button to handle the toggle command -->
+                                    <Button x:Name="PowerToggleButton"
+                                            Command="{Binding TogglePowerSettingsCommand}"
+                                            Opacity="0"
+                                            Width="0"
+                                            Height="0"/>
+                                    <materialDesign:PackIcon x:Name="PowerHeaderIcon"
+                                                             Kind="ChevronDown"
+                                                             Width="24"
+                                                             Height="24"
+                                                             HorizontalAlignment="Right"
+                                                             VerticalAlignment="Center"
+                                                             Foreground="{DynamicResource PrimaryTextColor}"
+                                                             Margin="0,0,10,0"
+                                                             DockPanel.Dock="Right"/>
+                                </DockPanel>
+                            </Border>
+                            <optimize:PowerOptimizationsView DataContext="{Binding PowerSettingsViewModel}"/>
+                        </StackPanel>
+
+                        <!-- Explorer Optimizations Section -->
+                        <StackPanel Visibility="{Binding ExplorerOptimizationsViewModel.HasVisibleSettings, Converter={StaticResource BooleanToVisibilityConverter}}">
+                            <Border x:Name="ExplorerHeaderBorder"
+                                    Background="{DynamicResource ContentSectionBorderBrush}"
+                                    CornerRadius="5"
+                                    Margin="0,5,0,5"
+                                    Effect="{StaticResource ShadowEffect}"
+                                    Cursor="Hand">
+                                <DockPanel x:Name="ExplorerHeader"
+                                           VerticalAlignment="Center"
+                                           HorizontalAlignment="Stretch">
+                                    <!-- Category Icon -->
+                                    <TextBlock Text="&#xE2C7;"
+                                               FontFamily="{StaticResource MaterialSymbolsFont}"
+                                               FontSize="24"
+                                               Margin="15,10,5,10"
+                                               Foreground="{DynamicResource PrimaryTextColor}"
+                                               VerticalAlignment="Center"
+                                               DockPanel.Dock="Left"/>
+                                    <!-- Selection Indicator -->
+                                    <TextBlock x:Name="ExplorerToggleIcon"
+                                               Text="&#xE5CA;"
+                                               FontFamily="{StaticResource MaterialSymbolsFont}"
+                                               FontSize="20"
+                                               Margin="5,10,5,10"
+                                               Foreground="{DynamicResource ControlFillColor}"
+                                               VerticalAlignment="Center"
+                                               Visibility="{Binding ExplorerOptimizationsViewModel.IsSelected, Converter={StaticResource BooleanToVisibilityConverter}}"
+                                               DockPanel.Dock="Left"/>
+                                    <!-- Category Name -->
+                                    <TextBlock Text="Explorer"
+                                               FontSize="14"
+                                               FontWeight="SemiBold"
+                                               Margin="5,10,0,10"
+                                               Foreground="{DynamicResource PrimaryTextColor}"
+                                               VerticalAlignment="Center"
+                                               DockPanel.Dock="Left"/>
+                                    <!-- Hidden Button to handle the toggle command -->
+                                    <Button x:Name="ExplorerToggleButton"
+                                            Command="{Binding ToggleExplorerCommand}"
+                                            Opacity="0"
+                                            Width="0"
+                                            Height="0"/>
+                                    <materialDesign:PackIcon x:Name="ExplorerHeaderIcon"
+                                                             Kind="ChevronDown"
+                                                             Width="24"
+                                                             Height="24"
+                                                             HorizontalAlignment="Right"
+                                                             VerticalAlignment="Center"
+                                                             Foreground="{DynamicResource PrimaryTextColor}"
+                                                             Margin="0,0,10,0"
+                                                             DockPanel.Dock="Right"/>
+                                </DockPanel>
+                            </Border>
+                            <optimize:ExplorerOptimizationsView DataContext="{Binding ExplorerOptimizationsViewModel}"/>
+                        </StackPanel>
+
+                        <!-- Notification Optimizations Section -->
+                        <StackPanel Visibility="{Binding NotificationOptimizationsViewModel.HasVisibleSettings, Converter={StaticResource BooleanToVisibilityConverter}}">
+                            <Border x:Name="NotificationHeaderBorder"
+                                    Background="{DynamicResource ContentSectionBorderBrush}"
+                                    CornerRadius="5"
+                                    Margin="0,5,0,5"
+                                    Effect="{StaticResource ShadowEffect}"
+                                    Cursor="Hand">
+                                <DockPanel x:Name="NotificationHeader"
+                                           VerticalAlignment="Center"
+                                           HorizontalAlignment="Stretch">
+                                    <!-- Category Icon -->
+                                    <TextBlock Text="&#xE7F4;"
+                                               FontFamily="{StaticResource MaterialSymbolsFont}"
+                                               FontSize="24"
+                                               Margin="15,10,5,10"
+                                               Foreground="{DynamicResource PrimaryTextColor}"
+                                               VerticalAlignment="Center"
+                                               DockPanel.Dock="Left"/>
+                                    <!-- Selection Indicator -->
+                                    <TextBlock x:Name="NotificationToggleIcon"
+                                               Text="&#xE5CA;"
+                                               FontFamily="{StaticResource MaterialSymbolsFont}"
+                                               FontSize="20"
+                                               Margin="5,10,5,10"
+                                               Foreground="{DynamicResource ControlFillColor}"
+                                               VerticalAlignment="Center"
+                                               Visibility="{Binding NotificationOptimizationsViewModel.IsSelected, Converter={StaticResource BooleanToVisibilityConverter}}"
+                                               DockPanel.Dock="Left"/>
+                                    <!-- Category Name -->
+                                    <TextBlock Text="Notifications"
+                                               FontSize="14"
+                                               FontWeight="SemiBold"
+                                               Margin="5,10,0,10"
+                                               Foreground="{DynamicResource PrimaryTextColor}"
+                                               VerticalAlignment="Center"
+                                               DockPanel.Dock="Left"/>
+                                    <!-- Hidden Button to handle the toggle command -->
+                                    <Button x:Name="NotificationToggleButton"
+                                            Command="{Binding ToggleNotificationsCommand}"
+                                            Opacity="0"
+                                            Width="0"
+                                            Height="0"/>
+                                    <materialDesign:PackIcon x:Name="NotificationHeaderIcon"
+                                                             Kind="ChevronDown"
+                                                             Width="24"
+                                                             Height="24"
+                                                             HorizontalAlignment="Right"
+                                                             VerticalAlignment="Center"
+                                                             Foreground="{DynamicResource PrimaryTextColor}"
+                                                             Margin="0,0,10,0"
+                                                             DockPanel.Dock="Right"/>
+                                </DockPanel>
+                            </Border>
+                            <optimize:NotificationOptimizationsView DataContext="{Binding NotificationOptimizationsViewModel}"/>
+                        </StackPanel>
+
+                        <!-- Sound Optimizations Section -->
+                        <StackPanel Visibility="{Binding SoundOptimizationsViewModel.HasVisibleSettings, Converter={StaticResource BooleanToVisibilityConverter}}">
+                            <Border x:Name="SoundHeaderBorder"
+                                    Background="{DynamicResource ContentSectionBorderBrush}"
+                                    CornerRadius="5"
+                                    Margin="0,5,0,5"
+                                    Effect="{StaticResource ShadowEffect}"
+                                    Cursor="Hand">
+                                <DockPanel x:Name="SoundHeader"
+                                           VerticalAlignment="Center"
+                                           HorizontalAlignment="Stretch">
+                                    <!-- Category Icon -->
+                                    <TextBlock Text="&#xE050;"
+                                               FontFamily="{StaticResource MaterialSymbolsFont}"
+                                               FontSize="24"
+                                               Margin="15,10,5,10"
+                                               Foreground="{DynamicResource PrimaryTextColor}"
+                                               VerticalAlignment="Center"
+                                               DockPanel.Dock="Left"/>
+                                    <!-- Selection Indicator -->
+                                    <TextBlock x:Name="SoundToggleIcon"
+                                               Text="&#xE5CA;"
+                                               FontFamily="{StaticResource MaterialSymbolsFont}"
+                                               FontSize="20"
+                                               Margin="5,10,5,10"
+                                               Foreground="{DynamicResource ControlFillColor}"
+                                               VerticalAlignment="Center"
+                                               Visibility="{Binding SoundOptimizationsViewModel.IsSelected, Converter={StaticResource BooleanToVisibilityConverter}}"
+                                               DockPanel.Dock="Left"/>
+                                    <!-- Category Name -->
+                                    <TextBlock Text="Sound"
+                                               FontSize="14"
+                                               FontWeight="SemiBold"
+                                               Margin="5,10,0,10"
+                                               Foreground="{DynamicResource PrimaryTextColor}"
+                                               VerticalAlignment="Center"
+                                               DockPanel.Dock="Left"/>
+                                    <!-- Hidden Button to handle the toggle command -->
+                                    <Button x:Name="SoundToggleButton"
+                                            Command="{Binding ToggleSoundCommand}"
+                                            Opacity="0"
+                                            Width="0"
+                                            Height="0"/>
+                                    <materialDesign:PackIcon x:Name="SoundHeaderIcon"
+                                                             Kind="ChevronDown"
+                                                             Width="24"
+                                                             Height="24"
+                                                             HorizontalAlignment="Right"
+                                                             VerticalAlignment="Center"
+                                                             Foreground="{DynamicResource PrimaryTextColor}"
+                                                             Margin="0,0,10,0"
+                                                             DockPanel.Dock="Right"/>
+                                </DockPanel>
+                            </Border>
+                            <optimize:SoundOptimizationsView DataContext="{Binding SoundOptimizationsViewModel}"/>
+                        </StackPanel>
+
+                    </StackPanel>
+
+                    <!-- No Search Results Message -->
+                    <TextBlock Grid.Row="1"
+                               HorizontalAlignment="Center"
+                               VerticalAlignment="Center"
+                               Margin="0,50,0,20"
+                               TextAlignment="Center"
+                               TextWrapping="Wrap"
+                               FontSize="16"
+                               Foreground="{DynamicResource SubTextColor}"
+                               Text="No settings found matching your search. Try different keywords."
+                               Visibility="{Binding HasSearchResults, Converter={StaticResource InverseBooleanToVisibilityConverter}}"/>
+                </Grid>
+            </ScrollViewer>
+        </Border>
+    </Grid>
+</UserControl>

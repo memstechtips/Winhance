@@ -1,0 +1,122 @@
+<UserControl x:Class="Winhance.WPF.Features.Customize.Views.TaskbarCustomizationsView"
+             xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
+             xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
+             xmlns:local="clr-namespace:Winhance.WPF.Features.Customize.Views"
+             xmlns:viewmodels="clr-namespace:Winhance.WPF.Features.Customize.ViewModels"
+             d:DataContext="{d:DesignInstance Type=viewmodels:TaskbarCustomizationsViewModel}"
+             mc:Ignorable="d">
+
+    <StackPanel Margin="0,10,0,10">
+        <!-- Clean Taskbar Button -->
+        <Grid Margin="10,0,10,20">
+            <Grid.ColumnDefinitions>
+                <ColumnDefinition Width="*"/>
+                <ColumnDefinition Width="Auto"/>
+            </Grid.ColumnDefinitions>
+            
+            <!-- Left: Title and Description -->
+            <StackPanel VerticalAlignment="Center" Margin="15,0,0,0">
+                <TextBlock Text="Clean Taskbar"
+                           Foreground="{DynamicResource PrimaryTextColor}"
+                           FontWeight="Bold"
+                           FontSize="14"/>
+                <TextBlock Text="Unpins all Items except File Explorer"
+                           Foreground="{DynamicResource PrimaryTextColor}"
+                           FontSize="12"/>
+            </StackPanel>
+            
+            <!-- Right: Button -->
+            <Button Grid.Column="1"
+                    Content="Execute"
+                    Command="{Binding CleanTaskbarCommand}"
+                    Style="{StaticResource PrimaryButtonStyle}"
+                    Margin="10,5,10,5"
+                    Padding="10,5"
+                    HorizontalAlignment="Right">
+                <Button.ToolTip>
+                    <ToolTip>
+                        <TextBlock TextWrapping="Wrap" MaxWidth="300">
+                            Cleans the Taskbar by removing all pinned apps except File Explorer.
+                            <LineBreak/>
+                            This will:
+                            <LineBreak/>
+                            - Delete the Taskband registry key
+                            <LineBreak/>
+                            - Recreate the Quick Launch directories
+                            <LineBreak/>
+                            - Pin only File Explorer to the taskbar
+                            <LineBreak/>
+                            Note: This will restart Explorer and may require a system restart to fully apply.
+                        </TextBlock>
+                    </ToolTip>
+                </Button.ToolTip>
+            </Button>
+        </Grid>
+        
+        <!-- Separator -->
+        <Separator Margin="25,0,25,20"/>
+        
+        <!-- Settings -->
+        <ItemsControl ItemsSource="{Binding Settings}">
+            <ItemsControl.ItemsPanel>
+                <ItemsPanelTemplate>
+                    <UniformGrid Columns="4"/>
+                </ItemsPanelTemplate>
+            </ItemsControl.ItemsPanel>
+            <ItemsControl.ItemTemplate>
+                <DataTemplate>
+                    <Grid>
+                        <!-- Regular setting checkbox -->
+                        <StackPanel Orientation="Horizontal"
+                                    Visibility="{Binding IsVisible, Converter={StaticResource BooleanToVisibilityConverter}}">
+                            <ToggleButton Style="{StaticResource MaterialToggleSwitch}"
+                                          IsChecked="{Binding IsSelected, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}"
+                                          Margin="15,5,0,5"
+                                          HorizontalAlignment="Left"
+                                          VerticalAlignment="Center"
+                                          Content="">
+                                <ToggleButton.ToolTip>
+                                    <ToolTip>
+                                        <ContentPresenter Content="{Binding}"
+                                                          ContentTemplate="{StaticResource RegistrySettingTooltipTemplate}"/>
+                                    </ToolTip>
+                                </ToggleButton.ToolTip>
+                            </ToggleButton>
+                            <TextBlock Text="{Binding FullName}"
+                                       Style="{StaticResource AppItemTextStyle}"
+                                       VerticalAlignment="Center">
+                                <TextBlock.ToolTip>
+                                    <ToolTip>
+                                        <ContentPresenter Content="{Binding}"
+                                                          ContentTemplate="{StaticResource RegistrySettingTooltipTemplate}"/>
+                                    </ToolTip>
+                                </TextBlock.ToolTip>
+                            </TextBlock>
+
+                            <!-- Warning Icon (visible only when registry value is null) -->
+                            <TextBlock Text="&#xEA76;"
+                                       FontFamily="{StaticResource MaterialSymbolsFont}"
+                                       FontSize="18"
+                                       Foreground="#FF2800"
+                                       Margin="5,5,0,0"
+                                       VerticalAlignment="Center"
+                                       Visibility="{Binding IsRegistryValueNull, Converter={StaticResource BooleanToVisibilityConverter}}">
+                                <TextBlock.ToolTip>
+                                    <ToolTip>
+                                        <TextBlock TextWrapping="Wrap"
+                                                   MaxWidth="300">
+                                            Registry key or value doesn't exist and Windows is using default settings.<LineBreak/>
+                                            Recommendation: Toggle setting to desired state to set explicitly or ignore if you want to continue using Windows default settings.
+                                        </TextBlock>
+                                    </ToolTip>
+                                </TextBlock.ToolTip>
+                            </TextBlock>
+                        </StackPanel>
+                    </Grid>
+                </DataTemplate>
+            </ItemsControl.ItemTemplate>
+        </ItemsControl>
+    </StackPanel>
+</UserControl>

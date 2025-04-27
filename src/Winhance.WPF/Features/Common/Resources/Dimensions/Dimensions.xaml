@@ -1,0 +1,37 @@
+<ResourceDictionary xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+                    xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+                    xmlns:system="clr-namespace:System;assembly=mscorlib">
+    <!-- Margins -->
+    <system:Double x:Key="StandardMargin">10</system:Double>
+    <system:Double x:Key="SmallMargin">5</system:Double>
+    <system:Double x:Key="LargeMargin">20</system:Double>
+    <system:Double x:Key="SectionMargin">0,10,0,0</system:Double>
+    <system:Double x:Key="ItemMargin">8,5,10,5</system:Double>
+    <system:Double x:Key="HeaderMargin">0,5,0,0</system:Double>
+    <system:Double x:Key="ButtonSectionMargin">0,20,10,10</system:Double>
+    
+    <!-- Font Sizes -->
+    <system:Double x:Key="SmallFontSize">12</system:Double>
+    <system:Double x:Key="StandardFontSize">14</system:Double>
+    <system:Double x:Key="LargeFontSize">18</system:Double>
+    <system:Double x:Key="HeaderFontSize">24</system:Double>
+    <system:Double x:Key="TitleFontSize">32</system:Double>
+    <system:Double x:Key="EmojiIconFontSize">60</system:Double>
+    
+    <!-- Control Sizes -->
+    <system:Double x:Key="ButtonHeight">35</system:Double>
+    <system:Double x:Key="ButtonWidth">130</system:Double>
+    <system:Double x:Key="IconSize">16</system:Double>
+    <system:Double x:Key="LargeIconSize">24</system:Double>
+    <system:Double x:Key="HeaderHeight">70</system:Double>
+    <system:Double x:Key="TitleHeight">35</system:Double>
+    <system:Double x:Key="SubtitleHeight">22</system:Double>
+    <system:Double x:Key="EmojiIconWidth">80</system:Double>
+    <system:Double x:Key="EmojiIconHeight">70</system:Double>
+    <system:Double x:Key="CornerRadius">10</system:Double>
+    
+    <!-- Grid Dimensions -->
+    <system:Double x:Key="StandardGridSpacing">10</system:Double>
+    <system:Double x:Key="SmallGridSpacing">5</system:Double>
+    <system:Double x:Key="LargeGridSpacing">20</system:Double>
+</ResourceDictionary>

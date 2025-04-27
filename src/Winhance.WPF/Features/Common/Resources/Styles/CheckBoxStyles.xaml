@@ -1,0 +1,61 @@
+<!-- src/Winhance.WPF/Resources/Styles/CheckBoxStyles.xaml -->
+<ResourceDictionary xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+                    xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml">
+    
+    <!--
+    Custom CheckBox Style
+    
+    This style uses the generic control resources (ControlForeground, ControlFillColor, ControlBorderBrush)
+    for consistent theming across different UI elements. These resources are shared with
+    other controls like toggle switches to maintain a consistent look and feel throughout
+    the application.
+    -->
+    <Style x:Key="CustomCheckBox" TargetType="CheckBox">
+        <Setter Property="Foreground" Value="{DynamicResource ControlForeground}"/>
+        <Setter Property="Background" Value="Transparent"/>
+        <Setter Property="BorderBrush" Value="{DynamicResource ControlBorderBrush}"/>
+        <Setter Property="Cursor" Value="Hand"/>
+        <Setter Property="Template">
+            <Setter.Value>
+                <ControlTemplate TargetType="CheckBox">
+                    <Grid>
+                        <Grid.ColumnDefinitions>
+                            <ColumnDefinition Width="Auto"/>
+                            <ColumnDefinition Width="*"/>
+                        </Grid.ColumnDefinitions>
+                        <Border x:Name="CheckBoxBorder" 
+                                Width="17" Height="17" 
+                                BorderThickness="1.5"
+                                BorderBrush="{TemplateBinding BorderBrush}"
+                                Background="{TemplateBinding Background}"
+                                CornerRadius="3">
+                            <Border x:Name="InnerFill"
+                                    Margin="3"
+                                    Background="Transparent"
+                                    CornerRadius="1"/>
+                        </Border>
+                        <ContentPresenter Grid.Column="1"
+                                        Margin="6,0,0,0"
+                                        VerticalAlignment="Center"
+                                        HorizontalAlignment="Left"/>
+                    </Grid>
+                    <ControlTemplate.Triggers>
+                        <Trigger Property="IsChecked" Value="True">
+                            <Setter TargetName="InnerFill" 
+                                    Property="Background" 
+                                    Value="{DynamicResource ControlFillColor}"/>
+                        </Trigger>
+                        <Trigger Property="IsMouseOver" Value="True">
+                            <Setter TargetName="CheckBoxBorder" 
+                                    Property="BorderBrush" 
+                                    Value="{DynamicResource ControlBorderBrush}"/>
+                            <Setter TargetName="CheckBoxBorder" 
+                                    Property="Opacity" 
+                                    Value="0.8"/>
+                        </Trigger>
+                    </ControlTemplate.Triggers>
+                </ControlTemplate>
+            </Setter.Value>
+        </Setter>
+    </Style>
+</ResourceDictionary>

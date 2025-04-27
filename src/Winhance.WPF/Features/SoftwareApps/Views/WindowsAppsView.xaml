@@ -1,0 +1,386 @@
+<UserControl x:Class="Winhance.WPF.Features.SoftwareApps.Views.WindowsAppsView"
+             xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
+             xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
+             xmlns:viewModels="clr-namespace:Winhance.WPF.Features.SoftwareApps.ViewModels"
+             xmlns:materialDesign="http://materialdesigninxaml.net/winfx/xaml/themes"
+             xmlns:local="clr-namespace:Winhance.WPF.Features.Common.Controls"
+             d:DataContext="{d:DesignInstance Type=viewModels:WindowsAppsViewModel}"
+             mc:Ignorable="d">
+
+    <StackPanel Margin="10">
+        <!-- Buttons on the right -->
+        <DockPanel LastChildFill="True"
+                   Margin="0,20,10,10">
+            <!-- Buttons stacked vertically on the right -->
+            <StackPanel DockPanel.Dock="Right"
+                        Orientation="Vertical"
+                        VerticalAlignment="Center"
+                        Margin="10,0,0,0">
+                <!-- Install Apps Button -->
+                <Button Style="{StaticResource InstallAppsButtonStyle}"
+                        Content="Install Selected Items"
+                        Margin="0,0,0,10"
+                        Width="180"
+                        Height="35"
+                        Command="{Binding InstallAppsCommand}"/>
+
+                <!-- Remove Apps Button -->
+                <Button Style="{StaticResource RemoveAppsButtonStyle}"
+                        Content="Remove Selected Items"
+                        Width="180"
+                        Height="35"
+                        Command="{Binding RemoveAppsCommand}"/>
+            </StackPanel>
+
+            <!-- Info Text and Legend (fills remaining space) -->
+            <Border Background="{DynamicResource ContentSectionBorderBrush}"
+                    BorderBrush="{DynamicResource ButtonBorderBrush}"
+                    BorderThickness="1"
+                    CornerRadius="5"
+                    Margin="0,0,0,0"
+                    Padding="10,5"
+                    HorizontalAlignment="Stretch"
+                    Width="Auto"
+                    Height="80">
+                <Grid>
+                    <Grid.RowDefinitions>
+                        <RowDefinition Height="Auto"/>
+                        <RowDefinition Height="Auto"/>
+                    </Grid.RowDefinitions>
+
+                    <!-- Row 0: Status indicators -->
+                    <Grid Grid.Row="0" Margin="0,5,0,0">
+                        <Grid.ColumnDefinitions>
+                            <ColumnDefinition Width="*"/>
+                        </Grid.ColumnDefinitions>
+
+                        <!-- Status Indicators -->
+                        <StackPanel Orientation="Horizontal"
+                                    VerticalAlignment="Center">
+                            <!-- Installation Status -->
+                            <StackPanel Orientation="Horizontal" Margin="0,0,15,0">
+                                <Ellipse Width="12"
+                                         Height="12"
+                                         Fill="#00FF3C"
+                                         Margin="0,0,5,0"
+                                         VerticalAlignment="Center"/>
+                                <TextBlock Text="Installed"
+                                           Foreground="{DynamicResource PrimaryTextColor}"
+                                           FontSize="13"
+                                           VerticalAlignment="Center"/>
+                            </StackPanel>
+
+                            <StackPanel Orientation="Horizontal" Margin="0,0,15,0">
+                                <Ellipse Width="12"
+                                         Height="12"
+                                         Fill="#FF2800"
+                                         Margin="0,0,5,0"
+                                         VerticalAlignment="Center"/>
+                                <TextBlock Text="Not Installed"
+                                           Foreground="{DynamicResource PrimaryTextColor}"
+                                           FontSize="13"
+                                           VerticalAlignment="Center"/>
+                            </StackPanel>
+
+                            <!-- Reinstallability Status -->
+                            <StackPanel Orientation="Horizontal" Margin="0,0,15,0">
+                                <materialDesign:PackIcon Kind="Sync"
+                                                         Width="16"
+                                                         Height="16"
+                                                         Foreground="#00A5FF"
+                                                         Margin="0,0,5,0"
+                                                         VerticalAlignment="Center"/>
+                                <TextBlock Text="Can be Reinstalled"
+                                           Foreground="{DynamicResource PrimaryTextColor}"
+                                           FontSize="13"
+                                           VerticalAlignment="Center"/>
+                            </StackPanel>
+
+                            <StackPanel Orientation="Horizontal">
+                                <materialDesign:PackIcon Kind="SyncOff"
+                                                         Width="16"
+                                                         Height="16"
+                                                         Foreground="#FF2800"
+                                                         Margin="0,0,5,0"
+                                                         VerticalAlignment="Center"/>
+                                <TextBlock Text="Cannot Reinstall"
+                                           Foreground="{DynamicResource PrimaryTextColor}"
+                                           FontSize="13"
+                                           VerticalAlignment="Center"/>
+                            </StackPanel>
+
+                            <!-- Vertical Separator -->
+                            <TextBlock Text="|"
+                                       Margin="15,0,15,0"
+                                       FontSize="16"
+                                       Foreground="{DynamicResource PrimaryTextColor}"
+                                       VerticalAlignment="Center"/>
+
+                            <!-- Winhance Removal Status -->
+                            <StackPanel Orientation="Horizontal">
+                                <!-- Wrap the entire status section in a Border to apply the tooltip to all elements -->
+                                <Border Background="Transparent">
+                                    <Border.ToolTip>
+                                        <ToolTip>
+                                            <StackPanel>
+                                                <TextBlock Text="Active Removal Scripts:"
+                                                           FontWeight="Bold"
+                                                           Margin="0,0,0,5"
+                                                           Visibility="{Binding IsRemovingApps, Converter={StaticResource BooleanToVisibilityConverter}}"/>
+                                                <ItemsControl ItemsSource="{Binding ActiveScripts}"
+                                                              Visibility="{Binding IsRemovingApps, Converter={StaticResource BooleanToVisibilityConverter}}">
+                                                    <ItemsControl.ItemTemplate>
+                                                        <DataTemplate>
+                                                            <TextBlock Text="{Binding Description}" Margin="5,2,0,2"/>
+                                                        </DataTemplate>
+                                                    </ItemsControl.ItemTemplate>
+                                                </ItemsControl>
+                                                <TextBlock Text="No active removal scripts found."
+                                                           Visibility="{Binding IsRemovingApps, Converter={StaticResource InverseBooleanToVisibilityConverter}}"/>
+                                            </StackPanel>
+                                        </ToolTip>
+                                    </Border.ToolTip>
+
+                                    <StackPanel Orientation="Horizontal">
+                                        <materialDesign:PackIcon Kind="DeleteForever"
+                                                             Width="18"
+                                                             Height="18"
+                                                             Foreground="{Binding IsRemovingApps, Converter={StaticResource ScriptStatusToColorConverter}}"
+                                                             Margin="0,0,5,0"
+                                                             VerticalAlignment="Center"/>
+                                        <TextBlock Text="Winhance Status:"
+                                               Foreground="{DynamicResource PrimaryTextColor}"
+                                               FontSize="13"
+                                               Margin="0,0,5,0"
+                                               VerticalAlignment="Center"/>
+                                        <TextBlock Text="{Binding IsRemovingApps, Converter={StaticResource ScriptStatusToTextConverter}}"
+                                               Foreground="{Binding IsRemovingApps, Converter={StaticResource ScriptStatusToColorConverter}}"
+                                               FontSize="13"
+                                               FontWeight="SemiBold"
+                                               VerticalAlignment="Center"/>
+                                    </StackPanel>
+                                </Border>
+                            </StackPanel>
+                        </StackPanel>
+
+                    </Grid>
+
+                    <!-- Row 1: Info text (left) + Search box (middle) -->
+                    <Grid Grid.Row="1" Margin="0,0,0,5">
+                        <Grid.ColumnDefinitions>
+                            <ColumnDefinition Width="Auto"/>
+                            <ColumnDefinition Width="*"/>
+                            <ColumnDefinition Width="Auto"/>
+                            <ColumnDefinition Width="Auto"/>
+                        </Grid.ColumnDefinitions>
+
+                        <!-- Info Text (left side) -->
+                        <Grid Grid.Column="0">
+                            <Grid.ColumnDefinitions>
+                                <ColumnDefinition Width="Auto"/>
+                                <ColumnDefinition Width="*"/>
+                            </Grid.ColumnDefinitions>
+
+                            <!-- Info Icon -->
+                            <materialDesign:PackIcon Grid.Column="0"
+                                                   Kind="Information"
+                                                   Width="24"
+                                                   Height="32"
+                                                   Margin="0,0,5,-5"
+                                                   Foreground="Gray"
+                                                   VerticalAlignment="Center"/>
+
+                            <!-- Info Text -->
+                            <TextBlock Grid.Column="1"
+                                       VerticalAlignment="Center"
+                                       HorizontalAlignment="Left"
+                                       Style="{StaticResource AppInfoTextStyle}"
+                                       FontSize="12"
+                                       TextWrapping="Wrap"
+                                       MaxHeight="40"
+                                       Margin="0,0,0,-5"
+                                       Text="Check all the items you don't want on your PC (even not installed items). Windows might try to add them back later, but Winhance will keep removing them for you.&#x0a;Use the Search Box to find settings quickly. The Save and Import Config buttons in the main window help you manage your preferred selections."/>
+                        </Grid>
+
+                        <!-- Search Box (middle) -->
+                        <StackPanel Grid.Column="2"
+                                    HorizontalAlignment="Right"
+                                    VerticalAlignment="Center"
+                                    Margin="10,0,10,0">
+                            <local:SearchBox Width="200"
+                                             SearchText="{Binding SearchText, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}"/>
+                        </StackPanel>
+
+                    </Grid>
+                </Grid>
+            </Border>
+        </DockPanel>
+
+        <!-- Separator -->
+        <Separator Style="{StaticResource SectionSeparatorStyle}"/>
+
+        <!-- Select All checkbox -->
+        <CheckBox Style="{StaticResource CustomCheckBox}"
+                  Content="Select All"
+                  FontSize="16"
+                  FontWeight="Bold"
+                  IsChecked="{Binding IsAllSelected}"
+                  Margin="18,10,0,10"/>
+
+        <!-- Windows Apps (Appx Packages) Section -->
+        <StackPanel Orientation="Horizontal" Margin="0,5,0,5">
+            <TextBlock Text="Windows Apps"
+                      Style="{StaticResource SectionHeaderStyle}"/>
+        </StackPanel>
+
+        <ItemsControl ItemsSource="{Binding WindowsApps}"
+                      Margin="10,0,10,10">
+            <ItemsControl.ItemsPanel>
+                <ItemsPanelTemplate>
+                    <UniformGrid Style="{StaticResource AppItemsUniformGridStyle}"/>
+                </ItemsPanelTemplate>
+            </ItemsControl.ItemsPanel>
+            <ItemsControl.ItemTemplate>
+                <DataTemplate>
+                    <CheckBox Style="{StaticResource CustomCheckBox}"
+                              Margin="8,5,10,5"
+                              IsChecked="{Binding IsSelected}">
+                        <StackPanel Orientation="Horizontal">
+                            <Ellipse Style="{StaticResource AppStatusIndicatorStyle}"
+                                     Fill="{Binding IsInstalled, Converter={StaticResource InstalledStatusToColorConverter}}">
+                                <Ellipse.ToolTip>
+                                    <ToolTip Content="{Binding IsInstalled, Converter={StaticResource InstalledStatusToTextConverter}}"/>
+                                </Ellipse.ToolTip>
+                            </Ellipse>
+
+                            <!-- Reinstallability indicator -->
+                            <materialDesign:PackIcon
+                                Style="{StaticResource ReinstallabilityIndicatorStyle}"
+                                Kind="{Binding CanBeReinstalled, Converter={StaticResource BooleanToReinstallableIconConverter}}"
+                                Foreground="{Binding CanBeReinstalled, Converter={StaticResource StatusToColorConverter}}">
+                                <materialDesign:PackIcon.ToolTip>
+                                    <ToolTip Content="{Binding CanBeReinstalled, Converter={StaticResource BooleanToReinstallableTextConverter}}"/>
+                                </materialDesign:PackIcon.ToolTip>
+                            </materialDesign:PackIcon>
+
+                            <TextBlock Text="{Binding Name}"
+                                       Style="{StaticResource AppItemTextStyle}">
+                                <TextBlock.ToolTip>
+                                    <ToolTip Content="{Binding Description}"/>
+                                </TextBlock.ToolTip>
+                            </TextBlock>
+
+                        </StackPanel>
+                    </CheckBox>
+                </DataTemplate>
+            </ItemsControl.ItemTemplate>
+        </ItemsControl>
+
+        <!-- Separator -->
+        <Separator Style="{StaticResource SectionSeparatorStyle}"/>
+
+        <!-- Capabilities Section -->
+        <StackPanel Orientation="Horizontal" Margin="0,5,0,5">
+            <TextBlock Text="Windows Capabilities"
+                      Style="{StaticResource SectionHeaderStyle}"/>
+        </StackPanel>
+
+        <ItemsControl ItemsSource="{Binding Capabilities}"
+                      Margin="10,0,10,10">
+            <ItemsControl.ItemsPanel>
+                <ItemsPanelTemplate>
+                    <UniformGrid Style="{StaticResource AppItemsUniformGridStyle}"/>
+                </ItemsPanelTemplate>
+            </ItemsControl.ItemsPanel>
+            <ItemsControl.ItemTemplate>
+                <DataTemplate>
+                    <CheckBox Style="{StaticResource CustomCheckBox}"
+                              Margin="8,5,10,5"
+                              IsChecked="{Binding IsSelected}">
+                        <StackPanel Orientation="Horizontal">
+                            <Ellipse Style="{StaticResource AppStatusIndicatorStyle}"
+                                     Fill="{Binding IsInstalled, Converter={StaticResource InstalledStatusToColorConverter}}">
+                                <Ellipse.ToolTip>
+                                    <ToolTip Content="{Binding IsInstalled, Converter={StaticResource InstalledStatusToTextConverter}}"/>
+                                </Ellipse.ToolTip>
+                            </Ellipse>
+
+                            <!-- Reinstallability indicator -->
+                            <materialDesign:PackIcon
+                                Style="{StaticResource ReinstallabilityIndicatorStyle}"
+                                Kind="{Binding CanBeReinstalled, Converter={StaticResource BooleanToReinstallableIconConverter}}"
+                                Foreground="{Binding CanBeReinstalled, Converter={StaticResource StatusToColorConverter}}">
+                                <materialDesign:PackIcon.ToolTip>
+                                    <ToolTip Content="{Binding CanBeReinstalled, Converter={StaticResource BooleanToReinstallableTextConverter}}"/>
+                                </materialDesign:PackIcon.ToolTip>
+                            </materialDesign:PackIcon>
+
+                            <TextBlock Text="{Binding Name}"
+                                       Style="{StaticResource AppItemTextStyle}">
+                                <TextBlock.ToolTip>
+                                    <ToolTip Content="{Binding Description}"/>
+                                </TextBlock.ToolTip>
+                            </TextBlock>
+
+                        </StackPanel>
+                    </CheckBox>
+                </DataTemplate>
+            </ItemsControl.ItemTemplate>
+        </ItemsControl>
+
+        <!-- Separator -->
+        <Separator Style="{StaticResource SectionSeparatorStyle}"/>
+
+        <!-- Optional Features Section -->
+        <StackPanel Orientation="Horizontal" Margin="0,5,0,5">
+            <TextBlock Text="Windows Optional Features"
+                      Style="{StaticResource SectionHeaderStyle}"/>
+        </StackPanel>
+
+        <ItemsControl ItemsSource="{Binding OptionalFeatures}"
+                      Margin="10,0,10,10">
+            <ItemsControl.ItemsPanel>
+                <ItemsPanelTemplate>
+                    <UniformGrid Style="{StaticResource AppItemsUniformGridStyle}"/>
+                </ItemsPanelTemplate>
+            </ItemsControl.ItemsPanel>
+            <ItemsControl.ItemTemplate>
+                <DataTemplate>
+                    <CheckBox Style="{StaticResource CustomCheckBox}"
+                              Margin="8,5,10,5"
+                              IsChecked="{Binding IsSelected}">
+                        <StackPanel Orientation="Horizontal">
+                            <Ellipse Style="{StaticResource AppStatusIndicatorStyle}"
+                                     Fill="{Binding IsInstalled, Converter={StaticResource InstalledStatusToColorConverter}}">
+                                <Ellipse.ToolTip>
+                                    <ToolTip Content="{Binding IsInstalled, Converter={StaticResource InstalledStatusToTextConverter}}"/>
+                                </Ellipse.ToolTip>
+                            </Ellipse>
+
+                            <!-- Reinstallability indicator -->
+                            <materialDesign:PackIcon
+                                Style="{StaticResource ReinstallabilityIndicatorStyle}"
+                                Kind="{Binding CanBeReinstalled, Converter={StaticResource BooleanToReinstallableIconConverter}}"
+                                Foreground="{Binding CanBeReinstalled, Converter={StaticResource StatusToColorConverter}}">
+                                <materialDesign:PackIcon.ToolTip>
+                                    <ToolTip Content="{Binding CanBeReinstalled, Converter={StaticResource BooleanToReinstallableTextConverter}}"/>
+                                </materialDesign:PackIcon.ToolTip>
+                            </materialDesign:PackIcon>
+
+                            <TextBlock Text="{Binding Name}"
+                                       Style="{StaticResource AppItemTextStyle}">
+                                <TextBlock.ToolTip>
+                                    <ToolTip Content="{Binding Description}"/>
+                                </TextBlock.ToolTip>
+                            </TextBlock>
+
+                        </StackPanel>
+                    </CheckBox>
+                </DataTemplate>
+            </ItemsControl.ItemTemplate>
+        </ItemsControl>
+
+    </StackPanel>
+</UserControl>

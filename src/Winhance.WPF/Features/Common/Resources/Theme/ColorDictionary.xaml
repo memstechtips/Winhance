@@ -1,0 +1,174 @@
+<ResourceDictionary xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+                    xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml">
+    <!--
+    Color Dictionary
+    
+    This file defines all color resources used throughout the application.
+    Colors are organized into:
+    1. Theme-specific colors (Dark/Light prefixes)
+    2. Generic brushes that reference the appropriate theme color
+    
+    The naming convention uses generic terms (e.g., ControlForeground) rather than
+    element-specific names (e.g., CheckBoxForeground) to promote reuse across
+    different UI elements and maintain consistency.
+    -->
+    
+    <!-- Dark Theme Colors -->
+    <Color x:Key="DarkPrimaryTextColor">#FFFFFF</Color>
+    <Color x:Key="DarkSecondaryTextColor">#AAAAAA</Color>
+    <Color x:Key="DarkTertiaryTextColor">#808080</Color>
+    <Color x:Key="DarkHelpIconColor">#FFFFFF</Color>
+    <Color x:Key="DarkTooltipBackgroundColor">#2B2D30</Color>
+    <Color x:Key="DarkTooltipForegroundColor">#FFFFFF</Color>
+    <Color x:Key="DarkTooltipBorderColor">#FFDE00</Color>
+    <Color x:Key="DarkControlForegroundColor">#FFFFFF</Color>
+    <Color x:Key="DarkControlFillColor">#FFFFFF</Color>
+    <Color x:Key="DarkControlBorderColor">#FFDE00</Color>
+    <Color x:Key="DarkToggleKnobColor">#FFFFFF</Color>
+    <Color x:Key="DarkToggleKnobCheckedColor">#FFDE00</Color>
+    <Color x:Key="DarkContentSectionBorderColor">#1F2022</Color>
+    <Color x:Key="DarkMainContainerBorderColor">#2B2D30</Color>
+    <Color x:Key="DarkPrimaryButtonForegroundColor">#FFFFFF</Color>
+    <Color x:Key="DarkAccentColor">#FFDE00</Color>
+    <Color x:Key="DarkButtonHoverTextColor">#202124</Color>
+    <Color x:Key="DarkButtonDisabledForegroundColor">#99A3A4</Color>
+    <Color x:Key="DarkButtonDisabledBorderColor">#2B2D30</Color>
+    <Color x:Key="DarkNavigationButtonBackgroundColor">#1F2022</Color>
+    <Color x:Key="DarkNavigationButtonForegroundColor">#FFFFFF</Color>
+    <Color x:Key="DarkSliderTrackColor">#404040</Color>
+    <Color x:Key="DarkBackgroundColor">#202020</Color>
+    <Color x:Key="DarkContentSectionBackgroundColor">#1F2022</Color>
+    <!-- Dark Theme ScrollBar Colors -->
+    <Color x:Key="DarkScrollBarThumbColor">#FFDE00</Color>
+    <Color x:Key="DarkScrollBarThumbHoverColor">#FFE94C</Color>
+    <Color x:Key="DarkScrollBarThumbPressedColor">#FFF066</Color>
+
+    <!-- Light Theme Colors -->
+    <Color x:Key="LightPrimaryTextColor">#202124</Color>
+    <Color x:Key="LightSecondaryTextColor">#666666</Color>
+    <Color x:Key="LightTertiaryTextColor">#999999</Color>
+    <Color x:Key="LightHelpIconColor">#202124</Color>
+    <Color x:Key="LightTooltipBackgroundColor">#FFFFFF</Color>
+    <Color x:Key="LightTooltipForegroundColor">#202124</Color>
+    <Color x:Key="LightTooltipBorderColor">#424242</Color>
+    <Color x:Key="LightControlForegroundColor">#202124</Color>
+    <Color x:Key="LightControlFillColor">#424242</Color>
+    <Color x:Key="LightControlBorderColor">#424242</Color>
+    <Color x:Key="LightToggleKnobColor">#FFFFFF</Color>
+    <Color x:Key="LightToggleKnobCheckedColor">#424242</Color>
+    <Color x:Key="LightContentSectionBorderColor">#F6F8FC</Color>
+    <Color x:Key="LightMainContainerBorderColor">#FFFFFF</Color>
+    <Color x:Key="LightPrimaryButtonForegroundColor">#202124</Color>
+    <Color x:Key="LightAccentColor">#424242</Color>
+    <Color x:Key="LightButtonHoverTextColor">#FFFFFF</Color>
+    <Color x:Key="LightButtonDisabledForegroundColor">#CCCCCC</Color>
+    <Color x:Key="LightButtonDisabledBorderColor">#EEEEEE</Color>
+    <Color x:Key="LightNavigationButtonBackgroundColor">#FFFFFF</Color>
+    <Color x:Key="LightNavigationButtonForegroundColor">#202124</Color>
+    <Color x:Key="LightSliderTrackColor">#CCCCCC</Color>
+    <Color x:Key="LightBackgroundColor">#F6F8FC</Color>
+    <Color x:Key="LightContentSectionBackgroundColor">#F0F0F0</Color>
+    <!-- Light Theme ScrollBar Colors -->
+    <Color x:Key="LightScrollBarThumbColor">#424242</Color>
+    <Color x:Key="LightScrollBarThumbHoverColor">#666666</Color>
+    <Color x:Key="LightScrollBarThumbPressedColor">#222222</Color>
+
+    <!-- Dynamic Theme Brushes -->
+    <!-- Text Colors -->
+    <SolidColorBrush x:Key="PrimaryTextColor"
+            Color="{DynamicResource DarkPrimaryTextColor}"/>
+    <SolidColorBrush x:Key="SecondaryTextColor"
+            Color="{DynamicResource DarkSecondaryTextColor}"/>
+    <SolidColorBrush x:Key="TertiaryTextColor"
+            Color="{DynamicResource DarkTertiaryTextColor}"/>
+    <SolidColorBrush x:Key="SubTextColor"
+            Color="{DynamicResource DarkSecondaryTextColor}"/>
+
+    <!-- UI Element Colors -->
+    <SolidColorBrush x:Key="HelpIconForeground"
+            Color="{DynamicResource DarkHelpIconColor}"/>
+    <SolidColorBrush x:Key="WindowBackground"
+            Color="{DynamicResource DarkBackgroundColor}"/>
+    <SolidColorBrush x:Key="ContentSectionBorderBrush"
+            Color="{DynamicResource DarkContentSectionBorderColor}"/>
+    <SolidColorBrush x:Key="MainContainerBorderBrush"
+            Color="{DynamicResource DarkMainContainerBorderColor}"/>
+
+    <!-- Button Colors -->
+    <SolidColorBrush x:Key="PrimaryButtonForeground"
+            Color="{DynamicResource DarkPrimaryButtonForegroundColor}"/>
+    <SolidColorBrush x:Key="ButtonBorderBrush"
+            Color="{DynamicResource DarkAccentColor}"/>
+    <SolidColorBrush x:Key="ButtonHoverBackground"
+            Color="{DynamicResource DarkAccentColor}"/>
+    <SolidColorBrush x:Key="ButtonHoverTextColor"
+            Color="{DynamicResource DarkButtonHoverTextColor}"/>
+    <SolidColorBrush x:Key="ButtonDisabledForeground"
+            Color="{DynamicResource DarkButtonDisabledForegroundColor}"/>
+    <SolidColorBrush x:Key="ButtonDisabledBorderBrush"
+            Color="{DynamicResource DarkButtonDisabledBorderColor}"/>
+    <SolidColorBrush x:Key="ButtonDisabledHoverBackground"
+            Color="{DynamicResource DarkButtonDisabledBorderColor}"/>
+    <SolidColorBrush x:Key="ButtonDisabledHoverForeground"
+            Color="{DynamicResource DarkButtonDisabledForegroundColor}"/>
+
+    <!-- Navigation Colors -->
+    <SolidColorBrush x:Key="NavigationButtonBackground"
+            Color="{DynamicResource DarkNavigationButtonBackgroundColor}"/>
+    <SolidColorBrush x:Key="NavigationButtonForeground"
+            Color="{DynamicResource DarkNavigationButtonForegroundColor}"/>
+
+    <!-- Tooltip Colors -->
+    <SolidColorBrush x:Key="TooltipBackground"
+            Color="{DynamicResource DarkTooltipBackgroundColor}"/>
+    <SolidColorBrush x:Key="TooltipForeground"
+            Color="{DynamicResource DarkTooltipForegroundColor}"/>
+    <SolidColorBrush x:Key="TooltipBorderBrush"
+            Color="{DynamicResource DarkTooltipBorderColor}"/>
+
+    <!-- Control Colors (Checkbox, Toggle Switch, etc.) -->
+    <SolidColorBrush x:Key="ControlForeground"
+            Color="{DynamicResource DarkControlForegroundColor}"/>
+    <SolidColorBrush x:Key="ControlFillColor"
+            Color="{DynamicResource DarkControlFillColor}"/>
+    <SolidColorBrush x:Key="ControlBorderBrush"
+            Color="{DynamicResource DarkControlBorderColor}"/>
+    
+    <!-- Toggle Switch Specific Colors -->
+    <SolidColorBrush x:Key="ToggleKnobBrush"
+            Color="{DynamicResource DarkToggleKnobColor}"/>
+    <SolidColorBrush x:Key="ToggleKnobCheckedBrush"
+            Color="{DynamicResource DarkToggleKnobCheckedColor}"/>
+
+    <!-- Slider Colors -->
+    <SolidColorBrush x:Key="SliderTrackBackground"
+            Color="{DynamicResource DarkSliderTrackColor}"/>
+    <SolidColorBrush x:Key="SliderAccentColor"
+            Color="{DynamicResource DarkAccentColor}"/>
+    <SolidColorBrush x:Key="TickBarForeground"
+            Color="{DynamicResource DarkPrimaryTextColor}"/>
+
+    <!-- ScrollBar Brushes -->
+    <SolidColorBrush x:Key="ScrollBarThumbBrush"
+            Color="{DynamicResource DarkScrollBarThumbColor}"/>
+    <SolidColorBrush x:Key="ScrollBarThumbHoverBrush"
+            Color="{DynamicResource DarkScrollBarThumbHoverColor}"/>
+    <SolidColorBrush x:Key="ScrollBarThumbPressedBrush"
+            Color="{DynamicResource DarkScrollBarThumbPressedColor}"/>
+
+    <!-- Window Content Sections -->
+    <SolidColorBrush x:Key="ContentSectionBackground"
+            Color="{DynamicResource DarkContentSectionBackgroundColor}"/>
+
+    <!-- Effects -->
+    <DropShadowEffect x:Key="ShadowEffect"
+                      ShadowDepth="5"
+                      BlurRadius="10"
+                      Color="Black"/>
+
+    <DropShadowEffect x:Key="LightShadowEffect"
+                      ShadowDepth="5"
+                      BlurRadius="10"
+                      Color="Black"
+                      Opacity="0.5"/>
+</ResourceDictionary>

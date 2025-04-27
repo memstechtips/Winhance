@@ -1,0 +1,124 @@
+<UserControl x:Class="Winhance.WPF.Features.SoftwareApps.Views.SoftwareAppsView"
+             xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
+             xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
+             xmlns:viewModels="clr-namespace:Winhance.WPF.Features.SoftwareApps.ViewModels"
+             xmlns:views="clr-namespace:Winhance.WPF.Features.SoftwareApps.Views"
+             xmlns:materialDesign="http://materialdesigninxaml.net/winfx/xaml/themes"
+             d:DataContext="{d:DesignInstance Type=viewModels:SoftwareAppsViewModel}"
+             mc:Ignorable="d">
+
+    <Grid>
+        <!-- Header -->
+        <DockPanel Height="70"
+                   VerticalAlignment="Top">
+            <!-- Symbol = Deployed Code -->
+            <TextBlock Text="&#xF720;"
+                       FontFamily="{StaticResource MaterialSymbolsFont}"
+                       FontSize="60"
+                       Margin="10,0,10,0"
+                       DockPanel.Dock="Left"
+                       VerticalAlignment="Center"
+                       Foreground="{DynamicResource PrimaryTextColor}"/>
+
+            <StackPanel VerticalAlignment="Center">
+                <TextBlock Height="35"
+                           VerticalAlignment="Top"
+                           FontFamily="Helvetica Neue"
+                           FontSize="32"
+                           FontWeight="Bold"
+                           Foreground="{DynamicResource PrimaryTextColor}"
+                           Text="Software &amp; Apps"/>
+
+                <TextBlock Height="22"
+                           Margin="0,5,0,0"
+                           VerticalAlignment="Bottom"
+                           FontFamily="Helvetica Neue"
+                           FontSize="14"
+                           Foreground="{DynamicResource SubTextColor}"
+                           Text="{Binding StatusText}"/>
+            </StackPanel>
+        </DockPanel>
+
+        <!-- Main Content -->
+        <Border Margin="0,80,0,0"
+                Background="{DynamicResource MainContainerBorderBrush}"
+                CornerRadius="10">
+            <ScrollViewer Style="{StaticResource ModernScrollViewer}"
+                          VerticalScrollBarVisibility="Auto"
+                          HorizontalScrollBarVisibility="Disabled">
+                <StackPanel Margin="10">
+                    <!-- Windows Apps Section -->
+                    <StackPanel>
+                        <Border x:Name="WindowsAppsHeaderBorder"
+                                Style="{StaticResource AppSectionHeaderStyle}">
+                            <DockPanel x:Name="WindowsAppsHeader"
+                                       VerticalAlignment="Center"
+                                       HorizontalAlignment="Stretch">
+                                <materialDesign:PackIcon Kind="MicrosoftWindows"
+                                                         Width="24"
+                                                         Height="24"
+                                                         Margin="10,0,0,0"
+                                                         VerticalAlignment="Center"
+                                                         Foreground="{DynamicResource PrimaryTextColor}"/>
+                                <TextBlock Text="Windows Apps &amp; Features"
+                                           Style="{StaticResource AppSectionHeaderTextStyle}"/>
+                                <materialDesign:PackIcon x:Name="WindowsAppsHeaderIcon"
+                                                         Kind="ChevronDown"
+                                                         Style="{StaticResource MaterialIconStyle}"
+                                                         Width="24"
+                                                         Height="24"
+                                                         Padding="10"
+                                                         HorizontalAlignment="Right"
+                                                         VerticalAlignment="Center"
+                                                         Foreground="{DynamicResource PrimaryTextColor}"/>
+                            </DockPanel>
+                        </Border>
+                        <Border Style="{StaticResource AppSectionContentBorderStyle}">
+                            <ContentControl x:Name="WindowsAppsContent"
+                                            Margin="0">
+                                <views:WindowsAppsView DataContext="{Binding WindowsAppsViewModel}"/>
+                            </ContentControl>
+                        </Border>
+                    </StackPanel>
+
+                    <!-- External Software Section -->
+                    <StackPanel Margin="0,10,0,0">
+                        <Border x:Name="ExternalAppsHeaderBorder"
+                                Style="{StaticResource AppSectionHeaderStyle}">
+                            <DockPanel x:Name="ExternalAppsHeader"
+                                       VerticalAlignment="Center"
+                                       HorizontalAlignment="Stretch">
+                                <!-- Symbol = Deployed Code Update -->
+                                <TextBlock Text="&#xF5F4;"
+                                           FontFamily="{StaticResource MaterialSymbolsFont}"
+                                           FontSize="24"
+                                           Margin="10,0,0,0"
+                                           VerticalAlignment="Center"
+                                           Foreground="{DynamicResource PrimaryTextColor}"/>
+                                <TextBlock Text="External Software"
+                                           Style="{StaticResource AppSectionHeaderTextStyle}"/>
+                                <materialDesign:PackIcon x:Name="ExternalAppsHeaderIcon"
+                                                         Kind="ChevronDown"
+                                                         Style="{StaticResource MaterialIconStyle}"
+                                                         Width="24"
+                                                         Height="24"
+                                                         Padding="10"
+                                                         HorizontalAlignment="Right"
+                                                         VerticalAlignment="Center"
+                                                         Foreground="{DynamicResource PrimaryTextColor}"/>
+                            </DockPanel>
+                        </Border>
+                        <Border Style="{StaticResource AppSectionContentBorderStyle}">
+                            <ContentControl x:Name="ExternalAppsContent"
+                                            Margin="0">
+                                <views:ExternalAppsView DataContext="{Binding ExternalAppsViewModel}"/>
+                            </ContentControl>
+                        </Border>
+                    </StackPanel>
+                </StackPanel>
+            </ScrollViewer>
+        </Border>
+    </Grid>
+</UserControl>

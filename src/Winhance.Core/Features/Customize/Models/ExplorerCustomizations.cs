@@ -1,0 +1,466 @@
+using Microsoft.Win32;
+using System.Collections.Generic;
+using Winhance.Core.Features.Common.Enums;
+using Winhance.Core.Features.Common.Models;
+using Winhance.Core.Features.Customize.Enums;
+
+namespace Winhance.Core.Features.Customize.Models;
+
+public static class ExplorerCustomizations
+{
+    public static CustomizationGroup GetExplorerCustomizations()
+    {
+        return new CustomizationGroup
+        {
+            Name = "Explorer",
+            Category = CustomizationCategory.Explorer,
+            Settings = new List<CustomizationSetting>
+            {
+
+                new CustomizationSetting
+                {
+                    Id = "explorer-3d-objects",
+                    Name = "3D Objects",
+                    Description = "Controls 3D Objects folder visibility in This PC",
+                    Category = CustomizationCategory.Explorer,
+                    GroupName = "File Explorer Settings",
+                    IsEnabled = false,
+                    RegistrySettings = new List<RegistrySetting>
+                    {
+                        new RegistrySetting
+                        {
+                            Category = "Explorer",
+                            Hive = RegistryHive.LocalMachine,
+                            SubKey = "Software\\Microsoft\\Windows\\CurrentVersion\\Explorer\\MyComputer\\NameSpace",
+                            Name = "{0DB7E03F-FC29-4DC6-9020-FF41B59E513A}",
+                            RecommendedValue = null,
+                            EnabledValue = null,   // When toggle is ON, 3D Objects folder is shown (key exists)
+                            DisabledValue = null,  // When toggle is OFF, 3D Objects folder is hidden (key removed)
+                            ValueType = RegistryValueKind.None,
+                            DefaultValue = null,
+                            Description = "Controls 3D Objects folder visibility in This PC",
+                            ActionType = RegistryActionType.Remove
+                        },
+                        new RegistrySetting
+                        {
+                            Category = "Explorer",
+                            Hive = RegistryHive.LocalMachine,
+                            SubKey = "Software\\Microsoft\\Windows\\CurrentVersion\\Explorer\\MyComputer\\NameSpace\\WOW64",
+                            Name = "{0DB7E03F-FC29-4DC6-9020-FF41B59E513A}",
+                            RecommendedValue = null,
+                            EnabledValue = null,   // When toggle is ON, 3D Objects folder is shown (key exists)
+                            DisabledValue = null,  // When toggle is OFF, 3D Objects folder is hidden (key removed)
+                            ValueType = RegistryValueKind.None,
+                            DefaultValue = null,
+                            Description = "Controls 3D Objects folder visibility in This PC (WOW64)",
+                            ActionType = RegistryActionType.Remove
+                        }
+                    },
+                    LinkedSettingsLogic = LinkedSettingsLogic.All
+                },
+                new CustomizationSetting
+                {
+                    Id = "explorer-home-folder",
+                    Name = "Home Folder in Navigation Pane",
+                    Description = "Controls Home Folder visibility in Navigation Pane",
+                    Category = CustomizationCategory.Explorer,
+                    GroupName = "File Explorer Settings",
+                    IsEnabled = false,
+                    RegistrySettings = new List<RegistrySetting>
+                    {
+                        new RegistrySetting
+                        {
+                            Category = "Explorer",
+                            Hive = RegistryHive.LocalMachine,
+                            SubKey = "Software\\Microsoft\\Windows\\CurrentVersion\\Explorer\\Desktop\\NameSpace",
+                            Name = "{f874310e-b6b7-47dc-bc84-b9e6b38f5903}",
+                            RecommendedValue = null,
+                            EnabledValue = null,   // When toggle is ON, Home Folder is shown (key exists)
+                            DisabledValue = null,  // When toggle is OFF, Home Folder is hidden (key removed)
+                            ValueType = RegistryValueKind.None,
+                            DefaultValue = null,
+                            Description = "Controls Home Folder visibility in Navigation Pane",
+                            ActionType = RegistryActionType.Remove
+                        }
+                    }
+                },
+                new CustomizationSetting
+                {
+                    Id = "explorer-launch-to",
+                    Name = "Launch to This PC",
+                    Description = "Controls where File Explorer opens by default",
+                    Category = CustomizationCategory.Explorer,
+                    GroupName = "File Explorer Settings",
+                    IsEnabled = false,
+                    RegistrySettings = new List<RegistrySetting>
+                    {
+                        new RegistrySetting
+                        {
+                            Category = "Explorer",
+                            Hive = RegistryHive.CurrentUser,
+                            SubKey = "Software\\Microsoft\\Windows\\CurrentVersion\\Explorer\\Advanced",
+                            Name = "LaunchTo",
+                            RecommendedValue = 1,  // For backward compatibility
+                            EnabledValue = 1,      // When toggle is ON, File Explorer opens to 'This PC'
+                            DisabledValue = 2,     // When toggle is OFF, File Explorer opens to 'Quick access'
+                            ValueType = RegistryValueKind.DWord,
+                            DefaultValue = null,   // For backward compatibility
+                            Description = "Controls where File Explorer opens by default"
+                        }
+                    }
+                },
+                new CustomizationSetting
+                {
+                    Id = "explorer-show-file-ext",
+                    Name = "Show File Extensions",
+                    Description = "Controls visibility of file name extensions",
+                    Category = CustomizationCategory.Explorer,
+                    GroupName = "File Explorer Settings",
+                    IsEnabled = false,
+                    RegistrySettings = new List<RegistrySetting>
+                    {
+                        new RegistrySetting
+                        {
+                            Category = "Explorer",
+                            Hive = RegistryHive.CurrentUser,
+                            SubKey = "Software\\Microsoft\\Windows\\CurrentVersion\\Explorer\\Advanced",
+                            Name = "HideFileExt",
+                            RecommendedValue = 0,  // For backward compatibility
+                            EnabledValue = 0,      // When toggle is ON, file extensions are shown
+                            DisabledValue = 1,     // When toggle is OFF, file extensions are hidden
+                            ValueType = RegistryValueKind.DWord,
+                            DefaultValue = null,   // For backward compatibility
+                            Description = "Controls visibility of file name extensions"
+                        }
+                    }
+                },
+                new CustomizationSetting
+                {
+                    Id = "explorer-folder-tips",
+                    Name = "Folder Tips",
+                    Description = "Controls file size information in folder tips",
+                    Category = CustomizationCategory.Explorer,
+                    GroupName = "File Explorer Settings",
+                    IsEnabled = false,
+                    RegistrySettings = new List<RegistrySetting>
+                    {
+                        new RegistrySetting
+                        {
+                            Category = "Explorer",
+                            Hive = RegistryHive.CurrentUser,
+                            SubKey = "Software\\Microsoft\\Windows\\CurrentVersion\\Explorer\\Advanced",
+                            Name = "FolderContentsInfoTip",
+                            RecommendedValue = 0,  // For backward compatibility
+                            EnabledValue = 1,      // When toggle is ON, folder tips are enabled
+                            DisabledValue = 0,     // When toggle is OFF, folder tips are disabled
+                            ValueType = RegistryValueKind.DWord,
+                            DefaultValue = null,   // For backward compatibility
+                            Description = "Controls file size information in folder tips"
+                        }
+                    }
+                },
+                new CustomizationSetting
+                {
+                    Id = "explorer-popup-descriptions",
+                    Name = "Pop-up Descriptions",
+                    Description = "Controls pop-up descriptions for folder and desktop items",
+                    Category = CustomizationCategory.Explorer,
+                    GroupName = "File Explorer Settings",
+                    IsEnabled = false,
+                    RegistrySettings = new List<RegistrySetting>
+                    {
+                        new RegistrySetting
+                        {
+                            Category = "Explorer",
+                            Hive = RegistryHive.CurrentUser,
+                            SubKey = "Software\\Microsoft\\Windows\\CurrentVersion\\Explorer\\Advanced",
+                            Name = "ShowInfoTip",
+                            RecommendedValue = 0,  // For backward compatibility
+                            EnabledValue = 1,      // When toggle is ON, pop-up descriptions are shown
+                            DisabledValue = 0,     // When toggle is OFF, pop-up descriptions are hidden
+                            ValueType = RegistryValueKind.DWord,
+                            DefaultValue = null,   // For backward compatibility
+                            Description = "Controls pop-up descriptions for folder and desktop items"
+                        }
+                    }
+                },
+                new CustomizationSetting
+                {
+                    Id = "explorer-preview-handlers",
+                    Name = "Preview Handlers",
+                    Description = "Controls preview handlers in preview pane",
+                    Category = CustomizationCategory.Explorer,
+                    GroupName = "File Explorer Settings",
+                    IsEnabled = false,
+                    RegistrySettings = new List<RegistrySetting>
+                    {
+                        new RegistrySetting
+                        {
+                            Category = "Explorer",
+                            Hive = RegistryHive.CurrentUser,
+                            SubKey = "Software\\Microsoft\\Windows\\CurrentVersion\\Explorer\\Advanced",
+                            Name = "ShowPreviewHandlers",
+                            RecommendedValue = 0,  // For backward compatibility
+                            EnabledValue = 1,      // When toggle is ON, preview handlers are enabled
+                            DisabledValue = 0,     // When toggle is OFF, preview handlers are disabled
+                            ValueType = RegistryValueKind.DWord,
+                            DefaultValue = null,   // For backward compatibility
+                            Description = "Controls preview handlers in preview pane"
+                        }
+                    }
+                },
+                new CustomizationSetting
+                {
+                    Id = "explorer-status-bar",
+                    Name = "Status Bar",
+                    Description = "Controls status bar visibility in File Explorer",
+                    Category = CustomizationCategory.Explorer,
+                    GroupName = "File Explorer Settings",
+                    IsEnabled = false,
+                    RegistrySettings = new List<RegistrySetting>
+                    {
+                        new RegistrySetting
+                        {
+                            Category = "Explorer",
+                            Hive = RegistryHive.CurrentUser,
+                            SubKey = "Software\\Microsoft\\Windows\\CurrentVersion\\Explorer\\Advanced",
+                            Name = "ShowStatusBar",
+                            RecommendedValue = 0,  // For backward compatibility
+                            EnabledValue = 1,      // When toggle is ON, status bar is shown
+                            DisabledValue = 0,     // When toggle is OFF, status bar is hidden
+                            ValueType = RegistryValueKind.DWord,
+                            DefaultValue = null,   // For backward compatibility
+                            Description = "Controls status bar visibility in File Explorer"
+                        }
+                    }
+                },
+                new CustomizationSetting
+                {
+                    Id = "explorer-show-thumbnails",
+                    Name = "Show Thumbnails",
+                    Description = "Controls whether to show thumbnails or icons",
+                    Category = CustomizationCategory.Explorer,
+                    GroupName = "File Explorer Settings",
+                    IsEnabled = false,
+                    RegistrySettings = new List<RegistrySetting>
+                    {
+                        new RegistrySetting
+                        {
+                            Category = "Explorer",
+                            Hive = RegistryHive.CurrentUser,
+                            SubKey = "Software\\Microsoft\\Windows\\CurrentVersion\\Explorer\\Advanced",
+                            Name = "IconsOnly",
+                            RecommendedValue = 0,  // For backward compatibility
+                            EnabledValue = 0,      // When toggle is ON, thumbnails are shown
+                            DisabledValue = 1,     // When toggle is OFF, icons are shown
+                            ValueType = RegistryValueKind.DWord,
+                            DefaultValue = null,   // For backward compatibility
+                            Description = "Controls whether to show thumbnails or icons"
+                        }
+                    }
+                },
+                new CustomizationSetting
+                {
+                    Id = "explorer-translucent-selection",
+                    Name = "Translucent Selection",
+                    Description = "Controls translucent selection rectangle",
+                    Category = CustomizationCategory.Explorer,
+                    GroupName = "File Explorer Settings",
+                    IsEnabled = false,
+                    RegistrySettings = new List<RegistrySetting>
+                    {
+                        new RegistrySetting
+                        {
+                            Category = "Explorer",
+                            Hive = RegistryHive.CurrentUser,
+                            SubKey = "Software\\Microsoft\\Windows\\CurrentVersion\\Explorer\\Advanced",
+                            Name = "ListviewAlphaSelect",
+                            RecommendedValue = 0,  // For backward compatibility
+                            EnabledValue = 1,      // When toggle is ON, translucent selection is enabled
+                            DisabledValue = 0,     // When toggle is OFF, translucent selection is disabled
+                            ValueType = RegistryValueKind.DWord,
+                            DefaultValue = null,   // For backward compatibility
+                            Description = "Controls translucent selection rectangle"
+                        }
+                    }
+                },
+                new CustomizationSetting
+                {
+                    Id = "explorer-drop-shadows",
+                    Name = "Drop Shadows",
+                    Description = "Controls drop shadows for icon labels",
+                    Category = CustomizationCategory.Explorer,
+                    GroupName = "File Explorer Settings",
+                    IsEnabled = false,
+                    RegistrySettings = new List<RegistrySetting>
+                    {
+                        new RegistrySetting
+                        {
+                            Category = "Explorer",
+                            Hive = RegistryHive.CurrentUser,
+                            SubKey = "Software\\Microsoft\\Windows\\CurrentVersion\\Explorer\\Advanced",
+                            Name = "ListviewShadow",
+                            RecommendedValue = 0,  // For backward compatibility
+                            EnabledValue = 1,      // When toggle is ON, drop shadows are enabled
+                            DisabledValue = 0,     // When toggle is OFF, drop shadows are disabled
+                            ValueType = RegistryValueKind.DWord,
+                            DefaultValue = null,   // For backward compatibility
+                            Description = "Controls drop shadows for icon labels"
+                        }
+                    }
+                },
+                new CustomizationSetting
+                {
+                    Id = "explorer-full-path",
+                    Name = "Full Path in Title Bar",
+                    Description = "Controls full path display in the title bar",
+                    Category = CustomizationCategory.Explorer,
+                    GroupName = "File Explorer Settings",
+                    IsEnabled = false,
+                    RegistrySettings = new List<RegistrySetting>
+                    {
+                        new RegistrySetting
+                        {
+                            Category = "Explorer",
+                            Hive = RegistryHive.CurrentUser,
+                            SubKey = "Software\\Microsoft\\Windows\\CurrentVersion\\Explorer\\CabinetState",
+                            Name = "FullPath",
+                            RecommendedValue = 1,
+                            EnabledValue = 1,      // When toggle is ON, full path is shown
+                            DisabledValue = 0,     // When toggle is OFF, full path is hidden
+                            ValueType = RegistryValueKind.DWord,
+                            DefaultValue = null,
+                            Description = "Controls full path display in the title bar"
+                        }
+                    }
+                },
+                new CustomizationSetting
+                {
+                    Id = "explorer-font-smoothing",
+                    Name = "Font Smoothing",
+                    Description = "Controls smooth edges of screen fonts",
+                    Category = CustomizationCategory.Explorer,
+                    GroupName = "File Explorer Settings",
+                    IsEnabled = false,
+                    RegistrySettings = new List<RegistrySetting>
+                    {
+                        new RegistrySetting
+                        {
+                            Category = "Explorer",
+                            Hive = RegistryHive.CurrentUser,
+                            SubKey = "Control Panel\\Desktop",
+                            Name = "FontSmoothing",
+                            RecommendedValue = "2",
+                            EnabledValue = "2",    // When toggle is ON, font smoothing is enabled
+                            DisabledValue = "0",   // When toggle is OFF, font smoothing is disabled
+                            ValueType = RegistryValueKind.String,
+                            DefaultValue = null,
+                            Description = "Controls smooth edges of screen fonts"
+                        }
+                    }
+                },
+                new CustomizationSetting
+                {
+                    Id = "explorer-dpi-scaling",
+                    Name = "DPI Scaling (100%)",
+                    Description = "Controls DPI scaling setting",
+                    Category = CustomizationCategory.Explorer,
+                    GroupName = "File Explorer Settings",
+                    IsEnabled = false,
+                    RegistrySettings = new List<RegistrySetting>
+                    {
+                        new RegistrySetting
+                        {
+                            Category = "Explorer",
+                            Hive = RegistryHive.CurrentUser,
+                            SubKey = "Control Panel\\Desktop",
+                            Name = "LogPixels",
+                            RecommendedValue = 96,
+                            EnabledValue = 96,     // When toggle is ON, DPI scaling is set to 100%
+                            DisabledValue = 120,   // When toggle is OFF, DPI scaling is set to 125%
+                            ValueType = RegistryValueKind.DWord,
+                            DefaultValue = null,
+                            Description = "Controls DPI scaling setting"
+                        }
+                    }
+                },
+                new CustomizationSetting
+                {
+                    Id = "explorer-per-process-dpi",
+                    Name = "Per-Process DPI",
+                    Description = "Controls per-process system DPI",
+                    Category = CustomizationCategory.Explorer,
+                    GroupName = "File Explorer Settings",
+                    IsEnabled = false,
+                    RegistrySettings = new List<RegistrySetting>
+                    {
+                        new RegistrySetting
+                        {
+                            Category = "Explorer",
+                            Hive = RegistryHive.CurrentUser,
+                            SubKey = "Control Panel\\Desktop",
+                            Name = "EnablePerProcessSystemDPI",
+                            RecommendedValue = 0,
+                            EnabledValue = 1,      // When toggle is ON, per-process DPI is enabled
+                            DisabledValue = 0,     // When toggle is OFF, per-process DPI is disabled
+                            ValueType = RegistryValueKind.DWord,
+                            DefaultValue = null,
+                            Description = "Controls per-process system DPI"
+                        }
+                    }
+                },
+                new CustomizationSetting
+                {
+                    Id = "explorer-gallery",
+                    Name = "Gallery in Navigation Pane",
+                    Description = "Controls gallery visibility in navigation pane",
+                    Category = CustomizationCategory.Explorer,
+                    GroupName = "File Explorer Settings",
+                    IsEnabled = false,
+                    RegistrySettings = new List<RegistrySetting>
+                    {
+                        new RegistrySetting
+                        {
+                            Category = "Explorer",
+                            Hive = RegistryHive.LocalMachine,
+                            SubKey = "Software\\Microsoft\\Windows\\CurrentVersion\\Explorer\\Desktop\\NameSpace",
+                            Name = "{e88865ea-0e1c-4e20-9aa6-edcd0212c87c}",
+                            RecommendedValue = null,
+                            EnabledValue = null,   // When toggle is ON, gallery is shown (key exists)
+                            DisabledValue = null,  // When toggle is OFF, gallery is hidden (key removed)
+                            ValueType = RegistryValueKind.None,
+                            DefaultValue = null,
+                            Description = "Controls gallery visibility in navigation pane",
+                            ActionType = RegistryActionType.Remove
+                        }
+                    }
+                },
+                new CustomizationSetting
+                {
+                    Id = "explorer-context-menu",
+                    Name = "Classic Context Menu",
+                    Description = "Controls context menu style (classic or modern)",
+                    Category = CustomizationCategory.Explorer,
+                    GroupName = "File Explorer Settings",
+                    IsEnabled = false,
+                    RegistrySettings = new List<RegistrySetting>
+                    {
+                        new RegistrySetting
+                        {
+                            Category = "Explorer",
+                            Hive = RegistryHive.CurrentUser,
+                            SubKey = "Software\\Classes\\CLSID\\{86ca1aa0-34aa-4e8b-a509-50c905bae2a2}\\InprocServer32",
+                            Name = "",
+                            RecommendedValue = "",
+                            EnabledValue = null,   // When toggle is ON, classic context menu is used (value is deleted)
+                            DisabledValue = "",    // When toggle is OFF, modern context menu is used (empty value is set)
+                            ValueType = RegistryValueKind.String,
+                            DefaultValue = null,
+                            Description = "Controls context menu style (classic or modern)"
+                        }
+                    }
+                }
+            }
+        };
+    }
+}

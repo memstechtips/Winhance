@@ -1,0 +1,97 @@
+<Window
+    x:Class="Winhance.WPF.Features.Common.Views.LoadingWindow"
+    xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+    xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+    xmlns:shell="clr-namespace:System.Windows.Shell;assembly=PresentationFramework"
+    Title="Loading"
+    Width="450"
+    Height="280"
+    Background="{DynamicResource WindowBackground}"
+    WindowStartupLocation="CenterScreen"
+    ResizeMode="NoResize"
+    ShowInTaskbar="True"
+    Icon="{DynamicResource DefaultAppIcon}">
+
+    <WindowChrome.WindowChrome>
+        <WindowChrome
+            CaptionHeight="0"
+            ResizeBorderThickness="0"
+            GlassFrameThickness="-1"
+            CornerRadius="8"
+            NonClientFrameEdges="None"
+            UseAeroCaptionButtons="False"/>
+    </WindowChrome.WindowChrome>
+
+    <Grid>
+        <Border
+            x:Name="MainBorder"
+            Background="{DynamicResource WindowBackground}"
+            BorderBrush="{DynamicResource AccentColor}"
+            BorderThickness="0"
+            CornerRadius="8"
+            Margin="0">
+            <Grid>
+                <StackPanel Style="{StaticResource ContentStackPanelStyle}"
+                            VerticalAlignment="Center"
+                            HorizontalAlignment="Center">
+                    <!-- Title with Icon -->
+                    <StackPanel
+                        Orientation="Horizontal"
+                        HorizontalAlignment="Center"
+                        Margin="0,0,0,10">
+                        <!-- App Icon -->
+                        <Image x:Name="AppIconImage"
+                               Width="55"
+                               Height="55"
+                               Margin="0,-2,5,0"
+                               VerticalAlignment="Center"
+                               RenderOptions.BitmapScalingMode="HighQuality"
+                               RenderOptions.EdgeMode="Aliased"/>
+                        <TextBlock
+                            FontFamily="Helvetica Neue"
+                            FontSize="55"
+                            FontWeight="Light"
+                            Foreground="{DynamicResource PrimaryTextColor}"
+                            Text="Winhance"/>
+                    </StackPanel>
+
+                    <!-- Status Message -->
+                    <TextBlock
+                        Style="{StaticResource HeaderTextBlockStyle}"
+                        Text="{Binding StatusMessage}"
+                        FontSize="16"
+                        FontWeight="SemiBold"
+                        Margin="0,0,0,5"
+                        HorizontalAlignment="Center"
+                        Height="Auto"/>
+
+                    <!-- Detail Message -->
+                    <TextBlock
+                        Style="{StaticResource StatusTextStyle}"
+                        Text="{Binding DetailMessage}"
+                        FontStyle="Italic"
+                        Margin="0,0,0,20"
+                        HorizontalAlignment="Center"
+                        TextWrapping="Wrap"
+                        MaxWidth="350"/>
+
+                    <!-- Progress Bar -->
+                    <ProgressBar
+                        Style="{StaticResource StandardProgressBar}"
+                        IsIndeterminate="{Binding IsIndeterminate}"
+                        Value="{Binding Progress}"
+                        Width="300"/>
+
+                    <!-- Progress Text -->
+                    <TextBlock
+                        Style="{StaticResource StatusTextStyle}"
+                        Text="{Binding ProgressText}"
+                        FontSize="12"
+                        Margin="0,5,0,0"
+                        HorizontalAlignment="Center"
+                        Visibility="{Binding ShowProgressText, Converter={StaticResource BooleanToVisibilityConverter}}"/>
+                </StackPanel>
+            </Grid>
+        </Border>
+    </Grid>
+</Window>

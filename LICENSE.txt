@@ -1,5 +1,5 @@
 Project Name: Winhance
-Author: Memory aka "memstechtips"
+Author: Marco du Plessis
 Year: 2025
 License: CC BY-NC-SA 4.0
 Link: https://creativecommons.org/licenses/by-nc-sa/4.0/legalcode.en

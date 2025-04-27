@@ -1,0 +1,52 @@
+<UserControl x:Class="Winhance.WPF.Features.Common.Controls.SearchBox"
+             x:ClassModifier="public"
+             xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006" 
+             xmlns:d="http://schemas.microsoft.com/expression/blend/2008" 
+             xmlns:materialDesign="http://materialdesigninxaml.net/winfx/xaml/themes"
+             mc:Ignorable="d" 
+             d:DesignHeight="36" d:DesignWidth="200">
+    <Grid>
+        <Grid.ColumnDefinitions>
+            <ColumnDefinition Width="Auto"/>
+            <ColumnDefinition Width="*"/>
+            <ColumnDefinition Width="Auto"/>
+        </Grid.ColumnDefinitions>
+        
+        <!-- Search Icon -->
+        <materialDesign:PackIcon Grid.Column="0" 
+                                 Kind="Magnify" 
+                                 Style="{StaticResource MaterialIconStyle}"
+                                 Margin="5,0,5,0"
+                                 VerticalAlignment="Center"/>
+        
+        <!-- Search TextBox -->
+        <TextBox Grid.Column="1"
+                 x:Name="SearchTextBox"
+                 materialDesign:HintAssist.Hint="Type here to search..."
+                 Text="{Binding SearchText, RelativeSource={RelativeSource AncestorType=UserControl}, UpdateSourceTrigger=PropertyChanged}"
+                 Foreground="{DynamicResource PrimaryTextColor}"
+                 Background="Transparent"
+                 BorderBrush="{DynamicResource ButtonBorderBrush}"
+                 CaretBrush="{DynamicResource PrimaryTextColor}"
+                 VerticalAlignment="Center"
+                 Height="30"
+                 Padding="5,0,2,0"
+                 Style="{StaticResource RoundedTextBoxStyle}"/>
+        
+        <!-- Clear Button (only visible when there's text) -->
+        <Button Grid.Column="2"
+                Style="{StaticResource SearchClearButtonStyle}"
+                Width="24" Height="24"
+                Padding="0"
+                Margin="2,0,2,0"
+                Visibility="{Binding HasText, RelativeSource={RelativeSource AncestorType=UserControl}, Converter={StaticResource BooleanToVisibilityConverter}}"
+                Click="ClearButton_Click">
+            <materialDesign:PackIcon Kind="Close" 
+                                     Width="16" 
+                                     Height="16" 
+                                     Foreground="{DynamicResource SecondaryTextColor}"/>
+        </Button>
+    </Grid>
+</UserControl>

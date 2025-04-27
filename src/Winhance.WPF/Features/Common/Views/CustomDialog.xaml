@@ -1,0 +1,128 @@
+<Window x:Class="Winhance.WPF.Features.Common.Views.CustomDialog"
+        xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        xmlns:converters="clr-namespace:Winhance.WPF.Features.Common.Converters"
+        x:Name="DialogWindow"
+        Title="{Binding Title}"
+        Width="750"
+        SizeToContent="Height"
+        WindowStartupLocation="CenterScreen"
+        ResizeMode="NoResize"
+        WindowStyle="None"
+        AllowsTransparency="True"
+        Background="Transparent"
+        ShowInTaskbar="True"
+        Topmost="True">
+    
+    <Window.Resources>
+        <converters:GreaterThanOneConverter x:Key="GreaterThanOneConverter"/>
+    </Window.Resources>
+    
+    <Border CornerRadius="10"
+            BorderThickness="1"
+            BorderBrush="{DynamicResource ButtonBorderBrush}"
+            Background="{DynamicResource WindowBackground}"
+            Effect="{StaticResource ShadowEffect}">
+        <Grid Margin="20">
+            <Grid.RowDefinitions>
+                <RowDefinition Height="Auto"/>
+                <RowDefinition Height="Auto"/>
+                <RowDefinition Height="Auto"/>
+                <RowDefinition Height="Auto"/>
+            </Grid.RowDefinitions>
+
+        <!-- Header with Icon -->
+        <DockPanel Grid.Row="0" LastChildFill="True" Style="{StaticResource DialogHeaderStyle}">
+            <Image x:Name="DialogIcon"
+                   Style="{StaticResource DialogIconStyle}"
+                   DockPanel.Dock="Left"/>
+            <TextBlock x:Name="HeaderText"
+                      Style="{StaticResource DialogTextBlockStyle}"
+                      FontWeight="SemiBold"
+                      FontSize="16"
+                      TextWrapping="Wrap"
+                      VerticalAlignment="Center"/>
+        </DockPanel>
+
+        <!-- App List -->
+        <Border Grid.Row="1"
+                Margin="42,10,0,10"
+                Style="{StaticResource DialogAppListBorderStyle}">
+            <ItemsControl x:Name="AppList">
+                <ItemsControl.Resources>
+                    <BooleanToVisibilityConverter x:Key="BoolToVis"/>
+                </ItemsControl.Resources>
+                <ItemsControl.Style>
+                    <Style TargetType="ItemsControl">
+                        <Style.Triggers>
+                            <!-- Use 1 column for single item (typically for information messages) -->
+                            <DataTrigger Binding="{Binding Items.Count, RelativeSource={RelativeSource Self}}" Value="1">
+                                <Setter Property="ItemsPanel">
+                                    <Setter.Value>
+                                        <ItemsPanelTemplate>
+                                            <UniformGrid Columns="1"/>
+                                        </ItemsPanelTemplate>
+                                    </Setter.Value>
+                                </Setter>
+                            </DataTrigger>
+                            <!-- Use 4 columns for multiple items (typically for app lists) -->
+                            <DataTrigger Binding="{Binding Items.Count, RelativeSource={RelativeSource Self}, Converter={StaticResource GreaterThanOneConverter}}" Value="True">
+                                <Setter Property="ItemsPanel">
+                                    <Setter.Value>
+                                        <ItemsPanelTemplate>
+                                            <UniformGrid Columns="4"/>
+                                        </ItemsPanelTemplate>
+                                    </Setter.Value>
+                                </Setter>
+                            </DataTrigger>
+                        </Style.Triggers>
+                    </Style>
+                </ItemsControl.Style>
+                <ItemsControl.ItemsPanel>
+                    <ItemsPanelTemplate>
+                        <UniformGrid Columns="4"/>
+                    </ItemsPanelTemplate>
+                </ItemsControl.ItemsPanel>
+                <ItemsControl.ItemTemplate>
+                    <DataTemplate>
+                        <TextBlock Text="{Binding}"
+                                 TextWrapping="Wrap"
+                                 Style="{StaticResource DialogAppTextBlockStyle}"/>
+                    </DataTemplate>
+                </ItemsControl.ItemTemplate>
+            </ItemsControl>
+        </Border>
+
+        <!-- Footer Text -->
+        <TextBlock x:Name="FooterText"
+                  Grid.Row="2"
+                  Style="{StaticResource DialogFooterStyle}"
+                  TextWrapping="Wrap"
+                  Margin="42,10,0,15"/>
+
+        <!-- Buttons -->
+        <StackPanel x:Name="ButtonsPanel"
+                    Grid.Row="3"
+                    Orientation="Horizontal"
+                    HorizontalAlignment="Right">
+            <Button x:Name="PrimaryButton"
+                    Style="{StaticResource DialogButtonStyle}"
+                    Click="PrimaryButton_Click"
+                    IsDefault="True"
+                    Margin="0,0,10,0"/>
+            
+            <Button x:Name="SecondaryButton"
+                    Style="{StaticResource DialogButtonStyle}"
+                    Click="SecondaryButton_Click"
+                    Margin="0,0,10,0"/>
+            
+            <Button x:Name="TertiaryButton"
+                    Style="{StaticResource DialogButtonStyle}"
+                    Click="TertiaryButton_Click"
+                    IsCancel="True"
+                    Visibility="Collapsed"
+                    Margin="0,0,0,0"/>
+        </StackPanel>
+        </Grid>
+    </Border>
+</Window>

@@ -1,0 +1,54 @@
+<Project Sdk="Microsoft.NET.Sdk">
+  <PropertyGroup>
+    <OutputType>WinExe</OutputType>
+    <TargetFramework>net9.0-windows</TargetFramework>
+    <AssemblyName>Winhance</AssemblyName>
+    <Nullable>enable</Nullable>
+    <ImplicitUsings>enable</ImplicitUsings>
+    <UseWPF>true</UseWPF>
+    <GenerateSettingsDesignerUriItem>true</GenerateSettingsDesignerUriItem>
+    <EnableDefaultPageItems>true</EnableDefaultPageItems>
+    <ApplicationIcon>Resources\AppIcons\winhance-rocket.ico</ApplicationIcon>
+    <!-- Force icon refresh -->
+    <Win32Resource></Win32Resource>
+  </PropertyGroup>
+
+  <!-- Theme files are now included by default -->
+
+  <ItemGroup>
+    <Compile Update="**\*.xaml.cs">
+      <DependentUpon>%(Filename)</DependentUpon>
+    </Compile>
+  </ItemGroup>
+
+  <ItemGroup>
+    <ApplicationManifest Include="App.manifest" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <Resource Include="Resources\Fonts\MaterialSymbolsOutlined.ttf" />
+    <Resource Include="Resources\AppIcons\winhance-rocket.ico" />
+    <Resource Include="Resources\AppIcons\winhance-rocket-white-transparent-bg.ico" />
+    <Resource Include="Resources\AppIcons\winhance-rocket-black-transparent-bg.ico" />
+    <Resource Include="Resources\AppIcons\LICENSE.txt" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <ProjectReference Include="..\Winhance.Core\Winhance.Core.csproj" />
+    <ProjectReference Include="..\Winhance.Infrastructure\Winhance.Infrastructure.csproj" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <PackageReference Include="CommunityToolkit.Mvvm" Version="8.4.0" />
+    <PackageReference Include="MaterialDesignThemes" Version="5.2.1" />
+    <PackageReference Include="Microsoft.Extensions.DependencyInjection" Version="8.0.0" />
+    <PackageReference Include="Microsoft.Extensions.Hosting" Version="8.0.0" />
+    <PackageReference Include="Microsoft.Win32.Registry" Version="5.0.0" />
+    <PackageReference Include="System.Data.SqlClient" Version="4.8.6" />
+    <PackageReference Include="System.DirectoryServices.Protocols" Version="8.0.0" />
+    <PackageReference Include="System.Formats.Asn1" Version="8.0.1" />
+    <PackageReference Include="System.IO.Packaging" Version="8.0.1" />
+    <PackageReference Include="Microsoft.Windows.Compatibility" Version="8.0.0" />
+    <PackageReference Include="System.Text.Json" Version="9.0.2" />
+  </ItemGroup>
+</Project>

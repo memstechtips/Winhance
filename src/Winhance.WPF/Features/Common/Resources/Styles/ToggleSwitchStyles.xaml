@@ -1,0 +1,101 @@
+<ResourceDictionary xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+                    xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+                    xmlns:converters="clr-namespace:Winhance.WPF.Features.Common.Converters">
+
+    <!--
+    Custom Toggle Switch Style
+    
+    This style uses the generic control resources (ControlForeground, ControlBorderBrush)
+    for consistent theming across different UI elements. The toggle knob uses specific
+    toggle resources (ToggleKnobBrush, ToggleKnobCheckedBrush) for specialized styling.
+    
+    The BooleanToThemeConverter is used to dynamically change the appearance based on:
+    1. The current theme (Dark/Light)
+    2. The toggle state (Checked/Unchecked)
+    -->
+    <Style x:Key="MaterialToggleSwitch" TargetType="ToggleButton">
+        <!-- The Tag property is set by the default style for all ToggleButtons -->
+        <Setter Property="Foreground" Value="{DynamicResource ControlForeground}"/>
+        <Setter Property="Background" Value="Transparent"/>
+        <Setter Property="BorderBrush" Value="{DynamicResource ControlBorderBrush}"/>
+        <Setter Property="Cursor" Value="Hand"/>
+        <Setter Property="Template">
+            <Setter.Value>
+                <ControlTemplate TargetType="ToggleButton">
+                    <Grid>
+                        <Grid.ColumnDefinitions>
+                            <ColumnDefinition Width="Auto"/>
+                            <ColumnDefinition Width="*"/>
+                        </Grid.ColumnDefinitions>
+
+                        <!-- Toggle Switch Track (using Border with no border) -->
+                        <Border x:Name="SwitchTrack"
+                                Width="40" Height="20"
+                                CornerRadius="10"
+                                BorderThickness="0"
+                                VerticalAlignment="Center">
+                            <Border.Background>
+                                <MultiBinding Converter="{StaticResource BooleanToThemeConverter}" ConverterParameter="Track">
+                                    <Binding Path="Tag" RelativeSource="{RelativeSource TemplatedParent}" />
+                                    <Binding Path="IsChecked" RelativeSource="{RelativeSource TemplatedParent}" />
+                                </MultiBinding>
+                            </Border.Background>
+                            <Ellipse x:Name="SwitchKnob"
+                                     Width="16" Height="16"
+                                     HorizontalAlignment="Left"
+                                     Margin="2,0,0,0">
+                                <Ellipse.Fill>
+                                    <SolidColorBrush Color="{DynamicResource DarkToggleKnobColor}" />
+                                </Ellipse.Fill>
+                                <Ellipse.Effect>
+                                    <DropShadowEffect ShadowDepth="1" Direction="315" Color="Black" Opacity="0.3" BlurRadius="2"/>
+                                </Ellipse.Effect>
+                            </Ellipse>
+                        </Border>
+
+                        <!-- Content -->
+                        <ContentPresenter Grid.Column="1"
+                                          Margin="10,0,0,0"
+                                          VerticalAlignment="Center"
+                                          HorizontalAlignment="Left"/>
+                    </Grid>
+                    <ControlTemplate.Triggers>
+                        <!-- Move knob to right position when checked -->
+                        <Trigger Property="IsChecked" Value="True">
+                            <Setter TargetName="SwitchKnob" Property="Margin" Value="22,0,0,0"/>
+                        </Trigger>
+
+                        <!-- Common hover state -->
+                        <Trigger Property="IsMouseOver" Value="True">
+                            <Setter TargetName="SwitchTrack" Property="Opacity" Value="0.8"/>
+                        </Trigger>
+                        
+                        <!-- Change knob color when checked -->
+                        <MultiTrigger>
+                            <MultiTrigger.Conditions>
+                                <Condition Property="IsChecked" Value="True" />
+                                <Condition Property="Tag" Value="Dark" />
+                            </MultiTrigger.Conditions>
+                            <Setter TargetName="SwitchKnob" Property="Fill" Value="{DynamicResource ControlBorderBrush}" />
+                        </MultiTrigger>
+                    </ControlTemplate.Triggers>
+                </ControlTemplate>
+            </Setter.Value>
+        </Setter>
+    </Style>
+    <!-- Default style for all ToggleButtons in the application -->
+    <Style TargetType="ToggleButton" BasedOn="{StaticResource MaterialToggleSwitch}">
+        <!-- Set default Tag value -->
+        <Setter Property="Tag" Value="{Binding Source={x:Static Application.Current}, Path=Resources[IsDarkTheme], Converter={StaticResource BooleanToThemeConverter}, FallbackValue=Light}"/>
+        <Style.Triggers>
+            <!-- Automatically set the Tag property based on the application theme -->
+            <DataTrigger Binding="{Binding Source={x:Static Application.Current}, Path=Resources[IsDarkTheme]}" Value="True">
+                <Setter Property="Tag" Value="Dark"/>
+            </DataTrigger>
+            <DataTrigger Binding="{Binding Source={x:Static Application.Current}, Path=Resources[IsDarkTheme]}" Value="False">
+                <Setter Property="Tag" Value="Light"/>
+            </DataTrigger>
+        </Style.Triggers>
+    </Style>
+</ResourceDictionary>
+

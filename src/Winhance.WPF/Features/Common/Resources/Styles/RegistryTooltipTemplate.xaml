@@ -1,0 +1,99 @@
+<ResourceDictionary xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+                    xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+                    xmlns:converters="clr-namespace:Winhance.WPF.Features.Common.Converters"
+                    xmlns:oldConverters="clr-namespace:Winhance.WPF.Converters">
+
+    <converters:CountToVisibilityConverter x:Key="CountToVisibilityConverter"/>
+    <converters:InverseCountToVisibilityConverter x:Key="InverseCountToVisibilityConverter"/>
+    <converters:RegistryHiveToFullNameConverter x:Key="RegistryHiveToFullNameConverter"/>
+    <oldConverters:BooleanToVisibilityConverter x:Key="BooleanToVisibilityConverter"/>
+    <converters:InverseBooleanToVisibilityConverter x:Key="InverseBooleanToVisibilityConverter"/>
+
+    <!-- Common tooltip template for registry settings -->
+    <DataTemplate x:Key="RegistrySettingTooltipTemplate">
+        <StackPanel>
+            <!-- Description -->
+            <TextBlock Text="{Binding Description}" FontWeight="Bold" TextWrapping="Wrap"/>
+            <Separator/>
+
+            <!-- Command-based Setting -->
+            <StackPanel Visibility="{Binding IsCommandBasedSetting, Converter={StaticResource BooleanToVisibilityConverter}}">
+                <TextBlock Text="This setting uses PowerCfg commands to configure power settings." TextWrapping="Wrap"/>
+                
+                <!-- Display the PowerCfg commands with better formatting -->
+                <TextBlock Text="PowerCfg Commands:" FontWeight="SemiBold" Margin="0,5,0,0"/>
+                
+                <!-- Get the custom properties to display the commands -->
+                <StackPanel Margin="10,0,0,5">
+                    <!-- When Enabled -->
+                    <TextBlock Text="When Enabled:" FontWeight="SemiBold" Margin="0,5,0,0"/>
+                    <ItemsControl ItemsSource="{Binding PowerCfgCommands}" Margin="10,0,0,5">
+                        <ItemsControl.ItemTemplate>
+                            <DataTemplate>
+                                <TextBlock Text="{Binding}" TextWrapping="Wrap" FontFamily="Consolas" FontSize="11"/>
+                            </DataTemplate>
+                        </ItemsControl.ItemTemplate>
+                    </ItemsControl>
+                    
+                    <!-- When Disabled - Show the disabled commands if available -->
+                    <TextBlock Text="When Disabled:" FontWeight="SemiBold" Margin="0,5,0,0"/>
+                    <TextBlock Text="Restores Windows default settings" TextWrapping="Wrap" Margin="10,0,0,0"/>
+                </StackPanel>
+                
+                <TextBlock Text="Current Status:" FontWeight="SemiBold" Margin="0,5,0,0"/>
+                <TextBlock Text="{Binding StatusMessage}" TextWrapping="Wrap" Margin="10,0,0,0"/>
+            </StackPanel>
+
+            <!-- Single Registry Setting -->
+            <StackPanel Visibility="{Binding IsCommandBasedSetting, Converter={StaticResource InverseBooleanToVisibilityConverter}}">
+                <StackPanel Visibility="{Binding LinkedRegistrySettings.Settings.Count, Converter={StaticResource InverseCountToVisibilityConverter}}">
+                    <TextBlock>
+                        <Run Text="Registry Path: "/>
+                        <Run Text="{Binding RegistrySetting.Hive, Converter={StaticResource RegistryHiveToFullNameConverter}, Mode=OneWay, TargetNullValue='null'}"/><Run Text="\"/><Run Text="{Binding RegistrySetting.SubKey, Mode=OneWay, TargetNullValue='null'}"/>
+                    </TextBlock>
+                    <TextBlock>
+                        <Run Text="Value Name: "/>
+                        <Run Text="{Binding RegistrySetting.Name, Mode=OneWay, TargetNullValue='null'}"/>
+                    </TextBlock>
+                    <TextBlock>
+                        <Run Text="Current Value: "/>
+                        <Run Text="{Binding CurrentValue, Mode=OneWay, TargetNullValue='null'}"/>
+                    </TextBlock>
+                    <TextBlock>
+                        <Run Text="Recommended Value: "/>
+                        <Run Text="{Binding RegistrySetting.RecommendedValue, Mode=OneWay, TargetNullValue='null'}"/>
+                    </TextBlock>
+                </StackPanel>
+
+                <!-- Linked Registry Settings -->
+                <StackPanel Visibility="{Binding LinkedRegistrySettings.Settings.Count, Converter={StaticResource CountToVisibilityConverter}}">
+                    <TextBlock Text="Linked Registry Settings:" FontWeight="SemiBold" Margin="0,0,0,5"/>
+                    <ItemsControl ItemsSource="{Binding LinkedRegistrySettingsWithValues}">
+                        <ItemsControl.ItemTemplate>
+                            <DataTemplate>
+                                <StackPanel Margin="0,0,0,10">
+                                    <TextBlock>
+                                        <Run Text="Registry Path: "/>
+                                        <Run Text="{Binding Setting.Hive, Converter={StaticResource RegistryHiveToFullNameConverter}, Mode=OneWay, TargetNullValue='null'}"/><Run Text="\"/><Run Text="{Binding Setting.SubKey, Mode=OneWay, TargetNullValue='null'}"/>
+                                    </TextBlock>
+                                    <TextBlock>
+                                        <Run Text="Value Name: "/>
+                                        <Run Text="{Binding Setting.Name, Mode=OneWay, TargetNullValue='null'}"/>
+                                    </TextBlock>
+                                    <TextBlock>
+                                        <Run Text="Current Value: "/>
+                                        <Run Text="{Binding CurrentValue, Mode=OneWay, TargetNullValue='null'}"/>
+                                    </TextBlock>
+                                    <TextBlock>
+                                        <Run Text="Recommended Value: "/>
+                                        <Run Text="{Binding Setting.RecommendedValue, Mode=OneWay, TargetNullValue='null'}"/>
+                                    </TextBlock>
+                                </StackPanel>
+                            </DataTemplate>
+                        </ItemsControl.ItemTemplate>
+                    </ItemsControl>
+                </StackPanel>
+            </StackPanel>
+        </StackPanel>
+    </DataTemplate>
+</ResourceDictionary>

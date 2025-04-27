@@ -1,0 +1,271 @@
+<Window x:Class="Winhance.WPF.Features.Common.Views.MainWindow"
+        xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        xmlns:controls="clr-namespace:Winhance.WPF.Features.Common.Controls"
+        xmlns:views="clr-namespace:Winhance.WPF.Features.Common.Views"
+        xmlns:viewModels="clr-namespace:Winhance.WPF.Features.Common.ViewModels"
+        xmlns:softwareAppsViewModels="clr-namespace:Winhance.WPF.Features.SoftwareApps.ViewModels"
+        xmlns:optimizeViewModels="clr-namespace:Winhance.WPF.Features.Optimize.ViewModels"
+        xmlns:customizeViewModels="clr-namespace:Winhance.WPF.Features.Customize.ViewModels"
+        xmlns:softwareAppsViews="clr-namespace:Winhance.WPF.Features.SoftwareApps.Views"
+        xmlns:optimizeViews="clr-namespace:Winhance.WPF.Features.Optimize.Views"
+        xmlns:customizeViews="clr-namespace:Winhance.WPF.Features.Customize.Views"
+        xmlns:materialDesign="http://materialdesigninxaml.net/winfx/xaml/themes"
+        Title="Winhance"
+        Width="1600"
+        Height="900"
+        Background="Transparent"
+        WindowStartupLocation="CenterScreen"
+        ResizeMode="CanResize"
+        SnapsToDevicePixels="True"
+        UseLayoutRounding="True"
+        Icon="{DynamicResource DefaultAppIcon}">
+
+        <Window.Resources>
+                <!-- DataTemplates for views -->
+                <DataTemplate DataType="{x:Type softwareAppsViewModels:SoftwareAppsViewModel}">
+                        <softwareAppsViews:SoftwareAppsView/>
+                </DataTemplate>
+                <DataTemplate DataType="{x:Type softwareAppsViewModels:WindowsAppsViewModel}">
+                        <softwareAppsViews:WindowsAppsView/>
+                </DataTemplate>
+                <DataTemplate DataType="{x:Type softwareAppsViewModels:ExternalAppsViewModel}">
+                        <softwareAppsViews:ExternalAppsView/>
+                </DataTemplate>
+                <DataTemplate DataType="{x:Type optimizeViewModels:OptimizeViewModel}">
+                        <optimizeViews:OptimizeView/>
+                </DataTemplate>
+                <DataTemplate DataType="{x:Type customizeViewModels:CustomizeViewModel}">
+                        <customizeViews:CustomizeView/>
+                </DataTemplate>
+        </Window.Resources>
+
+        <!-- Using ViewModel commands for window control -->
+
+        <WindowChrome.WindowChrome>
+                <WindowChrome
+                        CaptionHeight="32"
+                        ResizeBorderThickness="0"
+                        GlassFrameThickness="-1"
+                        CornerRadius="10"
+                        NonClientFrameEdges="None"
+                        UseAeroCaptionButtons="False"/>
+        </WindowChrome.WindowChrome>
+
+        <Border Background="{DynamicResource WindowBackground}"
+                BorderThickness="0"
+                CornerRadius="10"
+                Margin="0"
+                Padding="0"
+                ClipToBounds="True">
+                <Grid>
+                        <Grid.RowDefinitions>
+                                <RowDefinition Height="32"/>
+                                <RowDefinition Height="*"/>
+                        </Grid.RowDefinitions>
+
+                        <!-- Title Bar -->
+                        <Grid Grid.Row="0">
+                                <Grid.ColumnDefinitions>
+                                        <ColumnDefinition Width="Auto"/>
+                                        <ColumnDefinition Width="*"/>
+                                        <ColumnDefinition Width="Auto"/>
+                                </Grid.ColumnDefinitions>
+
+                                <!-- Title -->
+                                <DockPanel Grid.Column="0"
+                                           Margin="10,5,0,0"
+                                           HorizontalAlignment="Left"
+                                           VerticalAlignment="Center">
+                                        <!-- App Icon -->
+                                        <Image x:Name="AppIconImage"
+                                               Width="24"
+                                               Height="24"
+                                               Margin="0,0,5,0"
+                                               VerticalAlignment="Center"
+                                               RenderOptions.BitmapScalingMode="HighQuality"
+                                               RenderOptions.EdgeMode="Aliased"/>
+                                        <TextBlock FontFamily="Helvetica Neue"
+                                                   FontSize="18"
+                                                   FontWeight="Light"
+                                                   Foreground="{DynamicResource PrimaryTextColor}">
+                                                <Run Text="Winhance "/>
+                                                <Run FontSize="12"
+                                                     FontStyle="Italic"
+                                                     Foreground="Gray"
+                                                     Text="by Memory"/>
+                                        </TextBlock>
+                                </DockPanel>
+
+                                <!-- Window Controls -->
+                                <StackPanel Grid.Column="2"
+                                            Orientation="Horizontal"
+                                            HorizontalAlignment="Right"
+                                            VerticalAlignment="Top">
+
+                                        <!-- Save Config Button -->
+                                        <Button Width="32"
+                                                Height="32"
+                                                Margin="0,0,0,0"
+                                                Command="{Binding SaveUnifiedConfigCommand}"
+                                                ToolTip="Save Configuration"
+                                                Style="{StaticResource WindowControlButton}"
+                                                WindowChrome.IsHitTestVisibleInChrome="True">
+                                            <materialDesign:PackIcon Kind="ContentSave"
+                                                                     Width="18"
+                                                                     Height="18"/>
+                                        </Button>
+
+                                        <!-- Import Config Button -->
+                                        <Button Width="32"
+                                                Height="32"
+                                                Margin="0,0,0,0"
+                                                Command="{Binding ImportUnifiedConfigCommand}"
+                                                ToolTip="Import Configuration"
+                                                Style="{StaticResource WindowControlButton}"
+                                                WindowChrome.IsHitTestVisibleInChrome="True">
+                                            <materialDesign:PackIcon Kind="FolderOpen"
+                                                                     Width="18"
+                                                                     Height="18"/>
+                                        </Button>
+
+                                        <!-- Theme Toggle Button -->
+                                        <Button Command="{Binding ToggleThemeCommand}"
+                                                ToolTip="Toggle Winhance Theme"
+                                                Style="{StaticResource WindowControlButton}"
+                                                WindowChrome.IsHitTestVisibleInChrome="True"
+                                                Margin="0,0,0,0">
+                                                <!-- Symbol = Routine -->
+                                                <TextBlock Text="&#xE20C;"
+                                                           FontFamily="{StaticResource MaterialSymbolsFont}"
+                                                           FontSize="18"/>
+                                        </Button>
+
+                                        <!-- Donation Button -->
+                                        <Button Width="32"
+                                                Height="32"
+                                                Margin="0,0,0,0"
+                                                Command="{Binding OpenDonateCommand}"
+                                                ToolTip="Donate to Support Development"
+                                                Style="{StaticResource WindowControlButton}"
+                                                WindowChrome.IsHitTestVisibleInChrome="True">
+                                            <!-- Symbol = Credit Card Heart -->
+                                                <TextBlock Text="&#xF52C;"
+                                                           FontFamily="{StaticResource MaterialSymbolsFont}"
+                                                           FontSize="18"/>
+                                        </Button>
+
+                                        <!-- Use commands with direct event handlers as fallback -->
+                                        <Button x:Name="MinimizeButton"
+                                                Style="{StaticResource WindowControlButton}"
+                                                WindowChrome.IsHitTestVisibleInChrome="True"
+                                                Margin="0,0,0,0"
+                                                Command="{Binding MinimizeWindowCommand}">
+                                                <materialDesign:PackIcon Kind="WindowMinimize"
+                                                                         Width="18"
+                                                                         Height="18"/>
+                                        </Button>
+                                        <Button x:Name="MaximizeRestoreButton"
+                                                Style="{StaticResource WindowControlButton}"
+                                                WindowChrome.IsHitTestVisibleInChrome="True"
+                                                Margin="0,0,0,0"
+                                                Command="{Binding MaximizeRestoreWindowCommand}">
+                                                <materialDesign:PackIcon Kind="{Binding MaximizeButtonContent, Converter={StaticResource StringToMaximizeIconConverter}, FallbackValue=WindowMaximize}"
+                                                                         Width="18"
+                                                                         Height="18"/>
+                                        </Button>
+                                        <Button x:Name="CloseButton"
+                                                Style="{StaticResource WindowCloseButton}"
+                                                WindowChrome.IsHitTestVisibleInChrome="True"
+                                                Click="CloseButton_Click">
+                                                <materialDesign:PackIcon Kind="Close"
+                                                                         Width="18"
+                                                                         Height="18"/>
+                                        </Button>
+                                </StackPanel>
+                        </Grid>
+
+                        <!-- Main Content -->
+                        <Grid Grid.Row="1">
+                                <Grid.ColumnDefinitions>
+                                        <ColumnDefinition Width="90"/>
+                                        <ColumnDefinition Width="*"/>
+                                </Grid.ColumnDefinitions>
+
+                                <!-- Navigation -->
+                                <Grid Grid.Column="0"
+                                      Margin="10,24,0,10">
+                                        <Grid.RowDefinitions>
+                                                <RowDefinition Height="Auto"/>
+                                                <!-- Top navigation buttons -->
+                                                <RowDefinition Height="*"/>
+                                                <!-- Spacer -->
+                                                <RowDefinition Height="Auto"/>
+                                        </Grid.RowDefinitions>
+
+                                        <!-- Top Navigation Buttons -->
+                                        <StackPanel Grid.Row="0">
+                                                <Button x:Name="SoftwareAppsButton"
+                                                        Style="{StaticResource NavigationButton}"
+                                                        Command="{Binding NavigationService.NavigateCommand}"
+                                                        CommandParameter="SoftwareApps"
+                                                        Content="Software &amp; Apps"
+                                                        Margin="0,0,0,10">
+                                                        <Button.Tag>
+                                                                <!-- Symbol = Deployed Code -->
+                                                                <TextBlock Text="&#xF720;"
+                                                                           FontFamily="{StaticResource MaterialSymbolsFont}"
+                                                                           FontSize="24"/>
+                                                        </Button.Tag>
+                                                </Button>
+                                                <Button x:Name="OptimizeButton"
+                                                        Style="{StaticResource NavigationButton}"
+                                                        Command="{Binding NavigationService.NavigateCommand}"
+                                                        CommandParameter="Optimize"
+                                                        Content="Optimize"
+                                                        Margin="0,0,0,10">
+                                                        <Button.Tag>
+                                                                <TextBlock Text="&#xEB9B;"
+                                                                           FontFamily="{StaticResource MaterialSymbolsFont}"
+                                                                           FontSize="24"/>
+                                                        </Button.Tag>
+                                                </Button>
+                                                <Button x:Name="CustomizeButton"
+                                                        Style="{StaticResource NavigationButton}"
+                                                        Command="{Binding NavigationService.NavigateCommand}"
+                                                        CommandParameter="Customize"
+                                                        Content="Customize"
+                                                        Margin="0,0,0,10">
+                                                        <Button.Tag>
+                                                                <materialDesign:PackIcon Kind="Palette"
+                                                                                         Width="24"
+                                                                                         Height="24"/>
+                                                        </Button.Tag>
+                                                </Button>
+                                        </StackPanel>
+                                </Grid>
+
+                                <!-- Content Area -->
+                                <Grid Grid.Column="1"
+                                      Margin="10,24,10,10">
+                                        <Grid.RowDefinitions>
+                                                <RowDefinition Height="*"/>
+                                                <RowDefinition Height="Auto"/>
+                                        </Grid.RowDefinitions>
+
+                                        <!-- Content Presenter for ViewModel-based navigation -->
+                                        <ContentPresenter Grid.Row="0"
+                                                          Content="{Binding CurrentViewModel}"/>
+
+                                        <!-- Progress Indicator -->
+                                        <controls:ProgressIndicator Grid.Row="1"
+                                                                    Margin="0,10,0,0"
+                                                                    IsActive="{Binding IsLoading}"
+                                                                    Progress="{Binding CurrentProgress}"
+                                                                    StatusText="{Binding StatusText}"
+                                                                    IsIndeterminate="{Binding IsIndeterminate}"/>
+                                </Grid>
+                        </Grid>
+                </Grid>
+        </Border>
+</Window>

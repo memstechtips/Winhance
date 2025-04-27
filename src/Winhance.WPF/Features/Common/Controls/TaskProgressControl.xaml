@@ -1,0 +1,89 @@
+<UserControl x:Class="Winhance.WPF.Features.Common.Controls.TaskProgressControl"
+             xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006" 
+             xmlns:d="http://schemas.microsoft.com/expression/blend/2008" 
+             mc:Ignorable="d" 
+             d:DesignHeight="150" d:DesignWidth="400">
+    <Grid x:Name="MainGrid" Visibility="{Binding IsVisible, RelativeSource={RelativeSource AncestorType=UserControl}, Converter={StaticResource BooleanToVisibilityConverter}}">
+        <Border Background="{DynamicResource ContentSectionBorderBrush}"
+                BorderBrush="{DynamicResource ButtonBorderBrush}"
+                BorderThickness="1"
+                CornerRadius="5"
+                Padding="10,5">
+            <Grid>
+                <Grid.RowDefinitions>
+                    <RowDefinition Height="Auto"/>
+                    <RowDefinition Height="Auto"/>
+                    <RowDefinition Height="Auto"/>
+                </Grid.RowDefinitions>
+                
+                <!-- Status Text -->
+                <DockPanel Grid.Row="0" LastChildFill="True">
+                    <TextBlock Text="{Binding StatusText, RelativeSource={RelativeSource AncestorType=UserControl}}"
+                               Foreground="{DynamicResource PrimaryTextColor}"
+                               FontSize="12"
+                               Margin="0,0,10,0"
+                               VerticalAlignment="Center"
+                               DockPanel.Dock="Left"/>
+                    
+                    <TextBlock Text="{Binding ProgressText, RelativeSource={RelativeSource AncestorType=UserControl}}"
+                               Foreground="{DynamicResource SecondaryTextColor}"
+                               FontSize="12"
+                               HorizontalAlignment="Right"
+                               VerticalAlignment="Center"
+                               DockPanel.Dock="Right"/>
+                </DockPanel>
+                
+                <!-- Progress Bar -->
+                <ProgressBar Grid.Row="1"
+                             Height="8"
+                             Margin="0,5,0,0"
+                             Value="{Binding Progress, RelativeSource={RelativeSource AncestorType=UserControl}}"
+                             Maximum="100"
+                             Minimum="0"
+                             IsIndeterminate="{Binding IsIndeterminate, RelativeSource={RelativeSource AncestorType=UserControl}}"
+                             Background="Transparent"
+                             BorderBrush="{DynamicResource ButtonBorderBrush}"
+                             Foreground="{DynamicResource AccentColor}"/>
+                
+                <!-- Log Messages -->
+                <Expander Grid.Row="2" 
+                          Header="Details" 
+                          Margin="0,5,0,0"
+                          IsExpanded="{Binding AreDetailsExpanded, RelativeSource={RelativeSource AncestorType=UserControl}}"
+                          Visibility="{Binding HasLogMessages, RelativeSource={RelativeSource AncestorType=UserControl}, Converter={StaticResource BooleanToVisibilityConverter}}">
+                    <Grid>
+                        <Grid.RowDefinitions>
+                            <RowDefinition Height="*"/>
+                            <RowDefinition Height="Auto"/>
+                        </Grid.RowDefinitions>
+                        
+                        <ScrollViewer Grid.Row="0" MaxHeight="200" VerticalScrollBarVisibility="Auto">
+                            <ItemsControl ItemsSource="{Binding LogMessages, RelativeSource={RelativeSource AncestorType=UserControl}}">
+                                <ItemsControl.ItemTemplate>
+                                    <DataTemplate>
+                                        <TextBlock Text="{Binding FormattedMessage}" 
+                                                   Foreground="{Binding Level, Converter={StaticResource LogLevelToColorConverter}}"
+                                                   TextWrapping="Wrap"
+                                                   Margin="0,2"/>
+                                    </DataTemplate>
+                                </ItemsControl.ItemTemplate>
+                            </ItemsControl>
+                        </ScrollViewer>
+                        
+                        <!-- Cancel Button -->
+                        <Button Grid.Row="1"
+                                Content="Cancel"
+                                HorizontalAlignment="Right"
+                                Margin="0,5,0,0"
+                                Padding="8,2"
+                                Visibility="{Binding CanCancel, RelativeSource={RelativeSource AncestorType=UserControl}, Converter={StaticResource BooleanToVisibilityConverter}}"
+                                Command="{Binding CancelCommand, RelativeSource={RelativeSource AncestorType=UserControl}}"
+                                IsEnabled="{Binding IsTaskRunning, RelativeSource={RelativeSource AncestorType=UserControl}}"/>
+                    </Grid>
+                </Expander>
+            </Grid>
+        </Border>
+    </Grid>
+</UserControl>
