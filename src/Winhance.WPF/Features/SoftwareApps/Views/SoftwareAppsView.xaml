@@ -6,6 +6,7 @@
              xmlns:viewModels="clr-namespace:Winhance.WPF.Features.SoftwareApps.ViewModels"
              xmlns:views="clr-namespace:Winhance.WPF.Features.SoftwareApps.Views"
              xmlns:materialDesign="http://materialdesigninxaml.net/winfx/xaml/themes"
+             xmlns:controls="clr-namespace:Winhance.WPF.Features.Common.Controls"
              d:DataContext="{d:DesignInstance Type=viewModels:SoftwareAppsViewModel}"
              mc:Ignorable="d">
 
@@ -45,9 +46,9 @@
         <Border Margin="0,80,0,0"
                 Background="{DynamicResource MainContainerBorderBrush}"
                 CornerRadius="10">
-            <ScrollViewer Style="{StaticResource ModernScrollViewer}"
-                          VerticalScrollBarVisibility="Auto"
-                          HorizontalScrollBarVisibility="Disabled">
+            <controls:ResponsiveScrollViewer Style="{StaticResource ModernScrollViewer}"
+                                             VerticalScrollBarVisibility="Auto"
+                                             HorizontalScrollBarVisibility="Disabled">
                 <StackPanel Margin="10">
                     <!-- Windows Apps Section -->
                     <StackPanel>
@@ -118,7 +119,7 @@
                         </Border>
                     </StackPanel>
                 </StackPanel>
-            </ScrollViewer>
+            </controls:ResponsiveScrollViewer>
         </Border>
     </Grid>
 </UserControl>

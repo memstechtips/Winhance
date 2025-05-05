@@ -1,5 +1,5 @@
 using System;
-using System.Collections.ObjectModel;
+using System.Collections.Generic;
 using System.Linq;
 using System.Threading.Tasks;
 using CommunityToolkit.Mvvm.ComponentModel;
@@ -7,16 +7,19 @@ using Winhance.Core.Features.Common.Interfaces;
 using Winhance.Core.Features.Common.Models;
 using Winhance.Core.Features.Common.Enums;
 using Winhance.Core.Features.Optimize.Models;
+using Winhance.WPF.Features.Common.ViewModels;
 using Winhance.WPF.Features.Common.Interfaces;
 using Winhance.WPF.Features.Common.Models;
-using Winhance.WPF.Features.Common.ViewModels;
+using Microsoft.Win32;
+using Winhance.Core.Features.Common.Extensions;
+using Winhance.Infrastructure.Features.Common.Registry;
 
 namespace Winhance.WPF.Features.Optimize.ViewModels
 {
     /// <summary>
-    /// ViewModel for gaming and performance optimizations.
+    /// ViewModel for Gaming and Performance optimizations.
     /// </summary>
-    public partial class GamingandPerformanceOptimizationsViewModel : BaseSettingsViewModel<OptimizationSettingViewModel>
+    public partial class GamingandPerformanceOptimizationsViewModel : BaseSettingsViewModel<ApplicationSettingItem>
     {
         private readonly IViewModelLocator? _viewModelLocator;
         private readonly ISettingsRegistry? _settingsRegistry;
@@ -42,7 +45,7 @@ namespace Winhance.WPF.Features.Optimize.ViewModels
         }
 
         /// <summary>
-        /// Loads the gaming settings.
+        /// Loads the Gaming and Performance optimizations.
         /// </summary>
         /// <returns>A task representing the asynchronous operation.</returns>
         public override async Task LoadSettingsAsync()
@@ -50,56 +53,77 @@ namespace Winhance.WPF.Features.Optimize.ViewModels
             try
             {
                 IsLoading = true;
-                _logService.Log(LogLevel.Info, "Loading gaming and performance settings");
 
-                // Initialize gaming and performance settings from GamingandPerformanceOptimizations.cs
+                // Clear existing settings
+                Settings.Clear();
+
+                // Load Gaming and Performance optimizations
                 var gamingOptimizations = Core.Features.Optimize.Models.GamingandPerformanceOptimizations.GetGamingandPerformanceOptimizations();
                 if (gamingOptimizations?.Settings != null)
                 {
-                    Settings.Clear();
-
-                    // Add all settings sorted alphabetically by name
+                    // Add settings sorted alphabetically by name
                     foreach (var setting in gamingOptimizations.Settings.OrderBy(s => s.Name))
                     {
-                        var viewModel = new OptimizationSettingViewModel(
-                            _registryService, 
-                            null, 
-                            _logService, 
-                            null, 
-                            _viewModelLocator, 
-                            _settingsRegistry)
+                        // Create ApplicationSettingItem directly
+                        var settingItem = new ApplicationSettingItem(_registryService, null, _logService)
                         {
                             Id = setting.Id,
                             Name = setting.Name,
                             Description = setting.Description,
-                            IsSelected = false, // Always initialize as unchecked
+                            IsUpdatingFromCode = true, // Set this to true to allow RefreshStatus to set the correct state
                             GroupName = setting.GroupName,
-                            RegistrySetting = setting.RegistrySettings.FirstOrDefault(),
-                            ControlType = ControlType.BinaryToggle // Gaming settings are typically binary toggles
+                            Dependencies = setting.Dependencies,
+                            ControlType = ControlType.BinaryToggle // Default to binary toggle
                         };
 
-                        Settings.Add(viewModel);
+                        // Set up the registry settings
+                        if (setting.RegistrySettings.Count == 1)
+                        {
+                            // Single registry setting
+                            settingItem.RegistrySetting = setting.RegistrySettings[0];
+                            _logService.Log(LogLevel.Info, $"Setting up single registry setting for {setting.Name}: {setting.RegistrySettings[0].Hive}\\{setting.RegistrySettings[0].SubKey}\\{setting.RegistrySettings[0].Name}");
+                        }
+                        else if (setting.RegistrySettings.Count > 1)
+                        {
+                            // Linked registry settings
+                            settingItem.LinkedRegistrySettings = setting.CreateLinkedRegistrySettings();
+                            _logService.Log(LogLevel.Info, $"Setting up linked registry settings for {setting.Name} with {setting.RegistrySettings.Count} entries and logic {setting.LinkedSettingsLogic}");
+                            
+                            // Log details about each registry entry for debugging
+                            foreach (var regSetting in setting.RegistrySettings)
+                            {
+                                _logService.Log(LogLevel.Info, $"Linked registry entry: {regSetting.Hive}\\{regSetting.SubKey}\\{regSetting.Name}, IsPrimary={regSetting.IsPrimary}");
+                            }
+                        }
+                        else
+                        {
+                            _logService.Log(LogLevel.Warning, $"No registry settings found for {setting.Name}");
+                        }
+
+                        // Add to the settings collection
+                        Settings.Add(settingItem);
                     }
 
-                    // Set up property change handlers for checkboxes
+                    // Register settings with the settings registry if available
                     foreach (var setting in Settings)
                     {
-                        setting.PropertyChanged += (s, e) =>
+                        if (_settingsRegistry != null && !string.IsNullOrEmpty(setting.Id))
                         {
-                            if (e.PropertyName == nameof(OptimizationSettingViewModel.IsSelected))
-                            {
-                                UpdateIsSelectedState();
-                            }
-                        };
+                            _settingsRegistry.RegisterSetting(setting);
+                            _logService.Log(LogLevel.Info, $"Registered setting {setting.Id} in settings registry during creation");
+                        }
+                    }
+
+                    // Refresh status for all settings to populate LinkedRegistrySettingsWithValues
+                    foreach (var setting in Settings)
+                    {
+                        await setting.RefreshStatus();
                     }
                 }
-
-                await CheckSettingStatusesAsync();
             }
             catch (Exception ex)
             {
-                _logService.Log(LogLevel.Error, $"Error loading gaming and performance settings: {ex.Message}");
-                throw;
+                _logService.Log(LogLevel.Error, $"Error loading Gaming and Performance optimizations: {ex.Message}");
             }
             finally
             {
@@ -138,7 +162,83 @@ namespace Winhance.WPF.Features.Optimize.ViewModels
 
                             // Add to LinkedRegistrySettingsWithValues for tooltip display
                             setting.LinkedRegistrySettingsWithValues.Clear();
-                            setting.LinkedRegistrySettingsWithValues.Add(new LinkedRegistrySettingWithValue(setting.RegistrySetting, currentValue));
+                            setting.LinkedRegistrySettingsWithValues.Add(new Winhance.WPF.Features.Common.Models.LinkedRegistrySettingWithValue(setting.RegistrySetting, currentValue));
+
+                            // Set status message
+                            setting.StatusMessage = GetStatusMessage(setting);
+
+                            // Update IsSelected based on status
+                            bool shouldBeSelected = status == RegistrySettingStatus.Applied;
+
+                            // Set the checkbox state to match the registry state
+                            _logService.Log(LogLevel.Info, $"Setting {setting.Name} status is {status}, setting IsSelected to {shouldBeSelected}");
+                            setting.IsUpdatingFromCode = true;
+                            try
+                            {
+                                setting.IsSelected = shouldBeSelected;
+                            }
+                            finally
+                            {
+                                setting.IsUpdatingFromCode = false;
+                            }
+                        }
+                        else if (setting.LinkedRegistrySettings != null && setting.LinkedRegistrySettings.Settings.Count > 0)
+                        {
+                            _logService.Log(LogLevel.Info, $"Checking linked registry settings status for: {setting.Name} with {setting.LinkedRegistrySettings.Settings.Count} registry entries");
+
+                            // Log details about each registry entry for debugging
+                            foreach (var regSetting in setting.LinkedRegistrySettings.Settings)
+                            {
+                                string hiveString = RegistryExtensions.GetRegistryHiveString(regSetting.Hive);
+                                string fullPath = $"{hiveString}\\{regSetting.SubKey}";
+                                _logService.Log(LogLevel.Info, $"Registry entry: {fullPath}\\{regSetting.Name}, EnabledValue={regSetting.EnabledValue}, DisabledValue={regSetting.DisabledValue}");
+
+                                // Check if the key exists
+                                bool keyExists = _registryService.KeyExists(fullPath);
+                                _logService.Log(LogLevel.Info, $"Key exists: {keyExists}");
+
+                                if (keyExists)
+                                {
+                                    // Check if the value exists and get its current value
+                                    var currentValue = await _registryService.GetCurrentValueAsync(regSetting);
+                                    _logService.Log(LogLevel.Info, $"Current value: {currentValue ?? "null"}");
+                                }
+                            }
+
+                            // Get the combined status of all linked settings
+                            var status = await _registryService.GetLinkedSettingsStatusAsync(setting.LinkedRegistrySettings);
+                            _logService.Log(LogLevel.Info, $"Combined status for {setting.Name}: {status}");
+                            setting.Status = status;
+
+                            // For current value display, use the first setting's value
+                            if (setting.LinkedRegistrySettings.Settings.Count > 0)
+                            {
+                                var firstSetting = setting.LinkedRegistrySettings.Settings[0];
+                                var currentValue = await _registryService.GetCurrentValueAsync(firstSetting);
+                                _logService.Log(LogLevel.Info, $"Current value for {setting.Name} (first entry): {currentValue ?? "null"}");
+                                setting.CurrentValue = currentValue;
+
+                                // Check for null registry values
+                                bool anyNull = false;
+
+                                // Populate the LinkedRegistrySettingsWithValues collection for tooltip display
+                                setting.LinkedRegistrySettingsWithValues.Clear();
+                                foreach (var regSetting in setting.LinkedRegistrySettings.Settings)
+                                {
+                                    var regCurrentValue = await _registryService.GetCurrentValueAsync(regSetting);
+                                    _logService.Log(LogLevel.Info, $"Current value for linked setting {regSetting.Name}: {regCurrentValue ?? "null"}");
+                                    
+                                    if (regCurrentValue == null)
+                                    {
+                                        anyNull = true;
+                                    }
+                                    
+                                    setting.LinkedRegistrySettingsWithValues.Add(new Winhance.WPF.Features.Common.Models.LinkedRegistrySettingWithValue(regSetting, regCurrentValue));
+                                }
+                                
+                                // Set IsRegistryValueNull for linked settings
+                                setting.IsRegistryValueNull = anyNull;
+                            }
 
                             // Set status message
                             setting.StatusMessage = GetStatusMessage(setting);
@@ -219,215 +319,6 @@ namespace Winhance.WPF.Features.Optimize.ViewModels
         }
 
         /// <summary>
-        /// Applies all selected gaming and performance settings.
-        /// </summary>
-        /// <param name="progress">The progress reporter.</param>
-        /// <returns>A task representing the asynchronous operation.</returns>
-        public override async Task ApplySettingsAsync(IProgress<TaskProgressDetail> progress)
-        {
-            try
-            {
-                IsLoading = true;
-                progress.Report(new TaskProgressDetail { StatusText = "Applying gaming and performance settings...", IsIndeterminate = false, Progress = 0 });
-
-                var selectedSettings = Settings.Where(s => s.IsSelected).ToList();
-                if (selectedSettings.Count == 0)
-                {
-                    progress.Report(new TaskProgressDetail { StatusText = "No gaming and performance settings selected", IsIndeterminate = false, Progress = 1.0 });
-                    return;
-                }
-
-                int settingsProcessed = 0;
-                int totalSettings = selectedSettings.Count;
-
-                foreach (var setting in selectedSettings)
-                {
-                    if (setting.RegistrySetting != null)
-                    {
-                        string hiveString = setting.RegistrySetting.Hive.ToString();
-                        if (hiveString == "LocalMachine") hiveString = "HKLM";
-                        else if (hiveString == "CurrentUser") hiveString = "HKCU";
-                        else if (hiveString == "ClassesRoot") hiveString = "HKCR";
-                        else if (hiveString == "Users") hiveString = "HKU";
-                        else if (hiveString == "CurrentConfig") hiveString = "HKCC";
-
-                        string fullPath = $"{hiveString}\\{setting.RegistrySetting.SubKey}";
-                        // Use EnabledValue if available, otherwise fall back to RecommendedValue for backward compatibility
-                        object valueToSet = setting.RegistrySetting.EnabledValue ?? setting.RegistrySetting.RecommendedValue;
-                        _registryService.SetValue(fullPath, setting.RegistrySetting.Name, valueToSet, setting.RegistrySetting.ValueType);
-
-                        settingsProcessed++;
-                        progress.Report(new TaskProgressDetail
-                        {
-                            StatusText = $"Applied setting: {setting.Name}",
-                            IsIndeterminate = false,
-                            Progress = (double)settingsProcessed / totalSettings
-                        });
-                    }
-
-                    // If this is a grouped setting, apply all child settings too
-                    if (setting.IsGroupedSetting && setting.ChildSettings.Count > 0)
-                    {
-                        foreach (var childSetting in setting.ChildSettings.Where(c => c.IsSelected))
-                        {
-                            if (childSetting.RegistrySetting != null)
-                            {
-                                string hiveString = childSetting.RegistrySetting.Hive.ToString();
-                                if (hiveString == "LocalMachine") hiveString = "HKLM";
-                                else if (hiveString == "CurrentUser") hiveString = "HKCU";
-                                else if (hiveString == "ClassesRoot") hiveString = "HKCR";
-                                else if (hiveString == "Users") hiveString = "HKU";
-                                else if (hiveString == "CurrentConfig") hiveString = "HKCC";
-
-                                string fullPath = $"{hiveString}\\{childSetting.RegistrySetting.SubKey}";
-                                // Use EnabledValue if available, otherwise fall back to RecommendedValue for backward compatibility
-                                object valueToSet = childSetting.RegistrySetting.EnabledValue ?? childSetting.RegistrySetting.RecommendedValue;
-                                _registryService.SetValue(fullPath, childSetting.RegistrySetting.Name, valueToSet, childSetting.RegistrySetting.ValueType);
-
-                                settingsProcessed++;
-                                progress.Report(new TaskProgressDetail
-                                {
-                                    StatusText = $"Applied setting: {childSetting.Name}",
-                                    IsIndeterminate = false,
-                                    Progress = (double)settingsProcessed / totalSettings
-                                });
-                            }
-                        }
-                    }
-                }
-
-                // Refresh registry setting statuses to update the status indicators
-                progress.Report(new TaskProgressDetail { StatusText = "Refreshing setting statuses...", IsIndeterminate = false, Progress = 0.95 });
-                await CheckSettingStatusesAsync();
-
-                progress.Report(new TaskProgressDetail { StatusText = "Gaming and performance settings applied successfully", IsIndeterminate = false, Progress = 1.0 });
-            }
-            catch (Exception ex)
-            {
-                _logService.Log(LogLevel.Error, $"Error applying gaming and performance settings: {ex.Message}");
-                throw;
-            }
-            finally
-            {
-                IsLoading = false;
-            }
-        }
-
-        /// <summary>
-        /// Restores all selected gaming and performance settings to their default values.
-        /// </summary>
-        /// <param name="progress">The progress reporter.</param>
-        /// <returns>A task representing the asynchronous operation.</returns>
-        public override async Task RestoreDefaultsAsync(IProgress<TaskProgressDetail> progress)
-        {
-            try
-            {
-                IsLoading = true;
-                progress.Report(new TaskProgressDetail { StatusText = "Restoring gaming and performance settings to defaults...", IsIndeterminate = false, Progress = 0 });
-
-                var selectedSettings = Settings.Where(s => s.IsSelected).ToList();
-                if (selectedSettings.Count == 0)
-                {
-                    progress.Report(new TaskProgressDetail { StatusText = "No gaming and performance settings selected", IsIndeterminate = false, Progress = 1.0 });
-                    return;
-                }
-
-                int settingsProcessed = 0;
-                int totalSettings = selectedSettings.Count;
-
-                foreach (var setting in selectedSettings)
-                {
-                    if (setting.RegistrySetting != null)
-                    {
-                        // Use DisabledValue if available, otherwise fall back to DefaultValue for backward compatibility
-                        object? valueToSet = setting.RegistrySetting.DisabledValue ?? setting.RegistrySetting.DefaultValue;
-
-                        if (valueToSet == null)
-                        {
-                            await _registryService.DeleteValue(setting.RegistrySetting.Hive, setting.RegistrySetting.SubKey, setting.RegistrySetting.Name);
-                        }
-                        else
-                        {
-                            string hiveString = setting.RegistrySetting.Hive.ToString();
-                            if (hiveString == "LocalMachine") hiveString = "HKLM";
-                            else if (hiveString == "CurrentUser") hiveString = "HKCU";
-                            else if (hiveString == "ClassesRoot") hiveString = "HKCR";
-                            else if (hiveString == "Users") hiveString = "HKU";
-                            else if (hiveString == "CurrentConfig") hiveString = "HKCC";
-
-                            string fullPath = $"{hiveString}\\{setting.RegistrySetting.SubKey}";
-                            _registryService.SetValue(fullPath, setting.RegistrySetting.Name, valueToSet, setting.RegistrySetting.ValueType);
-                        }
-
-                        settingsProcessed++;
-                        progress.Report(new TaskProgressDetail
-                        {
-                            StatusText = $"Restored setting: {setting.Name}",
-                            IsIndeterminate = false,
-                            Progress = (double)settingsProcessed / totalSettings
-                        });
-                    }
-
-                    // If this is a grouped setting, restore all child settings too
-                    if (setting.IsGroupedSetting && setting.ChildSettings.Count > 0)
-                    {
-                        foreach (var childSetting in setting.ChildSettings.Where(c => c.IsSelected))
-                        {
-                            if (childSetting.RegistrySetting != null)
-                            {
-                                // Use DisabledValue if available, otherwise fall back to DefaultValue for backward compatibility
-                                object? valueToSet = childSetting.RegistrySetting.DisabledValue ?? childSetting.RegistrySetting.DefaultValue;
-
-                                if (valueToSet == null)
-                                {
-                                    await _registryService.DeleteValue(childSetting.RegistrySetting.Hive, childSetting.RegistrySetting.SubKey, childSetting.RegistrySetting.Name);
-                                }
-                                else
-                                {
-                                    string hiveString = childSetting.RegistrySetting.Hive.ToString();
-                                    if (hiveString == "LocalMachine") hiveString = "HKLM";
-                                    else if (hiveString == "CurrentUser") hiveString = "HKCU";
-                                    else if (hiveString == "ClassesRoot") hiveString = "HKCR";
-                                    else if (hiveString == "Users") hiveString = "HKU";
-                                    else if (hiveString == "CurrentConfig") hiveString = "HKCC";
-
-                                    string fullPath = $"{hiveString}\\{childSetting.RegistrySetting.SubKey}";
-                                    _registryService.SetValue(fullPath, childSetting.RegistrySetting.Name, valueToSet, childSetting.RegistrySetting.ValueType);
-                                }
-
-                                settingsProcessed++;
-                                progress.Report(new TaskProgressDetail
-                                {
-                                    StatusText = $"Restored setting: {childSetting.Name}",
-                                    IsIndeterminate = false,
-                                    Progress = (double)settingsProcessed / totalSettings
-                                });
-                            }
-                        }
-                    }
-
-                    // Uncheck the setting after restoring
-                    setting.IsSelected = false;
-                }
-
-                // Refresh registry setting statuses to update the status indicators
-                progress.Report(new TaskProgressDetail { StatusText = "Refreshing setting statuses...", IsIndeterminate = false, Progress = 0.95 });
-                await CheckSettingStatusesAsync();
-
-                progress.Report(new TaskProgressDetail { StatusText = "Gaming and performance settings restored to defaults successfully", IsIndeterminate = false, Progress = 1.0 });
-            }
-            catch (Exception ex)
-            {
-                _logService.Log(LogLevel.Error, $"Error restoring gaming and performance settings to defaults: {ex.Message}");
-                throw;
-            }
-            finally
-            {
-                IsLoading = false;
-            }
-        }
-
-        /// <summary>
         /// Updates the IsSelected state based on individual selections.
         /// </summary>
         private void UpdateIsSelectedState()
@@ -444,7 +335,7 @@ namespace Winhance.WPF.Features.Optimize.ViewModels
         /// </summary>
         /// <param name="setting">The setting to get the status message for.</param>
         /// <returns>A user-friendly status message.</returns>
-        private string GetStatusMessage(ApplicationSettingViewModel setting)
+        private string GetStatusMessage(ApplicationSettingItem setting)
         {
             return setting.Status switch
             {

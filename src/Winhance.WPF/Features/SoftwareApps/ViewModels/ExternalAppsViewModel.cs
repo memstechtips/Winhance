@@ -280,8 +280,8 @@ namespace Winhance.WPF.Features.SoftwareApps.ViewModels
             if (_appInstallationService == null)
                 return;
             
-            // Get selected apps that are not already installed
-            var selectedApps = Items.Where(a => a.IsSelected && !a.IsInstalled).ToList();
+            // Get all selected apps regardless of installation status
+            var selectedApps = Items.Where(a => a.IsSelected).ToList();
             
             if (!selectedApps.Any())
             {

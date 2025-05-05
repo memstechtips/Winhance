@@ -1,71 +1,29 @@
 using System;
-using System.Collections.ObjectModel;
+using System.Collections.Generic;
 using System.Linq;
-using System.Reflection;
 using System.Threading.Tasks;
 using CommunityToolkit.Mvvm.ComponentModel;
-using CommunityToolkit.Mvvm.Input;
-using Microsoft.Win32;
 using Winhance.Core.Features.Common.Interfaces;
 using Winhance.Core.Features.Common.Models;
-using Winhance.Core.Features.Customize.Models;
 using Winhance.Core.Features.Common.Enums;
+using Winhance.Core.Features.Optimize.Models;
 using Winhance.WPF.Features.Common.ViewModels;
-using Winhance.WPF.Features.Customize.Models;
+using Winhance.WPF.Features.Common.Interfaces;
+using Winhance.WPF.Features.Common.Models;
+using Microsoft.Win32;
+
+using Winhance.WPF.Features.Common.Extensions;
 
 namespace Winhance.WPF.Features.Optimize.ViewModels
 {
     /// <summary>
     /// ViewModel for Explorer optimizations.
     /// </summary>
-    public partial class ExplorerOptimizationsViewModel : BaseSettingsViewModel<CustomizationSettingItem>
+    public partial class ExplorerOptimizationsViewModel : BaseSettingsViewModel<ApplicationSettingItem>
     {
-        /// <summary>
-        /// Gets the command to execute an action.
-        /// </summary>
-        [RelayCommand]
-        public async void ExecuteAction(CustomizationAction? action)
-        {
-            if (action == null) return;
-
-            try
-            {
-                // Execute the registry action if present
-                if (action.RegistrySetting != null)
-                {
-                    string hiveString = action.RegistrySetting.Hive.ToString();
-                    if (hiveString == "LocalMachine") hiveString = "HKLM";
-                    else if (hiveString == "CurrentUser") hiveString = "HKCU";
-                    else if (hiveString == "ClassesRoot") hiveString = "HKCR";
-                    else if (hiveString == "Users") hiveString = "HKU";
-                    else if (hiveString == "CurrentConfig") hiveString = "HKCC";
-
-                    string fullPath = $"{hiveString}\\{action.RegistrySetting.SubKey}";
-                    _registryService.SetValue(
-                        fullPath,
-                        action.RegistrySetting.Name,
-                        action.RegistrySetting.RecommendedValue,
-                        action.RegistrySetting.ValueType);
-                }
-
-                // Execute custom action if present
-                if (action.CustomAction != null)
-                {
-                    await action.CustomAction();
-                }
-
-                _logService.Log(LogLevel.Info, $"Action '{action.Name}' executed successfully");
-            }
-            catch (Exception ex)
-            {
-                _logService.Log(LogLevel.Error, $"Error executing action '{action.Name}': {ex.Message}");
-            }
-        }
-
-        /// <summary>
-        /// Gets the collection of Explorer actions.
-        /// </summary>
-        public ObservableCollection<CustomizationAction> Actions { get; } = new();
+        private readonly IDependencyManager _dependencyManager;
+        private readonly IViewModelLocator? _viewModelLocator;
+        private readonly ISettingsRegistry? _settingsRegistry;
 
         /// <summary>
         /// Initializes a new instance of the <see cref="ExplorerOptimizationsViewModel"/> class.
@@ -73,12 +31,21 @@ namespace Winhance.WPF.Features.Optimize.ViewModels
         /// <param name="progressService">The task progress service.</param>
         /// <param name="registryService">The registry service.</param>
         /// <param name="logService">The log service.</param>
+        /// <param name="dependencyManager">The dependency manager.</param>
+        /// <param name="viewModelLocator">The view model locator.</param>
+        /// <param name="settingsRegistry">The settings registry.</param>
         public ExplorerOptimizationsViewModel(
             ITaskProgressService progressService,
             IRegistryService registryService,
-            ILogService logService)
+            ILogService logService,
+            IDependencyManager dependencyManager,
+            IViewModelLocator? viewModelLocator = null,
+            ISettingsRegistry? settingsRegistry = null)
             : base(progressService, registryService, logService)
         {
+            _dependencyManager = dependencyManager ?? throw new ArgumentNullException(nameof(dependencyManager));
+            _viewModelLocator = viewModelLocator;
+            _settingsRegistry = settingsRegistry;
         }
 
         /// <summary>
@@ -101,120 +68,71 @@ namespace Winhance.WPF.Features.Optimize.ViewModels
                     // Add settings sorted alphabetically by name
                     foreach (var setting in explorerOptimizations.Settings.OrderBy(s => s.Name))
                     {
-                        var customizationSetting = new CustomizationSettingItem(_registryService, null, _logService);
+                        // Create ApplicationSettingItem directly
+                        var settingItem = new ApplicationSettingItem(_registryService, null, _logService)
+                        {
+                            Id = setting.Id,
+                            Name = setting.Name,
+                            Description = setting.Description,
+                            IsSelected = false, // Always initialize as unchecked
+                            GroupName = setting.GroupName,
+                            Dependencies = setting.Dependencies,
+                            ControlType = ControlType.BinaryToggle // Default to binary toggle
+                        };
 
-                        // Use reflection to set properties to avoid ambiguity
-                        typeof(CustomizationSettingItem).GetProperty("Id")?.SetValue(customizationSetting, setting.Id);
-                        typeof(CustomizationSettingItem).GetProperty("Name")?.SetValue(customizationSetting, setting.Name);
-                        
-                        
-                        typeof(CustomizationSettingItem).GetProperty("Description")?.SetValue(customizationSetting, setting.Description);
-                        typeof(CustomizationSettingItem).GetProperty("GroupName")?.SetValue(customizationSetting, setting.GroupName);
-                        typeof(CustomizationSettingItem).GetProperty("IsSelected")?.SetValue(customizationSetting, setting.IsEnabled);
-                        typeof(CustomizationSettingItem).GetProperty("RegistrySetting")?.SetValue(customizationSetting, setting.RegistrySettings.FirstOrDefault());
-                        typeof(CustomizationSettingItem).GetProperty("IsGroupHeader")?.SetValue(customizationSetting, false);
-                        typeof(CustomizationSettingItem).GetProperty("ControlType")?.SetValue(customizationSetting, ControlType.BinaryToggle);
+                        // Set up the registry settings
+                        if (setting.RegistrySettings.Count == 1)
+                        {
+                            // Single registry setting
+                            settingItem.RegistrySetting = setting.RegistrySettings[0];
+                            _logService.Log(LogLevel.Info, $"Setting up single registry setting for {setting.Name}: {setting.RegistrySettings[0].Hive}\\{setting.RegistrySettings[0].SubKey}\\{setting.RegistrySettings[0].Name}");
+                        }
+                        else if (setting.RegistrySettings.Count > 1)
+                        {
+                            // Linked registry settings
+                            settingItem.LinkedRegistrySettings = setting.CreateLinkedRegistrySettings();
+                            _logService.Log(LogLevel.Info, $"Setting up linked registry settings for {setting.Name} with {setting.RegistrySettings.Count} entries and logic {setting.LinkedSettingsLogic}");
+                            
+                            // Log details about each registry entry for debugging
+                            foreach (var regSetting in setting.RegistrySettings)
+                            {
+                                _logService.Log(LogLevel.Info, $"Linked registry entry: {regSetting.Hive}\\{regSetting.SubKey}\\{regSetting.Name}, IsPrimary={regSetting.IsPrimary}");
+                            }
+                        }
+                        else
+                        {
+                            _logService.Log(LogLevel.Warning, $"No registry settings found for {setting.Name}");
+                        }
 
-                        Settings.Add(customizationSetting);
+                        // Register the setting in the settings registry if available
+                        if (_settingsRegistry != null && !string.IsNullOrEmpty(settingItem.Id))
+                        {
+                            _settingsRegistry.RegisterSetting(settingItem);
+                            _logService.Log(LogLevel.Info, $"Registered setting {settingItem.Id} in settings registry during creation");
+                        }
+
+                        Settings.Add(settingItem);
+                    }
+
+                    // Set up property change handlers for settings
+                    foreach (var setting in Settings)
+                    {
+                        setting.PropertyChanged += (s, e) =>
+                        {
+                            if (e.PropertyName == nameof(ApplicationSettingItem.IsSelected))
+                            {
+                                UpdateIsSelectedState();
+                            }
+                        };
                     }
                 }
 
-                // Initialize actions
-                InitializeActions();
-
                 // Check setting statuses
                 await CheckSettingStatusesAsync();
-
-                await Task.CompletedTask;
-            }
-            catch (Exception ex)
-            {
-                _logService.Log(LogLevel.Error, $"Error loading Explorer optimizations: {ex.Message}");
             }
             finally
             {
                 IsLoading = false;
-            }
-        }
-
-        /// <summary>
-        /// Initializes the Explorer optimization actions.
-        /// </summary>
-        private void InitializeActions()
-        {
-            Actions.Clear();
-
-            // Add Explorer actions
-            Actions.Add(new CustomizationAction
-            {
-                Id = "explorer-reset-view",
-                Name = "Reset Explorer View Settings",
-                Description = "Resets File Explorer view settings to default",
-                GroupName = "Explorer",
-                ConfirmationMessage = "This will reset all File Explorer view settings to default. Continue?",
-                SupportsBackup = true,
-                BackupAction = async () => await BackupExplorerSettings(),
-                CustomAction = async () => await ResetExplorerViewSettings()
-            });
-        }
-
-        /// <summary>
-        /// Backs up the Explorer optimizations.
-        /// </summary>
-        /// <returns>A task representing the asynchronous operation.</returns>
-        private async Task<bool> BackupExplorerSettings()
-        {
-            try
-            {
-                // Implementation to backup Explorer optimizations
-                string backupPath = System.IO.Path.Combine(
-                    Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData),
-                    "Winhance", "Backups", $"ExplorerSettingsBackup_{DateTime.Now:yyyyMMdd_HHmmss}.reg");
-
-                System.IO.Directory.CreateDirectory(System.IO.Path.GetDirectoryName(backupPath)!);
-
-                string exportResult = await _registryService.ExportKey(
-                    @"HKCU\Software\Microsoft\Windows\CurrentVersion\Explorer",
-                    true);
-
-                System.IO.File.WriteAllText(backupPath, exportResult);
-
-                _logService.Log(LogLevel.Info, $"Explorer optimizations backed up to {backupPath}");
-                return true;
-            }
-            catch (Exception ex)
-            {
-                _logService.Log(LogLevel.Error, $"Error backing up Explorer optimizations: {ex.Message}");
-                return false;
-            }
-        }
-
-        /// <summary>
-        /// Resets the Explorer view settings.
-        /// </summary>
-        /// <returns>A task representing the asynchronous operation.</returns>
-        private async Task<bool> ResetExplorerViewSettings()
-        {
-            try
-            {
-                // Implementation to reset Explorer view settings
-                await _registryService.DeleteValue(
-                    RegistryHive.CurrentUser,
-                    @"Software\Microsoft\Windows\CurrentVersion\Explorer\Streams",
-                    "Defaults");
-
-                await _registryService.DeleteValue(
-                    RegistryHive.CurrentUser,
-                    @"Software\Microsoft\Windows\CurrentVersion\Explorer\Streams",
-                    "Settings");
-
-                _logService.Log(LogLevel.Info, "Explorer view settings reset successfully");
-                return true;
-            }
-            catch (Exception ex)
-            {
-                _logService.Log(LogLevel.Error, $"Error resetting Explorer view settings: {ex.Message}");
-                return false;
             }
         }
 
@@ -228,40 +146,87 @@ namespace Winhance.WPF.Features.Optimize.ViewModels
             {
                 foreach (var setting in Settings)
                 {
-                    // Use reflection to get and set properties to avoid ambiguity
-                    PropertyInfo? registrySettingProp = typeof(CustomizationSettingItem).GetProperty("RegistrySetting");
-                    var registrySetting = registrySettingProp?.GetValue(setting) as RegistrySetting;
-
-                    if (registrySetting != null)
+                    if (setting.RegistrySetting != null)
                     {
                         // Get status
-                        var status = await _registryService.GetSettingStatusAsync(registrySetting);
-                        typeof(CustomizationSettingItem).GetProperty("Status")?.SetValue(setting, status);
+                        var status = await _registryService.GetSettingStatusAsync(setting.RegistrySetting);
+                        setting.Status = status;
 
                         // Get current value
-                        var currentValue = await _registryService.GetCurrentValueAsync(registrySetting);
-                        typeof(CustomizationSettingItem).GetProperty("CurrentValue")?.SetValue(setting, currentValue);
+                        var currentValue = await _registryService.GetCurrentValueAsync(setting.RegistrySetting);
+                        setting.CurrentValue = currentValue;
+                        
+                        // Set IsRegistryValueNull property based on current value
+                        setting.IsRegistryValueNull = currentValue == null;
 
                         // Set status message
-                        string statusMessage = GetStatusMessage(setting);
-                        typeof(CustomizationSettingItem).GetProperty("StatusMessage")?.SetValue(setting, statusMessage);
+                        setting.StatusMessage = GetStatusMessage(setting);
 
-                        // Set the IsUpdatingFromCode flag to prevent automatic application
-                        typeof(CustomizationSettingItem).GetProperty("IsUpdatingFromCode")?.SetValue(setting, true);
+                        // Update IsSelected based on status
+                        bool shouldBeSelected = status == RegistrySettingStatus.Applied;
 
+                        // Set the checkbox state to match the registry state
+                        _logService.Log(LogLevel.Info, $"Setting {setting.Name} status is {status}, setting IsSelected to {shouldBeSelected}");
+                        setting.IsUpdatingFromCode = true;
                         try
                         {
-                            // Update IsSelected based on status
-                            bool shouldBeSelected = status == RegistrySettingStatus.Applied;
-
-                            // Set the checkbox state to match the registry state
-                            _logService.Log(LogLevel.Info, $"Setting {setting.Name} status is {status}, setting IsSelected to {shouldBeSelected}");
-                            typeof(CustomizationSettingItem).GetProperty("IsSelected")?.SetValue(setting, shouldBeSelected);
+                            setting.IsSelected = shouldBeSelected;
                         }
                         finally
                         {
-                            // Reset the flag
-                            typeof(CustomizationSettingItem).GetProperty("IsUpdatingFromCode")?.SetValue(setting, false);
+                            setting.IsUpdatingFromCode = false;
+                        }
+                    }
+                    else if (setting.LinkedRegistrySettings != null && setting.LinkedRegistrySettings.Settings.Count > 0)
+                    {
+                        // Get the combined status of all linked settings
+                        var status = await _registryService.GetLinkedSettingsStatusAsync(setting.LinkedRegistrySettings);
+                        setting.Status = status;
+
+                        // For current value display, use the first setting's value
+                        if (setting.LinkedRegistrySettings.Settings.Count > 0)
+                        {
+                            var firstSetting = setting.LinkedRegistrySettings.Settings[0];
+                            var currentValue = await _registryService.GetCurrentValueAsync(firstSetting);
+                            setting.CurrentValue = currentValue;
+
+                            // Check for null registry values
+                            bool anyNull = false;
+
+                            // Populate the LinkedRegistrySettingsWithValues collection for tooltip display
+                            setting.LinkedRegistrySettingsWithValues.Clear();
+                            foreach (var regSetting in setting.LinkedRegistrySettings.Settings)
+                            {
+                                var regCurrentValue = await _registryService.GetCurrentValueAsync(regSetting);
+                                
+                                if (regCurrentValue == null)
+                                {
+                                    anyNull = true;
+                                }
+                                
+                                setting.LinkedRegistrySettingsWithValues.Add(new Winhance.WPF.Features.Common.Models.LinkedRegistrySettingWithValue(regSetting, regCurrentValue));
+                            }
+                            
+                            // Set IsRegistryValueNull for linked settings
+                            setting.IsRegistryValueNull = anyNull;
+                        }
+
+                        // Set status message
+                        setting.StatusMessage = GetStatusMessage(setting);
+
+                        // Update IsSelected based on status
+                        bool shouldBeSelected = status == RegistrySettingStatus.Applied;
+
+                        // Set the checkbox state to match the registry state
+                        _logService.Log(LogLevel.Info, $"Setting {setting.Name} status is {status}, setting IsSelected to {shouldBeSelected}");
+                        setting.IsUpdatingFromCode = true;
+                        try
+                        {
+                            setting.IsSelected = shouldBeSelected;
+                        }
+                        finally
+                        {
+                            setting.IsUpdatingFromCode = false;
                         }
                     }
                 }
@@ -277,184 +242,48 @@ namespace Winhance.WPF.Features.Optimize.ViewModels
         /// </summary>
         /// <param name="setting">The setting.</param>
         /// <returns>The status message.</returns>
-        private string GetStatusMessage(CustomizationSettingItem setting)
+        private string GetStatusMessage(ApplicationSettingItem setting)
         {
-            // Use reflection to get properties to avoid ambiguity
-            var status = (RegistrySettingStatus)typeof(CustomizationSettingItem).GetProperty("Status")?.GetValue(setting);
-            string message = status switch
+            return setting.Status switch
             {
-                RegistrySettingStatus.Applied => "Setting is applied with recommended value",
-                RegistrySettingStatus.NotApplied => "Setting is not applied or using default value",
-                RegistrySettingStatus.Modified => "Setting has a custom value different from recommended",
-                RegistrySettingStatus.Error => "Error checking setting status",
-                _ => "Unknown status"
+                RegistrySettingStatus.Applied => "Applied",
+                RegistrySettingStatus.NotApplied => "Not Applied",
+                RegistrySettingStatus.Modified => "Modified",
+                RegistrySettingStatus.Error => "Error",
+                RegistrySettingStatus.Unknown => "Unknown",
+                _ => "Unknown"
             };
-
-            // Add current value if available
-            var currentValue = typeof(CustomizationSettingItem).GetProperty("CurrentValue")?.GetValue(setting);
-            if (currentValue != null)
-            {
-                message += $"\nCurrent value: {currentValue}";
-            }
-
-            // Add recommended value if available
-            var registrySetting = typeof(CustomizationSettingItem).GetProperty("RegistrySetting")?.GetValue(setting) as RegistrySetting;
-            if (registrySetting?.RecommendedValue != null)
-            {
-                message += $"\nRecommended value: {registrySetting.RecommendedValue}";
-            }
-
-            // Add default value if available
-            if (registrySetting?.DefaultValue != null)
-            {
-                message += $"\nDefault value: {registrySetting.DefaultValue}";
-            }
-
-            return message;
         }
 
         /// <summary>
-        /// Applies all selected Explorer optimizations.
+        /// Updates the IsSelected state based on individual selections.
         /// </summary>
-        /// <param name="progress">The progress reporter.</param>
-        /// <returns>A task representing the asynchronous operation.</returns>
-        public override async Task ApplySettingsAsync(IProgress<TaskProgressDetail> progress)
+        private void UpdateIsSelectedState()
         {
-            try
-            {
-                // Use reflection to filter settings
-                var selectedSettings = Settings.Where(s =>
-                {
-                    bool isSelected = (bool)typeof(CustomizationSettingItem).GetProperty("IsSelected")?.GetValue(s);
-                    var registrySetting = typeof(CustomizationSettingItem).GetProperty("RegistrySetting")?.GetValue(s) as RegistrySetting;
-                    return isSelected && registrySetting != null;
-                }).ToList();
+            if (Settings.Count == 0) return;
 
-                if (selectedSettings.Count() == 0)
-                {
-                    return;
-                }
+            bool allSelected = Settings.All(s => s.IsSelected);
+            bool anySelected = Settings.Any(s => s.IsSelected);
 
-                int current = 0;
-                int total = selectedSettings.Count();
-
-                foreach (var setting in selectedSettings)
-                {
-                    var registrySetting = typeof(CustomizationSettingItem).GetProperty("RegistrySetting")?.GetValue(setting) as RegistrySetting;
-                    var name = typeof(CustomizationSettingItem).GetProperty("Name")?.GetValue(setting) as string;
-
-                    if (registrySetting != null && name != null)
-                    {
-                        current++;
-                        progress?.Report(new TaskProgressDetail
-                        {
-                            StatusText = $"Applying {name}",
-                            Progress = (int)((double)current / total * 100)
-                        });
-
-                        string hiveString = registrySetting.Hive.ToString();
-                        if (hiveString == "LocalMachine") hiveString = "HKLM";
-                        else if (hiveString == "CurrentUser") hiveString = "HKCU";
-                        else if (hiveString == "ClassesRoot") hiveString = "HKCR";
-                        else if (hiveString == "Users") hiveString = "HKU";
-                        else if (hiveString == "CurrentConfig") hiveString = "HKCC";
-
-                        string fullPath = $"{hiveString}\\{registrySetting.SubKey}";
-                        _registryService.SetValue(
-                            fullPath,
-                            registrySetting.Name,
-                            registrySetting.RecommendedValue,
-                            registrySetting.ValueType);
-                    }
-                }
-
-                // Refresh setting statuses
-                await CheckSettingStatusesAsync();
-            }
-            catch (Exception ex)
-            {
-                _logService.Log(LogLevel.Error, $"Error applying Explorer optimizations: {ex.Message}");
-                throw;
-            }
+            IsSelected = allSelected;
         }
 
         /// <summary>
-        /// Restores all selected Explorer optimizations to their default values.
+        /// Converts a RegistryHive enum to its string representation (HKCU, HKLM, etc.)
         /// </summary>
-        /// <param name="progress">The progress reporter.</param>
-        /// <returns>A task representing the asynchronous operation.</returns>
-        public override async Task RestoreDefaultsAsync(IProgress<TaskProgressDetail> progress)
+        /// <param name="hive">The registry hive.</param>
+        /// <returns>The string representation of the registry hive.</returns>
+        private string GetRegistryHiveString(RegistryHive hive)
         {
-            try
+            return hive switch
             {
-                // Use reflection to filter settings
-                var selectedSettings = Settings.Where(s =>
-                {
-                    bool isSelected = (bool)typeof(CustomizationSettingItem).GetProperty("IsSelected")?.GetValue(s);
-                    var registrySetting = typeof(CustomizationSettingItem).GetProperty("RegistrySetting")?.GetValue(s) as RegistrySetting;
-                    return isSelected && registrySetting != null;
-                }).ToList();
-
-                if (selectedSettings.Count() == 0)
-                {
-                    return;
-                }
-
-                int current = 0;
-                int total = selectedSettings.Count();
-
-                foreach (var setting in selectedSettings)
-                {
-                    var registrySetting = typeof(CustomizationSettingItem).GetProperty("RegistrySetting")?.GetValue(setting) as RegistrySetting;
-                    var name = typeof(CustomizationSettingItem).GetProperty("Name")?.GetValue(setting) as string;
-
-                    if (registrySetting != null && name != null)
-                    {
-                        current++;
-                        progress?.Report(new TaskProgressDetail
-                        {
-                            StatusText = $"Restoring {name} to default",
-                            Progress = (int)((double)current / total * 100)
-                        });
-
-                        if (registrySetting.DefaultValue == null)
-                        {
-                            await _registryService.DeleteValue(
-                                registrySetting.Hive,
-                                registrySetting.SubKey,
-                                registrySetting.Name);
-                        }
-                        else
-                        {
-                            string hiveString = registrySetting.Hive.ToString();
-                            if (hiveString == "LocalMachine") hiveString = "HKLM";
-                            else if (hiveString == "CurrentUser") hiveString = "HKCU";
-                            else if (hiveString == "ClassesRoot") hiveString = "HKCR";
-                            else if (hiveString == "Users") hiveString = "HKU";
-                            else if (hiveString == "CurrentConfig") hiveString = "HKCC";
-
-                            string fullPath = $"{hiveString}\\{registrySetting.SubKey}";
-                            _registryService.SetValue(
-                                fullPath,
-                                registrySetting.Name,
-                                registrySetting.DefaultValue,
-                                registrySetting.ValueType);
-                        }
-                    }
-                }
-
-                // Refresh setting statuses
-                await CheckSettingStatusesAsync();
-            }
-            catch (Exception ex)
-            {
-                _logService.Log(LogLevel.Error, $"Error restoring Explorer optimizations: {ex.Message}");
-                throw;
-            }
+                RegistryHive.ClassesRoot => "HKCR",
+                RegistryHive.CurrentUser => "HKCU",
+                RegistryHive.LocalMachine => "HKLM",
+                RegistryHive.Users => "HKU",
+                RegistryHive.CurrentConfig => "HKCC",
+                _ => hive.ToString()
+            };
         }
-
-        
-
-        
     }
 }

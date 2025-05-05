@@ -19,5 +19,15 @@ namespace Winhance.Core.Features.Customize.Models
         /// This allows grouping multiple settings together under a parent setting.
         /// </summary>
         public List<CustomizationSetting> LinkedSettings { get; init; } = new List<CustomizationSetting>();
+
+        /// <summary>
+        /// Gets or sets a value indicating whether this setting is only applicable to Windows 11.
+        /// </summary>
+        public bool IsWindows11Only { get; init; }
+
+        /// <summary>
+        /// Gets or sets a value indicating whether this setting is only applicable to Windows 10.
+        /// </summary>
+        public bool IsWindows10Only { get; init; }
     }
 }

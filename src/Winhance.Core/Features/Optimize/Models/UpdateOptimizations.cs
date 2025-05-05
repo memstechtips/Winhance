@@ -1,5 +1,5 @@
-using Microsoft.Win32;
 using System.Collections.Generic;
+using Microsoft.Win32;
 using Winhance.Core.Features.Common.Enums;
 using Winhance.Core.Features.Common.Models;
 
@@ -11,7 +11,7 @@ public static class UpdateOptimizations
     {
         return new OptimizationGroup
         {
-                    Name = "Windows Updates",
+            Name = "Windows Updates",
             Category = OptimizationCategory.Updates,
             Settings = new List<OptimizationSetting>
             {
@@ -23,6 +23,7 @@ public static class UpdateOptimizations
                     Category = OptimizationCategory.Updates,
                     GroupName = "Windows Update Settings",
                     IsEnabled = false,
+                    ControlType = ControlType.BinaryToggle,
                     RegistrySettings = new List<RegistrySetting>
                     {
                         new RegistrySetting
@@ -31,13 +32,14 @@ public static class UpdateOptimizations
                             Hive = RegistryHive.LocalMachine,
                             SubKey = "SOFTWARE\\Policies\\Microsoft\\Windows\\WindowsUpdate\\AU",
                             Name = "NoAutoUpdate",
-                            RecommendedValue = 1,  // For backward compatibility
-                            EnabledValue = 0,      // When toggle is ON, automatic updates are enabled
-                            DisabledValue = 1,     // When toggle is OFF, automatic updates are disabled
+                            RecommendedValue = 1,
+                            EnabledValue = 0, // When toggle is ON, automatic updates are enabled
+                            DisabledValue = 1, // When toggle is OFF, automatic updates are disabled
                             ValueType = RegistryValueKind.DWord,
-                            DefaultValue = null,   // For backward compatibility
+                            DefaultValue = 0, // Default value when registry key exists but no value is set
                             Description = "Controls automatic Windows updates",
-                            IsPrimary = true
+                            IsPrimary = true,
+                            AbsenceMeansEnabled = true,
                         },
                         new RegistrySetting
                         {
@@ -45,12 +47,12 @@ public static class UpdateOptimizations
                             Hive = RegistryHive.LocalMachine,
                             SubKey = "SOFTWARE\\Policies\\Microsoft\\Windows\\WindowsUpdate\\AU",
                             Name = "AUOptions",
-                            RecommendedValue = 2,  // For backward compatibility
-                            EnabledValue = 4,      // When toggle is ON, auto download and schedule install (4)
-                            DisabledValue = 2,     // When toggle is OFF, notify before download (2)
+                            RecommendedValue = 2,
+                            EnabledValue = 4, // When toggle is ON, auto download and schedule install (4)
+                            DisabledValue = 2, // When toggle is OFF, notify before download (2)
                             ValueType = RegistryValueKind.DWord,
-                            DefaultValue = null,   // For backward compatibility
-                            Description = "Controls automatic update behavior"
+                            DefaultValue = 2, // Default value when registry key exists but no value is set
+                            Description = "Controls automatic update behavior",
                         },
                         new RegistrySetting
                         {
@@ -58,17 +60,16 @@ public static class UpdateOptimizations
                             Hive = RegistryHive.LocalMachine,
                             SubKey = "SOFTWARE\\Policies\\Microsoft\\Windows\\WindowsUpdate\\AU",
                             Name = "AutoInstallMinorUpdates",
-                            RecommendedValue = 0,  // For backward compatibility
-                            EnabledValue = 1,      // When toggle is ON, minor updates are installed automatically
-                            DisabledValue = 0,     // When toggle is OFF, minor updates are not installed automatically
+                            RecommendedValue = 0,
+                            EnabledValue = 1, // When toggle is ON, minor updates are installed automatically
+                            DisabledValue = 0, // When toggle is OFF, minor updates are not installed automatically
                             ValueType = RegistryValueKind.DWord,
-                            DefaultValue = null,   // For backward compatibility
-                            Description = "Controls automatic installation of minor updates"
-                        }
+                            DefaultValue = 0, // Default value when registry key exists but no value is set
+                            Description = "Controls automatic installation of minor updates",
+                        },
                     },
-                    LinkedSettingsLogic = LinkedSettingsLogic.All
+                    LinkedSettingsLogic = LinkedSettingsLogic.All,
                 },
-                
                 new OptimizationSetting
                 {
                     Id = "updates-defer-feature-updates",
@@ -77,6 +78,7 @@ public static class UpdateOptimizations
                     Category = OptimizationCategory.Updates,
                     GroupName = "Windows Update Policies",
                     IsEnabled = true,
+                    ControlType = ControlType.BinaryToggle,
                     RegistrySettings = new List<RegistrySetting>
                     {
                         new RegistrySetting
@@ -86,12 +88,13 @@ public static class UpdateOptimizations
                             SubKey = "SOFTWARE\\Policies\\Microsoft\\Windows\\WindowsUpdate",
                             Name = "DeferFeatureUpdates",
                             RecommendedValue = 1,
-                            EnabledValue = 1,      // When toggle is ON, feature updates are deferred
-                            DisabledValue = 0,     // When toggle is OFF, feature updates are not deferred
+                            EnabledValue = 1, // When toggle is ON, feature updates are deferred
+                            DisabledValue = 0, // When toggle is OFF, feature updates are not deferred
                             ValueType = RegistryValueKind.DWord,
-                            DefaultValue = null,
+                            DefaultValue = 0, // Default value when registry key exists but no value is set
                             Description = "Enables deferral of feature updates",
-                            IsPrimary = true
+                            IsPrimary = true,
+                            AbsenceMeansEnabled = true,
                         },
                         new RegistrySetting
                         {
@@ -100,14 +103,15 @@ public static class UpdateOptimizations
                             SubKey = "SOFTWARE\\Policies\\Microsoft\\Windows\\WindowsUpdate",
                             Name = "DeferFeatureUpdatesPeriodInDays",
                             RecommendedValue = 365,
-                            EnabledValue = 365,    // When toggle is ON, feature updates are deferred for 365 days
-                            DisabledValue = 0,     // When toggle is OFF, feature updates are not deferred
+                            EnabledValue = 365, // When toggle is ON, feature updates are deferred for 365 days
+                            DisabledValue = 0, // When toggle is OFF, feature updates are not deferred
                             ValueType = RegistryValueKind.DWord,
-                            DefaultValue = null,
-                            Description = "Sets the deferral period for feature updates to 365 days"
-                        }
+                            DefaultValue = 0, // Default value when registry key exists but no value is set
+                            Description =
+                                "Sets the deferral period for feature updates to 365 days",
+                        },
                     },
-                    LinkedSettingsLogic = LinkedSettingsLogic.All
+                    LinkedSettingsLogic = LinkedSettingsLogic.All,
                 },
                 new OptimizationSetting
                 {
@@ -117,6 +121,7 @@ public static class UpdateOptimizations
                     Category = OptimizationCategory.Updates,
                     GroupName = "Windows Update Policies",
                     IsEnabled = true,
+                    ControlType = ControlType.BinaryToggle,
                     RegistrySettings = new List<RegistrySetting>
                     {
                         new RegistrySetting
@@ -126,12 +131,13 @@ public static class UpdateOptimizations
                             SubKey = "SOFTWARE\\Policies\\Microsoft\\Windows\\WindowsUpdate",
                             Name = "DeferQualityUpdates",
                             RecommendedValue = 1,
-                            EnabledValue = 1,      // When toggle is ON, quality updates are deferred
-                            DisabledValue = 0,     // When toggle is OFF, quality updates are not deferred
+                            EnabledValue = 1, // When toggle is ON, quality updates are deferred
+                            DisabledValue = 0, // When toggle is OFF, quality updates are not deferred
                             ValueType = RegistryValueKind.DWord,
-                            DefaultValue = null,
+                            DefaultValue = 0, // Default value when registry key exists but no value is set
                             Description = "Enables deferral of security and quality updates",
-                            IsPrimary = true
+                            IsPrimary = true,
+                            AbsenceMeansEnabled = true,
                         },
                         new RegistrySetting
                         {
@@ -140,14 +146,15 @@ public static class UpdateOptimizations
                             SubKey = "SOFTWARE\\Policies\\Microsoft\\Windows\\WindowsUpdate",
                             Name = "DeferQualityUpdatesPeriodInDays",
                             RecommendedValue = 7,
-                            EnabledValue = 7,      // When toggle is ON, quality updates are deferred for 7 days
-                            DisabledValue = 0,     // When toggle is OFF, quality updates are not deferred
+                            EnabledValue = 7, // When toggle is ON, quality updates are deferred for 7 days
+                            DisabledValue = 0, // When toggle is OFF, quality updates are not deferred
                             ValueType = RegistryValueKind.DWord,
-                            DefaultValue = null,
-                            Description = "Sets the deferral period for security and quality updates to 7 days"
-                        }
+                            DefaultValue = 0, // Default value when registry key exists but no value is set
+                            Description =
+                                "Sets the deferral period for security and quality updates to 7 days",
+                        },
                     },
-                    LinkedSettingsLogic = LinkedSettingsLogic.All
+                    LinkedSettingsLogic = LinkedSettingsLogic.All,
                 },
                 new OptimizationSetting
                 {
@@ -157,22 +164,25 @@ public static class UpdateOptimizations
                     Category = OptimizationCategory.Updates,
                     GroupName = "Delivery Optimization",
                     IsEnabled = false,
+                    ControlType = ControlType.BinaryToggle,
                     RegistrySettings = new List<RegistrySetting>
                     {
                         new RegistrySetting
-                    {
-                        Category = "Updates",
-                        Hive = RegistryHive.LocalMachine,
-                        SubKey = "SOFTWARE\\Policies\\Microsoft\\Windows\\DeliveryOptimization",
-                    Name = "DODownloadMode",
-                        RecommendedValue = 0,  // For backward compatibility
-                        EnabledValue = 1,      // When toggle is ON, peer-to-peer update distribution is enabled (LAN only)
-                        DisabledValue = 0,     // When toggle is OFF, peer-to-peer update distribution is disabled
-                        ValueType = RegistryValueKind.DWord,
-                        DefaultValue = null,   // For backward compatibility
-                        Description = "Controls peer-to-peer update distribution"
-                        }
-                    }
+                        {
+                            Category = "Updates",
+                            Hive = RegistryHive.LocalMachine,
+                            SubKey = "SOFTWARE\\Policies\\Microsoft\\Windows\\DeliveryOptimization",
+                            Name = "DODownloadMode",
+                            RecommendedValue = 0,
+                            EnabledValue = 1, // When toggle is ON, peer-to-peer update distribution is enabled (LAN only)
+                            DisabledValue = 0, // When toggle is OFF, peer-to-peer update distribution is disabled
+                            ValueType = RegistryValueKind.DWord,
+                            DefaultValue = 1, // Default value when registry key exists but no value is set
+                            Description = "Controls peer-to-peer update distribution",
+                            IsPrimary = true,
+                            AbsenceMeansEnabled = true,
+                        },
+                    },
                 },
                 new OptimizationSetting
                 {
@@ -182,22 +192,25 @@ public static class UpdateOptimizations
                     Category = OptimizationCategory.Updates,
                     GroupName = "Microsoft Store",
                     IsEnabled = false,
+                    ControlType = ControlType.BinaryToggle,
                     RegistrySettings = new List<RegistrySetting>
                     {
                         new RegistrySetting
-                    {
-                        Category = "Updates",
-                        Hive = RegistryHive.LocalMachine,
-                        SubKey = "SOFTWARE\\Policies\\Microsoft\\WindowsStore",
-                    Name = "AutoDownload",
-                        RecommendedValue = 2,  // For backward compatibility
-                        EnabledValue = 4,      // When toggle is ON, automatic updates for Microsoft Store apps are enabled
-                        DisabledValue = 2,     // When toggle is OFF, automatic updates for Microsoft Store apps are disabled
-                        ValueType = RegistryValueKind.DWord,
-                        DefaultValue = null,   // For backward compatibility
-                        Description = "Controls automatic updates for Microsoft Store apps"
-                        }
-                    }
+                        {
+                            Category = "Updates",
+                            Hive = RegistryHive.LocalMachine,
+                            SubKey = "SOFTWARE\\Policies\\Microsoft\\WindowsStore",
+                            Name = "AutoDownload",
+                            RecommendedValue = 2,
+                            EnabledValue = 4, // When toggle is ON, automatic updates for Microsoft Store apps are enabled
+                            DisabledValue = 2, // When toggle is OFF, automatic updates for Microsoft Store apps are disabled
+                            ValueType = RegistryValueKind.DWord,
+                            DefaultValue = 2, // Default value when registry key exists but no value is set
+                            Description = "Controls automatic updates for Microsoft Store apps",
+                            IsPrimary = true,
+                            AbsenceMeansEnabled = true,
+                        },
+                    },
                 },
                 new OptimizationSetting
                 {
@@ -207,31 +220,36 @@ public static class UpdateOptimizations
                     Category = OptimizationCategory.Updates,
                     GroupName = "Microsoft Store",
                     IsEnabled = false,
+                    ControlType = ControlType.BinaryToggle,
                     RegistrySettings = new List<RegistrySetting>
                     {
                         new RegistrySetting
-                    {
-                        Category = "Updates",
-                        Hive = RegistryHive.LocalMachine,
-                        SubKey = "SOFTWARE\\Policies\\Microsoft\\Windows\\Appx",
-                    Name = "AllowAutomaticAppArchiving",
-                        RecommendedValue = 0,  // For backward compatibility
-                        EnabledValue = 1,      // When toggle is ON, automatic archiving of unused apps is enabled
-                        DisabledValue = 0,     // When toggle is OFF, automatic archiving of unused apps is disabled
-                        ValueType = RegistryValueKind.DWord,
-                        DefaultValue = null,   // For backward compatibility
-                        Description = "Controls automatic archiving of unused apps"
-                        }
-                    }
+                        {
+                            Category = "Updates",
+                            Hive = RegistryHive.LocalMachine,
+                            SubKey = "SOFTWARE\\Policies\\Microsoft\\Windows\\Appx",
+                            Name = "AllowAutomaticAppArchiving",
+                            RecommendedValue = 0,
+                            EnabledValue = 1, // When toggle is ON, automatic archiving of unused apps is enabled
+                            DisabledValue = 0, // When toggle is OFF, automatic archiving of unused apps is disabled
+                            ValueType = RegistryValueKind.DWord,
+                            DefaultValue = 0, // Default value when registry key exists but no value is set
+                            Description = "Controls automatic archiving of unused apps",
+                            IsPrimary = true,
+                            AbsenceMeansEnabled = true,
+                        },
+                    },
                 },
                 new OptimizationSetting
                 {
                     Id = "updates-restart-options",
                     Name = "Prevent Automatic Restarts",
-                    Description = "Prevents automatic restarts after installing updates when users are logged on",
+                    Description =
+                        "Prevents automatic restarts after installing updates when users are logged on",
                     Category = OptimizationCategory.Updates,
                     GroupName = "Update Behavior",
                     IsEnabled = true,
+                    ControlType = ControlType.BinaryToggle,
                     RegistrySettings = new List<RegistrySetting>
                     {
                         new RegistrySetting
@@ -240,14 +258,16 @@ public static class UpdateOptimizations
                             Hive = RegistryHive.LocalMachine,
                             SubKey = "SOFTWARE\\Policies\\Microsoft\\Windows\\WindowsUpdate\\AU",
                             Name = "NoAutoRebootWithLoggedOnUsers",
-                            RecommendedValue = 1,  // For backward compatibility
-                            EnabledValue = 1,      // When toggle is ON, automatic restarts are prevented
-                            DisabledValue = 0,     // When toggle is OFF, automatic restarts are allowed
+                            RecommendedValue = 1,
+                            EnabledValue = 0, // When toggle is ON, automatic restarts are prevented
+                            DisabledValue = 1, // When toggle is OFF, automatic restarts are allowed
                             ValueType = RegistryValueKind.DWord,
-                            DefaultValue = null,   // For backward compatibility
-                            Description = "Controls automatic restart behavior after updates"
-                        }
-                    }
+                            DefaultValue = 0, // Default value when registry key exists but no value is set
+                            Description = "Controls automatic restart behavior after updates",
+                            IsPrimary = true,
+                            AbsenceMeansEnabled = true,
+                        },
+                    },
                 },
                 new OptimizationSetting
                 {
@@ -257,6 +277,7 @@ public static class UpdateOptimizations
                     Category = OptimizationCategory.Updates,
                     GroupName = "Update Content",
                     IsEnabled = false,
+                    ControlType = ControlType.BinaryToggle,
                     RegistrySettings = new List<RegistrySetting>
                     {
                         new RegistrySetting
@@ -265,14 +286,17 @@ public static class UpdateOptimizations
                             Hive = RegistryHive.LocalMachine,
                             SubKey = "SOFTWARE\\Policies\\Microsoft\\Windows\\WindowsUpdate",
                             Name = "ExcludeWUDriversInQualityUpdate",
-                            RecommendedValue = 1,  // For backward compatibility
-                            EnabledValue = 1,      // When toggle is ON, driver updates are excluded
-                            DisabledValue = 0,     // When toggle is OFF, driver updates are included
+                            RecommendedValue = 1,
+                            EnabledValue = 0, // When toggle is ON, driver updates are included
+                            DisabledValue = 1, // When toggle is OFF, driver updates are excluded
                             ValueType = RegistryValueKind.DWord,
-                            DefaultValue = null,   // For backward compatibility
-                            Description = "Controls whether driver updates are included in Windows quality updates"
-                        }
-                    }
+                            DefaultValue = 0, // Default value when registry key exists but no value is set
+                            Description =
+                                "Controls whether driver updates are included in Windows quality updates",
+                            IsPrimary = true,
+                            AbsenceMeansEnabled = true,
+                        },
+                    },
                 },
                 new OptimizationSetting
                 {
@@ -282,6 +306,7 @@ public static class UpdateOptimizations
                     Category = OptimizationCategory.Updates,
                     GroupName = "Update Behavior",
                     IsEnabled = false,
+                    ControlType = ControlType.BinaryToggle,
                     RegistrySettings = new List<RegistrySetting>
                     {
                         new RegistrySetting
@@ -290,23 +315,27 @@ public static class UpdateOptimizations
                             Hive = RegistryHive.LocalMachine,
                             SubKey = "SOFTWARE\\Policies\\Microsoft\\Windows\\WindowsUpdate",
                             Name = "SetUpdateNotificationLevel",
-                            RecommendedValue = 1,  // For backward compatibility
-                            EnabledValue = 2,      // When toggle is ON, show all notifications (2 = default)
-                            DisabledValue = 1,     // When toggle is OFF, show only restart required notifications (1 = reduced)
+                            RecommendedValue = 1,
+                            EnabledValue = 2, // When toggle is ON, show all notifications (2 = default)
+                            DisabledValue = 1, // When toggle is OFF, show only restart required notifications (1 = reduced)
                             ValueType = RegistryValueKind.DWord,
-                            DefaultValue = null,   // For backward compatibility
-                            Description = "Controls the visibility level of update notifications"
-                        }
-                    }
+                            DefaultValue = 2, // Default value when registry key exists but no value is set
+                            Description = "Controls the visibility level of update notifications",
+                            IsPrimary = true,
+                            AbsenceMeansEnabled = true,
+                        },
+                    },
                 },
                 new OptimizationSetting
                 {
                     Id = "updates-metered-connection",
                     Name = "Updates on Metered Connections",
-                    Description = "Controls whether updates are downloaded over metered connections",
+                    Description =
+                        "Controls whether updates are downloaded over metered connections",
                     Category = OptimizationCategory.Updates,
                     GroupName = "Update Behavior",
                     IsEnabled = false,
+                    ControlType = ControlType.BinaryToggle,
                     RegistrySettings = new List<RegistrySetting>
                     {
                         new RegistrySetting
@@ -315,16 +344,19 @@ public static class UpdateOptimizations
                             Hive = RegistryHive.CurrentUser,
                             SubKey = "SOFTWARE\\Microsoft\\WindowsUpdate\\UX\\Settings",
                             Name = "AllowAutoWindowsUpdateDownloadOverMeteredNetwork",
-                            RecommendedValue = 0,  // For backward compatibility
-                            EnabledValue = 1,      // When toggle is ON, updates are downloaded over metered connections
-                            DisabledValue = 0,     // When toggle is OFF, updates are not downloaded over metered connections
+                            RecommendedValue = 0,
+                            EnabledValue = 1, // When toggle is ON, updates are downloaded over metered connections
+                            DisabledValue = 0, // When toggle is OFF, updates are not downloaded over metered connections
                             ValueType = RegistryValueKind.DWord,
-                            DefaultValue = null,   // For backward compatibility
-                            Description = "Controls update download behavior on metered connections"
-                        }
-                    }
-                }
-            }
+                            DefaultValue = 0, // Default value when registry key exists but no value is set
+                            Description =
+                                "Controls update download behavior on metered connections",
+                            IsPrimary = true,
+                            AbsenceMeansEnabled = true,
+                        },
+                    },
+                },
+            },
         };
     }
 }

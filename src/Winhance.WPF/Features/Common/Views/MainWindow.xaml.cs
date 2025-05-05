@@ -1,4 +1,5 @@
 ﻿﻿using System;
+using System.Windows.Media;
 using System.Collections.Generic;
 using System.Diagnostics;
 using System.IO;
@@ -14,6 +15,7 @@ using Winhance.Core.Features.Common.Interfaces;
 using Winhance.Core.Features.Common.Messaging;
 using Winhance.Core.Features.Common.Enums;
 using Winhance.WPF.Features.Common.Resources.Theme;
+using Winhance.WPF.Features.Common.Services;
 using Winhance.WPF.Features.Common.Utilities;
 using Winhance.WPF.Features.Common.ViewModels;
 
@@ -22,6 +24,8 @@ namespace Winhance.WPF.Features.Common.Views
     public partial class MainWindow : Window
     {
         private readonly Winhance.Core.Features.Common.Interfaces.INavigationService _navigationService = null!;
+        private WindowSizeManager _windowSizeManager;
+        private readonly UserPreferencesService _userPreferencesService;
         private void LogDebug(string message, Exception? ex = null)
         {
             string fullMessage = message + (ex != null ? $" - Exception: {ex.Message}" : "");
@@ -76,7 +80,8 @@ namespace Winhance.WPF.Features.Common.Views
             IThemeManager themeManager,
             IServiceProvider serviceProvider,
             IMessengerService messengerService,
-            Winhance.Core.Features.Common.Interfaces.INavigationService navigationService
+            Winhance.Core.Features.Common.Interfaces.INavigationService navigationService,
+            UserPreferencesService userPreferencesService
         )
         {
             LogDebug("Parameterized constructor starting");
@@ -126,6 +131,27 @@ namespace Winhance.WPF.Features.Common.Views
                 _serviceProvider = serviceProvider;
                 _messengerService = messengerService;
                 _navigationService = navigationService;
+                
+                // Create the window size manager
+                try
+                {
+                    var logService = _serviceProvider.GetService(typeof(ILogService)) as ILogService;
+                    
+                    if (userPreferencesService != null && logService != null)
+                    {
+                        _windowSizeManager = new WindowSizeManager(this, userPreferencesService, logService);
+                        LogDebug("WindowSizeManager created successfully");
+                    }
+                    else
+                    {
+                        LogDebug("Could not create WindowSizeManager: services not available");
+                    }
+                }
+                catch (Exception ex)
+                {
+                    LogDebug($"Error creating WindowSizeManager: {ex.Message}", ex);
+                }
+                _userPreferencesService = userPreferencesService ?? throw new ArgumentNullException(nameof(userPreferencesService));
                 LogDebug("Fields set");
 
                 // Hook up events for ContentPresenter-based navigation
@@ -133,6 +159,9 @@ namespace Winhance.WPF.Features.Common.Views
                 {
                     LogDebug("Setting up navigation service for ContentPresenter-based navigation");
 
+                    // Add PreviewMouseWheel event handler for better scrolling
+                    this.PreviewMouseWheel += MainWindow_PreviewMouseWheel;
+                    
                     // We'll navigate once the window is fully loaded
                     this.Loaded += (sender, e) =>
                     {
@@ -197,7 +226,7 @@ namespace Winhance.WPF.Features.Common.Views
                         }
                     };
 
-                    // Add StateChanged event to update Maximize/Restore button content
+                    // Add StateChanged event to update Maximize/Restore button content only
                     this.StateChanged += (sender, e) => {
                         if (DataContext is MainViewModel viewModel)
                         {
@@ -205,6 +234,8 @@ namespace Winhance.WPF.Features.Common.Views
                                 (this.WindowState == WindowState.Maximized) ? "WindowRestore" : "WindowMaximize";
                         }
                     };
+                    
+                    // We no longer save window position/size to preferences
                 }
                 else
                 {
@@ -480,6 +511,19 @@ namespace Winhance.WPF.Features.Common.Views
                 }
                 LogDebug("Window handle verified");
 
+                // Initialize the window size manager to set size and center the window
+                if (_windowSizeManager != null)
+                {
+                    _windowSizeManager.Initialize();
+                    LogDebug("WindowSizeManager initialized");
+                }
+                else
+                {
+                    // Fallback if window size manager is not available
+                    SetDynamicWindowSize();
+                    LogDebug("Used fallback dynamic window sizing");
+                }
+
                 EnableBlur();
                 LogDebug("Blur enabled successfully");
             }
@@ -488,6 +532,129 @@ namespace Winhance.WPF.Features.Common.Views
                 LogDebug("Error in OnSourceInitialized", ex);
                 // Don't throw - blur is not critical
             }
+        }
+        
+        /// <summary>
+        /// Sets the window size dynamically based on the screen resolution
+        /// </summary>
+        private void SetDynamicWindowSize()
+        {
+            try
+            {
+                LogDebug("Setting dynamic window size");
+                
+                // Get the current screen's working area (excludes taskbar)
+                var workArea = GetCurrentScreenWorkArea();
+                
+                // Get DPI scaling factor for the current screen
+                double dpiScaleX = 1.0;
+                double dpiScaleY = 1.0;
+                
+                try
+                {
+                    var presentationSource = PresentationSource.FromVisual(this);
+                    if (presentationSource?.CompositionTarget != null)
+                    {
+                        dpiScaleX = presentationSource.CompositionTarget.TransformToDevice.M11;
+                        dpiScaleY = presentationSource.CompositionTarget.TransformToDevice.M22;
+                        LogDebug($"DPI scale factors: X={dpiScaleX}, Y={dpiScaleY}");
+                    }
+                }
+                catch (Exception ex)
+                {
+                    LogDebug($"Error getting DPI scale: {ex.Message}", ex);
+                }
+                
+                // Calculate available screen space
+                double screenWidth = workArea.Width / dpiScaleX;
+                double screenHeight = workArea.Height / dpiScaleY;
+                double screenLeft = workArea.X / dpiScaleX;
+                double screenTop = workArea.Y / dpiScaleY;
+                
+                // Calculate window size (75% of screen size with minimum/maximum constraints)
+                double windowWidth = Math.Min(1600, screenWidth * 0.75);
+                double windowHeight = Math.Min(900, screenHeight * 0.75);
+                
+                // Ensure minimum size for usability
+                windowWidth = Math.Max(windowWidth, 1024);
+                windowHeight = Math.Max(windowHeight, 700);
+                
+                // Set the window size
+                this.Width = windowWidth;
+                this.Height = windowHeight;
+                
+                // Center the window on screen
+                this.Left = screenLeft + (screenWidth - windowWidth) / 2;
+                this.Top = screenTop + (screenHeight - windowHeight) / 2;
+                
+                LogDebug($"Screen resolution: {screenWidth}x{screenHeight}, Window size set to: {windowWidth}x{windowHeight}");
+                LogDebug($"Window centered at: Left={this.Left}, Top={this.Top}");
+            }
+            catch (Exception ex)
+            {
+                LogDebug($"Error setting dynamic window size: {ex.Message}", ex);
+            }
+        }
+        
+        /// <summary>
+        /// Gets the working area of the screen that contains the window
+        /// </summary>
+        private Rect GetCurrentScreenWorkArea()
+        {
+            try
+            {
+                // Get the window handle
+                var windowHandle = new WindowInteropHelper(this).Handle;
+                if (windowHandle != IntPtr.Zero)
+                {
+                    // Get the monitor info for the monitor containing the window
+                    var monitorInfo = new MONITORINFO();
+                    monitorInfo.cbSize = Marshal.SizeOf(typeof(MONITORINFO));
+                    
+                    if (GetMonitorInfo(MonitorFromWindow(windowHandle, MONITOR_DEFAULTTONEAREST), ref monitorInfo))
+                    {
+                        // Convert the working area to a WPF Rect
+                        return new Rect(
+                            monitorInfo.rcWork.left,
+                            monitorInfo.rcWork.top,
+                            monitorInfo.rcWork.right - monitorInfo.rcWork.left,
+                            monitorInfo.rcWork.bottom - monitorInfo.rcWork.top);
+                    }
+                }
+            }
+            catch (Exception ex)
+            {
+                LogDebug($"Error getting current screen: {ex.Message}", ex);
+            }
+            
+            // Fallback to primary screen working area
+            return SystemParameters.WorkArea;
+        }
+        
+        [DllImport("user32.dll")]
+        private static extern IntPtr MonitorFromWindow(IntPtr hwnd, uint dwFlags);
+        
+        [DllImport("user32.dll")]
+        private static extern bool GetMonitorInfo(IntPtr hMonitor, ref MONITORINFO lpmi);
+        
+        private const uint MONITOR_DEFAULTTONEAREST = 2;
+        
+        [StructLayout(LayoutKind.Sequential)]
+        private struct RECT
+        {
+            public int left;
+            public int top;
+            public int right;
+            public int bottom;
+        }
+        
+        [StructLayout(LayoutKind.Sequential)]
+        private struct MONITORINFO
+        {
+            public int cbSize;
+            public RECT rcMonitor;
+            public RECT rcWork;
+            public uint dwFlags;
         }
 
         private void EnableBlur()
@@ -632,6 +799,53 @@ namespace Winhance.WPF.Features.Common.Views
                 }
             }
         }
-
+        
+        /// <summary>
+        /// Handles mouse wheel events at the window level and redirects them to the ScrollViewer
+        /// </summary>
+        private void MainWindow_PreviewMouseWheel(object sender, MouseWheelEventArgs e)
+        {
+            // Find the ScrollViewer in the visual tree
+            var scrollViewer = FindVisualChild<ScrollViewer>(this);
+            if (scrollViewer != null)
+            {
+                // Redirect the mouse wheel event to the ScrollViewer
+                if (e.Delta < 0)
+                {
+                    scrollViewer.LineDown();
+                }
+                else
+                {
+                    scrollViewer.LineUp();
+                }
+                
+                // Mark the event as handled to prevent it from bubbling up
+                e.Handled = true;
+            }
+        }
+        
+        /// <summary>
+        /// Finds a visual child of the specified type in the visual tree
+        /// </summary>
+        private static T FindVisualChild<T>(DependencyObject obj) where T : DependencyObject
+        {
+            for (int i = 0; i < VisualTreeHelper.GetChildrenCount(obj); i++)
+            {
+                DependencyObject child = VisualTreeHelper.GetChild(obj, i);
+                
+                if (child != null && child is T)
+                {
+                    return (T)child;
+                }
+                
+                T childOfChild = FindVisualChild<T>(child);
+                if (childOfChild != null)
+                {
+                    return childOfChild;
+                }
+            }
+            
+            return null;
+        }
     }
 }

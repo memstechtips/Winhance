@@ -1,140 +1,37 @@
 using System;
+using System.Collections.Generic;
 using System.Collections.ObjectModel;
 using System.Linq;
-using System.Reflection;
 using System.Threading.Tasks;
 using CommunityToolkit.Mvvm.ComponentModel;
 using CommunityToolkit.Mvvm.Input;
-using Microsoft.Win32;
 using Winhance.Core.Features.Common.Interfaces;
 using Winhance.Core.Features.Common.Models;
-using Winhance.Core.Features.Customize.Models;
 using Winhance.Core.Features.Common.Enums;
+using Winhance.Core.Features.Common.Extensions;
+using Winhance.Core.Features.Customize.Enums;
+using Winhance.Core.Features.Customize.Models;
 using Winhance.WPF.Features.Common.ViewModels;
+using Winhance.WPF.Features.Common.Interfaces;
 using Winhance.WPF.Features.Common.Models;
-using Winhance.WPF.Features.Customize.Models;
-using Winhance.Core.Features.Optimize.Models;
-using System.Windows;
+using Microsoft.Win32;
+using Winhance.Infrastructure.Features.Common.Registry;
+using Winhance.WPF.Features.Common.Extensions;
 
 namespace Winhance.WPF.Features.Customize.ViewModels
 {
     /// <summary>
     /// ViewModel for Taskbar customizations.
     /// </summary>
-    public partial class TaskbarCustomizationsViewModel : BaseCustomizationsViewModel
+    public partial class TaskbarCustomizationsViewModel : BaseSettingsViewModel<ApplicationSettingItem>
     {
-        /// <summary>
-        /// Gets the command to execute an action.
-        /// </summary>
-        [RelayCommand]
-        public async void ExecuteAction(CustomizationAction? action)
-        {
-            if (action == null) return;
-
-            try
-            {
-                // Execute the registry action if present
-                if (action.RegistrySetting != null)
-                {
-                    string hiveString = action.RegistrySetting.Hive.ToString();
-                    if (hiveString == "LocalMachine") hiveString = "HKLM";
-                    else if (hiveString == "CurrentUser") hiveString = "HKCU";
-                    else if (hiveString == "ClassesRoot") hiveString = "HKCR";
-                    else if (hiveString == "Users") hiveString = "HKU";
-                    else if (hiveString == "CurrentConfig") hiveString = "HKCC";
-
-                    string fullPath = $"{hiveString}\\{action.RegistrySetting.SubKey}";
-                    _registryService.SetValue(
-                        fullPath,
-                        action.RegistrySetting.Name,
-                        action.RegistrySetting.RecommendedValue,
-                        action.RegistrySetting.ValueType);
-                }
-
-                // Execute custom action if present
-                if (action.CustomAction != null)
-                {
-                    await action.CustomAction();
-                }
-
-                _logService.Log(LogLevel.Info, $"Action '{action.Name}' executed successfully");
-            }
-            catch (Exception ex)
-            {
-                _logService.Log(LogLevel.Error, $"Error executing action '{action.Name}': {ex.Message}");
-            }
-        }
-
-        /// <summary>
-        /// Gets the collection of taskbar actions.
-        /// </summary>
-        public ObservableCollection<CustomizationAction> Actions { get; } = new();
-
         private readonly ISystemServices _systemServices;
+        private bool _isWindows11;
 
         /// <summary>
-        /// Gets the category name.
+        /// Gets the command to clean the taskbar.
         /// </summary>
-        public override string CategoryName => "Taskbar";
-
-        /// <summary>
-        /// Command to clean the taskbar.
-        /// </summary>
-        [RelayCommand]
-        public async Task CleanTaskbar()
-        {
-            try
-            {
-                // Create progress reporter
-                var progressReporter = new Progress<TaskProgressDetail>();
-                
-                // Start task with progress
-                _progressService.StartTask("Cleaning Taskbar...");
-                
-                // Update initial progress
-                _progressService.UpdateDetailedProgress(new TaskProgressDetail
-                {
-                    StatusText = "Cleaning Taskbar...",
-                    Progress = 0
-                });
-
-                // Clean Taskbar
-                await Task.Run(() =>
-                {
-                    TaskbarCustomizations.CleanTaskbar(_systemServices);
-                });
-
-                // Log success
-                _logService.Log(LogLevel.Info, "Taskbar cleaned successfully");
-
-                // Update completion progress
-                _progressService.UpdateDetailedProgress(new TaskProgressDetail
-                {
-                    StatusText = "Taskbar cleaned successfully",
-                    Progress = 100
-                });
-                
-                // Complete the task
-                _progressService.CompleteTask();
-                
-            }
-            catch (Exception ex)
-            {
-                // Log error
-                _logService.Log(LogLevel.Error, $"Error cleaning Taskbar: {ex.Message}");
-
-                // Update error progress
-                _progressService.UpdateDetailedProgress(new TaskProgressDetail
-                {
-                    StatusText = $"Error cleaning Taskbar: {ex.Message}",
-                    Progress = 100
-                });
-                
-                // Complete the task
-                _progressService.CompleteTask();
-                
-            }
-        }
+        public IAsyncRelayCommand CleanTaskbarCommand { get; }
 
         /// <summary>
         /// Initializes a new instance of the <see cref="TaskbarCustomizationsViewModel"/> class.
@@ -150,11 +47,42 @@ namespace Winhance.WPF.Features.Customize.ViewModels
             ISystemServices systemServices)
             : base(progressService, registryService, logService)
         {
-            _systemServices = systemServices;
+            _systemServices = systemServices ?? throw new ArgumentNullException(nameof(systemServices));
+            _isWindows11 = _systemServices.IsWindows11();
+            
+            // Initialize the CleanTaskbarCommand
+            CleanTaskbarCommand = new AsyncRelayCommand(ExecuteCleanTaskbarAsync);
         }
 
         /// <summary>
-        /// Loads the taskbar settings.
+        /// Executes the clean taskbar operation.
+        /// </summary>
+        private async Task ExecuteCleanTaskbarAsync()
+        {
+            try
+            {
+                _progressService.StartTask("Cleaning taskbar...");
+                _logService.LogInformation("Cleaning taskbar started");
+                
+                // Call the static method from TaskbarCustomizations class
+                await TaskbarCustomizations.CleanTaskbar(_systemServices, _logService);
+                
+                // Update the status text and complete the task
+                _progressService.UpdateProgress(100, "Taskbar cleaned successfully!");
+                _progressService.CompleteTask();
+                _logService.LogInformation("Taskbar cleaned successfully");
+            }
+            catch (Exception ex)
+            {
+                _logService.LogError($"Error cleaning taskbar: {ex.Message}", ex);
+                // Update the status text with the error message
+                _progressService.UpdateProgress(0, $"Error cleaning taskbar: {ex.Message}");
+                _progressService.CancelCurrentTask();
+            }
+        }
+
+        /// <summary>
+        /// Loads the Taskbar customizations.
         /// </summary>
         /// <returns>A task representing the asynchronous operation.</returns>
         public override async Task LoadSettingsAsync()
@@ -166,448 +94,86 @@ namespace Winhance.WPF.Features.Customize.ViewModels
                 // Clear existing settings
                 Settings.Clear();
 
-                // Load taskbar settings from TaskbarCustomizations
-                var taskbarCustomizations = TaskbarCustomizations.GetTaskbarCustomizations();
+                // Load Taskbar customizations
+                var taskbarCustomizations = Core.Features.Customize.Models.TaskbarCustomizations.GetTaskbarCustomizations();
                 if (taskbarCustomizations?.Settings != null)
                 {
                     // Add settings sorted alphabetically by name
                     foreach (var setting in taskbarCustomizations.Settings.OrderBy(s => s.Name))
                     {
-                        var customizationSetting = new CustomizationSettingItem(_registryService, null, _logService);
-
-                        // Use reflection to set properties to avoid ambiguity
-                        typeof(CustomizationSettingItem).GetProperty("Id")?.SetValue(customizationSetting, setting.Id);
-                        typeof(CustomizationSettingItem).GetProperty("Name")?.SetValue(customizationSetting, setting.Name);
-
-
-                        typeof(CustomizationSettingItem).GetProperty("Description")?.SetValue(customizationSetting, setting.Description);
-                        typeof(CustomizationSettingItem).GetProperty("GroupName")?.SetValue(customizationSetting, setting.GroupName);
-                        typeof(CustomizationSettingItem).GetProperty("IsSelected")?.SetValue(customizationSetting, setting.IsEnabled);
-                        // Set the primary registry setting
-                        typeof(CustomizationSettingItem).GetProperty("RegistrySetting")?.SetValue(customizationSetting, setting.RegistrySettings.FirstOrDefault());
-                        typeof(CustomizationSettingItem).GetProperty("IsGroupHeader")?.SetValue(customizationSetting, false);
-                        typeof(CustomizationSettingItem).GetProperty("ControlType")?.SetValue(customizationSetting, ControlType.BinaryToggle);
-                        
-                        // Set up LinkedRegistrySettings if there are multiple registry settings
-                        if (setting.RegistrySettings.Count > 1)
+                        // Skip Windows 11 specific settings on Windows 10
+                        if (!_isWindows11 && setting.IsWindows11Only)
                         {
-                            var linkedSettings = new LinkedRegistrySettings
-                            {
-                                Logic = setting.LinkedSettingsLogic,
-                                Description = setting.Description
-                            };
-                            foreach (var regSetting in setting.RegistrySettings)
-                            {
-                                linkedSettings.Settings.Add(regSetting);
-                            }
-                            typeof(CustomizationSettingItem).GetProperty("LinkedRegistrySettings")?.SetValue(customizationSetting, linkedSettings);
-                        }
-                        
-                        // Handle LinkedSettings property (nested CustomizationSetting objects)
-                        if (setting.LinkedSettings.Count > 0)
-                        {
-                            _logService.Log(LogLevel.Info, $"Setting {setting.Name} has {setting.LinkedSettings.Count} linked settings");
-                            
-                            // Create a LinkedRegistrySettings object to hold all registry settings from linked settings
-                            var linkedSettings = new LinkedRegistrySettings
-                            {
-                                Logic = setting.LinkedSettingsLogic,
-                                Description = setting.Description
-                            };
-                            
-                            // Add all registry settings from all linked settings
-                            foreach (var linkedSetting in setting.LinkedSettings)
-                            {
-                                foreach (var regSetting in linkedSetting.RegistrySettings)
-                                {
-                                    linkedSettings.Settings.Add(regSetting);
-                                }
-                            }
-                            
-                            // Set the LinkedRegistrySettings property
-                            typeof(CustomizationSettingItem).GetProperty("LinkedRegistrySettings")?.SetValue(customizationSetting, linkedSettings);
+                            continue;
                         }
 
-                        Settings.Add(customizationSetting);
+                        // Skip Windows 10 specific settings on Windows 11
+                        if (_isWindows11 && setting.IsWindows10Only)
+                        {
+                            continue;
+                        }
+
+                        // Create ApplicationSettingItem directly
+                        var settingItem = new ApplicationSettingItem(_registryService, null, _logService)
+                        {
+                            Id = setting.Id,
+                            Name = setting.Name,
+                            Description = setting.Description,
+                            ControlType = setting.ControlType,
+                            IsWindows11Only = setting.IsWindows11Only,
+                            IsWindows10Only = setting.IsWindows10Only
+                        };
+
+                        // Add any actions
+                        var actionsProperty = setting.GetType().GetProperty("Actions");
+                        if (actionsProperty != null && 
+                            actionsProperty.GetValue(setting) is IEnumerable<object> actions && 
+                            actions.Any())
+                        {
+                            // We need to handle this differently since the Actions property doesn't exist in ApplicationSetting
+                            // This is a temporary workaround until we refactor the code properly
+                        }
+
+                        // Set up the registry settings
+                        if (setting.RegistrySettings.Count == 1)
+                        {
+                            // Single registry setting
+                            settingItem.RegistrySetting = setting.RegistrySettings[0];
+                            _logService.Log(LogLevel.Info, $"Setting up single registry setting for {setting.Name}: {setting.RegistrySettings[0].Hive}\\{setting.RegistrySettings[0].SubKey}\\{setting.RegistrySettings[0].Name}");
+                        }
+                        else if (setting.RegistrySettings.Count > 1)
+                        {
+                            // Linked registry settings
+                            settingItem.LinkedRegistrySettings = setting.CreateLinkedRegistrySettings();
+                            _logService.Log(LogLevel.Info, $"Setting up linked registry settings for {setting.Name} with {setting.RegistrySettings.Count} entries and logic {setting.LinkedSettingsLogic}");
+                        }
+                        else
+                        {
+                            _logService.Log(LogLevel.Warning, $"No registry settings found for {setting.Name}");
+                        }
+
+                        Settings.Add(settingItem);
+                    }
+
+                    // Set up property change handlers for settings
+                    foreach (var setting in Settings)
+                    {
+                        setting.PropertyChanged += (s, e) =>
+                        {
+                            if (e.PropertyName == nameof(ApplicationSettingItem.IsSelected))
+                            {
+                                UpdateIsSelectedState();
+                            }
+                        };
                     }
                 }
 
-                // Initialize actions
-                InitializeActions();
-
                 // Check setting statuses
                 await CheckSettingStatusesAsync();
-
-                await Task.CompletedTask;
-            }
-            catch (Exception ex)
-            {
-                _logService.Log(LogLevel.Error, $"Error loading taskbar settings: {ex.Message}");
             }
             finally
             {
                 IsLoading = false;
-            }
-        }
-
-        /// <summary>
-        /// Initializes the taskbar actions.
-        /// </summary>
-        private void InitializeActions()
-        {
-            Actions.Clear();
-
-            // Taskbar actions are intentionally left empty
-        }
-
-        /// <summary>
-        /// Checks the status of all taskbar settings.
-        /// </summary>
-        /// <returns>A task representing the asynchronous operation.</returns>
-        public override async Task CheckSettingStatusesAsync()
-        {
-            try
-            {
-                foreach (var customizationSetting in Settings)
-                {
-                    // Use reflection to get and set properties to avoid ambiguity
-                    PropertyInfo? registrySettingProp = typeof(CustomizationSettingItem).GetProperty("RegistrySetting");
-                    var registrySetting = registrySettingProp?.GetValue(customizationSetting) as RegistrySetting;
-
-                    if (registrySetting != null)
-                    {
-                        // Get status
-                        var status = await _registryService.GetSettingStatusAsync(registrySetting);
-                        typeof(CustomizationSettingItem).GetProperty("Status")?.SetValue(customizationSetting, status);
-
-                        // Get current value
-                        var currentValue = await _registryService.GetCurrentValueAsync(registrySetting);
-                        typeof(CustomizationSettingItem).GetProperty("CurrentValue")?.SetValue(customizationSetting, currentValue);
-
-                        // Update LinkedRegistrySettingsWithValues for tooltip display
-                        var linkedRegistrySettingsWithValues = new ObservableCollection<LinkedRegistrySettingWithValue>();
-                        
-                        // Get the LinkedRegistrySettings property
-                        var linkedRegistrySettings = typeof(CustomizationSettingItem).GetProperty("LinkedRegistrySettings")?.GetValue(customizationSetting) as LinkedRegistrySettings;
-                        
-                        if (linkedRegistrySettings != null && linkedRegistrySettings.Settings.Count > 0)
-                        {
-                            // For linked settings, get fresh values from registry
-                            foreach (var regSetting in linkedRegistrySettings.Settings)
-                            {
-                                string hiveString = regSetting.Hive.ToString();
-                                if (hiveString == "LocalMachine") hiveString = "HKLM";
-                                else if (hiveString == "CurrentUser") hiveString = "HKCU";
-                                else if (hiveString == "ClassesRoot") hiveString = "HKCR";
-                                else if (hiveString == "Users") hiveString = "HKU";
-                                else if (hiveString == "CurrentConfig") hiveString = "HKCC";
-                                
-                                var regCurrentValue = _registryService.GetValue(
-                                    $"{hiveString}\\{regSetting.SubKey}",
-                                    regSetting.Name);
-                                linkedRegistrySettingsWithValues.Add(new LinkedRegistrySettingWithValue(regSetting, regCurrentValue));
-                            }
-                        }
-                        else if (registrySetting != null)
-                        {
-                            // For single setting
-                            linkedRegistrySettingsWithValues.Add(new LinkedRegistrySettingWithValue(registrySetting, currentValue));
-                        }
-                        
-                        typeof(CustomizationSettingItem).GetProperty("LinkedRegistrySettingsWithValues")?.SetValue(customizationSetting, linkedRegistrySettingsWithValues);
-
-                        // Set status message
-                        string statusMessage = GetStatusMessage(customizationSetting);
-                        typeof(CustomizationSettingItem).GetProperty("StatusMessage")?.SetValue(customizationSetting, statusMessage);
-
-                        // Set the IsUpdatingFromCode flag to prevent automatic application
-                        typeof(CustomizationSettingItem).GetProperty("IsUpdatingFromCode")?.SetValue(customizationSetting, true);
-
-                        try
-                        {
-                            // Update IsSelected based on status
-                            bool shouldBeSelected = status == RegistrySettingStatus.Applied;
-
-                            // Set the checkbox state to match the registry state
-                            _logService.Log(LogLevel.Info, $"Setting {customizationSetting.Name} status is {status}, setting IsSelected to {shouldBeSelected}");
-                            typeof(CustomizationSettingItem).GetProperty("IsSelected")?.SetValue(customizationSetting, shouldBeSelected);
-                        }
-                        finally
-                        {
-                            // Reset the flag
-                            typeof(CustomizationSettingItem).GetProperty("IsUpdatingFromCode")?.SetValue(customizationSetting, false);
-                        }
-                    }
-                }
-            }
-            catch (Exception ex)
-            {
-                _logService.Log(LogLevel.Error, $"Error checking taskbar setting statuses: {ex.Message}");
-            }
-        }
-
-        /// <summary>
-        /// Gets the status message for a setting.
-        /// </summary>
-        /// <param name="customizationSetting">The setting.</param>
-        /// <returns>The status message.</returns>
-        private string GetStatusMessage(CustomizationSettingItem customizationSetting)
-        {
-            // Use reflection to get properties to avoid ambiguity
-            var status = (RegistrySettingStatus)typeof(CustomizationSettingItem).GetProperty("Status")?.GetValue(customizationSetting);
-            string message = status switch
-            {
-                RegistrySettingStatus.Applied => "Setting is applied with recommended value",
-                RegistrySettingStatus.NotApplied => "Setting is not applied or using default value",
-                RegistrySettingStatus.Modified => "Setting has a custom value different from recommended",
-                RegistrySettingStatus.Error => "Error checking setting status",
-                _ => "Unknown status"
-            };
-
-            // Add current value if available
-            var currentValue = typeof(CustomizationSettingItem).GetProperty("CurrentValue")?.GetValue(customizationSetting);
-            if (currentValue != null)
-            {
-                message += $"\nCurrent value: {currentValue}";
-            }
-
-            // Add recommended value if available
-            var registrySetting = typeof(CustomizationSettingItem).GetProperty("RegistrySetting")?.GetValue(customizationSetting) as RegistrySetting;
-            if (registrySetting?.RecommendedValue != null)
-            {
-                message += $"\nRecommended value: {registrySetting.RecommendedValue}";
-            }
-
-            // Add default value if available
-            if (registrySetting?.DefaultValue != null)
-            {
-                message += $"\nDefault value: {registrySetting.DefaultValue}";
-            }
-
-            return message;
-        }
-
-        /// <summary>
-        /// Applies all selected taskbar settings.
-        /// </summary>
-        /// <param name="progress">The progress reporter.</param>
-        /// <returns>A task representing the asynchronous operation.</returns>
-        public override async Task ApplySettingsAsync(IProgress<TaskProgressDetail> progress)
-        {
-            try
-            {
-                // Use reflection to filter settings
-                var selectedSettings = Settings.Where(s =>
-                {
-                    bool isSelected = (bool)typeof(CustomizationSettingItem).GetProperty("IsSelected")?.GetValue(s);
-                    var registrySetting = typeof(CustomizationSettingItem).GetProperty("RegistrySetting")?.GetValue(s) as RegistrySetting;
-                    var linkedRegistrySettings = typeof(CustomizationSettingItem).GetProperty("LinkedRegistrySettings")?.GetValue(s) as LinkedRegistrySettings;
-                    return isSelected && (registrySetting != null || (linkedRegistrySettings != null && linkedRegistrySettings.Settings.Count > 0));
-                }).ToList();
-
-                if (selectedSettings.Count == 0)
-                {
-                    return;
-                }
-
-                int current = 0;
-                int total = selectedSettings.Count;
-
-                foreach (var customizationSetting in selectedSettings)
-                {
-                    var name = typeof(CustomizationSettingItem).GetProperty("Name")?.GetValue(customizationSetting) as string;
-                    var registrySetting = typeof(CustomizationSettingItem).GetProperty("RegistrySetting")?.GetValue(customizationSetting) as RegistrySetting;
-                    var linkedRegistrySettings = typeof(CustomizationSettingItem).GetProperty("LinkedRegistrySettings")?.GetValue(customizationSetting) as LinkedRegistrySettings;
-
-                    if (name != null)
-                    {
-                        current++;
-                        progress?.Report(new TaskProgressDetail
-                        {
-                            StatusText = $"Applying {name}",
-                            Progress = (int)((double)current / total * 100)
-                        });
-
-                        // Apply primary registry setting if available
-                        if (registrySetting != null)
-                        {
-                            string hiveString = registrySetting.Hive.ToString();
-                            if (hiveString == "LocalMachine") hiveString = "HKLM";
-                            else if (hiveString == "CurrentUser") hiveString = "HKCU";
-                            else if (hiveString == "ClassesRoot") hiveString = "HKCR";
-                            else if (hiveString == "Users") hiveString = "HKU";
-                            else if (hiveString == "CurrentConfig") hiveString = "HKCC";
-
-                            string fullPath = $"{hiveString}\\{registrySetting.SubKey}";
-                            _registryService.SetValue(
-                                fullPath,
-                                registrySetting.Name,
-                                registrySetting.RecommendedValue,
-                                registrySetting.ValueType);
-                        }
-
-                        // Apply linked registry settings if available
-                        if (linkedRegistrySettings != null && linkedRegistrySettings.Settings.Count > 0)
-                        {
-                            foreach (var regSetting in linkedRegistrySettings.Settings)
-                            {
-                                // Skip the primary registry setting if it's already been applied AND LinkedSettingsLogic is not All
-                                if (linkedRegistrySettings.Logic != LinkedSettingsLogic.All &&
-                                    registrySetting != null &&
-                                    regSetting.SubKey == registrySetting.SubKey &&
-                                    regSetting.Name == registrySetting.Name &&
-                                    regSetting.Hive == registrySetting.Hive)
-                                {
-                                    continue;
-                                }
-
-                                string hiveString = regSetting.Hive.ToString();
-                                if (hiveString == "LocalMachine") hiveString = "HKLM";
-                                else if (hiveString == "CurrentUser") hiveString = "HKCU";
-                                else if (hiveString == "ClassesRoot") hiveString = "HKCR";
-                                else if (hiveString == "Users") hiveString = "HKU";
-                                else if (hiveString == "CurrentConfig") hiveString = "HKCC";
-
-                                string fullPath = $"{hiveString}\\{regSetting.SubKey}";
-                                _registryService.SetValue(
-                                    fullPath,
-                                    regSetting.Name,
-                                    regSetting.RecommendedValue,
-                                    regSetting.ValueType);
-                            }
-                        }
-                    }
-                }
-
-                // Refresh setting statuses
-                await CheckSettingStatusesAsync();
-            }
-            catch (Exception ex)
-            {
-                _logService.Log(LogLevel.Error, $"Error applying taskbar settings: {ex.Message}");
-                throw;
-            }
-        }
-
-        /// <summary>
-        /// Restores all selected taskbar settings to their default values.
-        /// </summary>
-        /// <param name="progress">The progress reporter.</param>
-        /// <returns>A task representing the asynchronous operation.</returns>
-        public override async Task RestoreDefaultsAsync(IProgress<TaskProgressDetail> progress)
-        {
-            try
-            {
-                // Use reflection to filter settings
-                var selectedSettings = Settings.Where(s =>
-                {
-                    bool isSelected = (bool)typeof(CustomizationSettingItem).GetProperty("IsSelected")?.GetValue(s);
-                    var registrySetting = typeof(CustomizationSettingItem).GetProperty("RegistrySetting")?.GetValue(s) as RegistrySetting;
-                    var linkedRegistrySettings = typeof(CustomizationSettingItem).GetProperty("LinkedRegistrySettings")?.GetValue(s) as LinkedRegistrySettings;
-                    return isSelected && (registrySetting != null || (linkedRegistrySettings != null && linkedRegistrySettings.Settings.Count > 0));
-                }).ToList();
-
-                if (selectedSettings.Count == 0)
-                {
-                    return;
-                }
-
-                int current = 0;
-                int total = selectedSettings.Count;
-
-                foreach (var customizationSetting in selectedSettings)
-                {
-                    var name = typeof(CustomizationSettingItem).GetProperty("Name")?.GetValue(customizationSetting) as string;
-                    var registrySetting = typeof(CustomizationSettingItem).GetProperty("RegistrySetting")?.GetValue(customizationSetting) as RegistrySetting;
-                    var linkedRegistrySettings = typeof(CustomizationSettingItem).GetProperty("LinkedRegistrySettings")?.GetValue(customizationSetting) as LinkedRegistrySettings;
-
-                    if (name != null)
-                    {
-                        current++;
-                        progress?.Report(new TaskProgressDetail
-                        {
-                            StatusText = $"Restoring {name} to default",
-                            Progress = (int)((double)current / total * 100)
-                        });
-
-                        // Restore primary registry setting if available
-                        if (registrySetting != null)
-                        {
-                            if (registrySetting.DefaultValue == null)
-                            {
-                                await _registryService.DeleteValue(
-                                    registrySetting.Hive,
-                                    registrySetting.SubKey,
-                                    registrySetting.Name);
-                            }
-                            else
-                            {
-                                string hiveString = registrySetting.Hive.ToString();
-                                if (hiveString == "LocalMachine") hiveString = "HKLM";
-                                else if (hiveString == "CurrentUser") hiveString = "HKCU";
-                                else if (hiveString == "ClassesRoot") hiveString = "HKCR";
-                                else if (hiveString == "Users") hiveString = "HKU";
-                                else if (hiveString == "CurrentConfig") hiveString = "HKCC";
-
-                                string fullPath = $"{hiveString}\\{registrySetting.SubKey}";
-                                _registryService.SetValue(
-                                    fullPath,
-                                    registrySetting.Name,
-                                    registrySetting.DefaultValue,
-                                    registrySetting.ValueType);
-                            }
-                        }
-
-                        // Restore linked registry settings if available
-                        if (linkedRegistrySettings != null && linkedRegistrySettings.Settings.Count > 0)
-                        {
-                            foreach (var regSetting in linkedRegistrySettings.Settings)
-                            {
-                                // Skip the primary registry setting if it's already been restored AND LinkedSettingsLogic is not All
-                                if (linkedRegistrySettings.Logic != LinkedSettingsLogic.All &&
-                                    registrySetting != null &&
-                                    regSetting.SubKey == registrySetting.SubKey &&
-                                    regSetting.Name == registrySetting.Name &&
-                                    regSetting.Hive == registrySetting.Hive)
-                                {
-                                    continue;
-                                }
-
-                                if (regSetting.DefaultValue == null)
-                                {
-                                    await _registryService.DeleteValue(
-                                        regSetting.Hive,
-                                        regSetting.SubKey,
-                                        regSetting.Name);
-                                }
-                                else
-                                {
-                                    string hiveString = regSetting.Hive.ToString();
-                                    if (hiveString == "LocalMachine") hiveString = "HKLM";
-                                    else if (hiveString == "CurrentUser") hiveString = "HKCU";
-                                    else if (hiveString == "ClassesRoot") hiveString = "HKCR";
-                                    else if (hiveString == "Users") hiveString = "HKU";
-                                    else if (hiveString == "CurrentConfig") hiveString = "HKCC";
-
-                                    string fullPath = $"{hiveString}\\{regSetting.SubKey}";
-                                    _registryService.SetValue(
-                                        fullPath,
-                                        regSetting.Name,
-                                        regSetting.DefaultValue,
-                                        regSetting.ValueType);
-                                }
-                            }
-                        }
-                    }
-                }
-
-                // Refresh setting statuses
-                await CheckSettingStatusesAsync();
-            }
-            catch (Exception ex)
-            {
-                _logService.Log(LogLevel.Error, $"Error restoring taskbar settings: {ex.Message}");
-                throw;
             }
         }
     }

@@ -6,10 +6,13 @@
              xmlns:viewModels="clr-namespace:Winhance.WPF.Features.SoftwareApps.ViewModels"
              xmlns:materialDesign="http://materialdesigninxaml.net/winfx/xaml/themes"
              xmlns:local="clr-namespace:Winhance.WPF.Features.Common.Controls"
+             xmlns:controls="clr-namespace:Winhance.WPF.Features.Common.Controls"
+             xmlns:behaviors="clr-namespace:Winhance.WPF.Features.Common.Behaviors"
              d:DataContext="{d:DesignInstance Type=viewModels:ExternalAppsViewModel}"
              mc:Ignorable="d">
 
-    <StackPanel Margin="10">
+    <controls:ResponsiveScrollViewer>
+        <StackPanel Margin="10">
         <!-- Buttons on the right -->
         <DockPanel LastChildFill="True"
                    Margin="0,20,10,10">
@@ -64,13 +67,21 @@
                     <!-- Row 1: Info text (left) + Search box (right) -->
                     <Grid Grid.Row="1" Margin="0,0,0,5">
                         <Grid.ColumnDefinitions>
-                            <ColumnDefinition Width="Auto"/>
                             <ColumnDefinition Width="*"/>
-                            <ColumnDefinition Width="Auto"/>
                             <ColumnDefinition Width="Auto"/>
                         </Grid.ColumnDefinitions>
 
-                        <!-- Info Text (left side) -->
+                        <!-- Search Box (prioritized) -->
+                        <StackPanel Grid.Column="1"
+                                    HorizontalAlignment="Right"
+                                    VerticalAlignment="Center"
+                                    Margin="10,0,10,0"
+                                    Panel.ZIndex="10">
+                            <local:SearchBox Width="200"
+                                             SearchText="{Binding SearchText, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}"/>
+                        </StackPanel>
+
+                        <!-- Info Text (lower priority) -->
                         <Grid Grid.Column="0">
                             <Grid.ColumnDefinitions>
                                 <ColumnDefinition Width="Auto"/>
@@ -97,15 +108,6 @@
                                        MaxHeight="40"
                                        Text="Check the boxes next to the applications you want to install. Click 'Install Selected Items' to install them all at once.&#x0a;Use the Search Box to find settings quickly. The Save and Import Config buttons in the main window help you manage your preferred selections."/>
                         </Grid>
-
-                        <!-- Search Box (right) -->
-                        <StackPanel Grid.Column="2"
-                                    HorizontalAlignment="Right"
-                                    VerticalAlignment="Center"
-                                    Margin="10,0,10,0">
-                            <local:SearchBox Width="200"
-                                             SearchText="{Binding SearchText, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}"/>
-                        </StackPanel>
 
                     </Grid>
                 </Grid>
@@ -163,15 +165,21 @@
                                 Margin="5,0,5,5"
                                 Effect="{StaticResource LightShadowEffect}"
                                 Visibility="{Binding IsExpanded, Converter={StaticResource BooleanToVisibilityConverter}}">
-                            <StackPanel Margin="30,5,0,5">
+                            <StackPanel Margin="0,5,0,5">
                                 <!-- Apps in this category -->
                                 <ItemsControl ItemsSource="{Binding Apps}"
-                                              Margin="0,5,10,5">
+                                              Margin="10,0,10,10">
                                     <ItemsControl.ItemsPanel>
                                         <ItemsPanelTemplate>
-                                            <UniformGrid Style="{StaticResource AppItemsUniformGridStyle}"/>
+                                            <WrapPanel Orientation="Horizontal" HorizontalAlignment="Left" />
                                         </ItemsPanelTemplate>
                                     </ItemsControl.ItemsPanel>
+                                    <ItemsControl.ItemContainerStyle>
+                                        <Style TargetType="ContentPresenter">
+                                            <Setter Property="Width" Value="280" />
+                                            <Setter Property="Margin" Value="0,0,0,0" />
+                                        </Style>
+                                    </ItemsControl.ItemContainerStyle>
                                     <ItemsControl.ItemTemplate>
                                         <DataTemplate>
                                             <CheckBox Style="{StaticResource CustomCheckBox}"
@@ -194,5 +202,6 @@
                 </DataTemplate>
             </ItemsControl.ItemTemplate>
         </ItemsControl>
-    </StackPanel>
+        </StackPanel>
+    </controls:ResponsiveScrollViewer>
 </UserControl>

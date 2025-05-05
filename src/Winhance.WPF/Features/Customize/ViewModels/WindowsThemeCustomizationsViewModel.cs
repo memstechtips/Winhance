@@ -12,14 +12,15 @@ using Winhance.Core.Features.Customize.Interfaces;
 using Winhance.Core.Features.Customize.Models;
 using Winhance.WPF.Features.Common.Models;
 using Winhance.WPF.Features.Common.ViewModels;
-using Winhance.WPF.Features.Customize.Models;
+
+using Winhance.WPF.Features.Common.Extensions;
 
 namespace Winhance.WPF.Features.Customize.ViewModels
 {
     /// <summary>
     /// ViewModel for Windows Theme customizations.
     /// </summary>
-    public partial class WindowsThemeCustomizationsViewModel : BaseCustomizationsViewModel
+    public partial class WindowsThemeCustomizationsViewModel : BaseSettingsViewModel<ApplicationSettingItem>
     {
         private readonly IDialogService _dialogService;
         private readonly IThemeService _themeService;
@@ -51,21 +52,39 @@ namespace Winhance.WPF.Features.Customize.ViewModels
         private bool _changeWallpaper;
 
         /// <summary>
-        /// Gets the collection of available theme options.
+        /// Gets a value indicating whether theme options are available.
         /// </summary>
-        [ObservableProperty]
-        private List<string> _themeOptions = new List<string> { "Light Mode", "Dark Mode" };
+        public bool HasThemeOptions => true;
 
         /// <summary>
-        /// Gets or sets the selected theme option.
+        /// Gets the available theme options.
         /// </summary>
-        [ObservableProperty]
-        private string _selectedTheme = "Light Mode";
+        public List<string> ThemeOptions => new List<string> { "Light Mode", "Dark Mode" };
+
+        /// <summary>
+        /// Gets or sets the selected theme.
+        /// </summary>
+        public string SelectedTheme
+        {
+            get => IsDarkModeEnabled ? "Dark Mode" : "Light Mode";
+            set
+            {
+                if (value == "Dark Mode" && !IsDarkModeEnabled)
+                {
+                    IsDarkModeEnabled = true;
+                }
+                else if (value == "Light Mode" && IsDarkModeEnabled)
+                {
+                    IsDarkModeEnabled = false;
+                }
+                OnPropertyChanged();
+            }
+        }
 
         /// <summary>
         /// Gets the category name.
         /// </summary>
-        public override string CategoryName => "Windows Theme";
+        public string CategoryName => "Windows Theme";
 
         /// <summary>
         /// Gets the command to apply the theme.
@@ -433,24 +452,11 @@ namespace Winhance.WPF.Features.Customize.ViewModels
                 // Clear existing settings
                 Settings.Clear();
                 
-                // Add a searchable item for the Dark Mode toggle
-                var darkModeItem = new CustomizationSettingItem(_registryService, _dialogService, _logService)
-                {
-                    Id = "DarkModeToggle",
-                    Name = "Dark Mode",
-                    Description = "Toggle between light and dark theme for Windows",
-                    GroupName = "Windows Theme",
-                    IsVisible = true,
-                    ControlType = ControlType.BinaryToggle,
-                    IsSelected = IsDarkModeEnabled
-                };
-                Settings.Add(darkModeItem);
-                
                 // Add a searchable item for the Theme Selector
-                var themeItem = new CustomizationSettingItem(_registryService, _dialogService, _logService)
+                var themeItem = new ApplicationSettingItem(_registryService, null, _logService)
                 {
                     Id = "ThemeSelector",
-                    Name = "Windows Theme Selector",
+                    Name = "Windows Theme",
                     Description = "Select between light and dark theme for Windows",
                     GroupName = "Windows Theme",
                     IsVisible = true,
@@ -482,6 +488,9 @@ namespace Winhance.WPF.Features.Customize.ViewModels
                 Settings.Add(themeItem);
                 
                 _logService.Log(LogLevel.Info, $"Added {Settings.Count} searchable items for Windows Theme settings");
+
+                // Check the status of all settings
+                await CheckSettingStatusesAsync();
 
                 await Task.CompletedTask;
             }
@@ -524,73 +533,27 @@ namespace Winhance.WPF.Features.Customize.ViewModels
         }
 
         /// <summary>
-        /// Applies all selected settings.
+        /// Gets the status message for a setting.
         /// </summary>
-        /// <param name="progress">The progress reporter.</param>
-        /// <returns>A task representing the asynchronous operation.</returns>
-        public override async Task ApplySettingsAsync(IProgress<TaskProgressDetail> progress)
+        /// <param name="setting">The setting.</param>
+        /// <returns>The status message.</returns>
+        private string GetStatusMessage(ApplicationSettingItem setting)
         {
-            try
+            // Get status
+            var status = setting.Status;
+            string message = status switch
             {
-                IsLoading = true;
-                progress.Report(new TaskProgressDetail { StatusText = "Applying Windows theme settings...", IsIndeterminate = false, Progress = 0 });
+                RegistrySettingStatus.Applied => "Setting is applied with recommended value",
+                RegistrySettingStatus.NotApplied => "Setting is not applied or using default value",
+                RegistrySettingStatus.Modified => "Setting has a custom value different from recommended",
+                RegistrySettingStatus.Error => "Error checking setting status",
+                _ => "Unknown status"
+            };
 
-                // Apply dark mode setting
-                await ApplyThemeAsync(false);
-
-                progress.Report(new TaskProgressDetail { StatusText = "Windows theme settings applied", IsIndeterminate = false, Progress = 1.0 });
-            }
-            catch (Exception ex)
-            {
-                _logService.Log(LogLevel.Error, $"Error applying Windows theme settings: {ex.Message}");
-                throw;
-            }
-            finally
-            {
-                IsLoading = false;
-            }
+            return message;
         }
 
-        /// <summary>
-        /// Restores all selected settings to their default values.
-        /// </summary>
-        /// <param name="progress">The progress reporter.</param>
-        /// <returns>A task representing the asynchronous operation.</returns>
-        public override async Task RestoreDefaultsAsync(IProgress<TaskProgressDetail> progress)
-        {
-            try
-            {
-                IsLoading = true;
-                progress.Report(new TaskProgressDetail { StatusText = "Restoring Windows theme settings...", IsIndeterminate = false, Progress = 0 });
-
-                // Set dark mode to default (light mode)
-                _isHandlingDarkModeChange = true;
-                try
-                {
-                    IsDarkModeEnabled = false;
-                    SelectedTheme = "Light Mode";
-                    _themeSettings.IsDarkMode = false;
-                }
-                finally
-                {
-                    _isHandlingDarkModeChange = false;
-                }
-
-                // Apply the change
-                await ApplyThemeAsync(false);
-
-                progress.Report(new TaskProgressDetail { StatusText = "Windows theme settings restored", IsIndeterminate = false, Progress = 1.0 });
-            }
-            catch (Exception ex)
-            {
-                _logService.Log(LogLevel.Error, $"Error restoring Windows theme settings: {ex.Message}");
-                throw;
-            }
-            finally
-            {
-                IsLoading = false;
-            }
-        }
+        // ApplySelectedSettingsAsync and RestoreDefaultsAsync methods removed as part of the refactoring
         
         /// <summary>
         /// Updates the theme selector setting to match the current selected theme.
@@ -640,22 +603,6 @@ namespace Winhance.WPF.Features.Customize.ViewModels
                 finally
                 {
                     themeSelector.IsUpdatingFromCode = false;
-                }
-            }
-            
-            // Also update the dark mode toggle setting
-            var darkModeToggle = Settings.FirstOrDefault(s => s.Id == "DarkModeToggle");
-            if (darkModeToggle != null)
-            {
-                darkModeToggle.IsUpdatingFromCode = true;
-                try
-                {
-                    darkModeToggle.IsSelected = IsDarkModeEnabled;
-                    _logService.Log(LogLevel.Info, $"Updated dark mode toggle setting to {IsDarkModeEnabled}");
-                }
-                finally
-                {
-                    darkModeToggle.IsUpdatingFromCode = false;
                 }
             }
         }

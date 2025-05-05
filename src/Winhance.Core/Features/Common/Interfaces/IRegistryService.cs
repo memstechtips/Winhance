@@ -84,6 +84,13 @@ namespace Winhance.Core.Features.Common.Interfaces
         bool CreateKey(string keyPath);
 
         /// <summary>
+        /// Creates a registry key if it doesn't exist.
+        /// </summary>
+        /// <param name="keyPath">The full path to the registry key.</param>
+        /// <returns>True if the key exists or was created successfully; otherwise, false.</returns>
+        bool CreateKeyIfNotExists(string keyPath);
+
+        /// <summary>
         /// Determines whether a registry value exists.
         /// </summary>
         /// <param name="keyPath">The registry key path.</param>

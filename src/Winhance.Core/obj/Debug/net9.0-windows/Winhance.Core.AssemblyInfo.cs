@@ -13,7 +13,7 @@ using System.Reflection;
 [assembly: System.Reflection.AssemblyCompanyAttribute("Winhance.Core")]
 [assembly: System.Reflection.AssemblyConfigurationAttribute("Debug")]
 [assembly: System.Reflection.AssemblyFileVersionAttribute("1.0.0.0")]
-[assembly: System.Reflection.AssemblyInformationalVersionAttribute("1.0.0")]
+[assembly: System.Reflection.AssemblyInformationalVersionAttribute("1.0.0+8b34c8ae29a708bc1cc8edb34a92b7ab55ce52c9")]
 [assembly: System.Reflection.AssemblyProductAttribute("Winhance.Core")]
 [assembly: System.Reflection.AssemblyTitleAttribute("Winhance.Core")]
 [assembly: System.Reflection.AssemblyVersionAttribute("1.0.0.0")]

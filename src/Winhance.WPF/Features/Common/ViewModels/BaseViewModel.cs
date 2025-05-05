@@ -119,8 +119,14 @@ namespace Winhance.WPF.Features.Common.ViewModels
             _logService = logService ?? throw new ArgumentNullException(nameof(logService));
             _messengerService = messengerService ?? throw new ArgumentNullException(nameof(messengerService));
             
-            _progressService.ProgressUpdated += ProgressService_ProgressUpdated;
-            _progressService.LogMessageAdded += ProgressService_LogMessageAdded;
+            // Subscribe to progress service events
+            if (_progressService != null)
+            {
+                _progressService.ProgressUpdated -= ProgressService_ProgressUpdated;
+                _progressService.ProgressUpdated += ProgressService_ProgressUpdated;
+                _progressService.LogMessageAdded -= ProgressService_LogMessageAdded;
+                _progressService.LogMessageAdded += ProgressService_LogMessageAdded;
+            }
             
             CancelTaskCommand = new RelayCommand(CancelCurrentTask, () => CanCancelTask && IsTaskRunning);
         }
@@ -203,7 +209,7 @@ namespace Winhance.WPF.Features.Common.ViewModels
         /// </summary>
         /// <param name="sender">The source of the event.</param>
         /// <param name="detail">The progress detail.</param>
-        private void ProgressService_ProgressUpdated(object? sender, TaskProgressDetail detail)
+        private void ProgressService_ProgressUpdated(object? sender, Winhance.Core.Features.Common.Models.TaskProgressDetail detail)
         {
             // Update local properties
             IsLoading = _progressService.IsTaskRunning;
@@ -329,7 +335,7 @@ namespace Winhance.WPF.Features.Common.ViewModels
         /// <param name="taskName">The name of the task.</param>
         /// <param name="isIndeterminate">Whether the progress is indeterminate.</param>
         /// <returns>A task representing the asynchronous operation.</returns>
-        protected async Task ExecuteWithProgressAsync(Func<IProgress<TaskProgressDetail>, CancellationToken, Task> operation, string taskName, bool isIndeterminate = false)
+        protected async Task ExecuteWithProgressAsync(Func<IProgress<Winhance.Core.Features.Common.Models.TaskProgressDetail>, CancellationToken, Task> operation, string taskName, bool isIndeterminate = false)
         {
             try
             {
@@ -369,7 +375,7 @@ namespace Winhance.WPF.Features.Common.ViewModels
         /// <param name="taskName">The name of the task.</param>
         /// <param name="isIndeterminate">Whether the progress is indeterminate.</param>
         /// <returns>A task representing the asynchronous operation.</returns>
-        protected async Task<T> ExecuteWithProgressAsync<T>(Func<IProgress<TaskProgressDetail>, CancellationToken, Task<T>> operation, string taskName, bool isIndeterminate = false)
+        protected async Task<T> ExecuteWithProgressAsync<T>(Func<IProgress<Winhance.Core.Features.Common.Models.TaskProgressDetail>, CancellationToken, Task<T>> operation, string taskName, bool isIndeterminate = false)
         {
             try
             {

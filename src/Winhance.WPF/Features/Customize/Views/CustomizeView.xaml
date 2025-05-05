@@ -3,13 +3,14 @@
              xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
              xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
              xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
-             xmlns:local="clr-namespace:Winhance.WPF.Features.Customize.Views"
-             xmlns:viewmodels="clr-namespace:Winhance.WPF.Features.Customize.ViewModels"
+             xmlns:viewModels="clr-namespace:Winhance.WPF.Features.Customize.ViewModels"
+             xmlns:materialDesign="http://materialdesigninxaml.net/winfx/xaml/themes"
+             xmlns:controls="clr-namespace:Winhance.WPF.Features.Common.Controls"
+             xmlns:commonControls="clr-namespace:Winhance.WPF.Features.Common.Controls"
              xmlns:customize="clr-namespace:Winhance.WPF.Features.Customize.Views"
              xmlns:optimize="clr-namespace:Winhance.WPF.Features.Optimize.Views"
-             xmlns:materialDesign="http://materialdesigninxaml.net/winfx/xaml/themes"
-             xmlns:commonControls="clr-namespace:Winhance.WPF.Features.Common.Controls"
-             d:DataContext="{d:DesignInstance Type=viewmodels:CustomizeViewModel}"
+             xmlns:behaviors="clr-namespace:Winhance.WPF.Features.Common.Behaviors"
+             d:DataContext="{d:DesignInstance Type=viewModels:CustomizeViewModel}"
              mc:Ignorable="d">
 
     <Grid>
@@ -47,9 +48,7 @@
         <Border Margin="0,80,0,0"
                 Background="{DynamicResource MainContainerBorderBrush}"
                 CornerRadius="10">
-            <ScrollViewer Style="{StaticResource ModernScrollViewer}"
-                          VerticalScrollBarVisibility="Auto"
-                          HorizontalScrollBarVisibility="Disabled">
+            <controls:ResponsiveScrollViewer Style="{StaticResource ModernScrollViewer}">
                 <Grid>
                     <Grid.RowDefinitions>
                         <RowDefinition Height="*"/>
@@ -90,7 +89,7 @@
                                                  Foreground="#FF2800"
                                                  Margin="5,0,5,0"
                                                  VerticalAlignment="Center"/>
-                                        <TextBlock Text="Registry Value Missing, Toggle Setting to Set Explicitly"
+                                        <TextBlock Text="Registry Value Missing, Windows is using Defaults. Toggle Setting to Set Explicitly"
                                                    Foreground="{DynamicResource PrimaryTextColor}"
                                                    FontSize="13"
                                                    VerticalAlignment="Center"/>
@@ -101,13 +100,21 @@
                             <!-- Row 1: Info text (left) + Search box (middle) + Config buttons (right) -->
                             <Grid Grid.Row="1" Margin="0,0,0,5">
                                 <Grid.ColumnDefinitions>
-                                    <ColumnDefinition Width="Auto"/>
                                     <ColumnDefinition Width="*"/>
-                                    <ColumnDefinition Width="Auto"/>
                                     <ColumnDefinition Width="Auto"/>
                                 </Grid.ColumnDefinitions>
 
-                                <!-- Info Text (left side) -->
+                                <!-- Search Box (prioritized) -->
+                                <StackPanel Grid.Column="1"
+                                            HorizontalAlignment="Right"
+                                            VerticalAlignment="Center"
+                                            Margin="10,0,10,0"
+                                            Panel.ZIndex="10">
+                                    <commonControls:SearchBox Width="200"
+                                                     SearchText="{Binding SearchText, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}"/>
+                                </StackPanel>
+
+                                <!-- Info Text (lower priority) -->
                                 <Grid Grid.Column="0">
                                     <Grid.ColumnDefinitions>
                                         <ColumnDefinition Width="Auto"/>
@@ -134,16 +141,6 @@
                                                Margin="0,0,0,-5"
                                                Text="Some Settings Require a Restart to Fully Apply Changes. Use the Search Box to find settings quickly. The Save and Import Config buttons in the main window help you manage your preferred selections."/>
                                 </Grid>
-
-                                <!-- Search Box (middle) -->
-                                <StackPanel Grid.Column="2"
-                                            HorizontalAlignment="Right"
-                                            VerticalAlignment="Center"
-                                            Margin="10,0,10,0">
-                                    <commonControls:SearchBox Width="200"
-                                                     SearchText="{Binding SearchText, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}"/>
-                                </StackPanel>
-
                             </Grid>
                         </Grid>
                     </Border>
@@ -378,7 +375,7 @@
                                Text="No settings found matching your search. Try different keywords."
                                Visibility="{Binding HasSearchResults, Converter={StaticResource InverseBooleanToVisibilityConverter}}"/>
                 </Grid>
-            </ScrollViewer>
+            </controls:ResponsiveScrollViewer>
         </Border>
     </Grid>
 </UserControl>

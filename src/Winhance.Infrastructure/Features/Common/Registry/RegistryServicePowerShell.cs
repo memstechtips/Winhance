@@ -40,7 +40,45 @@ namespace Winhance.Infrastructure.Features.Common.Registry
                 _logService.LogInformation($"Executing PowerShell command: {psCommand}");
 
                 using var process = new Process { StartInfo = startInfo };
-                process.Start();
+                
+                try
+                {
+                    process.Start();
+                }
+                catch (Exception ex)
+                {
+                    _logService.LogWarning($"Failed to start PowerShell with admin rights: {ex.Message}. Trying without elevation...");
+                    
+                    // Try again without elevation
+                    startInfo.Verb = null;
+                    using var nonElevatedProcess = new Process { StartInfo = startInfo };
+                    nonElevatedProcess.Start();
+                    
+                    string nonElevatedOutput = nonElevatedProcess.StandardOutput.ReadToEnd();
+                    string nonElevatedError = nonElevatedProcess.StandardError.ReadToEnd();
+                    
+                    nonElevatedProcess.WaitForExit();
+                    
+                    if (nonElevatedProcess.ExitCode == 0)
+                    {
+                        _logService.LogSuccess($"Successfully set registry value using non-elevated PowerShell: {keyPath}\\{valueName}");
+                        
+                        // Clear the cache for this value
+                        string fullValuePath = $"{keyPath}\\{valueName}";
+                        lock (_valueCache)
+                        {
+                            if (_valueCache.ContainsKey(fullValuePath))
+                            {
+                                _valueCache.Remove(fullValuePath);
+                            }
+                        }
+                        
+                        return true;
+                    }
+                    
+                    _logService.LogWarning($"Non-elevated PowerShell also failed: {nonElevatedError}");
+                    return false;
+                }
                 
                 string output = process.StandardOutput.ReadToEnd();
                 string error = process.StandardError.ReadToEnd();
@@ -101,14 +139,39 @@ namespace Winhance.Infrastructure.Features.Common.Registry
             string valueArg = FormatValueForPowerShell(value, valueKind);
             string typeArg = GetPowerShellTypeArg(valueKind);
 
-            // Build the PowerShell command
+            // Build the PowerShell command with enhanced error handling and permissions
             var sb = new StringBuilder();
             
-            // First, ensure the key exists
-            sb.Append($"if (-not (Test-Path -Path '{psDrive}\\{subKey}')) {{ New-Item -Path '{psDrive}\\{subKey}' -Force | Out-Null }}; ");
+            // Add error handling
+            sb.Append("$ErrorActionPreference = 'Stop'; ");
+            sb.Append("try { ");
+            
+            // First, ensure the key exists with proper permissions
+            sb.Append($"if (-not (Test-Path -Path '{psDrive}\\{subKey}')) {{ ");
+            
+            // Create the key with force to ensure all parent keys are created
+            sb.Append($"New-Item -Path '{psDrive}\\{subKey}' -Force | Out-Null; ");
+            
+            // For policy keys, try to set appropriate permissions
+            if (subKey.Contains("Policies", StringComparison.OrdinalIgnoreCase))
+            {
+                sb.Append($"$acl = Get-Acl -Path '{psDrive}\\{subKey}'; ");
+                sb.Append("$rule = New-Object System.Security.AccessControl.RegistryAccessRule('CURRENT_USER', 'FullControl', 'Allow'); ");
+                sb.Append("$acl.SetAccessRule($rule); ");
+                sb.Append($"try {{ Set-Acl -Path '{psDrive}\\{subKey}' -AclObject $acl }} catch {{ Write-Host 'Could not set ACL, continuing anyway...' }}; ");
+            }
+            
+            sb.Append("} ");
             
             // Then set the value
-            sb.Append($"Set-ItemProperty -Path '{psDrive}\\{subKey}' -Name '{valueName}' -Value {valueArg} {typeArg}");
+            sb.Append($"Set-ItemProperty -Path '{psDrive}\\{subKey}' -Name '{valueName}' -Value {valueArg} {typeArg} -Force; ");
+            
+            // Verify the value was set correctly
+            sb.Append($"$setVal = Get-ItemProperty -Path '{psDrive}\\{subKey}' -Name '{valueName}' -ErrorAction SilentlyContinue; ");
+            sb.Append("if ($setVal -eq $null) { throw 'Value was not set properly' }; ");
+            
+            // Close the try block and add catch
+            sb.Append("} catch { Write-Error $_.Exception.Message; exit 1 }");
 
             return sb.ToString();
         }

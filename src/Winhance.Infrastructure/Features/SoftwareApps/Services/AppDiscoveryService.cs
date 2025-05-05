@@ -219,7 +219,8 @@ public class AppDiscoveryService : Winhance.Core.Features.SoftwareApps.Interface
             {
                 // Check standard app status using the same approach as the original PowerShell script
                 // But also check subpackages if the main package is not installed
-                powerShell.AddScript(
+                using var powerShellForAppx = PowerShellFactory.CreateForAppxCommands(_logService);
+                powerShellForAppx.AddScript(
                     @"
                 param($packageName, $subPackages)
                 try {
@@ -249,21 +250,21 @@ public class AppDiscoveryService : Winhance.Core.Features.SoftwareApps.Interface
                 }
             "
                 );
-                powerShell.AddParameter("packageName", packageName);
-                powerShell.AddParameter("subPackages", subPackages);
-            }
+                powerShellForAppx.AddParameter("packageName", packageName);
+                powerShellForAppx.AddParameter("subPackages", subPackages);
 
-            // Execute with timeout
-            var task = Task.Run(() => powerShell.Invoke<bool>());
-            if (await Task.WhenAny(task, Task.Delay(_powershellTimeout)) == task)
-            {
-                var result = await task;
-                isInstalled = result.FirstOrDefault();
-            }
-            else
-            {
-                _logService.LogWarning($"Timeout checking installation status for {packageName}");
-                isInstalled = false;
+                // Execute with timeout
+                var task = Task.Run(() => powerShellForAppx.Invoke<bool>());
+                if (await Task.WhenAny(task, Task.Delay(_powershellTimeout)) == task)
+                {
+                    var result = await task;
+                    isInstalled = result.FirstOrDefault();
+                }
+                else
+                {
+                    _logService.LogWarning($"Timeout checking installation status for {packageName}");
+                    isInstalled = false;
+                }
             }
 
             // Cache the result
@@ -463,7 +464,7 @@ public class AppDiscoveryService : Winhance.Core.Features.SoftwareApps.Interface
     {
         var result = new Dictionary<string, bool>(StringComparer.OrdinalIgnoreCase);
 
-        using var powerShell = PowerShellFactory.CreateWindowsPowerShell(_logService);
+        using var powerShell = PowerShellFactory.CreateForAppxCommands(_logService);
         // No need to set execution policy as it's already done in the factory
 
         // Get all installed apps in one query using the same approach as the original PowerShell script

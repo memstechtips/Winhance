@@ -1,0 +1,148 @@
+<Window x:Class="Winhance.WPF.Features.Common.Views.UpdateDialog"
+        xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        xmlns:converters="clr-namespace:Winhance.WPF.Features.Common.Converters"
+        x:Name="DialogWindow"
+        Title="{Binding Title}"
+        Width="550"
+        SizeToContent="Height"
+        WindowStartupLocation="CenterScreen"
+        ResizeMode="NoResize"
+        WindowStyle="None"
+        AllowsTransparency="True"
+        Background="Transparent"
+        ShowInTaskbar="True"
+        Topmost="True">
+    
+    <Window.Resources>
+        <BooleanToVisibilityConverter x:Key="BooleanToVisibilityConverter"/>
+        <converters:InverseBooleanConverter x:Key="InverseBooleanConverter"/>
+        <converters:BooleanToThemeIconConverter x:Key="BooleanToThemeIconConverter"/>
+        
+        <!-- Define theme-specific icons directly in the XAML -->
+        <BitmapImage x:Key="WhiteIcon" UriSource="pack://application:,,,/Resources/AppIcons/winhance-rocket-white-transparent-bg.ico" />
+        <BitmapImage x:Key="BlackIcon" UriSource="pack://application:,,,/Resources/AppIcons/winhance-rocket-black-transparent-bg.ico" />
+    </Window.Resources>
+    
+    <Border CornerRadius="10"
+            BorderThickness="1"
+            BorderBrush="{DynamicResource ButtonBorderBrush}"
+            Background="{DynamicResource WindowBackground}">
+        <Border.Effect>
+            <DropShadowEffect ShadowDepth="5" BlurRadius="10" Color="Black" Opacity="0.5"/>
+        </Border.Effect>
+        
+        <Grid Margin="20">
+            <Grid.RowDefinitions>
+                <RowDefinition Height="Auto"/>
+                <RowDefinition Height="Auto"/>
+                <RowDefinition Height="Auto"/>
+                <RowDefinition Height="Auto"/>
+                <RowDefinition Height="Auto"/>
+            </Grid.RowDefinitions>
+
+            <!-- Header with Icon -->
+            <DockPanel Grid.Row="0" LastChildFill="True" Style="{StaticResource DialogHeaderStyle}">
+                <!-- Icon with theme-specific paths -->
+                <Image x:Name="DialogIcon"
+                       Source="{Binding ElementName=DialogWindow, Path=IsThemeDark, Converter={StaticResource BooleanToThemeIconConverter}, ConverterParameter='pack://application:,,,/Resources/AppIcons/winhance-rocket-white-transparent-bg.ico|pack://application:,,,/Resources/AppIcons/winhance-rocket-black-transparent-bg.ico'}"
+                       Style="{StaticResource DialogIconStyle}"
+                       Width="48"
+                       Height="48"
+                       Margin="0,0,10,0"
+                       RenderOptions.BitmapScalingMode="HighQuality"
+                       RenderOptions.EdgeMode="Aliased"
+                       DockPanel.Dock="Left"/>
+                <TextBlock x:Name="HeaderText"
+                          Text="Update Available"
+                          Style="{StaticResource DialogTextBlockStyle}"
+                          FontWeight="SemiBold"
+                          FontSize="18"
+                          TextWrapping="Wrap"
+                          VerticalAlignment="Center"/>
+            </DockPanel>
+
+            <!-- Version Info -->
+            <StackPanel Grid.Row="1" Margin="0,15,0,15">
+                <TextBlock x:Name="MessageText"
+                           Text="Good News! A New Version of Winhance is available."
+                           Style="{StaticResource DialogTextBlockStyle}"
+                           TextWrapping="Wrap" 
+                           Margin="0,0,0,15"/>
+                
+                <Grid Margin="10,0,0,0">
+                    <Grid.ColumnDefinitions>
+                        <ColumnDefinition Width="Auto"/>
+                        <ColumnDefinition Width="*"/>
+                    </Grid.ColumnDefinitions>
+                    <Grid.RowDefinitions>
+                        <RowDefinition Height="Auto"/>
+                        <RowDefinition Height="Auto"/>
+                    </Grid.RowDefinitions>
+                    
+                    <TextBlock Grid.Row="0" Grid.Column="0" 
+                               Text="Current Version:" 
+                               Style="{StaticResource DialogAppTextBlockStyle}"
+                               FontWeight="SemiBold" 
+                               Margin="0,0,10,8"/>
+                    <TextBlock Grid.Row="0" Grid.Column="1" 
+                               x:Name="CurrentVersionText"
+                               Style="{StaticResource DialogAppTextBlockStyle}"
+                               Margin="0,0,0,8"/>
+                    
+                    <TextBlock Grid.Row="1" Grid.Column="0" 
+                               Text="Latest Version:" 
+                               Style="{StaticResource DialogAppTextBlockStyle}"
+                               FontWeight="SemiBold" 
+                               Margin="0,0,10,8"/>
+                    <TextBlock Grid.Row="1" Grid.Column="1" 
+                               x:Name="LatestVersionText"
+                               Style="{StaticResource DialogAppTextBlockStyle}"
+                               Margin="0,0,0,8"
+                               FontWeight="Medium"
+                               Foreground="{DynamicResource ButtonBorderBrush}"/>
+                </Grid>
+            </StackPanel>
+            
+            <!-- Status -->
+            <TextBlock x:Name="StatusText" 
+                       Grid.Row="2" 
+                       Text=""
+                       Style="{StaticResource DialogTextBlockStyle}"
+                       TextWrapping="Wrap" 
+                       Margin="0,0,0,10"/>
+            
+            <!-- Progress -->
+            <ProgressBar Grid.Row="3" 
+                         x:Name="DownloadProgress"
+                         Style="{StaticResource StandardProgressBar}"
+                         IsIndeterminate="True"
+                         Visibility="Collapsed"
+                         Margin="0,10,0,15"
+                         Height="5"/>
+            
+            <!-- Footer -->
+            <TextBlock x:Name="FooterText"
+                      Grid.Row="4"
+                      Style="{StaticResource DialogFooterStyle}"
+                      Text="Would you like to download and install the update now?"
+                      Margin="0,-35,0,0"/>
+            
+            <!-- Buttons -->
+            <StackPanel Grid.Row="4" 
+                        Orientation="Horizontal" 
+                        HorizontalAlignment="Right">
+                <Button x:Name="SecondaryButton"
+                        Content="Remind Later"
+                        Style="{StaticResource DialogButtonStyle}"
+                        Click="SecondaryButton_Click"
+                        Margin="0,0,10,0"/>
+                
+                <Button x:Name="PrimaryButton"
+                        Content="Install Now"
+                        Style="{StaticResource DialogButtonStyle}"
+                        Click="PrimaryButton_Click"/>
+            </StackPanel>
+        </Grid>
+    </Border>
+</Window>

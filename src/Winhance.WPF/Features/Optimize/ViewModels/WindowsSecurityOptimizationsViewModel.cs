@@ -9,7 +9,6 @@ using Winhance.Core.Features.Common.Models;
 using Winhance.Core.Features.Optimize.Models;
 using Winhance.WPF.Features.Common.Models;
 using Winhance.WPF.Features.Common.ViewModels;
-using Winhance.WPF.Features.Optimize.Models;
 
 namespace Winhance.WPF.Features.Optimize.ViewModels
 {
@@ -67,7 +66,7 @@ namespace Winhance.WPF.Features.Optimize.ViewModels
         /// <summary>
         /// Gets the collection of settings.
         /// </summary>
-        public ObservableCollection<ISettingItem> Settings { get; } = new ObservableCollection<ISettingItem>();
+        public ObservableCollection<ApplicationSettingItem> Settings { get; } = new ObservableCollection<ApplicationSettingItem>();
 
         /// <summary>
         /// Handles changes to the UAC notification level.
@@ -131,7 +130,7 @@ namespace Winhance.WPF.Features.Optimize.ViewModels
                 Settings.Clear();
 
                 // Add a searchable item for the UAC slider
-                var uacSliderItem = new OptimizationSettingItem(_registryService, null, _logService)
+                var uacSliderItem = new ApplicationSettingItem(_registryService, null, _logService)
                 {
                     Id = "UACSlider",
                     Name = "User Account Control Notification Level",
@@ -220,20 +219,20 @@ namespace Winhance.WPF.Features.Optimize.ViewModels
         }
 
         /// <summary>
-        /// Applies all selected settings.
+        /// Applies the selected settings.
         /// </summary>
-        /// <param name="progress">The progress reporter.</param>
+        /// <param name="progress">Progress reporter.</param>
         /// <returns>A task representing the asynchronous operation.</returns>
-        public async Task ApplySettingsAsync(IProgress<TaskProgressDetail> progress)
+        public async Task ApplySettingsAsync(IProgress<Winhance.Core.Features.Common.Models.TaskProgressDetail> progress)
         {
             try
             {
                 IsLoading = true;
-                progress.Report(new TaskProgressDetail { StatusText = "Applying UAC notification level setting...", IsIndeterminate = false, Progress = 0 });
+                progress.Report(new Winhance.Core.Features.Common.Models.TaskProgressDetail { StatusText = "Applying UAC notification level setting...", Progress = 0 });
 
                 // Apply UAC notification level
                 HandleUACLevelChange();
-                progress.Report(new TaskProgressDetail { StatusText = "UAC notification level applied", IsIndeterminate = false, Progress = 1.0 });
+                progress.Report(new Winhance.Core.Features.Common.Models.TaskProgressDetail { StatusText = "UAC notification level applied", Progress = 1.0 });
             }
             catch (Exception ex)
             {
@@ -247,25 +246,25 @@ namespace Winhance.WPF.Features.Optimize.ViewModels
         }
 
         /// <summary>
-        /// Restores all selected settings to their default values.
+        /// Restores the default settings.
         /// </summary>
-        /// <param name="progress">The progress reporter.</param>
+        /// <param name="progress">Progress reporter.</param>
         /// <returns>A task representing the asynchronous operation.</returns>
-        public async Task RestoreDefaultsAsync(IProgress<TaskProgressDetail> progress)
+        public async Task RestoreDefaultsAsync(IProgress<Winhance.Core.Features.Common.Models.TaskProgressDetail> progress)
         {
             try
             {
                 IsLoading = true;
-                progress.Report(new TaskProgressDetail { StatusText = "Restoring UAC notification level to default...", IsIndeterminate = false, Progress = 0 });
+                progress.Report(new Winhance.Core.Features.Common.Models.TaskProgressDetail { StatusText = "Restoring UAC notification level to default...", Progress = 0 });
 
                 // Set UAC notification level to Moderate (1)
                 UacLevel = 1;
-                progress.Report(new TaskProgressDetail { StatusText = "Applying UAC notification level...", IsIndeterminate = false, Progress = 0.5 });
+                progress.Report(new Winhance.Core.Features.Common.Models.TaskProgressDetail { StatusText = "Applying UAC notification level...", Progress = 0.5 });
 
                 // Apply the changes
                 await ApplySettingsAsync(progress);
 
-                progress.Report(new TaskProgressDetail { StatusText = "UAC notification level restored to default", IsIndeterminate = false, Progress = 1.0 });
+                progress.Report(new Winhance.Core.Features.Common.Models.TaskProgressDetail { StatusText = "UAC notification level restored to default", Progress = 1.0 });
             }
             catch (Exception ex)
             {

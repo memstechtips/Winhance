@@ -73,10 +73,14 @@ public static class TaskbarCustomizations
     /// Cleans the taskbar by unpinning all items except File Explorer.
     /// </summary>
     /// <param name="systemServices">The system services.</param>
-    public static void CleanTaskbar(ISystemServices systemServices)
+    /// <param name="logService">The log service.</param>
+    public static async Task CleanTaskbar(ISystemServices systemServices, ILogService logService)
     {
         try
         {
+            logService.LogInformation("Task started: Cleaning taskbar...");
+            logService.LogInformation("Cleaning taskbar started");
+            
             // Delete taskband registry key using Registry API
             using (var key = Registry.CurrentUser.OpenSubKey(@"Software\Microsoft\Windows\CurrentVersion\Explorer", true))
             {
@@ -129,9 +133,17 @@ public static class TaskbarCustomizations
                 }
             }
             
-            // Restart Explorer to apply changes using the same method as theme changes
-            // This uses Windows messages and proper GUI refresh
-            systemServices.RefreshWindowsGUI(true).GetAwaiter().GetResult();
+            // Wait for registry changes to take effect before refreshing Windows GUI
+            logService.LogInformation("Registry changes applied, waiting for changes to take effect...");
+            await Task.Delay(2000);
+            
+            // Use the improved RefreshWindowsGUI method to restart Explorer and apply changes
+            // This will ensure Explorer is restarted properly with retry logic and fallback
+            var result = await systemServices.RefreshWindowsGUI(true);
+            if (!result)
+            {
+                throw new Exception("Failed to refresh Windows GUI after cleaning taskbar");
+            }
         }
         catch (Exception ex)
         {
@@ -155,6 +167,7 @@ public static class TaskbarCustomizations
                     Category = CustomizationCategory.Taskbar,
                     GroupName = "Taskbar Icons",
                     IsEnabled = false,
+                    ControlType = ControlType.BinaryToggle,
                     RegistrySettings = new List<RegistrySetting>
                     {
                         new RegistrySetting
@@ -167,9 +180,10 @@ public static class TaskbarCustomizations
                             EnabledValue = 0,      // When toggle is ON, Chat icon is shown (0 = show)
                             DisabledValue = 3,     // When toggle is OFF, Chat icon is hidden (3 = hide)
                             ValueType = RegistryValueKind.DWord,
-                            DefaultValue = null,   // For backward compatibility
+                            DefaultValue = 0,      // Default value when registry key exists but no value is set
                             Description = "Controls Windows Chat icon visibility in taskbar",
-                            IsPrimary = true
+                            IsPrimary = true,
+                            AbsenceMeansEnabled = true
                         },
                         new RegistrySetting
                         {
@@ -181,8 +195,10 @@ public static class TaskbarCustomizations
                             EnabledValue = 1,      // When toggle is ON, taskbar menu is enabled
                             DisabledValue = 0,     // When toggle is OFF, taskbar menu is disabled
                             ValueType = RegistryValueKind.DWord,
-                            DefaultValue = null,   // For backward compatibility
-                            Description = "Controls taskbar menu behavior for chat"
+                            DefaultValue = 0,      // Default value when registry key exists but no value is set
+                            Description = "Controls taskbar menu behavior for chat",
+                            IsPrimary = false,
+                            AbsenceMeansEnabled = false
                         }
                     },
                     LinkedSettingsLogic = LinkedSettingsLogic.All
@@ -195,6 +211,7 @@ public static class TaskbarCustomizations
                     Category = CustomizationCategory.Taskbar,
                     GroupName = "Taskbar Icons",
                     IsEnabled = true,
+                    ControlType = ControlType.BinaryToggle,
                     RegistrySettings = new List<RegistrySetting>
                     {
                         new RegistrySetting
@@ -207,9 +224,10 @@ public static class TaskbarCustomizations
                             EnabledValue = 0,      // When toggle is ON, Meet Now button is shown
                             DisabledValue = 1,     // When toggle is OFF, Meet Now button is hidden
                             ValueType = RegistryValueKind.DWord,
-                            DefaultValue = null,   // For backward compatibility
+                            DefaultValue = 1,      // Default value when registry key exists but no value is set
                             Description = "Controls Meet Now button visibility in taskbar",
-                            IsPrimary = true
+                            IsPrimary = true,
+                            AbsenceMeansEnabled = true
                         },
                         new RegistrySetting
                         {
@@ -221,8 +239,10 @@ public static class TaskbarCustomizations
                             EnabledValue = 0,      // When toggle is ON, Meet Now button is shown (user level)
                             DisabledValue = 1,     // When toggle is OFF, Meet Now button is hidden (user level)
                             ValueType = RegistryValueKind.DWord,
-                            DefaultValue = null,   // For backward compatibility
-                            Description = "Controls Meet Now button visibility (user level)"
+                            DefaultValue = 1,      // Default value when registry key exists but no value is set
+                            Description = "Controls Meet Now button visibility (user level)",
+                            IsPrimary = false,
+                            AbsenceMeansEnabled = true
                         }
                     },
                     LinkedSettingsLogic = LinkedSettingsLogic.All
@@ -235,20 +255,23 @@ public static class TaskbarCustomizations
                     Category = CustomizationCategory.Taskbar,
                     GroupName = "Taskbar Icons",
                     IsEnabled = false,
+                    ControlType = ControlType.BinaryToggle,
                     RegistrySettings = new List<RegistrySetting>
                     {
                         new RegistrySetting
-                    {
-                        Category = "Taskbar",
-                        Hive = RegistryHive.CurrentUser,
-                        SubKey = "Software\\Microsoft\\Windows\\CurrentVersion\\Search",
-                    Name = "SearchboxTaskbarMode",
-                        RecommendedValue = 0,  // For backward compatibility
-                        EnabledValue = 2,      // When toggle is ON, search box is shown (2 = show search box)
-                        DisabledValue = 0,     // When toggle is OFF, search box is hidden (0 = hide search box)
-                        ValueType = RegistryValueKind.DWord,
-                        DefaultValue = null,   // For backward compatibility
-                        Description = "Controls search box visibility in taskbar"
+                        {
+                            Category = "Taskbar",
+                            Hive = RegistryHive.CurrentUser,
+                            SubKey = "Software\\Microsoft\\Windows\\CurrentVersion\\Search",
+                            Name = "SearchboxTaskbarMode",
+                            RecommendedValue = 0,  // For backward compatibility
+                            EnabledValue = 2,      // When toggle is ON, search box is shown (2 = show search box)
+                            DisabledValue = 0,     // When toggle is OFF, search box is hidden (0 = hide search box)
+                            ValueType = RegistryValueKind.DWord,
+                            DefaultValue = 1,      // Default value when registry key exists but no value is set
+                            Description = "Controls search box visibility in taskbar",
+                            IsPrimary = true,
+                            AbsenceMeansEnabled = true
                         }
                     }
                 },
@@ -260,20 +283,23 @@ public static class TaskbarCustomizations
                     Category = CustomizationCategory.Taskbar,
                     GroupName = "Taskbar Icons",
                     IsEnabled = false,
+                    ControlType = ControlType.BinaryToggle,
                     RegistrySettings = new List<RegistrySetting>
                     {
                         new RegistrySetting
-                    {
-                        Category = "Taskbar",
-                        Hive = RegistryHive.CurrentUser,
-                        SubKey = "Software\\Microsoft\\Windows\\CurrentVersion\\Explorer\\Advanced",
-                    Name = "ShowCopilotButton",
-                        RecommendedValue = 0,  // For backward compatibility
-                        EnabledValue = 1,      // When toggle is ON, Copilot button is shown
-                        DisabledValue = 0,     // When toggle is OFF, Copilot button is hidden
-                        ValueType = RegistryValueKind.DWord,
-                        DefaultValue = null,   // For backward compatibility
-                        Description = "Controls Copilot button visibility in taskbar"
+                        {
+                            Category = "Taskbar",
+                            Hive = RegistryHive.CurrentUser,
+                            SubKey = "Software\\Microsoft\\Windows\\CurrentVersion\\Explorer\\Advanced",
+                            Name = "ShowCopilotButton",
+                            RecommendedValue = 0,  // For backward compatibility
+                            EnabledValue = 1,      // When toggle is ON, Copilot button is shown
+                            DisabledValue = 0,     // When toggle is OFF, Copilot button is hidden
+                            ValueType = RegistryValueKind.DWord,
+                            DefaultValue = 0,      // Default value when registry key exists but no value is set
+                            Description = "Controls Copilot button visibility in taskbar",
+                            IsPrimary = true,
+                            AbsenceMeansEnabled = true
                         }
                     }
                 },
@@ -285,20 +311,23 @@ public static class TaskbarCustomizations
                     Category = CustomizationCategory.Taskbar,
                     GroupName = "Taskbar Behavior",
                     IsEnabled = false,
+                    ControlType = ControlType.BinaryToggle,
                     RegistrySettings = new List<RegistrySetting>
                     {
                         new RegistrySetting
-                    {
-                        Category = "Taskbar",
-                        Hive = RegistryHive.CurrentUser,
-                        SubKey = "Software\\Microsoft\\Windows\\CurrentVersion\\Explorer\\Advanced",
-                    Name = "TaskbarAl",
-                        RecommendedValue = 0,  // For backward compatibility
-                        EnabledValue = 0,      // When toggle is ON, taskbar icons are left-aligned
-                        DisabledValue = 1,     // When toggle is OFF, taskbar icons are center-aligned
-                        ValueType = RegistryValueKind.DWord,
-                        DefaultValue = null,   // For backward compatibility
-                        Description = "Controls taskbar icons alignment"
+                        {
+                            Category = "Taskbar",
+                            Hive = RegistryHive.CurrentUser,
+                            SubKey = "Software\\Microsoft\\Windows\\CurrentVersion\\Explorer\\Advanced",
+                            Name = "TaskbarAl",
+                            RecommendedValue = 0,  // For backward compatibility
+                            EnabledValue = 0,      // When toggle is ON, taskbar icons are left-aligned
+                            DisabledValue = 1,     // When toggle is OFF, taskbar icons are center-aligned
+                            ValueType = RegistryValueKind.DWord,
+                            DefaultValue = 1,      // Default value when registry key exists but no value is set
+                            Description = "Controls taskbar icons alignment",
+                            IsPrimary = true,
+                            AbsenceMeansEnabled = false
                         }
                     }
                 },
@@ -310,6 +339,7 @@ public static class TaskbarCustomizations
                     Category = CustomizationCategory.Taskbar,
                     GroupName = "Taskbar Icons",
                     IsEnabled = false,
+                    ControlType = ControlType.BinaryToggle,
                     RegistrySettings = new List<RegistrySetting>
                     {
                         new RegistrySetting
@@ -322,8 +352,10 @@ public static class TaskbarCustomizations
                             EnabledValue = 1,      // When toggle is ON, Task View button is shown
                             DisabledValue = 0,     // When toggle is OFF, Task View button is hidden
                             ValueType = RegistryValueKind.DWord,
-                            DefaultValue = null,   // For backward compatibility
-                            Description = "Controls Task View button visibility in taskbar"
+                            DefaultValue = 1,      // Default value when registry key exists but no value is set
+                            Description = "Controls Task View button visibility in taskbar",
+                            IsPrimary = true,
+                            AbsenceMeansEnabled = true
                         }
                     }
                 }
@@ -331,4 +363,3 @@ public static class TaskbarCustomizations
         };
     }
 }
-

@@ -33,4 +33,5 @@
     <converters:BooleanConverter x:Key="BooleanConverter"/>
     <converters:RegistryHiveToFullNameConverter x:Key="RegistryHiveToFullNameConverter"/>
     <converters:IsPrimaryToVisibilityConverter x:Key="IsPrimaryToVisibilityConverter"/>
+    <converters:EnumToVisibilityConverter x:Key="EnumToVisibilityConverter"/>
 </ResourceDictionary>

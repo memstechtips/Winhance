@@ -980,10 +980,25 @@ namespace Winhance.WPF.Features.SoftwareApps.ViewModels
             if (_packageManager == null || _appInstallationService == null ||
                 _capabilityService == null || _featureService == null) return;
             
-            // Get selected items that are NOT installed
-            var selectedApps = WindowsApps.Where(a => a.IsSelected && !a.IsInstalled).ToList();
-            var selectedCapabilities = Capabilities.Where(a => a.IsSelected && !a.IsInstalled).ToList();
-            var selectedFeatures = OptionalFeatures.Where(a => a.IsSelected && !a.IsInstalled).ToList();
+            // Get all selected items
+            var selectedApps = WindowsApps.Where(a => a.IsSelected).ToList();
+            var selectedCapabilities = Capabilities.Where(a => a.IsSelected).ToList();
+            var selectedFeatures = OptionalFeatures.Where(a => a.IsSelected).ToList();
+            
+            // Check if anything is selected at all
+            int totalSelected = selectedApps.Count + selectedCapabilities.Count + selectedFeatures.Count;
+            
+            if (totalSelected == 0)
+            {
+                StatusText = "No items selected for installation";
+                CustomDialog.ShowInformation(
+                    "No Items Selected",
+                    "No items were selected for installation.",
+                    new[] { "Please select at least one item to install." },
+                    "Check the boxes next to the items you want to install and try again."
+                );
+                return;
+            }
             
             // Identify items that cannot be reinstalled
             var nonReinstallableApps = selectedApps.Where(a => !a.CanBeReinstalled).ToList();
@@ -1005,9 +1020,7 @@ namespace Winhance.WPF.Features.SoftwareApps.ViewModels
                 .Concat(installableFeatures.Cast<WindowsApp>())
                 .ToList();
             
-            int totalSelected = allInstallableItems.Count;
-            
-            if (totalSelected == 0)
+            if (allInstallableItems.Count == 0)
             {
                 if (allNonReinstallableItems.Any())
                 {

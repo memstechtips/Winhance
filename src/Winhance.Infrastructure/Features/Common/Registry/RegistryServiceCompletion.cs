@@ -21,15 +21,35 @@ namespace Winhance.Infrastructure.Features.Common.Registry
     {
         private RegistryKey? GetRootKey(string rootKeyName)
         {
-            return rootKeyName.ToUpper() switch
-            {
-                "HKEY_LOCAL_MACHINE" or "HKLM" or "LOCALMACHINE" => Microsoft.Win32.Registry.LocalMachine,
-                "HKEY_CURRENT_USER" or "HKCU" => Microsoft.Win32.Registry.CurrentUser,
-                "HKEY_CLASSES_ROOT" or "HKCR" => Microsoft.Win32.Registry.ClassesRoot,
-                "HKEY_USERS" or "HKU" => Microsoft.Win32.Registry.Users,
-                "HKEY_CURRENT_CONFIG" or "HKCC" => Microsoft.Win32.Registry.CurrentConfig,
-                _ => null
-            };
+            // Normalize the input by converting to uppercase
+            rootKeyName = rootKeyName.ToUpper();
+            
+            // Check for full names first
+            if (rootKeyName == "HKEY_LOCAL_MACHINE" || rootKeyName == "LOCALMACHINE")
+                return Microsoft.Win32.Registry.LocalMachine;
+            if (rootKeyName == "HKEY_CURRENT_USER" || rootKeyName == "CURRENTUSER")
+                return Microsoft.Win32.Registry.CurrentUser;
+            if (rootKeyName == "HKEY_CLASSES_ROOT")
+                return Microsoft.Win32.Registry.ClassesRoot;
+            if (rootKeyName == "HKEY_USERS")
+                return Microsoft.Win32.Registry.Users;
+            if (rootKeyName == "HKEY_CURRENT_CONFIG")
+                return Microsoft.Win32.Registry.CurrentConfig;
+            
+            // Then check for abbreviated names using the extension method's constants
+            if (rootKeyName == RegistryExtensions.GetRegistryHiveString(RegistryHive.LocalMachine))
+                return Microsoft.Win32.Registry.LocalMachine;
+            if (rootKeyName == RegistryExtensions.GetRegistryHiveString(RegistryHive.CurrentUser))
+                return Microsoft.Win32.Registry.CurrentUser;
+            if (rootKeyName == RegistryExtensions.GetRegistryHiveString(RegistryHive.ClassesRoot))
+                return Microsoft.Win32.Registry.ClassesRoot;
+            if (rootKeyName == RegistryExtensions.GetRegistryHiveString(RegistryHive.Users))
+                return Microsoft.Win32.Registry.Users;
+            if (rootKeyName == RegistryExtensions.GetRegistryHiveString(RegistryHive.CurrentConfig))
+                return Microsoft.Win32.Registry.CurrentConfig;
+            
+            // If no match is found, return null
+            return null;
         }
     }
 }

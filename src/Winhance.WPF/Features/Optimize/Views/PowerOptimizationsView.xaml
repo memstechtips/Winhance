@@ -4,6 +4,8 @@
              xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
              xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
              xmlns:viewModels="clr-namespace:Winhance.WPF.Features.Optimize.ViewModels"
+             xmlns:controls="clr-namespace:Winhance.WPF.Features.Common.Controls"
+             xmlns:behaviors="clr-namespace:Winhance.WPF.Features.Common.Behaviors"
              d:DataContext="{d:DesignInstance Type=viewModels:PowerOptimizationsViewModel}"
              mc:Ignorable="d">
 
@@ -62,18 +64,20 @@
             <!-- Separator -->
             <Separator Margin="25,0,25,20"/>
 
-            <!-- Power Settings -->
+            <!-- Container for Setting Labels & Toggles -->
             <ItemsControl x:Name="PowerSettingsItemsControl"
                           ItemsSource="{Binding Settings}">
                 <ItemsControl.ItemsPanel>
                     <ItemsPanelTemplate>
-                        <UniformGrid Columns="4"/>
+                        <WrapPanel Orientation="Horizontal" HorizontalAlignment="Left"/>
                     </ItemsPanelTemplate>
                 </ItemsControl.ItemsPanel>
                 <ItemsControl.ItemContainerStyle>
-                    <Style TargetType="ContentPresenter">
+                    <Style BasedOn="{StaticResource ResponsiveItemContainerStyle}" TargetType="FrameworkElement">
                         <Setter Property="Grid.ColumnSpan"
                                 Value="{Binding IsGroupHeader, Converter={StaticResource BooleanToGridSpanConverter}}"/>
+                        <Setter Property="Width" Value="0"/>
+                        <Setter Property="Margin" Value="0,0,0,0"/>
                     </Style>
                 </ItemsControl.ItemContainerStyle>
                 <ItemsControl.ItemTemplate>
@@ -86,7 +90,7 @@
                                        Margin="25,15,0,5"
                                        Visibility="{Binding IsGroupHeader, Converter={StaticResource BooleanToVisibilityConverter}}"/>
 
-                            <!-- Regular setting checkbox with status indicator -->
+                            <!-- Setting Labels & Toggles -->
                             <StackPanel Orientation="Horizontal"
                                         Visibility="{Binding IsVisible, Converter={StaticResource BooleanToVisibilityConverter}}">
                                 <ToggleButton Style="{StaticResource MaterialToggleSwitch}"

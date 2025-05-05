@@ -18,7 +18,6 @@ using Winhance.Core.Features.Common.Enums;
 using Winhance.WPF.Features.Common.ViewModels;
 using Winhance.WPF.Features.Common.Models;
 using Winhance.WPF.Features.Common.Resources.Theme;
-using Winhance.WPF.Features.Customize.Models;
 using Winhance.WPF.Features.Optimize.ViewModels;
 using Winhance.WPF.Features.Common.Views;
 using Winhance.WPF.Features.Common.Messages;
@@ -28,10 +27,10 @@ namespace Winhance.WPF.Features.Customize.ViewModels
     /// <summary>
     /// ViewModel for the Customize view.
     /// </summary>
-    public partial class CustomizeViewModel : SearchableViewModel<CustomizationSettingItem>
+    public partial class CustomizeViewModel : SearchableViewModel<ApplicationSettingItem>
     {
         // Store a backup of all items for state recovery
-        private List<CustomizationSettingItem> _allItemsBackup = new List<CustomizationSettingItem>();
+        private List<ApplicationSettingItem> _allItemsBackup = new List<ApplicationSettingItem>();
         private bool _isInitialSearchDone = false;
 
         // Tracks if search has any results
@@ -42,6 +41,7 @@ namespace Winhance.WPF.Features.Customize.ViewModels
         private readonly IThemeManager _themeManager;
         private readonly IConfigurationService _configurationService;
         private readonly IMessengerService _messengerService;
+        private readonly ILogService _logService;
 
         /// <summary>
         /// Gets the messenger service.
@@ -109,7 +109,7 @@ namespace Winhance.WPF.Features.Customize.ViewModels
         /// <summary>
         /// Gets the collection of customization items.
         /// </summary>
-        public ObservableCollection<CustomizationItem> CustomizationItems { get; } = new();
+        public ObservableCollection<ApplicationSettingGroup> CustomizationItems { get; } = new();
 
         /// <summary>
         /// Gets or sets the taskbar settings view model.
@@ -180,6 +180,7 @@ namespace Winhance.WPF.Features.Customize.ViewModels
             _themeManager = themeManager ?? throw new ArgumentNullException(nameof(themeManager));
             _configurationService = configurationService ?? throw new ArgumentNullException(nameof(configurationService));
             _messengerService = messengerService ?? throw new ArgumentNullException(nameof(messengerService));
+            _logService = logService ?? throw new ArgumentNullException(nameof(logService));
 
             TaskbarSettings = taskbarSettings ?? throw new ArgumentNullException(nameof(taskbarSettings));
             StartMenuSettings = startMenuSettings ?? throw new ArgumentNullException(nameof(startMenuSettings));
@@ -216,7 +217,7 @@ namespace Winhance.WPF.Features.Customize.ViewModels
                 new Winhance.Infrastructure.Features.Common.Services.SearchService())
         {
             // Default constructor for design-time use
-            CustomizationItems = new ObservableCollection<CustomizationItem>();
+            CustomizationItems = new ObservableCollection<ApplicationSettingGroup>();
             InitializeCustomizationItems();
             IsDarkModeEnabled = true; // Default to dark mode for design-time
         }
@@ -228,6 +229,9 @@ namespace Winhance.WPF.Features.Customize.ViewModels
         public override void OnNavigatedTo(object parameter)
         {
             LogInfo("CustomizeViewModel.OnNavigatedTo called");
+            
+            // Ensure the status text is set to the default value
+            StatusText = "Customize Your Windows Appearance and Behaviour";
 
             // If not already initialized, initialize now
             if (!IsInitialized)
@@ -258,14 +262,17 @@ namespace Winhance.WPF.Features.Customize.ViewModels
                 LogInfo("CustomizeViewModel.InitializeAsync: Loading Taskbar settings");
                 ProgressService.UpdateProgress(10, "Loading taskbar settings...");
                 await TaskbarSettings.LoadSettingsAsync();
+                await TaskbarSettings.CheckSettingStatusesAsync();
 
                 LogInfo("CustomizeViewModel.InitializeAsync: Loading Start Menu settings");
                 ProgressService.UpdateProgress(30, "Loading Start Menu settings...");
                 await StartMenuSettings.LoadSettingsAsync();
+                await StartMenuSettings.CheckSettingStatusesAsync();
 
                 LogInfo("CustomizeViewModel.InitializeAsync: Loading Explorer settings");
                 ProgressService.UpdateProgress(50, "Loading Explorer settings...");
                 await ExplorerSettings.LoadSettingsAsync();
+                await ExplorerSettings.CheckSettingStatusesAsync();
 
                 // Load Windows Theme settings if available
                 if (WindowsThemeSettings != null)
@@ -273,6 +280,7 @@ namespace Winhance.WPF.Features.Customize.ViewModels
                     LogInfo("CustomizeViewModel.InitializeAsync: Loading Windows Theme settings");
                     ProgressService.UpdateProgress(70, "Loading Windows Theme settings...");
                     await WindowsThemeSettings.LoadSettingsAsync();
+                    await WindowsThemeSettings.CheckSettingStatusesAsync();
                 }
 
                 // Progress is now complete
@@ -321,7 +329,7 @@ namespace Winhance.WPF.Features.Customize.ViewModels
             CustomizationItems.Clear();
 
             // Taskbar customization
-            var taskbarItem = new CustomizationItem
+            var taskbarItem = new ApplicationSettingGroup
             {
                 Name = "Taskbar",
                 Description = "Customize taskbar appearance and behavior",
@@ -330,7 +338,7 @@ namespace Winhance.WPF.Features.Customize.ViewModels
             CustomizationItems.Add(taskbarItem);
 
             // Start Menu customization
-            var startMenuItem = new CustomizationItem
+            var startMenuItem = new ApplicationSettingGroup
             {
                 Name = "Start Menu",
                 Description = "Modify Start Menu layout and settings",
@@ -339,7 +347,7 @@ namespace Winhance.WPF.Features.Customize.ViewModels
             CustomizationItems.Add(startMenuItem);
 
             // Explorer customization
-            var explorerItem = new CustomizationItem
+            var explorerItem = new ApplicationSettingGroup
             {
                 Name = "Explorer",
                 Description = "Adjust File Explorer settings and appearance",
@@ -348,7 +356,7 @@ namespace Winhance.WPF.Features.Customize.ViewModels
             CustomizationItems.Add(explorerItem);
 
             // Windows Theme customization
-            var windowsThemeItem = new CustomizationItem
+            var windowsThemeItem = new ApplicationSettingGroup
             {
                 Name = "Windows Theme",
                 Description = "Customize Windows appearance themes",
@@ -368,7 +376,7 @@ namespace Winhance.WPF.Features.Customize.ViewModels
                 // Add property changed handler for the category itself
                 item.PropertyChanged += (s, e) =>
                 {
-                    if (e.PropertyName == nameof(CustomizationItem.IsSelected) && !_updatingCheckboxes)
+                    if (e.PropertyName == nameof(ApplicationSettingGroup.IsSelected) && !_updatingCheckboxes)
                     {
                         _updatingCheckboxes = true;
                         try
@@ -392,7 +400,7 @@ namespace Winhance.WPF.Features.Customize.ViewModels
         /// Updates the settings for a category.
         /// </summary>
         /// <param name="category">The category.</param>
-        private void UpdateCategorySettings(CustomizationItem category)
+        private void UpdateCategorySettings(ApplicationSettingGroup category)
         {
             if (category == null) return;
 
@@ -566,78 +574,43 @@ namespace Winhance.WPF.Features.Customize.ViewModels
         /// </summary>
         /// <param name="action">The action to execute.</param>
         [RelayCommand]
-        private async void ExecuteAction(CustomizationAction? action)
+        private async Task ExecuteAction(ApplicationAction? action)
         {
             if (action == null) return;
 
-            // Show confirmation dialog if needed
-            if (!string.IsNullOrEmpty(action.ConfirmationMessage))
-            {
-                var result = await _dialogService.ShowConfirmationAsync(
-                    "Confirm Action",
-                    action.ConfirmationMessage);
-
-                if (!result) return; // User canceled
-            }
-
             try
             {
-                // Perform backup if supported and requested
-                if (action.SupportsBackup)
-                {
-                    var backupResult = await _dialogService.ShowConfirmationAsync(
-                        "Backup Current State",
-                        $"Would you like to backup your current {action.Name} state before proceeding?");
+                IsLoading = true;
+                StatusText = $"Executing action: {action.Name}...";
 
-                    if (backupResult && action.BackupAction != null)
-                    {
-                        await action.BackupAction();
-                    }
+                // Execute the action through the appropriate view model
+                if (action.GroupName == "Taskbar" && TaskbarSettings != null)
+                {
+                    await TaskbarSettings.ExecuteActionAsync(action);
+                }
+                else if (action.GroupName == "Start Menu" && StartMenuSettings != null)
+                {
+                    await StartMenuSettings.ExecuteActionAsync(action);
+                }
+                else if (action.GroupName == "Explorer" && ExplorerSettings != null)
+                {
+                    await ExplorerSettings.ExecuteActionAsync(action);
+                }
+                else if (action.GroupName == "Windows Theme" && WindowsThemeSettings != null)
+                {
+                    await WindowsThemeSettings.ExecuteActionAsync(action);
                 }
 
-                // Execute the registry action if present
-                if (action.RegistrySetting != null)
-                {
-                    string hiveString = action.RegistrySetting.Hive.ToString();
-                    if (hiveString == "LocalMachine") hiveString = "HKLM";
-                    else if (hiveString == "CurrentUser") hiveString = "HKCU";
-                    else if (hiveString == "ClassesRoot") hiveString = "HKCR";
-                    else if (hiveString == "Users") hiveString = "HKU";
-                    else if (hiveString == "CurrentConfig") hiveString = "HKCC";
-
-                    string fullPath = $"{hiveString}\\{action.RegistrySetting.SubKey}";
-                    // Use EnabledValue if available, otherwise fall back to RecommendedValue for backward compatibility
-                    object valueToSet = action.RegistrySetting.EnabledValue ?? action.RegistrySetting.RecommendedValue;
-                    _windowsService.RegistryService.SetValue(
-                        fullPath,
-                        action.RegistrySetting.Name,
-                        valueToSet,
-                        action.RegistrySetting.ValueType);
-                }
-
-                // Execute custom action if present
-                if (action.CustomAction != null)
-                {
-                    await action.CustomAction();
-                }
-
-                // Refresh UI if needed
-                bool needsGuiRefresh = action.GroupName == "Taskbar" || action.GroupName == "Start Menu";
-                if (needsGuiRefresh)
-                {
-                    await RefreshWindowsGUI();
-                }
-
-                // Show success message
-                await _dialogService.ShowInformationAsync("Success", $"{action.Name} completed successfully!");
-
-                LogInfo($"Action '{action.Name}' executed successfully");
+                StatusText = $"Action '{action.Name}' executed successfully";
             }
             catch (Exception ex)
             {
-                LogError($"Error executing action '{action.Name}': {ex.Message}");
-                await _dialogService.ShowErrorAsync("Error",
-                    $"An error occurred while executing {action.Name}. {ex.Message}");
+                StatusText = $"Error executing action: {ex.Message}";
+                LogError($"Error executing action '{action?.Name}': {ex.Message}");
+            }
+            finally
+            {
+                IsLoading = false;
             }
         }
 
@@ -646,7 +619,7 @@ namespace Winhance.WPF.Features.Customize.ViewModels
         /// </summary>
         /// <param name="category">The category to toggle.</param>
         [RelayCommand]
-        private void ToggleCategory(CustomizationItem category)
+        private void ToggleCategory(ApplicationSettingGroup? category)
         {
             if (category == null) return;
 
@@ -658,14 +631,36 @@ namespace Winhance.WPF.Features.Customize.ViewModels
 
             try
             {
-                bool newState = !category.IsSelected;
-                category.IsSelected = newState;
-
-                // Apply the state to all settings in this category
-                UpdateCategorySettings(category);
-
-                // Check if all categories are selected
-                UpdateSelectAllState();
+                switch (category.Name)
+                {
+                    case "Taskbar":
+                        foreach (var setting in TaskbarSettings.Settings)
+                        {
+                            setting.IsSelected = category.IsSelected;
+                        }
+                        break;
+                    case "Start Menu":
+                        foreach (var setting in StartMenuSettings.Settings)
+                        {
+                            setting.IsSelected = category.IsSelected;
+                        }
+                        break;
+                    case "Explorer":
+                        foreach (var setting in ExplorerSettings.Settings)
+                        {
+                            setting.IsSelected = category.IsSelected;
+                        }
+                        break;
+                    case "Windows Theme":
+                        if (WindowsThemeSettings != null && WindowsThemeSettings.Settings.Count > 0)
+                        {
+                            foreach (var setting in WindowsThemeSettings.Settings)
+                            {
+                                setting.IsSelected = category.IsSelected;
+                            }
+                        }
+                        break;
+                }
             }
             finally
             {
@@ -688,16 +683,16 @@ namespace Winhance.WPF.Features.Customize.ViewModels
                 Items.Clear();
 
                 // Collect all settings from the various view models
-                var allSettings = new List<CustomizationSettingItem>();
+                var allSettings = new List<ApplicationSettingItem>();
 
                 // Add settings from each category
                 if (TaskbarSettings != null && TaskbarSettings.Settings != null)
                 {
                     foreach (var setting in TaskbarSettings.Settings)
                     {
-                        if (setting is CustomizationSettingItem customizationSetting)
+                        if (setting is ApplicationSettingItem applicationSetting)
                         {
-                            allSettings.Add(customizationSetting);
+                            allSettings.Add(applicationSetting);
                         }
                     }
                 }
@@ -706,9 +701,9 @@ namespace Winhance.WPF.Features.Customize.ViewModels
                 {
                     foreach (var setting in StartMenuSettings.Settings)
                     {
-                        if (setting is CustomizationSettingItem customizationSetting)
+                        if (setting is ApplicationSettingItem applicationSetting)
                         {
-                            allSettings.Add(customizationSetting);
+                            allSettings.Add(applicationSetting);
                         }
                     }
                 }
@@ -717,9 +712,9 @@ namespace Winhance.WPF.Features.Customize.ViewModels
                 {
                     foreach (var setting in ExplorerSettings.Settings)
                     {
-                        if (setting is CustomizationSettingItem customizationSetting)
+                        if (setting is ApplicationSettingItem applicationSetting)
                         {
-                            allSettings.Add(customizationSetting);
+                            allSettings.Add(applicationSetting);
                         }
                     }
                 }
@@ -728,9 +723,9 @@ namespace Winhance.WPF.Features.Customize.ViewModels
                 {
                     foreach (var setting in WindowsThemeSettings.Settings)
                     {
-                        if (setting is CustomizationSettingItem customizationSetting)
+                        if (setting is ApplicationSettingItem applicationSetting)
                         {
-                            allSettings.Add(customizationSetting);
+                            allSettings.Add(applicationSetting);
                         }
                     }
                 }
@@ -742,7 +737,7 @@ namespace Winhance.WPF.Features.Customize.ViewModels
                 }
 
                 // Create a backup of all items for state recovery
-                _allItemsBackup = new List<CustomizationSettingItem>(Items);
+                _allItemsBackup = new List<ApplicationSettingItem>(Items);
 
                 // Only update StatusText if it's currently showing a loading message
                 if (StatusText.Contains("Loading"))
@@ -848,7 +843,7 @@ namespace Winhance.WPF.Features.Customize.ViewModels
             // If this is our first time running a search and the backup isn't created yet, create it
             if (!_isInitialSearchDone && Items.Count > 0)
             {
-                _allItemsBackup = new List<CustomizationSettingItem>(Items);
+                _allItemsBackup = new List<ApplicationSettingItem>(Items);
                 _isInitialSearchDone = true;
                 LogInfo($"CustomizeViewModel: Created backup of all items ({_allItemsBackup.Count} items)");
             }
@@ -922,7 +917,7 @@ namespace Winhance.WPF.Features.Customize.ViewModels
 
             // We're doing an active search, use the backup for filtering if available
             var itemsToFilter = _allItemsBackup.Count > 0 
-                ? new ObservableCollection<CustomizationSettingItem>(_allItemsBackup) 
+                ? new ObservableCollection<ApplicationSettingItem>(_allItemsBackup) 
                 : Items;
             
             // Normalize and clean the search text
@@ -976,16 +971,16 @@ namespace Winhance.WPF.Features.Customize.ViewModels
             
             // Count visible items in each category
             if (TaskbarSettings?.Settings != null)
-                visibleItemsCount += TaskbarSettings.Settings.Count(s => s is CustomizationSettingItem csItem && csItem.IsVisible);
+                visibleItemsCount += TaskbarSettings.Settings.Count(s => s is ApplicationSettingItem csItem && csItem.IsVisible);
                 
             if (StartMenuSettings?.Settings != null)
-                visibleItemsCount += StartMenuSettings.Settings.Count(s => s is CustomizationSettingItem csItem && csItem.IsVisible);
+                visibleItemsCount += StartMenuSettings.Settings.Count(s => s is ApplicationSettingItem csItem && csItem.IsVisible);
                 
             if (ExplorerSettings?.Settings != null)
-                visibleItemsCount += ExplorerSettings.Settings.Count(s => s is CustomizationSettingItem csItem && csItem.IsVisible);
+                visibleItemsCount += ExplorerSettings.Settings.Count(s => s is ApplicationSettingItem csItem && csItem.IsVisible);
                 
             if (WindowsThemeSettings?.Settings != null)
-                visibleItemsCount += WindowsThemeSettings.Settings.Count(s => s is CustomizationSettingItem csItem && csItem.IsVisible);
+                visibleItemsCount += WindowsThemeSettings.Settings.Count(s => s is ApplicationSettingItem csItem && csItem.IsVisible);
 
             // Update the Items collection to match visible items
             Items.Clear();
@@ -1015,7 +1010,7 @@ namespace Winhance.WPF.Features.Customize.ViewModels
         /// </summary>
         /// <param name="viewModel">The sub-view model to update.</param>
         /// <param name="filteredItemIds">HashSet of IDs of items that match the search criteria.</param>
-        private void UpdateSubViewSettings(BaseCustomizationsViewModel viewModel, HashSet<string> filteredItemIds)
+        private void UpdateSubViewSettings(BaseSettingsViewModel<ApplicationSettingItem> viewModel, HashSet<string> filteredItemIds)
         {
             if (viewModel == null || viewModel.Settings == null)
                 return;
@@ -1073,5 +1068,25 @@ namespace Winhance.WPF.Features.Customize.ViewModels
         }
 
         // SaveConfig and ImportConfig methods removed as part of unified configuration cleanup
+
+        /// <summary>
+        /// Logs an informational message.
+        /// </summary>
+        /// <param name="message">The message to log.</param>
+        private void LogInfo(string message)
+        {
+            StatusText = message;
+            _logService?.Log(LogLevel.Info, message);
+        }
+
+        /// <summary>
+        /// Logs an error message.
+        /// </summary>
+        /// <param name="message">The message to log.</param>
+        private void LogError(string message)
+        {
+            StatusText = message;
+            _logService?.Log(LogLevel.Error, message);
+        }
     }
 }

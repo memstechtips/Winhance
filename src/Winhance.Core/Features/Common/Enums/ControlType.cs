@@ -25,6 +25,21 @@ namespace Winhance.Core.Features.Common.Enums
         /// <summary>
         /// A custom control.
         /// </summary>
-        Custom
+        Custom,
+
+        /// <summary>
+        /// A slider control.
+        /// </summary>
+        Slider,
+
+        /// <summary>
+        /// A dropdown control.
+        /// </summary>
+        Dropdown,
+
+        /// <summary>
+        /// A color picker control.
+        /// </summary>
+        ColorPicker
     }
 }

@@ -12,8 +12,6 @@
         xmlns:customizeViews="clr-namespace:Winhance.WPF.Features.Customize.Views"
         xmlns:materialDesign="http://materialdesigninxaml.net/winfx/xaml/themes"
         Title="Winhance"
-        Width="1600"
-        Height="900"
         Background="Transparent"
         WindowStartupLocation="CenterScreen"
         ResizeMode="CanResize"
@@ -45,7 +43,7 @@
         <WindowChrome.WindowChrome>
                 <WindowChrome
                         CaptionHeight="32"
-                        ResizeBorderThickness="0"
+                        ResizeBorderThickness="8"
                         GlassFrameThickness="-1"
                         CornerRadius="10"
                         NonClientFrameEdges="None"

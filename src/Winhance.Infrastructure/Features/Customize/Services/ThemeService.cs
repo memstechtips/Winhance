@@ -17,6 +17,7 @@ namespace Winhance.Infrastructure.Features.Customize.Services
         private readonly IRegistryService _registryService;
         private readonly ILogService _logService;
         private readonly IWallpaperService _wallpaperService;
+        private readonly ISystemServices _systemServices;
 
         /// <summary>
         /// Initializes a new instance of the <see cref="ThemeService"/> class.
@@ -24,14 +25,17 @@ namespace Winhance.Infrastructure.Features.Customize.Services
         /// <param name="registryService">The registry service.</param>
         /// <param name="logService">The log service.</param>
         /// <param name="wallpaperService">The wallpaper service.</param>
+        /// <param name="systemServices">The system services.</param>
         public ThemeService(
             IRegistryService registryService,
             ILogService logService,
-            IWallpaperService wallpaperService)
+            IWallpaperService wallpaperService,
+            ISystemServices systemServices)
         {
             _registryService = registryService ?? throw new ArgumentNullException(nameof(registryService));
             _logService = logService ?? throw new ArgumentNullException(nameof(logService));
             _wallpaperService = wallpaperService ?? throw new ArgumentNullException(nameof(wallpaperService));
+            _systemServices = systemServices ?? throw new ArgumentNullException(nameof(systemServices));
         }
 
         /// <inheritdoc/>
@@ -122,8 +126,13 @@ namespace Winhance.Infrastructure.Features.Customize.Services
                     await _wallpaperService.SetDefaultWallpaperAsync(isWindows11, isDarkMode);
                 }
 
-                // Refresh Windows GUI to apply changes
-                await RefreshGUIAsync(true);
+                // Use the improved RefreshWindowsGUI method to refresh the UI
+                bool refreshResult = await _systemServices.RefreshWindowsGUI(true);
+                if (!refreshResult)
+                {
+                    _logService.Log(LogLevel.Warning, "Failed to refresh Windows GUI after applying theme");
+                    return false;
+                }
 
                 _logService.Log(LogLevel.Info, $"Theme applied successfully: {(isDarkMode ? "Dark" : "Light")} Mode");
                 return true;
@@ -140,74 +149,21 @@ namespace Winhance.Infrastructure.Features.Customize.Services
         {
             try
             {
-                // Implement GUI refresh directly instead of using ISystemServices
-                const int HWND_BROADCAST = 0xffff;
-                const int WM_SETTINGCHANGE = 0x001A;
-                const int WM_SYSCOLORCHANGE = 0x0015;
-                const int WM_THEMECHANGE = 0x031A;
-
-                [DllImport("user32.dll", CharSet = CharSet.Auto)]
-                static extern IntPtr SendMessage(IntPtr hWnd, uint Msg, IntPtr wParam, IntPtr lParam);
-
-                [DllImport("user32.dll", CharSet = CharSet.Auto)]
-                static extern IntPtr SendMessageTimeout(IntPtr hWnd, uint Msg, IntPtr wParam, IntPtr lParam,
-                                                      uint fuFlags, uint uTimeout, out IntPtr lpdwResult);
-
-                SendMessage((IntPtr)HWND_BROADCAST, WM_SYSCOLORCHANGE, IntPtr.Zero, IntPtr.Zero);
-                SendMessage((IntPtr)HWND_BROADCAST, WM_THEMECHANGE, IntPtr.Zero, IntPtr.Zero);
+                _logService.Log(LogLevel.Info, $"Refreshing GUI with WindowsSystemService (restartExplorer: {restartExplorer})");
                 
-                if (restartExplorer)
+                // Use the improved implementation from WindowsSystemService
+                bool result = await _systemServices.RefreshWindowsGUI(restartExplorer);
+                
+                if (result)
                 {
-                    _logService.Log(LogLevel.Info, "Refreshing Windows GUI by terminating Explorer process");
-                    
-                    await Task.Delay(500);
-
-                    bool explorerWasRunning = Process.GetProcessesByName("explorer").Length > 0;
-                    
-                    if (explorerWasRunning)
-                    {
-                        _logService.Log(LogLevel.Info, "Terminating Explorer processes - Windows will restart it automatically");
-                        
-                        foreach (var process in Process.GetProcessesByName("explorer"))
-                        {
-                            try
-                            {
-                                process.Kill();
-                                _logService.Log(LogLevel.Info, $"Killed Explorer process (PID: {process.Id})");
-                            }
-                            catch (Exception ex)
-                            {
-                                _logService.Log(LogLevel.Warning, $"Failed to kill Explorer process: {ex.Message}");
-                            }
-                        }
-                        
-                        _logService.Log(LogLevel.Info, "Waiting for Windows to automatically restart Explorer");
-                        await Task.Delay(2000);
-                    }
+                    _logService.Log(LogLevel.Info, "Windows GUI refresh completed successfully");
                 }
                 else
                 {
-                    _logService.Log(LogLevel.Info, "Refreshing Windows GUI without killing Explorer");
+                    _logService.Log(LogLevel.Error, "Failed to refresh Windows GUI");
                 }
                 
-                string themeChanged = "ImmersiveColorSet";
-                IntPtr themeChangedPtr = Marshal.StringToHGlobalUni(themeChanged);
-                
-                try
-                {
-                    IntPtr result;
-                    SendMessageTimeout((IntPtr)HWND_BROADCAST, WM_SETTINGCHANGE, IntPtr.Zero, themeChangedPtr,
-                                      0x0000, 1000, out result);
-                    
-                    SendMessage((IntPtr)HWND_BROADCAST, WM_SETTINGCHANGE, IntPtr.Zero, IntPtr.Zero);
-                }
-                finally
-                {
-                    Marshal.FreeHGlobal(themeChangedPtr);
-                }
-
-                _logService.Log(LogLevel.Info, "Windows GUI refresh completed successfully");
-                return true;
+                return result;
             }
             catch (Exception ex)
             {

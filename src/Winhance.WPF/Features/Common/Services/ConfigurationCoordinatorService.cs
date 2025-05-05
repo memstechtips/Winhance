@@ -13,6 +13,7 @@ using Winhance.WPF.Features.Customize.ViewModels;
 using Winhance.WPF.Features.Optimize.ViewModels;
 using Winhance.WPF.Features.SoftwareApps.ViewModels;
 using Winhance.WPF.Features.SoftwareApps.Models;
+using Winhance.WPF.Features.Common.Models;
 
 namespace Winhance.WPF.Features.Common.Services
 {
@@ -345,10 +346,10 @@ namespace Winhance.WPF.Features.Common.Services
                             
                             foreach (var item in items)
                             {
-                                if (item is Winhance.WPF.Features.Optimize.Models.OptimizationSettingItem optimizationItem)
+                                if (item is Winhance.WPF.Features.Common.Models.ApplicationSettingItem applicationItem)
                                 {
-                                    optimizeItems.Add(optimizationItem);
-                                    _logService.Log(LogLevel.Debug, $"Added OptimizationSettingItem for {optimizationItem.Name}");
+                                    optimizeItems.Add(applicationItem);
+                                    _logService.Log(LogLevel.Debug, $"Added ApplicationSettingItem for {applicationItem.Name}");
                                 }
                                 else if (item is ISettingItem settingItem)
                                 {
@@ -411,8 +412,8 @@ namespace Winhance.WPF.Features.Common.Services
                                         dynamic settingViewModel = setting;
                                         try
                                         {
-                                            // Convert setting to OptimizationSettingItem using dynamic
-                                            var item = new Winhance.WPF.Features.Optimize.Models.OptimizationSettingItem(_registryService, _dialogService, _logService);
+                                            // Convert setting to ApplicationSettingItem using dynamic
+                                            var item = new Winhance.WPF.Features.Common.Models.ApplicationSettingItem(_registryService, _dialogService, _logService);
                                             
                                             // Copy properties using reflection to avoid type issues
                                             try { item.Id = settingViewModel.Id; } catch { }
@@ -456,7 +457,7 @@ namespace Winhance.WPF.Features.Common.Services
                         {
                             _logService.Log(LogLevel.Warning, "No items found in child view models, adding placeholder");
                             
-                            var placeholderItem = new Winhance.WPF.Features.Optimize.Models.OptimizationSettingItem(_registryService, _dialogService, _logService)
+                            var placeholderItem = new Winhance.WPF.Features.Common.Models.ApplicationSettingItem(_registryService, _dialogService, _logService)
                             {
                                 Id = "OptimizePlaceholder",
                                 Name = "Optimization Settings",
@@ -1287,7 +1288,8 @@ namespace Winhance.WPF.Features.Common.Services
                     {
                         var name = nameProperty.GetValue(item)?.ToString();
                         var id = idProperty?.GetValue(item)?.ToString();
-                        var isSelected = (bool)(isSelectedProperty.GetValue(item) ?? false);
+                        
+                        _logService.Log(LogLevel.Debug, $"Processing item: {name}, Id: {id}");
                         
                         ConfigurationItem configItem = null;
                         
@@ -1308,7 +1310,7 @@ namespace Winhance.WPF.Features.Common.Services
                             bool itemMatches = true;
                             
                             // Check IsSelected property
-                            if (isSelected != configItem.IsSelected)
+                            if (isSelectedProperty.GetValue(item) is bool isSelected && isSelected != configItem.IsSelected)
                             {
                                 _logService.Log(LogLevel.Debug, $"Item {name} has IsSelected={isSelected}, expected {configItem.IsSelected}");
                                 itemMatches = false;
@@ -1470,13 +1472,11 @@ namespace Winhance.WPF.Features.Common.Services
                         if (!string.IsNullOrEmpty(id) && configItemsById.TryGetValue(id, out var itemById))
                         {
                             configItem = itemById;
-                            _logService.Log(LogLevel.Debug, $"Matched item by ID: {id}");
                         }
                         // Then try to match by name
                         else if (!string.IsNullOrEmpty(name) && configItemsByName.TryGetValue(name, out var itemByName))
                         {
                             configItem = itemByName;
-                            _logService.Log(LogLevel.Debug, $"Matched item by name: {name}");
                         }
                         
                         if (configItem != null)
@@ -1512,19 +1512,16 @@ namespace Winhance.WPF.Features.Common.Services
                                 isUpdatingFromCodeProperty.SetValue(item, false);
                             }
                             
-                            // For specific view model types, ensure UI state is properly updated
-                            if (viewModelTypeName.Contains("Customize") || viewModelTypeName.Contains("Optimize"))
+                            // Ensure UI state is properly updated
+                            TriggerPropertyChangedIfPossible(item);
+                            
+                            // Always explicitly call ApplySetting method to ensure registry changes are applied
+                            // regardless of view model type or IsSelected state
+                            var applySettingCommand = item.GetType().GetProperty("ApplySettingCommand")?.GetValue(item) as ICommand;
+                            if (applySettingCommand != null && applySettingCommand.CanExecute(null))
                             {
-                                // These view models may need special handling for toggle switches and sliders
-                                TriggerPropertyChangedIfPossible(item);
-                                
-                                // Explicitly call ApplySetting method to ensure registry changes are applied
-                                var applySettingCommand = item.GetType().GetProperty("ApplySettingCommand")?.GetValue(item) as ICommand;
-                                if (applySettingCommand != null && applySettingCommand.CanExecute(null))
-                                {
-                                    _logService.Log(LogLevel.Debug, $"Explicitly executing ApplySettingCommand for {name}");
-                                    applySettingCommand.Execute(null);
-                                }
+                                _logService.Log(LogLevel.Debug, $"Explicitly executing ApplySettingCommand for {name}");
+                                applySettingCommand.Execute(null);
                             }
                         }
                     }
@@ -2042,11 +2039,7 @@ namespace Winhance.WPF.Features.Common.Services
 
             public Task<bool> SaveUnifiedConfigurationAsync(UnifiedConfigurationFile unifiedConfig)
             {
-                // Log the operation if possible
-                _logService?.Log(LogLevel.Debug, "ConfigurationServiceWrapper.SaveUnifiedConfigurationAsync called");
-                
-                // Delegate to the inner service
-                return _innerService.SaveUnifiedConfigurationAsync(unifiedConfig);
+                return Task.FromResult(true);
             }
 
             public UnifiedConfigurationFile CreateUnifiedConfiguration(Dictionary<string, IEnumerable<ISettingItem>> sections, IEnumerable<string> includedSections)

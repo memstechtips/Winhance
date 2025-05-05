@@ -6,9 +6,8 @@ using Winhance.Core.Features.Common.Enums;
 using Winhance.Core.Features.Common.Interfaces;
 using Winhance.Core.Features.Common.Models;
 using Winhance.WPF.Features.Common.Models;
-using Winhance.WPF.Features.Customize.Models;
+using Winhance.WPF.Features.Common.ViewModels;
 using Winhance.WPF.Features.Customize.ViewModels;
-using Winhance.WPF.Features.Optimize.Models;
 using Winhance.WPF.Features.Optimize.ViewModels;
 using Winhance.WPF.Features.SoftwareApps.Models;
 using Winhance.WPF.Features.SoftwareApps.ViewModels;
@@ -317,40 +316,40 @@ namespace Winhance.WPF.Features.Common.Services
                             settingItem.Name.Contains("Choose Your Mode"))
                         {
                             // Ensure it has the correct ControlType and properties for ComboBox
-                            if (settingItem is OptimizationSettingItem optimizationSetting)
+                            if (settingItem is ApplicationSettingItem applicationSetting)
                             {
-                                optimizationSetting.ControlType = ControlType.ComboBox;
+                                applicationSetting.ControlType = ControlType.ComboBox;
                                 
                                 // Get the SelectedTheme from the RegistrySetting if available
-                                if (optimizationSetting.RegistrySetting?.CustomProperties != null &&
-                                    optimizationSetting.RegistrySetting.CustomProperties.ContainsKey("SelectedTheme"))
+                                if (applicationSetting.RegistrySetting?.CustomProperties != null &&
+                                    applicationSetting.RegistrySetting.CustomProperties.ContainsKey("SelectedTheme"))
                                 {
-                                    var selectedTheme = optimizationSetting.RegistrySetting.CustomProperties["SelectedTheme"]?.ToString();
+                                    var selectedTheme = applicationSetting.RegistrySetting.CustomProperties["SelectedTheme"]?.ToString();
                                     _logService.Log(LogLevel.Debug, $"Found SelectedTheme in RegistrySetting: {selectedTheme}");
                                 }
                                 
                                 _logService.Log(LogLevel.Debug, $"Forced ControlType to ComboBox for Theme Selector");
                             }
-                            else if (settingItem is OptimizationSettingViewModel optimizationViewModel)
+                            else if (settingItem is ApplicationSettingViewModel applicationViewModel)
                             {
-                                optimizationViewModel.ControlType = ControlType.ComboBox;
+                                applicationViewModel.ControlType = ControlType.ComboBox;
                                 
                                 // Ensure SelectedValue is set based on SelectedTheme if available
-                                var selectedThemeProperty = optimizationViewModel.GetType().GetProperty("SelectedTheme");
-                                var selectedValueProperty = optimizationViewModel.GetType().GetProperty("SelectedValue");
+                                var selectedThemeProperty = applicationViewModel.GetType().GetProperty("SelectedTheme");
+                                var selectedValueProperty = applicationViewModel.GetType().GetProperty("SelectedValue");
                                 
                                 if (selectedThemeProperty != null && selectedValueProperty != null)
                                 {
-                                    var selectedTheme = selectedThemeProperty.GetValue(optimizationViewModel)?.ToString();
+                                    var selectedTheme = selectedThemeProperty.GetValue(applicationViewModel)?.ToString();
                                     if (!string.IsNullOrEmpty(selectedTheme))
                                     {
-                                        selectedValueProperty.SetValue(optimizationViewModel, selectedTheme);
+                                        selectedValueProperty.SetValue(applicationViewModel, selectedTheme);
                                     }
                                 }
                                 
                                 _logService.Log(LogLevel.Debug, $"Forced ControlType to ComboBox for Theme Selector (ViewModel) and ensured SelectedValue is set");
                             }
-                            else if (settingItem is CustomizationSettingItem customizationSetting)
+                            else if (settingItem is ApplicationSettingItem customizationSetting)
                             {
                                 customizationSetting.ControlType = ControlType.ComboBox;
                                 
@@ -477,9 +476,9 @@ namespace Winhance.WPF.Features.Common.Services
                                 if (settingItem.Id == "PowerPlanComboBox" || settingItem.Name.Contains("Power Plan"))
                                 {
                                     // Ensure it has the correct ControlType
-                                    if (settingItem is OptimizationSettingItem optimizationSetting)
+                                    if (settingItem is ApplicationSettingItem applicationSetting)
                                     {
-                                        optimizationSetting.ControlType = ControlType.ComboBox;
+                                        applicationSetting.ControlType = ControlType.ComboBox;
                                         _logService.Log(LogLevel.Debug, $"Forced ControlType to ComboBox for Power Plan");
                                         
                                         // Get the current power plan value from the view model
@@ -487,12 +486,12 @@ namespace Winhance.WPF.Features.Common.Services
                                         {
                                             // Set the SliderValue to the current power plan index
                                             int powerPlanIndex = viewModel.PowerSettingsViewModel.PowerPlanValue;
-                                            optimizationSetting.SliderValue = powerPlanIndex;
+                                            applicationSetting.SliderValue = powerPlanIndex;
                                             _logService.Log(LogLevel.Debug, $"Set SliderValue to {powerPlanIndex} for Power Plan");
                                             
                                             // Instead of replacing the item, update its properties
-                                            optimizationSetting.ControlType = ControlType.ComboBox;
-                                            optimizationSetting.SliderValue = powerPlanIndex;
+                                            applicationSetting.ControlType = ControlType.ComboBox;
+                                            applicationSetting.SliderValue = powerPlanIndex;
                                             
                                             // Create a separate ConfigurationItem for the config file
                                             var configItem = new ConfigurationItem
@@ -524,7 +523,7 @@ namespace Winhance.WPF.Features.Common.Services
                                             
                                             // Add this ConfigurationItem directly to the optimizeItems collection
                                             // We'll create a wrapper that implements ISettingItem
-                                            var powerPlanSettingItem = new PowerPlanSettingItem(configItem, optimizationSetting);
+                                            var powerPlanSettingItem = new PowerPlanSettingItem(configItem, applicationSetting);
                                             
                                             // Add it to the collection if it doesn't already exist
                                             bool exists = false;
@@ -544,9 +543,9 @@ namespace Winhance.WPF.Features.Common.Services
                                             }
                                         }
                                     }
-                                    else if (settingItem is OptimizationSettingViewModel optimizationViewModel)
+                                    else if (settingItem is ApplicationSettingViewModel applicationViewModel)
                                     {
-                                        optimizationViewModel.ControlType = ControlType.ComboBox;
+                                        applicationViewModel.ControlType = ControlType.ComboBox;
                                         _logService.Log(LogLevel.Debug, $"Forced ControlType to ComboBox for Power Plan (ViewModel)");
                                         
                                         // Get the current power plan value from the view model
@@ -554,12 +553,12 @@ namespace Winhance.WPF.Features.Common.Services
                                         {
                                             // Set the SliderValue to the current power plan index
                                             int powerPlanIndex = viewModel.PowerSettingsViewModel.PowerPlanValue;
-                                            optimizationViewModel.SliderValue = powerPlanIndex;
+                                            applicationViewModel.SliderValue = powerPlanIndex;
                                             _logService.Log(LogLevel.Debug, $"Set SliderValue to {powerPlanIndex} for Power Plan (ViewModel)");
                                             
                                             // Instead of replacing the item, update its properties
-                                            optimizationViewModel.ControlType = ControlType.ComboBox;
-                                            optimizationViewModel.SliderValue = powerPlanIndex;
+                                            applicationViewModel.ControlType = ControlType.ComboBox;
+                                            applicationViewModel.SliderValue = powerPlanIndex;
                                             
                                             // Create a separate ConfigurationItem for the config file
                                             var configItem = new ConfigurationItem
@@ -591,7 +590,7 @@ namespace Winhance.WPF.Features.Common.Services
                                             
                                             // Add this ConfigurationItem directly to the optimizeItems collection
                                             // We'll create a wrapper that implements ISettingItem
-                                            var powerPlanSettingItem = new PowerPlanSettingItem(configItem, optimizationViewModel);
+                                            var powerPlanSettingItem = new PowerPlanSettingItem(configItem, applicationViewModel);
                                             
                                             // Add it to the collection if it doesn't already exist
                                             bool exists = false;
@@ -677,14 +676,14 @@ namespace Winhance.WPF.Features.Common.Services
                                 if (settingItem.Id == "UACSlider" || settingItem.Name.Contains("User Account Control"))
                                 {
                                     // Ensure it has the correct ControlType
-                                    if (settingItem is OptimizationSettingItem optimizationSetting)
+                                    if (settingItem is ApplicationSettingItem applicationSetting)
                                     {
-                                        optimizationSetting.ControlType = ControlType.ThreeStateSlider;
+                                        applicationSetting.ControlType = ControlType.ThreeStateSlider;
                                         _logService.Log(LogLevel.Debug, $"Forced ControlType to ThreeStateSlider for UAC Slider");
                                     }
-                                    else if (settingItem is OptimizationSettingViewModel optimizationViewModel)
+                                    else if (settingItem is ApplicationSettingViewModel applicationViewModel)
                                     {
-                                        optimizationViewModel.ControlType = ControlType.ThreeStateSlider;
+                                        applicationViewModel.ControlType = ControlType.ThreeStateSlider;
                                         _logService.Log(LogLevel.Debug, $"Forced ControlType to ThreeStateSlider for UAC Slider (ViewModel)");
                                     }
                                 }
@@ -785,7 +784,7 @@ namespace Winhance.WPF.Features.Common.Services
                         // Remove any existing Power Plan items from optimizeItems
                         optimizeItems.RemoveAll(item =>
                             (item is PowerPlanSettingItem) ||
-                            (item is OptimizationSettingItem settingItem &&
+                            (item is ApplicationSettingItem settingItem &&
                              (settingItem.Id == "PowerPlanComboBox" || settingItem.Name.Contains("Power Plan"))));
                         
                         // Add the new Power Plan item to optimizeItems

@@ -3,7 +3,6 @@ using System.Collections.Generic;
 using Winhance.Core.Features.Common.Interfaces;
 using Winhance.WPF.Features.Common.Interfaces;
 using Winhance.WPF.Features.Common.ViewModels;
-using Winhance.WPF.Features.Optimize.ViewModels;
 
 namespace Winhance.WPF.Features.Common.Extensions
 {
@@ -13,17 +12,17 @@ namespace Winhance.WPF.Features.Common.Extensions
     public static class SettingViewModelExtensions
     {
         /// <summary>
-        /// Safely converts an ApplicationSettingViewModel to an OptimizationSettingViewModel if possible.
+        /// Safely converts an ApplicationSettingViewModel to an ApplicationSettingViewModel if possible.
         /// </summary>
         /// <param name="setting">The setting to convert.</param>
-        /// <returns>The setting as an OptimizationSettingViewModel, or null if conversion is not possible.</returns>
-        public static Winhance.WPF.Features.Optimize.ViewModels.OptimizationSettingViewModel? AsOptimizationSettingViewModel(this ApplicationSettingViewModel setting)
+        /// <returns>The setting as an ApplicationSettingViewModel, or null if conversion is not possible.</returns>
+        public static ApplicationSettingViewModel? AsApplicationSettingViewModel(this ApplicationSettingViewModel setting)
         {
-            return setting as OptimizationSettingViewModel;
+            return setting;
         }
         
         /// <summary>
-        /// Creates a new OptimizationSettingViewModel with properties copied from an ApplicationSettingViewModel.
+        /// Creates a new ApplicationSettingViewModel with properties copied from an ApplicationSettingViewModel.
         /// </summary>
         /// <param name="setting">The setting to convert.</param>
         /// <param name="registryService">The registry service.</param>
@@ -32,8 +31,8 @@ namespace Winhance.WPF.Features.Common.Extensions
         /// <param name="dependencyManager">The dependency manager.</param>
         /// <param name="viewModelLocator">The view model locator.</param>
         /// <param name="settingsRegistry">The settings registry.</param>
-        /// <returns>A new OptimizationSettingViewModel with properties copied from the input setting.</returns>
-        public static Winhance.WPF.Features.Optimize.ViewModels.OptimizationSettingViewModel ToOptimizationSettingViewModel(
+        /// <returns>A new ApplicationSettingViewModel with properties copied from the input setting.</returns>
+        public static ApplicationSettingViewModel ToApplicationSettingViewModel(
             this ApplicationSettingViewModel setting,
             IRegistryService registryService,
             IDialogService? dialogService,
@@ -42,18 +41,16 @@ namespace Winhance.WPF.Features.Common.Extensions
             IViewModelLocator? viewModelLocator = null,
             ISettingsRegistry? settingsRegistry = null)
         {
-            if (setting is OptimizationSettingViewModel optimizationSetting)
+            if (setting is ApplicationSettingViewModel applicationSetting)
             {
-                return optimizationSetting;
+                return applicationSetting;
             }
             
-            var result = new OptimizationSettingViewModel(
+            var result = new ApplicationSettingViewModel(
                 registryService, 
                 dialogService, 
                 logService, 
-                dependencyManager, 
-                viewModelLocator, 
-                settingsRegistry)
+                dependencyManager)
             {
                 Id = setting.Id,
                 Name = setting.Name,
@@ -76,7 +73,7 @@ namespace Winhance.WPF.Features.Common.Extensions
             // Copy child settings if any
             foreach (var child in setting.ChildSettings)
             {
-                result.ChildSettings.Add(child.ToOptimizationSettingViewModel(
+                result.ChildSettings.Add(child.ToApplicationSettingViewModel(
                     registryService, 
                     dialogService, 
                     logService, 

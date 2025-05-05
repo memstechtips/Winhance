@@ -1,7 +1,6 @@
 using System;
 using System.Collections.ObjectModel;
 using System.Linq;
-using System.Reflection;
 using System.Threading.Tasks;
 using CommunityToolkit.Mvvm.ComponentModel;
 using CommunityToolkit.Mvvm.Input;
@@ -11,7 +10,7 @@ using Winhance.Core.Features.Common.Models;
 using Winhance.Core.Features.Customize.Models;
 using Winhance.Core.Features.Common.Enums;
 using Winhance.WPF.Features.Common.ViewModels;
-using Winhance.WPF.Features.Customize.Models;
+using Winhance.WPF.Features.Common.Extensions;
 using Winhance.WPF.Features.Common.Models;
 
 namespace Winhance.WPF.Features.Customize.ViewModels
@@ -19,7 +18,7 @@ namespace Winhance.WPF.Features.Customize.ViewModels
     /// <summary>
     /// ViewModel for Start Menu customizations.
     /// </summary>
-    public partial class StartMenuCustomizationsViewModel : BaseCustomizationsViewModel
+    public partial class StartMenuCustomizationsViewModel : BaseSettingsViewModel<ApplicationSettingItem>
     {
         private readonly ISystemServices _systemServices;
         private bool _isWindows11;
@@ -43,7 +42,7 @@ namespace Winhance.WPF.Features.Customize.ViewModels
                 });
 
                 // Determine Windows version
-                _isWindows11 = Environment.OSVersion.Version.Build >= 22000;
+                _isWindows11 = _systemServices.IsWindows11();
 
                 // Clean Start Menu
                 await Task.Run(() =>
@@ -85,7 +84,7 @@ namespace Winhance.WPF.Features.Customize.ViewModels
         /// Gets the command to execute an action.
         /// </summary>
         [RelayCommand]
-        public async void ExecuteAction(CustomizationAction? action)
+        public async Task ExecuteAction(ApplicationAction? action)
         {
             if (action == null) return;
 
@@ -126,7 +125,7 @@ namespace Winhance.WPF.Features.Customize.ViewModels
         /// <summary>
         /// Gets the collection of Start Menu actions.
         /// </summary>
-        public ObservableCollection<CustomizationAction> Actions { get; } = new();
+        public ObservableCollection<ApplicationAction> Actions { get; } = new();
 
         /// <summary>
         /// Initializes a new instance of the <see cref="StartMenuCustomizationsViewModel"/> class.
@@ -134,17 +133,7 @@ namespace Winhance.WPF.Features.Customize.ViewModels
         /// <param name="progressService">The task progress service.</param>
         /// <param name="registryService">The registry service.</param>
         /// <param name="logService">The log service.</param>
-        /// <summary>
-        /// Gets the category name.
-        /// </summary>
-        public override string CategoryName => "Start Menu";
-
-        /// <summary>
-        /// Initializes a new instance of the <see cref="StartMenuCustomizationsViewModel"/> class.
-        /// </summary>
-        /// <param name="progressService">The task progress service.</param>
-        /// <param name="registryService">The registry service.</param>
-        /// <param name="logService">The log service.</param>
+        /// <param name="systemServices">The system services.</param>
         public StartMenuCustomizationsViewModel(
             ITaskProgressService progressService,
             IRegistryService registryService,
@@ -152,12 +141,12 @@ namespace Winhance.WPF.Features.Customize.ViewModels
             ISystemServices systemServices)
             : base(progressService, registryService, logService)
         {
-            _systemServices = systemServices;
-            _isWindows11 = Environment.OSVersion.Version.Build >= 22000;
+            _systemServices = systemServices ?? throw new ArgumentNullException(nameof(systemServices));
+            _isWindows11 = _systemServices.IsWindows11();
         }
 
         /// <summary>
-        /// Loads the Start Menu settings.
+        /// Loads the Start Menu customizations.
         /// </summary>
         /// <returns>A task representing the asynchronous operation.</returns>
         public override async Task LoadSettingsAsync()
@@ -169,83 +158,87 @@ namespace Winhance.WPF.Features.Customize.ViewModels
                 // Clear existing settings
                 Settings.Clear();
 
-                // Load Start Menu settings from StartMenuCustomizations
-                var startMenuCustomizations = StartMenuCustomizations.GetStartMenuCustomizations();
+                // Load Start Menu customizations
+                var startMenuCustomizations = Core.Features.Customize.Models.StartMenuCustomizations.GetStartMenuCustomizations();
                 if (startMenuCustomizations?.Settings != null)
                 {
                     // Add settings sorted alphabetically by name
                     foreach (var setting in startMenuCustomizations.Settings.OrderBy(s => s.Name))
                     {
-                        var customizationSetting = new CustomizationSettingItem(_registryService, null, _logService);
-
-                        // Use reflection to set properties to avoid ambiguity
-                        typeof(CustomizationSettingItem).GetProperty("Id")?.SetValue(customizationSetting, setting.Id);
-                        typeof(CustomizationSettingItem).GetProperty("Name")?.SetValue(customizationSetting, setting.Name);
-
-
-                        typeof(CustomizationSettingItem).GetProperty("Description")?.SetValue(customizationSetting, setting.Description);
-                        typeof(CustomizationSettingItem).GetProperty("GroupName")?.SetValue(customizationSetting, setting.GroupName);
-                        typeof(CustomizationSettingItem).GetProperty("IsSelected")?.SetValue(customizationSetting, setting.IsEnabled);
-                        // Set the primary registry setting
-                        typeof(CustomizationSettingItem).GetProperty("RegistrySetting")?.SetValue(customizationSetting, setting.RegistrySettings.FirstOrDefault());
-                        typeof(CustomizationSettingItem).GetProperty("IsGroupHeader")?.SetValue(customizationSetting, false);
-                        typeof(CustomizationSettingItem).GetProperty("ControlType")?.SetValue(customizationSetting, GetControlTypeForStartMenuSetting(setting.Name));
-                        
-                        // Set up LinkedRegistrySettings if there are multiple registry settings
-                        if (setting.RegistrySettings.Count > 1)
+                        // Skip Windows 11 specific settings on Windows 10
+                        if (!_isWindows11 && setting.IsWindows11Only)
                         {
-                            var linkedSettings = new LinkedRegistrySettings
-                            {
-                                Logic = setting.LinkedSettingsLogic,
-                                Description = setting.Description
-                            };
+                            continue;
+                        }
+
+                        // Skip Windows 10 specific settings on Windows 11
+                        if (_isWindows11 && setting.IsWindows10Only)
+                        {
+                            continue;
+                        }
+
+                        // Create ApplicationSettingItem directly
+                        var settingItem = new ApplicationSettingItem(_registryService, null, _logService)
+                        {
+                            Id = setting.Id,
+                            Name = setting.Name,
+                            Description = setting.Description,
+                            ControlType = setting.ControlType,
+                            IsWindows11Only = setting.IsWindows11Only,
+                            IsWindows10Only = setting.IsWindows10Only
+                        };
+
+                        // Add any actions
+                        var actionsProperty = setting.GetType().GetProperty("Actions");
+                        if (actionsProperty != null && 
+                            actionsProperty.GetValue(setting) is IEnumerable<object> actions && 
+                            actions.Any())
+                        {
+                            // We need to handle this differently since the Actions property doesn't exist in ApplicationSetting
+                            // This is a temporary workaround until we refactor the code properly
+                        }
+
+                        // Set up the registry settings
+                        if (setting.RegistrySettings != null && setting.RegistrySettings.Count == 1)
+                        {
+                            // Single registry setting
+                            settingItem.RegistrySetting = setting.RegistrySettings[0];
+                            _logService.Log(LogLevel.Info, $"Setting up single registry setting for {setting.Name}: {setting.RegistrySettings[0].Hive}\\{setting.RegistrySettings[0].SubKey}\\{setting.RegistrySettings[0].Name}");
+                        }
+                        else if (setting.RegistrySettings != null && setting.RegistrySettings.Count > 1)
+                        {
+                            // Linked registry settings
+                            var linkedSettings = new LinkedRegistrySettings();
                             foreach (var regSetting in setting.RegistrySettings)
                             {
                                 linkedSettings.Settings.Add(regSetting);
+                                _logService.Log(LogLevel.Info, $"Adding linked registry setting for {setting.Name}: {regSetting.Hive}\\{regSetting.SubKey}\\{regSetting.Name}");
                             }
-                            typeof(CustomizationSettingItem).GetProperty("LinkedRegistrySettings")?.SetValue(customizationSetting, linkedSettings);
+                            settingItem.LinkedRegistrySettings = linkedSettings;
                         }
-                        
-                        // Handle LinkedSettings property (nested CustomizationSetting objects)
-                        if (setting.LinkedSettings.Count > 0)
+                        else
                         {
-                            _logService.Log(LogLevel.Info, $"Setting {setting.Name} has {setting.LinkedSettings.Count} linked settings");
-                            
-                            // Create a LinkedRegistrySettings object to hold all registry settings from linked settings
-                            var linkedSettings = new LinkedRegistrySettings
-                            {
-                                Logic = setting.LinkedSettingsLogic,
-                                Description = setting.Description
-                            };
-                            
-                            // Add all registry settings from all linked settings
-                            foreach (var linkedSetting in setting.LinkedSettings)
-                            {
-                                foreach (var regSetting in linkedSetting.RegistrySettings)
-                                {
-                                    linkedSettings.Settings.Add(regSetting);
-                                }
-                            }
-                            
-                            // Set the LinkedRegistrySettings property
-                            typeof(CustomizationSettingItem).GetProperty("LinkedRegistrySettings")?.SetValue(customizationSetting, linkedSettings);
+                            _logService.Log(LogLevel.Warning, $"No registry settings found for {setting.Name}");
                         }
 
-                        Settings.Add(customizationSetting);
+                        Settings.Add(settingItem);
+                    }
+
+                    // Set up property change handlers for settings
+                    foreach (var setting in Settings)
+                    {
+                        setting.PropertyChanged += (s, e) =>
+                        {
+                            if (e.PropertyName == nameof(ApplicationSettingItem.IsSelected))
+                            {
+                                UpdateIsSelectedState();
+                            }
+                        };
                     }
                 }
 
-                // Initialize actions
-                InitializeActions();
-
                 // Check setting statuses
                 await CheckSettingStatusesAsync();
-
-                await Task.CompletedTask;
-            }
-            catch (Exception ex)
-            {
-                _logService.Log(LogLevel.Error, $"Error loading Start Menu settings: {ex.Message}");
             }
             finally
             {
@@ -261,7 +254,7 @@ namespace Winhance.WPF.Features.Customize.ViewModels
             Actions.Clear();
 
             // Add Clean Start Menu action
-            Actions.Add(new CustomizationAction
+            Actions.Add(new ApplicationAction
             {
                 Id = "clean-start-menu",
                 Name = "Clean Start Menu",
@@ -284,73 +277,80 @@ namespace Winhance.WPF.Features.Customize.ViewModels
             {
                 foreach (var setting in Settings)
                 {
-                    // Use reflection to get and set properties to avoid ambiguity
-                    PropertyInfo? registrySettingProp = typeof(CustomizationSettingItem).GetProperty("RegistrySetting");
-                    var registrySetting = registrySettingProp?.GetValue(setting) as RegistrySetting;
+                    // Get status
+                    var status = await _registryService.GetSettingStatusAsync(setting.RegistrySetting);
+                    setting.Status = status;
 
-                    if (registrySetting != null)
+                    // Get current value
+                    var currentValue = await _registryService.GetCurrentValueAsync(setting.RegistrySetting);
+                    setting.CurrentValue = currentValue;
+
+                    // Set IsRegistryValueNull property based on current value
+                    setting.IsRegistryValueNull = currentValue == null;
+
+                    // Update LinkedRegistrySettingsWithValues for tooltip display
+                    var linkedRegistrySettingsWithValues = new ObservableCollection<LinkedRegistrySettingWithValue>();
+                    
+                    // Get the LinkedRegistrySettings property
+                    var linkedRegistrySettings = setting.LinkedRegistrySettings;
+                    
+                    if (linkedRegistrySettings != null && linkedRegistrySettings.Settings.Count > 0)
                     {
-                        // Get status
-                        var status = await _registryService.GetSettingStatusAsync(registrySetting);
-                        typeof(CustomizationSettingItem).GetProperty("Status")?.SetValue(setting, status);
-
-                        // Get current value
-                        var currentValue = await _registryService.GetCurrentValueAsync(registrySetting);
-                        typeof(CustomizationSettingItem).GetProperty("CurrentValue")?.SetValue(setting, currentValue);
-
-                        // Update LinkedRegistrySettingsWithValues for tooltip display
-                        var linkedRegistrySettingsWithValues = new ObservableCollection<LinkedRegistrySettingWithValue>();
-                        
-                        // Get the LinkedRegistrySettings property
-                        var linkedRegistrySettings = typeof(CustomizationSettingItem).GetProperty("LinkedRegistrySettings")?.GetValue(setting) as LinkedRegistrySettings;
-                        
-                        if (linkedRegistrySettings != null && linkedRegistrySettings.Settings.Count > 0)
+                        // For linked settings, get fresh values from registry
+                        bool anyNull = false;
+                        foreach (var regSetting in linkedRegistrySettings.Settings)
                         {
-                            // For linked settings, get fresh values from registry
-                            foreach (var regSetting in linkedRegistrySettings.Settings)
-                            {
-                                string hiveString = regSetting.Hive.ToString();
-                                if (hiveString == "LocalMachine") hiveString = "HKLM";
-                                else if (hiveString == "CurrentUser") hiveString = "HKCU";
-                                else if (hiveString == "ClassesRoot") hiveString = "HKCR";
-                                else if (hiveString == "Users") hiveString = "HKU";
-                                else if (hiveString == "CurrentConfig") hiveString = "HKCC";
+                            string hiveString = regSetting.Hive.ToString();
+                            if (hiveString == "LocalMachine") hiveString = "HKLM";
+                            else if (hiveString == "CurrentUser") hiveString = "HKCU";
+                            else if (hiveString == "ClassesRoot") hiveString = "HKCR";
+                            else if (hiveString == "Users") hiveString = "HKU";
+                            else if (hiveString == "CurrentConfig") hiveString = "HKCC";
+                            
+                            var regCurrentValue = _registryService.GetValue(
+                                $"{hiveString}\\{regSetting.SubKey}",
+                                regSetting.Name);
                                 
-                                var regCurrentValue = _registryService.GetValue(
-                                    $"{hiveString}\\{regSetting.SubKey}",
-                                    regSetting.Name);
-                                linkedRegistrySettingsWithValues.Add(new LinkedRegistrySettingWithValue(regSetting, regCurrentValue));
+                            if (regCurrentValue == null)
+                            {
+                                anyNull = true;
                             }
-                        }
-                        else if (registrySetting != null)
-                        {
-                            // For single setting
-                            linkedRegistrySettingsWithValues.Add(new LinkedRegistrySettingWithValue(registrySetting, currentValue));
+                                
+                            linkedRegistrySettingsWithValues.Add(new LinkedRegistrySettingWithValue(regSetting, regCurrentValue));
                         }
                         
-                        typeof(CustomizationSettingItem).GetProperty("LinkedRegistrySettingsWithValues")?.SetValue(setting, linkedRegistrySettingsWithValues);
+                        // For linked settings, set IsRegistryValueNull if any value is null
+                        setting.IsRegistryValueNull = anyNull;
+                    }
+                    else if (setting.RegistrySetting != null)
+                    {
+                        // For single setting
+                        linkedRegistrySettingsWithValues.Add(new LinkedRegistrySettingWithValue(setting.RegistrySetting, currentValue));
+                        // IsRegistryValueNull is already set above
+                    }
+                    
+                    setting.LinkedRegistrySettingsWithValues = linkedRegistrySettingsWithValues;
 
-                        // Set status message
-                        string statusMessage = GetStatusMessage(setting);
-                        typeof(CustomizationSettingItem).GetProperty("StatusMessage")?.SetValue(setting, statusMessage);
+                    // Set status message
+                    string statusMessage = GetStatusMessage(setting);
+                    setting.StatusMessage = statusMessage;
 
-                        // Set the IsUpdatingFromCode flag to prevent automatic application
-                        typeof(CustomizationSettingItem).GetProperty("IsUpdatingFromCode")?.SetValue(setting, true);
+                    // Set the IsUpdatingFromCode flag to prevent automatic application
+                    setting.IsUpdatingFromCode = true;
 
-                        try
-                        {
-                            // Update IsSelected based on status
-                            bool shouldBeSelected = status == RegistrySettingStatus.Applied;
+                    try
+                    {
+                        // Update IsSelected based on status
+                        bool shouldBeSelected = status == RegistrySettingStatus.Applied;
 
-                            // Set the checkbox state to match the registry state
-                            _logService.Log(LogLevel.Info, $"Setting {setting.Name} status is {status}, setting IsSelected to {shouldBeSelected}");
-                            typeof(CustomizationSettingItem).GetProperty("IsSelected")?.SetValue(setting, shouldBeSelected);
-                        }
-                        finally
-                        {
-                            // Reset the flag
-                            typeof(CustomizationSettingItem).GetProperty("IsUpdatingFromCode")?.SetValue(setting, false);
-                        }
+                        // Set the checkbox state to match the registry state
+                        _logService.Log(LogLevel.Info, $"Setting {setting.Name} status is {status}, setting IsSelected to {shouldBeSelected}");
+                        setting.IsSelected = shouldBeSelected;
+                    }
+                    finally
+                    {
+                        // Reset the flag
+                        setting.IsUpdatingFromCode = false;
                     }
                 }
             }
@@ -365,10 +365,10 @@ namespace Winhance.WPF.Features.Customize.ViewModels
         /// </summary>
         /// <param name="setting">The setting.</param>
         /// <returns>The status message.</returns>
-        private string GetStatusMessage(CustomizationSettingItem setting)
+        private string GetStatusMessage(ApplicationSettingItem setting)
         {
-            // Use reflection to get properties to avoid ambiguity
-            var status = (RegistrySettingStatus)typeof(CustomizationSettingItem).GetProperty("Status")?.GetValue(setting);
+            // Get status
+            var status = setting.Status;
             string message = status switch
             {
                 RegistrySettingStatus.Applied => "Setting is enabled (toggle is ON)",
@@ -379,14 +379,14 @@ namespace Winhance.WPF.Features.Customize.ViewModels
             };
 
             // Add current value if available
-            var currentValue = typeof(CustomizationSettingItem).GetProperty("CurrentValue")?.GetValue(setting);
+            var currentValue = setting.CurrentValue;
             if (currentValue != null)
             {
                 message += $"\nCurrent value: {currentValue}";
             }
 
             // Add enabled value if available
-            var registrySetting = typeof(CustomizationSettingItem).GetProperty("RegistrySetting")?.GetValue(setting) as RegistrySetting;
+            var registrySetting = setting.RegistrySetting;
             object? enabledValue = registrySetting?.EnabledValue ?? registrySetting?.RecommendedValue;
             if (enabledValue != null)
             {
@@ -401,266 +401,6 @@ namespace Winhance.WPF.Features.Customize.ViewModels
             }
 
             return message;
-        }
-
-        /// <summary>
-        /// Applies all selected Start Menu settings.
-        /// </summary>
-        /// <param name="progress">The progress reporter.</param>
-        /// <returns>A task representing the asynchronous operation.</returns>
-        public override async Task ApplySettingsAsync(IProgress<TaskProgressDetail> progress)
-        {
-            try
-            {
-                // Use reflection to filter settings
-                var selectedSettings = Settings.Where(s =>
-                {
-                    bool isSelected = (bool)typeof(CustomizationSettingItem).GetProperty("IsSelected")?.GetValue(s);
-                    var registrySetting = typeof(CustomizationSettingItem).GetProperty("RegistrySetting")?.GetValue(s) as RegistrySetting;
-                    var linkedRegistrySettings = typeof(CustomizationSettingItem).GetProperty("LinkedRegistrySettings")?.GetValue(s) as LinkedRegistrySettings;
-                    return isSelected && (registrySetting != null || (linkedRegistrySettings != null && linkedRegistrySettings.Settings.Count > 0));
-                }).ToList();
-
-                if (selectedSettings.Count == 0)
-                {
-                    return;
-                }
-
-                int current = 0;
-                int total = selectedSettings.Count;
-
-                foreach (var setting in selectedSettings)
-                {
-                    var name = typeof(CustomizationSettingItem).GetProperty("Name")?.GetValue(setting) as string;
-                    var registrySetting = typeof(CustomizationSettingItem).GetProperty("RegistrySetting")?.GetValue(setting) as RegistrySetting;
-                    var linkedRegistrySettings = typeof(CustomizationSettingItem).GetProperty("LinkedRegistrySettings")?.GetValue(setting) as LinkedRegistrySettings;
-
-                    if (name != null)
-                    {
-                        current++;
-                        progress?.Report(new TaskProgressDetail
-                        {
-                            StatusText = $"Applying {name}",
-                            Progress = (int)((double)current / total * 100)
-                        });
-
-                        // Apply primary registry setting if available
-                        if (registrySetting != null)
-                        {
-                            string hiveString = registrySetting.Hive.ToString();
-                            if (hiveString == "LocalMachine") hiveString = "HKLM";
-                            else if (hiveString == "CurrentUser") hiveString = "HKCU";
-                            else if (hiveString == "ClassesRoot") hiveString = "HKCR";
-                            else if (hiveString == "Users") hiveString = "HKU";
-                            else if (hiveString == "CurrentConfig") hiveString = "HKCC";
-
-                            string fullPath = $"{hiveString}\\{registrySetting.SubKey}";
-                            
-                            // Get the IsSelected property value
-                            bool isSelected = (bool)typeof(CustomizationSettingItem).GetProperty("IsSelected")?.GetValue(setting);
-                            
-                            // Use EnabledValue or DisabledValue based on IsSelected
-                            object valueToSet = isSelected
-                                ? (registrySetting.EnabledValue ?? registrySetting.RecommendedValue)
-                                : (registrySetting.DisabledValue ?? registrySetting.DefaultValue);
-                                
-                            _logService.Log(LogLevel.Info, $"Setting {fullPath}\\{registrySetting.Name} to {(isSelected ? "enabled" : "disabled")} value: {valueToSet}");
-                            
-                            _registryService.SetValue(
-                                fullPath,
-                                registrySetting.Name,
-                                valueToSet,
-                                registrySetting.ValueType);
-                        }
-
-                        // Apply linked registry settings if available
-                        if (linkedRegistrySettings != null && linkedRegistrySettings.Settings.Count > 0)
-                        {
-                            foreach (var regSetting in linkedRegistrySettings.Settings)
-                            {
-                                // Skip the primary registry setting if it's already been applied AND LinkedSettingsLogic is not All
-                                if (linkedRegistrySettings.Logic != LinkedSettingsLogic.All &&
-                                    registrySetting != null &&
-                                    regSetting.SubKey == registrySetting.SubKey &&
-                                    regSetting.Name == registrySetting.Name &&
-                                    regSetting.Hive == registrySetting.Hive)
-                                {
-                                    continue;
-                                }
-
-                                string hiveString = regSetting.Hive.ToString();
-                                if (hiveString == "LocalMachine") hiveString = "HKLM";
-                                else if (hiveString == "CurrentUser") hiveString = "HKCU";
-                                else if (hiveString == "ClassesRoot") hiveString = "HKCR";
-                                else if (hiveString == "Users") hiveString = "HKU";
-                                else if (hiveString == "CurrentConfig") hiveString = "HKCC";
-
-                                string fullPath = $"{hiveString}\\{regSetting.SubKey}";
-                                
-                                // Get the IsSelected property value
-                                bool isSelected = (bool)typeof(CustomizationSettingItem).GetProperty("IsSelected")?.GetValue(setting);
-                                
-                                // Use EnabledValue or DisabledValue based on IsSelected
-                                object valueToSet = isSelected
-                                    ? (regSetting.EnabledValue ?? regSetting.RecommendedValue)
-                                    : (regSetting.DisabledValue ?? regSetting.DefaultValue);
-                                    
-                                _logService.Log(LogLevel.Info, $"Setting linked registry value {fullPath}\\{regSetting.Name} to {(isSelected ? "enabled" : "disabled")} value: {valueToSet}");
-                                
-                                _registryService.SetValue(
-                                    fullPath,
-                                    regSetting.Name,
-                                    valueToSet,
-                                    regSetting.ValueType);
-                            }
-                        }
-                    }
-                }
-
-                // Refresh setting statuses
-                await CheckSettingStatusesAsync();
-            }
-            catch (Exception ex)
-            {
-                _logService.Log(LogLevel.Error, $"Error applying Start Menu settings: {ex.Message}");
-                throw;
-            }
-        }
-
-        /// <summary>
-        /// Restores all selected Start Menu settings to their default values.
-        /// </summary>
-        /// <param name="progress">The progress reporter.</param>
-        /// <returns>A task representing the asynchronous operation.</returns>
-        public override async Task RestoreDefaultsAsync(IProgress<TaskProgressDetail> progress)
-        {
-            try
-            {
-                // Use reflection to filter settings
-                var selectedSettings = Settings.Where(s =>
-                {
-                    bool isSelected = (bool)typeof(CustomizationSettingItem).GetProperty("IsSelected")?.GetValue(s);
-                    var registrySetting = typeof(CustomizationSettingItem).GetProperty("RegistrySetting")?.GetValue(s) as RegistrySetting;
-                    var linkedRegistrySettings = typeof(CustomizationSettingItem).GetProperty("LinkedRegistrySettings")?.GetValue(s) as LinkedRegistrySettings;
-                    return isSelected && (registrySetting != null || (linkedRegistrySettings != null && linkedRegistrySettings.Settings.Count > 0));
-                }).ToList();
-
-                if (selectedSettings.Count == 0)
-                {
-                    return;
-                }
-
-                int current = 0;
-                int total = selectedSettings.Count;
-
-                foreach (var setting in selectedSettings)
-                {
-                    var name = typeof(CustomizationSettingItem).GetProperty("Name")?.GetValue(setting) as string;
-                    var registrySetting = typeof(CustomizationSettingItem).GetProperty("RegistrySetting")?.GetValue(setting) as RegistrySetting;
-                    var linkedRegistrySettings = typeof(CustomizationSettingItem).GetProperty("LinkedRegistrySettings")?.GetValue(setting) as LinkedRegistrySettings;
-
-                    if (name != null)
-                    {
-                        current++;
-                        progress?.Report(new TaskProgressDetail
-                        {
-                            StatusText = $"Restoring {name} to default",
-                            Progress = (int)((double)current / total * 100)
-                        });
-
-                        // Restore primary registry setting if available
-                        if (registrySetting != null)
-                        {
-                            if (registrySetting.DefaultValue == null)
-                            {
-                                await _registryService.DeleteValue(
-                                    registrySetting.Hive,
-                                    registrySetting.SubKey,
-                                    registrySetting.Name);
-                            }
-                            else
-                            {
-                                string hiveString = registrySetting.Hive.ToString();
-                                if (hiveString == "LocalMachine") hiveString = "HKLM";
-                                else if (hiveString == "CurrentUser") hiveString = "HKCU";
-                                else if (hiveString == "ClassesRoot") hiveString = "HKCR";
-                                else if (hiveString == "Users") hiveString = "HKU";
-                                else if (hiveString == "CurrentConfig") hiveString = "HKCC";
-
-                                string fullPath = $"{hiveString}\\{registrySetting.SubKey}";
-                                _registryService.SetValue(
-                                    fullPath,
-                                    registrySetting.Name,
-                                    registrySetting.DefaultValue,
-                                    registrySetting.ValueType);
-                            }
-                        }
-
-                        // Restore linked registry settings if available
-                        if (linkedRegistrySettings != null && linkedRegistrySettings.Settings.Count > 0)
-                        {
-                            foreach (var regSetting in linkedRegistrySettings.Settings)
-                            {
-                                // Skip the primary registry setting if it's already been restored AND LinkedSettingsLogic is not All
-                                if (linkedRegistrySettings.Logic != LinkedSettingsLogic.All &&
-                                    registrySetting != null &&
-                                    regSetting.SubKey == registrySetting.SubKey &&
-                                    regSetting.Name == registrySetting.Name &&
-                                    regSetting.Hive == registrySetting.Hive)
-                                {
-                                    continue;
-                                }
-
-                                if (regSetting.DefaultValue == null)
-                                {
-                                    await _registryService.DeleteValue(
-                                        regSetting.Hive,
-                                        regSetting.SubKey,
-                                        regSetting.Name);
-                                }
-                                else
-                                {
-                                    string hiveString = regSetting.Hive.ToString();
-                                    if (hiveString == "LocalMachine") hiveString = "HKLM";
-                                    else if (hiveString == "CurrentUser") hiveString = "HKCU";
-                                    else if (hiveString == "ClassesRoot") hiveString = "HKCR";
-                                    else if (hiveString == "Users") hiveString = "HKU";
-                                    else if (hiveString == "CurrentConfig") hiveString = "HKCC";
-
-                                    string fullPath = $"{hiveString}\\{regSetting.SubKey}";
-                                    _registryService.SetValue(
-                                        fullPath,
-                                        regSetting.Name,
-                                        regSetting.DefaultValue,
-                                        regSetting.ValueType);
-                                }
-                            }
-                        }
-                    }
-                }
-
-                // Refresh setting statuses
-                await CheckSettingStatusesAsync();
-            }
-            catch (Exception ex)
-            {
-                _logService.Log(LogLevel.Error, $"Error restoring Start Menu settings: {ex.Message}");
-                throw;
-            }
-        }
-
-        /// <summary>
-        /// Gets the control type for a Start Menu setting.
-        /// </summary>
-        /// <param name="settingName">The Start Menu setting name.</param>
-        /// <returns>The control type for the Start Menu setting.</returns>
-        private ControlType GetControlTypeForStartMenuSetting(string settingName)
-        {
-            return settingName switch
-            {
-                "Start Menu Layout" => ControlType.ThreeStateSlider, // If there's a layout option that should be a slider
-                _ => ControlType.BinaryToggle
-            };
         }
     }
 }

@@ -1,6 +1,7 @@
 using System;
 using System.Collections.Generic;
 using System.Collections.ObjectModel;
+using System.ComponentModel;
 using System.Linq;
 using System.Threading.Tasks;
 using System.Windows.Input;
@@ -11,6 +12,8 @@ using Winhance.Core.Features.Common.Enums;
 using Winhance.Core.Features.Common.Extensions;
 using Winhance.Core.Features.Common.Interfaces;
 using Winhance.Core.Features.Common.Models;
+using Winhance.Infrastructure.Features.Common.Registry;
+using Winhance.WPF.Features.Common.Extensions;
 using Winhance.WPF.Features.Common.Models;
 
 namespace Winhance.WPF.Features.Common.ViewModels
@@ -147,8 +150,16 @@ namespace Winhance.WPF.Features.Common.ViewModels
                     bool allRemove = LinkedRegistrySettings.Settings.All(s => s.ActionType == RegistryActionType.Remove);
                     if (allRemove)
                     {
-                        Console.WriteLine($"DEBUG - IsRegistryValueNull for '{Name}': Returning false because all linked settings have ActionType = Remove");
-                        return false;
+                        // For Remove actions, we don't want to show the warning if all values are null (which means keys don't exist)
+                        bool allNull = LinkedRegistrySettingsWithValues.All(lv => lv.CurrentValue == null);
+                        if (allNull)
+                        {
+                            Console.WriteLine($"DEBUG - IsRegistryValueNull for '{Name}': Returning false because all Remove settings have null values (keys don't exist)");
+                            return false;
+                        }
+                        
+                        // If any key exists when it shouldn't, we might want to show a warning
+                        Console.WriteLine($"DEBUG - IsRegistryValueNull for '{Name}': Continuing because some Remove settings have non-null values (keys exist)");
                     }
                 }
                 
@@ -198,7 +209,7 @@ namespace Winhance.WPF.Features.Common.ViewModels
         /// Gets or sets the linked registry settings with their current values for display in tooltips.
         /// </summary>
         [ObservableProperty]
-        private ObservableCollection<LinkedRegistrySettingWithValue> _linkedRegistrySettingsWithValues = new();
+        private ObservableCollection<Winhance.WPF.Features.Common.Models.LinkedRegistrySettingWithValue> _linkedRegistrySettingsWithValues = new();
 
         /// <summary>
         /// Gets or sets the dependencies between settings.
@@ -525,18 +536,18 @@ namespace Winhance.WPF.Features.Common.ViewModels
                             foreach (var regSetting in LinkedRegistrySettings.Settings)
                             {
                                 var regCurrentValue = _registryService.GetValue(
-                                    GetRegistryHiveString(regSetting.Hive) + "\\" + regSetting.SubKey,
+                                    RegistryExtensions.GetRegistryHiveString(regSetting.Hive) + "\\" + regSetting.SubKey,
                                     regSetting.Name);
-                                LinkedRegistrySettingsWithValues.Add(new LinkedRegistrySettingWithValue(regSetting, regCurrentValue));
+                                LinkedRegistrySettingsWithValues.Add(new Winhance.WPF.Features.Common.Models.LinkedRegistrySettingWithValue(regSetting, regCurrentValue));
                             }
 
                             // Update the main current value display with the primary or first setting
                             var primarySetting = LinkedRegistrySettings.Settings.FirstOrDefault(s => s.IsPrimary) ??
-                                                LinkedRegistrySettings.Settings.FirstOrDefault();
+                                               LinkedRegistrySettings.Settings.FirstOrDefault();
                             if (primarySetting != null)
                             {
                                 var primaryValue = _registryService.GetValue(
-                                    GetRegistryHiveString(primarySetting.Hive) + "\\" + primarySetting.SubKey,
+                                    RegistryExtensions.GetRegistryHiveString(primarySetting.Hive) + "\\" + primarySetting.SubKey,
                                     primarySetting.Name);
                                 CurrentValue = primaryValue;
                             }
@@ -606,14 +617,14 @@ namespace Winhance.WPF.Features.Common.ViewModels
                     {
                         // Get the current value after special handling
                         var currentValue = _registryService.GetValue(
-                            GetRegistryHiveString(RegistrySetting.Hive) + "\\" + RegistrySetting.SubKey,
+                            RegistryExtensions.GetRegistryHiveString(RegistrySetting.Hive) + "\\" + RegistrySetting.SubKey,
                             RegistrySetting.Name);
                         
                         CurrentValue = currentValue;
                         
                         // Update the tooltip data
                         LinkedRegistrySettingsWithValues.Clear();
-                        LinkedRegistrySettingsWithValues.Add(new LinkedRegistrySettingWithValue(RegistrySetting, currentValue));
+                        LinkedRegistrySettingsWithValues.Add(new Winhance.WPF.Features.Common.Models.LinkedRegistrySettingWithValue(RegistrySetting, currentValue));
                     }
                     
                     return;
@@ -622,7 +633,7 @@ namespace Winhance.WPF.Features.Common.ViewModels
                 {
                     // Apply the registry change normally
                     var result = _registryService.SetValue(
-                        GetRegistryHiveString(RegistrySetting.Hive) + "\\" + RegistrySetting.SubKey,
+                        RegistryExtensions.GetRegistryHiveString(RegistrySetting.Hive) + "\\" + RegistrySetting.SubKey,
                         RegistrySetting.Name,
                         valueObject,
                         RegistrySetting.ValueType);
@@ -651,22 +662,22 @@ namespace Winhance.WPF.Features.Common.ViewModels
                                         regSetting.Name == RegistrySetting.Name &&
                                         regSetting.Hive == RegistrySetting.Hive)
                                     {
-                                        LinkedRegistrySettingsWithValues.Add(new LinkedRegistrySettingWithValue(regSetting, valueObject));
+                                        LinkedRegistrySettingsWithValues.Add(new Winhance.WPF.Features.Common.Models.LinkedRegistrySettingWithValue(regSetting, valueObject));
                                     }
                                     else
                                     {
                                         // For other linked settings, get the current value from registry
                                         var regCurrentValue = _registryService.GetValue(
-                                            GetRegistryHiveString(regSetting.Hive) + "\\" + regSetting.SubKey,
+                                            RegistryExtensions.GetRegistryHiveString(regSetting.Hive) + "\\" + regSetting.SubKey,
                                             regSetting.Name);
-                                        LinkedRegistrySettingsWithValues.Add(new LinkedRegistrySettingWithValue(regSetting, regCurrentValue));
+                                        LinkedRegistrySettingsWithValues.Add(new Winhance.WPF.Features.Common.Models.LinkedRegistrySettingWithValue(regSetting, regCurrentValue));
                                     }
                                 }
                             }
                             else if (RegistrySetting != null)
                             {
                                 // For single setting
-                                LinkedRegistrySettingsWithValues.Add(new LinkedRegistrySettingWithValue(RegistrySetting, valueObject));
+                                LinkedRegistrySettingsWithValues.Add(new Winhance.WPF.Features.Common.Models.LinkedRegistrySettingWithValue(RegistrySetting, valueObject));
                             }
                         }
 
@@ -711,24 +722,6 @@ namespace Winhance.WPF.Features.Common.ViewModels
             {
                 IsApplying = false;
             }
-        }
-
-        /// <summary>
-        /// Converts a RegistryHive enum to its string representation (HKCU, HKLM, etc.)
-        /// </summary>
-        /// <param name="hive">The registry hive.</param>
-        /// <returns>The string representation of the registry hive.</returns>
-        protected string GetRegistryHiveString(RegistryHive hive)
-        {
-            return hive switch
-            {
-                RegistryHive.ClassesRoot => "HKCR",
-                RegistryHive.CurrentUser => "HKCU",
-                RegistryHive.LocalMachine => "HKLM",
-                RegistryHive.Users => "HKU",
-                RegistryHive.CurrentConfig => "HKCC",
-                _ => throw new ArgumentException($"Unsupported registry hive: {hive}")
-            };
         }
 
         /// <summary>

@@ -11,6 +11,11 @@
     <ApplicationIcon>Resources\AppIcons\winhance-rocket.ico</ApplicationIcon>
     <!-- Force icon refresh -->
     <Win32Resource></Win32Resource>
+    <!-- Version information -->
+    <Version>25.05.05</Version>
+    <FileVersion>25.05.05</FileVersion>
+    <AssemblyVersion>25.05.05</AssemblyVersion>
+    <InformationalVersion>v25.05.05</InformationalVersion>
   </PropertyGroup>
 
   <!-- Theme files are now included by default -->
@@ -52,3 +57,6 @@
     <PackageReference Include="System.Text.Json" Version="9.0.2" />
   </ItemGroup>
 </Project>
+
+
+

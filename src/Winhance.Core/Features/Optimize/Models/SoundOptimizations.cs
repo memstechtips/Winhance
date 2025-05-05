@@ -1,7 +1,7 @@
+using System.Collections.Generic;
 using Microsoft.Win32;
 using Winhance.Core.Features.Common.Enums;
 using Winhance.Core.Features.Common.Models;
-using System.Collections.Generic;
 
 namespace Winhance.Core.Features.Optimize.Models;
 
@@ -11,7 +11,7 @@ public static class SoundOptimizations
     {
         return new OptimizationGroup
         {
-                    Name = "Sound",
+            Name = "Sound",
             Category = OptimizationCategory.Sound,
             Settings = new List<OptimizationSetting>
             {
@@ -23,37 +23,43 @@ public static class SoundOptimizations
                     Category = OptimizationCategory.Sound,
                     GroupName = "System Sounds",
                     IsEnabled = false,
+                    ControlType = ControlType.BinaryToggle,
                     RegistrySettings = new List<RegistrySetting>
                     {
                         new RegistrySetting
                         {
                             Category = "Sound",
                             Hive = RegistryHive.LocalMachine,
-                            SubKey = "Software\\Microsoft\\Windows\\CurrentVersion\\Authentication\\LogonUI\\BootAnimation",
+                            SubKey =
+                                "Software\\Microsoft\\Windows\\CurrentVersion\\Authentication\\LogonUI\\BootAnimation",
                             Name = "DisableStartupSound",
-                            RecommendedValue = 1,  // For backward compatibility
-                            EnabledValue = 0,      // When toggle is ON, startup sound is enabled
-                            DisabledValue = 1,     // When toggle is OFF, startup sound is disabled
+                            RecommendedValue = 1, // For backward compatibility
+                            EnabledValue = 0, // When toggle is ON, startup sound is enabled
+                            DisabledValue = 1, // When toggle is OFF, startup sound is disabled
                             ValueType = RegistryValueKind.DWord,
-                            DefaultValue = null,   // For backward compatibility
+                            DefaultValue = 0, // Default value when registry key exists but no value is set
                             Description = "Controls the startup sound during boot",
-                            IsPrimary = true
+                            IsPrimary = true,
+                            AbsenceMeansEnabled = false,
                         },
                         new RegistrySetting
                         {
                             Category = "Sound",
                             Hive = RegistryHive.LocalMachine,
-                            SubKey = "Software\\Microsoft\\Windows\\CurrentVersion\\EditionOverrides",
+                            SubKey =
+                                "Software\\Microsoft\\Windows\\CurrentVersion\\EditionOverrides",
                             Name = "UserSetting_DisableStartupSound",
-                            RecommendedValue = 1,  // For backward compatibility
-                            EnabledValue = 0,      // When toggle is ON, user startup sound is enabled
-                            DisabledValue = 1,     // When toggle is OFF, user startup sound is disabled
+                            RecommendedValue = 1, // For backward compatibility
+                            EnabledValue = 0, // When toggle is ON, user startup sound is enabled
+                            DisabledValue = 1, // When toggle is OFF, user startup sound is disabled
                             ValueType = RegistryValueKind.DWord,
-                            DefaultValue = null,   // For backward compatibility
-                            Description = "Controls the startup sound for the user"
-                        }
+                            DefaultValue = 0, // Default value when registry key exists but no value is set
+                            Description = "Controls the startup sound for the user",
+                            IsPrimary = false,
+                            AbsenceMeansEnabled = false,
+                        },
                     },
-                    LinkedSettingsLogic = LinkedSettingsLogic.All
+                    LinkedSettingsLogic = LinkedSettingsLogic.All,
                 },
                 new OptimizationSetting
                 {
@@ -63,22 +69,25 @@ public static class SoundOptimizations
                     Category = OptimizationCategory.Sound,
                     GroupName = "System Sounds",
                     IsEnabled = false,
+                    ControlType = ControlType.BinaryToggle,
                     RegistrySettings = new List<RegistrySetting>
                     {
                         new RegistrySetting
-                    {
-                        Category = "Sound",
-                        Hive = RegistryHive.CurrentUser,
-                        SubKey = "Software\\Microsoft\\Multimedia\\Audio",
-                    Name = "UserDuckingPreference",
-                        RecommendedValue = 3,  // For backward compatibility
-                        EnabledValue = 1,      // When toggle is ON, sound ducking is enabled (1 = reduce other sounds by 80%)
-                        DisabledValue = 3,     // When toggle is OFF, sound ducking is disabled (3 = do nothing)
-                        ValueType = RegistryValueKind.DWord,
-                        DefaultValue = null,   // For backward compatibility
-                        Description = "Controls sound communications behavior"
-                        }
-                    }
+                        {
+                            Category = "Sound",
+                            Hive = RegistryHive.CurrentUser,
+                            SubKey = "Software\\Microsoft\\Multimedia\\Audio",
+                            Name = "UserDuckingPreference",
+                            RecommendedValue = 3, // For backward compatibility
+                            EnabledValue = 1, // When toggle is ON, sound ducking is enabled (1 = reduce other sounds by 80%)
+                            DisabledValue = 3, // When toggle is OFF, sound ducking is disabled (3 = do nothing)
+                            ValueType = RegistryValueKind.DWord,
+                            DefaultValue = 3, // Default value when registry key exists but no value is set
+                            Description = "Controls sound communications behavior",
+                            IsPrimary = true,
+                            AbsenceMeansEnabled = true,
+                        },
+                    },
                 },
                 new OptimizationSetting
                 {
@@ -88,22 +97,26 @@ public static class SoundOptimizations
                     Category = OptimizationCategory.Sound,
                     GroupName = "System Sounds",
                     IsEnabled = false,
+                    ControlType = ControlType.BinaryToggle,
                     RegistrySettings = new List<RegistrySetting>
                     {
                         new RegistrySetting
-                    {
-                        Category = "Sound",
-                        Hive = RegistryHive.LocalMachine,
-                        SubKey = "Software\\Microsoft\\Windows\\CurrentVersion\\SpeechOneCore\\Settings",
-                    Name = "AgentActivationEnabled",
-                        RecommendedValue = 0,  // For backward compatibility
-                        EnabledValue = 1,      // When toggle is ON, voice activation is enabled
-                        DisabledValue = 0,     // When toggle is OFF, voice activation is disabled
-                        ValueType = RegistryValueKind.DWord,
-                        DefaultValue = null,   // For backward compatibility
-                        Description = "Controls voice activation for all apps"
-                        }
-                    }
+                        {
+                            Category = "Sound",
+                            Hive = RegistryHive.LocalMachine,
+                            SubKey =
+                                "Software\\Microsoft\\Windows\\CurrentVersion\\SpeechOneCore\\Settings",
+                            Name = "AgentActivationEnabled",
+                            RecommendedValue = 0, // For backward compatibility
+                            EnabledValue = 1, // When toggle is ON, voice activation is enabled
+                            DisabledValue = 0, // When toggle is OFF, voice activation is disabled
+                            ValueType = RegistryValueKind.DWord,
+                            DefaultValue = 0, // Default value when registry key exists but no value is set
+                            Description = "Controls voice activation for all apps",
+                            IsPrimary = true,
+                            AbsenceMeansEnabled = true,
+                        },
+                    },
                 },
                 new OptimizationSetting
                 {
@@ -113,22 +126,26 @@ public static class SoundOptimizations
                     Category = OptimizationCategory.Sound,
                     GroupName = "System Sounds",
                     IsEnabled = false,
+                    ControlType = ControlType.BinaryToggle,
                     RegistrySettings = new List<RegistrySetting>
                     {
                         new RegistrySetting
-                    {
-                        Category = "Sound",
-                        Hive = RegistryHive.LocalMachine,
-                        SubKey = "Software\\Microsoft\\Windows\\CurrentVersion\\SpeechOneCore\\Settings",
-                    Name = "AgentActivationLastUsed",
-                        RecommendedValue = 0,  // For backward compatibility
-                        EnabledValue = 1,      // When toggle is ON, last used voice activation is enabled
-                        DisabledValue = 0,     // When toggle is OFF, last used voice activation is disabled
-                        ValueType = RegistryValueKind.DWord,
-                        DefaultValue = null,   // For backward compatibility
-                        Description = "Controls the last used voice activation setting"
-                        }
-                    }
+                        {
+                            Category = "Sound",
+                            Hive = RegistryHive.LocalMachine,
+                            SubKey =
+                                "Software\\Microsoft\\Windows\\CurrentVersion\\SpeechOneCore\\Settings",
+                            Name = "AgentActivationLastUsed",
+                            RecommendedValue = 0, // For backward compatibility
+                            EnabledValue = 1, // When toggle is ON, last used voice activation is enabled
+                            DisabledValue = 0, // When toggle is OFF, last used voice activation is disabled
+                            ValueType = RegistryValueKind.DWord,
+                            DefaultValue = 0, // Default value when registry key exists but no value is set
+                            Description = "Controls the last used voice activation setting",
+                            IsPrimary = true,
+                            AbsenceMeansEnabled = true,
+                        },
+                    },
                 },
                 new OptimizationSetting
                 {
@@ -138,6 +155,7 @@ public static class SoundOptimizations
                     Category = OptimizationCategory.Sound,
                     GroupName = "Audio Enhancements",
                     IsEnabled = false,
+                    ControlType = ControlType.BinaryToggle,
                     RegistrySettings = new List<RegistrySetting>
                     {
                         new RegistrySetting
@@ -146,14 +164,16 @@ public static class SoundOptimizations
                             Hive = RegistryHive.CurrentUser,
                             SubKey = "Software\\Microsoft\\Multimedia\\Audio\\DeviceFx",
                             Name = "EnableDeviceEffects",
-                            RecommendedValue = 0,  // For backward compatibility
-                            EnabledValue = 1,      // When toggle is ON, audio enhancements are enabled
-                            DisabledValue = 0,     // When toggle is OFF, audio enhancements are disabled
+                            RecommendedValue = 0, // For backward compatibility
+                            EnabledValue = 1, // When toggle is ON, audio enhancements are enabled
+                            DisabledValue = 0, // When toggle is OFF, audio enhancements are disabled
                             ValueType = RegistryValueKind.DWord,
-                            DefaultValue = null,   // For backward compatibility
-                            Description = "Controls audio enhancements for playback devices"
-                        }
-                    }
+                            DefaultValue = 1, // Default value when registry key exists but no value is set
+                            Description = "Controls audio enhancements for playback devices",
+                            IsPrimary = true,
+                            AbsenceMeansEnabled = true,
+                        },
+                    },
                 },
                 new OptimizationSetting
                 {
@@ -163,6 +183,7 @@ public static class SoundOptimizations
                     Category = OptimizationCategory.Sound,
                     GroupName = "Audio Enhancements",
                     IsEnabled = false,
+                    ControlType = ControlType.BinaryToggle,
                     RegistrySettings = new List<RegistrySetting>
                     {
                         new RegistrySetting
@@ -171,16 +192,18 @@ public static class SoundOptimizations
                             Hive = RegistryHive.CurrentUser,
                             SubKey = "Software\\Microsoft\\Windows\\CurrentVersion\\Audio",
                             Name = "EnableSpatialSound",
-                            RecommendedValue = 0,  // For backward compatibility
-                            EnabledValue = 1,      // When toggle is ON, spatial sound is enabled
-                            DisabledValue = 0,     // When toggle is OFF, spatial sound is disabled
+                            RecommendedValue = 0, // For backward compatibility
+                            EnabledValue = 1, // When toggle is ON, spatial sound is enabled
+                            DisabledValue = 0, // When toggle is OFF, spatial sound is disabled
                             ValueType = RegistryValueKind.DWord,
-                            DefaultValue = null,   // For backward compatibility
-                            Description = "Controls Windows Sonic and spatial sound features"
-                        }
-                    }
-                }
-            }
+                            DefaultValue = 1, // Default value when registry key exists but no value is set
+                            Description = "Controls Windows Sonic and spatial sound features",
+                            IsPrimary = true,
+                            AbsenceMeansEnabled = true,
+                        },
+                    },
+                },
+            },
         };
     }
 }

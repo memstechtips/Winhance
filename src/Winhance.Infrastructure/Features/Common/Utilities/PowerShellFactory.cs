@@ -42,14 +42,37 @@ namespace Winhance.Infrastructure.Features.Common.Utilities
                 
                 // Windows 10 has major version 10 and build number less than 22000
                 // Windows 11 has build number 22000 or higher
-                return osVersion.Platform == PlatformID.Win32NT &&
+                bool isWin10ByVersion = osVersion.Platform == PlatformID.Win32NT &&
                        osVersion.Version.Major == 10 &&
                        osVersion.Version.Build < 22000;
+                
+                // Additional check using ProductName which is more reliable
+                bool isWin10ByProductName = false;
+                try
+                {
+                    // Check the product name from registry
+                    using (var key = Microsoft.Win32.Registry.LocalMachine.OpenSubKey(@"SOFTWARE\Microsoft\Windows NT\CurrentVersion"))
+                    {
+                        if (key != null)
+                        {
+                            var productName = key.GetValue("ProductName") as string;
+                            isWin10ByProductName = productName != null && productName.Contains("Windows 10");
+                        }
+                    }
+                }
+                catch
+                {
+                    // If registry check fails, rely on version check only
+                }
+                
+                // Return true if either method indicates Windows 10
+                return isWin10ByVersion || isWin10ByProductName;
             }
             catch
             {
-                // If there's any error, assume it's not Windows 10 to use the default behavior
-                return false;
+                // If there's any error, assume it's Windows 10 to ensure compatibility
+                // This is safer than assuming it's not Windows 10
+                return true;
             }
         }
         
@@ -83,16 +106,16 @@ namespace Winhance.Infrastructure.Features.Common.Utilities
                     
                     // On Windows 10, immediately set up direct execution for Appx commands
                     // This avoids WinRM connection issues and ensures compatibility
-                    powerShell.AddScript(@"
-                        function Invoke-WindowsPowerShell {
+                    powerShell.AddScript($@"
+                        function Invoke-WindowsPowerShell {{
                             param(
                                 [Parameter(Mandatory=$true)]
                                 [string]$Command
                             )
                             
-                            try {
+                            try {{
                                 $psi = New-Object System.Diagnostics.ProcessStartInfo
-                                $psi.FileName = 'C:\Windows\System32\WindowsPowerShell\v1.0\powershell.exe'
+                                $psi.FileName = '{WindowsPowerShellPath}'
                                 $psi.Arguments = ""-NoProfile -ExecutionPolicy Bypass -Command `""$Command`""""
                                 $psi.RedirectStandardOutput = $true
                                 $psi.RedirectStandardError = $true
@@ -107,19 +130,19 @@ namespace Winhance.Infrastructure.Features.Common.Utilities
                                 $error = $process.StandardError.ReadToEnd()
                                 $process.WaitForExit()
                                 
-                                if ($error) {
+                                if ($error) {{
                                     Write-Warning ""Windows PowerShell error: $error""
-                                }
+                                }}
                                 
                                 return $output
-                            } catch {
+                            }} catch {{
                                 Write-Warning ""Error invoking Windows PowerShell: $_""
                                 return $null
-                            }
-                        }
+                            }}
+                        }}
                         
                         # Override Get-AppxPackage to use Windows PowerShell directly
-                        function Get-AppxPackage {
+                        function Get-AppxPackage {{
                             param(
                                 [Parameter(Position=0)]
                                 [string]$Name = '*'
@@ -127,20 +150,20 @@ namespace Winhance.Infrastructure.Features.Common.Utilities
                             
                             Write-Output ""Using direct Windows PowerShell execution for Get-AppxPackage""
                             $result = Invoke-WindowsPowerShell ""Get-AppxPackage -Name '$Name' | ConvertTo-Json -Depth 5 -Compress""
-                            if ($result) {
-                                try {
+                            if ($result) {{
+                                try {{
                                     $packages = $result | ConvertFrom-Json -ErrorAction SilentlyContinue
                                     return $packages
-                                } catch {
+                                }} catch {{
                                     Write-Warning ""Error parsing AppX package results: $_""
                                     return $null
-                                }
-                            }
+                                }}
+                            }}
                             return $null
-                        }
+                        }}
                         
                         # Override Remove-AppxPackage to use Windows PowerShell directly
-                        function Remove-AppxPackage {
+                        function Remove-AppxPackage {{
                             param(
                                 [Parameter(Mandatory=$true)]
                                 [string]$Package
@@ -149,10 +172,10 @@ namespace Winhance.Infrastructure.Features.Common.Utilities
                             Write-Output ""Using direct Windows PowerShell execution for Remove-AppxPackage""
                             $result = Invoke-WindowsPowerShell ""Remove-AppxPackage -Package '$Package'""
                             return $result
-                        }
+                        }}
                         
                         # Override Get-AppxProvisionedPackage to use Windows PowerShell directly
-                        function Get-AppxProvisionedPackage {
+                        function Get-AppxProvisionedPackage {{
                             param(
                                 [Parameter(Mandatory=$true)]
                                 [switch]$Online
@@ -160,20 +183,20 @@ namespace Winhance.Infrastructure.Features.Common.Utilities
                             
                             Write-Output ""Using direct Windows PowerShell execution for Get-AppxProvisionedPackage""
                             $result = Invoke-WindowsPowerShell ""Get-AppxProvisionedPackage -Online | ConvertTo-Json -Depth 5 -Compress""
-                            if ($result) {
-                                try {
+                            if ($result) {{
+                                try {{
                                     $packages = $result | ConvertFrom-Json -ErrorAction SilentlyContinue
                                     return $packages
-                                } catch {
+                                }} catch {{
                                     Write-Warning ""Error parsing provisioned package results: $_""
                                     return $null
-                                }
-                            }
+                                }}
+                            }}
                             return $null
-                        }
+                        }}
                         
                         # Override Remove-AppxProvisionedPackage to use Windows PowerShell directly
-                        function Remove-AppxProvisionedPackage {
+                        function Remove-AppxProvisionedPackage {{
                             param(
                                 [Parameter(Mandatory=$true)]
                                 [switch]$Online,
@@ -185,7 +208,7 @@ namespace Winhance.Infrastructure.Features.Common.Utilities
                             Write-Output ""Using direct Windows PowerShell execution for Remove-AppxProvisionedPackage""
                             $result = Invoke-WindowsPowerShell ""Remove-AppxProvisionedPackage -Online -PackageName '$PackageName'""
                             return $result
-                        }
+                        }}
                         
                         Write-Output ""Configured Windows PowerShell direct execution for Appx commands""
                     ");
@@ -219,7 +242,7 @@ namespace Winhance.Infrastructure.Features.Common.Utilities
                     
                     # Only try to import Appx module on non-Windows 10 systems
                     # On Windows 10, we're using direct execution instead
-                    if (-not $($PSVersionTable.OS -like '*10.0*' -and $PSVersionTable.OS -notlike '*2200*')) {
+                    if (-not $($PSVersionTable.OS -like '*10.0*' -or $env:OS -like '*Windows_NT*10.0*')) {
                         try {
                             Import-Module Appx -ErrorAction SilentlyContinue
                         } catch {
@@ -261,6 +284,19 @@ namespace Winhance.Infrastructure.Features.Common.Utilities
         {
             // Use the same Windows 10 compatibility approach as CreateWindowsPowerShell
             return CreateWindowsPowerShell();
+        }
+        
+        /// <summary>
+        /// Creates a PowerShell instance for executing Appx-related commands.
+        /// This method always uses Windows PowerShell 5.1 on Windows 10 for compatibility.
+        /// </summary>
+        /// <param name="logService">Optional log service for diagnostic information.</param>
+        /// <param name="systemServices">Optional system services for OS detection.</param>
+        /// <returns>A PowerShell instance configured for Appx commands.</returns>
+        public static PowerShell CreateForAppxCommands(ILogService logService = null, ISystemServices systemServices = null)
+        {
+            // Always use Windows PowerShell for Appx commands on Windows 10
+            return CreateWindowsPowerShell(logService, systemServices);
         }
     }
 }

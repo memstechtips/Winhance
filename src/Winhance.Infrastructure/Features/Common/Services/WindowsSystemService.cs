@@ -385,21 +385,25 @@ namespace Winhance.Infrastructure.Features.Common.Services
             }
         }
 
-        public async Task<bool> RefreshWindowsGUI(bool killExplorer = false)
+        public async Task<bool> RefreshWindowsGUI(bool killExplorer)
         {
             try
             {
+                _logService.Log(LogLevel.Info, $"Refreshing Windows GUI (killExplorer: {killExplorer})");
+                
+                // Define Windows message constants
                 const int HWND_BROADCAST = 0xffff;
-                const int WM_SETTINGCHANGE = 0x001A;
-                const int WM_SYSCOLORCHANGE = 0x0015;
-                const int WM_THEMECHANGE = 0x031A;
-
+                const uint WM_SYSCOLORCHANGE = 0x0015;
+                const uint WM_SETTINGCHANGE = 0x001A;
+                const uint WM_THEMECHANGE = 0x031A;
+                
+                // Import Windows API functions
                 [DllImport("user32.dll", CharSet = CharSet.Auto)]
                 static extern IntPtr SendMessage(IntPtr hWnd, uint Msg, IntPtr wParam, IntPtr lParam);
-
-                [DllImport("user32.dll", CharSet = CharSet.Auto)]
+                
+                [DllImport("user32.dll", CharSet = CharSet.Auto, SetLastError = true)]
                 static extern IntPtr SendMessageTimeout(IntPtr hWnd, uint Msg, IntPtr wParam, IntPtr lParam, 
-                                                      uint fuFlags, uint uTimeout, out IntPtr lpdwResult);
+                                                       uint fuFlags, uint uTimeout, out IntPtr lpdwResult);
 
                 SendMessage((IntPtr)HWND_BROADCAST, WM_SYSCOLORCHANGE, IntPtr.Zero, IntPtr.Zero);
                 SendMessage((IntPtr)HWND_BROADCAST, WM_THEMECHANGE, IntPtr.Zero, IntPtr.Zero);
@@ -430,7 +434,48 @@ namespace Winhance.Infrastructure.Features.Common.Services
                         }
                         
                         _logService.Log(LogLevel.Info, "Waiting for Windows to automatically restart Explorer");
-                        await Task.Delay(2000);
+                        
+                        // Wait for Explorer to be terminated completely
+                        await Task.Delay(1000);
+                        
+                        // Check if Explorer has restarted automatically
+                        int retryCount = 0;
+                        const int maxRetries = 5;
+                        bool explorerRestarted = false;
+                        
+                        while (retryCount < maxRetries && !explorerRestarted)
+                        {
+                            if (Process.GetProcessesByName("explorer").Length > 0)
+                            {
+                                explorerRestarted = true;
+                                _logService.Log(LogLevel.Info, "Explorer process restarted automatically");
+                            }
+                            else
+                            {
+                                _logService.Log(LogLevel.Warning, $"Explorer not restarted yet, waiting... (Attempt {retryCount + 1}/{maxRetries})");
+                                retryCount++;
+                                await Task.Delay(1000);
+                            }
+                        }
+                        
+                        // If Explorer didn't restart automatically, start it manually
+                        if (!explorerRestarted)
+                        {
+                            _logService.Log(LogLevel.Warning, "Explorer did not restart automatically, starting it manually");
+                            try
+                            {
+                                Process.Start("explorer.exe");
+                                _logService.Log(LogLevel.Info, "Explorer process started manually");
+                                
+                                // Wait for Explorer to initialize
+                                await Task.Delay(2000);
+                            }
+                            catch (Exception ex)
+                            {
+                                _logService.Log(LogLevel.Error, $"Failed to start Explorer manually: {ex.Message}");
+                                return false;
+                            }
+                        }
                     }
                 }
                 else
@@ -445,7 +490,7 @@ namespace Winhance.Infrastructure.Features.Common.Services
                 {
                     IntPtr result;
                     SendMessageTimeout((IntPtr)HWND_BROADCAST, WM_SETTINGCHANGE, IntPtr.Zero, themeChangedPtr, 
-                                      0x0000, 1000, out result);
+                                       0x0000, 1000, out result);
                     
                     SendMessage((IntPtr)HWND_BROADCAST, WM_SETTINGCHANGE, IntPtr.Zero, IntPtr.Zero);
                 }
@@ -466,7 +511,7 @@ namespace Winhance.Infrastructure.Features.Common.Services
 
         public Task<bool> RefreshWindowsGUI()
         {
-            return RefreshWindowsGUI(false);
+            return RefreshWindowsGUI(true);
         }
 
         private async Task RunCommand(string command, string arguments)

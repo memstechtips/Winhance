@@ -1,4 +1,4 @@
-﻿﻿using System;
+using System;
 using System.IO;
 using System.Threading.Tasks;
 using System.Windows;
@@ -272,6 +272,9 @@ namespace Winhance.WPF
                 loadingWindow = null;
                 LogStartupError("Loading window closed");
 
+                // Check for updates
+                await CheckForUpdatesAsync(mainWindow);
+
                 LogStartupError("Calling base.OnStartup");
                 base.OnStartup(e);
                 LogStartupError("OnStartup method completed successfully");
@@ -293,6 +296,62 @@ namespace Winhance.WPF
                 }
 
                 Current.Shutdown();
+            }
+        }
+
+        private async Task CheckForUpdatesAsync(Window ownerWindow)
+        {
+            try
+            {
+                LogStartupError("Checking for updates...");
+                var versionService = _host.Services.GetRequiredService<IVersionService>();
+                var latestVersion = await versionService.CheckForUpdateAsync();
+
+                if (latestVersion.IsUpdateAvailable)
+                {
+                    LogStartupError($"Update available: {latestVersion.Version}");
+                    
+                    // Get current version
+                    var currentVersion = versionService.GetCurrentVersion();
+                    
+                    // Show the styled update dialog
+                    string message = "Good News! A New Version of Winhance is available.";
+                    
+                    // Create a download and install action
+                    Func<Task> downloadAndInstallAction = async () =>
+                    {
+                        await versionService.DownloadAndInstallUpdateAsync();
+                        
+                        // Close the application without showing a message
+                        System.Windows.Application.Current.Shutdown();
+                    };
+                    
+                    // Show the update dialog
+                    bool installNow = await UpdateDialog.ShowAsync(
+                        "Update Available",
+                        message,
+                        currentVersion,
+                        latestVersion,
+                        downloadAndInstallAction);
+                        
+                    if (installNow)
+                    {
+                        LogStartupError("User chose to download and install the update");
+                    }
+                    else
+                    {
+                        LogStartupError("User chose to be reminded later");
+                    }
+                }
+                else
+                {
+                    LogStartupError("No updates available");
+                }
+            }
+            catch (Exception ex)
+            {
+                LogStartupError($"Error checking for updates: {ex.Message}", ex);
+                // Don't show error to user, just log it
             }
         }
 
@@ -432,7 +491,17 @@ namespace Winhance.WPF
                     Winhance.Infrastructure.Features.Optimize.Services.PowerPlanService>();
 
                 // Register the installation and removal services
-                services.AddSingleton<IAppInstallationService, AppInstallationService>();
+                // Register WinGet installation service
+                services.AddSingleton<IWinGetInstallationService, WinGetInstallationService>();
+                
+                // Register the main installation service
+                services.AddSingleton<IAppInstallationService>(provider => new AppInstallationService(
+                    provider.GetRequiredService<ILogService>(),
+                    provider.GetRequiredService<IPowerShellExecutionService>(),
+                    provider.GetRequiredService<IScriptUpdateService>(),
+                    provider.GetRequiredService<ISystemServices>(),
+                    provider.GetRequiredService<IWinGetInstallationService>()
+                ));
                 services.AddSingleton<IAppRemovalService>(provider => new AppRemovalService(
                     provider.GetRequiredService<ILogService>(),
                     provider.GetRequiredService<ISpecialAppHandlerService>(),
@@ -480,7 +549,8 @@ namespace Winhance.WPF
                 services.AddSingleton<IThemeService>(provider => new ThemeService(
                     provider.GetRequiredService<IRegistryService>(),
                     provider.GetRequiredService<ILogService>(),
-                    provider.GetRequiredService<IWallpaperService>()
+                    provider.GetRequiredService<IWallpaperService>(),
+                    provider.GetRequiredService<ISystemServices>()
                 ));
 
                 services.AddSingleton<Core.Features.Common.Interfaces.IDialogService, Features.Common.Services.DialogService>();
@@ -585,13 +655,17 @@ namespace Winhance.WPF
                 services.AddSingleton<GamingandPerformanceOptimizationsViewModel>(provider => new GamingandPerformanceOptimizationsViewModel(
                     provider.GetRequiredService<ITaskProgressService>(),
                     provider.GetRequiredService<IRegistryService>(),
-                    provider.GetRequiredService<ILogService>()
+                    provider.GetRequiredService<ILogService>(),
+                    provider.GetRequiredService<IViewModelLocator>(),
+                    provider.GetRequiredService<ISettingsRegistry>()
                 ));
 
                 services.AddSingleton<UpdateOptimizationsViewModel>(provider => new UpdateOptimizationsViewModel(
                     provider.GetRequiredService<ITaskProgressService>(),
                     provider.GetRequiredService<IRegistryService>(),
-                    provider.GetRequiredService<ILogService>()
+                    provider.GetRequiredService<ILogService>(),
+                    provider.GetRequiredService<IViewModelLocator>(),
+                    provider.GetRequiredService<ISettingsRegistry>()
                 ));
 
                 services.AddSingleton<PowerOptimizationsViewModel>(provider => new PowerOptimizationsViewModel(
@@ -641,26 +715,30 @@ namespace Winhance.WPF
                 services.AddSingleton<ExplorerCustomizationsViewModel>(provider => new ExplorerCustomizationsViewModel(
                     provider.GetRequiredService<ITaskProgressService>(),
                     provider.GetRequiredService<IRegistryService>(),
-                    provider.GetRequiredService<ILogService>()
+                    provider.GetRequiredService<ILogService>(),
+                    provider.GetRequiredService<Core.Features.Common.Interfaces.IDialogService>()
                 ));
 
                 services.AddSingleton<ExplorerOptimizationsViewModel>(provider => new ExplorerOptimizationsViewModel(
                     provider.GetRequiredService<ITaskProgressService>(),
                     provider.GetRequiredService<IRegistryService>(),
-                    provider.GetRequiredService<ILogService>()
+                    provider.GetRequiredService<ILogService>(),
+                    provider.GetRequiredService<IDependencyManager>()
                 ));
 
                 services.AddSingleton<NotificationOptimizationsViewModel>(provider => new NotificationOptimizationsViewModel(
                     provider.GetRequiredService<ITaskProgressService>(),
                     provider.GetRequiredService<IRegistryService>(),
                     provider.GetRequiredService<ILogService>(),
-                    provider.GetRequiredService<Core.Features.Common.Interfaces.IDialogService>()
+                    provider.GetRequiredService<Core.Features.Common.Interfaces.IDialogService>(),
+                    provider.GetRequiredService<IDependencyManager>()
                 ));
 
                 services.AddSingleton<SoundOptimizationsViewModel>(provider => new SoundOptimizationsViewModel(
                     provider.GetRequiredService<ITaskProgressService>(),
                     provider.GetRequiredService<IRegistryService>(),
-                    provider.GetRequiredService<ILogService>()
+                    provider.GetRequiredService<ILogService>(),
+                    provider.GetRequiredService<IDependencyManager>()
                 ));
 
                 services.AddSingleton<WindowsThemeCustomizationsViewModel>(provider => new WindowsThemeCustomizationsViewModel(
@@ -697,7 +775,8 @@ namespace Winhance.WPF
                     provider.GetRequiredService<IThemeManager>(),
                     provider,
                     provider.GetRequiredService<Core.Features.Common.Interfaces.IMessengerService>(),
-                    provider.GetRequiredService<Core.Features.Common.Interfaces.INavigationService>()
+                    provider.GetRequiredService<Core.Features.Common.Interfaces.INavigationService>(),
+                    provider.GetRequiredService<Features.Common.Services.UserPreferencesService>()
                 ));
 
                 services.AddTransient<WindowsAppsView>();
@@ -716,6 +795,10 @@ namespace Winhance.WPF
                 services.AddTransient<Features.Optimize.Views.SoundOptimizationsView>();
                 services.AddTransient<Features.Common.Views.DonationDialog>();
                 services.AddTransient<LoadingWindow>();
+
+                // Register version service
+                services.AddSingleton<IVersionService, VersionService>();
+                services.AddSingleton<UpdateNotificationViewModel>();
 
                 // Register logging service
                 services.AddHostedService<LoggingService>();

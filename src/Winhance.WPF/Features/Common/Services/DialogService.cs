@@ -1,10 +1,11 @@
+using System;
 using System.Collections.Generic;
 using System.Threading.Tasks;
 using System.Windows;
 using System.Linq;
 using Winhance.Core.Features.Common.Interfaces;
 using Winhance.WPF.Features.Common.Views;
-using System;
+using Winhance.WPF.Features.Common.ViewModels;
 
 namespace Winhance.WPF.Features.Common.Services
 {
@@ -189,10 +190,7 @@ namespace Winhance.WPF.Features.Common.Services
             {
                 // Log the error
                 System.Diagnostics.Debug.WriteLine($"Error showing donation dialog: {ex.Message}");
-                System.Diagnostics.Debug.WriteLine($"Stack trace: {ex.StackTrace}");
-                
-                // Return default values in case of error
-                return (null, false);
+                return (false, false);
             }
         }
     }

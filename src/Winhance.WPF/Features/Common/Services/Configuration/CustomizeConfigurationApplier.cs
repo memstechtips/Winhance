@@ -1,12 +1,15 @@
 using System;
+using System.Collections.Generic;
 using System.Linq;
 using System.Threading.Tasks;
+using System.Windows;
 using Microsoft.Extensions.DependencyInjection;
 using Winhance.Core.Features.Common.Enums;
 using Winhance.Core.Features.Common.Interfaces;
 using Winhance.Core.Features.Common.Models;
 using Winhance.Core.Features.Customize.Interfaces;
 using Winhance.Core.Features.Customize.Models;
+using Winhance.WPF.Features.Common.Views;
 using Winhance.WPF.Features.Customize.ViewModels;
 
 namespace Winhance.WPF.Features.Common.Services.Configuration
@@ -21,6 +24,7 @@ namespace Winhance.WPF.Features.Common.Services.Configuration
         private readonly IViewModelRefresher _viewModelRefresher;
         private readonly IConfigurationPropertyUpdater _propertyUpdater;
         private readonly IThemeService _themeService;
+        private readonly IDialogService _dialogService;
 
         /// <summary>
         /// Gets the section name that this applier handles.
@@ -35,18 +39,21 @@ namespace Winhance.WPF.Features.Common.Services.Configuration
         /// <param name="viewModelRefresher">The view model refresher.</param>
         /// <param name="propertyUpdater">The property updater.</param>
         /// <param name="themeService">The theme service.</param>
+        /// <param name="dialogService">The dialog service.</param>
         public CustomizeConfigurationApplier(
             IServiceProvider serviceProvider,
             ILogService logService,
             IViewModelRefresher viewModelRefresher,
             IConfigurationPropertyUpdater propertyUpdater,
-            IThemeService themeService)
+            IThemeService themeService,
+            IDialogService dialogService)
         {
             _serviceProvider = serviceProvider ?? throw new ArgumentNullException(nameof(serviceProvider));
             _logService = logService ?? throw new ArgumentNullException(nameof(logService));
             _viewModelRefresher = viewModelRefresher ?? throw new ArgumentNullException(nameof(viewModelRefresher));
             _propertyUpdater = propertyUpdater ?? throw new ArgumentNullException(nameof(propertyUpdater));
             _themeService = themeService ?? throw new ArgumentNullException(nameof(themeService));
+            _dialogService = dialogService ?? throw new ArgumentNullException(nameof(dialogService));
         }
 
         /// <summary>
@@ -88,12 +95,104 @@ namespace Winhance.WPF.Features.Common.Services.Configuration
                 // Refresh the UI
                 await _viewModelRefresher.RefreshViewModelAsync(viewModel);
                 
+                // After applying all configuration settings, prompt for cleaning taskbar and Start Menu
+                await PromptForCleaningTaskbarAndStartMenu(viewModel);
+                
                 return totalUpdatedCount > 0;
             }
             catch (Exception ex)
             {
                 _logService.Log(LogLevel.Error, $"Error applying Customize configuration: {ex.Message}");
                 return false;
+            }
+        }
+
+        /// <summary>
+        /// Prompts the user to clean the taskbar and Start Menu after configuration import.
+        /// </summary>
+        /// <param name="viewModel">The customize view model.</param>
+        /// <returns>A task representing the asynchronous operation.</returns>
+        private async Task PromptForCleaningTaskbarAndStartMenu(CustomizeViewModel viewModel)
+        {
+            try
+            {
+                _logService.Log(LogLevel.Info, "Prompting for cleaning taskbar and Start Menu");
+                
+                // Prompt for cleaning taskbar
+                if (viewModel.TaskbarSettings != null)
+                {
+                    // Use Application.Current.Dispatcher to ensure we're on the UI thread
+                    bool? cleanTaskbarResult = await Application.Current.Dispatcher.InvokeAsync(() => {
+                        return CustomDialog.ShowConfirmation(
+                            "Clean Taskbar",
+                            "Do you want to clean the taskbar?",
+                            new List<string> { "Cleaning the taskbar will remove pinned items and reset it to default settings." }, // Put message in the middle section
+                            "" // Empty footer
+                        );
+                    });
+                    
+                    bool cleanTaskbar = cleanTaskbarResult == true;
+                    
+                    if (cleanTaskbar)
+                    {
+                        _logService.Log(LogLevel.Info, "User chose to clean the taskbar");
+                        
+                        // Execute the clean taskbar command
+                        if (viewModel.TaskbarSettings.CleanTaskbarCommand != null && 
+                            viewModel.TaskbarSettings.CleanTaskbarCommand.CanExecute(null))
+                        {
+                            await viewModel.TaskbarSettings.CleanTaskbarCommand.ExecuteAsync(null);
+                        }
+                        else
+                        {
+                            _logService.Log(LogLevel.Warning, "CleanTaskbarCommand not available");
+                        }
+                    }
+                    else
+                    {
+                        _logService.Log(LogLevel.Info, "User chose not to clean the taskbar");
+                    }
+                }
+                
+                // Prompt for cleaning Start Menu
+                if (viewModel.StartMenuSettings != null)
+                {
+                    // Use Application.Current.Dispatcher to ensure we're on the UI thread
+                    bool? cleanStartMenuResult = await Application.Current.Dispatcher.InvokeAsync(() => {
+                        return CustomDialog.ShowConfirmation(
+                            "Clean Start Menu",
+                            "Do you want to clean the Start Menu?",
+                            new List<string> { "Cleaning the Start Menu will remove pinned items and reset it to default settings." }, // Put message in the middle section
+                            "" // Empty footer
+                        );
+                    });
+                    
+                    bool cleanStartMenu = cleanStartMenuResult == true;
+                    
+                    if (cleanStartMenu)
+                    {
+                        _logService.Log(LogLevel.Info, "User chose to clean the Start Menu");
+                        
+                        // Execute the clean Start Menu command
+                        if (viewModel.StartMenuSettings.CleanStartMenuCommand != null && 
+                            viewModel.StartMenuSettings.CleanStartMenuCommand.CanExecute(null))
+                        {
+                            await viewModel.StartMenuSettings.CleanStartMenuCommand.ExecuteAsync(null);
+                        }
+                        else
+                        {
+                            _logService.Log(LogLevel.Warning, "CleanStartMenuCommand not available");
+                        }
+                    }
+                    else
+                    {
+                        _logService.Log(LogLevel.Info, "User chose not to clean the Start Menu");
+                    }
+                }
+            }
+            catch (Exception ex)
+            {
+                _logService.Log(LogLevel.Error, $"Error prompting for cleaning taskbar and Start Menu: {ex.Message}");
             }
         }
 

@@ -23,20 +23,23 @@ public static class NotificationOptimizations
                     Category = OptimizationCategory.Notifications,
                     GroupName = "System Notifications",
                     IsEnabled = false,
+                    ControlType = ControlType.BinaryToggle,
                     RegistrySettings = new List<RegistrySetting>
                     {
                         new RegistrySetting
-                    {
-                        Category = "Notifications",
-                        Hive = RegistryHive.CurrentUser,
-                        SubKey = "SOFTWARE\\Microsoft\\Windows\\CurrentVersion\\PushNotifications",
-                    Name = "ToastEnabled",
-                        RecommendedValue = 0,  // For backward compatibility
-                        EnabledValue = 1,      // When toggle is ON, toast notifications are enabled
-                        DisabledValue = 0,     // When toggle is OFF, toast notifications are disabled
-                        ValueType = RegistryValueKind.DWord,
-                        DefaultValue = null,   // For backward compatibility
-                        Description = "Controls toast notifications"
+                        {
+                            Category = "Notifications",
+                            Hive = RegistryHive.CurrentUser,
+                            SubKey = "SOFTWARE\\Microsoft\\Windows\\CurrentVersion\\PushNotifications",
+                            Name = "ToastEnabled",
+                            RecommendedValue = 0,
+                            EnabledValue = 1,
+                            DisabledValue = 0,
+                            ValueType = RegistryValueKind.DWord,
+                            DefaultValue = 1,
+                            Description = "Controls toast notifications",
+                            IsPrimary = true,
+                            AbsenceMeansEnabled = true
                         }
                     }
                 },
@@ -48,20 +51,23 @@ public static class NotificationOptimizations
                     Category = OptimizationCategory.Notifications,
                     GroupName = "System Notifications",
                     IsEnabled = false,
+                    ControlType = ControlType.BinaryToggle,
                     RegistrySettings = new List<RegistrySetting>
                     {
                         new RegistrySetting
-                    {
-                        Category = "Notifications",
-                        Hive = RegistryHive.CurrentUser,
-                        SubKey = "SOFTWARE\\Microsoft\\Windows\\CurrentVersion\\Notifications\\Settings",
-                    Name = "NOC_GLOBAL_SETTING_ALLOW_NOTIFICATION_SOUND",
-                        RecommendedValue = 0,  // For backward compatibility
-                        EnabledValue = 1,      // When toggle is ON, notification sounds are enabled
-                        DisabledValue = 0,     // When toggle is OFF, notification sounds are disabled
-                        ValueType = RegistryValueKind.DWord,
-                        DefaultValue = null,   // For backward compatibility
-                        Description = "Controls notification sounds"
+                        {
+                            Category = "Notifications",
+                            Hive = RegistryHive.CurrentUser,
+                            SubKey = "SOFTWARE\\Microsoft\\Windows\\CurrentVersion\\Notifications\\Settings",
+                            Name = "NOC_GLOBAL_SETTING_ALLOW_NOTIFICATION_SOUND",
+                            RecommendedValue = 0,
+                            EnabledValue = 1,
+                            DisabledValue = 0,
+                            ValueType = RegistryValueKind.DWord,
+                            DefaultValue = 1,
+                            Description = "Controls notification sounds",
+                            IsPrimary = true,
+                            AbsenceMeansEnabled = true
                         }
                     }
                 },
@@ -73,33 +79,38 @@ public static class NotificationOptimizations
                     Category = OptimizationCategory.Notifications,
                     GroupName = "System Notifications",
                     IsEnabled = false,
+                    ControlType = ControlType.BinaryToggle,
                     RegistrySettings = new List<RegistrySetting>
                     {
                         new RegistrySetting
-                    {
-                        Category = "Notifications",
-                        Hive = RegistryHive.CurrentUser,
-                        SubKey = "SOFTWARE\\Microsoft\\Windows\\CurrentVersion\\Notifications\\Settings",
-                    Name = "NOC_GLOBAL_SETTING_ALLOW_TOASTS_ABOVE_LOCK",
-                        RecommendedValue = 0,  // For backward compatibility
-                        EnabledValue = 1,      // When toggle is ON, notifications above lock screen are enabled
-                        DisabledValue = 0,     // When toggle is OFF, notifications above lock screen are disabled
-                        ValueType = RegistryValueKind.DWord,
-                        DefaultValue = null,   // For backward compatibility
-                        Description = "Controls notifications on lock screen"
+                        {
+                            Category = "Notifications",
+                            Hive = RegistryHive.CurrentUser,
+                            SubKey = "SOFTWARE\\Microsoft\\Windows\\CurrentVersion\\Notifications\\Settings",
+                            Name = "NOC_GLOBAL_SETTING_ALLOW_TOASTS_ABOVE_LOCK",
+                            RecommendedValue = 0,
+                            EnabledValue = 1,
+                            DisabledValue = 0,
+                            ValueType = RegistryValueKind.DWord,
+                            DefaultValue = 1,
+                            Description = "Controls notifications on lock screen",
+                            IsPrimary = true,
+                            AbsenceMeansEnabled = true
                         },
                         new RegistrySetting
-                    {
-                        Category = "Notifications",
-                        Hive = RegistryHive.CurrentUser,
-                        SubKey = "SOFTWARE\\Microsoft\\Windows\\CurrentVersion\\PushNotifications",
-                    Name = "LockScreenToastEnabled",
-                        RecommendedValue = 0,  // For backward compatibility
-                        EnabledValue = 1,      // When toggle is ON, lock screen notifications are enabled
-                        DisabledValue = 0,     // When toggle is OFF, lock screen notifications are disabled
-                        ValueType = RegistryValueKind.DWord,
-                        DefaultValue = null,   // For backward compatibility
-                        Description = "Controls notifications on lock screen"
+                        {
+                            Category = "Notifications",
+                            Hive = RegistryHive.CurrentUser,
+                            SubKey = "SOFTWARE\\Microsoft\\Windows\\CurrentVersion\\PushNotifications",
+                            Name = "LockScreenToastEnabled",
+                            RecommendedValue = 0,
+                            EnabledValue = 1,
+                            DisabledValue = 0,
+                            ValueType = RegistryValueKind.DWord,
+                            DefaultValue = 1,
+                            Description = "Controls notifications on lock screen",
+                            IsPrimary = false,
+                            AbsenceMeansEnabled = true
                         }
                     },
                     LinkedSettingsLogic = LinkedSettingsLogic.All
@@ -112,20 +123,23 @@ public static class NotificationOptimizations
                     Category = OptimizationCategory.Notifications,
                     GroupName = "System Notifications",
                     IsEnabled = false,
+                    ControlType = ControlType.BinaryToggle,
                     RegistrySettings = new List<RegistrySetting>
                     {
                         new RegistrySetting
-                    {
-                        Category = "Notifications",
-                        Hive = RegistryHive.CurrentUser,
-                        SubKey = "SOFTWARE\\Microsoft\\Windows\\CurrentVersion\\Notifications\\Settings",
-                    Name = "NOC_GLOBAL_SETTING_ALLOW_CRITICAL_TOASTS_ABOVE_LOCK",
-                        RecommendedValue = 0,  // For backward compatibility
-                        EnabledValue = 1,      // When toggle is ON, critical notifications above lock screen are enabled
-                        DisabledValue = 0,     // When toggle is OFF, critical notifications above lock screen are disabled
-                        ValueType = RegistryValueKind.DWord,
-                        DefaultValue = null,   // For backward compatibility
-                        Description = "Controls critical notifications above lock screen"
+                        {
+                            Category = "Notifications",
+                            Hive = RegistryHive.CurrentUser,
+                            SubKey = "SOFTWARE\\Microsoft\\Windows\\CurrentVersion\\Notifications\\Settings",
+                            Name = "NOC_GLOBAL_SETTING_ALLOW_CRITICAL_TOASTS_ABOVE_LOCK",
+                            RecommendedValue = 0,
+                            EnabledValue = 1,
+                            DisabledValue = 0,
+                            ValueType = RegistryValueKind.DWord,
+                            DefaultValue = 1,
+                            Description = "Controls critical notifications above lock screen",
+                            IsPrimary = true,
+                            AbsenceMeansEnabled = true
                         }
                     }
                 },
@@ -137,24 +151,26 @@ public static class NotificationOptimizations
                     Category = OptimizationCategory.Notifications,
                     GroupName = "System Notifications",
                     IsEnabled = false,
+                    ControlType = ControlType.BinaryToggle,
                     RegistrySettings = new List<RegistrySetting>
                     {
                         new RegistrySetting
-                    {
-                        Category = "Notifications",
-                        Hive = RegistryHive.CurrentUser,
-                        SubKey = "SOFTWARE\\Microsoft\\Windows\\CurrentVersion\\Notifications\\Settings\\Windows.SystemToast.SecurityAndMaintenance",
-                    Name = "Enabled",
-                        RecommendedValue = 0,  // For backward compatibility
-                        EnabledValue = 1,      // When toggle is ON, security and maintenance notifications are enabled
-                        DisabledValue = 0,     // When toggle is OFF, security and maintenance notifications are disabled
-                        ValueType = RegistryValueKind.DWord,
-                        DefaultValue = null,   // For backward compatibility
-                        Description = "Controls security and maintenance notifications"
+                        {
+                            Category = "Notifications",
+                            Hive = RegistryHive.CurrentUser,
+                            SubKey = "SOFTWARE\\Microsoft\\Windows\\CurrentVersion\\Notifications\\Settings\\Windows.SystemToast.SecurityAndMaintenance",
+                            Name = "Enabled",
+                            RecommendedValue = 0,
+                            EnabledValue = 1,
+                            DisabledValue = 0,
+                            ValueType = RegistryValueKind.DWord,
+                            DefaultValue = 1,
+                            Description = "Controls security and maintenance notifications",
+                            IsPrimary = true,
+                            AbsenceMeansEnabled = true
                         }
                     }
                 },
-
                 new OptimizationSetting
                 {
                     Id = "notifications-capability-access",
@@ -163,20 +179,23 @@ public static class NotificationOptimizations
                     Category = OptimizationCategory.Notifications,
                     GroupName = "System Notifications",
                     IsEnabled = false,
+                    ControlType = ControlType.BinaryToggle,
                     RegistrySettings = new List<RegistrySetting>
                     {
                         new RegistrySetting
-                    {
-                        Category = "Notifications",
-                        Hive = RegistryHive.CurrentUser,
-                        SubKey = "SOFTWARE\\Microsoft\\Windows\\CurrentVersion\\Notifications\\Settings\\Windows.SystemToast.CapabilityAccess",
-                    Name = "Enabled",
-                        RecommendedValue = 0,  // For backward compatibility
-                        EnabledValue = 1,      // When toggle is ON, capability access notifications are enabled
-                        DisabledValue = 0,     // When toggle is OFF, capability access notifications are disabled
-                        ValueType = RegistryValueKind.DWord,
-                        DefaultValue = null,   // For backward compatibility
-                        Description = "Controls capability access notifications"
+                        {
+                            Category = "Notifications",
+                            Hive = RegistryHive.CurrentUser,
+                            SubKey = "SOFTWARE\\Microsoft\\Windows\\CurrentVersion\\Notifications\\Settings\\Windows.SystemToast.CapabilityAccess",
+                            Name = "Enabled",
+                            RecommendedValue = 0,
+                            EnabledValue = 1,
+                            DisabledValue = 0,
+                            ValueType = RegistryValueKind.DWord,
+                            DefaultValue = 1,
+                            Description = "Controls capability access notifications",
+                            IsPrimary = true,
+                            AbsenceMeansEnabled = true
                         }
                     }
                 },
@@ -188,20 +207,23 @@ public static class NotificationOptimizations
                     Category = OptimizationCategory.Notifications,
                     GroupName = "System Notifications",
                     IsEnabled = false,
+                    ControlType = ControlType.BinaryToggle,
                     RegistrySettings = new List<RegistrySetting>
                     {
                         new RegistrySetting
-                    {
-                        Category = "Notifications",
-                        Hive = RegistryHive.CurrentUser,
-                        SubKey = "SOFTWARE\\Microsoft\\Windows\\CurrentVersion\\Notifications\\Settings\\Windows.SystemToast.StartupApp",
-                    Name = "Enabled",
-                        RecommendedValue = 0,  // For backward compatibility
-                        EnabledValue = 1,      // When toggle is ON, startup app notifications are enabled
-                        DisabledValue = 0,     // When toggle is OFF, startup app notifications are disabled
-                        ValueType = RegistryValueKind.DWord,
-                        DefaultValue = null,   // For backward compatibility
-                        Description = "Controls startup app notifications"
+                        {
+                            Category = "Notifications",
+                            Hive = RegistryHive.CurrentUser,
+                            SubKey = "SOFTWARE\\Microsoft\\Windows\\CurrentVersion\\Notifications\\Settings\\Windows.SystemToast.StartupApp",
+                            Name = "Enabled",
+                            RecommendedValue = 0,
+                            EnabledValue = 1,
+                            DisabledValue = 0,
+                            ValueType = RegistryValueKind.DWord,
+                            DefaultValue = 1,
+                            Description = "Controls startup app notifications",
+                            IsPrimary = true,
+                            AbsenceMeansEnabled = true
                         }
                     }
                 },
@@ -213,20 +235,23 @@ public static class NotificationOptimizations
                     Category = OptimizationCategory.Notifications,
                     GroupName = "System Notifications",
                     IsEnabled = false,
+                    ControlType = ControlType.BinaryToggle,
                     RegistrySettings = new List<RegistrySetting>
                     {
                         new RegistrySetting
-                    {
-                        Category = "Notifications",
-                        Hive = RegistryHive.CurrentUser,
-                        SubKey = "SOFTWARE\\Microsoft\\Windows\\CurrentVersion\\UserProfileEngagement",
-                    Name = "ScoobeSystemSettingEnabled",
-                        RecommendedValue = 0,  // For backward compatibility
-                        EnabledValue = 1,      // When toggle is ON, system setting engagement notifications are enabled
-                        DisabledValue = 0,     // When toggle is OFF, system setting engagement notifications are disabled
-                        ValueType = RegistryValueKind.DWord,
-                        DefaultValue = null,   // For backward compatibility
-                        Description = "Controls system setting engagement notifications"
+                        {
+                            Category = "Notifications",
+                            Hive = RegistryHive.CurrentUser,
+                            SubKey = "SOFTWARE\\Microsoft\\Windows\\CurrentVersion\\UserProfileEngagement",
+                            Name = "ScoobeSystemSettingEnabled",
+                            RecommendedValue = 0,
+                            EnabledValue = 1,
+                            DisabledValue = 0,
+                            ValueType = RegistryValueKind.DWord,
+                            DefaultValue = 1,
+                            Description = "Controls system setting engagement notifications",
+                            IsPrimary = true,
+                            AbsenceMeansEnabled = true
                         }
                     }
                 },
@@ -238,6 +263,7 @@ public static class NotificationOptimizations
                     Category = OptimizationCategory.Notifications,
                     GroupName = "System Notifications",
                     IsEnabled = false,
+                    ControlType = ControlType.BinaryToggle,
                     RegistrySettings = new List<RegistrySetting>
                     {
                         new RegistrySetting
@@ -246,12 +272,14 @@ public static class NotificationOptimizations
                             Hive = RegistryHive.CurrentUser,
                             SubKey = "Control Panel\\Desktop",
                             Name = "DstNotification",
-                            RecommendedValue = 0,  // For backward compatibility
-                            EnabledValue = 1,      // When toggle is ON, clock change notifications are enabled
-                            DisabledValue = 0,     // When toggle is OFF, clock change notifications are disabled
+                            RecommendedValue = 0,
+                            EnabledValue = 1,
+                            DisabledValue = 0,
                             ValueType = RegistryValueKind.DWord,
-                            DefaultValue = null,   // For backward compatibility
-                            Description = "Controls clock change notifications"
+                            DefaultValue = 1,
+                            Description = "Controls clock change notifications",
+                            IsPrimary = true,
+                            AbsenceMeansEnabled = true
                         }
                     }
                 }

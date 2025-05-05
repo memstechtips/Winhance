@@ -9,29 +9,28 @@ using System.Windows.Controls;
 using CommunityToolkit.Mvvm.ComponentModel;
 using CommunityToolkit.Mvvm.Input;
 using Winhance.Core.Features.Common.Interfaces;
-using Winhance.Core.Features.Common.Models;
 using Winhance.Core.Features.Common.Enums;
+using Winhance.Core.Features.Common.Models;
 using Winhance.Core.Features.Optimize.Models;
 using Winhance.Core.Features.Customize.Enums;
 using Winhance.WPF.Features.Common.ViewModels;
 using Winhance.WPF.Features.Common.Views;
-using Winhance.WPF.Features.Customize.Models;
 using Winhance.WPF.Features.Common.Messages;
-using Winhance.WPF.Features.Optimize.Models;
+using Winhance.WPF.Features.Common.Models;
 
 namespace Winhance.WPF.Features.Optimize.ViewModels
 {
     /// <summary>
     /// ViewModel for the OptimizeView that manages system optimization settings.
     /// </summary>
-    public partial class OptimizeViewModel : SearchableViewModel<OptimizationSettingItem>
+    public partial class OptimizeViewModel : SearchableViewModel<ApplicationSettingItem>
     {
         private readonly IRegistryService _registryService;
         private readonly IDialogService _dialogService;
         private readonly ILogService _logService;
         private readonly IConfigurationService _configurationService;
         private readonly IMessengerService _messengerService;
-        private List<OptimizationSettingItem> _allItemsBackup = new List<OptimizationSettingItem>();
+        private List<ApplicationSettingItem> _allItemsBackup = new List<ApplicationSettingItem>();
         private bool _updatingCheckboxes;
         private bool _isInitialSearchDone = false;
         
@@ -412,7 +411,7 @@ namespace Winhance.WPF.Features.Optimize.ViewModels
                 Items.Clear();
 
                 // Collect all settings from the various view models
-                var allSettings = new List<OptimizationSettingItem>();
+                var allSettings = new List<ApplicationSettingItem>();
                 
                 // Ensure all child view models are initialized and have loaded their settings
                 await EnsureChildViewModelsInitialized();
@@ -424,7 +423,7 @@ namespace Winhance.WPF.Features.Optimize.ViewModels
                     foreach (var setting in WindowsSecuritySettingsViewModel.Settings)
                     {
                         // Create a new OptimizationSettingItem with the properties from the setting
-                        var item = new OptimizationSettingItem(_registryService, _dialogService, _logService)
+                        var item = new ApplicationSettingItem(_registryService, _dialogService, _logService)
                         {
                             Id = setting.Id,
                             Name = setting.Name,
@@ -434,18 +433,15 @@ namespace Winhance.WPF.Features.Optimize.ViewModels
                             IsVisible = setting.IsVisible
                         };
                         
-                        // Check if the setting is an OptimizationSettingViewModel and copy additional properties
-                        if (setting is OptimizationSettingViewModel optimizationSetting)
-                        {
-                            item.ControlType = optimizationSetting.ControlType;
-                            item.SliderValue = optimizationSetting.SliderValue;
-                            item.SliderSteps = optimizationSetting.SliderSteps;
-                            item.Status = optimizationSetting.Status;
-                            item.StatusMessage = optimizationSetting.StatusMessage;
-                            item.RegistrySetting = optimizationSetting.RegistrySetting;
-                            item.LinkedRegistrySettings = optimizationSetting.LinkedRegistrySettings;
-                            item.Dependencies = optimizationSetting.Dependencies;
-                        }
+                        // Copy properties directly without type casting
+                        item.ControlType = setting.ControlType;
+                        item.SliderValue = setting.SliderValue;
+                        item.SliderSteps = setting.SliderSteps;
+                        item.Status = setting.Status;
+                        item.StatusMessage = setting.StatusMessage;
+                        item.RegistrySetting = setting.RegistrySetting;
+                        item.LinkedRegistrySettings = setting.LinkedRegistrySettings;
+                        item.Dependencies = setting.Dependencies;
                         
                         // For UAC slider, add the slider labels
                         if (item.Id == "UACSlider" && item.ControlType == ControlType.ThreeStateSlider)
@@ -465,7 +461,7 @@ namespace Winhance.WPF.Features.Optimize.ViewModels
                     foreach (var setting in GamingandPerformanceOptimizationsViewModel.Settings)
                     {
                         // Create a new OptimizationSettingItem with the properties from the setting
-                        var item = new OptimizationSettingItem(_registryService, _dialogService, _logService)
+                        var item = new ApplicationSettingItem(_registryService, _dialogService, _logService)
                         {
                             Id = setting.Id,
                             Name = setting.Name,
@@ -475,18 +471,15 @@ namespace Winhance.WPF.Features.Optimize.ViewModels
                             IsVisible = setting.IsVisible
                         };
                         
-                        // Check if the setting is an OptimizationSettingViewModel and copy additional properties
-                        if (setting is OptimizationSettingViewModel optimizationSetting)
-                        {
-                            item.ControlType = optimizationSetting.ControlType;
-                            item.SliderValue = optimizationSetting.SliderValue;
-                            item.SliderSteps = optimizationSetting.SliderSteps;
-                            item.Status = optimizationSetting.Status;
-                            item.StatusMessage = optimizationSetting.StatusMessage;
-                            item.RegistrySetting = optimizationSetting.RegistrySetting;
-                            item.LinkedRegistrySettings = optimizationSetting.LinkedRegistrySettings;
-                            item.Dependencies = optimizationSetting.Dependencies;
-                        }
+                        // Copy properties directly without type casting
+                        item.ControlType = setting.ControlType;
+                        item.SliderValue = setting.SliderValue;
+                        item.SliderSteps = setting.SliderSteps;
+                        item.Status = setting.Status;
+                        item.StatusMessage = setting.StatusMessage;
+                        item.RegistrySetting = setting.RegistrySetting;
+                        item.LinkedRegistrySettings = setting.LinkedRegistrySettings;
+                        item.Dependencies = setting.Dependencies;
                         allSettings.Add(item);
                     }
                 }
@@ -496,7 +489,7 @@ namespace Winhance.WPF.Features.Optimize.ViewModels
                     foreach (var setting in PrivacyOptimizationsViewModel.Settings)
                     {
                         // Create a new OptimizationSettingItem with the properties from the setting
-                        var item = new OptimizationSettingItem(_registryService, _dialogService, _logService)
+                        var item = new ApplicationSettingItem(_registryService, _dialogService, _logService)
                         {
                             Id = setting.Id,
                             Name = setting.Name,
@@ -506,18 +499,15 @@ namespace Winhance.WPF.Features.Optimize.ViewModels
                             IsVisible = setting.IsVisible
                         };
                         
-                        // Check if the setting is an OptimizationSettingViewModel and copy additional properties
-                        if (setting is OptimizationSettingViewModel optimizationSetting)
-                        {
-                            item.ControlType = optimizationSetting.ControlType;
-                            item.SliderValue = optimizationSetting.SliderValue;
-                            item.SliderSteps = optimizationSetting.SliderSteps;
-                            item.Status = optimizationSetting.Status;
-                            item.StatusMessage = optimizationSetting.StatusMessage;
-                            item.RegistrySetting = optimizationSetting.RegistrySetting;
-                            item.LinkedRegistrySettings = optimizationSetting.LinkedRegistrySettings;
-                            item.Dependencies = optimizationSetting.Dependencies;
-                        }
+                        // Copy properties directly without type casting
+                        item.ControlType = setting.ControlType;
+                        item.SliderValue = setting.SliderValue;
+                        item.SliderSteps = setting.SliderSteps;
+                        item.Status = setting.Status;
+                        item.StatusMessage = setting.StatusMessage;
+                        item.RegistrySetting = setting.RegistrySetting;
+                        item.LinkedRegistrySettings = setting.LinkedRegistrySettings;
+                        item.Dependencies = setting.Dependencies;
                         allSettings.Add(item);
                     }
                 }
@@ -527,7 +517,7 @@ namespace Winhance.WPF.Features.Optimize.ViewModels
                     foreach (var setting in UpdateOptimizationsViewModel.Settings)
                     {
                         // Create a new OptimizationSettingItem with the properties from the setting
-                        var item = new OptimizationSettingItem(_registryService, _dialogService, _logService)
+                        var item = new ApplicationSettingItem(_registryService, _dialogService, _logService)
                         {
                             Id = setting.Id,
                             Name = setting.Name,
@@ -537,18 +527,15 @@ namespace Winhance.WPF.Features.Optimize.ViewModels
                             IsVisible = setting.IsVisible
                         };
                         
-                        // Check if the setting is an OptimizationSettingViewModel and copy additional properties
-                        if (setting is OptimizationSettingViewModel optimizationSetting)
-                        {
-                            item.ControlType = optimizationSetting.ControlType;
-                            item.SliderValue = optimizationSetting.SliderValue;
-                            item.SliderSteps = optimizationSetting.SliderSteps;
-                            item.Status = optimizationSetting.Status;
-                            item.StatusMessage = optimizationSetting.StatusMessage;
-                            item.RegistrySetting = optimizationSetting.RegistrySetting;
-                            item.LinkedRegistrySettings = optimizationSetting.LinkedRegistrySettings;
-                            item.Dependencies = optimizationSetting.Dependencies;
-                        }
+                        // Copy properties directly without type casting
+                        item.ControlType = setting.ControlType;
+                        item.SliderValue = setting.SliderValue;
+                        item.SliderSteps = setting.SliderSteps;
+                        item.Status = setting.Status;
+                        item.StatusMessage = setting.StatusMessage;
+                        item.RegistrySetting = setting.RegistrySetting;
+                        item.LinkedRegistrySettings = setting.LinkedRegistrySettings;
+                        item.Dependencies = setting.Dependencies;
                         allSettings.Add(item);
                     }
                 }
@@ -558,7 +545,7 @@ namespace Winhance.WPF.Features.Optimize.ViewModels
                     foreach (var setting in PowerSettingsViewModel.Settings)
                     {
                         // Create a new OptimizationSettingItem with the properties from the setting
-                        var item = new OptimizationSettingItem(_registryService, _dialogService, _logService)
+                        var item = new ApplicationSettingItem(_registryService, _dialogService, _logService)
                         {
                             Id = setting.Id,
                             Name = setting.Name,
@@ -568,18 +555,15 @@ namespace Winhance.WPF.Features.Optimize.ViewModels
                             IsVisible = setting.IsVisible
                         };
                         
-                        // Check if the setting is an OptimizationSettingViewModel and copy additional properties
-                        if (setting is OptimizationSettingViewModel optimizationSetting)
-                        {
-                            item.ControlType = optimizationSetting.ControlType;
-                            item.SliderValue = optimizationSetting.SliderValue;
-                            item.SliderSteps = optimizationSetting.SliderSteps;
-                            item.Status = optimizationSetting.Status;
-                            item.StatusMessage = optimizationSetting.StatusMessage;
-                            item.RegistrySetting = optimizationSetting.RegistrySetting;
-                            item.LinkedRegistrySettings = optimizationSetting.LinkedRegistrySettings;
-                            item.Dependencies = optimizationSetting.Dependencies;
-                        }
+                        // Copy properties directly without type casting
+                        item.ControlType = setting.ControlType;
+                        item.SliderValue = setting.SliderValue;
+                        item.SliderSteps = setting.SliderSteps;
+                        item.Status = setting.Status;
+                        item.StatusMessage = setting.StatusMessage;
+                        item.RegistrySetting = setting.RegistrySetting;
+                        item.LinkedRegistrySettings = setting.LinkedRegistrySettings;
+                        item.Dependencies = setting.Dependencies;
                         
                         // For Power Plan ComboBox, add the ComboBox labels
                         if (item.Id == "PowerPlanComboBox" && item.ControlType == ControlType.ComboBox)
@@ -627,7 +611,7 @@ namespace Winhance.WPF.Features.Optimize.ViewModels
                     foreach (var setting in ExplorerOptimizationsViewModel.Settings)
                     {
                         // Create a new OptimizationSettingItem with the properties from the setting
-                        var item = new OptimizationSettingItem(_registryService, _dialogService, _logService)
+                        var item = new ApplicationSettingItem(_registryService, _dialogService, _logService)
                         {
                             Id = setting.Id,
                             Name = setting.Name,
@@ -637,25 +621,15 @@ namespace Winhance.WPF.Features.Optimize.ViewModels
                             IsVisible = setting.IsVisible
                         };
                         
-                        // Check if the setting is an OptimizationSettingViewModel and copy additional properties
-                        // Get properties from the setting using dynamic to avoid type casting issues
-                        dynamic dynamicSetting = setting;
-                        try
-                        {
-                            item.ControlType = dynamicSetting.ControlType;
-                            item.SliderValue = dynamicSetting.SliderValue;
-                            item.SliderSteps = dynamicSetting.SliderSteps;
-                            item.Status = dynamicSetting.Status;
-                            item.StatusMessage = dynamicSetting.StatusMessage;
-                            item.RegistrySetting = dynamicSetting.RegistrySetting;
-                            item.LinkedRegistrySettings = dynamicSetting.LinkedRegistrySettings;
-                            item.Dependencies = dynamicSetting.Dependencies;
-                        }
-                        catch (Exception ex)
-                        {
-                            // Log the error but continue processing
-                            _logService.Log(LogLevel.Debug, $"Error copying properties from setting: {ex.Message}");
-                        }
+                        // Copy properties directly without type casting
+                        item.ControlType = setting.ControlType;
+                        item.SliderValue = setting.SliderValue;
+                        item.SliderSteps = setting.SliderSteps;
+                        item.Status = setting.Status;
+                        item.StatusMessage = setting.StatusMessage;
+                        item.RegistrySetting = setting.RegistrySetting;
+                        item.LinkedRegistrySettings = setting.LinkedRegistrySettings;
+                        item.Dependencies = setting.Dependencies;
                         allSettings.Add(item);
                     }
                 }
@@ -665,7 +639,7 @@ namespace Winhance.WPF.Features.Optimize.ViewModels
                     foreach (var setting in NotificationOptimizationsViewModel.Settings)
                     {
                         // Create a new OptimizationSettingItem with the properties from the setting
-                        var item = new OptimizationSettingItem(_registryService, _dialogService, _logService)
+                        var item = new ApplicationSettingItem(_registryService, _dialogService, _logService)
                         {
                             Id = setting.Id,
                             Name = setting.Name,
@@ -675,25 +649,15 @@ namespace Winhance.WPF.Features.Optimize.ViewModels
                             IsVisible = setting.IsVisible
                         };
                         
-                        // Check if the setting is an OptimizationSettingViewModel and copy additional properties
-                        // Get properties from the setting using dynamic to avoid type casting issues
-                        dynamic dynamicSetting = setting;
-                        try
-                        {
-                            item.ControlType = dynamicSetting.ControlType;
-                            item.SliderValue = dynamicSetting.SliderValue;
-                            item.SliderSteps = dynamicSetting.SliderSteps;
-                            item.Status = dynamicSetting.Status;
-                            item.StatusMessage = dynamicSetting.StatusMessage;
-                            item.RegistrySetting = dynamicSetting.RegistrySetting;
-                            item.LinkedRegistrySettings = dynamicSetting.LinkedRegistrySettings;
-                            item.Dependencies = dynamicSetting.Dependencies;
-                        }
-                        catch (Exception ex)
-                        {
-                            // Log the error but continue processing
-                            _logService.Log(LogLevel.Debug, $"Error copying properties from setting: {ex.Message}");
-                        }
+                        // Copy properties directly without type casting
+                        item.ControlType = setting.ControlType;
+                        item.SliderValue = setting.SliderValue;
+                        item.SliderSteps = setting.SliderSteps;
+                        item.Status = setting.Status;
+                        item.StatusMessage = setting.StatusMessage;
+                        item.RegistrySetting = setting.RegistrySetting;
+                        item.LinkedRegistrySettings = setting.LinkedRegistrySettings;
+                        item.Dependencies = setting.Dependencies;
                         allSettings.Add(item);
                     }
                 }
@@ -703,7 +667,7 @@ namespace Winhance.WPF.Features.Optimize.ViewModels
                     foreach (var setting in SoundOptimizationsViewModel.Settings)
                     {
                         // Create a new OptimizationSettingItem with the properties from the setting
-                        var item = new OptimizationSettingItem(_registryService, _dialogService, _logService)
+                        var item = new ApplicationSettingItem(_registryService, _dialogService, _logService)
                         {
                             Id = setting.Id,
                             Name = setting.Name,
@@ -713,25 +677,15 @@ namespace Winhance.WPF.Features.Optimize.ViewModels
                             IsVisible = setting.IsVisible
                         };
                         
-                        // Check if the setting is an OptimizationSettingViewModel and copy additional properties
-                        // Get properties from the setting using dynamic to avoid type casting issues
-                        dynamic dynamicSetting = setting;
-                        try
-                        {
-                            item.ControlType = dynamicSetting.ControlType;
-                            item.SliderValue = dynamicSetting.SliderValue;
-                            item.SliderSteps = dynamicSetting.SliderSteps;
-                            item.Status = dynamicSetting.Status;
-                            item.StatusMessage = dynamicSetting.StatusMessage;
-                            item.RegistrySetting = dynamicSetting.RegistrySetting;
-                            item.LinkedRegistrySettings = dynamicSetting.LinkedRegistrySettings;
-                            item.Dependencies = dynamicSetting.Dependencies;
-                        }
-                        catch (Exception ex)
-                        {
-                            // Log the error but continue processing
-                            _logService.Log(LogLevel.Debug, $"Error copying properties from setting: {ex.Message}");
-                        }
+                        // Copy properties directly without type casting
+                        item.ControlType = setting.ControlType;
+                        item.SliderValue = setting.SliderValue;
+                        item.SliderSteps = setting.SliderSteps;
+                        item.Status = setting.Status;
+                        item.StatusMessage = setting.StatusMessage;
+                        item.RegistrySetting = setting.RegistrySetting;
+                        item.LinkedRegistrySettings = setting.LinkedRegistrySettings;
+                        item.Dependencies = setting.Dependencies;
                         allSettings.Add(item);
                     }
                 }
@@ -743,7 +697,7 @@ namespace Winhance.WPF.Features.Optimize.ViewModels
                 }
 
                 // Create a backup of all items for state recovery
-                _allItemsBackup = new List<OptimizationSettingItem>(Items);
+                _allItemsBackup = new List<ApplicationSettingItem>(Items);
 
                 // Only update StatusText if it's currently showing a loading message
                 if (StatusText.Contains("Loading"))
@@ -876,7 +830,7 @@ namespace Winhance.WPF.Features.Optimize.ViewModels
             // If this is our first time running a search and the backup isn't created yet, create it
             if (!_isInitialSearchDone && Items.Count > 0)
             {
-                _allItemsBackup = new List<OptimizationSettingItem>(Items);
+                _allItemsBackup = new List<ApplicationSettingItem>(Items);
                 _isInitialSearchDone = true;
                 LogInfo($"OptimizeViewModel: Created backup of all items ({_allItemsBackup.Count} items)");
             }
@@ -918,7 +872,7 @@ namespace Winhance.WPF.Features.Optimize.ViewModels
 
             // We're doing an active search, use the backup for filtering if available
             var itemsToFilter = _allItemsBackup.Count > 0
-                ? new ObservableCollection<OptimizationSettingItem>(_allItemsBackup)
+                ? new ObservableCollection<ApplicationSettingItem>(_allItemsBackup)
                 : Items;
             
             // Normalize and clean the search text - convert to lowercase for consistent case-insensitive matching
@@ -1338,7 +1292,7 @@ namespace Winhance.WPF.Features.Optimize.ViewModels
         /// </summary>
         /// <param name="setting">The setting that was changed.</param>
         [RelayCommand]
-        private void SettingChanged(Winhance.WPF.Features.Optimize.Models.OptimizationSettingItem setting)
+        private void SettingChanged(Winhance.WPF.Features.Common.Models.ApplicationSettingItem setting)
         {
             if (_updatingCheckboxes)
                 return;

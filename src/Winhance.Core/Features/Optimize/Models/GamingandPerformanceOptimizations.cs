@@ -1,5 +1,5 @@
-using Microsoft.Win32;
 using System.Collections.Generic;
+using Microsoft.Win32;
 using Winhance.Core.Features.Common.Enums;
 using Winhance.Core.Features.Common.Models;
 
@@ -23,6 +23,7 @@ public static class GamingandPerformanceOptimizations
                     Category = OptimizationCategory.GamingandPerformance,
                     GroupName = "Game Recording",
                     IsEnabled = false,
+                    ControlType = ControlType.BinaryToggle,
                     RegistrySettings = new List<RegistrySetting>
                     {
                         new RegistrySetting
@@ -31,29 +32,33 @@ public static class GamingandPerformanceOptimizations
                             Hive = RegistryHive.CurrentUser,
                             SubKey = "System\\GameConfigStore",
                             Name = "GameDVR_Enabled",
-                            RecommendedValue = 0,  // For backward compatibility
-                            EnabledValue = 1,      // When toggle is ON, Game DVR is enabled
-                            DisabledValue = 0,     // When toggle is OFF, Game DVR is disabled
+                            RecommendedValue = 0, // For backward compatibility
+                            EnabledValue = 1, // When toggle is ON, Game DVR is enabled
+                            DisabledValue = 0, // When toggle is OFF, Game DVR is disabled
                             ValueType = RegistryValueKind.DWord,
-                            DefaultValue = null,   // For backward compatibility
+                            DefaultValue = 1, // Default value when registry key exists but no value is set
                             Description = "Controls Game Bar and Game DVR functionality",
-                            IsPrimary = true
+                            IsPrimary = true,
+                            AbsenceMeansEnabled = true,
                         },
                         new RegistrySetting
                         {
                             Category = "Gaming",
                             Hive = RegistryHive.LocalMachine,
-                            SubKey = "SOFTWARE\\Microsoft\\Windows\\CurrentVersion\\GameConfigStore",
+                            SubKey =
+                                "SOFTWARE\\Microsoft\\Windows\\CurrentVersion\\GameConfigStore",
                             Name = "AllowGameDVR",
-                            RecommendedValue = 0,  // For backward compatibility
-                            EnabledValue = 1,      // When toggle is ON, Xbox Game DVR is enabled
-                            DisabledValue = 0,     // When toggle is OFF, Xbox Game DVR is disabled
+                            RecommendedValue = 0, // For backward compatibility
+                            EnabledValue = 1, // When toggle is ON, Xbox Game DVR is enabled
+                            DisabledValue = 0, // When toggle is OFF, Xbox Game DVR is disabled
                             ValueType = RegistryValueKind.DWord,
-                            DefaultValue = null,   // For backward compatibility
-                            Description = "Controls Xbox GameDVR functionality"
-                        }
+                            DefaultValue = 1, // Default value when registry key exists but no value is set
+                            Description = "Controls Xbox GameDVR functionality",
+                            IsPrimary = false,
+                            AbsenceMeansEnabled = true,
+                        },
                     },
-                    LinkedSettingsLogic = LinkedSettingsLogic.All
+                    LinkedSettingsLogic = LinkedSettingsLogic.All,
                 },
                 new OptimizationSetting
                 {
@@ -63,6 +68,7 @@ public static class GamingandPerformanceOptimizations
                     Category = OptimizationCategory.GamingandPerformance,
                     GroupName = "Game Bar",
                     IsEnabled = false,
+                    ControlType = ControlType.BinaryToggle,
                     RegistrySettings = new List<RegistrySetting>
                     {
                         new RegistrySetting
@@ -71,14 +77,16 @@ public static class GamingandPerformanceOptimizations
                             Hive = RegistryHive.CurrentUser,
                             SubKey = "Software\\Microsoft\\GameBar",
                             Name = "UseNexusForGameBarEnabled",
-                            RecommendedValue = 0,  // For backward compatibility
-                            EnabledValue = 1,      // When toggle is ON, controller access is enabled
-                            DisabledValue = 0,     // When toggle is OFF, controller access is disabled
+                            RecommendedValue = 0, // For backward compatibility
+                            EnabledValue = 1, // When toggle is ON, controller access is enabled
+                            DisabledValue = 0, // When toggle is OFF, controller access is disabled
                             ValueType = RegistryValueKind.DWord,
-                            DefaultValue = null,   // For backward compatibility
-                            Description = "Controls Xbox Game Bar access via game controller"
-                        }
-                    }
+                            DefaultValue = 1, // Default value when registry key exists but no value is set
+                            Description = "Controls Xbox Game Bar access via game controller",
+                            IsPrimary = true,
+                            AbsenceMeansEnabled = true,
+                        },
+                    },
                 },
                 new OptimizationSetting
                 {
@@ -88,6 +96,7 @@ public static class GamingandPerformanceOptimizations
                     Category = OptimizationCategory.GamingandPerformance,
                     GroupName = "Game Mode",
                     IsEnabled = true,
+                    ControlType = ControlType.BinaryToggle,
                     RegistrySettings = new List<RegistrySetting>
                     {
                         new RegistrySetting
@@ -96,14 +105,16 @@ public static class GamingandPerformanceOptimizations
                             Hive = RegistryHive.CurrentUser,
                             SubKey = "Software\\Microsoft\\GameBar",
                             Name = "AutoGameModeEnabled",
-                            RecommendedValue = 1,  // For backward compatibility
-                            EnabledValue = 1,      // When toggle is ON, Game Mode is enabled
-                            DisabledValue = 0,     // When toggle is OFF, Game Mode is disabled
+                            RecommendedValue = 1, // For backward compatibility
+                            EnabledValue = 1, // When toggle is ON, Game Mode is enabled
+                            DisabledValue = 0, // When toggle is OFF, Game Mode is disabled
                             ValueType = RegistryValueKind.DWord,
-                            DefaultValue = null,   // For backward compatibility
-                            Description = "Controls Game Mode for optimized gaming performance"
-                        }
-                    }
+                            DefaultValue = 1, // Default value when registry key exists but no value is set
+                            Description = "Controls Game Mode for optimized gaming performance",
+                            IsPrimary = true,
+                            AbsenceMeansEnabled = true,
+                        },
+                    },
                 },
                 new OptimizationSetting
                 {
@@ -113,6 +124,7 @@ public static class GamingandPerformanceOptimizations
                     Category = OptimizationCategory.GamingandPerformance,
                     GroupName = "DirectX",
                     IsEnabled = true,
+                    ControlType = ControlType.BinaryToggle,
                     RegistrySettings = new List<RegistrySetting>
                     {
                         new RegistrySetting
@@ -121,14 +133,17 @@ public static class GamingandPerformanceOptimizations
                             Hive = RegistryHive.CurrentUser,
                             SubKey = "Software\\Microsoft\\DirectX\\UserGpuPreferences",
                             Name = "DirectXUserGlobalSettings",
-                            RecommendedValue = "SwapEffectUpgradeEnable=1;VRROptimizeEnable=0;",  // For backward compatibility
-                            EnabledValue = "SwapEffectUpgradeEnable=1;VRROptimizeEnable=0;",      // When toggle is ON, optimizations are enabled
-                            DisabledValue = "",                                                    // When toggle is OFF, use default settings
+                            RecommendedValue = "SwapEffectUpgradeEnable=1;VRROptimizeEnable=0;", // For backward compatibility
+                            EnabledValue = "SwapEffectUpgradeEnable=1;VRROptimizeEnable=0;", // When toggle is ON, optimizations are enabled
+                            DisabledValue = "", // When toggle is OFF, use default settings
                             ValueType = RegistryValueKind.String,
-                            DefaultValue = null,   // For backward compatibility
-                            Description = "Controls DirectX settings for optimal gaming performance"
-                        }
-                    }
+                            DefaultValue = "SwapEffectUpgradeEnable=1;VRROptimizeEnable=0;", // Default value when registry key exists but no value is set
+                            Description =
+                                "Controls DirectX settings for optimal gaming performance",
+                            IsPrimary = true,
+                            AbsenceMeansEnabled = false,
+                        },
+                    },
                 },
                 new OptimizationSetting
                 {
@@ -138,6 +153,7 @@ public static class GamingandPerformanceOptimizations
                     Category = OptimizationCategory.GamingandPerformance,
                     GroupName = "Nvidia",
                     IsEnabled = true,
+                    ControlType = ControlType.BinaryToggle,
                     RegistrySettings = new List<RegistrySetting>
                     {
                         new RegistrySetting
@@ -146,14 +162,16 @@ public static class GamingandPerformanceOptimizations
                             Hive = RegistryHive.LocalMachine,
                             SubKey = "Software\\NVIDIA Corporation\\Global\\FTS",
                             Name = "EnableGR535",
-                            RecommendedValue = 0,  // For backward compatibility
-                            EnabledValue = 0,      // When toggle is ON, old Nvidia sharpening is enabled (0 = enabled for this setting)
-                            DisabledValue = 1,     // When toggle is OFF, old Nvidia sharpening is disabled (1 = disabled for this setting)
+                            RecommendedValue = 0, // For backward compatibility
+                            EnabledValue = 0, // When toggle is ON, old Nvidia sharpening is enabled (0 = enabled for this setting)
+                            DisabledValue = 1, // When toggle is OFF, old Nvidia sharpening is disabled (1 = disabled for this setting)
                             ValueType = RegistryValueKind.DWord,
-                            DefaultValue = null,   // For backward compatibility
-                            Description = "Controls Nvidia sharpening for image quality"
-                        }
-                    }
+                            DefaultValue = 1, // Default value when registry key exists but no value is set
+                            Description = "Controls Nvidia sharpening for image quality",
+                            IsPrimary = true,
+                            AbsenceMeansEnabled = false,
+                        },
+                    },
                 },
                 new OptimizationSetting
                 {
@@ -163,22 +181,27 @@ public static class GamingandPerformanceOptimizations
                     Category = OptimizationCategory.GamingandPerformance,
                     GroupName = "System Performance",
                     IsEnabled = true,
+                    ControlType = ControlType.BinaryToggle,
                     RegistrySettings = new List<RegistrySetting>
                     {
                         new RegistrySetting
                         {
                             Category = "Gaming",
                             Hive = RegistryHive.LocalMachine,
-                            SubKey = "Software\\Microsoft\\Windows NT\\CurrentVersion\\Multimedia\\SystemProfile",
+                            SubKey =
+                                "Software\\Microsoft\\Windows NT\\CurrentVersion\\Multimedia\\SystemProfile",
                             Name = "SystemResponsiveness",
-                            RecommendedValue = 0,  // For backward compatibility
-                            EnabledValue = 0,      // When toggle is ON, system responsiveness is optimized for games (0 = prioritize foreground)
-                            DisabledValue = 10,    // When toggle is OFF, system responsiveness is balanced (10 = default Windows value)
+                            RecommendedValue = 0, // For backward compatibility
+                            EnabledValue = 0, // When toggle is ON, system responsiveness is optimized for games (0 = prioritize foreground)
+                            DisabledValue = 10, // When toggle is OFF, system responsiveness is balanced (10 = default Windows value)
                             ValueType = RegistryValueKind.DWord,
-                            DefaultValue = null,   // For backward compatibility
-                            Description = "Controls system responsiveness for multimedia applications"
-                        }
-                    }
+                            DefaultValue = 10, // Default value when registry key exists but no value is set
+                            Description =
+                                "Controls system responsiveness for multimedia applications",
+                            IsPrimary = true,
+                            AbsenceMeansEnabled = false,
+                        },
+                    },
                 },
                 new OptimizationSetting
                 {
@@ -188,22 +211,27 @@ public static class GamingandPerformanceOptimizations
                     Category = OptimizationCategory.GamingandPerformance,
                     GroupName = "System Performance",
                     IsEnabled = true,
+                    ControlType = ControlType.BinaryToggle,
                     RegistrySettings = new List<RegistrySetting>
                     {
                         new RegistrySetting
                         {
                             Category = "Gaming",
                             Hive = RegistryHive.LocalMachine,
-                            SubKey = "Software\\Microsoft\\Windows NT\\CurrentVersion\\Multimedia\\SystemProfile",
+                            SubKey =
+                                "Software\\Microsoft\\Windows NT\\CurrentVersion\\Multimedia\\SystemProfile",
                             Name = "NetworkThrottlingIndex",
-                            RecommendedValue = 10,  // For backward compatibility
-                            EnabledValue = 10,      // When toggle is ON, network throttling is disabled (10 = disabled)
-                            DisabledValue = 5,      // When toggle is OFF, network throttling is enabled (default Windows value)
+                            RecommendedValue = 10, // For backward compatibility
+                            EnabledValue = 10, // When toggle is ON, network throttling is disabled (10 = disabled)
+                            DisabledValue = 5, // When toggle is OFF, network throttling is enabled (default Windows value)
                             ValueType = RegistryValueKind.DWord,
-                            DefaultValue = null,   // For backward compatibility
-                            Description = "Controls network throttling for optimal gaming performance"
-                        }
-                    }
+                            DefaultValue = 5, // Default value when registry key exists but no value is set
+                            Description =
+                                "Controls network throttling for optimal gaming performance",
+                            IsPrimary = true,
+                            AbsenceMeansEnabled = false,
+                        },
+                    },
                 },
                 new OptimizationSetting
                 {
@@ -213,22 +241,26 @@ public static class GamingandPerformanceOptimizations
                     Category = OptimizationCategory.GamingandPerformance,
                     GroupName = "System Performance",
                     IsEnabled = true,
+                    ControlType = ControlType.BinaryToggle,
                     RegistrySettings = new List<RegistrySetting>
                     {
                         new RegistrySetting
                         {
                             Category = "Gaming",
                             Hive = RegistryHive.LocalMachine,
-                            SubKey = "Software\\Microsoft\\Windows NT\\CurrentVersion\\Multimedia\\SystemProfile\\Tasks\\Games",
+                            SubKey =
+                                "Software\\Microsoft\\Windows NT\\CurrentVersion\\Multimedia\\SystemProfile\\Tasks\\Games",
                             Name = "GPU Priority",
-                            RecommendedValue = 8,  // For backward compatibility
-                            EnabledValue = 8,      // When toggle is ON, GPU priority is high (8 = high priority)
-                            DisabledValue = 2,     // When toggle is OFF, GPU priority is normal (default Windows value)
+                            RecommendedValue = 8, // For backward compatibility
+                            EnabledValue = 8, // When toggle is ON, GPU priority is high (8 = high priority)
+                            DisabledValue = 2, // When toggle is OFF, GPU priority is normal (default Windows value)
                             ValueType = RegistryValueKind.DWord,
-                            DefaultValue = null,   // For backward compatibility
-                            Description = "Controls GPU priority for gaming performance"
-                        }
-                    }
+                            DefaultValue = 2, // Default value when registry key exists but no value is set
+                            Description = "Controls GPU priority for gaming performance",
+                            IsPrimary = true,
+                            AbsenceMeansEnabled = false,
+                        },
+                    },
                 },
                 new OptimizationSetting
                 {
@@ -238,22 +270,26 @@ public static class GamingandPerformanceOptimizations
                     Category = OptimizationCategory.GamingandPerformance,
                     GroupName = "System Performance",
                     IsEnabled = true,
+                    ControlType = ControlType.BinaryToggle,
                     RegistrySettings = new List<RegistrySetting>
                     {
                         new RegistrySetting
                         {
                             Category = "Gaming",
                             Hive = RegistryHive.LocalMachine,
-                            SubKey = "Software\\Microsoft\\Windows NT\\CurrentVersion\\Multimedia\\SystemProfile\\Tasks\\Games",
+                            SubKey =
+                                "Software\\Microsoft\\Windows NT\\CurrentVersion\\Multimedia\\SystemProfile\\Tasks\\Games",
                             Name = "Priority",
-                            RecommendedValue = 6,  // For backward compatibility
-                            EnabledValue = 6,      // When toggle is ON, CPU priority is high (6 = high priority)
-                            DisabledValue = 2,     // When toggle is OFF, CPU priority is normal (default Windows value)
+                            RecommendedValue = 6, // For backward compatibility
+                            EnabledValue = 6, // When toggle is ON, CPU priority is high (6 = high priority)
+                            DisabledValue = 2, // When toggle is OFF, CPU priority is normal (default Windows value)
                             ValueType = RegistryValueKind.DWord,
-                            DefaultValue = null,   // For backward compatibility
-                            Description = "Controls CPU priority for gaming performance"
-                        }
-                    }
+                            DefaultValue = 2, // Default value when registry key exists but no value is set
+                            Description = "Controls CPU priority for gaming performance",
+                            IsPrimary = true,
+                            AbsenceMeansEnabled = false,
+                        },
+                    },
                 },
                 new OptimizationSetting
                 {
@@ -263,22 +299,26 @@ public static class GamingandPerformanceOptimizations
                     Category = OptimizationCategory.GamingandPerformance,
                     GroupName = "System Performance",
                     IsEnabled = true,
+                    ControlType = ControlType.BinaryToggle,
                     RegistrySettings = new List<RegistrySetting>
                     {
                         new RegistrySetting
                         {
                             Category = "Gaming",
                             Hive = RegistryHive.LocalMachine,
-                            SubKey = "Software\\Microsoft\\Windows NT\\CurrentVersion\\Multimedia\\SystemProfile\\Tasks\\Games",
+                            SubKey =
+                                "Software\\Microsoft\\Windows NT\\CurrentVersion\\Multimedia\\SystemProfile\\Tasks\\Games",
                             Name = "Scheduling Category",
-                            RecommendedValue = "High",  // For backward compatibility
-                            EnabledValue = "High",      // When toggle is ON, scheduling category is high
-                            DisabledValue = "Medium",   // When toggle is OFF, scheduling category is medium (default Windows value)
+                            RecommendedValue = "High", // For backward compatibility
+                            EnabledValue = "High", // When toggle is ON, scheduling category is high
+                            DisabledValue = "Medium", // When toggle is OFF, scheduling category is medium (default Windows value)
                             ValueType = RegistryValueKind.String,
-                            DefaultValue = null,   // For backward compatibility
-                            Description = "Controls scheduling category for games"
-                        }
-                    }
+                            DefaultValue = "Medium", // Default value when registry key exists but no value is set
+                            Description = "Controls scheduling category for games",
+                            IsPrimary = true,
+                            AbsenceMeansEnabled = false,
+                        },
+                    },
                 },
                 new OptimizationSetting
                 {
@@ -288,6 +328,7 @@ public static class GamingandPerformanceOptimizations
                     Category = OptimizationCategory.GamingandPerformance,
                     GroupName = "System Performance",
                     IsEnabled = true,
+                    ControlType = ControlType.BinaryToggle,
                     RegistrySettings = new List<RegistrySetting>
                     {
                         new RegistrySetting
@@ -296,14 +337,16 @@ public static class GamingandPerformanceOptimizations
                             Hive = RegistryHive.LocalMachine,
                             SubKey = "System\\CurrentControlSet\\Control\\GraphicsDrivers",
                             Name = "HwSchMode",
-                            RecommendedValue = 2,  // For backward compatibility
-                            EnabledValue = 2,      // When toggle is ON, hardware-accelerated GPU scheduling is enabled
-                            DisabledValue = 1,     // When toggle is OFF, hardware-accelerated GPU scheduling is disabled
+                            RecommendedValue = 2, // For backward compatibility
+                            EnabledValue = 2, // When toggle is ON, hardware-accelerated GPU scheduling is enabled
+                            DisabledValue = 1, // When toggle is OFF, hardware-accelerated GPU scheduling is disabled
                             ValueType = RegistryValueKind.DWord,
-                            DefaultValue = null,   // For backward compatibility
-                            Description = "Controls hardware-accelerated GPU scheduling"
-                        }
-                    }
+                            DefaultValue = 1, // Default value when registry key exists but no value is set
+                            Description = "Controls hardware-accelerated GPU scheduling",
+                            IsPrimary = true,
+                            AbsenceMeansEnabled = false,
+                        },
+                    },
                 },
                 new OptimizationSetting
                 {
@@ -313,6 +356,7 @@ public static class GamingandPerformanceOptimizations
                     Category = OptimizationCategory.GamingandPerformance,
                     GroupName = "System Performance",
                     IsEnabled = true,
+                    ControlType = ControlType.BinaryToggle,
                     RegistrySettings = new List<RegistrySetting>
                     {
                         new RegistrySetting
@@ -321,14 +365,17 @@ public static class GamingandPerformanceOptimizations
                             Hive = RegistryHive.LocalMachine,
                             SubKey = "System\\CurrentControlSet\\Control\\PriorityControl",
                             Name = "Win32PrioritySeparation",
-                            RecommendedValue = 38,  // For backward compatibility
-                            EnabledValue = 38,      // When toggle is ON, priority is set for best performance of programs
-                            DisabledValue = 2,      // When toggle is OFF, priority is set to default Windows value
+                            RecommendedValue = 38, // For backward compatibility
+                            EnabledValue = 38, // When toggle is ON, priority is set for best performance of programs
+                            DisabledValue = 2, // When toggle is OFF, priority is set to default Windows value
                             ValueType = RegistryValueKind.DWord,
-                            DefaultValue = null,   // For backward compatibility
-                            Description = "Controls Win32 priority separation for program performance"
-                        }
-                    }
+                            DefaultValue = 2, // Default value when registry key exists but no value is set
+                            Description =
+                                "Controls Win32 priority separation for program performance",
+                            IsPrimary = true,
+                            AbsenceMeansEnabled = false,
+                        },
+                    },
                 },
                 new OptimizationSetting
                 {
@@ -338,22 +385,25 @@ public static class GamingandPerformanceOptimizations
                     Category = OptimizationCategory.GamingandPerformance,
                     GroupName = "System Performance",
                     IsEnabled = false,
+                    ControlType = ControlType.BinaryToggle,
                     RegistrySettings = new List<RegistrySetting>
                     {
                         new RegistrySetting
                         {
                             Category = "Gaming",
                             Hive = RegistryHive.LocalMachine,
-                            SubKey = "Software\\Microsoft\\Windows\\CurrentVersion\\StorageSense\\Parameters",
+                            SubKey = "SOFTWARE\\Policies\\Microsoft\\Windows\\StorageSense",
                             Name = "AllowStorageSenseGlobal",
-                            RecommendedValue = 0,  // For backward compatibility
-                            EnabledValue = 1,      // When toggle is ON, Storage Sense is enabled
-                            DisabledValue = 0,     // When toggle is OFF, Storage Sense is disabled
+                            RecommendedValue = 0, // For backward compatibility
+                            EnabledValue = 1, // When toggle is ON, Storage Sense is enabled
+                            DisabledValue = 0, // When toggle is OFF, Storage Sense is disabled
                             ValueType = RegistryValueKind.DWord,
-                            DefaultValue = null,   // For backward compatibility
-                            Description = "Controls Storage Sense functionality"
-                        }
-                    }
+                            DefaultValue = 1, // Default value when registry key exists but no value is set
+                            Description = "Controls Storage Sense functionality",
+                            IsPrimary = true,
+                            AbsenceMeansEnabled = true,
+                        },
+                    },
                 },
                 new OptimizationSetting
                 {
@@ -363,6 +413,7 @@ public static class GamingandPerformanceOptimizations
                     Category = OptimizationCategory.GamingandPerformance,
                     GroupName = "Visual Effects",
                     IsEnabled = false,
+                    ControlType = ControlType.BinaryToggle,
                     RegistrySettings = new List<RegistrySetting>
                     {
                         new RegistrySetting
@@ -371,14 +422,16 @@ public static class GamingandPerformanceOptimizations
                             Hive = RegistryHive.CurrentUser,
                             SubKey = "Control Panel\\Desktop\\WindowMetrics",
                             Name = "MinAnimate",
-                            RecommendedValue = 0,  // For backward compatibility
-                            EnabledValue = 1,      // When toggle is ON, animations are enabled
-                            DisabledValue = 0,     // When toggle is OFF, animations are disabled
+                            RecommendedValue = 0, // For backward compatibility
+                            EnabledValue = 1, // When toggle is ON, animations are enabled
+                            DisabledValue = 0, // When toggle is OFF, animations are disabled
                             ValueType = RegistryValueKind.DWord,
-                            DefaultValue = null,   // For backward compatibility
-                            Description = "Controls UI animations for improved performance"
-                        }
-                    }
+                            DefaultValue = 1, // Default value when registry key exists but no value is set
+                            Description = "Controls UI animations for improved performance",
+                            IsPrimary = true,
+                            AbsenceMeansEnabled = true,
+                        },
+                    },
                 },
                 new OptimizationSetting
                 {
@@ -388,22 +441,26 @@ public static class GamingandPerformanceOptimizations
                     Category = OptimizationCategory.GamingandPerformance,
                     GroupName = "Startup",
                     IsEnabled = false,
+                    ControlType = ControlType.BinaryToggle,
                     RegistrySettings = new List<RegistrySetting>
                     {
                         new RegistrySetting
                         {
                             Category = "Performance",
                             Hive = RegistryHive.CurrentUser,
-                            SubKey = "Software\\Microsoft\\Windows\\CurrentVersion\\Explorer\\Serialize",
+                            SubKey =
+                                "Software\\Microsoft\\Windows\\CurrentVersion\\Explorer\\Serialize",
                             Name = "StartupDelayInMSec",
-                            RecommendedValue = 0,  // For backward compatibility
-                            EnabledValue = 10000,  // When toggle is ON, startup delay is enabled (10 seconds)
-                            DisabledValue = 0,     // When toggle is OFF, startup delay is disabled
+                            RecommendedValue = 0, // For backward compatibility
+                            EnabledValue = 10000, // When toggle is ON, startup delay is enabled (10 seconds)
+                            DisabledValue = 0, // When toggle is OFF, startup delay is disabled
                             ValueType = RegistryValueKind.DWord,
-                            DefaultValue = null,   // For backward compatibility
-                            Description = "Controls startup delay for applications"
-                        }
-                    }
+                            DefaultValue = 0, // Default value when registry key exists but no value is set
+                            Description = "Controls startup delay for applications",
+                            IsPrimary = true,
+                            AbsenceMeansEnabled = false,
+                        },
+                    },
                 },
                 new OptimizationSetting
                 {
@@ -413,6 +470,7 @@ public static class GamingandPerformanceOptimizations
                     Category = OptimizationCategory.GamingandPerformance,
                     GroupName = "System Services",
                     IsEnabled = false,
+                    ControlType = ControlType.BinaryToggle,
                     RegistrySettings = new List<RegistrySetting>
                     {
                         new RegistrySetting
@@ -421,14 +479,16 @@ public static class GamingandPerformanceOptimizations
                             Hive = RegistryHive.LocalMachine,
                             SubKey = "SYSTEM\\CurrentControlSet\\Control",
                             Name = "ServicesPipeTimeout",
-                            RecommendedValue = 60000,  // For backward compatibility
-                            EnabledValue = 30000,      // When toggle is ON, services timeout is reduced (30 seconds)
-                            DisabledValue = 60000,     // When toggle is OFF, services timeout is default (60 seconds)
+                            RecommendedValue = 60000, // For backward compatibility
+                            EnabledValue = 30000, // When toggle is ON, services timeout is reduced (30 seconds)
+                            DisabledValue = 60000, // When toggle is OFF, services timeout is default (60 seconds)
                             ValueType = RegistryValueKind.DWord,
-                            DefaultValue = null,       // For backward compatibility
-                            Description = "Controls background services for better performance"
-                        }
-                    }
+                            DefaultValue = 60000, // Default value when registry key exists but no value is set
+                            Description = "Controls background services for better performance",
+                            IsPrimary = true,
+                            AbsenceMeansEnabled = false,
+                        },
+                    },
                 },
                 new OptimizationSetting
                 {
@@ -438,6 +498,7 @@ public static class GamingandPerformanceOptimizations
                     Category = OptimizationCategory.GamingandPerformance,
                     GroupName = "Visual Effects",
                     IsEnabled = false,
+                    ControlType = ControlType.BinaryToggle,
                     RegistrySettings = new List<RegistrySetting>
                     {
                         new RegistrySetting
@@ -446,14 +507,16 @@ public static class GamingandPerformanceOptimizations
                             Hive = RegistryHive.CurrentUser,
                             SubKey = "Software\\Microsoft\\Windows\\DWM",
                             Name = "CompositionPolicy",
-                            RecommendedValue = 0,  // For backward compatibility
-                            EnabledValue = 1,      // When toggle is ON, desktop composition is enabled
-                            DisabledValue = 0,     // When toggle is OFF, desktop composition is disabled
+                            RecommendedValue = 0, // For backward compatibility
+                            EnabledValue = 1, // When toggle is ON, desktop composition is enabled
+                            DisabledValue = 0, // When toggle is OFF, desktop composition is disabled
                             ValueType = RegistryValueKind.DWord,
-                            DefaultValue = null,   // For backward compatibility
-                            Description = "Controls desktop composition effects"
-                        }
-                    }
+                            DefaultValue = 1, // Default value when registry key exists but no value is set
+                            Description = "Controls desktop composition effects",
+                            IsPrimary = true,
+                            AbsenceMeansEnabled = true,
+                        },
+                    },
                 },
                 new OptimizationSetting
                 {
@@ -463,6 +526,7 @@ public static class GamingandPerformanceOptimizations
                     Category = OptimizationCategory.GamingandPerformance,
                     GroupName = "Startup",
                     IsEnabled = false,
+                    ControlType = ControlType.BinaryToggle,
                     RegistrySettings = new List<RegistrySetting>
                     {
                         new RegistrySetting
@@ -471,14 +535,16 @@ public static class GamingandPerformanceOptimizations
                             Hive = RegistryHive.LocalMachine,
                             SubKey = "SYSTEM\\CurrentControlSet\\Control\\Session Manager\\Power",
                             Name = "HiberbootEnabled",
-                            RecommendedValue = 0,  // For backward compatibility
-                            EnabledValue = 1,      // When toggle is ON, fast startup is enabled
-                            DisabledValue = 0,     // When toggle is OFF, fast startup is disabled
+                            RecommendedValue = 0, // For backward compatibility
+                            EnabledValue = 1, // When toggle is ON, fast startup is enabled
+                            DisabledValue = 0, // When toggle is OFF, fast startup is disabled
                             ValueType = RegistryValueKind.DWord,
-                            DefaultValue = null,   // For backward compatibility
-                            Description = "Controls fast startup feature"
-                        }
-                    }
+                            DefaultValue = 1, // Default value when registry key exists but no value is set
+                            Description = "Controls fast startup feature",
+                            IsPrimary = true,
+                            AbsenceMeansEnabled = true,
+                        },
+                    },
                 },
                 new OptimizationSetting
                 {
@@ -488,22 +554,26 @@ public static class GamingandPerformanceOptimizations
                     Category = OptimizationCategory.GamingandPerformance,
                     GroupName = "File Explorer",
                     IsEnabled = false,
+                    ControlType = ControlType.BinaryToggle,
                     RegistrySettings = new List<RegistrySetting>
                     {
                         new RegistrySetting
                         {
                             Category = "Performance",
                             Hive = RegistryHive.CurrentUser,
-                            SubKey = "Software\\Microsoft\\Windows\\CurrentVersion\\Explorer\\Search\\Preferences",
+                            SubKey =
+                                "Software\\Microsoft\\Windows\\CurrentVersion\\Explorer\\Search\\Preferences",
                             Name = "WholeFileSystem",
-                            RecommendedValue = 0,  // For backward compatibility
-                            EnabledValue = 1,      // When toggle is ON, search includes whole file system
-                            DisabledValue = 0,     // When toggle is OFF, search is limited to indexed locations
+                            RecommendedValue = 0, // For backward compatibility
+                            EnabledValue = 1, // When toggle is ON, search includes whole file system
+                            DisabledValue = 0, // When toggle is OFF, search is limited to indexed locations
                             ValueType = RegistryValueKind.DWord,
-                            DefaultValue = null,   // For backward compatibility
-                            Description = "Controls file explorer search indexing"
-                        }
-                    }
+                            DefaultValue = 0, // Default value when registry key exists but no value is set
+                            Description = "Controls file explorer search indexing",
+                            IsPrimary = true,
+                            AbsenceMeansEnabled = false,
+                        },
+                    },
                 },
                 new OptimizationSetting
                 {
@@ -513,6 +583,7 @@ public static class GamingandPerformanceOptimizations
                     Category = OptimizationCategory.GamingandPerformance,
                     GroupName = "Visual Effects",
                     IsEnabled = false,
+                    ControlType = ControlType.BinaryToggle,
                     RegistrySettings = new List<RegistrySetting>
                     {
                         new RegistrySetting
@@ -521,14 +592,16 @@ public static class GamingandPerformanceOptimizations
                             Hive = RegistryHive.CurrentUser,
                             SubKey = "Control Panel\\Desktop",
                             Name = "MenuShowDelay",
-                            RecommendedValue = 0,  // For backward compatibility
-                            EnabledValue = 400,    // When toggle is ON, menu animations are enabled (default delay)
-                            DisabledValue = 0,     // When toggle is OFF, menu animations are disabled
+                            RecommendedValue = 0, // For backward compatibility
+                            EnabledValue = 400, // When toggle is ON, menu animations are enabled (default delay)
+                            DisabledValue = 0, // When toggle is OFF, menu animations are disabled
                             ValueType = RegistryValueKind.String,
-                            DefaultValue = null,   // For backward compatibility
-                            Description = "Controls menu animations"
-                        }
-                    }
+                            DefaultValue = 400, // Default value when registry key exists but no value is set
+                            Description = "Controls menu animations",
+                            IsPrimary = true,
+                            AbsenceMeansEnabled = false,
+                        },
+                    },
                 },
                 new OptimizationSetting
                 {
@@ -538,22 +611,26 @@ public static class GamingandPerformanceOptimizations
                     Category = OptimizationCategory.GamingandPerformance,
                     GroupName = "System Performance",
                     IsEnabled = false,
+                    ControlType = ControlType.BinaryToggle,
                     RegistrySettings = new List<RegistrySetting>
                     {
                         new RegistrySetting
                         {
                             Category = "Performance",
                             Hive = RegistryHive.LocalMachine,
-                            SubKey = "SYSTEM\\CurrentControlSet\\Control\\Session Manager\\Memory Management\\PrefetchParameters",
+                            SubKey =
+                                "SYSTEM\\CurrentControlSet\\Control\\Session Manager\\Memory Management\\PrefetchParameters",
                             Name = "EnablePrefetcher",
-                            RecommendedValue = 0,  // For backward compatibility
-                            EnabledValue = 3,      // When toggle is ON, prefetch is enabled (3 = both application and boot prefetching)
-                            DisabledValue = 0,     // When toggle is OFF, prefetch is disabled
+                            RecommendedValue = 0, // For backward compatibility
+                            EnabledValue = 3, // When toggle is ON, prefetch is enabled (3 = both application and boot prefetching)
+                            DisabledValue = 0, // When toggle is OFF, prefetch is disabled
                             ValueType = RegistryValueKind.DWord,
-                            DefaultValue = null,   // For backward compatibility
-                            Description = "Controls Windows prefetch feature"
-                        }
-                    }
+                            DefaultValue = 3, // Default value when registry key exists but no value is set
+                            Description = "Controls Windows prefetch feature",
+                            IsPrimary = true,
+                            AbsenceMeansEnabled = true,
+                        },
+                    },
                 },
                 new OptimizationSetting
                 {
@@ -563,6 +640,7 @@ public static class GamingandPerformanceOptimizations
                     Category = OptimizationCategory.GamingandPerformance,
                     GroupName = "System Services",
                     IsEnabled = false,
+                    ControlType = ControlType.BinaryToggle,
                     RegistrySettings = new List<RegistrySetting>
                     {
                         new RegistrySetting
@@ -571,14 +649,16 @@ public static class GamingandPerformanceOptimizations
                             Hive = RegistryHive.LocalMachine,
                             SubKey = "SYSTEM\\CurrentControlSet\\Control\\Remote Assistance",
                             Name = "fAllowToGetHelp",
-                            RecommendedValue = 0,  // For backward compatibility
-                            EnabledValue = 1,      // When toggle is ON, remote assistance is enabled
-                            DisabledValue = 0,     // When toggle is OFF, remote assistance is disabled
+                            RecommendedValue = 0, // For backward compatibility
+                            EnabledValue = 1, // When toggle is ON, remote assistance is enabled
+                            DisabledValue = 0, // When toggle is OFF, remote assistance is disabled
                             ValueType = RegistryValueKind.DWord,
-                            DefaultValue = null,   // For backward compatibility
-                            Description = "Controls remote assistance feature"
-                        }
-                    }
+                            DefaultValue = 1, // Default value when registry key exists but no value is set
+                            Description = "Controls remote assistance feature",
+                            IsPrimary = true,
+                            AbsenceMeansEnabled = true,
+                        },
+                    },
                 },
                 new OptimizationSetting
                 {
@@ -588,22 +668,26 @@ public static class GamingandPerformanceOptimizations
                     Category = OptimizationCategory.GamingandPerformance,
                     GroupName = "System Performance",
                     IsEnabled = false,
+                    ControlType = ControlType.BinaryToggle,
                     RegistrySettings = new List<RegistrySetting>
                     {
                         new RegistrySetting
                         {
                             Category = "Performance",
                             Hive = RegistryHive.LocalMachine,
-                            SubKey = "SYSTEM\\CurrentControlSet\\Control\\Session Manager\\Memory Management\\PrefetchParameters",
+                            SubKey =
+                                "SYSTEM\\CurrentControlSet\\Control\\Session Manager\\Memory Management\\PrefetchParameters",
                             Name = "EnableSuperfetch",
-                            RecommendedValue = 0,  // For backward compatibility
-                            EnabledValue = 3,      // When toggle is ON, superfetch is enabled (3 = full functionality)
-                            DisabledValue = 0,     // When toggle is OFF, superfetch is disabled
+                            RecommendedValue = 0, // For backward compatibility
+                            EnabledValue = 3, // When toggle is ON, superfetch is enabled (3 = full functionality)
+                            DisabledValue = 0, // When toggle is OFF, superfetch is disabled
                             ValueType = RegistryValueKind.DWord,
-                            DefaultValue = null,   // For backward compatibility
-                            Description = "Controls superfetch/SysMain service"
-                        }
-                    }
+                            DefaultValue = 3, // Default value when registry key exists but no value is set
+                            Description = "Controls superfetch/SysMain service",
+                            IsPrimary = true,
+                            AbsenceMeansEnabled = true,
+                        },
+                    },
                 },
                 new OptimizationSetting
                 {
@@ -613,22 +697,26 @@ public static class GamingandPerformanceOptimizations
                     Category = OptimizationCategory.GamingandPerformance,
                     GroupName = "Visual Effects",
                     IsEnabled = false,
+                    ControlType = ControlType.BinaryToggle,
                     RegistrySettings = new List<RegistrySetting>
                     {
                         new RegistrySetting
                         {
                             Category = "Performance",
                             Hive = RegistryHive.CurrentUser,
-                            SubKey = "Software\\Microsoft\\Windows\\CurrentVersion\\Explorer\\VisualEffects",
+                            SubKey =
+                                "Software\\Microsoft\\Windows\\CurrentVersion\\Explorer\\VisualEffects",
                             Name = "VisualFXSetting",
-                            RecommendedValue = 2,  // For backward compatibility
-                            EnabledValue = 1,      // When toggle is ON, visual effects are set to "best appearance" (1)
-                            DisabledValue = 2,     // When toggle is OFF, visual effects are set to "best performance" (2)
+                            RecommendedValue = 2, // For backward compatibility
+                            EnabledValue = 1, // When toggle is ON, visual effects are set to "best appearance" (1)
+                            DisabledValue = 2, // When toggle is OFF, visual effects are set to "best performance" (2)
                             ValueType = RegistryValueKind.DWord,
-                            DefaultValue = null,   // For backward compatibility
-                            Description = "Controls visual effects for best performance"
-                        }
-                    }
+                            DefaultValue = 2, // Default value when registry key exists but no value is set
+                            Description = "Controls visual effects for best performance",
+                            IsPrimary = true,
+                            AbsenceMeansEnabled = false,
+                        },
+                    },
                 },
                 new OptimizationSetting
                 {
@@ -638,6 +726,7 @@ public static class GamingandPerformanceOptimizations
                     Category = OptimizationCategory.GamingandPerformance,
                     GroupName = "Mouse Settings",
                     IsEnabled = false,
+                    ControlType = ControlType.BinaryToggle,
                     RegistrySettings = new List<RegistrySetting>
                     {
                         new RegistrySetting
@@ -646,14 +735,17 @@ public static class GamingandPerformanceOptimizations
                             Hive = RegistryHive.CurrentUser,
                             SubKey = "Control Panel\\Mouse",
                             Name = "MouseSpeed",
-                            RecommendedValue = "0",
-                            EnabledValue = "1",    // When toggle is ON, enhanced pointer precision is enabled
-                            DisabledValue = "0",   // When toggle is OFF, enhanced pointer precision is disabled
+                            RecommendedValue = 0,
+                            EnabledValue = 1, // When toggle is ON, enhanced pointer precision is enabled
+                            DisabledValue = 0, // When toggle is OFF, enhanced pointer precision is disabled
                             ValueType = RegistryValueKind.String,
-                            DefaultValue = null,
-                            Description = "Controls enhanced pointer precision (mouse acceleration)"
-                        }
-                    }
+                            DefaultValue = 0, // Default value when registry key exists but no value is set
+                            Description =
+                                "Controls enhanced pointer precision (mouse acceleration)",
+                            IsPrimary = true,
+                            AbsenceMeansEnabled = false,
+                        },
+                    },
                 },
                 new OptimizationSetting
                 {
@@ -663,6 +755,7 @@ public static class GamingandPerformanceOptimizations
                     Category = OptimizationCategory.GamingandPerformance,
                     GroupName = "Mouse Settings",
                     IsEnabled = false,
+                    ControlType = ControlType.BinaryToggle,
                     RegistrySettings = new List<RegistrySetting>
                     {
                         new RegistrySetting
@@ -671,14 +764,16 @@ public static class GamingandPerformanceOptimizations
                             Hive = RegistryHive.CurrentUser,
                             SubKey = "Control Panel\\Mouse",
                             Name = "MouseThreshold1",
-                            RecommendedValue = "0",
-                            EnabledValue = "6",    // When toggle is ON, mouse threshold 1 is enabled (default value)
-                            DisabledValue = "0",   // When toggle is OFF, mouse threshold 1 is disabled
+                            RecommendedValue = 0,
+                            EnabledValue = 6, // When toggle is ON, mouse threshold 1 is enabled (default value)
+                            DisabledValue = 0, // When toggle is OFF, mouse threshold 1 is disabled
                             ValueType = RegistryValueKind.String,
-                            DefaultValue = null,
-                            Description = "Controls mouse acceleration threshold 1"
-                        }
-                    }
+                            DefaultValue = 0, // Default value when registry key exists but no value is set
+                            Description = "Controls mouse acceleration threshold 1",
+                            IsPrimary = true,
+                            AbsenceMeansEnabled = false,
+                        },
+                    },
                 },
                 new OptimizationSetting
                 {
@@ -688,6 +783,7 @@ public static class GamingandPerformanceOptimizations
                     Category = OptimizationCategory.GamingandPerformance,
                     GroupName = "Mouse Settings",
                     IsEnabled = false,
+                    ControlType = ControlType.BinaryToggle,
                     RegistrySettings = new List<RegistrySetting>
                     {
                         new RegistrySetting
@@ -696,14 +792,16 @@ public static class GamingandPerformanceOptimizations
                             Hive = RegistryHive.CurrentUser,
                             SubKey = "Control Panel\\Mouse",
                             Name = "MouseThreshold2",
-                            RecommendedValue = "0",
-                            EnabledValue = "10",   // When toggle is ON, mouse threshold 2 is enabled (default value)
-                            DisabledValue = "0",   // When toggle is OFF, mouse threshold 2 is disabled
+                            RecommendedValue = 0,
+                            EnabledValue = 10, // When toggle is ON, mouse threshold 2 is enabled (default value)
+                            DisabledValue = 0, // When toggle is OFF, mouse threshold 2 is disabled
                             ValueType = RegistryValueKind.String,
-                            DefaultValue = null,
-                            Description = "Controls mouse acceleration threshold 2"
-                        }
-                    }
+                            DefaultValue = 0, // Default value when registry key exists but no value is set
+                            Description = "Controls mouse acceleration threshold 2",
+                            IsPrimary = true,
+                            AbsenceMeansEnabled = false,
+                        },
+                    },
                 },
                 new OptimizationSetting
                 {
@@ -713,6 +811,7 @@ public static class GamingandPerformanceOptimizations
                     Category = OptimizationCategory.GamingandPerformance,
                     GroupName = "File Explorer Settings",
                     IsEnabled = false,
+                    ControlType = ControlType.BinaryToggle,
                     RegistrySettings = new List<RegistrySetting>
                     {
                         new RegistrySetting
@@ -721,12 +820,16 @@ public static class GamingandPerformanceOptimizations
                             Hive = RegistryHive.CurrentUser,
                             SubKey = "Control Panel\\Mouse",
                             Name = "MouseSensitivity",
-                            RecommendedValue = "10",
+                            RecommendedValue = 10,
+                            EnabledValue = 10,
+                            DisabledValue = "", // Sets to default
                             ValueType = RegistryValueKind.String,
-                            DefaultValue = null,
-                            Description = "Sets mouse sensitivity to 10"
-                        }
-                    }
+                            DefaultValue = "", // Default value when registry key exists but no value is set
+                            Description = "Sets mouse sensitivity to 10",
+                            IsPrimary = true,
+                            AbsenceMeansEnabled = false,
+                        },
+                    },
                 },
                 new OptimizationSetting
                 {
@@ -736,6 +839,7 @@ public static class GamingandPerformanceOptimizations
                     Category = OptimizationCategory.GamingandPerformance,
                     GroupName = "File Explorer Settings",
                     IsEnabled = false,
+                    ControlType = ControlType.BinaryToggle,
                     RegistrySettings = new List<RegistrySetting>
                     {
                         new RegistrySetting
@@ -744,12 +848,98 @@ public static class GamingandPerformanceOptimizations
                             Hive = RegistryHive.CurrentUser,
                             SubKey = "Control Panel\\Mouse",
                             Name = "SmoothMouseXCurve",
-                            RecommendedValue = new byte[] { 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0xC0, 0xCC, 0x0C, 0x00, 0x00, 0x00, 0x00, 0x00, 0x80, 0x99, 0x19, 0x00, 0x00, 0x00, 0x00, 0x00, 0x40, 0x66, 0x26, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x33, 0x33, 0x00, 0x00, 0x00, 0x00, 0x00 },
+                            RecommendedValue = new byte[]
+                            {
+                                0x00,
+                                0x00,
+                                0x00,
+                                0x00,
+                                0x00,
+                                0x00,
+                                0x00,
+                                0x00,
+                                0xC0,
+                                0xCC,
+                                0x0C,
+                                0x00,
+                                0x00,
+                                0x00,
+                                0x00,
+                                0x00,
+                                0x80,
+                                0x99,
+                                0x19,
+                                0x00,
+                                0x00,
+                                0x00,
+                                0x00,
+                                0x00,
+                                0x40,
+                                0x66,
+                                0x26,
+                                0x00,
+                                0x00,
+                                0x00,
+                                0x00,
+                                0x00,
+                                0x00,
+                                0x33,
+                                0x33,
+                                0x00,
+                                0x00,
+                                0x00,
+                                0x00,
+                                0x00,
+                            },
                             ValueType = RegistryValueKind.Binary,
-                            DefaultValue = null,
-                            Description = "Sets SmoothMouseXCurve"
-                        }
-                    }
+                            DefaultValue = new byte[]
+                            {
+                                0x00,
+                                0x00,
+                                0x00,
+                                0x00,
+                                0x00,
+                                0x00,
+                                0x00,
+                                0x00,
+                                0xC0,
+                                0xCC,
+                                0x0C,
+                                0x00,
+                                0x00,
+                                0x00,
+                                0x00,
+                                0x00,
+                                0x80,
+                                0x99,
+                                0x19,
+                                0x00,
+                                0x00,
+                                0x00,
+                                0x00,
+                                0x00,
+                                0x40,
+                                0x66,
+                                0x26,
+                                0x00,
+                                0x00,
+                                0x00,
+                                0x00,
+                                0x00,
+                                0x00,
+                                0x33,
+                                0x33,
+                                0x00,
+                                0x00,
+                                0x00,
+                                0x00,
+                                0x00,
+                            },
+                            Description = "Sets SmoothMouseXCurve",
+                            IsPrimary = true,
+                            AbsenceMeansEnabled = false,
+                        },
+                    },
                 },
                 new OptimizationSetting
                 {
@@ -759,6 +949,7 @@ public static class GamingandPerformanceOptimizations
                     Category = OptimizationCategory.GamingandPerformance,
                     GroupName = "File Explorer Settings",
                     IsEnabled = false,
+                    ControlType = ControlType.BinaryToggle,
                     RegistrySettings = new List<RegistrySetting>
                     {
                         new RegistrySetting
@@ -767,12 +958,98 @@ public static class GamingandPerformanceOptimizations
                             Hive = RegistryHive.CurrentUser,
                             SubKey = "Control Panel\\Mouse",
                             Name = "SmoothMouseYCurve",
-                            RecommendedValue = new byte[] { 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x38, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x70, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0xA8, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0xE0, 0x00, 0x00, 0x00, 0x00, 0x00 },
+                            RecommendedValue = new byte[]
+                            {
+                                0x00,
+                                0x00,
+                                0x00,
+                                0x00,
+                                0x00,
+                                0x00,
+                                0x00,
+                                0x00,
+                                0x00,
+                                0x00,
+                                0x38,
+                                0x00,
+                                0x00,
+                                0x00,
+                                0x00,
+                                0x00,
+                                0x00,
+                                0x00,
+                                0x70,
+                                0x00,
+                                0x00,
+                                0x00,
+                                0x00,
+                                0x00,
+                                0x00,
+                                0x00,
+                                0xA8,
+                                0x00,
+                                0x00,
+                                0x00,
+                                0x00,
+                                0x00,
+                                0x00,
+                                0x00,
+                                0xE0,
+                                0x00,
+                                0x00,
+                                0x00,
+                                0x00,
+                                0x00,
+                            },
                             ValueType = RegistryValueKind.Binary,
-                            DefaultValue = null,
-                            Description = "Sets SmoothMouseYCurve"
-                        }
-                    }
+                            DefaultValue = new byte[]
+                            {
+                                0x00,
+                                0x00,
+                                0x00,
+                                0x00,
+                                0x00,
+                                0x00,
+                                0x00,
+                                0x00,
+                                0x00,
+                                0x00,
+                                0x38,
+                                0x00,
+                                0x00,
+                                0x00,
+                                0x00,
+                                0x00,
+                                0x00,
+                                0x00,
+                                0x70,
+                                0x00,
+                                0x00,
+                                0x00,
+                                0x00,
+                                0x00,
+                                0x00,
+                                0x00,
+                                0xA8,
+                                0x00,
+                                0x00,
+                                0x00,
+                                0x00,
+                                0x00,
+                                0x00,
+                                0x00,
+                                0xE0,
+                                0x00,
+                                0x00,
+                                0x00,
+                                0x00,
+                                0x00,
+                            },
+                            Description = "Sets SmoothMouseYCurve",
+                            IsPrimary = true,
+                            AbsenceMeansEnabled = false,
+                        },
+                    },
                 },
                 new OptimizationSetting
                 {
@@ -782,6 +1059,7 @@ public static class GamingandPerformanceOptimizations
                     Category = OptimizationCategory.GamingandPerformance,
                     GroupName = "File Explorer Settings",
                     IsEnabled = false,
+                    ControlType = ControlType.BinaryToggle,
                     RegistrySettings = new List<RegistrySetting>
                     {
                         new RegistrySetting
@@ -790,14 +1068,56 @@ public static class GamingandPerformanceOptimizations
                             Hive = RegistryHive.CurrentUser,
                             SubKey = "Control Panel\\Desktop",
                             Name = "UserPreferencesMask",
-                            RecommendedValue = new byte[] { 0x90, 0x12, 0x03, 0x80, 0x10, 0x00, 0x00, 0x00 },
-                            EnabledValue = new byte[] { 0x9E, 0x3E, 0x07, 0x80, 0x12, 0x00, 0x00, 0x00 },  // When toggle is ON, animations are enabled
-                            DisabledValue = new byte[] { 0x90, 0x12, 0x03, 0x80, 0x10, 0x00, 0x00, 0x00 }, // When toggle is OFF, animations are disabled
+                            RecommendedValue = new byte[]
+                            {
+                                0x90,
+                                0x12,
+                                0x03,
+                                0x80,
+                                0x10,
+                                0x00,
+                                0x00,
+                                0x00,
+                            },
+                            EnabledValue = new byte[]
+                            {
+                                0x9E,
+                                0x3E,
+                                0x07,
+                                0x80,
+                                0x12,
+                                0x00,
+                                0x00,
+                                0x00,
+                            }, // When toggle is ON, animations are enabled
+                            DisabledValue = new byte[]
+                            {
+                                0x90,
+                                0x12,
+                                0x03,
+                                0x80,
+                                0x10,
+                                0x00,
+                                0x00,
+                                0x00,
+                            }, // When toggle is OFF, animations are disabled
                             ValueType = RegistryValueKind.Binary,
-                            DefaultValue = null,
-                            Description = "Controls animations and visual effects"
-                        }
-                    }
+                            DefaultValue = new byte[]
+                            {
+                                0x90,
+                                0x12,
+                                0x03,
+                                0x80,
+                                0x10,
+                                0x00,
+                                0x00,
+                                0x00,
+                            },
+                            Description = "Controls animations and visual effects",
+                            IsPrimary = true,
+                            AbsenceMeansEnabled = false,
+                        },
+                    },
                 },
                 new OptimizationSetting
                 {
@@ -807,6 +1127,7 @@ public static class GamingandPerformanceOptimizations
                     Category = OptimizationCategory.GamingandPerformance,
                     GroupName = "File Explorer Settings",
                     IsEnabled = false,
+                    ControlType = ControlType.BinaryToggle,
                     RegistrySettings = new List<RegistrySetting>
                     {
                         new RegistrySetting
@@ -815,14 +1136,16 @@ public static class GamingandPerformanceOptimizations
                             Hive = RegistryHive.CurrentUser,
                             SubKey = "Control Panel\\Desktop",
                             Name = "MenuShowDelay",
-                            RecommendedValue = "0",
-                            EnabledValue = "400",   // When toggle is ON, menu show delay is enabled (default value)
-                            DisabledValue = "0",    // When toggle is OFF, menu show delay is disabled
+                            RecommendedValue = 0,
+                            EnabledValue = 400, // When toggle is ON, menu show delay is enabled (default value)
+                            DisabledValue = 0, // When toggle is OFF, menu show delay is disabled
                             ValueType = RegistryValueKind.String,
-                            DefaultValue = null,
-                            Description = "Controls menu show delay"
-                        }
-                    }
+                            DefaultValue = 400, // Default value when registry key exists but no value is set
+                            Description = "Controls menu show delay",
+                            IsPrimary = true,
+                            AbsenceMeansEnabled = false,
+                        },
+                    },
                 },
                 new OptimizationSetting
                 {
@@ -832,20 +1155,26 @@ public static class GamingandPerformanceOptimizations
                     Category = OptimizationCategory.GamingandPerformance,
                     GroupName = "File Explorer Settings",
                     IsEnabled = false,
+                    ControlType = ControlType.BinaryToggle,
                     RegistrySettings = new List<RegistrySetting>
                     {
                         new RegistrySetting
                         {
                             Category = "Explorer",
                             Hive = RegistryHive.CurrentUser,
-                            SubKey = "Software\\Microsoft\\Windows\\CurrentVersion\\Explorer\\VisualEffects",
+                            SubKey =
+                                "Software\\Microsoft\\Windows\\CurrentVersion\\Explorer\\VisualEffects",
                             Name = "VisualFXSetting",
                             RecommendedValue = 3,
+                            EnabledValue = 3,
+                            DisabledValue = 0,
                             ValueType = RegistryValueKind.DWord,
-                            DefaultValue = null,
-                            Description = "Sets appearance options to custom"
-                        }
-                    }
+                            DefaultValue = 3, // Default value when registry key exists but no value is set
+                            Description = "Sets appearance options to custom",
+                            IsPrimary = true,
+                            AbsenceMeansEnabled = false,
+                        },
+                    },
                 },
                 new OptimizationSetting
                 {
@@ -855,22 +1184,26 @@ public static class GamingandPerformanceOptimizations
                     Category = OptimizationCategory.GamingandPerformance,
                     GroupName = "File Explorer Settings",
                     IsEnabled = false,
+                    ControlType = ControlType.BinaryToggle,
                     RegistrySettings = new List<RegistrySetting>
                     {
                         new RegistrySetting
                         {
                             Category = "Explorer",
                             Hive = RegistryHive.CurrentUser,
-                            SubKey = "Software\\Microsoft\\Windows\\CurrentVersion\\Explorer\\Advanced",
+                            SubKey =
+                                "Software\\Microsoft\\Windows\\CurrentVersion\\Explorer\\Advanced",
                             Name = "TaskbarAnimations",
                             RecommendedValue = 0,
-                            EnabledValue = 1,      // When toggle is ON, taskbar animations are enabled
-                            DisabledValue = 0,     // When toggle is OFF, taskbar animations are disabled
+                            EnabledValue = 1, // When toggle is ON, taskbar animations are enabled
+                            DisabledValue = 0, // When toggle is OFF, taskbar animations are disabled
                             ValueType = RegistryValueKind.DWord,
-                            DefaultValue = null,
-                            Description = "Controls taskbar animations"
-                        }
-                    }
+                            DefaultValue = 1, // Default value when registry key exists but no value is set
+                            Description = "Controls taskbar animations",
+                            IsPrimary = true,
+                            AbsenceMeansEnabled = true,
+                        },
+                    },
                 },
                 new OptimizationSetting
                 {
@@ -880,6 +1213,7 @@ public static class GamingandPerformanceOptimizations
                     Category = OptimizationCategory.GamingandPerformance,
                     GroupName = "Background Apps",
                     IsEnabled = false,
+                    ControlType = ControlType.BinaryToggle,
                     RegistrySettings = new List<RegistrySetting>
                     {
                         new RegistrySetting
@@ -889,13 +1223,15 @@ public static class GamingandPerformanceOptimizations
                             SubKey = "SOFTWARE\\Policies\\Microsoft\\Windows\\AppPrivacy",
                             Name = "LetAppsRunInBackground",
                             RecommendedValue = 0,
-                            EnabledValue = 1,      // When toggle is ON, background apps are enabled
-                            DisabledValue = 0,     // When toggle is OFF, background apps are disabled
+                            EnabledValue = 1, // When toggle is ON, background apps are enabled
+                            DisabledValue = 0, // When toggle is OFF, background apps are disabled
                             ValueType = RegistryValueKind.DWord,
-                            DefaultValue = null,
-                            Description = "Controls whether apps can run in the background"
-                        }
-                    }
+                            DefaultValue = 1, // Default value when registry key exists but no value is set
+                            Description = "Controls whether apps can run in the background",
+                            IsPrimary = true,
+                            AbsenceMeansEnabled = true,
+                        },
+                    },
                 },
                 new OptimizationSetting
                 {
@@ -905,22 +1241,28 @@ public static class GamingandPerformanceOptimizations
                     Category = OptimizationCategory.GamingandPerformance,
                     GroupName = "File Explorer Settings",
                     IsEnabled = false,
+                    ControlType = ControlType.BinaryToggle,
                     RegistrySettings = new List<RegistrySetting>
                     {
                         new RegistrySetting
                         {
                             Category = "Explorer",
                             Hive = RegistryHive.CurrentUser,
-                            SubKey = "Software\\Microsoft\\Windows\\CurrentVersion\\Explorer\\Advanced",
+                            SubKey =
+                                "Software\\Microsoft\\Windows\\CurrentVersion\\Explorer\\Advanced",
                             Name = "MultiTaskingAltTabFilter",
                             RecommendedValue = 3,
+                            EnabledValue = 3,
+                            DisabledValue = 0,
                             ValueType = RegistryValueKind.DWord,
-                            DefaultValue = null,
-                            Description = "Sets Alt+Tab to show open windows only"
-                        }
-                    }
-                }
-            }
+                            DefaultValue = 3, // Default value when registry key exists but no value is set
+                            Description = "Sets Alt+Tab to show open windows only",
+                            IsPrimary = true,
+                            AbsenceMeansEnabled = false,
+                        },
+                    },
+                },
+            },
         };
     }
 }

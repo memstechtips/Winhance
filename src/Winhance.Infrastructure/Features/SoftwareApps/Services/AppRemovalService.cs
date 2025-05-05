@@ -90,7 +90,7 @@ public class AppRemovalService : IAppRemovalService
             }
             
             // Handle standard app removal
-            using var powerShell = PowerShellFactory.CreateWindowsPowerShell(_logService, _systemServices);
+            using var powerShell = PowerShellFactory.CreateForAppxCommands(_logService, _systemServices);
             // No need to set execution policy as it's already done in the factory
             
             powerShell.AddScript(@"
@@ -331,7 +331,7 @@ try {{
         {
             _logService.LogInformation($"Starting batch removal of {packageNames.Count} apps");
             
-            using var powerShell = PowerShellFactory.CreateWindowsPowerShell(_logService, _systemServices);
+            using var powerShell = PowerShellFactory.CreateForAppxCommands(_logService, _systemServices);
             // No need to set execution policy as it's already done in the factory
             
             // Get all standard apps to find app definitions (do this once for the batch)

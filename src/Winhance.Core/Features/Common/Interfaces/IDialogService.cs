@@ -1,4 +1,5 @@
 using System.Threading.Tasks;
+using System.Collections.Generic;
 
 namespace Winhance.Core.Features.Common.Interfaces
 {

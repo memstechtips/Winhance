@@ -1,7 +1,7 @@
-using Microsoft.Win32;
 using System;
 using System.Collections.Generic;
 using System.IO;
+using Microsoft.Win32;
 using Winhance.Core.Features.Common.Enums;
 using Winhance.Core.Features.Common.Interfaces;
 using Winhance.Core.Features.Common.Models;
@@ -13,13 +13,14 @@ namespace Winhance.Core.Features.Customize.Models;
 public static class StartMenuCustomizations
 {
     private const string Win10StartLayoutPath = @"C:\Windows\StartMenuLayout.xml";
-    private const string Win11StartBinPath = @"AppData\Local\Packages\Microsoft.Windows.StartMenuExperienceHost_cw5n1h2txyewy\LocalState\start2.bin";
+    private const string Win11StartBinPath =
+        @"AppData\Local\Packages\Microsoft.Windows.StartMenuExperienceHost_cw5n1h2txyewy\LocalState\start2.bin";
 
     public static CustomizationGroup GetStartMenuCustomizations()
     {
         return new CustomizationGroup
         {
-                    Name = "Start Menu",
+            Name = "Start Menu",
             Category = CustomizationCategory.StartMenu,
             Settings = new List<CustomizationSetting>
             {
@@ -31,6 +32,7 @@ public static class StartMenuCustomizations
                     Category = CustomizationCategory.StartMenu,
                     GroupName = "Start Menu Settings",
                     IsEnabled = true,
+                    ControlType = ControlType.BinaryToggle,
                     RegistrySettings = new List<RegistrySetting>
                     {
                         new RegistrySetting
@@ -40,11 +42,14 @@ public static class StartMenuCustomizations
                             SubKey = "Software\\Policies\\Microsoft\\Windows\\Explorer",
                             Name = "HideRecentlyAddedApps",
                             RecommendedValue = 0,
-                            EnabledValue = 0,      // When toggle is ON, recently added apps are shown
-                            DisabledValue = 1,     // When toggle is OFF, recently added apps are hidden
+                            EnabledValue = 0, // When toggle is ON, recently added apps are shown
+                            DisabledValue = 1, // When toggle is OFF, recently added apps are hidden
                             ValueType = RegistryValueKind.DWord,
-                            DefaultValue = null,
-                            Description = "Controls visibility of recently added apps in Start Menu"
+                            DefaultValue = 0, // Default value when registry key exists but no value is set
+                            Description =
+                                "Controls visibility of recently added apps in Start Menu",
+                            IsPrimary = true,
+                            AbsenceMeansEnabled = false,
                         },
                         new RegistrySetting
                         {
@@ -53,13 +58,16 @@ public static class StartMenuCustomizations
                             SubKey = "SOFTWARE\\Policies\\Microsoft\\Windows\\Explorer",
                             Name = "HideRecentlyAddedApps",
                             RecommendedValue = 0,
-                            EnabledValue = 0,      // When toggle is ON, recently added apps are shown
-                            DisabledValue = 1,     // When toggle is OFF, recently added apps are hidden
+                            EnabledValue = 0, // When toggle is ON, recently added apps are shown
+                            DisabledValue = 1, // When toggle is OFF, recently added apps are hidden
                             ValueType = RegistryValueKind.DWord,
-                            DefaultValue = null,
-                            Description = "Controls visibility of recently added apps in Start Menu"
-                        }
-                    }
+                            DefaultValue = 0, // Default value when registry key exists but no value is set
+                            Description =
+                                "Controls visibility of recently added apps in Start Menu",
+                            IsPrimary = false,
+                            AbsenceMeansEnabled = false,
+                        },
+                    },
                 },
                 new CustomizationSetting
                 {
@@ -69,22 +77,26 @@ public static class StartMenuCustomizations
                     Category = CustomizationCategory.StartMenu,
                     GroupName = "Layout",
                     IsEnabled = true,
+                    ControlType = ControlType.BinaryToggle,
                     RegistrySettings = new List<RegistrySetting>
                     {
                         new RegistrySetting
-                    {
-                        Category = "StartMenu",
-                        Hive = RegistryHive.CurrentUser,
-                        SubKey = "Software\\Microsoft\\Windows\\CurrentVersion\\Explorer\\Advanced",
-                    Name = "Start_Layout",
-                        RecommendedValue = 1,  // For backward compatibility
-                        EnabledValue = 1,      // When toggle is ON, more pins layout is used
-                        DisabledValue = 0,     // When toggle is OFF, default layout is used
-                        ValueType = RegistryValueKind.DWord,
-                        DefaultValue = 0,      // For backward compatibility
-                        Description = "Controls Start Menu layout configuration"
-                        }
-                    }
+                        {
+                            Category = "StartMenu",
+                            Hive = RegistryHive.CurrentUser,
+                            SubKey =
+                                "Software\\Microsoft\\Windows\\CurrentVersion\\Explorer\\Advanced",
+                            Name = "Start_Layout",
+                            RecommendedValue = 1, // For backward compatibility
+                            EnabledValue = 1, // When toggle is ON, more pins layout is used
+                            DisabledValue = 0, // When toggle is OFF, default layout is used
+                            ValueType = RegistryValueKind.DWord,
+                            DefaultValue = 0, // For backward compatibility
+                            Description = "Controls Start Menu layout configuration",
+                            IsPrimary = true,
+                            AbsenceMeansEnabled = false,
+                        },
+                    },
                 },
                 new CustomizationSetting
                 {
@@ -94,24 +106,28 @@ public static class StartMenuCustomizations
                     Category = CustomizationCategory.StartMenu,
                     GroupName = "Start Menu Settings",
                     IsEnabled = false,
+                    ControlType = ControlType.BinaryToggle,
                     RegistrySettings = new List<RegistrySetting>
                     {
                         new RegistrySetting
                         {
                             Category = "Explorer",
                             Hive = RegistryHive.CurrentUser,
-                            SubKey = "Software\\Microsoft\\Windows\\CurrentVersion\\Explorer\\Advanced",
+                            SubKey =
+                                "Software\\Microsoft\\Windows\\CurrentVersion\\Explorer\\Advanced",
                             Name = "Start_IrisRecommendations",
-                            RecommendedValue = 0,
+                            RecommendedValue = 1,
                             EnabledValue = 1,
                             DisabledValue = 0,
                             ValueType = RegistryValueKind.DWord,
-                            DefaultValue = null,
-                            Description = "Controls recommendations for tips and shortcuts"
-                        }
-                    }
+                            DefaultValue = 1, // Default value when registry key exists but no value is set
+                            Description = "Controls recommendations for tips and shortcuts",
+                            IsPrimary = true,
+                            AbsenceMeansEnabled = true,
+                        },
+                    },
                 },
-                 new CustomizationSetting
+                new CustomizationSetting
                 {
                     Id = "taskbar-clear-mfu",
                     Name = "Show Most Used Apps",
@@ -119,6 +135,7 @@ public static class StartMenuCustomizations
                     Category = CustomizationCategory.StartMenu,
                     GroupName = "Start Menu",
                     IsEnabled = true,
+                    ControlType = ControlType.BinaryToggle,
                     RegistrySettings = new List<RegistrySetting>
                     {
                         new RegistrySetting
@@ -127,14 +144,16 @@ public static class StartMenuCustomizations
                             Hive = RegistryHive.CurrentUser,
                             SubKey = "Software\\Microsoft\\Windows\\CurrentVersion\\Start",
                             Name = "ShowFrequentList",
-                            RecommendedValue = 0,  // Recommended value is to show most used apps
-                            EnabledValue = 1,      // When toggle is ON, frequently used programs list is shown
-                            DisabledValue = 0,     // When toggle is OFF, frequently used programs list is hidden
+                            RecommendedValue = 1,
+                            EnabledValue = 1, // When toggle is ON, frequently used programs list is shown
+                            DisabledValue = 0, // When toggle is OFF, frequently used programs list is hidden
                             ValueType = RegistryValueKind.DWord,
-                            DefaultValue = null,   // For backward compatibility
+                            DefaultValue = 1, // Default value when registry key exists but no value is set
                             Description = "Controls frequently used programs list visibility",
-                        }
-                    }
+                            IsPrimary = true,
+                            AbsenceMeansEnabled = true,
+                        },
+                    },
                 },
                 new CustomizationSetting
                 {
@@ -151,14 +170,20 @@ public static class StartMenuCustomizations
                         {
                             Category = "Power",
                             Hive = RegistryHive.CurrentUser,
-                            SubKey = "Software\\Microsoft\\Windows\\CurrentVersion\\Explorer\\FlyoutMenuSettings",
+                            SubKey =
+                                "Software\\Microsoft\\Windows\\CurrentVersion\\Explorer\\FlyoutMenuSettings",
                             Name = "ShowLockOption",
-                            EnabledValue = 1,      // Show lock option
-                            DisabledValue = 0,     // Hide lock option
+                            RecommendedValue = 1,
+                            EnabledValue = 1, // Show lock option
+                            DisabledValue = 0, // Hide lock option
                             ValueType = RegistryValueKind.DWord,
-                            RecommendedValue = 0   // For backward compatibility
-                        }
-                    }
+                            DefaultValue = 1, // Default value when registry key exists but no value is set
+                            Description =
+                                "Controls whether the lock option is shown in the Start menu",
+                            IsPrimary = true,
+                            AbsenceMeansEnabled = true,
+                        },
+                    },
                 },
                 new CustomizationSetting
                 {
@@ -168,24 +193,28 @@ public static class StartMenuCustomizations
                     Category = CustomizationCategory.StartMenu,
                     GroupName = "Start Menu Settings",
                     IsEnabled = true,
+                    ControlType = ControlType.BinaryToggle,
                     RegistrySettings = new List<RegistrySetting>
                     {
                         new RegistrySetting
                         {
                             Category = "Explorer",
                             Hive = RegistryHive.CurrentUser,
-                            SubKey = "Software\\Microsoft\\Windows\\CurrentVersion\\Explorer\\Advanced",
+                            SubKey =
+                                "Software\\Microsoft\\Windows\\CurrentVersion\\Explorer\\Advanced",
                             Name = "Start_TrackDocs",
-                            RecommendedValue = 0,
-                            EnabledValue = 1,      // When toggle is ON, recommended files are shown
-                            DisabledValue = 0,     // When toggle is OFF, recommended files are hidden
+                            RecommendedValue = 1,
+                            EnabledValue = 1, // When toggle is ON, recommended files are shown
+                            DisabledValue = 0, // When toggle is OFF, recommended files are hidden
                             ValueType = RegistryValueKind.DWord,
-                            DefaultValue = null,
-                            Description = "Controls visibility of recommended files in Start Menu"
-                        }
-                    }
-                }
-            }
+                            DefaultValue = 1, // Default value when registry key exists but no value is set
+                            Description = "Controls visibility of recommended files in Start Menu",
+                            IsPrimary = true,
+                            AbsenceMeansEnabled = true,
+                        },
+                    },
+                },
+            },
         };
     }
 
@@ -212,9 +241,13 @@ public static class StartMenuCustomizations
         // Create new layout file
         File.WriteAllText(Win10StartLayoutPath, StartMenuLayouts.Windows10Layout);
 
-        // Restart explorer to apply changes using the same method as theme changes
-        // This uses Windows messages and proper GUI refresh
-        windowsService.RefreshWindowsGUI(true).GetAwaiter().GetResult();
+        // Use the improved RefreshWindowsGUI method to restart Explorer and apply changes
+        // This will ensure Explorer is restarted properly with retry logic and fallback
+        var result = windowsService.RefreshWindowsGUI(true).GetAwaiter().GetResult();
+        if (!result)
+        {
+            throw new Exception("Failed to refresh Windows GUI after applying Start Menu layout");
+        }
     }
 
     private static void ApplyWindows11Layout()
@@ -247,7 +280,7 @@ public static class StartMenuCustomizations
                     Arguments = $"-decode \"{tempTxtPath}\" \"{tempBinPath}\"",
                     UseShellExecute = false,
                     RedirectStandardOutput = true,
-                    CreateNoWindow = true
+                    CreateNoWindow = true,
                 };
 
                 process.Start();
@@ -263,8 +296,10 @@ public static class StartMenuCustomizations
         finally
         {
             // Clean up temp files
-            if (File.Exists(tempTxtPath)) File.Delete(tempTxtPath);
-            if (File.Exists(tempBinPath)) File.Delete(tempBinPath);
+            if (File.Exists(tempTxtPath))
+                File.Delete(tempTxtPath);
+            if (File.Exists(tempBinPath))
+                File.Delete(tempBinPath);
         }
     }
 
@@ -319,7 +354,7 @@ public static class StartMenuCustomizations
                     Arguments = $"-decode \"{tempTxtPath}\" \"{tempBinPath}\"",
                     UseShellExecute = false,
                     RedirectStandardOutput = true,
-                    CreateNoWindow = true
+                    CreateNoWindow = true,
                 };
 
                 process.Start();
@@ -335,8 +370,10 @@ public static class StartMenuCustomizations
         finally
         {
             // Clean up temp files
-            if (File.Exists(tempTxtPath)) File.Delete(tempTxtPath);
-            if (File.Exists(tempBinPath)) File.Delete(tempBinPath);
+            if (File.Exists(tempTxtPath))
+                File.Delete(tempTxtPath);
+            if (File.Exists(tempBinPath))
+                File.Delete(tempBinPath);
         }
     }
 
@@ -358,7 +395,11 @@ public static class StartMenuCustomizations
             File.WriteAllText(Win10StartLayoutPath, StartMenuLayouts.Windows10Layout);
 
             // Set registry values to lock the Start Menu layout
-            using (var key = Registry.LocalMachine.CreateSubKey(@"SOFTWARE\Policies\Microsoft\Windows\Explorer"))
+            using (
+                var key = Registry.LocalMachine.CreateSubKey(
+                    @"SOFTWARE\Policies\Microsoft\Windows\Explorer"
+                )
+            )
             {
                 if (key != null)
                 {
@@ -367,7 +408,11 @@ public static class StartMenuCustomizations
                 }
             }
 
-            using (var key = Registry.CurrentUser.CreateSubKey(@"SOFTWARE\Policies\Microsoft\Windows\Explorer"))
+            using (
+                var key = Registry.CurrentUser.CreateSubKey(
+                    @"SOFTWARE\Policies\Microsoft\Windows\Explorer"
+                )
+            )
             {
                 if (key != null)
                 {
@@ -376,15 +421,25 @@ public static class StartMenuCustomizations
                 }
             }
 
-            // Restart explorer to apply changes using the same method as theme changes
-            // This uses Windows messages and proper GUI refresh
-            windowsService.RefreshWindowsGUI(true).GetAwaiter().GetResult();
+            // Use the improved RefreshWindowsGUI method to restart Explorer and apply changes
+            // This will ensure Explorer is restarted properly with retry logic and fallback
+            var result = windowsService.RefreshWindowsGUI(true).GetAwaiter().GetResult();
+            if (!result)
+            {
+                throw new Exception(
+                    "Failed to refresh Windows GUI after applying Start Menu layout"
+                );
+            }
 
-            // Wait for explorer to restart
-            System.Threading.Thread.Sleep(5000);
+            // Wait for changes to take effect
+            System.Threading.Thread.Sleep(3000);
 
             // Disable the locked Start Menu layout
-            using (var key = Registry.LocalMachine.CreateSubKey(@"SOFTWARE\Policies\Microsoft\Windows\Explorer"))
+            using (
+                var key = Registry.LocalMachine.CreateSubKey(
+                    @"SOFTWARE\Policies\Microsoft\Windows\Explorer"
+                )
+            )
             {
                 if (key != null)
                 {
@@ -392,7 +447,11 @@ public static class StartMenuCustomizations
                 }
             }
 
-            using (var key = Registry.CurrentUser.CreateSubKey(@"SOFTWARE\Policies\Microsoft\Windows\Explorer"))
+            using (
+                var key = Registry.CurrentUser.CreateSubKey(
+                    @"SOFTWARE\Policies\Microsoft\Windows\Explorer"
+                )
+            )
             {
                 if (key != null)
                 {
@@ -400,9 +459,14 @@ public static class StartMenuCustomizations
                 }
             }
 
-            // Restart explorer again to apply changes using the same method as theme changes
-            // This uses Windows messages and proper GUI refresh
-            windowsService.RefreshWindowsGUI(true).GetAwaiter().GetResult();
+            // Use the improved RefreshWindowsGUI method again to apply the final changes
+            result = windowsService.RefreshWindowsGUI(true).GetAwaiter().GetResult();
+            if (!result)
+            {
+                throw new Exception(
+                    "Failed to refresh Windows GUI after unlocking Start Menu layout"
+                );
+            }
 
             // Delete the layout file
             if (File.Exists(Win10StartLayoutPath))
@@ -413,7 +477,10 @@ public static class StartMenuCustomizations
         catch (Exception ex)
         {
             // Log the exception or handle it as needed
-            System.Diagnostics.Debug.WriteLine($"Error cleaning Windows 10 Start Menu: {ex.Message}");
+            System.Diagnostics.Debug.WriteLine(
+                $"Error cleaning Windows 10 Start Menu: {ex.Message}"
+            );
+            throw new Exception($"Error cleaning Windows 10 Start Menu: {ex.Message}", ex);
         }
     }
 }
