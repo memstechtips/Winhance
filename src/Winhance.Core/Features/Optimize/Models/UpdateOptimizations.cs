@@ -272,8 +272,8 @@ public static class UpdateOptimizations
                 new OptimizationSetting
                 {
                     Id = "updates-driver-controls",
-                    Name = "Exclude Drivers from Updates",
-                    Description = "Excludes driver updates from Windows quality updates",
+                    Name = "Do Not Include Drivers with Updates",
+                    Description = "Does not include driver updates with Windows quality updates",
                     Category = OptimizationCategory.Updates,
                     GroupName = "Update Content",
                     IsEnabled = false,

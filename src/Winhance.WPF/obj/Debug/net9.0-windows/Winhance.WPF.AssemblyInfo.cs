@@ -12,11 +12,11 @@ using System.Reflection;
 
 [assembly: System.Reflection.AssemblyCompanyAttribute("Winhance")]
 [assembly: System.Reflection.AssemblyConfigurationAttribute("Debug")]
-[assembly: System.Reflection.AssemblyFileVersionAttribute("25.05.04")]
-[assembly: System.Reflection.AssemblyInformationalVersionAttribute("v25.05.04+8b34c8ae29a708bc1cc8edb34a92b7ab55ce52c9")]
+[assembly: System.Reflection.AssemblyFileVersionAttribute("25.05.05")]
+[assembly: System.Reflection.AssemblyInformationalVersionAttribute("v25.05.05+2ad1a1e616b993b1f74efd85f88a66f0747f65e0")]
 [assembly: System.Reflection.AssemblyProductAttribute("Winhance")]
 [assembly: System.Reflection.AssemblyTitleAttribute("Winhance")]
-[assembly: System.Reflection.AssemblyVersionAttribute("25.05.04")]
+[assembly: System.Reflection.AssemblyVersionAttribute("25.05.05")]
 [assembly: System.Runtime.Versioning.TargetPlatformAttribute("Windows7.0")]
 [assembly: System.Runtime.Versioning.SupportedOSPlatformAttribute("Windows7.0")]
 

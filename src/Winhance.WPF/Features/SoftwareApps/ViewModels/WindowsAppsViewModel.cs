@@ -250,6 +250,21 @@ namespace Winhance.WPF.Features.SoftwareApps.ViewModels
         #region Dialog Helper Methods
         
         /// <summary>
+        /// Gets the past tense form of an operation type
+        /// </summary>
+        /// <param name="operationType">The operation type (e.g., "Install", "Remove")</param>
+        /// <returns>The past tense form of the operation type</returns>
+        private string GetPastTense(string operationType)
+        {
+            if (string.IsNullOrEmpty(operationType))
+                return string.Empty;
+                
+            return operationType.Equals("Remove", StringComparison.OrdinalIgnoreCase)
+                ? "removed"
+                : $"{operationType.ToLower()}ed";
+        }
+        
+        /// <summary>
         /// Shows a confirmation dialog before performing operations.
         /// </summary>
         /// <param name="operationType">Type of operation (Install/Remove)</param>
@@ -262,7 +277,7 @@ namespace Winhance.WPF.Features.SoftwareApps.ViewModels
             IEnumerable<WindowsApp> skippedApps = null)
         {
             string title = $"Confirm {operationType}";
-            string headerText = $"The following items will be {operationType.ToLower()}d:";
+            string headerText = $"The following items will be {GetPastTense(operationType)}:";
             
             // Create list of app names for the dialog
             var appNames = selectedApps.Select(a => a.Name).ToList();
@@ -274,7 +289,7 @@ namespace Winhance.WPF.Features.SoftwareApps.ViewModels
             if (skippedApps != null && skippedApps.Any())
             {
                 var skippedNames = skippedApps.Select(a => a.Name).ToList();
-                footerText = $"Note: The following {skippedApps.Count()} item(s) cannot be {operationType.ToLower()}d and will be skipped:\n";
+                footerText = $"Note: The following {skippedApps.Count()} item(s) cannot be {GetPastTense(operationType)} and will be skipped:\n";
                 footerText += string.Join(", ", skippedNames);
                 footerText += $"\n\nDo you want to continue with the remaining {selectedApps.Count()} item(s)?";
             }
@@ -302,7 +317,7 @@ namespace Winhance.WPF.Features.SoftwareApps.ViewModels
         {
             string title = $"{operationType} Results";
             string headerText = successCount > 0 
-                ? $"The following items were successfully {operationType.ToLower()}d:"
+                ? $"The following items were successfully {GetPastTense(operationType)}:"
                 : $"{operationType} operation completed.";
             
             // Create list of items for the dialog
@@ -318,7 +333,7 @@ namespace Winhance.WPF.Features.SoftwareApps.ViewModels
             }
             else
             {
-                resultItems.Add($"No items were successfully {operationType.ToLower()}d.");
+                resultItems.Add($"No items were successfully {GetPastTense(operationType)}.");
             }
             
             // Add skipped items if any
@@ -351,8 +366,8 @@ namespace Winhance.WPF.Features.SoftwareApps.ViewModels
             
             // Create footer text
             string footerText = successCount == totalCount
-                ? $"All items were successfully {operationType.ToLower()}d."
-                : $"Some items could not be {operationType.ToLower()}d. Check the log for details.";
+                ? $"All items were successfully {GetPastTense(operationType)}."
+                : $"Some items could not be {GetPastTense(operationType)}. Check the log for details.";
             
             // Show the information dialog
             CustomDialog.ShowInformation(title, headerText, resultItems, footerText);

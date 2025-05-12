@@ -23,7 +23,10 @@ namespace Winhance.Infrastructure.Features.SoftwareApps.Services;
 /// <summary>
 /// Service that installs standard applications.
 /// </summary>
-public class AppInstallationService : BaseInstallationService<AppInfo>, IAppInstallationService, IDisposable
+public class AppInstallationService
+    : BaseInstallationService<AppInfo>,
+        IAppInstallationService,
+        IDisposable
 {
     private readonly string _tempDir = Path.Combine(Path.GetTempPath(), "WinhanceInstaller");
     private readonly HttpClient _httpClient;
@@ -46,7 +49,8 @@ public class AppInstallationService : BaseInstallationService<AppInfo>, IAppInst
         IScriptUpdateService scriptUpdateService,
         ISystemServices systemServices,
         IWinGetInstallationService winGetInstallationService
-    ) : base(logService, powerShellService)
+    )
+        : base(logService, powerShellService)
     {
         _httpClient = new HttpClient();
         _scriptUpdateService = scriptUpdateService;
@@ -75,7 +79,8 @@ public class AppInstallationService : BaseInstallationService<AppInfo>, IAppInst
     protected override async Task<OperationResult<bool>> PerformInstallationAsync(
         AppInfo appInfo,
         IProgress<TaskProgressDetail>? progress,
-        CancellationToken cancellationToken)
+        CancellationToken cancellationToken
+    )
     {
         _currentProgress = progress;
 
@@ -101,7 +106,12 @@ public class AppInstallationService : BaseInstallationService<AppInfo>, IAppInst
                     : appInfo.PackageName;
 
                 // Pass the app's display name to use in progress messages
-                success = await _winGetInstallationService.InstallWithWingetAsync(packageIdentifier, progress, cancellationToken, appInfo.Name);
+                success = await _winGetInstallationService.InstallWithWingetAsync(
+                    packageIdentifier,
+                    progress,
+                    cancellationToken,
+                    appInfo.Name
+                );
             }
 
             // Only update BloatRemoval.ps1 if installation was successful AND it's not an external app
@@ -110,11 +120,15 @@ public class AppInstallationService : BaseInstallationService<AppInfo>, IAppInst
             {
                 try
                 {
-                    _logService.LogInformation($"Starting BloatRemoval.ps1 script update for {appInfo.Name}");
+                    _logService.LogInformation(
+                        $"Starting BloatRemoval.ps1 script update for {appInfo.Name}"
+                    );
 
                     // Update the BloatRemoval.ps1 script to remove the installed app from the removal list
                     var appNames = new List<string> { appInfo.PackageName };
-                    _logService.LogInformation($"Removing package name from BloatRemoval.ps1: {appInfo.PackageName}");
+                    _logService.LogInformation(
+                        $"Removing package name from BloatRemoval.ps1: {appInfo.PackageName}"
+                    );
 
                     var appsWithRegistry = new Dictionary<string, List<AppRegistrySetting>>();
                     var appSubPackages = new Dictionary<string, string[]>();
@@ -122,30 +136,45 @@ public class AppInstallationService : BaseInstallationService<AppInfo>, IAppInst
                     // Add any subpackages if present
                     if (appInfo.SubPackages != null && appInfo.SubPackages.Length > 0)
                     {
-                        _logService.LogInformation($"Adding {appInfo.SubPackages.Length} subpackages for {appInfo.Name}");
+                        _logService.LogInformation(
+                            $"Adding {appInfo.SubPackages.Length} subpackages for {appInfo.Name}"
+                        );
                         appSubPackages.Add(appInfo.PackageName, appInfo.SubPackages);
                     }
 
                     // Add registry settings if present
                     if (appInfo.RegistrySettings != null && appInfo.RegistrySettings.Length > 0)
                     {
-                        _logService.LogInformation($"Adding {appInfo.RegistrySettings.Length} registry settings for {appInfo.Name}");
-                        appsWithRegistry.Add(appInfo.PackageName, new List<AppRegistrySetting>(appInfo.RegistrySettings));
+                        _logService.LogInformation(
+                            $"Adding {appInfo.RegistrySettings.Length} registry settings for {appInfo.Name}"
+                        );
+                        appsWithRegistry.Add(
+                            appInfo.PackageName,
+                            new List<AppRegistrySetting>(appInfo.RegistrySettings)
+                        );
                     }
 
-                    _logService.LogInformation($"Updating BloatRemoval.ps1 to remove {appInfo.Name} from removal list");
+                    _logService.LogInformation(
+                        $"Updating BloatRemoval.ps1 to remove {appInfo.Name} from removal list"
+                    );
                     var result = await _scriptUpdateService.UpdateExistingBloatRemovalScriptAsync(
                         appNames,
                         appsWithRegistry,
                         appSubPackages,
-                        true); // true = install operation, so remove from script
+                        true
+                    ); // true = install operation, so remove from script
 
-                    _logService.LogInformation($"Successfully updated BloatRemoval.ps1 script - {appInfo.Name} will no longer be removed");
+                    _logService.LogInformation(
+                        $"Successfully updated BloatRemoval.ps1 script - {appInfo.Name} will no longer be removed"
+                    );
                     _logService.LogInformation($"Script update result: {result?.Name ?? "null"}");
                 }
                 catch (Exception ex)
                 {
-                    _logService.LogError($"Error updating BloatRemoval.ps1 script for {appInfo.Name}", ex);
+                    _logService.LogError(
+                        $"Error updating BloatRemoval.ps1 script for {appInfo.Name}",
+                        ex
+                    );
                     _logService.LogError($"Exception details: {ex.Message}");
                     _logService.LogError($"Stack trace: {ex.StackTrace}");
                     // Don't fail the installation if script update fails
@@ -153,11 +182,15 @@ public class AppInstallationService : BaseInstallationService<AppInfo>, IAppInst
             }
             else if (success)
             {
-                _logService.LogInformation($"Skipping BloatRemoval.ps1 update because {appInfo.Name} is an external app");
+                _logService.LogInformation(
+                    $"Skipping BloatRemoval.ps1 update because {appInfo.Name} is an external app"
+                );
             }
             else
             {
-                _logService.LogInformation($"Skipping BloatRemoval.ps1 update because installation of {appInfo.Name} was not successful");
+                _logService.LogInformation(
+                    $"Skipping BloatRemoval.ps1 update because installation of {appInfo.Name} was not successful"
+                );
             }
 
             return OperationResult<bool>.Succeeded(success);
@@ -181,26 +214,32 @@ public class AppInstallationService : BaseInstallationService<AppInfo>, IAppInst
             return true;
 
         // Check if the package name starts with Microsoft or matches known Windows app patterns
-        bool isMicrosoftApp = appInfo.PackageName.StartsWith("Microsoft.", StringComparison.OrdinalIgnoreCase);
+        bool isMicrosoftApp = appInfo.PackageName.StartsWith(
+            "Microsoft.",
+            StringComparison.OrdinalIgnoreCase
+        );
 
         // Check if the app is a number-based Microsoft Store app ID
         bool isStoreAppId =
-            !string.IsNullOrEmpty(appInfo.PackageID) &&
-            (appInfo.PackageID.All(c => char.IsLetterOrDigit(c) || c == '.') &&
-            (appInfo.PackageID.Length == 9 || appInfo.PackageID.Length == 12)); // Microsoft Store app IDs are typically 9 or 12 chars
+            !string.IsNullOrEmpty(appInfo.PackageID)
+            && (
+                appInfo.PackageID.All(c => char.IsLetterOrDigit(c) || c == '.')
+                && (appInfo.PackageID.Length == 9 || appInfo.PackageID.Length == 12)
+            ); // Microsoft Store app IDs are typically 9 or 12 chars
 
         // Check if it's an optional feature or capability, which are Windows components
-        bool isWindowsComponent = appInfo.Type == AppType.Capability || appInfo.Type == AppType.OptionalFeature;
+        bool isWindowsComponent =
+            appInfo.Type == AppType.Capability || appInfo.Type == AppType.OptionalFeature;
 
         // Any third-party app with a period in its name is likely an external app (e.g., VideoLAN.VLC)
         bool isThirdPartyNamedApp =
-            !isMicrosoftApp &&
-            appInfo.PackageName.Contains('.') &&
-            !isWindowsComponent;
+            !isMicrosoftApp && appInfo.PackageName.Contains('.') && !isWindowsComponent;
 
         // If it's a Microsoft app or Windows component, it's not external
         // Otherwise, it's likely an external app
-        return isThirdPartyNamedApp || appInfo.IsCustomInstall || (!isMicrosoftApp && !isStoreAppId && !isWindowsComponent);
+        return isThirdPartyNamedApp
+            || appInfo.IsCustomInstall
+            || (!isMicrosoftApp && !isStoreAppId && !isWindowsComponent);
     }
 
     /// <inheritdoc/>
@@ -251,8 +290,8 @@ public class AppInstallationService : BaseInstallationService<AppInfo>, IAppInst
                         { "PackageName", appInfo.PackageName },
                         { "AppName", appInfo.Name },
                         { "IsCustomInstall", "True" },
-                        { "OriginalError", ex.Message }
-                    }
+                        { "OriginalError", ex.Message },
+                    },
                 }
             );
 
@@ -275,7 +314,12 @@ public class AppInstallationService : BaseInstallationService<AppInfo>, IAppInst
         string displayName = null
     )
     {
-        return _winGetInstallationService.InstallWithWingetAsync(packageName, progress, cancellationToken, displayName);
+        return _winGetInstallationService.InstallWithWingetAsync(
+            packageName,
+            progress,
+            cancellationToken,
+            displayName
+        );
     }
 
     /// <summary>
@@ -295,16 +339,19 @@ public class AppInstallationService : BaseInstallationService<AppInfo>, IAppInst
     /// <returns>True if installation was successful; otherwise, false.</returns>
     private async Task<bool> InstallOneDriveAsync(
         IProgress<TaskProgressDetail>? progress,
-        CancellationToken cancellationToken)
+        CancellationToken cancellationToken
+    )
     {
         try
         {
-            progress?.Report(new TaskProgressDetail
-            {
-                Progress = 0,
-                StatusText = "Starting OneDrive installation...",
-                DetailedMessage = "Downloading OneDrive installer from Microsoft"
-            });
+            progress?.Report(
+                new TaskProgressDetail
+                {
+                    Progress = 0,
+                    StatusText = "Starting OneDrive installation...",
+                    DetailedMessage = "Downloading OneDrive installer from Microsoft",
+                }
+            );
 
             // Download OneDrive from the specific URL
             string downloadUrl = "https://go.microsoft.com/fwlink/p/?LinkID=2182910";
@@ -315,28 +362,39 @@ public class AppInstallationService : BaseInstallationService<AppInfo>, IAppInst
                 var response = await client.GetAsync(downloadUrl, cancellationToken);
                 if (!response.IsSuccessStatusCode)
                 {
-                    progress?.Report(new TaskProgressDetail
-                    {
-                        Progress = 0,
-                        StatusText = "Failed to download OneDrive installer",
-                        DetailedMessage = $"HTTP error: {response.StatusCode}",
-                        LogLevel = LogLevel.Error
-                    });
+                    progress?.Report(
+                        new TaskProgressDetail
+                        {
+                            Progress = 0,
+                            StatusText = "Failed to download OneDrive installer",
+                            DetailedMessage = $"HTTP error: {response.StatusCode}",
+                            LogLevel = LogLevel.Error,
+                        }
+                    );
                     return false;
                 }
 
-                using (var fileStream = new FileStream(installerPath, FileMode.Create, FileAccess.Write, FileShare.None))
+                using (
+                    var fileStream = new FileStream(
+                        installerPath,
+                        FileMode.Create,
+                        FileAccess.Write,
+                        FileShare.None
+                    )
+                )
                 {
                     await response.Content.CopyToAsync(fileStream, cancellationToken);
                 }
             }
 
-            progress?.Report(new TaskProgressDetail
-            {
-                Progress = 50,
-                StatusText = "Installing OneDrive...",
-                DetailedMessage = "Running OneDrive installer"
-            });
+            progress?.Report(
+                new TaskProgressDetail
+                {
+                    Progress = 50,
+                    StatusText = "Installing OneDrive...",
+                    DetailedMessage = "Running OneDrive installer",
+                }
+            );
 
             // Run the installer
             using (var process = new System.Diagnostics.Process())
@@ -353,26 +411,32 @@ public class AppInstallationService : BaseInstallationService<AppInfo>, IAppInst
 
                 bool success = process.ExitCode == 0;
 
-                progress?.Report(new TaskProgressDetail
-                {
-                    Progress = 100,
-                    StatusText = success ? "OneDrive installed successfully" : "OneDrive installation failed",
-                    DetailedMessage = $"Installer exited with code: {process.ExitCode}",
-                    LogLevel = success ? LogLevel.Success : LogLevel.Error
-                });
+                progress?.Report(
+                    new TaskProgressDetail
+                    {
+                        Progress = 100,
+                        StatusText = success
+                            ? "OneDrive installed successfully"
+                            : "OneDrive installation failed",
+                        DetailedMessage = $"Installer exited with code: {process.ExitCode}",
+                        LogLevel = success ? LogLevel.Success : LogLevel.Error,
+                    }
+                );
 
                 return success;
             }
         }
         catch (Exception ex)
         {
-            progress?.Report(new TaskProgressDetail
-            {
-                Progress = 0,
-                StatusText = "Error installing OneDrive",
-                DetailedMessage = $"Exception: {ex.Message}",
-                LogLevel = LogLevel.Error
-            });
+            progress?.Report(
+                new TaskProgressDetail
+                {
+                    Progress = 0,
+                    StatusText = "Error installing OneDrive",
+                    DetailedMessage = $"Exception: {ex.Message}",
+                    LogLevel = LogLevel.Error,
+                }
+            );
             return false;
         }
     }
