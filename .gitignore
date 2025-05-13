@@ -1,6 +1,7 @@
 # Custom project folders to ignore
 extras/
 installer-output/
+.config/
 
 # User-specific files
 *.rsuser
@@ -23,6 +24,8 @@ x86/
 bld/
 [Bb]in/
 [Oo]bj/
+# Explicitly ignore obj/Debug/net9.0-windows in all projects
+**/obj/Debug/net9.0-windows/
 [Ll]og/
 [Ll]ogs/
 
