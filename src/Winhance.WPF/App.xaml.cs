@@ -4,30 +4,36 @@ using System.Threading.Tasks;
 using System.Windows;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Hosting;
-using Winhance.Core.Features.Common.Interfaces;
 using Winhance.Core.Features.Common.Enums;
+using Winhance.Core.Features.Common.Interfaces;
 using Winhance.Core.Features.Common.Models;
 using Winhance.Core.Features.Common.Services;
+using Winhance.Core.Features.Customize.Interfaces;
 using Winhance.Core.Features.SoftwareApps.Interfaces;
 using Winhance.Core.Features.SoftwareApps.Models;
+using Winhance.Core.Features.UI.Interfaces;
 using Winhance.Infrastructure.Features.Common.Registry;
-using Winhance.Infrastructure.Features.Common.Services;
 using Winhance.Infrastructure.Features.Common.ScriptGeneration;
+using Winhance.Infrastructure.Features.Common.Services;
+using Winhance.Infrastructure.Features.Customize.Services;
 using Winhance.Infrastructure.Features.SoftwareApps.Services;
+using Winhance.Infrastructure.Features.SoftwareApps.Services.WinGet;
+using Winhance.Infrastructure.Features.SoftwareApps.Services.WinGet.Implementations;
+using Winhance.Infrastructure.Features.SoftwareApps.Services.WinGet.Interfaces;
+using Winhance.Infrastructure.Features.SoftwareApps.Services.WinGet.Verification;
+using Winhance.Infrastructure.Features.SoftwareApps.Services.WinGet.Verification.Methods;
+using Winhance.WPF.Features.Common.Interfaces;
 using Winhance.WPF.Features.Common.Resources.Theme;
 using Winhance.WPF.Features.Common.Services;
 using Winhance.WPF.Features.Common.Services.Configuration;
 using Winhance.WPF.Features.Common.ViewModels;
 using Winhance.WPF.Features.Common.Views;
-using Winhance.WPF.Features.Common.Interfaces;
-using Winhance.WPF.Features.Optimize.ViewModels;
-using Winhance.WPF.Features.Optimize.Views;
 using Winhance.WPF.Features.Customize.ViewModels;
 using Winhance.WPF.Features.Customize.Views;
+using Winhance.WPF.Features.Optimize.ViewModels;
+using Winhance.WPF.Features.Optimize.Views;
 using Winhance.WPF.Features.SoftwareApps.ViewModels;
 using Winhance.WPF.Features.SoftwareApps.Views;
-using Winhance.Core.Features.Customize.Interfaces;
-using Winhance.Infrastructure.Features.Customize.Services;
 
 namespace Winhance.WPF
 {
@@ -96,7 +102,10 @@ namespace Winhance.WPF
             }
             catch (Exception adminEx)
             {
-                LogStartupError("Error checking administrator privileges: " + adminEx.Message, adminEx);
+                LogStartupError(
+                    "Error checking administrator privileges: " + adminEx.Message,
+                    adminEx
+                );
             }
 
             // Set the application icon for all windows
@@ -104,7 +113,9 @@ namespace Winhance.WPF
             {
                 // We'll continue to use the original icon for the application icon (taskbar, shortcuts, etc.)
                 var iconUri = new Uri("/Resources/AppIcons/winhance-rocket.ico", UriKind.Relative);
-                Current.Resources["ApplicationIcon"] = new System.Windows.Media.Imaging.BitmapImage(iconUri);
+                Current.Resources["ApplicationIcon"] = new System.Windows.Media.Imaging.BitmapImage(
+                    iconUri
+                );
                 LogStartupError("Application icon set successfully");
             }
             catch (Exception iconEx)
@@ -210,13 +221,16 @@ namespace Winhance.WPF
                 try
                 {
                     // Load apps and check installation status while showing the loading screen
-                    LogStartupError("Starting LoadAppsAndCheckInstallationStatusAsync for WindowsAppsViewModel");
+                    LogStartupError(
+                        "Starting LoadAppsAndCheckInstallationStatusAsync for WindowsAppsViewModel"
+                    );
                     await windowsAppsViewModel.LoadAppsAndCheckInstallationStatusAsync();
                     LogStartupError("WindowsApps loaded and installation status checked");
 
                     // Also preload the SoftwareAppsViewModel data
                     LogStartupError("Getting SoftwareAppsViewModel");
-                    var softwareAppsViewModel = _host.Services.GetRequiredService<SoftwareAppsViewModel>();
+                    var softwareAppsViewModel =
+                        _host.Services.GetRequiredService<SoftwareAppsViewModel>();
                     LogStartupError("Got SoftwareAppsViewModel");
 
                     LogStartupError("Starting Initialize for SoftwareAppsViewModel");
@@ -240,7 +254,8 @@ namespace Winhance.WPF
 
                     // Preload the CustomizeViewModel to ensure all customization settings are loaded
                     LogStartupError("Getting CustomizeViewModel");
-                    var customizeViewModel = _host.Services.GetRequiredService<CustomizeViewModel>();
+                    var customizeViewModel =
+                        _host.Services.GetRequiredService<CustomizeViewModel>();
                     LogStartupError("Got CustomizeViewModel");
 
                     // Initialize the CustomizeViewModel and wait for it to complete
@@ -310,30 +325,31 @@ namespace Winhance.WPF
                 if (latestVersion.IsUpdateAvailable)
                 {
                     LogStartupError($"Update available: {latestVersion.Version}");
-                    
+
                     // Get current version
                     var currentVersion = versionService.GetCurrentVersion();
-                    
+
                     // Show the styled update dialog
                     string message = "Good News! A New Version of Winhance is available.";
-                    
+
                     // Create a download and install action
                     Func<Task> downloadAndInstallAction = async () =>
                     {
                         await versionService.DownloadAndInstallUpdateAsync();
-                        
+
                         // Close the application without showing a message
                         System.Windows.Application.Current.Shutdown();
                     };
-                    
+
                     // Show the update dialog
                     bool installNow = await UpdateDialog.ShowAsync(
                         "Update Available",
                         message,
                         currentVersion,
                         latestVersion,
-                        downloadAndInstallAction);
-                        
+                        downloadAndInstallAction
+                    );
+
                     if (installNow)
                     {
                         LogStartupError("User chose to download and install the update");
@@ -407,7 +423,7 @@ namespace Winhance.WPF
                     "Logs",
                     "WinhanceStartupLog.txt"
                 );
-                
+
                 // Ensure directory exists
                 Directory.CreateDirectory(Path.GetDirectoryName(logPath));
                 File.AppendAllText(logPath, $"{fullMessage}\n");
@@ -432,89 +448,136 @@ namespace Winhance.WPF
                 // Core Services
                 services.AddSingleton<ILogService, LogService>();
                 services.AddSingleton<IRegistryService, RegistryService>();
+                services.AddSingleton<ICommandService, CommandService>();
                 services.AddSingleton<IDependencyManager, DependencyManager>();
                 services.AddSingleton<ISettingsRegistry, SettingsRegistry>();
                 services.AddSingleton<IViewModelLocator, ViewModelLocator>();
-                services.AddSingleton<Winhance.Core.Interfaces.Services.IFileSystemService, Winhance.Infrastructure.FileSystem.FileSystemService>();
+                services.AddSingleton<
+                    Winhance.Core.Interfaces.Services.IFileSystemService,
+                    Winhance.Infrastructure.FileSystem.FileSystemService
+                >();
 
                 // Register the base services
                 services.AddSingleton<AppDiscoveryService>();
-                services.AddSingleton<IAppDiscoveryService>(provider => provider.GetRequiredService<AppDiscoveryService>());
+                services.AddSingleton<IAppDiscoveryService>(provider =>
+                    provider.GetRequiredService<AppDiscoveryService>()
+                );
                 services.AddSingleton<IAppService, AppServiceAdapter>();
-                services.AddSingleton<ISpecialAppHandlerService>(provider => new SpecialAppHandlerService(
-                    provider.GetRequiredService<ILogService>(),
-                    provider.GetRequiredService<ISystemServices>()
-                ));
-                services.AddSingleton<ISearchService, Winhance.Infrastructure.Features.Common.Services.SearchService>();
-                services.AddSingleton<IConfigurationService, Winhance.Infrastructure.Features.Common.Services.ConfigurationService>();
+                services.AddSingleton<ISpecialAppHandlerService>(
+                    provider => new SpecialAppHandlerService(
+                        provider.GetRequiredService<ILogService>(),
+                        provider.GetRequiredService<ISystemServices>()
+                    )
+                );
+                services.AddSingleton<
+                    ISearchService,
+                    Winhance.Infrastructure.Features.Common.Services.SearchService
+                >();
+                services.AddSingleton<
+                    IConfigurationService,
+                    Winhance.Infrastructure.Features.Common.Services.ConfigurationService
+                >();
                 // Register UserPreferencesService as a singleton to ensure the same instance is used throughout the app
-                services.AddSingleton<Features.Common.Services.UserPreferencesService>(provider => {
+                services.AddSingleton<Features.Common.Services.UserPreferencesService>(provider =>
+                {
                     var logService = provider.GetRequiredService<ILogService>();
-                    var userPreferencesService = new Features.Common.Services.UserPreferencesService(logService);
-                    
+                    var userPreferencesService =
+                        new Features.Common.Services.UserPreferencesService(logService);
+
                     // Log that the UserPreferencesService has been registered
                     logService.Log(LogLevel.Info, "UserPreferencesService registered as singleton");
-                    
+
                     return userPreferencesService;
                 });
-                services.AddSingleton<IUnifiedConfigurationService>(provider => new Winhance.WPF.Features.Common.Services.UnifiedConfigurationService(
-                    provider.GetRequiredService<IServiceProvider>(),
-                    provider.GetRequiredService<IConfigurationService>(),
-                    provider.GetRequiredService<ILogService>(),
-                    provider.GetRequiredService<Core.Features.Common.Interfaces.IDialogService>(),
-                    provider.GetRequiredService<IRegistryService>()
-                ));
-                
+                services.AddSingleton<IUnifiedConfigurationService>(
+                    provider => new Winhance.WPF.Features.Common.Services.UnifiedConfigurationService(
+                        provider.GetRequiredService<IServiceProvider>(),
+                        provider.GetRequiredService<IConfigurationService>(),
+                        provider.GetRequiredService<ILogService>(),
+                        provider.GetRequiredService<Core.Features.Common.Interfaces.IDialogService>(),
+                        provider.GetRequiredService<IRegistryService>()
+                    )
+                );
+
                 // Register configuration services
                 services.AddConfigurationServices();
-                
+
                 // Keep the old service for backward compatibility during transition
-                services.AddSingleton<IConfigurationCoordinatorService>(provider => new Winhance.WPF.Features.Common.Services.ConfigurationCoordinatorService(
-                    provider.GetRequiredService<IServiceProvider>(),
-                    provider.GetRequiredService<IConfigurationService>(),
-                    provider.GetRequiredService<ILogService>(),
-                    provider.GetRequiredService<Core.Features.Common.Interfaces.IDialogService>(),
-                    provider.GetRequiredService<IRegistryService>()
-                ));
+                services.AddSingleton<IConfigurationCoordinatorService>(
+                    provider => new Winhance.WPF.Features.Common.Services.ConfigurationCoordinatorService(
+                        provider.GetRequiredService<IServiceProvider>(),
+                        provider.GetRequiredService<IConfigurationService>(),
+                        provider.GetRequiredService<ILogService>(),
+                        provider.GetRequiredService<Core.Features.Common.Interfaces.IDialogService>(),
+                        provider.GetRequiredService<IRegistryService>()
+                    )
+                );
                 services.AddSingleton<IScriptDetectionService, ScriptDetectionService>();
 
                 // Register script generation services
                 services.AddScriptGenerationServices();
 
-                services.AddSingleton<IPowerShellExecutionService>(provider => new PowerShellExecutionService(
-                    provider.GetRequiredService<ILogService>(),
-                    provider.GetRequiredService<ISystemServices>()
-                ));
-                
+                services.AddSingleton<IPowerShellExecutionService>(
+                    provider => new PowerShellExecutionService(
+                        provider.GetRequiredService<ILogService>(),
+                        provider.GetRequiredService<ISystemServices>()
+                    )
+                );
+
                 // Register power plan service
-                services.AddSingleton<Winhance.Core.Features.Optimize.Interfaces.IPowerPlanService,
-                    Winhance.Infrastructure.Features.Optimize.Services.PowerPlanService>();
+                services.AddSingleton<
+                    Winhance.Core.Features.Optimize.Interfaces.IPowerPlanService,
+                    Winhance.Infrastructure.Features.Optimize.Services.PowerPlanService
+                >();
 
                 // Register the installation and removal services
-                // Register WinGet installation service
-                services.AddSingleton<IWinGetInstallationService, WinGetInstallationService>();
-                
+                // Register WinGet verification methods
+                services.AddSingleton<IVerificationMethod, WinGetVerificationMethod>();
+                services.AddSingleton<IVerificationMethod, RegistryVerificationMethod>();
+                services.AddSingleton<IVerificationMethod, AppxPackageVerificationMethod>();
+                services.AddSingleton<IVerificationMethod, FileSystemVerificationMethod>();
+
+                // Register the composite verifier
+                services.AddSingleton<IInstallationVerifier, CompositeInstallationVerifier>();
+
+                // Register the WinGet installer
+                services.AddSingleton<IWinGetInstaller, WinGetInstaller>();
+
+                // Register the adapter for backward compatibility
+                services.AddSingleton<
+                    IWinGetInstallationService,
+                    WinGetInstallationServiceAdapter
+                >();
+
                 // Register the main installation service
-                services.AddSingleton<IAppInstallationService>(provider => new AppInstallationService(
-                    provider.GetRequiredService<ILogService>(),
-                    provider.GetRequiredService<IPowerShellExecutionService>(),
-                    provider.GetRequiredService<IScriptUpdateService>(),
-                    provider.GetRequiredService<ISystemServices>(),
-                    provider.GetRequiredService<IWinGetInstallationService>()
-                ));
+                services.AddSingleton<IAppInstallationService>(
+                    provider => new AppInstallationService(
+                        provider.GetRequiredService<ILogService>(),
+                        provider.GetRequiredService<IPowerShellExecutionService>(),
+                        provider.GetRequiredService<IScriptUpdateService>(),
+                        provider.GetRequiredService<ISystemServices>(),
+                        provider.GetRequiredService<IWinGetInstallationService>()
+                    )
+                );
                 services.AddSingleton<IAppRemovalService>(provider => new AppRemovalService(
                     provider.GetRequiredService<ILogService>(),
                     provider.GetRequiredService<ISpecialAppHandlerService>(),
                     provider.GetRequiredService<IAppDiscoveryService>(),
                     provider.GetRequiredService<IScriptTemplateProvider>(),
-                    provider.GetRequiredService<ISystemServices>()
+                    provider.GetRequiredService<ISystemServices>(),
+                    provider.GetRequiredService<IRegistryService>()
                 ));
-                services.AddSingleton<ICapabilityInstallationService, CapabilityInstallationService>();
-                services.AddSingleton<ICapabilityRemovalService>(provider => new CapabilityRemovalService(
-                    provider.GetRequiredService<ILogService>(),
-                    provider.GetRequiredService<IAppDiscoveryService>(),
-                    provider.GetRequiredService<IScheduledTaskService>()
-                ));
+                services.AddSingleton<
+                    ICapabilityInstallationService,
+                    CapabilityInstallationService
+                >();
+                services.AddSingleton<ICapabilityRemovalService>(
+                    provider => new CapabilityRemovalService(
+                        provider.GetRequiredService<ILogService>(),
+                        provider.GetRequiredService<IAppDiscoveryService>(),
+                        provider.GetRequiredService<IScheduledTaskService>()
+                    )
+                );
                 services.AddSingleton<IFeatureInstallationService, FeatureInstallationService>();
                 services.AddSingleton<IFeatureRemovalService>(provider => new FeatureRemovalService(
                     provider.GetRequiredService<ILogService>(),
@@ -533,16 +596,39 @@ namespace Winhance.WPF
                     provider.GetRequiredService<ICapabilityRemovalService>(),
                     provider.GetRequiredService<IFeatureRemovalService>(),
                     provider.GetRequiredService<ISpecialAppHandlerService>(),
-                    provider.GetRequiredService<IScriptGenerationService>()
+                    provider.GetRequiredService<IScriptGenerationService>(),
+                    provider.GetRequiredService<ISystemServices>(),
+                    provider.GetService<INotificationService>()
                 ));
+
+                // Register the InternetConnectivityService
+                services.AddSingleton<IInternetConnectivityService>(
+                    provider => new Winhance.Infrastructure.Features.Common.Services.InternetConnectivityService(
+                        provider.GetRequiredService<ILogService>()
+                    )
+                );
+
+                // Register the AppInstallationCoordinatorService
+                services.AddSingleton<IAppInstallationCoordinatorService>(
+                    provider => new Winhance.Infrastructure.Features.SoftwareApps.Services.AppInstallationCoordinatorService(
+                        provider.GetRequiredService<IAppInstallationService>(),
+                        provider.GetRequiredService<IInternetConnectivityService>(),
+                        provider.GetRequiredService<ILogService>(),
+                        provider.GetService<Core.Features.UI.Interfaces.INotificationService>(),
+                        provider.GetService<Core.Features.Common.Interfaces.IDialogService>()
+                    )
+                );
 
                 // Use fully qualified type name to resolve ambiguity between Winhance.Core.Models.WindowsService
                 // and Winhance.Infrastructure.Features.Common.Services.WindowsSystemService
-                services.AddSingleton<ISystemServices>(provider => new Winhance.Infrastructure.Features.Common.Services.WindowsSystemService(
-                    provider.GetRequiredService<IRegistryService>(),
-                    provider.GetRequiredService<ILogService>()
+                services.AddSingleton<ISystemServices>(
+                    provider => new Winhance.Infrastructure.Features.Common.Services.WindowsSystemService(
+                        provider.GetRequiredService<IRegistryService>(),
+                        provider.GetRequiredService<ILogService>(),
+                        provider.GetRequiredService<IInternetConnectivityService>()
                     // Intentionally not passing IThemeService to break circular dependency
-                ));
+                    )
+                );
 
                 // Register theme and wallpaper services
                 services.AddSingleton<IWallpaperService, WallpaperService>();
@@ -553,50 +639,80 @@ namespace Winhance.WPF
                     provider.GetRequiredService<ISystemServices>()
                 ));
 
-                services.AddSingleton<Core.Features.Common.Interfaces.IDialogService, Features.Common.Services.DialogService>();
+                services.AddSingleton<
+                    Core.Features.Common.Interfaces.IDialogService,
+                    Features.Common.Services.DialogService
+                >();
+                services.AddSingleton<Features.SoftwareApps.Services.SoftwareAppsDialogService>();
                 services.AddSingleton<ITaskProgressService, TaskProgressService>();
 
+                // Register the notification service
+                services.AddSingleton<
+                    Core.Features.UI.Interfaces.INotificationService,
+                    Winhance.Infrastructure.Features.UI.Services.NotificationService
+                >();
+
                 // Register the messenger service
-                services.AddSingleton<Core.Features.Common.Interfaces.IMessengerService, Features.Common.Services.MessengerService>();
+                services.AddSingleton<
+                    Core.Features.Common.Interfaces.IMessengerService,
+                    Features.Common.Services.MessengerService
+                >();
 
                 // Register navigation service
-                services.AddSingleton<Core.Features.Common.Interfaces.INavigationService>(provider =>
-                {
-                    var navigationService = new FrameNavigationService(
-                        provider,
-                        provider.GetRequiredService<IParameterSerializer>()
-                    );
+                services.AddSingleton<Core.Features.Common.Interfaces.INavigationService>(
+                    provider =>
+                    {
+                        var navigationService = new FrameNavigationService(
+                            provider,
+                            provider.GetRequiredService<IParameterSerializer>()
+                        );
 
-                    // Register view mappings
-                    navigationService.RegisterViewMapping("SoftwareApps",
-                        typeof(Features.SoftwareApps.Views.SoftwareAppsView),
-                        typeof(Features.SoftwareApps.ViewModels.SoftwareAppsViewModel));
+                        // Register view mappings
+                        navigationService.RegisterViewMapping(
+                            "SoftwareApps",
+                            typeof(Features.SoftwareApps.Views.SoftwareAppsView),
+                            typeof(Features.SoftwareApps.ViewModels.SoftwareAppsViewModel)
+                        );
 
-                    navigationService.RegisterViewMapping("WindowsApps",
-                        typeof(Features.SoftwareApps.Views.WindowsAppsView),
-                        typeof(Features.SoftwareApps.ViewModels.WindowsAppsViewModel));
+                        navigationService.RegisterViewMapping(
+                            "WindowsApps",
+                            typeof(Features.SoftwareApps.Views.WindowsAppsView),
+                            typeof(Features.SoftwareApps.ViewModels.WindowsAppsViewModel)
+                        );
 
-                    navigationService.RegisterViewMapping("ExternalApps",
-                        typeof(Features.SoftwareApps.Views.ExternalAppsView),
-                        typeof(Features.SoftwareApps.ViewModels.ExternalAppsViewModel));
+                        navigationService.RegisterViewMapping(
+                            "ExternalApps",
+                            typeof(Features.SoftwareApps.Views.ExternalAppsView),
+                            typeof(Features.SoftwareApps.ViewModels.ExternalAppsViewModel)
+                        );
 
-                    navigationService.RegisterViewMapping("Optimize",
-                        typeof(Features.Optimize.Views.OptimizeView),
-                        typeof(Features.Optimize.ViewModels.OptimizeViewModel));
+                        navigationService.RegisterViewMapping(
+                            "Optimize",
+                            typeof(Features.Optimize.Views.OptimizeView),
+                            typeof(Features.Optimize.ViewModels.OptimizeViewModel)
+                        );
 
-                    navigationService.RegisterViewMapping("Customize",
-                        typeof(Features.Customize.Views.CustomizeView),
-                        typeof(Features.Customize.ViewModels.CustomizeViewModel));
+                        navigationService.RegisterViewMapping(
+                            "Customize",
+                            typeof(Features.Customize.Views.CustomizeView),
+                            typeof(Features.Customize.ViewModels.CustomizeViewModel)
+                        );
 
-                    return navigationService;
-                });
+                        return navigationService;
+                    }
+                );
 
-                services.AddSingleton<IParameterSerializer, Winhance.Infrastructure.Features.Common.Services.JsonParameterSerializer>();
+                services.AddSingleton<
+                    IParameterSerializer,
+                    Winhance.Infrastructure.Features.Common.Services.JsonParameterSerializer
+                >();
 
                 // Register ThemeManager with navigation service dependency
-                services.AddSingleton<IThemeManager>(provider =>
-                    new Features.Common.Resources.Theme.ThemeManager(
-                        provider.GetRequiredService<Core.Features.Common.Interfaces.INavigationService>()));
+                services.AddSingleton<IThemeManager>(
+                    provider => new Features.Common.Resources.Theme.ThemeManager(
+                        provider.GetRequiredService<Core.Features.Common.Interfaces.INavigationService>()
+                    )
+                );
 
                 // Register design-time data service
                 services.AddSingleton<
@@ -612,7 +728,10 @@ namespace Winhance.WPF
                     provider.GetRequiredService<Core.Features.Common.Interfaces.IMessengerService>(),
                     provider.GetRequiredService<Core.Features.Common.Interfaces.IDialogService>(),
                     provider.GetRequiredService<IUnifiedConfigurationService>(),
-                    provider.GetRequiredService<Features.Common.Services.UserPreferencesService>()
+                    provider.GetRequiredService<Features.Common.Services.UserPreferencesService>(),
+                    provider.GetRequiredService<ILogService>(),
+                    provider.GetRequiredService<IVersionService>(),
+                    provider.GetRequiredService<IApplicationCloseService>()
                 ));
 
                 services.AddSingleton<WindowsAppsViewModel>(provider => new WindowsAppsViewModel(
@@ -624,7 +743,10 @@ namespace Winhance.WPF
                     provider.GetRequiredService<IFeatureInstallationService>(),
                     provider.GetRequiredService<IFeatureRemovalService>(),
                     provider.GetRequiredService<IConfigurationService>(),
-                    provider.GetRequiredService<IScriptDetectionService>()
+                    provider.GetRequiredService<IScriptDetectionService>(),
+                    provider.GetRequiredService<IInternetConnectivityService>(),
+                    provider.GetRequiredService<IAppInstallationCoordinatorService>(),
+                    provider.GetRequiredService<Features.SoftwareApps.Services.SoftwareAppsDialogService>()
                 ));
 
                 services.AddSingleton<ExternalAppsViewModel>(provider => new ExternalAppsViewModel(
@@ -633,49 +755,64 @@ namespace Winhance.WPF
                     provider.GetRequiredService<IPackageManager>(),
                     provider.GetRequiredService<IAppInstallationService>(),
                     provider.GetRequiredService<IAppService>(),
-                    provider.GetRequiredService<IConfigurationService>()
+                    provider.GetRequiredService<IConfigurationService>(),
+                    provider.GetRequiredService<Features.SoftwareApps.Services.SoftwareAppsDialogService>(),
+                    provider.GetRequiredService<IInternetConnectivityService>(),
+                    provider.GetRequiredService<IAppInstallationCoordinatorService>()
                 ));
 
                 // Register child ViewModels for OptimizeViewModel
-                services.AddSingleton<WindowsSecurityOptimizationsViewModel>(provider => new WindowsSecurityOptimizationsViewModel(
-                    provider.GetRequiredService<ITaskProgressService>(),
-                    provider.GetRequiredService<IRegistryService>(),
-                    provider.GetRequiredService<ILogService>()
-                ));
+                services.AddSingleton<WindowsSecurityOptimizationsViewModel>(
+                    provider => new WindowsSecurityOptimizationsViewModel(
+                        provider.GetRequiredService<ITaskProgressService>(),
+                        provider.GetRequiredService<IRegistryService>(),
+                        provider.GetRequiredService<ILogService>(),
+                        provider.GetRequiredService<ISystemServices>()
+                    )
+                );
 
-                services.AddSingleton<PrivacyOptimizationsViewModel>(provider => new PrivacyOptimizationsViewModel(
-                    provider.GetRequiredService<ITaskProgressService>(),
-                    provider.GetRequiredService<IRegistryService>(),
-                    provider.GetRequiredService<ILogService>(),
-                    provider.GetRequiredService<IDependencyManager>(),
-                    provider.GetRequiredService<IViewModelLocator>(),
-                    provider.GetRequiredService<ISettingsRegistry>()
-                ));
+                services.AddSingleton<PrivacyOptimizationsViewModel>(
+                    provider => new PrivacyOptimizationsViewModel(
+                        provider.GetRequiredService<ITaskProgressService>(),
+                        provider.GetRequiredService<IRegistryService>(),
+                        provider.GetRequiredService<ILogService>(),
+                        provider.GetRequiredService<IDependencyManager>(),
+                        provider.GetRequiredService<IViewModelLocator>(),
+                        provider.GetRequiredService<ISettingsRegistry>()
+                    )
+                );
 
-                services.AddSingleton<GamingandPerformanceOptimizationsViewModel>(provider => new GamingandPerformanceOptimizationsViewModel(
-                    provider.GetRequiredService<ITaskProgressService>(),
-                    provider.GetRequiredService<IRegistryService>(),
-                    provider.GetRequiredService<ILogService>(),
-                    provider.GetRequiredService<IViewModelLocator>(),
-                    provider.GetRequiredService<ISettingsRegistry>()
-                ));
+                services.AddSingleton<GamingandPerformanceOptimizationsViewModel>(
+                    provider => new GamingandPerformanceOptimizationsViewModel(
+                        provider.GetRequiredService<ITaskProgressService>(),
+                        provider.GetRequiredService<IRegistryService>(),
+                        provider.GetRequiredService<ILogService>(),
+                        provider.GetRequiredService<ICommandService>(),
+                        provider.GetRequiredService<IViewModelLocator>(),
+                        provider.GetRequiredService<ISettingsRegistry>()
+                    )
+                );
 
-                services.AddSingleton<UpdateOptimizationsViewModel>(provider => new UpdateOptimizationsViewModel(
-                    provider.GetRequiredService<ITaskProgressService>(),
-                    provider.GetRequiredService<IRegistryService>(),
-                    provider.GetRequiredService<ILogService>(),
-                    provider.GetRequiredService<IViewModelLocator>(),
-                    provider.GetRequiredService<ISettingsRegistry>()
-                ));
+                services.AddSingleton<UpdateOptimizationsViewModel>(
+                    provider => new UpdateOptimizationsViewModel(
+                        provider.GetRequiredService<ITaskProgressService>(),
+                        provider.GetRequiredService<IRegistryService>(),
+                        provider.GetRequiredService<ILogService>(),
+                        provider.GetRequiredService<IViewModelLocator>(),
+                        provider.GetRequiredService<ISettingsRegistry>()
+                    )
+                );
 
-                services.AddSingleton<PowerOptimizationsViewModel>(provider => new PowerOptimizationsViewModel(
-                    provider.GetRequiredService<ITaskProgressService>(),
-                    provider.GetRequiredService<IRegistryService>(),
-                    provider.GetRequiredService<ILogService>(),
-                    provider.GetRequiredService<Winhance.Core.Features.Optimize.Interfaces.IPowerPlanService>(),
-                    provider.GetRequiredService<IViewModelLocator>(),
-                    provider.GetRequiredService<ISettingsRegistry>()
-                ));
+                services.AddSingleton<PowerOptimizationsViewModel>(
+                    provider => new PowerOptimizationsViewModel(
+                        provider.GetRequiredService<ITaskProgressService>(),
+                        provider.GetRequiredService<IRegistryService>(),
+                        provider.GetRequiredService<ILogService>(),
+                        provider.GetRequiredService<Winhance.Core.Features.Optimize.Interfaces.IPowerPlanService>(),
+                        provider.GetRequiredService<IViewModelLocator>(),
+                        provider.GetRequiredService<ISettingsRegistry>()
+                    )
+                );
 
                 // ViewModels are registered above
 
@@ -698,56 +835,70 @@ namespace Winhance.WPF
                 ));
 
                 // Register child ViewModels for CustomizeViewModel
-                services.AddSingleton<TaskbarCustomizationsViewModel>(provider => new TaskbarCustomizationsViewModel(
-                    provider.GetRequiredService<ITaskProgressService>(),
-                    provider.GetRequiredService<IRegistryService>(),
-                    provider.GetRequiredService<ILogService>(),
-                    provider.GetRequiredService<ISystemServices>()
-                ));
+                services.AddSingleton<TaskbarCustomizationsViewModel>(
+                    provider => new TaskbarCustomizationsViewModel(
+                        provider.GetRequiredService<ITaskProgressService>(),
+                        provider.GetRequiredService<IRegistryService>(),
+                        provider.GetRequiredService<ILogService>(),
+                        provider.GetRequiredService<ISystemServices>()
+                    )
+                );
 
-                services.AddSingleton<StartMenuCustomizationsViewModel>(provider => new StartMenuCustomizationsViewModel(
-                    provider.GetRequiredService<ITaskProgressService>(),
-                    provider.GetRequiredService<IRegistryService>(),
-                    provider.GetRequiredService<ILogService>(),
-                    provider.GetRequiredService<ISystemServices>()
-                ));
+                services.AddSingleton<StartMenuCustomizationsViewModel>(
+                    provider => new StartMenuCustomizationsViewModel(
+                        provider.GetRequiredService<ITaskProgressService>(),
+                        provider.GetRequiredService<IRegistryService>(),
+                        provider.GetRequiredService<ILogService>(),
+                        provider.GetRequiredService<ISystemServices>()
+                    )
+                );
 
-                services.AddSingleton<ExplorerCustomizationsViewModel>(provider => new ExplorerCustomizationsViewModel(
-                    provider.GetRequiredService<ITaskProgressService>(),
-                    provider.GetRequiredService<IRegistryService>(),
-                    provider.GetRequiredService<ILogService>(),
-                    provider.GetRequiredService<Core.Features.Common.Interfaces.IDialogService>()
-                ));
+                services.AddSingleton<ExplorerCustomizationsViewModel>(
+                    provider => new ExplorerCustomizationsViewModel(
+                        provider.GetRequiredService<ITaskProgressService>(),
+                        provider.GetRequiredService<IRegistryService>(),
+                        provider.GetRequiredService<ILogService>(),
+                        provider.GetRequiredService<Core.Features.Common.Interfaces.IDialogService>()
+                    )
+                );
 
-                services.AddSingleton<ExplorerOptimizationsViewModel>(provider => new ExplorerOptimizationsViewModel(
-                    provider.GetRequiredService<ITaskProgressService>(),
-                    provider.GetRequiredService<IRegistryService>(),
-                    provider.GetRequiredService<ILogService>(),
-                    provider.GetRequiredService<IDependencyManager>()
-                ));
+                services.AddSingleton<ExplorerOptimizationsViewModel>(
+                    provider => new ExplorerOptimizationsViewModel(
+                        provider.GetRequiredService<ITaskProgressService>(),
+                        provider.GetRequiredService<IRegistryService>(),
+                        provider.GetRequiredService<ILogService>(),
+                        provider.GetRequiredService<IDependencyManager>()
+                    )
+                );
 
-                services.AddSingleton<NotificationOptimizationsViewModel>(provider => new NotificationOptimizationsViewModel(
-                    provider.GetRequiredService<ITaskProgressService>(),
-                    provider.GetRequiredService<IRegistryService>(),
-                    provider.GetRequiredService<ILogService>(),
-                    provider.GetRequiredService<Core.Features.Common.Interfaces.IDialogService>(),
-                    provider.GetRequiredService<IDependencyManager>()
-                ));
+                services.AddSingleton<NotificationOptimizationsViewModel>(
+                    provider => new NotificationOptimizationsViewModel(
+                        provider.GetRequiredService<ITaskProgressService>(),
+                        provider.GetRequiredService<IRegistryService>(),
+                        provider.GetRequiredService<ILogService>(),
+                        provider.GetRequiredService<Core.Features.Common.Interfaces.IDialogService>(),
+                        provider.GetRequiredService<IDependencyManager>()
+                    )
+                );
 
-                services.AddSingleton<SoundOptimizationsViewModel>(provider => new SoundOptimizationsViewModel(
-                    provider.GetRequiredService<ITaskProgressService>(),
-                    provider.GetRequiredService<IRegistryService>(),
-                    provider.GetRequiredService<ILogService>(),
-                    provider.GetRequiredService<IDependencyManager>()
-                ));
+                services.AddSingleton<SoundOptimizationsViewModel>(
+                    provider => new SoundOptimizationsViewModel(
+                        provider.GetRequiredService<ITaskProgressService>(),
+                        provider.GetRequiredService<IRegistryService>(),
+                        provider.GetRequiredService<ILogService>(),
+                        provider.GetRequiredService<IDependencyManager>()
+                    )
+                );
 
-                services.AddSingleton<WindowsThemeCustomizationsViewModel>(provider => new WindowsThemeCustomizationsViewModel(
-                    provider.GetRequiredService<ITaskProgressService>(),
-                    provider.GetRequiredService<IRegistryService>(),
-                    provider.GetRequiredService<ILogService>(),
-                    provider.GetRequiredService<Core.Features.Common.Interfaces.IDialogService>(),
-                    provider.GetRequiredService<Core.Features.Customize.Interfaces.IThemeService>()
-                ));
+                services.AddSingleton<WindowsThemeCustomizationsViewModel>(
+                    provider => new WindowsThemeCustomizationsViewModel(
+                        provider.GetRequiredService<ITaskProgressService>(),
+                        provider.GetRequiredService<IRegistryService>(),
+                        provider.GetRequiredService<ILogService>(),
+                        provider.GetRequiredService<Core.Features.Common.Interfaces.IDialogService>(),
+                        provider.GetRequiredService<Core.Features.Customize.Interfaces.IThemeService>()
+                    )
+                );
 
                 services.AddSingleton<CustomizeViewModel>(provider => new CustomizeViewModel(
                     provider.GetRequiredService<ITaskProgressService>(),
@@ -776,7 +927,9 @@ namespace Winhance.WPF
                     provider,
                     provider.GetRequiredService<Core.Features.Common.Interfaces.IMessengerService>(),
                     provider.GetRequiredService<Core.Features.Common.Interfaces.INavigationService>(),
-                    provider.GetRequiredService<Features.Common.Services.UserPreferencesService>()
+                    provider.GetRequiredService<IVersionService>(),
+                    provider.GetRequiredService<Features.Common.Services.UserPreferencesService>(),
+                    provider.GetRequiredService<IApplicationCloseService>()
                 ));
 
                 services.AddTransient<WindowsAppsView>();
@@ -799,6 +952,9 @@ namespace Winhance.WPF
                 // Register version service
                 services.AddSingleton<IVersionService, VersionService>();
                 services.AddSingleton<UpdateNotificationViewModel>();
+
+                // Register ApplicationCloseService
+                services.AddSingleton<IApplicationCloseService, ApplicationCloseService>();
 
                 // Register logging service
                 services.AddHostedService<LoggingService>();

@@ -2,9 +2,9 @@ using System;
 using System.Threading.Tasks;
 using CommunityToolkit.Mvvm.ComponentModel;
 using CommunityToolkit.Mvvm.Input;
+using Microsoft.Extensions.DependencyInjection;
 using Winhance.Core.Features.Common.Interfaces;
 using Winhance.Core.Features.SoftwareApps.Interfaces;
-using Microsoft.Extensions.DependencyInjection;
 using Winhance.WPF.Features.Common.ViewModels;
 
 namespace Winhance.WPF.Features.SoftwareApps.ViewModels
@@ -18,7 +18,8 @@ namespace Winhance.WPF.Features.SoftwareApps.ViewModels
         private readonly IPackageManager _packageManager;
 
         [ObservableProperty]
-        private string _statusText = "Manage Windows Apps, Capabilities & Features and Install External Software";
+        private string _statusText =
+            "Manage Windows Apps, Capabilities & Features and Install External Software";
 
         [ObservableProperty]
         private WindowsAppsViewModel _windowsAppsViewModel;
@@ -35,12 +36,15 @@ namespace Winhance.WPF.Features.SoftwareApps.ViewModels
         public SoftwareAppsViewModel(
             ITaskProgressService progressService,
             IPackageManager packageManager,
-            IServiceProvider serviceProvider)
+            IServiceProvider serviceProvider
+        )
             : base(progressService)
         {
-            _packageManager = packageManager ?? throw new ArgumentNullException(nameof(packageManager));
-            _serviceProvider = serviceProvider ?? throw new ArgumentNullException(nameof(serviceProvider));
-            
+            _packageManager =
+                packageManager ?? throw new ArgumentNullException(nameof(packageManager));
+            _serviceProvider =
+                serviceProvider ?? throw new ArgumentNullException(nameof(serviceProvider));
+
             // Resolve the dependencies via DI container
             WindowsAppsViewModel = _serviceProvider.GetRequiredService<WindowsAppsViewModel>();
             ExternalAppsViewModel = _serviceProvider.GetRequiredService<ExternalAppsViewModel>();
@@ -62,14 +66,15 @@ namespace Winhance.WPF.Features.SoftwareApps.ViewModels
                 {
                     await WindowsAppsViewModel.LoadAppsAndCheckInstallationStatusAsync();
                 }
-                
+
                 // Initialize ExternalAppsViewModel if not already initialized
                 if (!ExternalAppsViewModel.IsInitialized)
                 {
                     await ExternalAppsViewModel.LoadAppsAndCheckInstallationStatusAsync();
                 }
-                
-                StatusText = "Manage Windows Apps, Capabilities & Features and Install External Software";
+
+                StatusText =
+                    "Manage Windows Apps, Capabilities & Features and Install External Software";
             }
             catch (Exception ex)
             {

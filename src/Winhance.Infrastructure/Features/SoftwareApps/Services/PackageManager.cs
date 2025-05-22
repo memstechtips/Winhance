@@ -4,9 +4,10 @@ using System.Linq;
 using System.Threading;
 using System.Threading.Tasks;
 using Winhance.Core.Features.Common.Interfaces;
+using Winhance.Core.Features.Optimize.Models;
 using Winhance.Core.Features.SoftwareApps.Interfaces;
 using Winhance.Core.Features.SoftwareApps.Models;
-using Winhance.Core.Features.Optimize.Models;
+using Winhance.Core.Features.UI.Interfaces;
 
 namespace Winhance.Infrastructure.Features.SoftwareApps.Services
 {
@@ -41,6 +42,12 @@ namespace Winhance.Infrastructure.Features.SoftwareApps.Services
         /// <inheritdoc/>
         public IScriptGenerationService ScriptGenerationService { get; }
 
+        /// <inheritdoc/>
+        public ISystemServices SystemServices { get; }
+
+        /// <inheritdoc/>
+        public INotificationService NotificationService { get; }
+
         /// <summary>
         /// Initializes a new instance of the <see cref="PackageManager"/> class.
         /// </summary>
@@ -56,7 +63,9 @@ namespace Winhance.Infrastructure.Features.SoftwareApps.Services
             ICapabilityRemovalService capabilityRemovalService,
             IFeatureRemovalService featureRemovalService,
             ISpecialAppHandlerService specialAppHandlerService,
-            IScriptGenerationService scriptGenerationService
+            IScriptGenerationService scriptGenerationService,
+            ISystemServices systemServices,
+            INotificationService notificationService
         )
         {
             LogService = logService;
@@ -67,6 +76,8 @@ namespace Winhance.Infrastructure.Features.SoftwareApps.Services
             _featureRemovalService = featureRemovalService;
             SpecialAppHandlerService = specialAppHandlerService;
             ScriptGenerationService = scriptGenerationService;
+            SystemServices = systemServices;
+            NotificationService = notificationService;
         }
 
         /// <inheritdoc/>
@@ -103,11 +114,12 @@ namespace Winhance.Infrastructure.Features.SoftwareApps.Services
             // If not found in standard apps and isCapability is true, create a CapabilityInfo directly
             if (appInfo == null && isCapability)
             {
-                LogService.LogInformation($"App not found in standard apps but isCapability is true. Treating {packageName} as a capability.");
-                return await _capabilityRemovalService.RemoveCapabilityAsync(new CapabilityInfo {
-                    Name = packageName,
-                    PackageName = packageName
-                });
+                LogService.LogInformation(
+                    $"App not found in standard apps but isCapability is true. Treating {packageName} as a capability."
+                );
+                return await _capabilityRemovalService.RemoveCapabilityAsync(
+                    new CapabilityInfo { Name = packageName, PackageName = packageName }
+                );
             }
             else if (appInfo == null)
             {
@@ -118,7 +130,9 @@ namespace Winhance.Infrastructure.Features.SoftwareApps.Services
             // First check if this is a special app that requires special handling
             if (appInfo.RequiresSpecialHandling && !string.IsNullOrEmpty(appInfo.SpecialHandlerType))
             {
-                LogService.LogInformation($"Using special handler for app: {packageName}, handler type: {appInfo.SpecialHandlerType}");
+                LogService.LogInformation(
+                    $"Using special handler for app: {packageName}, handler type: {appInfo.SpecialHandlerType}"
+                );
                 
                 bool success = false;
                 switch (appInfo.SpecialHandlerType)
@@ -129,8 +143,13 @@ namespace Winhance.Infrastructure.Features.SoftwareApps.Services
                     case "OneDrive":
                         success = await SpecialAppHandlerService.RemoveOneDriveAsync();
                         break;
+                    case "OneNote":
+                        success = await SpecialAppHandlerService.RemoveOneNoteAsync();
+                        break;
                     default:
-                        success = await SpecialAppHandlerService.RemoveSpecialAppAsync(appInfo.SpecialHandlerType);
+                        success = await SpecialAppHandlerService.RemoveSpecialAppAsync(
+                            appInfo.SpecialHandlerType
+                        );
                         break;
                 }
                 
@@ -151,14 +170,14 @@ namespace Winhance.Infrastructure.Features.SoftwareApps.Services
             switch (appInfo.Type)
             {
                 case AppType.OptionalFeature:
-                    result = await _featureRemovalService.RemoveFeatureAsync(new FeatureInfo { Name = packageName });
+                    result = await _featureRemovalService.RemoveFeatureAsync(
+                        new FeatureInfo { Name = packageName }
+                    );
                     break;
-                
                 case AppType.Capability:
-                    result = await _capabilityRemovalService.RemoveCapabilityAsync(new CapabilityInfo {
-                        Name = packageName,
-                        PackageName = packageName
-                    });
+                    result = await _capabilityRemovalService.RemoveCapabilityAsync(
+                        new CapabilityInfo { Name = packageName, PackageName = packageName }
+                    );
                     break;
                 
                 case AppType.StandardApp:
@@ -196,7 +215,10 @@ namespace Winhance.Infrastructure.Features.SoftwareApps.Services
                 }
                 catch (Exception ex)
                 {
-                    LogService.LogError($"Failed to create or register removal script for {packageName}", ex);
+                    LogService.LogError(
+                    $"Failed to create or register removal script for {packageName}",
+                    ex
+                );
                     // Don't change result value, as the app removal itself might have succeeded
                 }
             }
@@ -205,9 +227,14 @@ namespace Winhance.Infrastructure.Features.SoftwareApps.Services
         }
 
         /// <inheritdoc/>
-        public async Task<bool> IsAppInstalledAsync(string packageName, CancellationToken cancellationToken = default)
+        public async Task<bool> IsAppInstalledAsync(
+        string packageName,
+        CancellationToken cancellationToken = default
+        )
         {
-            var status = await AppDiscoveryService.GetBatchInstallStatusAsync(new[] { packageName });
+            var status = await AppDiscoveryService.GetBatchInstallStatusAsync(
+                new[] { packageName }
+            );
             return status.TryGetValue(packageName, out var isInstalled) && isInstalled;
         }
 
@@ -221,6 +248,12 @@ namespace Winhance.Infrastructure.Features.SoftwareApps.Services
         public async Task<bool> RemoveOneDriveAsync()
         {
             return await SpecialAppHandlerService.RemoveOneDriveAsync();
+        }
+
+        /// <inheritdoc/>
+        public async Task<bool> RemoveOneNoteAsync()
+        {
+            return await SpecialAppHandlerService.RemoveOneNoteAsync();
         }
 
         /// <inheritdoc/>
@@ -285,10 +318,12 @@ namespace Winhance.Infrastructure.Features.SoftwareApps.Services
                         // If we couldn't determine the app type from the app info, use the IsCapability flag
                         if (app.IsCapability)
                         {
-                            LogService.LogInformation($"App not found in standard apps but IsCapability is true. Treating {app.PackageName} as a capability.");
+                            LogService.LogInformation(
+                                $"App not found in standard apps but IsCapability is true. Treating {app.PackageName} as a capability."
+                            );
                             capabilities.Add(new CapabilityInfo {
                                 Name = app.PackageName,
-                                PackageName = app.PackageName
+                                PackageName = app.PackageName,
                             });
                         }
                         else
@@ -366,7 +401,18 @@ namespace Winhance.Infrastructure.Features.SoftwareApps.Services
                         foreach (var app in handler.Value)
                         {
                             var success = await SpecialAppHandlerService.RemoveOneDriveAsync();
-                            results.Add((app, success, success ? null : "Failed to remove OneDrive"));
+                            results.Add(
+                                (app, success, success ? null : "Failed to remove OneDrive")
+                            );
+                        }
+                        break;
+                    case "OneNote":
+                        foreach (var app in handler.Value)
+                        {
+                            var success = await SpecialAppHandlerService.RemoveOneNoteAsync();
+                            results.Add(
+                                (app, success, success ? null : "Failed to remove OneNote")
+                            );
                         }
                         break;
                     default:
@@ -390,11 +436,14 @@ namespace Winhance.Infrastructure.Features.SoftwareApps.Services
                 
                 // Filter out special apps from the successful apps list
                 var nonSpecialSuccessfulAppInfos = allRemovableApps
-                    .Where(a => successfulApps.Contains(a.PackageName) &&
-                           (!a.RequiresSpecialHandling || string.IsNullOrEmpty(a.SpecialHandlerType)))
+                    .Where(a => successfulApps.Contains(a.PackageName)
+                        && (!a.RequiresSpecialHandling || string.IsNullOrEmpty(a.SpecialHandlerType))
+                    )
                     .ToList();
 
-                LogService.LogInformation($"Creating batch removal script for {nonSpecialSuccessfulAppInfos.Count} non-special apps");
+                LogService.LogInformation(
+                    $"Creating batch removal script for {nonSpecialSuccessfulAppInfos.Count} non-special apps"
+                );
                 
                 foreach (var app in nonSpecialSuccessfulAppInfos)
                 {
@@ -404,7 +453,9 @@ namespace Winhance.Infrastructure.Features.SoftwareApps.Services
                     }
                     catch (Exception ex)
                     {
-                        LogService.LogWarning($"Failed to update removal script for {app.PackageName}: {ex.Message}");
+                        LogService.LogWarning(
+                            $"Failed to update removal script for {app.PackageName}: {ex.Message}"
+                        );
                     }
                 }
             }

@@ -1,0 +1,83 @@
+<UserControl x:Class="Winhance.WPF.Features.Common.Controls.MoreMenu"
+             xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006" 
+             xmlns:d="http://schemas.microsoft.com/expression/blend/2008" 
+             xmlns:viewModels="clr-namespace:Winhance.WPF.Features.Common.ViewModels"
+             mc:Ignorable="d" 
+             d:DataContext="{d:DesignInstance Type=viewModels:MoreMenuViewModel}">
+    <UserControl.Resources>
+        <ResourceDictionary>
+            <ResourceDictionary.MergedDictionaries>
+                <ResourceDictionary Source="/Features/Common/Resources/Styles/MenuStyles.xaml"/>
+            </ResourceDictionary.MergedDictionaries>
+            
+            <!-- Define the ContextMenu as a resource -->
+            <ContextMenu x:Key="MoreButtonContextMenu" 
+                         Style="{DynamicResource WinhanceContextMenuStyle}"
+                         Placement="Right" 
+                         StaysOpen="False">
+                <!-- Version Info (non-clickable) -->
+                <MenuItem IsEnabled="False" Style="{DynamicResource WinhanceMenuItemStyle}">
+                    <MenuItem.Header>
+                        <StackPanel Orientation="Horizontal">
+                            <TextBlock Text="&#xE88E;" FontFamily="{DynamicResource MaterialSymbolsFont}" VerticalAlignment="Center" Margin="0,0,12,0" FontSize="18"/>
+                            <TextBlock Text="{Binding VersionInfo}" Style="{DynamicResource VersionInfoTextStyle}"/>
+                        </StackPanel>
+                    </MenuItem.Header>
+                </MenuItem>
+                
+                <!-- Check for Updates -->
+                <MenuItem Command="{Binding CheckForUpdatesCommand}" Style="{DynamicResource WinhanceMenuItemStyle}">
+                    <MenuItem.Header>
+                        <StackPanel Orientation="Horizontal">
+                            <TextBlock Text="&#xE881;" FontFamily="{DynamicResource MaterialSymbolsFont}" VerticalAlignment="Center" Margin="0,0,12,0" FontSize="18"/>
+                            <TextBlock Text="Check for Updates" VerticalAlignment="Center" FontSize="14"/>
+                        </StackPanel>
+                    </MenuItem.Header>
+                </MenuItem>
+                
+                <!-- Separator -->
+                <Separator Style="{DynamicResource WinhanceSeparatorStyle}"/>
+                
+                <!-- Winhance Logs -->
+                <MenuItem Command="{Binding OpenLogsCommand}" Style="{DynamicResource WinhanceMenuItemStyle}">
+                    <MenuItem.Header>
+                        <StackPanel Orientation="Horizontal">
+                            <TextBlock Text="&#xE46E;" FontFamily="{DynamicResource MaterialSymbolsFont}" VerticalAlignment="Center" Margin="0,0,12,0" FontSize="18"/>
+                            <TextBlock Text="Winhance Logs" VerticalAlignment="Center" FontSize="14"/>
+                        </StackPanel>
+                    </MenuItem.Header>
+                </MenuItem>
+
+                <!-- Winhance Scripts -->
+                <MenuItem Command="{Binding OpenScriptsCommand}" Style="{DynamicResource WinhanceMenuItemStyle}">
+                    <MenuItem.Header>
+                        <StackPanel Orientation="Horizontal">
+                            <TextBlock Text="&#xF3C8;" FontFamily="{DynamicResource MaterialSymbolsFont}" VerticalAlignment="Center" Margin="0,0,12,0" FontSize="18"/>
+                            <TextBlock Text="Winhance Scripts" VerticalAlignment="Center" FontSize="14"/>
+                        </StackPanel>
+                    </MenuItem.Header>
+                </MenuItem>
+
+                <!-- Separator -->
+                <Separator Style="{DynamicResource WinhanceSeparatorStyle}"/>
+                
+                <!-- Close Winhance -->
+                <MenuItem Command="{Binding CloseApplicationCommand}" Style="{DynamicResource WinhanceMenuItemStyle}">
+                    <MenuItem.Header>
+                        <StackPanel Orientation="Horizontal">
+                            <TextBlock Text="&#xE5CD;" FontFamily="{DynamicResource MaterialSymbolsFont}" VerticalAlignment="Center" Margin="0,0,12,0" FontSize="18"/>
+                            <TextBlock Text="Close Winhance" VerticalAlignment="Center" FontSize="14"/>
+                        </StackPanel>
+                    </MenuItem.Header>
+                </MenuItem>
+            </ContextMenu>
+        </ResourceDictionary>
+    </UserControl.Resources>
+    
+    <!-- Root layout element -->
+    <Grid Width="0" Height="0">
+        <!-- This is an empty grid that just serves as a container for the UserControl -->
+    </Grid>
+</UserControl>

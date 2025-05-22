@@ -1,11 +1,11 @@
 using System;
 using System.Collections.Generic;
+using System.Linq;
 using System.Threading.Tasks;
 using System.Windows;
-using System.Linq;
 using Winhance.Core.Features.Common.Interfaces;
-using Winhance.WPF.Features.Common.Views;
 using Winhance.WPF.Features.Common.ViewModels;
+using Winhance.WPF.Features.Common.Views;
 
 namespace Winhance.WPF.Features.Common.Services
 {
@@ -13,29 +13,51 @@ namespace Winhance.WPF.Features.Common.Services
     {
         public void ShowMessage(string message, string title = "")
         {
-            MessageBox.Show(message, title, MessageBoxButton.OK, MessageBoxImage.None);
+            // Use CustomDialog for all messages
+            CustomDialog.ShowInformation(title, title, message, "");
         }
 
-        public Task<bool> ShowConfirmationAsync(string message, string title = "", string okButtonText = "OK", string cancelButtonText = "Cancel")
+        public Task<bool> ShowConfirmationAsync(
+            string message,
+            string title = "",
+            string okButtonText = "OK",
+            string cancelButtonText = "Cancel"
+        )
         {
             // For regular confirmation messages without app lists
-            if (!message.Contains("following") || (!message.Contains("install") && !message.Contains("remove")))
+            if (
+                !message.Contains("following")
+                || (!message.Contains("install") && !message.Contains("remove"))
+            )
             {
-                return Task.FromResult(MessageBox.Show(message, title, MessageBoxButton.YesNo, MessageBoxImage.Question) == MessageBoxResult.Yes);
+                return Task.FromResult(
+                    MessageBox.Show(
+                        message,
+                        title,
+                        MessageBoxButton.YesNo,
+                        MessageBoxImage.Question
+                    ) == MessageBoxResult.Yes
+                );
             }
 
             // Parse apps from the message
             var lines = message.Split('\n');
-            var apps = lines.Where(line => line.StartsWith("+") || line.StartsWith("-"))
-                           .Select(line => line.Trim())
-                           .ToList();
+            var apps = lines
+                .Where(line => line.StartsWith("+") || line.StartsWith("-"))
+                .Select(line => line.Trim())
+                .ToList();
 
             var headerText = lines[0];
-            var footerText = string.Join("\n\n", 
-                lines.Where(line => line.Contains("cannot be") || 
-                                  line.Contains("action cannot") || 
-                                  line.Contains("Some selected"))
-                     .Select(line => line.Trim()));
+            var footerText = string.Join(
+                "\n\n",
+                lines
+                    .Where(line =>
+                        line.Contains("cannot be")
+                        || line.Contains("action cannot")
+                        || line.Contains("Some selected")
+                    )
+                    .Select(line => line.Trim())
+            );
 
             var result = CustomDialog.ShowConfirmation(title, headerText, apps, footerText);
             return Task.FromResult(result ?? false);
@@ -43,44 +65,67 @@ namespace Winhance.WPF.Features.Common.Services
 
         public Task ShowErrorAsync(string message, string title = "Error", string buttonText = "OK")
         {
-            MessageBox.Show(message, title, MessageBoxButton.OK, MessageBoxImage.Error);
+            // Use CustomDialog for all error messages
+            CustomDialog.ShowInformation(title, title, message, "");
             return Task.CompletedTask;
         }
 
-        public Task ShowInformationAsync(string message, string title = "Information", string buttonText = "OK")
+        public Task ShowInformationAsync(
+            string message,
+            string title = "Information",
+            string buttonText = "OK"
+        )
         {
-            // For regular info messages without app lists
-            if (!message.Contains("following") || (!message.Contains("installed") && !message.Contains("removed")))
+            // For messages with app lists (special handling)
+            if (message.Contains("following") && 
+                (message.Contains("installed") || message.Contains("removed")))
             {
-                MessageBox.Show(message, title, MessageBoxButton.OK, MessageBoxImage.Information);
+                // Parse apps from the message
+                var lines = message.Split('\n');
+                var apps = lines
+                    .Where(line => line.StartsWith("+") || line.StartsWith("-"))
+                    .Select(line => line.Trim())
+                    .ToList();
+
+                var headerText = lines[0];
+                var footerText = string.Join(
+                    "\n\n",
+                    lines
+                        .Where(line => line.Contains("Failed") || line.Contains("startup task"))
+                        .Select(line => line.Trim())
+                );
+
+                CustomDialog.ShowInformation(title, headerText, apps, footerText);
                 return Task.CompletedTask;
             }
-
-            // Parse apps from the message
-            var lines = message.Split('\n');
-            var apps = lines.Where(line => line.StartsWith("+") || line.StartsWith("-"))
-                           .Select(line => line.Trim())
-                           .ToList();
-
-            var headerText = lines[0];
-            var footerText = string.Join("\n\n", 
-                lines.Where(line => line.Contains("Failed") || 
-                                  line.Contains("startup task"))
-                     .Select(line => line.Trim()));
-
-            CustomDialog.ShowInformation(title, headerText, apps, footerText);
+            
+            // For all other information messages, use CustomDialog
+            CustomDialog.ShowInformation(title, title, message, "");
             return Task.CompletedTask;
         }
 
-        public Task ShowWarningAsync(string message, string title = "Warning", string buttonText = "OK")
+        public Task ShowWarningAsync(
+            string message,
+            string title = "Warning",
+            string buttonText = "OK"
+        )
         {
             MessageBox.Show(message, title, MessageBoxButton.OK, MessageBoxImage.Warning);
             return Task.CompletedTask;
         }
 
-        public Task<string?> ShowInputAsync(string message, string title = "", string defaultValue = "")
+        public Task<string?> ShowInputAsync(
+            string message,
+            string title = "",
+            string defaultValue = ""
+        )
         {
-            var result = MessageBox.Show(message, title, MessageBoxButton.OKCancel, MessageBoxImage.Question);
+            var result = MessageBox.Show(
+                message,
+                title,
+                MessageBoxButton.OKCancel,
+                MessageBoxImage.Question
+            );
             return Task.FromResult(result == MessageBoxResult.OK ? defaultValue : null);
         }
 
@@ -91,81 +136,108 @@ namespace Winhance.WPF.Features.Common.Services
             {
                 // Create a list with a single item for the message
                 var messageList = new List<string> { message };
-                
+
                 // Use the CustomDialog.ShowConfirmation method (Yes/No only)
-                var themeDialogResult = CustomDialog.ShowConfirmation(title, "Theme Change", messageList, "");
-                
+                var themeDialogResult = CustomDialog.ShowConfirmation(
+                    title,
+                    "Theme Change",
+                    messageList,
+                    ""
+                );
+
                 // Convert to bool? (Yes/No only, no Cancel)
                 return Task.FromResult<bool?>(themeDialogResult);
             }
             // For regular messages without app lists
-            else if (!message.Contains("following") || (!message.Contains("install") && !message.Contains("remove")))
+            else if (
+                !message.Contains("following")
+                || (!message.Contains("install") && !message.Contains("remove"))
+            )
             {
-                var result = MessageBox.Show(message, title, MessageBoxButton.YesNoCancel, MessageBoxImage.Question);
+                var result = MessageBox.Show(
+                    message,
+                    title,
+                    MessageBoxButton.YesNoCancel,
+                    MessageBoxImage.Question
+                );
                 bool? boolResult = result switch
                 {
                     MessageBoxResult.Yes => true,
                     MessageBoxResult.No => false,
-                    _ => null
+                    _ => null,
                 };
                 return Task.FromResult(boolResult);
             }
 
             // Parse apps from the message
             var lines = message.Split('\n');
-            var apps = lines.Where(line => line.StartsWith("+") || line.StartsWith("-"))
-                           .Select(line => line.Trim())
-                           .ToList();
+            var apps = lines
+                .Where(line => line.StartsWith("+") || line.StartsWith("-"))
+                .Select(line => line.Trim())
+                .ToList();
 
             var headerText = lines[0];
-            var footerText = string.Join("\n\n", 
-                lines.Where(line => line.Contains("cannot be") || 
-                                  line.Contains("action cannot") || 
-                                  line.Contains("Some selected"))
-                     .Select(line => line.Trim()));
+            var footerText = string.Join(
+                "\n\n",
+                lines
+                    .Where(line =>
+                        line.Contains("cannot be")
+                        || line.Contains("action cannot")
+                        || line.Contains("Some selected")
+                    )
+                    .Select(line => line.Trim())
+            );
 
             // Use the CustomDialog.ShowYesNoCancel method
             var dialogResult = CustomDialog.ShowYesNoCancel(title, headerText, apps, footerText);
             return Task.FromResult(dialogResult);
         }
 
-        public async Task<Dictionary<string, bool>> ShowUnifiedConfigurationSaveDialogAsync(string title, string description, Dictionary<string, (bool IsSelected, bool IsAvailable, int ItemCount)> sections)
+        public async Task<Dictionary<string, bool>> ShowUnifiedConfigurationSaveDialogAsync(
+            string title,
+            string description,
+            Dictionary<string, (bool IsSelected, bool IsAvailable, int ItemCount)> sections
+        )
         {
             // Create the dialog
             var dialog = new UnifiedConfigurationDialog(title, description, sections, true);
-            
+
             // Set the owner to the current active window
             dialog.Owner = Application.Current.MainWindow;
-            
+
             // Show the dialog
             var result = dialog.ShowDialog();
-            
+
             // Return the result if the user clicked OK, otherwise return null
             if (result == true)
             {
                 return dialog.GetResult();
             }
-            
+
             return null;
         }
 
-        public async Task<Dictionary<string, bool>> ShowUnifiedConfigurationImportDialogAsync(string title, string description, Dictionary<string, (bool IsSelected, bool IsAvailable, int ItemCount)> sections)
+        public async Task<Dictionary<string, bool>> ShowUnifiedConfigurationImportDialogAsync(
+            string title,
+            string description,
+            Dictionary<string, (bool IsSelected, bool IsAvailable, int ItemCount)> sections
+        )
         {
             // Create the dialog
             var dialog = new UnifiedConfigurationDialog(title, description, sections, false);
-            
+
             // Set the owner to the current active window
             dialog.Owner = Application.Current.MainWindow;
-            
+
             // Show the dialog
             var result = dialog.ShowDialog();
-            
+
             // Return the result if the user clicked OK, otherwise return null
             if (result == true)
             {
                 return dialog.GetResult();
             }
-            
+
             return null;
         }
 
@@ -176,13 +248,21 @@ namespace Winhance.WPF.Features.Common.Services
         /// <param name="supportMessage">The support message to display.</param>
         /// <param name="footerText">The footer text.</param>
         /// <returns>A task representing the asynchronous operation, with a tuple containing the dialog result (whether the user clicked Yes or No) and whether the "Don't show again" checkbox was checked.</returns>
-        public async Task<(bool? Result, bool DontShowAgain)> ShowDonationDialogAsync(string title, string supportMessage, string footerText)
+        public async Task<(bool? Result, bool DontShowAgain)> ShowDonationDialogAsync(
+            string title,
+            string supportMessage,
+            string footerText
+        )
         {
             try
             {
                 // Use the DonationDialog.ShowDonationDialogAsync method
-                var dialog = await DonationDialog.ShowDonationDialogAsync(title, supportMessage, footerText);
-                
+                var dialog = await DonationDialog.ShowDonationDialogAsync(
+                    title,
+                    supportMessage,
+                    footerText
+                );
+
                 // Return the dialog result and the DontShowAgain value as a tuple
                 return (dialog?.DialogResult, dialog?.DontShowAgain ?? false);
             }

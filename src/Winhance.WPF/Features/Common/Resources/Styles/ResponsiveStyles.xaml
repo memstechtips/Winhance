@@ -10,6 +10,7 @@
         <Setter Property="HorizontalScrollBarVisibility" Value="Disabled" />
         <Setter Property="PanningMode" Value="Both" />
         <Setter Property="IsDeferredScrollingEnabled" Value="True" />
+        <Setter Property="controls:ResponsiveScrollViewer.ScrollSpeedMultiplier" Value="20.0" />
     </Style>
 
     <!-- Style for responsive item containers -->

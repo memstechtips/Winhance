@@ -44,5 +44,11 @@ namespace Winhance.Core.Features.SoftwareApps.Interfaces
         /// </summary>
         /// <returns>True if OneDrive is installed; otherwise, false.</returns>
         Task<bool> IsOneDriveInstalledAsync();
+
+        /// <summary>
+        /// Checks if OneNote is installed.
+        /// </summary>
+        /// <returns>True if OneNote is installed; otherwise, false.</returns>
+        Task<bool> IsOneNoteInstalledAsync();
     }
 }

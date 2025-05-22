@@ -4,8 +4,8 @@ using System.IO;
 using System.Linq;
 using System.Threading.Tasks;
 using Winhance.Core.Features.Common.Interfaces;
-using Winhance.Core.Features.SoftwareApps.Interfaces;
 using Winhance.Core.Features.Common.Models;
+using Winhance.Core.Features.SoftwareApps.Interfaces;
 using Winhance.Core.Features.SoftwareApps.Models;
 
 namespace Winhance.Infrastructure.Features.Common.ScriptGeneration
@@ -44,7 +44,8 @@ namespace Winhance.Infrastructure.Features.Common.ScriptGeneration
             IScriptUpdateService scriptUpdateService,
             IScheduledTaskService scheduledTaskService,
             IScriptFactory scriptFactory,
-            IScriptBuilderService scriptBuilderService)
+            IScriptBuilderService scriptBuilderService
+        )
         {
             _logService = logService;
             _appDiscoveryService = appDiscoveryService;
@@ -54,7 +55,7 @@ namespace Winhance.Infrastructure.Features.Common.ScriptGeneration
             _scheduledTaskService = scheduledTaskService;
             _scriptFactory = scriptFactory;
             _scriptBuilderService = scriptBuilderService;
-            
+
             _scriptsPath = Path.Combine(
                 Environment.GetFolderPath(Environment.SpecialFolder.ProgramFiles),
                 "Winhance",
@@ -66,11 +67,14 @@ namespace Winhance.Infrastructure.Features.Common.ScriptGeneration
         /// <inheritdoc/>
         public async Task<RemovalScript> CreateBatchRemovalScriptAsync(
             List<string> appNames,
-            Dictionary<string, List<AppRegistrySetting>> appsWithRegistry)
+            Dictionary<string, List<AppRegistrySetting>> appsWithRegistry
+        )
         {
             try
             {
-                _logService.LogInformation($"Creating batch removal script for {appNames.Count} apps");
+                _logService.LogInformation(
+                    $"Creating batch removal script for {appNames.Count} apps"
+                );
 
                 // Get all standard apps to check for subpackages
                 var allRemovableApps = (await _appDiscoveryService.GetStandardAppsAsync()).ToList();
@@ -141,13 +145,17 @@ namespace Winhance.Infrastructure.Features.Common.ScriptGeneration
         {
             try
             {
-                _logService.LogInformation($"Creating removal script for {app.PackageName} at {scriptPath}");
-                
+                _logService.LogInformation(
+                    $"Creating removal script for {app.PackageName} at {scriptPath}"
+                );
+
                 // Use the script builder service to create the script content
                 string content = _scriptBuilderService.BuildSingleAppRemovalScript(app);
 
                 await File.WriteAllTextAsync(scriptPath, content);
-                _logService.LogSuccess($"Created removal script for {app.PackageName} at {scriptPath}");
+                _logService.LogSuccess(
+                    $"Created removal script for {app.PackageName} at {scriptPath}"
+                );
                 return true;
             }
             catch (Exception ex)
@@ -169,7 +177,7 @@ namespace Winhance.Infrastructure.Features.Common.ScriptGeneration
                 }
 
                 _logService.LogInformation($"Registering removal task for script: {script.Name}");
-                
+
                 // Ensure the script has been saved
                 if (string.IsNullOrEmpty(script.Content))
                 {
@@ -178,24 +186,31 @@ namespace Winhance.Infrastructure.Features.Common.ScriptGeneration
 
                 // Register the scheduled task
                 bool success = await _scheduledTaskService.RegisterScheduledTaskAsync(script);
-                
+
                 if (success)
                 {
-                    _logService.LogSuccess($"Successfully registered scheduled task for script: {script.Name}");
+                    _logService.LogSuccess(
+                        $"Successfully registered scheduled task for script: {script.Name}"
+                    );
                 }
                 else
                 {
-                    _logService.LogWarning($"Failed to register scheduled task for script: {script.Name}, but continuing operation");
+                    _logService.LogWarning(
+                        $"Failed to register scheduled task for script: {script.Name}, but continuing operation"
+                    );
                     // Don't throw an exception here, just log a warning and continue
                 }
             }
             catch (Exception ex)
             {
-                _logService.LogError($"Error registering removal task for script: {script.Name}", ex);
+                _logService.LogError(
+                    $"Error registering removal task for script: {script.Name}",
+                    ex
+                );
                 // Don't rethrow the exception, just log it and continue
             }
         }
-        
+
         /// <inheritdoc/>
         public async Task<bool> RegisterRemovalTaskAsync(string taskName, string scriptPath)
         {
@@ -203,34 +218,41 @@ namespace Winhance.Infrastructure.Features.Common.ScriptGeneration
             {
                 if (string.IsNullOrEmpty(taskName) || string.IsNullOrEmpty(scriptPath))
                 {
-                    _logService.LogError($"Invalid parameters for task registration. TaskName: {taskName}, ScriptPath: {scriptPath}");
+                    _logService.LogError(
+                        $"Invalid parameters for task registration. TaskName: {taskName}, ScriptPath: {scriptPath}"
+                    );
                     return false;
                 }
 
-                _logService.LogInformation($"Registering removal task: {taskName} for script: {scriptPath}");
-                
+                _logService.LogInformation(
+                    $"Registering removal task: {taskName} for script: {scriptPath}"
+                );
+
                 // Check if the script file exists
                 if (!File.Exists(scriptPath))
                 {
                     _logService.LogError($"Script file not found at: {scriptPath}");
                     return false;
                 }
-                
+
                 // Create a RemovalScript object to pass to the scheduled task service
                 var script = new RemovalScript
                 {
                     Name = Path.GetFileNameWithoutExtension(scriptPath),
                     Content = await File.ReadAllTextAsync(scriptPath),
                     TargetScheduledTaskName = taskName,
-                    RunOnStartup = true
+                    RunOnStartup = true,
                 };
-                
+
                 // Register the scheduled task
                 return await _scheduledTaskService.RegisterScheduledTaskAsync(script);
             }
             catch (Exception ex)
             {
-                _logService.LogError($"Error registering removal task: {taskName} for script: {scriptPath}", ex);
+                _logService.LogError(
+                    $"Error registering removal task: {taskName} for script: {scriptPath}",
+                    ex
+                );
                 return false;
             }
         }
@@ -250,7 +272,7 @@ namespace Winhance.Infrastructure.Features.Common.ScriptGeneration
                 throw;
             }
         }
-        
+
         /// <inheritdoc/>
         public async Task<bool> SaveScriptAsync(string scriptPath, string scriptContent)
         {
@@ -279,7 +301,9 @@ namespace Winhance.Infrastructure.Features.Common.ScriptGeneration
                 string bloatRemovalScriptPath = Path.Combine(_scriptsPath, "BloatRemoval.ps1");
                 if (!File.Exists(bloatRemovalScriptPath))
                 {
-                    _logService.LogWarning($"BloatRemoval.ps1 not found at {bloatRemovalScriptPath}");
+                    _logService.LogWarning(
+                        $"BloatRemoval.ps1 not found at {bloatRemovalScriptPath}"
+                    );
                     return false;
                 }
 
@@ -298,23 +322,28 @@ namespace Winhance.Infrastructure.Features.Common.ScriptGeneration
                     _logService.LogInformation(
                         $"Using ScriptUpdateService to update BloatRemoval script for {app.Type} {app.PackageName}"
                     );
-                    
+
                     // Create a list with just this app
                     var appNames = new List<string> { app.PackageName };
                     var appsWithRegistry = new Dictionary<string, List<AppRegistrySetting>>();
                     var appSubPackages = new Dictionary<string, string[]>();
-                    
+
                     // Get app registry settings if available
-                    var allRemovableApps = (await _appDiscoveryService.GetStandardAppsAsync()).ToList();
+                    var allRemovableApps = (
+                        await _appDiscoveryService.GetStandardAppsAsync()
+                    ).ToList();
                     var appDefinition = allRemovableApps.FirstOrDefault(a =>
                         a.PackageName.Equals(app.PackageName, StringComparison.OrdinalIgnoreCase)
                     );
-                    
-                    if (appDefinition?.RegistrySettings != null && appDefinition.RegistrySettings.Length > 0)
+
+                    if (
+                        appDefinition?.RegistrySettings != null
+                        && appDefinition.RegistrySettings.Length > 0
+                    )
                     {
                         appsWithRegistry[app.PackageName] = appDefinition.RegistrySettings.ToList();
                     }
-                    
+
                     // Update the script with isInstallOperation = true to remove the entry
                     await _scriptUpdateService.UpdateExistingBloatRemovalScriptAsync(
                         appNames,
@@ -322,19 +351,24 @@ namespace Winhance.Infrastructure.Features.Common.ScriptGeneration
                         appSubPackages,
                         true // true = install operation, so remove from script
                     );
-                    
+
                     return true;
                 }
                 else
                 {
                     // Handle standard package
-                    scriptContent = _scriptContentModifier.RemovePackageFromScript(scriptContent, app.PackageName);
+                    scriptContent = _scriptContentModifier.RemovePackageFromScript(
+                        scriptContent,
+                        app.PackageName
+                    );
 
                     // Create a list of subpackages to remove
                     List<string> subPackagesToRemove = new List<string>();
 
                     // Get all standard apps to find the app definition and its subpackages
-                    var allRemovableApps = (await _appDiscoveryService.GetStandardAppsAsync()).ToList();
+                    var allRemovableApps = (
+                        await _appDiscoveryService.GetStandardAppsAsync()
+                    ).ToList();
 
                     // Find the app definition that matches the current app
                     var appDefinition = allRemovableApps.FirstOrDefault(a =>
@@ -351,7 +385,10 @@ namespace Winhance.Infrastructure.Features.Common.ScriptGeneration
                     }
 
                     // Remove registry settings for this app from the script
-                    scriptContent = _scriptContentModifier.RemoveAppRegistrySettingsFromScript(scriptContent, app.PackageName);
+                    scriptContent = _scriptContentModifier.RemoveAppRegistrySettingsFromScript(
+                        scriptContent,
+                        app.PackageName
+                    );
 
                     // Apply registry settings to delete registry keys from the system
                     if (
@@ -390,8 +427,9 @@ namespace Winhance.Infrastructure.Features.Common.ScriptGeneration
                         //     deleteRegistrySettings
                         // );
                         var success = false; // Assume failure for now as the call is removed
-                        _logService.LogWarning($"Skipping registry key deletion for {app.PackageName} as ApplyRegistrySettingsAsync is not available on the interface.");
-
+                        _logService.LogWarning(
+                            $"Skipping registry key deletion for {app.PackageName} as ApplyRegistrySettingsAsync is not available on the interface."
+                        );
 
                         if (success) // This block will likely not be hit now
                         {
@@ -413,7 +451,10 @@ namespace Winhance.Infrastructure.Features.Common.ScriptGeneration
                         _logService.LogInformation(
                             $"Removing subpackage: {subPackage} for app: {app.PackageName}"
                         );
-                        scriptContent = _scriptContentModifier.RemovePackageFromScript(scriptContent, subPackage);
+                        scriptContent = _scriptContentModifier.RemovePackageFromScript(
+                            scriptContent,
+                            subPackage
+                        );
                     }
 
                     scriptModified = true;
@@ -433,7 +474,7 @@ namespace Winhance.Infrastructure.Features.Common.ScriptGeneration
                         $"No changes needed to BloatRemoval script for app: {app.PackageName}"
                     );
                 }
-                
+
                 return true;
             }
             catch (Exception ex)

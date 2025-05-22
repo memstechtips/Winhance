@@ -35,6 +35,12 @@ namespace Winhance.Core.Features.SoftwareApps.Interfaces
         Task<bool> RemoveOneDriveAsync();
 
         /// <summary>
+        /// Removes OneNote.
+        /// </summary>
+        /// <returns>True if the operation succeeded; otherwise, false.</returns>
+        Task<bool> RemoveOneNoteAsync();
+
+        /// <summary>
         /// Removes a special application using its registered handler.
         /// </summary>
         /// <param name="handlerType">The type of handler to use.</param>

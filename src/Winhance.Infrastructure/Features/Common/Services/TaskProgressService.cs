@@ -2,9 +2,9 @@ using System;
 using System.Collections.Generic;
 using System.Diagnostics;
 using System.Threading;
+using Winhance.Core.Features.Common.Enums;
 using Winhance.Core.Features.Common.Interfaces;
 using Winhance.Core.Features.Common.Models;
-using Winhance.Core.Features.Common.Enums;
 
 namespace Winhance.Infrastructure.Features.Common.Services
 {
@@ -50,7 +50,7 @@ namespace Winhance.Infrastructure.Features.Common.Services
         /// Event raised when progress changes.
         /// </summary>
         public event EventHandler<TaskProgressDetail>? ProgressUpdated;
-        
+
         /// <summary>
         /// Event raised when progress changes (compatibility with App.xaml.cs).
         /// </summary>
@@ -84,12 +84,12 @@ namespace Winhance.Infrastructure.Features.Common.Services
         {
             // Cancel any existing task
             CancelCurrentTask();
-            
+
             if (string.IsNullOrEmpty(taskName))
             {
                 throw new ArgumentException("Task name cannot be null or empty.", nameof(taskName));
             }
-            
+
             _cancellationSource = new CancellationTokenSource();
             _currentProgress = 0;
             _currentStatusText = taskName;
@@ -99,13 +99,15 @@ namespace Winhance.Infrastructure.Features.Common.Services
 
             _logService.Log(LogLevel.Info, $"Task started: {taskName}"); // Corrected Log call
             AddLogMessage($"Task started: {taskName}");
-            OnProgressChanged(new TaskProgressDetail
-            {
-                Progress = 0,
-                StatusText = taskName,
-                IsIndeterminate = isIndeterminate
-            });
-            
+            OnProgressChanged(
+                new TaskProgressDetail
+                {
+                    Progress = 0,
+                    StatusText = taskName,
+                    IsIndeterminate = isIndeterminate,
+                }
+            );
+
             return _cancellationSource;
         }
 
@@ -124,14 +126,20 @@ namespace Winhance.Infrastructure.Features.Common.Services
 
             if (progressPercentage < 0 || progressPercentage > 100)
             {
-                throw new ArgumentOutOfRangeException(nameof(progressPercentage), "Progress must be between 0 and 100.");
+                throw new ArgumentOutOfRangeException(
+                    nameof(progressPercentage),
+                    "Progress must be between 0 and 100."
+                );
             }
 
             _currentProgress = progressPercentage;
             if (!string.IsNullOrEmpty(statusText))
             {
                 _currentStatusText = statusText;
-                _logService.Log(LogLevel.Info, $"Task progress ({progressPercentage}%): {statusText}"); // Corrected Log call
+                _logService.Log(
+                    LogLevel.Info,
+                    $"Task progress ({progressPercentage}%): {statusText}"
+                ); // Corrected Log call
                 AddLogMessage($"Task progress ({progressPercentage}%): {statusText}");
             }
             else
@@ -139,11 +147,13 @@ namespace Winhance.Infrastructure.Features.Common.Services
                 _logService.Log(LogLevel.Info, $"Task progress: {progressPercentage}%"); // Corrected Log call
                 AddLogMessage($"Task progress: {progressPercentage}%");
             }
-            OnProgressChanged(new TaskProgressDetail
-            {
-                Progress = progressPercentage,
-                StatusText = _currentStatusText
-            });
+            OnProgressChanged(
+                new TaskProgressDetail
+                {
+                    Progress = progressPercentage,
+                    StatusText = _currentStatusText,
+                }
+            );
         }
 
         /// <summary>
@@ -154,25 +164,30 @@ namespace Winhance.Infrastructure.Features.Common.Services
         {
             if (!_isTaskRunning)
             {
-                Debug.WriteLine("Warning: Attempting to update detailed progress when no task is running.");
+                Debug.WriteLine(
+                    "Warning: Attempting to update detailed progress when no task is running."
+                );
                 return;
             }
-            
+
             if (detail.Progress.HasValue)
             {
                 if (detail.Progress.Value < 0 || detail.Progress.Value > 100)
                 {
-                    throw new ArgumentOutOfRangeException(nameof(detail.Progress), "Progress must be between 0 and 100.");
+                    throw new ArgumentOutOfRangeException(
+                        nameof(detail.Progress),
+                        "Progress must be between 0 and 100."
+                    );
                 }
-                
+
                 _currentProgress = (int)detail.Progress.Value;
             }
-            
+
             if (!string.IsNullOrEmpty(detail.StatusText))
             {
                 _currentStatusText = detail.StatusText;
             }
-            
+
             _isIndeterminate = detail.IsIndeterminate;
             if (!string.IsNullOrEmpty(detail.DetailedMessage))
             {
@@ -201,13 +216,15 @@ namespace Winhance.Infrastructure.Features.Common.Services
             _logService.Log(LogLevel.Info, $"Task completed: {_currentStatusText}"); // Corrected Log call
             AddLogMessage($"Task completed: {_currentStatusText}");
 
-            OnProgressChanged(new TaskProgressDetail
-            {
-                Progress = 100,
-                StatusText = _currentStatusText,
-                DetailedMessage = "Task completed"
-            });
-            
+            OnProgressChanged(
+                new TaskProgressDetail
+                {
+                    Progress = 100,
+                    StatusText = _currentStatusText,
+                    DetailedMessage = "Task completed",
+                }
+            );
+
             // Dispose cancellation token source
             _cancellationSource?.Dispose();
             _cancellationSource = null;
@@ -219,8 +236,9 @@ namespace Winhance.Infrastructure.Features.Common.Services
         /// <param name="message">The message content.</param>
         public void AddLogMessage(string message)
         {
-            if (string.IsNullOrEmpty(message)) return;
-            
+            if (string.IsNullOrEmpty(message))
+                return;
+
             _logMessages.Add(message);
             LogMessageAdded?.Invoke(this, message);
         }
@@ -234,7 +252,7 @@ namespace Winhance.Infrastructure.Features.Common.Services
             {
                 _cancellationSource.Cancel();
                 AddLogMessage("Task cancelled by user");
-                
+
                 // Don't dispose here, as the task might still be using it
                 // It will be disposed in CompleteTask or when a new task starts
             }
@@ -264,15 +282,16 @@ namespace Winhance.Infrastructure.Features.Common.Services
         /// <returns>A progress adapter for PowerShell progress data.</returns>
         public IProgress<PowerShellProgressData> CreatePowerShellProgressAdapter()
         {
-            return new Progress<PowerShellProgressData>(data => {
+            return new Progress<PowerShellProgressData>(data =>
+            {
                 var detail = new TaskProgressDetail();
-                
+
                 // Map PowerShell progress data to task progress detail
                 if (data.PercentComplete.HasValue)
                 {
                     detail.Progress = data.PercentComplete.Value;
                 }
-                
+
                 if (!string.IsNullOrEmpty(data.Activity))
                 {
                     detail.StatusText = data.Activity;
@@ -281,9 +300,9 @@ namespace Winhance.Infrastructure.Features.Common.Services
                         detail.StatusText += $": {data.StatusDescription}";
                     }
                 }
-                
+
                 detail.DetailedMessage = data.Message ?? data.CurrentOperation;
-                
+
                 // Map stream type to log level
                 switch (data.StreamType)
                 {
@@ -301,7 +320,7 @@ namespace Winhance.Infrastructure.Features.Common.Services
                         detail.LogLevel = LogLevel.Info;
                         break;
                 }
-                
+
                 UpdateDetailedProgress(detail);
             });
         }
@@ -312,7 +331,10 @@ namespace Winhance.Infrastructure.Features.Common.Services
         protected virtual void OnProgressChanged(TaskProgressDetail detail)
         {
             ProgressUpdated?.Invoke(this, detail);
-            ProgressChanged?.Invoke(this, TaskProgressEventArgs.FromTaskProgressDetail(detail, _isTaskRunning));
+            ProgressChanged?.Invoke(
+                this,
+                TaskProgressEventArgs.FromTaskProgressDetail(detail, _isTaskRunning)
+            );
         }
     }
 }

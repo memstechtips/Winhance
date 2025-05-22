@@ -175,6 +175,40 @@ public static class GamingandPerformanceOptimizations
                 },
                 new OptimizationSetting
                 {
+                    Id = "gaming-high-precision-event-timer",
+                    Name = "High Precision Event Timer",
+                    Description = "Controls the High Precision Event Timer (HPET) for improved system performance",
+                    Category = OptimizationCategory.GamingandPerformance,
+                    GroupName = "System Performance",
+                    IsEnabled = false,
+                    ControlType = ControlType.BinaryToggle,
+                    CommandSettings = new List<CommandSetting>
+                    {
+                        new CommandSetting
+                        {
+                            Id = "hpet-platform-clock",
+                            Category = "Gaming",
+                            Description = "Controls the platform clock setting for HPET",
+                            EnabledCommand = "bcdedit /set useplatformclock true",
+                            DisabledCommand = "bcdedit /deletevalue useplatformclock",
+                            RequiresElevation = true,
+                            IsPrimary = true
+                        },
+                        new CommandSetting
+                        {
+                            Id = "hpet-dynamic-tick",
+                            Category = "Gaming",
+                            Description = "Controls the dynamic tick setting for HPET",
+                            EnabledCommand = "bcdedit /set disabledynamictick no",
+                            DisabledCommand = "bcdedit /set disabledynamictick yes",
+                            RequiresElevation = true,
+                            IsPrimary = false
+                        }
+                    },
+                    LinkedSettingsLogic = LinkedSettingsLogic.All,
+                },
+                new OptimizationSetting
+                {
                     Id = "gaming-system-responsiveness",
                     Name = "System Responsiveness for Games",
                     Description = "Controls system responsiveness for multimedia applications",

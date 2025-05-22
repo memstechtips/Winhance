@@ -22,6 +22,7 @@ public class AppRemovalService : IAppRemovalService
     private readonly IAppDiscoveryService _appDiscoveryService;
     private readonly IScriptTemplateProvider _scriptTemplateProvider;
     private readonly ISystemServices _systemServices;
+    private readonly IRegistryService _registryService;
 
     /// <summary>
     /// Initializes a new instance of the <see cref="AppRemovalService"/> class.
@@ -36,13 +37,15 @@ public class AppRemovalService : IAppRemovalService
         ISpecialAppHandlerService specialAppHandlerService,
         IAppDiscoveryService appDiscoveryService,
         IScriptTemplateProvider scriptTemplateProvider,
-        ISystemServices systemServices)
+        ISystemServices systemServices,
+        IRegistryService registryService)
     {
         _logService = logService;
         _specialAppHandlerService = specialAppHandlerService;
         _appDiscoveryService = appDiscoveryService;
         _scriptTemplateProvider = scriptTemplateProvider;
         _systemServices = systemServices;
+        _registryService = registryService;
     }
 
     /// <inheritdoc/>
@@ -493,9 +496,6 @@ try {{
         {
             _logService.LogInformation($"Applying {settings.Count} registry settings");
             
-            using var powerShell = PowerShellFactory.CreateWindowsPowerShell(_logService, _systemServices);
-            // No need to set execution policy as it's already done in the factory
-            
             bool allSucceeded = true;
             
             foreach (var setting in settings)
@@ -504,73 +504,34 @@ try {{
                 {
                     _logService.LogInformation($"Applying registry setting: {setting.Path}\\{setting.Name}");
                     
-                    powerShell.Commands.Clear();
+                    bool success;
                     if (setting.Value == null)
                     {
-                        // If value is null, use a script to delete the registry value
+                        // If value is null, delete the registry value
                         _logService.LogInformation($"Deleting registry value: {setting.Path}\\{setting.Name}");
-                        powerShell.AddScript(@"
-                            param($path, $name)
-                            try {
-                                # Check if the registry key exists
-                                if (Test-Path $path) {
-                                    # Check if the registry value exists
-                                    $item = Get-Item -Path $path -ErrorAction SilentlyContinue
-                                    if ($item -and ($item.GetValueNames() -contains $name)) {
-                                        # Delete the registry value
-                                        Remove-ItemProperty -Path $path -Name $name -Force -ErrorAction Stop
-                                        Write-Output $true
-                                    }
-                                    else {
-                                        # Value doesn't exist, consider it a success
-                                        Write-Output $true
-                                    }
-                                }
-                                else {
-                                    # Key doesn't exist, consider it a success
-                                    Write-Output $true
-                                }
-                            }
-                            catch {
-                                Write-Error ""Failed to delete registry value""
-                                Write-Output $false
-                            }
-                        ");
-                        powerShell.AddParameter("path", setting.Path);
-                        powerShell.AddParameter("name", setting.Name);
+                        success = _registryService.DeleteValue(setting.Path, setting.Name);
                     }
                     else
                     {
-                        // If value is not null, use a script to set the registry value
-                        powerShell.AddScript(@"
-                            param($path, $name, $value, $valueKind)
-                            try {
-                                # Create the registry key if it doesn't exist
-                                if (-not (Test-Path $path)) {
-                                    New-Item -Path $path -Force | Out-Null
-                                }
-                                
-                                # Set the registry value
-                                Set-ItemProperty -Path $path -Name $name -Value $value -Type $valueKind -Force
-                                return $true
-                            }
-                            catch {
-                                return $false
-                            }
-                        ");
-                        powerShell.AddParameter("path", setting.Path);
-                        powerShell.AddParameter("name", setting.Name);
-                        powerShell.AddParameter("value", setting.Value);
-                        powerShell.AddParameter("valueKind", setting.ValueKind.ToString());
+                        // If value is not null, set the registry value
+                        // First ensure the key exists
+                        if (!_registryService.KeyExists(setting.Path))
+                        {
+                            _registryService.CreateKey(setting.Path);
+                        }
+                        
+                        // Set the registry value
+                        success = _registryService.SetValue(setting.Path, setting.Name, setting.Value, setting.ValueKind);
                     }
                     
-                    var result = await Task.Run(() => powerShell.Invoke<bool>());
-                    var settingSuccess = result.FirstOrDefault();
-                    
-                    if (!settingSuccess)
+                    if (!success)
                     {
                         _logService.LogError($"Failed to apply registry setting: {setting.Path}\\{setting.Name}");
                         allSucceeded = false;
+                    }
+                    else
+                    {
+                        _logService.LogSuccess($"Successfully applied registry setting: {setting.Path}\\{setting.Name}");
                     }
                 }
                 catch (Exception ex)

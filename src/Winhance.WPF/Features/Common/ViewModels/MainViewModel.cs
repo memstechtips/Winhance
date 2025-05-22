@@ -11,15 +11,15 @@ using System.Windows.Interop;
 using CommunityToolkit.Mvvm.ComponentModel;
 using CommunityToolkit.Mvvm.Input;
 using Microsoft.Extensions.DependencyInjection;
-using Winhance.Core.Features.Common.Interfaces;
-using Winhance.Core.Features.Common.Models;
 using Winhance.Core.Features.Common.Enums;
+using Winhance.Core.Features.Common.Interfaces;
 using Winhance.Core.Features.Common.Messaging;
+using Winhance.Core.Features.Common.Models;
+using Winhance.WPF.Features.Common.Models;
 using Winhance.WPF.Features.Common.Resources.Theme;
 using Winhance.WPF.Features.Common.Utilities;
-using Winhance.WPF.Features.Common.Views;
-using Winhance.WPF.Features.Common.Models;
 using Winhance.WPF.Features.Common.ViewModels;
+using Winhance.WPF.Features.Common.Views;
 
 namespace Winhance.WPF.Features.Common.ViewModels
 {
@@ -34,8 +34,7 @@ namespace Winhance.WPF.Features.Common.ViewModels
         private readonly IDialogService _dialogService;
         private readonly Features.Common.Services.UserPreferencesService _userPreferencesService;
 
-        public INavigationService NavigationService =>
-            _navigationService;
+        public INavigationService NavigationService => _navigationService;
 
         [ObservableProperty]
         private object _currentViewModel;
@@ -44,16 +43,12 @@ namespace Winhance.WPF.Features.Common.ViewModels
         private void LogWindowAction(string message)
         {
             string formattedMessage = $"Window Action: {message}";
-            
+
             // Send to application logging system
             _messengerService.Send(
-                new LogMessage
-                {
-                    Message = formattedMessage,
-                    Level = LogLevel.Debug,
-                }
+                new LogMessage { Message = formattedMessage, Level = LogLevel.Debug }
             );
-            
+
             // Also log to diagnostic file for troubleshooting
             FileLogger.Log("MainViewModel", formattedMessage);
         }
@@ -69,6 +64,11 @@ namespace Winhance.WPF.Features.Common.ViewModels
         private string _maximizeButtonContent = "\uE739";
 
         /// <summary>
+        /// Gets the ViewModel for the More menu functionality
+        /// </summary>
+        public MoreMenuViewModel MoreMenuViewModel { get; }
+
+        /// <summary>
         /// Gets the command to save a unified configuration.
         /// </summary>
         public ICommand SaveUnifiedConfigCommand { get; }
@@ -82,49 +82,58 @@ namespace Winhance.WPF.Features.Common.ViewModels
         /// Gets the command to open the donation page in a browser.
         /// </summary>
         public ICommand OpenDonateCommand { get; }
-public MainViewModel(
-    IThemeManager themeManager,
-    INavigationService navigationService,
-    ITaskProgressService progressService,
-    IMessengerService messengerService,
-    IDialogService dialogService,
-    IUnifiedConfigurationService unifiedConfigService,
-    Features.Common.Services.UserPreferencesService userPreferencesService
-)
-    : base(progressService, messengerService)
-{
-    _themeManager = themeManager ?? throw new ArgumentNullException(nameof(themeManager));
-    _navigationService =
-        navigationService ?? throw new ArgumentNullException(nameof(navigationService));
-    _messengerService =
-        messengerService ?? throw new ArgumentNullException(nameof(messengerService));
-    _dialogService = dialogService ?? throw new ArgumentNullException(nameof(dialogService));
-    _unifiedConfigService = unifiedConfigService ?? throw new ArgumentNullException(nameof(unifiedConfigService));
-    _userPreferencesService = userPreferencesService ?? throw new ArgumentNullException(nameof(userPreferencesService));
 
-    // Initialize command properties
-    _minimizeWindowCommand = new RelayCommand(MinimizeWindow);
-    _maximizeRestoreWindowCommand = new RelayCommand(MaximizeRestoreWindow);
-    // Use AsyncRelayCommand instead of RelayCommand for async methods
-    _closeWindowCommand = new AsyncRelayCommand(CloseWindowAsync);
-    SaveUnifiedConfigCommand = new RelayCommand(SaveUnifiedConfig);
-    ImportUnifiedConfigCommand = new RelayCommand(ImportUnifiedConfig);
-    OpenDonateCommand = new RelayCommand(OpenDonate);
+        public MainViewModel(
+            IThemeManager themeManager,
+            INavigationService navigationService,
+            ITaskProgressService progressService,
+            IMessengerService messengerService,
+            IDialogService dialogService,
+            IUnifiedConfigurationService unifiedConfigService,
+            Features.Common.Services.UserPreferencesService userPreferencesService,
+            ILogService logService,
+            IVersionService versionService,
+            IApplicationCloseService applicationCloseService
+        )
+            : base(progressService, messengerService)
+        {
+            _themeManager = themeManager ?? throw new ArgumentNullException(nameof(themeManager));
+            _navigationService =
+                navigationService ?? throw new ArgumentNullException(nameof(navigationService));
+            _messengerService =
+                messengerService ?? throw new ArgumentNullException(nameof(messengerService));
+            _dialogService =
+                dialogService ?? throw new ArgumentNullException(nameof(dialogService));
+            _unifiedConfigService =
+                unifiedConfigService
+                ?? throw new ArgumentNullException(nameof(unifiedConfigService));
+            _userPreferencesService =
+                userPreferencesService
+                ?? throw new ArgumentNullException(nameof(userPreferencesService));
 
-    // Note: View mappings are now registered in App.xaml.cs when configuring the FrameNavigationService
+            // Initialize the MoreMenuViewModel
+            MoreMenuViewModel = new MoreMenuViewModel(logService, versionService, _messengerService, applicationCloseService, _dialogService);
 
-    // Subscribe to navigation events
-    _navigationService.Navigated += NavigationService_Navigated;
+            // Initialize command properties
+            _minimizeWindowCommand = new RelayCommand(MinimizeWindow);
+            _maximizeRestoreWindowCommand = new RelayCommand(MaximizeRestoreWindow);
+            // Use AsyncRelayCommand instead of RelayCommand for async methods
+            _closeWindowCommand = new AsyncRelayCommand(CloseWindowAsync);
+            SaveUnifiedConfigCommand = new RelayCommand(SaveUnifiedConfig);
+            ImportUnifiedConfigCommand = new RelayCommand(ImportUnifiedConfig);
+            OpenDonateCommand = new RelayCommand(OpenDonate);
 
-    // We'll initialize with the default view later, after the window is loaded
-    // This will be called from MainWindow.xaml.cs after the window is loaded
+            // Note: View mappings are now registered in App.xaml.cs when configuring the FrameNavigationService
+
+            // Subscribe to navigation events
+            _navigationService.Navigated += NavigationService_Navigated;
+
+            // We'll initialize with the default view later, after the window is loaded
+            // This will be called from MainWindow.xaml.cs after the window is loaded
             // This will be called from MainWindow.xaml.cs after the window is loaded
         }
 
-        private void NavigationService_Navigated(
-            object sender,
-            NavigationEventArgs e
-        )
+        private void NavigationService_Navigated(object sender, NavigationEventArgs e)
         {
             CurrentViewName = e.Route;
 
@@ -227,10 +236,13 @@ public MainViewModel(
             catch (Exception ex)
             {
                 LogWindowAction($"Error setting WindowState directly: {ex.Message}");
-                
+
                 // Fall back to messaging
                 _messengerService.Send(
-                    new WindowStateMessage { Action = WindowStateMessage.WindowStateAction.Minimize }
+                    new WindowStateMessage
+                    {
+                        Action = WindowStateMessage.WindowStateAction.Minimize,
+                    }
                 );
             }
         }
@@ -271,10 +283,13 @@ public MainViewModel(
                 catch (Exception ex)
                 {
                     LogWindowAction($"Error setting WindowState directly: {ex.Message}");
-                    
+
                     // Fall back to messaging
                     _messengerService.Send(
-                        new WindowStateMessage { Action = WindowStateMessage.WindowStateAction.Restore }
+                        new WindowStateMessage
+                        {
+                            Action = WindowStateMessage.WindowStateAction.Restore,
+                        }
                     );
                 }
 
@@ -293,10 +308,13 @@ public MainViewModel(
                 catch (Exception ex)
                 {
                     LogWindowAction($"Error setting WindowState directly: {ex.Message}");
-                    
+
                     // Fall back to messaging
                     _messengerService.Send(
-                        new WindowStateMessage { Action = WindowStateMessage.WindowStateAction.Maximize }
+                        new WindowStateMessage
+                        {
+                            Action = WindowStateMessage.WindowStateAction.Maximize,
+                        }
                     );
                 }
 
@@ -325,13 +343,13 @@ public MainViewModel(
         public async Task CloseWindowAsync()
         {
             LogWindowAction("CloseWindowAsync method called");
-            
+
             // Log basic information
             _messengerService.Send(
                 new LogMessage
                 {
                     Message = "CloseWindow method executing in MainViewModel",
-                    Level = LogLevel.Debug
+                    Level = LogLevel.Debug,
                 }
             );
 
@@ -341,10 +359,10 @@ public MainViewModel(
                 LogWindowAction("ERROR: MainWindow is null");
                 return;
             }
-            
+
             // The donation dialog is now handled in MainWindow.CloseButton_Click
             // so we can simply close the window here
-            
+
             try
             {
                 LogWindowAction("About to call mainWindow.Close()");
@@ -354,14 +372,14 @@ public MainViewModel(
             catch (Exception ex)
             {
                 LogWindowAction($"ERROR closing window directly: {ex.Message}");
-                
+
                 // Fall back to messaging
                 LogWindowAction("Falling back to WindowStateMessage.Close");
                 _messengerService.Send(
                     new WindowStateMessage { Action = WindowStateMessage.WindowStateAction.Close }
                 );
             }
-            
+
             LogWindowAction("CloseWindowAsync method completed");
         }
 
@@ -374,40 +392,42 @@ public MainViewModel(
             {
                 // Use the injected unified configuration service
                 var unifiedConfigService = _unifiedConfigService;
-                
+
                 if (unifiedConfigService == null)
                 {
                     _messengerService.Send(
                         new LogMessage
                         {
                             Message = "UnifiedConfigurationService not available",
-                            Level = LogLevel.Error
+                            Level = LogLevel.Error,
                         }
                     );
                     return;
                 }
-                
+
                 _messengerService.Send(
                     new LogMessage
                     {
                         Message = "Using UnifiedConfigurationService to save unified configuration",
-                        Level = LogLevel.Info
+                        Level = LogLevel.Info,
                     }
                 );
-                
+
                 // Create a unified configuration with settings from all view models
                 var unifiedConfig = await unifiedConfigService.CreateUnifiedConfigurationAsync();
-                
+
                 // Get the configuration service from the application
                 IConfigurationService configService = null;
-                
+
                 // Try to get the service from the application
                 if (Application.Current is App appInstance3)
                 {
                     try
                     {
                         // Use reflection to access the _host.Services property
-                        var hostField = appInstance3.GetType().GetField("_host", BindingFlags.NonPublic | BindingFlags.Instance);
+                        var hostField = appInstance3
+                            .GetType()
+                            .GetField("_host", BindingFlags.NonPublic | BindingFlags.Instance);
                         if (hostField != null)
                         {
                             var host = hostField.GetValue(appInstance3);
@@ -415,10 +435,16 @@ public MainViewModel(
                             if (servicesProperty != null)
                             {
                                 var services = servicesProperty.GetValue(host);
-                                var getServiceMethod = services.GetType().GetMethod("GetService", new[] { typeof(Type) });
+                                var getServiceMethod = services
+                                    .GetType()
+                                    .GetMethod("GetService", new[] { typeof(Type) });
                                 if (getServiceMethod != null)
                                 {
-                                    configService = getServiceMethod.Invoke(services, new object[] { typeof(IConfigurationService) }) as IConfigurationService;
+                                    configService =
+                                        getServiceMethod.Invoke(
+                                            services,
+                                            new object[] { typeof(IConfigurationService) }
+                                        ) as IConfigurationService;
                                 }
                             }
                         }
@@ -430,49 +456,56 @@ public MainViewModel(
                             {
                                 Message = $"Error accessing ConfigurationService: {ex.Message}",
                                 Level = LogLevel.Error,
-                                Exception = ex
+                                Exception = ex,
                             }
                         );
                     }
                 }
-                
+
                 if (configService == null)
                 {
                     _messengerService.Send(
                         new LogMessage
                         {
                             Message = "ConfigurationService not available",
-                            Level = LogLevel.Error
+                            Level = LogLevel.Error,
                         }
                     );
                     return;
                 }
-                
+
                 // Save the unified configuration
-                bool saveResult = await unifiedConfigService.SaveUnifiedConfigurationAsync(unifiedConfig);
-                
+                bool saveResult = await unifiedConfigService.SaveUnifiedConfigurationAsync(
+                    unifiedConfig
+                );
+
                 if (saveResult)
                 {
                     _messengerService.Send(
                         new LogMessage
                         {
                             Message = "Unified configuration saved successfully",
-                            Level = LogLevel.Info
+                            Level = LogLevel.Info,
                         }
                     );
-                    
+
                     // Show a single success dialog using CustomDialog to match the application style
                     var sections = new List<string>();
-                    if (unifiedConfig.WindowsApps.Items.Any()) sections.Add("Windows Apps");
-                    if (unifiedConfig.ExternalApps.Items.Any()) sections.Add("External Apps");
-                    if (unifiedConfig.Customize.Items.Any()) sections.Add("Customizations");
-                    if (unifiedConfig.Optimize.Items.Any()) sections.Add("Optimizations");
-                    
+                    if (unifiedConfig.WindowsApps.Items.Any())
+                        sections.Add("Windows Apps");
+                    if (unifiedConfig.ExternalApps.Items.Any())
+                        sections.Add("External Apps");
+                    if (unifiedConfig.Customize.Items.Any())
+                        sections.Add("Customizations");
+                    if (unifiedConfig.Optimize.Items.Any())
+                        sections.Add("Optimizations");
+
                     Winhance.WPF.Features.Common.Views.CustomDialog.ShowInformation(
                         "Configuration Saved",
                         "Configuration saved successfully.",
                         sections,
-                        "You can now import this configuration on another system.");
+                        "You can now import this configuration on another system."
+                    );
                 }
                 else
                 {
@@ -480,7 +513,7 @@ public MainViewModel(
                         new LogMessage
                         {
                             Message = "Save unified configuration canceled by user",
-                            Level = LogLevel.Info
+                            Level = LogLevel.Info,
                         }
                     );
                 }
@@ -492,12 +525,12 @@ public MainViewModel(
                     {
                         Message = $"Error saving unified configuration: {ex.Message}",
                         Level = LogLevel.Error,
-                        Exception = ex
+                        Exception = ex,
                     }
                 );
             }
         }
-        
+
         // FallbackToViewModelImplementation method removed as part of unified configuration cleanup
 
         /// <summary>
@@ -511,31 +544,34 @@ public MainViewModel(
                     new LogMessage
                     {
                         Message = "Starting unified configuration import process",
-                        Level = LogLevel.Info
+                        Level = LogLevel.Info,
                     }
                 );
-                
+
                 // Use the injected unified configuration service
                 var unifiedConfigService = _unifiedConfigService;
-                
+
                 _messengerService.Send(
                     new LogMessage
                     {
-                        Message = "Using UnifiedConfigurationService to import unified configuration",
-                        Level = LogLevel.Info
+                        Message =
+                            "Using UnifiedConfigurationService to import unified configuration",
+                        Level = LogLevel.Info,
                     }
                 );
-                
+
                 // Get the configuration service from the application
                 IConfigurationService configService = null;
-                
+
                 // Try to get the service from the application
                 if (Application.Current is App appInstance2)
                 {
                     try
                     {
                         // Use reflection to access the _host.Services property
-                        var hostField = appInstance2.GetType().GetField("_host", BindingFlags.NonPublic | BindingFlags.Instance);
+                        var hostField = appInstance2
+                            .GetType()
+                            .GetField("_host", BindingFlags.NonPublic | BindingFlags.Instance);
                         if (hostField != null)
                         {
                             var host = hostField.GetValue(appInstance2);
@@ -543,10 +579,16 @@ public MainViewModel(
                             if (servicesProperty != null)
                             {
                                 var services = servicesProperty.GetValue(host);
-                                var getServiceMethod = services.GetType().GetMethod("GetService", new[] { typeof(Type) });
+                                var getServiceMethod = services
+                                    .GetType()
+                                    .GetMethod("GetService", new[] { typeof(Type) });
                                 if (getServiceMethod != null)
                                 {
-                                    configService = getServiceMethod.Invoke(services, new object[] { typeof(IConfigurationService) }) as IConfigurationService;
+                                    configService =
+                                        getServiceMethod.Invoke(
+                                            services,
+                                            new object[] { typeof(IConfigurationService) }
+                                        ) as IConfigurationService;
                                 }
                             }
                         }
@@ -558,92 +600,125 @@ public MainViewModel(
                             {
                                 Message = $"Error accessing ConfigurationService: {ex.Message}",
                                 Level = LogLevel.Error,
-                                Exception = ex
+                                Exception = ex,
                             }
                         );
                     }
                 }
-                
+
                 if (configService == null)
                 {
                     _messengerService.Send(
                         new LogMessage
                         {
                             Message = "ConfigurationService not available",
-                            Level = LogLevel.Error
+                            Level = LogLevel.Error,
                         }
                     );
                     return;
                 }
-                
+
                 // Load the unified configuration
                 _messengerService.Send(
                     new LogMessage
                     {
                         Message = "Showing file dialog to select configuration file",
-                        Level = LogLevel.Info
+                        Level = LogLevel.Info,
                     }
                 );
-                
+
                 var unifiedConfig = await unifiedConfigService.LoadUnifiedConfigurationAsync();
-                
+
                 if (unifiedConfig == null)
                 {
                     _messengerService.Send(
                         new LogMessage
                         {
                             Message = "Import unified configuration canceled by user",
-                            Level = LogLevel.Info
+                            Level = LogLevel.Info,
                         }
                     );
                     return;
                 }
-                
+
                 _messengerService.Send(
                     new LogMessage
                     {
-                        Message = $"Configuration loaded with sections: WindowsApps ({unifiedConfig.WindowsApps.Items.Count} items), " +
-                                  $"ExternalApps ({unifiedConfig.ExternalApps.Items.Count} items), " +
-                                  $"Customize ({unifiedConfig.Customize.Items.Count} items), " +
-                                  $"Optimize ({unifiedConfig.Optimize.Items.Count} items)",
-                        Level = LogLevel.Info
+                        Message =
+                            $"Configuration loaded with sections: WindowsApps ({unifiedConfig.WindowsApps.Items.Count} items), "
+                            + $"ExternalApps ({unifiedConfig.ExternalApps.Items.Count} items), "
+                            + $"Customize ({unifiedConfig.Customize.Items.Count} items), "
+                            + $"Optimize ({unifiedConfig.Optimize.Items.Count} items)",
+                        Level = LogLevel.Info,
                     }
                 );
-                
+
                 // Show the unified configuration dialog to let the user select which sections to import
                 _messengerService.Send(
                     new LogMessage
                     {
                         Message = "Showing unified configuration dialog for section selection",
-                        Level = LogLevel.Info
+                        Level = LogLevel.Info,
                     }
                 );
-                
+
                 // Show the unified configuration dialog to let the user select which sections to import
                 _messengerService.Send(
                     new LogMessage
                     {
                         Message = "Showing unified configuration dialog for section selection",
-                        Level = LogLevel.Info
+                        Level = LogLevel.Info,
                     }
                 );
-                
+
                 // Create a dictionary of sections with their availability and item counts
-                var sectionInfo = new Dictionary<string, (bool IsSelected, bool IsAvailable, int ItemCount)>
+                var sectionInfo = new Dictionary<
+                    string,
+                    (bool IsSelected, bool IsAvailable, int ItemCount)
+                >
                 {
-                    { "WindowsApps", (true, unifiedConfig.WindowsApps.Items.Count > 0, unifiedConfig.WindowsApps.Items.Count) },
-                    { "ExternalApps", (true, unifiedConfig.ExternalApps.Items.Count > 0, unifiedConfig.ExternalApps.Items.Count) },
-                    { "Customize", (true, unifiedConfig.Customize.Items.Count > 0, unifiedConfig.Customize.Items.Count) },
-                    { "Optimize", (true, unifiedConfig.Optimize.Items.Count > 0, unifiedConfig.Optimize.Items.Count) }
+                    {
+                        "WindowsApps",
+                        (
+                            true,
+                            unifiedConfig.WindowsApps.Items.Count > 0,
+                            unifiedConfig.WindowsApps.Items.Count
+                        )
+                    },
+                    {
+                        "ExternalApps",
+                        (
+                            true,
+                            unifiedConfig.ExternalApps.Items.Count > 0,
+                            unifiedConfig.ExternalApps.Items.Count
+                        )
+                    },
+                    {
+                        "Customize",
+                        (
+                            true,
+                            unifiedConfig.Customize.Items.Count > 0,
+                            unifiedConfig.Customize.Items.Count
+                        )
+                    },
+                    {
+                        "Optimize",
+                        (
+                            true,
+                            unifiedConfig.Optimize.Items.Count > 0,
+                            unifiedConfig.Optimize.Items.Count
+                        )
+                    },
                 };
-                
+
                 // Create and show the dialog
                 var dialog = new Views.UnifiedConfigurationDialog(
                     "Select Configuration Sections",
                     "Select which sections you want to import from the unified configuration.",
                     sectionInfo,
-                    false);
-                
+                    false
+                );
+
                 // Only set the Owner if the dialog is not the main window itself
                 if (dialog != Application.Current.MainWindow)
                 {
@@ -657,73 +732,83 @@ public MainViewModel(
                             new LogMessage
                             {
                                 Message = $"Error setting dialog owner: {ex.Message}",
-                                Level = LogLevel.Warning
+                                Level = LogLevel.Warning,
                             }
                         );
                         // Continue without setting the owner
                     }
                 }
                 bool? dialogResult = dialog.ShowDialog();
-                
+
                 if (dialogResult != true)
                 {
                     _messengerService.Send(
                         new LogMessage
                         {
                             Message = "User canceled unified configuration import",
-                            Level = LogLevel.Info
+                            Level = LogLevel.Info,
                         }
                     );
                     return;
                 }
-                
+
                 // Get the selected sections from the dialog
                 var result = dialog.GetResult();
-                var selectedSections = result.Where(kvp => kvp.Value).Select(kvp => kvp.Key).ToList();
-                
+                var selectedSections = result
+                    .Where(kvp => kvp.Value)
+                    .Select(kvp => kvp.Key)
+                    .ToList();
+
                 _messengerService.Send(
                     new LogMessage
                     {
                         Message = $"Selected sections: {string.Join(", ", selectedSections)}",
-                        Level = LogLevel.Info
+                        Level = LogLevel.Info,
                     }
                 );
-                
+
                 if (!selectedSections.Any())
                 {
                     _messengerService.Send(
                         new LogMessage
                         {
                             Message = "No sections selected for import",
-                            Level = LogLevel.Info
+                            Level = LogLevel.Info,
                         }
                     );
-                    _dialogService.ShowMessage("Please select at least one section to import from the unified configuration.", "No sections selected");
+                    _dialogService.ShowMessage(
+                        "Please select at least one section to import from the unified configuration.",
+                        "No sections selected"
+                    );
                     return;
                 }
-                
+
                 // Apply the configuration to the selected sections
                 _messengerService.Send(
                     new LogMessage
                     {
-                        Message = $"Applying configuration to selected sections: {string.Join(", ", selectedSections)}",
-                        Level = LogLevel.Info
+                        Message =
+                            $"Applying configuration to selected sections: {string.Join(", ", selectedSections)}",
+                        Level = LogLevel.Info,
                     }
                 );
-                
+
                 // Apply the configuration to the selected sections
-                await unifiedConfigService.ApplyUnifiedConfigurationAsync(unifiedConfig, selectedSections);
-                
+                await unifiedConfigService.ApplyUnifiedConfigurationAsync(
+                    unifiedConfig,
+                    selectedSections
+                );
+
                 // Always show a success message since the settings are being applied correctly
                 // even if the updatedCount is 0
                 _messengerService.Send(
                     new LogMessage
                     {
                         Message = "Unified configuration imported successfully",
-                        Level = LogLevel.Info
+                        Level = LogLevel.Info,
                     }
                 );
-                
+
                 // Show a success message using CustomDialog to match the application style
                 var importedSections = new List<string>();
                 foreach (var section in selectedSections)
@@ -744,12 +829,13 @@ public MainViewModel(
                             break;
                     }
                 }
-                
+
                 Winhance.WPF.Features.Common.Views.CustomDialog.ShowInformation(
                     "Configuration Imported",
                     "The unified configuration has been imported successfully.",
                     importedSections,
-                    "The selected settings have been applied to your system.");
+                    "The selected settings have been applied to your system."
+                );
             }
             catch (Exception ex)
             {
@@ -758,20 +844,21 @@ public MainViewModel(
                     {
                         Message = $"Error importing unified configuration: {ex.Message}",
                         Level = LogLevel.Error,
-                        Exception = ex
+                        Exception = ex,
                     }
                 );
-                
+
                 // Show an error message to the user
                 if (_dialogService != null)
                 {
                     _dialogService.ShowMessage(
                         $"An error occurred while importing the configuration: {ex.Message}",
-                        "Import Error");
+                        "Import Error"
+                    );
                 }
             }
         }
-        
+
         // FallbackToViewModelImportImplementation method removed as part of unified configuration cleanup
 
         /// <summary>
@@ -785,7 +872,7 @@ public MainViewModel(
                     new LogMessage
                     {
                         Message = "Opening donation page in browser",
-                        Level = LogLevel.Info
+                        Level = LogLevel.Info,
                     }
                 );
 
@@ -793,7 +880,7 @@ public MainViewModel(
                 var psi = new ProcessStartInfo
                 {
                     FileName = "https://ko-fi.com/memstechtips",
-                    UseShellExecute = true
+                    UseShellExecute = true,
                 };
                 Process.Start(psi);
             }
@@ -804,7 +891,7 @@ public MainViewModel(
                     {
                         Message = $"Error opening donation page: {ex.Message}",
                         Level = LogLevel.Error,
-                        Exception = ex
+                        Exception = ex,
                     }
                 );
 
@@ -813,42 +900,12 @@ public MainViewModel(
                 {
                     _dialogService.ShowMessage(
                         $"An error occurred while opening the donation page: {ex.Message}",
-                        "Error");
+                        "Error"
+                    );
                 }
             }
         }
 
-        /// <summary>
-        /// Saves the "Don't show support dialog" preference.
-        /// </summary>
-        /// <param name="dontShow">Whether to show the support dialog in the future.</param>
-        /// <returns>A task representing the asynchronous operation.</returns>
-        public async Task SaveDontShowSupportPreferenceAsync(bool dontShow)
-        {
-            try
-            {
-                await _userPreferencesService.SetPreferenceAsync("DontShowSupport", dontShow);
-                
-                _messengerService.Send(
-                    new LogMessage
-                    {
-                        Message = $"Saved DontShowSupport preference: {dontShow}",
-                        Level = LogLevel.Info
-                    }
-                );
-            }
-            catch (Exception ex)
-            {
-                _messengerService.Send(
-                    new LogMessage
-                    {
-                        Message = $"Error saving DontShowSupport preference: {ex.Message}",
-                        Level = LogLevel.Error,
-                        Exception = ex
-                    }
-                );
-            }
-        }
 
     }
 }

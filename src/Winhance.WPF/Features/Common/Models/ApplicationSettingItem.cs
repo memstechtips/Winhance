@@ -1,7 +1,9 @@
 using System;
 using System.Collections.Generic;
 using System.Collections.ObjectModel;
+using System.Linq;
 using System.Threading.Tasks;
+using System.Windows;
 using System.Windows.Input;
 using CommunityToolkit.Mvvm.ComponentModel;
 using CommunityToolkit.Mvvm.Input;
@@ -19,6 +21,7 @@ namespace Winhance.WPF.Features.Common.Models
     public partial class ApplicationSettingItem : ObservableObject, ISettingItem, ISearchable
     {
         private readonly IRegistryService? _registryService;
+        private readonly ICommandService? _commandService;
         private readonly IDialogService? _dialogService;
         private readonly ILogService? _logService;
         private bool _isUpdatingFromCode;
@@ -158,6 +161,11 @@ namespace Winhance.WPF.Features.Common.Models
         public ObservableCollection<LinkedRegistrySettingWithValue> LinkedRegistrySettingsWithValues { get; set; } = new();
 
         /// <summary>
+        /// Gets or sets the command settings.
+        /// </summary>
+        public List<CommandSetting> CommandSettings { get; set; } = new List<CommandSetting>();
+
+        /// <summary>
         /// Gets or sets the dependencies between settings.
         /// </summary>
         public List<SettingDependency> Dependencies { get; set; } = new List<SettingDependency>();
@@ -172,6 +180,36 @@ namespace Winhance.WPF.Features.Common.Models
         /// </summary>
         [ObservableProperty]
         private string _selectedDropdownOption = string.Empty;
+        
+        /// <summary>
+        /// Gets a value indicating whether there are no settings to display.
+        /// </summary>
+        public bool HasNoSettings
+        {
+            get
+            {
+                // True if there are no registry settings and no command settings
+                bool hasRegistrySettings = RegistrySetting != null || (LinkedRegistrySettings != null && LinkedRegistrySettings.Settings.Count > 0);
+                bool hasCommandSettings = CommandSettings != null && CommandSettings.Count > 0;
+                
+                return !hasRegistrySettings && !hasCommandSettings;
+            }
+        }
+        
+        /// <summary>
+        /// Gets a value indicating whether this setting only has command settings (no registry settings).
+        /// </summary>
+        public bool HasCommandSettingsOnly
+        {
+            get
+            {
+                // True if there are command settings but no registry settings
+                bool hasRegistrySettings = RegistrySetting != null || (LinkedRegistrySettings != null && LinkedRegistrySettings.Settings.Count > 0);
+                bool hasCommandSettings = CommandSettings != null && CommandSettings.Count > 0;
+                
+                return hasCommandSettings && !hasRegistrySettings;
+            }
+        }
 
         /// <summary>
         /// Gets or sets a value indicating whether this is a grouped setting that contains child settings.
@@ -233,26 +271,46 @@ namespace Winhance.WPF.Features.Common.Models
         /// <param name="registryService">The registry service.</param>
         /// <param name="dialogService">The dialog service.</param>
         /// <param name="logService">The log service.</param>
-        public ApplicationSettingItem(IRegistryService? registryService, IDialogService? dialogService, ILogService? logService)
+        /// <param name="commandService">The command service.</param>
+        public ApplicationSettingItem(IRegistryService? registryService, IDialogService? dialogService, ILogService? logService, ICommandService? commandService = null)
             : this()
         {
             _registryService = registryService;
             _dialogService = dialogService;
             _logService = logService;
+            _commandService = commandService;
         }
 
         /// <summary>
         /// Applies the setting.
         /// </summary>
-        public void ApplySetting()
+        public async void ApplySetting()
         {
-            if (_registryService == null)
+            // Skip if we're updating from code
+            if (IsUpdatingFromCode)
             {
                 return;
             }
-
-            // Skip if we're updating from code
-            if (IsUpdatingFromCode)
+            
+            // Apply registry settings if available
+            if (_registryService != null)
+            {
+                ApplyRegistrySettings();
+            }
+            
+            // Apply command settings if available
+            if (_commandService != null && CommandSettings.Any())
+            {
+                await ApplyCommandSettingsAsync();
+            }
+        }
+        
+        /// <summary>
+        /// Applies the registry settings.
+        /// </summary>
+        private void ApplyRegistrySettings()
+        {
+            if (_registryService == null)
             {
                 return;
             }
@@ -340,6 +398,42 @@ namespace Winhance.WPF.Features.Common.Models
 
             // Don't call RefreshStatus() here to avoid triggering additional registry operations
         }
+        
+        /// <summary>
+        /// Applies the command settings.
+        /// </summary>
+        private async Task ApplyCommandSettingsAsync()
+        {
+            if (_commandService == null || !CommandSettings.Any())
+            {
+                return;
+            }
+            
+            try
+            {
+                // Apply the command settings based on the toggle state
+                var (success, message) = await _commandService.ApplyCommandSettingsAsync(CommandSettings, IsSelected);
+                
+                if (success)
+                {
+                    // Update status without changing IsSelected
+                    Status = IsSelected ? RegistrySettingStatus.Applied : RegistrySettingStatus.NotApplied;
+                    StatusMessage = Status == RegistrySettingStatus.Applied ? "Applied" : "Not Applied";
+                    
+                    // Log the action
+                    _logService?.Log(LogLevel.Info, $"Applied command settings for {Name}: {(IsSelected ? "Enabled" : "Disabled")}");
+                }
+                else
+                {
+                    // Log the error
+                    _logService?.Log(LogLevel.Error, $"Error applying command settings for {Name}: {message}");
+                }
+            }
+            catch (Exception ex)
+            {
+                _logService?.Log(LogLevel.Error, $"Exception applying command settings for {Name}: {ex.Message}");
+            }
+        }
 
         /// <summary>
         /// Restores the setting to its default value.
@@ -393,11 +487,11 @@ namespace Winhance.WPF.Features.Common.Models
                 _logService?.Log(LogLevel.Info, $"Restored linked settings for {Name} to default values");
             }
 
-            // Update the IsSelected property
+            // Update IsSelected based on status
             IsUpdatingFromCode = true;
             try
             {
-                IsSelected = false;
+                IsSelected = Status == RegistrySettingStatus.Applied;
             }
             finally
             {
@@ -407,11 +501,76 @@ namespace Winhance.WPF.Features.Common.Models
             // Refresh the status
             _ = RefreshStatus();
         }
+        
+        /// <summary>
+        /// Refreshes the status of command settings.
+        /// </summary>
+        /// <returns>A task representing the asynchronous operation.</returns>
+        private async Task RefreshCommandSettingsStatusAsync()
+        {
+            if (_commandService == null || !CommandSettings.Any())
+            {
+                return;
+            }
+            
+            try
+            {
+                // For now, we'll assume command settings are not applied by default
+                // In the future, this could be enhanced to check the actual system state
+                bool isEnabled = false;
+                
+                // If there are primary command settings, check their status
+                var primarySetting = CommandSettings.FirstOrDefault(s => s.IsPrimary);
+                if (primarySetting != null)
+                {
+                    isEnabled = await _commandService.IsCommandSettingEnabledAsync(primarySetting);
+                }
+                
+                // Update status
+                Status = isEnabled ? RegistrySettingStatus.Applied : RegistrySettingStatus.NotApplied;
+                StatusMessage = Status == RegistrySettingStatus.Applied ? "Applied" : "Not Applied";
+                
+                // Update IsSelected based on status
+                IsUpdatingFromCode = true;
+                try
+                {
+                    IsSelected = Status == RegistrySettingStatus.Applied;
+                }
+                finally
+                {
+                    IsUpdatingFromCode = false;
+                }
+            }
+            catch (Exception ex)
+            {
+                _logService?.Log(LogLevel.Error, $"Error refreshing command settings status for {Name}: {ex.Message}");
+            }
+        }
 
         /// <summary>
         /// Refreshes the status of the setting.
         /// </summary>
+        /// <returns>A task representing the asynchronous operation.</returns>
         public async Task RefreshStatus()
+        {
+            // Refresh registry settings status if available
+            if (_registryService != null)
+            {
+                await RefreshRegistrySettingsStatusAsync();
+            }
+            
+            // Refresh command settings status if available
+            if (_commandService != null && CommandSettings.Any())
+            {
+                await RefreshCommandSettingsStatusAsync();
+            }
+        }
+        
+        /// <summary>
+        /// Refreshes the status of registry settings.
+        /// </summary>
+        /// <returns>A task representing the asynchronous operation.</returns>
+        private async Task RefreshRegistrySettingsStatusAsync()
         {
             if (_registryService == null)
             {

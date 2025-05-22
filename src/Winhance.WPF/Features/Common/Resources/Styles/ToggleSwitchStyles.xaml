@@ -5,13 +5,11 @@
     <!--
     Custom Toggle Switch Style
     
-    This style uses the generic control resources (ControlForeground, ControlBorderBrush)
-    for consistent theming across different UI elements. The toggle knob uses specific
-    toggle resources (ToggleKnobBrush, ToggleKnobCheckedBrush) for specialized styling.
+    This style implements a toggle switch with:
+    1. Enabled State: Green fill with a checkmark on the knob
+    2. Disabled State: Red fill with an X on the knob
     
-    The BooleanToThemeConverter is used to dynamically change the appearance based on:
-    1. The current theme (Dark/Light)
-    2. The toggle state (Checked/Unchecked)
+    The appearance is consistent across both light and dark themes.
     -->
     <Style x:Key="MaterialToggleSwitch" TargetType="ToggleButton">
         <!-- The Tag property is set by the default style for all ToggleButtons -->
@@ -33,24 +31,44 @@
                                 Width="40" Height="20"
                                 CornerRadius="10"
                                 BorderThickness="0"
+                                Background="#FFE53935"
                                 VerticalAlignment="Center">
-                            <Border.Background>
-                                <MultiBinding Converter="{StaticResource BooleanToThemeConverter}" ConverterParameter="Track">
-                                    <Binding Path="Tag" RelativeSource="{RelativeSource TemplatedParent}" />
-                                    <Binding Path="IsChecked" RelativeSource="{RelativeSource TemplatedParent}" />
-                                </MultiBinding>
-                            </Border.Background>
-                            <Ellipse x:Name="SwitchKnob"
-                                     Width="16" Height="16"
-                                     HorizontalAlignment="Left"
-                                     Margin="2,0,0,0">
-                                <Ellipse.Fill>
-                                    <SolidColorBrush Color="{DynamicResource DarkToggleKnobColor}" />
-                                </Ellipse.Fill>
-                                <Ellipse.Effect>
-                                    <DropShadowEffect ShadowDepth="1" Direction="315" Color="Black" Opacity="0.3" BlurRadius="2"/>
-                                </Ellipse.Effect>
-                            </Ellipse>
+                            
+                            <!-- Knob with icon container -->
+                            <Grid x:Name="KnobContainer" 
+                                  HorizontalAlignment="Left"
+                                  Margin="2,0,0,0"
+                                  Width="16" Height="16">
+                                
+                                <!-- The knob itself -->
+                                <Ellipse x:Name="SwitchKnob"
+                                         Width="16" Height="16">
+                                    <Ellipse.Fill>
+                                        <SolidColorBrush Color="White" />
+                                    </Ellipse.Fill>
+                                    <Ellipse.Effect>
+                                        <DropShadowEffect ShadowDepth="1" Direction="315" Color="Black" Opacity="0.3" BlurRadius="2"/>
+                                    </Ellipse.Effect>
+                                </Ellipse>
+                                
+                                <!-- X icon for unchecked state -->
+                                <Path x:Name="XIcon"
+                                      Data="M 4,4 L 12,12 M 12,4 L 4,12"
+                                      Stroke="#FFE53935"
+                                      StrokeThickness="1.5"
+                                      StrokeStartLineCap="Round"
+                                      StrokeEndLineCap="Round"
+                                      Visibility="Visible" />
+                                
+                                <!-- Checkmark icon for checked state -->
+                                <Path x:Name="CheckIcon"
+                                      Data="M 4,8 L 7,11 L 12,5"
+                                      Stroke="#FF4CAF50"
+                                      StrokeThickness="1.5"
+                                      StrokeStartLineCap="Round"
+                                      StrokeEndLineCap="Round"
+                                      Visibility="Collapsed" />
+                            </Grid>
                         </Border>
 
                         <!-- Content -->
@@ -62,7 +80,10 @@
                     <ControlTemplate.Triggers>
                         <!-- Move knob to right position when checked -->
                         <Trigger Property="IsChecked" Value="True">
-                            <Setter TargetName="SwitchKnob" Property="Margin" Value="22,0,0,0"/>
+                            <Setter TargetName="KnobContainer" Property="Margin" Value="22,0,0,0"/>
+                            <Setter TargetName="SwitchTrack" Property="Background" Value="#FF4CAF50"/> <!-- Green when checked -->
+                            <Setter TargetName="CheckIcon" Property="Visibility" Value="Visible"/>
+                            <Setter TargetName="XIcon" Property="Visibility" Value="Collapsed"/>
                         </Trigger>
 
                         <!-- Common hover state -->
@@ -70,14 +91,11 @@
                             <Setter TargetName="SwitchTrack" Property="Opacity" Value="0.8"/>
                         </Trigger>
                         
-                        <!-- Change knob color when checked -->
-                        <MultiTrigger>
-                            <MultiTrigger.Conditions>
-                                <Condition Property="IsChecked" Value="True" />
-                                <Condition Property="Tag" Value="Dark" />
-                            </MultiTrigger.Conditions>
-                            <Setter TargetName="SwitchKnob" Property="Fill" Value="{DynamicResource ControlBorderBrush}" />
-                        </MultiTrigger>
+                        <!-- Disabled state -->
+                        <Trigger Property="IsEnabled" Value="False">
+                            <Setter TargetName="SwitchTrack" Property="Opacity" Value="0.6"/>
+                            <Setter TargetName="SwitchKnob" Property="Opacity" Value="0.8"/>
+                        </Trigger>
                     </ControlTemplate.Triggers>
                 </ControlTemplate>
             </Setter.Value>

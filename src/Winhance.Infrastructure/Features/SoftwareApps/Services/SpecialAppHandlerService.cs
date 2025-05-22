@@ -37,10 +37,12 @@ namespace Winhance.Infrastructure.Features.SoftwareApps.Services
         {
             try
             {
-                _logService.LogInformation($"Removing special app with handler type: {appHandlerType}");
-                
+                _logService.LogInformation(
+                    $"Removing special app with handler type: {appHandlerType}"
+                );
+
                 bool success = false;
-                
+
                 switch (appHandlerType)
                 {
                     case "Edge":
@@ -49,11 +51,14 @@ namespace Winhance.Infrastructure.Features.SoftwareApps.Services
                     case "OneDrive":
                         success = await RemoveOneDriveAsync();
                         break;
+                    case "OneNote":
+                        success = await RemoveOneNoteAsync();
+                        break;
                     default:
                         _logService.LogError($"Unknown special handler type: {appHandlerType}");
                         return false;
                 }
-                
+
                 if (success)
                 {
                     _logService.LogSuccess($"Successfully removed special app: {appHandlerType}");
@@ -62,7 +67,7 @@ namespace Winhance.Infrastructure.Features.SoftwareApps.Services
                 {
                     _logService.LogError($"Failed to remove special app: {appHandlerType}");
                 }
-                
+
                 return success;
             }
             catch (Exception ex)
@@ -93,15 +98,49 @@ namespace Winhance.Infrastructure.Features.SoftwareApps.Services
                 File.WriteAllText(handler.ScriptPath, handler.RemovalScriptContent);
                 _logService.LogInformation($"Edge removal script saved to {handler.ScriptPath}");
 
-                // Execute the script
-                using var powerShell = PowerShellFactory.CreateWindowsPowerShell(_logService, _systemServices);
-                // No need to set execution policy as it's already done in the factory
-                powerShell.AddScript(handler.RemovalScriptContent);
-                await Task.Run(() => powerShell.Invoke());
+                // Execute the saved script file directly
+                var processStartInfo = new System.Diagnostics.ProcessStartInfo
+                {
+                    FileName = "powershell.exe",
+                    Arguments = $"-ExecutionPolicy Bypass -File \"{handler.ScriptPath}\"",
+                    UseShellExecute = false,
+                    CreateNoWindow = true,
+                    RedirectStandardOutput = true,
+                    RedirectStandardError = true,
+                };
+
+                _logService.LogInformation($"Executing Edge removal script: {handler.ScriptPath}");
+                var process = System.Diagnostics.Process.Start(processStartInfo);
+
+                if (process != null)
+                {
+                    string output = await process.StandardOutput.ReadToEndAsync();
+                    string error = await process.StandardError.ReadToEndAsync();
+
+                    await process.WaitForExitAsync();
+
+                    if (!string.IsNullOrEmpty(output))
+                    {
+                        _logService.LogInformation($"Script output: {output}");
+                    }
+
+                    if (!string.IsNullOrEmpty(error))
+                    {
+                        _logService.LogError($"Script error: {error}");
+                    }
+                }
+                else
+                {
+                    _logService.LogError("Failed to start PowerShell process for Edge removal");
+                }
 
                 // Register scheduled task to prevent reinstallation
-                using var taskPowerShell = PowerShellFactory.CreateWindowsPowerShell(_logService, _systemServices);
-                var taskCommand = $@"
+                using var taskPowerShell = PowerShellFactory.CreateForAppxCommands(
+                    _logService,
+                    _systemServices
+                );
+                var taskCommand =
+                    $@"
                 Register-ScheduledTask -TaskName '{handler.ScheduledTaskName}' `
                 -Action (New-ScheduledTaskAction -Execute 'powershell.exe' -Argument '-ExecutionPolicy Bypass -File ""{handler.ScriptPath}""') `
                 -Trigger (New-ScheduledTaskTrigger -AtStartup) `
@@ -142,17 +181,55 @@ namespace Winhance.Infrastructure.Features.SoftwareApps.Services
                 Directory.CreateDirectory(scriptPath);
 
                 File.WriteAllText(handler.ScriptPath, handler.RemovalScriptContent);
-                _logService.LogInformation($"OneDrive removal script saved to {handler.ScriptPath}");
+                _logService.LogInformation(
+                    $"OneDrive removal script saved to {handler.ScriptPath}"
+                );
 
-                // Execute the script
-                using var powerShell = PowerShellFactory.CreateWindowsPowerShell(_logService, _systemServices);
-                // No need to set execution policy as it's already done in the factory
-                powerShell.AddScript(handler.RemovalScriptContent);
-                await Task.Run(() => powerShell.Invoke());
+                // Execute the saved script file directly
+                var processStartInfo = new System.Diagnostics.ProcessStartInfo
+                {
+                    FileName = "powershell.exe",
+                    Arguments = $"-ExecutionPolicy Bypass -File \"{handler.ScriptPath}\"",
+                    UseShellExecute = false,
+                    CreateNoWindow = true,
+                    RedirectStandardOutput = true,
+                    RedirectStandardError = true,
+                };
+
+                _logService.LogInformation(
+                    $"Executing OneDrive removal script: {handler.ScriptPath}"
+                );
+                var process = System.Diagnostics.Process.Start(processStartInfo);
+
+                if (process != null)
+                {
+                    string output = await process.StandardOutput.ReadToEndAsync();
+                    string error = await process.StandardError.ReadToEndAsync();
+
+                    await process.WaitForExitAsync();
+
+                    if (!string.IsNullOrEmpty(output))
+                    {
+                        _logService.LogInformation($"Script output: {output}");
+                    }
+
+                    if (!string.IsNullOrEmpty(error))
+                    {
+                        _logService.LogError($"Script error: {error}");
+                    }
+                }
+                else
+                {
+                    _logService.LogError("Failed to start PowerShell process for OneDrive removal");
+                }
 
                 // Register scheduled task to prevent reinstallation
-                using var taskPowerShell = PowerShellFactory.CreateWindowsPowerShell(_logService, _systemServices);
-                var taskCommand = $@"
+                using var taskPowerShell = PowerShellFactory.CreateForAppxCommands(
+                    _logService,
+                    _systemServices
+                );
+                var taskCommand =
+                    $@"
                 Register-ScheduledTask -TaskName '{handler.ScheduledTaskName}' `
                 -Action (New-ScheduledTaskAction -Execute 'powershell.exe' -Argument '-ExecutionPolicy Bypass -File ""{handler.ScriptPath}""') `
                 -Trigger (New-ScheduledTaskTrigger -AtStartup) `
@@ -175,9 +252,98 @@ namespace Winhance.Infrastructure.Features.SoftwareApps.Services
         }
 
         /// <inheritdoc/>
+        public async Task<bool> RemoveOneNoteAsync()
+        {
+            try
+            {
+                _logService.LogInformation("Starting OneNote removal process");
+
+                var handler = GetHandler("OneNote");
+                if (handler == null)
+                {
+                    _logService.LogError("OneNote handler not found");
+                    return false;
+                }
+
+                // Store the OneNote removal script
+                var scriptPath = Path.GetDirectoryName(handler.ScriptPath);
+                Directory.CreateDirectory(scriptPath);
+
+                File.WriteAllText(handler.ScriptPath, handler.RemovalScriptContent);
+                _logService.LogInformation($"OneNote removal script saved to {handler.ScriptPath}");
+
+                // Execute the saved script file directly
+                var processStartInfo = new System.Diagnostics.ProcessStartInfo
+                {
+                    FileName = "powershell.exe",
+                    Arguments = $"-ExecutionPolicy Bypass -File \"{handler.ScriptPath}\"",
+                    UseShellExecute = false,
+                    CreateNoWindow = true,
+                    RedirectStandardOutput = true,
+                    RedirectStandardError = true,
+                };
+
+                _logService.LogInformation(
+                    $"Executing OneNote removal script: {handler.ScriptPath}"
+                );
+                var process = System.Diagnostics.Process.Start(processStartInfo);
+
+                if (process != null)
+                {
+                    string output = await process.StandardOutput.ReadToEndAsync();
+                    string error = await process.StandardError.ReadToEndAsync();
+
+                    await process.WaitForExitAsync();
+
+                    if (!string.IsNullOrEmpty(output))
+                    {
+                        _logService.LogInformation($"Script output: {output}");
+                    }
+
+                    if (!string.IsNullOrEmpty(error))
+                    {
+                        _logService.LogError($"Script error: {error}");
+                    }
+                }
+                else
+                {
+                    _logService.LogError("Failed to start PowerShell process for OneNote removal");
+                }
+
+                // Register scheduled task to prevent reinstallation
+                using var taskPowerShell = PowerShellFactory.CreateForAppxCommands(
+                    _logService,
+                    _systemServices
+                );
+                var taskCommand =
+                    $@"
+                Register-ScheduledTask -TaskName '{handler.ScheduledTaskName}' `
+                -Action (New-ScheduledTaskAction -Execute 'powershell.exe' -Argument '-ExecutionPolicy Bypass -File ""{handler.ScriptPath}""') `
+                -Trigger (New-ScheduledTaskTrigger -AtStartup) `
+                -User 'SYSTEM' `
+                -RunLevel Highest `
+                -Settings (New-ScheduledTaskSettingsSet -DontStopIfGoingOnBatteries -AllowStartIfOnBatteries) `
+                -Force
+                ";
+                taskPowerShell.AddScript(taskCommand);
+                await Task.Run(() => taskPowerShell.Invoke());
+
+                _logService.LogSuccess("OneNote removal completed successfully");
+                return true;
+            }
+            catch (Exception ex)
+            {
+                _logService.LogError("OneNote removal failed", ex);
+                return false;
+            }
+        }
+
+        /// <inheritdoc/>
         public SpecialAppHandler? GetHandler(string handlerType)
         {
-            return _handlers.FirstOrDefault(h => h.HandlerType.Equals(handlerType, StringComparison.OrdinalIgnoreCase));
+            return _handlers.FirstOrDefault(h =>
+                h.HandlerType.Equals(handlerType, StringComparison.OrdinalIgnoreCase)
+            );
         }
 
         /// <inheritdoc/>

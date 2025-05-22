@@ -166,16 +166,6 @@
                                                Foreground="{DynamicResource PrimaryTextColor}"
                                                VerticalAlignment="Center"
                                                DockPanel.Dock="Left"/>
-                                    <!-- Selection Indicator -->
-                                    <TextBlock x:Name="WindowsSecurityToggleIcon"
-                                               Text="&#xE5CA;"
-                                               FontFamily="{StaticResource MaterialSymbolsFont}"
-                                               FontSize="20"
-                                               Margin="5,10,5,10"
-                                               Foreground="{DynamicResource ControlFillColor}"
-                                               VerticalAlignment="Center"
-                                               Visibility="{Binding WindowsSecuritySettingsViewModel.IsSelected, Converter={StaticResource BooleanToVisibilityConverter}}"
-                                               DockPanel.Dock="Left"/>
                                     <!-- Category Name -->
                                     <TextBlock Text="Windows Security Settings"
                                                FontSize="14"
@@ -224,16 +214,6 @@
                                                Foreground="{DynamicResource PrimaryTextColor}"
                                                VerticalAlignment="Center"
                                                DockPanel.Dock="Left"/>
-                                    <!-- Selection Indicator -->
-                                    <TextBlock x:Name="PrivacyToggleIcon"
-                                               Text="&#xE5CA;"
-                                               FontFamily="{StaticResource MaterialSymbolsFont}"
-                                               FontSize="20"
-                                               Margin="5,10,5,10"
-                                               Foreground="{DynamicResource ControlFillColor}"
-                                               VerticalAlignment="Center"
-                                               Visibility="{Binding PrivacyOptimizationsViewModel.IsSelected, Converter={StaticResource BooleanToVisibilityConverter}}"
-                                               DockPanel.Dock="Left"/>
                                     <!-- Category Name -->
                                     <TextBlock Text="Privacy Settings"
                                                FontSize="14"
@@ -280,16 +260,6 @@
                                                Margin="15,10,5,10"
                                                Foreground="{DynamicResource PrimaryTextColor}"
                                                VerticalAlignment="Center"
-                                               DockPanel.Dock="Left"/>
-                                    <!-- Selection Indicator -->
-                                    <TextBlock x:Name="GamingToggleIcon"
-                                               Text="&#xE5CA;"
-                                               FontFamily="{StaticResource MaterialSymbolsFont}"
-                                               FontSize="20"
-                                               Margin="5,10,5,10"
-                                               Foreground="{DynamicResource ControlFillColor}"
-                                               VerticalAlignment="Center"
-                                               Visibility="{Binding GamingandPerformanceOptimizationsViewModel.IsSelected, Converter={StaticResource BooleanToVisibilityConverter}}"
                                                DockPanel.Dock="Left"/>
                                     <!-- Category Name -->
                                     <TextBlock Text="Gaming and Performance"
@@ -338,16 +308,6 @@
                                                Foreground="{DynamicResource PrimaryTextColor}"
                                                VerticalAlignment="Center"
                                                DockPanel.Dock="Left"/>
-                                    <!-- Selection Indicator -->
-                                    <TextBlock x:Name="UpdatesToggleIcon"
-                                               Text="&#xE5CA;"
-                                               FontFamily="{StaticResource MaterialSymbolsFont}"
-                                               FontSize="20"
-                                               Margin="5,10,5,10"
-                                               Foreground="{DynamicResource ControlFillColor}"
-                                               VerticalAlignment="Center"
-                                               Visibility="{Binding UpdateOptimizationsViewModel.IsSelected, Converter={StaticResource BooleanToVisibilityConverter}}"
-                                               DockPanel.Dock="Left"/>
                                     <!-- Category Name -->
                                     <TextBlock Text="Windows Updates"
                                                FontSize="14"
@@ -394,16 +354,6 @@
                                                Margin="15,10,5,10"
                                                Foreground="{DynamicResource PrimaryTextColor}"
                                                VerticalAlignment="Center"
-                                               DockPanel.Dock="Left"/>
-                                    <!-- Selection Indicator -->
-                                    <TextBlock x:Name="PowerToggleIcon"
-                                               Text="&#xE5CA;"
-                                               FontFamily="{StaticResource MaterialSymbolsFont}"
-                                               FontSize="20"
-                                               Margin="5,10,5,10"
-                                               Foreground="{DynamicResource ControlFillColor}"
-                                               VerticalAlignment="Center"
-                                               Visibility="{Binding PowerSettingsViewModel.IsSelected, Converter={StaticResource BooleanToVisibilityConverter}}"
                                                DockPanel.Dock="Left"/>
                                     <!-- Category Name -->
                                     <TextBlock Text="Power Settings"
@@ -452,16 +402,6 @@
                                                Foreground="{DynamicResource PrimaryTextColor}"
                                                VerticalAlignment="Center"
                                                DockPanel.Dock="Left"/>
-                                    <!-- Selection Indicator -->
-                                    <TextBlock x:Name="ExplorerToggleIcon"
-                                               Text="&#xE5CA;"
-                                               FontFamily="{StaticResource MaterialSymbolsFont}"
-                                               FontSize="20"
-                                               Margin="5,10,5,10"
-                                               Foreground="{DynamicResource ControlFillColor}"
-                                               VerticalAlignment="Center"
-                                               Visibility="{Binding ExplorerOptimizationsViewModel.IsSelected, Converter={StaticResource BooleanToVisibilityConverter}}"
-                                               DockPanel.Dock="Left"/>
                                     <!-- Category Name -->
                                     <TextBlock Text="Explorer"
                                                FontSize="14"
@@ -509,16 +449,6 @@
                                                Foreground="{DynamicResource PrimaryTextColor}"
                                                VerticalAlignment="Center"
                                                DockPanel.Dock="Left"/>
-                                    <!-- Selection Indicator -->
-                                    <TextBlock x:Name="NotificationToggleIcon"
-                                               Text="&#xE5CA;"
-                                               FontFamily="{StaticResource MaterialSymbolsFont}"
-                                               FontSize="20"
-                                               Margin="5,10,5,10"
-                                               Foreground="{DynamicResource ControlFillColor}"
-                                               VerticalAlignment="Center"
-                                               Visibility="{Binding NotificationOptimizationsViewModel.IsSelected, Converter={StaticResource BooleanToVisibilityConverter}}"
-                                               DockPanel.Dock="Left"/>
                                     <!-- Category Name -->
                                     <TextBlock Text="Notifications"
                                                FontSize="14"
@@ -565,16 +495,6 @@
                                                Margin="15,10,5,10"
                                                Foreground="{DynamicResource PrimaryTextColor}"
                                                VerticalAlignment="Center"
-                                               DockPanel.Dock="Left"/>
-                                    <!-- Selection Indicator -->
-                                    <TextBlock x:Name="SoundToggleIcon"
-                                               Text="&#xE5CA;"
-                                               FontFamily="{StaticResource MaterialSymbolsFont}"
-                                               FontSize="20"
-                                               Margin="5,10,5,10"
-                                               Foreground="{DynamicResource ControlFillColor}"
-                                               VerticalAlignment="Center"
-                                               Visibility="{Binding SoundOptimizationsViewModel.IsSelected, Converter={StaticResource BooleanToVisibilityConverter}}"
                                                DockPanel.Dock="Left"/>
                                     <!-- Category Name -->
                                     <TextBlock Text="Sound"

@@ -1,6 +1,6 @@
 using System;
-using Winhance.Core.Features.Common.Models;
 using Winhance.Core.Features.Common.Enums;
+using Winhance.Core.Features.Common.Models;
 
 namespace Winhance.Core.Features.Common.Interfaces
 {

@@ -1,6 +1,12 @@
 <ResourceDictionary xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
                     xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
-                    xmlns:controls="clr-namespace:Winhance.WPF.Features.Common.Controls">
+                    xmlns:controls="clr-namespace:Winhance.WPF.Features.Common.Controls"
+                    xmlns:commonConverters="clr-namespace:Winhance.WPF.Features.Common.Converters"
+                    xmlns:converters="clr-namespace:Winhance.WPF.Converters">
+
+    <!-- Converters -->
+    <converters:BooleanToVisibilityConverter x:Key="BooleanToVisibilityConverter"/>
+    <commonConverters:InverseBooleanToVisibilityConverter x:Key="InverseBooleanToVisibilityConverter"/>
 
     <!-- Style for standard ProgressBar -->
     <Style x:Key="StandardProgressBar" TargetType="ProgressBar">
@@ -24,30 +30,45 @@
                                 CornerRadius="5"
                                 Padding="10,5">
                             <Grid>
+                                <Grid.ColumnDefinitions>
+                                    <ColumnDefinition Width="*"/>
+                                    <ColumnDefinition Width="Auto"/>
+                                </Grid.ColumnDefinitions>
                                 <Grid.RowDefinitions>
                                     <RowDefinition Height="Auto"/>
                                     <RowDefinition Height="Auto"/>
                                 </Grid.RowDefinitions>
                                 
                                 <!-- Status Text -->
-                                <DockPanel Grid.Row="0" LastChildFill="True">
-                                    <TextBlock Text="{TemplateBinding StatusText}"
-                                               Foreground="{DynamicResource PrimaryTextColor}"
-                                               FontSize="12"
-                                               Margin="0,0,10,0"
-                                               VerticalAlignment="Center"
-                                               DockPanel.Dock="Left"/>
-                                    
-                                    <TextBlock Text="{TemplateBinding ProgressText}"
-                                               Foreground="{DynamicResource SecondaryTextColor}"
-                                               FontSize="12"
-                                               HorizontalAlignment="Right"
-                                               VerticalAlignment="Center"
-                                               DockPanel.Dock="Right"/>
-                                </DockPanel>
+                                <TextBlock Grid.Row="0" Grid.Column="0"
+                                           Text="{TemplateBinding StatusText}"
+                                           Foreground="{DynamicResource PrimaryTextColor}"
+                                           FontSize="12"
+                                           Margin="0,0,10,0"
+                                           VerticalAlignment="Center"/>
+                                
+                                <!-- Progress Text -->
+                                <TextBlock Grid.Row="0" Grid.Column="0"
+                                           Text="{TemplateBinding ProgressText}"
+                                           Foreground="{DynamicResource SecondaryTextColor}"
+                                           FontSize="12"
+                                           HorizontalAlignment="Right"
+                                           VerticalAlignment="Center"
+                                           Visibility="{TemplateBinding ShowCancelButton, Converter={StaticResource InverseBooleanToVisibilityConverter}}"/>
+                                
+                                <!-- Cancel Button -->
+                                <Button Grid.Row="0" Grid.RowSpan="2" Grid.Column="1"
+                                        x:Name="PART_CancelButton"
+                                        Style="{StaticResource CancelButtonStyle}"
+                                        HorizontalAlignment="Right"
+                                        VerticalAlignment="Stretch"
+                                        Margin="10,0,0,0"
+                                        Width="Auto"
+                                        Height="Auto"
+                                        Visibility="{TemplateBinding ShowCancelButton, Converter={StaticResource BooleanToVisibilityConverter}}"/>
                                 
                                 <!-- Progress Bar -->
-                                <ProgressBar Grid.Row="1"
+                                <ProgressBar Grid.Row="1" Grid.Column="0"
                                              Style="{StaticResource StandardProgressBar}"
                                              Margin="0,5,0,0"
                                              Value="{TemplateBinding Progress}"

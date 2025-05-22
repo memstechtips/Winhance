@@ -1,5 +1,5 @@
 # Custom project folders to ignore
-extras/
+extras/prerequisites/
 installer-output/
 .config/
 

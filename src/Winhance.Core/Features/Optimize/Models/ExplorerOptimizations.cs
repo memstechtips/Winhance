@@ -333,6 +333,34 @@ public static class ExplorerOptimizations
                 },
                 new OptimizationSetting
                 {
+                    Id = "compress-desktop-wallpaper",
+                    Name = "Compress Desktop Wallpaper",
+                    Description = "Controls compression of desktop wallpaper",
+                    Category = OptimizationCategory.Explorer,
+                    GroupName = "Desktop Settings",
+                    IsEnabled = false,
+                    ControlType = ControlType.BinaryToggle,
+                    RegistrySettings = new List<RegistrySetting>
+                    {
+                        new RegistrySetting
+                        {
+                            Category = "Explorer",
+                            Hive = RegistryHive.CurrentUser,
+                            SubKey = "Control Panel\\Desktop",
+                            Name = "JPEGImportQuality",
+                            RecommendedValue = 100,
+                            EnabledValue = 0,
+                            DisabledValue = 100,
+                            ValueType = RegistryValueKind.DWord,
+                            DefaultValue = 0,
+                            Description = "Controls compression of desktop wallpaper",
+                            IsPrimary = true,
+                            AbsenceMeansEnabled = true,
+                        },
+                    },
+                },
+                new OptimizationSetting
+                {
                     Id = "explorer-office-files",
                     Name = "Office Files in Quick Access",
                     Description = "Controls display of files from Office.com in Quick Access",

@@ -623,20 +623,31 @@ namespace Winhance.WPF.Features.Common.Services.Configuration
                 var uacSliderItem = configFile.Items?.FirstOrDefault(item =>
                     (item.Name?.Contains("User Account Control") == true ||
                      (item.CustomProperties.TryGetValue("Id", out var id) && id?.ToString() == "UACSlider")));
-                
+
                 if (uacSliderItem != null && uacSliderItem.CustomProperties.TryGetValue("SliderValue", out var sliderValue))
                 {
-                    // Update the UacLevel property without triggering the actual UAC change
-                    int newUacLevel = Convert.ToInt32(sliderValue);
-                    int currentUacLevel = viewModel.UacLevel;
-                    
-                    if (currentUacLevel != newUacLevel)
+                    // Check if the SelectedUacLevel property exists
+                    var selectedUacLevelProperty = viewModel.GetType().GetProperty("SelectedUacLevel",
+                        System.Reflection.BindingFlags.Public | System.Reflection.BindingFlags.Instance);
+
+                    if (selectedUacLevelProperty != null)
                     {
-                        _logService.Log(LogLevel.Info, $"About to update UacLevel from {currentUacLevel} to {newUacLevel}");
-                        
-                        // Check if there's an IsApplyingUacLevel property we can set to prevent auto-application
-                        var isApplyingProperty = viewModel.GetType().GetProperty("IsApplyingUacLevel",
-                            System.Reflection.BindingFlags.Public | System.Reflection.BindingFlags.NonPublic | System.Reflection.BindingFlags.Instance);
+                        // Convert the slider value to the corresponding UacLevel enum value
+                        int newUacLevelValue = Convert.ToInt32(sliderValue);
+                        var currentUacLevel = selectedUacLevelProperty.GetValue(viewModel);
+
+                        // Get the UacLevel enum type
+                        var uacLevelType = selectedUacLevelProperty.PropertyType;
+
+                        // Convert the integer to the corresponding UacLevel enum value
+                        var newUacLevel = (Winhance.Core.Models.Enums.UacLevel)Enum.ToObject(uacLevelType, newUacLevelValue);
+                        var currentUacLevelTyped = currentUacLevel != null ? (Winhance.Core.Models.Enums.UacLevel)currentUacLevel : Winhance.Core.Models.Enums.UacLevel.NotifyChangesOnly;
+
+                        if (currentUacLevelTyped != newUacLevel)
+                        {
+                            // Define isApplyingProperty at the beginning of the block for proper scope
+                            var isApplyingProperty = viewModel.GetType().GetProperty("IsApplyingUacLevel",
+                                System.Reflection.BindingFlags.Public | System.Reflection.BindingFlags.NonPublic | System.Reflection.BindingFlags.Instance);
                         
                         if (isApplyingProperty != null)
                         {
@@ -650,13 +661,13 @@ namespace Winhance.WPF.Features.Common.Services.Configuration
                         try
                         {
                             // Use reflection to set the field directly to avoid triggering HandleUACLevelChange
-                            var field = viewModel.GetType().GetField("_uacLevel",
+                            var field = viewModel.GetType().GetField("_selectedUacLevel",
                                 System.Reflection.BindingFlags.NonPublic | System.Reflection.BindingFlags.Instance);
                             
                             if (field != null)
                             {
                                 field.SetValue(viewModel, newUacLevel);
-                                _logService.Log(LogLevel.Info, $"Directly updated _uacLevel field to {newUacLevel}");
+                                _logService.Log(LogLevel.Info, $"Directly updated _selectedUacLevel field to {newUacLevel}");
                                 
                                 // Trigger property changed notification without calling HandleUACLevelChange
                                 // Specify the parameter types to avoid ambiguous match error
@@ -668,13 +679,13 @@ namespace Winhance.WPF.Features.Common.Services.Configuration
                                 
                                 if (onPropertyChangedMethod != null)
                                 {
-                                    onPropertyChangedMethod.Invoke(viewModel, new object[] { "UacLevel" });
-                                    _logService.Log(LogLevel.Info, "Manually triggered OnPropertyChanged for UacLevel");
+                                    onPropertyChangedMethod.Invoke(viewModel, new object[] { "SelectedUacLevel" });
+                                    _logService.Log(LogLevel.Info, "Manually triggered OnPropertyChanged for SelectedUacLevel");
                                 }
                                 else
                                 {
                                     // Fallback: Try with PropertyChangedEventArgs parameter
-                                    var args = new System.ComponentModel.PropertyChangedEventArgs("UacLevel");
+                                    var args = new System.ComponentModel.PropertyChangedEventArgs("SelectedUacLevel");
                                     var altMethod = viewModel.GetType().GetMethod("OnPropertyChanged",
                                         System.Reflection.BindingFlags.NonPublic | System.Reflection.BindingFlags.Instance,
                                         null,
@@ -698,9 +709,9 @@ namespace Winhance.WPF.Features.Common.Services.Configuration
                             else
                             {
                                 // Fallback to direct property setting if field not found
-                                _logService.Log(LogLevel.Warning, "Could not find _uacLevel field, using property setter instead");
-                                viewModel.UacLevel = newUacLevel;
-                                _logService.Log(LogLevel.Info, $"Updated UacLevel property to {newUacLevel}");
+                                _logService.Log(LogLevel.Warning, "Could not find _selectedUacLevel field, using property setter instead");
+                                viewModel.SelectedUacLevel = (Winhance.Core.Models.Enums.UacLevel)newUacLevel;
+                                _logService.Log(LogLevel.Info, $"Updated SelectedUacLevel property to {newUacLevel}");
                                 
                                 // Add a small delay to ensure property change notifications are processed
                                 await Task.Delay(100, cancellationToken);
@@ -731,7 +742,8 @@ namespace Winhance.WPF.Features.Common.Services.Configuration
                             if (handleUacLevelChangeMethod != null)
                             {
                                 _logService.Log(LogLevel.Info, $"Calling HandleUACLevelChange to apply UAC level: {newUacLevel}");
-                                handleUacLevelChangeMethod.Invoke(viewModel, new object[] { newUacLevel });
+                                // HandleUACLevelChange doesn't take any parameters
+                                handleUacLevelChangeMethod.Invoke(viewModel, null);
                                 _logService.Log(LogLevel.Success, $"Successfully applied UAC level: {newUacLevel}");
                             }
                             else
@@ -769,6 +781,7 @@ namespace Winhance.WPF.Features.Common.Services.Configuration
                                 isApplyingProperty.SetValue(viewModel, false);
                                 _logService.Log(LogLevel.Info, "Reset IsApplyingUacLevel to false in finally block");
                             }
+                        } // End of the if (currentUacLevel != newUacLevel) block
                         }
                         
                         updatedCount++;

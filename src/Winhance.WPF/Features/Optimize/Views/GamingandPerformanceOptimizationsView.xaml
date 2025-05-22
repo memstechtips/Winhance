@@ -52,7 +52,7 @@
                                     <ToggleButton.ToolTip>
                                         <ToolTip>
                                             <ContentPresenter Content="{Binding}"
-                                                    ContentTemplate="{StaticResource RegistrySettingTooltipTemplate}"/>
+                                                    ContentTemplate="{StaticResource CombinedSettingTooltipTemplate}"/>
                                         </ToolTip>
                                     </ToggleButton.ToolTip>
                                 </ToggleButton>
@@ -62,7 +62,7 @@
                                     <TextBlock.ToolTip>
                                         <ToolTip>
                                             <ContentPresenter Content="{Binding}"
-                                                    ContentTemplate="{StaticResource RegistrySettingTooltipTemplate}"/>
+                                                    ContentTemplate="{StaticResource CombinedSettingTooltipTemplate}"/>
                                         </ToolTip>
                                     </TextBlock.ToolTip>
                                 </TextBlock>

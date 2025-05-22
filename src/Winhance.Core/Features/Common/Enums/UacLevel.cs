@@ -19,11 +19,6 @@ namespace Winhance.Core.Models.Enums
         /// Notify the user only when programs try to make changes to the computer (default).
         /// </summary>
         NotifyChangesOnly = 2,
-        
-        /// <summary>
-        /// Moderate notification level (equivalent to NotifyChangesOnly).
-        /// </summary>
-        Moderate = 2,
 
         /// <summary>
         /// Always notify the user when programs try to install software or make changes to the computer

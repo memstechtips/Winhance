@@ -670,14 +670,14 @@ namespace Winhance.WPF.Features.Common.Services.Configuration
                                 }
                                 else if (isUacSlider)
                                 {
-                                    var uacLevelProperty = itemType.GetProperty("UacLevel");
+                                    var uacLevelProperty = itemType.GetProperty("SelectedUacLevel");
                                     if (uacLevelProperty != null)
                                     {
                                         uacLevelProperty.SetValue(item, newSliderValue);
                                         anyPropertyUpdated = true;
                                         _logService.Log(
                                             LogLevel.Debug,
-                                            $"Updated UacLevel for item {itemName} to {newSliderValue}"
+                                            $"Updated SelectedUacLevel for item {itemName} to {newSliderValue}"
                                         );
 
                                         // Force the correct ControlType
@@ -706,7 +706,7 @@ namespace Winhance.WPF.Features.Common.Services.Configuration
                                             {
                                                 var viewModelType = viewModel.GetType();
                                                 var viewModelUacLevelProperty =
-                                                    viewModelType.GetProperty("UacLevel");
+                                                    viewModelType.GetProperty("SelectedUacLevel");
                                                 if (viewModelUacLevelProperty != null)
                                                 {
                                                     viewModelUacLevelProperty.SetValue(
@@ -716,7 +716,7 @@ namespace Winhance.WPF.Features.Common.Services.Configuration
                                                     anyPropertyUpdated = true;
                                                     _logService.Log(
                                                         LogLevel.Debug,
-                                                        $"Updated UacLevel on parent view model to {newSliderValue}"
+                                                        $"Updated SelectedUacLevel on parent view model to {newSliderValue}"
                                                     );
                                                 }
                                             }

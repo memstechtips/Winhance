@@ -220,7 +220,55 @@
                             <Setter Property="Background" Value="Transparent" />
                             <Setter Property="Foreground" Value="{DynamicResource ButtonDisabledForeground}" />
                             <Setter Property="BorderBrush" Value="{DynamicResource ButtonDisabledBorderBrush}" />
-                            <Setter Property="Cursor" Value="Arrow" />
+                        </Trigger>
+                    </ControlTemplate.Triggers>
+                </ControlTemplate>
+            </Setter.Value>
+        </Setter>
+    </Style>
+    
+    <!-- Cancel Button Style for Progress Indicator -->
+    <Style x:Key="CancelButtonStyle" TargetType="Button">
+        <Setter Property="Background" Value="{DynamicResource ButtonBackground}" />
+        <Setter Property="Foreground" Value="{DynamicResource ButtonForeground}" />
+        <Setter Property="BorderBrush" Value="{DynamicResource ButtonBorderBrush}" />
+        <Setter Property="BorderThickness" Value="1" />
+        <Setter Property="Padding" Value="8,4" />
+        <Setter Property="FontSize" Value="11" />
+        <Setter Property="VerticalContentAlignment" Value="Center" />
+        <Setter Property="Template">
+            <Setter.Value>
+                <ControlTemplate TargetType="Button">
+                    <Border Background="{TemplateBinding Background}"
+                            BorderBrush="{TemplateBinding BorderBrush}"
+                            BorderThickness="{TemplateBinding BorderThickness}"
+                            CornerRadius="3"
+                            Padding="{TemplateBinding Padding}">
+                        <StackPanel Orientation="Horizontal"
+                                    HorizontalAlignment="Center"
+                                    VerticalAlignment="Center">
+                            <materialDesign:PackIcon Kind="Cancel"
+                                                    Width="12"
+                                                    Height="12"
+                                                    Margin="0,0,4,0"
+                                                    VerticalAlignment="Center"
+                                                    Foreground="{TemplateBinding Foreground}"/>
+                            <TextBlock Text="Cancel"
+                                      VerticalAlignment="Center"
+                                      Foreground="{TemplateBinding Foreground}"/>
+                        </StackPanel>
+                    </Border>
+                    <ControlTemplate.Triggers>
+                        <Trigger Property="IsMouseOver" Value="True">
+                            <Setter Property="Background" Value="{DynamicResource ButtonBorderBrush}" />
+                            <Setter Property="Foreground" Value="{DynamicResource ButtonHoverTextColor}" />
+                        </Trigger>
+                        <Trigger Property="IsPressed" Value="True">
+                            <Setter Property="Background" Value="{DynamicResource ButtonPressedBackground}" />
+                            <Setter Property="Foreground" Value="{DynamicResource ButtonPressedForeground}" />
+                        </Trigger>
+                        <Trigger Property="IsEnabled" Value="False">
+                            <Setter Property="Opacity" Value="0.5" />
                         </Trigger>
                     </ControlTemplate.Triggers>
                 </ControlTemplate>

@@ -5,8 +5,8 @@ using System.Management.Automation;
 using System.Threading;
 using System.Threading.Tasks;
 using Winhance.Core.Features.Common.Interfaces;
-using Winhance.Core.Features.SoftwareApps.Interfaces;
 using Winhance.Core.Features.Common.Models;
+using Winhance.Core.Features.SoftwareApps.Interfaces;
 using Winhance.Core.Features.SoftwareApps.Models;
 using Winhance.Infrastructure.Features.Common.Utilities;
 
@@ -15,7 +15,8 @@ namespace Winhance.Infrastructure.Features.SoftwareApps.Services;
 /// <summary>
 /// Service for discovering and querying applications on the system.
 /// </summary>
-public class AppDiscoveryService : Winhance.Core.Features.SoftwareApps.Interfaces.IAppDiscoveryService
+public class AppDiscoveryService
+    : Winhance.Core.Features.SoftwareApps.Interfaces.IAppDiscoveryService
 {
     private readonly ILogService _logService;
     private readonly ExternalAppCatalog _externalAppCatalog;
@@ -130,7 +131,10 @@ public class AppDiscoveryService : Winhance.Core.Features.SoftwareApps.Interface
     }
 
     /// <inheritdoc/>
-    public async Task<bool> IsAppInstalledAsync(string packageName, CancellationToken cancellationToken = default)
+    public async Task<bool> IsAppInstalledAsync(
+        string packageName,
+        CancellationToken cancellationToken = default
+    )
     {
         try
         {
@@ -166,12 +170,15 @@ public class AppDiscoveryService : Winhance.Core.Features.SoftwareApps.Interface
             {
                 // Find the app definition to check for subpackages
                 var appDefinition = _windowsAppCatalog.WindowsApps.FirstOrDefault(a =>
-                    a.PackageName.Equals(packageName, StringComparison.OrdinalIgnoreCase));
-                
+                    a.PackageName.Equals(packageName, StringComparison.OrdinalIgnoreCase)
+                );
+
                 if (appDefinition?.SubPackages != null && appDefinition.SubPackages.Length > 0)
                 {
                     subPackages = appDefinition.SubPackages;
-                    _logService.LogInformation($"App {packageName} has {subPackages.Length} subpackages");
+                    _logService.LogInformation(
+                        $"App {packageName} has {subPackages.Length} subpackages"
+                    );
                 }
             }
 
@@ -262,7 +269,9 @@ public class AppDiscoveryService : Winhance.Core.Features.SoftwareApps.Interface
                 }
                 else
                 {
-                    _logService.LogWarning($"Timeout checking installation status for {packageName}");
+                    _logService.LogWarning(
+                        $"Timeout checking installation status for {packageName}"
+                    );
                     isInstalled = false;
                 }
             }
@@ -300,6 +309,26 @@ public class AppDiscoveryService : Winhance.Core.Features.SoftwareApps.Interface
 
         try
         {
+            // Check for special apps that need custom detection logic
+            var oneNotePackage = "Microsoft.Office.OneNote";
+            bool hasOneNote = packageList.Any(p =>
+                p.Equals(oneNotePackage, StringComparison.OrdinalIgnoreCase)
+            );
+            bool oneNoteInstalled = false;
+
+            // If OneNote is in the list, check it separately using our special detection
+            if (hasOneNote)
+            {
+                oneNoteInstalled = await IsOneNoteInstalledAsync();
+                _logService.LogInformation(
+                    $"OneNote special registry check result: {oneNoteInstalled}"
+                );
+                // Remove OneNote from the list as we'll handle it separately
+                packageList = packageList
+                    .Where(p => !p.Equals(oneNotePackage, StringComparison.OrdinalIgnoreCase))
+                    .ToList();
+            }
+
             // Group items by type for batch processing
             var capabilities = packageList
                 .Where(p =>
@@ -347,6 +376,23 @@ public class AppDiscoveryService : Winhance.Core.Features.SoftwareApps.Interface
                 {
                     result[pair.Key] = pair.Value;
                 }
+            }
+
+            // Add OneNote result if it was in the original list
+            if (hasOneNote)
+            {
+                // Check if OneNote is also detected via AppX package
+                bool appxOneNoteInstalled = false;
+                if (result.TryGetValue(oneNotePackage, out bool appxInstalled))
+                {
+                    appxOneNoteInstalled = appxInstalled;
+                }
+
+                // Use either the registry check or AppX check - if either is true, OneNote is installed
+                result[oneNotePackage] = oneNoteInstalled || appxOneNoteInstalled;
+                _logService.LogInformation(
+                    $"Final OneNote installation status: {result[oneNotePackage]} (Registry: {oneNoteInstalled}, AppX: {appxOneNoteInstalled})"
+                );
             }
 
             // Cache all results
@@ -498,27 +544,34 @@ public class AppDiscoveryService : Winhance.Core.Features.SoftwareApps.Interface
                 bool isInstalled = installedApps.Any(a =>
                     a.Equals(app, StringComparison.OrdinalIgnoreCase)
                 );
-                
+
                 // If not installed, check if it has subpackages and if any of them are installed
                 if (!isInstalled)
                 {
                     var appDefinition = _windowsAppCatalog.WindowsApps.FirstOrDefault(a =>
-                        a.PackageName.Equals(app, StringComparison.OrdinalIgnoreCase));
-                    
+                        a.PackageName.Equals(app, StringComparison.OrdinalIgnoreCase)
+                    );
+
                     if (appDefinition?.SubPackages != null && appDefinition.SubPackages.Length > 0)
                     {
                         foreach (var subPackage in appDefinition.SubPackages)
                         {
-                            if (installedApps.Any(a => a.Equals(subPackage, StringComparison.OrdinalIgnoreCase)))
+                            if (
+                                installedApps.Any(a =>
+                                    a.Equals(subPackage, StringComparison.OrdinalIgnoreCase)
+                                )
+                            )
                             {
                                 isInstalled = true;
-                                _logService.LogInformation($"App {app} is installed via subpackage {subPackage}");
+                                _logService.LogInformation(
+                                    $"App {app} is installed via subpackage {subPackage}"
+                                );
                                 break;
                             }
                         }
                     }
                 }
-                
+
                 result[app] = isInstalled;
             }
         }
@@ -540,12 +593,13 @@ public class AppDiscoveryService : Winhance.Core.Features.SoftwareApps.Interface
         try
         {
             _logService.LogInformation("Checking if Microsoft Edge is installed");
-            
+
             using var powerShell = PowerShellFactory.CreateWindowsPowerShell(_logService);
             // No need to set execution policy as it's already done in the factory
-            
+
             // Only check the specific registry key as requested
-            powerShell.AddScript(@"
+            powerShell.AddScript(
+                @"
                 try {
                     $result = Get-ItemProperty ""HKLM:\SOFTWARE\Microsoft\Windows\CurrentVersion\App Paths\msedge.exe"" -ErrorAction SilentlyContinue
                     return $result -ne $null
@@ -554,11 +608,12 @@ public class AppDiscoveryService : Winhance.Core.Features.SoftwareApps.Interface
                     Write-Output ""Error checking Edge registry key: $($_.Exception.Message)""
                     return $false
                 }
-            ");
-            
+            "
+            );
+
             var result = await ExecuteWithTimeoutAsync<bool>(powerShell, 15);
             bool isInstalled = result.FirstOrDefault();
-            
+
             _logService.LogInformation($"Edge registry check result: {isInstalled}");
             return isInstalled;
         }
@@ -575,12 +630,13 @@ public class AppDiscoveryService : Winhance.Core.Features.SoftwareApps.Interface
         try
         {
             _logService.LogInformation("Checking if OneDrive is installed");
-            
+
             using var powerShell = PowerShellFactory.CreateWindowsPowerShell(_logService);
             // No need to set execution policy as it's already done in the factory
-            
+
             // Check the specific registry keys
-            powerShell.AddScript(@"
+            powerShell.AddScript(
+                @"
                 try {
                     # Check the two specific registry keys
                     $hklmKey = Get-ItemProperty ""HKLM:\SOFTWARE\Microsoft\Windows\CurrentVersion\Uninstall\OneDriveSetup.exe"" -ErrorAction SilentlyContinue
@@ -593,17 +649,83 @@ public class AppDiscoveryService : Winhance.Core.Features.SoftwareApps.Interface
                     Write-Output ""Error checking OneDrive registry: $($_.Exception.Message)""
                     return $false
                 }
-            ");
-            
+            "
+            );
+
             var result = await ExecuteWithTimeoutAsync<bool>(powerShell, 15);
             bool isInstalled = result.FirstOrDefault();
-            
+
             _logService.LogInformation($"OneDrive registry check result: {isInstalled}");
             return isInstalled;
         }
         catch (Exception ex)
         {
             _logService.LogError("Error checking OneDrive installation", ex);
+            return false;
+        }
+    }
+
+    /// <inheritdoc/>
+    public async Task<bool> IsOneNoteInstalledAsync()
+    {
+        try
+        {
+            _logService.LogInformation("Checking if OneNote is installed");
+
+            // First, try a simpler, more direct approach without recursive searches
+            using var powerShell = PowerShellFactory.CreateWindowsPowerShell(_logService);
+
+            // Use a more targeted, non-recursive approach for better performance and reliability
+            powerShell.AddScript(
+                @"
+                try {
+                # Check for OneNote in common registry locations using direct paths instead of recursive searches
+                
+                # Check standard uninstall keys
+                $installed = $false
+                
+                # Check for OneNote in standard uninstall locations
+                $hklmKeys = Get-ChildItem ""HKLM:\SOFTWARE\Microsoft\Windows\CurrentVersion\Uninstall"" -ErrorAction SilentlyContinue | 
+                    Get-ItemProperty -ErrorAction SilentlyContinue | Where-Object { $_.DisplayName -like ""*OneNote*"" }
+                if ($hklmKeys) { $installed = $true }
+                
+                $hkcuKeys = Get-ChildItem ""HKCU:\SOFTWARE\Microsoft\Windows\CurrentVersion\Uninstall"" -ErrorAction SilentlyContinue | 
+                    Get-ItemProperty -ErrorAction SilentlyContinue | Where-Object { $_.DisplayName -like ""*OneNote*"" }
+                if ($hkcuKeys) { $installed = $true }
+                
+                # Check for Wow6432Node registry keys (for 32-bit apps on 64-bit Windows)
+                $hklmWowKeys = Get-ChildItem ""HKLM:\SOFTWARE\Wow6432Node\Microsoft\Windows\CurrentVersion\Uninstall"" -ErrorAction SilentlyContinue | 
+                    Get-ItemProperty -ErrorAction SilentlyContinue | Where-Object { $_.DisplayName -like ""*OneNote*"" }
+                if ($hklmWowKeys) { $installed = $true }
+                
+                # Check for UWP/Store app version
+                try {
+                    $appxPackage = Get-AppxPackage -Name Microsoft.Office.OneNote -ErrorAction SilentlyContinue
+                    if ($appxPackage) { $installed = $true }
+                } catch {
+                    # Ignore errors with AppX commands
+                }
+                
+                return $installed
+                }
+                catch {
+                    Write-Output ""Error checking OneNote registry: $($_.Exception.Message)""
+                    return $false
+                }
+            "
+            );
+
+            // Use a shorter timeout to prevent hanging
+            var result = await ExecuteWithTimeoutAsync<bool>(powerShell, 10);
+            bool isInstalled = result.FirstOrDefault();
+
+            _logService.LogInformation($"OneNote registry check result: {isInstalled}");
+            return isInstalled;
+        }
+        catch (Exception ex)
+        {
+            _logService.LogError("Error checking OneNote installation", ex);
+            // Don't crash the application if OneNote check fails
             return false;
         }
     }
@@ -621,7 +743,7 @@ public class AppDiscoveryService : Winhance.Core.Features.SoftwareApps.Interface
             _installationStatusCache.Clear();
         }
     }
-    
+
     /// <summary>
     /// Executes a PowerShell command with a timeout.
     /// </summary>
@@ -629,22 +751,109 @@ public class AppDiscoveryService : Winhance.Core.Features.SoftwareApps.Interface
     /// <param name="powerShell">The PowerShell instance.</param>
     /// <param name="timeoutSeconds">The timeout in seconds.</param>
     /// <returns>The result of the PowerShell command.</returns>
-    private async Task<System.Collections.ObjectModel.Collection<T>> ExecuteWithTimeoutAsync<T>(PowerShell powerShell, int timeoutSeconds)
+    private async Task<System.Collections.ObjectModel.Collection<T>> ExecuteWithTimeoutAsync<T>(
+        PowerShell powerShell,
+        int timeoutSeconds
+    )
     {
+        // Create a cancellation token source for the timeout
+        using var cancellationTokenSource = new CancellationTokenSource();
+
         try
         {
-            var task = Task.Run(() => powerShell.Invoke<T>());
-            if (await Task.WhenAny(task, Task.Delay(TimeSpan.FromSeconds(timeoutSeconds))) == task)
+            // Set up the timeout
+            cancellationTokenSource.CancelAfter(TimeSpan.FromSeconds(timeoutSeconds));
+
+            // Run the PowerShell command with cancellation support
+            var task = Task.Run(
+                () =>
+                {
+                    try
+                    {
+                        // Check if cancellation was requested before starting
+                        if (cancellationTokenSource.Token.IsCancellationRequested)
+                        {
+                            _logService.LogWarning(
+                                "PowerShell execution cancelled before starting"
+                            );
+                            return new System.Collections.ObjectModel.Collection<T>();
+                        }
+
+                        // Execute the PowerShell command
+                        return powerShell.Invoke<T>();
+                    }
+                    catch (Exception innerEx)
+                    {
+                        _logService.LogError(
+                            $"Error in PowerShell execution thread: {innerEx.Message}",
+                            innerEx
+                        );
+                        return new System.Collections.ObjectModel.Collection<T>();
+                    }
+                },
+                cancellationTokenSource.Token
+            );
+
+            // Wait for completion or timeout
+            if (
+                await Task.WhenAny(
+                    task,
+                    Task.Delay(TimeSpan.FromSeconds(timeoutSeconds), cancellationTokenSource.Token)
+                ) == task
+            )
             {
-                return await task;
+                // Task completed within timeout
+                if (task.IsCompletedSuccessfully)
+                {
+                    return await task;
+                }
+                else if (task.IsFaulted)
+                {
+                    _logService.LogError(
+                        $"PowerShell task faulted: {task.Exception?.Message}",
+                        task.Exception
+                    );
+                }
+                else if (task.IsCanceled)
+                {
+                    _logService.LogWarning("PowerShell task was cancelled");
+                }
             }
-            
-            _logService.LogWarning($"PowerShell execution timed out after {timeoutSeconds} seconds");
+            else
+            {
+                // Task timed out, attempt to cancel it
+                _logService.LogWarning(
+                    $"PowerShell execution timed out after {timeoutSeconds} seconds"
+                );
+                cancellationTokenSource.Cancel();
+
+                // Try to stop the PowerShell pipeline if it's still running
+                try
+                {
+                    powerShell.Stop();
+                }
+                catch (Exception stopEx)
+                {
+                    _logService.LogWarning($"Error stopping PowerShell pipeline: {stopEx.Message}");
+                }
+            }
+
+            // Return empty collection if we reached here (timeout or error)
+            return new System.Collections.ObjectModel.Collection<T>();
+        }
+        catch (OperationCanceledException)
+        {
+            _logService.LogWarning(
+                $"PowerShell execution cancelled after {timeoutSeconds} seconds"
+            );
             return new System.Collections.ObjectModel.Collection<T>();
         }
         catch (Exception ex)
         {
-            _logService.LogError($"Error executing PowerShell command with timeout: {ex.Message}", ex);
+            _logService.LogError(
+                $"Error executing PowerShell command with timeout: {ex.Message}",
+                ex
+            );
             return new System.Collections.ObjectModel.Collection<T>();
         }
     }

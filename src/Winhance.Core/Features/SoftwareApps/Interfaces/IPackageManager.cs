@@ -4,6 +4,7 @@ using System.Threading;
 using System.Threading.Tasks;
 using Winhance.Core.Features.Common.Interfaces;
 using Winhance.Core.Features.SoftwareApps.Models;
+using Winhance.Core.Features.UI.Interfaces;
 
 namespace Winhance.Core.Features.SoftwareApps.Interfaces
 {
@@ -36,6 +37,16 @@ namespace Winhance.Core.Features.SoftwareApps.Interfaces
         /// Gets the script generation service.
         /// </summary>
         IScriptGenerationService ScriptGenerationService { get; }
+
+        /// <summary>
+        /// Gets the system services.
+        /// </summary>
+        ISystemServices SystemServices { get; }
+
+        /// <summary>
+        /// Gets the notification service.
+        /// </summary>
+        INotificationService NotificationService { get; }
 
         /// <summary>
         /// Gets all installable applications.
@@ -88,6 +99,12 @@ namespace Winhance.Core.Features.SoftwareApps.Interfaces
         /// </summary>
         /// <returns>True if OneDrive was removed successfully; otherwise, false.</returns>
         Task<bool> RemoveOneDriveAsync();
+
+        /// <summary>
+        /// Removes OneNote.
+        /// </summary>
+        /// <returns>True if OneNote was removed successfully; otherwise, false.</returns>
+        Task<bool> RemoveOneNoteAsync();
 
         /// <summary>
         /// Removes a special application.

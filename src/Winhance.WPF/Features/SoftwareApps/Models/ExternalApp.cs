@@ -19,6 +19,9 @@ namespace Winhance.WPF.Features.SoftwareApps.Models
         
         [ObservableProperty]
         private bool _isSelected;
+        
+        [ObservableProperty]
+        private string _lastOperationError;
 
         public static ExternalApp FromAppInfo(AppInfo appInfo)
         {
@@ -32,7 +35,8 @@ namespace Winhance.WPF.Features.SoftwareApps.Models
                 PackageName = appInfo.PackageName,
                 Version = appInfo.Version,
                 CanBeReinstalled = appInfo.CanBeReinstalled,
-                Category = appInfo.Category
+                Category = appInfo.Category,
+                LastOperationError = appInfo.LastOperationError
             };
             
             app.IsInstalled = appInfo.IsInstalled;
@@ -50,7 +54,8 @@ namespace Winhance.WPF.Features.SoftwareApps.Models
                 Version = Version,
                 IsInstalled = IsInstalled,
                 CanBeReinstalled = CanBeReinstalled,
-                Category = Category
+                Category = Category,
+                LastOperationError = LastOperationError
             };
         }
 

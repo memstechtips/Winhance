@@ -243,6 +243,8 @@ public class WindowsAppCatalog
                 PackageID = "XPFFZHVGQWWLHB",
                 Category = "Office",
                 CanBeReinstalled = true,
+                RequiresSpecialHandling = true,
+                SpecialHandlerType = "OneNote",
                 Type = AppType.StandardApp,
             },
             new AppInfo
@@ -352,6 +354,18 @@ public class WindowsAppCatalog
                 SubPackages = new string[]
                 {
                     "Microsoft.XboxApp", // Microsoft.XboxApp is deprecated but still on Windows 10 22H2 ISO's
+                },
+                RegistrySettings = new AppRegistrySetting[]
+                {
+                    new AppRegistrySetting
+                    {
+                        Path = @"HKCU\Software\Microsoft\Windows\CurrentVersion\GameDVR",
+                        Name = "AppCaptureEnabled",
+                        Value = 0,
+                        ValueKind = Microsoft.Win32.RegistryValueKind.DWord,
+                        Description =
+                            "Disables the Get an app to open this 'ms-gamingoverlay' popup",
+                    },
                 },
             },
             new AppInfo

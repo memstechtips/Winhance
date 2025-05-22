@@ -12,24 +12,20 @@
     <!-- Force icon refresh -->
     <Win32Resource></Win32Resource>
     <!-- Version information -->
-    <Version>25.05.05</Version>
-    <FileVersion>25.05.05</FileVersion>
-    <AssemblyVersion>25.05.05</AssemblyVersion>
-    <InformationalVersion>v25.05.05</InformationalVersion>
+    <Version>25.05.22</Version>
+    <FileVersion>25.05.22</FileVersion>
+    <AssemblyVersion>25.05.22</AssemblyVersion>
+    <InformationalVersion>v25.05.22</InformationalVersion>
   </PropertyGroup>
-
   <!-- Theme files are now included by default -->
-
   <ItemGroup>
     <Compile Update="**\*.xaml.cs">
       <DependentUpon>%(Filename)</DependentUpon>
     </Compile>
   </ItemGroup>
-
   <ItemGroup>
     <ApplicationManifest Include="App.manifest" />
   </ItemGroup>
-
   <ItemGroup>
     <Resource Include="Resources\Fonts\MaterialSymbolsOutlined.ttf" />
     <Resource Include="Resources\AppIcons\winhance-rocket.ico" />
@@ -37,12 +33,10 @@
     <Resource Include="Resources\AppIcons\winhance-rocket-black-transparent-bg.ico" />
     <Resource Include="Resources\AppIcons\LICENSE.txt" />
   </ItemGroup>
-
   <ItemGroup>
     <ProjectReference Include="..\Winhance.Core\Winhance.Core.csproj" />
     <ProjectReference Include="..\Winhance.Infrastructure\Winhance.Infrastructure.csproj" />
   </ItemGroup>
-
   <ItemGroup>
     <PackageReference Include="CommunityToolkit.Mvvm" Version="8.4.0" />
     <PackageReference Include="MaterialDesignThemes" Version="5.2.1" />
@@ -57,6 +51,7 @@
     <PackageReference Include="System.Text.Json" Version="9.0.2" />
   </ItemGroup>
 </Project>
+
 
 
 

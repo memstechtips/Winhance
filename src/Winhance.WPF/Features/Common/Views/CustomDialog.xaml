@@ -44,54 +44,12 @@
                       VerticalAlignment="Center"/>
         </DockPanel>
 
-        <!-- App List -->
-        <Border Grid.Row="1"
-                Margin="42,10,0,10"
-                Style="{StaticResource DialogAppListBorderStyle}">
-            <ItemsControl x:Name="AppList">
-                <ItemsControl.Resources>
-                    <BooleanToVisibilityConverter x:Key="BoolToVis"/>
-                </ItemsControl.Resources>
-                <ItemsControl.Style>
-                    <Style TargetType="ItemsControl">
-                        <Style.Triggers>
-                            <!-- Use 1 column for single item (typically for information messages) -->
-                            <DataTrigger Binding="{Binding Items.Count, RelativeSource={RelativeSource Self}}" Value="1">
-                                <Setter Property="ItemsPanel">
-                                    <Setter.Value>
-                                        <ItemsPanelTemplate>
-                                            <UniformGrid Columns="1"/>
-                                        </ItemsPanelTemplate>
-                                    </Setter.Value>
-                                </Setter>
-                            </DataTrigger>
-                            <!-- Use 4 columns for multiple items (typically for app lists) -->
-                            <DataTrigger Binding="{Binding Items.Count, RelativeSource={RelativeSource Self}, Converter={StaticResource GreaterThanOneConverter}}" Value="True">
-                                <Setter Property="ItemsPanel">
-                                    <Setter.Value>
-                                        <ItemsPanelTemplate>
-                                            <UniformGrid Columns="4"/>
-                                        </ItemsPanelTemplate>
-                                    </Setter.Value>
-                                </Setter>
-                            </DataTrigger>
-                        </Style.Triggers>
-                    </Style>
-                </ItemsControl.Style>
-                <ItemsControl.ItemsPanel>
-                    <ItemsPanelTemplate>
-                        <UniformGrid Columns="4"/>
-                    </ItemsPanelTemplate>
-                </ItemsControl.ItemsPanel>
-                <ItemsControl.ItemTemplate>
-                    <DataTemplate>
-                        <TextBlock Text="{Binding}"
-                                 TextWrapping="Wrap"
-                                 Style="{StaticResource DialogAppTextBlockStyle}"/>
-                    </DataTemplate>
-                </ItemsControl.ItemTemplate>
-            </ItemsControl>
-        </Border>
+        <!-- Message Content -->
+        <TextBlock x:Name="MessageContent"
+                  Grid.Row="1"
+                  Style="{StaticResource DialogTextBlockStyle}"
+                  TextWrapping="Wrap"
+                  Margin="42,10,0,10"/>
 
         <!-- Footer Text -->
         <TextBlock x:Name="FooterText"

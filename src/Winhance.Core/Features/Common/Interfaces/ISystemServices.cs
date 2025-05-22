@@ -1,4 +1,6 @@
+using System.Threading;
 using System.Threading.Tasks;
+using Winhance.Core.Models.Enums;
 using Winhance.Core.Features.Customize.Enums;
 
 namespace Winhance.Core.Features.Common.Interfaces
@@ -76,13 +78,13 @@ namespace Winhance.Core.Features.Common.Interfaces
         /// Sets the UAC level.
         /// </summary>
         /// <param name="level">The UAC level to set.</param>
-        void SetUacLevel(UacLevel level);
+        void SetUacLevel(Winhance.Core.Models.Enums.UacLevel level);
 
         /// <summary>
         /// Gets the UAC level.
         /// </summary>
         /// <returns>The current UAC level.</returns>
-        UacLevel GetUacLevel();
+        Winhance.Core.Models.Enums.UacLevel GetUacLevel();
 
         /// <summary>
         /// Refreshes the Windows GUI.
@@ -96,5 +98,20 @@ namespace Winhance.Core.Features.Common.Interfaces
         /// <param name="killExplorer">True to kill the Explorer process; otherwise, false.</param>
         /// <returns>A task that represents the asynchronous operation. The task result contains a value indicating whether the operation succeeded.</returns>
         Task<bool> RefreshWindowsGUI(bool killExplorer);
+
+        /// <summary>
+        /// Checks if the system has an active internet connection.
+        /// </summary>
+        /// <param name="forceCheck">If true, bypasses the cache and performs a fresh check.</param>
+        /// <returns>True if internet is connected, false otherwise.</returns>
+        bool IsInternetConnected(bool forceCheck = false);
+
+        /// <summary>
+        /// Asynchronously checks if the system has an active internet connection.
+        /// </summary>
+        /// <param name="forceCheck">If true, bypasses the cache and performs a fresh check.</param>
+        /// <param name="cancellationToken">Cancellation token for the operation.</param>
+        /// <returns>True if internet is connected, false otherwise.</returns>
+        Task<bool> IsInternetConnectedAsync(bool forceCheck = false, CancellationToken cancellationToken = default, bool userInitiatedCancellation = false);
     }
 }

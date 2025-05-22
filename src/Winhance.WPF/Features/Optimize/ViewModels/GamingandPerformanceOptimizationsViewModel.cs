@@ -23,6 +23,7 @@ namespace Winhance.WPF.Features.Optimize.ViewModels
     {
         private readonly IViewModelLocator? _viewModelLocator;
         private readonly ISettingsRegistry? _settingsRegistry;
+        private readonly ICommandService _commandService;
 
         /// <summary>
         /// Initializes a new instance of the <see cref="GamingandPerformanceOptimizationsViewModel"/> class.
@@ -30,18 +31,21 @@ namespace Winhance.WPF.Features.Optimize.ViewModels
         /// <param name="progressService">The task progress service.</param>
         /// <param name="registryService">The registry service.</param>
         /// <param name="logService">The log service.</param>
+        /// <param name="commandService">The command service.</param>
         /// <param name="viewModelLocator">The view model locator.</param>
         /// <param name="settingsRegistry">The settings registry.</param>
         public GamingandPerformanceOptimizationsViewModel(
             ITaskProgressService progressService,
             IRegistryService registryService,
             ILogService logService,
+            ICommandService commandService,
             IViewModelLocator? viewModelLocator = null,
             ISettingsRegistry? settingsRegistry = null)
             : base(progressService, registryService, logService)
         {
             _viewModelLocator = viewModelLocator;
             _settingsRegistry = settingsRegistry;
+            _commandService = commandService;
         }
 
         /// <summary>
@@ -65,7 +69,7 @@ namespace Winhance.WPF.Features.Optimize.ViewModels
                     foreach (var setting in gamingOptimizations.Settings.OrderBy(s => s.Name))
                     {
                         // Create ApplicationSettingItem directly
-                        var settingItem = new ApplicationSettingItem(_registryService, null, _logService)
+                        var settingItem = new ApplicationSettingItem(_registryService, null, _logService, _commandService)
                         {
                             Id = setting.Id,
                             Name = setting.Name,
@@ -97,7 +101,20 @@ namespace Winhance.WPF.Features.Optimize.ViewModels
                         }
                         else
                         {
-                            _logService.Log(LogLevel.Warning, $"No registry settings found for {setting.Name}");
+                            _logService.Log(LogLevel.Info, $"No registry settings found for {setting.Name}");
+                        }
+                        
+                        // Set up command settings if available
+                        if (setting.CommandSettings.Count > 0)
+                        {
+                            settingItem.CommandSettings = setting.CommandSettings;
+                            _logService.Log(LogLevel.Info, $"Setting up command settings for {setting.Name} with {setting.CommandSettings.Count} commands");
+                            
+                            // Log details about each command setting for debugging
+                            foreach (var cmdSetting in setting.CommandSettings)
+                            {
+                                _logService.Log(LogLevel.Info, $"Command setting: {cmdSetting.Id}, EnabledCommand={cmdSetting.EnabledCommand}, DisabledCommand={cmdSetting.DisabledCommand}, IsPrimary={cmdSetting.IsPrimary}");
+                            }
                         }
 
                         // Add to the settings collection

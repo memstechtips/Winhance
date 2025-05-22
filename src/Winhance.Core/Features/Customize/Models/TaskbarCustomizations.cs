@@ -333,6 +333,34 @@ public static class TaskbarCustomizations
                 },
                 new CustomizationSetting
                 {
+                    Id = "taskbar-system-tray-icons",
+                    Name = "Show Hidden System Tray Icons (W10 Only)",
+                    Description = "Controls whether system tray icons are shown in the taskbar or hidden in the chevron menu",
+                    Category = CustomizationCategory.Taskbar,
+                    GroupName = "System Tray",
+                    IsEnabled = false,
+                    ControlType = ControlType.BinaryToggle,
+                    RegistrySettings = new List<RegistrySetting>
+                    {
+                        new RegistrySetting
+                        {
+                            Category = "Taskbar",
+                            Hive = RegistryHive.CurrentUser,
+                            SubKey = "SOFTWARE\\Microsoft\\Windows\\CurrentVersion\\Explorer",
+                            Name = "EnableAutoTray",
+                            RecommendedValue = 0,
+                            EnabledValue = 0,
+                            DisabledValue = 1,
+                            ValueType = RegistryValueKind.DWord,
+                            DefaultValue = 1,
+                            Description = "Controls whether system tray icons are shown in the taskbar or hidden in the chevron menu",
+                            IsPrimary = true,
+                            AbsenceMeansEnabled = false
+                        }
+                    }
+                },
+                new CustomizationSetting
+                {
                     Id = "taskbar-task-view",
                     Name = "Task View Button",
                     Description = "Controls Task View button visibility in taskbar",

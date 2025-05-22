@@ -168,6 +168,22 @@ namespace Winhance.Core.Features.Common.Models
                 Exception = exception
             };
         }
+
+        /// <summary>
+        /// Creates a failed operation result with the specified message and result value.
+        /// </summary>
+        /// <param name="message">The error message.</param>
+        /// <param name="result">The result value to set even though the operation failed.</param>
+        /// <returns>A failed operation result with the specified result value.</returns>
+        public static OperationResult<T> Failed(string message, T result)
+        {
+            return new OperationResult<T>
+            {
+                Success = false,
+                ErrorMessage = message,
+                Result = result
+            };
+        }
     }
 
     /// <summary>

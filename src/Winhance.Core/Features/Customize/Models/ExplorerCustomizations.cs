@@ -151,6 +151,64 @@ public static class ExplorerCustomizations
                 },
                 new CustomizationSetting
                 {
+                    Id = "explorer-show-hidden-files",
+                    Name = "Show Hidden Files, Folders & Drives",
+                    Description = "Controls visibility of hidden files and folders",
+                    Category = CustomizationCategory.Explorer,
+                    GroupName = "File Explorer Settings",
+                    IsEnabled = false,
+                    ControlType = ControlType.BinaryToggle,
+                    RegistrySettings = new List<RegistrySetting>
+                    {
+                        new RegistrySetting
+                        {
+                            Category = "Explorer",
+                            Hive = RegistryHive.CurrentUser,
+                            SubKey =
+                                "Software\\Microsoft\\Windows\\CurrentVersion\\Explorer\\Advanced",
+                            Name = "Hidden",
+                            RecommendedValue = 1,
+                            EnabledValue = 1,
+                            DisabledValue = 0,
+                            ValueType = RegistryValueKind.DWord,
+                            DefaultValue = 0,
+                            Description = "Controls visibility of hidden files, folders and drives",
+                            IsPrimary = true,
+                            AbsenceMeansEnabled = false,
+                        },
+                    },
+                },
+                new CustomizationSetting
+                {
+                    Id = "explorer-hide-protected-files",
+                    Name = "Hide Protected Operating System Files",
+                    Description = "Controls visibility of protected operating system files",
+                    Category = CustomizationCategory.Explorer,
+                    GroupName = "File Explorer Settings",
+                    IsEnabled = false,
+                    ControlType = ControlType.BinaryToggle,
+                    RegistrySettings = new List<RegistrySetting>
+                    {
+                        new RegistrySetting
+                        {
+                            Category = "Explorer",
+                            Hive = RegistryHive.CurrentUser,
+                            SubKey =
+                                "Software\\Microsoft\\Windows\\CurrentVersion\\Explorer\\Advanced",
+                            Name = "ShowSuperHidden",
+                            RecommendedValue = 0,
+                            EnabledValue = 0,
+                            DisabledValue = 1,
+                            ValueType = RegistryValueKind.DWord,
+                            DefaultValue = 1,
+                            Description = "Controls visibility of protected operating system files",
+                            IsPrimary = true,
+                            AbsenceMeansEnabled = false,
+                        },
+                    },
+                },
+                new CustomizationSetting
+                {
                     Id = "explorer-folder-tips",
                     Name = "Folder Tips",
                     Description = "Controls file size information in folder tips",
@@ -461,6 +519,34 @@ public static class ExplorerCustomizations
                             ValueType = RegistryValueKind.DWord,
                             DefaultValue = 0, // Default value when registry key exists but no value is set
                             Description = "Controls per-process system DPI",
+                            IsPrimary = true,
+                            AbsenceMeansEnabled = false,
+                        },
+                    },
+                },
+                new CustomizationSetting
+                {
+                    Id = "explorer-lock-screen",
+                    Name = "Lock Screen",
+                    Description = "Controls lock screen visibility",
+                    Category = CustomizationCategory.Explorer,
+                    GroupName = "File Explorer Settings",
+                    IsEnabled = false,
+                    ControlType = ControlType.BinaryToggle,
+                    RegistrySettings = new List<RegistrySetting>
+                    {
+                        new RegistrySetting
+                        {
+                            Category = "Explorer",
+                            Hive = RegistryHive.LocalMachine,
+                            SubKey = "SOFTWARE\\Policies\\Microsoft\\Windows\\Personalization",
+                            Name = "NoLockScreen",
+                            RecommendedValue = 0,
+                            EnabledValue = 0,
+                            DisabledValue = 1,
+                            ValueType = RegistryValueKind.DWord,
+                            DefaultValue = 0,
+                            Description = "Controls lock screen visibility",
                             IsPrimary = true,
                             AbsenceMeansEnabled = false,
                         },

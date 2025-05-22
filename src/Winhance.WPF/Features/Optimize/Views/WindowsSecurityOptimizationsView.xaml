@@ -5,6 +5,7 @@
              xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
              xmlns:viewmodels="clr-namespace:Winhance.WPF.Features.Optimize.ViewModels"
              xmlns:materialDesign="http://materialdesigninxaml.net/winfx/xaml/themes"
+             xmlns:enums="clr-namespace:Winhance.Core.Models.Enums;assembly=Winhance.Core"
              d:DataContext="{d:DesignInstance Type=viewmodels:WindowsSecurityOptimizationsViewModel}"
              mc:Ignorable="d">
 
@@ -13,53 +14,53 @@
             Margin="5,0,5,5"
             Effect="{StaticResource LightShadowEffect}">
         <StackPanel Margin="0,10,0,10">
-            <!-- UAC Notification Level Section - Full Width -->
-            <Grid Margin="10,0,10,10">
-                <!-- Left: Title and Icon -->
-                <StackPanel Orientation="Horizontal" 
-                            VerticalAlignment="Top" 
-                            Margin="0,10,0,0">
-                    <TextBlock Text="User Account Control Notification Level"
+            <!-- UAC Notification Level Section -->
+            <Grid Margin="10,0,10,20">
+                <Grid.RowDefinitions>
+                    <RowDefinition Height="Auto"/>
+                    <RowDefinition Height="Auto"/>
+                </Grid.RowDefinitions>
+
+                <!-- Title -->
+                <TextBlock Text="User Account Control (UAC)"
+                           Foreground="{DynamicResource PrimaryTextColor}"
+                           FontWeight="SemiBold"
+                           Margin="25,0,0,10"/>
+
+                <!-- UAC Level Dropdown -->
+                <Grid Grid.Row="1"
+                      Margin="25,0,25,0">
+                    <Grid.ColumnDefinitions>
+                        <ColumnDefinition Width="*"/>
+                        <ColumnDefinition Width="Auto"/>
+                    </Grid.ColumnDefinitions>
+
+                    <!-- Left: Description -->
+                    <TextBlock Text="Control when Windows notifies you about changes"
                                Foreground="{DynamicResource PrimaryTextColor}"
-                               FontSize="14"
-                               VerticalAlignment="Center"
-                               Margin="8,10,20,10"/>
-                </StackPanel>
+                               VerticalAlignment="Center"/>
 
-                <!-- Right: Slider -->
-                <StackPanel HorizontalAlignment="Right"
-                            Margin="0,10,20,10">
-                    <!-- Slider Control -->
-                    <Slider x:Name="UACSlider"
-                            Style="{StaticResource UACSliderStyle}"
-                            Minimum="0"
-                            Maximum="2"
-                            TickFrequency="1"
-                            IsSnapToTickEnabled="True"
-                            Value="{Binding UacLevel}"
-                            Width="200"/>
+                    <!-- Right: ComboBox -->
+                    <StackPanel Grid.Column="1"
+                                Margin="10,0,0,0">
+                        <ComboBox ItemsSource="{Binding UacLevelOptions}"
+                                  SelectedValue="{Binding SelectedUacLevel, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}"
+                                  SelectedValuePath="Key"
+                                  DisplayMemberPath="Value"
+                                  Width="250"
+                                  HorizontalAlignment="Right"
+                                  VerticalAlignment="Center"/>
+                    </StackPanel>
+                </Grid>
 
-                    <!-- Tick Labels -->
-                    <Grid Margin="0,5,0,0"
-                          Width="200">
-                        <Grid.ColumnDefinitions>
-                            <ColumnDefinition Width="*"/>
-                            <ColumnDefinition Width="*"/>
-                            <ColumnDefinition Width="*"/>
-                        </Grid.ColumnDefinitions>
-                        <TextBlock Text="Low"
-                                   Foreground="{DynamicResource PrimaryTextColor}"
-                                   HorizontalAlignment="Left"/>
-                        <TextBlock Text="Moderate"
-                                   Foreground="{DynamicResource PrimaryTextColor}"
-                                   Grid.Column="1"
-                                   HorizontalAlignment="Center"/>
-                        <TextBlock Text="High"
-                                   Foreground="{DynamicResource PrimaryTextColor}"
-                                   Grid.Column="2"
-                                   HorizontalAlignment="Right"/>
-                    </Grid>
-                </StackPanel>
+                <!-- Loading Spinner -->
+                <ProgressBar Grid.Row="1"
+                             HorizontalAlignment="Right"
+                             Margin="0,0,10,0"
+                             IsIndeterminate="True"
+                             Width="20"
+                             Height="20"
+                             Visibility="{Binding IsApplyingUacLevel, Converter={StaticResource BooleanToVisibilityConverter}}"/>
             </Grid>
         </StackPanel>
     </Border>

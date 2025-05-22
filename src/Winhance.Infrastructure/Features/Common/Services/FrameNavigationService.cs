@@ -18,16 +18,23 @@ namespace Winhance.Infrastructure.Features.Common.Services
     /// <summary>
     /// Service for navigating between views in the application using ContentPresenter-based navigation.
     /// </summary>
-    public class FrameNavigationService : Winhance.Core.Features.Common.Interfaces.INavigationService
+    public class FrameNavigationService
+        : Winhance.Core.Features.Common.Interfaces.INavigationService
     {
         private readonly Stack<Type> _backStack = new();
         private readonly Stack<(Type ViewModelType, object Parameter)> _forwardStack = new();
         private readonly List<string> _navigationHistory = new();
-        private readonly Dictionary<string, (Type ViewType, Type ViewModelType)> _viewMappings = new();
+        private readonly Dictionary<string, (Type ViewType, Type ViewModelType)> _viewMappings =
+            new();
         private readonly IServiceProvider _serviceProvider;
         private readonly IParameterSerializer _parameterSerializer;
         private readonly SemaphoreSlim _navigationLock = new(1, 1);
-        private readonly ConcurrentQueue<(Type ViewType, Type ViewModelType, object Parameter, TaskCompletionSource<bool> CompletionSource)> _navigationQueue = new();
+        private readonly ConcurrentQueue<(
+            Type ViewType,
+            Type ViewModelType,
+            object Parameter,
+            TaskCompletionSource<bool> CompletionSource
+        )> _navigationQueue = new();
         private object _currentParameter;
         private string _currentRoute;
         private const int MaxHistorySize = 50;
@@ -37,24 +44,29 @@ namespace Winhance.Infrastructure.Features.Common.Services
         /// <summary>
         /// Gets the command for navigation.
         /// </summary>
-        public ICommand NavigateCommand => _navigateCommand ??= new RelayCommand<string>(route => NavigateTo(route));
+        public ICommand NavigateCommand =>
+            _navigateCommand ??= new RelayCommand<string>(route => NavigateTo(route));
 
         /// <summary>
         /// Initializes a new instance of the <see cref="FrameNavigationService"/> class.
         /// </summary>
         /// <param name="serviceProvider">The service provider.</param>
         /// <param name="parameterSerializer">The parameter serializer.</param>
-        public FrameNavigationService(IServiceProvider serviceProvider, IParameterSerializer parameterSerializer)
+        public FrameNavigationService(
+            IServiceProvider serviceProvider,
+            IParameterSerializer parameterSerializer
+        )
         {
             _serviceProvider = serviceProvider;
-            _parameterSerializer = parameterSerializer ?? throw new ArgumentNullException(nameof(parameterSerializer));
+            _parameterSerializer =
+                parameterSerializer ?? throw new ArgumentNullException(nameof(parameterSerializer));
         }
 
         /// <summary>
         /// Determines whether navigation back is possible.
         /// </summary>
         public bool CanGoBack => _backStack.Count > 1;
-        
+
         /// <summary>
         /// Gets a list of navigation history.
         /// </summary>
@@ -126,7 +138,12 @@ namespace Winhance.Infrastructure.Features.Common.Services
                 // Log the error
                 System.Diagnostics.Debug.WriteLine($"Navigation error: {ex.Message}");
 
-                var args = new Winhance.Core.Features.Common.Interfaces.NavigationEventArgs(CurrentView, viewName, null, false);
+                var args = new Winhance.Core.Features.Common.Interfaces.NavigationEventArgs(
+                    CurrentView,
+                    viewName,
+                    null,
+                    false
+                );
                 NavigationFailed?.Invoke(this, args);
                 return false;
             }
@@ -150,7 +167,12 @@ namespace Winhance.Infrastructure.Features.Common.Services
                 // Log the error
                 System.Diagnostics.Debug.WriteLine($"Navigation error: {ex.Message}");
 
-                var args = new Winhance.Core.Features.Common.Interfaces.NavigationEventArgs(CurrentView, viewName, parameter, false);
+                var args = new Winhance.Core.Features.Common.Interfaces.NavigationEventArgs(
+                    CurrentView,
+                    viewName,
+                    parameter,
+                    false
+                );
                 NavigationFailed?.Invoke(this, args);
                 return false;
             }
@@ -181,8 +203,8 @@ namespace Winhance.Infrastructure.Features.Common.Services
         /// <typeparam name="TViewModel">The view model type.</typeparam>
         /// <param name="parameter">The navigation parameter.</param>
         /// <returns>A task representing the asynchronous operation.</returns>
-        public async Task NavigateToAsync<TViewModel>(object parameter = null) where TViewModel : class
-            => await NavigateToAsync(typeof(TViewModel), parameter);
+        public async Task NavigateToAsync<TViewModel>(object parameter = null)
+            where TViewModel : class => await NavigateToAsync(typeof(TViewModel), parameter);
 
         /// <summary>
         /// Navigates to a view model type.
@@ -195,7 +217,7 @@ namespace Winhance.Infrastructure.Features.Common.Services
             var viewType = GetViewTypeForViewModel(viewModelType);
             var tcs = new TaskCompletionSource<bool>();
             _navigationQueue.Enqueue((viewType, viewModelType, parameter, tcs));
-            
+
             await ProcessNavigationQueueAsync();
             await tcs.Task;
         }
@@ -225,14 +247,15 @@ namespace Winhance.Infrastructure.Features.Common.Services
                 {
                     _currentNavigationCts?.Cancel();
                     _currentNavigationCts = new CancellationTokenSource(TimeSpan.FromSeconds(30));
-                    
+
                     try
                     {
                         await NavigateInternalAsync(
                             navigationRequest.ViewType,
                             navigationRequest.ViewModelType,
                             navigationRequest.Parameter,
-                            _currentNavigationCts.Token);
+                            _currentNavigationCts.Token
+                        );
                         navigationRequest.CompletionSource.SetResult(true);
                     }
                     catch (Exception ex)
@@ -247,10 +270,15 @@ namespace Winhance.Infrastructure.Features.Common.Services
             }
         }
 
-        private async Task NavigateInternalAsync(Type viewType, Type viewModelType, object parameter, CancellationToken cancellationToken = default)
+        private async Task NavigateInternalAsync(
+            Type viewType,
+            Type viewModelType,
+            object parameter,
+            CancellationToken cancellationToken = default
+        )
         {
             cancellationToken.ThrowIfCancellationRequested();
-            
+
             // Find the route for this view/viewmodel for event args
             string route = null;
             foreach (var mapping in _viewMappings)
@@ -261,29 +289,36 @@ namespace Winhance.Infrastructure.Features.Common.Services
                     break;
                 }
             }
-            
+
             var sourceView = _currentRoute;
             var targetView = route;
 
-            var args = new Winhance.Core.Features.Common.Interfaces.NavigationEventArgs(sourceView, targetView, parameter, true);
+            var args = new Winhance.Core.Features.Common.Interfaces.NavigationEventArgs(
+                sourceView,
+                targetView,
+                parameter,
+                true
+            );
             Navigating?.Invoke(this, args);
 
             if (args.Cancel)
             {
                 return;
             }
-            
+
             _currentParameter = parameter;
-            
+
             // Get the view model from the service provider - we don't need the view when using ContentPresenter
             object viewModel;
-            
+
             try
             {
                 viewModel = _serviceProvider.GetRequiredService(viewModelType);
                 if (viewModel == null)
                 {
-                    throw new InvalidOperationException($"Failed to create view model of type {viewModelType.FullName}. The service provider returned null.");
+                    throw new InvalidOperationException(
+                        $"Failed to create view model of type {viewModelType.FullName}. The service provider returned null."
+                    );
                 }
             }
             catch (Exception ex)
@@ -294,7 +329,7 @@ namespace Winhance.Infrastructure.Features.Common.Services
             // Update the current route and view model
             _currentRoute = route;
             _currentViewModel = viewModel;
-            
+
             // Update the navigation stacks
             while (_backStack.Count >= MaxHistorySize)
             {
@@ -306,21 +341,26 @@ namespace Winhance.Infrastructure.Features.Common.Services
                 }
             }
             _backStack.Push(viewModelType);
-            
+
             // Call OnNavigatedTo on the view model if it implements IViewModel
             if (viewModel is IViewModel vm)
             {
                 vm.OnNavigatedTo(parameter);
             }
-            
+
             // Update navigation history
             if (!string.IsNullOrEmpty(_currentRoute))
             {
                 _navigationHistory.Add(_currentRoute);
             }
-            
+
             // Raise the Navigated event which will update the UI
-            var navigatedArgs = new Winhance.Core.Features.Common.Interfaces.NavigationEventArgs(sourceView, targetView, viewModel, false);
+            var navigatedArgs = new Winhance.Core.Features.Common.Interfaces.NavigationEventArgs(
+                sourceView,
+                targetView,
+                viewModel,
+                false
+            );
             Navigated?.Invoke(this, navigatedArgs);
         }
 
@@ -330,20 +370,22 @@ namespace Winhance.Infrastructure.Features.Common.Services
         /// <returns>A task representing the asynchronous operation.</returns>
         public async Task GoBackAsync()
         {
-            if (!CanGoBack) return;
-            
+            if (!CanGoBack)
+                return;
+
             var tcs = new TaskCompletionSource<bool>();
             _navigationQueue.Enqueue((null, null, null, tcs));
-            
+
             await ProcessNavigationQueueAsync();
             await tcs.Task;
-            
+
             var currentViewModelType = _backStack.Peek();
-            
+
             var currentType = _backStack.Pop();
             _forwardStack.Push((currentType, _currentParameter));
             var previousViewModelType = _backStack.Peek();
-            var previousParameter = _backStack.Count > 1 ? _backStack.ElementAt(_backStack.Count - 2) : null;
+            var previousParameter =
+                _backStack.Count > 1 ? _backStack.ElementAt(_backStack.Count - 2) : null;
             await NavigateToAsync(previousViewModelType, previousParameter);
         }
 
@@ -353,16 +395,17 @@ namespace Winhance.Infrastructure.Features.Common.Services
         /// <returns>A task representing the asynchronous operation.</returns>
         public async Task GoForwardAsync()
         {
-            if (_forwardStack.Count == 0) return;
-            
+            if (_forwardStack.Count == 0)
+                return;
+
             var tcs = new TaskCompletionSource<bool>();
             _navigationQueue.Enqueue((null, null, null, tcs));
-            
+
             await ProcessNavigationQueueAsync();
             await tcs.Task;
-            
+
             var (nextType, nextParameter) = _forwardStack.Pop();
-            
+
             _backStack.Push(nextType);
             await NavigateToAsync(nextType, nextParameter);
         }
@@ -396,7 +439,7 @@ namespace Winhance.Infrastructure.Features.Common.Services
 
         // We track the current view model directly now instead of getting it from the Frame
         private object _currentViewModel;
-        
+
         /// <summary>
         /// Gets the current view model.
         /// </summary>
@@ -416,22 +459,28 @@ namespace Winhance.Infrastructure.Features.Common.Services
             // If no mapping found, try the old way as fallback
             var viewName = viewModelType.FullName.Replace("ViewModel", "View");
             var viewType = Type.GetType(viewName);
-            
+
             if (viewType == null)
             {
                 // Try to find the view type in the loaded assemblies
                 foreach (var assembly in AppDomain.CurrentDomain.GetAssemblies())
                 {
-                    viewType = assembly.GetTypes()
-                        .FirstOrDefault(t => t.FullName != null && t.FullName.Equals(viewName, StringComparison.OrdinalIgnoreCase));
-                    
+                    viewType = assembly
+                        .GetTypes()
+                        .FirstOrDefault(t =>
+                            t.FullName != null
+                            && t.FullName.Equals(viewName, StringComparison.OrdinalIgnoreCase)
+                        );
+
                     if (viewType != null)
                         break;
                 }
             }
-            
-            return viewType ?? 
-                throw new InvalidOperationException($"View type for {viewModelType.FullName} not found. Tried looking for {viewName}");
+
+            return viewType
+                ?? throw new InvalidOperationException(
+                    $"View type for {viewModelType.FullName} not found. Tried looking for {viewName}"
+                );
         }
 
         private string GetRouteForViewType(Type viewType)
@@ -443,7 +492,9 @@ namespace Winhance.Infrastructure.Features.Common.Services
                     return mapping.Key;
                 }
             }
-            throw new InvalidOperationException($"No route found for view type: {viewType.FullName}");
+            throw new InvalidOperationException(
+                $"No route found for view type: {viewType.FullName}"
+            );
         }
     }
 }

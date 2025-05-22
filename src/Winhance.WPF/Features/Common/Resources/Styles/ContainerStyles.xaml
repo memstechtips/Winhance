@@ -1,5 +1,6 @@
 <ResourceDictionary xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
-                    xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml">
+                    xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+                    xmlns:controls="clr-namespace:Winhance.WPF.Features.Common.Controls">
 
     <!-- Section Containers -->
     <Style x:Key="ContentSectionStyle"
@@ -123,6 +124,7 @@
 
     <!-- Modern ScrollViewer Style -->
     <Style x:Key="ModernScrollViewer" TargetType="ScrollViewer">
+        <Setter Property="controls:ResponsiveScrollViewer.ScrollSpeedMultiplier" Value="20.0" />
         <Setter Property="VerticalScrollBarVisibility" Value="Auto"/>
         <Setter Property="HorizontalScrollBarVisibility" Value="Disabled"/>
         <Setter Property="Padding" Value="0"/>

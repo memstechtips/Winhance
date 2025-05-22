@@ -8,10 +8,10 @@ using System.Windows;
 using System.Windows.Input;
 using CommunityToolkit.Mvvm.ComponentModel;
 using CommunityToolkit.Mvvm.Input;
-using Winhance.Core.Features.Common.Interfaces;
-using Winhance.Core.Features.Common.Models;
 using Winhance.Core.Features.Common.Enums;
+using Winhance.Core.Features.Common.Interfaces;
 using Winhance.Core.Features.Common.Messaging;
+using Winhance.Core.Features.Common.Models;
 using Winhance.WPF.Features.Common.Models;
 
 namespace Winhance.WPF.Features.Common.ViewModels
@@ -29,10 +29,12 @@ namespace Winhance.WPF.Features.Common.ViewModels
         private string _statusText = string.Empty;
         private double _currentProgress;
         private bool _isIndeterminate;
-        private ObservableCollection<LogMessageViewModel> _logMessages = new ObservableCollection<LogMessageViewModel>();
+        private ObservableCollection<LogMessageViewModel> _logMessages =
+            new ObservableCollection<LogMessageViewModel>();
         private bool _areDetailsExpanded;
         private bool _canCancelTask;
         private bool _isTaskRunning;
+        private ICommand _cancelCommand;
 
         /// <summary>
         /// Gets or sets whether the view model is loading.
@@ -42,6 +44,12 @@ namespace Winhance.WPF.Features.Common.ViewModels
             get => _isLoading;
             protected set => SetProperty(ref _isLoading, value);
         }
+
+        /// <summary>
+        /// Gets the command to cancel the current task.
+        /// </summary>
+        public ICommand CancelCommand =>
+            _cancelCommand ??= new RelayCommand(CancelCurrentTask, () => CanCancelTask);
 
         /// <summary>
         /// Gets or sets the status text.
@@ -113,12 +121,18 @@ namespace Winhance.WPF.Features.Common.ViewModels
         /// <param name="progressService">The task progress service.</param>
         /// <param name="logService">The log service.</param>
         /// <param name="messengerService">The messenger service.</param>
-        protected BaseViewModel(ITaskProgressService progressService, ILogService logService, IMessengerService messengerService)
+        protected BaseViewModel(
+            ITaskProgressService progressService,
+            ILogService logService,
+            IMessengerService messengerService
+        )
         {
-            _progressService = progressService ?? throw new ArgumentNullException(nameof(progressService));
+            _progressService =
+                progressService ?? throw new ArgumentNullException(nameof(progressService));
             _logService = logService ?? throw new ArgumentNullException(nameof(logService));
-            _messengerService = messengerService ?? throw new ArgumentNullException(nameof(messengerService));
-            
+            _messengerService =
+                messengerService ?? throw new ArgumentNullException(nameof(messengerService));
+
             // Subscribe to progress service events
             if (_progressService != null)
             {
@@ -127,8 +141,12 @@ namespace Winhance.WPF.Features.Common.ViewModels
                 _progressService.LogMessageAdded -= ProgressService_LogMessageAdded;
                 _progressService.LogMessageAdded += ProgressService_LogMessageAdded;
             }
-            
-            CancelTaskCommand = new RelayCommand(CancelCurrentTask, () => CanCancelTask && IsTaskRunning);
+
+            CancelTaskCommand = new RelayCommand(
+                CancelCurrentTask,
+                () => CanCancelTask && IsTaskRunning
+            );
+            _cancelCommand = CancelTaskCommand; // Ensure both commands point to the same implementation
         }
 
         /// <summary>
@@ -137,21 +155,28 @@ namespace Winhance.WPF.Features.Common.ViewModels
         /// </summary>
         /// <param name="progressService">The task progress service.</param>
         /// <param name="messengerService">The messenger service.</param>
-        protected BaseViewModel(ITaskProgressService progressService, IMessengerService messengerService)
-            : this(progressService, new Core.Features.Common.Services.LogService(), messengerService)
-        {
-        }
-        
+        protected BaseViewModel(
+            ITaskProgressService progressService,
+            IMessengerService messengerService
+        )
+            : this(
+                progressService,
+                new Core.Features.Common.Services.LogService(),
+                messengerService
+            ) { }
+
         /// <summary>
         /// Initializes a new instance of the <see cref="BaseViewModel"/> class.
         /// This constructor is for backward compatibility.
         /// </summary>
         /// <param name="progressService">The task progress service.</param>
         protected BaseViewModel(ITaskProgressService progressService)
-            : this(progressService, new Core.Features.Common.Services.LogService(), new Features.Common.Services.MessengerService())
-        {
-        }
-        
+            : this(
+                progressService,
+                new Core.Features.Common.Services.LogService(),
+                new Features.Common.Services.MessengerService()
+            ) { }
+
         /// <summary>
         /// Disposes of the resources used by the ViewModel
         /// </summary>
@@ -160,7 +185,7 @@ namespace Winhance.WPF.Features.Common.ViewModels
             Dispose(true);
             GC.SuppressFinalize(this);
         }
-        
+
         /// <summary>
         /// Disposes of the resources used by the ViewModel
         /// </summary>
@@ -174,18 +199,18 @@ namespace Winhance.WPF.Features.Common.ViewModels
                     // Unsubscribe from events
                     _progressService.ProgressUpdated -= ProgressService_ProgressUpdated;
                     _progressService.LogMessageAdded -= ProgressService_LogMessageAdded;
-                    
+
                     // Unregister from messenger
                     if (_messengerService != null)
                     {
                         _messengerService.Unregister(this);
                     }
                 }
-                
+
                 _isDisposed = true;
             }
         }
-        
+
         /// <summary>
         /// Finalizer to ensure resources are released
         /// </summary>
@@ -209,7 +234,10 @@ namespace Winhance.WPF.Features.Common.ViewModels
         /// </summary>
         /// <param name="sender">The source of the event.</param>
         /// <param name="detail">The progress detail.</param>
-        private void ProgressService_ProgressUpdated(object? sender, Winhance.Core.Features.Common.Models.TaskProgressDetail detail)
+        private void ProgressService_ProgressUpdated(
+            object? sender,
+            Winhance.Core.Features.Common.Models.TaskProgressDetail detail
+        )
         {
             // Update local properties
             IsLoading = _progressService.IsTaskRunning;
@@ -217,17 +245,23 @@ namespace Winhance.WPF.Features.Common.ViewModels
             CurrentProgress = detail.Progress ?? 0;
             IsIndeterminate = detail.IsIndeterminate;
             IsTaskRunning = _progressService.IsTaskRunning;
-            CanCancelTask = _progressService.IsTaskRunning && _progressService.CurrentTaskCancellationSource != null;
-            
+            CanCancelTask =
+                _progressService.IsTaskRunning
+                && _progressService.CurrentTaskCancellationSource != null;
+
             // Send a message for UI updates that may occur in other threads
-            _messengerService.Send(new TaskProgressMessage
-            {
-                Progress = detail.Progress ?? 0,
-                StatusText = detail.StatusText ?? string.Empty,
-                IsIndeterminate = detail.IsIndeterminate,
-                IsTaskRunning = _progressService.IsTaskRunning,
-                CanCancel = _progressService.IsTaskRunning && _progressService.CurrentTaskCancellationSource != null
-            });
+            _messengerService.Send(
+                new TaskProgressMessage
+                {
+                    Progress = detail.Progress ?? 0,
+                    StatusText = detail.StatusText ?? string.Empty,
+                    IsIndeterminate = detail.IsIndeterminate,
+                    IsTaskRunning = _progressService.IsTaskRunning,
+                    CanCancel =
+                        _progressService.IsTaskRunning
+                        && _progressService.CurrentTaskCancellationSource != null,
+                }
+            );
         }
 
         /// <summary>
@@ -239,26 +273,28 @@ namespace Winhance.WPF.Features.Common.ViewModels
         {
             if (string.IsNullOrEmpty(message))
                 return;
-                
+
             // Add to local collection
             var logMessageViewModel = new LogMessageViewModel
             {
                 Message = message,
                 Level = LogLevel.Info, // Default to Info since we don't have level information
-                Timestamp = DateTime.Now
+                Timestamp = DateTime.Now,
             };
-            
+
             LogMessages.Add(logMessageViewModel);
-            
+
             // Auto-expand details on error or warning (we can't determine this from the string message)
-            
+
             // Send a message for UI updates that may occur in other threads
-            _messengerService.Send(new LogMessage
-            {
-                Message = message,
-                Level = LogLevel.Info, // Default to Info since we don't have level information
-                Exception = null
-            });
+            _messengerService.Send(
+                new LogMessage
+                {
+                    Message = message,
+                    Level = LogLevel.Info, // Default to Info since we don't have level information
+                    Exception = null,
+                }
+            );
         }
 
         /// <summary>
@@ -266,7 +302,11 @@ namespace Winhance.WPF.Features.Common.ViewModels
         /// </summary>
         protected void CancelCurrentTask()
         {
-            _progressService.CancelCurrentTask();
+            if (_progressService.CurrentTaskCancellationSource != null && CanCancelTask)
+            {
+                _logService.LogInformation("User requested task cancellation");
+                _progressService.CancelCurrentTask();
+            }
         }
 
         /// <summary>
@@ -276,7 +316,11 @@ namespace Winhance.WPF.Features.Common.ViewModels
         /// <param name="taskName">The name of the task.</param>
         /// <param name="isIndeterminate">Whether the progress is indeterminate.</param>
         /// <returns>A task representing the asynchronous operation.</returns>
-        protected async Task ExecuteWithProgressAsync(Func<ITaskProgressService, Task> operation, string taskName, bool isIndeterminate = false)
+        protected async Task ExecuteWithProgressAsync(
+            Func<ITaskProgressService, Task> operation,
+            string taskName,
+            bool isIndeterminate = false
+        )
         {
             try
             {
@@ -306,7 +350,11 @@ namespace Winhance.WPF.Features.Common.ViewModels
         /// <param name="taskName">The name of the task.</param>
         /// <param name="isIndeterminate">Whether the progress is indeterminate.</param>
         /// <returns>A task representing the asynchronous operation.</returns>
-        protected async Task<T> ExecuteWithProgressAsync<T>(Func<ITaskProgressService, Task<T>> operation, string taskName, bool isIndeterminate = false)
+        protected async Task<T> ExecuteWithProgressAsync<T>(
+            Func<ITaskProgressService, Task<T>> operation,
+            string taskName,
+            bool isIndeterminate = false
+        )
         {
             try
             {
@@ -335,17 +383,25 @@ namespace Winhance.WPF.Features.Common.ViewModels
         /// <param name="taskName">The name of the task.</param>
         /// <param name="isIndeterminate">Whether the progress is indeterminate.</param>
         /// <returns>A task representing the asynchronous operation.</returns>
-        protected async Task ExecuteWithProgressAsync(Func<IProgress<Winhance.Core.Features.Common.Models.TaskProgressDetail>, CancellationToken, Task> operation, string taskName, bool isIndeterminate = false)
+        protected async Task ExecuteWithProgressAsync(
+            Func<
+                IProgress<Winhance.Core.Features.Common.Models.TaskProgressDetail>,
+                CancellationToken,
+                Task
+            > operation,
+            string taskName,
+            bool isIndeterminate = false
+        )
         {
             try
             {
                 // Clear previous log messages
                 LogMessages.Clear();
-                
+
                 _progressService.StartTask(taskName, isIndeterminate);
                 var progress = _progressService.CreateDetailedProgress();
                 var cancellationToken = _progressService.CurrentTaskCancellationSource.Token;
-                
+
                 await operation(progress, cancellationToken);
             }
             catch (OperationCanceledException)
@@ -375,17 +431,25 @@ namespace Winhance.WPF.Features.Common.ViewModels
         /// <param name="taskName">The name of the task.</param>
         /// <param name="isIndeterminate">Whether the progress is indeterminate.</param>
         /// <returns>A task representing the asynchronous operation.</returns>
-        protected async Task<T> ExecuteWithProgressAsync<T>(Func<IProgress<Winhance.Core.Features.Common.Models.TaskProgressDetail>, CancellationToken, Task<T>> operation, string taskName, bool isIndeterminate = false)
+        protected async Task<T> ExecuteWithProgressAsync<T>(
+            Func<
+                IProgress<Winhance.Core.Features.Common.Models.TaskProgressDetail>,
+                CancellationToken,
+                Task<T>
+            > operation,
+            string taskName,
+            bool isIndeterminate = false
+        )
         {
             try
             {
                 // Clear previous log messages
                 LogMessages.Clear();
-                
+
                 _progressService.StartTask(taskName, isIndeterminate);
                 var progress = _progressService.CreateDetailedProgress();
                 var cancellationToken = _progressService.CurrentTaskCancellationSource.Token;
-                
+
                 return await operation(progress, cancellationToken);
             }
             catch (OperationCanceledException)

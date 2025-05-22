@@ -257,6 +257,93 @@ public static class NotificationOptimizations
                 },
                 new OptimizationSetting
                 {
+                    Id = "notifications-app-location-request",
+                    Name = "Notify when apps request location",
+                    Description = "Controls wheter notifications are shown for location requests",
+                    Category = OptimizationCategory.Notifications,
+                    GroupName = "Privacy Notifications",
+                    IsEnabled = false,
+                    ControlType = ControlType.BinaryToggle,
+                    RegistrySettings = new List<RegistrySetting>
+                    {
+                        new RegistrySetting
+                        {
+                            Category = "Notifications",
+                            Hive = RegistryHive.CurrentUser,
+                            SubKey = "Software\\Microsoft\\Windows\\CurrentVersion\\CapabilityAccessManager\\ConsentStore\\location",
+                            Name = "ShowGlobalPrompts",
+                            RecommendedValue = 1,
+                            EnabledValue = 1,
+                            DisabledValue = 0,
+                            ValueType = RegistryValueKind.DWord,
+                            DefaultValue = 1,
+                            Description = "Controls wheter notifications are shown for location requests",
+                            IsPrimary = true,
+                            AbsenceMeansEnabled = true
+                        }
+                    }
+                },
+                new OptimizationSetting
+                {
+                    Id = "notifications-windows-security",
+                    Name = "Windows Security Notifications",
+                    Description = "Controls whether Windows Security notifications are shown",
+                    Category = OptimizationCategory.Notifications,
+                    GroupName = "Security Notifications",
+                    IsEnabled = false,
+                    ControlType = ControlType.BinaryToggle,
+                    RegistrySettings = new List<RegistrySetting>
+                    {
+                        new RegistrySetting
+                        {
+                            Category = "Notifications",
+                            Hive = RegistryHive.LocalMachine,
+                            SubKey = "SOFTWARE\\Microsoft\\Windows Defender Security Center\\Notifications",
+                            Name = "DisableNotifications",
+                            RecommendedValue = 0,
+                            EnabledValue = 0,
+                            DisabledValue = 1,
+                            ValueType = RegistryValueKind.DWord,
+                            DefaultValue = 0,
+                            Description = "Controls whether Windows Security Center notifications are shown",
+                            IsPrimary = true,
+                            AbsenceMeansEnabled = true
+                        },
+                        new RegistrySetting
+                        {
+                            Category = "Notifications",
+                            Hive = RegistryHive.LocalMachine,
+                            SubKey = "SOFTWARE\\Policies\\Microsoft\\Windows Defender Security Center\\Notifications",
+                            Name = "DisableNotifications",
+                            RecommendedValue = 0,
+                            EnabledValue = 0,
+                            DisabledValue = 1,
+                            ValueType = RegistryValueKind.DWord,
+                            DefaultValue = 0,
+                            Description = "Controls whether Windows Defender Security Center notifications are shown",
+                            IsPrimary = false,
+                            AbsenceMeansEnabled = true
+                        },
+                        new RegistrySetting
+                        {
+                            Category = "Notifications",
+                            Hive = RegistryHive.LocalMachine,
+                            SubKey = "SOFTWARE\\Policies\\Microsoft\\Windows Defender Security Center\\Notifications",
+                            Name = "DisableEnhancedNotifications",
+                            RecommendedValue = 0,
+                            EnabledValue = 0,
+                            DisabledValue = 1,
+                            ValueType = RegistryValueKind.DWord,
+                            DefaultValue = 0,
+                            Description = "Controls whether Windows Defender Security Center notifications are shown",
+                            IsPrimary = false,
+                            AbsenceMeansEnabled = true
+                        }
+                    },
+                    LinkedSettingsLogic = LinkedSettingsLogic.All
+                },
+                new OptimizationSetting
+                {
                     Id = "notifications-clock-change",
                     Name = "Clock Change Notifications",
                     Description = "Controls clock change notifications",

@@ -86,7 +86,99 @@ public class AppInstallationService
 
         try
         {
+            // Check for internet connectivity before starting the installation
+            bool isConnected = await _systemServices.IsInternetConnectedAsync(
+                true,
+                cancellationToken
+            );
+            if (!isConnected)
+            {
+                string errorMessage =
+                    "No internet connection available. Please check your network connection and try again.";
+                _logService.LogError(errorMessage);
+                progress?.Report(
+                    new TaskProgressDetail
+                    {
+                        Progress = 0,
+                        StatusText = "Installation failed: No internet connection",
+                        DetailedMessage = errorMessage,
+                        LogLevel = LogLevel.Error,
+                    }
+                );
+                // Explicitly log failure for the specific app
+                _logService.LogError(
+                    $"Failed to install app: {appInfo.Name} - No internet connection"
+                );
+                return OperationResult<bool>.Failed(errorMessage, false);
+            }
+
+            // Set up a periodic internet connectivity check
+            var connectivityCheckTimer = new System.Timers.Timer(5000); // Check every 5 seconds
+            bool installationCancelled = false;
+
+            connectivityCheckTimer.Elapsed += async (s, e) =>
+            {
+                try
+                {
+                    bool isStillConnected = await _systemServices.IsInternetConnectedAsync(
+                        false,
+                        cancellationToken
+                    );
+                    if (!isStillConnected && !installationCancelled)
+                    {
+                        installationCancelled = true;
+                        _logService.LogError("Internet connection lost during installation");
+                        progress?.Report(
+                            new TaskProgressDetail
+                            {
+                                StatusText = "Error: Internet connection lost",
+                                DetailedMessage =
+                                    "Internet connection has been lost. Installation has been stopped.",
+                                LogLevel = LogLevel.Error,
+                            }
+                        );
+
+                        // Stop the timer
+                        connectivityCheckTimer.Stop();
+
+                        // Throw an exception to stop the installation process
+                        throw new OperationCanceledException(
+                            "Installation stopped due to internet connection loss"
+                        );
+                    }
+                }
+                catch (Exception ex)
+                {
+                    _logService.LogError($"Error in connectivity check: {ex.Message}");
+                    connectivityCheckTimer.Stop();
+                }
+            };
+
+            // Start the connectivity check timer
+            connectivityCheckTimer.Start();
             bool success = false;
+
+            // Verify internet connection again before attempting installation
+            isConnected = await _systemServices.IsInternetConnectedAsync(true, cancellationToken);
+            if (!isConnected)
+            {
+                string errorMessage =
+                    "No internet connection available. Please check your network connection and try again.";
+                _logService.LogError(errorMessage);
+                _logService.LogError(
+                    $"Failed to install app: {appInfo.Name} - No internet connection"
+                );
+                progress?.Report(
+                    new TaskProgressDetail
+                    {
+                        Progress = 0,
+                        StatusText = "Installation failed: No internet connection",
+                        DetailedMessage = errorMessage,
+                        LogLevel = LogLevel.Error,
+                    }
+                );
+                return OperationResult<bool>.Failed(errorMessage, false);
+            }
 
             if (appInfo.PackageName.Equals("OneDrive", StringComparison.OrdinalIgnoreCase))
             {
@@ -106,12 +198,53 @@ public class AppInstallationService
                     : appInfo.PackageName;
 
                 // Pass the app's display name to use in progress messages
-                success = await _winGetInstallationService.InstallWithWingetAsync(
-                    packageIdentifier,
-                    progress,
-                    cancellationToken,
-                    appInfo.Name
-                );
+                try
+                {
+                    // Pass the app's name for display in progress messages
+                    success = await _winGetInstallationService.InstallWithWingetAsync(
+                        packageIdentifier,
+                        progress,
+                        cancellationToken,
+                        appInfo.Name
+                    );
+
+                    // Double-check success - if WinGet returned success but we have no internet, consider it a failure
+                    if (success)
+                    {
+                        bool stillConnected = await _systemServices.IsInternetConnectedAsync(
+                            true,
+                            cancellationToken
+                        );
+                        if (!stillConnected)
+                        {
+                            _logService.LogError(
+                                $"Internet connection lost during installation of {appInfo.Name}"
+                            );
+                            success = false;
+                            throw new Exception("Internet connection lost during installation");
+                        }
+                    }
+                }
+                catch (Exception ex)
+                {
+                    success = false;
+                    _logService.LogError($"Failed to install {appInfo.Name}: {ex.Message}");
+                    progress?.Report(
+                        new TaskProgressDetail
+                        {
+                            Progress = 0,
+                            StatusText = $"Installation of {appInfo.Name} failed",
+                            DetailedMessage = $"Error: {ex.Message}",
+                            LogLevel = LogLevel.Error,
+                        }
+                    );
+                }
+            }
+
+            // If success is still false, ensure we log the failure
+            if (!success)
+            {
+                _logService.LogError($"Failed to install app: {appInfo.Name}");
             }
 
             // Only update BloatRemoval.ps1 if installation was successful AND it's not an external app
@@ -193,10 +326,85 @@ public class AppInstallationService
                 );
             }
 
-            return OperationResult<bool>.Succeeded(success);
+            if (success)
+            {
+                _logService.LogSuccess($"Successfully installed app: {appInfo.Name}");
+                return OperationResult<bool>.Succeeded(success);
+            }
+            else
+            {
+                // Double check internet connectivity as a possible cause of failure
+                bool internetAvailable = await _systemServices.IsInternetConnectedAsync(
+                    true,
+                    cancellationToken
+                );
+                if (!internetAvailable)
+                {
+                    string errorMessage =
+                        $"Installation of {appInfo.Name} failed: No internet connection. Please check your network connection and try again.";
+                    _logService.LogError(errorMessage);
+                    return OperationResult<bool>.Failed(errorMessage, false);
+                }
+
+                // Generic failure
+                string failMessage = $"Installation of {appInfo.Name} failed for unknown reasons.";
+                _logService.LogError(failMessage);
+                return OperationResult<bool>.Failed(failMessage, false);
+            }
+        }
+        catch (OperationCanceledException)
+        {
+            _logService.LogWarning($"Installation of {appInfo.Name} was cancelled by user");
+            return OperationResult<bool>.Failed("Installation cancelled by user");
+        }
+        catch (Exception ex)
+        {
+            _logService.LogError($"Error installing {appInfo.Name}", ex);
+
+            // Check if the error might be related to internet connectivity
+            bool isConnected = await _systemServices.IsInternetConnectedAsync(
+                true,
+                cancellationToken
+            );
+            if (!isConnected)
+            {
+                string errorMessage =
+                    $"Installation failed: No internet connection. Please check your network connection and try again.";
+                _logService.LogError(errorMessage);
+                progress?.Report(
+                    new TaskProgressDetail
+                    {
+                        Progress = 0,
+                        StatusText = "Installation failed: No internet connection",
+                        DetailedMessage = errorMessage,
+                        LogLevel = LogLevel.Error,
+                    }
+                );
+                return OperationResult<bool>.Failed(errorMessage, false);
+            }
+
+            return OperationResult<bool>.Failed($"Error installing {appInfo.Name}: {ex.Message}");
         }
         finally
         {
+            // Dispose any timers or resources
+            if (progress is IProgress<TaskProgressDetail> progressReporter)
+            {
+                // Find and dispose the timer if it exists
+                var field = GetType()
+                    .GetField(
+                        "_connectivityCheckTimer",
+                        System.Reflection.BindingFlags.NonPublic
+                            | System.Reflection.BindingFlags.Instance
+                    );
+                if (field != null)
+                {
+                    var timer = field.GetValue(this) as System.Timers.Timer;
+                    timer?.Stop();
+                    timer?.Dispose();
+                }
+            }
+
             _currentProgress = null;
         }
     }

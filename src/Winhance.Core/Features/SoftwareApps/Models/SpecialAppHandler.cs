@@ -71,6 +71,14 @@ public class SpecialAppHandler
                 RemovalScriptContent = GetOneDriveRemovalScript(),
                 ScheduledTaskName = "Winhance\\OneDriveRemoval"
             },
+            new SpecialAppHandler
+            {
+                HandlerType = "OneNote",
+                DisplayName = "Microsoft OneNote",
+                Description = "Microsoft's note-taking application (requires special removal process)",
+                RemovalScriptContent = GetOneNoteRemovalScript(),
+                ScheduledTaskName = "Winhance\\OneNoteRemoval"
+            },
         };
     }
 
@@ -205,6 +213,162 @@ foreach ($profile in $userProfiles) {
         [gc]::Collect()
         Start-Sleep -Seconds 2
         reg unload ""HKU\$sid"" | Out-Null
+    }
+}
+";
+    }
+
+    private static string GetOneNoteRemovalScript()
+    {
+        return @"# OneNoteRemoval.ps1
+# Standalone script to remove Microsoft OneNote
+# Source: Winhance (https://github.com/memstechtips/Winhance)
+
+try {
+    # Stop OneNote processes
+    $processesToStop = @(""OneNote"", ""ONENOTE"", ""ONENOTEM"")
+    foreach ($processName in $processesToStop) { 
+        Get-Process -Name $processName -ErrorAction SilentlyContinue | 
+        Stop-Process -Force -ErrorAction SilentlyContinue
+    }
+    Start-Sleep -Seconds 1
+}
+catch {
+    # Continue if process stopping fails
+}
+
+# Remove OneNote AppX package (Windows 10 version)
+Get-AppxPackage -AllUsers *OneNote* | Remove-AppxPackage
+
+# Check and execute uninstall strings from registry (Windows 11 version)
+$registryPaths = @(
+    ""HKCU:\SOFTWARE\Microsoft\Windows\CurrentVersion\Uninstall\OneNote*"",
+    ""HKLM:\SOFTWARE\Microsoft\Windows\CurrentVersion\Uninstall\OneNote*"",
+    ""HKLM:\SOFTWARE\WOW6432Node\Microsoft\Windows\CurrentVersion\Uninstall\OneNote*""
+)
+
+foreach ($regPathPattern in $registryPaths) {
+    try {
+        $regPaths = Get-ChildItem -Path $regPathPattern -ErrorAction SilentlyContinue
+        foreach ($regPath in $regPaths) {
+            $uninstallString = (Get-ItemProperty -Path $regPath.PSPath -ErrorAction SilentlyContinue).UninstallString
+            if ($uninstallString) {
+                if ($uninstallString -match '^\""([^\""]+)\""(.*)$') {
+                    $exePath = $matches[1]
+                    $args = $matches[2].Trim()
+                    Start-Process -FilePath $exePath -ArgumentList $args -NoNewWindow -Wait -ErrorAction SilentlyContinue
+                }
+                else {
+                    Start-Process -FilePath $uninstallString -NoNewWindow -Wait -ErrorAction SilentlyContinue
+                }
+            }
+        }
+    }
+    catch {
+        # Continue if registry operation fails
+        continue
+    }
+}
+
+# Try to uninstall using the Office setup
+$officeUninstallPaths = @(
+    ""$env:ProgramFiles\Microsoft Office\Office16\setup.exe"",
+    ""$env:ProgramFiles\Microsoft Office\root\Office16\setup.exe"",
+    ""$env:ProgramFiles(x86)\Microsoft Office\Office16\setup.exe"",
+    ""$env:ProgramFiles(x86)\Microsoft Office\root\Office16\setup.exe""
+)
+
+foreach ($path in $officeUninstallPaths) {
+    try {
+        if (Test-Path $path) {
+            Start-Process -FilePath $path -ArgumentList ""/uninstall OneNote /config OneNoteRemoval.xml"" -NoNewWindow -Wait -ErrorAction SilentlyContinue
+        }
+    }
+    catch {
+        # Continue if uninstall fails
+        continue
+    }
+}
+
+# Remove OneNote scheduled tasks
+try {
+    Get-ScheduledTask -ErrorAction SilentlyContinue | 
+    Where-Object { $_.TaskName -match 'OneNote' -and $_.TaskName -ne 'OneNoteRemoval' } | 
+    ForEach-Object { 
+        Unregister-ScheduledTask -TaskName $_.TaskName -Confirm:$false -ErrorAction SilentlyContinue 
+    }
+}
+catch {
+    # Continue if task removal fails
+}
+
+# Remove OneNote from startup
+try {
+    Remove-ItemProperty -Path ""HKCU:\SOFTWARE\Microsoft\Windows\CurrentVersion\Run"" -Name ""OneNote*"" -ErrorAction SilentlyContinue
+}
+catch {
+    # Continue if registry operations fail
+}
+
+# Files to remove (single items)
+$filesToRemove = @(
+    ""$env:ProgramData\Microsoft\Windows\Start Menu\Programs\OneNote.lnk"",
+    ""$env:PUBLIC\Desktop\OneNote.lnk""
+)
+
+# Remove single files
+foreach ($file in $filesToRemove) {
+    try {
+        if (Test-Path $file) {
+            Remove-Item $file -Force -ErrorAction SilentlyContinue
+        }
+    }
+    catch {
+        # Continue if file removal fails
+        continue
+    }
+}
+
+# Folders that need special handling
+$foldersToRemove = @(
+    ""$env:ProgramFiles\Microsoft\OneNote"",
+    ""$env:ProgramFiles(x86)\Microsoft\OneNote"",
+    ""$env:LOCALAPPDATA\Microsoft\OneNote""
+)
+
+# Remove folders
+foreach ($folder in $foldersToRemove) {
+    try {
+        if (Test-Path $folder) {
+            Remove-Item -Path $folder -Force -Recurse -ErrorAction SilentlyContinue
+        }
+    }
+    catch {
+        # Continue if folder removal fails
+        continue
+    }
+}
+
+# Clean up per-user OneNote shortcuts
+$userProfiles = Get-ChildItem -Path ""C:\Users"" -Directory | Where-Object { 
+    $_.Name -notin @('Public', 'Default', 'Default User', 'All Users') -and 
+    (Test-Path -Path ""$($_.FullName)\NTUSER.DAT"")
+}
+
+foreach ($profile in $userProfiles) {
+    $userProfilePath = $profile.FullName
+    
+    # Define user-specific paths to clean
+    $oneNoteShortcutPaths = @(
+        ""$userProfilePath\Desktop\OneNote.lnk"",
+        ""$userProfilePath\AppData\Roaming\Microsoft\Windows\Start Menu\Programs\OneNote.lnk""
+    )
+
+    # Remove OneNote shortcuts for each user
+    foreach ($path in $oneNoteShortcutPaths) {
+        if (Test-Path -Path $path -PathType Leaf) {
+            Remove-Item -Path $path -Force -ErrorAction SilentlyContinue
+        }
     }
 }
 ";

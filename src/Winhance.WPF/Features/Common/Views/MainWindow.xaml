@@ -241,6 +241,25 @@
                                                         </Button.Tag>
                                                 </Button>
                                         </StackPanel>
+                                        
+                                        <!-- Bottom Navigation Button -->
+                                        <StackPanel Grid.Row="2">
+                                                <!-- More Menu Control -->
+                                                <controls:MoreMenu x:Name="MoreMenuControl" DataContext="{Binding MoreMenuViewModel}"/>
+                                                
+                                                <Button x:Name="MoreButton"
+                                                        Style="{StaticResource NavigationButton}"
+                                                        Content="More"
+                                                        Margin="0,0,0,10"
+                                                        VerticalAlignment="Bottom"
+                                                        Click="MoreButton_Click">
+                                                        <Button.Tag>
+                                                                <materialDesign:PackIcon Kind="MoreHoriz"
+                                                                                          Width="24"
+                                                                                          Height="24"/>
+                                                        </Button.Tag>
+                                                </Button>
+                                        </StackPanel>
                                 </Grid>
 
                                 <!-- Content Area -->
@@ -257,11 +276,13 @@
 
                                         <!-- Progress Indicator -->
                                         <controls:ProgressIndicator Grid.Row="1"
-                                                                    Margin="0,10,0,0"
-                                                                    IsActive="{Binding IsLoading}"
-                                                                    Progress="{Binding CurrentProgress}"
-                                                                    StatusText="{Binding StatusText}"
-                                                                    IsIndeterminate="{Binding IsIndeterminate}"/>
+                                                                     Margin="0,10,0,0"
+                                                                     IsActive="{Binding IsLoading}"
+                                                                     Progress="{Binding CurrentProgress}"
+                                                                     StatusText="{Binding StatusText}"
+                                                                     IsIndeterminate="{Binding IsIndeterminate}"
+                                                                     ShowCancelButton="{Binding IsLoading}"
+                                                                     CancelCommand="{Binding CancelCommand}"/>
                                 </Grid>
                         </Grid>
                 </Grid>

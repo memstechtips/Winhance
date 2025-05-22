@@ -35,6 +35,11 @@ namespace Winhance.Core.Features.Common.Models
         public List<RegistrySetting> RegistrySettings { get; init; } = new List<RegistrySetting>();
 
         /// <summary>
+        /// Gets or sets the collection of command settings associated with this application setting.
+        /// </summary>
+        public List<CommandSetting> CommandSettings { get; init; } = new List<CommandSetting>();
+
+        /// <summary>
         /// Gets or sets the logic to use when determining the status of linked registry settings.
         /// </summary>
         public LinkedSettingsLogic LinkedSettingsLogic { get; init; } = LinkedSettingsLogic.Any;

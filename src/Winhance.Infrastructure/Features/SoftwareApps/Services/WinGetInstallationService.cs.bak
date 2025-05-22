@@ -52,6 +52,24 @@ public class WinGetInstallationService : IWinGetInstallationService, IDisposable
 
         try
         {
+            // Check for internet connectivity before starting the installation
+            bool isConnected = await _systemServices.IsInternetConnectedAsync(true, cancellationToken);
+            if (!isConnected)
+            {
+                string errorMessage = "No internet connection available. Please check your network connection and try again.";
+                _logService.LogError(errorMessage);
+                _logService.LogError($"Failed to install {displayName ?? packageName} - No internet connection");
+                progress?.Report(
+                    new TaskProgressDetail
+                    {
+                        Progress = 0,
+                        StatusText = "Installation failed: No internet connection",
+                        DetailedMessage = errorMessage,
+                        LogLevel = LogLevel.Error,
+                    }
+                );
+                return false;
+            }
             if (string.IsNullOrWhiteSpace(packageName))
             {
                 throw new ArgumentException(
@@ -140,18 +158,102 @@ public class WinGetInstallationService : IWinGetInstallationService, IDisposable
                 cancellationToken
             );
 
-            // Report completion
-            progress?.Report(
-                new TaskProgressDetail
-                {
-                    Progress = 100,
-                    StatusText = $"{displayName ?? packageName} installed successfully!",
-                    DetailedMessage =
-                        $"Successfully installed {displayName ?? packageName} using WinGet",
-                }
-            );
+            // Check internet connection before reporting completion
+            bool internetLostDuringInstallation = false;
+            isConnected = await _systemServices.IsInternetConnectedAsync(true, cancellationToken);
+            if (!isConnected)
+            {
+                internetLostDuringInstallation = true;
+                string errorMessage = "Internet connection lost during installation. Installation has been stopped.";
+                _logService.LogError(errorMessage);
+                progress?.Report(
+                    new TaskProgressDetail
+                    {
+                        Progress = 90,
+                        StatusText = "Installation failed: Internet connection lost",
+                        DetailedMessage = errorMessage,
+                        LogLevel = LogLevel.Error,
+                    }
+                );
+                // When internet connection is lost, we consider the installation failed
+                // This is more reliable than trying to verify an incomplete installation
+                return false;
+            }
 
-            return true;
+            // Verify the app was actually installed
+            bool isInstalled = await VerifyAppInstallationAsync(packageName);
+            
+            if (isInstalled)
+            {
+                // Report successful completion
+                if (internetLostDuringInstallation)
+                {
+                    _logService.LogSuccess($"Successfully installed {displayName ?? packageName} despite internet connection issues");
+                    progress?.Report(
+                        new TaskProgressDetail
+                        {
+                            Progress = 100,
+                            StatusText = $"{displayName ?? packageName} installed successfully!",
+                            DetailedMessage =
+                                $"Successfully installed {displayName ?? packageName}. Note: Internet connection was lost during installation, but all necessary files were already downloaded.",
+                            LogLevel = LogLevel.Success,
+                        }
+                    );
+                }
+                else
+                {
+                    _logService.LogSuccess($"Successfully installed {displayName ?? packageName} using WinGet");
+                    progress?.Report(
+                        new TaskProgressDetail
+                        {
+                            Progress = 100,
+                            StatusText = $"{displayName ?? packageName} installed successfully!",
+                            DetailedMessage =
+                                $"Successfully installed {displayName ?? packageName} using WinGet",
+                            LogLevel = LogLevel.Success,
+                        }
+                    );
+                }
+                
+                return true;
+            }
+            else
+            {
+                // Report failure if verification failed
+                string errorMessage;
+                if (internetLostDuringInstallation)
+                {
+                    errorMessage = "Installation verification failed. The app could not be installed correctly due to internet connection issues.";
+                    _logService.LogError(errorMessage);
+                    _logService.LogError($"Failed to install {displayName ?? packageName} - Internet connection lost during installation");
+                    progress?.Report(
+                        new TaskProgressDetail
+                        {
+                            Progress = 0,
+                            StatusText = "Installation failed: Internet connection lost",
+                            DetailedMessage = errorMessage,
+                            LogLevel = LogLevel.Error,
+                        }
+                    );
+                }
+                else
+                {
+                    errorMessage = "Installation verification failed. The app may not have been installed correctly.";
+                    _logService.LogError(errorMessage);
+                    _logService.LogError($"Failed to install {displayName ?? packageName} - Installation verification failed");
+                    progress?.Report(
+                        new TaskProgressDetail
+                        {
+                            Progress = 0,
+                            StatusText = "Installation failed: Verification failed",
+                            DetailedMessage = errorMessage,
+                            LogLevel = LogLevel.Error,
+                        }
+                    );
+                }
+                
+                return false;
+            }
         }
         catch (OperationCanceledException)
         {
@@ -360,7 +462,7 @@ public class WinGetInstallationService : IWinGetInstallationService, IDisposable
             Install-Module -Name Microsoft.WinGet.Client -Force -Repository PSGallery | Out-Null
             
             Write-Host ""[PROGRESS:60] Using Repair-WinGetPackageManager cmdlet to bootstrap WinGet...""
-            Repair-WinGetPackageManager
+            Repair-WinGetPackageManager -AllUsers
             
             Write-Host ""[PROGRESS:85] Finalizing WinGet installation...""
             Write-Host ""Done.""
@@ -546,6 +648,31 @@ public class WinGetInstallationService : IWinGetInstallationService, IDisposable
         CancellationToken cancellationToken
     )
     {
+        // Verify internet connectivity before starting the installation
+        bool isConnected = await _systemServices.IsInternetConnectedAsync(true, cancellationToken);
+        if (!isConnected)
+        {
+            string errorMessage = "No internet connection available. Please check your network connection and try again.";
+            _logService.LogError(errorMessage);
+            _logService.LogError($"Failed to install {displayName ?? packageName} - No internet connection");
+            progress?.Report(
+                new TaskProgressDetail
+                {
+                    Progress = 0,
+                    StatusText = "Installation failed: No internet connection",
+                    DetailedMessage = errorMessage,
+                    LogLevel = LogLevel.Error,
+                }
+            );
+            throw new InstallationException(
+                packageName,
+                errorMessage,
+                false,
+                InstallationErrorType.NetworkError,
+                new Exception("No internet connection available")
+            );
+        }
+
         string friendlyName = displayName ?? packageName;
 
         _logService.LogInformation($"Installing Windows App: {friendlyName}");
@@ -589,12 +716,64 @@ public class WinGetInstallationService : IWinGetInstallationService, IDisposable
         var forcedProgressReporting = false; // Flag to enable forced progress reporting during stalled periods
         var maxStallTime = TimeSpan.FromSeconds(3); // Maximum time to allow without progress updates
 
+        // Variables for periodic internet connectivity checks
+        var lastConnectivityCheckTime = DateTime.Now;
+        var connectivityCheckInterval = TimeSpan.FromSeconds(5); // Check connectivity every 5 seconds
+
         // Setup the timer to report progress
-        timer.Elapsed += (s, e) =>
+        timer.Elapsed += async (s, e) =>
         {
             // Only report if PowerShell is still running
             if (powerShell.InvocationStateInfo.State == PSInvocationState.Running)
             {
+                // Periodically check internet connectivity during installation
+                if ((DateTime.Now - lastConnectivityCheckTime) >= connectivityCheckInterval)
+                {
+                    lastConnectivityCheckTime = DateTime.Now;
+                    bool isConnected = false;
+                    
+                    try
+                    {
+                        isConnected = await _systemServices.IsInternetConnectedAsync(false, cancellationToken);
+                    }
+                    catch (Exception ex)
+                    {
+                        _logService.LogError($"Error checking internet connectivity: {ex.Message}");
+                        // Assume connected to avoid false positives
+                        isConnected = true;
+                    }
+                    
+                    if (!isConnected)
+                    {
+                        _logService.LogError("Internet connection lost during installation");
+                        progress?.Report(
+                            new TaskProgressDetail
+                            {
+                                Progress = lastReportedProgress,
+                                StatusText = "Error: Internet connection lost",
+                                DetailedMessage = "Internet connection has been lost. Installation has been stopped.",
+                                LogLevel = LogLevel.Error,
+                            }
+                        );
+                        
+                        // Stop the timer
+                        timer.Stop();
+                        
+                        // Stop the PowerShell process safely
+                        try {
+                            powerShell.Stop();
+                        } catch (Exception ex) {
+                            _logService.LogError($"Error stopping PowerShell: {ex.Message}");
+                        }
+                        
+                        // Return from the timer callback without throwing an exception
+                        // This prevents the exception from potentially crashing the application
+                        // Instead, we'll set a flag that the main thread can check
+                        forcedProgressReporting = true;
+                        return;
+                    }
+                }
+
                 // Calculate overall progress based on elapsed time
                 var totalElapsed = (DateTime.Now - startTime).TotalSeconds;
                 var estimatedTotalTime = 60; // Assume 60 seconds for a typical installation
@@ -1228,107 +1407,306 @@ public class WinGetInstallationService : IWinGetInstallationService, IDisposable
     }
 
     /// <summary>
-    /// Verifies if an app is installed.
+    /// Verifies if an app is installed using multiple verification methods.
     /// </summary>
+    /// <param name="packageName">The package name or ID to verify.</param>
+    /// <returns>True if the app is installed; otherwise, false.</returns>
     public async Task<bool> VerifyAppInstallationAsync(string packageName)
     {
         try
         {
+            _logService.LogInformation($"Verifying installation of {packageName}...");
+            
             // Create PowerShell instance
             using var powerShell = PowerShellFactory.CreateWindowsPowerShell(
                 _logService,
                 _systemServices
             );
 
-            // For Microsoft Store apps (package IDs that are alphanumeric with no dots)
-            if (packageName.All(char.IsLetterOrDigit) && !packageName.Contains('.'))
+            // Try multiple verification methods and return true if any of them succeed
+            var verificationMethods = new List<Func<Task<bool>>>
             {
-                // Use Get-AppxPackage to check if the Microsoft Store app is installed
-                powerShell.AddScript(
-                    $"Get-AppxPackage | Where-Object {{ $_.PackageFullName -like '*{packageName}*' }}"
-                );
-                var result = await powerShell.InvokeAsync();
+                // Method 1: Check using PowerShell Get-Package with wildcards
+                async () => 
+                {
+                    try
+                    {
+                        _logService.LogInformation($"Verification method 1: Using Get-Package with wildcards for {packageName}");
+                        
+                        // Convert package name to wildcard format by splitting on dots and surrounding with wildcards
+                        var packageParts = packageName.Split('.');
+                        
+                        // First try with the full package name pattern
+                        powerShell.Commands.Clear();
+                        powerShell.AddCommand("Get-Package");
+                        
+                        // Create a wildcard pattern like *Mozilla*Firefox*
+                        var wildcardPattern = string.Join("*", packageParts);
+                        wildcardPattern = $"*{wildcardPattern}*";
+                        
+                        powerShell.AddParameter("Name", wildcardPattern);
+                        powerShell.AddParameter("ErrorAction", "SilentlyContinue");
+                        
+                        var results = await powerShell.InvokeAsync();
+                        if (results.Count > 0)
+                        {
+                            _logService.LogSuccess($"Get-Package verification successful for {packageName} using pattern {wildcardPattern}");
+                            return true;
+                        }
+                        
+                        // If full pattern didn't work, try with individual parts
+                        foreach (var part in packageParts)
+                        {
+                            // Only try with parts that are at least 3 characters
+                            if (part.Length >= 3)
+                            {
+                                powerShell.Commands.Clear();
+                                powerShell.AddCommand("Get-Package");
+                                powerShell.AddParameter("Name", $"*{part}*");
+                                powerShell.AddParameter("ErrorAction", "SilentlyContinue");
+                                
+                                results = await powerShell.InvokeAsync();
+                                if (results.Count > 0)
+                                {
+                                    _logService.LogSuccess($"Get-Package verification successful for {packageName} using part {part}");
+                                    return true;
+                                }
+                            }
+                        }
+                        
+                        _logService.LogWarning($"Get-Package verification failed for {packageName}");
+                        return false;
+                    }
+                    catch (Exception ex)
+                    {
+                        _logService.LogWarning($"Get-Package verification failed: {ex.Message}");
+                        return false;
+                    }
+                },
+                
+                // Method 2: Check using WinGet list command (kept as fallback)
+                async () => 
+                {
+                    try
+                    {
+                        _logService.LogInformation($"Verification method 2: Using WinGet list for {packageName}");
+                        powerShell.Commands.Clear();
+                        powerShell.AddScript(
+                            $@"
+                            try {{  
+                                $result = winget list --id '{packageName}' --exact
+                                $isInstalled = $result -match '{packageName}'
+                                Write-Output $isInstalled
+                            }} catch {{
+                                Write-Output $false
+                            }}
+                        "
+                        );
 
-                if (result.Count > 0)
+                        var results = await powerShell.InvokeAsync();
+                        if (results.Count > 0)
+                        {
+                            var resultValue = results[0]?.ToString()?.ToLowerInvariant();
+                            if (resultValue == "true")
+                            {
+                                _logService.LogSuccess($"WinGet verification successful for {packageName}");
+                                return true;
+                            }
+                        }
+                        return false;
+                    }
+                    catch (Exception ex)
+                    {
+                        _logService.LogWarning($"WinGet verification failed: {ex.Message}");
+                        return false;
+                    }
+                },
+                
+                // Method 2: Check for Microsoft Store apps
+                async () =>
+                {
+                    // Only try this method for Microsoft Store apps (package IDs that are alphanumeric with no dots)
+                    if (!packageName.All(char.IsLetterOrDigit) || packageName.Contains('.'))
+                        return false;
+                        
+                    try
+                    {
+                        _logService.LogInformation($"Verification method 2: Using Get-AppxPackage for {packageName}");
+                        powerShell.Commands.Clear();
+                        powerShell.AddScript(
+                            $"Get-AppxPackage | Where-Object {{ $_.PackageFullName -like '*{packageName}*' }}"
+                        );
+                        var result = await powerShell.InvokeAsync();
+
+                        if (result.Count > 0)
+                        {
+                            _logService.LogSuccess($"AppxPackage verification successful for {packageName}");
+                            return true;
+                        }
+                        return false;
+                    }
+                    catch (Exception ex)
+                    {
+                        _logService.LogWarning($"AppxPackage verification failed: {ex.Message}");
+                        return false;
+                    }
+                },
+                
+                // Method 3: Check registry for installed applications
+                async () =>
+                {
+                    try
+                    {
+                        _logService.LogInformation($"Verification method 3: Checking registry for {packageName}");
+                        powerShell.Commands.Clear();
+                        powerShell.AddScript(
+                            $@"
+                            try {{  
+                                # Check registry for installed applications
+                                $registryPaths = @(
+                                    'HKLM:\SOFTWARE\Microsoft\Windows\CurrentVersion\Uninstall\*',
+                                    'HKLM:\SOFTWARE\WOW6432Node\Microsoft\Windows\CurrentVersion\Uninstall\*',
+                                    'HKCU:\SOFTWARE\Microsoft\Windows\CurrentVersion\Uninstall\*'
+                                )
+                                
+                                foreach ($path in $registryPaths) {{
+                                    $installed = Get-ItemProperty $path -ErrorAction SilentlyContinue | 
+                                                Where-Object {{ $_.DisplayName -like '*{packageName}*' -or $_.DisplayName -eq '{packageName}' }}
+                                    if ($installed) {{
+                                        Write-Output 'true'
+                                        return
+                                    }}
+                                }}
+                                
+                                Write-Output 'false'
+                            }} catch {{
+                                Write-Output 'false'
+                            }}
+                        "
+                        );
+
+                        var results = await powerShell.InvokeAsync();
+                        if (results.Count > 0)
+                        {
+                            var resultValue = results[0]?.ToString()?.ToLowerInvariant();
+                            if (resultValue == "true")
+                            {
+                                _logService.LogSuccess($"Registry verification successful for {packageName}");
+                                return true;
+                            }
+                        }
+                        return false;
+                    }
+                    catch (Exception ex)
+                    {
+                        _logService.LogWarning($"Registry verification failed: {ex.Message}");
+                        return false;
+                    }
+                },
+                
+                // Method 4: Check common installation directories - more strict to avoid false positives
+                async () =>
+                {
+                    try
+                    {
+                        _logService.LogInformation($"Verification method 4: Checking file system for {packageName}");
+                        powerShell.Commands.Clear();
+                        powerShell.AddScript(
+                            $@"
+                            try {{  
+                                # Use where.exe to check if the app is in PATH (for CLI tools)
+                                $whereResult = where.exe '{packageName}' 2>&1
+                                if ($whereResult -notmatch 'not found') {{
+                                    # Verify that the found executable actually exists
+                                    foreach ($path in $whereResult) {{
+                                        if (Test-Path -Path $path -PathType Leaf) {{
+                                            Write-Output 'true'
+                                            return
+                                        }}
+                                    }}
+                                }}
+                                
+                                # Check common installation directories
+                                $commonPaths = @(
+                                    [System.Environment]::GetFolderPath('ProgramFiles'),
+                                    [System.Environment]::GetFolderPath('ProgramFilesX86'),
+                                    [System.Environment]::GetFolderPath('LocalApplicationData')
+                                )
+                                
+                                # Create a more strict verification - require multiple conditions to be met
+                                foreach ($basePath in $commonPaths) {{
+                                    # Check for exact directory match AND executable or configuration files
+                                    if (Test-Path -Path ""$basePath\{packageName}"" -PathType Container) {{
+                                        # Look for executable or configuration files to confirm it's a real installation
+                                        $exeExists = Test-Path -Path ""$basePath\{packageName}\{packageName}.exe"" -PathType Leaf
+                                        $dllExists = Test-Path -Path ""$basePath\{packageName}\{packageName}.dll"" -PathType Leaf
+                                        $configExists = Test-Path -Path ""$basePath\{packageName}\*.config"" -PathType Leaf
+                                        $manifestExists = Test-Path -Path ""$basePath\{packageName}\*.manifest"" -PathType Leaf
+                                        $iniExists = Test-Path -Path ""$basePath\{packageName}\*.ini"" -PathType Leaf
+                                        
+                                        # Only return true if we find actual application files, not just a directory
+                                        if ($exeExists -or $dllExists -or $configExists -or $manifestExists -or $iniExists) {{
+                                            Write-Output 'true'
+                                            return
+                                        }}
+                                    }}
+                                    
+                                    # For Microsoft Store apps, check for AppxManifest.xml
+                                    $storeAppPath = Join-Path -Path ([System.Environment]::GetFolderPath('LocalApplicationData')) -ChildPath ""Packages""
+                                    $storeAppDirs = Get-ChildItem -Path $storeAppPath -Directory -ErrorAction SilentlyContinue | 
+                                                    Where-Object {{ $_.Name -like ""*{packageName}*"" }}
+                                    
+                                    foreach ($dir in $storeAppDirs) {{
+                                        if (Test-Path -Path ""$($dir.FullName)\AppxManifest.xml"" -PathType Leaf) {{
+                                            Write-Output 'true'
+                                            return
+                                        }}
+                                    }}
+                                }}
+                                
+                                Write-Output 'false'
+                            }} catch {{
+                                Write-Output 'false'
+                            }}
+                        "
+                        );
+
+                        var results = await powerShell.InvokeAsync();
+                        if (results.Count > 0)
+                        {
+                            var resultValue = results[0]?.ToString()?.ToLowerInvariant();
+                            if (resultValue == "true")
+                            {
+                                _logService.LogSuccess($"File system verification successful for {packageName}");
+                                return true;
+                            }
+                        }
+                        return false;
+                    }
+                    catch (Exception ex)
+                    {
+                        _logService.LogWarning($"File system verification failed: {ex.Message}");
+                        return false;
+                    }
+                }
+            };
+
+            // Try each verification method until one succeeds
+            foreach (var method in verificationMethods)
+            {
+                if (await method())
                 {
                     return true;
                 }
             }
 
-            // For all other apps, use winget list to check if installed
-            powerShell.Commands.Clear();
-            powerShell.AddScript(
-                $@"
-                try {{
-                    $result = winget list --id '{packageName}' --exact
-                    $isInstalled = $result -match '{packageName}'
-                    Write-Output $isInstalled
-                }} catch {{
-                    Write-Output $false
-                }}
-            "
-            );
-
-            var results = await powerShell.InvokeAsync();
-
-            // Check if the result indicates the app is installed
-            if (results.Count > 0)
-            {
-                // Extract boolean value from result
-                var resultValue = results[0]?.ToString()?.ToLowerInvariant();
-                if (resultValue == "true")
-                {
-                    return true;
-                }
-            }
-
-            // If we're here, try one more verification with a different approach
-            powerShell.Commands.Clear();
-            powerShell.AddScript(
-                $@"
-                try {{
-                    # Use where.exe to check if the app is in PATH (for CLI tools)
-                    $whereResult = where.exe {packageName} 2>&1
-                    if ($whereResult -notmatch 'not found') {{
-                        Write-Output 'true'
-                        return
-                    }}
-                    
-                    # Check common installation directories
-                    $commonPaths = @(
-                        [System.Environment]::GetFolderPath('ProgramFiles'),
-                        [System.Environment]::GetFolderPath('ProgramFilesX86'),
-                        [System.Environment]::GetFolderPath('LocalApplicationData')
-                    )
-                    
-                    foreach ($basePath in $commonPaths) {{
-                        if (Test-Path -Path ""$basePath\$packageName"" -PathType Container) {{
-                            Write-Output 'true'
-                            return
-                        }}
-                    }}
-                    
-                    Write-Output 'false'
-                }} catch {{
-                    Write-Output 'false'
-                }}
-            "
-            );
-
-            results = await powerShell.InvokeAsync();
-
-            // Check if the result indicates the app is installed
-            if (results.Count > 0)
-            {
-                var resultValue = results[0]?.ToString()?.ToLowerInvariant();
-                return resultValue == "true";
-            }
-
+            _logService.LogWarning($"All verification methods failed for {packageName}");
             return false;
         }
-        catch
+        catch (Exception ex)
         {
-            // If any error occurs during verification, assume the app is not installed
+            // If any error occurs during verification, log it and assume the app is not installed
+            _logService.LogError($"Error verifying installation of {packageName}: {ex.Message}");
             return false;
         }
     }

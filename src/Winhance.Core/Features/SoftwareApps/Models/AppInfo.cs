@@ -1,8 +1,8 @@
 // This contains the model for standard application information
 
 using System;
-using Winhance.Core.Features.Common.Models;
 using Microsoft.Win32;
+using Winhance.Core.Features.Common.Models;
 
 namespace Winhance.Core.Features.SoftwareApps.Models
 {
@@ -15,16 +15,16 @@ namespace Winhance.Core.Features.SoftwareApps.Models
         /// Standard application.
         /// </summary>
         StandardApp,
-        
+
         /// <summary>
         /// Windows capability.
         /// </summary>
         Capability,
-        
+
         /// <summary>
         /// Windows optional feature.
         /// </summary>
-        OptionalFeature
+        OptionalFeature,
     }
 
     /// <summary>
@@ -34,13 +34,15 @@ namespace Winhance.Core.Features.SoftwareApps.Models
     {
         string IInstallableItem.PackageId => PackageID;
         string IInstallableItem.DisplayName => Name;
-        InstallItemType IInstallableItem.ItemType => Type switch
-        {
-            AppType.Capability => InstallItemType.Capability,
-            AppType.OptionalFeature => InstallItemType.Feature,
-            _ => InstallItemType.WindowsApp
-        };
+        InstallItemType IInstallableItem.ItemType =>
+            Type switch
+            {
+                AppType.Capability => InstallItemType.Capability,
+                AppType.OptionalFeature => InstallItemType.Feature,
+                _ => InstallItemType.WindowsApp,
+            };
         bool IInstallableItem.RequiresRestart => false;
+
         /// <summary>
         /// Gets or sets the name of the application.
         /// </summary>
@@ -115,6 +117,11 @@ namespace Winhance.Core.Features.SoftwareApps.Models
         /// Gets or sets the version of the application.
         /// </summary>
         public string Version { get; set; } = string.Empty;
+
+        /// <summary>
+        /// Gets or sets the last operation error message, if any.
+        /// </summary>
+        public string? LastOperationError { get; set; }
     }
 
     /// <summary>

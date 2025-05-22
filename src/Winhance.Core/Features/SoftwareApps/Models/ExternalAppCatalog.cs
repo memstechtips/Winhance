@@ -18,10 +18,7 @@ public class ExternalAppCatalog
     /// <returns>A new ExternalAppCatalog instance with default apps.</returns>
     public static ExternalAppCatalog CreateDefault()
     {
-        return new ExternalAppCatalog
-        {
-            ExternalApps = CreateDefaultExternalApps(),
-        };
+        return new ExternalAppCatalog { ExternalApps = CreateDefaultExternalApps() };
     }
 
     private static IReadOnlyList<AppInfo> CreateDefaultExternalApps()
@@ -33,7 +30,7 @@ public class ExternalAppCatalog
             {
                 Name = "Microsoft Edge WebView",
                 Description = "WebView2 runtime for Windows applications",
-                PackageName = "Microsoft.EdgeWebView",
+                PackageName = "Microsoft.EdgeWebView2Runtime",
                 Category = "Browsers",
                 IsCustomInstall = true,
                 Type = AppType.StandardApp,
@@ -167,7 +164,8 @@ public class ExternalAppCatalog
             new AppInfo
             {
                 Name = "Mullvad Browser",
-                Description = "Privacy-focused browser designed to minimize tracking and fingerprints",
+                Description =
+                    "Privacy-focused browser designed to minimize tracking and fingerprints",
                 PackageName = "MullvadVPN.MullvadBrowser",
                 Category = "Browsers",
                 IsCustomInstall = true,
@@ -176,7 +174,8 @@ public class ExternalAppCatalog
             new AppInfo
             {
                 Name = "Pale Moon Browser",
-                Description = "Open Source, Goanna-based web browser focusing on efficiency and customization",
+                Description =
+                    "Open Source, Goanna-based web browser focusing on efficiency and customization",
                 PackageName = "MoonchildProductions.PaleMoon",
                 Category = "Browsers",
                 IsCustomInstall = true,
@@ -209,7 +208,6 @@ public class ExternalAppCatalog
                 IsCustomInstall = true,
                 Type = AppType.StandardApp,
             },
-
             // Document Viewers
             new AppInfo
             {
@@ -241,7 +239,8 @@ public class ExternalAppCatalog
             new AppInfo
             {
                 Name = "SumatraPDF",
-                Description = "PDF, eBook (epub, mobi), comic book (cbz/cbr), DjVu, XPS, CHM, image viewer for Windows",
+                Description =
+                    "PDF, eBook (epub, mobi), comic book (cbz/cbr), DjVu, XPS, CHM, image viewer for Windows",
                 PackageName = "SumatraPDF.SumatraPDF",
                 Category = "Document Viewers",
                 IsCustomInstall = true,
@@ -250,7 +249,8 @@ public class ExternalAppCatalog
             new AppInfo
             {
                 Name = "OpenOffice",
-                Description = "Discontinued open-source office suite. Active successor projects is LibreOffice",
+                Description =
+                    "Discontinued open-source office suite. Active successor projects is LibreOffice",
                 PackageName = "Apache.OpenOffice",
                 Category = "Document Viewers",
                 IsCustomInstall = true,
@@ -274,7 +274,6 @@ public class ExternalAppCatalog
                 IsCustomInstall = true,
                 Type = AppType.StandardApp,
             },
-
             // Online Storage
             new AppInfo
             {
@@ -288,7 +287,8 @@ public class ExternalAppCatalog
             new AppInfo
             {
                 Name = "Dropbox",
-                Description = "File hosting service that offers cloud storage, file synchronization, personal cloud",
+                Description =
+                    "File hosting service that offers cloud storage, file synchronization, personal cloud",
                 PackageName = "Dropbox.Dropbox",
                 Category = "Online Storage",
                 IsCustomInstall = true,
@@ -297,7 +297,8 @@ public class ExternalAppCatalog
             new AppInfo
             {
                 Name = "SugarSync",
-                Description = "Automatically access and share your photos, videos, and files in any folder",
+                Description =
+                    "Automatically access and share your photos, videos, and files in any folder",
                 PackageName = "IPVanish.SugarSync",
                 Category = "Online Storage",
                 IsCustomInstall = true,
@@ -306,7 +307,8 @@ public class ExternalAppCatalog
             new AppInfo
             {
                 Name = "NextCloud",
-                Description = "Access, share and protect your files, calendars, contacts, communication & more at home and in your organization",
+                Description =
+                    "Access, share and protect your files, calendars, contacts, communication & more at home and in your organization",
                 PackageName = "Nextcloud.NextcloudDesktop",
                 Category = "Online Storage",
                 IsCustomInstall = true,
@@ -321,49 +323,12 @@ public class ExternalAppCatalog
                 IsCustomInstall = true,
                 Type = AppType.StandardApp,
             },
-
             // Development Apps
             new AppInfo
             {
-                Name = "Python x64 3",
+                Name = "Python 3.13",
                 Description = "Python programming language",
-                PackageName = "Python.Python.3",
-                Category = "Development Apps",
-                IsCustomInstall = true,
-                Type = AppType.StandardApp,
-            },
-            new AppInfo
-            {
-                Name = "Python arm64 3",
-                Description = "Python programming language for ARM64 architecture",
-                PackageName = "Python.Python.3.arm64",
-                Category = "Development Apps",
-                IsCustomInstall = true,
-                Type = AppType.StandardApp,
-            },
-            new AppInfo
-            {
-                Name = "Python 3",
-                Description = "Python programming language",
-                PackageName = "Python.Python.3",
-                Category = "Development Apps",
-                IsCustomInstall = true,
-                Type = AppType.StandardApp,
-            },
-            new AppInfo
-            {
-                Name = "Python",
-                Description = "Python programming language",
-                PackageName = "Python.Python",
-                Category = "Development Apps",
-                IsCustomInstall = true,
-                Type = AppType.StandardApp,
-            },
-            new AppInfo
-            {
-                Name = "FileZilla",
-                Description = "FTP, FTPS and SFTP client",
-                PackageName = "FileZilla.FileZilla",
+                PackageName = "Python.Python.3.13",
                 Category = "Development Apps",
                 IsCustomInstall = true,
                 Type = AppType.StandardApp,
@@ -408,7 +373,7 @@ public class ExternalAppCatalog
             {
                 Name = "Eclipse",
                 Description = "Java IDE and development platform",
-                PackageName = "Eclipse.Adoptium",
+                PackageName = "EclipseFoundation.EclipseIDEforJavaDevelopers",
                 Category = "Development Apps",
                 IsCustomInstall = true,
                 Type = AppType.StandardApp,
@@ -442,6 +407,15 @@ public class ExternalAppCatalog
             },
             new AppInfo
             {
+                Name = "AutoHotkey",
+                Description = "Scripting language for desktop automation",
+                PackageName = "AutoHotkey.AutoHotkey",
+                Category = "Development Apps",
+                IsCustomInstall = true,
+                Type = AppType.StandardApp,
+            },
+            new AppInfo
+            {
                 Name = "Windsurf",
                 Description = "AI Code Editor",
                 PackageName = "Codeium.Windsurf",
@@ -458,7 +432,6 @@ public class ExternalAppCatalog
                 IsCustomInstall = true,
                 Type = AppType.StandardApp,
             },
-
             // Multimedia (Audio & Video)
             new AppInfo
             {
@@ -491,7 +464,7 @@ public class ExternalAppCatalog
             {
                 Name = "foobar2000",
                 Description = "Advanced audio player for Windows",
-                PackageName = "foobar2000.foobar2000",
+                PackageName = "PeterPawlowski.foobar2000",
                 Category = "Multimedia (Audio & Video)",
                 IsCustomInstall = true,
                 Type = AppType.StandardApp,
@@ -500,7 +473,7 @@ public class ExternalAppCatalog
             {
                 Name = "MusicBee",
                 Description = "Music manager and player",
-                PackageName = "MusicBee.MusicBee",
+                PackageName = "9P4CLT2RJ1RS",
                 Category = "Multimedia (Audio & Video)",
                 IsCustomInstall = true,
                 Type = AppType.StandardApp,
@@ -518,7 +491,7 @@ public class ExternalAppCatalog
             {
                 Name = "GOM",
                 Description = "Media player for Windows",
-                PackageName = "Gretech.GOMPlayer",
+                PackageName = "GOMLab.GOMPlayer",
                 Category = "Multimedia (Audio & Video)",
                 IsCustomInstall = true,
                 Type = AppType.StandardApp,
@@ -536,7 +509,7 @@ public class ExternalAppCatalog
             {
                 Name = "MediaMonkey",
                 Description = "Media manager and player",
-                PackageName = "MediaMonkey.MediaMonkey",
+                PackageName = "VentisMedia.MediaMonkey.5",
                 Category = "Multimedia (Audio & Video)",
                 IsCustomInstall = true,
                 Type = AppType.StandardApp,
@@ -553,8 +526,18 @@ public class ExternalAppCatalog
             new AppInfo
             {
                 Name = "OBS Studio",
-                Description = "Free and open source software for video recording and live streaming",
+                Description =
+                    "Free and open source software for video recording and live streaming",
                 PackageName = "OBSProject.OBSStudio",
+                Category = "Multimedia (Audio & Video)",
+                IsCustomInstall = true,
+                Type = AppType.StandardApp,
+            },
+            new AppInfo
+            {
+                Name = "Streamlabs OBS",
+                Description = "Streaming software built on OBS with additional features for streamers",
+                PackageName = "Streamlabs.StreamlabsOBS",
                 Category = "Multimedia (Audio & Video)",
                 IsCustomInstall = true,
                 Type = AppType.StandardApp,
@@ -586,7 +569,15 @@ public class ExternalAppCatalog
                 IsCustomInstall = true,
                 Type = AppType.StandardApp,
             },
-
+            new AppInfo
+            {
+                Name = "PotPlayer",
+                Description = "Comprehensive multimedia player for Windows",
+                PackageName = "Daum.PotPlayer",
+                Category = "Multimedia (Audio & Video)",
+                IsCustomInstall = true,
+                Type = AppType.StandardApp,
+            },
             // Imaging
             new AppInfo
             {
@@ -601,7 +592,7 @@ public class ExternalAppCatalog
             {
                 Name = "Krita",
                 Description = "Digital painting and illustration software",
-                PackageName = "Krita.Krita",
+                PackageName = "KDE.Krita",
                 Category = "Imaging",
                 IsCustomInstall = true,
                 Type = AppType.StandardApp,
@@ -610,7 +601,7 @@ public class ExternalAppCatalog
             {
                 Name = "Blender",
                 Description = "3D creation suite",
-                PackageName = "Blender.Blender",
+                PackageName = "BlenderFoundation.Blender",
                 Category = "Imaging",
                 IsCustomInstall = true,
                 Type = AppType.StandardApp,
@@ -619,7 +610,7 @@ public class ExternalAppCatalog
             {
                 Name = "Paint.NET",
                 Description = "Image and photo editing software",
-                PackageName = "dotPDN.Paint.NET",
+                PackageName = "dotPDN.PaintDotNet",
                 Category = "Imaging",
                 IsCustomInstall = true,
                 Type = AppType.StandardApp,
@@ -628,16 +619,25 @@ public class ExternalAppCatalog
             {
                 Name = "GIMP",
                 Description = "GNU Image Manipulation Program",
-                PackageName = "GIMP.GIMP",
+                PackageName = "GIMP.GIMP.3",
                 Category = "Imaging",
                 IsCustomInstall = true,
                 Type = AppType.StandardApp,
             },
             new AppInfo
             {
-                Name = "XnView",
+                Name = "XnViewMP",
                 Description = "Image viewer, browser and converter",
                 PackageName = "XnSoft.XnViewMP",
+                Category = "Imaging",
+                IsCustomInstall = true,
+                Type = AppType.StandardApp,
+            },
+            new AppInfo
+            {
+                Name = "XnView Classic",
+                Description = "Image viewer, browser and converter (Classic Version)",
+                PackageName = "XnSoft.XnView.Classic",
                 Category = "Imaging",
                 IsCustomInstall = true,
                 Type = AppType.StandardApp,
@@ -687,7 +687,6 @@ public class ExternalAppCatalog
                 IsCustomInstall = true,
                 Type = AppType.StandardApp,
             },
-
             // Compression
             new AppInfo
             {
@@ -710,7 +709,8 @@ public class ExternalAppCatalog
             new AppInfo
             {
                 Name = "PeaZip",
-                Description = "Free file archiver utility. Open and extract RAR, TAR, ZIP files and more",
+                Description =
+                    "Free file archiver utility. Open and extract RAR, TAR, ZIP files and more",
                 PackageName = "Giorgiotani.Peazip",
                 Category = "Compression",
                 IsCustomInstall = true,
@@ -719,13 +719,13 @@ public class ExternalAppCatalog
             new AppInfo
             {
                 Name = "NanaZip",
-                Description = "Open source fork of 7-zip intended for the modern Windows experience",
+                Description =
+                    "Open source fork of 7-zip intended for the modern Windows experience",
                 PackageName = "M2Team.NanaZip",
                 Category = "Compression",
                 IsCustomInstall = true,
                 Type = AppType.StandardApp,
             },
-
             // Messaging, Email & Calendar
             new AppInfo
             {
@@ -808,7 +808,6 @@ public class ExternalAppCatalog
                 IsCustomInstall = true,
                 Type = AppType.StandardApp,
             },
-
             // File & Disk Management
             new AppInfo
             {
@@ -864,7 +863,51 @@ public class ExternalAppCatalog
                 IsCustomInstall = true,
                 Type = AppType.StandardApp,
             },
-
+            new AppInfo
+            {
+                Name = "Crystal Disk Info",
+                Description = "Hard drive health monitoring utility",
+                PackageName = "WsSolInfor.CrystalDiskInfo",
+                Category = "File & Disk Management",
+                IsCustomInstall = true,
+                Type = AppType.StandardApp,
+            },
+            new AppInfo
+            {
+                Name = "Bulk Rename Utility",
+                Description = "File renaming software for Windows",
+                PackageName = "TGRMNSoftware.BulkRenameUtility",
+                Category = "File & Disk Management",
+                IsCustomInstall = true,
+                Type = AppType.StandardApp,
+            },
+            new AppInfo
+            {
+                Name = "IObit Unlocker",
+                Description = "Tool to unlock files that are in use by other processes",
+                PackageName = "IObit.IObitUnlocker",
+                Category = "File & Disk Management",
+                IsCustomInstall = true,
+                Type = AppType.StandardApp,
+            },
+            new AppInfo
+            {
+                Name = "Ventoy",
+                Description = "Open source tool to create bootable USB drive for ISO files",
+                PackageName = "Ventoy.Ventoy",
+                Category = "File & Disk Management",
+                IsCustomInstall = true,
+                Type = AppType.StandardApp,
+            },
+            new AppInfo
+            {
+                Name = "Volume2",
+                Description = "Advanced Windows volume control",
+                PackageName = "irzyxa.Volume2Portable",
+                Category = "File & Disk Management",
+                IsCustomInstall = true,
+                Type = AppType.StandardApp,
+            },
             // Remote Access
             new AppInfo
             {
@@ -877,9 +920,18 @@ public class ExternalAppCatalog
             },
             new AppInfo
             {
+                Name = "Input Leap",
+                Description = "Open-source KVM software for sharing mouse and keyboard between computers",
+                PackageName = "input-leap.input-leap",
+                Category = "Remote Access",
+                IsCustomInstall = true,
+                Type = AppType.StandardApp,
+            },
+            new AppInfo
+            {
                 Name = "AnyDesk",
                 Description = "Remote desktop software for remote access and support",
-                PackageName = "AnyDeskSoftware.AnyDesk",
+                PackageName = "AnyDesk.AnyDesk",
                 Category = "Remote Access",
                 IsCustomInstall = true,
                 Type = AppType.StandardApp,
@@ -887,7 +939,8 @@ public class ExternalAppCatalog
             new AppInfo
             {
                 Name = "TeamViewer 15",
-                Description = "Remote control, desktop sharing, online meetings, web conferencing and file transfer",
+                Description =
+                    "Remote control, desktop sharing, online meetings, web conferencing and file transfer",
                 PackageName = "TeamViewer.TeamViewer",
                 Category = "Remote Access",
                 IsCustomInstall = true,
@@ -920,13 +973,12 @@ public class ExternalAppCatalog
                 IsCustomInstall = true,
                 Type = AppType.StandardApp,
             },
-
             // Optical Disc Tools
             new AppInfo
             {
                 Name = "CDBurnerXP",
                 Description = "Application to burn CDs and DVDs",
-                PackageName = "CDBurnerXP.CDBurnerXP",
+                PackageName = "",
                 Category = "Optical Disc Tools",
                 IsCustomInstall = true,
                 Type = AppType.StandardApp,
@@ -949,7 +1001,6 @@ public class ExternalAppCatalog
                 IsCustomInstall = true,
                 Type = AppType.StandardApp,
             },
-
             // Other Utilities
             new AppInfo
             {
@@ -960,11 +1011,21 @@ public class ExternalAppCatalog
                 IsCustomInstall = true,
                 Type = AppType.StandardApp,
             },
+                        new AppInfo
+            {
+                Name = "Wise Registry Cleaner",
+                Description = "Registry cleaning and optimization tool",
+                PackageName = "XPDLS1XBTXVPP4",
+                Category = "Other Utilities",
+                IsCustomInstall = true,
+                Type = AppType.StandardApp,
+            },
             new AppInfo
             {
                 Name = "UniGetUI",
-                Description = "Universal package manager interface supporting WinGet, Chocolatey, and more",
-                PackageName = "XPFFTQ032PTPHF",
+                Description =
+                    "Universal package manager interface supporting WinGet, Chocolatey, and more",
+                PackageName = "MartiCliment.UniGetUI",
                 Category = "Other Utilities",
                 IsCustomInstall = true,
                 Type = AppType.StandardApp,
@@ -998,6 +1059,24 @@ public class ExternalAppCatalog
             },
             new AppInfo
             {
+                Name = "Bulk Crap Uninstaller",
+                Description = "Free and open-source program uninstaller with advanced features",
+                PackageName = "Klocman.BulkCrapUninstaller",
+                Category = "Other Utilities",
+                IsCustomInstall = true,
+                Type = AppType.StandardApp,
+            },
+            new AppInfo
+            {
+                Name = "Text Grab",
+                Description = "Tool for extracting text from images and screenshots",
+                PackageName = "JosephFinney.Text-Grab",
+                Category = "Other Utilities",
+                IsCustomInstall = true,
+                Type = AppType.StandardApp,
+            },
+            new AppInfo
+            {
                 Name = "Glary Utilities",
                 Description = "All-in-one PC care utility",
                 PackageName = "Glarysoft.GlaryUtilities",
@@ -1023,7 +1102,6 @@ public class ExternalAppCatalog
                 IsCustomInstall = true,
                 Type = AppType.StandardApp,
             },
-
             // Customization Utilities
             new AppInfo
             {
@@ -1052,8 +1130,51 @@ public class ExternalAppCatalog
                 IsCustomInstall = true,
                 Type = AppType.StandardApp,
             },
-
-
+            new AppInfo
+            {
+                Name = "Windhawk",
+                Description = "Customization platform for Windows",
+                PackageName = "RamenSoftware.Windhawk",
+                Category = "Customization Utilities",
+                IsCustomInstall = true,
+                Type = AppType.StandardApp,
+            },
+            new AppInfo
+            {
+                Name = "Lively Wallpaper",
+                Description = "Free and open-source animated desktop wallpaper application",
+                PackageName = "rocksdanister.LivelyWallpaper",
+                Category = "Customization Utilities",
+                IsCustomInstall = true,
+                Type = AppType.StandardApp,
+            },
+            new AppInfo
+            {
+                Name = "Sucrose Wallpaper Engine",
+                Description = "Free and open-source animated desktop wallpaper application",
+                PackageName = "Taiizor.SucroseWallpaperEngine",
+                Category = "Customization Utilities",
+                IsCustomInstall = true,
+                Type = AppType.StandardApp,
+            },
+            new AppInfo
+            {
+                Name = "Rainmeter",
+                Description = "Desktop customization tool for Windows",
+                PackageName = "Rainmeter.Rainmeter",
+                Category = "Customization Utilities",
+                IsCustomInstall = true,
+                Type = AppType.StandardApp,
+            },
+            new AppInfo
+            {
+                Name = "ExplorerPatcher",
+                Description = "Utility that enhances the Windows Explorer experience",
+                PackageName = "valinet.ExplorerPatcher",
+                Category = "Customization Utilities",
+                IsCustomInstall = true,
+                Type = AppType.StandardApp,
+            },
             // Gaming
             new AppInfo
             {
@@ -1100,8 +1221,7 @@ public class ExternalAppCatalog
                 IsCustomInstall = true,
                 Type = AppType.StandardApp,
             },
-
-            // Privacy & Security 
+            // Privacy & Security
             new AppInfo
             {
                 Name = "Malwarebytes",
@@ -1142,7 +1262,7 @@ public class ExternalAppCatalog
             {
                 Name = "KeePass 2",
                 Description = "Free, open source, light-weight password manager",
-                PackageName = "KeePass.KeePass",
+                PackageName = "DominikReichl.KeePass",
                 Category = "Privacy & Security",
                 IsCustomInstall = true,
                 Type = AppType.StandardApp,
@@ -1161,6 +1281,24 @@ public class ExternalAppCatalog
                 Name = "Bitwarden",
                 Description = "Open source password manager",
                 PackageName = "Bitwarden.Bitwarden",
+                Category = "Privacy & Security",
+                IsCustomInstall = true,
+                Type = AppType.StandardApp,
+            },
+            new AppInfo
+            {
+                Name = "KeePassXC",
+                Description = "Cross-platform secure password manager",
+                PackageName = "KeePassXCTeam.KeePassXC",
+                Category = "Privacy & Security",
+                IsCustomInstall = true,
+                Type = AppType.StandardApp,
+            },
+            new AppInfo
+            {
+                Name = "Tailscale",
+                Description = "Zero config VPN for building secure networks",
+                PackageName = "Tailscale.Tailscale",
                 Category = "Privacy & Security",
                 IsCustomInstall = true,
                 Type = AppType.StandardApp,

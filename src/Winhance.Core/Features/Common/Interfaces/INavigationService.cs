@@ -63,12 +63,12 @@ namespace Winhance.Core.Features.Common.Interfaces
         /// Gets the target view name.
         /// </summary>
         public string TargetView { get; }
-        
+
         /// <summary>
         /// Gets the navigation route (same as TargetView).
         /// </summary>
         public string Route => TargetView;
-        
+
         /// <summary>
         /// Gets the view model type associated with the navigation.
         /// </summary>
@@ -96,7 +96,12 @@ namespace Winhance.Core.Features.Common.Interfaces
         /// <param name="targetView">The target view name.</param>
         /// <param name="parameter">The navigation parameter.</param>
         /// <param name="canCancel">Whether the navigation can be canceled.</param>
-        public NavigationEventArgs(string sourceView, string targetView, object? parameter = null, bool canCancel = false)
+        public NavigationEventArgs(
+            string sourceView,
+            string targetView,
+            object? parameter = null,
+            bool canCancel = false
+        )
         {
             SourceView = sourceView;
             TargetView = targetView;
