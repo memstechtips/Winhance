@@ -1,0 +1,65 @@
+name: "🚀 Suggest an improvement for an existing feature"
+description: "Propose an improvement to Winhance."
+title: "[SUGGESTION] "
+labels: ["enhancement"]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Thanks for taking the time to suggest an improvement!
+        
+  - type: checkboxes
+    id: prerequisites
+    attributes:
+      label: "Please confirm these before moving forward"
+      description: "Please confirm the following before posting your suggestion."
+      options:
+        - label: "I have searched for similar suggestions and have not found a duplicate."
+          required: true
+        - label: "This is an improvement to an existing feature (not a new feature request)."
+          required: true
+          
+  - type: textarea
+    id: description
+    attributes:
+      label: "Describe your suggestion"
+      description: "A clear and concise description of what you want to improve."
+      placeholder: "I would like to see..."
+    validations:
+      required: true
+      
+  - type: textarea
+    id: current
+    attributes:
+      label: "Current behavior"
+      description: "Describe how the feature currently works."
+      placeholder: "Currently, the feature..."
+    validations:
+      required: true
+      
+  - type: textarea
+    id: proposed
+    attributes:
+      label: "Proposed behavior"
+      description: "Describe how you would like the feature to work."
+      placeholder: "I would like the feature to..."
+    validations:
+      required: true
+      
+  - type: textarea
+    id: benefit
+    attributes:
+      label: "Benefit"
+      description: "Why would this improvement be useful?"
+      placeholder: "This would be useful because..."
+    validations:
+      required: true
+      
+  - type: textarea
+    id: additional
+    attributes:
+      label: "Additional context"
+      description: "Any other details or observations that may be helpful."
+      placeholder: "Add any other context about the suggestion here."
+    validations:
+      required: false

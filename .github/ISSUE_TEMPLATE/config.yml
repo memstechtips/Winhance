@@ -1,0 +1,8 @@
+blank_issues_enabled: false
+contact_links:
+  - name: 🤔 Having doubts or questions?
+    url: https://github.com/memstechtips/Winhance/discussions/183
+    about: Create a discussion and get help from other members of the community
+  - name: 📧 Contact me privately by email
+    url: mailto:contact@memstechtips.com
+    about: Please use only if the issue (for example, a vulnerability) cannot be posted publicly

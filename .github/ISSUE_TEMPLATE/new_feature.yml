@@ -1,0 +1,87 @@
+name: "💡 Propose a new feature"
+description: "Propose a new feature or request software that could be useful in Winhance."
+title: "[FEATURE] "
+labels: ["feature-request"]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Thanks for taking the time to propose a new feature!
+        
+  - type: checkboxes
+    id: prerequisites
+    attributes:
+      label: "Please confirm these before moving forward"
+      description: "Please confirm the following before posting your feature request."
+      options:
+        - label: "I have searched for similar feature requests and have not found a duplicate."
+          required: true
+          
+  - type: dropdown
+    id: feature_type
+    attributes:
+      label: "Feature Type"
+      description: "What type of feature are you requesting?"
+      options:
+        - "New functionality"
+        - "New software to be added"
+        - "UI improvement"
+        - "Performance improvement"
+        - "Other"
+    validations:
+      required: true
+      
+  - type: textarea
+    id: description
+    attributes:
+      label: "Describe your feature request"
+      description: "A clear and concise description of what you want to happen."
+      placeholder: "I would like to see..."
+    validations:
+      required: true
+      
+  - type: textarea
+    id: use_case
+    attributes:
+      label: "Use case"
+      description: "Describe how this feature would be used and why it would be valuable."
+      placeholder: "This feature would be useful when..."
+    validations:
+      required: true
+      
+  - type: textarea
+    id: software_details
+    attributes:
+      label: "Software Details (Only for 'New software to be added' requests)"
+      description: "If you're requesting new software to be added to Winhance, please provide the following information:"
+      placeholder: |
+        Software Name: 
+        
+        Package ID (use one of the following):
+        - Winget ID: (e.g., Microsoft.PowerToys)
+          You can find this by running: winget search *software name*
+        - Microsoft Store ID: (e.g., 9NBLGGH5R558)
+          You can find this in the URL when viewing the app in the Microsoft Store
+        - Direct download link: (must always download the latest version)
+        
+        Why this software should be added:
+    validations:
+      required: false
+      
+  - type: textarea
+    id: alternatives
+    attributes:
+      label: "Alternatives considered"
+      description: "Have you considered any alternatives? If so, what are they?"
+      placeholder: "I have considered..."
+    validations:
+      required: false
+      
+  - type: textarea
+    id: additional
+    attributes:
+      label: "Additional context"
+      description: "Any other details or observations that may be helpful."
+      placeholder: "Add any other context about the feature request here."
+    validations:
+      required: false

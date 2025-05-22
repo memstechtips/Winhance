@@ -1,0 +1,100 @@
+name: "🐞 Report a bug or an issue"
+description: "Report issues or unexpected behaviors."
+title: "[BUG] "
+labels: ["bug"]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Thanks for taking the time to fill out this bug report!
+        
+  - type: checkboxes
+    id: prerequisites
+    attributes:
+      label: "Please confirm these before moving forward"
+      description: "Please confirm the following before posting your issue."
+      options:
+        - label: "I have searched for my issue and have not found a work-in-progress/duplicate/resolved issue."
+          required: true
+        - label: "I have tested that this issue has not been fixed in the latest (beta or stable) release."
+          required: true
+        - label: "I have checked the FAQ section for solutions."
+          required: true
+        - label: "This issue is about a bug (if it is not, please use the correct template)."
+          required: true
+          
+  - type: input
+    id: version
+    attributes:
+      label: "Winhance Version"
+      description: "Which version of Winhance are you using?"
+      placeholder: "x.y.z (e.g., v25.05.22)"
+    validations:
+      required: true
+      
+  - type: input
+    id: os
+    attributes:
+      label: "Windows version, edition, and architecture"
+      description: "Which Windows version are you using?"
+      placeholder: "Windows 11 Pro 10.0.22000.0 x64"
+    validations:
+      required: true
+      
+  - type: textarea
+    id: description
+    attributes:
+      label: "Describe your issue"
+      description: "Explain the issue you are experiencing, providing as many details as possible."
+      placeholder: "Explain the issue you are experiencing, providing as many details as possible."
+    validations:
+      required: true
+      
+  - type: textarea
+    id: reproduction
+    attributes:
+      label: "Steps to reproduce the issue"
+      description: "How can we reproduce the issue? Please provide detailed steps."
+      placeholder: |
+        1. Go to '...'
+        2. Click on '....'
+        3. Scroll down to '....'
+        4. See error
+    validations:
+      required: true
+      
+  - type: textarea
+    id: expected
+    attributes:
+      label: "Expected behavior"
+      description: "A clear description of what you expected to happen."
+      placeholder: "I expected Winhance to..."
+    validations:
+      required: true
+      
+  - type: textarea
+    id: actual
+    attributes:
+      label: "Actual behavior"
+      description: "Explain what actually happened instead."
+      placeholder: "Instead, Winhance..."
+    validations:
+      required: true
+      
+  - type: textarea
+    id: logs
+    attributes:
+      label: "Screenshots or Logs (if applicable)"
+      description: "If possible, add screenshots or logs to help explain your issue. Logs can be found in: `%temp%` (Windows temporary folder)"
+      placeholder: "Paste screenshots or logs here"
+    validations:
+      required: false
+      
+  - type: textarea
+    id: additional
+    attributes:
+      label: "Additional context"
+      description: "Any other details or observations that may be helpful."
+      placeholder: "Add any other context about the problem here."
+    validations:
+      required: false
