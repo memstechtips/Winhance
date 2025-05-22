@@ -59,9 +59,9 @@ body:
         
         Package ID (use one of the following):
         - Winget ID: (e.g., Microsoft.PowerToys)
-          You can find this by running: winget search *software name*
+          You can find this by running the following in an elevated Terminal/PowerShell Window: winget search *software name* (Note, WinGet must be installed)
         - Microsoft Store ID: (e.g., 9NBLGGH5R558)
-          You can find this in the URL when viewing the app in the Microsoft Store
+          You can find this in the URL when viewing the app in the Microsoft Store or by running the winget command above. If the app is availabe on the store, it will have an "msstore" id.
         - Direct download link: (must always download the latest version)
         
         Why this software should be added:
