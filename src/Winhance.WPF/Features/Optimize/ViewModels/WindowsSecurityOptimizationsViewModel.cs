@@ -9,6 +9,7 @@ using Winhance.Core.Features.Common.Interfaces;
 using Winhance.Core.Features.Common.Models;
 using Winhance.Core.Features.Optimize.Models;
 using Winhance.WPF.Features.Common.Models;
+using Winhance.WPF.Features.Common.Services;
 using Winhance.WPF.Features.Common.ViewModels;
 // Use UacLevel from Core.Models.Enums for the UI
 using UacLevel = Winhance.Core.Models.Enums.UacLevel;
@@ -23,6 +24,7 @@ namespace Winhance.WPF.Features.Optimize.ViewModels
         private readonly IRegistryService _registryService;
         private readonly ILogService _logService;
         private readonly ISystemServices _systemServices;
+        private readonly IUacSettingsService _uacSettingsService;
 
         /// <summary>
         /// Gets or sets a value indicating whether the view model is selected.
@@ -47,6 +49,12 @@ namespace Winhance.WPF.Features.Optimize.ViewModels
         /// </summary>
         [ObservableProperty]
         private bool _isApplyingUacLevel;
+        
+        /// <summary>
+        /// Gets or sets a value indicating whether a custom UAC setting is detected.
+        /// </summary>
+        [ObservableProperty]
+        private bool _hasCustomUacSetting;
 
         /// <summary>
         /// Gets the collection of available UAC levels with their display names.
@@ -60,22 +68,29 @@ namespace Winhance.WPF.Features.Optimize.ViewModels
         /// <param name="registryService">The registry service.</param>
         /// <param name="logService">The log service.</param>
         /// <param name="systemServices">The system services.</param>
+        /// <param name="uacSettingsService">The UAC settings service.</param>
         public WindowsSecurityOptimizationsViewModel(
             ITaskProgressService progressService,
             IRegistryService registryService,
             ILogService logService,
-            ISystemServices systemServices
+            ISystemServices systemServices,
+            IUacSettingsService uacSettingsService
         )
             : base(progressService, logService, new Features.Common.Services.MessengerService())
         {
             _registryService = registryService ?? throw new ArgumentNullException(nameof(registryService));
             _logService = logService ?? throw new ArgumentNullException(nameof(logService));
             _systemServices = systemServices ?? throw new ArgumentNullException(nameof(systemServices));
+            _uacSettingsService = uacSettingsService ?? throw new ArgumentNullException(nameof(uacSettingsService));
 
-            // Initialize UAC level options
+            // Initialize UAC level options (excluding Custom initially)
             foreach (var kvp in UacOptimizations.UacLevelNames)
             {
-                UacLevelOptions.Add(new KeyValuePair<UacLevel, string>(kvp.Key, kvp.Value));
+                // Skip the Custom option initially - it will be added dynamically when needed
+                if (kvp.Key != UacLevel.Custom)
+                {
+                    UacLevelOptions.Add(new KeyValuePair<UacLevel, string>(kvp.Key, kvp.Value));
+                }
             }
 
             // Subscribe to property changes to handle UAC level changes
@@ -164,6 +179,58 @@ namespace Winhance.WPF.Features.Optimize.ViewModels
                     // Get the UAC level from the system service (now returns Core UacLevel directly)
                     SelectedUacLevel = _systemServices.GetUacLevel();
                     
+                    // Check if we have a custom UAC setting in the registry
+                    bool hasCustomUacInRegistry = (SelectedUacLevel == UacLevel.Custom);
+                    
+                    // Check if we have custom UAC settings saved in preferences (using synchronous method to avoid deadlocks)
+                    bool hasCustomSettingsInPreferences = _uacSettingsService.TryGetCustomUacValues(out _, out _);
+                    
+                    // Set flag if we have custom settings either in registry or preferences
+                    HasCustomUacSetting = hasCustomUacInRegistry || hasCustomSettingsInPreferences;
+                    
+                    // If it's a custom setting, add the Custom option to the dropdown if not already present
+                    if (HasCustomUacSetting)
+                    {
+                        // Check if the Custom option is already in the dropdown
+                        bool customOptionExists = false;
+                        foreach (var option in UacLevelOptions)
+                        {
+                            if (option.Key == UacLevel.Custom)
+                            {
+                                customOptionExists = true;
+                                break;
+                            }
+                        }
+                        
+                        // Add the Custom option if it doesn't exist
+                        if (!customOptionExists)
+                        {
+                            UacLevelOptions.Add(new KeyValuePair<UacLevel, string>(
+                                UacLevel.Custom, 
+                                UacOptimizations.UacLevelNames[UacLevel.Custom]));
+                            LogInfo("Added Custom UAC setting option to dropdown");
+                        }
+                        
+                        // Log the custom UAC settings values
+                        if (_uacSettingsService.TryGetCustomUacValues(out int consentPromptValue, out int secureDesktopValue))
+                        {
+                            LogInfo($"Custom UAC setting detected: ConsentPrompt={consentPromptValue}, SecureDesktop={secureDesktopValue}");
+                        }
+                    }
+                    else
+                    {
+                        // If not a custom setting, remove the Custom option if it exists
+                        for (int i = UacLevelOptions.Count - 1; i >= 0; i--)
+                        {
+                            if (UacLevelOptions[i].Key == UacLevel.Custom)
+                            {
+                                UacLevelOptions.RemoveAt(i);
+                                LogInfo("Removed Custom UAC setting option from dropdown");
+                                break;
+                            }
+                        }
+                    }
+                    
                     string levelName = GetUacLevelDisplayName(SelectedUacLevel);
                     LogInfo($"Loaded UAC Notification Level: {levelName}");
                 }
@@ -171,6 +238,7 @@ namespace Winhance.WPF.Features.Optimize.ViewModels
                 {
                     LogError($"Error loading UAC notification level: {ex.Message}");
                     SelectedUacLevel = UacLevel.NotifyChangesOnly; // Default to standard notification level if there's an error
+                    HasCustomUacSetting = false;
                 }
 
                 await Task.CompletedTask;

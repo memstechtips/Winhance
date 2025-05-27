@@ -625,8 +625,9 @@ namespace Winhance.WPF
                     provider => new Winhance.Infrastructure.Features.Common.Services.WindowsSystemService(
                         provider.GetRequiredService<IRegistryService>(),
                         provider.GetRequiredService<ILogService>(),
-                        provider.GetRequiredService<IInternetConnectivityService>()
-                    // Intentionally not passing IThemeService to break circular dependency
+                        provider.GetRequiredService<IInternetConnectivityService>(),
+                        null, // Intentionally not passing IThemeService to break circular dependency
+                        provider.GetRequiredService<IUacSettingsService>()
                     )
                 );
 
@@ -761,13 +762,22 @@ namespace Winhance.WPF
                     provider.GetRequiredService<IAppInstallationCoordinatorService>()
                 ));
 
+                // Register UacSettingsService
+                services.AddSingleton<IUacSettingsService, UacSettingsService>(
+                    provider => new UacSettingsService(
+                        provider.GetRequiredService<UserPreferencesService>(),
+                        provider.GetRequiredService<ILogService>()
+                    )
+                );
+
                 // Register child ViewModels for OptimizeViewModel
                 services.AddSingleton<WindowsSecurityOptimizationsViewModel>(
                     provider => new WindowsSecurityOptimizationsViewModel(
                         provider.GetRequiredService<ITaskProgressService>(),
                         provider.GetRequiredService<IRegistryService>(),
                         provider.GetRequiredService<ILogService>(),
-                        provider.GetRequiredService<ISystemServices>()
+                        provider.GetRequiredService<ISystemServices>(),
+                        provider.GetRequiredService<IUacSettingsService>()
                     )
                 );
 

@@ -25,5 +25,11 @@ namespace Winhance.Core.Models.Enums
         /// or when the user makes changes to Windows settings.
         /// </summary>
         AlwaysNotify = 3,
+
+        /// <summary>
+        /// Custom UAC setting that doesn't match any of the standard Windows GUI options.
+        /// This is used when the registry contains values that don't match the standard options.
+        /// </summary>
+        Custom = 99,
     }
 }
