@@ -95,26 +95,42 @@ jobs:
           echo "EOF" >> $GITHUB_OUTPUT
         shell: bash
         
-      - name: Process template
-        id: process_template
+      - name: Create simple release notes
+        id: release_notes
         run: |
-          template="${{ steps.get_template.outputs.TEMPLATE }}"
           version="${{ steps.get_version.outputs.VERSION }}"
           commits="${{ steps.get_commits.outputs.COMMITS }}"
           pull_requests="${{ steps.get_commits.outputs.PULL_REQUESTS }}"
           
-          # Replace version placeholder
-          template="${template//\[VERSION\]/$version}"
+          # Start with a basic template
+          notes="# Winhance v$version Release\n\n"
           
-          # Add commit messages to What's New section if there are any
+          # Add What's New section with commits or PRs
+          notes="${notes}## What's New\n"
           if [ ! -z "$pull_requests" ]; then
-            template=$(echo "$template" | sed '/## What.s New/{n;s/- /'"$pull_requests"'\n/}')
+            notes="${notes}$pull_requests\n"
           elif [ ! -z "$commits" ]; then
-            template=$(echo "$template" | sed '/## What.s New/{n;s/- /'"$commits"'\n/}')
+            notes="${notes}$commits\n"
+          else
+            notes="${notes}- Updates and improvements\n"
           fi
           
-          echo "PROCESSED_TEMPLATE<<EOF" >> $GITHUB_OUTPUT
-          echo "$template" >> $GITHUB_OUTPUT
+          # Add Installation section
+          notes="${notes}\n## Installation\n"
+          notes="${notes}Download from [winhance.net](https://winhance.net) or directly from this release.\n\n"
+          notes="${notes}The Winhance.Installer.exe includes both Installable and Portable versions during setup.\n\n"
+          
+          # Add Compatibility section
+          notes="${notes}## Compatibility\n"
+          notes="${notes}- Windows 10/11\n"
+          notes="${notes}  - Tested on Windows 10 x64 22H2 and Windows 11 24H2\n\n"
+          
+          # Add Feedback section
+          notes="${notes}## Feedback\n"
+          notes="${notes}Please report any issues on the [GitHub Issues page](https://github.com/memstechtips/Winhance/issues)\n"
+          
+          echo "NOTES<<EOF" >> $GITHUB_OUTPUT
+          echo -e "$notes" >> $GITHUB_OUTPUT
           echo "EOF" >> $GITHUB_OUTPUT
         shell: bash
         
@@ -123,7 +139,7 @@ jobs:
         uses: softprops/action-gh-release@v1
         with:
           name: Winhance v${{ steps.get_version.outputs.VERSION }}
-          body: ${{ steps.process_template.outputs.PROCESSED_TEMPLATE }}
+          body: ${{ steps.release_notes.outputs.NOTES }}
           draft: true # Create as draft so you can upload files manually
           prerelease: ${{ contains(github.ref, 'beta') || contains(github.ref, 'alpha') }}
         env:
