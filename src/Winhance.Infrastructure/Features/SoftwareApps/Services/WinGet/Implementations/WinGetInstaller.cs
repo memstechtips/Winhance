@@ -158,9 +158,21 @@ namespace Winhance.Infrastructure.Features.SoftwareApps.Services.WinGet.Implemen
                     await Task.Delay(TimeSpan.FromSeconds(3), cancellationToken)
                         .ConfigureAwait(false);
 
-                    var verification = await _installationVerifier
-                        .VerifyInstallationAsync(packageId, options.Version, cancellationToken)
-                        .ConfigureAwait(false);
+                    VerificationResult verification;
+                    
+                    // Check if version is null or empty and use the appropriate overload
+                    if (string.IsNullOrWhiteSpace(options.Version))
+                    {
+                        verification = await _installationVerifier
+                            .VerifyInstallationAsync(packageId, cancellationToken)
+                            .ConfigureAwait(false);
+                    }
+                    else
+                    {
+                        verification = await _installationVerifier
+                            .VerifyInstallationAsync(packageId, options.Version, cancellationToken)
+                            .ConfigureAwait(false);
+                    }
 
                     // If verification succeeds, great! If not, but WinGet reported success, trust WinGet
                     bool success = verification.IsVerified || result.ExitCode == 0;
@@ -320,9 +332,21 @@ namespace Winhance.Infrastructure.Features.SoftwareApps.Services.WinGet.Implemen
                     await Task.Delay(TimeSpan.FromSeconds(3), cancellationToken)
                         .ConfigureAwait(false);
 
-                    var verificationResult = await _installationVerifier
-                        .VerifyInstallationAsync(packageId, options.Version, cancellationToken)
-                        .ConfigureAwait(false);
+                    VerificationResult verificationResult;
+                    
+                    // Check if version is null or empty and use the appropriate overload
+                    if (string.IsNullOrWhiteSpace(options.Version))
+                    {
+                        verificationResult = await _installationVerifier
+                            .VerifyInstallationAsync(packageId, cancellationToken)
+                            .ConfigureAwait(false);
+                    }
+                    else
+                    {
+                        verificationResult = await _installationVerifier
+                            .VerifyInstallationAsync(packageId, options.Version, cancellationToken)
+                            .ConfigureAwait(false);
+                    }
 
                     // If verification succeeds, great! If not, but WinGet reported success, trust WinGet
                     bool success = verificationResult.IsVerified || result.ExitCode == 0;
@@ -531,11 +555,13 @@ namespace Winhance.Infrastructure.Features.SoftwareApps.Services.WinGet.Implemen
                 $"search {EscapeArgument(query)} --accept-source-agreements"
             );
 
-            if (options.IncludeAvailable)
-                arguments.Append(" --available");
+            // The --available parameter is not supported in WinGet version (v1.9.25200) and earlier
+            // Removed to prevent command errors
+            // if (options.IncludeAvailable)
+            //     arguments.Append(" --available");
 
             if (options.Count > 0)
-                arguments.Append($" --max {options.Count}");
+                arguments.Append($" --count {options.Count}");
 
             try
             {
@@ -571,11 +597,8 @@ namespace Winhance.Infrastructure.Features.SoftwareApps.Services.WinGet.Implemen
             };
         }
 
-        /// <summary>
-        /// Checks if WinGet is available in the PATH.
-        /// </summary>
-        /// <returns>True if WinGet is in the PATH, false otherwise.</returns>
-        private bool IsWinGetInPath()
+        /// <inheritdoc/>
+        public bool IsWinGetInPath()
         {
             var pathEnv = Environment.GetEnvironmentVariable("PATH") ?? string.Empty;
             return pathEnv
@@ -583,11 +606,8 @@ namespace Winhance.Infrastructure.Features.SoftwareApps.Services.WinGet.Implemen
                 .Any(p => !string.IsNullOrEmpty(p) && File.Exists(Path.Combine(p, WinGetExe)));
         }
         
-        /// <summary>
-        /// Tries to verify WinGet is working by running a simple command (winget -v)
-        /// </summary>
-        /// <returns>True if WinGet command works, false otherwise</returns>
-        private bool TryVerifyWinGetCommand()
+        /// <inheritdoc/>
+        public bool TryVerifyWinGetCommand()
         {
             try
             {
@@ -687,7 +707,8 @@ namespace Winhance.Infrastructure.Features.SoftwareApps.Services.WinGet.Implemen
             }
         }
 
-        private async Task<bool> TryInstallWinGetAsync(CancellationToken cancellationToken)
+        /// <inheritdoc/>
+        public async Task<bool> TryInstallWinGetAsync(CancellationToken cancellationToken = default)
         {
             try
             {
@@ -727,7 +748,8 @@ namespace Winhance.Infrastructure.Features.SoftwareApps.Services.WinGet.Implemen
             }
         }
 
-        private async Task<(string WinGetPath, bool JustInstalled)> FindWinGetPathAsync(
+        /// <inheritdoc/>
+        public async Task<(string WinGetPath, bool JustInstalled)> FindWinGetPathAsync(
             CancellationToken cancellationToken = default
         )
         {
@@ -766,7 +788,11 @@ namespace Winhance.Infrastructure.Features.SoftwareApps.Services.WinGet.Implemen
                     
                     if (Directory.Exists(directory))
                     {
-                        var matchingFiles = Directory.GetFiles(directory, filePattern, SearchOption.AllDirectories);
+                        var matchingFiles = Directory.GetFiles(
+                            directory,
+                            filePattern,
+                            SearchOption.AllDirectories
+                        );
                         if (matchingFiles.Length > 0)
                         {
                             foundPath = matchingFiles[0];
@@ -812,7 +838,11 @@ namespace Winhance.Infrastructure.Features.SoftwareApps.Services.WinGet.Implemen
                         
                         if (Directory.Exists(directory))
                         {
-                            var matchingFiles = Directory.GetFiles(directory, filePattern, SearchOption.AllDirectories);
+                            var matchingFiles = Directory.GetFiles(
+                                directory,
+                                filePattern,
+                                SearchOption.AllDirectories
+                            );
                             if (matchingFiles.Length > 0)
                             {
                                 foundPath = matchingFiles[0];
@@ -838,7 +868,7 @@ namespace Winhance.Infrastructure.Features.SoftwareApps.Services.WinGet.Implemen
         {
             try
             {
-                // Call the async method synchronously
+                // Call the public async method synchronously
                 var result = FindWinGetPathAsync().GetAwaiter().GetResult();
                 return result.WinGetPath;
             }
@@ -850,8 +880,13 @@ namespace Winhance.Infrastructure.Features.SoftwareApps.Services.WinGet.Implemen
         }
 
         // Installation states have been moved to WinGetOutputParser.InstallationState
+        
+        // Cache for WinGet path to avoid redundant verification
+        private string _cachedWinGetPath = null;
+        private bool _winGetJustInstalled = false;
 
-        private async Task<(int ExitCode, string Output, string Error)> ExecuteWinGetCommandAsync(
+        /// <inheritdoc/>
+        public async Task<(int ExitCode, string Output, string Error)> ExecuteWinGetCommandAsync(
             string command,
             string arguments,
             IProgress<InstallationProgress> progressAdapter = null,
@@ -863,25 +898,41 @@ namespace Winhance.Infrastructure.Features.SoftwareApps.Services.WinGet.Implemen
 
             try
             {
-                // Find WinGet path or install it if not found
+                // Use cached WinGet path if available, otherwise find it
                 string winGetPath;
-                bool justInstalled = false;
-                try
+                bool justInstalled;
+                
+                // Only verify WinGet once per session to avoid redundant checks
+                if (_cachedWinGetPath != null)
                 {
-                    (winGetPath, justInstalled) = await FindWinGetPathAsync(cancellationToken);
+                    winGetPath = _cachedWinGetPath;
+                    justInstalled = _winGetJustInstalled;
+                    _logService?.LogInformation("Using cached WinGet path");
                 }
-                catch (InvalidOperationException ex)
+                else
                 {
-                    _logService?.LogError($"WinGet error: {ex.Message}");
-                    progressAdapter?.Report(
-                        new InstallationProgress
-                        {
-                            Status = $"Error: {ex.Message}",
-                            Percentage = 0,
-                            IsIndeterminate = false,
-                        }
-                    );
-                    return (1, string.Empty, ex.Message);
+                    try
+                    {
+                        // This will verify WinGet is working and available
+                        (winGetPath, justInstalled) = await FindWinGetPathAsync(cancellationToken);
+                        
+                        // Cache the result for future use
+                        _cachedWinGetPath = winGetPath;
+                        _winGetJustInstalled = justInstalled;
+                    }
+                    catch (InvalidOperationException ex)
+                    {
+                        _logService?.LogError($"WinGet error: {ex.Message}");
+                        progressAdapter?.Report(
+                            new InstallationProgress
+                            {
+                                Status = $"Error: {ex.Message}",
+                                Percentage = 0,
+                                IsIndeterminate = false,
+                            }
+                        );
+                        return (1, string.Empty, ex.Message);
+                    }
                 }
                 
                 // If WinGet was just installed, we might need to wait a moment for permissions to be set up
@@ -937,9 +988,11 @@ namespace Winhance.Infrastructure.Features.SoftwareApps.Services.WinGet.Implemen
                     CreateNoWindow = true,
                 };
 
-                _logService?.LogInformation(
-                    $"Starting process: {processStartInfo.FileName} {processStartInfo.Arguments}"
-                );
+                // Only log the WinGet path when it's not from cache to avoid duplicate logging
+                if (_cachedWinGetPath == null)
+                {
+                    _logService?.LogInformation($"Using WinGet path: {processStartInfo.FileName}");
+                }
 
                 var process = new Process
                 {

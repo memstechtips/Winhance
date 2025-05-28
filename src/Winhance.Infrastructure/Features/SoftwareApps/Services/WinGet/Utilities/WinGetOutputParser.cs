@@ -28,6 +28,8 @@ namespace Winhance.Infrastructure.Features.SoftwareApps.Services.WinGet.Utilitie
             _logService = logService;
         }
 
+        // We're using a simpler approach now that directly filters out download information from logs
+
         /// <summary>
         /// Parses a line of WinGet output and generates an appropriate progress update.
         /// Uses an indeterminate progress indicator and displays raw WinGet output.
@@ -41,7 +43,41 @@ namespace Winhance.Infrastructure.Features.SoftwareApps.Services.WinGet.Utilitie
                 return null;
             }
 
-            _logService?.LogInformation($"WinGet output: {outputLine}");
+            // Skip logging specific types of output to reduce log noise
+            bool shouldLog = true;
+            
+            // Skip version outputs (like "v1.9.25200")
+            if (outputLine.StartsWith("v") && outputLine.Length <= 15)
+            {
+                shouldLog = false;
+            }
+            // Skip progress bar outputs and download information
+            else if (outputLine.Contains("Γûê") || outputLine.Contains("Γû") || 
+                    outputLine.Trim() == "-" || outputLine.Trim() == "\\" || 
+                    outputLine.Trim() == "|" || outputLine.Trim() == "/" ||
+                    outputLine.Contains("Download information") ||
+                    (outputLine.Contains("MB") && outputLine.Contains("/")) ||
+                    (outputLine.Contains("KB") && outputLine.Contains("/")))
+            {
+                shouldLog = false;
+                
+                // Only log the initial download URL, not the progress bars
+                if (outputLine.Contains("Downloading ") && outputLine.Contains("http"))
+                {
+                    _logService?.LogInformation($"Downloading: {outputLine.Trim()}");
+                }
+                
+                // Still update progress state for progress reporting
+                if (outputLine.Contains("MB") || outputLine.Contains("KB"))
+                {
+                    _currentState = InstallationState.Downloading;
+                }
+            }
+            
+            if (shouldLog)
+            {
+                _logService?.LogInformation($"WinGet output: {outputLine}");
+            }
             
             // If this is the first output line, transition from Starting state
             if (!_hasStarted)
@@ -102,8 +138,12 @@ namespace Winhance.Infrastructure.Features.SoftwareApps.Services.WinGet.Utilitie
                 )
             )
             {
-                _logService?.LogInformation($"Download information detected: {outputLine}");
-
+                // Only log the initial download URL, not the progress bars
+                if (outputLine.Contains("Downloading ") && outputLine.Contains("http"))
+                {
+                    _logService?.LogInformation($"Downloading: {outputLine.Trim()}");
+                }
+                
                 // Set the current state to Downloading
                 _currentState = InstallationState.Downloading;
 
