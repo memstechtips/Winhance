@@ -19,7 +19,7 @@
 ## Installation
 Download from [winhance.net](https://winhance.net) or directly from this release.
 
-The `Winhance.Installer.exe` includes both Installable and Portable versions during setup.
+The Winhance.Installer.exe includes both Installable and Portable versions during setup.
 
 ## Compatibility
 - Windows 10/11
