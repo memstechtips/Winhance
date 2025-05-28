@@ -49,6 +49,9 @@ WizardStyle=modern
 DisableDirPage=no
 ; Only create uninstaller for regular installations
 Uninstallable=WizardIsTaskSelected('regularinstall')
+; Close applications before installation/uninstallation
+CloseApplications=yes
+CloseApplicationsFilter=*{#MyAppExeName}
 
 [Languages]
 Name: "english"; MessagesFile: "compiler:Default.isl"
@@ -64,6 +67,68 @@ begin
     Result := True;  // Always install for regular installation or if checkbox is selected
 end;
 
+function InitializeUninstall(): Boolean;
+var
+  ErrorCode: Integer;
+begin
+  Result := True;
+  // Check if the application is running and ask to close it
+  if CheckForMutexes('WinhanceSetupMutex') then
+  begin
+    if MsgBox('Winhance is currently running. Do you want to close it before uninstalling?', 
+              mbConfirmation, MB_YESNO) = IDYES then
+    begin
+      // Try to close the application gracefully
+      ShellExec('open', 'taskkill.exe', '/f /im {#MyAppExeName}', '', SW_HIDE, ewWaitUntilTerminated, ErrorCode);
+    end;
+  end;
+end;
+
+// Clean up old installation files while preserving user data
+procedure CleanupOldInstallation;
+var
+  FindRec: TFindRec;
+  OldInstallPath: String;
+  ScriptsPath: String;
+  HasScriptsFolder: Boolean;
+begin
+  OldInstallPath := ExpandConstant('{app}');
+  ScriptsPath := OldInstallPath + '\Scripts';
+  HasScriptsFolder := DirExists(ScriptsPath);
+  
+  // Only perform cleanup if this is an update (directory already exists)
+  if DirExists(OldInstallPath) then
+  begin
+    // Delete all files in the root directory
+    if FindFirst(OldInstallPath + '\*.*', FindRec) then
+    begin
+      try
+        repeat
+          if (FindRec.Attributes and FILE_ATTRIBUTE_DIRECTORY) = 0 then
+            DeleteFile(OldInstallPath + '\' + FindRec.Name);
+        until not FindNext(FindRec);
+      finally
+        FindClose(FindRec);
+      end;
+    end;
+    
+    // Delete all subdirectories except Scripts
+    if FindFirst(OldInstallPath + '\*.*', FindRec) then
+    begin
+      try
+        repeat
+          if ((FindRec.Attributes and FILE_ATTRIBUTE_DIRECTORY) <> 0) and
+             (FindRec.Name <> '.') and (FindRec.Name <> '..') and
+             (CompareText(FindRec.Name, 'Scripts') <> 0) then
+            DelTree(OldInstallPath + '\' + FindRec.Name, True, True, True);
+        until not FindNext(FindRec);
+      finally
+        FindClose(FindRec);
+      end;
+    end;
+  end;
+end;
+
 var
   UserSelectedDir: String;
   IsFirstRun: Boolean;
@@ -73,6 +138,14 @@ begin
   // Initialize variables
   IsFirstRun := True;
   UserSelectedDir := '';
+end;
+
+// This function runs right before the actual installation starts
+function PrepareToInstall(var NeedsRestart: Boolean): String;
+begin
+  // Clean up old installation files while preserving user data
+  CleanupOldInstallation;
+  Result := '';
 end;
 
 function NextButtonClick(CurPageID: Integer): Boolean;
@@ -114,7 +187,26 @@ Name: "regularinstall\startmenuicon"; Description: "Create a shortcut in the Sta
 
 [Files]
 Source: "C:\Winhance\src\Winhance.WPF\bin\Release\net9.0-windows\win-x64\{#MyAppExeName}"; DestDir: "{app}"; Flags: ignoreversion
-Source: "C:\Winhance\src\Winhance.WPF\bin\Release\net9.0-windows\win-x64\*"; DestDir: "{app}"; Flags: ignoreversion recursesubdirs createallsubdirs
+Source: "C:\Winhance\src\Winhance.WPF\bin\Release\net9.0-windows\win-x64\*.dll"; DestDir: "{app}"; Flags: ignoreversion
+Source: "C:\Winhance\src\Winhance.WPF\bin\Release\net9.0-windows\win-x64\*.json"; DestDir: "{app}"; Flags: ignoreversion
+Source: "C:\Winhance\src\Winhance.WPF\bin\Release\net9.0-windows\win-x64\*.pdb"; DestDir: "{app}"; Flags: ignoreversion
+; Copy only necessary Windows x64 runtime files
+Source: "C:\Winhance\src\Winhance.WPF\bin\Release\net9.0-windows\win-x64\runtimes\win\*"; DestDir: "{app}\runtimes\win"; Flags: ignoreversion recursesubdirs createallsubdirs
+Source: "C:\Winhance\src\Winhance.WPF\bin\Release\net9.0-windows\win-x64\runtimes\win-x64\*"; DestDir: "{app}\runtimes\win-x64"; Flags: ignoreversion recursesubdirs createallsubdirs
+; Copy language folders for internationalization
+Source: "C:\Winhance\src\Winhance.WPF\bin\Release\net9.0-windows\win-x64\cs\*"; DestDir: "{app}\cs"; Flags: ignoreversion recursesubdirs createallsubdirs
+Source: "C:\Winhance\src\Winhance.WPF\bin\Release\net9.0-windows\win-x64\de\*"; DestDir: "{app}\de"; Flags: ignoreversion recursesubdirs createallsubdirs
+Source: "C:\Winhance\src\Winhance.WPF\bin\Release\net9.0-windows\win-x64\es\*"; DestDir: "{app}\es"; Flags: ignoreversion recursesubdirs createallsubdirs
+Source: "C:\Winhance\src\Winhance.WPF\bin\Release\net9.0-windows\win-x64\fr\*"; DestDir: "{app}\fr"; Flags: ignoreversion recursesubdirs createallsubdirs
+Source: "C:\Winhance\src\Winhance.WPF\bin\Release\net9.0-windows\win-x64\it\*"; DestDir: "{app}\it"; Flags: ignoreversion recursesubdirs createallsubdirs
+Source: "C:\Winhance\src\Winhance.WPF\bin\Release\net9.0-windows\win-x64\ja\*"; DestDir: "{app}\ja"; Flags: ignoreversion recursesubdirs createallsubdirs
+Source: "C:\Winhance\src\Winhance.WPF\bin\Release\net9.0-windows\win-x64\ko\*"; DestDir: "{app}\ko"; Flags: ignoreversion recursesubdirs createallsubdirs
+Source: "C:\Winhance\src\Winhance.WPF\bin\Release\net9.0-windows\win-x64\pl\*"; DestDir: "{app}\pl"; Flags: ignoreversion recursesubdirs createallsubdirs
+Source: "C:\Winhance\src\Winhance.WPF\bin\Release\net9.0-windows\win-x64\pt-BR\*"; DestDir: "{app}\pt-BR"; Flags: ignoreversion recursesubdirs createallsubdirs
+Source: "C:\Winhance\src\Winhance.WPF\bin\Release\net9.0-windows\win-x64\ru\*"; DestDir: "{app}\ru"; Flags: ignoreversion recursesubdirs createallsubdirs
+Source: "C:\Winhance\src\Winhance.WPF\bin\Release\net9.0-windows\win-x64\tr\*"; DestDir: "{app}\tr"; Flags: ignoreversion recursesubdirs createallsubdirs
+Source: "C:\Winhance\src\Winhance.WPF\bin\Release\net9.0-windows\win-x64\zh-Hans\*"; DestDir: "{app}\zh-Hans"; Flags: ignoreversion recursesubdirs createallsubdirs
+Source: "C:\Winhance\src\Winhance.WPF\bin\Release\net9.0-windows\win-x64\zh-Hant\*"; DestDir: "{app}\zh-Hant"; Flags: ignoreversion recursesubdirs createallsubdirs
 ; Include .NET 9 Runtime installer
 Source: "C:\Winhance\extras\prerequisites\{#DotNetRuntimeInstallerName}"; DestDir: "{tmp}"; Flags: ignoreversion deleteafterinstall
 ; Create a marker file for portable installations
@@ -140,4 +232,18 @@ Filename: "{tmp}\{#DotNetRuntimeInstallerName}"; Parameters: "/install /quiet /n
 
 ; Launch application after installation
 Filename: "{app}\{#MyAppExeName}"; Description: "{cm:LaunchProgram,{#StringChange(MyAppName, '&', '&&')}}"; Flags: nowait postinstall skipifsilent
+
+[UninstallDelete]
+; Delete all files and directories that might remain after uninstallation
+Type: files; Name: "{app}\*.dll"
+Type: files; Name: "{app}\*.exe"
+Type: files; Name: "{app}\*.json"
+Type: files; Name: "{app}\*.config"
+Type: files; Name: "{app}\*.pdb"
+Type: files; Name: "{app}\*.xml"
+Type: files; Name: "{app}\*.log"
+Type: filesandordirs; Name: "{app}\runtimes"
+Type: filesandordirs; Name: "{app}\Scripts"
+Type: filesandordirs; Name: "{app}\*"
+Type: dirifempty; Name: "{app}"
 

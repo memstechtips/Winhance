@@ -72,16 +72,18 @@ namespace Winhance.Infrastructure.Features.Common.Services
     public class WindowsSystemService : ISystemServices
     {
         // Dependencies
-        private readonly IInternetConnectivityService _connectivityService;
         private readonly IRegistryService _registryService;
         private readonly ILogService _logService;
         private readonly IThemeService _themeService;
+        private readonly IUacSettingsService _uacSettingsService;
+        private readonly IInternetConnectivityService _connectivityService;
 
         public WindowsSystemService(
             IRegistryService registryService,
             ILogService logService,
             IInternetConnectivityService connectivityService,
-            IThemeService themeService = null
+            IThemeService themeService = null,
+            IUacSettingsService uacSettingsService = null
         ) // Optional to maintain backward compatibility
         {
             _registryService =
@@ -90,6 +92,7 @@ namespace Winhance.Infrastructure.Features.Common.Services
             _connectivityService =
                 connectivityService ?? throw new ArgumentNullException(nameof(connectivityService));
             _themeService = themeService; // May be null if not provided
+            _uacSettingsService = uacSettingsService; // May be null if not provided
         }
 
         /// <summary>
@@ -525,6 +528,50 @@ namespace Winhance.Infrastructure.Features.Common.Services
                 // No need to convert as we're already using the Core UacLevel
                 Winhance.Core.Models.Enums.UacLevel coreLevel = level;
 
+                // Special handling for Custom UAC level
+                if (coreLevel == Winhance.Core.Models.Enums.UacLevel.Custom)
+                {
+                    // For Custom level, try to get the saved custom settings and apply them
+                    if (_uacSettingsService != null && _uacSettingsService.TryGetCustomUacValues(
+                        out int customConsentPromptValue, 
+                        out int customSecureDesktopValue))
+                    {
+                        _logService.Log(
+                            LogLevel.Info,
+                            $"Applying saved custom UAC settings: ConsentPrompt={customConsentPromptValue}, SecureDesktop={customSecureDesktopValue}"
+                        );
+                        
+                        string registryPath = $"HKLM\\{UacOptimizations.RegistryPath}";
+                        
+                        // Set the ConsentPromptBehaviorAdmin value
+                        _registryService.SetValue(
+                            registryPath,
+                            UacOptimizations.ConsentPromptName,
+                            customConsentPromptValue,
+                            UacOptimizations.ValueKind
+                        );
+                        
+                        // Set the PromptOnSecureDesktop value
+                        _registryService.SetValue(
+                            registryPath,
+                            UacOptimizations.SecureDesktopName,
+                            customSecureDesktopValue,
+                            UacOptimizations.ValueKind
+                        );
+                        
+                        return;
+                    }
+                    else
+                    {
+                        // No saved custom settings found
+                        _logService.Log(
+                            LogLevel.Warning,
+                            "Custom UAC level selected but no saved settings found - preserving current registry settings"
+                        );
+                        return;
+                    }
+                }
+
                 // Get both registry values for the selected UAC level
                 if (
                     !UacOptimizations.UacLevelToConsentPromptValue.TryGetValue(
@@ -615,7 +662,8 @@ namespace Winhance.Infrastructure.Features.Common.Services
                 Winhance.Core.Models.Enums.UacLevel coreLevel =
                     UacOptimizations.GetUacLevelFromRegistryValues(
                         consentPromptInt,
-                        secureDesktopInt
+                        secureDesktopInt,
+                        _uacSettingsService
                     );
                 string levelName = UacOptimizations.UacLevelNames.TryGetValue(
                     coreLevel,
