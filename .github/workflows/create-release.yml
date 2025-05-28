@@ -25,8 +25,8 @@ jobs:
       - name: Get release template
         id: get_template
         run: |
-          if [ -f ".github/RELEASE_TEMPLATE.md" ]; then
-            template=$(cat .github/RELEASE_TEMPLATE.md)
+          if [ -f ".github/RELEASE_TEMPLATE_SIMPLIFIED.md" ]; then
+            template=$(cat .github/RELEASE_TEMPLATE_SIMPLIFIED.md)
             echo "TEMPLATE<<EOF" >> $GITHUB_OUTPUT
             echo "$template" >> $GITHUB_OUTPUT
             echo "EOF" >> $GITHUB_OUTPUT
