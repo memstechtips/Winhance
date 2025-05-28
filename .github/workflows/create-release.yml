@@ -101,21 +101,49 @@ jobs:
         id: release_notes
         run: |
           version="${{ steps.get_version.outputs.VERSION }}"
-          current_tag="${GITHUB_REF#refs/tags/}"
           
-          # Get the template content
-          template_content="${{ steps.get_template.outputs.TEMPLATE }}"
+          # Use a simplified approach to avoid complex string replacements
+          cat > release_notes.md << 'EOL'
+          ## What's Changed
+          <!-- GitHub will automatically populate this section -->
+
+          **Full Changelog**: <!-- GitHub will automatically populate this -->
+
+          ## 🔐 Security Info
+
+          **Important:** Please verify your download using the information below. Any file with different values for this particular version is not from the official source.
+
+          - **Winhance.Installer.exe**
+            - Size:   
+            - SHA256:   
+
+          - **Winhance.exe**
+            - Size: 
+            - SHA256:   
+
+          ## Known Issues
+          <!-- List known issues -->
+          - 
+
+          ## Installation
+          Download from [winhance.net](https://winhance.net) or directly from this release.
+
+          The Winhance.Installer.exe includes both Installable and Portable versions during setup.
+
+          ## Compatibility
+          - Windows 10/11
+            - Tested on Windows 10 x64 22H2 and Windows 11 24H2
+
+          ## Feedback
+          Please report any issues on the [GitHub Issues page](https://github.com/memstechtips/Winhance/issues).
+          EOL
           
-          # Start with the template and replace version placeholders
-          notes="$template_content"
-          notes="${notes/VERSION/$version}"
+          # Replace version if needed
+          sed -i "s/VERSION/$version/g" release_notes.md
           
-          # Remove the placeholder comments for GitHub's automatic sections
-          notes="${notes/\<!-- This section will be automatically populated by GitHub's release notes generation --\>/}"
-          notes="${notes/\<!-- Will be automatically populated --\>/}"
-          
+          # Set as output
           echo "NOTES<<EOF" >> $GITHUB_OUTPUT
-          echo -e "$notes" >> $GITHUB_OUTPUT
+          cat release_notes.md >> $GITHUB_OUTPUT
           echo "EOF" >> $GITHUB_OUTPUT
         shell: bash
         
