@@ -114,17 +114,10 @@ jobs:
         id: release_notes
         run: |
           version="${{ steps.get_version.outputs.VERSION }}"
-          detailed_commits="${{ steps.get_commits.outputs.DETAILED_COMMITS }}"
           
           # Use a simplified approach to avoid complex string replacements
           cat > release_notes.md << 'EOL'
-          ## What's Changed
-          <!-- GitHub will automatically populate this section -->
 
-          **Full Changelog**: <!-- GitHub will automatically populate this -->
-
-          ## Detailed Changes
-          DETAILED_COMMITS_PLACEHOLDER
 
           ## 🔐 Security Info
 
@@ -134,22 +127,10 @@ jobs:
             - Size:   
             - SHA256:   
 
-          - **Winhance.exe**
-            - Size: 
-            - SHA256:   
-
-          ## Known Issues
-          <!-- List known issues -->
-          - 
-
           ## Installation
           Download from [winhance.net](https://winhance.net) or directly from this release.
 
           The Winhance.Installer.exe includes both Installable and Portable versions during setup.
-
-          ## Compatibility
-          - Windows 10/11
-            - Tested on Windows 10 x64 22H2 and Windows 11 24H2
 
           ## Feedback
           Please report any issues on the [GitHub Issues page](https://github.com/memstechtips/Winhance/issues).
@@ -157,15 +138,6 @@ jobs:
           
           # Replace version if needed
           sed -i "s/VERSION/$version/g" release_notes.md
-          
-          # Replace detailed commits placeholder with a safer approach
-          # First save detailed commits to a temporary file
-          echo "$detailed_commits" > detailed_commits_temp.txt
-          
-          # Then use a safer approach to insert the content
-          awk -v r="$(cat detailed_commits_temp.txt)" '{gsub(/DETAILED_COMMITS_PLACEHOLDER/,r)}1' release_notes.md > temp_notes.md
-          mv temp_notes.md release_notes.md
-          rm detailed_commits_temp.txt
           
           # Set as output
           echo "NOTES<<EOF" >> $GITHUB_OUTPUT
