@@ -25,8 +25,8 @@ jobs:
       - name: Get release template
         id: get_template
         run: |
-          if [ -f ".github/RELEASE_TEMPLATE_SIMPLIFIED.md" ]; then
-            template=$(cat .github/RELEASE_TEMPLATE_SIMPLIFIED.md)
+          if [ -f ".github/RELEASE_TEMPLATE.md" ]; then
+            template=$(cat .github/RELEASE_TEMPLATE.md)
             echo "TEMPLATE<<EOF" >> $GITHUB_OUTPUT
             echo "$template" >> $GITHUB_OUTPUT
             echo "EOF" >> $GITHUB_OUTPUT
@@ -93,41 +93,58 @@ jobs:
           echo "PULL_REQUESTS<<EOF" >> $GITHUB_OUTPUT
           echo "$pr_list" >> $GITHUB_OUTPUT
           echo "EOF" >> $GITHUB_OUTPUT
+          
+          echo "PREVIOUS_TAG=$previous_tag" >> $GITHUB_OUTPUT
         shell: bash
         
-      - name: Create simple release notes
+      - name: Create enhanced release notes
         id: release_notes
         run: |
           version="${{ steps.get_version.outputs.VERSION }}"
           commits="${{ steps.get_commits.outputs.COMMITS }}"
           pull_requests="${{ steps.get_commits.outputs.PULL_REQUESTS }}"
+          current_tag="${GITHUB_REF#refs/tags/}"
           
-          # Start with a basic template
-          notes="# Winhance v$version Release\n\n"
+          # Get the template content
+          template_content="${{ steps.get_template.outputs.TEMPLATE }}"
           
-          # Add What's New section with commits or PRs
-          notes="${notes}## What's New\n"
+          # Start with the template and replace version placeholders
+          notes="$template_content"
+          notes="${notes/VERSION/$version}"
+          
+          # Populate What's New section with PRs
           if [ ! -z "$pull_requests" ]; then
-            notes="${notes}$pull_requests\n"
-          elif [ ! -z "$commits" ]; then
-            notes="${notes}$commits\n"
+            # Replace the placeholder in What's New section
+            notes="${notes/\<!-- List new features and improvements --\>\n- /$pull_requests}"
           else
-            notes="${notes}- Updates and improvements\n"
+            # If no PRs, use commits for What's New
+            notes="${notes/\<!-- List new features and improvements --\>\n- /$commits}"
           fi
           
-          # Add Installation section
-          notes="${notes}\n## Installation\n"
-          notes="${notes}Download from [winhance.net](https://winhance.net) or directly from this release.\n\n"
-          notes="${notes}The Winhance.Installer.exe includes both Installable and Portable versions during setup.\n\n"
+          # Extract bug fix related commits
+          bug_fixes=$(echo "$commits" | grep -i "fix\|bug\|issue\|crash\|error" || echo "")
           
-          # Add Compatibility section
-          notes="${notes}## Compatibility\n"
-          notes="${notes}- Windows 10/11\n"
-          notes="${notes}  - Tested on Windows 10 x64 22H2 and Windows 11 24H2\n\n"
+          # If we found bug fixes, populate the Bug Fixes section
+          if [ ! -z "$bug_fixes" ]; then
+            notes="${notes/\<!-- List fixed issues --\>\n- /$bug_fixes}"
+          else
+            # If no bug fixes found, leave a placeholder
+            notes="${notes/\<!-- List fixed issues --\>\n- /- No specific bug fixes in this release\n}"
+          fi
           
-          # Add Feedback section
-          notes="${notes}## Feedback\n"
-          notes="${notes}Please report any issues on the [GitHub Issues page](https://github.com/memstechtips/Winhance/issues)\n"
+          # Get previous tag from the get_commits step output
+          previous_tag="${{ steps.get_commits.outputs.PREVIOUS_TAG }}"
+          
+          # If previous_tag is empty, use a fallback
+          if [ -z "$previous_tag" ]; then
+            # Add a link to the full changelog on GitHub without comparison
+            changelog_link="\n\n**Full Changelog**: https://github.com/memstechtips/Winhance/commits/$current_tag"
+          else
+            # Add a link to the full changelog on GitHub with comparison
+            changelog_link="\n\n**Full Changelog**: https://github.com/memstechtips/Winhance/compare/$previous_tag...$current_tag"
+          fi
+          
+          notes="${notes/## Known Issues/$changelog_link\n\n## Known Issues}"
           
           echo "NOTES<<EOF" >> $GITHUB_OUTPUT
           echo -e "$notes" >> $GITHUB_OUTPUT
@@ -142,5 +159,6 @@ jobs:
           body: ${{ steps.release_notes.outputs.NOTES }}
           draft: true # Create as draft so you can upload files manually
           prerelease: ${{ contains(github.ref, 'beta') || contains(github.ref, 'alpha') }}
+          generate_release_notes: true # Enable GitHub's automatic release notes generation
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
