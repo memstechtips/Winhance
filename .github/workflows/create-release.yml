@@ -38,19 +38,53 @@ jobs:
       - name: Get commit messages
         id: get_commits
         run: |
-          # Get the previous tag
-          previous_tag=$(git describe --tags --abbrev=0 HEAD^ 2>/dev/null || echo "")
+          # Get all tags sorted by version
+          all_tags=$(git tag -l | sort -V)
+          
+          # Get current tag from ref
+          current_tag=${GITHUB_REF#refs/tags/}
+          
+          # Find the previous tag
+          previous_tag=""
+          found_current=false
+          
+          for tag in $all_tags; do
+            if [ "$found_current" = true ]; then
+              previous_tag=$tag
+              break
+            fi
+            
+            if [ "$tag" = "$current_tag" ]; then
+              found_current=true
+            else
+              previous_tag=$tag
+            fi
+          done
+          
+          echo "Current tag: $current_tag"
+          echo "Previous tag: $previous_tag"
           
           if [ -z "$previous_tag" ]; then
-            # If no previous tag, get all commits
-            commit_list=$(git log --pretty=format:"- %s" | grep -v "Merge pull request" | grep -v "Merge branch")
+            # If no previous tag, get recent commits (limit to 20)
+            echo "No previous tag found, getting recent commits"
+            commit_list=$(git log -20 --pretty=format:"- %s" | grep -v "Merge pull request" | grep -v "Merge branch" || echo "- Initial release")
           else
             # Get commits between previous tag and current tag
-            commit_list=$(git log --pretty=format:"- %s" $previous_tag..HEAD | grep -v "Merge pull request" | grep -v "Merge branch")
+            echo "Getting commits between $previous_tag and $current_tag"
+            commit_list=$(git log --pretty=format:"- %s" $previous_tag..$current_tag | grep -v "Merge pull request" | grep -v "Merge branch" || echo "- No direct commits found")
           fi
           
-          # Get pull request titles
-          pr_list=$(git log --pretty=format:"%s" $previous_tag..HEAD | grep "Merge pull request" | sed 's/Merge pull request #[0-9]* from [^/]*\///g' | sed 's/-/ /g' | sed 's/_/ /g' | sed 's/^/- /')
+          # Get pull request titles (with fallback)
+          if [ -z "$previous_tag" ]; then
+            pr_list=$(git log -20 --pretty=format:"%s" | grep "Merge pull request" | sed 's/Merge pull request #[0-9]* from [^/]*\///g' | sed 's/-/ /g' | sed 's/_/ /g' | sed 's/^/- /' || echo "")
+          else
+            pr_list=$(git log --pretty=format:"%s" $previous_tag..$current_tag | grep "Merge pull request" | sed 's/Merge pull request #[0-9]* from [^/]*\///g' | sed 's/-/ /g' | sed 's/_/ /g' | sed 's/^/- /' || echo "")
+          fi
+          
+          # Ensure we have at least one item in the lists
+          if [ -z "$commit_list" ]; then
+            commit_list="- Updates and improvements"
+          fi
           
           echo "COMMITS<<EOF" >> $GITHUB_OUTPUT
           echo "$commit_list" >> $GITHUB_OUTPUT
