@@ -81,6 +81,15 @@ jobs:
             pr_list=$(git log --pretty=format:"%s" $previous_tag..$current_tag | grep "Merge pull request" | sed 's/Merge pull request #[0-9]* from [^/]*\///g' | sed 's/-/ /g' | sed 's/_/ /g' | sed 's/^/- /' || echo "")
           fi
           
+          # Get detailed commit messages with body
+          if [ -z "$previous_tag" ]; then
+            # If no previous tag, get recent detailed commits (limit to 20)
+            detailed_commits=$(git log -20 --pretty=format:"### %s%n%b" | grep -v "^### Merge pull request" | grep -v "^### Merge branch" || echo "")
+          else
+            # Get detailed commits between previous tag and current tag
+            detailed_commits=$(git log --pretty=format:"### %s%n%b" $previous_tag..$current_tag | grep -v "^### Merge pull request" | grep -v "^### Merge branch" || echo "")
+          fi
+          
           # Ensure we have at least one item in the lists
           if [ -z "$commit_list" ]; then
             commit_list="- Updates and improvements"
@@ -94,6 +103,10 @@ jobs:
           echo "$pr_list" >> $GITHUB_OUTPUT
           echo "EOF" >> $GITHUB_OUTPUT
           
+          echo "DETAILED_COMMITS<<EOF" >> $GITHUB_OUTPUT
+          echo "$detailed_commits" >> $GITHUB_OUTPUT
+          echo "EOF" >> $GITHUB_OUTPUT
+          
           echo "PREVIOUS_TAG=$previous_tag" >> $GITHUB_OUTPUT
         shell: bash
         
@@ -101,6 +114,7 @@ jobs:
         id: release_notes
         run: |
           version="${{ steps.get_version.outputs.VERSION }}"
+          detailed_commits="${{ steps.get_commits.outputs.DETAILED_COMMITS }}"
           
           # Use a simplified approach to avoid complex string replacements
           cat > release_notes.md << 'EOL'
@@ -108,6 +122,9 @@ jobs:
           <!-- GitHub will automatically populate this section -->
 
           **Full Changelog**: <!-- GitHub will automatically populate this -->
+
+          ## Detailed Changes
+          DETAILED_COMMITS_PLACEHOLDER
 
           ## 🔐 Security Info
 
@@ -140,6 +157,15 @@ jobs:
           
           # Replace version if needed
           sed -i "s/VERSION/$version/g" release_notes.md
+          
+          # Replace detailed commits placeholder with a safer approach
+          # First save detailed commits to a temporary file
+          echo "$detailed_commits" > detailed_commits_temp.txt
+          
+          # Then use a safer approach to insert the content
+          awk -v r="$(cat detailed_commits_temp.txt)" '{gsub(/DETAILED_COMMITS_PLACEHOLDER/,r)}1' release_notes.md > temp_notes.md
+          mv temp_notes.md release_notes.md
+          rm detailed_commits_temp.txt
           
           # Set as output
           echo "NOTES<<EOF" >> $GITHUB_OUTPUT
