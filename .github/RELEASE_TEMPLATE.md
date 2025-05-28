@@ -1,14 +1,7 @@
-## What's New
-<!-- List new features and improvements -->
-- 
+## What's Changed
+<!-- This section will be automatically populated by GitHub's release notes generation -->
 
-## Bug Fixes
-<!-- List fixed issues -->
-- 
-
-## Security Updates
-<!-- List security improvements -->
-- 
+**Full Changelog**: <!-- Will be automatically populated -->
 
 ## 🔐 Security Info
 

@@ -97,12 +97,10 @@ jobs:
           echo "PREVIOUS_TAG=$previous_tag" >> $GITHUB_OUTPUT
         shell: bash
         
-      - name: Create enhanced release notes
+      - name: Create simplified release notes
         id: release_notes
         run: |
           version="${{ steps.get_version.outputs.VERSION }}"
-          commits="${{ steps.get_commits.outputs.COMMITS }}"
-          pull_requests="${{ steps.get_commits.outputs.PULL_REQUESTS }}"
           current_tag="${GITHUB_REF#refs/tags/}"
           
           # Get the template content
@@ -112,39 +110,9 @@ jobs:
           notes="$template_content"
           notes="${notes/VERSION/$version}"
           
-          # Populate What's New section with PRs
-          if [ ! -z "$pull_requests" ]; then
-            # Replace the placeholder in What's New section
-            notes="${notes/\<!-- List new features and improvements --\>\n- /$pull_requests}"
-          else
-            # If no PRs, use commits for What's New
-            notes="${notes/\<!-- List new features and improvements --\>\n- /$commits}"
-          fi
-          
-          # Extract bug fix related commits
-          bug_fixes=$(echo "$commits" | grep -i "fix\|bug\|issue\|crash\|error" || echo "")
-          
-          # If we found bug fixes, populate the Bug Fixes section
-          if [ ! -z "$bug_fixes" ]; then
-            notes="${notes/\<!-- List fixed issues --\>\n- /$bug_fixes}"
-          else
-            # If no bug fixes found, leave a placeholder
-            notes="${notes/\<!-- List fixed issues --\>\n- /- No specific bug fixes in this release\n}"
-          fi
-          
-          # Get previous tag from the get_commits step output
-          previous_tag="${{ steps.get_commits.outputs.PREVIOUS_TAG }}"
-          
-          # If previous_tag is empty, use a fallback
-          if [ -z "$previous_tag" ]; then
-            # Add a link to the full changelog on GitHub without comparison
-            changelog_link="\n\n**Full Changelog**: https://github.com/memstechtips/Winhance/commits/$current_tag"
-          else
-            # Add a link to the full changelog on GitHub with comparison
-            changelog_link="\n\n**Full Changelog**: https://github.com/memstechtips/Winhance/compare/$previous_tag...$current_tag"
-          fi
-          
-          notes="${notes/## Known Issues/$changelog_link\n\n## Known Issues}"
+          # Remove the placeholder comments for GitHub's automatic sections
+          notes="${notes/\<!-- This section will be automatically populated by GitHub's release notes generation --\>/}"
+          notes="${notes/\<!-- Will be automatically populated --\>/}"
           
           echo "NOTES<<EOF" >> $GITHUB_OUTPUT
           echo -e "$notes" >> $GITHUB_OUTPUT
