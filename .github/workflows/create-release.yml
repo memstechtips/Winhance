@@ -6,111 +6,83 @@ on:
       - 'v*' # Trigger on any tag that starts with 'v'
 
 jobs:
-  build:
+  create_release:
     name: Create Release
-    runs-on: windows-latest
+    runs-on: ubuntu-latest
     permissions:
       contents: write
     steps:
       - name: Checkout code
         uses: actions/checkout@v4
-        
-      - name: Setup .NET
-        uses: actions/setup-dotnet@v3
         with:
-          dotnet-version: '9.0.x'
-          
-      - name: Install Inno Setup
-        run: |
-          $installerUrl = "https://files.jrsoftware.org/is/6/innosetup-6.2.2.exe"
-          $installerPath = "$env:TEMP\innosetup-6.2.2.exe"
-          Invoke-WebRequest -Uri $installerUrl -OutFile $installerPath
-          Start-Process -FilePath $installerPath -ArgumentList "/VERYSILENT /SUPPRESSMSGBOXES /NORESTART /SP-" -Wait
-        shell: pwsh
+          fetch-depth: 0 # Fetch all history to get commit messages
         
       - name: Extract version from tag
         id: get_version
-        run: |
-          $version = "${{ github.ref }}".Replace('refs/tags/v', '')
-          echo "VERSION=$version" >> $env:GITHUB_OUTPUT
-        shell: pwsh
-        
-      - name: Build and package application
-        run: |
-          .\extras\build-and-package.ps1 -Version ${{ steps.get_version.outputs.VERSION }} -OutputDir .\installer-output
-        shell: pwsh
+        run: echo "VERSION=${GITHUB_REF#refs/tags/v}" >> $GITHUB_OUTPUT
+        shell: bash
         
       - name: Get release template
         id: get_template
         run: |
-          if (Test-Path ".github\RELEASE_TEMPLATE.md") {
-            $template = Get-Content -Path ".github\RELEASE_TEMPLATE.md" -Raw
-            echo "TEMPLATE<<EOF" >> $env:GITHUB_OUTPUT
-            echo "$template" >> $env:GITHUB_OUTPUT
-            echo "EOF" >> $env:GITHUB_OUTPUT
-          } else {
-            echo "TEMPLATE=# Release ${{ steps.get_version.outputs.VERSION }}" >> $env:GITHUB_OUTPUT
-          }
-        shell: pwsh
+          if [ -f ".github/RELEASE_TEMPLATE.md" ]; then
+            template=$(cat .github/RELEASE_TEMPLATE.md)
+            echo "TEMPLATE<<EOF" >> $GITHUB_OUTPUT
+            echo "$template" >> $GITHUB_OUTPUT
+            echo "EOF" >> $GITHUB_OUTPUT
+          else
+            echo "TEMPLATE=# Release ${{ steps.get_version.outputs.VERSION }}" >> $GITHUB_OUTPUT
+          fi
+        shell: bash
         
-      - name: Calculate file hashes
-        id: file_hashes
+      - name: Get commit messages
+        id: get_commits
         run: |
-          $installerPath = ".\installer-output\Winhance.Installer.exe"
-          $exePath = ".\src\Winhance.WPF\bin\Release\net9.0-windows\win-x64\Winhance.exe"
+          # Get the previous tag
+          previous_tag=$(git describe --tags --abbrev=0 HEAD^ 2>/dev/null || echo "")
           
-          if (Test-Path $installerPath) {
-            $installerSize = (Get-Item $installerPath).Length
-            $installerSizeMiB = [math]::Round($installerSize / 1MB, 2)
-            $installerHash = (Get-FileHash -Path $installerPath -Algorithm SHA256).Hash.ToLower()
-            echo "INSTALLER_SIZE=$installerSize" >> $env:GITHUB_OUTPUT
-            echo "INSTALLER_SIZE_MIB=$installerSizeMiB" >> $env:GITHUB_OUTPUT
-            echo "INSTALLER_HASH=$installerHash" >> $env:GITHUB_OUTPUT
-          }
+          if [ -z "$previous_tag" ]; then
+            # If no previous tag, get all commits
+            commit_list=$(git log --pretty=format:"- %s" | grep -v "Merge pull request" | grep -v "Merge branch")
+          else
+            # Get commits between previous tag and current tag
+            commit_list=$(git log --pretty=format:"- %s" $previous_tag..HEAD | grep -v "Merge pull request" | grep -v "Merge branch")
+          fi
           
-          if (Test-Path $exePath) {
-            $exeSize = (Get-Item $exePath).Length
-            $exeSizeKiB = [math]::Round($exeSize / 1KB, 2)
-            $exeHash = (Get-FileHash -Path $exePath -Algorithm SHA256).Hash.ToLower()
-            echo "EXE_SIZE=$exeSize" >> $env:GITHUB_OUTPUT
-            echo "EXE_SIZE_KIB=$exeSizeKiB" >> $env:GITHUB_OUTPUT
-            echo "EXE_HASH=$exeHash" >> $env:GITHUB_OUTPUT
-          }
-        shell: pwsh
+          # Get pull request titles
+          pr_list=$(git log --pretty=format:"%s" $previous_tag..HEAD | grep "Merge pull request" | sed 's/Merge pull request #[0-9]* from [^/]*\///g' | sed 's/-/ /g' | sed 's/_/ /g' | sed 's/^/- /')
+          
+          echo "COMMITS<<EOF" >> $GITHUB_OUTPUT
+          echo "$commit_list" >> $GITHUB_OUTPUT
+          echo "EOF" >> $GITHUB_OUTPUT
+          
+          echo "PULL_REQUESTS<<EOF" >> $GITHUB_OUTPUT
+          echo "$pr_list" >> $GITHUB_OUTPUT
+          echo "EOF" >> $GITHUB_OUTPUT
+        shell: bash
         
       - name: Process template
         id: process_template
         run: |
-          $template = "${{ steps.get_template.outputs.TEMPLATE }}"
-          $version = "${{ steps.get_version.outputs.VERSION }}"
-          $installerSize = "${{ steps.file_hashes.outputs.INSTALLER_SIZE }}"
-          $installerSizeMiB = "${{ steps.file_hashes.outputs.INSTALLER_SIZE_MIB }}"
-          $installerHash = "${{ steps.file_hashes.outputs.INSTALLER_HASH }}"
-          $exeSize = "${{ steps.file_hashes.outputs.EXE_SIZE }}"
-          $exeSizeKiB = "${{ steps.file_hashes.outputs.EXE_SIZE_KIB }}"
-          $exeHash = "${{ steps.file_hashes.outputs.EXE_HASH }}"
+          template="${{ steps.get_template.outputs.TEMPLATE }}"
+          version="${{ steps.get_version.outputs.VERSION }}"
+          commits="${{ steps.get_commits.outputs.COMMITS }}"
+          pull_requests="${{ steps.get_commits.outputs.PULL_REQUESTS }}"
           
-          # Replace placeholders
-          $template = $template.Replace("[VERSION]", $version)
-          $template = $template.Replace("[INSTALLER_SHA256]", $installerHash)
-          $template = $template.Replace("[EXE_SHA256]", $exeHash)
+          # Replace version placeholder
+          template="${template//\[VERSION\]/$version}"
           
-          # Replace size placeholders for installer
-          if ($installerSize) {
-            $template = $template.Replace("[SIZE_BYTES]", $installerSize)
-            $template = $template.Replace("[SIZE_MIB]", $installerSizeMiB)
-          }
+          # Add commit messages to What's New section if there are any
+          if [ ! -z "$pull_requests" ]; then
+            template=$(echo "$template" | sed '/## What.s New/{n;s/- /'"$pull_requests"'\n/}')
+          elif [ ! -z "$commits" ]; then
+            template=$(echo "$template" | sed '/## What.s New/{n;s/- /'"$commits"'\n/}')
+          fi
           
-          # Replace size placeholders for exe
-          if ($exeSize) {
-            $template = $template.Replace("[SIZE_BYTES]", $exeSize)
-            $template = $template.Replace("[SIZE_KIB]", $exeSizeKiB)
-          }
-          
-          echo "PROCESSED_TEMPLATE<<EOF" >> $env:GITHUB_OUTPUT
-          echo "$template" >> $env:GITHUB_OUTPUT
-          echo "EOF" >> $env:GITHUB_OUTPUT
-        shell: pwsh
+          echo "PROCESSED_TEMPLATE<<EOF" >> $GITHUB_OUTPUT
+          echo "$template" >> $GITHUB_OUTPUT
+          echo "EOF" >> $GITHUB_OUTPUT
+        shell: bash
         
       - name: Create Release
         id: create_release
@@ -118,9 +90,7 @@ jobs:
         with:
           name: Winhance v${{ steps.get_version.outputs.VERSION }}
           body: ${{ steps.process_template.outputs.PROCESSED_TEMPLATE }}
-          draft: true # Set to false for automatic publishing
+          draft: true # Create as draft so you can upload files manually
           prerelease: ${{ contains(github.ref, 'beta') || contains(github.ref, 'alpha') }}
-          files: |
-            installer-output/Winhance.Installer.exe
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
