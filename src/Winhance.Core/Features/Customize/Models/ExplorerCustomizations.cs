@@ -19,7 +19,7 @@ public static class ExplorerCustomizations
                 new CustomizationSetting
                 {
                     Id = "explorer-3d-objects",
-                    Name = "3D Objects",
+                    Name = "3D Objects in This PC",
                     Description = "Controls 3D Objects folder visibility in This PC",
                     Category = CustomizationCategory.Explorer,
                     GroupName = "File Explorer Settings",
@@ -41,25 +41,9 @@ public static class ExplorerCustomizations
                             DefaultValue = null,
                             Description = "Controls 3D Objects folder visibility in This PC",
                             ActionType = RegistryActionType.Remove,
-                        },
-                        new RegistrySetting
-                        {
-                            Category = "Explorer",
-                            Hive = RegistryHive.LocalMachine,
-                            SubKey =
-                                "Software\\Microsoft\\Windows\\CurrentVersion\\Explorer\\MyComputer\\NameSpace\\WOW64",
-                            Name = "{0DB7E03F-FC29-4DC6-9020-FF41B59E513A}",
-                            RecommendedValue = null,
-                            EnabledValue = null, // When toggle is ON, 3D Objects folder is shown (key exists)
-                            DisabledValue = null, // When toggle is OFF, 3D Objects folder is hidden (key removed)
-                            ValueType = RegistryValueKind.None,
-                            DefaultValue = null,
-                            Description =
-                                "Controls 3D Objects folder visibility in This PC (WOW64)",
-                            ActionType = RegistryActionType.Remove,
+                            IsGuidSubkey = true,
                         },
                     },
-                    LinkedSettingsLogic = LinkedSettingsLogic.All,
                 },
                 new CustomizationSetting
                 {
@@ -88,6 +72,7 @@ public static class ExplorerCustomizations
                             IsPrimary = true,
                             AbsenceMeansEnabled = true,
                             ActionType = RegistryActionType.Remove,
+                            IsGuidSubkey = true,
                         },
                     },
                 },
@@ -579,6 +564,7 @@ public static class ExplorerCustomizations
                             IsPrimary = true,
                             AbsenceMeansEnabled = true,
                             ActionType = RegistryActionType.Remove,
+                            IsGuidSubkey = true,
                         },
                     },
                 },

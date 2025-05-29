@@ -40,17 +40,24 @@ namespace Winhance.Infrastructure.Features.Common.Services
                     return CreateDefaultVersion();
                 }
                 
-                // Get the assembly file version which will be in the format v25.05.02
-                FileVersionInfo fileVersionInfo = FileVersionInfo.GetVersionInfo(location);
-                string fileVersion = fileVersionInfo.FileVersion ?? "v0.0.0";
+                // Get the InformationalVersion which can include the -beta tag
+                FileVersionInfo versionInfo = FileVersionInfo.GetVersionInfo(location);
+                string version = versionInfo.ProductVersion ?? versionInfo.FileVersion ?? "v0.0.0";
                 
-                // If the version doesn't start with 'v', add it
-                if (!fileVersion.StartsWith("v"))
+                // Trim any build metadata (anything after the + symbol)
+                int plusIndex = version.IndexOf('+');
+                if (plusIndex > 0)
                 {
-                    fileVersion = $"v{fileVersion}";
+                    version = version.Substring(0, plusIndex);
                 }
                 
-                return VersionInfo.FromTag(fileVersion);
+                // If the version doesn't start with 'v', add it
+                if (!version.StartsWith("v"))
+                {
+                    version = $"v{version}";
+                }
+                
+                return VersionInfo.FromTag(version);
             }
             catch (Exception ex)
             {

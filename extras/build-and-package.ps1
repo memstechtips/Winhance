@@ -17,12 +17,16 @@
 #
 # # Sign with a certificate matching a subject name
 # .\build-and-package.ps1 -SignApplication -CertificateSubject "Your Company Name"
+#
+# # Create a beta version
+# .\build-and-package.ps1 -Beta
 param (
     [string]$Version = (Get-Date -Format "yy.MM.dd"),
     [string]$OutputDir = "$PSScriptRoot\..\installer-output",
     [string]$CertificateSubject = "",
     [string]$CertificateThumbprint = "",
-    [switch]$SignApplication = $false
+    [switch]$SignApplication = $false,
+    [switch]$Beta = $false
 )
 
 $ErrorActionPreference = "Stop"
@@ -169,16 +173,29 @@ if (-not (Test-Path $OutputDir)) {
 
 Write-Host "Building Winhance v$Version..." -ForegroundColor Cyan
 
+# Modify version if Beta flag is set
+if ($Beta) {
+    # For NuGet compatibility, use proper SemVer format with prerelease tag
+    $displayVersion = "$Version-beta"
+    $nugetVersion = "$Version-beta"
+    Write-Host "Building beta version: v$displayVersion" -ForegroundColor Cyan
+}
+else {
+    $displayVersion = $Version
+    $nugetVersion = $Version
+}
+
 # Update version in csproj file
 Write-Host "Updating version in project file..." -ForegroundColor Green
 $csprojPath = "$solutionDir\src\Winhance.WPF\Winhance.WPF.csproj"
 $csprojContent = Get-Content -Path $csprojPath -Raw
 
 # Update version properties in csproj
-$csprojContent = $csprojContent -replace '<Version>.*?</Version>', "<Version>$Version</Version>"
+# AssemblyVersion and FileVersion must be numeric only (no -beta suffix)
+$csprojContent = $csprojContent -replace '<Version>.*?</Version>', "<Version>$nugetVersion</Version>"
 $csprojContent = $csprojContent -replace '<FileVersion>.*?</FileVersion>', "<FileVersion>$Version</FileVersion>"
 $csprojContent = $csprojContent -replace '<AssemblyVersion>.*?</AssemblyVersion>', "<AssemblyVersion>$Version</AssemblyVersion>"
-$csprojContent = $csprojContent -replace '<InformationalVersion>.*?</InformationalVersion>', "<InformationalVersion>v$Version</InformationalVersion>"
+$csprojContent = $csprojContent -replace '<InformationalVersion>.*?</InformationalVersion>', "<InformationalVersion>v$displayVersion</InformationalVersion>"
 
 # Write updated csproj content
 Set-Content -Path $csprojPath -Value $csprojContent
@@ -238,9 +255,9 @@ Write-Host "Preparing InnoSetup script..." -ForegroundColor Green
 $innoContent = Get-Content -Path $innoSetupScript -Raw
 
 # Update version
-$innoContent = $innoContent -replace '#define MyAppVersion ".*"', "#define MyAppVersion `"$Version`""
+$innoContent = $innoContent -replace '#define MyAppVersion ".*"', "#define MyAppVersion `"$displayVersion`""
 # Update AppVerName to include version in the installer header
-$innoContent = $innoContent -replace 'AppVerName=Winhance', "AppVerName=Winhance v$Version"
+$innoContent = $innoContent -replace 'AppVerName=Winhance', "AppVerName=Winhance v$displayVersion"
 
 # Update paths
 $publishPath = $publishOutputPath.Replace("\", "\\")

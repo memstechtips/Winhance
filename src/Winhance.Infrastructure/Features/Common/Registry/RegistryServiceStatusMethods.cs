@@ -97,12 +97,27 @@ namespace Winhance.Infrastructure.Features.Common.Registry
                 // If we're here and the action type is Remove, the key/value still exists
                 if (setting.ActionType == RegistryActionType.Remove)
                 {
-                    // Special case for 3D Objects toggle which is opposite of normal Remove action
-                    // When the key exists, 3D Objects is shown (Applied)
-                    if (setting.Name == "{0DB7E03F-FC29-4DC6-9020-FF41B59E513A}")
+                    // Special handling for GUID subkeys in NameSpace registry paths
+                    if (setting.IsGuidSubkey && 
+                        (setting.SubKey.EndsWith("NameSpace") || setting.SubKey.Contains("NameSpace\\")))
                     {
-                        _logService.Log(LogLevel.Info, $"3D Objects key exists - marking as Applied");
-                        return RegistrySettingStatus.Applied;
+                        // For these special GUID subkeys, we need to check if the subkey exists
+                        string guidSubkeyPath = $"{fullPath}\\{setting.Name}";
+                        bool guidSubkeyExists = KeyExists(guidSubkeyPath);
+                        
+                        _logService.Log(LogLevel.Info, $"Checking GUID subkey existence: {guidSubkeyPath}, Exists={guidSubkeyExists}");
+                        
+                        // If the GUID subkey exists, the feature is enabled (toggle should be ON)
+                        if (guidSubkeyExists)
+                        {
+                            _logService.Log(LogLevel.Info, $"GUID subkey exists - marking as Applied");
+                            return RegistrySettingStatus.Applied;
+                        }
+                        else
+                        {
+                            _logService.Log(LogLevel.Info, $"GUID subkey does not exist - marking as NotApplied");
+                            return RegistrySettingStatus.NotApplied;
+                        }
                     }
                     
                     // For normal Remove actions, key existing means not applied

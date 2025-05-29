@@ -124,6 +124,7 @@ Note: ✅ Completed items are commited to the source code files, but the changes
 #### Gaming & Performance
 🔜 Review the "Mouse" related settings and why Enhance mouse precision won't work anymore due to mouse related tweaks in the gaming section. Issue #13  
 🔜 Consider adding preset options in optimizations tab like "Minimal, recommended and extreme optimizations" (This can also be done with preset config files if developed and shared.)  
+⌛ HPET Setting causes system instability.
 
 #### Explorer Improvements 
 🔜 Toggle to remove the "open in terminal" option from right click context menu. Issue #162  
@@ -136,7 +137,8 @@ Note: ✅ Completed items are commited to the source code files, but the changes
 
 #### Explorer
 ⌛ FR: enable end task to taskbar right click menu in win 11 #177  
-⌛ Disable translucent selection rectangle not working in windows 11 file explorer #173  
+⌛ Disable translucent selection rectangle not working in windows 11 file explorer #173
+⌛ Add toggle for Recycle Bin in Navigation Pane  
 
 
 ### Other General Requests, Features & Issues

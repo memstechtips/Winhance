@@ -69,6 +69,13 @@ public record RegistrySetting
     /// This allows storing additional information that doesn't fit into the standard registry setting model.
     /// </summary>
     public Dictionary<string, object>? CustomProperties { get; set; }
+    
+    /// <summary>
+    /// Specifies whether this setting represents a GUID subkey that should be created or deleted.
+    /// When true, the Name property is treated as a subkey name rather than a value name.
+    /// This is used for special registry settings like Explorer namespace GUIDs.
+    /// </summary>
+    public bool IsGuidSubkey { get; init; } = false;
 }
 
 public enum RegistryAction

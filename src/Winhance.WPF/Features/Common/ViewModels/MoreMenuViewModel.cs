@@ -135,14 +135,14 @@ namespace Winhance.WPF.Features.Common.ViewModels
                 VersionInfo versionInfo = _versionService.GetCurrentVersion();
 
                 // Format the version text
-                VersionInfo = $"Winhance Version {versionInfo.Version}";
+                VersionInfo = $"Winhance {versionInfo.Version}";
             }
             catch (Exception ex)
             {
                 _logService.LogError($"Error updating version info: {ex.Message}", ex);
 
                 // Set a default version text in case of error
-                VersionInfo = "Winhance Version";
+                VersionInfo = "Winhance ";
             }
         }
 

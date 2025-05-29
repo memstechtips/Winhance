@@ -7,6 +7,9 @@ namespace Winhance.Infrastructure.Features.Common.Registry
 {
     public partial class RegistryService
     {
+        // This field is used to track whether a setting is being enabled or disabled
+        // It's set in ApplySettingAsync and used in FormatPowerShellCommand
+        private bool _lastIsEnabled = true;
         /// <summary>
         /// Sets a registry value using PowerShell with elevated privileges.
         /// This is a fallback method for when the standard .NET Registry API fails.
@@ -134,46 +137,108 @@ namespace Winhance.Infrastructure.Features.Common.Registry
                 "HKCC" or "HKEY_CURRENT_CONFIG" => "HKCC:",
                 _ => throw new ArgumentException($"Unsupported registry hive: {hive}")
             };
-
-            // Format the value based on its type
-            string valueArg = FormatValueForPowerShell(value, valueKind);
-            string typeArg = GetPowerShellTypeArg(valueKind);
-
-            // Build the PowerShell command with enhanced error handling and permissions
-            var sb = new StringBuilder();
             
-            // Add error handling
-            sb.Append("$ErrorActionPreference = 'Stop'; ");
-            sb.Append("try { ");
+            // Check if this is a GUID subkey operation (for special Explorer items like Home Folder, Gallery, 3D Objects)
+            bool isGuidSubkey = valueName.StartsWith("{") && valueName.EndsWith("}") && 
+                              (subKey.EndsWith("NameSpace") || subKey.Contains("NameSpace\\"));
             
-            // First, ensure the key exists with proper permissions
-            sb.Append($"if (-not (Test-Path -Path '{psDrive}\\{subKey}')) {{ ");
-            
-            // Create the key with force to ensure all parent keys are created
-            sb.Append($"New-Item -Path '{psDrive}\\{subKey}' -Force | Out-Null; ");
-            
-            // For policy keys, try to set appropriate permissions
-            if (subKey.Contains("Policies", StringComparison.OrdinalIgnoreCase))
+            if (isGuidSubkey)
             {
-                sb.Append($"$acl = Get-Acl -Path '{psDrive}\\{subKey}'; ");
-                sb.Append("$rule = New-Object System.Security.AccessControl.RegistryAccessRule('CURRENT_USER', 'FullControl', 'Allow'); ");
-                sb.Append("$acl.SetAccessRule($rule); ");
-                sb.Append($"try {{ Set-Acl -Path '{psDrive}\\{subKey}' -AclObject $acl }} catch {{ Write-Host 'Could not set ACL, continuing anyway...' }}; ");
+                // These are the known GUID values for special Explorer items
+                bool isSpecialGuid = valueName == "{f874310e-b6b7-47dc-bc84-b9e6b38f5903}" || // Home Folder
+                                  valueName == "{e88865ea-0e1c-4e20-9aa6-edcd0212c87c}" || // Gallery
+                                  valueName == "{0DB7E03F-FC29-4DC6-9020-FF41B59E513A}"; // 3D Objects
+                
+                // Check if we're in the ApplicationSettingItem.ApplyRegistrySettings method
+                // If the value is null and we're disabling the setting, we need to remove the key
+                if (value == null && !_lastIsEnabled)
+                {
+                    // When disabling a setting with a null value, remove the GUID subkey
+                    _logService.LogInformation($"Using Remove-Item for GUID subkey: {psDrive}\\{subKey}\\{valueName}");
+                    return $"Remove-Item -Path '{psDrive}\\{subKey}\\{valueName}' -Force -ErrorAction SilentlyContinue";
+                }
+                
+                // For empty string values, we also need to check if we're disabling
+                if (value is string strValue && string.IsNullOrEmpty(strValue) && !_lastIsEnabled)
+                {
+                    // When disabling a setting with an empty string value, remove the GUID subkey
+                    _logService.LogInformation($"Using Remove-Item for GUID subkey with empty string: {psDrive}\\{subKey}\\{valueName}");
+                    return $"Remove-Item -Path '{psDrive}\\{subKey}\\{valueName}' -Force -ErrorAction SilentlyContinue";
+                }
+                
+                // For special Explorer items with RegistryValueKind.None, we need to create the key when enabling
+                if (valueKind == RegistryValueKind.None && isSpecialGuid)
+                {
+                    if (_lastIsEnabled)
+                    {
+                        // When enabling, create the GUID subkey
+                        _logService.LogInformation($"Using New-Item for GUID subkey: {psDrive}\\{subKey}\\{valueName}");
+                        return $"New-Item -Path '{psDrive}\\{subKey}\\{valueName}' -Force";
+                    }
+                    else
+                    {
+                        // When disabling, remove the GUID subkey
+                        _logService.LogInformation($"Using Remove-Item for GUID subkey: {psDrive}\\{subKey}\\{valueName}");
+                        return $"Remove-Item -Path '{psDrive}\\{subKey}\\{valueName}' -Force -ErrorAction SilentlyContinue";
+                    }
+                }
+                
+                // For all other GUID subkey operations, use a simplified command based on the value
+                if (value == null || (value is string s && string.IsNullOrEmpty(s)))
+                {
+                    // For null or empty values, create the GUID subkey
+                    return $"New-Item -Path '{psDrive}\\{subKey}\\{valueName}' -Force";
+                }
+                else
+                {
+                    // For non-empty values, set the value
+                    string valueArg = FormatValueForPowerShell(value, valueKind);
+                    string typeArg = GetPowerShellTypeArg(valueKind);
+                    return $"New-Item -Path '{psDrive}\\{subKey}\\{valueName}' -Force | Out-Null; Set-ItemProperty -Path '{psDrive}\\{subKey}\\{valueName}' -Name '(Default)' -Value {valueArg} {typeArg} -Force";
+                }
             }
-            
-            sb.Append("} ");
-            
-            // Then set the value
-            sb.Append($"Set-ItemProperty -Path '{psDrive}\\{subKey}' -Name '{valueName}' -Value {valueArg} {typeArg} -Force; ");
-            
-            // Verify the value was set correctly
-            sb.Append($"$setVal = Get-ItemProperty -Path '{psDrive}\\{subKey}' -Name '{valueName}' -ErrorAction SilentlyContinue; ");
-            sb.Append("if ($setVal -eq $null) { throw 'Value was not set properly' }; ");
-            
-            // Close the try block and add catch
-            sb.Append("} catch { Write-Error $_.Exception.Message; exit 1 }");
+            else
+            {
+                // Format the value based on its type
+                string valueArg = FormatValueForPowerShell(value, valueKind);
+                string typeArg = GetPowerShellTypeArg(valueKind);
 
-            return sb.ToString();
+                // Build the PowerShell command with enhanced error handling and permissions
+                var sb = new StringBuilder();
+                
+                // Add error handling
+                sb.Append("$ErrorActionPreference = 'Stop'; ");
+                sb.Append("try { ");
+                
+                // First, ensure the key exists with proper permissions
+                sb.Append($"if (-not (Test-Path -Path '{psDrive}\\{subKey}')) {{ ");
+                
+                // Create the key with force to ensure all parent keys are created
+                sb.Append($"New-Item -Path '{psDrive}\\{subKey}' -Force | Out-Null; ");
+                
+                // For policy keys, try to set appropriate permissions
+                if (subKey.Contains("Policies", StringComparison.OrdinalIgnoreCase))
+                {
+                    sb.Append($"$acl = Get-Acl -Path '{psDrive}\\{subKey}'; ");
+                    sb.Append("$rule = New-Object System.Security.AccessControl.RegistryAccessRule('CURRENT_USER', 'FullControl', 'Allow'); ");
+                    sb.Append("$acl.SetAccessRule($rule); ");
+                    sb.Append($"try {{ Set-Acl -Path '{psDrive}\\{subKey}' -AclObject $acl }} catch {{ Write-Host 'Could not set ACL, continuing anyway...' }}; ");
+                }
+                
+                sb.Append("} ");
+                
+                // Then set the value
+                sb.Append($"Set-ItemProperty -Path '{psDrive}\\{subKey}' -Name '{valueName}' -Value {valueArg} {typeArg} -Force; ");
+                
+                // Verify the value was set correctly
+                sb.Append($"$setVal = Get-ItemProperty -Path '{psDrive}\\{subKey}' -Name '{valueName}' -ErrorAction SilentlyContinue; ");
+                sb.Append("if ($setVal -eq $null) { throw 'Value was not set properly' }; ");
+                
+                // Close the try block and add catch
+                sb.Append("} catch { Write-Error $_.Exception.Message; exit 1 }");
+
+                return sb.ToString();
+            }
         }
 
         /// <summary>

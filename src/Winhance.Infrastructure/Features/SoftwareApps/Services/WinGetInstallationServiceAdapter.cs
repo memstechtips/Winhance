@@ -115,24 +115,26 @@ namespace Winhance.Infrastructure.Features.SoftwareApps.Services
             {
                 progressWrapper.Report(0, "Downloading WinGet installer...");
                 
-                // Force a search operation which will trigger WinGet installation if it's not found
-                // This leverages the WinGetInstaller's built-in mechanism to install WinGet when needed
+                // Directly call the WinGetInstaller's method to install WinGet
+                // This is more efficient than using a search operation to trigger installation
                 try 
                 {
-                    // We use a simple search operation to trigger the WinGet installation process
-                    // The dot (.) is a simple search term that will match everything
                     progressWrapper.Report(20, "Installing WinGet...");
                     
-                    var searchResult = await _winGetInstaller.SearchPackagesAsync(
-                        ".",  // Simple search term
-                        null, // No search options
-                        CancellationToken.None)
+                    // Directly trigger WinGet installation
+                    var installResult = await _winGetInstaller.TryInstallWinGetAsync(CancellationToken.None)
                         .ConfigureAwait(false);
                     
-                    progressWrapper.Report(80, "WinGet installation in progress...");
-                    
-                    // If we get here, WinGet should be installed
-                    progressWrapper.Report(100, "WinGet installed successfully");
+                    if (installResult)
+                    {
+                        progressWrapper.Report(80, "WinGet installation in progress...");
+                        progressWrapper.Report(100, "WinGet installed successfully");
+                    }
+                    else
+                    {
+                        progressWrapper.Report(0, "Failed to install WinGet");
+                        throw new InvalidOperationException("WinGet installation failed");
+                    }
                 }
                 catch (Exception ex)
                 {
@@ -160,9 +162,15 @@ namespace Winhance.Infrastructure.Features.SoftwareApps.Services
         {
             try
             {
-                // Try to list packages to check if WinGet is working
-                var result = await _winGetInstaller.SearchPackagesAsync(".").ConfigureAwait(false);
-                return result != null;
+                // Use a simple version check to see if WinGet is working
+                // This is more direct than doing a search operation
+                var result = await _winGetInstaller.ExecuteWinGetCommandAsync(
+                    "winget.exe",
+                    "-v",
+                    null,
+                    CancellationToken.None).ConfigureAwait(false);
+                
+                return result.ExitCode == 0;
             }
             catch
             {

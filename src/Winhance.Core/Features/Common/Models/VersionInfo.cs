@@ -11,11 +11,19 @@ namespace Winhance.Core.Features.Common.Models
         
         public static VersionInfo FromTag(string tag)
         {
-            // Parse version tag in format v25.05.02
+            // Parse version tag in format v25.05.02 or v25.05.02-beta
             if (string.IsNullOrEmpty(tag) || !tag.StartsWith("v"))
                 return new VersionInfo();
                 
             string versionString = tag.Substring(1); // Remove 'v' prefix
+            
+            // Check if it's a beta version and extract the base version
+            bool isBeta = versionString.Contains("-beta");
+            if (isBeta)
+            {
+                versionString = versionString.Split('-')[0]; // Get the part before -beta
+            }
+            
             string[] parts = versionString.Split('.');
             
             if (parts.Length != 3)
@@ -40,7 +48,7 @@ namespace Winhance.Core.Features.Common.Models
             
             return new VersionInfo
             {
-                Version = tag,
+                Version = tag, // Keep the original tag with -beta if present
                 ReleaseDate = releaseDate
             };
         }

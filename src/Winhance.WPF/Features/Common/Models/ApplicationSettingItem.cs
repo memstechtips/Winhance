@@ -314,6 +314,21 @@ namespace Winhance.WPF.Features.Common.Models
             {
                 return;
             }
+            
+            // Set the _lastIsEnabled field in the registry service using reflection
+            // This is needed for GUID subkey operations to know whether to create or remove the key
+            try
+            {
+                var field = _registryService.GetType().GetField("_lastIsEnabled", System.Reflection.BindingFlags.NonPublic | System.Reflection.BindingFlags.Instance);
+                if (field != null)
+                {
+                    field.SetValue(_registryService, IsSelected);
+                }
+            }
+            catch
+            {
+                // Ignore any reflection errors
+            }
 
             // Apply the setting
             if (RegistrySetting != null)
