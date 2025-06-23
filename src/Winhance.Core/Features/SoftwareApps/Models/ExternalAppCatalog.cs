@@ -976,15 +976,6 @@ public class ExternalAppCatalog
             // Optical Disc Tools
             new AppInfo
             {
-                Name = "CDBurnerXP",
-                Description = "Application to burn CDs and DVDs",
-                PackageName = "",
-                Category = "Optical Disc Tools",
-                IsCustomInstall = true,
-                Type = AppType.StandardApp,
-            },
-            new AppInfo
-            {
                 Name = "ImgBurn",
                 Description = "Lightweight CD / DVD / HD DVD / Blu-ray burning application",
                 PackageName = "LIGHTNINGUK.ImgBurn",

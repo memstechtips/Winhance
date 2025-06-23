@@ -8,228 +8,56 @@
              xmlns:local="clr-namespace:Winhance.WPF.Features.Common.Controls"
              xmlns:controls="clr-namespace:Winhance.WPF.Features.Common.Controls"
              xmlns:behaviors="clr-namespace:Winhance.WPF.Features.Common.Behaviors"
+             xmlns:views="clr-namespace:Winhance.WPF.Features.SoftwareApps.Views"
              d:DataContext="{d:DesignInstance Type=viewModels:WindowsAppsViewModel}"
              mc:Ignorable="d">
 
-    <controls:ResponsiveScrollViewer>
-        <StackPanel Margin="10">
-        <!-- Buttons on the right -->
-        <DockPanel LastChildFill="True"
-                   Margin="0,20,10,10">
-            <!-- Buttons stacked vertically on the right -->
-            <StackPanel DockPanel.Dock="Right"
-                        Orientation="Vertical"
-                        VerticalAlignment="Center"
-                        Margin="10,0,0,0">
-                <!-- Install Apps Button -->
-                <Button Style="{StaticResource InstallAppsButtonStyle}"
-                        Content="Install Selected Items"
-                        Margin="0,0,0,10"
-                        Width="180"
-                        Height="35"
-                        Command="{Binding InstallAppsCommand}"/>
+    <Grid>
+        
+        <!-- Content Control to switch between views -->
+        <ContentControl>
+            <ContentControl.Style>
+                <Style TargetType="ContentControl">
+                    <Style.Triggers>
+                        <DataTrigger Binding="{Binding IsTableViewMode}" Value="True">
+                            <Setter Property="Content">
+                                <Setter.Value>
+                                    <views:WindowsAppsTableView/>
+                                </Setter.Value>
+                            </Setter>
+                        </DataTrigger>
+                        <DataTrigger Binding="{Binding IsTableViewMode}" Value="False">
+                            <Setter Property="Content">
+                                <Setter.Value>
+                                    <controls:ResponsiveScrollViewer>
+                                        <StackPanel Margin="10">
 
-                <!-- Remove Apps Button -->
-                <Button Style="{StaticResource RemoveAppsButtonStyle}"
-                        Content="Remove Selected Items"
-                        Width="180"
-                        Height="35"
-                        Command="{Binding RemoveAppsCommand}"/>
-            </StackPanel>
+        <!-- Checkboxes in a horizontal layout -->
+        <StackPanel Orientation="Horizontal" Margin="15,10,0,10">
+            <!-- Select All checkbox -->
+            <CheckBox Style="{StaticResource CustomCheckBox}"
+                      Content="Select All"
+                      FontSize="16"
+                      FontWeight="Bold"
+                      IsChecked="{Binding IsAllSelected}"
+                      Margin="0,0,20,0"/>
 
-            <!-- Info Text and Legend (fills remaining space) -->
-            <Border Background="{DynamicResource ContentSectionBorderBrush}"
-                    BorderBrush="{DynamicResource ButtonBorderBrush}"
-                    BorderThickness="1"
-                    CornerRadius="5"
-                    Margin="0,0,0,0"
-                    Padding="10,5"
-                    HorizontalAlignment="Stretch"
-                    Width="Auto"
-                    Height="80">
-                <Grid>
-                    <Grid.RowDefinitions>
-                        <RowDefinition Height="Auto"/>
-                        <RowDefinition Height="Auto"/>
-                    </Grid.RowDefinitions>
+            <!-- Select All Installed checkbox -->
+            <CheckBox Style="{StaticResource CustomCheckBox}"
+                      Content="Select All Installed"
+                      FontSize="16"
+                      FontWeight="Bold"
+                      IsChecked="{Binding IsAllSelectedInstalled}"
+                      Margin="0,0,20,0"/>
 
-                    <!-- Row 0: Status indicators -->
-                    <Grid Grid.Row="0" Margin="0,5,0,0">
-                        <Grid.ColumnDefinitions>
-                            <ColumnDefinition Width="*"/>
-                        </Grid.ColumnDefinitions>
-
-                        <!-- Status Indicators -->
-                        <StackPanel Orientation="Horizontal"
-                                    VerticalAlignment="Center">
-                            <!-- Installation Status -->
-                            <StackPanel Orientation="Horizontal" Margin="0,0,15,0">
-                                <Ellipse Width="12"
-                                         Height="12"
-                                         Fill="#00FF3C"
-                                         Margin="0,0,5,0"
-                                         VerticalAlignment="Center"/>
-                                <TextBlock Text="Installed"
-                                           Foreground="{DynamicResource PrimaryTextColor}"
-                                           FontSize="13"
-                                           VerticalAlignment="Center"/>
-                            </StackPanel>
-
-                            <StackPanel Orientation="Horizontal" Margin="0,0,15,0">
-                                <Ellipse Width="12"
-                                         Height="12"
-                                         Fill="#FF2800"
-                                         Margin="0,0,5,0"
-                                         VerticalAlignment="Center"/>
-                                <TextBlock Text="Not Installed"
-                                           Foreground="{DynamicResource PrimaryTextColor}"
-                                           FontSize="13"
-                                           VerticalAlignment="Center"/>
-                            </StackPanel>
-
-                            <!-- Reinstallability Status -->
-                            <StackPanel Orientation="Horizontal" Margin="0,0,15,0">
-                                <materialDesign:PackIcon Kind="Sync"
-                                                         Width="16"
-                                                         Height="16"
-                                                         Foreground="#00A5FF"
-                                                         Margin="0,0,5,0"
-                                                         VerticalAlignment="Center"/>
-                                <TextBlock Text="Can be Reinstalled"
-                                           Foreground="{DynamicResource PrimaryTextColor}"
-                                           FontSize="13"
-                                           VerticalAlignment="Center"/>
-                            </StackPanel>
-
-                            <StackPanel Orientation="Horizontal">
-                                <materialDesign:PackIcon Kind="SyncOff"
-                                                         Width="16"
-                                                         Height="16"
-                                                         Foreground="#FF2800"
-                                                         Margin="0,0,5,0"
-                                                         VerticalAlignment="Center"/>
-                                <TextBlock Text="Cannot Reinstall"
-                                           Foreground="{DynamicResource PrimaryTextColor}"
-                                           FontSize="13"
-                                           VerticalAlignment="Center"/>
-                            </StackPanel>
-
-                            <!-- Vertical Separator -->
-                            <TextBlock Text="|"
-                                       Margin="15,0,15,0"
-                                       FontSize="16"
-                                       Foreground="{DynamicResource PrimaryTextColor}"
-                                       VerticalAlignment="Center"/>
-
-                            <!-- Winhance Removal Status -->
-                            <StackPanel Orientation="Horizontal">
-                                <!-- Wrap the entire status section in a Border to apply the tooltip to all elements -->
-                                <Border Background="Transparent">
-                                    <Border.ToolTip>
-                                        <ToolTip>
-                                            <StackPanel>
-                                                <TextBlock Text="Active Removal Scripts:"
-                                                           FontWeight="Bold"
-                                                           Margin="0,0,0,5"
-                                                           Visibility="{Binding IsRemovingApps, Converter={StaticResource BooleanToVisibilityConverter}}"/>
-                                                <ItemsControl ItemsSource="{Binding ActiveScripts}"
-                                                              Visibility="{Binding IsRemovingApps, Converter={StaticResource BooleanToVisibilityConverter}}">
-                                                    <ItemsControl.ItemTemplate>
-                                                        <DataTemplate>
-                                                            <TextBlock Text="{Binding Description}" Margin="5,2,0,2"/>
-                                                        </DataTemplate>
-                                                    </ItemsControl.ItemTemplate>
-                                                </ItemsControl>
-                                                <TextBlock Text="No active removal scripts found."
-                                                           Visibility="{Binding IsRemovingApps, Converter={StaticResource InverseBooleanToVisibilityConverter}}"/>
-                                            </StackPanel>
-                                        </ToolTip>
-                                    </Border.ToolTip>
-
-                                    <StackPanel Orientation="Horizontal">
-                                        <materialDesign:PackIcon Kind="DeleteForever"
-                                                             Width="18"
-                                                             Height="18"
-                                                             Foreground="{Binding IsRemovingApps, Converter={StaticResource ScriptStatusToColorConverter}}"
-                                                             Margin="0,0,5,0"
-                                                             VerticalAlignment="Center"/>
-                                        <TextBlock Text="Winhance Status:"
-                                               Foreground="{DynamicResource PrimaryTextColor}"
-                                               FontSize="13"
-                                               Margin="0,0,5,0"
-                                               VerticalAlignment="Center"/>
-                                        <TextBlock Text="{Binding IsRemovingApps, Converter={StaticResource ScriptStatusToTextConverter}}"
-                                               Foreground="{Binding IsRemovingApps, Converter={StaticResource ScriptStatusToColorConverter}}"
-                                               FontSize="13"
-                                               FontWeight="SemiBold"
-                                               VerticalAlignment="Center"/>
-                                    </StackPanel>
-                                </Border>
-                            </StackPanel>
-                        </StackPanel>
-
-                    </Grid>
-
-                    <!-- Row 1: Info text (left) + Search box (middle) -->
-                    <Grid Grid.Row="1" Margin="0,0,0,5">
-                        <Grid.ColumnDefinitions>
-                            <ColumnDefinition Width="*"/>
-                            <ColumnDefinition Width="Auto"/>
-                        </Grid.ColumnDefinitions>
-
-                        <!-- Search Box (right, prioritized) -->
-                        <StackPanel Grid.Column="1"
-                                    HorizontalAlignment="Right"
-                                    VerticalAlignment="Center"
-                                    Margin="10,0,10,0"
-                                    Panel.ZIndex="10">
-                            <local:SearchBox Width="200"
-                                             SearchText="{Binding SearchText, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}"/>
-                        </StackPanel>
-
-                        <!-- Info Text (left, lower priority) -->
-                        <Grid Grid.Column="0">
-                            <Grid.ColumnDefinitions>
-                                <ColumnDefinition Width="Auto"/>
-                                <ColumnDefinition Width="*"/>
-                            </Grid.ColumnDefinitions>
-
-                            <!-- Info Icon -->
-                            <materialDesign:PackIcon Grid.Column="0"
-                                                   Kind="Information"
-                                                   Width="24"
-                                                   Height="32"
-                                                   Margin="0,0,5,-5"
-                                                   Foreground="Gray"
-                                                   VerticalAlignment="Center"/>
-
-                            <!-- Info Text -->
-                            <TextBlock Grid.Column="1"
-                                       VerticalAlignment="Center"
-                                       HorizontalAlignment="Left"
-                                       Style="{StaticResource AppInfoTextStyle}"
-                                       FontSize="12"
-                                       TextWrapping="Wrap"
-                                       MaxHeight="40"
-                                       Margin="0,0,0,-5"
-                                       Text="Check all the items you don't want on your PC (even not installed items). Windows might try to add them back later, but Winhance will keep removing them for you.&#x0a;Use the Search Box to find settings quickly. The Save and Import Config buttons in the main window help you manage your preferred selections."/>
-                        </Grid>
-
-                    </Grid>
-                </Grid>
-            </Border>
-        </DockPanel>
-
-        <!-- Separator -->
-        <Separator Style="{StaticResource SectionSeparatorStyle}"/>
-
-        <!-- Select All checkbox -->
-        <CheckBox Style="{StaticResource CustomCheckBox}"
-                  Content="Select All"
-                  FontSize="16"
-                  FontWeight="Bold"
-                  IsChecked="{Binding IsAllSelected}"
-                  Margin="15,10,0,10"/>
+            <!-- Select All Not Installed checkbox -->
+            <CheckBox Style="{StaticResource CustomCheckBox}"
+                      Content="Select All Not Installed"
+                      FontSize="16"
+                      FontWeight="Bold"
+                      IsChecked="{Binding IsAllSelectedNotInstalled}"
+                      Margin="0,0,0,0"/>
+        </StackPanel>
 
         <!-- Windows Apps (Appx Packages) Section -->
         <StackPanel Orientation="Horizontal" Margin="0,5,0,5">
@@ -402,6 +230,14 @@
             </ItemsControl.ItemTemplate>
         </ItemsControl>
 
-    </StackPanel>
-    </controls:ResponsiveScrollViewer>
+                                        </StackPanel>
+                                    </controls:ResponsiveScrollViewer>
+                                </Setter.Value>
+                            </Setter>
+                        </DataTrigger>
+                    </Style.Triggers>
+                </Style>
+            </ContentControl.Style>
+        </ContentControl>
+    </Grid>
 </UserControl>

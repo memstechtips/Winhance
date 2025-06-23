@@ -604,14 +604,22 @@ namespace Winhance.WPF.Features.Common.Models
                     RegistrySetting.Name);
 
                 // Update the current value
-                CurrentValue = currentValue;
+                // If the value is null but AbsenceMeansEnabled is true, use the EnabledValue for display
+                if (currentValue == null && RegistrySetting.AbsenceMeansEnabled && RegistrySetting.EnabledValue != null)
+                {
+                    CurrentValue = RegistrySetting.EnabledValue;
+                }
+                else
+                {
+                    CurrentValue = currentValue;
+                }
                 
                 // Update the linked registry settings with values collection
                 LinkedRegistrySettingsWithValues.Clear();
                 LinkedRegistrySettingsWithValues.Add(new LinkedRegistrySettingWithValue(RegistrySetting, currentValue));
 
-                // Determine if the value is null
-                IsRegistryValueNull = currentValue == null;
+                // Determine if the value is null, but don't show as null if AbsenceMeansEnabled is true
+                IsRegistryValueNull = currentValue == null && !RegistrySetting.AbsenceMeansEnabled;
 
                 // Determine the status
                 if (currentValue == null)

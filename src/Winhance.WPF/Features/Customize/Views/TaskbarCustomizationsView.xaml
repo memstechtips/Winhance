@@ -24,7 +24,7 @@
                            Foreground="{DynamicResource PrimaryTextColor}"
                            FontWeight="Bold"
                            FontSize="14"/>
-                <TextBlock Text="Unpins all Items except File Explorer"
+                <TextBlock Text="Unpins all Items from the Taskbar"
                            Foreground="{DynamicResource PrimaryTextColor}"
                            FontSize="12"/>
             </StackPanel>
@@ -40,15 +40,7 @@
                 <Button.ToolTip>
                     <ToolTip>
                         <TextBlock TextWrapping="Wrap" MaxWidth="300">
-                            Cleans the Taskbar by removing all pinned apps except File Explorer.
-                            <LineBreak/>
-                            This will:
-                            <LineBreak/>
-                            - Delete the Taskband registry key
-                            <LineBreak/>
-                            - Recreate the Quick Launch directories
-                            <LineBreak/>
-                            - Pin only File Explorer to the taskbar
+                            Cleans the Taskbar by removing all pinned items.
                             <LineBreak/>
                             Note: This will restart Explorer and may require a system restart to fully apply.
                         </TextBlock>

@@ -2,7 +2,9 @@ using System;
 using System.IO;
 using System.Windows;
 using System.Windows.Controls;
+using Winhance.Core.Features.Common.Interfaces;
 using Winhance.WPF.Features.Common.Utilities;
+using Winhance.WPF.Features.Common.ViewModels;
 
 namespace Winhance.WPF.Features.Common.Controls
 {
@@ -139,6 +141,10 @@ namespace Winhance.WPF.Features.Common.Controls
                         contextMenu.VerticalOffset = 0;
                         LogToStartupLog("Offset values set successfully");
 
+                        // Register for the Closed event to reset navigation button selection
+                        contextMenu.Closed += ContextMenu_Closed;
+                        LogToStartupLog("Registered for context menu Closed event");
+
                         // Open the context menu
                         LogToStartupLog("About to open context menu");
                         contextMenu.IsOpen = true;
@@ -158,6 +164,41 @@ namespace Winhance.WPF.Features.Common.Controls
             catch (Exception ex)
             {
                 LogToStartupLog($"ERROR in ShowMenu method: {ex.Message}");
+                LogToStartupLog($"Stack trace: {ex.StackTrace}");
+            }
+        }
+
+        /// <summary>
+        /// Handles the context menu closing event to reset the navigation button selection
+        /// </summary>
+        private void ContextMenu_Closed(object sender, RoutedEventArgs e)
+        {
+            try
+            {
+                LogToStartupLog("ContextMenu_Closed event handler called");
+                
+                // Find the parent window to access the MainViewModel
+                Window parentWindow = Window.GetWindow(this);
+                if (parentWindow != null && parentWindow.DataContext is MainViewModel mainViewModel)
+                {
+                    LogToStartupLog("Found MainViewModel, resetting navigation selection");
+                    
+                    // Reset the selected navigation item to the current view
+                    string currentView = mainViewModel.CurrentViewName;
+                    LogToStartupLog($"Current view is: {currentView}");
+                    
+                    // Update the selected navigation item to match the current view
+                    mainViewModel.SelectedNavigationItem = currentView;
+                    LogToStartupLog($"Reset SelectedNavigationItem to: {currentView}");
+                }
+                else
+                {
+                    LogToStartupLog("Could not find MainViewModel to reset navigation selection");
+                }
+            }
+            catch (Exception ex)
+            {
+                LogToStartupLog($"ERROR in ContextMenu_Closed: {ex.Message}");
                 LogToStartupLog($"Stack trace: {ex.StackTrace}");
             }
         }

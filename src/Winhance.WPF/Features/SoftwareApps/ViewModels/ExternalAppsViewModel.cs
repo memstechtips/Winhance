@@ -1,17 +1,21 @@
 using System;
 using System.Collections.Generic;
 using System.Collections.ObjectModel;
+using System.ComponentModel;
 using System.Linq;
 using System.Threading.Tasks;
 using System.Windows;
+using System.Windows.Data;
 using CommunityToolkit.Mvvm.ComponentModel;
 using CommunityToolkit.Mvvm.Input;
+using Microsoft.Extensions.DependencyInjection;
 using Winhance.Core.Features.Common.Enums;
 using Winhance.Core.Features.Common.Interfaces;
 using Winhance.Core.Features.Common.Models;
 using Winhance.Core.Features.SoftwareApps.Interfaces;
 using Winhance.Core.Features.SoftwareApps.Models;
 using Winhance.Core.Features.UI.Interfaces;
+using Winhance.Infrastructure.Features.SoftwareApps.Services.WinGet.Interfaces;
 using Winhance.WPF.Features.Common.ViewModels;
 using Winhance.WPF.Features.Common.Views;
 using Winhance.WPF.Features.SoftwareApps.Models;
@@ -24,9 +28,124 @@ namespace Winhance.WPF.Features.SoftwareApps.ViewModels
         [ObservableProperty]
         private bool _isInitialized = false;
 
+        [ObservableProperty]
+        private bool _isPackageManagerViewMode = false;
+
+        [ObservableProperty]
+        private bool _isAllSelected = false;
+
         private readonly IAppInstallationService _appInstallationService;
         private readonly IAppService _appDiscoveryService;
         private readonly IConfigurationService _configurationService;
+        private readonly IServiceProvider _serviceProvider;
+
+        [ObservableProperty]
+        private WinGetSearchResultsViewModel _winGetSearchResultsViewModel;
+        
+        [ObservableProperty]
+        private ExternalAppsPackageManagerViewModel _externalAppsPackageManagerViewModel;
+
+        private ObservableCollection<ExternalAppWithTableInfo> _allItems = new();
+        private ICollectionView _allItemsView;
+
+        /// <summary>
+        /// Gets the collection view for all external apps in table view mode
+        /// </summary>
+        public ICollectionView AllItemsView =>
+            _allItemsView ??= CollectionViewSource.GetDefaultView(_allItems);
+
+        /// <summary>
+        /// Command to toggle between list view and package manager view modes
+        /// </summary>
+        [RelayCommand]
+        private void ToggleViewMode(object parameter = null)
+        {
+            // If parameter is provided, use it to set the view mode directly
+            if (parameter is string strParam)
+            {
+                IsPackageManagerViewMode = bool.Parse(strParam);
+            }
+            else if (parameter is bool boolParam)
+            {
+                IsPackageManagerViewMode = boolParam;
+            }
+            else
+            {
+                // Toggle the view mode if no parameter is provided
+                IsPackageManagerViewMode = !IsPackageManagerViewMode;
+            }
+
+            // If switching to package manager view, ensure search is applied
+            if (IsPackageManagerViewMode && !string.IsNullOrWhiteSpace(SearchText))
+            {
+                // Apply search to the package manager view
+                ExternalAppsPackageManagerViewModel?.ApplySearch(SearchText);
+            }
+            else if (!IsPackageManagerViewMode)
+            {
+                // Clear search in package manager view when switching back to list view
+                ExternalAppsPackageManagerViewModel?.ApplySearch(string.Empty);
+            }
+        }
+
+        /// <summary>
+        /// Command to sort the table view by the specified property
+        /// </summary>
+        [RelayCommand]
+        private void SortBy(string propertyName)
+        {
+            if (_allItemsView == null)
+                return;
+
+            var direction = ListSortDirection.Ascending;
+
+            // If already sorting by this property, toggle the direction
+            if (
+                _allItemsView.SortDescriptions.Count > 0
+                && _allItemsView.SortDescriptions[0].PropertyName == propertyName
+            )
+            {
+                direction =
+                    _allItemsView.SortDescriptions[0].Direction == ListSortDirection.Ascending
+                        ? ListSortDirection.Descending
+                        : ListSortDirection.Ascending;
+            }
+
+            _allItemsView.SortDescriptions.Clear();
+            _allItemsView.SortDescriptions.Add(new SortDescription(propertyName, direction));
+        }
+
+        /// <summary>
+        /// Updates the collection of all external apps for the table view
+        /// </summary>
+        private void UpdateAllItemsCollection()
+        {
+            _allItems.Clear();
+
+            // Add all apps from all categories to the flat list
+            foreach (var category in Categories)
+            {
+                foreach (var app in category.Apps)
+                {
+                    _allItems.Add(new ExternalAppWithTableInfo(app));
+                }
+            }
+
+            // Refresh the view
+            _allItemsView?.Refresh();
+        }
+
+        /// <summary>
+        /// Handles changes to the IsAllSelected property
+        /// </summary>
+        partial void OnIsAllSelectedChanged(bool value)
+        {
+            // Apply the selection state to all items in the table view
+            foreach (var item in _allItems)
+            {
+                item.IsSelected = value;
+            }
+        }
 
         [ObservableProperty]
         private string _statusText = "Ready";
@@ -37,6 +156,22 @@ namespace Winhance.WPF.Features.SoftwareApps.ViewModels
         // Public property to expose the categories
         public ObservableCollection<ExternalAppsCategoryViewModel> Categories => _categories;
 
+        // Property to indicate if any items are selected
+        public bool HasSelectedItems
+        {
+            get
+            {
+                // Check if any regular items are selected
+                bool regularItemsSelected = Items?.Any(a => a.IsSelected) == true;
+
+                // Check if any WinGet search results are selected
+                bool winGetItemsSelected = WinGetSearchResultsViewModel?.HasSelectedItems == true;
+
+                // Return true if either regular items or WinGet items are selected
+                return regularItemsSelected || winGetItemsSelected;
+            }
+        }
+
         public ExternalAppsViewModel(
             ITaskProgressService progressService,
             ISearchService searchService,
@@ -46,7 +181,8 @@ namespace Winhance.WPF.Features.SoftwareApps.ViewModels
             IConfigurationService configurationService,
             Services.SoftwareAppsDialogService dialogService,
             IInternetConnectivityService connectivityService,
-            IAppInstallationCoordinatorService appInstallationCoordinatorService
+            IAppInstallationCoordinatorService appInstallationCoordinatorService,
+            IServiceProvider serviceProvider
         )
             : base(
                 progressService,
@@ -61,6 +197,75 @@ namespace Winhance.WPF.Features.SoftwareApps.ViewModels
             _appInstallationService = appInstallationService;
             _appDiscoveryService = appDiscoveryService;
             _configurationService = configurationService;
+            _serviceProvider = serviceProvider;
+
+            // Initialize WinGetSearchResultsViewModel
+            WinGetSearchResultsViewModel =
+                _serviceProvider.GetRequiredService<WinGetSearchResultsViewModel>();
+
+            // Initialize ExternalAppsPackageManagerViewModel
+            ExternalAppsPackageManagerViewModel =
+                _serviceProvider.GetRequiredService<ExternalAppsPackageManagerViewModel>();
+
+            // Subscribe to property changes in the WinGetSearchResultsViewModel
+            WinGetSearchResultsViewModel.PropertyChanged +=
+                WinGetSearchResultsViewModel_PropertyChanged;
+
+            // Subscribe to collection changed events to track item selection changes
+            Items.CollectionChanged += Items_CollectionChanged;
+        }
+
+        private void Items_CollectionChanged(
+            object sender,
+            System.Collections.Specialized.NotifyCollectionChangedEventArgs e
+        )
+        {
+            // Subscribe to property changed events for new items
+            if (e.NewItems != null)
+            {
+                foreach (ExternalApp item in e.NewItems)
+                {
+                    // Avoid duplicate subscriptions
+                    item.PropertyChanged -= Item_PropertyChanged;
+                    item.PropertyChanged += Item_PropertyChanged;
+                }
+            }
+
+            // Unsubscribe from property changed events for removed items
+            if (e.OldItems != null)
+            {
+                foreach (ExternalApp item in e.OldItems)
+                {
+                    item.PropertyChanged -= Item_PropertyChanged;
+                }
+            }
+
+            // If the collection changed, we might need to update HasSelectedItems
+            OnPropertyChanged(nameof(HasSelectedItems));
+        }
+
+        private void Item_PropertyChanged(
+            object sender,
+            System.ComponentModel.PropertyChangedEventArgs e
+        )
+        {
+            // When an item's IsSelected property changes, notify that HasSelectedItems may have changed
+            if (e.PropertyName == nameof(ExternalApp.IsSelected))
+            {
+                OnPropertyChanged(nameof(HasSelectedItems));
+            }
+        }
+
+        private void WinGetSearchResultsViewModel_PropertyChanged(
+            object sender,
+            System.ComponentModel.PropertyChangedEventArgs e
+        )
+        {
+            // When the HasSelectedItems property changes in the WinGetSearchResultsViewModel, update our HasSelectedItems property
+            if (e.PropertyName == nameof(WinGetSearchResultsViewModel.HasSelectedItems))
+            {
+                OnPropertyChanged(nameof(HasSelectedItems));
+            }
         }
 
         // SaveConfig and ImportConfig methods removed as part of unified configuration cleanup
@@ -73,9 +278,29 @@ namespace Winhance.WPF.Features.SoftwareApps.ViewModels
             if (Items == null || Items.Count == 0)
                 return;
 
-            // Filter items based on search text
-            var filteredItems = FilterItems(Items);
+            // Only apply search to the package manager view if in package manager view mode
+            if (IsPackageManagerViewMode)
+            {
+                // If search is active
+                if (IsSearchActive)
+                {
+                    // Execute WinGet search asynchronously through the package manager view model
+                    // No minimum character requirement to allow for specific short searches
+                    ExternalAppsPackageManagerViewModel?.ApplySearch(SearchText);
+                }
+                else
+                {
+                    // Clear in the package manager view model if search text is cleared
+                    ExternalAppsPackageManagerViewModel?.ApplySearch(string.Empty);
+                }
+                
+                // Don't filter categories in package manager mode
+                return;
+            }
 
+            // For category view mode, filter items based on search text
+            var filteredItems = FilterItems(Items);
+            
             // Clear all categories
             foreach (var category in Categories)
             {
@@ -123,6 +348,12 @@ namespace Winhance.WPF.Features.SoftwareApps.ViewModels
                 {
                     category.IsExpanded = category.Apps.Count > 0;
                 }
+            }
+
+            // Update the collection if in package manager view mode
+            if (IsPackageManagerViewMode)
+            {
+                UpdateAllItemsCollection();
             }
         }
 
@@ -183,6 +414,12 @@ namespace Winhance.WPF.Features.SoftwareApps.ViewModels
                 }
 
                 StatusText = $"Loaded {Items.Count} external apps";
+
+                // Update the collection if in package manager view mode
+                if (IsPackageManagerViewMode)
+                {
+                    UpdateAllItemsCollection();
+                }
             }
             catch (System.Exception ex)
             {
@@ -315,7 +552,7 @@ namespace Winhance.WPF.Features.SoftwareApps.ViewModels
                 {
                     // Set cancellation reason to UserCancelled
                     CurrentCancellationReason = CancellationReason.UserCancelled;
-                    
+
                     // Cancel the connectivity check task
                     cts.Cancel();
 
@@ -327,14 +564,14 @@ namespace Winhance.WPF.Features.SoftwareApps.ViewModels
                     catch (OperationCanceledException)
                     { /* Expected when we cancel */
                     }
-                    
+
                     // For single app installations, use the ShowCancellationDialogAsync method directly
                     // which will use CustomDialog with a simpler message
                     await ShowCancellationDialogAsync(true, false); // User-initiated cancellation
-                    
+
                     // Reset cancellation reason after showing dialog
                     CurrentCancellationReason = CancellationReason.None;
-                    
+
                     StatusText = $"Installation of {app.Name} was cancelled";
                 }
                 catch (System.Exception ex)
@@ -356,14 +593,17 @@ namespace Winhance.WPF.Features.SoftwareApps.ViewModels
                         ex.Message.Contains("internet", StringComparison.OrdinalIgnoreCase)
                         || ex.Message.Contains("connection", StringComparison.OrdinalIgnoreCase)
                         || ex.Message.Contains("network", StringComparison.OrdinalIgnoreCase)
-                        || ex.Message.Contains("pipeline has been stopped", StringComparison.OrdinalIgnoreCase);
+                        || ex.Message.Contains(
+                            "pipeline has been stopped",
+                            StringComparison.OrdinalIgnoreCase
+                        );
 
                     if (isConnectivityIssue && CurrentCancellationReason == CancellationReason.None)
                     {
                         // Use the centralized cancellation handling for connectivity issues
                         await HandleCancellationAsync(true); // Connectivity-related cancellation
                     }
-                    
+
                     string errorMessage = isConnectivityIssue
                         ? "Internet connection lost during installation. Please check your network connection and try again."
                         : ex.Message;
@@ -379,9 +619,9 @@ namespace Winhance.WPF.Features.SoftwareApps.ViewModels
                         _dialogService.ShowInformationAsync(
                             "Installation Failed",
                             $"Failed to install {app.Name}.",
-                        new[] { $"{app.Name}: {errorMessage}" },
-                        "There was an error during installation. Please try again later."
-                    );
+                            new[] { $"{app.Name}: {errorMessage}" },
+                            "There was an error during installation. Please try again later."
+                        );
                     }
                 }
             }
@@ -468,7 +708,7 @@ namespace Winhance.WPF.Features.SoftwareApps.ViewModels
                             // Use the centralized cancellation handling instead of showing dialog directly
                             await HandleCancellationAsync(true); // Connectivity-related cancellation
                         }
-                        
+
                         // Cancel the installation process
                         cts.Cancel();
                         break;
@@ -489,13 +729,12 @@ namespace Winhance.WPF.Features.SoftwareApps.ViewModels
         [RelayCommand]
         public void ClearSelectedItems()
         {
-            // Clear all selected items
+            // Set all items to not selected
             foreach (var app in Items)
             {
                 app.IsSelected = false;
             }
 
-            // Update the UI for all categories
             foreach (var category in Categories)
             {
                 foreach (var app in category.Apps)
@@ -504,7 +743,13 @@ namespace Winhance.WPF.Features.SoftwareApps.ViewModels
                 }
             }
 
+            // Also clear WinGet search results selections
+            WinGetSearchResultsViewModel.ClearSelection();
+
             StatusText = "All selections cleared";
+
+            // Explicitly notify that HasSelectedItems has changed
+            OnPropertyChanged(nameof(HasSelectedItems));
         }
 
         [RelayCommand]
@@ -516,7 +761,13 @@ namespace Winhance.WPF.Features.SoftwareApps.ViewModels
             // Get all selected apps regardless of installation status
             var selectedApps = Items.Where(a => a.IsSelected).ToList();
 
-            if (!selectedApps.Any())
+            // Check if there are any selected WinGet search results
+            var selectedWinGetItems = WinGetSearchResultsViewModel
+                .SearchResults.Where(item => item.IsSelected)
+                .ToList();
+
+            // If no apps or WinGet items are selected, show a message
+            if (!selectedApps.Any() && !selectedWinGetItems.Any())
             {
                 StatusText = "No apps selected for installation";
                 await ShowNoItemsSelectedDialogAsync("installation");
@@ -535,11 +786,29 @@ namespace Winhance.WPF.Features.SoftwareApps.ViewModels
                 return;
             }
 
+            // Prepare the list of items to install for confirmation dialog
+            var itemsToInstall = new List<string>();
+            int totalItemsCount = 0;
+
+            // Add regular app names if any are selected
+            if (selectedApps.Any())
+            {
+                itemsToInstall.AddRange(selectedApps.Select(a => a.Name));
+                totalItemsCount += selectedApps.Count;
+            }
+
+            // Add WinGet package names if any are selected
+            if (selectedWinGetItems.Any())
+            {
+                itemsToInstall.AddRange(selectedWinGetItems.Select(w => $"WinGet: {w.Name}"));
+                totalItemsCount += selectedWinGetItems.Count;
+            }
+
             // Show confirmation dialog
             bool? dialogResult = await ShowConfirmItemsDialogAsync(
                 "install",
-                selectedApps.Select(a => a.Name),
-                selectedApps.Count
+                itemsToInstall,
+                totalItemsCount
             );
 
             // If user didn't confirm, exit
@@ -560,63 +829,147 @@ namespace Winhance.WPF.Features.SoftwareApps.ViewModels
                 {
                     int successCount = 0;
                     int currentItem = 0;
-                    int totalSelected = selectedApps.Count;
+                    int totalSelected = totalItemsCount;
 
-                    foreach (var app in selectedApps)
+                    // First install regular apps if any are selected
+                    if (selectedApps.Any())
                     {
-                        if (cancellationToken.IsCancellationRequested)
+                        foreach (var app in selectedApps)
                         {
-                            await HandleCancellationAsync(false); // User-initiated cancellation
-                            cts.Cancel(); // Ensure all tasks are cancelled
-                            return successCount; // Exit the method immediately
-                        }
-
-                        try
-                        {
-                            var operationResult = await _appInstallationService.InstallAppAsync(
-                                app.ToAppInfo(),
-                                progress,
-                                cancellationToken
-                            );
-
-                            if (operationResult.Success)
+                            if (cancellationToken.IsCancellationRequested)
                             {
-                                app.IsInstalled = true;
-                                successCount++;
+                                await HandleCancellationAsync(false); // User-initiated cancellation
+                                cts.Cancel(); // Ensure all tasks are cancelled
+                                return successCount; // Exit the method immediately
+                            }
 
+                            try
+                            {
+                                var operationResult = await _appInstallationService.InstallAppAsync(
+                                    app.ToAppInfo(),
+                                    progress,
+                                    cancellationToken
+                                );
+
+                                if (operationResult.Success)
+                                {
+                                    app.IsInstalled = true;
+                                    successCount++;
+
+                                    progress.Report(
+                                        new TaskProgressDetail
+                                        {
+                                            Progress = (currentItem * 100.0) / totalSelected,
+                                            StatusText = $"Successfully installed {app.Name}",
+                                            DetailedMessage =
+                                                $"Successfully installed app: {app.Name}",
+                                            LogLevel = LogLevel.Success,
+                                            AdditionalInfo = new Dictionary<string, string>
+                                            {
+                                                { "AppName", app.Name },
+                                                { "PackageName", app.PackageName },
+                                                { "OperationType", "Install" },
+                                                { "OperationStatus", "Success" },
+                                                { "ItemNumber", currentItem.ToString() },
+                                                { "TotalItems", totalSelected.ToString() },
+                                            },
+                                        }
+                                    );
+                                }
+                                else
+                                {
+                                    string errorMessage =
+                                        operationResult.ErrorMessage
+                                        ?? $"Failed to install {app.Name}";
+
+                                    // Store the error message for later reference
+                                    app.LastOperationError = errorMessage;
+
+                                    progress.Report(
+                                        new TaskProgressDetail
+                                        {
+                                            Progress = (currentItem * 100.0) / totalSelected,
+                                            StatusText = $"Error installing {app.Name}",
+                                            DetailedMessage = errorMessage,
+                                            LogLevel = LogLevel.Error,
+                                            AdditionalInfo = new Dictionary<string, string>
+                                            {
+                                                { "AppName", app.Name },
+                                                { "PackageName", app.PackageName },
+                                                { "OperationType", "Install" },
+                                                { "OperationStatus", "Error" },
+                                                { "ErrorMessage", errorMessage },
+                                                { "ItemNumber", currentItem.ToString() },
+                                                { "TotalItems", totalSelected.ToString() },
+                                            },
+                                        }
+                                    );
+                                }
+                            }
+                            catch (OperationCanceledException)
+                            {
                                 progress.Report(
                                     new TaskProgressDetail
                                     {
                                         Progress = (currentItem * 100.0) / totalSelected,
-                                        StatusText = $"Successfully installed {app.Name}",
-                                        DetailedMessage = $"Successfully installed app: {app.Name}",
-                                        LogLevel = LogLevel.Success,
+                                        StatusText = $"Installation of {app.Name} was cancelled",
+                                        DetailedMessage =
+                                            $"The installation of {app.Name} was cancelled.",
+                                        LogLevel = LogLevel.Warning,
                                         AdditionalInfo = new Dictionary<string, string>
                                         {
                                             { "AppName", app.Name },
                                             { "PackageName", app.PackageName },
                                             { "OperationType", "Install" },
-                                            { "OperationStatus", "Success" },
+                                            { "OperationStatus", "Cancelled" },
                                             { "ItemNumber", currentItem.ToString() },
                                             { "TotalItems", totalSelected.ToString() },
                                         },
                                     }
                                 );
-                            }
-                            else
-                            {
-                                string errorMessage =
-                                    operationResult.ErrorMessage ?? $"Failed to install {app.Name}";
 
-                                // Store the error message for later reference
-                                app.LastOperationError = errorMessage;
+                                // Use the centralized cancellation handling
+                                await HandleCancellationAsync(false); // User-initiated cancellation
+                                cts.Cancel();
+                                return successCount; // Exit the method immediately
+                            }
+                            catch (System.Exception ex)
+                            {
+                                // Check if the exception is related to internet connectivity
+                                bool isConnectivityIssue =
+                                    ex.Message.Contains(
+                                        "internet",
+                                        StringComparison.OrdinalIgnoreCase
+                                    )
+                                    || ex.Message.Contains(
+                                        "connection",
+                                        StringComparison.OrdinalIgnoreCase
+                                    )
+                                    || ex.Message.Contains(
+                                        "network",
+                                        StringComparison.OrdinalIgnoreCase
+                                    )
+                                    || ex.Message.Contains(
+                                        "pipeline has been stopped",
+                                        StringComparison.OrdinalIgnoreCase
+                                    );
+
+                                if (
+                                    isConnectivityIssue
+                                    && CurrentCancellationReason == CancellationReason.None
+                                )
+                                {
+                                    // Set the cancellation reason to connectivity issue
+                                    await HandleCancellationAsync(true); // Connectivity-related cancellation
+                                }
 
                                 progress.Report(
                                     new TaskProgressDetail
                                     {
                                         Progress = (currentItem * 100.0) / totalSelected,
                                         StatusText = $"Error installing {app.Name}",
-                                        DetailedMessage = errorMessage,
+                                        DetailedMessage =
+                                            $"Error installing {app.Name}: {ex.Message}",
                                         LogLevel = LogLevel.Error,
                                         AdditionalInfo = new Dictionary<string, string>
                                         {
@@ -624,78 +977,209 @@ namespace Winhance.WPF.Features.SoftwareApps.ViewModels
                                             { "PackageName", app.PackageName },
                                             { "OperationType", "Install" },
                                             { "OperationStatus", "Error" },
-                                            { "ErrorMessage", errorMessage },
+                                            { "ErrorMessage", ex.Message },
+                                            { "ErrorType", ex.GetType().Name },
                                             { "ItemNumber", currentItem.ToString() },
                                             { "TotalItems", totalSelected.ToString() },
+                                            {
+                                                "IsConnectivityIssue",
+                                                isConnectivityIssue.ToString()
+                                            },
                                         },
                                     }
                                 );
                             }
                         }
-                        catch (OperationCanceledException)
-                        {
-                            progress.Report(
-                                new TaskProgressDetail
-                                {
-                                    Progress = (currentItem * 100.0) / totalSelected,
-                                    StatusText = $"Installation of {app.Name} was cancelled",
-                                    DetailedMessage =
-                                        $"The installation of {app.Name} was cancelled.",
-                                    LogLevel = LogLevel.Warning,
-                                    AdditionalInfo = new Dictionary<string, string>
-                                    {
-                                        { "AppName", app.Name },
-                                        { "PackageName", app.PackageName },
-                                        { "OperationType", "Install" },
-                                        { "OperationStatus", "Cancelled" },
-                                        { "ItemNumber", currentItem.ToString() },
-                                        { "TotalItems", totalSelected.ToString() },
-                                    },
-                                }
-                            );
+                    }
 
-                            // Use the centralized cancellation handling
-                            await HandleCancellationAsync(false); // User-initiated cancellation
-                            cts.Cancel();
-                            return successCount; // Exit the method immediately
-                        }
-                        catch (System.Exception ex)
+                    // Next, install WinGet packages if any are selected
+                    if (selectedWinGetItems.Any())
+                    {
+                        foreach (var winGetItem in selectedWinGetItems)
                         {
-                            // Check if the exception is related to internet connectivity
-                            bool isConnectivityIssue =
-                                ex.Message.Contains("internet", StringComparison.OrdinalIgnoreCase) ||
-                                ex.Message.Contains("connection", StringComparison.OrdinalIgnoreCase) ||
-                                ex.Message.Contains("network", StringComparison.OrdinalIgnoreCase) ||
-                                ex.Message.Contains("pipeline has been stopped", StringComparison.OrdinalIgnoreCase);
-
-                            if (isConnectivityIssue && CurrentCancellationReason == CancellationReason.None)
+                            if (cancellationToken.IsCancellationRequested)
                             {
-                                // Set the cancellation reason to connectivity issue
-                                await HandleCancellationAsync(true); // Connectivity-related cancellation
+                                await HandleCancellationAsync(false); // User-initiated cancellation
+                                cts.Cancel(); // Ensure all tasks are cancelled
+                                return successCount; // Exit the method immediately
                             }
-                            
-                            progress.Report(
-                                new TaskProgressDetail
-                                {
-                                    Progress = (currentItem * 100.0) / totalSelected,
-                                    StatusText = $"Error installing {app.Name}",
-                                    DetailedMessage = $"Error installing {app.Name}: {ex.Message}",
-                                    LogLevel = LogLevel.Error,
-                                    AdditionalInfo = new Dictionary<string, string>
+
+                            try
+                            {
+                                StatusText = $"Installing {winGetItem.Name}...";
+
+                                progress.Report(
+                                    new TaskProgressDetail
                                     {
-                                        { "AppName", app.Name },
-                                        { "PackageName", app.PackageName },
-                                        { "OperationType", "Install" },
-                                        { "OperationStatus", "Error" },
-                                        { "ErrorMessage", ex.Message },
-                                        { "ErrorType", ex.GetType().Name },
-                                        { "ItemNumber", currentItem.ToString() },
-                                        { "TotalItems", totalSelected.ToString() },
-                                        { "IsConnectivityIssue", isConnectivityIssue.ToString() },
-                                    },
+                                        Progress = (currentItem * 100.0) / totalSelected,
+                                        StatusText = $"Installing {winGetItem.Name}",
+                                        DetailedMessage =
+                                            $"Installing WinGet package: {winGetItem.Name}",
+                                        LogLevel = LogLevel.Info,
+                                        AdditionalInfo = new Dictionary<string, string>
+                                        {
+                                            { "PackageName", winGetItem.Name },
+                                            { "PackageId", winGetItem.Id },
+                                            { "OperationType", "Install" },
+                                            { "ItemNumber", currentItem.ToString() },
+                                            { "TotalItems", totalSelected.ToString() },
+                                        },
+                                    }
+                                );
+
+                                // Use the WinGet installer service to install the package directly
+                                var result =
+                                    await WinGetSearchResultsViewModel.InstallWinGetPackageAsync(
+                                        winGetItem.Id,
+                                        winGetItem.Name,
+                                        cancellationToken
+                                    );
+
+                                bool success = result.Success;
+
+                                if (success)
+                                {
+                                    successCount++;
+
+                                    progress.Report(
+                                        new TaskProgressDetail
+                                        {
+                                            Progress = (currentItem * 100.0) / totalSelected,
+                                            StatusText =
+                                                $"Successfully installed {winGetItem.Name}",
+                                            DetailedMessage =
+                                                $"Successfully installed WinGet package: {winGetItem.Name}",
+                                            LogLevel = LogLevel.Success,
+                                            AdditionalInfo = new Dictionary<string, string>
+                                            {
+                                                { "PackageName", winGetItem.Name },
+                                                { "PackageId", winGetItem.Id },
+                                                { "OperationType", "Install" },
+                                                { "OperationStatus", "Success" },
+                                                { "ItemNumber", currentItem.ToString() },
+                                                { "TotalItems", totalSelected.ToString() },
+                                            },
+                                        }
+                                    );
                                 }
-                            );
+                                else
+                                {
+                                    string errorMessage =
+                                        result.Message ?? $"Failed to install {winGetItem.Name}";
+
+                                    progress.Report(
+                                        new TaskProgressDetail
+                                        {
+                                            Progress = (currentItem * 100.0) / totalSelected,
+                                            StatusText = $"Error installing {winGetItem.Name}",
+                                            DetailedMessage = errorMessage,
+                                            LogLevel = LogLevel.Error,
+                                            AdditionalInfo = new Dictionary<string, string>
+                                            {
+                                                { "PackageName", winGetItem.Name },
+                                                { "PackageId", winGetItem.Id },
+                                                { "OperationType", "Install" },
+                                                { "OperationStatus", "Error" },
+                                                { "ErrorMessage", errorMessage },
+                                                { "ItemNumber", currentItem.ToString() },
+                                                { "TotalItems", totalSelected.ToString() },
+                                            },
+                                        }
+                                    );
+                                }
+                            }
+                            catch (OperationCanceledException)
+                            {
+                                progress.Report(
+                                    new TaskProgressDetail
+                                    {
+                                        Progress = (currentItem * 100.0) / totalSelected,
+                                        StatusText =
+                                            $"Installation of {winGetItem.Name} was cancelled",
+                                        DetailedMessage =
+                                            $"The installation of {winGetItem.Name} was cancelled.",
+                                        LogLevel = LogLevel.Warning,
+                                        AdditionalInfo = new Dictionary<string, string>
+                                        {
+                                            { "PackageName", winGetItem.Name },
+                                            { "PackageId", winGetItem.Id },
+                                            { "OperationType", "Install" },
+                                            { "OperationStatus", "Cancelled" },
+                                            { "ItemNumber", currentItem.ToString() },
+                                            { "TotalItems", totalSelected.ToString() },
+                                        },
+                                    }
+                                );
+
+                                // Use the centralized cancellation handling
+                                await HandleCancellationAsync(false); // User-initiated cancellation
+                                cts.Cancel();
+                                return successCount; // Exit the method immediately
+                            }
+                            catch (System.Exception ex)
+                            {
+                                // Check if the exception is related to internet connectivity
+                                bool isConnectivityIssue =
+                                    ex.Message.Contains(
+                                        "internet",
+                                        StringComparison.OrdinalIgnoreCase
+                                    )
+                                    || ex.Message.Contains(
+                                        "connection",
+                                        StringComparison.OrdinalIgnoreCase
+                                    )
+                                    || ex.Message.Contains(
+                                        "network",
+                                        StringComparison.OrdinalIgnoreCase
+                                    )
+                                    || ex.Message.Contains(
+                                        "pipeline has been stopped",
+                                        StringComparison.OrdinalIgnoreCase
+                                    );
+
+                                if (
+                                    isConnectivityIssue
+                                    && CurrentCancellationReason == CancellationReason.None
+                                )
+                                {
+                                    // Set the cancellation reason to connectivity issue
+                                    await HandleCancellationAsync(true); // Connectivity-related cancellation
+                                }
+
+                                progress.Report(
+                                    new TaskProgressDetail
+                                    {
+                                        Progress = (currentItem * 100.0) / totalSelected,
+                                        StatusText = $"Error installing {winGetItem.Name}",
+                                        DetailedMessage =
+                                            $"Error installing {winGetItem.Name}: {ex.Message}",
+                                        LogLevel = LogLevel.Error,
+                                        AdditionalInfo = new Dictionary<string, string>
+                                        {
+                                            { "PackageName", winGetItem.Name },
+                                            { "PackageId", winGetItem.Id },
+                                            { "OperationType", "Install" },
+                                            { "OperationStatus", "Error" },
+                                            { "ErrorMessage", ex.Message },
+                                            { "ErrorType", ex.GetType().Name },
+                                            { "ItemNumber", currentItem.ToString() },
+                                            { "TotalItems", totalSelected.ToString() },
+                                            {
+                                                "IsConnectivityIssue",
+                                                isConnectivityIssue.ToString()
+                                            },
+                                        },
+                                    }
+                                );
+                            }
+                            finally
+                            {
+                                currentItem++;
+                            }
                         }
+
+                        // Clear WinGet search result selections after installation
+                        WinGetSearchResultsViewModel.ClearSelection();
                     }
 
                     // Cancel the connectivity check task as installation is complete
@@ -776,10 +1260,15 @@ namespace Winhance.WPF.Features.SoftwareApps.ViewModels
                     // Check if any failures are due to internet connectivity issues
                     bool hasConnectivityIssues = hasInternetIssues;
                     bool isFailure = successCount < totalSelected;
-                    
+
                     // Important: Check if the operation was cancelled by the user
                     // This ensures we show the correct dialog even if the cancellation happened in a different part of the code
-                    if (failedItems != null && failedItems.Any(item => item.Contains("cancelled by user", StringComparison.OrdinalIgnoreCase)))
+                    if (
+                        failedItems != null
+                        && failedItems.Any(item =>
+                            item.Contains("cancelled by user", StringComparison.OrdinalIgnoreCase)
+                        )
+                    )
                     {
                         // Set the cancellation reason to UserCancelled if it's not already set
                         if (CurrentCancellationReason == CancellationReason.None)
@@ -787,7 +1276,7 @@ namespace Winhance.WPF.Features.SoftwareApps.ViewModels
                             CurrentCancellationReason = CancellationReason.UserCancelled;
                         }
                     }
-                    
+
                     // Show result dialog using the base class method which handles cancellation scenarios properly
                     ShowOperationResultDialog(
                         "Install",
@@ -861,7 +1350,7 @@ namespace Winhance.WPF.Features.SoftwareApps.ViewModels
                             // Use the centralized cancellation handling
                             await HandleCancellationAsync(true); // Connectivity-related cancellation
                         }
-                        
+
                         cts.Cancel();
                         return; // Exit the method immediately
                     }

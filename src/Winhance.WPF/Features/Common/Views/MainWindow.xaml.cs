@@ -486,6 +486,12 @@ namespace Winhance.WPF.Features.Common.Views
 
             try
             {
+                // Update the selected navigation item
+                if (DataContext is MainViewModel viewModel)
+                {
+                    viewModel.SelectedNavigationItem = "More";
+                }
+                
                 // Show the context menu using the MoreMenu control
                 LogToStartupLog($"MoreMenuControl exists: {MoreMenuControl != null}");
                 LogToStartupLog($"MoreButton exists: {MoreButton != null}");

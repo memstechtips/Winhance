@@ -551,23 +551,23 @@ namespace Winhance.Infrastructure.Features.SoftwareApps.Services.WinGet.Implemen
                 );
 
             options ??= new SearchOptions();
-            var arguments = new StringBuilder(
-                $"search {EscapeArgument(query)} --accept-source-agreements"
-            );
-
-            // The --available parameter is not supported in WinGet version (v1.9.25200) and earlier
-            // Removed to prevent command errors
-            // if (options.IncludeAvailable)
-            //     arguments.Append(" --available");
-
+            
+            // Build the command arguments - use the exact format that works in terminal
+            string escapedQuery = EscapeArgument(query);
+            string arguments = $"search --name {escapedQuery} --accept-source-agreements";
+            
+            // Add count parameter if specified
             if (options.Count > 0)
-                arguments.Append($" --count {options.Count}");
+                arguments += $" --count {options.Count}";
+            
+            // Log the exact command being executed
+            _logService?.LogInformation($"Executing WinGet search command: winget {arguments}");
 
             try
             {
                 var result = await ExecuteWinGetCommandAsync(
                         WinGetExe,
-                        arguments.ToString(),
+                        arguments,
                         null,
                         cancellationToken
                     )
@@ -575,13 +575,21 @@ namespace Winhance.Infrastructure.Features.SoftwareApps.Services.WinGet.Implemen
 
                 if (result.ExitCode != 0)
                 {
+                    _logService?.LogWarning($"WinGet search failed with exit code {result.ExitCode}. Error: {result.Error}");
                     return Enumerable.Empty<PackageInfo>();
                 }
-
-                return ParsePackageList(result.Output);
+                
+                // Log the raw output for debugging
+                _logService?.LogInformation($"WinGet search raw output: {result.Output}");
+                
+                var packageList = ParsePackageList(result.Output);
+                _logService?.LogInformation($"Parsed {packageList.Count()} packages from WinGet search results");
+                
+                return packageList;
             }
-            catch (Exception)
+            catch (Exception ex)
             {
+                _logService?.LogError($"Exception during WinGet search: {ex.Message}", ex);
                 return Enumerable.Empty<PackageInfo>();
             }
         }
@@ -712,6 +720,29 @@ namespace Winhance.Infrastructure.Features.SoftwareApps.Services.WinGet.Implemen
         {
             try
             {
+                // First, check if WinGet is already installed and working
+                _logService?.LogInformation("Checking if WinGet is already installed...");
+                
+                // Try to verify WinGet command directly
+                if (TryVerifyWinGetCommand())
+                {
+                    _logService?.LogInformation("WinGet is already installed and working.");
+                    return true;
+                }
+                
+                // If not found in PATH, check if it's in the WindowsApps directory
+                string windowsAppsPath = Path.Combine(
+                    Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData),
+                    "Microsoft\\WindowsApps"
+                );
+                
+                string wingetPath = Path.Combine(windowsAppsPath, WinGetExe);
+                if (File.Exists(wingetPath))
+                {
+                    _logService?.LogInformation($"Found WinGet at: {wingetPath}");
+                    return true;
+                }
+                
                 _logService?.LogInformation("WinGet not found. Attempting to install WinGet...");
 
                 // Create a progress adapter for the task progress service
@@ -1534,8 +1565,12 @@ namespace Winhance.Infrastructure.Features.SoftwareApps.Services.WinGet.Implemen
         private IEnumerable<PackageInfo> ParsePackageList(string output)
         {
             if (string.IsNullOrWhiteSpace(output))
-                yield break;
+                return Enumerable.Empty<PackageInfo>();
 
+            _logService?.LogInformation("Parsing WinGet output:");
+            _logService?.LogInformation(output);
+
+            var results = new List<PackageInfo>();
             var lines = output.Split(
                 new[] { "\r\n", "\r", "\n" },
                 StringSplitOptions.RemoveEmptyEntries
@@ -1543,6 +1578,11 @@ namespace Winhance.Infrastructure.Features.SoftwareApps.Services.WinGet.Implemen
 
             // Skip header lines
             bool headerPassed = false;
+            int nameColumnIndex = -1;
+            int idColumnIndex = -1;
+            int versionColumnIndex = -1;
+            int sourceColumnIndex = -1;
+            
             for (int i = 0; i < lines.Length; i++)
             {
                 var line = lines[i].Trim();
@@ -1551,30 +1591,97 @@ namespace Winhance.Infrastructure.Features.SoftwareApps.Services.WinGet.Implemen
                 if (string.IsNullOrWhiteSpace(line))
                     continue;
 
+                // First find the header line to identify column positions
+                if (!headerPassed && line.Contains("Name") && line.Contains("Id") && line.Contains("Version"))
+                {
+                    // This is the header line, find column positions
+                    nameColumnIndex = line.IndexOf("Name");
+                    idColumnIndex = line.IndexOf("Id");
+                    versionColumnIndex = line.IndexOf("Version");
+                    sourceColumnIndex = line.IndexOf("Source");
+                    
+                    _logService?.LogInformation($"Found header line: {line}");
+                    _logService?.LogInformation($"Column positions - Name: {nameColumnIndex}, Id: {idColumnIndex}, Version: {versionColumnIndex}, Source: {sourceColumnIndex}");
+                    continue;
+                }
+
                 // Skip until we find a line with dashes (header separator)
                 if (!headerPassed)
                 {
                     if (line.Contains("---"))
                     {
                         headerPassed = true;
+                        _logService?.LogInformation("Found header separator, starting to parse package data");
                     }
                     continue;
                 }
 
-                // Parse package info from the line
-                var parts = line.Split(new[] { ' ' }, StringSplitOptions.RemoveEmptyEntries);
-                if (parts.Length < 3)
-                    continue;
-
-                yield return new PackageInfo
+                // If we couldn't identify column positions, use a fallback approach
+                if (nameColumnIndex < 0 || idColumnIndex < 0 || versionColumnIndex < 0)
                 {
-                    Name = parts[0],
-                    Id = parts[1],
-                    Version = parts[2],
-                    Source = parts.Length > 3 ? parts[3] : string.Empty,
-                    IsInstalled = line.Contains("[Installed]"),
-                };
+                    _logService?.LogWarning("Could not identify column positions, using fallback parsing method");
+                    
+                    // Parse package info from the line using simple space splitting
+                    var parts = line.Split(new[] { ' ' }, StringSplitOptions.RemoveEmptyEntries);
+                    if (parts.Length < 3)
+                    {
+                        _logService?.LogWarning($"Skipping line with insufficient parts: {line}");
+                        continue;
+                    }
+
+                    results.Add(new PackageInfo
+                    {
+                        Name = parts[0],
+                        Id = parts[1],
+                        Version = parts[2],
+                        Source = parts.Length > 3 ? parts[3] : string.Empty,
+                        IsInstalled = line.Contains("[Installed]"),
+                    });
+                    continue;
+                }
+
+                // Use column positions to extract data
+                try
+                {
+                    string name, id, version, source;
+                    bool isInstalled = line.Contains("[Installed]");
+                    
+                    // Extract name (from nameColumnIndex to idColumnIndex)
+                    name = line.Substring(nameColumnIndex, idColumnIndex - nameColumnIndex).Trim();
+                    
+                    // Extract ID (from idColumnIndex to versionColumnIndex)
+                    id = line.Substring(idColumnIndex, versionColumnIndex - idColumnIndex).Trim();
+                    
+                    // Extract version (from versionColumnIndex to sourceColumnIndex or end)
+                    if (sourceColumnIndex > 0)
+                    {
+                        version = line.Substring(versionColumnIndex, sourceColumnIndex - versionColumnIndex).Trim();
+                        source = line.Substring(sourceColumnIndex).Trim();
+                    }
+                    else
+                    {
+                        version = line.Substring(versionColumnIndex).Trim();
+                        source = string.Empty;
+                    }
+                    
+                    _logService?.LogInformation($"Parsed package - Name: '{name}', Id: '{id}', Version: '{version}', Source: '{source}'");
+                    
+                    results.Add(new PackageInfo
+                    {
+                        Name = name,
+                        Id = id,
+                        Version = version,
+                        Source = source,
+                        IsInstalled = isInstalled,
+                    });
+                }
+                catch (Exception ex)
+                {
+                    _logService?.LogError($"Error parsing line '{line}': {ex.Message}");
+                }
             }
+            
+            return results;
         }
     }
 }

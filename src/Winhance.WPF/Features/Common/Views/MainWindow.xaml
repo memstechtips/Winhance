@@ -11,6 +11,7 @@
         xmlns:optimizeViews="clr-namespace:Winhance.WPF.Features.Optimize.Views"
         xmlns:customizeViews="clr-namespace:Winhance.WPF.Features.Customize.Views"
         xmlns:materialDesign="http://materialdesigninxaml.net/winfx/xaml/themes"
+        xmlns:utilities="clr-namespace:Winhance.WPF.Features.Common.Utilities"
         Title="Winhance"
         Background="Transparent"
         WindowStartupLocation="CenterScreen"
@@ -208,7 +209,8 @@
                                                         Command="{Binding NavigationService.NavigateCommand}"
                                                         CommandParameter="SoftwareApps"
                                                         Content="Software &amp; Apps"
-                                                        Margin="0,0,0,10">
+                                                        Margin="0,0,0,10"
+                                                        utilities:NavigationButtonProperties.IsSelected="{Binding SelectedNavigationItem, Converter={StaticResource StringEqualityConverter}, ConverterParameter=SoftwareApps}">
                                                         <Button.Tag>
                                                                 <!-- Symbol = Deployed Code -->
                                                                 <TextBlock Text="&#xF720;"
@@ -221,7 +223,8 @@
                                                         Command="{Binding NavigationService.NavigateCommand}"
                                                         CommandParameter="Optimize"
                                                         Content="Optimize"
-                                                        Margin="0,0,0,10">
+                                                        Margin="0,0,0,10"
+                                                        utilities:NavigationButtonProperties.IsSelected="{Binding SelectedNavigationItem, Converter={StaticResource StringEqualityConverter}, ConverterParameter=Optimize}">
                                                         <Button.Tag>
                                                                 <TextBlock Text="&#xEB9B;"
                                                                            FontFamily="{StaticResource MaterialSymbolsFont}"
@@ -233,7 +236,8 @@
                                                         Command="{Binding NavigationService.NavigateCommand}"
                                                         CommandParameter="Customize"
                                                         Content="Customize"
-                                                        Margin="0,0,0,10">
+                                                        Margin="0,0,0,10"
+                                                        utilities:NavigationButtonProperties.IsSelected="{Binding SelectedNavigationItem, Converter={StaticResource StringEqualityConverter}, ConverterParameter=Customize}">
                                                         <Button.Tag>
                                                                 <materialDesign:PackIcon Kind="Palette"
                                                                                          Width="24"
@@ -252,7 +256,8 @@
                                                         Content="More"
                                                         Margin="0,0,0,10"
                                                         VerticalAlignment="Bottom"
-                                                        Click="MoreButton_Click">
+                                                        Click="MoreButton_Click"
+                                                        utilities:NavigationButtonProperties.IsSelected="{Binding SelectedNavigationItem, Converter={StaticResource StringEqualityConverter}, ConverterParameter=More}">
                                                         <Button.Tag>
                                                                 <materialDesign:PackIcon Kind="MoreHoriz"
                                                                                           Width="24"

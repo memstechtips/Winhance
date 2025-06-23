@@ -37,6 +37,12 @@ namespace Winhance.Core.Features.Common.Interfaces
         /// </summary>
         /// <returns>A task representing the asynchronous operation. Returns the unified configuration file if successful, null otherwise.</returns>
         Task<UnifiedConfigurationFile> LoadUnifiedConfigurationAsync();
+        
+        /// <summary>
+        /// Downloads and loads the recommended configuration file from GitHub.
+        /// </summary>
+        /// <returns>A task representing the asynchronous operation. Returns the unified configuration file if successful, null otherwise.</returns>
+        Task<UnifiedConfigurationFile> LoadRecommendedConfigurationAsync();
 
         /// <summary>
         /// Creates a unified configuration file from individual configuration sections.

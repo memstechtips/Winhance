@@ -487,6 +487,44 @@ namespace Winhance.WPF.Features.Customize.ViewModels
                 };
                 Settings.Add(themeItem);
                 
+                // Load additional Windows theme customization settings from the core model
+                var windowsThemeCustomizations = WindowsThemeSettings.GetWindowsThemeCustomizations();
+                if (windowsThemeCustomizations?.Settings != null)
+                {
+                    foreach (var setting in windowsThemeCustomizations.Settings)
+                    {
+                        // Convert each core customization setting to an application setting item
+                        var appSetting = new ApplicationSettingItem(_registryService, _dialogService, _logService)
+                        {
+                            Id = setting.Id,
+                            Name = setting.Name,
+                            Description = setting.Description,
+                            GroupName = setting.GroupName,
+                            ControlType = setting.ControlType,
+                            IsVisible = true,
+                            IsSelected = true // Mark as selected by default
+                        };
+                        
+                        // Set the registry settings
+                        if (setting.RegistrySettings?.Count > 0)
+                        {
+                            if (setting.RegistrySettings.Count == 1)
+                            {
+                                appSetting.RegistrySetting = setting.RegistrySettings[0];
+                            }
+                            else
+                            {
+                                appSetting.LinkedRegistrySettings = new LinkedRegistrySettings
+                                {
+                                    Settings = setting.RegistrySettings,
+                                    Logic = setting.LinkedSettingsLogic
+                                };
+                            }
+                        }
+                        Settings.Add(appSetting);
+                    }
+                }
+                
                 _logService.Log(LogLevel.Info, $"Added {Settings.Count} searchable items for Windows Theme settings");
 
                 // Check the status of all settings
@@ -518,6 +556,29 @@ namespace Winhance.WPF.Features.Customize.ViewModels
 
                 // Refresh dark mode state
                 LoadDarkModeState();
+                
+                // Check the status of each setting
+                foreach (var setting in Settings)
+                {
+                    _logService.Log(LogLevel.Info, $"Checking status for setting: {setting.Name}");
+                    await setting.RefreshStatus();
+                    
+                    // Log the current registry value for debugging
+                    if (setting.RegistrySetting != null)
+                    {
+                        _logService.Log(LogLevel.Info, $"Registry value for {setting.Name} ({setting.RegistrySetting.Name}): {setting.CurrentValue ?? "null"}");
+                    }
+                    else if (setting.LinkedRegistrySettings != null && setting.LinkedRegistrySettings.Settings.Count > 0)
+                    {
+                        foreach (var linkedSetting in setting.LinkedRegistrySettingsWithValues)
+                        {
+                            _logService.Log(LogLevel.Info, $"Linked registry value for {setting.Name} ({linkedSetting.Setting.Name}): {linkedSetting.CurrentValue ?? "null"}");
+                        }
+                    }
+                    
+                    // Update the status message
+                    setting.StatusMessage = GetStatusMessage(setting);
+                }
 
                 await Task.CompletedTask;
             }

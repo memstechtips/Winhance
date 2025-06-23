@@ -3,6 +3,7 @@ using System.Collections.Generic;
 using System.Threading;
 using System.Threading.Tasks;
 using Winhance.Core.Features.Common.Interfaces;
+using Winhance.Core.Features.SoftwareApps.Interfaces.ScriptGeneration;
 using Winhance.Core.Features.SoftwareApps.Models;
 using Winhance.Core.Features.UI.Interfaces;
 
@@ -34,9 +35,9 @@ namespace Winhance.Core.Features.SoftwareApps.Interfaces
         ISpecialAppHandlerService SpecialAppHandlerService { get; }
 
         /// <summary>
-        /// Gets the script generation service.
+        /// Gets the bloat removal script service.
         /// </summary>
-        IScriptGenerationService ScriptGenerationService { get; }
+        IBloatRemovalScriptService BloatRemovalScriptService { get; }
 
         /// <summary>
         /// Gets the system services.

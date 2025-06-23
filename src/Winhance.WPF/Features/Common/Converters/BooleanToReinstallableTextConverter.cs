@@ -11,7 +11,7 @@ namespace Winhance.WPF.Converters
     {
         public object Convert(object value, Type targetType, object parameter, CultureInfo culture)
         {
-            return (bool)value ? "Is Installable" : "Is Not Installable";
+            return (bool)value ? "Yes" : "No";
         }
 
         public object ConvertBack(object value, Type targetType, object parameter, CultureInfo culture)

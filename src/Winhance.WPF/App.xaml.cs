@@ -9,14 +9,18 @@ using Winhance.Core.Features.Common.Interfaces;
 using Winhance.Core.Features.Common.Models;
 using Winhance.Core.Features.Common.Services;
 using Winhance.Core.Features.Customize.Interfaces;
+using Winhance.Core.Features.Optimize.Models;
+using Winhance.Core.Features.Optimize.Services;
 using Winhance.Core.Features.SoftwareApps.Interfaces;
+using Winhance.Core.Features.SoftwareApps.Interfaces.ScriptGeneration;
 using Winhance.Core.Features.SoftwareApps.Models;
 using Winhance.Core.Features.UI.Interfaces;
 using Winhance.Infrastructure.Features.Common.Registry;
-using Winhance.Infrastructure.Features.Common.ScriptGeneration;
 using Winhance.Infrastructure.Features.Common.Services;
 using Winhance.Infrastructure.Features.Customize.Services;
 using Winhance.Infrastructure.Features.SoftwareApps.Services;
+using Winhance.Infrastructure.Features.SoftwareApps.Services;
+using Winhance.Infrastructure.Features.SoftwareApps.Services.ScriptGeneration;
 using Winhance.Infrastructure.Features.SoftwareApps.Services.WinGet;
 using Winhance.Infrastructure.Features.SoftwareApps.Services.WinGet.Implementations;
 using Winhance.Infrastructure.Features.SoftwareApps.Services.WinGet.Interfaces;
@@ -162,9 +166,172 @@ namespace Winhance.WPF
                 LogStartupError("Got main view model");
 
                 LogStartupError("Getting software apps view model");
+                try
+                {
+                    // Log each dependency to see which one might be causing issues
+                    LogStartupError("Getting ITaskProgressService for WindowsAppsViewModel");
+                    var progressService = _host.Services.GetRequiredService<ITaskProgressService>();
+                    LogStartupError("Got ITaskProgressService");
+
+                    LogStartupError("Getting ISearchService for WindowsAppsViewModel");
+                    var searchService = _host.Services.GetRequiredService<ISearchService>();
+                    LogStartupError("Got ISearchService");
+
+                    LogStartupError("Getting IPackageManager for WindowsAppsViewModel");
+
+                    // Declare packageManager variable here so it's in scope for the entire method
+                    IPackageManager packageManager;
+
+                    // Try resolving each dependency of PackageManager individually
+                    try
+                    {
+                        LogStartupError("Resolving ILogService");
+                        var debugLogService = _host.Services.GetRequiredService<ILogService>();
+                        LogStartupError("ILogService resolved successfully");
+
+                        LogStartupError("Resolving IAppService");
+                        var debugAppService = _host.Services.GetRequiredService<IAppService>();
+                        LogStartupError("IAppService resolved successfully");
+
+                        LogStartupError("Resolving IAppRemovalService");
+                        var debugAppRemovalService =
+                            _host.Services.GetRequiredService<IAppRemovalService>();
+                        LogStartupError("IAppRemovalService resolved successfully");
+
+                        LogStartupError("Resolving ICapabilityRemovalService");
+                        var debugCapabilityRemovalService =
+                            _host.Services.GetRequiredService<ICapabilityRemovalService>();
+                        LogStartupError("ICapabilityRemovalService resolved successfully");
+
+                        LogStartupError("Resolving IFeatureRemovalService");
+                        var debugFeatureRemovalService =
+                            _host.Services.GetRequiredService<IFeatureRemovalService>();
+                        LogStartupError("IFeatureRemovalService resolved successfully");
+
+                        LogStartupError("Resolving ISpecialAppHandlerService");
+                        var debugSpecialAppHandlerService =
+                            _host.Services.GetRequiredService<ISpecialAppHandlerService>();
+                        LogStartupError("ISpecialAppHandlerService resolved successfully");
+
+                        LogStartupError("Resolving IBloatRemovalScriptService");
+                        var debugBloatRemovalScriptService =
+                            _host.Services.GetRequiredService<IBloatRemovalScriptService>();
+                        LogStartupError("IBloatRemovalScriptService resolved successfully");
+
+                        LogStartupError("Resolving ISystemServices");
+                        var debugSystemServices =
+                            _host.Services.GetRequiredService<ISystemServices>();
+                        LogStartupError("ISystemServices resolved successfully");
+
+                        LogStartupError("Resolving INotificationService");
+                        var debugNotificationService =
+                            _host.Services.GetRequiredService<INotificationService>();
+                        LogStartupError("INotificationService resolved successfully");
+
+                        // Now try to resolve IPackageManager
+                        LogStartupError("Now resolving IPackageManager");
+                        packageManager = _host.Services.GetRequiredService<IPackageManager>();
+                        LogStartupError("Got IPackageManager");
+                    }
+                    catch (Exception ex)
+                    {
+                        LogStartupError($"Error resolving dependency: {ex.Message}");
+                        if (ex.InnerException != null)
+                        {
+                            LogStartupError($"Inner exception: {ex.InnerException.Message}");
+                        }
+                        throw;
+                    }
+
+                    // After we've verified IPackageManager can be resolved, get the remaining dependencies
+                    LogStartupError("Getting IAppInstallationService for WindowsAppsViewModel");
+                    var appInstallationService =
+                        _host.Services.GetRequiredService<IAppInstallationService>();
+                    LogStartupError("Got IAppInstallationService");
+
+                    LogStartupError(
+                        "Getting ICapabilityInstallationService for WindowsAppsViewModel"
+                    );
+                    var capabilityService =
+                        _host.Services.GetRequiredService<ICapabilityInstallationService>();
+                    LogStartupError("Got ICapabilityInstallationService");
+
+                    LogStartupError("Getting IFeatureInstallationService for WindowsAppsViewModel");
+                    var featureService =
+                        _host.Services.GetRequiredService<IFeatureInstallationService>();
+                    LogStartupError("Got IFeatureInstallationService");
+
+                    LogStartupError("Getting IFeatureRemovalService for WindowsAppsViewModel");
+                    var featureRemovalService =
+                        _host.Services.GetRequiredService<IFeatureRemovalService>();
+                    LogStartupError("Got IFeatureRemovalService");
+
+                    LogStartupError("Getting IConfigurationService for WindowsAppsViewModel");
+                    var configurationService =
+                        _host.Services.GetRequiredService<IConfigurationService>();
+                    LogStartupError("Got IConfigurationService");
+
+                    LogStartupError("Getting IScriptDetectionService for WindowsAppsViewModel");
+                    var scriptDetectionService =
+                        _host.Services.GetRequiredService<IScriptDetectionService>();
+                    LogStartupError("Got IScriptDetectionService");
+
+                    LogStartupError(
+                        "Getting IInternetConnectivityService for WindowsAppsViewModel"
+                    );
+                    var connectivityService =
+                        _host.Services.GetRequiredService<IInternetConnectivityService>();
+                    LogStartupError("Got IInternetConnectivityService");
+
+                    LogStartupError(
+                        "Getting IAppInstallationCoordinatorService for WindowsAppsViewModel"
+                    );
+                    var appInstallationCoordinatorService =
+                        _host.Services.GetRequiredService<IAppInstallationCoordinatorService>();
+                    LogStartupError("Got IAppInstallationCoordinatorService");
+
+                    LogStartupError(
+                        "Getting IBloatRemovalCoordinatorService for WindowsAppsViewModel"
+                    );
+                    var bloatRemovalCoordinatorService =
+                        _host.Services.GetRequiredService<IBloatRemovalCoordinatorService>();
+                    LogStartupError("Got IBloatRemovalCoordinatorService");
+
+                    LogStartupError("Getting SoftwareAppsDialogService for WindowsAppsViewModel");
+                    var dialogService =
+                        _host.Services.GetRequiredService<Features.SoftwareApps.Services.SoftwareAppsDialogService>();
+                    LogStartupError("Got SoftwareAppsDialogService");
+
+                    LogStartupError("Now creating WindowsAppsViewModel with all dependencies");
+                    // Just test creating the object but don't assign it
+                    new WindowsAppsViewModel(
+                        progressService,
+                        searchService,
+                        packageManager,
+                        appInstallationService,
+                        capabilityService,
+                        featureService,
+                        featureRemovalService,
+                        configurationService,
+                        scriptDetectionService,
+                        connectivityService,
+                        appInstallationCoordinatorService,
+                        bloatRemovalCoordinatorService,
+                        dialogService
+                    );
+                    LogStartupError("Successfully created WindowsAppsViewModel test instance");
+                }
+                catch (Exception ex)
+                {
+                    LogStartupError($"Error creating WindowsAppsViewModel: {ex.Message}", ex);
+                    throw;
+                }
+
+                // Now get the service from DI
+                LogStartupError("Getting WindowsAppsViewModel from DI");
                 var windowsAppsViewModel =
                     _host.Services.GetRequiredService<WindowsAppsViewModel>();
-                LogStartupError("Got Windows apps view model");
+                LogStartupError("Got Windows apps view model from DI");
 
                 // Set the DataContext
                 LogStartupError("Setting main window DataContext");
@@ -452,6 +619,7 @@ namespace Winhance.WPF
                 services.AddSingleton<IDependencyManager, DependencyManager>();
                 services.AddSingleton<ISettingsRegistry, SettingsRegistry>();
                 services.AddSingleton<IViewModelLocator, ViewModelLocator>();
+                services.AddSingleton<IBatteryService, BatteryService>();
                 services.AddSingleton<
                     Winhance.Core.Interfaces.Services.IFileSystemService,
                     Winhance.Infrastructure.FileSystem.FileSystemService
@@ -512,10 +680,16 @@ namespace Winhance.WPF
                         provider.GetRequiredService<IRegistryService>()
                     )
                 );
-                services.AddSingleton<IScriptDetectionService, ScriptDetectionService>();
+                services.AddSingleton<
+                    IScriptDetectionService,
+                    Winhance.Infrastructure.Features.SoftwareApps.Services.ScriptGeneration.ScriptDetectionService
+                >();
 
                 // Register script generation services
                 services.AddScriptGenerationServices();
+
+                // Register bloat removal services
+                services.AddBloatRemovalServices();
 
                 services.AddSingleton<IPowerShellExecutionService>(
                     provider => new PowerShellExecutionService(
@@ -524,10 +698,22 @@ namespace Winhance.WPF
                     )
                 );
 
-                // Register power plan service
+                // Register power-related services
                 services.AddSingleton<
                     Winhance.Core.Features.Optimize.Interfaces.IPowerPlanService,
                     Winhance.Infrastructure.Features.Optimize.Services.PowerPlanService
+                >();
+                
+                // Register power setting service
+                services.AddSingleton<
+                    IPowerSettingService,
+                    Winhance.Infrastructure.Features.Optimize.Services.PowerSettingService
+                >();
+                
+                // Register power plan manager service
+                services.AddSingleton<
+                    IPowerPlanManagerService,
+                    Winhance.Infrastructure.Features.Optimize.Services.PowerPlanManagerService
                 >();
 
                 // Register the installation and removal services
@@ -563,7 +749,7 @@ namespace Winhance.WPF
                     provider.GetRequiredService<ILogService>(),
                     provider.GetRequiredService<ISpecialAppHandlerService>(),
                     provider.GetRequiredService<IAppDiscoveryService>(),
-                    provider.GetRequiredService<IScriptTemplateProvider>(),
+                    provider.GetRequiredService<IBloatRemovalScriptService>(),
                     provider.GetRequiredService<ISystemServices>(),
                     provider.GetRequiredService<IRegistryService>()
                 ));
@@ -575,14 +761,14 @@ namespace Winhance.WPF
                     provider => new CapabilityRemovalService(
                         provider.GetRequiredService<ILogService>(),
                         provider.GetRequiredService<IAppDiscoveryService>(),
-                        provider.GetRequiredService<IScheduledTaskService>()
+                        provider.GetRequiredService<IBloatRemovalScriptService>()
                     )
                 );
                 services.AddSingleton<IFeatureInstallationService, FeatureInstallationService>();
                 services.AddSingleton<IFeatureRemovalService>(provider => new FeatureRemovalService(
                     provider.GetRequiredService<ILogService>(),
                     provider.GetRequiredService<IAppDiscoveryService>(),
-                    provider.GetRequiredService<IScheduledTaskService>()
+                    provider.GetRequiredService<IBloatRemovalScriptService>()
                 ));
 
                 // Register the orchestrator
@@ -596,7 +782,7 @@ namespace Winhance.WPF
                     provider.GetRequiredService<ICapabilityRemovalService>(),
                     provider.GetRequiredService<IFeatureRemovalService>(),
                     provider.GetRequiredService<ISpecialAppHandlerService>(),
-                    provider.GetRequiredService<IScriptGenerationService>(),
+                    provider.GetRequiredService<IBloatRemovalScriptService>(),
                     provider.GetRequiredService<ISystemServices>(),
                     provider.GetService<INotificationService>()
                 ));
@@ -747,9 +933,24 @@ namespace Winhance.WPF
                     provider.GetRequiredService<IScriptDetectionService>(),
                     provider.GetRequiredService<IInternetConnectivityService>(),
                     provider.GetRequiredService<IAppInstallationCoordinatorService>(),
+                    provider.GetRequiredService<IBloatRemovalCoordinatorService>(),
                     provider.GetRequiredService<Features.SoftwareApps.Services.SoftwareAppsDialogService>()
                 ));
 
+                // Register WinGetSearchResultsViewModel
+                services.AddSingleton<WinGetSearchResultsViewModel>(provider => new WinGetSearchResultsViewModel(
+                    provider.GetRequiredService<IWinGetInstaller>(),
+                    provider.GetRequiredService<IAppInstallationService>(),
+                    provider.GetRequiredService<ITaskProgressService>(),
+                    provider.GetRequiredService<IInternetConnectivityService>()
+                ));
+                
+                // Register ExternalAppsPackageManagerViewModel
+                services.AddSingleton<ExternalAppsPackageManagerViewModel>(provider => new ExternalAppsPackageManagerViewModel(
+                    provider.GetRequiredService<ITaskProgressService>(),
+                    provider
+                ));
+                
                 services.AddSingleton<ExternalAppsViewModel>(provider => new ExternalAppsViewModel(
                     provider.GetRequiredService<ITaskProgressService>(),
                     provider.GetRequiredService<ISearchService>(),
@@ -759,7 +960,8 @@ namespace Winhance.WPF
                     provider.GetRequiredService<IConfigurationService>(),
                     provider.GetRequiredService<Features.SoftwareApps.Services.SoftwareAppsDialogService>(),
                     provider.GetRequiredService<IInternetConnectivityService>(),
-                    provider.GetRequiredService<IAppInstallationCoordinatorService>()
+                    provider.GetRequiredService<IAppInstallationCoordinatorService>(),
+                    provider
                 ));
 
                 // Register UacSettingsService
@@ -819,8 +1021,10 @@ namespace Winhance.WPF
                         provider.GetRequiredService<IRegistryService>(),
                         provider.GetRequiredService<ILogService>(),
                         provider.GetRequiredService<Winhance.Core.Features.Optimize.Interfaces.IPowerPlanService>(),
-                        provider.GetRequiredService<IViewModelLocator>(),
-                        provider.GetRequiredService<ISettingsRegistry>()
+                        provider.GetService<IPowerSettingService>(),
+                        provider.GetService<IPowerPlanManagerService>(),
+                        provider.GetService<IViewModelLocator>(),
+                        provider.GetService<ISettingsRegistry>()
                     )
                 );
 

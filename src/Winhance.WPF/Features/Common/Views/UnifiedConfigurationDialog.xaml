@@ -114,54 +114,104 @@
                     <ItemsControl ItemsSource="{Binding Sections}">
                     <ItemsControl.ItemTemplate>
                         <DataTemplate>
-                            <Grid Margin="0,8">
-                                <Grid.ColumnDefinitions>
-                                    <ColumnDefinition Width="Auto"/>
-                                    <ColumnDefinition Width="*"/>
-                                </Grid.ColumnDefinitions>
-                                
-                                <!-- Checkbox -->
-                                <CheckBox Grid.Column="0"
-                                          Style="{StaticResource CustomCheckBox}"
-                                          IsChecked="{Binding IsSelected}"
-                                          VerticalAlignment="Center"
-                                          IsEnabled="{Binding IsAvailable}"/>
-                                
-                                <!-- Section Info -->
-                                <StackPanel Grid.Column="1"
-                                            Margin="10,0,0,0">
-                                    <TextBlock Text="{Binding Name}"
-                                               FontWeight="SemiBold"
-                                               Foreground="{DynamicResource PrimaryTextColor}"/>
-                                    <TextBlock Text="{Binding Description}"
-                                               TextWrapping="Wrap"
-                                               Foreground="{DynamicResource SecondaryTextColor}"
-                                               FontSize="12"/>
+                            <StackPanel Margin="0,8">
+                                <!-- Parent Section -->
+                                <Grid>
+                                    <Grid.ColumnDefinitions>
+                                        <ColumnDefinition Width="Auto"/>
+                                        <ColumnDefinition Width="*"/>
+                                    </Grid.ColumnDefinitions>
                                     
-                                    <!-- Item Count -->
-                                    <TextBlock Text="{Binding ItemCount, StringFormat='{}{0} items'}"
-                                               Foreground="{DynamicResource TertiaryTextColor}"
-                                               FontSize="11"
-                                               Margin="0,2,0,0"/>
+                                    <!-- Parent Checkbox -->
+                                    <CheckBox Grid.Column="0"
+                                              Style="{StaticResource CustomCheckBox}"
+                                              IsChecked="{Binding IsSelected}"
+                                              VerticalAlignment="Center"
+                                              IsEnabled="{Binding IsAvailable}"/>
                                     
-                                    <!-- Availability Indicator -->
-                                    <TextBlock Text="Not available in this configuration"
-                                               Foreground="#E74C3C"
-                                               FontSize="11"
-                                               FontStyle="Italic">
-                                        <TextBlock.Style>
-                                            <Style TargetType="TextBlock">
-                                                <Setter Property="Visibility" Value="Collapsed"/>
-                                                <Style.Triggers>
-                                                    <DataTrigger Binding="{Binding IsAvailable}" Value="False">
-                                                        <Setter Property="Visibility" Value="Visible"/>
-                                                    </DataTrigger>
-                                                </Style.Triggers>
-                                            </Style>
-                                        </TextBlock.Style>
-                                    </TextBlock>
-                                </StackPanel>
-                            </Grid>
+                                    <!-- Section Info -->
+                                    <StackPanel Grid.Column="1"
+                                                Margin="10,0,0,0">
+                                        <TextBlock Text="{Binding Name}"
+                                                   FontWeight="SemiBold"
+                                                   Foreground="{DynamicResource PrimaryTextColor}"/>
+                                        <TextBlock Text="{Binding Description}"
+                                                   TextWrapping="Wrap"
+                                                   Foreground="{DynamicResource SecondaryTextColor}"
+                                                   FontSize="12"/>
+                                        
+                                        <!-- Item Count -->
+                                        <TextBlock Text="{Binding ItemCount, StringFormat='{}{0} items'}"
+                                                   Foreground="{DynamicResource TertiaryTextColor}"
+                                                   FontSize="11"
+                                                   Margin="0,2,0,0"/>
+                                        
+                                        <!-- Availability Indicator -->
+                                        <TextBlock Text="Not available in this configuration"
+                                                   Foreground="#E74C3C"
+                                                   FontSize="11"
+                                                   FontStyle="Italic">
+                                            <TextBlock.Style>
+                                                <Style TargetType="TextBlock">
+                                                    <Setter Property="Visibility" Value="Collapsed"/>
+                                                    <Style.Triggers>
+                                                        <DataTrigger Binding="{Binding IsAvailable}" Value="False">
+                                                            <Setter Property="Visibility" Value="Visible"/>
+                                                        </DataTrigger>
+                                                    </Style.Triggers>
+                                                </Style>
+                                            </TextBlock.Style>
+                                        </TextBlock>
+                                    </StackPanel>
+                                </Grid>
+                                
+                                <!-- Child Sections -->
+                                <ItemsControl ItemsSource="{Binding SubSections}" 
+                                              Visibility="{Binding HasSubSections, Converter={StaticResource BooleanToVisibilityConverter}}">
+                                    <ItemsControl.ItemTemplate>
+                                        <DataTemplate>
+                                            <Grid Margin="30,4,0,0">
+                                                <Grid.ColumnDefinitions>
+                                                    <ColumnDefinition Width="Auto"/>
+                                                    <ColumnDefinition Width="*"/>
+                                                </Grid.ColumnDefinitions>
+                                                
+                                                <!-- Child Checkbox -->
+                                                <CheckBox Grid.Column="0"
+                                                          Style="{StaticResource CustomCheckBox}"
+                                                          IsChecked="{Binding IsSelected}"
+                                                          VerticalAlignment="Center"
+                                                          IsEnabled="{Binding IsAvailable}"/>
+                                                
+                                                <!-- Child Section Info -->
+                                                <StackPanel Grid.Column="1"
+                                                            Margin="10,0,0,0">
+                                                    <TextBlock Text="{Binding Name}"
+                                                               FontWeight="Normal"
+                                                               Foreground="{DynamicResource PrimaryTextColor}"/>
+                                                    
+                                                    <!-- Availability Indicator -->
+                                                    <TextBlock Text="Not available in this configuration"
+                                                               Foreground="#E74C3C"
+                                                               FontSize="11"
+                                                               FontStyle="Italic">
+                                                        <TextBlock.Style>
+                                                            <Style TargetType="TextBlock">
+                                                                <Setter Property="Visibility" Value="Collapsed"/>
+                                                                <Style.Triggers>
+                                                                    <DataTrigger Binding="{Binding IsAvailable}" Value="False">
+                                                                        <Setter Property="Visibility" Value="Visible"/>
+                                                                    </DataTrigger>
+                                                                </Style.Triggers>
+                                                            </Style>
+                                                        </TextBlock.Style>
+                                                    </TextBlock>
+                                                </StackPanel>
+                                            </Grid>
+                                        </DataTemplate>
+                                    </ItemsControl.ItemTemplate>
+                                </ItemsControl>
+                            </StackPanel>
                         </DataTemplate>
                     </ItemsControl.ItemTemplate>
                     </ItemsControl>

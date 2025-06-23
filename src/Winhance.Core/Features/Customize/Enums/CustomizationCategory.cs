@@ -11,6 +11,11 @@ public enum CustomizationCategory
     Theme,
     
     /// <summary>
+    /// Windows theme-related customization settings.
+    /// </summary>
+    WindowsTheme,
+    
+    /// <summary>
     /// Taskbar-related customization settings.
     /// </summary>
     Taskbar,

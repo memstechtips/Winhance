@@ -1,0 +1,12 @@
+<ResourceDictionary xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+                    xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+                    xmlns:converters="clr-namespace:Winhance.WPF.Features.Optimize.Converters">
+    
+    <!-- Power Setting Type Converters -->
+    <converters:BoolToVisibilityConverter x:Key="BoolToVisibilityConverter" />
+    <converters:EnumTypeToVisibilityConverter x:Key="EnumTypeToVisibilityConverter" />
+    <converters:NumericTypeToVisibilityConverter x:Key="NumericTypeToVisibilityConverter" />
+    <converters:BoolToExpandCollapseConverter x:Key="BoolToExpandCollapseConverter" />
+    <converters:InverseBoolToVisibilityConverter x:Key="InverseBoolToVisibilityConverter" />
+    
+</ResourceDictionary>

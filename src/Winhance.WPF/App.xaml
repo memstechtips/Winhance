@@ -16,6 +16,7 @@
                 <ResourceDictionary Source="Features/Common/Resources/Styles/ButtonStyles.xaml"/>
                 <ResourceDictionary Source="Features/Common/Resources/Styles/CheckBoxStyles.xaml"/>
                 <ResourceDictionary Source="Features/Common/Resources/Styles/ComboBoxStyles.xaml"/>
+                <ResourceDictionary Source="Features/Common/Resources/Styles/NumericUpDownStyles.xaml"/>
                 <ResourceDictionary Source="Features/Common/Resources/Styles/ToggleSwitchStyles.xaml"/>
                 <ResourceDictionary Source="Features/Common/Resources/Styles/SliderStyles.xaml"/>
                 <ResourceDictionary Source="Features/Common/Resources/Styles/ToolTipStyles.xaml"/>
@@ -30,7 +31,9 @@
                 <ResourceDictionary Source="Features/Common/Resources/Styles/CombinedSettingTooltipTemplate.xaml"/>
                 <ResourceDictionary Source="Features/Common/Resources/Styles/ResponsiveStyles.xaml"/>
                 <ResourceDictionary Source="Features/Common/Resources/Styles/MenuStyles.xaml"/>
+                <ResourceDictionary Source="Features/Common/Resources/Styles/TableViewStyles.xaml"/>
                 <ResourceDictionary Source="Features/Common/Resources/Icons.xaml"/>
+                <ResourceDictionary Source="Features/Optimize/Resources/Converters/PowerSettingConverters.xaml"/>
             </ResourceDictionary.MergedDictionaries>
 
             <!-- Material Symbols Font -->

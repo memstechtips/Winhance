@@ -12,6 +12,7 @@ using CommunityToolkit.Mvvm.ComponentModel;
 using CommunityToolkit.Mvvm.Input;
 using Microsoft.Extensions.DependencyInjection;
 using Winhance.Core.Features.Common.Enums;
+using Winhance.Core.Features.Common.Enums;
 using Winhance.Core.Features.Common.Interfaces;
 using Winhance.Core.Features.Common.Messaging;
 using Winhance.Core.Features.Common.Models;
@@ -59,6 +60,9 @@ namespace Winhance.WPF.Features.Common.ViewModels
             get => _currentViewName;
             set => SetProperty(ref _currentViewName, value);
         }
+
+        [ObservableProperty]
+        private string _selectedNavigationItem = string.Empty;
 
         [ObservableProperty]
         private string _maximizeButtonContent = "\uE739";
@@ -112,7 +116,13 @@ namespace Winhance.WPF.Features.Common.ViewModels
                 ?? throw new ArgumentNullException(nameof(userPreferencesService));
 
             // Initialize the MoreMenuViewModel
-            MoreMenuViewModel = new MoreMenuViewModel(logService, versionService, _messengerService, applicationCloseService, _dialogService);
+            MoreMenuViewModel = new MoreMenuViewModel(
+                logService,
+                versionService,
+                _messengerService,
+                applicationCloseService,
+                _dialogService
+            );
 
             // Initialize command properties
             _minimizeWindowCommand = new RelayCommand(MinimizeWindow);
@@ -136,6 +146,9 @@ namespace Winhance.WPF.Features.Common.ViewModels
         private void NavigationService_Navigated(object sender, NavigationEventArgs e)
         {
             CurrentViewName = e.Route;
+
+            // Update the selected navigation item
+            SelectedNavigationItem = e.Route;
 
             // The NavigationService sets e.Parameter to the ViewModel instance
             // This ensures the CurrentViewModel is properly set
@@ -618,16 +631,77 @@ namespace Winhance.WPF.Features.Common.ViewModels
                     return;
                 }
 
-                // Load the unified configuration
+                // Show the config import options dialog using the DialogService
                 _messengerService.Send(
                     new LogMessage
                     {
-                        Message = "Showing file dialog to select configuration file",
+                        Message = "Showing config import options dialog",
                         Level = LogLevel.Info,
                     }
                 );
 
-                var unifiedConfig = await unifiedConfigService.LoadUnifiedConfigurationAsync();
+                // Use the DialogService to show the config import options dialog
+                var selectedOption = await _dialogService.ShowConfigImportOptionsDialogAsync();
+
+                if (selectedOption == null)
+                {
+                    _messengerService.Send(
+                        new LogMessage
+                        {
+                            Message = "User canceled config import options dialog",
+                            Level = LogLevel.Info,
+                        }
+                    );
+                    return;
+                }
+
+                UnifiedConfigurationFile unifiedConfig = null;
+
+                // Process the selected option
+                switch (selectedOption)
+                {
+                    case ImportOption.ImportOwn:
+                        _messengerService.Send(
+                            new LogMessage
+                            {
+                                Message = "User selected to import their own configuration",
+                                Level = LogLevel.Info,
+                            }
+                        );
+
+                        // Load the unified configuration from file
+                        _messengerService.Send(
+                            new LogMessage
+                            {
+                                Message = "Showing file dialog to select configuration file",
+                                Level = LogLevel.Info,
+                            }
+                        );
+
+                        unifiedConfig = await unifiedConfigService.LoadUnifiedConfigurationAsync();
+                        break;
+
+                    case ImportOption.ImportRecommended:
+                        _messengerService.Send(
+                            new LogMessage
+                            {
+                                Message = "User selected to import recommended configuration",
+                                Level = LogLevel.Info,
+                            }
+                        );
+
+                        // Download and load the recommended configuration
+                        _messengerService.Send(
+                            new LogMessage
+                            {
+                                Message = "Downloading recommended configuration",
+                                Level = LogLevel.Info,
+                            }
+                        );
+
+                        unifiedConfig = await configService.LoadRecommendedConfigurationAsync();
+                        break;
+                }
 
                 if (unifiedConfig == null)
                 {
@@ -662,21 +736,22 @@ namespace Winhance.WPF.Features.Common.ViewModels
                     }
                 );
 
-                // Show the unified configuration dialog to let the user select which sections to import
-                _messengerService.Send(
-                    new LogMessage
-                    {
-                        Message = "Showing unified configuration dialog for section selection",
-                        Level = LogLevel.Info,
-                    }
-                );
-
                 // Create a dictionary of sections with their availability and item counts
                 var sectionInfo = new Dictionary<
                     string,
                     (bool IsSelected, bool IsAvailable, int ItemCount)
                 >
                 {
+                    // Add Software & Apps parent section
+                    {
+                        "Software & Apps",
+                        (
+                            true,
+                            unifiedConfig.WindowsApps.Items.Count > 0 || unifiedConfig.ExternalApps.Items.Count > 0,
+                            unifiedConfig.WindowsApps.Items.Count + unifiedConfig.ExternalApps.Items.Count
+                        )
+                    },
+                    // Add Windows Apps and External Apps as subsections
                     {
                         "WindowsApps",
                         (
@@ -693,14 +768,7 @@ namespace Winhance.WPF.Features.Common.ViewModels
                             unifiedConfig.ExternalApps.Items.Count
                         )
                     },
-                    {
-                        "Customize",
-                        (
-                            true,
-                            unifiedConfig.Customize.Items.Count > 0,
-                            unifiedConfig.Customize.Items.Count
-                        )
-                    },
+                    // Optimization Settings with subsections
                     {
                         "Optimize",
                         (
@@ -709,38 +777,40 @@ namespace Winhance.WPF.Features.Common.ViewModels
                             unifiedConfig.Optimize.Items.Count
                         )
                     },
+                    // Optimization subsections
+                    { "Optimize.GamingAndPerformance", (true, true, 0) },
+                    { "Optimize.PowerSettings", (true, true, 0) },
+                    { "Optimize.WindowsSecuritySettings", (true, true, 0) },
+                    { "Optimize.PrivacySettings", (true, true, 0) },
+                    { "Optimize.WindowsUpdates", (true, true, 0) },
+                    { "Optimize.Explorer", (true, true, 0) },
+                    { "Optimize.Notifications", (true, true, 0) },
+                    { "Optimize.Sound", (true, true, 0) },
+                    
+                    // Customization Settings with subsections
+                    {
+                        "Customize",
+                        (
+                            true,
+                            unifiedConfig.Customize.Items.Count > 0,
+                            unifiedConfig.Customize.Items.Count
+                        )
+                    },
+                    // Customization subsections
+                    { "Customize.WindowsTheme", (true, true, 0) },
+                    { "Customize.Taskbar", (true, true, 0) },
+                    { "Customize.StartMenu", (true, true, 0) },
+                    { "Customize.Explorer", (true, true, 0) },
                 };
 
-                // Create and show the dialog
-                var dialog = new Views.UnifiedConfigurationDialog(
+                // Use the DialogService to show the unified configuration import dialog
+                var result = await _dialogService.ShowUnifiedConfigurationImportDialogAsync(
                     "Select Configuration Sections",
                     "Select which sections you want to import from the unified configuration.",
-                    sectionInfo,
-                    false
+                    sectionInfo
                 );
 
-                // Only set the Owner if the dialog is not the main window itself
-                if (dialog != Application.Current.MainWindow)
-                {
-                    try
-                    {
-                        dialog.Owner = Application.Current.MainWindow;
-                    }
-                    catch (Exception ex)
-                    {
-                        _messengerService.Send(
-                            new LogMessage
-                            {
-                                Message = $"Error setting dialog owner: {ex.Message}",
-                                Level = LogLevel.Warning,
-                            }
-                        );
-                        // Continue without setting the owner
-                    }
-                }
-                bool? dialogResult = dialog.ShowDialog();
-
-                if (dialogResult != true)
+                if (result == null)
                 {
                     _messengerService.Send(
                         new LogMessage
@@ -752,8 +822,7 @@ namespace Winhance.WPF.Features.Common.ViewModels
                     return;
                 }
 
-                // Get the selected sections from the dialog
-                var result = dialog.GetResult();
+                // Get the selected sections from the dialog result
                 var selectedSections = result
                     .Where(kvp => kvp.Value)
                     .Select(kvp => kvp.Key)
@@ -905,7 +974,5 @@ namespace Winhance.WPF.Features.Common.ViewModels
                 }
             }
         }
-
-
     }
 }

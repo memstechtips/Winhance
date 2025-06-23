@@ -1,11 +1,13 @@
 using System;
 using System.Collections.Generic;
+using System.IO;
 using System.Linq;
 using System.Threading;
 using System.Threading.Tasks;
 using Winhance.Core.Features.Common.Interfaces;
 using Winhance.Core.Features.Optimize.Models;
 using Winhance.Core.Features.SoftwareApps.Interfaces;
+using Winhance.Core.Features.SoftwareApps.Interfaces.ScriptGeneration;
 using Winhance.Core.Features.SoftwareApps.Models;
 using Winhance.Core.Features.UI.Interfaces;
 
@@ -40,7 +42,7 @@ namespace Winhance.Infrastructure.Features.SoftwareApps.Services
         public ISpecialAppHandlerService SpecialAppHandlerService { get; }
 
         /// <inheritdoc/>
-        public IScriptGenerationService ScriptGenerationService { get; }
+        public IBloatRemovalScriptService BloatRemovalScriptService { get; }
 
         /// <inheritdoc/>
         public ISystemServices SystemServices { get; }
@@ -55,7 +57,6 @@ namespace Winhance.Infrastructure.Features.SoftwareApps.Services
         /// <param name="appDiscoveryService">The app discovery service.</param>
         /// <param name="installationService">The installation service.</param>
         /// <param name="specialAppHandlerService">The special app handler service.</param>
-        /// <param name="scriptGenerationService">The script generation service.</param>
         public PackageManager(
             ILogService logService,
             IAppService appDiscoveryService,
@@ -63,7 +64,7 @@ namespace Winhance.Infrastructure.Features.SoftwareApps.Services
             ICapabilityRemovalService capabilityRemovalService,
             IFeatureRemovalService featureRemovalService,
             ISpecialAppHandlerService specialAppHandlerService,
-            IScriptGenerationService scriptGenerationService,
+            IBloatRemovalScriptService bloatRemovalScriptService,
             ISystemServices systemServices,
             INotificationService notificationService
         )
@@ -71,13 +72,13 @@ namespace Winhance.Infrastructure.Features.SoftwareApps.Services
             LogService = logService;
             AppDiscoveryService = appDiscoveryService;
             _appRemovalService = appRemovalService;
-            _appRemovalServiceAdapter = new AppRemovalServiceAdapter(appRemovalService);
             _capabilityRemovalService = capabilityRemovalService;
             _featureRemovalService = featureRemovalService;
             SpecialAppHandlerService = specialAppHandlerService;
-            ScriptGenerationService = scriptGenerationService;
+            BloatRemovalScriptService = bloatRemovalScriptService;
             SystemServices = systemServices;
             NotificationService = notificationService;
+            _appRemovalServiceAdapter = new AppRemovalServiceAdapter(appRemovalService);
         }
 
         /// <inheritdoc/>
@@ -128,12 +129,14 @@ namespace Winhance.Infrastructure.Features.SoftwareApps.Services
             }
 
             // First check if this is a special app that requires special handling
-            if (appInfo.RequiresSpecialHandling && !string.IsNullOrEmpty(appInfo.SpecialHandlerType))
+            if (
+                appInfo.RequiresSpecialHandling && !string.IsNullOrEmpty(appInfo.SpecialHandlerType)
+            )
             {
                 LogService.LogInformation(
                     $"Using special handler for app: {packageName}, handler type: {appInfo.SpecialHandlerType}"
                 );
-                
+
                 bool success = false;
                 switch (appInfo.SpecialHandlerType)
                 {
@@ -152,7 +155,7 @@ namespace Winhance.Infrastructure.Features.SoftwareApps.Services
                         );
                         break;
                 }
-                
+
                 if (success)
                 {
                     LogService.LogSuccess($"Successfully removed special app: {packageName}");
@@ -161,7 +164,7 @@ namespace Winhance.Infrastructure.Features.SoftwareApps.Services
                 {
                     LogService.LogError($"Failed to remove special app: {packageName}");
                 }
-                
+
                 return success; // Exit early, don't continue with standard removal process
             }
 
@@ -179,7 +182,7 @@ namespace Winhance.Infrastructure.Features.SoftwareApps.Services
                         new CapabilityInfo { Name = packageName, PackageName = packageName }
                     );
                     break;
-                
+
                 case AppType.StandardApp:
                 default:
                     var appResult = await _appRemovalService.RemoveAppAsync(appInfo);
@@ -202,34 +205,35 @@ namespace Winhance.Infrastructure.Features.SoftwareApps.Services
                 try
                 {
                     // Call the overload that returns RemovalScript
-                    var removalScript = await ScriptGenerationService.CreateBatchRemovalScriptAsync(
-                        appNamesList,
-                        appsWithRegistry
-                    );
+                    var removalScript =
+                        await BloatRemovalScriptService.CreateBatchRemovalScriptAsync(
+                            appNamesList,
+                            appsWithRegistry
+                        );
 
                     // Save the RemovalScript object
-                    await ScriptGenerationService.SaveScriptAsync(removalScript);
+                    await BloatRemovalScriptService.SaveScriptAsync(removalScript);
 
                     // Register the RemovalScript object
-                    await ScriptGenerationService.RegisterRemovalTaskAsync(removalScript);
+                    await BloatRemovalScriptService.RegisterRemovalTaskAsync(removalScript);
                 }
                 catch (Exception ex)
                 {
                     LogService.LogError(
-                    $"Failed to create or register removal script for {packageName}",
-                    ex
-                );
+                        $"Failed to create or register removal script for {packageName}",
+                        ex
+                    );
                     // Don't change result value, as the app removal itself might have succeeded
                 }
             }
-            
+
             return result;
         }
 
         /// <inheritdoc/>
         public async Task<bool> IsAppInstalledAsync(
-        string packageName,
-        CancellationToken cancellationToken = default
+            string packageName,
+            CancellationToken cancellationToken = default
         )
         {
             var status = await AppDiscoveryService.GetBatchInstallStatusAsync(
@@ -302,10 +306,13 @@ namespace Winhance.Infrastructure.Features.SoftwareApps.Services
                                 features.Add(new FeatureInfo { Name = app.PackageName });
                                 break;
                             case AppType.Capability:
-                                capabilities.Add(new CapabilityInfo {
-                                    Name = app.PackageName,
-                                    PackageName = app.PackageName
-                                });
+                                capabilities.Add(
+                                    new CapabilityInfo
+                                    {
+                                        Name = app.PackageName,
+                                        PackageName = app.PackageName,
+                                    }
+                                );
                                 break;
                             case AppType.StandardApp:
                             default:
@@ -321,10 +328,13 @@ namespace Winhance.Infrastructure.Features.SoftwareApps.Services
                             LogService.LogInformation(
                                 $"App not found in standard apps but IsCapability is true. Treating {app.PackageName} as a capability."
                             );
-                            capabilities.Add(new CapabilityInfo {
-                                Name = app.PackageName,
-                                PackageName = app.PackageName,
-                            });
+                            capabilities.Add(
+                                new CapabilityInfo
+                                {
+                                    Name = app.PackageName,
+                                    PackageName = app.PackageName,
+                                }
+                            );
                         }
                         else
                         {
@@ -433,23 +443,28 @@ namespace Winhance.Infrastructure.Features.SoftwareApps.Services
             try
             {
                 var successfulApps = results.Where(r => r.Success).Select(r => r.Name).ToList();
-                
+
                 // Filter out special apps from the successful apps list
                 var nonSpecialSuccessfulAppInfos = allRemovableApps
-                    .Where(a => successfulApps.Contains(a.PackageName)
-                        && (!a.RequiresSpecialHandling || string.IsNullOrEmpty(a.SpecialHandlerType))
+                    .Where(a =>
+                        successfulApps.Contains(a.PackageName)
+                        && (
+                            !a.RequiresSpecialHandling || string.IsNullOrEmpty(a.SpecialHandlerType)
+                        )
                     )
                     .ToList();
 
                 LogService.LogInformation(
                     $"Creating batch removal script for {nonSpecialSuccessfulAppInfos.Count} non-special apps"
                 );
-                
+
                 foreach (var app in nonSpecialSuccessfulAppInfos)
                 {
                     try
                     {
-                        await ScriptGenerationService.UpdateBloatRemovalScriptForInstalledAppAsync(app);
+                        await BloatRemovalScriptService.UpdateBloatRemovalScriptForInstalledAppAsync(
+                            app
+                        );
                     }
                     catch (Exception ex)
                     {
@@ -471,7 +486,7 @@ namespace Winhance.Infrastructure.Features.SoftwareApps.Services
         public async Task RegisterRemovalTaskAsync(RemovalScript script)
         {
             // Call the correct overload that takes a RemovalScript object
-            await ScriptGenerationService.RegisterRemovalTaskAsync(script);
+            await BloatRemovalScriptService.RegisterRemovalTaskAsync(script);
         }
     }
 }

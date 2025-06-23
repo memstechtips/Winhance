@@ -7,8 +7,10 @@ using Winhance.Core.Features.Common.Enums;
 using Winhance.Core.Features.Common.Interfaces;
 using Winhance.Core.Features.Common.Models;
 using Winhance.Core.Features.SoftwareApps.Interfaces;
+using Winhance.Core.Features.SoftwareApps.Interfaces.ScriptGeneration;
 using Winhance.Core.Features.SoftwareApps.Models;
-using Winhance.Infrastructure.Features.Common.ScriptGeneration;
+using Winhance.Infrastructure.Features.Common.Services;
+using Winhance.Infrastructure.Features.SoftwareApps.Services.ScriptGeneration;
 
 namespace Winhance.Infrastructure.Features.SoftwareApps.Services;
 
@@ -91,6 +93,30 @@ public class FeatureInstallationService : BaseInstallationService<FeatureInfo>, 
                     appsWithRegistry,
                     appSubPackages,
                     true); // true = install operation, so remove from script
+                
+                // Register the scheduled task to ensure it's updated with the latest script content
+                if (scriptResult != null)
+                {
+                    try
+                    {
+                        var scheduledTaskService = new ScheduledTaskService(_logService);
+                        bool taskRegistered = await scheduledTaskService.RegisterScheduledTaskAsync(scriptResult);
+                        
+                        if (taskRegistered)
+                        {
+                            _logService.LogInformation("Successfully registered updated BloatRemoval scheduled task");
+                        }
+                        else
+                        {
+                            _logService.LogWarning("Failed to register updated BloatRemoval scheduled task");
+                        }
+                    }
+                    catch (Exception taskEx)
+                    {
+                        _logService.LogError($"Error registering BloatRemoval scheduled task: {taskEx.Message}", taskEx);
+                        // Don't fail the installation if task registration fails
+                    }
+                }
                 
                 _logService.LogInformation($"Successfully updated BloatRemoval.ps1 script - {featureInfo.Name} will no longer be removed");
                 _logService.LogInformation($"Script update result: {scriptResult?.Name ?? "null"}");

@@ -95,8 +95,7 @@ Note: ✅ Completed items are commited to the source code files, but the changes
 ### Software & Apps Screen
 
 🔜 Add detection of installed apps and update notifications for those apps     
-🔜 Add an option to enable and Activate Windows Photo Viewer. Issue #135  
-⌛ Refactor app removal implementation to increase speed of app removals.  
+🔜 Add an option to enable and Activate Windows Photo Viewer. Issue #135   
 ⌛ Fix incorrect (failure) dialog being shown when a single app installation is cancelled.  
 
 #### Windows Apps & Features

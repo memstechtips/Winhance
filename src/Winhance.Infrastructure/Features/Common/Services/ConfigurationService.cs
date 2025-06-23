@@ -535,26 +535,7 @@ namespace Winhance.Infrastructure.Features.Common.Services
                                 // Read the JSON from the file
                                 var json = await File.ReadAllTextAsync(openFileDialog.FileName);
                 
-                                // Deserialize the JSON to a unified configuration file
-                                var unifiedConfig = JsonConvert.DeserializeObject<UnifiedConfigurationFile>(json);
-                                
-                                // Always ensure WindowsApps are included
-                                unifiedConfig.WindowsApps.IsIncluded = true;
-                                if (unifiedConfig.WindowsApps.Items == null)
-                                {
-                                    unifiedConfig.WindowsApps.Items = new List<ConfigurationItem>();
-                                }
-                                
-                                // Log details about included sections
-                                var includedSections = new List<string>();
-                                if (unifiedConfig.WindowsApps.IsIncluded) includedSections.Add("WindowsApps");
-                                if (unifiedConfig.ExternalApps.IsIncluded) includedSections.Add("ExternalApps");
-                                if (unifiedConfig.Customize.IsIncluded) includedSections.Add("Customize");
-                                if (unifiedConfig.Optimize.IsIncluded) includedSections.Add("Optimize");
-                                
-                                _logService.Log(LogLevel.Info, $"Loaded unified configuration with sections: {string.Join(", ", includedSections)}");
-                
-                                return unifiedConfig;
+                                return DeserializeUnifiedConfiguration(json);
                             }
                             catch (Exception ex)
                             {
@@ -563,6 +544,92 @@ namespace Winhance.Infrastructure.Features.Common.Services
                                 return null;
                             }
                         }
+                        
+        /// <summary>
+        /// Downloads and loads the recommended configuration file from GitHub.
+        /// </summary>
+        /// <returns>A task representing the asynchronous operation. Returns the unified configuration file if successful, null otherwise.</returns>
+        public async Task<UnifiedConfigurationFile> LoadRecommendedConfigurationAsync()
+        {
+            try
+            {
+                _logService.Log(LogLevel.Info, "Starting to download recommended configuration");
+                
+                // URL of the recommended configuration file
+                const string recommendedConfigUrl = "https://github.com/memstechtips/Winhance/blob/main/Winhance_Recommended_Config.winhance";
+                
+                // Use the raw content URL for direct download
+                string rawUrl = recommendedConfigUrl.Replace("github.com", "raw.githubusercontent.com").Replace("/blob/", "/");
+                
+                _logService.Log(LogLevel.Info, $"Downloading configuration from {rawUrl}");
+                
+                // Create HTTP client
+                using var client = new System.Net.Http.HttpClient();
+                client.DefaultRequestHeaders.Add("User-Agent", "Winhance");
+                
+                // Download the file
+                var response = await client.GetAsync(rawUrl);
+                
+                // Check if the download was successful
+                if (!response.IsSuccessStatusCode)
+                {
+                    string errorMessage = $"Failed to download recommended configuration. Status code: {response.StatusCode}";
+                    _logService.Log(LogLevel.Error, errorMessage);
+                    MessageBox.Show(errorMessage, "Download Error", MessageBoxButton.OK, MessageBoxImage.Error);
+                    return null;
+                }
+                
+                // Read the JSON content
+                var json = await response.Content.ReadAsStringAsync();
+                
+                _logService.Log(LogLevel.Info, "Successfully downloaded recommended configuration");
+                
+                return DeserializeUnifiedConfiguration(json);
+            }
+            catch (Exception ex)
+            {
+                _logService.Log(LogLevel.Error, $"Error downloading recommended configuration: {ex.Message}");
+                MessageBox.Show($"Error downloading recommended configuration: {ex.Message}", "Download Error", MessageBoxButton.OK, MessageBoxImage.Error);
+                return null;
+            }
+        }
+        
+        /// <summary>
+        /// Deserializes a JSON string into a UnifiedConfigurationFile object.
+        /// </summary>
+        /// <param name="json">The JSON string to deserialize.</param>
+        /// <returns>The deserialized UnifiedConfigurationFile object.</returns>
+        private UnifiedConfigurationFile DeserializeUnifiedConfiguration(string json)
+        {
+            try
+            {
+                // Deserialize the JSON to a unified configuration file
+                var unifiedConfig = JsonConvert.DeserializeObject<UnifiedConfigurationFile>(json);
+                
+                // Always ensure WindowsApps are included
+                unifiedConfig.WindowsApps.IsIncluded = true;
+                if (unifiedConfig.WindowsApps.Items == null)
+                {
+                    unifiedConfig.WindowsApps.Items = new List<ConfigurationItem>();
+                }
+                
+                // Log details about included sections
+                var includedSections = new List<string>();
+                if (unifiedConfig.WindowsApps.IsIncluded) includedSections.Add("WindowsApps");
+                if (unifiedConfig.ExternalApps.IsIncluded) includedSections.Add("ExternalApps");
+                if (unifiedConfig.Customize.IsIncluded) includedSections.Add("Customize");
+                if (unifiedConfig.Optimize.IsIncluded) includedSections.Add("Optimize");
+                
+                _logService.Log(LogLevel.Info, $"Loaded unified configuration with sections: {string.Join(", ", includedSections)}");
+                
+                return unifiedConfig;
+            }
+            catch (Exception ex)
+            {
+                _logService.Log(LogLevel.Error, $"Error deserializing unified configuration: {ex.Message}");
+                throw;
+            }
+        }
 
         /// <summary>
         /// Creates a unified configuration file from individual configuration sections.

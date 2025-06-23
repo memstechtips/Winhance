@@ -1,5 +1,6 @@
 using System.Threading.Tasks;
 using System.Collections.Generic;
+using Winhance.Core.Features.Common.Enums;
 
 namespace Winhance.Core.Features.Common.Interfaces
 {
@@ -95,5 +96,11 @@ namespace Winhance.Core.Features.Common.Interfaces
         /// <param name="footerText">The footer text.</param>
         /// <returns>A task representing the asynchronous operation, with a tuple containing the dialog result (whether the user clicked Yes or No) and whether the "Don't show again" checkbox was checked.</returns>
         Task<(bool? Result, bool DontShowAgain)> ShowDonationDialogAsync(string title, string supportMessage, string footerText);
+
+        /// <summary>
+        /// Shows the configuration import options dialog.
+        /// </summary>
+        /// <returns>The selected import option if the user clicked OK, or null if the user canceled.</returns>
+        Task<ImportOption?> ShowConfigImportOptionsDialogAsync();
     }
 }

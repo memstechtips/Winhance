@@ -1,0 +1,226 @@
+<UserControl x:Class="Winhance.WPF.Features.SoftwareApps.Views.ExternalAppsPackageManagerView"
+             xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006" 
+             xmlns:d="http://schemas.microsoft.com/expression/blend/2008" 
+             xmlns:local="clr-namespace:Winhance.WPF.Features.SoftwareApps.Views"
+             xmlns:viewModels="clr-namespace:Winhance.WPF.Features.SoftwareApps.ViewModels"
+             xmlns:materialDesign="http://materialdesigninxaml.net/winfx/xaml/themes"
+             xmlns:controls="clr-namespace:Winhance.WPF.Features.Common.Controls"
+             xmlns:commonControls="clr-namespace:Winhance.WPF.Features.Common.Controls"
+             xmlns:behaviors="clr-namespace:Winhance.WPF.Features.Common.Behaviors"
+             mc:Ignorable="d" 
+             d:DataContext="{d:DesignInstance Type=viewModels:ExternalAppsPackageManagerViewModel}">
+
+    <controls:ResponsiveScrollViewer>
+        <StackPanel Margin="10">
+            <!-- Search Box for WinGet Packages -->
+            <Border Background="{DynamicResource ContentSectionBorderBrush}"
+                    CornerRadius="5"
+                    Margin="0,5,0,15"
+                    Effect="{StaticResource ShadowEffect}">
+                <StackPanel Margin="15">
+                    <TextBlock Text="Search for Packages on WinGet"
+                               FontWeight="SemiBold"
+                               FontSize="16"
+                               Foreground="{DynamicResource PrimaryTextColor}"
+                               Margin="0,0,0,10"/>
+                    
+                    <commonControls:SearchBox SearchText="{Binding SearchText, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}">
+                        <commonControls:SearchBox.InputBindings>
+                            <KeyBinding Key="Return" Command="{Binding SearchCommand}" />
+                        </commonControls:SearchBox.InputBindings>
+                    </commonControls:SearchBox>
+                </StackPanel>
+            </Border>
+            
+            <!-- Empty State - Shown when a search has been attempted but no results are found -->
+            <Grid>
+                <Grid.Style>
+                    <Style TargetType="Grid">
+                        <Setter Property="Visibility" Value="Collapsed" />
+                        <Style.Triggers>
+                            <MultiDataTrigger>
+                                <MultiDataTrigger.Conditions>
+                                    <Condition Binding="{Binding HasSearchBeenAttempted}" Value="True" />
+                                    <Condition Binding="{Binding HasSearchResults}" Value="False" />
+                                </MultiDataTrigger.Conditions>
+                                <Setter Property="Visibility" Value="Visible" />
+                            </MultiDataTrigger>
+                        </Style.Triggers>
+                    </Style>
+                </Grid.Style>
+                <Border Background="{DynamicResource ContentSectionBorderBrush}"
+                        CornerRadius="5"
+                        Margin="0,5,0,5"
+                        Effect="{StaticResource ShadowEffect}"
+                        MinHeight="300">
+                    <StackPanel VerticalAlignment="Center" HorizontalAlignment="Center">
+                        <materialDesign:PackIcon Kind="Magnify"
+                                               Width="64"
+                                               Height="64"
+                                               Margin="0,0,0,20"
+                                               Foreground="{DynamicResource SubTextColor}"
+                                               HorizontalAlignment="Center"/>
+                        
+                        <TextBlock Text="Search for packages on WinGet"
+                                   FontWeight="SemiBold"
+                                   FontSize="20"
+                                   Foreground="{DynamicResource PrimaryTextColor}"
+                                   HorizontalAlignment="Center"
+                                   Margin="0,0,0,20"/>
+                        
+                        <TextBlock Text="Type in the search box above to find and install packages"
+                                   FontSize="14"
+                                   Foreground="{DynamicResource SubTextColor}"
+                                   HorizontalAlignment="Center"
+                                   TextWrapping="Wrap"
+                                   MaxWidth="400"
+                                   TextAlignment="Center"/>
+                    </StackPanel>
+                </Border>
+            </Grid>
+            
+            <!-- Search Results - Shown when search has been performed and results are available -->
+            <Grid Visibility="{Binding ShowSearchResults, Converter={StaticResource BooleanToVisibilityConverter}}">
+
+                <!-- WinGet Search Results Header -->
+                <Border Background="{DynamicResource ContentSectionBorderBrush}"
+                        CornerRadius="5"
+                        Margin="0,5,0,5"
+                        Effect="{StaticResource ShadowEffect}"
+                        Cursor="Hand">
+                    <DockPanel VerticalAlignment="Center"
+                               HorizontalAlignment="Stretch">
+                        <!-- Header Icon -->
+                        <materialDesign:PackIcon Kind="Magnify"
+                                               Width="24"
+                                               Height="24"
+                                               Margin="15,0,10,0"
+                                               Foreground="{DynamicResource PrimaryTextColor}"
+                                               VerticalAlignment="Center"
+                                               DockPanel.Dock="Left"/>
+
+                        <!-- Header Title -->
+                        <TextBlock Text="WinGet Search Results"
+                                   FontWeight="SemiBold"
+                                   FontSize="14"
+                                   Foreground="{DynamicResource PrimaryTextColor}"
+                                   Margin="0,10,0,10"
+                                   VerticalAlignment="Center"
+                                   DockPanel.Dock="Left"/>
+
+                        <!-- Status Text -->
+                        <TextBlock Text="{Binding WinGetSearchResultsViewModel.StatusText}"
+                                   FontSize="12"
+                                   Foreground="{DynamicResource SubTextColor}"
+                                   HorizontalAlignment="Right"
+                                   VerticalAlignment="Center"
+                                   Margin="0,0,10,0"
+                                   DockPanel.Dock="Right"/>
+                    </DockPanel>
+                </Border>
+
+                <!-- Search Results Content -->
+                <Border Background="{DynamicResource ContentSectionBorderBrush}"
+                        CornerRadius="5"
+                        Margin="5,50,5,5"
+                        Effect="{StaticResource LightShadowEffect}">
+                    <Grid Margin="10">
+                        <Grid.RowDefinitions>
+                            <RowDefinition Height="Auto"/>
+                            <RowDefinition Height="*"/>
+                        </Grid.RowDefinitions>
+                        
+                        <!-- Search Results List -->
+                        <ListView Grid.Row="1" 
+                                  x:Name="WinGetAppsListView"
+                                  ItemsSource="{Binding WinGetSearchResultsViewModel.SearchResults}" 
+                                  Style="{DynamicResource ThemedListView}" 
+                                  ItemContainerStyle="{DynamicResource ThemedListViewItem}" 
+                                  Margin="0,0,0,0" 
+                                  HorizontalAlignment="Stretch" 
+                                  HorizontalContentAlignment="Stretch"
+                                  behaviors:GridViewColumnResizeBehavior.Enabled="True"
+                                  behaviors:GridViewColumnResizeBehavior.Stretch="True">
+
+                            <ListView.View>
+                                <GridView x:Name="WinGetAppsGridView" AllowsColumnReorder="False">
+
+                                    <!-- Select Column -->
+                                    <GridViewColumn Width="60">
+                                        <GridViewColumn.HeaderContainerStyle>
+                                            <StaticResource ResourceKey="FirstColumnHeader"/>
+                                        </GridViewColumn.HeaderContainerStyle>
+                                        <GridViewColumn.Header>
+                                            <CheckBox IsChecked="{Binding WinGetSearchResultsViewModel.IsAllSelected}" 
+                                                      Style="{StaticResource CustomCheckBox}"
+                                                      VerticalAlignment="Center"
+                                                      HorizontalAlignment="Center"/>
+                                        </GridViewColumn.Header>
+                                        <GridViewColumn.CellTemplate>
+                                            <DataTemplate>
+                                                <CheckBox IsChecked="{Binding IsSelected}" 
+                                                          Style="{StaticResource CustomCheckBox}"
+                                                          VerticalAlignment="Center"
+                                                          HorizontalAlignment="Center"/>
+                                            </DataTemplate>
+                                        </GridViewColumn.CellTemplate>
+                                    </GridViewColumn>
+
+                                    <!-- Name Column -->
+                                    <GridViewColumn Header="Name" Width="250">
+                                        <GridViewColumn.CellTemplate>
+                                            <DataTemplate>
+                                                <TextBlock Text="{Binding Name}" 
+                                                           TextTrimming="CharacterEllipsis"
+                                                           Margin="5,0"
+                                                           VerticalAlignment="Center"/>
+                                            </DataTemplate>
+                                        </GridViewColumn.CellTemplate>
+                                    </GridViewColumn>
+
+                                    <!-- ID Column -->
+                                    <GridViewColumn Header="ID" Width="250">
+                                        <GridViewColumn.CellTemplate>
+                                            <DataTemplate>
+                                                <TextBlock Text="{Binding Id}" 
+                                                           TextTrimming="CharacterEllipsis"
+                                                           Margin="5,0"
+                                                           VerticalAlignment="Center"/>
+                                            </DataTemplate>
+                                        </GridViewColumn.CellTemplate>
+                                    </GridViewColumn>
+
+                                    <!-- Version Column -->
+                                    <GridViewColumn Header="Version" Width="120">
+                                        <GridViewColumn.CellTemplate>
+                                            <DataTemplate>
+                                                <TextBlock Text="{Binding Version}" 
+                                                           TextTrimming="CharacterEllipsis"
+                                                           Margin="5,0"
+                                                           VerticalAlignment="Center"/>
+                                            </DataTemplate>
+                                        </GridViewColumn.CellTemplate>
+                                    </GridViewColumn>
+
+                                    <!-- Source Column -->
+                                    <GridViewColumn Header="Source" Width="150">
+                                        <GridViewColumn.CellTemplate>
+                                            <DataTemplate>
+                                                <TextBlock Text="{Binding Source}" 
+                                                           TextTrimming="CharacterEllipsis"
+                                                           Margin="5,0"
+                                                           VerticalAlignment="Center"/>
+                                            </DataTemplate>
+                                        </GridViewColumn.CellTemplate>
+                                    </GridViewColumn>
+                                </GridView>
+                            </ListView.View>
+                        </ListView>
+                    </Grid>
+                </Border>
+            </Grid>
+        </StackPanel>
+    </controls:ResponsiveScrollViewer>
+</UserControl>

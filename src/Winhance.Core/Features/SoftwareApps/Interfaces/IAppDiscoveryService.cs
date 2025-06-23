@@ -50,5 +50,13 @@ namespace Winhance.Core.Features.SoftwareApps.Interfaces
         /// </summary>
         /// <returns>True if OneNote is installed; otherwise, false.</returns>
         Task<bool> IsOneNoteInstalledAsync();
+
+        /// <summary>
+        /// Refreshes the installation status of all apps, capabilities, and features.
+        /// This forces a fresh check of all items and updates the internal cache.
+        /// Call this method after installing or removing apps, capabilities, or features.
+        /// </summary>
+        /// <returns>A task representing the asynchronous operation.</returns>
+        Task RefreshAppInstallationStatusAsync();
     }
 }

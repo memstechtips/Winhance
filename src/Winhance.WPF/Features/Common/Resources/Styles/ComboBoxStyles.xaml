@@ -1,5 +1,6 @@
 <ResourceDictionary xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
-                    xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml">
+                    xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+                    xmlns:controls="clr-namespace:Winhance.WPF.Features.Common.Controls">
     <!--
     ComboBox Styles
     
@@ -97,9 +98,6 @@
     <Style x:Key="ModernComboBoxStyle" TargetType="ComboBox">
         <Setter Property="SnapsToDevicePixels" Value="True"/>
         <Setter Property="OverridesDefaultStyle" Value="True"/>
-        <Setter Property="ScrollViewer.HorizontalScrollBarVisibility" Value="Auto"/>
-        <Setter Property="ScrollViewer.VerticalScrollBarVisibility" Value="Auto"/>
-        <Setter Property="ScrollViewer.CanContentScroll" Value="True"/>
         <Setter Property="MinWidth" Value="120"/>
         <Setter Property="MinHeight" Value="30"/>
         <Setter Property="Foreground" Value="{DynamicResource PrimaryTextColor}"/>
@@ -129,7 +127,11 @@
                                IsOpen="{TemplateBinding IsDropDownOpen}"
                                AllowsTransparency="True"
                                Focusable="False"
-                               PopupAnimation="Slide">
+                               PopupAnimation="Fade"
+                               StaysOpen="False"
+                               PlacementTarget="{Binding ElementName=ToggleButton}"
+                               VerticalOffset="1"
+                               HorizontalOffset="0">
                             <Grid x:Name="DropDown"
                                   SnapsToDevicePixels="True"
                                   MinWidth="{TemplateBinding ActualWidth}"
@@ -139,9 +141,12 @@
                                         BorderBrush="{DynamicResource ControlBorderBrush}"
                                         BorderThickness="1"
                                         CornerRadius="0,0,4,4">
-                                    <ScrollViewer Margin="0,4">
-                                        <StackPanel IsItemsHost="True"/>
-                                    </ScrollViewer>
+                                    <controls:ResponsiveScrollViewer Style="{DynamicResource ModernScrollViewer}" 
+                                                                   Margin="0,4,0,0"
+                                                                   IsHitTestVisible="True"
+                                                                   Focusable="True">
+                                        <StackPanel IsItemsHost="True" Margin="0,0,0,0"/>
+                                    </controls:ResponsiveScrollViewer>
                                 </Border>
                             </Grid>
                         </Popup>

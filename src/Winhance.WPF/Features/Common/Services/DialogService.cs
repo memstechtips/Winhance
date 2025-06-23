@@ -3,6 +3,7 @@ using System.Collections.Generic;
 using System.Linq;
 using System.Threading.Tasks;
 using System.Windows;
+using Winhance.Core.Features.Common.Enums;
 using Winhance.Core.Features.Common.Interfaces;
 using Winhance.WPF.Features.Common.ViewModels;
 using Winhance.WPF.Features.Common.Views;
@@ -77,8 +78,10 @@ namespace Winhance.WPF.Features.Common.Services
         )
         {
             // For messages with app lists (special handling)
-            if (message.Contains("following") && 
-                (message.Contains("installed") || message.Contains("removed")))
+            if (
+                message.Contains("following")
+                && (message.Contains("installed") || message.Contains("removed"))
+            )
             {
                 // Parse apps from the message
                 var lines = message.Split('\n');
@@ -98,7 +101,7 @@ namespace Winhance.WPF.Features.Common.Services
                 CustomDialog.ShowInformation(title, headerText, apps, footerText);
                 return Task.CompletedTask;
             }
-            
+
             // For all other information messages, use CustomDialog
             CustomDialog.ShowInformation(title, title, message, "");
             return Task.CompletedTask;
@@ -202,8 +205,19 @@ namespace Winhance.WPF.Features.Common.Services
             // Create the dialog
             var dialog = new UnifiedConfigurationDialog(title, description, sections, true);
 
-            // Set the owner to the current active window
-            dialog.Owner = Application.Current.MainWindow;
+            // Only set the owner if the main window is visible
+            if (Application.Current.MainWindow != null && Application.Current.MainWindow.IsVisible)
+            {
+                try
+                {
+                    dialog.Owner = Application.Current.MainWindow;
+                }
+                catch (Exception ex)
+                {
+                    System.Diagnostics.Debug.WriteLine($"Error setting dialog owner: {ex.Message}");
+                    // Continue without setting the owner
+                }
+            }
 
             // Show the dialog
             var result = dialog.ShowDialog();
@@ -226,8 +240,19 @@ namespace Winhance.WPF.Features.Common.Services
             // Create the dialog
             var dialog = new UnifiedConfigurationDialog(title, description, sections, false);
 
-            // Set the owner to the current active window
-            dialog.Owner = Application.Current.MainWindow;
+            // Only set the owner if the main window is visible
+            if (Application.Current.MainWindow != null && Application.Current.MainWindow.IsVisible)
+            {
+                try
+                {
+                    dialog.Owner = Application.Current.MainWindow;
+                }
+                catch (Exception ex)
+                {
+                    System.Diagnostics.Debug.WriteLine($"Error setting dialog owner: {ex.Message}");
+                    // Continue without setting the owner
+                }
+            }
 
             // Show the dialog
             var result = dialog.ShowDialog();
@@ -271,6 +296,54 @@ namespace Winhance.WPF.Features.Common.Services
                 // Log the error
                 System.Diagnostics.Debug.WriteLine($"Error showing donation dialog: {ex.Message}");
                 return (false, false);
+            }
+        }
+
+        /// <summary>
+        /// Shows the configuration import options dialog.
+        /// </summary>
+        /// <returns>The selected import option if the user clicked OK, or null if the user canceled.</returns>
+        public async Task<ImportOption?> ShowConfigImportOptionsDialogAsync()
+        {
+            try
+            {
+                // Create the dialog
+                var dialog = new ConfigImportOptionsDialog();
+
+                // Only set the owner if the main window is visible
+                if (Application.Current.MainWindow != null && Application.Current.MainWindow.IsVisible)
+                {
+                    try
+                    {
+                        dialog.Owner = Application.Current.MainWindow;
+                    }
+                    catch (Exception ex)
+                    {
+                        System.Diagnostics.Debug.WriteLine(
+                            $"Error setting dialog owner: {ex.Message}"
+                        );
+                        // Continue without setting the owner
+                    }
+                }
+
+                // Show the dialog
+                var result = dialog.ShowDialog();
+
+                // Return the selected option if the user clicked OK, otherwise return null
+                if (result == true)
+                {
+                    return dialog.SelectedOption;
+                }
+
+                return null;
+            }
+            catch (Exception ex)
+            {
+                // Log the error
+                System.Diagnostics.Debug.WriteLine(
+                    $"Error showing config import options dialog: {ex.Message}"
+                );
+                return null;
             }
         }
     }

@@ -611,34 +611,6 @@ public static class GamingandPerformanceOptimizations
                 },
                 new OptimizationSetting
                 {
-                    Id = "performance-menu-animations",
-                    Name = "Menu Animations",
-                    Description = "Controls menu animations",
-                    Category = OptimizationCategory.GamingandPerformance,
-                    GroupName = "Visual Effects",
-                    IsEnabled = false,
-                    ControlType = ControlType.BinaryToggle,
-                    RegistrySettings = new List<RegistrySetting>
-                    {
-                        new RegistrySetting
-                        {
-                            Category = "Performance",
-                            Hive = RegistryHive.CurrentUser,
-                            SubKey = "Control Panel\\Desktop",
-                            Name = "MenuShowDelay",
-                            RecommendedValue = 0, // For backward compatibility
-                            EnabledValue = 400, // When toggle is ON, menu animations are enabled (default delay)
-                            DisabledValue = 0, // When toggle is OFF, menu animations are disabled
-                            ValueType = RegistryValueKind.String,
-                            DefaultValue = 400, // Default value when registry key exists but no value is set
-                            Description = "Controls menu animations",
-                            IsPrimary = true,
-                            AbsenceMeansEnabled = false,
-                        },
-                    },
-                },
-                new OptimizationSetting
-                {
                     Id = "performance-prefetch",
                     Name = "Prefetch Feature",
                     Description = "Controls Windows prefetch feature",
@@ -958,6 +930,63 @@ public static class GamingandPerformanceOptimizations
                             ValueType = RegistryValueKind.DWord,
                             DefaultValue = 1, // Default value when registry key exists but no value is set
                             Description = "Controls whether apps can run in the background",
+                            IsPrimary = true,
+                            AbsenceMeansEnabled = true,
+                        },
+                    },
+                },
+                new OptimizationSetting
+                {
+                    Id = "power-cpu-unpark",
+                    Name = "CPU Core Unparking",
+                    Description = "Controls CPU core parking for better performance",
+                    Category = OptimizationCategory.GamingandPerformance,
+                    GroupName = "Performance",
+                    IsEnabled = false,
+                    ControlType = ControlType.BinaryToggle,
+                    RegistrySettings = new List<RegistrySetting>
+                    {
+                        new RegistrySetting
+                        {
+                            Category = "Power",
+                            Hive = RegistryHive.LocalMachine,
+                            SubKey =
+                                "SYSTEM\\ControlSet001\\Control\\Power\\PowerSettings\\54533251-82be-4824-96c1-47b60b740d00\\0cc5b647-c1df-4637-891a-dec35c318583",
+                            Name = "ValueMax",
+                            RecommendedValue = 0,   // For backward compatibility
+                            EnabledValue = 0,      // Unpark CPU cores (from Recommended)
+                            DisabledValue = 1,     // Allow CPU core parking (from Default)
+                            ValueType = RegistryValueKind.DWord,
+                            DefaultValue = 1,      // Default value when registry key exists but no value is set
+                            Description = "Controls CPU core parking for better performance",
+                            IsPrimary = true,
+                            AbsenceMeansEnabled = true,
+                        },
+                    },
+                },
+                new OptimizationSetting
+                {
+                    Id = "power-throttling",
+                    Name = "Power Throttling",
+                    Description = "Controls power throttling for better performance",
+                    Category = OptimizationCategory.GamingandPerformance,
+                    GroupName = "Performance",
+                    IsEnabled = false,
+                    ControlType = ControlType.BinaryToggle,
+                    RegistrySettings = new List<RegistrySetting>
+                    {
+                        new RegistrySetting
+                        {
+                            Category = "Power",
+                            Hive = RegistryHive.LocalMachine,
+                            SubKey = "SYSTEM\\CurrentControlSet\\Control\\Power\\PowerThrottling",
+                            Name = "PowerThrottlingOff",
+                            RecommendedValue = 1,   // For backward compatibility
+                            EnabledValue = 0,      // Enable power throttling
+                            DisabledValue = 1,     // Disable power throttling
+                            ValueType = RegistryValueKind.DWord,
+                            DefaultValue = 1,      // Default value when registry key exists but no value is set
+                            Description = "Controls power throttling for better performance",
                             IsPrimary = true,
                             AbsenceMeansEnabled = true,
                         },

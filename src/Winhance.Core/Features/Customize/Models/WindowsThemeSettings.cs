@@ -1,6 +1,6 @@
-using Microsoft.Win32;
 using System.Collections.Generic;
 using System.Threading.Tasks;
+using Microsoft.Win32;
 using Winhance.Core.Features.Common.Enums;
 using Winhance.Core.Features.Common.Models;
 using Winhance.Core.Features.Customize.Enums;
@@ -16,7 +16,8 @@ namespace Winhance.Core.Features.Customize.Models
         // Registry paths and keys
         public static class Registry
         {
-            public const string ThemesPersonalizeSubKey = @"Software\Microsoft\Windows\CurrentVersion\Themes\Personalize";
+            public const string ThemesPersonalizeSubKey =
+                @"Software\Microsoft\Windows\CurrentVersion\Themes\Personalize";
             public const string AppsUseLightThemeName = "AppsUseLightTheme";
             public const string SystemUsesLightThemeName = "SystemUsesLightTheme";
         }
@@ -30,17 +31,19 @@ namespace Winhance.Core.Features.Customize.Models
             public const string Windows11DarkWallpaper = "img19.jpg";
 
             // Windows 10 wallpaper path
-            public const string Windows10Wallpaper = @"C:\Windows\Web\4K\Wallpaper\Windows\img0_3840x2160.jpg";
+            public const string Windows10Wallpaper =
+                @"C:\Windows\Web\4K\Wallpaper\Windows\img0_3840x2160.jpg";
 
             public static string GetDefaultWallpaperPath(bool isWindows11, bool isDarkMode)
             {
                 if (isWindows11)
                 {
                     return System.IO.Path.Combine(
-                        Windows11BasePath, 
-                        isDarkMode ? Windows11DarkWallpaper : Windows11LightWallpaper);
+                        Windows11BasePath,
+                        isDarkMode ? Windows11DarkWallpaper : Windows11LightWallpaper
+                    );
                 }
-                
+
                 return Windows10Wallpaper;
             }
         }
@@ -147,7 +150,7 @@ namespace Winhance.Core.Features.Customize.Models
                     Description = "Windows Apps Theme Mode",
                     // For backward compatibility
                     RecommendedValue = 0,
-                    DefaultValue = 1
+                    DefaultValue = 1,
                 },
                 new RegistrySetting
                 {
@@ -161,8 +164,8 @@ namespace Winhance.Core.Features.Customize.Models
                     Description = "Windows System Theme Mode",
                     // For backward compatibility
                     RecommendedValue = 0,
-                    DefaultValue = 1
-                }
+                    DefaultValue = 1,
+                },
             };
         }
 
@@ -180,10 +183,51 @@ namespace Winhance.Core.Features.Customize.Models
                 GroupName = "Windows Theme",
                 Category = CustomizationCategory.Theme,
                 ControlType = ControlType.ComboBox,
-                RegistrySettings = CreateRegistrySettings()
+                RegistrySettings = CreateRegistrySettings(),
             };
 
             return setting;
+        }
+
+        public static CustomizationGroup GetWindowsThemeCustomizations()
+        {
+            return new CustomizationGroup
+            {
+                Name = "Windows Theme",
+                Category = CustomizationCategory.WindowsTheme,
+                Settings = new List<CustomizationSetting>
+                {
+                    new CustomizationSetting
+                    {
+                        Id = "theme-transparency",
+                        Name = "Transparency Effects",
+                        Description = "Controls transparency effects in Windows",
+                        Category = CustomizationCategory.WindowsTheme,
+                        GroupName = "Windows Theme",
+                        IsEnabled = false,
+                        ControlType = ControlType.BinaryToggle,
+                        RegistrySettings = new List<RegistrySetting>
+                        {
+                            new RegistrySetting
+                            {
+                                Category = "WindowsTheme",
+                                Hive = RegistryHive.CurrentUser,
+                                SubKey =
+                                    "Software\\Microsoft\\Windows\\CurrentVersion\\Themes\\Personalize",
+                                Name = "EnableTransparency",
+                                RecommendedValue = 0, // For backward compatibility
+                                EnabledValue = 1, // When toggle is ON, transparency effects are enabled
+                                DisabledValue = 0, // When toggle is OFF, transparency effects are disabled
+                                ValueType = RegistryValueKind.DWord,
+                                DefaultValue = 1, // Default value when registry key exists but no value is set
+                                Description = "Controls transparency effects in Windows",
+                                IsPrimary = true,
+                                AbsenceMeansEnabled = true,
+                            },
+                        },
+                    },
+                },
+            };
         }
     }
 }

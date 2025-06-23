@@ -10,6 +10,7 @@
         <ResourceDictionary Source="/Winhance.WPF;component/Resources/Styles/ProgressIndicatorStyles.xaml"/>
         <ResourceDictionary Source="/Winhance.WPF;component/Resources/Styles/ScrollBarStyles.xaml"/>
         <ResourceDictionary Source="/Winhance.WPF;component/Resources/Styles/SliderStyles.xaml"/>
+        <ResourceDictionary Source="/Winhance.WPF;component/Resources/Styles/TableViewStyles.xaml"/>
         <ResourceDictionary Source="/Winhance.WPF;component/Resources/Styles/TextStyles.xaml"/>
         <ResourceDictionary Source="/Winhance.WPF;component/Resources/Styles/ToolTipStyles.xaml"/>
     </ResourceDictionary.MergedDictionaries>

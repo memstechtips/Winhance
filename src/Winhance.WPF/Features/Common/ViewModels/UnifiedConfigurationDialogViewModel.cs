@@ -4,6 +4,7 @@ using System.Collections.ObjectModel;
 using System.Linq;
 using System.Windows.Input;
 using CommunityToolkit.Mvvm.ComponentModel;
+using CommunityToolkit.Mvvm.Input;
 
 namespace Winhance.WPF.Features.Common.ViewModels
 {
@@ -72,21 +73,138 @@ namespace Winhance.WPF.Features.Common.ViewModels
             Description = description;
             _isSaveDialog = isSaveDialog;
 
-            // Create section view models
-            foreach (var section in sections)
+            // Create parent section for Windows Apps and External Apps
+            var softwareAndAppsSection = new UnifiedConfigurationSectionViewModel
             {
-                Sections.Add(new UnifiedConfigurationSectionViewModel
+                Name = "Software & Apps",
+                Description = "Settings for Windows built-in and third-party applications",
+                IsSelected = sections.ContainsKey("WindowsApps") && sections.ContainsKey("ExternalApps") && 
+                            (sections["WindowsApps"].IsSelected || sections["ExternalApps"].IsSelected),
+                IsAvailable = sections.ContainsKey("WindowsApps") && sections.ContainsKey("ExternalApps") && 
+                              (sections["WindowsApps"].IsAvailable || sections["ExternalApps"].IsAvailable),
+                ItemCount = (sections.ContainsKey("WindowsApps") ? sections["WindowsApps"].ItemCount : 0) + 
+                           (sections.ContainsKey("ExternalApps") ? sections["ExternalApps"].ItemCount : 0),
+                SectionKey = "SoftwareAndApps",
+                HasSubSections = true
+            };
+
+            // Add Windows Apps subsection if available
+            if (sections.ContainsKey("WindowsApps"))
+            {
+                softwareAndAppsSection.SubSections.Add(new UnifiedConfigurationSectionViewModel
                 {
-                    Name = GetSectionDisplayName(section.Key),
-                    Description = GetSectionDescription(section.Key),
-                    IsSelected = section.Value.IsSelected,
-                    IsAvailable = section.Value.IsAvailable,
-                    ItemCount = section.Value.ItemCount,
-                    SectionKey = section.Key
+                    Name = GetSectionDisplayName("WindowsApps"),
+                    Description = GetSectionDescription("WindowsApps"),
+                    IsSelected = sections["WindowsApps"].IsSelected,
+                    IsAvailable = sections["WindowsApps"].IsAvailable,
+                    ItemCount = sections["WindowsApps"].ItemCount,
+                    SectionKey = "WindowsApps"
                 });
             }
 
-            // Commands will be set by the dialog
+            // Add External Apps subsection if available
+            if (sections.ContainsKey("ExternalApps"))
+            {
+                softwareAndAppsSection.SubSections.Add(new UnifiedConfigurationSectionViewModel
+                {
+                    Name = GetSectionDisplayName("ExternalApps"),
+                    Description = GetSectionDescription("ExternalApps"),
+                    IsSelected = sections["ExternalApps"].IsSelected,
+                    IsAvailable = sections["ExternalApps"].IsAvailable,
+                    ItemCount = sections["ExternalApps"].ItemCount,
+                    SectionKey = "ExternalApps"
+                });
+            }
+
+            // Add the Software & Apps parent section
+            if (softwareAndAppsSection.SubSections.Any())
+            {
+                Sections.Add(softwareAndAppsSection);
+            }
+
+            // Create Optimization Settings section with subsections
+            if (sections.ContainsKey("Optimize"))
+            {
+                var optimizeSection = new UnifiedConfigurationSectionViewModel
+                {
+                    Name = GetSectionDisplayName("Optimize"),
+                    Description = GetSectionDescription("Optimize"),
+                    IsSelected = sections["Optimize"].IsSelected,
+                    IsAvailable = sections["Optimize"].IsAvailable,
+                    ItemCount = sections["Optimize"].ItemCount,
+                    SectionKey = "Optimize",
+                    HasSubSections = true
+                };
+
+                // Add optimization subsections
+                var optimizationSubsections = new[]
+                {
+                    ("GamingPerformance", "Gaming and Performance"),
+                    ("PowerSettings", "Power Settings"),
+                    ("WindowsSecurity", "Windows Security Settings"),
+                    ("PrivacySettings", "Privacy Settings"),
+                    ("WindowsUpdates", "Windows Updates"),
+                    ("Explorer", "Explorer"),
+                    ("Notifications", "Notifications"),
+                    ("Sound", "Sound")
+                };
+
+                foreach (var (key, name) in optimizationSubsections)
+                {
+                    optimizeSection.SubSections.Add(new UnifiedConfigurationSectionViewModel
+                    {
+                        Name = name,
+                        Description = $"{name} optimization settings",
+                        IsSelected = sections["Optimize"].IsSelected,
+                        IsAvailable = sections["Optimize"].IsAvailable,
+                        ItemCount = 0, // We don't have individual counts for subsections
+                        SectionKey = $"Optimize_{key}"
+                    });
+                }
+
+                Sections.Add(optimizeSection);
+            }
+
+            // Create Customization Settings section with subsections
+            if (sections.ContainsKey("Customize"))
+            {
+                var customizeSection = new UnifiedConfigurationSectionViewModel
+                {
+                    Name = GetSectionDisplayName("Customize"),
+                    Description = GetSectionDescription("Customize"),
+                    IsSelected = sections["Customize"].IsSelected,
+                    IsAvailable = sections["Customize"].IsAvailable,
+                    ItemCount = sections["Customize"].ItemCount,
+                    SectionKey = "Customize",
+                    HasSubSections = true
+                };
+
+                // Add customization subsections
+                var customizationSubsections = new[]
+                {
+                    ("WindowsTheme", "Windows Theme"),
+                    ("Taskbar", "Taskbar"),
+                    ("StartMenu", "Start Menu"),
+                    ("Explorer", "Explorer")
+                };
+
+                foreach (var (key, name) in customizationSubsections)
+                {
+                    customizeSection.SubSections.Add(new UnifiedConfigurationSectionViewModel
+                    {
+                        Name = name,
+                        Description = $"{name} customization settings",
+                        IsSelected = sections["Customize"].IsSelected,
+                        IsAvailable = sections["Customize"].IsAvailable,
+                        ItemCount = 0, // We don't have individual counts for subsections
+                        SectionKey = $"Customize_{key}"
+                    });
+                }
+
+                Sections.Add(customizeSection);
+            }
+
+            // Set up commands
             OkCommand = null;
             CancelCommand = null;
         }
@@ -101,7 +219,35 @@ namespace Winhance.WPF.Features.Common.ViewModels
 
             foreach (var section in Sections)
             {
-                result[section.SectionKey] = section.IsSelected;
+                // For parent sections with subsections, we need to get the individual subsection results
+                if (section.HasSubSections)
+                {
+                    // Special handling for Software & Apps section
+                    if (section.SectionKey == "SoftwareAndApps")
+                    {
+                        foreach (var subSection in section.SubSections)
+                        {
+                            result[subSection.SectionKey] = subSection.IsSelected;
+                        }
+                    }
+                    // For Optimize and Customize sections, we need to map the subsection keys back to the main section
+                    else
+                    {
+                        // Add the main section selection state
+                        result[section.SectionKey] = section.IsSelected;
+                        
+                        // Add subsection selection states with their specialized keys
+                        foreach (var subSection in section.SubSections)
+                        {
+                            result[subSection.SectionKey] = subSection.IsSelected;
+                        }
+                    }
+                }
+                else
+                {
+                    // For sections without subsections, just add the section key and selection state
+                    result[section.SectionKey] = section.IsSelected;
+                }
             }
 
             return result;
@@ -144,6 +290,7 @@ namespace Winhance.WPF.Features.Common.ViewModels
         private bool _isAvailable;
         private int _itemCount;
         private string _sectionKey;
+        private bool _hasSubSections;
 
         /// <summary>
         /// Gets or sets the name of the section.
@@ -169,7 +316,20 @@ namespace Winhance.WPF.Features.Common.ViewModels
         public bool IsSelected
         {
             get => _isSelected;
-            set => SetProperty(ref _isSelected, value);
+            set 
+            {
+                if (SetProperty(ref _isSelected, value))
+                {
+                    // Update all subsections when parent is selected/deselected
+                    if (HasSubSections)
+                    {
+                        foreach (var subSection in SubSections)
+                        {
+                            subSection.IsSelected = value;
+                        }
+                    }
+                }
+            }
         }
 
         /// <summary>
@@ -197,6 +357,38 @@ namespace Winhance.WPF.Features.Common.ViewModels
         {
             get => _sectionKey;
             set => SetProperty(ref _sectionKey, value);
+        }
+        
+        /// <summary>
+        /// Gets or sets a value indicating whether this section has subsections.
+        /// </summary>
+        public bool HasSubSections
+        {
+            get => _hasSubSections;
+            set => SetProperty(ref _hasSubSections, value);
+        }
+        
+        /// <summary>
+        /// Gets the collection of subsections.
+        /// </summary>
+        public ObservableCollection<UnifiedConfigurationSectionViewModel> SubSections { get; } = new ObservableCollection<UnifiedConfigurationSectionViewModel>();
+        
+        /// <summary>
+        /// Updates the IsSelected property based on the state of subsections.
+        /// </summary>
+        public void UpdateSelectionFromSubSections()
+        {
+            if (HasSubSections && SubSections.Any())
+            {
+                // If all subsections are selected, select the parent
+                // If none are selected, deselect the parent
+                // If some are selected, select the parent (partial selection)
+                bool allSelected = SubSections.All(s => s.IsSelected);
+                bool noneSelected = SubSections.All(s => !s.IsSelected);
+                
+                _isSelected = allSelected || (!noneSelected); // Don't trigger the setter to avoid recursion
+                OnPropertyChanged(nameof(IsSelected));
+            }
         }
     }
 }

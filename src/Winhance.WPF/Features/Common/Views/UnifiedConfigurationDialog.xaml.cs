@@ -85,8 +85,11 @@ namespace Winhance.WPF.Features.Common.Views
                 // Handle the OK and Cancel commands directly
                 _viewModel.OkCommand = new RelayCommand(() =>
                 {
-                    // Validate that at least one section is selected
-                    if (_viewModel.Sections.Any(s => s.IsSelected))
+                    // Validate that at least one section is selected (including subsections)
+                    bool hasSelectedSection = _viewModel.Sections.Any(s => 
+                        s.IsSelected || (s.HasSubSections && s.SubSections.Any(sub => sub.IsSelected)));
+                    
+                    if (hasSelectedSection)
                     {
                         LogInfo("OK button clicked, at least one section selected");
                         this.DialogResult = true;
@@ -132,7 +135,11 @@ namespace Winhance.WPF.Features.Common.Views
             try
             {
                 var result = _viewModel.GetResult();
-                LogInfo($"GetResult called, returning {result.Count} sections");
+                
+                // Log the selected sections for debugging
+                var selectedSections = result.Where(r => r.Value).Select(r => r.Key).ToList();
+                LogInfo($"GetResult called, returning {result.Count} sections, selected: {string.Join(", ", selectedSections)}");
+                
                 return result;
             }
             catch (Exception ex)

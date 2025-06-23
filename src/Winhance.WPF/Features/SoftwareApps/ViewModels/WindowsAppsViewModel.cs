@@ -1,24 +1,93 @@
 using System;
 using System.Collections.Generic;
 using System.Collections.ObjectModel;
+using System.Collections.Specialized;
+using System.ComponentModel;
 using System.Linq;
 using System.Threading.Tasks;
 using System.Windows;
+using System.Windows.Data;
 using CommunityToolkit.Mvvm.ComponentModel;
 using CommunityToolkit.Mvvm.Input;
 using Winhance.Core.Features.Common.Enums;
 using Winhance.Core.Features.Common.Interfaces;
 using Winhance.Core.Features.Common.Models;
 using Winhance.Core.Features.SoftwareApps.Interfaces;
+using Winhance.Core.Features.SoftwareApps.Interfaces.ScriptGeneration;
 using Winhance.Core.Features.SoftwareApps.Models;
 using Winhance.Core.Features.UI.Interfaces;
 using Winhance.WPF.Features.Common.ViewModels;
 using Winhance.WPF.Features.Common.Views;
 using Winhance.WPF.Features.SoftwareApps.Models;
 using ToastType = Winhance.Core.Features.UI.Interfaces.ToastType;
+using System.Windows.Input;
 
 namespace Winhance.WPF.Features.SoftwareApps.ViewModels
 {
+    /// <summary>
+    /// Wrapper class for items in the combined table view that adds a Type property
+    /// </summary>
+    public class ItemWithType : INotifyPropertyChanged
+    {        
+        private readonly WindowsApp _item;
+        
+        public ItemWithType(WindowsApp item, string itemType)
+        {
+            _item = item;
+            ItemType = itemType;
+            
+            // Set TypeOrder based on the item type for custom sorting
+            switch (itemType)
+            {
+                case "Windows App":
+                    TypeOrder = 1; // Windows Apps first
+                    break;
+                case "Capability":
+                    TypeOrder = 2; // Capabilities second
+                    break;
+                case "Optional Feature":
+                    TypeOrder = 3; // Optional Features last
+                    break;
+                default:
+                    TypeOrder = 99; // Unknown types at the end
+                    break;
+            }
+            
+            // Forward property change events from the wrapped item
+            if (_item is INotifyPropertyChanged notifyItem)
+            {
+                notifyItem.PropertyChanged += (sender, args) =>
+                {
+                    PropertyChanged?.Invoke(this, new PropertyChangedEventArgs(args.PropertyName));
+                };
+            }
+        }
+        
+        public string Name => _item.Name;
+        public string Description => _item.Description;
+        public bool IsInstalled => _item.IsInstalled;
+        public bool CanBeReinstalled => _item.CanBeReinstalled;
+        public string ItemType { get; }
+        
+        // Property for custom type ordering
+        public int TypeOrder { get; }
+        
+        public bool IsSelected
+        {
+            get => _item.IsSelected;
+            set
+            {
+                if (_item.IsSelected != value)
+                {
+                    _item.IsSelected = value;
+                    PropertyChanged?.Invoke(this, new PropertyChangedEventArgs(nameof(IsSelected)));
+                }
+            }
+        }
+        
+        public event PropertyChangedEventHandler PropertyChanged;
+    }
+    
     public partial class WindowsAppsViewModel : BaseInstallationViewModel<WindowsApp>
     {
         private readonly IAppInstallationService _appInstallationService;
@@ -30,6 +99,7 @@ namespace Winhance.WPF.Features.SoftwareApps.ViewModels
         private readonly IScriptDetectionService _scriptDetectionService;
         private readonly IInternetConnectivityService _connectivityService;
         private readonly IAppInstallationCoordinatorService _appInstallationCoordinatorService;
+        private readonly IBloatRemovalCoordinatorService _bloatRemovalCoordinatorService;
 
         [ObservableProperty]
         private string _statusText = "Ready";
@@ -43,6 +113,187 @@ namespace Winhance.WPF.Features.SoftwareApps.ViewModels
         // Flag to prevent duplicate initialization
         [ObservableProperty]
         private bool _isInitialized = false;
+        
+        // View mode toggle property
+        [ObservableProperty]
+        private bool _isTableViewMode = false;
+        
+        // Properties for table view column headers
+        [ObservableProperty]
+        private bool _isAllSelectedCapabilities;
+        
+        [ObservableProperty]
+        private bool _isAllSelectedOptionalFeatures;
+        
+        // Combined collection for table view
+        private ObservableCollection<ItemWithType> _allItems = new();
+        public ICollectionView AllItemsView { get; private set; }
+        
+        // Sorting properties
+        [ObservableProperty]
+        private string _currentSortProperty;
+        
+        [ObservableProperty]
+        private ListSortDirection _sortDirection = ListSortDirection.Ascending;
+        
+        // Properties for view visibility
+        public Visibility GridViewVisibility => IsTableViewMode ? Visibility.Collapsed : Visibility.Visible;
+        public Visibility TableViewVisibility => IsTableViewMode ? Visibility.Visible : Visibility.Collapsed;
+        
+        // Command to toggle between views
+        [RelayCommand]
+        private void ToggleViewMode(object parameter = null)
+        {
+            // If a parameter is provided, use it to set the view mode directly
+            if (parameter != null)
+            {
+                // Handle both bool and string parameters
+                if (parameter is bool tableViewMode)
+                {
+                    IsTableViewMode = tableViewMode;
+                }
+                else if (parameter is string stringParam)
+                {
+                    // Parse string parameter ("True" or "False")
+                    if (bool.TryParse(stringParam, out bool result))
+                    {
+                        IsTableViewMode = result;
+                    }
+                }
+            }
+            // Otherwise toggle the current mode
+            else
+            {
+                IsTableViewMode = !IsTableViewMode;
+            }
+            
+            OnPropertyChanged(nameof(GridViewVisibility));
+            OnPropertyChanged(nameof(TableViewVisibility));
+            
+            if (IsTableViewMode)
+            {
+                UpdateAllItemsCollection();
+            }
+        }
+        
+        /// <summary>
+        /// Updates the AllItems collection with all items from WindowsApps, Capabilities, and OptionalFeatures
+        /// </summary>
+        private void UpdateAllItemsCollection()
+        {
+            _allItems.Clear();
+            
+            // Add Windows Apps
+            foreach (var app in WindowsApps)
+            {
+                _allItems.Add(new ItemWithType(app, "Windows App"));
+            }
+            
+            // Add Capabilities
+            foreach (var capability in Capabilities)
+            {
+                _allItems.Add(new ItemWithType(capability, "Capability"));
+            }
+            
+            // Add Optional Features
+            foreach (var feature in OptionalFeatures)
+            {
+                _allItems.Add(new ItemWithType(feature, "Optional Feature"));
+            }
+            
+            // Apply current sorting
+            ApplySorting();
+        }
+        
+        /// <summary>
+        /// Sorts the AllItemsView based on the current sort property and direction
+        /// </summary>
+        private void ApplySorting()
+        {
+            if (AllItemsView != null && !string.IsNullOrEmpty(CurrentSortProperty))
+            {
+                AllItemsView.SortDescriptions.Clear();
+                
+                // Add primary sort description based on current sort property
+                AllItemsView.SortDescriptions.Add(new SortDescription(CurrentSortProperty, SortDirection));
+                
+                // Add secondary sort descriptions based on the primary sort property
+                if (CurrentSortProperty == "IsInstalled")
+                {
+                    // If sorting by installation status, add secondary sort by TypeOrder
+                    AllItemsView.SortDescriptions.Add(new SortDescription("TypeOrder", ListSortDirection.Ascending));
+                    
+                    // Add tertiary sort by Name for consistent ordering within each type
+                    AllItemsView.SortDescriptions.Add(new SortDescription("Name", ListSortDirection.Ascending));
+                }
+                else if (CurrentSortProperty == "ItemType" || CurrentSortProperty == "TypeOrder")
+                {
+                    // If sorting by type, add secondary sort by installation status
+                    AllItemsView.SortDescriptions.Add(new SortDescription("IsInstalled", ListSortDirection.Descending));
+                    
+                    // Add tertiary sort by Name
+                    AllItemsView.SortDescriptions.Add(new SortDescription("Name", ListSortDirection.Ascending));
+                }
+                else
+                {
+                    // For other primary sorts, add secondary sort by installation status
+                    AllItemsView.SortDescriptions.Add(new SortDescription("IsInstalled", ListSortDirection.Descending));
+                    
+                    // Add tertiary sort by TypeOrder
+                    AllItemsView.SortDescriptions.Add(new SortDescription("TypeOrder", ListSortDirection.Ascending));
+                }
+            }
+        }
+        
+        /// <summary>
+        /// Handles sorting when a column header is clicked
+        /// </summary>
+        [RelayCommand]
+        private void SortBy(string propertyName)
+        {
+            if (string.IsNullOrEmpty(propertyName))
+                return;
+                
+            // If clicking the same column, toggle sort direction
+            if (propertyName == CurrentSortProperty)
+            {
+                SortDirection = SortDirection == ListSortDirection.Ascending 
+                    ? ListSortDirection.Descending 
+                    : ListSortDirection.Ascending;
+            }
+            else
+            {
+                // New column, set as current and default to ascending
+                CurrentSortProperty = propertyName;
+                SortDirection = ListSortDirection.Ascending;
+            }
+            
+            // Apply the sorting
+            ApplySorting();
+        }
+        
+        /// <summary>
+        /// Sets up collection change notifications for the individual collections
+        /// </summary>
+        private void SetupCollectionChangeHandlers()
+        {
+            // Monitor changes to the individual collections
+            WindowsApps.CollectionChanged += OnCollectionChanged;
+            Capabilities.CollectionChanged += OnCollectionChanged;
+            OptionalFeatures.CollectionChanged += OnCollectionChanged;
+        }
+        
+        /// <summary>
+        /// Handles collection changes and updates the AllItems collection if in table view mode
+        /// </summary>
+        private void OnCollectionChanged(object sender, NotifyCollectionChangedEventArgs e)
+        {
+            if (IsTableViewMode)
+            {
+                // Refresh the entire collection for simplicity
+                UpdateAllItemsCollection();
+            }
+        }
 
         // For binding in the WindowsAppsView - filtered collections
         // Standard Windows Apps (Appx packages)
@@ -69,8 +320,8 @@ namespace Winhance.WPF.Features.SoftwareApps.ViewModels
             IScriptDetectionService scriptDetectionService,
             IInternetConnectivityService connectivityService,
             IAppInstallationCoordinatorService appInstallationCoordinatorService,
-            Services.SoftwareAppsDialogService dialogService
-        )
+            IBloatRemovalCoordinatorService bloatRemovalCoordinatorService,
+            Services.SoftwareAppsDialogService dialogService)
             : base(
                 progressService,
                 searchService,
@@ -81,6 +332,19 @@ namespace Winhance.WPF.Features.SoftwareApps.ViewModels
                 dialogService
             )
         {
+            // Initialize the AllItemsView
+            AllItemsView = CollectionViewSource.GetDefaultView(_allItems);
+            
+            // Set default sort property to show installed items first
+            CurrentSortProperty = "IsInstalled";
+            SortDirection = ListSortDirection.Descending;
+            ApplySorting();
+            
+            // Set up collection change handlers
+            WindowsApps.CollectionChanged += OnCollectionChanged;
+            Capabilities.CollectionChanged += OnCollectionChanged;
+            OptionalFeatures.CollectionChanged += OnCollectionChanged;
+            
             _appInstallationService = appInstallationService;
             _capabilityService = capabilityService;
             _featureService = featureService;
@@ -90,6 +354,7 @@ namespace Winhance.WPF.Features.SoftwareApps.ViewModels
             _scriptDetectionService = scriptDetectionService;
             _connectivityService = connectivityService;
             _appInstallationCoordinatorService = appInstallationCoordinatorService;
+            _bloatRemovalCoordinatorService = bloatRemovalCoordinatorService;
         }
 
         // SaveConfig and ImportConfig methods removed as part of unified configuration cleanup
@@ -164,6 +429,9 @@ namespace Winhance.WPF.Features.SoftwareApps.ViewModels
                 Capabilities.Clear();
                 OptionalFeatures.Clear();
 
+                // Unsubscribe from existing items' property changed events
+                UnsubscribeFromItemPropertyChangedEvents();
+
                 // Load standard Windows apps (Appx packages)
                 var apps = await _appDiscoveryService.GetStandardAppsAsync();
 
@@ -180,6 +448,8 @@ namespace Winhance.WPF.Features.SoftwareApps.ViewModels
                     // AppType is already set in FromAppInfo
                     Items.Add(windowsApp);
                     WindowsApps.Add(windowsApp);
+                    // Subscribe to property changed events
+                    windowsApp.PropertyChanged += Item_PropertyChanged;
                 }
 
                 foreach (var capability in capabilities)
@@ -188,6 +458,8 @@ namespace Winhance.WPF.Features.SoftwareApps.ViewModels
                     // AppType is already set in FromCapabilityInfo
                     Items.Add(windowsApp);
                     Capabilities.Add(windowsApp);
+                    // Subscribe to property changed events
+                    windowsApp.PropertyChanged += Item_PropertyChanged;
                 }
 
                 foreach (var feature in features)
@@ -196,6 +468,8 @@ namespace Winhance.WPF.Features.SoftwareApps.ViewModels
                     // AppType is already set in FromFeatureInfo
                     Items.Add(windowsApp);
                     OptionalFeatures.Add(windowsApp);
+                    // Subscribe to property changed events
+                    windowsApp.PropertyChanged += Item_PropertyChanged;
                 }
 
                 StatusText =
@@ -527,7 +801,7 @@ namespace Winhance.WPF.Features.SoftwareApps.ViewModels
         [RelayCommand]
         public async Task RemoveApp(WindowsApp app)
         {
-            if (app == null || _packageManager == null)
+            if (app == null || _packageManager == null || _bloatRemovalCoordinatorService == null)
                 return;
 
             // Show confirmation dialog
@@ -579,11 +853,57 @@ namespace Winhance.WPF.Features.SoftwareApps.ViewModels
                 }
                 else
                 {
-                    // Regular app removal
-                    bool isCapability =
-                        app.AppType
-                        == Winhance.WPF.Features.SoftwareApps.Models.WindowsAppType.Capability;
-                    success = await _packageManager.RemoveAppAsync(app.PackageName, isCapability);
+                    // Use the BloatRemovalCoordinatorService based on app type
+                    var progress = new Progress<TaskProgressDetail>(detail =>
+                    {
+                        StatusText = detail.StatusText;
+                    });
+
+                    OperationResult<bool> result;
+
+                    switch (app.AppType)
+                    {
+                        case Models.WindowsAppType.Capability:
+                            var capabilityInfo = new CapabilityInfo
+                            {
+                                PackageName = app.PackageName,
+                                Name = app.Name,
+                            };
+                            result = await _bloatRemovalCoordinatorService.RemoveItemsAsync(
+                                null,
+                                new List<CapabilityInfo> { capabilityInfo },
+                                null,
+                                progress
+                            );
+                            break;
+
+                        case Models.WindowsAppType.OptionalFeature:
+                            var featureInfo = new FeatureInfo
+                            {
+                                PackageName = app.PackageName,
+                                Name = app.Name,
+                            };
+                            result = await _bloatRemovalCoordinatorService.RemoveItemsAsync(
+                                null,
+                                null,
+                                new List<FeatureInfo> { featureInfo },
+                                progress
+                            );
+                            break;
+
+                        default: // StandardApp
+                            var appInfo = app.ToAppInfo();
+                            result = await _bloatRemovalCoordinatorService.RemoveItemsAsync(
+                                new List<AppInfo> { appInfo },
+                                null,
+                                null,
+                                progress
+                            );
+                            break;
+                    }
+
+                    success = result.Success;
+
                     if (success)
                     {
                         app.IsInstalled = false;
@@ -591,7 +911,7 @@ namespace Winhance.WPF.Features.SoftwareApps.ViewModels
                     }
                     else
                     {
-                        StatusText = $"Failed to remove {app.Name}";
+                        StatusText = $"Failed to remove {app.Name}: {result.ErrorMessage}";
                     }
                 }
 
@@ -666,14 +986,237 @@ namespace Winhance.WPF.Features.SoftwareApps.ViewModels
                     {
                         feature.IsSelected = value;
                     }
+
+                    // Update other checkboxes to be consistent with the same value
+                    // regardless of whether we're checking or unchecking
+                    _isAllSelectedInstalled = value;
+                    _isAllSelectedNotInstalled = value;
+                    OnPropertyChanged(nameof(IsAllSelectedInstalled));
+                    OnPropertyChanged(nameof(IsAllSelectedNotInstalled));
                 }
+            }
+        }
+
+        // Add IsAllSelectedInstalled property for the "Select All Installed" checkbox
+        private bool _isAllSelectedInstalled;
+        public bool IsAllSelectedInstalled
+        {
+            get => _isAllSelectedInstalled;
+            set
+            {
+                if (SetProperty(ref _isAllSelectedInstalled, value))
+                {
+                    // Apply to all installed items across all categories
+                    foreach (var app in WindowsApps.Where(a => a.IsInstalled))
+                    {
+                        app.IsSelected = value;
+                    }
+
+                    foreach (var capability in Capabilities.Where(c => c.IsInstalled))
+                    {
+                        capability.IsSelected = value;
+                    }
+
+                    foreach (var feature in OptionalFeatures.Where(f => f.IsInstalled))
+                    {
+                        feature.IsSelected = value;
+                    }
+
+                    // Update IsAllSelected based on the current state
+                    UpdateIsAllSelectedState();
+                }
+            }
+        }
+
+        // Add IsAllSelectedNotInstalled property for the "Select All Not Installed" checkbox
+        private bool _isAllSelectedNotInstalled;
+        public bool IsAllSelectedNotInstalled
+        {
+            get => _isAllSelectedNotInstalled;
+            set
+            {
+                if (SetProperty(ref _isAllSelectedNotInstalled, value))
+                {
+                    // Apply to all not installed items across all categories
+                    foreach (var app in WindowsApps.Where(a => !a.IsInstalled))
+                    {
+                        app.IsSelected = value;
+                    }
+
+                    foreach (var capability in Capabilities.Where(c => !c.IsInstalled))
+                    {
+                        capability.IsSelected = value;
+                    }
+
+                    foreach (var feature in OptionalFeatures.Where(f => !f.IsInstalled))
+                    {
+                        feature.IsSelected = value;
+                    }
+
+                    // Update IsAllSelected based on the current state
+                    UpdateIsAllSelectedState();
+                }
+            }
+        }
+
+        // Helper method to update the IsAllSelected state based on other selections
+        private void UpdateIsAllSelectedState()
+        {
+            bool allItemsSelected = true;
+
+            // Check if all items are selected across all categories
+            foreach (var app in WindowsApps)
+            {
+                if (!app.IsSelected)
+                {
+                    allItemsSelected = false;
+                    break;
+                }
+            }
+
+            if (allItemsSelected)
+            {
+                foreach (var capability in Capabilities)
+                {
+                    if (!capability.IsSelected)
+                    {
+                        allItemsSelected = false;
+                        break;
+                    }
+                }
+            }
+
+            if (allItemsSelected)
+            {
+                foreach (var feature in OptionalFeatures)
+                {
+                    if (!feature.IsSelected)
+                    {
+                        allItemsSelected = false;
+                        break;
+                    }
+                }
+            }
+
+            // Update the IsAllSelected property without triggering its setter
+            if (_isAllSelected != allItemsSelected)
+            {
+                _isAllSelected = allItemsSelected;
+                OnPropertyChanged(nameof(IsAllSelected));
+            }
+
+            // Update the IsAllSelectedInstalled and IsAllSelectedNotInstalled states
+            UpdateSpecializedCheckboxStates();
+        }
+
+        // Helper method to update the specialized checkbox states
+        private void UpdateSpecializedCheckboxStates()
+        {
+            // Check if all installed items are selected
+            bool allInstalledSelected = true;
+            bool allNotInstalledSelected = true;
+
+            // Check Windows Apps
+            foreach (var app in WindowsApps)
+            {
+                if (app.IsInstalled && !app.IsSelected)
+                {
+                    allInstalledSelected = false;
+                }
+                else if (!app.IsInstalled && !app.IsSelected)
+                {
+                    allNotInstalledSelected = false;
+                }
+            }
+
+            // Check Capabilities
+            foreach (var capability in Capabilities)
+            {
+                if (capability.IsInstalled && !capability.IsSelected)
+                {
+                    allInstalledSelected = false;
+                }
+                else if (!capability.IsInstalled && !capability.IsSelected)
+                {
+                    allNotInstalledSelected = false;
+                }
+            }
+
+            // Check Optional Features
+            foreach (var feature in OptionalFeatures)
+            {
+                if (feature.IsInstalled && !feature.IsSelected)
+                {
+                    allInstalledSelected = false;
+                }
+                else if (!feature.IsInstalled && !feature.IsSelected)
+                {
+                    allNotInstalledSelected = false;
+                }
+            }
+
+            // Update the IsAllSelectedInstalled property without triggering its setter
+            if (_isAllSelectedInstalled != allInstalledSelected)
+            {
+                _isAllSelectedInstalled = allInstalledSelected;
+                OnPropertyChanged(nameof(IsAllSelectedInstalled));
+            }
+
+            // Update the IsAllSelectedNotInstalled property without triggering its setter
+            if (_isAllSelectedNotInstalled != allNotInstalledSelected)
+            {
+                _isAllSelectedNotInstalled = allNotInstalledSelected;
+                OnPropertyChanged(nameof(IsAllSelectedNotInstalled));
+            }
+        }
+
+        // Event handler for item property changes
+        private void Item_PropertyChanged(object? sender, System.ComponentModel.PropertyChangedEventArgs e)
+        {
+            if (e.PropertyName == nameof(WindowsApp.IsSelected))
+            {
+                // Update all checkbox states when an individual item's selection changes
+                UpdateIsAllSelectedState();
+                
+                // Notify that HasSelectedItems has changed to trigger button state updates in parent ViewModel
+                OnPropertyChanged(nameof(HasSelectedItems));
+            }
+        }
+        
+        // Property to indicate if any items are selected
+        public bool HasSelectedItems
+        {
+            get
+            {
+                return WindowsApps?.Any(a => a.IsSelected) == true ||
+                       Capabilities?.Any(c => c.IsSelected) == true ||
+                       OptionalFeatures?.Any(f => f.IsSelected) == true;
+            }
+        }
+
+        // Unsubscribe from all item property changed events
+        private void UnsubscribeFromItemPropertyChangedEvents()
+        {
+            foreach (var app in WindowsApps)
+            {
+                app.PropertyChanged -= Item_PropertyChanged;
+            }
+
+            foreach (var capability in Capabilities)
+            {
+                capability.PropertyChanged -= Item_PropertyChanged;
+            }
+
+            foreach (var feature in OptionalFeatures)
+            {
+                feature.PropertyChanged -= Item_PropertyChanged;
             }
         }
 
         [RelayCommand]
         public async Task RemoveApps()
         {
-            if (_packageManager == null)
+            if (_packageManager == null || _bloatRemovalCoordinatorService == null)
                 return;
 
             // Get selected items from all categories
@@ -711,194 +1254,83 @@ namespace Winhance.WPF.Features.SoftwareApps.ViewModels
                     int successCount = 0;
                     int currentItem = 0;
 
-                    // Process standard Windows apps
-                    foreach (var app in selectedApps)
+                    // Convert WindowsApp objects to their respective domain models
+                    var appInfos = new List<AppInfo>();
+                    var capabilityInfos = new List<CapabilityInfo>();
+                    var featureInfos = new List<FeatureInfo>();
+
+                    // Process special apps separately using the existing methods
+                    var specialApps = selectedApps
+                        .Where(a =>
+                            a.IsSpecialHandler && !string.IsNullOrEmpty(a.SpecialHandlerType)
+                        )
+                        .ToList();
+                    var regularApps = selectedApps
+                        .Where(a =>
+                            !a.IsSpecialHandler || string.IsNullOrEmpty(a.SpecialHandlerType)
+                        )
+                        .ToList();
+
+                    // Handle special apps first
+                    foreach (var app in specialApps)
                     {
                         if (cancellationToken.IsCancellationRequested)
                         {
-                            // Set cancellation reason to user cancelled
                             CurrentCancellationReason = CancellationReason.UserCancelled;
                             break;
                         }
 
-                        currentItem++;
                         progress.Report(
                             new TaskProgressDetail
                             {
-                                Progress = (currentItem * 100.0) / totalSelected,
-                                StatusText =
-                                    $"Removing app {app.Name}... ({currentItem}/{totalSelected})",
-                                DetailedMessage = $"Removing Windows App: {app.Name}",
+                                Progress = 0,
+                                StatusText = $"Removing special app {app.Name}...",
+                                DetailedMessage = $"Removing special Windows App: {app.Name}",
                                 AdditionalInfo = new Dictionary<string, string>
                                 {
                                     { "AppType", app.AppType.ToString() },
                                     { "PackageName", app.PackageName },
-                                    { "IsSystemProtected", app.IsSystemProtected.ToString() },
-                                    { "CanBeReinstalled", app.CanBeReinstalled.ToString() },
+                                    { "SpecialHandlerType", app.SpecialHandlerType },
                                     { "OperationType", "Remove" },
-                                    { "ItemNumber", currentItem.ToString() },
-                                    { "TotalItems", totalSelected.ToString() },
                                 },
                             }
                         );
 
                         try
                         {
-                            // Check if this is a special app that requires special handling
-                            if (
-                                app.IsSpecialHandler
-                                && !string.IsNullOrEmpty(app.SpecialHandlerType)
-                            )
+                            // Use the appropriate special handler method
+                            bool success = false;
+                            switch (app.SpecialHandlerType)
                             {
-                                // Use the appropriate special handler method
-                                bool success = false;
-                                switch (app.SpecialHandlerType)
-                                {
-                                    case "Edge":
-                                        success = await _packageManager.RemoveEdgeAsync();
-                                        break;
-                                    case "OneDrive":
-                                        success = await _packageManager.RemoveOneDriveAsync();
-                                        break;
-                                    case "OneNote":
-                                        success = await _packageManager.RemoveOneNoteAsync();
-                                        break;
-                                    default:
-                                        success = await _packageManager.RemoveSpecialAppAsync(
-                                            app.SpecialHandlerType
-                                        );
-                                        break;
-                                }
-
-                                if (success)
-                                {
-                                    app.IsInstalled = false;
-                                    successCount++;
-                                }
+                                case "Edge":
+                                    success = await _packageManager.RemoveEdgeAsync();
+                                    break;
+                                case "OneDrive":
+                                    success = await _packageManager.RemoveOneDriveAsync();
+                                    break;
+                                case "OneNote":
+                                    success = await _packageManager.RemoveOneNoteAsync();
+                                    break;
+                                default:
+                                    success = await _packageManager.RemoveSpecialAppAsync(
+                                        app.SpecialHandlerType
+                                    );
+                                    break;
                             }
-                            else
-                            {
-                                // Regular app removal
-                                bool success = await _packageManager.RemoveAppAsync(
-                                    app.PackageName,
-                                    false
-                                );
-                                if (success)
-                                {
-                                    app.IsInstalled = false;
-                                    successCount++;
-                                }
-                            }
-
-                            progress.Report(
-                                new TaskProgressDetail
-                                {
-                                    Progress = (currentItem * 100.0) / totalSelected,
-                                    StatusText = $"Successfully removed {app.Name}",
-                                    DetailedMessage =
-                                        $"Successfully removed Windows App: {app.Name}",
-                                    LogLevel = LogLevel.Success,
-                                    AdditionalInfo = new Dictionary<string, string>
-                                    {
-                                        { "AppType", app.AppType.ToString() },
-                                        { "PackageName", app.PackageName },
-                                        { "OperationType", "Remove" },
-                                        { "OperationStatus", "Success" },
-                                        { "ItemNumber", currentItem.ToString() },
-                                        { "TotalItems", totalSelected.ToString() },
-                                    },
-                                }
-                            );
-                        }
-                        catch (System.Exception ex)
-                        {
-                            progress.Report(
-                                new TaskProgressDetail
-                                {
-                                    Progress = (currentItem * 100.0) / totalSelected,
-                                    StatusText = $"Error removing {app.Name}",
-                                    DetailedMessage = $"Error removing {app.Name}: {ex.Message}",
-                                    LogLevel = LogLevel.Error,
-                                    AdditionalInfo = new Dictionary<string, string>
-                                    {
-                                        { "AppType", app.AppType.ToString() },
-                                        { "PackageName", app.PackageName },
-                                        { "OperationType", "Remove" },
-                                        { "OperationStatus", "Error" },
-                                        { "ErrorMessage", ex.Message },
-                                        { "ErrorType", ex.GetType().Name },
-                                        { "ItemNumber", currentItem.ToString() },
-                                        { "TotalItems", totalSelected.ToString() },
-                                    },
-                                }
-                            );
-                        }
-                    }
-
-                    // Process capabilities
-                    foreach (var capability in selectedCapabilities)
-                    {
-                        if (cancellationToken.IsCancellationRequested)
-                        {
-                            // Set cancellation reason to user cancelled
-                            CurrentCancellationReason = CancellationReason.UserCancelled;
-                            break;
-                        }
-
-                        currentItem++;
-                        progress.Report(
-                            new TaskProgressDetail
-                            {
-                                Progress = (currentItem * 100.0) / totalSelected,
-                                StatusText =
-                                    $"Removing capability {capability.Name}... ({currentItem}/{totalSelected})",
-                                DetailedMessage = $"Removing Windows Capability: {capability.Name}",
-                                AdditionalInfo = new Dictionary<string, string>
-                                {
-                                    { "AppType", capability.AppType.ToString() },
-                                    { "PackageName", capability.PackageName },
-                                    {
-                                        "IsSystemProtected",
-                                        capability.IsSystemProtected.ToString()
-                                    },
-                                    { "CanBeReinstalled", capability.CanBeReinstalled.ToString() },
-                                    { "OperationType", "Remove" },
-                                    { "ItemNumber", currentItem.ToString() },
-                                    { "TotalItems", totalSelected.ToString() },
-                                },
-                            }
-                        );
-
-                        try
-                        {
-                            bool success = await _packageManager.RemoveAppAsync(
-                                capability.PackageName,
-                                true
-                            );
 
                             if (success)
                             {
-                                capability.IsInstalled = false;
+                                app.IsInstalled = false;
                                 successCount++;
 
                                 progress.Report(
                                     new TaskProgressDetail
                                     {
-                                        Progress = (currentItem * 100.0) / totalSelected,
-                                        StatusText =
-                                            $"Successfully removed capability {capability.Name}",
+                                        Progress = 0,
+                                        StatusText = $"Successfully removed special app {app.Name}",
                                         DetailedMessage =
-                                            $"Successfully removed Windows Capability: {capability.Name}",
+                                            $"Successfully removed special Windows App: {app.Name}",
                                         LogLevel = LogLevel.Success,
-                                        AdditionalInfo = new Dictionary<string, string>
-                                        {
-                                            { "AppType", capability.AppType.ToString() },
-                                            { "PackageName", capability.PackageName },
-                                            { "OperationType", "Remove" },
-                                            { "OperationStatus", "Success" },
-                                            { "ItemNumber", currentItem.ToString() },
-                                            { "TotalItems", totalSelected.ToString() },
-                                        },
                                     }
                                 );
                             }
@@ -907,271 +1339,141 @@ namespace Winhance.WPF.Features.SoftwareApps.ViewModels
                                 progress.Report(
                                     new TaskProgressDetail
                                     {
-                                        Progress = (currentItem * 100.0) / totalSelected,
-                                        StatusText =
-                                            $"Failed to remove capability {capability.Name}",
+                                        Progress = 0,
+                                        StatusText = $"Failed to remove special app {app.Name}",
                                         DetailedMessage =
-                                            $"Failed to remove Windows Capability: {capability.Name}",
+                                            $"Failed to remove special Windows App: {app.Name}",
                                         LogLevel = LogLevel.Error,
-                                        AdditionalInfo = new Dictionary<string, string>
-                                        {
-                                            { "AppType", capability.AppType.ToString() },
-                                            { "PackageName", capability.PackageName },
-                                            { "OperationType", "Remove" },
-                                            { "OperationStatus", "Error" },
-                                            { "ItemNumber", currentItem.ToString() },
-                                            { "TotalItems", totalSelected.ToString() },
-                                        },
                                     }
                                 );
                             }
                         }
-                        catch (System.Exception ex)
+                        catch (Exception ex)
                         {
                             progress.Report(
                                 new TaskProgressDetail
                                 {
-                                    Progress = (currentItem * 100.0) / totalSelected,
-                                    StatusText = $"Error removing capability {capability.Name}",
+                                    Progress = 0,
+                                    StatusText =
+                                        $"Error removing special app {app.Name}: {ex.Message}",
                                     DetailedMessage =
-                                        $"Error removing capability {capability.Name}: {ex.Message}",
+                                        $"Error removing special Windows App: {app.Name}",
                                     LogLevel = LogLevel.Error,
-                                    AdditionalInfo = new Dictionary<string, string>
-                                    {
-                                        { "AppType", capability.AppType.ToString() },
-                                        { "PackageName", capability.PackageName },
-                                        { "OperationType", "Remove" },
-                                        { "OperationStatus", "Error" },
-                                        { "ErrorMessage", ex.Message },
-                                        { "ErrorType", ex.GetType().Name },
-                                        { "ItemNumber", currentItem.ToString() },
-                                        { "TotalItems", totalSelected.ToString() },
-                                    },
                                 }
                             );
                         }
                     }
 
-                    // Process optional features
-                    foreach (var feature in selectedFeatures)
+                    // Convert regular apps to AppInfo objects
+                    foreach (var app in regularApps)
                     {
-                        if (cancellationToken.IsCancellationRequested)
-                        {
-                            // Set cancellation reason to user cancelled
-                            CurrentCancellationReason = CancellationReason.UserCancelled;
-                            break;
-                        }
+                        appInfos.Add(app.ToAppInfo());
+                    }
 
-                        currentItem++;
-                        progress.Report(
-                            new TaskProgressDetail
+                    // Convert capabilities to CapabilityInfo objects
+                    foreach (var capability in selectedCapabilities)
+                    {
+                        capabilityInfos.Add(
+                            new CapabilityInfo
                             {
-                                Progress = (currentItem * 100.0) / totalSelected,
-                                StatusText =
-                                    $"Removing feature {feature.Name}... ({currentItem}/{totalSelected})",
-                                DetailedMessage = $"Removing Windows Feature: {feature.Name}",
-                                AdditionalInfo = new Dictionary<string, string>
-                                {
-                                    { "AppType", feature.AppType.ToString() },
-                                    { "PackageName", feature.PackageName },
-                                    { "IsSystemProtected", feature.IsSystemProtected.ToString() },
-                                    { "CanBeReinstalled", feature.CanBeReinstalled.ToString() },
-                                    { "OperationType", "Remove" },
-                                    { "ItemNumber", currentItem.ToString() },
-                                    { "TotalItems", totalSelected.ToString() },
-                                },
+                                PackageName = capability.PackageName,
+                                Name = capability.Name,
                             }
                         );
-
-                        try
-                        {
-                            if (_featureRemovalService != null)
-                            {
-                                bool success = await _featureRemovalService.RemoveFeatureAsync(
-                                    feature.ToFeatureInfo()
-                                );
-                                if (success)
-                                {
-                                    feature.IsInstalled = false;
-                                    successCount++;
-
-                                    progress.Report(
-                                        new TaskProgressDetail
-                                        {
-                                            Progress = (currentItem * 100.0) / totalSelected,
-                                            StatusText =
-                                                $"Successfully removed feature {feature.Name}",
-                                            DetailedMessage =
-                                                $"Successfully removed Windows Feature: {feature.Name}",
-                                            LogLevel = LogLevel.Success,
-                                            AdditionalInfo = new Dictionary<string, string>
-                                            {
-                                                { "AppType", feature.AppType.ToString() },
-                                                { "PackageName", feature.PackageName },
-                                                { "OperationType", "Remove" },
-                                                { "OperationStatus", "Success" },
-                                                { "ItemNumber", currentItem.ToString() },
-                                                { "TotalItems", totalSelected.ToString() },
-                                            },
-                                        }
-                                    );
-                                }
-                                else
-                                {
-                                    progress.Report(
-                                        new TaskProgressDetail
-                                        {
-                                            Progress = (currentItem * 100.0) / totalSelected,
-                                            StatusText = $"Failed to remove feature {feature.Name}",
-                                            DetailedMessage =
-                                                $"Failed to remove Windows Feature: {feature.Name}",
-                                            LogLevel = LogLevel.Error,
-                                            AdditionalInfo = new Dictionary<string, string>
-                                            {
-                                                { "AppType", feature.AppType.ToString() },
-                                                { "PackageName", feature.PackageName },
-                                                { "OperationType", "Remove" },
-                                                { "OperationStatus", "Error" },
-                                                { "ItemNumber", currentItem.ToString() },
-                                                { "TotalItems", totalSelected.ToString() },
-                                            },
-                                        }
-                                    );
-                                }
-                            }
-                        }
-                        catch (System.Exception ex)
-                        {
-                            progress.Report(
-                                new TaskProgressDetail
-                                {
-                                    Progress = (currentItem * 100.0) / totalSelected,
-                                    StatusText = $"Error removing feature {feature.Name}",
-                                    DetailedMessage =
-                                        $"Error removing feature {feature.Name}: {ex.Message}",
-                                    LogLevel = LogLevel.Error,
-                                    AdditionalInfo = new Dictionary<string, string>
-                                    {
-                                        { "AppType", feature.AppType.ToString() },
-                                        { "PackageName", feature.PackageName },
-                                        { "OperationType", "Remove" },
-                                        { "OperationStatus", "Error" },
-                                        { "ErrorMessage", ex.Message },
-                                        { "ErrorType", ex.GetType().Name },
-                                        { "ItemNumber", currentItem.ToString() },
-                                        { "TotalItems", totalSelected.ToString() },
-                                    },
-                                }
-                            );
-                        }
                     }
 
-                    // Final report
+                    // Convert features to FeatureInfo objects
+                    foreach (var feature in selectedFeatures)
+                    {
+                        featureInfos.Add(
+                            new FeatureInfo
+                            {
+                                PackageName = feature.PackageName,
+                                Name = feature.Name,
+                            }
+                        );
+                    }
+
+                    // Use the BloatRemovalCoordinatorService to remove all items at once
                     progress.Report(
                         new TaskProgressDetail
                         {
-                            Progress = 100,
-                            StatusText =
-                                $"Successfully removed {successCount} of {totalSelected} items",
+                            Progress = 10,
+                            StatusText = "Adding items to BloatRemoval script...",
                             DetailedMessage =
-                                $"Task completed: {successCount} of {totalSelected} items removed successfully",
-                            LogLevel =
-                                successCount == totalSelected ? LogLevel.Success : LogLevel.Warning,
-                            AdditionalInfo = new Dictionary<string, string>
-                            {
-                                { "OperationType", "Remove" },
-                                {
-                                    "OperationStatus",
-                                    successCount == totalSelected ? "Complete" : "PartialSuccess"
-                                },
-                                { "SuccessCount", successCount.ToString() },
-                                { "TotalItems", totalSelected.ToString() },
-                                { "SuccessRate", $"{(successCount * 100.0 / totalSelected):F1}%" },
-                                { "StandardAppsCount", selectedApps.Count.ToString() },
-                                { "CapabilitiesCount", selectedCapabilities.Count.ToString() },
-                                { "FeaturesCount", selectedFeatures.Count.ToString() },
-                                {
-                                    "CompletionTime",
-                                    System.DateTime.Now.ToString("yyyy-MM-dd HH:mm:ss")
-                                },
-                            },
+                                $"Adding {appInfos.Count} apps, {capabilityInfos.Count} capabilities, and {featureInfos.Count} features to BloatRemoval script",
                         }
                     );
 
-                    // Refresh the UI
-                    SortCollections();
-
-                    // Check if the operation was cancelled by the user or due to connectivity issues
-                    if (CurrentCancellationReason == CancellationReason.UserCancelled)
-                    {
-                        // Log the user cancellation
-                        System.Diagnostics.Debug.WriteLine("[DEBUG] Installation cancelled by user - showing user cancellation dialog");
-                        
-                        // Show the cancellation dialog
-                        await ShowCancellationDialogAsync(true, false);
-                        
-                        // Reset cancellation reason after showing dialog
-                        CurrentCancellationReason = CancellationReason.None;
-                        return successCount;
-                    }
-                    else if (CurrentCancellationReason == CancellationReason.InternetConnectivityLost)
-                    {
-                        // Log the connectivity loss
-                        System.Diagnostics.Debug.WriteLine("[DEBUG] Installation stopped due to connectivity loss - showing connectivity loss dialog");
-                        
-                        // Show the connectivity loss dialog
-                        await ShowCancellationDialogAsync(false, true);
-                        
-                        // Reset cancellation reason after showing dialog
-                        CurrentCancellationReason = CancellationReason.None;
-                        return successCount;
-                    }
-                    
-                    // Only proceed with normal completion reporting if not cancelled
-                    // For normal completion (not cancelled), collect success and failure information
-                    var successItems = new List<string>();
-                    var failedItems = new List<string>();
-
-                    // Add successful items to the list
-                    foreach (var app in selectedApps.Where(a => !a.IsInstalled))
-                    {
-                        successItems.Add(app.Name);
-                    }
-                    foreach (var capability in selectedCapabilities.Where(c => !c.IsInstalled))
-                    {
-                        successItems.Add(capability.Name);
-                    }
-                    foreach (var feature in selectedFeatures.Where(f => !f.IsInstalled))
-                    {
-                        successItems.Add(feature.Name);
-                    }
-
-                    // Add failed items to the list
-                    foreach (var app in selectedApps.Where(a => a.IsInstalled))
-                    {
-                        failedItems.Add(app.Name);
-                    }
-                    foreach (var capability in selectedCapabilities.Where(c => c.IsInstalled))
-                    {
-                        failedItems.Add(capability.Name);
-                    }
-                    foreach (var feature in selectedFeatures.Where(f => f.IsInstalled))
-                    {
-                        failedItems.Add(feature.Name);
-                    }
-
-                    // Show result dialog
-                    ShowOperationResultDialog(
-                        "Remove",
-                        successCount,
-                        totalSelected,
-                        successItems,
-                        failedItems
+                    var result = await _bloatRemovalCoordinatorService.RemoveItemsAsync(
+                        appInfos,
+                        capabilityInfos,
+                        featureInfos,
+                        progress,
+                        cancellationToken
                     );
 
-                    return successCount;
+                    if (result.Success)
+                    {
+                        // Create lists to track successful and failed items
+                        var successItems = new List<string>();
+                        var failedItems = new List<string>();
+
+                        // Mark all items as uninstalled
+                        foreach (var app in regularApps)
+                        {
+                            app.IsInstalled = false;
+                            successCount++;
+                            successItems.Add(app.Name);
+                        }
+
+                        foreach (var capability in selectedCapabilities)
+                        {
+                            capability.IsInstalled = false;
+                            successCount++;
+                            successItems.Add(capability.Name);
+                        }
+
+                        foreach (var feature in selectedFeatures)
+                        {
+                            feature.IsInstalled = false;
+                            successCount++;
+                            successItems.Add(feature.Name);
+                        }
+
+                        // Add special apps to the success list
+                        foreach (var app in specialApps.Where(a => !a.IsInstalled))
+                        {
+                            successItems.Add(app.Name);
+                        }
+
+                        // Final progress report
+                        progress.Report(
+                            new TaskProgressDetail
+                            {
+                                Progress = 100,
+                                StatusText = $"Successfully removed {successCount} items",
+                                LogLevel = LogLevel.Success,
+                            }
+                        );
+
+                        // Show success dialog after completion
+                        await Application.Current.Dispatcher.InvokeAsync(() =>
+                        {
+                            ShowOperationResultDialog(
+                                "Remove",
+                                successCount,
+                                totalSelected,
+                                successItems,
+                                failedItems
+                            );
+                        });
+                    }
+
+                    // Refresh the UI
+                    SortCollections();
                 },
-                $"Removing {totalSelected} items",
+                "Removing Windows Apps",
                 false
             );
         }

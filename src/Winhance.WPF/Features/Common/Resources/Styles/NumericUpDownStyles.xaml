@@ -1,0 +1,133 @@
+<ResourceDictionary xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+                    xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+                    xmlns:controls="clr-namespace:Winhance.WPF.Features.Common.Controls">
+    <!--
+    NumericUpDown Styles
+    
+    This file defines styles for the custom NumericUpDown control used throughout the application.
+    The styles are designed to work with both Light and Dark themes and maintain
+    consistency with the application's design language.
+    -->
+    
+    <!-- Button Style for Up/Down Buttons -->
+    <Style x:Key="NumericUpDownButtonStyle" TargetType="Button">
+        <Setter Property="Focusable" Value="False"/>
+        <Setter Property="Background" Value="Transparent"/>
+        <Setter Property="BorderBrush" Value="Transparent"/>
+        <Setter Property="BorderThickness" Value="0"/>
+        <Setter Property="Padding" Value="4"/>
+        <Setter Property="Template">
+            <Setter.Value>
+                <ControlTemplate TargetType="Button">
+                    <Border x:Name="Border"
+                            Background="{TemplateBinding Background}"
+                            BorderBrush="{TemplateBinding BorderBrush}"
+                            BorderThickness="{TemplateBinding BorderThickness}"
+                            CornerRadius="2">
+                        <ContentPresenter HorizontalAlignment="Center"
+                                          VerticalAlignment="Center"/>
+                    </Border>
+                    <ControlTemplate.Triggers>
+                        <Trigger Property="IsMouseOver" Value="True">
+                            <Setter Property="Background" Value="{DynamicResource ButtonHoverBackground}"/>
+                        </Trigger>
+                        <Trigger Property="IsPressed" Value="True">
+                            <Setter Property="Background" Value="{DynamicResource ButtonPressedBackground}"/>
+                        </Trigger>
+                        <Trigger Property="IsEnabled" Value="False">
+                            <Setter Property="Opacity" Value="0.5"/>
+                        </Trigger>
+                    </ControlTemplate.Triggers>
+                </ControlTemplate>
+            </Setter.Value>
+        </Setter>
+    </Style>
+
+    <!-- TextBox Style for NumericUpDown -->
+    <Style x:Key="NumericUpDownTextBoxStyle" TargetType="TextBox">
+        <Setter Property="Background" Value="Transparent"/>
+        <Setter Property="BorderThickness" Value="0"/>
+        <Setter Property="Padding" Value="4,0"/>
+        <Setter Property="VerticalContentAlignment" Value="Center"/>
+        <Setter Property="HorizontalContentAlignment" Value="Center"/>
+        <Setter Property="TextAlignment" Value="Center"/>
+        <Setter Property="Foreground" Value="{DynamicResource PrimaryTextColor}"/>
+    </Style>
+
+    <!-- Main NumericUpDown Style -->
+    <Style TargetType="controls:NumericUpDown">
+        <Setter Property="MinWidth" Value="120"/>
+        <Setter Property="MinHeight" Value="30"/>
+        <Setter Property="Foreground" Value="{DynamicResource PrimaryTextColor}"/>
+        <Setter Property="Background" Value="{DynamicResource ContentSectionBackground}"/>
+        <Setter Property="BorderBrush" Value="{DynamicResource ControlBorderBrush}"/>
+        <Setter Property="BorderThickness" Value="1"/>
+        <Setter Property="Template">
+            <Setter.Value>
+                <ControlTemplate TargetType="controls:NumericUpDown">
+                    <Border Background="{TemplateBinding Background}"
+                            BorderBrush="{TemplateBinding BorderBrush}"
+                            BorderThickness="{TemplateBinding BorderThickness}"
+                            CornerRadius="4">
+                        <Grid>
+                            <Grid.ColumnDefinitions>
+                                <ColumnDefinition Width="*"/>
+                                <ColumnDefinition Width="Auto"/>
+                                <ColumnDefinition Width="Auto"/>
+                            </Grid.ColumnDefinitions>
+
+                            <!-- Value Display -->
+                            <Grid Grid.Column="0">
+                                <Grid.ColumnDefinitions>
+                                    <ColumnDefinition Width="*"/>
+                                    <ColumnDefinition Width="Auto"/>
+                                </Grid.ColumnDefinitions>
+                                
+                                <TextBox x:Name="PART_TextBox"
+                                         Grid.Column="0"
+                                         Style="{StaticResource NumericUpDownTextBoxStyle}"
+                                         Text="{Binding Value, RelativeSource={RelativeSource TemplatedParent}, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}"/>
+                                
+                                <TextBlock Grid.Column="1"
+                                           Margin="0,0,8,0"
+                                           VerticalAlignment="Center"
+                                           Text="{TemplateBinding Units}"
+                                           Foreground="{DynamicResource SecondaryTextColor}"/>
+                            </Grid>
+
+                            <!-- Up Button -->
+                            <Button Grid.Column="1"
+                                    Style="{StaticResource NumericUpDownButtonStyle}"
+                                    Command="{x:Static controls:NumericUpDown.IncreaseCommand}">
+                                <Path Width="10"
+                                      Height="6"
+                                      Data="M0,6 L10,6 L5,0 Z"
+                                      Fill="{DynamicResource PrimaryTextColor}"
+                                      Stretch="Fill"/>
+                            </Button>
+
+                            <!-- Down Button -->
+                            <Button Grid.Column="2"
+                                    Style="{StaticResource NumericUpDownButtonStyle}"
+                                    Command="{x:Static controls:NumericUpDown.DecreaseCommand}">
+                                <Path Width="10"
+                                      Height="6"
+                                      Data="M0,0 L10,0 L5,6 Z"
+                                      Fill="{DynamicResource PrimaryTextColor}"
+                                      Stretch="Fill"/>
+                            </Button>
+                        </Grid>
+                    </Border>
+                    <ControlTemplate.Triggers>
+                        <Trigger Property="IsEnabled" Value="False">
+                            <Setter Property="Opacity" Value="0.5"/>
+                        </Trigger>
+                        <Trigger Property="IsMouseOver" Value="True">
+                            <Setter Property="BorderBrush" Value="{DynamicResource ButtonHoverBackground}"/>
+                        </Trigger>
+                    </ControlTemplate.Triggers>
+                </ControlTemplate>
+            </Setter.Value>
+        </Setter>
+    </Style>
+</ResourceDictionary>

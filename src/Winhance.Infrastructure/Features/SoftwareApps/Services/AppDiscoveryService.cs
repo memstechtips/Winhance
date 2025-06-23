@@ -744,6 +744,45 @@ public class AppDiscoveryService
         }
     }
 
+    /// <inheritdoc/>
+    public async Task RefreshAppInstallationStatusAsync()
+    {
+        try
+        {
+            _logService.LogInformation("Refreshing installation status for all apps, capabilities, and features");
+            
+            // Clear the existing cache
+            ClearInstallationStatusCache();
+            
+            // Get all apps, capabilities, and features
+            var standardApps = (await GetStandardAppsAsync()).ToList();
+            var installableApps = (await GetInstallableAppsAsync()).ToList();
+            var capabilities = (await GetCapabilitiesAsync()).ToList();
+            var features = (await GetOptionalFeaturesAsync()).ToList();
+            
+            // Collect all package names
+            var packageNames = new List<string>();
+            packageNames.AddRange(standardApps.Select(a => a.PackageName));
+            packageNames.AddRange(installableApps.Select(a => a.PackageName));
+            packageNames.AddRange(capabilities.Select(c => c.PackageName));
+            packageNames.AddRange(features.Select(f => f.PackageName));
+            
+            // Check installation status in batch
+            await GetInstallationStatusBatchAsync(packageNames.Distinct());
+            
+            // Also refresh special apps
+            await IsEdgeInstalledAsync();
+            await IsOneDriveInstalledAsync();
+            await IsOneNoteInstalledAsync();
+            
+            _logService.LogInformation("Successfully refreshed installation status for all items");
+        }
+        catch (Exception ex)
+        {
+            _logService.LogError("Error refreshing installation status", ex);
+        }
+    }
+
     /// <summary>
     /// Executes a PowerShell command with a timeout.
     /// </summary>

@@ -89,7 +89,7 @@ namespace Winhance.WPF.Features.Common.Resources.Theme
             { "ButtonHoverTextColor", Color.FromRgb(255, 255, 255) },
             { "ButtonDisabledForegroundColor", Color.FromRgb(204, 204, 204) },
             { "ButtonDisabledBorderColor", Color.FromRgb(238, 238, 238) },
-            { "NavigationButtonBackgroundColor", Color.FromRgb(255, 255, 255) },
+            { "NavigationButtonBackgroundColor", Color.FromRgb(246, 248, 252) }, // Changed to match BackgroundColor
             { "NavigationButtonForegroundColor", Color.FromRgb(32, 33, 36) },
             { "SliderTrackColor", Color.FromRgb(204, 204, 204) },
             { "BackgroundColor", Color.FromRgb(246, 248, 252) },
