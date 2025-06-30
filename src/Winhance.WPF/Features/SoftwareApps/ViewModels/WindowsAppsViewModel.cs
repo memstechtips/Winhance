@@ -177,32 +177,77 @@ namespace Winhance.WPF.Features.SoftwareApps.ViewModels
         }
         
         /// <summary>
-        /// Updates the AllItems collection with all items from WindowsApps, Capabilities, and OptionalFeatures
+        /// Command to explicitly update the AllItems collection for table view
         /// </summary>
-        private void UpdateAllItemsCollection()
+        [RelayCommand]
+        public void UpdateAllItemsCollectionExplicit()
         {
-            _allItems.Clear();
-            
-            // Add Windows Apps
-            foreach (var app in WindowsApps)
+            UpdateAllItemsCollection();
+        }
+        
+        /// <summary>
+        /// Updates the AllItems collection with all items from WindowsApps, Capabilities, and OptionalFeatures
+        /// Uses batch processing for better performance
+        /// </summary>
+        public void UpdateAllItemsCollection()
+        {
+            // Use batch operations to minimize UI updates
+            using (var deferRefresh = new DeferRefresh(AllItemsView))
             {
-                _allItems.Add(new ItemWithType(app, "Windows App"));
+                _allItems.Clear();
+                
+                // Pre-allocate capacity for better performance
+                int totalItemCount = WindowsApps.Count + Capabilities.Count + OptionalFeatures.Count;
+                var newItems = new List<ItemWithType>(totalItemCount);
+                
+                // Prepare all items before adding to collection
+                // Add Windows Apps
+                foreach (var app in WindowsApps)
+                {
+                    newItems.Add(new ItemWithType(app, "Windows App"));
+                }
+                
+                // Add Capabilities
+                foreach (var capability in Capabilities)
+                {
+                    newItems.Add(new ItemWithType(capability, "Capability"));
+                }
+                
+                // Add Optional Features
+                foreach (var feature in OptionalFeatures)
+                {
+                    newItems.Add(new ItemWithType(feature, "Optional Feature"));
+                }
+                
+                // Batch add all items to minimize UI updates
+                foreach (var item in newItems)
+                {
+                    _allItems.Add(item);
+                }
+                
+                // Apply sorting to the refreshed collection
+                ApplySorting();
+            }
+        }
+        
+        /// <summary>
+        /// Helper class to defer ICollectionView refresh until disposed
+        /// </summary>
+        private class DeferRefresh : IDisposable
+        {
+            private readonly ICollectionView _view;
+            
+            public DeferRefresh(ICollectionView view)
+            {
+                _view = view;
+                // No direct way to suspend binding, but we can defer refresh
             }
             
-            // Add Capabilities
-            foreach (var capability in Capabilities)
+            public void Dispose()
             {
-                _allItems.Add(new ItemWithType(capability, "Capability"));
+                // Refresh the view when disposed
+                _view.Refresh();
             }
-            
-            // Add Optional Features
-            foreach (var feature in OptionalFeatures)
-            {
-                _allItems.Add(new ItemWithType(feature, "Optional Feature"));
-            }
-            
-            // Apply current sorting
-            ApplySorting();
         }
         
         /// <summary>
@@ -293,6 +338,25 @@ namespace Winhance.WPF.Features.SoftwareApps.ViewModels
                 // Refresh the entire collection for simplicity
                 UpdateAllItemsCollection();
             }
+        }
+
+        partial void OnIsTableViewModeChanged(bool value)
+        {
+            if (value)
+            {
+                // If switching to table view, update the AllItems collection
+                UpdateAllItemsCollection();
+                
+                // Force notification of the AllItemsView property
+                OnPropertyChanged(nameof(AllItemsView));
+                
+                // Log for debugging
+                System.Diagnostics.Debug.WriteLine($"WindowsAppsViewModel: Table view mode changed to {value}. AllItems count: {_allItems.Count}");
+            }
+            
+            // Always update visibility properties
+            OnPropertyChanged(nameof(GridViewVisibility));
+            OnPropertyChanged(nameof(TableViewVisibility));
         }
 
         // For binding in the WindowsAppsView - filtered collections

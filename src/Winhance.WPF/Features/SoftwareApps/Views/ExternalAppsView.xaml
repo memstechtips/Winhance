@@ -16,8 +16,7 @@
             
         <!-- External Apps by Category (List View) -->
         <Grid>
-                
-                <!-- WinGet Search Results Section has been moved to ExternalAppsPackageManagerView -->
+        
         <ItemsControl ItemsSource="{Binding Categories}">
             <ItemsControl.ItemTemplate>
                 <DataTemplate>

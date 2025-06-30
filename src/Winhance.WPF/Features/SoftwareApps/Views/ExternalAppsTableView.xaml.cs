@@ -3,11 +3,11 @@ using System.Windows.Controls;
 namespace Winhance.WPF.Features.SoftwareApps.Views
 {
     /// <summary>
-    /// Interaction logic for ExternalAppsPackageManagerView.xaml
+    /// Interaction logic for ExternalAppsTableView.xaml
     /// </summary>
-    public partial class ExternalAppsPackageManagerView : UserControl
+    public partial class ExternalAppsTableView : UserControl
     {
-        public ExternalAppsPackageManagerView()
+        public ExternalAppsTableView()
         {
             InitializeComponent();
         }

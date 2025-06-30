@@ -30,6 +30,9 @@ namespace Winhance.WPF.Features.SoftwareApps.Models
         public string Category => _app.Category;
         public bool IsInstalled => _app.IsInstalled;
         
+        // Hardcoded source property as requested
+        public string Source => "winget/msstore";
+        
         public bool IsSelected
         {
             get => _app.IsSelected;

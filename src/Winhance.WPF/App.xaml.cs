@@ -936,20 +936,6 @@ namespace Winhance.WPF
                     provider.GetRequiredService<IBloatRemovalCoordinatorService>(),
                     provider.GetRequiredService<Features.SoftwareApps.Services.SoftwareAppsDialogService>()
                 ));
-
-                // Register WinGetSearchResultsViewModel
-                services.AddSingleton<WinGetSearchResultsViewModel>(provider => new WinGetSearchResultsViewModel(
-                    provider.GetRequiredService<IWinGetInstaller>(),
-                    provider.GetRequiredService<IAppInstallationService>(),
-                    provider.GetRequiredService<ITaskProgressService>(),
-                    provider.GetRequiredService<IInternetConnectivityService>()
-                ));
-                
-                // Register ExternalAppsPackageManagerViewModel
-                services.AddSingleton<ExternalAppsPackageManagerViewModel>(provider => new ExternalAppsPackageManagerViewModel(
-                    provider.GetRequiredService<ITaskProgressService>(),
-                    provider
-                ));
                 
                 services.AddSingleton<ExternalAppsViewModel>(provider => new ExternalAppsViewModel(
                     provider.GetRequiredService<ITaskProgressService>(),

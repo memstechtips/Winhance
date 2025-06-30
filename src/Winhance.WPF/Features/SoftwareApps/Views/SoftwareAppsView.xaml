@@ -74,7 +74,7 @@
                                             <MultiDataTrigger>
                                                 <MultiDataTrigger.Conditions>
                                                     <Condition Binding="{Binding IsWindowsAppsTabSelected}" Value="False"/>
-                                                    <Condition Binding="{Binding ExternalAppsViewModel.IsPackageManagerViewMode}" Value="False"/>
+                                                    <Condition Binding="{Binding ExternalAppsViewModel.IsTableViewMode}" Value="False"/>
                                                 </MultiDataTrigger.Conditions>
                                                 <Setter Property="Background" Value="{DynamicResource ButtonHoverBackground}" />
                                             </MultiDataTrigger>
@@ -132,7 +132,7 @@
                                             <MultiDataTrigger>
                                                 <MultiDataTrigger.Conditions>
                                                     <Condition Binding="{Binding IsWindowsAppsTabSelected}" Value="False"/>
-                                                    <Condition Binding="{Binding ExternalAppsViewModel.IsPackageManagerViewMode}" Value="True"/>
+                                                    <Condition Binding="{Binding ExternalAppsViewModel.IsTableViewMode}" Value="True"/>
                                                 </MultiDataTrigger.Conditions>
                                                 <Setter Property="Background" Value="{DynamicResource ButtonHoverBackground}" />
                                             </MultiDataTrigger>
@@ -334,34 +334,29 @@
                     <!-- Content Section -->
                     <Border Style="{StaticResource AppSectionContentBorderStyle}">
                         <Grid>
-                            <!-- Windows Apps Content -->
-                            <ContentControl Visibility="{Binding WindowsAppsContentVisibility}">
-                                <views:WindowsAppsView DataContext="{Binding WindowsAppsViewModel}"/>
-                            </ContentControl>
+                            <!-- Windows Apps Content - Switch between views based on view mode -->
+                            <Grid Visibility="{Binding WindowsAppsContentVisibility}">
+                                <!-- List View Mode -->
+                                <views:WindowsAppsView DataContext="{Binding WindowsAppsViewModel}" 
+                                                      Visibility="{Binding DataContext.IsWindowsAppsTableViewMode, RelativeSource={RelativeSource AncestorType=Grid, AncestorLevel=2}, Converter={StaticResource InverseBooleanToVisibilityConverter}}" />
+                                
+                                <!-- Table View Mode -->
+                                <views:WindowsAppsTableView DataContext="{Binding WindowsAppsViewModel}" 
+                                                         Visibility="{Binding DataContext.IsWindowsAppsTableViewMode, RelativeSource={RelativeSource AncestorType=Grid, AncestorLevel=2}, Converter={StaticResource BooleanToVisibilityConverter}}" 
+                                                         d:IsHidden="True" />
+                            </Grid>
 
                             <!-- External Apps Content - Switch between views based on view mode -->
-                            <ContentControl Visibility="{Binding ExternalAppsContentVisibility}">
-                                <ContentControl.Style>
-                                    <Style TargetType="ContentControl">
-                                        <Style.Triggers>
-                                            <DataTrigger Binding="{Binding ExternalAppsViewModel.IsPackageManagerViewMode}" Value="True">
-                                                <Setter Property="Content">
-                                                    <Setter.Value>
-                                                        <views:ExternalAppsPackageManagerView DataContext="{Binding ExternalAppsViewModel.ExternalAppsPackageManagerViewModel}" />
-                                                    </Setter.Value>
-                                                </Setter>
-                                            </DataTrigger>
-                                            <DataTrigger Binding="{Binding ExternalAppsViewModel.IsPackageManagerViewMode}" Value="False">
-                                                <Setter Property="Content">
-                                                    <Setter.Value>
-                                                        <views:ExternalAppsView DataContext="{Binding ExternalAppsViewModel}" />
-                                                    </Setter.Value>
-                                                </Setter>
-                                            </DataTrigger>
-                                        </Style.Triggers>
-                                    </Style>
-                                </ContentControl.Style>
-                            </ContentControl>
+                            <Grid Visibility="{Binding ExternalAppsContentVisibility}">
+                                <!-- List View Mode -->
+                                <views:ExternalAppsView DataContext="{Binding ExternalAppsViewModel}" 
+                                                      Visibility="{Binding DataContext.IsExternalAppsTableViewMode, RelativeSource={RelativeSource AncestorType=Grid, AncestorLevel=2}, Converter={StaticResource InverseBooleanToVisibilityConverter}}" />
+                                
+                                <!-- Table View Mode -->
+                                <views:ExternalAppsTableView DataContext="{Binding ExternalAppsViewModel}" 
+                                                         Visibility="{Binding DataContext.IsExternalAppsTableViewMode, RelativeSource={RelativeSource AncestorType=Grid, AncestorLevel=2}, Converter={StaticResource BooleanToVisibilityConverter}}" 
+                                                         d:IsHidden="True" />
+                            </Grid>
                         </Grid>
                     </Border>
                 </StackPanel>

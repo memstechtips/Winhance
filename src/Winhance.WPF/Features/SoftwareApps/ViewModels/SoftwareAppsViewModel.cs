@@ -42,6 +42,12 @@ namespace Winhance.WPF.Features.SoftwareApps.ViewModels
         private bool _isExternalAppsTabSelected = false;
         
         [ObservableProperty]
+        private bool _isWindowsAppsTableViewMode = false;
+        
+        [ObservableProperty]
+        private bool _isExternalAppsTableViewMode = false;
+        
+        [ObservableProperty]
         private Visibility _windowsAppsContentVisibility = Visibility.Visible;
         
         [ObservableProperty]
@@ -64,6 +70,8 @@ namespace Winhance.WPF.Features.SoftwareApps.ViewModels
         
         [ObservableProperty]
         private bool _isHelpVisible = false;
+        
+        // Removed duplicate ToggleViewMode method
 
         /// <summary>
         /// Initializes a new instance of the <see cref="SoftwareAppsViewModel"/> class.
@@ -86,6 +94,10 @@ namespace Winhance.WPF.Features.SoftwareApps.ViewModels
             // Resolve the dependencies via DI container
             WindowsAppsViewModel = _serviceProvider.GetRequiredService<WindowsAppsViewModel>();
             ExternalAppsViewModel = _serviceProvider.GetRequiredService<ExternalAppsViewModel>();
+
+            // Initialize parent view mode properties based on child view models
+            IsWindowsAppsTableViewMode = WindowsAppsViewModel.IsTableViewMode;
+            IsExternalAppsTableViewMode = ExternalAppsViewModel.IsTableViewMode;
             
             // Subscribe to property changes to handle search text routing and button states
             this.PropertyChanged += SoftwareAppsViewModel_PropertyChanged;
@@ -94,14 +106,9 @@ namespace Winhance.WPF.Features.SoftwareApps.ViewModels
             WindowsAppsViewModel.PropertyChanged += ChildViewModel_PropertyChanged;
             ExternalAppsViewModel.PropertyChanged += ChildViewModel_PropertyChanged;
             
-            // Subscribe to property changes in ExternalAppsViewModel to detect when ExternalAppsPackageManagerViewModel is available
-            ExternalAppsViewModel.PropertyChanged += ExternalAppsViewModel_PropertyChanged;
-            
-            // Try to subscribe to search text changes from the package manager view model if it's already available
-            SubscribeToPackageManagerSearchTextChanges();
-            
-            // Initial update of button states
+            // Initial update of UI states
             UpdateButtonStates();
+            UpdateChildViewModels();
         }
 
         /// <summary>
@@ -147,16 +154,52 @@ namespace Winhance.WPF.Features.SoftwareApps.ViewModels
         [RelayCommand]
         private void ToggleViewMode(object parameter)
         {
-            if (IsWindowsAppsTabSelected)
+            // If a parameter is provided, use it to set the view mode directly
+            if (parameter != null)
             {
-                // Route to WindowsAppsViewModel
-                WindowsAppsViewModel.ToggleViewModeCommand.Execute(parameter);
+                // Handle both bool and string parameters
+                if (parameter is bool tableViewMode)
+                {
+                    if (IsWindowsAppsTabSelected)
+                    {
+                        IsWindowsAppsTableViewMode = tableViewMode;
+                    }
+                    else
+                    {
+                        IsExternalAppsTableViewMode = tableViewMode;
+                    }
+                }
+                else if (parameter is string stringParam)
+                {
+                    // Parse string parameter ("True" or "False")
+                    if (bool.TryParse(stringParam, out bool result))
+                    {
+                        if (IsWindowsAppsTabSelected)
+                        {
+                            IsWindowsAppsTableViewMode = result;
+                        }
+                        else
+                        {
+                            IsExternalAppsTableViewMode = result;
+                        }
+                    }
+                }
             }
+            // Otherwise toggle the current mode
             else
             {
-                // Route to ExternalAppsViewModel
-                ExternalAppsViewModel.ToggleViewModeCommand.Execute(parameter);
+                if (IsWindowsAppsTabSelected)
+                {
+                    IsWindowsAppsTableViewMode = !IsWindowsAppsTableViewMode;
+                }
+                else
+                {
+                    IsExternalAppsTableViewMode = !IsExternalAppsTableViewMode;
+                }
             }
+            
+            // Apply changes to child view models
+            UpdateChildViewModels();
         }
         
         /// <summary>
@@ -229,6 +272,12 @@ namespace Winhance.WPF.Features.SoftwareApps.ViewModels
             {
                 UpdateButtonStates();
             }
+            else if (e.PropertyName == nameof(IsWindowsAppsTableViewMode) ||
+                     e.PropertyName == nameof(IsExternalAppsTableViewMode))
+            {
+                // Update child view models when table view mode changes
+                UpdateChildViewModels();
+            }
         }
         
         /// <summary>
@@ -249,30 +298,6 @@ namespace Winhance.WPF.Features.SoftwareApps.ViewModels
             {
                 // Always route search text to ExternalAppsViewModel when in External Apps tab
                 ExternalAppsViewModel.SearchText = SearchText;
-                
-                // If in package manager mode, also route search directly to the package manager view model
-                if (ExternalAppsViewModel.IsPackageManagerViewMode &&
-                    ExternalAppsViewModel.ExternalAppsPackageManagerViewModel != null)
-                {
-                    // Temporarily unsubscribe from the event to prevent infinite loop
-                    ExternalAppsViewModel.ExternalAppsPackageManagerViewModel.SearchTextChanged -= OnPackageManagerSearchTextChanged;
-                    
-                    ExternalAppsViewModel.ExternalAppsPackageManagerViewModel.SearchText = SearchText;
-                    
-                    // Re-subscribe to the event
-                    ExternalAppsViewModel.ExternalAppsPackageManagerViewModel.SearchTextChanged += OnPackageManagerSearchTextChanged;
-                    
-                    // If search text is not empty, trigger the search command
-                    if (!string.IsNullOrWhiteSpace(SearchText))
-                    {
-                        ExternalAppsViewModel.ExternalAppsPackageManagerViewModel.ExecuteSearchCommand();
-                    }
-                }
-                else if (ExternalAppsViewModel.IsPackageManagerViewMode)
-                {
-                    // If package manager view model is not available yet, ensure subscription happens when it becomes available
-                    SubscribeToPackageManagerSearchTextChanges();
-                }
             }
         }
         
@@ -408,41 +433,44 @@ namespace Winhance.WPF.Features.SoftwareApps.ViewModels
                 HelpService.ShowHelp(helpContent, HelpButtonElement);
             }
         }
-        
+
         /// <summary>
-        /// Handles search text changes from the package manager view model
+        /// Updates the child view models' table view mode properties based on the parent's properties
+        /// and ensures table data is properly populated when in table view mode
         /// </summary>
-        /// <param name="searchText">The new search text</param>
-        private void OnPackageManagerSearchTextChanged(string searchText)
+        private void UpdateChildViewModels()
         {
-            // Update the main search text to keep both search boxes in sync
-            // This will trigger RouteSearchTextToActiveViewModel through the PropertyChanged event
-            SearchText = searchText;
-        }
-        
-        /// <summary>
-        /// Handles property changes in the ExternalAppsViewModel to detect when ExternalAppsPackageManagerViewModel becomes available
-        /// </summary>
-        private void ExternalAppsViewModel_PropertyChanged(object sender, PropertyChangedEventArgs e)
-        {
-            if (e.PropertyName == nameof(ExternalAppsViewModel.ExternalAppsPackageManagerViewModel))
+            // Update WindowsAppsViewModel's IsTableViewMode property
+            if (WindowsAppsViewModel.IsTableViewMode != IsWindowsAppsTableViewMode)
             {
-                SubscribeToPackageManagerSearchTextChanges();
+                // First update the property value
+                WindowsAppsViewModel.IsTableViewMode = IsWindowsAppsTableViewMode;
+                
+                // Force update the collection for the table view if switching to table view
+                if (IsWindowsAppsTableViewMode)
+                {
+                    // Force a full refresh of data for the table view
+                    WindowsAppsViewModel.UpdateAllItemsCollection();
+                    System.Diagnostics.Debug.WriteLine("WindowsAppsViewModel: Forced table view refresh");
+                }
+            }
+            
+            // Update ExternalAppsViewModel's IsTableViewMode property
+            if (ExternalAppsViewModel.IsTableViewMode != IsExternalAppsTableViewMode)
+            {
+                // First update the property value
+                ExternalAppsViewModel.IsTableViewMode = IsExternalAppsTableViewMode;
+                
+                // Force update the collection for the table view if switching to table view
+                if (IsExternalAppsTableViewMode)
+                {
+                    // Force a full refresh of data for the table view
+                    ExternalAppsViewModel.UpdateAllItemsCollection();
+                    System.Diagnostics.Debug.WriteLine("ExternalAppsViewModel: Forced table view refresh");
+                }
             }
         }
         
-        /// <summary>
-        /// Subscribes to search text changes from the package manager view model if it's available
-        /// </summary>
-        private void SubscribeToPackageManagerSearchTextChanges()
-        {
-            if (ExternalAppsViewModel.ExternalAppsPackageManagerViewModel != null)
-            {
-                // Unsubscribe first to prevent duplicate subscriptions
-                ExternalAppsViewModel.ExternalAppsPackageManagerViewModel.SearchTextChanged -= OnPackageManagerSearchTextChanged;
-                // Subscribe to the event
-                ExternalAppsViewModel.ExternalAppsPackageManagerViewModel.SearchTextChanged += OnPackageManagerSearchTextChanged;
-            }
-        }
+
     }
 }

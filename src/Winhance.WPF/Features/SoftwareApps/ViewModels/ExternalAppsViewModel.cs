@@ -2,6 +2,7 @@ using System;
 using System.Collections.Generic;
 using System.Collections.ObjectModel;
 using System.ComponentModel;
+using System.Windows.Data;
 using System.Linq;
 using System.Threading.Tasks;
 using System.Windows;
@@ -29,7 +30,7 @@ namespace Winhance.WPF.Features.SoftwareApps.ViewModels
         private bool _isInitialized = false;
 
         [ObservableProperty]
-        private bool _isPackageManagerViewMode = false;
+        private bool _isTableViewMode = false;
 
         [ObservableProperty]
         private bool _isAllSelected = false;
@@ -39,23 +40,46 @@ namespace Winhance.WPF.Features.SoftwareApps.ViewModels
         private readonly IConfigurationService _configurationService;
         private readonly IServiceProvider _serviceProvider;
 
-        [ObservableProperty]
-        private WinGetSearchResultsViewModel _winGetSearchResultsViewModel;
-        
-        [ObservableProperty]
-        private ExternalAppsPackageManagerViewModel _externalAppsPackageManagerViewModel;
-
         private ObservableCollection<ExternalAppWithTableInfo> _allItems = new();
         private ICollectionView _allItemsView;
 
         /// <summary>
-        /// Gets the collection view for all external apps in table view mode
+        /// Gets the collection view for all items in the table view
         /// </summary>
-        public ICollectionView AllItemsView =>
-            _allItemsView ??= CollectionViewSource.GetDefaultView(_allItems);
+        public ICollectionView AllItemsView
+        {
+            get
+            {
+                // Ensure the collection view is initialized
+                if (_allItemsView == null)
+                {
+                    // Initialize the collection if needed
+                    if (_allItems == null)
+                    {
+                        _allItems = new ObservableCollection<ExternalAppWithTableInfo>();
+                    }
+                    
+                    _allItemsView = CollectionViewSource.GetDefaultView(_allItems);
+                    
+                    // Set default sort by Name
+                    if (!_allItemsView.SortDescriptions.Any())
+                    {
+                        _allItemsView.SortDescriptions.Add(new SortDescription("Name", ListSortDirection.Ascending));
+                    }
+                    
+                    // If we have categories loaded, populate the collection
+                    if (Categories.Count > 0)
+                    {
+                        UpdateAllItemsCollection();
+                    }
+                }
+                
+                return _allItemsView;
+            }
+        }
 
         /// <summary>
-        /// Command to toggle between list view and package manager view modes
+        /// Command to toggle between list view and table view modes
         /// </summary>
         [RelayCommand]
         private void ToggleViewMode(object parameter = null)
@@ -63,29 +87,82 @@ namespace Winhance.WPF.Features.SoftwareApps.ViewModels
             // If parameter is provided, use it to set the view mode directly
             if (parameter is string strParam)
             {
-                IsPackageManagerViewMode = bool.Parse(strParam);
+                IsTableViewMode = bool.Parse(strParam);
             }
             else if (parameter is bool boolParam)
             {
-                IsPackageManagerViewMode = boolParam;
+                IsTableViewMode = boolParam;
             }
             else
             {
                 // Toggle the view mode if no parameter is provided
-                IsPackageManagerViewMode = !IsPackageManagerViewMode;
+                IsTableViewMode = !IsTableViewMode;
             }
 
-            // If switching to package manager view, ensure search is applied
-            if (IsPackageManagerViewMode && !string.IsNullOrWhiteSpace(SearchText))
+            // Update the collection if in table view mode
+            if (IsTableViewMode)
             {
-                // Apply search to the package manager view
-                ExternalAppsPackageManagerViewModel?.ApplySearch(SearchText);
+                UpdateAllItemsCollection();
+                System.Diagnostics.Debug.WriteLine($"ToggleViewMode: Table view mode is now {IsTableViewMode}, AllItems count: {_allItems.Count}");
             }
-            else if (!IsPackageManagerViewMode)
+
+        }
+
+        /// <summary>
+        /// Updates the collection of all external apps for the table view
+        /// Optimized for performance with batch updates and UI thread binding management
+        /// </summary>
+        public void UpdateAllItemsCollection()
+        {
+            // Ensure we have the collection initialized
+            if (_allItems == null)
             {
-                // Clear search in package manager view when switching back to list view
-                ExternalAppsPackageManagerViewModel?.ApplySearch(string.Empty);
+                _allItems = new ObservableCollection<ExternalAppWithTableInfo>();
             }
+            
+            // Create collection view if needed
+            if (_allItemsView == null)
+            {
+                _allItemsView = CollectionViewSource.GetDefaultView(_allItems);
+                
+                // Set default sort by Name
+                if (!_allItemsView.SortDescriptions.Any())
+                {
+                    _allItemsView.SortDescriptions.Add(new SortDescription("Name", ListSortDirection.Ascending));
+                }
+            }
+            
+            // Use batch operations to minimize UI updates
+            using (var deferRefresh = new DeferRefresh(_allItemsView))
+            {
+                // Clear existing items
+                _allItems.Clear();
+                
+                // Calculate total item count for pre-allocation
+                int totalItemCount = Categories.Sum(c => c.Apps.Count);
+                var newItems = new List<ExternalAppWithTableInfo>(totalItemCount);
+                
+                // Pre-populate list with all items before adding to observable collection
+                foreach (var category in Categories)
+                {
+                    foreach (var app in category.Apps)
+                    {
+                        newItems.Add(new ExternalAppWithTableInfo(app));
+                    }
+                }
+                
+                // Add all items in a batch to reduce collection changed events
+                foreach (var item in newItems)
+                {
+                    _allItems.Add(item);
+                }
+                
+                // Log the number of items for debugging
+                System.Diagnostics.Debug.WriteLine($"UpdateAllItemsCollection: Added {newItems.Count} items to the table view");
+            }
+            
+            // Notify property changed for AllItemsView to ensure the UI updates
+            OnPropertyChanged(nameof(AllItemsView));
         }
 
         /// <summary>
@@ -94,45 +171,74 @@ namespace Winhance.WPF.Features.SoftwareApps.ViewModels
         [RelayCommand]
         private void SortBy(string propertyName)
         {
-            if (_allItemsView == null)
+            if (string.IsNullOrEmpty(propertyName) || _allItemsView == null)
                 return;
 
-            var direction = ListSortDirection.Ascending;
-
+            // Get the current sort direction
+            ListSortDirection direction = ListSortDirection.Ascending;
+            
             // If already sorting by this property, toggle the direction
-            if (
-                _allItemsView.SortDescriptions.Count > 0
-                && _allItemsView.SortDescriptions[0].PropertyName == propertyName
-            )
+            if (_allItemsView.SortDescriptions.Count > 0 && 
+                _allItemsView.SortDescriptions[0].PropertyName == propertyName)
             {
-                direction =
-                    _allItemsView.SortDescriptions[0].Direction == ListSortDirection.Ascending
-                        ? ListSortDirection.Descending
-                        : ListSortDirection.Ascending;
+                direction = _allItemsView.SortDescriptions[0].Direction == ListSortDirection.Ascending
+                    ? ListSortDirection.Descending
+                    : ListSortDirection.Ascending;
             }
 
+            // Clear existing sort descriptions and add the new one
             _allItemsView.SortDescriptions.Clear();
             _allItemsView.SortDescriptions.Add(new SortDescription(propertyName, direction));
         }
 
-        /// <summary>
-        /// Updates the collection of all external apps for the table view
-        /// </summary>
-        private void UpdateAllItemsCollection()
+        partial void OnIsTableViewModeChanged(bool value)
         {
-            _allItems.Clear();
-
-            // Add all apps from all categories to the flat list
-            foreach (var category in Categories)
+            if (value)
             {
-                foreach (var app in category.Apps)
-                {
-                    _allItems.Add(new ExternalAppWithTableInfo(app));
-                }
+                UpdateAllItemsCollection();
+                LogTableViewState();
             }
-
-            // Refresh the view
-            _allItemsView?.Refresh();
+        }
+        
+        /// <summary>
+        /// Helper class to defer ICollectionView refresh until disposed
+        /// </summary>
+        private class DeferRefresh : IDisposable
+        {
+            private readonly ICollectionView _view;
+            
+            public DeferRefresh(ICollectionView view)
+            {
+                _view = view;
+                // No direct way to suspend binding, but we can defer refresh
+            }
+            
+            public void Dispose()
+            {
+                // Refresh the view when disposed
+                _view.Refresh();
+            }
+        }
+        
+        /// <summary>
+        /// Debug method to log the state of the AllItemsView collection
+        /// </summary>
+        private void LogTableViewState()
+        {
+            System.Diagnostics.Debug.WriteLine($"========== TABLE VIEW STATE ===========");
+            System.Diagnostics.Debug.WriteLine($"IsTableViewMode: {IsTableViewMode}");
+            System.Diagnostics.Debug.WriteLine($"AllItems Count: {_allItems.Count}");
+            System.Diagnostics.Debug.WriteLine($"AllItemsView Count: {_allItemsView?.Cast<object>().Count() ?? 0}");
+            System.Diagnostics.Debug.WriteLine($"Categories Count: {Categories.Count}");
+            System.Diagnostics.Debug.WriteLine($"Total Apps in Categories: {Categories.Sum(c => c.Apps.Count)}");
+            
+            // Log the first 5 items in the collection
+            int count = 0;
+            foreach (var item in _allItems.Take(5))
+            {
+                System.Diagnostics.Debug.WriteLine($"Item {count++}: {item.Name} - {item.PackageName} - {item.Category}");
+            }
+            System.Diagnostics.Debug.WriteLine($"=====================================");
         }
 
         /// <summary>
@@ -164,11 +270,8 @@ namespace Winhance.WPF.Features.SoftwareApps.ViewModels
                 // Check if any regular items are selected
                 bool regularItemsSelected = Items?.Any(a => a.IsSelected) == true;
 
-                // Check if any WinGet search results are selected
-                bool winGetItemsSelected = WinGetSearchResultsViewModel?.HasSelectedItems == true;
-
                 // Return true if either regular items or WinGet items are selected
-                return regularItemsSelected || winGetItemsSelected;
+                return regularItemsSelected;
             }
         }
 
@@ -199,20 +302,23 @@ namespace Winhance.WPF.Features.SoftwareApps.ViewModels
             _configurationService = configurationService;
             _serviceProvider = serviceProvider;
 
-            // Initialize WinGetSearchResultsViewModel
-            WinGetSearchResultsViewModel =
-                _serviceProvider.GetRequiredService<WinGetSearchResultsViewModel>();
-
-            // Initialize ExternalAppsPackageManagerViewModel
-            ExternalAppsPackageManagerViewModel =
-                _serviceProvider.GetRequiredService<ExternalAppsPackageManagerViewModel>();
-
-            // Subscribe to property changes in the WinGetSearchResultsViewModel
-            WinGetSearchResultsViewModel.PropertyChanged +=
-                WinGetSearchResultsViewModel_PropertyChanged;
-
             // Subscribe to collection changed events to track item selection changes
             Items.CollectionChanged += Items_CollectionChanged;
+
+            // Initialize the AllItemsView
+            _allItemsView = CollectionViewSource.GetDefaultView(_allItems);
+
+            // Set up a loaded event handler to ensure the collection is populated
+            this.PropertyChanged += (s, e) => {
+                if (e.PropertyName == nameof(IsInitialized) && IsInitialized)
+                {
+                    // If we're in table view mode, update the collection
+                    if (IsTableViewMode)
+                    {
+                        UpdateAllItemsCollection();
+                    }
+                }
+            };
         }
 
         private void Items_CollectionChanged(
@@ -256,20 +362,22 @@ namespace Winhance.WPF.Features.SoftwareApps.ViewModels
             }
         }
 
-        private void WinGetSearchResultsViewModel_PropertyChanged(
-            object sender,
-            System.ComponentModel.PropertyChangedEventArgs e
-        )
-        {
-            // When the HasSelectedItems property changes in the WinGetSearchResultsViewModel, update our HasSelectedItems property
-            if (e.PropertyName == nameof(WinGetSearchResultsViewModel.HasSelectedItems))
-            {
-                OnPropertyChanged(nameof(HasSelectedItems));
-            }
-        }
-
         // SaveConfig and ImportConfig methods removed as part of unified configuration cleanup
 
+        /// <summary>
+        /// Initialize the table view collection
+        /// </summary>
+        /// <returns></returns>
+        public async Task InitializeTableViewAsync()
+        {
+            // Initialize the table view collection
+            UpdateAllItemsCollection();
+            System.Diagnostics.Debug.WriteLine($"InitializeTableViewAsync: AllItems count: {_allItems.Count}");
+            
+            // Log the state of the table view
+            LogTableViewState();
+        }
+        
         /// <summary>
         /// Applies the current search text to filter items.
         /// </summary>
@@ -277,26 +385,6 @@ namespace Winhance.WPF.Features.SoftwareApps.ViewModels
         {
             if (Items == null || Items.Count == 0)
                 return;
-
-            // Only apply search to the package manager view if in package manager view mode
-            if (IsPackageManagerViewMode)
-            {
-                // If search is active
-                if (IsSearchActive)
-                {
-                    // Execute WinGet search asynchronously through the package manager view model
-                    // No minimum character requirement to allow for specific short searches
-                    ExternalAppsPackageManagerViewModel?.ApplySearch(SearchText);
-                }
-                else
-                {
-                    // Clear in the package manager view model if search text is cleared
-                    ExternalAppsPackageManagerViewModel?.ApplySearch(string.Empty);
-                }
-                
-                // Don't filter categories in package manager mode
-                return;
-            }
 
             // For category view mode, filter items based on search text
             var filteredItems = FilterItems(Items);
@@ -350,11 +438,9 @@ namespace Winhance.WPF.Features.SoftwareApps.ViewModels
                 }
             }
 
-            // Update the collection if in package manager view mode
-            if (IsPackageManagerViewMode)
-            {
-                UpdateAllItemsCollection();
-            }
+            // Always update the AllItemsCollection to ensure it's populated
+            UpdateAllItemsCollection();
+            System.Diagnostics.Debug.WriteLine($"ApplySearch: Updated AllItems collection, count: {_allItems.Count}");
         }
 
         public override async Task LoadItemsAsync()
@@ -415,11 +501,9 @@ namespace Winhance.WPF.Features.SoftwareApps.ViewModels
 
                 StatusText = $"Loaded {Items.Count} external apps";
 
-                // Update the collection if in package manager view mode
-                if (IsPackageManagerViewMode)
-                {
-                    UpdateAllItemsCollection();
-                }
+                // Always update the AllItemsCollection to ensure it's populated
+                UpdateAllItemsCollection();
+                System.Diagnostics.Debug.WriteLine($"LoadItemsAsync: Loaded {Items.Count} items, AllItems count: {_allItems.Count}");
             }
             catch (System.Exception ex)
             {
@@ -743,9 +827,6 @@ namespace Winhance.WPF.Features.SoftwareApps.ViewModels
                 }
             }
 
-            // Also clear WinGet search results selections
-            WinGetSearchResultsViewModel.ClearSelection();
-
             StatusText = "All selections cleared";
 
             // Explicitly notify that HasSelectedItems has changed
@@ -761,13 +842,8 @@ namespace Winhance.WPF.Features.SoftwareApps.ViewModels
             // Get all selected apps regardless of installation status
             var selectedApps = Items.Where(a => a.IsSelected).ToList();
 
-            // Check if there are any selected WinGet search results
-            var selectedWinGetItems = WinGetSearchResultsViewModel
-                .SearchResults.Where(item => item.IsSelected)
-                .ToList();
-
             // If no apps or WinGet items are selected, show a message
-            if (!selectedApps.Any() && !selectedWinGetItems.Any())
+            if (!selectedApps.Any())
             {
                 StatusText = "No apps selected for installation";
                 await ShowNoItemsSelectedDialogAsync("installation");
@@ -795,13 +871,6 @@ namespace Winhance.WPF.Features.SoftwareApps.ViewModels
             {
                 itemsToInstall.AddRange(selectedApps.Select(a => a.Name));
                 totalItemsCount += selectedApps.Count;
-            }
-
-            // Add WinGet package names if any are selected
-            if (selectedWinGetItems.Any())
-            {
-                itemsToInstall.AddRange(selectedWinGetItems.Select(w => $"WinGet: {w.Name}"));
-                totalItemsCount += selectedWinGetItems.Count;
             }
 
             // Show confirmation dialog
@@ -990,196 +1059,6 @@ namespace Winhance.WPF.Features.SoftwareApps.ViewModels
                                 );
                             }
                         }
-                    }
-
-                    // Next, install WinGet packages if any are selected
-                    if (selectedWinGetItems.Any())
-                    {
-                        foreach (var winGetItem in selectedWinGetItems)
-                        {
-                            if (cancellationToken.IsCancellationRequested)
-                            {
-                                await HandleCancellationAsync(false); // User-initiated cancellation
-                                cts.Cancel(); // Ensure all tasks are cancelled
-                                return successCount; // Exit the method immediately
-                            }
-
-                            try
-                            {
-                                StatusText = $"Installing {winGetItem.Name}...";
-
-                                progress.Report(
-                                    new TaskProgressDetail
-                                    {
-                                        Progress = (currentItem * 100.0) / totalSelected,
-                                        StatusText = $"Installing {winGetItem.Name}",
-                                        DetailedMessage =
-                                            $"Installing WinGet package: {winGetItem.Name}",
-                                        LogLevel = LogLevel.Info,
-                                        AdditionalInfo = new Dictionary<string, string>
-                                        {
-                                            { "PackageName", winGetItem.Name },
-                                            { "PackageId", winGetItem.Id },
-                                            { "OperationType", "Install" },
-                                            { "ItemNumber", currentItem.ToString() },
-                                            { "TotalItems", totalSelected.ToString() },
-                                        },
-                                    }
-                                );
-
-                                // Use the WinGet installer service to install the package directly
-                                var result =
-                                    await WinGetSearchResultsViewModel.InstallWinGetPackageAsync(
-                                        winGetItem.Id,
-                                        winGetItem.Name,
-                                        cancellationToken
-                                    );
-
-                                bool success = result.Success;
-
-                                if (success)
-                                {
-                                    successCount++;
-
-                                    progress.Report(
-                                        new TaskProgressDetail
-                                        {
-                                            Progress = (currentItem * 100.0) / totalSelected,
-                                            StatusText =
-                                                $"Successfully installed {winGetItem.Name}",
-                                            DetailedMessage =
-                                                $"Successfully installed WinGet package: {winGetItem.Name}",
-                                            LogLevel = LogLevel.Success,
-                                            AdditionalInfo = new Dictionary<string, string>
-                                            {
-                                                { "PackageName", winGetItem.Name },
-                                                { "PackageId", winGetItem.Id },
-                                                { "OperationType", "Install" },
-                                                { "OperationStatus", "Success" },
-                                                { "ItemNumber", currentItem.ToString() },
-                                                { "TotalItems", totalSelected.ToString() },
-                                            },
-                                        }
-                                    );
-                                }
-                                else
-                                {
-                                    string errorMessage =
-                                        result.Message ?? $"Failed to install {winGetItem.Name}";
-
-                                    progress.Report(
-                                        new TaskProgressDetail
-                                        {
-                                            Progress = (currentItem * 100.0) / totalSelected,
-                                            StatusText = $"Error installing {winGetItem.Name}",
-                                            DetailedMessage = errorMessage,
-                                            LogLevel = LogLevel.Error,
-                                            AdditionalInfo = new Dictionary<string, string>
-                                            {
-                                                { "PackageName", winGetItem.Name },
-                                                { "PackageId", winGetItem.Id },
-                                                { "OperationType", "Install" },
-                                                { "OperationStatus", "Error" },
-                                                { "ErrorMessage", errorMessage },
-                                                { "ItemNumber", currentItem.ToString() },
-                                                { "TotalItems", totalSelected.ToString() },
-                                            },
-                                        }
-                                    );
-                                }
-                            }
-                            catch (OperationCanceledException)
-                            {
-                                progress.Report(
-                                    new TaskProgressDetail
-                                    {
-                                        Progress = (currentItem * 100.0) / totalSelected,
-                                        StatusText =
-                                            $"Installation of {winGetItem.Name} was cancelled",
-                                        DetailedMessage =
-                                            $"The installation of {winGetItem.Name} was cancelled.",
-                                        LogLevel = LogLevel.Warning,
-                                        AdditionalInfo = new Dictionary<string, string>
-                                        {
-                                            { "PackageName", winGetItem.Name },
-                                            { "PackageId", winGetItem.Id },
-                                            { "OperationType", "Install" },
-                                            { "OperationStatus", "Cancelled" },
-                                            { "ItemNumber", currentItem.ToString() },
-                                            { "TotalItems", totalSelected.ToString() },
-                                        },
-                                    }
-                                );
-
-                                // Use the centralized cancellation handling
-                                await HandleCancellationAsync(false); // User-initiated cancellation
-                                cts.Cancel();
-                                return successCount; // Exit the method immediately
-                            }
-                            catch (System.Exception ex)
-                            {
-                                // Check if the exception is related to internet connectivity
-                                bool isConnectivityIssue =
-                                    ex.Message.Contains(
-                                        "internet",
-                                        StringComparison.OrdinalIgnoreCase
-                                    )
-                                    || ex.Message.Contains(
-                                        "connection",
-                                        StringComparison.OrdinalIgnoreCase
-                                    )
-                                    || ex.Message.Contains(
-                                        "network",
-                                        StringComparison.OrdinalIgnoreCase
-                                    )
-                                    || ex.Message.Contains(
-                                        "pipeline has been stopped",
-                                        StringComparison.OrdinalIgnoreCase
-                                    );
-
-                                if (
-                                    isConnectivityIssue
-                                    && CurrentCancellationReason == CancellationReason.None
-                                )
-                                {
-                                    // Set the cancellation reason to connectivity issue
-                                    await HandleCancellationAsync(true); // Connectivity-related cancellation
-                                }
-
-                                progress.Report(
-                                    new TaskProgressDetail
-                                    {
-                                        Progress = (currentItem * 100.0) / totalSelected,
-                                        StatusText = $"Error installing {winGetItem.Name}",
-                                        DetailedMessage =
-                                            $"Error installing {winGetItem.Name}: {ex.Message}",
-                                        LogLevel = LogLevel.Error,
-                                        AdditionalInfo = new Dictionary<string, string>
-                                        {
-                                            { "PackageName", winGetItem.Name },
-                                            { "PackageId", winGetItem.Id },
-                                            { "OperationType", "Install" },
-                                            { "OperationStatus", "Error" },
-                                            { "ErrorMessage", ex.Message },
-                                            { "ErrorType", ex.GetType().Name },
-                                            { "ItemNumber", currentItem.ToString() },
-                                            { "TotalItems", totalSelected.ToString() },
-                                            {
-                                                "IsConnectivityIssue",
-                                                isConnectivityIssue.ToString()
-                                            },
-                                        },
-                                    }
-                                );
-                            }
-                            finally
-                            {
-                                currentItem++;
-                            }
-                        }
-
-                        // Clear WinGet search result selections after installation
-                        WinGetSearchResultsViewModel.ClearSelection();
                     }
 
                     // Cancel the connectivity check task as installation is complete
