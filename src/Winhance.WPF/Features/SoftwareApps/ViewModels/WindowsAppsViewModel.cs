@@ -699,8 +699,8 @@ namespace Winhance.WPF.Features.SoftwareApps.ViewModels
             await LoadItemsAsync();
             await CheckInstallationStatusAsync();
 
-            // Set Select All to true by default when view loads
-            IsAllSelected = true;
+            // Set Select All to false by default when view loads
+            IsAllSelected = false;
 
             // Mark as initialized after loading is complete
             IsInitialized = true;
@@ -720,8 +720,8 @@ namespace Winhance.WPF.Features.SoftwareApps.ViewModels
             await LoadItemsAsync();
             await CheckInstallationStatusAsync();
 
-            // Set Select All to true by default when view loads
-            IsAllSelected = true;
+            // Set Select All to false by default when view loads
+            IsAllSelected = false;
             bool isInternetConnected =
                 await _packageManager.SystemServices.IsInternetConnectedAsync(true);
             if (!isInternetConnected)

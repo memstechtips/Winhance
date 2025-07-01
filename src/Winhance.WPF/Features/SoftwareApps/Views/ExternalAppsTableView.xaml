@@ -16,120 +16,112 @@
         <StackPanel Margin="10">
 
             <!-- Combined Table View for All Items -->
-            <ListView x:Name="AppsListView" 
+            <DataGrid x:Name="AppsDataGrid" 
                       ItemsSource="{Binding AllItemsView}" 
-                      Style="{DynamicResource ThemedListView}" 
-                      ItemContainerStyle="{DynamicResource ThemedListViewItem}" 
+                      Style="{StaticResource ThemedDataGrid}"
                       Margin="10,0,10,10"
                       Width="Auto"
-                      behaviors:GridViewColumnResizeBehavior.Enabled="True" 
-                      behaviors:GridViewColumnResizeBehavior.Stretch="True"
-                      behaviors:GridViewColumnResizeBehavior.StretchColumnIndex="-1"
                       HorizontalAlignment="Stretch" 
                       HorizontalContentAlignment="Stretch" 
-                      ScrollViewer.HorizontalScrollBarVisibility="Hidden"
+                      ScrollViewer.HorizontalScrollBarVisibility="Disabled"
                       ScrollViewer.VerticalScrollBarVisibility="Auto"
                       ScrollViewer.CanContentScroll="True"
                       VirtualizingPanel.IsVirtualizing="True"
-                      VirtualizingPanel.VirtualizationMode="Recycling">
-                <ListView.Template>
-                    <ControlTemplate TargetType="{x:Type ListView}">
-                        <Border Background="{TemplateBinding Background}" BorderBrush="{TemplateBinding BorderBrush}" BorderThickness="{TemplateBinding BorderThickness}">
-                            <ScrollViewer Padding="{TemplateBinding Padding}" Style="{DynamicResource {x:Static GridView.GridViewScrollViewerStyleKey}}" HorizontalScrollBarVisibility="Disabled">
-                                <ItemsPresenter SnapsToDevicePixels="{TemplateBinding SnapsToDevicePixels}"/>
-                            </ScrollViewer>
-                        </Border>
-                    </ControlTemplate>
-                </ListView.Template>
-                <ListView.ItemsPanel>
-                    <ItemsPanelTemplate>
-                        <VirtualizingStackPanel />
-                    </ItemsPanelTemplate>
-                </ListView.ItemsPanel>
-                <ListView.View>
-                    <GridView x:Name="MainGridView" 
-                              AllowsColumnReorder="False">
-                        <!-- Force column stretching to use all available width -->
-                        <GridView.ColumnHeaderContainerStyle>
-                            <Style TargetType="{x:Type GridViewColumnHeader}" BasedOn="{StaticResource ThemedGridViewColumnHeader}">
-                                <Setter Property="HorizontalContentAlignment" Value="Stretch" />
+                      VirtualizingPanel.VirtualizationMode="Recycling"
+                      VirtualizingPanel.IsContainerVirtualizable="True"
+                      EnableRowVirtualization="True"
+                      EnableColumnVirtualization="False"
+                      AutoGenerateColumns="False"
+                      CanUserAddRows="False"
+                      CanUserDeleteRows="False"
+                      CanUserReorderColumns="False"
+                      CanUserResizeRows="False"
+                      HeadersVisibility="Column"
+                      GridLinesVisibility="None"
+                      SelectionMode="Extended"
+                      SelectionUnit="FullRow">
+                
+                <DataGrid.Columns>
+                    <!-- Select All Column -->
+                    <DataGridTemplateColumn Width="40" CanUserResize="False" CanUserSort="False">
+                        <DataGridTemplateColumn.HeaderStyle>
+                            <Style TargetType="DataGridColumnHeader" BasedOn="{StaticResource FirstColumnHeaderDataGrid}">
+                                <EventSetter Event="Click" Handler="DataGridColumnHeader_Click"/>
                             </Style>
-                        </GridView.ColumnHeaderContainerStyle>
-                        <!-- Set proportional widths for columns to fill available container space -->
-                        <!-- Select All Column -->
-                        <GridViewColumn Width="40"><!-- Keep fixed width for checkbox column -->
-                            <GridViewColumnHeader Style="{StaticResource FirstColumnHeader}">
-                                <CheckBox Style="{StaticResource CustomCheckBox}" IsChecked="{Binding IsAllSelected}" VerticalAlignment="Center"/>
-                            </GridViewColumnHeader>
-                            <GridViewColumn.CellTemplate>
-                                <DataTemplate>
-                                    <CheckBox Style="{StaticResource CustomCheckBox}" IsChecked="{Binding IsSelected}" VerticalAlignment="Center"/>
-                                </DataTemplate>
-                            </GridViewColumn.CellTemplate>
-                        </GridViewColumn>
+                        </DataGridTemplateColumn.HeaderStyle>
+                        <DataGridTemplateColumn.HeaderTemplate>
+                            <DataTemplate>
+                                <CheckBox Style="{StaticResource CustomCheckBox}" IsChecked="{Binding DataContext.IsAllSelected, RelativeSource={RelativeSource AncestorType=UserControl}}" VerticalAlignment="Center" HorizontalAlignment="Center"/>
+                            </DataTemplate>
+                        </DataGridTemplateColumn.HeaderTemplate>
+                        <DataGridTemplateColumn.CellTemplate>
+                            <DataTemplate>
+                                <CheckBox Style="{StaticResource CustomCheckBox}" IsChecked="{Binding IsSelected}" VerticalAlignment="Center" HorizontalAlignment="Center"/>
+                            </DataTemplate>
+                        </DataGridTemplateColumn.CellTemplate>
+                    </DataGridTemplateColumn>
 
-                        <!-- Name Column -->
-                        <GridViewColumn Width="500"><!-- Increased width substantially to fill more space -->
-                            <GridViewColumnHeader Style="{StaticResource ThemedGridViewColumnHeader}" Tag="Name" Content="Name">
-                                <GridViewColumnHeader.InputBindings>
-                                    <MouseBinding MouseAction="LeftClick" Command="{Binding SortByCommand}" CommandParameter="Name"/>
-                                </GridViewColumnHeader.InputBindings>
-                            </GridViewColumnHeader>
-                            <GridViewColumn.CellTemplate>
-                                <DataTemplate>
-                                    <TextBlock Text="{Binding Name}" FontSize="18">
-                                        <TextBlock.ToolTip>
-                                            <ToolTip Content="{Binding Description}"/>
-                                        </TextBlock.ToolTip>
-                                    </TextBlock>
-                                </DataTemplate>
-                            </GridViewColumn.CellTemplate>
-                        </GridViewColumn>
+                    <!-- Name Column -->
+                    <DataGridTemplateColumn Header="Name" Width="*" CanUserResize="True" SortMemberPath="Name">
+                        <DataGridTemplateColumn.HeaderStyle>
+                            <Style TargetType="DataGridColumnHeader" BasedOn="{StaticResource ThemedDataGridColumnHeader}">
+                                <EventSetter Event="Click" Handler="DataGridColumnHeader_Click"/>
+                            </Style>
+                        </DataGridTemplateColumn.HeaderStyle>
+                        <DataGridTemplateColumn.CellTemplate>
+                            <DataTemplate>
+                                <TextBlock Text="{Binding Name}" FontSize="18" Margin="5,2">
+                                    <TextBlock.ToolTip>
+                                        <ToolTip Content="{Binding Description}"/>
+                                    </TextBlock.ToolTip>
+                                </TextBlock>
+                            </DataTemplate>
+                        </DataGridTemplateColumn.CellTemplate>
+                    </DataGridTemplateColumn>
 
-                        <!-- Package ID Column -->
-                        <GridViewColumn Width="180"><!-- Slightly increased width -->
-                            <GridViewColumnHeader Style="{StaticResource ThemedGridViewColumnHeader}" Tag="PackageName" Content="Package ID">
-                                <GridViewColumnHeader.InputBindings>
-                                    <MouseBinding MouseAction="LeftClick" Command="{Binding SortByCommand}" CommandParameter="PackageName"/>
-                                </GridViewColumnHeader.InputBindings>
-                            </GridViewColumnHeader>
-                            <GridViewColumn.CellTemplate>
-                                <DataTemplate>
-                                    <TextBlock Text="{Binding PackageName}"/>
-                                </DataTemplate>
-                            </GridViewColumn.CellTemplate>
-                        </GridViewColumn>
+                    <!-- Package ID Column -->
+                    <DataGridTemplateColumn Header="Package ID" Width="350" CanUserResize="True" SortMemberPath="PackageName">
+                        <DataGridTemplateColumn.HeaderStyle>
+                            <Style TargetType="DataGridColumnHeader" BasedOn="{StaticResource ThemedDataGridColumnHeader}">
+                                <EventSetter Event="Click" Handler="DataGridColumnHeader_Click"/>
+                            </Style>
+                        </DataGridTemplateColumn.HeaderStyle>
+                        <DataGridTemplateColumn.CellTemplate>
+                            <DataTemplate>
+                                <TextBlock Text="{Binding PackageName}" Margin="5,2"/>
+                            </DataTemplate>
+                        </DataGridTemplateColumn.CellTemplate>
+                    </DataGridTemplateColumn>
 
-                        <!-- Category Column -->
-                        <GridViewColumn Width="150"><!-- Slightly increased width -->
-                            <GridViewColumnHeader Style="{StaticResource ThemedGridViewColumnHeader}" Tag="Category" Content="Category">
-                                <GridViewColumnHeader.InputBindings>
-                                    <MouseBinding MouseAction="LeftClick" Command="{Binding SortByCommand}" CommandParameter="Category"/>
-                                </GridViewColumnHeader.InputBindings>
-                            </GridViewColumnHeader>
-                            <GridViewColumn.CellTemplate>
-                                <DataTemplate>
-                                    <TextBlock Text="{Binding Category}"/>
-                                </DataTemplate>
-                            </GridViewColumn.CellTemplate>
-                        </GridViewColumn>
+                    <!-- Category Column -->
+                    <DataGridTemplateColumn Header="Category" Width="250" CanUserResize="True" SortMemberPath="Category">
+                        <DataGridTemplateColumn.HeaderStyle>
+                            <Style TargetType="DataGridColumnHeader" BasedOn="{StaticResource ThemedDataGridColumnHeader}">
+                                <EventSetter Event="Click" Handler="DataGridColumnHeader_Click"/>
+                            </Style>
+                        </DataGridTemplateColumn.HeaderStyle>
+                        <DataGridTemplateColumn.CellTemplate>
+                            <DataTemplate>
+                                <TextBlock Text="{Binding Category}" Margin="5,2"/>
+                            </DataTemplate>
+                        </DataGridTemplateColumn.CellTemplate>
+                    </DataGridTemplateColumn>
 
-                        <!-- Source Column -->
-                        <GridViewColumn Width="150"><!-- Slightly increased width -->
-                            <GridViewColumnHeader Style="{StaticResource LastColumnHeader}" Tag="Source" Content="Source">
-                                <GridViewColumnHeader.InputBindings>
-                                    <MouseBinding MouseAction="LeftClick" Command="{Binding SortByCommand}" CommandParameter="Source"/>
-                                </GridViewColumnHeader.InputBindings>
-                            </GridViewColumnHeader>
-                            <GridViewColumn.CellTemplate>
-                                <DataTemplate>
-                                    <TextBlock Text="winget/msstore"/>
-                                </DataTemplate>
-                            </GridViewColumn.CellTemplate>
-                        </GridViewColumn>
-                    </GridView>
-                </ListView.View>
-            </ListView>
+                    <!-- Source Column -->
+                    <DataGridTemplateColumn Header="Source" Width="160" CanUserResize="True" SortMemberPath="Source">
+                        <DataGridTemplateColumn.HeaderStyle>
+                            <Style TargetType="DataGridColumnHeader" BasedOn="{StaticResource LastColumnHeaderDataGrid}">
+                                <EventSetter Event="Click" Handler="DataGridColumnHeader_Click"/>
+                            </Style>
+                        </DataGridTemplateColumn.HeaderStyle>
+                        <DataGridTemplateColumn.CellTemplate>
+                            <DataTemplate>
+                                <TextBlock Text="winget/msstore" Margin="5,2"/>
+                            </DataTemplate>
+                        </DataGridTemplateColumn.CellTemplate>
+                    </DataGridTemplateColumn>
+                </DataGrid.Columns>
+            </DataGrid>
         </StackPanel>
     </controls:ResponsiveScrollViewer>
 </UserControl>

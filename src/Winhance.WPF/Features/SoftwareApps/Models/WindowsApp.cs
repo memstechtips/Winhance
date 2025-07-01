@@ -155,7 +155,7 @@ namespace Winhance.WPF.Features.SoftwareApps.Models
                 SubPackages = appInfo.SubPackages,
                 RegistrySettings = appInfo.RegistrySettings,
                 IsSystemProtected = appInfo.IsSystemProtected,
-                IsSelected = true,
+                IsSelected = false,
                 CanBeReinstalled = appInfo.CanBeReinstalled,
                 AppType = appType,
             };
@@ -187,7 +187,7 @@ namespace Winhance.WPF.Features.SoftwareApps.Models
                 RegistrySettings = capabilityInfo.RegistrySettings,
                 IsSystemProtected = capabilityInfo.IsSystemProtected,
                 CanBeReinstalled = capabilityInfo.CanBeReenabled,
-                IsSelected = true,
+                IsSelected = false,
                 AppType = WindowsAppType.Capability,
             };
 
@@ -212,7 +212,7 @@ namespace Winhance.WPF.Features.SoftwareApps.Models
                 RegistrySettings = featureInfo.RegistrySettings,
                 IsSystemProtected = featureInfo.IsSystemProtected,
                 CanBeReinstalled = featureInfo.CanBeReenabled,
-                IsSelected = true,
+                IsSelected = false,
                 AppType = WindowsAppType.OptionalFeature,
             };
 

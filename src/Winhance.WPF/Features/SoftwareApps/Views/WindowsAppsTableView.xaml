@@ -16,138 +16,130 @@
         <StackPanel Margin="10">
 
             <!-- Combined Table View for All Items -->
-            <ListView x:Name="AppsListView" 
+            <DataGrid x:Name="AppsDataGrid" 
                       ItemsSource="{Binding AllItemsView}" 
-                      Style="{DynamicResource ThemedListView}" 
-                      ItemContainerStyle="{DynamicResource ThemedListViewItem}" 
+                      Style="{StaticResource ThemedDataGrid}"
                       Margin="10,0,10,10"
                       Width="Auto"
-                      behaviors:GridViewColumnResizeBehavior.Enabled="True" 
-                      behaviors:GridViewColumnResizeBehavior.Stretch="True"
-                      behaviors:GridViewColumnResizeBehavior.StretchColumnIndex="-1"
                       HorizontalAlignment="Stretch" 
                       HorizontalContentAlignment="Stretch" 
-                      ScrollViewer.HorizontalScrollBarVisibility="Hidden"
+                      ScrollViewer.HorizontalScrollBarVisibility="Disabled"
                       ScrollViewer.VerticalScrollBarVisibility="Auto"
                       ScrollViewer.CanContentScroll="True"
                       VirtualizingPanel.IsVirtualizing="True"
-                      VirtualizingPanel.VirtualizationMode="Recycling">
-                <ListView.Template>
-                    <ControlTemplate TargetType="{x:Type ListView}">
-                        <Border Background="{TemplateBinding Background}" BorderBrush="{TemplateBinding BorderBrush}" BorderThickness="{TemplateBinding BorderThickness}">
-                            <ScrollViewer x:Name="_scrollViewer" Padding="{TemplateBinding Padding}" Style="{DynamicResource {x:Static GridView.GridViewScrollViewerStyleKey}}" HorizontalScrollBarVisibility="Disabled">
-                                <ItemsPresenter SnapsToDevicePixels="{TemplateBinding SnapsToDevicePixels}"/>
-                            </ScrollViewer>
-                        </Border>
-                    </ControlTemplate>
-                </ListView.Template>
-                <ListView.ItemsPanel>
-                    <ItemsPanelTemplate>
-                        <VirtualizingStackPanel />
-                    </ItemsPanelTemplate>
-                </ListView.ItemsPanel>
-                <ListView.View>
-                    <GridView x:Name="MainGridView" 
-                              AllowsColumnReorder="False">
-                        <!-- Force column stretching to use all available width -->
-                        <GridView.ColumnHeaderContainerStyle>
-                            <Style TargetType="{x:Type GridViewColumnHeader}" BasedOn="{StaticResource ThemedGridViewColumnHeader}">
-                                <Setter Property="HorizontalContentAlignment" Value="Stretch" />
-                                <Setter Property="HorizontalAlignment" Value="Stretch" />
+                      VirtualizingPanel.VirtualizationMode="Recycling"
+                      VirtualizingPanel.IsContainerVirtualizable="True"
+                      EnableRowVirtualization="True"
+                      EnableColumnVirtualization="False"
+                      AutoGenerateColumns="False"
+                      CanUserAddRows="False"
+                      CanUserDeleteRows="False"
+                      CanUserReorderColumns="False"
+                      CanUserResizeRows="False"
+                      HeadersVisibility="Column"
+                      GridLinesVisibility="None"
+                      SelectionMode="Extended"
+                      SelectionUnit="FullRow">
+                
+                <DataGrid.Columns>
+                    <!-- Select All Column -->
+                    <DataGridTemplateColumn Width="40" CanUserResize="False" CanUserSort="False">
+                        <DataGridTemplateColumn.HeaderStyle>
+                            <Style TargetType="DataGridColumnHeader" BasedOn="{StaticResource FirstColumnHeaderDataGrid}">
+                                <EventSetter Event="Click" Handler="DataGridColumnHeader_Click"/>
                             </Style>
-                        </GridView.ColumnHeaderContainerStyle>
-                        <!-- Select All Column -->
-                        <GridViewColumn Width="40"><!-- Keep fixed width for checkbox column -->
-                            <GridViewColumnHeader Style="{StaticResource FirstColumnHeader}">
-                                <CheckBox Style="{StaticResource CustomCheckBox}" IsChecked="{Binding IsAllSelected}" VerticalAlignment="Center"/>
-                            </GridViewColumnHeader>
-                            <GridViewColumn.CellTemplate>
-                                <DataTemplate>
-                                    <CheckBox Style="{StaticResource CustomCheckBox}" IsChecked="{Binding IsSelected}" VerticalAlignment="Center"/>
-                                </DataTemplate>
-                            </GridViewColumn.CellTemplate>
-                        </GridViewColumn>
+                        </DataGridTemplateColumn.HeaderStyle>
+                        <DataGridTemplateColumn.HeaderTemplate>
+                            <DataTemplate>
+                                <CheckBox Style="{StaticResource CustomCheckBox}" IsChecked="{Binding DataContext.IsAllSelected, RelativeSource={RelativeSource AncestorType=UserControl}}" VerticalAlignment="Center" HorizontalAlignment="Center"/>
+                            </DataTemplate>
+                        </DataGridTemplateColumn.HeaderTemplate>
+                        <DataGridTemplateColumn.CellTemplate>
+                            <DataTemplate>
+                                <CheckBox Style="{StaticResource CustomCheckBox}" IsChecked="{Binding IsSelected}" VerticalAlignment="Center" HorizontalAlignment="Center"/>
+                            </DataTemplate>
+                        </DataGridTemplateColumn.CellTemplate>
+                    </DataGridTemplateColumn>
 
-                        <!-- Name Column -->
-                        <GridViewColumn Width="500"><!-- Increased width substantially to fill more space -->
-                            <GridViewColumnHeader Style="{StaticResource ThemedGridViewColumnHeader}" Tag="Name" Content="Name">
-                                <GridViewColumnHeader.InputBindings>
-                                    <MouseBinding MouseAction="LeftClick" Command="{Binding SortByCommand}" CommandParameter="Name"/>
-                                </GridViewColumnHeader.InputBindings>
-                            </GridViewColumnHeader>
-                            <GridViewColumn.CellTemplate>
-                                <DataTemplate>
-                                    <TextBlock Text="{Binding Name}" FontSize="18">
-                                        <TextBlock.ToolTip>
-                                            <ToolTip Content="{Binding Description}"/>
-                                        </TextBlock.ToolTip>
-                                    </TextBlock>
-                                </DataTemplate>
-                            </GridViewColumn.CellTemplate>
-                        </GridViewColumn>
+                    <!-- Name Column -->
+                    <DataGridTemplateColumn Header="Name" Width="*" CanUserResize="True" SortMemberPath="Name">
+                        <DataGridTemplateColumn.HeaderStyle>
+                            <Style TargetType="DataGridColumnHeader" BasedOn="{StaticResource ThemedDataGridColumnHeader}">
+                                <EventSetter Event="Click" Handler="DataGridColumnHeader_Click"/>
+                            </Style>
+                        </DataGridTemplateColumn.HeaderStyle>
+                        <DataGridTemplateColumn.CellTemplate>
+                            <DataTemplate>
+                                <TextBlock Text="{Binding Name}" FontSize="18" Margin="5,2">
+                                    <TextBlock.ToolTip>
+                                        <ToolTip Content="{Binding Description}"/>
+                                    </TextBlock.ToolTip>
+                                </TextBlock>
+                            </DataTemplate>
+                        </DataGridTemplateColumn.CellTemplate>
+                    </DataGridTemplateColumn>
 
-                        <!-- Type Column -->
-                        <GridViewColumn Width="150"><!-- Slightly increased width -->
-                            <GridViewColumnHeader Style="{StaticResource ThemedGridViewColumnHeader}" Tag="ItemType" Content="Type">
-                                <GridViewColumnHeader.InputBindings>
-                                    <MouseBinding MouseAction="LeftClick" Command="{Binding SortByCommand}" CommandParameter="ItemType"/>
-                                </GridViewColumnHeader.InputBindings>
-                            </GridViewColumnHeader>
-                            <GridViewColumn.CellTemplate>
-                                <DataTemplate>
-                                    <TextBlock Text="{Binding ItemType}"/>
-                                </DataTemplate>
-                            </GridViewColumn.CellTemplate>
-                        </GridViewColumn>
+                    <!-- Type Column -->
+                    <DataGridTemplateColumn Header="Type" Width="220" CanUserResize="True" SortMemberPath="ItemType">
+                        <DataGridTemplateColumn.HeaderStyle>
+                            <Style TargetType="DataGridColumnHeader" BasedOn="{StaticResource ThemedDataGridColumnHeader}">
+                                <EventSetter Event="Click" Handler="DataGridColumnHeader_Click"/>
+                            </Style>
+                        </DataGridTemplateColumn.HeaderStyle>
+                        <DataGridTemplateColumn.CellTemplate>
+                            <DataTemplate>
+                                <TextBlock Text="{Binding ItemType}" Margin="5,2"/>
+                            </DataTemplate>
+                        </DataGridTemplateColumn.CellTemplate>
+                    </DataGridTemplateColumn>
 
-                        <!-- Status Column -->
-                        <GridViewColumn Width="150"><!-- Slightly increased width -->
-                            <GridViewColumnHeader Style="{StaticResource ThemedGridViewColumnHeader}" Tag="IsInstalled" Content="Status">
-                                <GridViewColumnHeader.InputBindings>
-                                    <MouseBinding MouseAction="LeftClick" Command="{Binding SortByCommand}" CommandParameter="IsInstalled"/>
-                                </GridViewColumnHeader.InputBindings>
-                            </GridViewColumnHeader>
-                            <GridViewColumn.CellTemplate>
-                                <DataTemplate>
-                                    <StackPanel Orientation="Horizontal">
-                                        <Ellipse Style="{StaticResource AppStatusIndicatorStyle}"
-                                                 Fill="{Binding IsInstalled, Converter={StaticResource InstalledStatusToColorConverter}}">
-                                            <Ellipse.ToolTip>
-                                                <ToolTip Content="{Binding IsInstalled, Converter={StaticResource InstalledStatusToTextConverter}}"/>
-                                            </Ellipse.ToolTip>
-                                        </Ellipse>
-                                        <TextBlock Text="{Binding IsInstalled, Converter={StaticResource InstalledStatusToTextConverter}}" Margin="5,0,0,0" />
-                                    </StackPanel>
-                                </DataTemplate>
-                            </GridViewColumn.CellTemplate>
-                        </GridViewColumn>
+                    <!-- Status Column -->
+                    <DataGridTemplateColumn Header="Status" Width="160" CanUserResize="True" SortMemberPath="IsInstalled">
+                        <DataGridTemplateColumn.HeaderStyle>
+                            <Style TargetType="DataGridColumnHeader" BasedOn="{StaticResource ThemedDataGridColumnHeader}">
+                                <EventSetter Event="Click" Handler="DataGridColumnHeader_Click"/>
+                            </Style>
+                        </DataGridTemplateColumn.HeaderStyle>
+                        <DataGridTemplateColumn.CellTemplate>
+                            <DataTemplate>
+                                <StackPanel Orientation="Horizontal" Margin="5,2">
+                                    <Ellipse Style="{StaticResource AppStatusIndicatorStyle}"
+                                             Fill="{Binding IsInstalled, Converter={StaticResource InstalledStatusToColorConverter}}">
+                                        <Ellipse.ToolTip>
+                                            <ToolTip Content="{Binding IsInstalled, Converter={StaticResource InstalledStatusToTextConverter}}"/>
+                                        </Ellipse.ToolTip>
+                                    </Ellipse>
+                                    <TextBlock Text="{Binding IsInstalled, Converter={StaticResource InstalledStatusToTextConverter}}" Margin="5,0,0,0" />
+                                </StackPanel>
+                            </DataTemplate>
+                        </DataGridTemplateColumn.CellTemplate>
+                    </DataGridTemplateColumn>
 
-                        <!-- Installable Column -->
-                        <GridViewColumn Width="180"><!-- Further increased width for 'Installable' header -->
-                            <GridViewColumnHeader Style="{StaticResource LastColumnHeader}" Tag="CanBeReinstalled" Content="Installable">
-                                <GridViewColumnHeader.InputBindings>
-                                    <MouseBinding MouseAction="LeftClick" Command="{Binding SortByCommand}" CommandParameter="CanBeReinstalled"/>
-                                </GridViewColumnHeader.InputBindings>
-                            </GridViewColumnHeader>
-                            <GridViewColumn.CellTemplate>
-                                <DataTemplate>
-                                    <StackPanel Orientation="Horizontal">
-                                        <materialDesign:PackIcon
-                                            Style="{StaticResource ReinstallabilityIndicatorStyle}"
-                                            Kind="{Binding CanBeReinstalled, Converter={StaticResource BooleanToReinstallableIconConverter}}"
-                                            Foreground="{Binding CanBeReinstalled, Converter={StaticResource StatusToColorConverter}}">
-                                            <materialDesign:PackIcon.ToolTip>
-                                                <ToolTip Content="{Binding CanBeReinstalled, Converter={StaticResource BooleanToReinstallableTextConverter}}"/>
-                                            </materialDesign:PackIcon.ToolTip>
-                                        </materialDesign:PackIcon>
-                                        <TextBlock Text="{Binding CanBeReinstalled, Converter={StaticResource BooleanToReinstallableTextConverter}}" Margin="5,0,0,0" />
-                                    </StackPanel>
-                                </DataTemplate>
-                            </GridViewColumn.CellTemplate>
-                        </GridViewColumn>
-                    </GridView>
-                </ListView.View>
-            </ListView>
+                    <!-- Installable Column -->
+                    <DataGridTemplateColumn Header="Installable" Width="180" CanUserResize="True" SortMemberPath="CanBeReinstalled">
+                        <DataGridTemplateColumn.HeaderStyle>
+                            <Style TargetType="DataGridColumnHeader" BasedOn="{StaticResource LastColumnHeaderDataGrid}">
+                                <EventSetter Event="Click" Handler="DataGridColumnHeader_Click"/>
+                            </Style>
+                        </DataGridTemplateColumn.HeaderStyle>
+                        <DataGridTemplateColumn.CellTemplate>
+                            <DataTemplate>
+                                <StackPanel Orientation="Horizontal" Margin="5,2">
+                                    <materialDesign:PackIcon
+                                        Style="{StaticResource ReinstallabilityIndicatorStyle}"
+                                        Kind="{Binding CanBeReinstalled, Converter={StaticResource BooleanToReinstallableIconConverter}}"
+                                        Foreground="{Binding CanBeReinstalled, Converter={StaticResource StatusToColorConverter}}">
+                                        <materialDesign:PackIcon.ToolTip>
+                                            <ToolTip Content="{Binding CanBeReinstalled, Converter={StaticResource BooleanToReinstallableTextConverter}}"/>
+                                        </materialDesign:PackIcon.ToolTip>
+                                    </materialDesign:PackIcon>
+                                    <TextBlock Text="{Binding CanBeReinstalled, Converter={StaticResource BooleanToReinstallableTextConverter}}" Margin="5,0,0,0" />
+                                </StackPanel>
+                            </DataTemplate>
+                        </DataGridTemplateColumn.CellTemplate>
+                    </DataGridTemplateColumn>
+                </DataGrid.Columns>
+            </DataGrid>
         </StackPanel>
     </controls:ResponsiveScrollViewer>
 </UserControl>
