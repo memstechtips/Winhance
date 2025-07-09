@@ -38,6 +38,7 @@
                       CanUserResizeRows="False"
                       HeadersVisibility="Column"
                       GridLinesVisibility="None"
+                      SelectionChanged="AppsDataGrid_SelectionChanged"
                       SelectionMode="Extended"
                       SelectionUnit="FullRow">
                 
@@ -51,12 +52,12 @@
                         </DataGridTemplateColumn.HeaderStyle>
                         <DataGridTemplateColumn.HeaderTemplate>
                             <DataTemplate>
-                                <CheckBox Style="{StaticResource CustomCheckBox}" IsChecked="{Binding DataContext.IsAllSelected, RelativeSource={RelativeSource AncestorType=UserControl}}" VerticalAlignment="Center" HorizontalAlignment="Center"/>
+                                <CheckBox Style="{StaticResource CustomCheckBox}" IsChecked="{Binding DataContext.IsAllSelected, RelativeSource={RelativeSource AncestorType=UserControl}, Mode=TwoWay}" VerticalAlignment="Center" HorizontalAlignment="Center"/>
                             </DataTemplate>
                         </DataGridTemplateColumn.HeaderTemplate>
                         <DataGridTemplateColumn.CellTemplate>
                             <DataTemplate>
-                                <CheckBox Style="{StaticResource CustomCheckBox}" IsChecked="{Binding IsSelected}" VerticalAlignment="Center" HorizontalAlignment="Center"/>
+                                <CheckBox Style="{StaticResource CustomCheckBox}" IsChecked="{Binding IsSelected, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}" VerticalAlignment="Center" HorizontalAlignment="Center" Checked="CheckBox_SelectionChanged" Unchecked="CheckBox_SelectionChanged"/>
                             </DataTemplate>
                         </DataGridTemplateColumn.CellTemplate>
                     </DataGridTemplateColumn>

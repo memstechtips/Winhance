@@ -1,15 +1,15 @@
 using System;
-using System.Threading.Tasks;
-using System.Windows;
 using System.ComponentModel;
 using System.Linq;
+using System.Threading.Tasks;
+using System.Windows;
 using CommunityToolkit.Mvvm.ComponentModel;
 using CommunityToolkit.Mvvm.Input;
 using Microsoft.Extensions.DependencyInjection;
 using Winhance.Core.Features.Common.Interfaces;
 using Winhance.Core.Features.SoftwareApps.Interfaces;
-using Winhance.WPF.Features.Common.ViewModels;
 using Winhance.WPF.Features.Common.Services;
+using Winhance.WPF.Features.Common.ViewModels;
 using Winhance.WPF.Features.SoftwareApps.Views;
 
 namespace Winhance.WPF.Features.SoftwareApps.ViewModels
@@ -21,6 +21,27 @@ namespace Winhance.WPF.Features.SoftwareApps.ViewModels
     {
         private readonly IServiceProvider _serviceProvider;
         private readonly IPackageManager _packageManager;
+        private readonly AppViewModeManager _viewModeManager;
+        private readonly ITaskProgressService _progressService;
+
+        /// <summary>
+        /// Gets whether the view is in table view mode
+        /// </summary>
+        public bool IsTableViewMode
+        {
+            get => _viewModeManager.IsTableViewMode;
+            set => _viewModeManager.IsTableViewMode = value;
+        }
+
+        /// <summary>
+        /// Gets the visibility for the grid view
+        /// </summary>
+        public Visibility GridViewVisibility => _viewModeManager.GridViewVisibility;
+
+        /// <summary>
+        /// Gets the visibility for the table view
+        /// </summary>
+        public Visibility TableViewVisibility => _viewModeManager.TableViewVisibility;
 
         [ObservableProperty]
         private string _statusText =
@@ -31,47 +52,39 @@ namespace Winhance.WPF.Features.SoftwareApps.ViewModels
 
         [ObservableProperty]
         private ExternalAppsViewModel _externalAppsViewModel;
-        
+
         [ObservableProperty]
         private string _searchText = string.Empty;
-        
+
         [ObservableProperty]
         private bool _isWindowsAppsTabSelected = true;
-        
+
         [ObservableProperty]
         private bool _isExternalAppsTabSelected = false;
-        
-        [ObservableProperty]
-        private bool _isWindowsAppsTableViewMode = false;
-        
-        [ObservableProperty]
-        private bool _isExternalAppsTableViewMode = false;
-        
+
         [ObservableProperty]
         private Visibility _windowsAppsContentVisibility = Visibility.Visible;
-        
+
         [ObservableProperty]
         private Visibility _externalAppsContentVisibility = Visibility.Collapsed;
-        
+
         [ObservableProperty]
         private bool _canInstallItems = false;
-        
+
         [ObservableProperty]
         private bool _canRemoveItems = false;
-        
+
         [ObservableProperty]
         private string _removeButtonText = "Remove Selected Items";
-        
+
         [ObservableProperty]
         private object _currentHelpContent = null;
-        
+
         [ObservableProperty]
         private FrameworkElement _helpButtonElement = null;
-        
+
         [ObservableProperty]
         private bool _isHelpVisible = false;
-        
-        // Removed duplicate ToggleViewMode method
 
         /// <summary>
         /// Initializes a new instance of the <see cref="SoftwareAppsViewModel"/> class.
@@ -83,32 +96,34 @@ namespace Winhance.WPF.Features.SoftwareApps.ViewModels
             ITaskProgressService progressService,
             IPackageManager packageManager,
             IServiceProvider serviceProvider
-        )
-            : base(progressService)
+        ) : base(progressService)
         {
-            _packageManager =
-                packageManager ?? throw new ArgumentNullException(nameof(packageManager));
-            _serviceProvider =
-                serviceProvider ?? throw new ArgumentNullException(nameof(serviceProvider));
+            _progressService = progressService;
+            _packageManager = packageManager ?? throw new ArgumentNullException(nameof(packageManager));
+            _serviceProvider = serviceProvider ?? throw new ArgumentNullException(nameof(serviceProvider));
+            _viewModeManager = new AppViewModeManager();
 
             // Resolve the dependencies via DI container
             WindowsAppsViewModel = _serviceProvider.GetRequiredService<WindowsAppsViewModel>();
             ExternalAppsViewModel = _serviceProvider.GetRequiredService<ExternalAppsViewModel>();
 
-            // Initialize parent view mode properties based on child view models
-            IsWindowsAppsTableViewMode = WindowsAppsViewModel.IsTableViewMode;
-            IsExternalAppsTableViewMode = ExternalAppsViewModel.IsTableViewMode;
-            
+            // Initialize view mode based on active tab's child view model
+            _viewModeManager.IsTableViewMode = IsWindowsAppsTabSelected
+                ? WindowsAppsViewModel.IsTableViewMode
+                : ExternalAppsViewModel.IsTableViewMode;
+
+            // Subscribe to view mode changes
+            _viewModeManager.ViewModeChanged += OnViewModeChanged;
+
             // Subscribe to property changes to handle search text routing and button states
             this.PropertyChanged += SoftwareAppsViewModel_PropertyChanged;
-            
+
             // Subscribe to property changes in child view models to update button states
             WindowsAppsViewModel.PropertyChanged += ChildViewModel_PropertyChanged;
             ExternalAppsViewModel.PropertyChanged += ChildViewModel_PropertyChanged;
-            
+
             // Initial update of UI states
             UpdateButtonStates();
-            UpdateChildViewModels();
         }
 
         /// <summary>
@@ -127,12 +142,20 @@ namespace Winhance.WPF.Features.SoftwareApps.ViewModels
                 {
                     await WindowsAppsViewModel.LoadAppsAndCheckInstallationStatusAsync();
                 }
+                
+                // Subscribe to selection change events
+                WindowsAppsViewModel.SelectedItemsChanged -= ChildViewModel_SelectedItemsChanged;
+                WindowsAppsViewModel.SelectedItemsChanged += ChildViewModel_SelectedItemsChanged;
 
                 // Initialize ExternalAppsViewModel if not already initialized
                 if (!ExternalAppsViewModel.IsInitialized)
                 {
                     await ExternalAppsViewModel.LoadAppsAndCheckInstallationStatusAsync();
                 }
+                
+                // Subscribe to selection change events
+                ExternalAppsViewModel.SelectedItemsChanged -= ChildViewModel_SelectedItemsChanged;
+                ExternalAppsViewModel.SelectedItemsChanged += ChildViewModel_SelectedItemsChanged;
 
                 StatusText =
                     "Manage Windows Apps, Capabilities & Features and Install External Software";
@@ -154,54 +177,73 @@ namespace Winhance.WPF.Features.SoftwareApps.ViewModels
         [RelayCommand]
         private void ToggleViewMode(object parameter)
         {
+            DebugLogger.Log(
+                $"[DEBUG] SoftwareAppsViewModel: ToggleViewMode called with parameter: {parameter}"
+            );
+
+            bool newViewMode;
             // If a parameter is provided, use it to set the view mode directly
             if (parameter != null)
             {
                 // Handle both bool and string parameters
                 if (parameter is bool tableViewMode)
                 {
-                    if (IsWindowsAppsTabSelected)
-                    {
-                        IsWindowsAppsTableViewMode = tableViewMode;
-                    }
-                    else
-                    {
-                        IsExternalAppsTableViewMode = tableViewMode;
-                    }
+                    newViewMode = tableViewMode;
                 }
-                else if (parameter is string stringParam)
+                else if (
+                    parameter is string stringParam
+                    && bool.TryParse(stringParam, out bool result)
+                )
                 {
-                    // Parse string parameter ("True" or "False")
-                    if (bool.TryParse(stringParam, out bool result))
-                    {
-                        if (IsWindowsAppsTabSelected)
-                        {
-                            IsWindowsAppsTableViewMode = result;
-                        }
-                        else
-                        {
-                            IsExternalAppsTableViewMode = result;
-                        }
-                    }
-                }
-            }
-            // Otherwise toggle the current mode
-            else
-            {
-                if (IsWindowsAppsTabSelected)
-                {
-                    IsWindowsAppsTableViewMode = !IsWindowsAppsTableViewMode;
+                    newViewMode = result;
                 }
                 else
                 {
-                    IsExternalAppsTableViewMode = !IsExternalAppsTableViewMode;
+                    // Default to current state if parameter can't be parsed
+                    newViewMode = _viewModeManager.IsTableViewMode;
                 }
             }
+            else
+            {
+                // Toggle the current mode if no parameter is provided
+                newViewMode = !_viewModeManager.IsTableViewMode;
+            }
+
+            DebugLogger.Log(
+                $"[DEBUG] SoftwareAppsViewModel: Setting table view mode to {newViewMode}"
+            );
+
+            // First update the view mode manager
+            _viewModeManager.IsTableViewMode = newViewMode;
             
-            // Apply changes to child view models
-            UpdateChildViewModels();
+            // Then update the active child view model
+            if (IsWindowsAppsTabSelected)
+            {
+                // Update Windows Apps view model and explicitly notify the change
+                WindowsAppsViewModel.IsTableViewMode = newViewMode;
+                
+                // Make sure content template selector gets notified of the change
+                OnPropertyChanged(nameof(WindowsAppsViewModel));
+                OnPropertyChanged(nameof(IsTableViewMode));
+            }
+            else
+            {
+                // Update External Apps view model and explicitly notify the change
+                ExternalAppsViewModel.IsTableViewMode = newViewMode;
+                
+                // Make sure content template selector gets notified of the change
+                OnPropertyChanged(nameof(ExternalAppsViewModel));
+                OnPropertyChanged(nameof(IsTableViewMode));
+            }
+
+            // Notify property changes for visibility properties
+            OnPropertyChanged(nameof(GridViewVisibility));
+            OnPropertyChanged(nameof(TableViewVisibility));
+            
+            // Force button state update after view mode synchronization
+            UpdateButtonStates();
         }
-        
+
         /// <summary>
         /// Called when the view is navigated to.
         /// </summary>
@@ -219,7 +261,7 @@ namespace Winhance.WPF.Features.SoftwareApps.ViewModels
                 // Log the error or handle it appropriately
             }
         }
-        
+
         /// <summary>
         /// Command to select a tab
         /// </summary>
@@ -228,7 +270,7 @@ namespace Winhance.WPF.Features.SoftwareApps.ViewModels
         public void SelectTab(object parameter)
         {
             bool isWindowsAppsTab = true;
-            
+
             // Handle both string and bool parameters
             if (parameter is string strParam)
             {
@@ -238,48 +280,60 @@ namespace Winhance.WPF.Features.SoftwareApps.ViewModels
             {
                 isWindowsAppsTab = boolParam;
             }
-            
+
+            DebugLogger.Log(
+                $"[DEBUG] SoftwareAppsViewModel: SelectTab called - WindowsApps: {isWindowsAppsTab}"
+            );
+
             // Update tab selection state
             IsWindowsAppsTabSelected = isWindowsAppsTab;
             IsExternalAppsTabSelected = !isWindowsAppsTab;
-            
+
             // Update content visibility
-            WindowsAppsContentVisibility = isWindowsAppsTab ? Visibility.Visible : Visibility.Collapsed;
-            ExternalAppsContentVisibility = isWindowsAppsTab ? Visibility.Collapsed : Visibility.Visible;
-            
+            WindowsAppsContentVisibility = isWindowsAppsTab
+                ? Visibility.Visible
+                : Visibility.Collapsed;
+            ExternalAppsContentVisibility = isWindowsAppsTab
+                ? Visibility.Collapsed
+                : Visibility.Visible;
+
             // Update the Remove button text based on the selected tab
             RemoveButtonText = isWindowsAppsTab ? "Remove Selected Items" : "Clear Selection";
-            
+
             // Apply current search text to the newly selected tab
             RouteSearchTextToActiveViewModel();
-            
+
+            // Update the parent view mode to match the newly selected tab's view model
+            _viewModeManager.IsTableViewMode = isWindowsAppsTab
+                ? WindowsAppsViewModel.IsTableViewMode
+                : ExternalAppsViewModel.IsTableViewMode;
+
             // Explicitly update button states based on the newly selected tab's view model
             UpdateButtonStates();
         }
-        
+
         /// <summary>
         /// Handles property changes to route search text to the appropriate view model
         /// </summary>
-        private void SoftwareAppsViewModel_PropertyChanged(object sender, PropertyChangedEventArgs e)
+        private void SoftwareAppsViewModel_PropertyChanged(
+            object sender,
+            PropertyChangedEventArgs e
+        )
         {
             // When search text changes, route it to the active view model
             if (e.PropertyName == nameof(SearchText))
             {
                 RouteSearchTextToActiveViewModel();
             }
-            else if (e.PropertyName == nameof(IsWindowsAppsTabSelected) || 
-                     e.PropertyName == nameof(IsExternalAppsTabSelected))
+            else if (
+                e.PropertyName == nameof(IsWindowsAppsTabSelected)
+                || e.PropertyName == nameof(IsExternalAppsTabSelected)
+            )
             {
                 UpdateButtonStates();
             }
-            else if (e.PropertyName == nameof(IsWindowsAppsTableViewMode) ||
-                     e.PropertyName == nameof(IsExternalAppsTableViewMode))
-            {
-                // Update child view models when table view mode changes
-                UpdateChildViewModels();
-            }
         }
-        
+
         /// <summary>
         /// Routes the current search text to the active view model
         /// </summary>
@@ -288,7 +342,7 @@ namespace Winhance.WPF.Features.SoftwareApps.ViewModels
             // Clear search text from both view models first to avoid stale search results
             WindowsAppsViewModel.SearchText = string.Empty;
             ExternalAppsViewModel.SearchText = string.Empty;
-            
+
             // Route search text to the active view model
             if (IsWindowsAppsTabSelected)
             {
@@ -300,61 +354,137 @@ namespace Winhance.WPF.Features.SoftwareApps.ViewModels
                 ExternalAppsViewModel.SearchText = SearchText;
             }
         }
-        
+
         /// <summary>
         /// Handles property changes in child view models to update button states
         /// </summary>
         private void ChildViewModel_PropertyChanged(object sender, PropertyChangedEventArgs e)
         {
+            DebugLogger.Log(
+                $"[DEBUG] SoftwareAppsViewModel: ChildViewModel_PropertyChanged - Property: {e.PropertyName}, Sender: {sender?.GetType().Name}"
+            );
+
             // Update button states when items are selected/deselected in child view models
-            if (e.PropertyName?.Contains("Selected") == true || e.PropertyName == nameof(WindowsAppsViewModel.HasSelectedItems) || e.PropertyName == nameof(ExternalAppsViewModel.HasSelectedItems))
+            if (
+                e.PropertyName?.Contains("Selected") == true
+                || e.PropertyName == nameof(WindowsAppsViewModel.HasSelectedItems)
+                || e.PropertyName == nameof(ExternalAppsViewModel.HasSelectedItems)
+            )
             {
+                DebugLogger.Log(
+                    $"[DEBUG] SoftwareAppsViewModel: Property {e.PropertyName} matches selection criteria, calling UpdateButtonStates"
+                );
                 UpdateButtonStates();
+                DebugLogger.Log(
+                    $"[DEBUG] SoftwareAppsViewModel: After UpdateButtonStates - CanInstallItems: {CanInstallItems}, CanRemoveItems: {CanRemoveItems}"
+                );
+            }
+            else
+            {
+                DebugLogger.Log(
+                    $"[DEBUG] SoftwareAppsViewModel: Property {e.PropertyName} does not match selection criteria, ignoring"
+                );
             }
         }
-        
+
         /// <summary>
         /// Updates the states of the Install and Remove buttons based on the active tab
         /// and selected items in the active view model
         /// </summary>
+        private bool _isUpdatingButtonStates = false;
+
         private void UpdateButtonStates()
         {
-            bool oldCanInstallItems = CanInstallItems;
-            bool oldCanRemoveItems = CanRemoveItems;
-            
-            if (IsWindowsAppsTabSelected)
+            // Guard against recursive calls
+            if (_isUpdatingButtonStates)
             {
-                // For Windows Apps tab, both Install and Remove buttons can be enabled
-                // Use the HasSelectedItems property we added to WindowsAppsViewModel
-                CanInstallItems = WindowsAppsViewModel.HasSelectedItems;
-                CanRemoveItems = WindowsAppsViewModel.HasSelectedItems;
-                RemoveButtonText = "Remove Selected Items";
+                DebugLogger.Log(
+                    $"[DEBUG] SoftwareAppsViewModel: UpdateButtonStates - Preventing recursive call"
+                );
+                return;
             }
-            else
+
+            try
             {
-                // For External Apps tab, both Install and Clear Selection buttons should be enabled if items are selected
-                // Use the HasSelectedItems property we added to ExternalAppsViewModel
-                CanInstallItems = ExternalAppsViewModel.HasSelectedItems;
-                CanRemoveItems = ExternalAppsViewModel.HasSelectedItems; // Enable the Clear Selection button when items are selected
-                RemoveButtonText = "Clear Selection";
+                // Set flag to prevent recursive calls
+                _isUpdatingButtonStates = true;
+
+                DebugLogger.Log($"[DEBUG] SoftwareAppsViewModel: UpdateButtonStates called");
+                DebugLogger.Log(
+                $"[DEBUG] SoftwareAppsViewModel: IsWindowsAppsTabSelected = {IsWindowsAppsTabSelected}, IsExternalAppsTabSelected = {IsExternalAppsTabSelected}"
+            );
+                bool oldCanInstallItems = CanInstallItems;
+                bool oldCanRemoveItems = CanRemoveItems;
+
+                if (IsWindowsAppsTabSelected)
+                {
+                    // For Windows Apps tab, both Install and Remove buttons can be enabled
+                    // Use the HasSelectedItems property we added to WindowsAppsViewModel
+                    DebugLogger.Log(
+                        $"[DEBUG] SoftwareAppsViewModel: Checking WindowsApps - IsTableViewMode: {WindowsAppsViewModel.IsTableViewMode}"
+                    );
+                    var hasSelected = WindowsAppsViewModel.HasSelectedItems;
+                    DebugLogger.Log(
+                        $"[DEBUG] SoftwareAppsViewModel: WindowsApps HasSelectedItems = {hasSelected}"
+                    );
+                    CanInstallItems = hasSelected;
+                    CanRemoveItems = hasSelected;
+                    RemoveButtonText = "Remove Selected Items";
+                }
+                else if (IsExternalAppsTabSelected)
+                {
+                    // For External Apps tab, both Install and Clear Selection buttons should be enabled if items are selected
+                    // Use the HasSelectedItems property we added to ExternalAppsViewModel
+                    DebugLogger.Log(
+                        $"[DEBUG] SoftwareAppsViewModel: Checking ExternalApps - IsTableViewMode: {ExternalAppsViewModel.IsTableViewMode}"
+                    );
+                    var hasSelected = ExternalAppsViewModel.HasSelectedItems;
+                    DebugLogger.Log(
+                        $"[DEBUG] SoftwareAppsViewModel: ExternalApps HasSelectedItems = {hasSelected}"
+                    );
+                    CanInstallItems = hasSelected;
+                    CanRemoveItems = hasSelected; // Enable the Clear Selection button when items are selected
+                    RemoveButtonText = "Clear Selection";
+                }
+                else
+                {
+                    // Fallback - should not happen but added for safety
+                    DebugLogger.Log(
+                        $"[DEBUG] SoftwareAppsViewModel: No tab selected - this should not happen!"
+                    );
+                    CanInstallItems = false;
+                    CanRemoveItems = false;
+                }
+
+                DebugLogger.Log($"[DEBUG] Button states updated - CanInstallItems: {CanInstallItems}, CanRemoveItems: {CanRemoveItems}");
+                
+                // Always notify of changes
+                OnPropertyChanged(nameof(CanInstallItems));
+                OnPropertyChanged(nameof(CanRemoveItems));
+
+                if (oldCanInstallItems != CanInstallItems)
+                {
+                    DebugLogger.Log($"[DEBUG] CanInstallItems changed from {oldCanInstallItems} to {CanInstallItems}");
+                    InstallSelectedItemsCommand.NotifyCanExecuteChanged();
+                }
+
+                if (oldCanRemoveItems != CanRemoveItems)
+                {
+                    DebugLogger.Log($"[DEBUG] CanRemoveItems changed from {oldCanRemoveItems} to {CanRemoveItems}");
+                    RemoveSelectedItemsCommand.NotifyCanExecuteChanged();
+                }
             }
-            
-            // Force command CanExecute to be re-evaluated if the button states changed
-            if (oldCanInstallItems != CanInstallItems)
+            finally
             {
-                InstallSelectedItemsCommand.NotifyCanExecuteChanged();
-            }
-            
-            if (oldCanRemoveItems != CanRemoveItems)
-            {
-                RemoveSelectedItemsCommand.NotifyCanExecuteChanged();
+                // Reset flag when we're done to allow future updates
+                _isUpdatingButtonStates = false;
             }
         }
-        
+
         /// <summary>
         /// Command to install selected items in the active view model
         /// </summary>
-        [RelayCommand(CanExecute = nameof(CanInstallItems))]
+        [RelayCommand(CanExecute = nameof(CanInstallSelectedItems))]
         private async Task InstallSelectedItems()
         {
             if (IsWindowsAppsTabSelected)
@@ -367,15 +497,27 @@ namespace Winhance.WPF.Features.SoftwareApps.ViewModels
                 // Route to ExternalAppsViewModel's InstallApps command
                 await ExternalAppsViewModel.InstallApps();
             }
-            
+
             // Update button states after operation completes
             UpdateButtonStates();
         }
-        
+
+        /// <summary>
+        /// Determines whether the InstallSelectedItems command can be executed
+        /// </summary>
+        /// <returns>True if items can be installed, false otherwise</returns>
+        private bool CanInstallSelectedItems()
+        {
+            DebugLogger.Log(
+                $"[DEBUG] SoftwareAppsViewModel: CanInstallSelectedItems called, returning {CanInstallItems}"
+            );
+            return CanInstallItems;
+        }
+
         /// <summary>
         /// Command to remove selected items in the active view model or clear selection based on the active tab
         /// </summary>
-        [RelayCommand(CanExecute = nameof(CanRemoveItems))]
+        [RelayCommand(CanExecute = nameof(CanRemoveSelectedItems))]
         private async Task RemoveSelectedItems()
         {
             if (IsWindowsAppsTabSelected)
@@ -388,22 +530,34 @@ namespace Winhance.WPF.Features.SoftwareApps.ViewModels
                 // For External apps, clear selection
                 ExternalAppsViewModel.ClearSelectedItems();
             }
-            
+
             // Force update button states after operation completes
             UpdateButtonStates();
         }
-        
+
+        /// <summary>
+        /// Determines whether the RemoveSelectedItems command can be executed
+        /// </summary>
+        /// <returns>True if items can be removed, false otherwise</returns>
+        private bool CanRemoveSelectedItems()
+        {
+            DebugLogger.Log(
+                $"[DEBUG] SoftwareAppsViewModel: CanRemoveSelectedItems called, returning {CanRemoveItems}"
+            );
+            return CanRemoveItems;
+        }
+
         /// <summary>
         /// Command to show or hide help content for the active tab
         /// </summary>
         [RelayCommand]
         private void ShowHelp()
-        {   
+        {
             if (HelpButtonElement == null)
             {
                 return;
             }
-            
+
             // Toggle help visibility
             if (IsHelpVisible)
             {
@@ -412,65 +566,69 @@ namespace Winhance.WPF.Features.SoftwareApps.ViewModels
                 IsHelpVisible = false;
                 return;
             }
-            
+
             // Set help as visible
             IsHelpVisible = true;
-            
+
             if (IsWindowsAppsTabSelected)
-            {   
+            {
                 // Create the Windows Apps help content
                 var helpContent = new WindowsAppsHelpContent();
-                
+
                 // Show the help content in a popup
                 HelpService.ShowHelp(helpContent, HelpButtonElement);
             }
             else
-            {   
+            {
                 // Create the External Apps help content
                 var helpContent = new ExternalAppsHelpContent();
-                
+
                 // Show the help content in a popup
                 HelpService.ShowHelp(helpContent, HelpButtonElement);
             }
         }
 
         /// <summary>
-        /// Updates the child view models' table view mode properties based on the parent's properties
-        /// and ensures table data is properly populated when in table view mode
+        /// Event handler for selection changes in child view models
         /// </summary>
-        private void UpdateChildViewModels()
+        private void ChildViewModel_SelectedItemsChanged(object sender, EventArgs e)
         {
-            // Update WindowsAppsViewModel's IsTableViewMode property
-            if (WindowsAppsViewModel.IsTableViewMode != IsWindowsAppsTableViewMode)
+            DebugLogger.Log($"[DEBUG] SoftwareAppsViewModel: ChildViewModel_SelectedItemsChanged fired from {sender?.GetType().Name}");
+            
+            // Update button states when selection changes in either child view model
+            UpdateButtonStates();
+        }
+        
+        /// <summary>
+        /// Handles view mode changes from the view mode manager
+        /// </summary>
+        private void OnViewModeChanged(bool isTableViewMode)
+        {
+            DebugLogger.Log(
+                $"[DEBUG] SoftwareAppsViewModel: OnViewModeChanged called with isTableViewMode={isTableViewMode}"
+            );
+
+            // Set table view mode on the active child view model only
+            if (IsWindowsAppsTabSelected)
             {
-                // First update the property value
-                WindowsAppsViewModel.IsTableViewMode = IsWindowsAppsTableViewMode;
-                
-                // Force update the collection for the table view if switching to table view
-                if (IsWindowsAppsTableViewMode)
+                if (WindowsAppsViewModel.IsTableViewMode != isTableViewMode)
                 {
-                    // Force a full refresh of data for the table view
-                    WindowsAppsViewModel.UpdateAllItemsCollection();
-                    System.Diagnostics.Debug.WriteLine("WindowsAppsViewModel: Forced table view refresh");
+                    DebugLogger.Log(
+                        $"[DEBUG] SoftwareAppsViewModel: Updating WindowsAppsViewModel.IsTableViewMode to {isTableViewMode}"
+                    );
+                    WindowsAppsViewModel.IsTableViewMode = isTableViewMode;
                 }
             }
-            
-            // Update ExternalAppsViewModel's IsTableViewMode property
-            if (ExternalAppsViewModel.IsTableViewMode != IsExternalAppsTableViewMode)
+            else if (IsExternalAppsTabSelected)
             {
-                // First update the property value
-                ExternalAppsViewModel.IsTableViewMode = IsExternalAppsTableViewMode;
-                
-                // Force update the collection for the table view if switching to table view
-                if (IsExternalAppsTableViewMode)
+                if (ExternalAppsViewModel.IsTableViewMode != isTableViewMode)
                 {
-                    // Force a full refresh of data for the table view
-                    ExternalAppsViewModel.UpdateAllItemsCollection();
-                    System.Diagnostics.Debug.WriteLine("ExternalAppsViewModel: Forced table view refresh");
+                    DebugLogger.Log(
+                        $"[DEBUG] SoftwareAppsViewModel: Updating ExternalAppsViewModel.IsTableViewMode to {isTableViewMode}"
+                    );
+                    ExternalAppsViewModel.IsTableViewMode = isTableViewMode;
                 }
             }
         }
-        
-
     }
 }

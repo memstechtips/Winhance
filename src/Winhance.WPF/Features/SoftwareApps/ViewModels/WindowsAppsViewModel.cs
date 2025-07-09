@@ -30,10 +30,12 @@ namespace Winhance.WPF.Features.SoftwareApps.ViewModels
     public class ItemWithType : INotifyPropertyChanged
     {        
         private readonly WindowsApp _item;
+        private readonly Action _selectionChangedCallback;
         
-        public ItemWithType(WindowsApp item, string itemType)
+        public ItemWithType(WindowsApp item, string itemType, Action selectionChangedCallback = null)
         {
             _item = item;
+            _selectionChangedCallback = selectionChangedCallback;
             ItemType = itemType;
             
             // Set TypeOrder based on the item type for custom sorting
@@ -54,11 +56,16 @@ namespace Winhance.WPF.Features.SoftwareApps.ViewModels
             }
             
             // Forward property change events from the wrapped item
+            // Skip properties that are handled locally to prevent double notifications
             if (_item is INotifyPropertyChanged notifyItem)
             {
                 notifyItem.PropertyChanged += (sender, args) =>
                 {
-                    PropertyChanged?.Invoke(this, new PropertyChangedEventArgs(args.PropertyName));
+                    // Don't forward property changes for properties we handle locally
+                    if (args.PropertyName != nameof(IsSelected))
+                    {
+                        PropertyChanged?.Invoke(this, new PropertyChangedEventArgs(args.PropertyName));
+                    }
                 };
             }
         }
@@ -81,15 +88,59 @@ namespace Winhance.WPF.Features.SoftwareApps.ViewModels
                 {
                     _item.IsSelected = value;
                     PropertyChanged?.Invoke(this, new PropertyChangedEventArgs(nameof(IsSelected)));
+                    
+                    // Notify ViewModel that selection has changed - this updates the button states
+                    _selectionChangedCallback?.Invoke();
+                    
+                    // Log the selection change for debugging
+                    DebugLogger.Log($"[DEBUG] ItemWithType: Selection changed for {Name} to {value}");
                 }
             }
+        }
+        
+        /// <summary>
+        /// Public method to notify that IsSelected property has changed (for ViewModel use)
+        /// </summary>
+        public void NotifyIsSelectedChanged()
+        {
+            PropertyChanged?.Invoke(this, new PropertyChangedEventArgs(nameof(IsSelected)));
         }
         
         public event PropertyChangedEventHandler PropertyChanged;
     }
     
-    public partial class WindowsAppsViewModel : BaseInstallationViewModel<WindowsApp>
+    public partial class WindowsAppsViewModel : BaseViewModel
     {
+        /// <summary>
+        /// Event raised when selected items change to notify parent view models
+        /// </summary>
+        public event EventHandler SelectedItemsChanged;
+
+        /// <summary>
+        /// Gets or sets a value indicating whether the view model is initialized.
+        /// </summary>
+        [ObservableProperty]
+        private bool _isInitialized = false;
+
+        /// <summary>
+        /// Gets or sets a value indicating whether the view model is updating button states.
+        /// </summary>
+        [ObservableProperty]
+        private bool _isUpdatingButtonStates = false;
+        
+        /// <summary>
+        /// Gets or sets the search text for filtering items.
+        /// </summary>
+        [ObservableProperty]
+        private string _searchText = string.Empty;
+
+        // IsAllSelected is already defined elsewhere in the class
+
+        /// <summary>
+        /// Gets the collection of all items.
+        /// </summary>
+        public ObservableCollection<WindowsApp> Items { get; } = new();
+        private readonly ITaskProgressService _progressService;
         private readonly IAppInstallationService _appInstallationService;
         private readonly ICapabilityInstallationService _capabilityService;
         private readonly IFeatureInstallationService _featureService;
@@ -100,6 +151,33 @@ namespace Winhance.WPF.Features.SoftwareApps.ViewModels
         private readonly IInternetConnectivityService _connectivityService;
         private readonly IAppInstallationCoordinatorService _appInstallationCoordinatorService;
         private readonly IBloatRemovalCoordinatorService _bloatRemovalCoordinatorService;
+        private readonly IPackageManager _packageManager;
+        private readonly AppViewModeManager _viewModeManager;
+        private readonly Services.SoftwareAppsDialogService _dialogService;
+        
+        /// <summary>
+        /// Gets or sets the current cancellation reason.
+        /// </summary>
+        protected CancellationReason CurrentCancellationReason { get; set; } = CancellationReason.None;
+
+        /// <summary>
+        /// Gets or sets whether the view is in table view mode
+        /// </summary>
+        public bool IsTableViewMode
+        {
+            get => _viewModeManager.IsTableViewMode;
+            set => _viewModeManager.IsTableViewMode = value;
+        }
+
+        /// <summary>
+        /// Gets the visibility for the grid view
+        /// </summary>
+        public Visibility GridViewVisibility => _viewModeManager.GridViewVisibility;
+
+        /// <summary>
+        /// Gets the visibility for the table view
+        /// </summary>
+        public Visibility TableViewVisibility => _viewModeManager.TableViewVisibility;
 
         [ObservableProperty]
         private string _statusText = "Ready";
@@ -111,16 +189,7 @@ namespace Winhance.WPF.Features.SoftwareApps.ViewModels
         private ObservableCollection<ScriptInfo> _activeScripts = new();
 
         // Flag to prevent duplicate initialization
-        [ObservableProperty]
-        private bool _isInitialized = false;
-        
-        // View mode toggle property
-        [ObservableProperty]
-        private bool _isTableViewMode = false;
-        
-        // Properties for table view column headers
-        [ObservableProperty]
-        private bool _isAllSelectedCapabilities;
+        // IsTableViewMode is now inherited from BaseAppViewModel
         
         [ObservableProperty]
         private bool _isAllSelectedOptionalFeatures;
@@ -136,9 +205,7 @@ namespace Winhance.WPF.Features.SoftwareApps.ViewModels
         [ObservableProperty]
         private ListSortDirection _sortDirection = ListSortDirection.Ascending;
         
-        // Properties for view visibility
-        public Visibility GridViewVisibility => IsTableViewMode ? Visibility.Collapsed : Visibility.Visible;
-        public Visibility TableViewVisibility => IsTableViewMode ? Visibility.Visible : Visibility.Collapsed;
+        // HasSelectedItems and related fields/methods are defined elsewhere in the file
         
         // Command to toggle between views
         [RelayCommand]
@@ -204,19 +271,19 @@ namespace Winhance.WPF.Features.SoftwareApps.ViewModels
                 // Add Windows Apps
                 foreach (var app in WindowsApps)
                 {
-                    newItems.Add(new ItemWithType(app, "Windows App"));
+                    newItems.Add(new ItemWithType(app, "Windows App", OnTableViewSelectionChanged));
                 }
                 
                 // Add Capabilities
                 foreach (var capability in Capabilities)
                 {
-                    newItems.Add(new ItemWithType(capability, "Capability"));
+                    newItems.Add(new ItemWithType(capability, "Capability", OnTableViewSelectionChanged));
                 }
                 
                 // Add Optional Features
                 foreach (var feature in OptionalFeatures)
                 {
-                    newItems.Add(new ItemWithType(feature, "Optional Feature"));
+                    newItems.Add(new ItemWithType(feature, "Optional Feature", OnTableViewSelectionChanged));
                 }
                 
                 // Batch add all items to minimize UI updates
@@ -340,23 +407,16 @@ namespace Winhance.WPF.Features.SoftwareApps.ViewModels
             }
         }
 
-        partial void OnIsTableViewModeChanged(bool value)
+        /// <summary>
+        /// Handles view mode changes from AppViewModeManager
+        /// </summary>
+        private void OnViewModeChanged(bool isTableViewMode)
         {
-            if (value)
+            // When switching to table view, update the combined collection
+            if (isTableViewMode)
             {
-                // If switching to table view, update the AllItems collection
                 UpdateAllItemsCollection();
-                
-                // Force notification of the AllItemsView property
-                OnPropertyChanged(nameof(AllItemsView));
-                
-                // Log for debugging
-                System.Diagnostics.Debug.WriteLine($"WindowsAppsViewModel: Table view mode changed to {value}. AllItems count: {_allItems.Count}");
             }
-            
-            // Always update visibility properties
-            OnPropertyChanged(nameof(GridViewVisibility));
-            OnPropertyChanged(nameof(TableViewVisibility));
         }
 
         // For binding in the WindowsAppsView - filtered collections
@@ -386,16 +446,12 @@ namespace Winhance.WPF.Features.SoftwareApps.ViewModels
             IAppInstallationCoordinatorService appInstallationCoordinatorService,
             IBloatRemovalCoordinatorService bloatRemovalCoordinatorService,
             Services.SoftwareAppsDialogService dialogService)
-            : base(
-                progressService,
-                searchService,
-                packageManager,
-                appInstallationService,
-                appInstallationCoordinatorService,
-                connectivityService,
-                dialogService
-            )
+            : base(progressService)
         {
+            // Initialize injected services
+            _progressService = progressService;
+            _dialogService = dialogService;
+            
             // Initialize the AllItemsView
             AllItemsView = CollectionViewSource.GetDefaultView(_allItems);
             
@@ -409,6 +465,8 @@ namespace Winhance.WPF.Features.SoftwareApps.ViewModels
             Capabilities.CollectionChanged += OnCollectionChanged;
             OptionalFeatures.CollectionChanged += OnCollectionChanged;
             
+            // Note: Wrapper objects now use direct callbacks instead of static events
+            
             _appInstallationService = appInstallationService;
             _capabilityService = capabilityService;
             _featureService = featureService;
@@ -419,6 +477,59 @@ namespace Winhance.WPF.Features.SoftwareApps.ViewModels
             _connectivityService = connectivityService;
             _appInstallationCoordinatorService = appInstallationCoordinatorService;
             _bloatRemovalCoordinatorService = bloatRemovalCoordinatorService;
+            _packageManager = packageManager;
+            
+            // Initialize view mode manager
+            _viewModeManager = new AppViewModeManager();
+            _viewModeManager.ViewModeChanged += OnViewModeChanged;
+        }
+
+        /// <summary>
+        /// Handles selection changes from TableView wrapper objects
+        /// </summary>
+        private void OnTableViewSelectionChanged()
+        {
+            DebugLogger.Log("[DEBUG] ========== WindowsAppsViewModel.OnTableViewSelectionChanged START ==========");
+            DebugLogger.Log($"[DEBUG] WindowsAppsViewModel.OnTableViewSelectionChanged called - Thread: {System.Threading.Thread.CurrentThread.ManagedThreadId}");
+            DebugLogger.Log($"[DEBUG] Cache valid before invalidation: {_hasSelectedItemsCacheValid}, cached value: {_hasSelectedItems}");
+            
+            // Log selections in the _allItems collection
+            if (_allItems != null)
+            {
+                var selectedItems = _allItems.Where(a => a.IsSelected).ToList();
+                DebugLogger.Log($"[DEBUG] Table view selected items count: {selectedItems.Count} out of {_allItems.Count}");
+                foreach (var item in selectedItems.Take(5))
+                {
+                    DebugLogger.Log($"[DEBUG] Selected table item: {item.Name}");
+                }
+            }
+            
+            // Force IsTableViewMode to be true since we're getting selection changes from table view
+            if (!IsTableViewMode && _allItems != null && _allItems.Any())
+            {
+                DebugLogger.Log($"[DEBUG] Forcing IsTableViewMode to true because we received table selection changes");
+                IsTableViewMode = true;
+            }
+            
+            InvalidateHasSelectedItemsCache();
+            DebugLogger.Log($"[DEBUG] Cache invalidated - Cache valid: {_hasSelectedItemsCacheValid}");
+            
+            var hasSelected = HasSelectedItems;
+            DebugLogger.Log($"[DEBUG] HasSelectedItems evaluated to: {hasSelected}");
+            
+            DebugLogger.Log($"[DEBUG] Calling OnPropertyChanged for HasSelectedItems");
+            OnPropertyChanged(nameof(HasSelectedItems));
+            
+            // Ensure the parent view model is notified of changes by forcing an update to the property
+            // This is crucial for ensuring the buttons in the parent view model are enabled/disabled properly
+            Application.Current.Dispatcher.BeginInvoke(new Action(() => 
+            {
+                DebugLogger.Log("[DEBUG] Dispatching additional property change notification for HasSelectedItems");
+                OnPropertyChanged(nameof(HasSelectedItems));
+            }));
+            
+            DebugLogger.Log($"[DEBUG] OnPropertyChanged completed");
+            DebugLogger.Log("[DEBUG] ========== WindowsAppsViewModel.OnTableViewSelectionChanged END ==========");
         }
 
         // SaveConfig and ImportConfig methods removed as part of unified configuration cleanup
@@ -426,7 +537,7 @@ namespace Winhance.WPF.Features.SoftwareApps.ViewModels
         /// <summary>
         /// Applies the current search text to filter items.
         /// </summary>
-        protected override void ApplySearch()
+        protected void ApplySearch()
         {
             if (Items == null || Items.Count == 0)
                 return;
@@ -459,6 +570,32 @@ namespace Winhance.WPF.Features.SoftwareApps.ViewModels
             // Sort the filtered collections
             SortCollections();
         }
+        
+        /// <summary>
+        /// Filters items based on the current search text.
+        /// </summary>
+        /// <param name="items">The items to filter.</param>
+        /// <returns>The filtered items.</returns>
+        protected IEnumerable<WindowsApp> FilterItems(IEnumerable<WindowsApp> items)
+        {
+            if (string.IsNullOrWhiteSpace(SearchText))
+                return items;
+
+            var searchTerms = SearchText.ToLower().Split(' ', StringSplitOptions.RemoveEmptyEntries);
+            return items.Where(item =>
+            {
+                // If any search term matches, include the item
+                return searchTerms.All(term =>
+                    item.Name?.ToLower().Contains(term) == true ||
+                    item.Description?.ToLower().Contains(term) == true ||
+                    item.PackageName?.ToLower().Contains(term) == true);
+            });
+        }
+        
+        /// <summary>
+        /// Gets or sets a value indicating whether search is active.
+        /// </summary>
+        public bool IsSearchActive => !string.IsNullOrWhiteSpace(SearchText);
 
         /// <summary>
         /// Refreshes the script status information.
@@ -477,7 +614,7 @@ namespace Winhance.WPF.Features.SoftwareApps.ViewModels
             }
         }
 
-        public override async Task LoadItemsAsync()
+        public async Task LoadItemsAsync()
         {
             if (_appDiscoveryService == null)
                 return;
@@ -552,7 +689,7 @@ namespace Winhance.WPF.Features.SoftwareApps.ViewModels
             }
         }
 
-        public override async Task CheckInstallationStatusAsync()
+        public async Task CheckInstallationStatusAsync()
         {
             if (_appDiscoveryService == null)
                 return;
@@ -622,12 +759,16 @@ namespace Winhance.WPF.Features.SoftwareApps.ViewModels
         /// <returns>The past tense form of the operation type</returns>
         private string GetPastTense(string operationType)
         {
-            if (string.IsNullOrEmpty(operationType))
-                return string.Empty;
-
-            return operationType.Equals("Remove", StringComparison.OrdinalIgnoreCase)
-                ? "removed"
-                : $"{operationType.ToLower()}ed";
+            return operationType.ToLower() switch
+            {
+                "install" => "installed",
+                "remove" => "removed",
+                "uninstall" => "uninstalled",
+                "reinstall" => "reinstalled",
+                "enable" => "enabled",
+                "disable" => "disabled",
+                _ => $"{operationType}ed"
+            };
         }
 
         /// <summary>
@@ -643,7 +784,7 @@ namespace Winhance.WPF.Features.SoftwareApps.ViewModels
             IEnumerable<WindowsApp>? skippedApps = null
         )
         {
-            // Use the base class implementation that uses the dialog service
+            // Call the async implementation and wait for the result
             var result = ShowOperationConfirmationDialogAsync(
                     operationType,
                     selectedApps,
@@ -652,6 +793,51 @@ namespace Winhance.WPF.Features.SoftwareApps.ViewModels
                 .GetAwaiter()
                 .GetResult();
             return result ? true : (bool?)false;
+        }
+        
+        /// <summary>
+        /// Shows a confirmation dialog for items to be processed.
+        /// </summary>
+        /// <param name="operationType">The type of operation (Install/Remove).</param>
+        /// <param name="selectedApps">The selected apps.</param>
+        /// <param name="skippedApps">Apps that will be skipped (optional).</param>
+        /// <returns>True if confirmed, otherwise false.</returns>
+        private async Task<bool> ShowOperationConfirmationDialogAsync(
+            string operationType,
+            IEnumerable<WindowsApp> selectedApps,
+            IEnumerable<WindowsApp>? skippedApps = null
+        )
+        {
+            string title = $"Confirm {operationType}";
+            string headerText = $"The following items will be {GetPastTense(operationType)}:";
+
+            // Create list of app names for the dialog
+            var appNames = selectedApps.Select(a => a.Name).ToList();
+
+            // Create footer text
+            string footerText = "Do you want to continue?";
+
+            // If there are skipped apps, add information about them
+            if (skippedApps != null && skippedApps.Any())
+            {
+                var skippedNames = skippedApps.Select(a => a.Name).ToList();
+                footerText =
+                    $"Note: The following {skippedApps.Count()} item(s) cannot be {GetPastTense(operationType)} and will be skipped:\n";
+                footerText += string.Join(", ", skippedNames);
+                footerText +=
+                    $"\n\nDo you want to continue with the remaining {selectedApps.Count()} item(s)?";
+            }
+
+            // Build the message
+            string message = $"{headerText}\n";
+            foreach (var name in appNames)
+            {
+                message += $"{name}\n";
+            }
+            message += $"\n{footerText}";
+
+            // Show the confirmation dialog
+            return await _dialogService.ShowConfirmationAsync(message, title);
         }
 
         /// <summary>
@@ -672,19 +858,139 @@ namespace Winhance.WPF.Features.SoftwareApps.ViewModels
             IEnumerable<string>? skippedItems = null
         )
         {
-            // Use the base class implementation that uses the dialog service
-            base.ShowOperationResultDialog(
+            // Determine if this was a user-initiated cancellation or connectivity issue
+            bool isUserCancelled = CurrentCancellationReason == CancellationReason.UserCancelled;
+            bool isConnectivityIssue = CurrentCancellationReason == CancellationReason.InternetConnectivityLost;
+
+            // If the operation was cancelled by the user, use CustomDialog for a simpler message
+            if (isUserCancelled)
+            {
+                string title = "Installation Aborted by User";
+                string headerText = "Installation aborted by user";
+                string message = "The installation process was cancelled by the user.";
+                string footerText =
+                    successCount > 0
+                        ? $"Some items were successfully {GetPastTense(operationType)} before cancellation."
+                        : $"No items were {GetPastTense(operationType)} before cancellation.";
+
+                // Use CustomDialog directly instead of SoftwareAppsDialog
+                Winhance.WPF.Features.Common.Views.CustomDialog.ShowInformation(title, headerText, message, footerText);
+
+                // Reset cancellation reason after showing dialog
+                CurrentCancellationReason = CancellationReason.None;
+                return;
+            }
+            else if (isConnectivityIssue)
+            {
+                // Use the dialog service with the connectivity issue flag
+                _dialogService.ShowOperationResult(
+                    operationType,
+                    successCount,
+                    totalCount,
+                    successItems,
+                    failedItems,
+                    skippedItems,
+                    true, // Connectivity issue flag
+                    false // Not a user cancellation
+                );
+
+                // Reset cancellation reason after showing dialog
+                CurrentCancellationReason = CancellationReason.None;
+                return;
+            }
+
+            // For normal completion (no cancellation), show standard result dialog
+            _dialogService.ShowOperationResult(
                 operationType,
                 successCount,
                 totalCount,
                 successItems,
                 failedItems,
-                skippedItems
+                skippedItems,
+                false, // Not a connectivity issue
+                false  // Not a user cancellation
             );
         }
 
         #endregion
 
+        /// <summary>
+        /// Shows a dialog informing the user that no internet connection is available.
+        /// </summary>
+        protected async Task ShowNoInternetConnectionDialogAsync()
+        {
+            await _dialogService.ShowWarningAsync(
+                "An internet connection is required to install Windows apps. Please check your connection and try again.",
+                "No Internet Connection"
+            );
+        }
+        
+        /// <summary>
+        /// Shows a dialog informing the user that no items are selected.
+        /// </summary>
+        /// <param name="action">The action that requires selected items (e.g., "installation", "removal")</param>
+        protected async Task ShowNoItemsSelectedDialogAsync(string action)
+        {
+            await _dialogService.ShowWarningAsync(
+                $"Please select at least one item for {action}.",
+                "No Items Selected"
+            );
+        }
+        
+        /// <summary>
+        /// Shows a dialog informing the user that the selected items cannot be reinstalled.
+        /// </summary>
+        /// <param name="itemNames">Names of items that cannot be reinstalled</param>
+        /// <param name="showDetails">Whether to show detailed item names</param>
+        protected async Task ShowCannotReinstallDialogAsync(IEnumerable<string> itemNames, bool showDetails)
+        {
+            string message = "The selected items cannot be reinstalled. Please select different items.";
+            
+            if (showDetails && itemNames.Any())
+            {
+                message += "\n\nNon-reinstallable items:\n" + string.Join("\n", itemNames);
+            }
+            
+            await _dialogService.ShowWarningAsync(
+                message,
+                "Cannot Reinstall"
+            );
+        }
+        
+        /// <summary>
+        /// Shows a dialog asking the user to confirm the operation on the selected items.
+        /// </summary>
+        /// <param name="operation">The operation to perform (e.g., "install", "remove")</param>
+        /// <param name="itemNames">Names of items to perform the operation on</param>
+        /// <param name="count">Number of items</param>
+        /// <returns>True if confirmed, false otherwise</returns>
+        protected async Task<bool?> ShowConfirmItemsDialogAsync(string operation, IEnumerable<string> itemNames, int count)
+        {
+            string message = $"Are you sure you want to {operation.ToLower()} the following {count} items?";
+            
+            if (count <= 10)
+            {
+                message += $"\n\n{string.Join("\n", itemNames)}";
+            }
+            else
+            {
+                var firstItems = itemNames.Take(5).ToList();
+                var lastItems = itemNames.Skip(count - 5).Take(5).ToList();
+                
+                message += $"\n\n{string.Join("\n", firstItems)}";
+                message += $"\n\n... and {count - 10} more items ...\n\n";
+                message += $"{string.Join("\n", lastItems)}";
+            }
+            
+            var result = await _dialogService.ShowConfirmationAsync(
+                message,
+                $"Confirm {operation}",
+                "Yes",
+                "No"
+            );
+            return result;
+        }
+        
         public async Task LoadAppsAndCheckInstallationStatusAsync()
         {
             if (IsInitialized)
@@ -1051,6 +1357,15 @@ namespace Winhance.WPF.Features.SoftwareApps.ViewModels
                         feature.IsSelected = value;
                     }
 
+                    // If in table view mode, also notify wrapper objects to update their UI
+                    if (IsTableViewMode && _allItems != null)
+                    {
+                        foreach (var wrapperItem in _allItems)
+                        {
+                            wrapperItem.NotifyIsSelectedChanged();
+                        }
+                    }
+
                     // Update other checkboxes to be consistent with the same value
                     // regardless of whether we're checking or unchecking
                     _isAllSelectedInstalled = value;
@@ -1243,18 +1558,71 @@ namespace Winhance.WPF.Features.SoftwareApps.ViewModels
                 UpdateIsAllSelectedState();
                 
                 // Notify that HasSelectedItems has changed to trigger button state updates in parent ViewModel
+                InvalidateHasSelectedItemsCache();
                 OnPropertyChanged(nameof(HasSelectedItems));
+                
+                DebugLogger.Log($"[DEBUG] WindowsAppsViewModel.Item_PropertyChanged - IsSelected changed, HasSelectedItems cache invalidated");
             }
         }
         
-        // Property to indicate if any items are selected
+        // Cached value for HasSelectedItems to improve performance
+        private bool _hasSelectedItems;
+        private bool _hasSelectedItemsCacheValid;
+
+        /// <summary>
+        /// Gets a value indicating whether any items are selected.
+        /// </summary>
         public bool HasSelectedItems
         {
             get
             {
-                return WindowsApps?.Any(a => a.IsSelected) == true ||
-                       Capabilities?.Any(c => c.IsSelected) == true ||
-                       OptionalFeatures?.Any(f => f.IsSelected) == true;
+                if (!_hasSelectedItemsCacheValid)
+                {
+                    if (IsTableViewMode && _allItems != null)
+                    {
+                        // Check if any table view wrapper items are selected
+                        _hasSelectedItems = _allItems.Any(a => a.IsSelected);
+                    }
+                    else
+                    {
+                        // Check if any regular items are selected
+                        _hasSelectedItems = Items?.Any(a => a.IsSelected) == true;
+                    }
+                    
+                    _hasSelectedItemsCacheValid = true;
+                }
+                
+                return _hasSelectedItems;
+            }
+        }
+        
+        /// <summary>
+        /// Invalidates the HasSelectedItems cache.
+        /// </summary>
+        private void InvalidateHasSelectedItemsCache()
+        {
+            _hasSelectedItemsCacheValid = false;
+        }
+        
+        /// <summary>
+        /// Public method to invalidate the selection state and notify that HasSelectedItems has changed
+        /// Used by the view to notify the viewmodel of selection changes
+        /// </summary>
+        public void InvalidateSelectionState()
+        {
+            DebugLogger.Log($"[DEBUG] WindowsAppsViewModel.InvalidateSelectionState called");
+            
+            // Invalidate the cached value
+            InvalidateHasSelectedItemsCache();
+            
+            // Trigger property changed notification
+            OnPropertyChanged(nameof(HasSelectedItems));
+            
+            // Ensure parent viewmodel updates button states by raising selection changed event
+            if (SelectedItemsChanged != null)
+            {
+                DebugLogger.Log($"[DEBUG] Raising SelectedItemsChanged event");
+                SelectedItemsChanged.Invoke(this, EventArgs.Empty);
             }
         }
 
@@ -1536,6 +1904,8 @@ namespace Winhance.WPF.Features.SoftwareApps.ViewModels
 
                     // Refresh the UI
                     SortCollections();
+
+                    return successCount;
                 },
                 "Removing Windows Apps",
                 false
@@ -1908,7 +2278,7 @@ namespace Winhance.WPF.Features.SoftwareApps.ViewModels
         /// </summary>
         /// <param name="app">The Windows app.</param>
         /// <returns>The name of the app.</returns>
-        protected override string GetAppName(WindowsApp app)
+        protected string GetAppName(WindowsApp app)
         {
             return app.Name;
         }
@@ -1918,7 +2288,7 @@ namespace Winhance.WPF.Features.SoftwareApps.ViewModels
         /// </summary>
         /// <param name="app">The Windows app to convert.</param>
         /// <returns>The AppInfo object.</returns>
-        protected override AppInfo ToAppInfo(WindowsApp app)
+        protected AppInfo ToAppInfo(WindowsApp app)
         {
             return app.ToAppInfo();
         }
@@ -1927,7 +2297,7 @@ namespace Winhance.WPF.Features.SoftwareApps.ViewModels
         /// Gets the selected Windows apps.
         /// </summary>
         /// <returns>The selected Windows apps.</returns>
-        protected override IEnumerable<WindowsApp> GetSelectedApps()
+        protected IEnumerable<WindowsApp> GetSelectedApps()
         {
             return Items.Where(a => a.IsSelected);
         }
@@ -1937,7 +2307,7 @@ namespace Winhance.WPF.Features.SoftwareApps.ViewModels
         /// </summary>
         /// <param name="app">The Windows app.</param>
         /// <param name="isInstalled">Whether the app is installed.</param>
-        protected override void SetInstallationStatus(WindowsApp app, bool isInstalled)
+        protected void SetInstallationStatus(WindowsApp app, bool isInstalled)
         {
             app.IsInstalled = isInstalled;
         }

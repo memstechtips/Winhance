@@ -8,10 +8,56 @@
     xmlns:materialDesign="http://materialdesigninxaml.net/winfx/xaml/themes"
     xmlns:commonControls="clr-namespace:Winhance.WPF.Features.Common.Controls"
     xmlns:converters="clr-namespace:Winhance.WPF.Features.Common.Converters"
+    xmlns:wpfConverters="clr-namespace:Winhance.WPF.Converters"
     xmlns:system="clr-namespace:System;assembly=mscorlib" d:DataContext="{d:DesignInstance Type=viewModels:SoftwareAppsViewModel}" mc:Ignorable="d">
     
     <UserControl.Resources>
+        <!-- Direct DataTemplates for Windows Apps -->
+        <DataTemplate x:Key="ListViewTemplate" DataType="{x:Type viewModels:WindowsAppsViewModel}">
+            <views:WindowsAppsView />
+        </DataTemplate>
+        
+        <DataTemplate x:Key="TableViewTemplate" DataType="{x:Type viewModels:WindowsAppsViewModel}">
+            <views:WindowsAppsTableView />
+        </DataTemplate>
+        
+        <!-- Direct DataTemplates for External Apps -->
+        <DataTemplate x:Key="ExternalListViewTemplate" DataType="{x:Type viewModels:ExternalAppsViewModel}">
+            <views:ExternalAppsView />
+        </DataTemplate>
+        
+        <DataTemplate x:Key="ExternalTableViewTemplate" DataType="{x:Type viewModels:ExternalAppsViewModel}">
+            <views:ExternalAppsTableView />
+        </DataTemplate>
+        
         <converters:TabViewModelSelector x:Key="TabViewModelSelector"/>
+        <views:AppViewModeTemplateSelector x:Key="AppViewModeTemplateSelector">
+            <!-- Windows Apps Templates -->
+            <views:AppViewModeTemplateSelector.ListViewTemplate>
+                <DataTemplate DataType="{x:Type viewModels:WindowsAppsViewModel}">
+                    <views:WindowsAppsView />
+                </DataTemplate>
+            </views:AppViewModeTemplateSelector.ListViewTemplate>
+            <views:AppViewModeTemplateSelector.TableViewTemplate>
+                <DataTemplate DataType="{x:Type viewModels:WindowsAppsViewModel}">
+                    <views:WindowsAppsTableView />
+                </DataTemplate>
+            </views:AppViewModeTemplateSelector.TableViewTemplate>
+        </views:AppViewModeTemplateSelector>
+        
+        <!-- External Apps View Mode Templates -->
+        <views:AppViewModeTemplateSelector x:Key="ExternalAppViewModeTemplateSelector">
+            <views:AppViewModeTemplateSelector.ListViewTemplate>
+                <DataTemplate DataType="{x:Type viewModels:ExternalAppsViewModel}">
+                    <views:ExternalAppsView />
+                </DataTemplate>
+            </views:AppViewModeTemplateSelector.ListViewTemplate>
+            <views:AppViewModeTemplateSelector.TableViewTemplate>
+                <DataTemplate DataType="{x:Type viewModels:ExternalAppsViewModel}">
+                    <views:ExternalAppsTableView />
+                </DataTemplate>
+            </views:AppViewModeTemplateSelector.TableViewTemplate>
+        </views:AppViewModeTemplateSelector>
     </UserControl.Resources>
 
     <Grid>
@@ -334,28 +380,66 @@
                     <!-- Content Section -->
                     <Border Style="{StaticResource AppSectionContentBorderStyle}">
                         <Grid>
-                            <!-- Windows Apps Content - Switch between views based on view mode -->
+                            <!-- Windows Apps Content -->
                             <Grid Visibility="{Binding WindowsAppsContentVisibility}">
-                                <!-- List View Mode -->
-                                <views:WindowsAppsView DataContext="{Binding WindowsAppsViewModel}" 
-                                                      Visibility="{Binding DataContext.IsWindowsAppsTableViewMode, RelativeSource={RelativeSource AncestorType=Grid, AncestorLevel=2}, Converter={StaticResource InverseBooleanToVisibilityConverter}}" />
+                                <!-- Table View Mode - Shows when IsTableViewMode is true -->
+                                <ContentControl Content="{Binding WindowsAppsViewModel}" ContentTemplate="{StaticResource TableViewTemplate}" >
+                                    <ContentControl.Style>
+                                        <Style TargetType="ContentControl">
+                                            <Setter Property="Visibility" Value="Collapsed"/>
+                                            <Style.Triggers>
+                                                <DataTrigger Binding="{Binding WindowsAppsViewModel.IsTableViewMode}" Value="True">
+                                                    <Setter Property="Visibility" Value="Visible"/>
+                                                </DataTrigger>
+                                            </Style.Triggers>
+                                        </Style>
+                                    </ContentControl.Style>
+                                </ContentControl>
                                 
-                                <!-- Table View Mode -->
-                                <views:WindowsAppsTableView DataContext="{Binding WindowsAppsViewModel}" 
-                                                         Visibility="{Binding DataContext.IsWindowsAppsTableViewMode, RelativeSource={RelativeSource AncestorType=Grid, AncestorLevel=2}, Converter={StaticResource BooleanToVisibilityConverter}}" 
-                                                         d:IsHidden="True" />
+                                <!-- List View Mode - Shows when IsTableViewMode is false -->
+                                <ContentControl Content="{Binding WindowsAppsViewModel}" ContentTemplate="{StaticResource ListViewTemplate}">
+                                    <ContentControl.Style>
+                                        <Style TargetType="ContentControl">
+                                            <Setter Property="Visibility" Value="Collapsed"/>
+                                            <Style.Triggers>
+                                                <DataTrigger Binding="{Binding WindowsAppsViewModel.IsTableViewMode}" Value="False">
+                                                    <Setter Property="Visibility" Value="Visible"/>
+                                                </DataTrigger>
+                                            </Style.Triggers>
+                                        </Style>
+                                    </ContentControl.Style>
+                                </ContentControl>
                             </Grid>
-
-                            <!-- External Apps Content - Switch between views based on view mode -->
+                            
+                            <!-- External Apps Content -->
                             <Grid Visibility="{Binding ExternalAppsContentVisibility}">
-                                <!-- List View Mode -->
-                                <views:ExternalAppsView DataContext="{Binding ExternalAppsViewModel}" 
-                                                      Visibility="{Binding DataContext.IsExternalAppsTableViewMode, RelativeSource={RelativeSource AncestorType=Grid, AncestorLevel=2}, Converter={StaticResource InverseBooleanToVisibilityConverter}}" />
+                                <!-- Table View Mode - Shows when IsTableViewMode is true -->
+                                <ContentControl Content="{Binding ExternalAppsViewModel}" ContentTemplate="{StaticResource ExternalTableViewTemplate}">
+                                    <ContentControl.Style>
+                                        <Style TargetType="ContentControl">
+                                            <Setter Property="Visibility" Value="Collapsed"/>
+                                            <Style.Triggers>
+                                                <DataTrigger Binding="{Binding ExternalAppsViewModel.IsTableViewMode}" Value="True">
+                                                    <Setter Property="Visibility" Value="Visible"/>
+                                                </DataTrigger>
+                                            </Style.Triggers>
+                                        </Style>
+                                    </ContentControl.Style>
+                                </ContentControl>
                                 
-                                <!-- Table View Mode -->
-                                <views:ExternalAppsTableView DataContext="{Binding ExternalAppsViewModel}" 
-                                                         Visibility="{Binding DataContext.IsExternalAppsTableViewMode, RelativeSource={RelativeSource AncestorType=Grid, AncestorLevel=2}, Converter={StaticResource BooleanToVisibilityConverter}}" 
-                                                         d:IsHidden="True" />
+                                <!-- List View Mode - Shows when IsTableViewMode is false -->
+                                <ContentControl Content="{Binding ExternalAppsViewModel}" ContentTemplate="{StaticResource ExternalListViewTemplate}">
+                                    <ContentControl.Style>
+                                        <Style TargetType="ContentControl">
+                                            <Setter Property="Visibility" Value="Collapsed"/>
+                                            <Style.Triggers>
+                                                <DataTrigger Binding="{Binding ExternalAppsViewModel.IsTableViewMode}" Value="False">
+                                                    <Setter Property="Visibility" Value="Visible"/>
+                                                </DataTrigger>
+                                            </Style.Triggers>
+                                        </Style>
+                                    </ContentControl.Style>
+                                </ContentControl>
                             </Grid>
                         </Grid>
                     </Border>
