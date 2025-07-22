@@ -294,6 +294,9 @@ namespace Winhance.WPF.Features.SoftwareApps.ViewModels
                 
                 // Apply sorting to the refreshed collection
                 ApplySorting();
+                
+                // Apply search filter if there's search text
+                ApplyTableViewFilter();
             }
         }
         
@@ -590,6 +593,53 @@ namespace Winhance.WPF.Features.SoftwareApps.ViewModels
                     item.Description?.ToLower().Contains(term) == true ||
                     item.PackageName?.ToLower().Contains(term) == true);
             });
+        }
+        
+        /// <summary>
+        /// Applies the current search text to filter items in the table view.
+        /// </summary>
+        private void ApplyTableViewFilter()
+        {
+            if (AllItemsView == null)
+                return;
+                
+            if (string.IsNullOrWhiteSpace(SearchText))
+            {
+                // Clear filter if no search text
+                AllItemsView.Filter = null;
+            }
+            else
+            {
+                // Apply filter based on search text
+                var searchTerms = SearchText.ToLower().Split(' ', StringSplitOptions.RemoveEmptyEntries);
+                AllItemsView.Filter = obj =>
+                {
+                    if (obj is ItemWithType itemWrapper)
+                    {
+                        // Check if all search terms match any of the searchable properties
+                        return searchTerms.All(term =>
+                            itemWrapper.Name?.ToLower().Contains(term) == true ||
+                            itemWrapper.Description?.ToLower().Contains(term) == true);
+                    }
+                    return false;
+                };
+            }
+        }
+        
+        /// <summary>
+        /// Handles the SearchText property change to trigger search functionality.
+        /// </summary>
+        /// <param name="value">The new search text value.</param>
+        partial void OnSearchTextChanged(string value)
+        {
+            // Apply search for list view (individual collections)
+            ApplySearch();
+            
+            // Apply search for table view (AllItemsView)
+            ApplyTableViewFilter();
+            
+            // Notify that IsSearchActive may have changed
+            OnPropertyChanged(nameof(IsSearchActive));
         }
         
         /// <summary>

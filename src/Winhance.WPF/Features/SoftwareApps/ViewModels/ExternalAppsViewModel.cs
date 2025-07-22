@@ -233,6 +233,9 @@ namespace Winhance.WPF.Features.SoftwareApps.ViewModels
             
             // Notify property changed for AllItemsView to ensure the UI updates
             OnPropertyChanged(nameof(AllItemsView));
+            
+            // Apply search filter if there's search text
+            ApplyTableViewFilter();
         }
 
         /// <summary>
@@ -313,6 +316,55 @@ namespace Winhance.WPF.Features.SoftwareApps.ViewModels
                     item.PackageName?.ToLower().Contains(term) == true ||
                     item.Category?.ToLower().Contains(term) == true);
             });
+        }
+        
+        /// <summary>
+        /// Handles the SearchText property change to trigger search functionality.
+        /// </summary>
+        /// <param name="value">The new search text value.</param>
+        partial void OnSearchTextChanged(string value)
+        {
+            // Apply search for list view (categories)
+            ApplySearch();
+            
+            // Apply search for table view (AllItemsView)
+            ApplyTableViewFilter();
+            
+            // Notify that IsSearchActive may have changed
+            OnPropertyChanged(nameof(IsSearchActive));
+        }
+        
+        /// <summary>
+        /// Applies the current search text to filter items in the table view.
+        /// </summary>
+        private void ApplyTableViewFilter()
+        {
+            if (_allItemsView == null)
+                return;
+                
+            if (string.IsNullOrWhiteSpace(SearchText))
+            {
+                // Clear filter if no search text
+                _allItemsView.Filter = null;
+            }
+            else
+            {
+                // Apply filter based on search text
+                var searchTerms = SearchText.ToLower().Split(' ', StringSplitOptions.RemoveEmptyEntries);
+                _allItemsView.Filter = obj =>
+                {
+                    if (obj is ExternalAppWithTableInfo appWrapper)
+                    {
+                        // Check if all search terms match any of the searchable properties
+                        return searchTerms.All(term =>
+                            appWrapper.Name?.ToLower().Contains(term) == true ||
+                            appWrapper.Description?.ToLower().Contains(term) == true ||
+                            appWrapper.PackageName?.ToLower().Contains(term) == true ||
+                            appWrapper.Category?.ToLower().Contains(term) == true);
+                    }
+                    return false;
+                };
+            }
         }
         
         /// <summary>
