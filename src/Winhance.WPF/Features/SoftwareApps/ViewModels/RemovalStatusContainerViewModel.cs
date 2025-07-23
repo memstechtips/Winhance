@@ -1,3 +1,4 @@
+using System;
 using System.Collections.ObjectModel;
 using System.ComponentModel;
 using System.Linq;
@@ -11,7 +12,7 @@ namespace Winhance.WPF.Features.SoftwareApps.ViewModels
     /// <summary>
     /// Container ViewModel for managing all removal status items
     /// </summary>
-    public class RemovalStatusContainerViewModel : INotifyPropertyChanged
+    public class RemovalStatusContainerViewModel : INotifyPropertyChanged, IDisposable
     {
         public RemovalStatusContainerViewModel(
             IScriptPathService scriptPathService,
@@ -78,6 +79,23 @@ namespace Winhance.WPF.Features.SoftwareApps.ViewModels
         protected virtual void OnPropertyChanged([CallerMemberName] string? propertyName = null)
         {
             PropertyChanged?.Invoke(this, new PropertyChangedEventArgs(propertyName));
+        }
+
+        public void Dispose()
+        {
+            Dispose(true);
+            GC.SuppressFinalize(this);
+        }
+
+        protected virtual void Dispose(bool disposing)
+        {
+            if (disposing)
+            {
+                foreach (var item in RemovalStatusItems)
+                {
+                    item.Dispose();
+                }
+            }
         }
     }
 }

@@ -3,6 +3,8 @@ using System.ComponentModel;
 using System.Linq;
 using System.Threading.Tasks;
 using System.Windows;
+using System.Windows.Controls;
+using Winhance.WPF.Features.Common.Views;
 using CommunityToolkit.Mvvm.ComponentModel;
 using CommunityToolkit.Mvvm.Input;
 using Microsoft.Extensions.DependencyInjection;
@@ -553,26 +555,10 @@ namespace Winhance.WPF.Features.SoftwareApps.ViewModels
         [RelayCommand]
         private void ShowHelp()
         {
-            if (HelpButtonElement == null)
-            {
-                return;
-            }
-
-            // Toggle help visibility
-            if (IsHelpVisible)
-            {
-                // If help is currently visible, close it
-                HelpService.CloseCurrentPopup();
-                IsHelpVisible = false;
-                return;
-            }
-
-            // Set help as visible
-            IsHelpVisible = true;
-
+            // Use modal dialog instead of popup to avoid performance issues
             if (IsWindowsAppsTabSelected)
             {
-                // Create the Windows Apps help content with ViewModel
+                // Create Windows Apps help content
                 var scriptPathService = _serviceProvider.GetRequiredService<IScriptPathService>();
                 var scheduledTaskService = _serviceProvider.GetRequiredService<IScheduledTaskService>();
                 var logService = _serviceProvider.GetRequiredService<ILogService>();
@@ -583,18 +569,91 @@ namespace Winhance.WPF.Features.SoftwareApps.ViewModels
                     logService);
                 
                 var helpContent = new WindowsAppsHelpContent(viewModel);
-
-                // Show the help content in a popup
-                HelpService.ShowHelp(helpContent, HelpButtonElement);
+                
+                // Show as modal dialog
+                ShowHelpDialog(helpContent, "Windows Apps Help");
             }
             else
             {
-                // Create the External Apps help content
+                // Create External Apps help content
                 var helpContent = new ExternalAppsHelpContent();
-
-                // Show the help content in a popup
-                HelpService.ShowHelp(helpContent, HelpButtonElement);
+                
+                // Show as modal dialog
+                ShowHelpDialog(helpContent, "External Apps Help");
             }
+        }
+        
+        private void ShowHelpDialog(UserControl helpContent, string title)
+        {
+            try
+            {
+                // Create reusable modal dialog following DRY/SoC principles
+                var dialog = new ModalDialog(title, helpContent, 650, 500);
+                
+                // Set owner to ensure proper window layering behavior
+                Window ownerWindow = FindMainWindow();
+                if (ownerWindow != null)
+                {
+                    try
+                    {
+                        dialog.Owner = ownerWindow;
+                        dialog.WindowStartupLocation = WindowStartupLocation.CenterOwner;
+                    }
+                    catch (Exception ex)
+                    {
+                        dialog.WindowStartupLocation = WindowStartupLocation.CenterScreen;
+                    }
+                }
+                else
+                {
+                    dialog.WindowStartupLocation = WindowStartupLocation.CenterScreen;
+                }
+                
+                // Show as modal dialog
+                var result = dialog.ShowDialog();
+                
+                // Dispose ViewModels if they implement IDisposable
+                if (helpContent.DataContext is IDisposable disposableViewModel)
+                {
+                    disposableViewModel.Dispose();
+                }
+            }
+            catch (Exception ex)
+            {
+                var logService = _serviceProvider.GetRequiredService<ILogService>();
+                logService.LogError($"Error showing modal dialog: {ex.Message}");
+            }
+        }
+
+        /// <summary>
+        /// Finds the actual main window for setting as Owner of modal dialogs
+        /// </summary>
+        /// <returns>The main window, or null if not found</returns>
+        private Window FindMainWindow()
+        {
+            // First try Application.Current.MainWindow
+            if (Application.Current?.MainWindow != null && 
+                Application.Current.MainWindow.GetType().Name != "ModalDialog")
+            {
+                return Application.Current.MainWindow;
+            }
+
+            // If that doesn't work, find the first non-modal window
+            if (Application.Current?.Windows != null)
+            {
+                foreach (Window window in Application.Current.Windows)
+                {
+                    // Skip modal dialogs and find the main application window
+                    if (window.GetType().Name != "ModalDialog" && 
+                        !string.IsNullOrEmpty(window.Title) &&
+                        window.Title.Contains("Winhance"))
+                    {
+                        return window;
+                    }
+                }
+            }
+
+            return null;
         }
 
         /// <summary>
