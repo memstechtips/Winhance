@@ -202,7 +202,7 @@
                                                             </Style.Triggers>
                                                         </Style>
                                                     </materialDesign:PackIcon.Style>
-                                                </materialDesign:PackIcon>
+                                                </materialDesign:PackIcon> 
                                             </Grid>
                                         </Button>
                                     </DataTemplate>
@@ -228,7 +228,7 @@
                            FontSize="13"
                            TextWrapping="Wrap"
                            Margin="0,0,0,0"
-                           Text="Check all the items you don't want on your PC (even not installed items). Windows might try to add them back later, but Winhance will keep removing them for you.&#x0a;&#x0a;Use the Search Box to find settings quickly. The Save and Import Config buttons in the main window help you manage your preferred selections."/>
+                           Text="Click on an active Winhance removal status icon above to delete the script and task associated with it.&#x0a;&#x0a;Check all the items you don't want on your PC (even not installed items). Windows might try to add them back later, but Winhance will keep removing them for you.&#x0a;&#x0a;Use the Search Box to find settings quickly. The Save and Import Config buttons in the main window help you manage your preferred selections."/>
             </Grid>
         </Grid>
     </Border>
