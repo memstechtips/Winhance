@@ -42,7 +42,20 @@ namespace Winhance.Infrastructure.Features.SoftwareApps.Services.ScriptGeneratio
             services.AddSingleton<IBloatRemovalScriptGenerationService, BloatRemovalScriptGenerationService>();
 
             // Register bloat removal script service
-            services.AddSingleton<IBloatRemovalScriptService, BloatRemovalScriptService>();
+            services.AddSingleton<IBloatRemovalScriptService>(sp =>
+            {
+                return new BloatRemovalScriptService(
+                    sp.GetRequiredService<ILogService>(),
+                    sp.GetRequiredService<IAppDiscoveryService>(),
+                    sp.GetRequiredService<IScriptUpdateService>(),
+                    sp.GetRequiredService<IScheduledTaskService>(),
+                    sp.GetRequiredService<ISystemServices>(),
+                    sp.GetRequiredService<IBloatRemovalScriptContentModifier>(),
+                    sp.GetRequiredService<IBloatRemovalScriptGenerationService>(),
+                    sp.GetRequiredService<IBloatRemovalScriptSavingService>(),
+                    sp.GetRequiredService<IScriptPathService>()
+                );
+            });
 
             // Register script content modifier
             services.AddSingleton<
@@ -69,7 +82,8 @@ namespace Winhance.Infrastructure.Features.SoftwareApps.Services.ScriptGeneratio
                     sp.GetRequiredService<ILogService>(),
                     sp.GetRequiredService<IAppDiscoveryService>(),
                     sp.GetRequiredService<IBloatRemovalScriptContentModifier>(),
-                    sp.GetRequiredService<IBloatRemovalScriptTemplateProvider>()
+                    sp.GetRequiredService<IBloatRemovalScriptTemplateProvider>(),
+                    sp.GetRequiredService<IScriptPathService>()
                 );
             });
 

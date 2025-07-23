@@ -30,7 +30,9 @@ public class RemovalScript
 
     /// <summary>
     /// Gets the path where the script will be saved.
+    /// Note: This property is deprecated. Use IScriptPathService.GetScriptPath() instead.
     /// </summary>
+    [Obsolete("Use IScriptPathService.GetScriptPath() for dynamic path resolution")]
     public string ScriptPath => Path.Combine(
         Environment.GetFolderPath(Environment.SpecialFolder.ProgramFiles),
         "Winhance",

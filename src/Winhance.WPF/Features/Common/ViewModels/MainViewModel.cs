@@ -97,7 +97,8 @@ namespace Winhance.WPF.Features.Common.ViewModels
             Features.Common.Services.UserPreferencesService userPreferencesService,
             ILogService logService,
             IVersionService versionService,
-            IApplicationCloseService applicationCloseService
+            IApplicationCloseService applicationCloseService,
+            IScriptPathService scriptPathService
         )
             : base(progressService, messengerService)
         {
@@ -121,7 +122,8 @@ namespace Winhance.WPF.Features.Common.ViewModels
                 versionService,
                 _messengerService,
                 applicationCloseService,
-                _dialogService
+                _dialogService,
+                scriptPathService
             );
 
             // Initialize command properties

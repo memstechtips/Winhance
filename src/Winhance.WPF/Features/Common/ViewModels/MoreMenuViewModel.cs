@@ -25,6 +25,7 @@ namespace Winhance.WPF.Features.Common.ViewModels
         private readonly IMessengerService _messengerService;
         private readonly IApplicationCloseService _applicationCloseService;
         private readonly IDialogService _dialogService;
+        private readonly IScriptPathService _scriptPathService;
 
         private string _versionInfo;
 
@@ -63,12 +64,16 @@ namespace Winhance.WPF.Features.Common.ViewModels
         /// <param name="logService">Service for logging</param>
         /// <param name="versionService">Service for version information and updates</param>
         /// <param name="messengerService">Service for messaging between components</param>
+        /// <param name="applicationCloseService">Service for closing the application</param>
+        /// <param name="dialogService">Service for showing dialogs</param>
+        /// <param name="scriptPathService">Service for script path management</param>
         public MoreMenuViewModel(
             ILogService logService,
             IVersionService versionService,
             IMessengerService messengerService,
             IApplicationCloseService applicationCloseService,
-            IDialogService dialogService
+            IDialogService dialogService,
+            IScriptPathService scriptPathService
         )
         {
             _logService = logService ?? throw new ArgumentNullException(nameof(logService));
@@ -82,6 +87,7 @@ namespace Winhance.WPF.Features.Common.ViewModels
             _dialogService =
                 dialogService
                 ?? throw new ArgumentNullException(nameof(dialogService));
+            _scriptPathService = scriptPathService ?? throw new ArgumentNullException(nameof(scriptPathService));
 
             // Initialize version info
             UpdateVersionInfo();
@@ -258,11 +264,7 @@ namespace Winhance.WPF.Features.Common.ViewModels
             try
             {
                 // Get the scripts folder path
-                string scriptsFolder = Path.Combine(
-                    Environment.GetFolderPath(Environment.SpecialFolder.ProgramFiles),
-                    "Winhance",
-                    "Scripts"
-                );
+                string scriptsFolder = _scriptPathService.GetScriptsDirectory();
 
                 // Create the folder if it doesn't exist
                 if (!Directory.Exists(scriptsFolder))

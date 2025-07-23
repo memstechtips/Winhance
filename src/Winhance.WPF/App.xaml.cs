@@ -620,6 +620,7 @@ namespace Winhance.WPF
                 services.AddSingleton<ISettingsRegistry, SettingsRegistry>();
                 services.AddSingleton<IViewModelLocator, ViewModelLocator>();
                 services.AddSingleton<IBatteryService, BatteryService>();
+                services.AddSingleton<IScriptPathService, ScriptPathService>();
                 services.AddSingleton<
                     Winhance.Core.Interfaces.Services.IFileSystemService,
                     Winhance.Infrastructure.FileSystem.FileSystemService
@@ -680,10 +681,11 @@ namespace Winhance.WPF
                         provider.GetRequiredService<IRegistryService>()
                     )
                 );
-                services.AddSingleton<
-                    IScriptDetectionService,
-                    Winhance.Infrastructure.Features.SoftwareApps.Services.ScriptGeneration.ScriptDetectionService
-                >();
+                services.AddSingleton<IScriptDetectionService>(sp =>
+                    new Winhance.Infrastructure.Features.SoftwareApps.Services.ScriptGeneration.ScriptDetectionService(
+                        sp.GetRequiredService<IScriptPathService>()
+                    )
+                );
 
                 // Register script generation services
                 services.AddScriptGenerationServices();
@@ -918,7 +920,8 @@ namespace Winhance.WPF
                     provider.GetRequiredService<Features.Common.Services.UserPreferencesService>(),
                     provider.GetRequiredService<ILogService>(),
                     provider.GetRequiredService<IVersionService>(),
-                    provider.GetRequiredService<IApplicationCloseService>()
+                    provider.GetRequiredService<IApplicationCloseService>(),
+                    provider.GetRequiredService<IScriptPathService>()
                 ));
 
                 services.AddSingleton<WindowsAppsViewModel>(provider => new WindowsAppsViewModel(

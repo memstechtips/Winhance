@@ -11,7 +11,16 @@ namespace Winhance.Infrastructure.Features.SoftwareApps.Services.ScriptGeneratio
     /// </summary>
     public class ScriptDetectionService : IScriptDetectionService
     {
-        private const string ScriptsDirectory = @"C:\Program Files\Winhance\Scripts";
+        private readonly IScriptPathService _scriptPathService;
+        
+        /// <summary>
+        /// Initializes a new instance of the <see cref="ScriptDetectionService"/> class.
+        /// </summary>
+        /// <param name="scriptPathService">The script path service.</param>
+        public ScriptDetectionService(IScriptPathService scriptPathService)
+        {
+            _scriptPathService = scriptPathService ?? throw new ArgumentNullException(nameof(scriptPathService));
+        }
 
         private static readonly Dictionary<string, string> ScriptDescriptions = new Dictionary<
             string,
@@ -21,12 +30,14 @@ namespace Winhance.Infrastructure.Features.SoftwareApps.Services.ScriptGeneratio
             { "BloatRemoval.ps1", "Multiple items removed via BloatRemoval.ps1" },
             { "EdgeRemoval.ps1", "Microsoft Edge Removed via EdgeRemoval.ps1" },
             { "OneDriveRemoval.ps1", "OneDrive Removed via OneDriveRemoval.ps1" },
+            { "OneNoteRemoval.ps1", "OneNote Removed via OneNoteRemoval.ps1" },
         };
 
         /// <inheritdoc />
         public bool AreRemovalScriptsPresent()
         {
-            if (!Directory.Exists(ScriptsDirectory))
+            var scriptsDirectory = _scriptPathService.GetScriptsDirectory();
+            if (!Directory.Exists(scriptsDirectory))
             {
                 return false;
             }
@@ -37,7 +48,8 @@ namespace Winhance.Infrastructure.Features.SoftwareApps.Services.ScriptGeneratio
         /// <inheritdoc />
         public IEnumerable<ScriptInfo> GetActiveScripts()
         {
-            if (!Directory.Exists(ScriptsDirectory))
+            var scriptsDirectory = _scriptPathService.GetScriptsDirectory();
+            if (!Directory.Exists(scriptsDirectory))
             {
                 return Enumerable.Empty<ScriptInfo>();
             }
@@ -54,13 +66,14 @@ namespace Winhance.Infrastructure.Features.SoftwareApps.Services.ScriptGeneratio
 
         private IEnumerable<string> GetScriptFiles()
         {
-            if (!Directory.Exists(ScriptsDirectory))
+            var scriptsDirectory = _scriptPathService.GetScriptsDirectory();
+            if (!Directory.Exists(scriptsDirectory))
             {
                 return Enumerable.Empty<string>();
             }
 
             return Directory
-                .GetFiles(ScriptsDirectory, "*.ps1")
+                .GetFiles(scriptsDirectory, "*.ps1")
                 .Where(file => ScriptDescriptions.ContainsKey(Path.GetFileName(file)));
         }
 

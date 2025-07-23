@@ -23,6 +23,7 @@ public class ScriptUpdateService : IScriptUpdateService
     private readonly IAppDiscoveryService _appDiscoveryService;
     private readonly IBloatRemovalScriptContentModifier _bloatRemovalScriptContentModifier;
     private readonly IBloatRemovalScriptTemplateProvider _bloatRemovalScriptTemplateProvider;
+    private readonly IScriptPathService _scriptPathService;
 
     /// <summary>
     /// Initializes a new instance of the <see cref="ScriptUpdateService"/> class.
@@ -31,11 +32,13 @@ public class ScriptUpdateService : IScriptUpdateService
     /// <param name="appDiscoveryService">The app discovery service.</param>
     /// <param name="bloatRemovalScriptContentModifier">The script content modifier.</param>
     /// <param name="bloatRemovalScriptTemplateProvider">The script template provider.</param>
+    /// <param name="scriptPathService">The script path service.</param>
     public ScriptUpdateService(
         ILogService logService,
         IAppDiscoveryService appDiscoveryService,
         IBloatRemovalScriptContentModifier bloatRemovalScriptContentModifier,
-        IBloatRemovalScriptTemplateProvider bloatRemovalScriptTemplateProvider
+        IBloatRemovalScriptTemplateProvider bloatRemovalScriptTemplateProvider,
+        IScriptPathService scriptPathService
     )
     {
         _logService = logService;
@@ -44,6 +47,7 @@ public class ScriptUpdateService : IScriptUpdateService
         _bloatRemovalScriptTemplateProvider =
             bloatRemovalScriptTemplateProvider
             ?? throw new ArgumentNullException(nameof(bloatRemovalScriptTemplateProvider));
+        _scriptPathService = scriptPathService ?? throw new ArgumentNullException(nameof(scriptPathService));
     }
 
     /// <inheritdoc/>
@@ -56,12 +60,7 @@ public class ScriptUpdateService : IScriptUpdateService
     {
         try
         {
-            string bloatRemovalScriptPath = Path.Combine(
-                Environment.GetFolderPath(Environment.SpecialFolder.ProgramFiles),
-                "Winhance",
-                "Scripts",
-                "BloatRemoval.ps1"
-            );
+            string bloatRemovalScriptPath = _scriptPathService.GetScriptPath("BloatRemoval");
 
             _logService.LogInformation(
                 $"Checking for BloatRemoval.ps1 at path: {bloatRemovalScriptPath}"
