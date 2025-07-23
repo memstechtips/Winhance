@@ -1,4 +1,5 @@
 using System.Windows.Controls;
+using Winhance.WPF.Features.SoftwareApps.ViewModels;
 
 namespace Winhance.WPF.Features.SoftwareApps.Views
 {
@@ -10,6 +11,11 @@ namespace Winhance.WPF.Features.SoftwareApps.Views
         public WindowsAppsHelpContent()
         {
             InitializeComponent();
+        }
+
+        public WindowsAppsHelpContent(WindowsAppsHelpContentViewModel viewModel) : this()
+        {
+            DataContext = viewModel;
         }
     }
 }

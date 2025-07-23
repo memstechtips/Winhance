@@ -572,8 +572,17 @@ namespace Winhance.WPF.Features.SoftwareApps.ViewModels
 
             if (IsWindowsAppsTabSelected)
             {
-                // Create the Windows Apps help content
-                var helpContent = new WindowsAppsHelpContent();
+                // Create the Windows Apps help content with ViewModel
+                var scriptPathService = _serviceProvider.GetRequiredService<IScriptPathService>();
+                var scheduledTaskService = _serviceProvider.GetRequiredService<IScheduledTaskService>();
+                var logService = _serviceProvider.GetRequiredService<ILogService>();
+                
+                var viewModel = new WindowsAppsHelpContentViewModel(
+                    scriptPathService,
+                    scheduledTaskService,
+                    logService);
+                
+                var helpContent = new WindowsAppsHelpContent(viewModel);
 
                 // Show the help content in a popup
                 HelpService.ShowHelp(helpContent, HelpButtonElement);

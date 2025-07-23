@@ -94,13 +94,120 @@
                             <TextBlock Text="Winhance Status:"
                                        Foreground="{DynamicResource PrimaryTextColor}"
                                        FontSize="13"
-                                       Margin="0,0,5,0"
+                                       Margin="0,0,10,0"
                                        VerticalAlignment="Center"/>
-                            <TextBlock Text="Active"
-                                       Foreground="#00A5FF"
-                                       FontSize="13"
-                                       FontWeight="SemiBold"
-                                       VerticalAlignment="Center"/>
+                            
+                            <!-- Removal Status Icons -->
+                            <ItemsControl ItemsSource="{Binding RemovalStatusContainer.RemovalStatusItems}">
+                                <ItemsControl.ItemsPanel>
+                                    <ItemsPanelTemplate>
+                                        <StackPanel Orientation="Horizontal"/>
+                                    </ItemsPanelTemplate>
+                                </ItemsControl.ItemsPanel>
+                                <ItemsControl.ItemTemplate>
+                                    <DataTemplate>
+                                        <Button Command="{Binding RemoveCommand}"
+                                                Background="Transparent"
+                                                BorderThickness="0"
+                                                Padding="2"
+                                                Margin="2,0"
+                                                ToolTip="{Binding Name}"
+                                                Cursor="Hand">
+                                            <Button.Style>
+                                                <Style TargetType="Button">
+                                                    <Setter Property="Template">
+                                                        <Setter.Value>
+                                                            <ControlTemplate TargetType="Button">
+                                                                <Border Background="{TemplateBinding Background}"
+                                                                        BorderBrush="{TemplateBinding BorderBrush}"
+                                                                        BorderThickness="{TemplateBinding BorderThickness}"
+                                                                        CornerRadius="2"
+                                                                        Padding="{TemplateBinding Padding}">
+                                                                    <ContentPresenter HorizontalAlignment="Center" VerticalAlignment="Center"/>
+                                                                </Border>
+                                                                <ControlTemplate.Triggers>
+                                                                    <Trigger Property="IsMouseOver" Value="True">
+                                                                        <Setter Property="Background" Value="{DynamicResource ButtonHoverBackground}"/>
+                                                                    </Trigger>
+                                                                </ControlTemplate.Triggers>
+                                                            </ControlTemplate>
+                                                        </Setter.Value>
+                                                    </Setter>
+                                                </Style>
+                                            </Button.Style>
+                                            
+                                            <Grid Width="16" Height="16">
+                                                <!-- Loading Spinner -->
+                                                <materialDesign:PackIcon Kind="Loading"
+                                                                         Width="12"
+                                                                         Height="12"
+                                                                         Foreground="{DynamicResource PrimaryTextColor}"
+                                                                         Opacity="0.7"
+                                                                         VerticalAlignment="Center"
+                                                                         HorizontalAlignment="Center"
+                                                                         Margin="0,4,0,0"
+                                                                         Visibility="{Binding IsLoading, Converter={StaticResource BooleanToVisibilityConverter}}">
+                                                    <materialDesign:PackIcon.RenderTransform>
+                                                        <RotateTransform/>
+                                                    </materialDesign:PackIcon.RenderTransform>
+                                                    <materialDesign:PackIcon.Triggers>
+                                                        <EventTrigger RoutedEvent="Loaded">
+                                                            <BeginStoryboard>
+                                                                <Storyboard RepeatBehavior="Forever">
+                                                                    <DoubleAnimation Storyboard.TargetProperty="RenderTransform.Angle"
+                                                                                     From="0" To="360" Duration="0:0:1"/>
+                                                                </Storyboard>
+                                                            </BeginStoryboard>
+                                                        </EventTrigger>
+                                                    </materialDesign:PackIcon.Triggers>
+                                                </materialDesign:PackIcon>
+                                                
+                                                <!-- Status Icon -->
+                                                <materialDesign:PackIcon Kind="{Binding IconKind}"
+                                                                         Width="16"
+                                                                         Height="16"
+                                                                         VerticalAlignment="Center"
+                                                                         HorizontalAlignment="Center">
+                                                    <materialDesign:PackIcon.Style>
+                                                        <Style TargetType="materialDesign:PackIcon">
+                                                            <!-- Default (inactive) state - greyed out -->
+                                                            <Setter Property="Foreground" Value="#808080"/>
+                                                            <Setter Property="Opacity" Value="0.5"/>
+                                                            <!-- Hide when loading -->
+                                                            <Setter Property="Visibility" Value="Visible"/>
+                                                            <Style.Triggers>
+                                                                <DataTrigger Binding="{Binding IsLoading}" Value="True">
+                                                                    <Setter Property="Visibility" Value="Hidden"/>
+                                                                </DataTrigger>
+                                                                <!-- Active state - show brand colors -->
+                                                                <DataTrigger Binding="{Binding IsActive}" Value="True">
+                                                                    <Setter Property="Foreground" Value="{Binding ActiveColor}"/>
+                                                                    <Setter Property="Opacity" Value="1.0"/>
+                                                                </DataTrigger>
+                                                                <!-- Special handling for Edge gradient effect -->
+                                                                <MultiDataTrigger>
+                                                                    <MultiDataTrigger.Conditions>
+                                                                        <Condition Binding="{Binding IsActive}" Value="True"/>
+                                                                        <Condition Binding="{Binding Name}" Value="Microsoft Edge"/>
+                                                                    </MultiDataTrigger.Conditions>
+                                                                    <Setter Property="Foreground">
+                                                                        <Setter.Value>
+                                                                            <LinearGradientBrush StartPoint="0,0" EndPoint="1,1">
+                                                                                <GradientStop Color="#00FF3C" Offset="0"/>
+                                                                                <GradientStop Color="#0078D4" Offset="1"/>
+                                                                            </LinearGradientBrush>
+                                                                        </Setter.Value>
+                                                                    </Setter>
+                                                                </MultiDataTrigger>
+                                                            </Style.Triggers>
+                                                        </Style>
+                                                    </materialDesign:PackIcon.Style>
+                                                </materialDesign:PackIcon>
+                                            </Grid>
+                                        </Button>
+                                    </DataTemplate>
+                                </ItemsControl.ItemTemplate>
+                            </ItemsControl>
                         </StackPanel>
                     </StackPanel>
                 </StackPanel>
