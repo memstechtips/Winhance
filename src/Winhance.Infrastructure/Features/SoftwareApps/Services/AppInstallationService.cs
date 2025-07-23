@@ -114,8 +114,8 @@ public class AppInstallationService
                 return OperationResult<bool>.Failed(errorMessage, false);
             }
 
-            // Set up a periodic internet connectivity check
-            var connectivityCheckTimer = new System.Timers.Timer(5000); // Check every 5 seconds
+            // Set up optimized connectivity monitoring for installation (fast performance)
+            var connectivityCheckTimer = new System.Timers.Timer(15000); // Check every 15 seconds for fast performance
             bool installationCancelled = false;
 
             connectivityCheckTimer.Elapsed += async (s, e) =>
@@ -156,7 +156,7 @@ public class AppInstallationService
                 }
             };
 
-            // Start the connectivity check timer
+            // Start the optimized connectivity check timer
             connectivityCheckTimer.Start();
             bool success = false;
 

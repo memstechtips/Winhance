@@ -169,34 +169,64 @@ public class CapabilityInstallationService : BaseInstallationService<CapabilityI
             // Get the friendly name of the capability from the catalog
             string friendlyName = GetFriendlyName(capabilityName);
             
-            // Set a more descriptive initial status using the friendly name
+            // Set a more descriptive initial status using the friendly name with download expectation
             progress?.Report(
                 new TaskProgressDetail
                 {
                     Progress = 0,
-                    StatusText = $"Enabling {friendlyName}...",
-                    DetailedMessage = $"Starting to enable capability: {capabilityName}",
+                    StatusText = $"Enabling {friendlyName}... Files are being downloaded via Windows Update, this process could take 15 minutes or more, please wait...",
+                    DetailedMessage = $"Starting to enable capability: {capabilityName}. This may require downloading files from Microsoft servers.",
                 }
             );
 
             _logService.LogInformation($"Attempting to enable capability: {capabilityName}");
             
-            // Create a progress handler that overrides the generic "Operation: Running" text
+            // Create an optimized progress handler that reduces reporting frequency for long operations
+            DateTime lastProgressReport = DateTime.MinValue;
             var progressHandler = new Progress<TaskProgressDetail>(detail => {
+                // Throttle progress updates for responsive UI while maintaining performance
+                var now = DateTime.Now;
+                bool shouldReport = (now - lastProgressReport).TotalSeconds >= 3; // Report every 3 seconds for fast performance
+                
+                // Always report significant progress changes or completion
+                if (detail.Progress.HasValue && (detail.Progress >= 100 || detail.Progress == 0))
+                    shouldReport = true;
+                
+                if (!shouldReport) return;
+                
+                lastProgressReport = now;
+                
                 // If we get a generic "Operation: Running" status, replace it with our more descriptive one
                 if (detail.StatusText != null && detail.StatusText.StartsWith("Operation:"))
                 {
-                    // Keep the percentage but replace the generic text with the friendly name
-                    detail.StatusText = $"Enabling {friendlyName}...";
-                    if (detail.Progress.HasValue)
+                    // Keep the percentage but replace the generic text with informative message
+                    if (detail.Progress.HasValue && detail.Progress > 0)
                     {
-                        detail.StatusText = $"Enabling {friendlyName}... ({detail.Progress:F0}%)";
+                        detail.StatusText = $"Enabling {friendlyName}... ({detail.Progress:F0}%) - Files are being downloaded via Windows Update, this process could take 15 minutes or more, please wait...";
+                    }
+                    else
+                    {
+                        detail.StatusText = $"Enabling {friendlyName}... Files are being downloaded via Windows Update, this process could take 15 minutes or more, please wait...";
                     }
                 }
                 
                 // Forward the updated progress to the original progress reporter
                 progress?.Report(detail);
             });
+
+            // First check if capability is available offline to optimize performance
+            bool isOfflineAvailable = await IsCapabilityAvailableOfflineAsync(capabilityName);
+            if (!isOfflineAvailable)
+            {
+                _logService.LogInformation($"Capability {capabilityName} requires online download, this may take 15+ minutes");
+                progress?.Report(new TaskProgressDetail
+                {
+                    Progress = 5,
+                    StatusText = $"Downloading {friendlyName} from Windows Update... This process could take 15 minutes or more, please wait...",
+                    DetailedMessage = "This capability requires download from Microsoft servers and may take significant time to complete.",
+                    LogLevel = LogLevel.Info
+                });
+            }
 
             // Define the PowerShell script - Embed capabilityName, output parseable string
             // Output format: STATUS|Message|RebootRequired (e.g., SUCCESS|Installed 1 of 1|True)
@@ -280,12 +310,12 @@ public class CapabilityInstallationService : BaseInstallationService<CapabilityI
 
                      if (status.Equals("SUCCESS", StringComparison.OrdinalIgnoreCase))
                      {
-                         progress?.Report(new TaskProgressDetail
-                         {
-                             Progress = 100,
-                             StatusText = $"Successfully enabled {GetFriendlyName(capabilityName)}",
-                             DetailedMessage = message
-                         });
+                          progress?.Report(new TaskProgressDetail
+                          {
+                              Progress = 100,
+                              StatusText = $"Successfully enabled {GetFriendlyName(capabilityName)}! Thank you for waiting.",
+                              DetailedMessage = $"{message} The Windows Update download and installation process is now complete."
+                          });
                          _logService.LogSuccess($"Successfully enabled capability: {capabilityName}. {message}");
 
                          if (rebootRequired)
@@ -324,9 +354,24 @@ public class CapabilityInstallationService : BaseInstallationService<CapabilityI
             else
             {
                  // Handle case where script returned empty string
-                 _logService.LogError($"Empty result returned when enabling capability: {capabilityName}");
-                 progress?.Report(new TaskProgressDetail { StatusText = "Script returned no result", LogLevel = LogLevel.Error });
-                 return OperationResult<bool>.Failed("Script returned no result"); // Indicate failure with message
+                 // Check if this is due to cancellation
+                 if (cancellationToken.IsCancellationRequested)
+                 {
+                     _logService.LogWarning($"Capability installation was cancelled: {capabilityName}");
+                     progress?.Report(new TaskProgressDetail 
+                     { 
+                         StatusText = $"Installation of {GetFriendlyName(capabilityName)} was cancelled", 
+                         DetailedMessage = "The installation was cancelled by the user",
+                         LogLevel = LogLevel.Warning 
+                     });
+                     return OperationResult<bool>.Failed("The installation was cancelled by the user");
+                 }
+                 else
+                 {
+                     _logService.LogError($"Empty result returned when enabling capability: {capabilityName}");
+                     progress?.Report(new TaskProgressDetail { StatusText = "Script returned no result", LogLevel = LogLevel.Error });
+                     return OperationResult<bool>.Failed("Script returned no result"); // Indicate failure with message
+                 }
             }
         }
         catch (OperationCanceledException)
@@ -335,13 +380,27 @@ public class CapabilityInstallationService : BaseInstallationService<CapabilityI
                 new TaskProgressDetail
                 {
                     Progress = 0,
-                    StatusText = $"Operation cancelled when enabling {GetFriendlyName(capabilityName)}",
-                    DetailedMessage = "The operation was cancelled by the user",
+                    StatusText = $"Cancelling {GetFriendlyName(capabilityName)} installation...",
+                    DetailedMessage = "Stopping Windows Update and system processes, please wait...",
                     LogLevel = LogLevel.Warning,
                 }
             );
 
             _logService.LogWarning($"Operation cancelled when enabling capability: {capabilityName}");
+            
+            // Attempt to stop related Windows processes that may still be running
+            await StopCapabilityInstallationProcessesAsync(capabilityName, progress);
+            
+            progress?.Report(
+                new TaskProgressDetail
+                {
+                    Progress = 0,
+                    StatusText = $"Operation cancelled when enabling {GetFriendlyName(capabilityName)}",
+                    DetailedMessage = "The operation was cancelled and system processes have been stopped",
+                    LogLevel = LogLevel.Warning,
+                }
+            );
+            
             return OperationResult<bool>.Failed("The operation was cancelled by the user"); // Return cancellation result
         }
         catch (Exception ex)
@@ -400,6 +459,150 @@ public class CapabilityInstallationService : BaseInstallationService<CapabilityI
        // ... (Implementation needs fixing similar to InstallCapabilityAsync)
     }
     */
+
+    /// <summary>
+    /// Checks if a capability is available offline (cached locally) to avoid network delays.
+    /// </summary>
+    /// <param name="capabilityName">The capability name to check.</param>
+    /// <returns>True if the capability is available offline, false if it requires download.</returns>
+    private async Task<bool> IsCapabilityAvailableOfflineAsync(string capabilityName)
+    {
+        try
+        {
+            // Quick check using DISM to see if capability source is local
+            string checkScript = $@"
+                try {{
+                    $capability = Get-WindowsCapability -Online | Where-Object {{ $_.Name -like '{capabilityName}*' }} | Select-Object -First 1
+                    if ($capability) {{
+                        # Check if it's already installed (fastest case)
+                        if ($capability.State -eq 'Installed') {{
+                            return 'ALREADY_INSTALLED'
+                        }}
+                        # For uninstalled capabilities, assume they need download for safety
+                        # In future versions, we could check Windows\WinSxS or other local sources
+                        return 'REQUIRES_DOWNLOAD'
+                    }} else {{
+                        return 'NOT_FOUND'
+                    }}
+                }} catch {{
+                    return 'ERROR'
+                }}
+            ";
+
+            var result = await _powerShellService.ExecuteScriptAsync(checkScript);
+            
+            // If already installed, it's "offline available" in the sense that no download is needed
+            if (result?.Trim() == "ALREADY_INSTALLED")
+            {
+                return true;
+            }
+            
+            // For now, assume most capabilities require download
+            // This could be enhanced with more sophisticated local cache checking
+            return false;
+        }
+        catch (Exception ex)
+        {
+            _logService.LogWarning($"Could not determine offline availability for {capabilityName}: {ex.Message}");
+            return false; // Assume download required on error
+        }
+    }
+
+    /// <summary>
+    /// Attempts to stop Windows system processes related to capability installation.
+    /// </summary>
+    /// <param name="capabilityName">The capability being installed.</param>
+    /// <param name="progress">Progress reporter for user feedback.</param>
+    /// <returns>Task representing the async operation.</returns>
+    private async Task StopCapabilityInstallationProcessesAsync(string capabilityName, IProgress<TaskProgressDetail>? progress)
+    {
+        try
+        {
+            _logService.LogInformation($"Attempting to stop Windows processes for cancelled capability installation: {capabilityName}");
+            
+            // PowerShell script to stop Windows capability installation processes
+            string stopScript = @"
+                try {
+                    Write-Information 'Stopping Windows capability installation processes...'
+                    
+                    # Stop Windows Modules Installer processes (TiWorker.exe)
+                    $tiWorkerProcesses = Get-Process -Name 'TiWorker' -ErrorAction SilentlyContinue
+                    foreach ($process in $tiWorkerProcesses) {
+                        try {
+                            Write-Information ""Stopping TiWorker process (PID: $($process.Id))""
+                            $process.Kill()
+                            Write-Information ""Successfully stopped TiWorker process""
+                        } catch {
+                            Write-Warning ""Failed to stop TiWorker process: $($_.Exception.Message)""
+                        }
+                    }
+                    
+                    # Stop DISM processes that might be running
+                    $dismProcesses = Get-Process -Name 'Dism*' -ErrorAction SilentlyContinue
+                    foreach ($process in $dismProcesses) {
+                        try {
+                            Write-Information ""Stopping DISM process: $($process.Name) (PID: $($process.Id))""
+                            $process.Kill()
+                            Write-Information ""Successfully stopped DISM process""
+                        } catch {
+                            Write-Warning ""Failed to stop DISM process: $($_.Exception.Message)""
+                        }
+                    }
+                    
+                    # Stop any PowerShell processes that might be hanging
+                    $currentPid = $PID
+                    $powershellProcesses = Get-Process -Name 'powershell*' -ErrorAction SilentlyContinue | Where-Object { $_.Id -ne $currentPid }
+                    foreach ($process in $powershellProcesses) {
+                        try {
+                            # Check if this PowerShell process is related to capability installation
+                            $commandLine = (Get-WmiObject Win32_Process -Filter ""ProcessId = $($process.Id)"" -ErrorAction SilentlyContinue).CommandLine
+                            if ($commandLine -and ($commandLine -like '*Add-WindowsCapability*' -or $commandLine -like '*Get-WindowsCapability*')) {
+                                Write-Information ""Stopping capability-related PowerShell process (PID: $($process.Id))""
+                                $process.Kill()
+                                Write-Information ""Successfully stopped PowerShell process""
+                            }
+                        } catch {
+                            Write-Warning ""Failed to stop PowerShell process: $($_.Exception.Message)""
+                        }
+                    }
+                    
+                    # Try to cancel any pending Windows Update operations
+                    try {
+                        Write-Information 'Attempting to stop Windows Update Service temporarily...'
+                        Stop-Service -Name 'wuauserv' -Force -ErrorAction SilentlyContinue
+                        Start-Sleep -Seconds 2
+                        Start-Service -Name 'wuauserv' -ErrorAction SilentlyContinue
+                        Write-Information 'Windows Update Service restarted'
+                    } catch {
+                        Write-Warning ""Failed to restart Windows Update Service: $($_.Exception.Message)""
+                    }
+                    
+                    Write-Information 'Process cleanup completed'
+                    return 'SUCCESS|Process cleanup completed'
+                } catch {
+                    Write-Error ""Error during process cleanup: $($_.Exception.Message)""
+                    return ""PARTIAL|Some processes may still be running: $($_.Exception.Message)""
+                }
+            ";
+            
+            // Execute the cleanup script
+            var result = await _powerShellService.ExecuteScriptAsync(stopScript);
+            
+            if (result?.Contains("SUCCESS") == true)
+            {
+                _logService.LogInformation("Successfully stopped Windows capability installation processes");
+            }
+            else
+            {
+                _logService.LogWarning($"Process cleanup completed with warnings: {result}");
+            }
+        }
+        catch (Exception ex)
+        {
+            _logService.LogError($"Error stopping Windows capability installation processes: {ex.Message}", ex);
+            // Don't throw - this is cleanup, we don't want to mask the original cancellation
+        }
+    }
 
     /// <summary>
     /// Gets the friendly name of a capability from its package name.

@@ -347,12 +347,23 @@ namespace Winhance.Infrastructure.Features.Common.Services
         }
         
         /// <summary>
+        /// Starts monitoring internet connectivity during installation with optimized intervals.
+        /// </summary>
+        /// <param name="cancellationToken">Cancellation token to stop monitoring.</param>
+        /// <returns>A task representing the monitoring operation.</returns>
+        public async Task StartInstallationMonitoringAsync(CancellationToken cancellationToken = default)
+        {
+            // Use optimized intervals for fast performance during installation
+            await StartMonitoringAsync(15, cancellationToken); // 15 second intervals for fast performance
+        }
+
+        /// <summary>
         /// Starts monitoring internet connectivity at the specified interval.
         /// </summary>
         /// <param name="intervalSeconds">The interval in seconds between connectivity checks.</param>
         /// <param name="cancellationToken">Cancellation token to stop monitoring.</param>
         /// <returns>A task representing the monitoring operation.</returns>
-        public async Task StartMonitoringAsync(int intervalSeconds = 5, CancellationToken cancellationToken = default)
+        public async Task StartMonitoringAsync(int intervalSeconds = 15, CancellationToken cancellationToken = default)
         {
             if (_isMonitoring)
             {

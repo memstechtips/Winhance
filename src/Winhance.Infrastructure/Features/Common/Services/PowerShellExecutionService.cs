@@ -58,6 +58,17 @@ namespace Winhance.Infrastructure.Features.Common.Services
                 try
                 {
                     cancellationToken.ThrowIfCancellationRequested();
+                    
+                    // Register cancellation callback to stop PowerShell execution
+                    using var cancellationRegistration = cancellationToken.Register(() => {
+                        try {
+                            _logService.LogInformation("Cancellation requested - stopping PowerShell execution");
+                            powerShell.Stop();
+                        } catch (Exception ex) {
+                            _logService.LogWarning($"Error stopping PowerShell execution: {ex.Message}");
+                        }
+                    });
+                    
                     var invokeResult = powerShell.Invoke();
                     var resultText = string.Join(Environment.NewLine, 
                         invokeResult.Select(item => item.ToString()));

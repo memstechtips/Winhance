@@ -893,7 +893,8 @@ namespace Winhance.WPF.Features.SoftwareApps.ViewModels
                     { /* Expected when we cancel */
                     }
 
-                    if (operationResult.Success)
+                    // Only mark as successful if the operation actually succeeded
+                    if (operationResult.Success && operationResult.Result)
                     {
                         app.IsInstalled = true;
                         StatusText = $"Successfully installed {app.Name}";
@@ -911,18 +912,45 @@ namespace Winhance.WPF.Features.SoftwareApps.ViewModels
                         string errorMessage =
                             operationResult.ErrorMessage
                             ?? $"Failed to install {app.Name}. Please try again.";
-                        StatusText = errorMessage;
-
-                        // Store the error message for later reference
-                        app.LastOperationError = errorMessage;
-
-                        // Show error dialog
-                        _dialogService.ShowInformationAsync(
-                            "Installation Failed",
-                            $"Failed to install {app.Name}.",
-                            new[] { $"{app.Name}: {errorMessage}" },
-                            "There was an error during installation. Please try again later."
+                        
+                        // Check if this is a cancellation rather than a failure
+                        // Handle multiple cancellation message patterns from different services
+                        bool isCancellation = errorMessage != null && (
+                            errorMessage.Contains("cancelled by the user", StringComparison.OrdinalIgnoreCase) ||
+                            errorMessage.Contains("cancelled by user", StringComparison.OrdinalIgnoreCase) ||
+                            errorMessage.Contains("operation was canceled", StringComparison.OrdinalIgnoreCase) ||
+                            errorMessage.Contains("operation was cancelled", StringComparison.OrdinalIgnoreCase) ||
+                            errorMessage.Contains("script returned no result", StringComparison.OrdinalIgnoreCase)
                         );
+                        
+                        if (isCancellation)
+                        {
+                            // Set cancellation reason to user cancelled
+                            CurrentCancellationReason = CancellationReason.UserCancelled;
+                            
+                            StatusText = $"Installation of {app.Name} was cancelled";
+                            
+                            // Show cancellation dialog
+                            await ShowCancellationDialogAsync(true, false); // User-initiated cancellation
+                            
+                            // Reset cancellation reason after showing dialog
+                            CurrentCancellationReason = CancellationReason.None;
+                        }
+                        else
+                        {
+                            StatusText = errorMessage;
+                            
+                            // Store the error message for later reference
+                            app.LastOperationError = errorMessage;
+
+                            // Show error dialog
+                            _dialogService.ShowInformationAsync(
+                                "Installation Failed",
+                                $"Failed to install {app.Name}.",
+                                new[] { $"{app.Name}: {errorMessage}" },
+                                "There was an error during installation. Please try again later."
+                            );
+                        }
                     }
                 }
                 catch (OperationCanceledException)
@@ -1245,7 +1273,8 @@ namespace Winhance.WPF.Features.SoftwareApps.ViewModels
                                     cancellationToken
                                 );
 
-                                if (operationResult.Success)
+                                // Only mark as successful if the operation actually succeeded
+                                if (operationResult.Success && operationResult.Result)
                                 {
                                     app.IsInstalled = true;
                                     successCount++;
@@ -1276,28 +1305,65 @@ namespace Winhance.WPF.Features.SoftwareApps.ViewModels
                                         operationResult.ErrorMessage
                                         ?? $"Failed to install {app.Name}";
 
-                                    // Store the error message for later reference
-                                    app.LastOperationError = errorMessage;
-
-                                    progress.Report(
-                                        new TaskProgressDetail
-                                        {
-                                            Progress = (currentItem * 100.0) / totalSelected,
-                                            StatusText = $"Error installing {app.Name}",
-                                            DetailedMessage = errorMessage,
-                                            LogLevel = LogLevel.Error,
-                                            AdditionalInfo = new Dictionary<string, string>
-                                            {
-                                                { "AppName", app.Name },
-                                                { "PackageName", app.PackageName },
-                                                { "OperationType", "Install" },
-                                                { "OperationStatus", "Error" },
-                                                { "ErrorMessage", errorMessage },
-                                                { "ItemNumber", currentItem.ToString() },
-                                                { "TotalItems", totalSelected.ToString() },
-                                            },
-                                        }
+                                    // Check if this is a cancellation rather than a failure
+                                    // Handle multiple cancellation message patterns from different services
+                                    bool isCancellation = errorMessage != null && (
+                                        errorMessage.Contains("cancelled by the user", StringComparison.OrdinalIgnoreCase) ||
+                                        errorMessage.Contains("cancelled by user", StringComparison.OrdinalIgnoreCase) ||
+                                        errorMessage.Contains("operation was canceled", StringComparison.OrdinalIgnoreCase) ||
+                                        errorMessage.Contains("operation was cancelled", StringComparison.OrdinalIgnoreCase) ||
+                                        errorMessage.Contains("script returned no result", StringComparison.OrdinalIgnoreCase)
                                     );
+                                    
+                                    if (isCancellation)
+                                    {
+                                        // Set cancellation reason to user cancelled
+                                        CurrentCancellationReason = CancellationReason.UserCancelled;
+                                        
+                                        progress.Report(
+                                            new TaskProgressDetail
+                                            {
+                                                Progress = (currentItem * 100.0) / totalSelected,
+                                                StatusText = $"Installation of {app.Name} was cancelled",
+                                                DetailedMessage = $"Installation of app {app.Name} was cancelled",
+                                                LogLevel = LogLevel.Warning,
+                                                AdditionalInfo = new Dictionary<string, string>
+                                                {
+                                                    { "AppName", app.Name },
+                                                    { "PackageName", app.PackageName },
+                                                    { "OperationType", "Install" },
+                                                    { "OperationStatus", "Cancelled" },
+                                                    { "ItemNumber", currentItem.ToString() },
+                                                    { "TotalItems", totalSelected.ToString() },
+                                                },
+                                            }
+                                        );
+                                    }
+                                    else
+                                    {
+                                        // Store the error message for later reference
+                                        app.LastOperationError = errorMessage;
+
+                                        progress.Report(
+                                            new TaskProgressDetail
+                                            {
+                                                Progress = (currentItem * 100.0) / totalSelected,
+                                                StatusText = $"Error installing {app.Name}",
+                                                DetailedMessage = errorMessage,
+                                                LogLevel = LogLevel.Error,
+                                                AdditionalInfo = new Dictionary<string, string>
+                                                {
+                                                    { "AppName", app.Name },
+                                                    { "PackageName", app.PackageName },
+                                                    { "OperationType", "Install" },
+                                                    { "OperationStatus", "Error" },
+                                                    { "ErrorMessage", errorMessage },
+                                                    { "ItemNumber", currentItem.ToString() },
+                                                    { "TotalItems", totalSelected.ToString() },
+                                                },
+                                            }
+                                        );
+                                    }
                                 }
                             }
                             catch (OperationCanceledException)

@@ -29,12 +29,19 @@ namespace Winhance.Core.Features.Common.Interfaces
         event EventHandler<ConnectivityChangedEventArgs> ConnectivityChanged;
         
         /// <summary>
-        /// Starts monitoring internet connectivity at the specified interval.
+        /// Starts monitoring internet connectivity during installation with optimized intervals.
         /// </summary>
-        /// <param name="intervalSeconds">The interval in seconds between connectivity checks.</param>
         /// <param name="cancellationToken">Cancellation token to stop monitoring.</param>
         /// <returns>A task representing the monitoring operation.</returns>
-        Task StartMonitoringAsync(int intervalSeconds = 5, CancellationToken cancellationToken = default);
+        Task StartInstallationMonitoringAsync(CancellationToken cancellationToken = default);
+
+        /// <summary>
+        /// Starts monitoring internet connectivity at the specified interval.
+        /// </summary>
+        /// <param name="intervalSeconds">The interval in seconds between connectivity checks (default: 15 seconds for fast performance).</param>
+        /// <param name="cancellationToken">Cancellation token to stop monitoring.</param>
+        /// <returns>A task representing the monitoring operation.</returns>
+        Task StartMonitoringAsync(int intervalSeconds = 15, CancellationToken cancellationToken = default);
         
         /// <summary>
         /// Stops monitoring internet connectivity.

@@ -2115,24 +2115,51 @@ namespace Winhance.WPF.Features.SoftwareApps.ViewModels
                                     result.ErrorMessage
                                     ?? "Unknown error occurred during installation";
 
-                                // Check if it's an internet connectivity issue
-                                if (
-                                    errorMessage.Contains("internet")
-                                    || errorMessage.Contains("connection")
-                                )
-                                {
-                                    errorMessage =
-                                        $"No internet connection available. Please check your network connection and try again.";
-                                }
-
-                                progress.Report(
-                                    new TaskProgressDetail
-                                    {
-                                        DetailedMessage =
-                                            $"Failed to install {app.Name}: {errorMessage}",
-                                        LogLevel = LogLevel.Error,
-                                    }
+                                // Check if this is a cancellation rather than a failure
+                                // Handle multiple cancellation message patterns from different services
+                                bool isCancellation = errorMessage != null && (
+                                    errorMessage.Contains("cancelled by the user", StringComparison.OrdinalIgnoreCase) ||
+                                    errorMessage.Contains("cancelled by user", StringComparison.OrdinalIgnoreCase) ||
+                                    errorMessage.Contains("operation was canceled", StringComparison.OrdinalIgnoreCase) ||
+                                    errorMessage.Contains("operation was cancelled", StringComparison.OrdinalIgnoreCase) ||
+                                    errorMessage.Contains("script returned no result", StringComparison.OrdinalIgnoreCase)
                                 );
+                                
+                                if (isCancellation)
+                                {
+                                    // Set cancellation reason to user cancelled
+                                    CurrentCancellationReason = CancellationReason.UserCancelled;
+                                    
+                                    progress.Report(
+                                        new TaskProgressDetail
+                                        {
+                                            DetailedMessage =
+                                                $"Installation of {app.Name} was cancelled",
+                                            LogLevel = LogLevel.Warning,
+                                        }
+                                    );
+                                }
+                                else
+                                {
+                                    // Check if it's an internet connectivity issue
+                                    if (
+                                        errorMessage.Contains("internet")
+                                        || errorMessage.Contains("connection")
+                                    )
+                                    {
+                                        errorMessage =
+                                            $"No internet connection available. Please check your network connection and try again.";
+                                    }
+
+                                    progress.Report(
+                                        new TaskProgressDetail
+                                        {
+                                            DetailedMessage =
+                                                $"Failed to install {app.Name}: {errorMessage}",
+                                            LogLevel = LogLevel.Error,
+                                        }
+                                    );
+                                }
                             }
                         }
                         catch (System.Exception ex)
@@ -2171,22 +2198,62 @@ namespace Winhance.WPF.Features.SoftwareApps.ViewModels
 
                         try
                         {
-                            await _capabilityService.InstallCapabilityAsync(
+                            var result = await _capabilityService.InstallCapabilityAsync(
                                 capability.ToCapabilityInfo(),
                                 progress,
                                 cancellationToken
                             );
-                            capability.IsInstalled = true;
-                            successCount++;
+                            
+                            // Only mark as successful if the operation actually succeeded
+                            if (result.Success && result.Result)
+                            {
+                                capability.IsInstalled = true;
+                                successCount++;
 
-                            progress.Report(
-                                new TaskProgressDetail
+                                progress.Report(
+                                    new TaskProgressDetail
+                                    {
+                                        DetailedMessage =
+                                            $"Successfully installed capability {capability.Name}",
+                                        LogLevel = LogLevel.Success,
+                                    }
+                                );
+                            }
+                            else
+                            {
+                                // Check if this is a cancellation rather than a failure
+                                // Handle multiple cancellation message patterns from different services
+                                bool isCancellation = result.ErrorMessage != null && (
+                                    result.ErrorMessage.Contains("cancelled by the user", StringComparison.OrdinalIgnoreCase) ||
+                                    result.ErrorMessage.Contains("operation was canceled", StringComparison.OrdinalIgnoreCase) ||
+                                    result.ErrorMessage.Contains("script returned no result", StringComparison.OrdinalIgnoreCase)
+                                );
+                                
+                                if (isCancellation)
                                 {
-                                    DetailedMessage =
-                                        $"Successfully installed capability {capability.Name}",
-                                    LogLevel = LogLevel.Success,
+                                    // Set cancellation reason to user cancelled
+                                    CurrentCancellationReason = CancellationReason.UserCancelled;
+                                    
+                                    progress.Report(
+                                        new TaskProgressDetail
+                                        {
+                                            DetailedMessage = $"Installation of capability {capability.Name} was cancelled",
+                                            LogLevel = LogLevel.Warning,
+                                        }
+                                    );
                                 }
-                            );
+                                else
+                                {
+                                    progress.Report(
+                                        new TaskProgressDetail
+                                        {
+                                            DetailedMessage =
+                                                $"Failed to install capability {capability.Name}: {result.ErrorMessage ?? "Unknown error"}",
+                                            LogLevel = LogLevel.Error,
+                                        }
+                                    );
+                                }
+                            }
                         }
                         catch (System.Exception ex)
                         {
@@ -2224,22 +2291,62 @@ namespace Winhance.WPF.Features.SoftwareApps.ViewModels
 
                         try
                         {
-                            await _featureService.InstallFeatureAsync(
+                            var result = await _featureService.InstallFeatureAsync(
                                 feature.ToFeatureInfo(),
                                 progress,
                                 cancellationToken
                             );
-                            feature.IsInstalled = true;
-                            successCount++;
+                            
+                            // Only mark as successful if the operation actually succeeded
+                            if (result.Success && result.Result)
+                            {
+                                feature.IsInstalled = true;
+                                successCount++;
 
-                            progress.Report(
-                                new TaskProgressDetail
+                                progress.Report(
+                                    new TaskProgressDetail
+                                    {
+                                        DetailedMessage =
+                                            $"Successfully installed feature {feature.Name}",
+                                        LogLevel = LogLevel.Success,
+                                    }
+                                );
+                            }
+                            else
+                            {
+                                // Check if this is a cancellation rather than a failure
+                                // Handle multiple cancellation message patterns from different services
+                                bool isCancellation = result.ErrorMessage != null && (
+                                    result.ErrorMessage.Contains("cancelled by the user", StringComparison.OrdinalIgnoreCase) ||
+                                    result.ErrorMessage.Contains("operation was canceled", StringComparison.OrdinalIgnoreCase) ||
+                                    result.ErrorMessage.Contains("script returned no result", StringComparison.OrdinalIgnoreCase)
+                                );
+                                
+                                if (isCancellation)
                                 {
-                                    DetailedMessage =
-                                        $"Successfully installed feature {feature.Name}",
-                                    LogLevel = LogLevel.Success,
+                                    // Set cancellation reason to user cancelled
+                                    CurrentCancellationReason = CancellationReason.UserCancelled;
+                                    
+                                    progress.Report(
+                                        new TaskProgressDetail
+                                        {
+                                            DetailedMessage = $"Installation of feature {feature.Name} was cancelled",
+                                            LogLevel = LogLevel.Warning,
+                                        }
+                                    );
                                 }
-                            );
+                                else
+                                {
+                                    progress.Report(
+                                        new TaskProgressDetail
+                                        {
+                                            DetailedMessage =
+                                                $"Failed to install feature {feature.Name}: {result.ErrorMessage ?? "Unknown error"}",
+                                            LogLevel = LogLevel.Error,
+                                        }
+                                    );
+                                }
+                            }
                         }
                         catch (System.Exception ex)
                         {
