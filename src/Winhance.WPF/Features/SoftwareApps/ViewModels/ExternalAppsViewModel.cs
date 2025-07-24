@@ -93,6 +93,18 @@ namespace Winhance.WPF.Features.SoftwareApps.ViewModels
 
         [ObservableProperty]
         private bool _isAllSelected = false;
+        
+        /// <summary>
+        /// Current sort property for table view
+        /// </summary>
+        [ObservableProperty]
+        private string _currentSortProperty = "Name";
+        
+        /// <summary>
+        /// Current sort direction for table view
+        /// </summary>
+        [ObservableProperty]
+        private ListSortDirection _sortDirection = ListSortDirection.Ascending;
 
         private readonly IAppInstallationService _appInstallationService;
         private readonly IAppService _appDiscoveryService;
@@ -103,6 +115,10 @@ namespace Winhance.WPF.Features.SoftwareApps.ViewModels
         private readonly IAppInstallationCoordinatorService _appInstallationCoordinatorService;
         private readonly IInternetConnectivityService _connectivityService;
         private readonly SoftwareAppsDialogService _dialogService;
+        
+        // Optimized services for performance
+        private readonly OptimizedCollectionManager<ExternalApp, OptimizedExternalAppWrapper> _collectionManager;
+        private readonly DebouncedSearchService _debouncedSearchService;
         
         /// <summary>
         /// Event raised when selected items change to notify parent view models
@@ -115,35 +131,12 @@ namespace Winhance.WPF.Features.SoftwareApps.ViewModels
         /// <summary>
         /// Gets the collection view for all items in the table view
         /// </summary>
-        public ICollectionView AllItemsView
+        public ICollectionView AllItemsView 
         {
-            get
+            get 
             {
-                // Ensure the collection view is initialized
-                if (_allItemsView == null)
-                {
-                    // Initialize the collection if needed
-                    if (_allItems == null)
-                    {
-                        _allItems = new ObservableCollection<ExternalAppWithTableInfo>();
-                    }
-                    
-                    _allItemsView = CollectionViewSource.GetDefaultView(_allItems);
-                    
-                    // Set default sort by Name
-                    if (!_allItemsView.SortDescriptions.Any())
-                    {
-                        _allItemsView.SortDescriptions.Add(new SortDescription("Name", ListSortDirection.Ascending));
-                    }
-                    
-                    // If we have categories loaded, populate the collection
-                    if (Categories.Count > 0)
-                    {
-                        UpdateAllItemsCollection();
-                    }
-                }
-                
-                return _allItemsView;
+                var collectionView = _collectionManager?.CollectionView;
+                return collectionView;
             }
         }
 
@@ -237,26 +230,42 @@ namespace Winhance.WPF.Features.SoftwareApps.ViewModels
         /// Command to sort the table view by the specified property
         /// </summary>
         [RelayCommand]
-        private void SortBy(string propertyName)
+        public void SortBy(string propertyName)
         {
-            if (string.IsNullOrEmpty(propertyName) || _allItemsView == null)
+            if (string.IsNullOrEmpty(propertyName))
                 return;
-
-            // Get the current sort direction
-            ListSortDirection direction = ListSortDirection.Ascending;
-            
-            // If already sorting by this property, toggle the direction
-            if (_allItemsView.SortDescriptions.Count > 0 && 
-                _allItemsView.SortDescriptions[0].PropertyName == propertyName)
+                
+            // If clicking the same column, toggle sort direction
+            if (propertyName == CurrentSortProperty)
             {
-                direction = _allItemsView.SortDescriptions[0].Direction == ListSortDirection.Ascending
-                    ? ListSortDirection.Descending
+                SortDirection = SortDirection == ListSortDirection.Ascending 
+                    ? ListSortDirection.Descending 
                     : ListSortDirection.Ascending;
             }
-
-            // Clear existing sort descriptions and add the new one
-            _allItemsView.SortDescriptions.Clear();
-            _allItemsView.SortDescriptions.Add(new SortDescription(propertyName, direction));
+            else
+            {
+                // New column, set as current and default to ascending
+                CurrentSortProperty = propertyName;
+                SortDirection = ListSortDirection.Ascending;
+            }
+            
+            // Apply the optimized sorting
+            ApplyOptimizedSorting();
+        }
+        
+        /// <summary>
+        /// Applies optimized filtering using debounced search service
+        /// </summary>
+        private void ApplyOptimizedFilter()
+        {
+            if (_collectionManager == null || _debouncedSearchService == null) return;
+            
+            var filter = _debouncedSearchService.CreateFilterPredicate<OptimizedExternalAppWrapper>(
+                SearchText,
+                wrapper => new[] { wrapper.Name, wrapper.Description, wrapper.Publisher }
+            );
+            
+            _collectionManager.ApplyFilter(filter);
         }
 
         /// <summary>
@@ -267,8 +276,66 @@ namespace Winhance.WPF.Features.SoftwareApps.ViewModels
             // When switching to table view, update the combined collection
             if (isTableViewMode)
             {
-                UpdateAllItemsCollection();
+                UpdateOptimizedAllItemsCollection();
             }
+        }
+        
+
+        
+        /// <summary>
+        /// Command for handling selection changes from DataGrid behavior
+        /// </summary>
+        [RelayCommand]
+        public void HandleSelectionChanged()
+        {
+            OnOptimizedSelectionChanged();
+        }
+        
+        /// <summary>
+        /// Command for handling checkbox selection changes from behavior
+        /// </summary>
+        [RelayCommand]
+        public void HandleCheckboxSelectionChanged()
+        {
+            OnOptimizedSelectionChanged();
+        }
+        
+        /// <summary>
+        /// Updates the combined collection using optimized incremental updates
+        /// </summary>
+        private void UpdateOptimizedAllItemsCollection()
+        {            
+            if (_collectionManager == null)
+            {
+                return;
+            }
+            
+            // Update collection with incremental changes (pass source items, not wrappers)
+            _collectionManager.UpdateCollectionImmediate(Items);
+            
+            // Apply current sorting and filtering
+            ApplyOptimizedSorting();
+            ApplyOptimizedFilter();            
+        }
+        private void OnOptimizedSelectionChanged()
+        {
+            // Debounce selection change notifications
+            Application.Current?.Dispatcher.BeginInvoke(() =>
+            {
+                OnPropertyChanged(nameof(HasSelectedItems));
+                OnPropertyChanged(nameof(IsAllSelected));
+                SelectedItemsChanged?.Invoke(this, EventArgs.Empty);
+            }, System.Windows.Threading.DispatcherPriority.Background);
+        }
+        
+        /// <summary>
+        /// Applies optimized sorting using collection manager
+        /// </summary>
+        private void ApplyOptimizedSorting()
+        {
+            if (_collectionManager == null) return;
+            
+            _collectionManager.ApplySort(CurrentSortProperty, SortDirection);
         }
         
         /// <summary>
@@ -314,7 +381,7 @@ namespace Winhance.WPF.Features.SoftwareApps.ViewModels
         }
         
         /// <summary>
-        /// Handles the SearchText property change to trigger search functionality.
+        /// Handles the SearchText property change with optimized debounced search
         /// </summary>
         /// <param name="value">The new search text value.</param>
         partial void OnSearchTextChanged(string value)
@@ -322,8 +389,11 @@ namespace Winhance.WPF.Features.SoftwareApps.ViewModels
             // Apply search for list view (categories)
             ApplySearch();
             
-            // Apply search for table view (AllItemsView)
-            ApplyTableViewFilter();
+            // Apply optimized debounced search for table view
+            if (_debouncedSearchService != null)
+            {
+                _debouncedSearchService.Search(value, _ => ApplyOptimizedFilter());
+            }
             
             // Notify that IsSearchActive may have changed
             OnPropertyChanged(nameof(IsSearchActive));
@@ -462,8 +532,13 @@ namespace Winhance.WPF.Features.SoftwareApps.ViewModels
             IInternetConnectivityService connectivityService,
             IAppInstallationCoordinatorService appInstallationCoordinatorService,
             IServiceProvider serviceProvider
-        ) : base(progressService)
+        ) : base(
+            progressService,
+            serviceProvider.GetRequiredService<ILogService>(),
+            serviceProvider.GetRequiredService<IMessengerService>()
+        )
         {
+            
             _progressService = progressService;
             _appInstallationService = appInstallationService;
             _appDiscoveryService = appDiscoveryService;
@@ -475,15 +550,28 @@ namespace Winhance.WPF.Features.SoftwareApps.ViewModels
             _connectivityService = connectivityService;
             _appInstallationCoordinatorService = appInstallationCoordinatorService;
             
+            // Initialize optimized services
+            var logService = serviceProvider.GetRequiredService<ILogService>();
+            _collectionManager = new OptimizedCollectionManager<ExternalApp, OptimizedExternalAppWrapper>(
+                app => new OptimizedExternalAppWrapper(app, OnOptimizedSelectionChanged),
+                logService
+            );
+            _debouncedSearchService = new DebouncedSearchService(TimeSpan.FromMilliseconds(300));
+            
             // Initialize view mode manager
             _viewModeManager = new AppViewModeManager();
             _viewModeManager.ViewModeChanged += OnViewModeChanged;
 
             // Subscribe to collection changed events to track item selection changes
             Items.CollectionChanged += Items_CollectionChanged;
+            Items.CollectionChanged += (s, e) => {
+            };
 
-            // Initialize the AllItemsView
-            _allItemsView = CollectionViewSource.GetDefaultView(_allItems);
+            // Initialize the AllItemsView with optimized collection
+            _allItemsView = _collectionManager.CollectionView;
+            
+            // Notify that AllItemsView is now available
+            OnPropertyChanged(nameof(AllItemsView));
 
             // Set up a loaded event handler to ensure the collection is populated
             this.PropertyChanged += (s, e) => {
@@ -492,10 +580,11 @@ namespace Winhance.WPF.Features.SoftwareApps.ViewModels
                     // If we're in table view mode, update the collection
                     if (IsTableViewMode)
                     {
-                        UpdateAllItemsCollection();
+                        UpdateOptimizedAllItemsCollection();
                     }
                 }
             };
+            
         }
 
         /// <summary>
@@ -668,8 +757,11 @@ namespace Winhance.WPF.Features.SoftwareApps.ViewModels
 
         public async Task LoadItemsAsync()
         {
+            
             if (_packageManager == null)
+            {
                 return;
+            }
 
             IsLoading = true;
             StatusText = "Loading external apps...";
@@ -681,51 +773,43 @@ namespace Winhance.WPF.Features.SoftwareApps.ViewModels
 
                 var apps = await _packageManager.GetInstallableAppsAsync();
 
-                // Group apps by category
-                var appsByCategory = new Dictionary<string, List<ExternalApp>>();
-
-                foreach (var app in apps)
+                if (apps == null)
                 {
-                    var externalApp = ExternalApp.FromAppInfo(app);
+                    return;
+                }
+
+                // Convert AppInfo objects to ExternalApp objects and group by category
+                var appsByCategory = new Dictionary<string, List<ExternalApp>>();
+                
+                foreach (var appInfo in apps)
+                {
+                    var externalApp = ExternalApp.FromAppInfo(appInfo);
                     Items.Add(externalApp);
-
-                    // Group by category
-                    string category = app.Category;
-                    if (string.IsNullOrEmpty(category))
-                    {
-                        category = "Other";
-                    }
-
+                    
+                    // Group by category for the grid view
+                    string category = externalApp.Category ?? "Other";
                     if (!appsByCategory.ContainsKey(category))
                     {
                         appsByCategory[category] = new List<ExternalApp>();
                     }
-
                     appsByCategory[category].Add(externalApp);
+                    
                 }
-
-                // Sort categories alphabetically
-                var sortedCategories = appsByCategory.Keys.OrderBy(c => c).ToList();
-
-                // Create category view models with sorted apps
-                foreach (var categoryName in sortedCategories)
+                
+                // Create category view models
+                foreach (var categoryGroup in appsByCategory.OrderBy(x => x.Key))
                 {
-                    // Sort apps alphabetically within the category
-                    var sortedApps = appsByCategory[categoryName].OrderBy(a => a.Name).ToList();
-
-                    // Create observable collection for the category
-                    var appsCollection = new ObservableCollection<ExternalApp>(sortedApps);
-
-                    // Create and add the category view model
-                    _categories.Add(
-                        new ExternalAppsCategoryViewModel(categoryName, appsCollection)
+                    var categoryViewModel = new ExternalAppsCategoryViewModel(
+                        categoryGroup.Key, 
+                        new ObservableCollection<ExternalApp>(categoryGroup.Value.OrderBy(a => a.Name))
                     );
+                    _categories.Add(categoryViewModel);
                 }
 
-                StatusText = $"Loaded {Items.Count} external apps";
+                StatusText = $"Loaded {Items.Count} external apps in {_categories.Count} categories";
 
-                // Always update the AllItemsCollection to ensure it's populated
-                UpdateAllItemsCollection();
+                // Update optimized collection
+                UpdateOptimizedAllItemsCollection();
             }
             catch (System.Exception ex)
             {
@@ -735,6 +819,7 @@ namespace Winhance.WPF.Features.SoftwareApps.ViewModels
             {
                 IsLoading = false;
             }
+            
         }
 
         public async Task CheckInstallationStatusAsync()
@@ -1567,12 +1652,14 @@ namespace Winhance.WPF.Features.SoftwareApps.ViewModels
 
         public async Task LoadAppsAndCheckInstallationStatusAsync()
         {
+            
             if (IsInitialized)
             {
                 return;
             }
 
             await LoadItemsAsync();
+            
             await CheckInstallationStatusAsync();
 
             // Mark as initialized after loading is complete
@@ -1866,6 +1953,31 @@ namespace Winhance.WPF.Features.SoftwareApps.ViewModels
             );
         }
 
+        #endregion
+        
+        #region IDisposable
+        
+        /// <summary>
+        /// Disposes of optimized services and cleans up resources
+        /// </summary>
+        protected override void Dispose(bool disposing)
+        {
+            if (disposing)
+            {
+                // Dispose optimized services
+                _collectionManager?.Dispose();
+                _debouncedSearchService?.Dispose();
+                
+                // Unsubscribe from view mode manager events
+                if (_viewModeManager != null)
+                {
+                    _viewModeManager.ViewModeChanged -= OnViewModeChanged;
+                }
+            }
+            
+            base.Dispose(disposing);
+        }
+        
         #endregion
     }
 }

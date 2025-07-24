@@ -326,7 +326,8 @@ namespace Winhance.WPF
                         connectivityService,
                         appInstallationCoordinatorService,
                         bloatRemovalCoordinatorService,
-                        dialogService
+                        dialogService,
+                        _host.Services
                     );
                     LogStartupError("Successfully created WindowsAppsViewModel test instance");
                 }
@@ -955,7 +956,8 @@ namespace Winhance.WPF
                     provider.GetRequiredService<IInternetConnectivityService>(),
                     provider.GetRequiredService<IAppInstallationCoordinatorService>(),
                     provider.GetRequiredService<IBloatRemovalCoordinatorService>(),
-                    provider.GetRequiredService<Features.SoftwareApps.Services.SoftwareAppsDialogService>()
+                    provider.GetRequiredService<Features.SoftwareApps.Services.SoftwareAppsDialogService>(),
+                    provider
                 ));
                 
                 services.AddSingleton<ExternalAppsViewModel>(provider => new ExternalAppsViewModel(

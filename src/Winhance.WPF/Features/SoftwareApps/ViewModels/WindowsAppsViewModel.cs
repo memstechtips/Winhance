@@ -7,8 +7,10 @@ using System.Linq;
 using System.Threading.Tasks;
 using System.Windows;
 using System.Windows.Data;
+using System.Windows.Input;
 using CommunityToolkit.Mvvm.ComponentModel;
 using CommunityToolkit.Mvvm.Input;
+using Microsoft.Extensions.DependencyInjection;
 using Winhance.Core.Features.Common.Enums;
 using Winhance.Core.Features.Common.Interfaces;
 using Winhance.Core.Features.Common.Models;
@@ -19,96 +21,11 @@ using Winhance.Core.Features.UI.Interfaces;
 using Winhance.WPF.Features.Common.ViewModels;
 using Winhance.WPF.Features.Common.Views;
 using Winhance.WPF.Features.SoftwareApps.Models;
+using Winhance.WPF.Features.SoftwareApps.Services;
 using ToastType = Winhance.Core.Features.UI.Interfaces.ToastType;
-using System.Windows.Input;
 
 namespace Winhance.WPF.Features.SoftwareApps.ViewModels
 {
-    /// <summary>
-    /// Wrapper class for items in the combined table view that adds a Type property
-    /// </summary>
-    public class ItemWithType : INotifyPropertyChanged
-    {        
-        private readonly WindowsApp _item;
-        private readonly Action _selectionChangedCallback;
-        
-        public ItemWithType(WindowsApp item, string itemType, Action selectionChangedCallback = null)
-        {
-            _item = item;
-            _selectionChangedCallback = selectionChangedCallback;
-            ItemType = itemType;
-            
-            // Set TypeOrder based on the item type for custom sorting
-            switch (itemType)
-            {
-                case "Windows App":
-                    TypeOrder = 1; // Windows Apps first
-                    break;
-                case "Capability":
-                    TypeOrder = 2; // Capabilities second
-                    break;
-                case "Optional Feature":
-                    TypeOrder = 3; // Optional Features last
-                    break;
-                default:
-                    TypeOrder = 99; // Unknown types at the end
-                    break;
-            }
-            
-            // Forward property change events from the wrapped item
-            // Skip properties that are handled locally to prevent double notifications
-            if (_item is INotifyPropertyChanged notifyItem)
-            {
-                notifyItem.PropertyChanged += (sender, args) =>
-                {
-                    // Don't forward property changes for properties we handle locally
-                    if (args.PropertyName != nameof(IsSelected))
-                    {
-                        PropertyChanged?.Invoke(this, new PropertyChangedEventArgs(args.PropertyName));
-                    }
-                };
-            }
-        }
-        
-        public string Name => _item.Name;
-        public string Description => _item.Description;
-        public bool IsInstalled => _item.IsInstalled;
-        public bool CanBeReinstalled => _item.CanBeReinstalled;
-        public string ItemType { get; }
-        
-        // Property for custom type ordering
-        public int TypeOrder { get; }
-        
-        public bool IsSelected
-        {
-            get => _item.IsSelected;
-            set
-            {
-                if (_item.IsSelected != value)
-                {
-                    _item.IsSelected = value;
-                    PropertyChanged?.Invoke(this, new PropertyChangedEventArgs(nameof(IsSelected)));
-                    
-                    // Notify ViewModel that selection has changed - this updates the button states
-                    _selectionChangedCallback?.Invoke();
-                    
-                    // Log the selection change for debugging
-
-                }
-            }
-        }
-        
-        /// <summary>
-        /// Public method to notify that IsSelected property has changed (for ViewModel use)
-        /// </summary>
-        public void NotifyIsSelectedChanged()
-        {
-            PropertyChanged?.Invoke(this, new PropertyChangedEventArgs(nameof(IsSelected)));
-        }
-        
-        public event PropertyChangedEventHandler PropertyChanged;
-    }
-    
     public partial class WindowsAppsViewModel : BaseViewModel
     {
         /// <summary>
@@ -141,6 +58,7 @@ namespace Winhance.WPF.Features.SoftwareApps.ViewModels
         /// </summary>
         public ObservableCollection<WindowsApp> Items { get; } = new();
         private readonly ITaskProgressService _progressService;
+        private readonly ISearchService _searchService;
         private readonly IAppInstallationService _appInstallationService;
         private readonly ICapabilityInstallationService _capabilityService;
         private readonly IFeatureInstallationService _featureService;
@@ -194,13 +112,15 @@ namespace Winhance.WPF.Features.SoftwareApps.ViewModels
         [ObservableProperty]
         private bool _isAllSelectedOptionalFeatures;
         
-        // Combined collection for table view
-        private ObservableCollection<ItemWithType> _allItems = new();
-        public ICollectionView AllItemsView { get; private set; }
+        // Optimized collection management for table view
+        private OptimizedCollectionManager<WindowsApp, OptimizedItemWrapper> _collectionManager;
+        private DebouncedSearchService _debouncedSearchService;
+        
+        public ICollectionView AllItemsView => _collectionManager?.CollectionView;
         
         // Sorting properties
         [ObservableProperty]
-        private string _currentSortProperty;
+        private string _currentSortProperty = "Name";
         
         [ObservableProperty]
         private ListSortDirection _sortDirection = ListSortDirection.Ascending;
@@ -253,51 +173,26 @@ namespace Winhance.WPF.Features.SoftwareApps.ViewModels
         }
         
         /// <summary>
-        /// Updates the AllItems collection with all items from WindowsApps, Capabilities, and OptionalFeatures
-        /// Uses batch processing for better performance
+        /// Updates the AllItems collection with optimized incremental updates
         /// </summary>
         public void UpdateAllItemsCollection()
         {
-            // Use batch operations to minimize UI updates
-            using (var deferRefresh = new DeferRefresh(AllItemsView))
+            if (_collectionManager == null)
             {
-                _allItems.Clear();
-                
-                // Pre-allocate capacity for better performance
-                int totalItemCount = WindowsApps.Count + Capabilities.Count + OptionalFeatures.Count;
-                var newItems = new List<ItemWithType>(totalItemCount);
-                
-                // Prepare all items before adding to collection
-                // Add Windows Apps
-                foreach (var app in WindowsApps)
-                {
-                    newItems.Add(new ItemWithType(app, "Windows App", OnTableViewSelectionChanged));
-                }
-                
-                // Add Capabilities
-                foreach (var capability in Capabilities)
-                {
-                    newItems.Add(new ItemWithType(capability, "Capability", OnTableViewSelectionChanged));
-                }
-                
-                // Add Optional Features
-                foreach (var feature in OptionalFeatures)
-                {
-                    newItems.Add(new ItemWithType(feature, "Optional Feature", OnTableViewSelectionChanged));
-                }
-                
-                // Batch add all items to minimize UI updates
-                foreach (var item in newItems)
-                {
-                    _allItems.Add(item);
-                }
-                
-                // Apply sorting to the refreshed collection
-                ApplySorting();
-                
-                // Apply search filter if there's search text
-                ApplyTableViewFilter();
+                return;
             }
+            
+            // Combine all items from different collections
+            var allItems = WindowsApps.Concat(Capabilities).Concat(OptionalFeatures);
+            var itemCount = allItems.Count();
+            
+            // Use optimized collection manager for immediate updates (for debugging)
+            _collectionManager.UpdateCollectionImmediate(allItems);
+            
+            // Apply sorting and filtering
+            ApplyOptimizedSorting();
+            ApplyOptimizedFilter();
+            
         }
         
         /// <summary>
@@ -321,41 +216,33 @@ namespace Winhance.WPF.Features.SoftwareApps.ViewModels
         }
         
         /// <summary>
-        /// Sorts the AllItemsView based on the current sort property and direction
+        /// Applies optimized sorting to the collection view
         /// </summary>
-        private void ApplySorting()
+        private void ApplyOptimizedSorting()
         {
             if (AllItemsView != null && !string.IsNullOrEmpty(CurrentSortProperty))
             {
                 AllItemsView.SortDescriptions.Clear();
                 
-                // Add primary sort description based on current sort property
+                // Add primary sort description
                 AllItemsView.SortDescriptions.Add(new SortDescription(CurrentSortProperty, SortDirection));
                 
-                // Add secondary sort descriptions based on the primary sort property
-                if (CurrentSortProperty == "IsInstalled")
+                // Add secondary and tertiary sorts for consistent ordering
+                switch (CurrentSortProperty)
                 {
-                    // If sorting by installation status, add secondary sort by TypeOrder
-                    AllItemsView.SortDescriptions.Add(new SortDescription("TypeOrder", ListSortDirection.Ascending));
-                    
-                    // Add tertiary sort by Name for consistent ordering within each type
-                    AllItemsView.SortDescriptions.Add(new SortDescription("Name", ListSortDirection.Ascending));
-                }
-                else if (CurrentSortProperty == "ItemType" || CurrentSortProperty == "TypeOrder")
-                {
-                    // If sorting by type, add secondary sort by installation status
-                    AllItemsView.SortDescriptions.Add(new SortDescription("IsInstalled", ListSortDirection.Descending));
-                    
-                    // Add tertiary sort by Name
-                    AllItemsView.SortDescriptions.Add(new SortDescription("Name", ListSortDirection.Ascending));
-                }
-                else
-                {
-                    // For other primary sorts, add secondary sort by installation status
-                    AllItemsView.SortDescriptions.Add(new SortDescription("IsInstalled", ListSortDirection.Descending));
-                    
-                    // Add tertiary sort by TypeOrder
-                    AllItemsView.SortDescriptions.Add(new SortDescription("TypeOrder", ListSortDirection.Ascending));
+                    case "IsInstalled":
+                        AllItemsView.SortDescriptions.Add(new SortDescription("TypeOrder", ListSortDirection.Ascending));
+                        AllItemsView.SortDescriptions.Add(new SortDescription("Name", ListSortDirection.Ascending));
+                        break;
+                    case "ItemType":
+                    case "TypeOrder":
+                        AllItemsView.SortDescriptions.Add(new SortDescription("IsInstalled", ListSortDirection.Descending));
+                        AllItemsView.SortDescriptions.Add(new SortDescription("Name", ListSortDirection.Ascending));
+                        break;
+                    default:
+                        AllItemsView.SortDescriptions.Add(new SortDescription("IsInstalled", ListSortDirection.Descending));
+                        AllItemsView.SortDescriptions.Add(new SortDescription("TypeOrder", ListSortDirection.Ascending));
+                        break;
                 }
             }
         }
@@ -364,7 +251,7 @@ namespace Winhance.WPF.Features.SoftwareApps.ViewModels
         /// Handles sorting when a column header is clicked
         /// </summary>
         [RelayCommand]
-        private void SortBy(string propertyName)
+        public void SortBy(string propertyName)
         {
             if (string.IsNullOrEmpty(propertyName))
                 return;
@@ -383,8 +270,23 @@ namespace Winhance.WPF.Features.SoftwareApps.ViewModels
                 SortDirection = ListSortDirection.Ascending;
             }
             
-            // Apply the sorting
-            ApplySorting();
+            // Apply the optimized sorting
+            ApplyOptimizedSorting();
+        }
+        
+        /// <summary>
+        /// Applies optimized filtering using debounced search service
+        /// </summary>
+        private void ApplyOptimizedFilter()
+        {
+            if (_collectionManager == null || _debouncedSearchService == null) return;
+            
+            var filter = _debouncedSearchService.CreateFilterPredicate<OptimizedItemWrapper>(
+                SearchText,
+                wrapper => new[] { wrapper.Name, wrapper.Description, wrapper.PackageName }
+            );
+            
+            _collectionManager.ApplyFilter(filter);
         }
         
         /// <summary>
@@ -421,6 +323,26 @@ namespace Winhance.WPF.Features.SoftwareApps.ViewModels
                 UpdateAllItemsCollection();
             }
         }
+        
+
+        
+        /// <summary>
+        /// Command for handling selection changes from DataGrid behavior
+        /// </summary>
+        [RelayCommand]
+        public void HandleSelectionChanged()
+        {
+            OnOptimizedSelectionChanged();
+        }
+        
+        /// <summary>
+        /// Command for handling checkbox selection changes from behavior
+        /// </summary>
+        [RelayCommand]
+        public void HandleCheckboxSelectionChanged()
+        {
+            OnOptimizedSelectionChanged();
+        }
 
         // For binding in the WindowsAppsView - filtered collections
         // Standard Windows Apps (Appx packages)
@@ -448,28 +370,16 @@ namespace Winhance.WPF.Features.SoftwareApps.ViewModels
             IInternetConnectivityService connectivityService,
             IAppInstallationCoordinatorService appInstallationCoordinatorService,
             IBloatRemovalCoordinatorService bloatRemovalCoordinatorService,
-            Services.SoftwareAppsDialogService dialogService)
-            : base(progressService)
+            Services.SoftwareAppsDialogService dialogService,
+            IServiceProvider serviceProvider
+        ) : base(
+            progressService,
+            serviceProvider.GetRequiredService<ILogService>(),
+            serviceProvider.GetRequiredService<IMessengerService>()
+        )
         {
-            // Initialize injected services
             _progressService = progressService;
-            _dialogService = dialogService;
-            
-            // Initialize the AllItemsView
-            AllItemsView = CollectionViewSource.GetDefaultView(_allItems);
-            
-            // Set default sort property to show installed items first
-            CurrentSortProperty = "IsInstalled";
-            SortDirection = ListSortDirection.Descending;
-            ApplySorting();
-            
-            // Set up collection change handlers
-            WindowsApps.CollectionChanged += OnCollectionChanged;
-            Capabilities.CollectionChanged += OnCollectionChanged;
-            OptionalFeatures.CollectionChanged += OnCollectionChanged;
-            
-            // Note: Wrapper objects now use direct callbacks instead of static events
-            
+            _searchService = searchService;
             _appInstallationService = appInstallationService;
             _capabilityService = capabilityService;
             _featureService = featureService;
@@ -481,41 +391,74 @@ namespace Winhance.WPF.Features.SoftwareApps.ViewModels
             _appInstallationCoordinatorService = appInstallationCoordinatorService;
             _bloatRemovalCoordinatorService = bloatRemovalCoordinatorService;
             _packageManager = packageManager;
+            _dialogService = dialogService;
             
             // Initialize view mode manager
             _viewModeManager = new AppViewModeManager();
             _viewModeManager.ViewModeChanged += OnViewModeChanged;
+            
+            // Initialize optimized services
+            var logService = serviceProvider.GetRequiredService<ILogService>();
+            InitializeOptimizedServices(logService);
+            
+            // Setup collection change handlers
+            SetupCollectionChangeHandlers();
+        }
+        
+        /// <summary>
+        /// Initializes optimized services for performance improvements
+        /// </summary>
+        private void InitializeOptimizedServices(ILogService logService)
+        {
+            // Initialize debounced search service
+            _debouncedSearchService = new DebouncedSearchService(TimeSpan.FromMilliseconds(300));
+            
+            // Initialize optimized collection manager
+            _collectionManager = new OptimizedCollectionManager<WindowsApp, OptimizedItemWrapper>(
+                item => new OptimizedItemWrapper(item, GetItemType(item), OnOptimizedSelectionChanged),
+                logService
+            );
+            
+            // Notify that AllItemsView is now available
+            OnPropertyChanged(nameof(AllItemsView));
+            
+            // Set default sort property to show installed items first
+            CurrentSortProperty = "IsInstalled";
+            SortDirection = ListSortDirection.Descending;
+            ApplyOptimizedSorting();
+        }
+        
+        /// <summary>
+        /// Gets the item type for a WindowsApp
+        /// </summary>
+        private string GetItemType(WindowsApp item)
+        {
+            return item.AppType switch
+            {
+                Models.WindowsAppType.StandardApp => "Windows App",
+                Models.WindowsAppType.Capability => "Capability",
+                Models.WindowsAppType.OptionalFeature => "Optional Feature",
+                _ => "Unknown"
+            };
         }
 
         /// <summary>
-        /// Handles selection changes from TableView wrapper objects
+        /// Optimized selection change handler for table view
         /// </summary>
-        private void OnTableViewSelectionChanged()
-        {            
-            // Log selections in the _allItems collection
-            if (_allItems != null)
-            {
-                var selectedItems = _allItems.Where(a => a.IsSelected).ToList();
-            }
-            
+        private void OnOptimizedSelectionChanged()
+        {
             // Force IsTableViewMode to be true since we're getting selection changes from table view
-            if (!IsTableViewMode && _allItems != null && _allItems.Any())
+            if (!IsTableViewMode)
             {
                 IsTableViewMode = true;
             }
             
+            // Invalidate cache and notify property changed
             InvalidateHasSelectedItemsCache();
-            
-            var hasSelected = HasSelectedItems;
-            
             OnPropertyChanged(nameof(HasSelectedItems));
             
-            // Ensure the parent view model is notified of changes by forcing an update to the property
-            // This is crucial for ensuring the buttons in the parent view model are enabled/disabled properly
-            Application.Current.Dispatcher.BeginInvoke(new Action(() => 
-            {
-                OnPropertyChanged(nameof(HasSelectedItems));
-            }));           
+            // Notify parent view model of selection changes
+            SelectedItemsChanged?.Invoke(this, EventArgs.Empty);
         }
 
         // SaveConfig and ImportConfig methods removed as part of unified configuration cleanup
@@ -583,34 +526,12 @@ namespace Winhance.WPF.Features.SoftwareApps.ViewModels
         /// </summary>
         private void ApplyTableViewFilter()
         {
-            if (AllItemsView == null)
-                return;
-                
-            if (string.IsNullOrWhiteSpace(SearchText))
-            {
-                // Clear filter if no search text
-                AllItemsView.Filter = null;
-            }
-            else
-            {
-                // Apply filter based on search text
-                var searchTerms = SearchText.ToLower().Split(' ', StringSplitOptions.RemoveEmptyEntries);
-                AllItemsView.Filter = obj =>
-                {
-                    if (obj is ItemWithType itemWrapper)
-                    {
-                        // Check if all search terms match any of the searchable properties
-                        return searchTerms.All(term =>
-                            itemWrapper.Name?.ToLower().Contains(term) == true ||
-                            itemWrapper.Description?.ToLower().Contains(term) == true);
-                    }
-                    return false;
-                };
-            }
+            // Use optimized filtering through collection manager
+            ApplyOptimizedFilter();
         }
         
         /// <summary>
-        /// Handles the SearchText property change to trigger search functionality.
+        /// Handles the SearchText property change with optimized debounced search
         /// </summary>
         /// <param name="value">The new search text value.</param>
         partial void OnSearchTextChanged(string value)
@@ -618,8 +539,11 @@ namespace Winhance.WPF.Features.SoftwareApps.ViewModels
             // Apply search for list view (individual collections)
             ApplySearch();
             
-            // Apply search for table view (AllItemsView)
-            ApplyTableViewFilter();
+            // Apply optimized debounced search for table view
+            if (_debouncedSearchService != null)
+            {
+                _debouncedSearchService.Search(value, _ => ApplyOptimizedFilter());
+            }
             
             // Notify that IsSearchActive may have changed
             OnPropertyChanged(nameof(IsSearchActive));
@@ -708,19 +632,22 @@ namespace Winhance.WPF.Features.SoftwareApps.ViewModels
 
                 StatusText =
                     $"Loaded {WindowsApps.Count} apps, {Capabilities.Count} capabilities, and {OptionalFeatures.Count} features";
-            }
-            catch (System.Exception ex)
-            {
-                StatusText = $"Error loading Windows apps: {ex.Message}";
-            }
-            finally
-            {
-                IsLoading = false;
+        
+        // Update the table view collection after loading data
+        UpdateAllItemsCollection();
+    }
+    catch (System.Exception ex)
+    {
+        StatusText = $"Error loading Windows apps: {ex.Message}";
+    }
+    finally
+    {
+        IsLoading = false;
 
-                // Check script status
-                RefreshScriptStatus();
-            }
-        }
+        // Check script status
+        RefreshScriptStatus();
+    }
+}
 
         public async Task CheckInstallationStatusAsync()
         {
@@ -1383,9 +1310,9 @@ namespace Winhance.WPF.Features.SoftwareApps.ViewModels
                     }
 
                     // If in table view mode, also notify wrapper objects to update their UI
-                    if (IsTableViewMode && _allItems != null)
+                    if (IsTableViewMode && _collectionManager?.Collection != null)
                     {
-                        foreach (var wrapperItem in _allItems)
+                        foreach (var wrapperItem in _collectionManager.Collection)
                         {
                             wrapperItem.NotifyIsSelectedChanged();
                         }
@@ -1601,10 +1528,10 @@ namespace Winhance.WPF.Features.SoftwareApps.ViewModels
             {
                 if (!_hasSelectedItemsCacheValid)
                 {
-                    if (IsTableViewMode && _allItems != null)
+                    if (IsTableViewMode && _collectionManager?.Collection != null)
                     {
                         // Check if any table view wrapper items are selected
-                        _hasSelectedItems = _allItems.Any(a => a.IsSelected);
+                        _hasSelectedItems = _collectionManager.Collection.Any(a => a.IsSelected);
                     }
                     else
                     {
@@ -2439,6 +2366,31 @@ namespace Winhance.WPF.Features.SoftwareApps.ViewModels
             app.IsInstalled = isInstalled;
         }
 
+        #endregion
+        
+        #region IDisposable
+        
+        /// <summary>
+        /// Disposes of optimized services and cleans up resources
+        /// </summary>
+        protected override void Dispose(bool disposing)
+        {
+            if (disposing)
+            {
+                // Dispose optimized services
+                _collectionManager?.Dispose();
+                _debouncedSearchService?.Dispose();
+                
+                // Unsubscribe from view mode manager events
+                if (_viewModeManager != null)
+                {
+                    _viewModeManager.ViewModeChanged -= OnViewModeChanged;
+                }
+            }
+            
+            base.Dispose(disposing);
+        }
+        
         #endregion
     }
 }

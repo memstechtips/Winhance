@@ -38,17 +38,21 @@
                       CanUserResizeRows="False"
                       HeadersVisibility="Column"
                       GridLinesVisibility="None"
-                      SelectionChanged="AppsDataGrid_SelectionChanged"
                       SelectionMode="Extended"
                       SelectionUnit="FullRow">
+                
+                <!-- MVVM-compliant behaviors -->
+                <i:Interaction.Behaviors>
+                    <behaviors:DataGridSelectionBehavior 
+                        SelectionChangedCommand="{Binding HandleSelectionChangedCommand}"
+                        ColumnHeaderClickCommand="{Binding SortByCommand}" />
+                </i:Interaction.Behaviors>
                 
                 <DataGrid.Columns>
                     <!-- Select All Column -->
                     <DataGridTemplateColumn Width="40" CanUserResize="False" CanUserSort="False">
                         <DataGridTemplateColumn.HeaderStyle>
-                            <Style TargetType="DataGridColumnHeader" BasedOn="{StaticResource FirstColumnHeaderDataGrid}">
-                                <EventSetter Event="Click" Handler="DataGridColumnHeader_Click"/>
-                            </Style>
+                            <Style TargetType="DataGridColumnHeader" BasedOn="{StaticResource FirstColumnHeaderDataGrid}" />
                         </DataGridTemplateColumn.HeaderStyle>
                         <DataGridTemplateColumn.HeaderTemplate>
                             <DataTemplate>
@@ -57,7 +61,15 @@
                         </DataGridTemplateColumn.HeaderTemplate>
                         <DataGridTemplateColumn.CellTemplate>
                             <DataTemplate>
-                                <CheckBox Style="{StaticResource CustomCheckBox}" IsChecked="{Binding IsSelected, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}" VerticalAlignment="Center" HorizontalAlignment="Center" Checked="CheckBox_SelectionChanged" Unchecked="CheckBox_SelectionChanged"/>
+                                <CheckBox Style="{StaticResource CustomCheckBox}" 
+                                         IsChecked="{Binding IsSelected, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}" 
+                                         VerticalAlignment="Center" 
+                                         HorizontalAlignment="Center">
+                                    <i:Interaction.Behaviors>
+                                        <behaviors:CheckBoxSelectionBehavior 
+                                            SelectionChangedCommand="{Binding DataContext.HandleCheckboxSelectionChangedCommand, RelativeSource={RelativeSource AncestorType=UserControl}}" />
+                                    </i:Interaction.Behaviors>
+                                </CheckBox>
                             </DataTemplate>
                         </DataGridTemplateColumn.CellTemplate>
                     </DataGridTemplateColumn>
@@ -65,9 +77,7 @@
                     <!-- Name Column -->
                     <DataGridTemplateColumn Header="Name" Width="*" CanUserResize="True" SortMemberPath="Name">
                         <DataGridTemplateColumn.HeaderStyle>
-                            <Style TargetType="DataGridColumnHeader" BasedOn="{StaticResource ThemedDataGridColumnHeader}">
-                                <EventSetter Event="Click" Handler="DataGridColumnHeader_Click"/>
-                            </Style>
+                            <Style TargetType="DataGridColumnHeader" BasedOn="{StaticResource ThemedDataGridColumnHeader}" />
                         </DataGridTemplateColumn.HeaderStyle>
                         <DataGridTemplateColumn.CellTemplate>
                             <DataTemplate>
@@ -83,9 +93,7 @@
                     <!-- Package ID Column -->
                     <DataGridTemplateColumn Header="Package ID" Width="350" CanUserResize="True" SortMemberPath="PackageName">
                         <DataGridTemplateColumn.HeaderStyle>
-                            <Style TargetType="DataGridColumnHeader" BasedOn="{StaticResource ThemedDataGridColumnHeader}">
-                                <EventSetter Event="Click" Handler="DataGridColumnHeader_Click"/>
-                            </Style>
+                            <Style TargetType="DataGridColumnHeader" BasedOn="{StaticResource ThemedDataGridColumnHeader}" />
                         </DataGridTemplateColumn.HeaderStyle>
                         <DataGridTemplateColumn.CellTemplate>
                             <DataTemplate>
@@ -97,9 +105,7 @@
                     <!-- Category Column -->
                     <DataGridTemplateColumn Header="Category" Width="250" CanUserResize="True" SortMemberPath="Category">
                         <DataGridTemplateColumn.HeaderStyle>
-                            <Style TargetType="DataGridColumnHeader" BasedOn="{StaticResource ThemedDataGridColumnHeader}">
-                                <EventSetter Event="Click" Handler="DataGridColumnHeader_Click"/>
-                            </Style>
+                            <Style TargetType="DataGridColumnHeader" BasedOn="{StaticResource ThemedDataGridColumnHeader}" />
                         </DataGridTemplateColumn.HeaderStyle>
                         <DataGridTemplateColumn.CellTemplate>
                             <DataTemplate>
@@ -111,9 +117,7 @@
                     <!-- Source Column -->
                     <DataGridTemplateColumn Header="Source" Width="160" CanUserResize="True" SortMemberPath="Source">
                         <DataGridTemplateColumn.HeaderStyle>
-                            <Style TargetType="DataGridColumnHeader" BasedOn="{StaticResource LastColumnHeaderDataGrid}">
-                                <EventSetter Event="Click" Handler="DataGridColumnHeader_Click"/>
-                            </Style>
+                            <Style TargetType="DataGridColumnHeader" BasedOn="{StaticResource LastColumnHeaderDataGrid}" />
                         </DataGridTemplateColumn.HeaderStyle>
                         <DataGridTemplateColumn.CellTemplate>
                             <DataTemplate>
