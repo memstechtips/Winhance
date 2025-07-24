@@ -68,4 +68,12 @@ namespace Winhance.Core.Features.Common.Messaging
     {
         public bool IsDarkTheme { get; set; }
     }
+
+    /// <summary>
+    /// Message sent to show the MoreMenu context menu
+    /// </summary>
+    public class ShowMoreMenuMessage : MessageBase
+    {
+        // No additional properties needed - the message itself is the trigger
+    }
 }

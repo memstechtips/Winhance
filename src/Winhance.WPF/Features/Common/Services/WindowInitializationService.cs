@@ -1,10 +1,14 @@
 using System;
+using System.Collections.Generic;
+using System.Linq;
 using System.Windows;
+using System.Windows.Media;
 using System.Windows.Media.Imaging;
 using Winhance.Core.Features.Common.Interfaces;
 using Winhance.Core.Features.Common.Messaging;
 using Winhance.WPF.Features.Common.ViewModels;
 using Winhance.WPF.Features.Common.Utilities;
+using Winhance.WPF.Features.Common.Controls;
 
 namespace Winhance.WPF.Features.Common.Services
 {
@@ -77,6 +81,7 @@ namespace Winhance.WPF.Features.Common.Services
                 // Set up messaging for window state changes
                 _messengerService.Register<WindowStateMessage>(window, (msg) => HandleWindowStateMessage(window, msg));
                 _messengerService.Register<UpdateThemeIconMessage>(window, (msg) => UpdateWindowIcon(window));
+                _messengerService.Register<ShowMoreMenuMessage>(window, (msg) => HandleShowMoreMenuMessage(window, msg));
 
                 // Clean up messaging when window closes
                 window.Closed += (sender, e) =>
@@ -159,6 +164,121 @@ namespace Winhance.WPF.Features.Common.Services
             {
                 _logService?.LogError("Error updating window icon", ex);
             }
+        }
+
+        private void HandleShowMoreMenuMessage(Window window, ShowMoreMenuMessage message)
+        {
+            try
+            {
+                _logService?.LogInformation("Handling ShowMoreMenuMessage - method called");
+                
+                if (window == null)
+                {
+                    _logService?.LogWarning("Window is null in HandleShowMoreMenuMessage");
+                    return;
+                }
+                
+                _logService?.LogInformation($"Window type: {window.GetType().Name}");
+                
+                // Find the MoreMenu control in the window
+                _logService?.LogInformation("Searching for MoreMenu control...");
+                var moreMenuControl = FindVisualChild<MoreMenu>(window);
+                
+                if (moreMenuControl != null)
+                {
+                    _logService?.LogInformation("MoreMenu control found successfully");
+                    
+                    // Find the MoreButton to use as placement target
+                    _logService?.LogInformation("Searching for MoreButton...");
+                    var moreButton = window.FindName("MoreButton") as FrameworkElement;
+                    
+                    if (moreButton != null)
+                    {
+                        _logService?.LogInformation($"MoreButton found: {moreButton.GetType().Name}");
+                        _logService?.LogInformation("Calling ShowMenu on MoreMenu control...");
+                        
+                        // Ensure we're on the UI thread
+                        window.Dispatcher.Invoke(() =>
+                        {
+                            moreMenuControl.ShowMenu(moreButton);
+                            _logService?.LogInformation("ShowMenu called successfully");
+                        });
+                    }
+                    else
+                    {
+                        _logService?.LogWarning("MoreButton not found in window - trying alternative search");
+                        
+                        // Try to find by type instead
+                        var allButtons = FindVisualChildren<System.Windows.Controls.Button>(window);
+                        _logService?.LogInformation($"Found {allButtons.Count()} buttons in window");
+                        
+                        foreach (var btn in allButtons)
+                        {
+                            _logService?.LogInformation($"Button found: Name='{btn.Name}', Content='{btn.Content}'");
+                        }
+                    }
+                }
+                else
+                {
+                    _logService?.LogWarning("MoreMenu control not found in window");
+                    
+                    // Try to find all UserControls to debug
+                    var allUserControls = FindVisualChildren<System.Windows.Controls.UserControl>(window);
+                    _logService?.LogInformation($"Found {allUserControls.Count()} UserControls in window");
+                    
+                    foreach (var control in allUserControls)
+                    {
+                        _logService?.LogInformation($"UserControl found: {control.GetType().Name}, Name='{control.Name}'");
+                    }
+                }
+            }
+            catch (Exception ex)
+            {
+                _logService?.LogError($"Error handling ShowMoreMenuMessage: {ex.Message}", ex);
+            }
+        }
+
+        /// <summary>
+        /// Helper method to find visual children in the visual tree
+        /// </summary>
+        private static T FindVisualChild<T>(DependencyObject obj) where T : DependencyObject
+        {
+            for (int i = 0; i < VisualTreeHelper.GetChildrenCount(obj); i++)
+            {
+                DependencyObject child = VisualTreeHelper.GetChild(obj, i);
+                if (child != null && child is T)
+                {
+                    return (T)child;
+                }
+
+                T childOfChild = FindVisualChild<T>(child);
+                if (childOfChild != null)
+                {
+                    return childOfChild;
+                }
+            }
+            return null;
+        }
+
+        /// <summary>
+        /// Helper method to find all visual children of a specific type in the visual tree
+        /// </summary>
+        private static IEnumerable<T> FindVisualChildren<T>(DependencyObject obj) where T : DependencyObject
+        {
+            var children = new List<T>();
+            
+            for (int i = 0; i < VisualTreeHelper.GetChildrenCount(obj); i++)
+            {
+                DependencyObject child = VisualTreeHelper.GetChild(obj, i);
+                if (child != null && child is T)
+                {
+                    children.Add((T)child);
+                }
+
+                children.AddRange(FindVisualChildren<T>(child));
+            }
+            
+            return children;
         }
     }
 }

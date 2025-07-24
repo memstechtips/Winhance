@@ -176,7 +176,7 @@
                                         <Button x:Name="CloseButton"
                                                 Style="{StaticResource WindowCloseButton}"
                                                 WindowChrome.IsHitTestVisibleInChrome="True"
-                                                Command="{Binding CloseCommand}">
+                                                Command="{Binding CloseWindowCommand}">
                                                 <materialDesign:PackIcon Kind="Close"
                                                                          Width="18"
                                                                          Height="18"/>

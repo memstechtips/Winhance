@@ -8,6 +8,7 @@ using System.Runtime.InteropServices;
 using System.Windows;
 using System.Windows.Input;
 using System.Windows.Interop;
+using System.Windows.Media;
 using CommunityToolkit.Mvvm.ComponentModel;
 using CommunityToolkit.Mvvm.Input;
 using Microsoft.Extensions.DependencyInjection;
@@ -18,6 +19,7 @@ using Winhance.Core.Features.Common.Messaging;
 using Winhance.Core.Features.Common.Models;
 using Winhance.WPF.Features.Common.Models;
 using Winhance.WPF.Features.Common.Resources.Theme;
+using Winhance.WPF.Features.Common.Controls;
 using Winhance.WPF.Features.Common.Utilities;
 using Winhance.WPF.Features.Common.ViewModels;
 using Winhance.WPF.Features.Common.Views;
@@ -36,6 +38,9 @@ namespace Winhance.WPF.Features.Common.ViewModels
         private readonly Features.Common.Services.UserPreferencesService _userPreferencesService;
         private readonly IApplicationCloseService _applicationCloseService;
         private readonly IVersionService _versionService;
+        private readonly ILogService _logService;
+
+
 
         public INavigationService NavigationService => _navigationService;
 
@@ -85,6 +90,8 @@ namespace Winhance.WPF.Features.Common.ViewModels
         /// </summary>
         public ICommand MoreCommand { get; }
 
+
+
         public MainViewModel(
             IThemeManager themeManager,
             INavigationService navigationService,
@@ -119,6 +126,7 @@ namespace Winhance.WPF.Features.Common.ViewModels
             _versionService =
                 versionService
                 ?? throw new ArgumentNullException(nameof(versionService));
+            _logService = logService ?? throw new ArgumentNullException(nameof(logService));
 
             // Initialize the MoreMenuViewModel
             MoreMenuViewModel = new MoreMenuViewModel(
@@ -131,10 +139,6 @@ namespace Winhance.WPF.Features.Common.ViewModels
             );
 
             // Initialize command properties
-            _minimizeWindowCommand = new RelayCommand(MinimizeWindow);
-            _maximizeRestoreWindowCommand = new RelayCommand(MaximizeRestoreWindow);
-            // Use AsyncRelayCommand instead of RelayCommand for async methods
-            _closeWindowCommand = new AsyncRelayCommand(CloseWindowAsync);
             SaveUnifiedConfigCommand = new RelayCommand(SaveUnifiedConfig);
             ImportUnifiedConfigCommand = new RelayCommand(ImportUnifiedConfig);
             OpenDonateCommand = new RelayCommand(OpenDonate);
@@ -226,155 +230,179 @@ namespace Winhance.WPF.Features.Common.ViewModels
             _themeManager.ToggleTheme();
         }
 
-        // Explicit command property for MinimizeWindow
-        private ICommand _minimizeWindowCommand;
-        public ICommand MinimizeWindowCommand
-        {
-            get
-            {
-                if (_minimizeWindowCommand == null)
-                {
-                    _minimizeWindowCommand = new RelayCommand(MinimizeWindow);
-                }
-                return _minimizeWindowCommand;
-            }
-        }
 
+
+        [RelayCommand]
         private void MinimizeWindow()
         {
-
-            var mainWindow = Application.Current.MainWindow;
-            if (mainWindow == null)
-            {
-                return;
-            }
-
-            // Try to minimize the window directly
             try
             {
+                var mainWindow = Application.Current.MainWindow;
+                if (mainWindow == null)
+                {
+                    _logService?.LogWarning("Cannot minimize window: MainWindow is null");
+                    return;
+                }
+
+                // Try to minimize the window directly
                 mainWindow.WindowState = WindowState.Minimized;
+                _logService?.LogInformation("Window minimized successfully");
             }
             catch (Exception ex)
             {
-
+                _logService?.LogError($"Failed to minimize window directly: {ex.Message}", ex);
+                
                 // Fall back to messaging
-                _messengerService.Send(
-                    new WindowStateMessage
-                    {
-                        Action = WindowStateMessage.WindowStateAction.Minimize,
-                    }
-                );
-            }
-        }
-
-        // Explicit command property for MaximizeRestoreWindow
-        private ICommand _maximizeRestoreWindowCommand;
-        public ICommand MaximizeRestoreWindowCommand
-        {
-            get
-            {
-                if (_maximizeRestoreWindowCommand == null)
+                try
                 {
-                    _maximizeRestoreWindowCommand = new RelayCommand(MaximizeRestoreWindow);
+                    _messengerService.Send(
+                        new WindowStateMessage
+                        {
+                            Action = WindowStateMessage.WindowStateAction.Minimize,
+                        }
+                    );
+                    _logService?.LogInformation("Sent minimize window message as fallback");
                 }
-                return _maximizeRestoreWindowCommand;
+                catch (Exception msgEx)
+                {
+                    _logService?.LogError($"Failed to send minimize window message: {msgEx.Message}", msgEx);
+                }
             }
         }
 
+
+
+        [RelayCommand]
         private void MaximizeRestoreWindow()
         {
-
-            var mainWindow = Application.Current.MainWindow;
-            if (mainWindow == null)
-            {
-                return;
-            }
-
-            if (mainWindow.WindowState == WindowState.Maximized)
-            {
-                // Try to restore the window directly
-                try
-                {
-                    mainWindow.WindowState = WindowState.Normal;
-                }
-                catch (Exception ex)
-                {
-
-                    // Fall back to messaging
-                    _messengerService.Send(
-                        new WindowStateMessage
-                        {
-                            Action = WindowStateMessage.WindowStateAction.Restore,
-                        }
-                    );
-                }
-
-                // Update the button icon
-                MaximizeButtonContent = "\uE739";
-            }
-            else
-            {
-                // Try to maximize the window directly
-                try
-                {
-                    mainWindow.WindowState = WindowState.Maximized;
-                }
-                catch (Exception ex)
-                {
-
-                    // Fall back to messaging
-                    _messengerService.Send(
-                        new WindowStateMessage
-                        {
-                            Action = WindowStateMessage.WindowStateAction.Maximize,
-                        }
-                    );
-                }
-
-                // Update the button icon
-                MaximizeButtonContent = "\uE923";
-            }
-        }
-
-        // Explicit command property for CloseWindow
-        private ICommand _closeWindowCommand;
-        public ICommand CloseWindowCommand
-        {
-            get
-            {
-                if (_closeWindowCommand == null)
-                {
-                    // Use AsyncRelayCommand instead of RelayCommand for async methods
-                    _closeWindowCommand = new AsyncRelayCommand(CloseWindowAsync);
-                }
-                return _closeWindowCommand;
-            }
-        }
-
-        // Make sure this method is public so it can be called directly for testing
-        public async Task CloseWindowAsync()
-        {
-
-            var mainWindow = Application.Current.MainWindow;
-            if (mainWindow == null)
-            {
-                return;
-            }
-
-            // The donation dialog is now handled in MainWindow.CloseButton_Click
-            // so we can simply close the window here
-
             try
             {
-                mainWindow.Close();
+                var mainWindow = Application.Current.MainWindow;
+                if (mainWindow == null)
+                {
+                    _logService?.LogWarning("Cannot maximize/restore window: MainWindow is null");
+                    return;
+                }
+
+                if (mainWindow.WindowState == WindowState.Maximized)
+                {
+                    // Try to restore the window directly
+                    try
+                    {
+                        mainWindow.WindowState = WindowState.Normal;
+                        MaximizeButtonContent = "\uE739"; // Maximize icon
+                        _logService?.LogInformation("Window restored successfully");
+                    }
+                    catch (Exception ex)
+                    {
+                        _logService?.LogError($"Failed to restore window directly: {ex.Message}", ex);
+                        
+                        // Fall back to messaging
+                        try
+                        {
+                            _messengerService.Send(
+                                new WindowStateMessage
+                                {
+                                    Action = WindowStateMessage.WindowStateAction.Restore,
+                                }
+                            );
+                            MaximizeButtonContent = "\uE739"; // Maximize icon
+                            _logService?.LogInformation("Sent restore window message as fallback");
+                        }
+                        catch (Exception msgEx)
+                        {
+                            _logService?.LogError($"Failed to send restore window message: {msgEx.Message}", msgEx);
+                        }
+                    }
+                }
+                else
+                {
+                    // Try to maximize the window directly
+                    try
+                    {
+                        mainWindow.WindowState = WindowState.Maximized;
+                        MaximizeButtonContent = "\uE923"; // Restore icon
+                        _logService?.LogInformation("Window maximized successfully");
+                    }
+                    catch (Exception ex)
+                    {
+                        _logService?.LogError($"Failed to maximize window directly: {ex.Message}", ex);
+                        
+                        // Fall back to messaging
+                        try
+                        {
+                            _messengerService.Send(
+                                new WindowStateMessage
+                                {
+                                    Action = WindowStateMessage.WindowStateAction.Maximize,
+                                }
+                            );
+                            MaximizeButtonContent = "\uE923"; // Restore icon
+                            _logService?.LogInformation("Sent maximize window message as fallback");
+                        }
+                        catch (Exception msgEx)
+                        {
+                            _logService?.LogError($"Failed to send maximize window message: {msgEx.Message}", msgEx);
+                        }
+                    }
+                }
             }
             catch (Exception ex)
             {
+                _logService?.LogError($"Unexpected error in MaximizeRestoreWindow: {ex.Message}", ex);
+            }
+        }
 
-                // Fall back to messaging
-                _messengerService.Send(
-                    new WindowStateMessage { Action = WindowStateMessage.WindowStateAction.Close }
-                );
+
+
+        // Make sure this method is public so it can be called directly for testing
+        [RelayCommand]
+        public async Task CloseWindowAsync()
+        {
+            try
+            {
+                _logService?.LogInformation("Close window command executed");
+                
+                // Use the ApplicationCloseService to handle the close process with donation dialog
+                await _applicationCloseService.CloseApplicationWithSupportDialogAsync();
+                _logService?.LogInformation("Application close service completed");
+            }
+            catch (Exception ex)
+            {
+                _logService?.LogError($"Error in CloseWindowAsync: {ex.Message}", ex);
+                
+                // Fall back to direct window closing
+                try
+                {
+                    var mainWindow = Application.Current.MainWindow;
+                    if (mainWindow != null)
+                    {
+                        mainWindow.Close();
+                        _logService?.LogInformation("Fallback: Window closed directly");
+                    }
+                    else
+                    {
+                        // Fall back to messaging
+                        _messengerService.Send(
+                            new WindowStateMessage { Action = WindowStateMessage.WindowStateAction.Close }
+                        );
+                        _logService?.LogInformation("Fallback: Sent close window message");
+                    }
+                }
+                catch (Exception fallbackEx)
+                {
+                    _logService?.LogError($"Failed in fallback close: {fallbackEx.Message}", fallbackEx);
+                    
+                    // Last resort - force application shutdown
+                    try
+                    {
+                        Application.Current.Shutdown();
+                    }
+                    catch (Exception shutdownEx)
+                    {
+                        _logService?.LogError($"Failed to shutdown application: {shutdownEx.Message}", shutdownEx);
+                    }
+                }
             }
         }
 
@@ -991,7 +1019,57 @@ namespace Winhance.WPF.Features.Common.ViewModels
         /// </summary>
         public void HandleMoreButtonClick()
         {
-            SelectedNavigationItem = "More";
+            try
+            {
+                _logService?.LogInformation("More button clicked");
+                
+                // Set the selected navigation item to show visual feedback
+                SelectedNavigationItem = "More";
+                
+                // Get the MainWindow and show the MoreMenu directly
+                var mainWindow = Application.Current.MainWindow;
+                if (mainWindow != null)
+                {
+                    _logService?.LogInformation("MainWindow found, searching for MoreMenu control");
+                    
+                    // Find the MoreMenu control in the window
+                    var moreMenuControl = FindVisualChild<Controls.MoreMenu>(mainWindow);
+                    if (moreMenuControl != null)
+                    {
+                        _logService?.LogInformation("MoreMenu control found");
+                        
+                        // Find the MoreButton to use as placement target
+                        var moreButton = mainWindow.FindName("MoreButton") as FrameworkElement;
+                        if (moreButton != null)
+                        {
+                            _logService?.LogInformation("MoreButton found, showing menu");
+                            
+                            // Ensure we're on the UI thread and show the menu
+                            mainWindow.Dispatcher.Invoke(() =>
+                            {
+                                moreMenuControl.ShowMenu(moreButton);
+                                _logService?.LogInformation("MoreMenu shown successfully");
+                            });
+                        }
+                        else
+                        {
+                            _logService?.LogWarning("MoreButton not found in MainWindow");
+                        }
+                    }
+                    else
+                    {
+                        _logService?.LogWarning("MoreMenu control not found in MainWindow");
+                    }
+                }
+                else
+                {
+                    _logService?.LogWarning("MainWindow is null, cannot show MoreMenu");
+                }
+            }
+            catch (Exception ex)
+            {
+                _logService?.LogError($"Error in HandleMoreButtonClick: {ex.Message}", ex);
+            }
         }
 
         /// <summary>
@@ -1031,6 +1109,28 @@ namespace Winhance.WPF.Features.Common.ViewModels
         public void RequestThemeIconUpdate()
         {
             _messengerService.Send(new UpdateThemeIconMessage());
+        }
+
+        /// <summary>
+        /// Helper method to find visual children in the visual tree
+        /// </summary>
+        private static T FindVisualChild<T>(DependencyObject obj) where T : DependencyObject
+        {
+            for (int i = 0; i < VisualTreeHelper.GetChildrenCount(obj); i++)
+            {
+                DependencyObject child = VisualTreeHelper.GetChild(obj, i);
+                if (child != null && child is T)
+                {
+                    return (T)child;
+                }
+
+                T childOfChild = FindVisualChild<T>(child);
+                if (childOfChild != null)
+                {
+                    return childOfChild;
+                }
+            }
+            return null;
         }
     }
 }

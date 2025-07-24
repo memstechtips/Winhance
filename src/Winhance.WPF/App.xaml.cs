@@ -165,6 +165,15 @@ namespace Winhance.WPF
                 var mainViewModel = _host.Services.GetRequiredService<MainViewModel>();
                 LogStartupError("Got main view model");
 
+                // Set the MainWindow's DataContext and make it the application's main window
+                LogStartupError("Setting MainWindow DataContext");
+                mainWindow.DataContext = mainViewModel;
+                LogStartupError("MainWindow DataContext set");
+
+                LogStartupError("Setting Application.Current.MainWindow");
+                Application.Current.MainWindow = mainWindow;
+                LogStartupError("Application.Current.MainWindow set");
+
                 LogStartupError("Getting software apps view model");
                 try
                 {
