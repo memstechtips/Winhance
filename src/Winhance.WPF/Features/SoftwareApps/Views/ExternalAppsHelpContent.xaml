@@ -4,22 +4,53 @@
              xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006" 
              xmlns:d="http://schemas.microsoft.com/expression/blend/2008" 
              xmlns:materialDesign="http://materialdesigninxaml.net/winfx/xaml/themes"
-             mc:Ignorable="d"
-             Width="600"
-             MaxHeight="450">
+             mc:Ignorable="d">
     
-    <Border Background="{DynamicResource ContentSectionBorderBrush}"
-            BorderBrush="{DynamicResource ButtonBorderBrush}"
+    <!-- Flyout Help Content -->
+    <Border Background="{DynamicResource WindowBackground}"
+            BorderBrush="#505050"
             BorderThickness="1"
-            CornerRadius="5"
-            Padding="15,10">
-        <Grid>
-            <Grid.RowDefinitions>
-                <RowDefinition Height="Auto"/>
-            </Grid.RowDefinitions>
+            CornerRadius="4"
+            Padding="15,10"
+            MinWidth="400"
+            MaxWidth="500"
+            MaxHeight="300"
+            Effect="{StaticResource LightShadowEffect}">
+        <ScrollViewer VerticalScrollBarVisibility="Auto" HorizontalScrollBarVisibility="Disabled">
+            <Grid>
+                <Grid.RowDefinitions>
+                    <RowDefinition Height="Auto"/>
+                    <RowDefinition Height="Auto"/>
+                </Grid.RowDefinitions>
+                
+                <!-- Header -->
+                <Grid Grid.Row="0" Margin="0,0,0,10">
+                    <Grid.ColumnDefinitions>
+                        <ColumnDefinition Width="*"/>
+                        <ColumnDefinition Width="Auto"/>
+                    </Grid.ColumnDefinitions>
+                    
+                    <TextBlock Grid.Column="0"
+                               Text="External Apps Help"
+                               FontSize="16"
+                               FontWeight="SemiBold"
+                               Foreground="{DynamicResource PrimaryTextColor}"
+                               VerticalAlignment="Center"/>
+                    
+                    <Button Grid.Column="1"
+                            x:Name="CloseButton"
+                            Style="{StaticResource IconButtonStyle}"
+                            Width="24"
+                            Height="24"
+                            Padding="0"
+                            ToolTip="Close Help"
+                            Command="{Binding CloseHelpCommand}">
+                        <materialDesign:PackIcon Kind="Close" Width="16" Height="16"/>
+                    </Button>
+                </Grid>
             
-            <!-- Info Text -->
-            <Grid Grid.Row="0">
+                <!-- Info Text -->
+                <Grid Grid.Row="1">
                 <Grid.ColumnDefinitions>
                     <ColumnDefinition Width="Auto"/>
                     <ColumnDefinition Width="*"/>
@@ -35,7 +66,8 @@
                            TextWrapping="Wrap"
                            MaxHeight="80"
                            Text="Check the boxes next to the applications you want to install. Click 'Install Selected Items' to install them all at once.&#x0a;Use the Search Box to find settings quickly. The Save and Import Config buttons in the main window help you manage your preferred selections."/>
+                </Grid>
             </Grid>
-        </Grid>
+        </ScrollViewer>
     </Border>
 </UserControl>

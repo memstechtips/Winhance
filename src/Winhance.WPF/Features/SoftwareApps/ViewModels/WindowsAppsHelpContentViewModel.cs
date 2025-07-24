@@ -2,6 +2,7 @@ using System;
 using System.ComponentModel;
 using System.Runtime.CompilerServices;
 using System.Threading.Tasks;
+using System.Windows.Input;
 using Winhance.Core.Features.Common.Interfaces;
 using Winhance.WPF.Features.SoftwareApps.Services;
 
@@ -27,6 +28,11 @@ namespace Winhance.WPF.Features.SoftwareApps.ViewModels
         }
 
         public RemovalStatusContainerViewModel RemovalStatusContainer { get; }
+
+        /// <summary>
+        /// Command to close the help flyout
+        /// </summary>
+        public ICommand CloseHelpCommand { get; set; }
 
         public event PropertyChangedEventHandler? PropertyChanged;
 

@@ -243,7 +243,7 @@
                         <Button.Style>
                             <Style TargetType="Button" BasedOn="{StaticResource HelpButtonStyle}">
                                 <Style.Triggers>
-                                    <DataTrigger Binding="{Binding IsHelpVisible}" Value="True">
+                                    <DataTrigger Binding="{Binding IsHelpButtonActive}" Value="True">
                                         <Setter Property="Background" Value="{DynamicResource ButtonBorderBrush}" />
                                         <Setter Property="Foreground" Value="{DynamicResource ButtonHoverTextColor}" />
                                     </DataTrigger>
@@ -446,5 +446,25 @@
                 </StackPanel>
             </commonControls:ResponsiveScrollViewer>
         </Border>
+        
+        <!-- Help Flyout Overlay - positioned at root level to cover entire view -->
+        <Grid x:Name="HelpFlyoutOverlay" 
+              Background="Transparent" 
+              Visibility="{Binding IsHelpFlyoutVisible, Converter={StaticResource BooleanToVisibilityConverter}}"
+              Panel.ZIndex="1000"
+              Focusable="True"
+              MouseLeftButtonDown="HelpFlyoutOverlay_MouseLeftButtonDown"
+              KeyDown="HelpFlyoutOverlay_KeyDown">
+            
+            <!-- The flyout help content positioned relative to help button -->
+            <ContentControl x:Name="HelpFlyoutContent"
+                           Content="{Binding CurrentHelpContent}"
+                           HorizontalAlignment="Left"
+                           VerticalAlignment="Top">
+                <ContentControl.RenderTransform>
+                    <TranslateTransform X="{Binding HelpFlyoutLeft}" Y="{Binding HelpFlyoutTop}"/>
+                </ContentControl.RenderTransform>
+            </ContentControl>
+        </Grid>
     </Grid>
 </UserControl>

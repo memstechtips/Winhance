@@ -4,6 +4,7 @@ using System.Linq;
 using System.Threading.Tasks;
 using System.Windows;
 using System.Windows.Controls;
+using System.Windows.Media;
 using CommunityToolkit.Mvvm.ComponentModel;
 using CommunityToolkit.Mvvm.Input;
 using Microsoft.Extensions.DependencyInjection;
@@ -87,6 +88,21 @@ namespace Winhance.WPF.Features.SoftwareApps.ViewModels
 
         [ObservableProperty]
         private bool _isHelpVisible = false;
+
+        [ObservableProperty]
+        private bool _isHelpFlyoutVisible = false;
+
+        [ObservableProperty]
+        private double _helpFlyoutLeft = 0;
+
+        [ObservableProperty]
+        private double _helpFlyoutTop = 0;
+
+        [ObservableProperty]
+        private bool _shouldFocusHelpOverlay = false;
+
+        [ObservableProperty]
+        private bool _isHelpButtonActive = false;
 
         /// <summary>
         /// Initializes a new instance of the <see cref="SoftwareAppsViewModel"/> class.
@@ -497,12 +513,11 @@ namespace Winhance.WPF.Features.SoftwareApps.ViewModels
         }
 
         /// <summary>
-        /// Command to show or hide help content for the active tab
+        /// Command to show help content for the active tab as a flyout
         /// </summary>
         [RelayCommand]
         private void ShowHelp()
         {
-            // Use modal dialog instead of popup to avoid performance issues
             if (IsWindowsAppsTabSelected)
             {
                 // Create Windows Apps help content
@@ -517,62 +532,130 @@ namespace Winhance.WPF.Features.SoftwareApps.ViewModels
                     logService
                 );
 
-                var helpContent = new WindowsAppsHelpContent(viewModel);
+                // Set the close command to hide the flyout
+                viewModel.CloseHelpCommand = HideHelpFlyoutCommand;
 
-                // Show as modal dialog
-                ShowHelpDialog(helpContent, "Windows Apps Help");
+                var helpContent = new WindowsAppsHelpContent(viewModel);
+                CurrentHelpContent = helpContent;
             }
             else
             {
-                // Create External Apps help content
+                // Create External Apps help content with a simple ViewModel for the close command
                 var helpContent = new ExternalAppsHelpContent();
-
-                // Show as modal dialog
-                ShowHelpDialog(helpContent, "External Apps Help");
+                
+                // Create a simple ViewModel with CloseHelpCommand
+                var viewModel = new ExternalAppsHelpViewModel { CloseHelpCommand = HideHelpFlyoutCommand };
+                helpContent.DataContext = viewModel;
+                
+                CurrentHelpContent = helpContent;
             }
+
+            // Calculate position relative to help button and show the flyout
+            CalculateHelpFlyoutPosition();
+            IsHelpFlyoutVisible = true;
+            IsHelpButtonActive = true; // Highlight the Help button
+            
+            // Trigger focus on the overlay to enable keyboard input
+            ShouldFocusHelpOverlay = !ShouldFocusHelpOverlay; // Toggle to trigger property change
         }
 
-        private void ShowHelpDialog(UserControl helpContent, string title)
+        /// <summary>
+        /// Command to hide the help flyout
+        /// </summary>
+        [RelayCommand]
+        private void HideHelpFlyout()
         {
+            IsHelpFlyoutVisible = false;
+            IsHelpButtonActive = false; // Remove highlight from Help button
+            
+            // Dispose ViewModels if they implement IDisposable
+            if (CurrentHelpContent is UserControl helpControl && 
+                helpControl.DataContext is IDisposable disposableViewModel)
+            {
+                disposableViewModel.Dispose();
+            }
+            
+            CurrentHelpContent = null;
+        }
+
+        /// <summary>
+        /// Calculates the position for the help flyout relative to the help button
+        /// </summary>
+        private void CalculateHelpFlyoutPosition()
+        {
+            if (HelpButtonElement == null) return;
+
             try
             {
-                // Create reusable modal dialog following DRY/SoC principles
-                var dialog = new ModalDialog(title, helpContent, 650, 500);
+                // Find the SoftwareAppsView container
+                var softwareAppsView = FindAncestorOfType<UserControl>(HelpButtonElement);
+                if (softwareAppsView == null) return;
 
-                // Set owner to ensure proper window layering behavior
-                Window ownerWindow = FindMainWindow();
-                if (ownerWindow != null)
+                // Get the position of the help button relative to the SoftwareAppsView
+                var buttonPosition = HelpButtonElement.TransformToAncestor(softwareAppsView).Transform(new Point(0, 0));
+
+                // Position the flyout to the left of the button, aligned to its bottom
+                // This creates an "attached" appearance similar to MoreMenuFlyout
+                HelpFlyoutLeft = buttonPosition.X - 520; // Offset to position to the left (flyout width ~500 + margin)
+                HelpFlyoutTop = buttonPosition.Y + HelpButtonElement.ActualHeight + 5; // Below the button with small gap
+
+                // Ensure the flyout doesn't go off-screen within the SoftwareAppsView
+                if (softwareAppsView.ActualWidth > 0 && softwareAppsView.ActualHeight > 0)
                 {
-                    try
+                    // Adjust horizontal position if it would go off the left edge
+                    if (HelpFlyoutLeft < 20)
                     {
-                        dialog.Owner = ownerWindow;
-                        dialog.WindowStartupLocation = WindowStartupLocation.CenterOwner;
+                        HelpFlyoutLeft = 20;
                     }
-                    catch (Exception ex)
+                    
+                    // Adjust horizontal position if it would go off the right edge
+                    if (HelpFlyoutLeft + 520 > softwareAppsView.ActualWidth - 20)
                     {
-                        dialog.WindowStartupLocation = WindowStartupLocation.CenterScreen;
+                        HelpFlyoutLeft = softwareAppsView.ActualWidth - 540;
                     }
-                }
-                else
-                {
-                    dialog.WindowStartupLocation = WindowStartupLocation.CenterScreen;
-                }
-
-                // Show as modal dialog
-                var result = dialog.ShowDialog();
-
-                // Dispose ViewModels if they implement IDisposable
-                if (helpContent.DataContext is IDisposable disposableViewModel)
-                {
-                    disposableViewModel.Dispose();
+                    
+                    // Adjust vertical position if it would go off the bottom edge
+                    if (HelpFlyoutTop + 450 > softwareAppsView.ActualHeight - 20)
+                    {
+                        // Position above the button instead
+                        HelpFlyoutTop = buttonPosition.Y - 455; // Above the button with small gap
+                        
+                        // Ensure it doesn't go off the top
+                        if (HelpFlyoutTop < 20)
+                        {
+                            HelpFlyoutTop = 20;
+                        }
+                    }
                 }
             }
             catch (Exception ex)
             {
+                // Fallback to center positioning if calculation fails
                 var logService = _serviceProvider.GetRequiredService<ILogService>();
-                logService.LogError($"Error showing modal dialog: {ex.Message}");
+                logService.LogWarning($"Failed to calculate help flyout position: {ex.Message}");
+                
+                // Use positioning near the top-right as fallback (where help button typically is)
+                HelpFlyoutLeft = 200; // Reasonable offset from left
+                HelpFlyoutTop = 100;  // Reasonable offset from top
             }
         }
+
+        /// <summary>
+        /// Helper method to find an ancestor of a specific type
+        /// </summary>
+        private static T FindAncestorOfType<T>(DependencyObject element) where T : DependencyObject
+        {
+            var parent = VisualTreeHelper.GetParent(element);
+            while (parent != null)
+            {
+                if (parent is T)
+                    return (T)parent;
+                parent = VisualTreeHelper.GetParent(parent);
+            }
+            return null;
+        }
+
+
 
         /// <summary>
         /// Finds the actual main window for setting as Owner of modal dialogs
