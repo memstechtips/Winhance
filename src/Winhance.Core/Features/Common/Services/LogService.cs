@@ -88,8 +88,7 @@ namespace Winhance.Core.Features.Common.Services
             }
             catch (Exception ex)
             {
-                // Fallback logging if file write fails
-                Console.Error.WriteLine($"Failed to start log: {ex.Message}");
+                // Fallback if file write fails
             }
         }
 
@@ -105,7 +104,7 @@ namespace Winhance.Core.Features.Common.Services
                 }
                 catch (Exception ex)
                 {
-                    Console.Error.WriteLine($"Error stopping log: {ex.Message}");
+                    // Error stopping log
                 }
             }
         }
@@ -149,12 +148,10 @@ namespace Winhance.Core.Features.Common.Services
                     // Write to file if log writer is available
                     _logWriter?.WriteLine(logEntry);
 
-                    // Also write to console for immediate visibility
-                    Console.WriteLine(logEntry);
                 }
                 catch (Exception ex)
                 {
-                    Console.Error.WriteLine($"Logging failed: {ex.Message}");
+                    // Logging failed
                 }
             }
         }

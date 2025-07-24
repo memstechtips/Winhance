@@ -120,7 +120,6 @@ namespace Winhance.Infrastructure.Features.Common.Services
         {
             if (!_isTaskRunning)
             {
-                Debug.WriteLine("Warning: Attempting to update progress when no task is running.");
                 return;
             }
 
@@ -164,9 +163,6 @@ namespace Winhance.Infrastructure.Features.Common.Services
         {
             if (!_isTaskRunning)
             {
-                Debug.WriteLine(
-                    "Warning: Attempting to update detailed progress when no task is running."
-                );
                 return;
             }
 
@@ -204,7 +200,6 @@ namespace Winhance.Infrastructure.Features.Common.Services
         {
             if (!_isTaskRunning)
             {
-                Debug.WriteLine("Warning: Attempting to complete a task when no task is running.");
                 return;
             }
 

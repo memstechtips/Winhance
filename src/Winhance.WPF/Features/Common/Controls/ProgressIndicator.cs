@@ -33,19 +33,14 @@ namespace Winhance.WPF.Features.Common.Controls
         
         private void CancelButton_Click(object sender, RoutedEventArgs e)
         {
-            // Log the button click for debugging
-            System.Diagnostics.Debug.WriteLine("Cancel button clicked");
-            
             // First try to execute the command if it exists
             if (CancelCommand != null && CancelCommand.CanExecute(null))
             {
-                System.Diagnostics.Debug.WriteLine("Executing cancel command");
                 CancelCommand.Execute(null);
                 return;
             }
             
             // If command execution fails, use a more direct approach
-            System.Diagnostics.Debug.WriteLine("Command execution failed, trying direct approach");
             CancelCurrentTaskDirectly();
         }
         
@@ -60,7 +55,6 @@ namespace Winhance.WPF.Features.Common.Controls
                 var mainWindow = System.Windows.Application.Current.MainWindow;
                 if (mainWindow == null)
                 {
-                    System.Diagnostics.Debug.WriteLine("Main window not found");
                     return;
                 }
                 
@@ -68,7 +62,6 @@ namespace Winhance.WPF.Features.Common.Controls
                 var mainViewModel = mainWindow.DataContext;
                 if (mainViewModel == null)
                 {
-                    System.Diagnostics.Debug.WriteLine("Main window DataContext is null");
                     return;
                 }
                 
@@ -81,25 +74,16 @@ namespace Winhance.WPF.Features.Common.Controls
                     var progressService = field.GetValue(mainViewModel) as Winhance.Core.Features.Common.Interfaces.ITaskProgressService;
                     if (progressService != null)
                     {
-                        System.Diagnostics.Debug.WriteLine("Found progress service, cancelling task");
                         progressService.CancelCurrentTask();
                         
                         // Show a message to the user that the task was cancelled
                         System.Windows.MessageBox.Show("Installation cancelled by user.", "Cancelled", System.Windows.MessageBoxButton.OK, System.Windows.MessageBoxImage.Information);
                     }
-                    else
-                    {
-                        System.Diagnostics.Debug.WriteLine("Progress service is null");
-                    }
-                }
-                else
-                {
-                    System.Diagnostics.Debug.WriteLine("_progressService field not found");
                 }
             }
             catch (Exception ex)
             {
-                System.Diagnostics.Debug.WriteLine($"Error in CancelCurrentTaskDirectly: {ex.Message}");
+                // Silently handle exceptions to avoid crashes
             }
         }
 

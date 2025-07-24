@@ -110,12 +110,6 @@ namespace Winhance.WPF.Features.SoftwareApps.Views
                 {
                     // This will force a reevaluation of HasSelectedItems
                     viewModel.InvalidateSelectionState();
-                    
-                    // Log the selection state for debugging
-                    if (sender is CheckBox checkBox)
-                    {
-                        DebugLogger.Log($"[DEBUG] CheckBox_SelectionChanged: IsChecked={checkBox.IsChecked}");
-                    }
                 }
             }
             finally

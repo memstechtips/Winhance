@@ -30,7 +30,8 @@ namespace Winhance.WPF.Features.Common.Views
             string title,
             string description,
             Dictionary<string, (bool IsSelected, bool IsAvailable, int ItemCount)> sections,
-            bool isSaveDialog)
+            bool isSaveDialog
+        )
         {
             try
             {
@@ -42,7 +43,13 @@ namespace Winhance.WPF.Features.Common.Views
                     if (Application.Current is App appInstance)
                     {
                         // Use reflection to access the _host.Services property
-                        var hostField = appInstance.GetType().GetField("_host", System.Reflection.BindingFlags.NonPublic | System.Reflection.BindingFlags.Instance);
+                        var hostField = appInstance
+                            .GetType()
+                            .GetField(
+                                "_host",
+                                System.Reflection.BindingFlags.NonPublic
+                                    | System.Reflection.BindingFlags.Instance
+                            );
                         if (hostField != null)
                         {
                             var host = hostField.GetValue(appInstance);
@@ -50,10 +57,16 @@ namespace Winhance.WPF.Features.Common.Views
                             if (servicesProperty != null)
                             {
                                 var services = servicesProperty.GetValue(host);
-                                var getServiceMethod = services.GetType().GetMethod("GetService", new[] { typeof(Type) });
+                                var getServiceMethod = services
+                                    .GetType()
+                                    .GetMethod("GetService", new[] { typeof(Type) });
                                 if (getServiceMethod != null)
                                 {
-                                    _logService = getServiceMethod.Invoke(services, new object[] { typeof(ILogService) }) as ILogService;
+                                    _logService =
+                                        getServiceMethod.Invoke(
+                                            services,
+                                            new object[] { typeof(ILogService) }
+                                        ) as ILogService;
                                 }
                             }
                         }
@@ -61,34 +74,42 @@ namespace Winhance.WPF.Features.Common.Views
                 }
                 catch (Exception ex)
                 {
-                    Debug.WriteLine($"Error getting log service: {ex.Message}");
                     // Continue without logging
                 }
-                
-                LogInfo($"Creating {(isSaveDialog ? "save" : "import")} dialog with title: {title}");
+
+                LogInfo(
+                    $"Creating {(isSaveDialog ? "save" : "import")} dialog with title: {title}"
+                );
                 LogInfo($"Sections: {string.Join(", ", sections.Keys)}");
 
                 // Create the view model
-                _viewModel = new UnifiedConfigurationDialogViewModel(title, description, sections, isSaveDialog);
-                
+                _viewModel = new UnifiedConfigurationDialogViewModel(
+                    title,
+                    description,
+                    sections,
+                    isSaveDialog
+                );
+
                 // Set the data context
                 DataContext = _viewModel;
 
                 // Set the window title
                 this.Title = title;
-                
+
                 // Ensure the dialog is shown as a modal dialog
                 this.WindowStartupLocation = WindowStartupLocation.CenterOwner;
                 this.ResizeMode = ResizeMode.NoResize;
                 this.ShowInTaskbar = false;
-                
+
                 // Handle the OK and Cancel commands directly
                 _viewModel.OkCommand = new RelayCommand(() =>
                 {
                     // Validate that at least one section is selected (including subsections)
-                    bool hasSelectedSection = _viewModel.Sections.Any(s => 
-                        s.IsSelected || (s.HasSubSections && s.SubSections.Any(sub => sub.IsSelected)));
-                    
+                    bool hasSelectedSection = _viewModel.Sections.Any(s =>
+                        s.IsSelected
+                        || (s.HasSubSections && s.SubSections.Any(sub => sub.IsSelected))
+                    );
+
                     if (hasSelectedSection)
                     {
                         LogInfo("OK button clicked, at least one section selected");
@@ -101,26 +122,31 @@ namespace Winhance.WPF.Features.Common.Views
                             "Please select at least one section to continue.",
                             "No Sections Selected",
                             MessageBoxButton.OK,
-                            MessageBoxImage.Warning);
+                            MessageBoxImage.Warning
+                        );
                     }
                 });
-                
+
                 _viewModel.CancelCommand = new RelayCommand(() =>
                 {
                     LogInfo("Cancel button clicked");
                     this.DialogResult = false;
                 });
-                
+
                 LogInfo("Dialog initialization completed");
             }
             catch (Exception ex)
             {
                 LogError($"Error initializing dialog: {ex.Message}");
-                Debug.WriteLine($"Error initializing dialog: {ex}");
-                
+
                 // Show error message
-                MessageBox.Show($"Error initializing dialog: {ex.Message}", "Error", MessageBoxButton.OK, MessageBoxImage.Error);
-                
+                MessageBox.Show(
+                    $"Error initializing dialog: {ex.Message}",
+                    "Error",
+                    MessageBoxButton.OK,
+                    MessageBoxImage.Error
+                );
+
                 // Set dialog result to false
                 DialogResult = false;
             }
@@ -135,11 +161,13 @@ namespace Winhance.WPF.Features.Common.Views
             try
             {
                 var result = _viewModel.GetResult();
-                
+
                 // Log the selected sections for debugging
                 var selectedSections = result.Where(r => r.Value).Select(r => r.Key).ToList();
-                LogInfo($"GetResult called, returning {result.Count} sections, selected: {string.Join(", ", selectedSections)}");
-                
+                LogInfo(
+                    $"GetResult called, returning {result.Count} sections, selected: {string.Join(", ", selectedSections)}"
+                );
+
                 return result;
             }
             catch (Exception ex)
@@ -148,19 +176,17 @@ namespace Winhance.WPF.Features.Common.Views
                 return new Dictionary<string, bool>();
             }
         }
-        
+
         private void LogInfo(string message)
         {
             _logService?.Log(LogLevel.Info, $"UnifiedConfigurationDialog: {message}");
-            Debug.WriteLine($"UnifiedConfigurationDialog: {message}");
         }
-        
+
         private void LogError(string message)
         {
             _logService?.Log(LogLevel.Error, $"UnifiedConfigurationDialog: {message}");
-            Debug.WriteLine($"UnifiedConfigurationDialog ERROR: {message}");
         }
-        
+
         /// <summary>
         /// Handles the mouse left button down event on the title bar to enable window dragging.
         /// </summary>
@@ -171,7 +197,7 @@ namespace Winhance.WPF.Features.Common.Views
                 this.DragMove();
             }
         }
-        
+
         /// <summary>
         /// Handles the close button click event.
         /// </summary>

@@ -122,7 +122,6 @@ namespace Winhance.Infrastructure.Features.Common.Registry
                 {
                     if (key == null)
                     {
-                        _logService.Log(LogLevel.Debug, $"Registry key does not exist: {keyPath}");
                         
                         // Cache the null result
                         lock (_valueCache)

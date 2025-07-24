@@ -85,9 +85,9 @@ namespace Winhance.WPF.Features.Common.ViewModels
                 applicationCloseService
                 ?? throw new ArgumentNullException(nameof(applicationCloseService));
             _dialogService =
-                dialogService
-                ?? throw new ArgumentNullException(nameof(dialogService));
-            _scriptPathService = scriptPathService ?? throw new ArgumentNullException(nameof(scriptPathService));
+                dialogService ?? throw new ArgumentNullException(nameof(dialogService));
+            _scriptPathService =
+                scriptPathService ?? throw new ArgumentNullException(nameof(scriptPathService));
 
             // Initialize version info
             UpdateVersionInfo();

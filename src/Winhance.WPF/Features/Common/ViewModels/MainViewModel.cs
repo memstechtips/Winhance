@@ -40,20 +40,6 @@ namespace Winhance.WPF.Features.Common.ViewModels
         [ObservableProperty]
         private object _currentViewModel;
 
-        // Helper method to log window actions for debugging
-        private void LogWindowAction(string message)
-        {
-            string formattedMessage = $"Window Action: {message}";
-
-            // Send to application logging system
-            _messengerService.Send(
-                new LogMessage { Message = formattedMessage, Level = LogLevel.Debug }
-            );
-
-            // Also log to diagnostic file for troubleshooting
-            FileLogger.Log("MainViewModel", formattedMessage);
-        }
-
         private string _currentViewName = string.Empty;
         public string CurrentViewName
         {
@@ -233,12 +219,10 @@ namespace Winhance.WPF.Features.Common.ViewModels
 
         private void MinimizeWindow()
         {
-            LogWindowAction("MinimizeWindow command called");
 
             var mainWindow = Application.Current.MainWindow;
             if (mainWindow == null)
             {
-                LogWindowAction("MainWindow is null");
                 return;
             }
 
@@ -246,11 +230,9 @@ namespace Winhance.WPF.Features.Common.ViewModels
             try
             {
                 mainWindow.WindowState = WindowState.Minimized;
-                LogWindowAction("Directly set WindowState to Minimized");
             }
             catch (Exception ex)
             {
-                LogWindowAction($"Error setting WindowState directly: {ex.Message}");
 
                 // Fall back to messaging
                 _messengerService.Send(
@@ -278,12 +260,10 @@ namespace Winhance.WPF.Features.Common.ViewModels
 
         private void MaximizeRestoreWindow()
         {
-            LogWindowAction("MaximizeRestoreWindow command called");
 
             var mainWindow = Application.Current.MainWindow;
             if (mainWindow == null)
             {
-                LogWindowAction("MainWindow is null");
                 return;
             }
 
@@ -293,11 +273,9 @@ namespace Winhance.WPF.Features.Common.ViewModels
                 try
                 {
                     mainWindow.WindowState = WindowState.Normal;
-                    LogWindowAction("Directly set WindowState to Normal");
                 }
                 catch (Exception ex)
                 {
-                    LogWindowAction($"Error setting WindowState directly: {ex.Message}");
 
                     // Fall back to messaging
                     _messengerService.Send(
@@ -310,7 +288,6 @@ namespace Winhance.WPF.Features.Common.ViewModels
 
                 // Update the button icon
                 MaximizeButtonContent = "\uE739";
-                LogWindowAction("Updated MaximizeButtonContent to Maximize icon");
             }
             else
             {
@@ -318,11 +295,9 @@ namespace Winhance.WPF.Features.Common.ViewModels
                 try
                 {
                     mainWindow.WindowState = WindowState.Maximized;
-                    LogWindowAction("Directly set WindowState to Maximized");
                 }
                 catch (Exception ex)
                 {
-                    LogWindowAction($"Error setting WindowState directly: {ex.Message}");
 
                     // Fall back to messaging
                     _messengerService.Send(
@@ -335,7 +310,6 @@ namespace Winhance.WPF.Features.Common.ViewModels
 
                 // Update the button icon
                 MaximizeButtonContent = "\uE923";
-                LogWindowAction("Updated MaximizeButtonContent to Restore icon");
             }
         }
 
@@ -357,21 +331,10 @@ namespace Winhance.WPF.Features.Common.ViewModels
         // Make sure this method is public so it can be called directly for testing
         public async Task CloseWindowAsync()
         {
-            LogWindowAction("CloseWindowAsync method called");
-
-            // Log basic information
-            _messengerService.Send(
-                new LogMessage
-                {
-                    Message = "CloseWindow method executing in MainViewModel",
-                    Level = LogLevel.Debug,
-                }
-            );
 
             var mainWindow = Application.Current.MainWindow;
             if (mainWindow == null)
             {
-                LogWindowAction("ERROR: MainWindow is null");
                 return;
             }
 
@@ -380,22 +343,16 @@ namespace Winhance.WPF.Features.Common.ViewModels
 
             try
             {
-                LogWindowAction("About to call mainWindow.Close()");
                 mainWindow.Close();
-                LogWindowAction("mainWindow.Close() called successfully");
             }
             catch (Exception ex)
             {
-                LogWindowAction($"ERROR closing window directly: {ex.Message}");
 
                 // Fall back to messaging
-                LogWindowAction("Falling back to WindowStateMessage.Close");
                 _messengerService.Send(
                     new WindowStateMessage { Action = WindowStateMessage.WindowStateAction.Close }
                 );
             }
-
-            LogWindowAction("CloseWindowAsync method completed");
         }
 
         /// <summary>

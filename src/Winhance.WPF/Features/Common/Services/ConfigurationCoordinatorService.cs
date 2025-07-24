@@ -3070,29 +3070,17 @@ namespace Winhance.WPF.Features.Common.Services
 
             public Task<bool> SaveConfigurationAsync<T>(IEnumerable<T> items, string configType)
             {
-                System.Diagnostics.Debug.WriteLine(
-                    $"MockConfigurationService.SaveConfigurationAsync called with configType: {configType}"
-                );
-                System.Diagnostics.Debug.WriteLine($"Generic type T: {typeof(T).FullName}");
-                System.Diagnostics.Debug.WriteLine(
-                    $"SuppressDialogs: {SuppressDialogs}, IsUnifiedConfigurationMode: {IsUnifiedConfigurationMode}"
-                );
 
                 // Check if items is null or empty
                 if (items == null)
                 {
-                    System.Diagnostics.Debug.WriteLine("Items collection is null");
                     return Task.FromResult(true);
                 }
 
                 if (!items.Any())
                 {
-                    System.Diagnostics.Debug.WriteLine("Items collection is empty");
                     return Task.FromResult(true);
                 }
-
-                // Log the count of items
-                System.Diagnostics.Debug.WriteLine($"Items count: {items.Count()}");
 
                 try
                 {
@@ -3100,7 +3088,6 @@ namespace Winhance.WPF.Features.Common.Services
                     // Special handling for ExternalApps
                     if (configType == "ExternalApps")
                     {
-                        System.Diagnostics.Debug.WriteLine("Processing ExternalApps configuration");
 
                         // Convert each ExternalApp to ExternalAppSettingItem
                         var externalApps = new List<ExternalAppSettingItem>();
@@ -3113,19 +3100,10 @@ namespace Winhance.WPF.Features.Common.Services
                             )
                             {
                                 externalApps.Add(new ExternalAppSettingItem(externalApp));
-                                System.Diagnostics.Debug.WriteLine(
-                                    $"Added ExternalAppSettingItem for {externalApp.Name}"
-                                );
                             }
                         }
 
-                        System.Diagnostics.Debug.WriteLine(
-                            $"Created {externalApps.Count} ExternalAppSettingItems"
-                        );
                         CapturedSettings.AddRange(externalApps);
-                        System.Diagnostics.Debug.WriteLine(
-                            $"Added {externalApps.Count} ExternalAppSettingItems to CapturedSettings"
-                        );
                     }
                     else
                     {
@@ -3133,21 +3111,12 @@ namespace Winhance.WPF.Features.Common.Services
                         try
                         {
                             var settingItems = items.Cast<ISettingItem>().ToList();
-                            System.Diagnostics.Debug.WriteLine(
-                                $"Successfully cast to ISettingItem, count: {settingItems.Count}"
-                            );
 
                             CapturedSettings.AddRange(settingItems);
-                            System.Diagnostics.Debug.WriteLine(
-                                $"Added {settingItems.Count} ISettingItems to CapturedSettings"
-                            );
+
                         }
                         catch (InvalidCastException ex)
                         {
-                            // Log the error but don't throw it to avoid breaking the configuration process
-                            System.Diagnostics.Debug.WriteLine(
-                                $"Error casting items to ISettingItem: {ex.Message}"
-                            );
 
                             // Try to convert each item individually
                             int convertedCount = 0;
@@ -3161,9 +3130,6 @@ namespace Winhance.WPF.Features.Common.Services
                                     )
                                     {
                                         CapturedSettings.Add(new WindowsAppSettingItem(windowsApp));
-                                        System.Diagnostics.Debug.WriteLine(
-                                            $"Added WindowsAppSettingItem for {windowsApp.Name}"
-                                        );
                                         convertedCount++;
                                     }
                                     else if (
@@ -3174,48 +3140,25 @@ namespace Winhance.WPF.Features.Common.Services
                                         CapturedSettings.Add(
                                             new ExternalAppSettingItem(externalApp)
                                         );
-                                        System.Diagnostics.Debug.WriteLine(
-                                            $"Added ExternalAppSettingItem for {externalApp.Name}"
-                                        );
                                         convertedCount++;
-                                    }
-                                    else
-                                    {
-                                        System.Diagnostics.Debug.WriteLine(
-                                            $"Unknown item type: {item?.GetType().FullName ?? "null"}"
-                                        );
                                     }
                                 }
                                 catch (Exception itemEx)
                                 {
-                                    System.Diagnostics.Debug.WriteLine(
-                                        $"Error processing individual item: {itemEx.Message}"
-                                    );
+                                    // Error processing individual item
                                 }
                             }
-                            System.Diagnostics.Debug.WriteLine(
-                                $"Converted {convertedCount} items individually"
-                            );
                         }
                     }
                 }
                 catch (Exception ex)
                 {
-                    System.Diagnostics.Debug.WriteLine(
-                        $"Unexpected error in SaveConfigurationAsync: {ex.Message}"
-                    );
+                        // Unexpected error in SaveConfigurationAsync
                 }
-
-                System.Diagnostics.Debug.WriteLine(
-                    $"CapturedSettings count after SaveConfigurationAsync: {CapturedSettings.Count}"
-                );
 
                 // Return true without showing any dialogs when in unified configuration mode
                 if (SuppressDialogs || IsUnifiedConfigurationMode)
                 {
-                    System.Diagnostics.Debug.WriteLine(
-                        "Suppressing dialogs in unified configuration mode"
-                    );
                     return Task.FromResult(true);
                 }
 

@@ -48,14 +48,10 @@ namespace Winhance.WPF.Features.SoftwareApps.Models
             {
                 if (_app.IsSelected != value)
                 {
-                    // Log to desktop file
-                    ViewModels.DebugLogger.Log($"[DEBUG] ExternalAppWithTableInfo: IsSelected changing from {_app.IsSelected} to {value} for {_app.Name}");
-                    
                     _app.IsSelected = value;
                     PropertyChanged?.Invoke(this, new PropertyChangedEventArgs(nameof(IsSelected)));
                     
                     // Notify ViewModel that selection has changed - ensure this happens on the UI thread
-                    ViewModels.DebugLogger.Log($"[DEBUG] ExternalAppWithTableInfo: Calling selection callback for {_app.Name}");
                     
                     // First immediate callback
                     _selectionChangedCallback?.Invoke();
@@ -64,7 +60,6 @@ namespace Winhance.WPF.Features.SoftwareApps.Models
                     // This helps when multiple items are being selected in quick succession
                     System.Windows.Application.Current.Dispatcher.BeginInvoke(new Action(() => 
                     {
-                        ViewModels.DebugLogger.Log($"[DEBUG] ExternalAppWithTableInfo: Calling delayed selection callback for {_app.Name}");
                         _selectionChangedCallback?.Invoke();
                     }));
                 }

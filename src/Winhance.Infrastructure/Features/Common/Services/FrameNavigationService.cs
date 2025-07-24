@@ -135,8 +135,6 @@ namespace Winhance.Infrastructure.Features.Common.Services
             }
             catch (Exception ex)
             {
-                // Log the error
-                System.Diagnostics.Debug.WriteLine($"Navigation error: {ex.Message}");
 
                 var args = new Winhance.Core.Features.Common.Interfaces.NavigationEventArgs(
                     CurrentView,
@@ -164,8 +162,6 @@ namespace Winhance.Infrastructure.Features.Common.Services
             }
             catch (Exception ex)
             {
-                // Log the error
-                System.Diagnostics.Debug.WriteLine($"Navigation error: {ex.Message}");
 
                 var args = new Winhance.Core.Features.Common.Interfaces.NavigationEventArgs(
                     CurrentView,
@@ -191,8 +187,6 @@ namespace Winhance.Infrastructure.Features.Common.Services
             }
             catch (Exception ex)
             {
-                // Log the error
-                System.Diagnostics.Debug.WriteLine($"Navigation back error: {ex.Message}");
                 return false;
             }
         }

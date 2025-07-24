@@ -47,13 +47,11 @@ namespace Winhance.WPF.Features.Common.Utilities
                 
                 // Always center the window on screen
                 // This ensures consistent behavior regardless of WindowStartupLocation
-                CenterWindowOnScreen();
-                
-                LogDebug($"Window initialized with size: {_window.Width}x{_window.Height}");
+                CenterWindowOnScreen();               
             }
             catch (Exception ex)
             {
-                LogDebug($"Error initializing window size manager: {ex.Message}", ex);
+                // Error initializing window size manager
             }
         }
         
@@ -82,7 +80,7 @@ namespace Winhance.WPF.Features.Common.Utilities
                 }
                 catch (Exception ex)
                 {
-                    LogDebug($"Error getting DPI scale: {ex.Message}", ex);
+                    // Error getting DPI scale
                 }
                 
                 // Convert screen coordinates to account for DPI
@@ -99,11 +97,10 @@ namespace Winhance.WPF.Features.Common.Utilities
                 _window.Left = left;
                 _window.Top = top;
                 
-                LogDebug($"Window explicitly centered at: Left={left}, Top={top}");
             }
             catch (Exception ex)
             {
-                LogDebug($"Error centering window: {ex.Message}", ex);
+                // Error centering window
             }
         }
 
@@ -113,9 +110,7 @@ namespace Winhance.WPF.Features.Common.Utilities
         private void SetDynamicWindowSize()
         {
             try
-            {
-                LogDebug("Setting dynamic window size");
-                
+            {               
                 // Get the current screen's working area (excludes taskbar)
                 var workArea = GetCurrentScreenWorkArea();
                 
@@ -130,12 +125,11 @@ namespace Winhance.WPF.Features.Common.Utilities
                     {
                         dpiScaleX = presentationSource.CompositionTarget.TransformToDevice.M11;
                         dpiScaleY = presentationSource.CompositionTarget.TransformToDevice.M22;
-                        LogDebug($"DPI scale factors: X={dpiScaleX}, Y={dpiScaleY}");
                     }
                 }
                 catch (Exception ex)
                 {
-                    LogDebug($"Error getting DPI scale: {ex.Message}", ex);
+                    // Error getting DPI scale
                 }
                 
                 // Calculate available screen space
@@ -154,12 +148,10 @@ namespace Winhance.WPF.Features.Common.Utilities
                 _window.Width = windowWidth;
                 _window.Height = windowHeight;
                 
-                LogDebug($"Dynamic window size set to: Width={windowWidth}, Height={windowHeight}");
-                LogDebug($"Screen dimensions: Width={screenWidth}, Height={screenHeight}");
             }
             catch (Exception ex)
             {
-                LogDebug($"Error setting dynamic window size: {ex.Message}", ex);
+                // Error setting dynamic window size
             }
         }
 
@@ -191,32 +183,11 @@ namespace Winhance.WPF.Features.Common.Utilities
             }
             catch (Exception ex)
             {
-                LogDebug($"Error getting current screen: {ex.Message}", ex);
+                // Error getting current screen
             }
             
             // Fallback to primary screen working area
             return SystemParameters.WorkArea;
-        }
-
-        // Event handlers for window state, location, and size changes have been removed
-        // as we no longer save window position/size to preferences
-
-        /// <summary>
-        /// Logs a debug message
-        /// </summary>
-        private void LogDebug(string message, Exception ex = null)
-        {
-            try
-            {
-                _logService?.Log(LogLevel.Debug, message, ex);
-                
-                // Also log to file logger for troubleshooting
-                FileLogger.Log("WindowSizeManager", message + (ex != null ? $" - Exception: {ex.Message}" : ""));
-            }
-            catch
-            {
-                // Ignore logging errors
-            }
         }
 
         #region Win32 API

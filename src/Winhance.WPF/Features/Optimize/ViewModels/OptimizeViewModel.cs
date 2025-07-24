@@ -419,7 +419,6 @@ namespace Winhance.WPF.Features.Optimize.ViewModels
                 // Add settings from each category - convert from OptimizationSettingViewModel to OptimizationSettingItem
                 if (WindowsSecuritySettingsViewModel != null && WindowsSecuritySettingsViewModel.Settings != null)
                 {
-                    _logService.Log(LogLevel.Debug, $"Loading {WindowsSecuritySettingsViewModel.Settings.Count} settings from WindowsSecuritySettingsViewModel");
                     foreach (var setting in WindowsSecuritySettingsViewModel.Settings)
                     {
                         // Create a new OptimizationSettingItem with the properties from the setting
@@ -1174,77 +1173,61 @@ namespace Winhance.WPF.Features.Optimize.ViewModels
         /// </summary>
         private async Task EnsureChildViewModelsInitialized()
         {
-            _logService.Log(LogLevel.Debug, "Ensuring all child view models are initialized");
-            
             // Create a list of tasks to initialize all child view models
             var initializationTasks = new List<Task>();
             
             // Windows Security Settings
             if (WindowsSecuritySettingsViewModel != null && WindowsSecuritySettingsViewModel.Settings == null)
             {
-                _logService.Log(LogLevel.Debug, "Loading WindowsSecuritySettingsViewModel settings");
                 initializationTasks.Add(WindowsSecuritySettingsViewModel.LoadSettingsAsync());
             }
             
             // Gaming and Performance Settings
             if (GamingandPerformanceOptimizationsViewModel != null && GamingandPerformanceOptimizationsViewModel.Settings == null)
             {
-                _logService.Log(LogLevel.Debug, "Loading GamingandPerformanceOptimizationsViewModel settings");
                 initializationTasks.Add(GamingandPerformanceOptimizationsViewModel.LoadSettingsAsync());
             }
             
             // Privacy Settings
             if (PrivacyOptimizationsViewModel != null && PrivacyOptimizationsViewModel.Settings == null)
             {
-                _logService.Log(LogLevel.Debug, "Loading PrivacyOptimizationsViewModel settings");
                 initializationTasks.Add(PrivacyOptimizationsViewModel.LoadSettingsAsync());
             }
             
             // Update Settings
             if (UpdateOptimizationsViewModel != null && UpdateOptimizationsViewModel.Settings == null)
             {
-                _logService.Log(LogLevel.Debug, "Loading UpdateOptimizationsViewModel settings");
                 initializationTasks.Add(UpdateOptimizationsViewModel.LoadSettingsAsync());
             }
             
             // Power Settings
             if (PowerSettingsViewModel != null && PowerSettingsViewModel.Settings == null)
             {
-                _logService.Log(LogLevel.Debug, "Loading PowerSettingsViewModel settings");
                 initializationTasks.Add(PowerSettingsViewModel.LoadSettingsAsync());
             }
             
             // Explorer Settings
             if (ExplorerOptimizationsViewModel != null && ExplorerOptimizationsViewModel.Settings == null)
             {
-                _logService.Log(LogLevel.Debug, "Loading ExplorerOptimizationsViewModel settings");
                 initializationTasks.Add(ExplorerOptimizationsViewModel.LoadSettingsAsync());
             }
             
             // Notification Settings
             if (NotificationOptimizationsViewModel != null && NotificationOptimizationsViewModel.Settings == null)
             {
-                _logService.Log(LogLevel.Debug, "Loading NotificationOptimizationsViewModel settings");
                 initializationTasks.Add(NotificationOptimizationsViewModel.LoadSettingsAsync());
             }
             
             // Sound Settings
             if (SoundOptimizationsViewModel != null && SoundOptimizationsViewModel.Settings == null)
             {
-                _logService.Log(LogLevel.Debug, "Loading SoundOptimizationsViewModel settings");
                 initializationTasks.Add(SoundOptimizationsViewModel.LoadSettingsAsync());
             }
             
             // Wait for all initialization tasks to complete
             if (initializationTasks.Count > 0)
             {
-                _logService.Log(LogLevel.Debug, $"Waiting for {initializationTasks.Count} child view models to initialize");
                 await Task.WhenAll(initializationTasks);
-                _logService.Log(LogLevel.Debug, "All child view models initialized");
-            }
-            else
-            {
-                _logService.Log(LogLevel.Debug, "All child view models were already initialized");
             }
         }
 

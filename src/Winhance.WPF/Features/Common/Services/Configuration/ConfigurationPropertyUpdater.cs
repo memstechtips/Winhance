@@ -842,27 +842,17 @@ namespace Winhance.WPF.Features.Common.Services.Configuration
                         {
                             isCheckedProperty.SetValue(item, configItem.IsSelected);
                             anyPropertyUpdated = true;
-                            _logService.Log(
-                                LogLevel.Debug,
-                                $"Updated IsChecked for item {itemName} to {configItem.IsSelected}"
-                            );
                         }
                     }
                     catch (Exception ex)
                     {
-                        _logService.Log(
-                            LogLevel.Debug,
-                            $"Error updating IsChecked for item {itemName}: {ex.Message}"
-                        );
+                        // Error updating IsChecked for item
                     }
                 }
             }
             catch (Exception ex)
             {
-                _logService.Log(
-                    LogLevel.Debug,
-                    $"Error in UpdateAdditionalProperties: {ex.Message}"
-                );
+                // Error in UpdateAdditionalProperties
             }
 
             return anyPropertyUpdated;
@@ -987,16 +977,13 @@ namespace Winhance.WPF.Features.Common.Services.Configuration
                     }
                     catch (Exception ex)
                     {
-                        _logService.Log(
-                            LogLevel.Debug,
-                            $"Error finding property changed method: {ex.Message}"
-                        );
+                        // Error finding property changed method
                     }
                 }
             }
             catch (Exception ex)
             {
-                _logService.Log(LogLevel.Debug, $"Error triggering property changed: {ex.Message}");
+                // Error triggering property changed
             }
         }
 
@@ -1013,10 +1000,6 @@ namespace Winhance.WPF.Features.Common.Services.Configuration
                 // Check if this is an ApplicationSettingItem
                 if (item is ApplicationSettingItem settingItem)
                 {
-                    _logService.Log(
-                        LogLevel.Debug,
-                        $"Applying registry settings for {settingItem.Name}, IsSelected={isSelected}"
-                    );
 
                     // Apply registry setting if present
                     if (settingItem.RegistrySetting != null)
@@ -1293,7 +1276,6 @@ namespace Winhance.WPF.Features.Common.Services.Configuration
             catch (Exception ex)
             {
                 _logService.Log(LogLevel.Error, $"Error applying registry settings: {ex.Message}");
-                _logService.Log(LogLevel.Debug, $"Exception details: {ex}");
             }
         }
 

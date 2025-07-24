@@ -160,7 +160,6 @@ namespace Winhance.WPF.Features.Common.Services.Configuration
                 catch (Exception ex)
                 {
                     _logService.Log(LogLevel.Error, $"Error applying configuration to section {section}: {ex.Message}");
-                    _logService.Log(LogLevel.Debug, $"Exception details: {ex}");
                     sectionResult = false;
                 }
                 

@@ -291,19 +291,11 @@ namespace Winhance.Infrastructure.Features.Common.Registry
                 {
                     // When enabling, use EnabledValue if available, otherwise fall back to RecommendedValue
                     valueToSet = setting.EnabledValue ?? setting.RecommendedValue;
-                    _logService.Log(
-                        LogLevel.Debug,
-                        $"Setting {setting.Name} - EnabledValue: {setting.EnabledValue}, RecommendedValue: {setting.RecommendedValue}, Using: {valueToSet}"
-                    );
                 }
                 else
                 {
                     // When disabling, use DisabledValue if available, otherwise fall back to DefaultValue
                     valueToSet = setting.DisabledValue ?? setting.DefaultValue;
-                    _logService.Log(
-                        LogLevel.Debug,
-                        $"Setting {setting.Name} - DisabledValue: {setting.DisabledValue}, DefaultValue: {setting.DefaultValue}, Using: {valueToSet}"
-                    );
                 }
 
                 if (valueToSet == null)
@@ -428,10 +420,6 @@ namespace Winhance.Infrastructure.Features.Common.Registry
                 foreach (var setting in linkedSettings.Settings)
                 {
                     settingCount++;
-                    _logService.Log(
-                        LogLevel.Debug,
-                        $"Processing linked setting {settingCount}/{totalSettings}: {setting.Name}"
-                    );
 
                     // Ensure the registry key path exists before applying the setting
                     string keyPath = $"{setting.Hive}\\{setting.SubKey}";

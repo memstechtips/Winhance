@@ -29,7 +29,6 @@ namespace Winhance.Infrastructure.Features.SoftwareApps.Services.ScriptGeneratio
             int arrayStartIndex = scriptContent.IndexOf("$packages = @(");
             if (arrayStartIndex == -1)
             {
-                Console.WriteLine("Could not find $packages array in BloatRemoval.ps1");
                 return scriptContent;
             }
 
@@ -37,7 +36,6 @@ namespace Winhance.Infrastructure.Features.SoftwareApps.Services.ScriptGeneratio
             int arrayEndIndex = scriptContent.IndexOf(")", arrayStartIndex);
             if (arrayEndIndex == -1)
             {
-                Console.WriteLine("Could not find end of $packages array in BloatRemoval.ps1");
                 return scriptContent;
             }
 

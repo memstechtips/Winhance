@@ -32,11 +32,6 @@ namespace Winhance.WPF.Features.SoftwareApps.Views
             // Explicitly set DialogResult to null for Cancel
             DialogResult = null;
 
-            // Add debug logging
-            System.Diagnostics.Debug.WriteLine(
-                "[DIALOG DEBUG] TertiaryButton (Cancel) clicked - DialogResult set to null"
-            );
-
             Close();
         }
 
@@ -125,14 +120,6 @@ namespace Winhance.WPF.Features.SoftwareApps.Views
             dialog.TertiaryButton.Visibility = Visibility.Visible;
             dialog.TertiaryButton.IsCancel = true;
 
-            // Add debug logging for button visibility
-            System.Diagnostics.Debug.WriteLine(
-                $"[DIALOG DEBUG] TertiaryButton Visibility: {dialog.TertiaryButton.Visibility}"
-            );
-            System.Diagnostics.Debug.WriteLine(
-                $"[DIALOG DEBUG] TertiaryButton IsCancel: {dialog.TertiaryButton.IsCancel}"
-            );
-
             return dialog;
         }
 
@@ -145,27 +132,11 @@ namespace Winhance.WPF.Features.SoftwareApps.Views
         {
             var dialog = CreateYesNoCancelDialog(title, headerText, apps, footerText);
 
-            // Add event handler for the Closing event to ensure DialogResult is set correctly
-            dialog.Closing += (sender, e) =>
-            {
-                // If DialogResult is not explicitly set (e.g., if the dialog is closed by clicking outside or pressing Escape),
-                // set it to null to indicate Cancel
-                if (dialog.DialogResult == null)
-                {
-                    System.Diagnostics.Debug.WriteLine(
-                        "[DIALOG DEBUG] Dialog closing without explicit DialogResult - setting to null (Cancel)"
-                    );
-                }
-            };
-
             // Add event handler for the KeyDown event to handle Escape key
             dialog.KeyDown += (sender, e) =>
             {
                 if (e.Key == System.Windows.Input.Key.Escape)
                 {
-                    System.Diagnostics.Debug.WriteLine(
-                        "[DIALOG DEBUG] Escape key pressed - setting DialogResult to null (Cancel)"
-                    );
                     dialog.DialogResult = null;
                     dialog.Close();
                 }
@@ -173,11 +144,6 @@ namespace Winhance.WPF.Features.SoftwareApps.Views
 
             // Show the dialog and get the result
             var result = dialog.ShowDialog();
-
-            // Log the result
-            System.Diagnostics.Debug.WriteLine(
-                $"[DIALOG DEBUG] ShowYesNoCancel result: {(result == true ? "Yes" : result == false ? "No" : "Cancel")}"
-            );
 
             return result;
         }

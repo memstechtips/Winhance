@@ -1,6 +1,5 @@
 using System;
 using System.Collections.Generic;
-using System.Diagnostics;
 using System.Linq;
 using System.Reflection;
 using System.Windows;
@@ -251,14 +250,7 @@ namespace Winhance.WPF.Features.Common.Resources.Theme
                 }
 
                 // Notify the ViewNameToBackgroundConverter that the theme has changed
-                try
-                {
-                    Winhance.WPF.Features.Common.Converters.ViewNameToBackgroundConverter.Instance.NotifyThemeChanged();
-                }
-                catch (Exception ex)
-                {
-                    Debug.WriteLine($"Error notifying ViewNameToBackgroundConverter: {ex.Message}");
-                }
+                Winhance.WPF.Features.Common.Converters.ViewNameToBackgroundConverter.Instance.NotifyThemeChanged();
 
                 // Attempt to force a visual refresh of the main window
                 var mainWindow = Application.Current.MainWindow;
@@ -318,15 +310,14 @@ namespace Winhance.WPF.Features.Common.Resources.Theme
                         }
                         catch (Exception ex)
                         {
-                            Debug.WriteLine($"Error updating UI elements: {ex.Message}");
+                            // Silently handle exceptions to avoid crashes
                         }
                     });
                 }
             }
             catch (Exception ex)
             {
-                Debug.WriteLine($"Error applying theme: {ex.Message}");
-                Debug.WriteLine(ex.StackTrace);
+                // Silently handle exceptions to avoid crashes
             }
 
             // Save theme preference
@@ -342,7 +333,7 @@ namespace Winhance.WPF.Features.Common.Resources.Theme
             }
             catch (Exception ex)
             {
-                Debug.WriteLine($"Failed to save theme preference: {ex.Message}");
+                // Silently handle exceptions to avoid crashes
             }
         }
 
@@ -354,7 +345,6 @@ namespace Winhance.WPF.Features.Common.Resources.Theme
             }
             catch (Exception ex)
             {
-                Debug.WriteLine($"Failed to load theme preference: {ex.Message}");
                 // Keep default value if loading fails
             }
         }
@@ -371,7 +361,7 @@ namespace Winhance.WPF.Features.Common.Resources.Theme
             }
             catch (Exception ex)
             {
-                Debug.WriteLine($"Error cleaning up ThemeManager: {ex.Message}");
+                // Silently handle exceptions to avoid crashes
             }
         }
 
@@ -385,7 +375,7 @@ namespace Winhance.WPF.Features.Common.Resources.Theme
             }
             catch (Exception ex)
             {
-                Debug.WriteLine($"Failed to reset theme preference: {ex.Message}");
+                // Silently handle exceptions to avoid crashes
             }
         }
 
@@ -473,8 +463,7 @@ namespace Winhance.WPF.Features.Common.Resources.Theme
             }
             catch (Exception ex)
             {
-                Debug.WriteLine($"Error updating toggle switches: {ex.Message}");
-                Debug.WriteLine(ex.StackTrace);
+                // Silently handle exceptions to avoid crashes
             }
         }
 
@@ -483,20 +472,15 @@ namespace Winhance.WPF.Features.Common.Resources.Theme
         {
             try
             {
-                Debug.WriteLine($"NotifyWindowsOfThemeChange called. Current theme: {(IsDarkTheme ? "Dark" : "Light")}");
-
                 // Notify all open windows about theme changes
                 foreach (Window window in Application.Current.Windows)
                 {
-                    Debug.WriteLine($"Processing window: {window.GetType().Name}");
-
                     // Check if the window is a MainWindow or LoadingWindow
                     if (window is MainWindow mainWindow)
                     {
                         // Call the UpdateThemeIcon method using reflection
                         try
                         {
-                            Debug.WriteLine("Attempting to update MainWindow icon");
                             var method = mainWindow.GetType().GetMethod("UpdateThemeIcon", BindingFlags.Instance | BindingFlags.NonPublic);
                             if (method != null)
                             {
@@ -505,17 +489,11 @@ namespace Winhance.WPF.Features.Common.Resources.Theme
                                 {
                                     method.Invoke(mainWindow, null);
                                 });
-                                Debug.WriteLine("Updated theme icon in MainWindow");
-                            }
-                            else
-                            {
-                                Debug.WriteLine("UpdateThemeIcon method not found in MainWindow");
                             }
                         }
                         catch (Exception ex)
                         {
-                            Debug.WriteLine($"Error updating theme icon in MainWindow: {ex.Message}");
-                            Debug.WriteLine(ex.StackTrace);
+                            // Silently handle exceptions to avoid crashes
                         }
                     }
                     else if (window is LoadingWindow loadingWindow)
@@ -523,7 +501,6 @@ namespace Winhance.WPF.Features.Common.Resources.Theme
                         // Call the UpdateThemeIcon method using reflection
                         try
                         {
-                            Debug.WriteLine("Attempting to update LoadingWindow icon");
                             var method = loadingWindow.GetType().GetMethod("UpdateThemeIcon", BindingFlags.Instance | BindingFlags.NonPublic);
                             if (method != null)
                             {
@@ -532,25 +509,18 @@ namespace Winhance.WPF.Features.Common.Resources.Theme
                                 {
                                     method.Invoke(loadingWindow, null);
                                 });
-                                Debug.WriteLine("Updated theme icon in LoadingWindow");
-                            }
-                            else
-                            {
-                                Debug.WriteLine("UpdateThemeIcon method not found in LoadingWindow");
                             }
                         }
                         catch (Exception ex)
                         {
-                            Debug.WriteLine($"Error updating theme icon in LoadingWindow: {ex.Message}");
-                            Debug.WriteLine(ex.StackTrace);
+                            // Silently handle exceptions to avoid crashes
                         }
                     }
                 }
             }
             catch (Exception ex)
             {
-                Debug.WriteLine($"Error notifying windows of theme change: {ex.Message}");
-                Debug.WriteLine(ex.StackTrace);
+                // Silently handle exceptions to avoid crashes
             }
         }
 
@@ -586,7 +556,7 @@ namespace Winhance.WPF.Features.Common.Resources.Theme
                 }
                 catch (Exception ex)
                 {
-                    Debug.WriteLine($"Error updating toggle button: {ex.Message}");
+                    // Silently handle exceptions to avoid crashes
                 }
             }
 

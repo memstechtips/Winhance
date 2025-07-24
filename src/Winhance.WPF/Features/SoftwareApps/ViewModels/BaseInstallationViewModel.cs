@@ -85,23 +85,14 @@ namespace Winhance.WPF.Features.SoftwareApps.ViewModels
         {
             if (IsInitialized)
             {
-                System.Diagnostics.Debug.WriteLine(
-                    $"{GetType().Name} already initialized, skipping LoadAppsAndCheckInstallationStatusAsync"
-                );
                 return;
             }
 
-            System.Diagnostics.Debug.WriteLine(
-                $"Starting {GetType().Name} LoadAppsAndCheckInstallationStatusAsync"
-            );
             await LoadItemsAsync();
             await CheckInstallationStatusAsync();
 
             // Mark as initialized after loading is complete
             IsInitialized = true;
-            System.Diagnostics.Debug.WriteLine(
-                $"Completed {GetType().Name} LoadAppsAndCheckInstallationStatusAsync"
-            );
         }
 
         /// <summary>
@@ -180,11 +171,6 @@ namespace Winhance.WPF.Features.SoftwareApps.ViewModels
             CurrentCancellationReason = isConnectivityIssue
                 ? CancellationReason.InternetConnectivityLost
                 : CancellationReason.UserCancelled;
-
-            // Log the cancellation (diagnostics)
-            System.Diagnostics.Debug.WriteLine(
-                $"[DEBUG] Installation {(isConnectivityIssue ? "stopped due to connectivity loss" : "cancelled by user")} - showing dialog"
-            );
 
             // Show the appropriate dialog (UI presentation - delegated to specialized method)
             await ShowCancellationDialogAsync(!isConnectivityIssue, isConnectivityIssue);

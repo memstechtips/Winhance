@@ -157,9 +157,7 @@ namespace Winhance.WPF.Features.Optimize.Views
                     // Initialize data if needed
                     if (viewModel.InitializeCommand != null)
                     {
-                        Console.WriteLine("OptimizeView: Executing InitializeCommand");
                         await viewModel.InitializeCommand.ExecuteAsync(null);
-                        Console.WriteLine("OptimizeView: InitializeCommand completed successfully");
                     }
                     else
                     {
@@ -171,20 +169,12 @@ namespace Winhance.WPF.Features.Optimize.Views
                 }
                 catch (Exception ex)
                 {
-                    Console.WriteLine($"OptimizeView: Error initializing - {ex.Message}");
-                    MessageBox.Show($"Error initializing Optimize view: {ex.Message}",
-                        "Initialization Error",
-                        MessageBoxButton.OK,
-                        MessageBoxImage.Error);
+                    // OptimizeView: Error initializing
                 }
             }
             else
             {
-                Console.WriteLine("OptimizeView: DataContext is not OptimizeViewModel");
-                MessageBox.Show("DataContext is not OptimizeViewModel",
-                    "Initialization Error",
-                    MessageBoxButton.OK,
-                    MessageBoxImage.Error);
+                // OptimizeView: DataContext is not OptimizeViewModel
             }
         }
 

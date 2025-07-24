@@ -240,7 +240,6 @@ namespace Winhance.WPF.Features.Common.Views
                         }
                         catch (Exception ex)
                         {
-                            Debug.WriteLine($"Error showing dialog: {ex.Message}");
                             return false;
                         }
                     });
@@ -248,7 +247,6 @@ namespace Winhance.WPF.Features.Common.Views
             }
             catch (Exception ex)
             {
-                Debug.WriteLine($"Error in ShowAsync: {ex.Message}");
                 return false;
             }
         }

@@ -76,7 +76,6 @@ namespace Winhance.WPF.Features.SoftwareApps.ViewModels
                     if (value)
                     {
                         UpdateAllItemsCollection();
-                        LogTableViewState();
                     }
                 }
             }
@@ -173,7 +172,6 @@ namespace Winhance.WPF.Features.SoftwareApps.ViewModels
             if (IsTableViewMode)
             {
                 UpdateAllItemsCollection();
-                System.Diagnostics.Debug.WriteLine($"ToggleViewMode: Table view mode is now {IsTableViewMode}, AllItems count: {_allItems.Count}");
             }
 
         }
@@ -225,10 +223,7 @@ namespace Winhance.WPF.Features.SoftwareApps.ViewModels
                 foreach (var item in newItems)
                 {
                     _allItems.Add(item);
-                }
-                
-                // Log the number of items for debugging
-                System.Diagnostics.Debug.WriteLine($"UpdateAllItemsCollection: Added {newItems.Count} items to the table view");
+                }             
             }
             
             // Notify property changed for AllItemsView to ensure the UI updates
@@ -366,27 +361,6 @@ namespace Winhance.WPF.Features.SoftwareApps.ViewModels
                 };
             }
         }
-        
-        /// <summary>
-        /// Debug method to log the state of the AllItemsView collection
-        /// </summary>
-        private void LogTableViewState()
-        {
-            System.Diagnostics.Debug.WriteLine($"========== TABLE VIEW STATE ===========");
-            System.Diagnostics.Debug.WriteLine($"IsTableViewMode: {IsTableViewMode}");
-            System.Diagnostics.Debug.WriteLine($"AllItems Count: {_allItems.Count}");
-            System.Diagnostics.Debug.WriteLine($"AllItemsView Count: {_allItemsView?.Cast<object>().Count() ?? 0}");
-            System.Diagnostics.Debug.WriteLine($"Categories Count: {Categories.Count}");
-            System.Diagnostics.Debug.WriteLine($"Total Apps in Categories: {Categories.Sum(c => c.Apps.Count)}");
-            
-            // Log the first 5 items in the collection
-            int count = 0;
-            foreach (var item in _allItems.Take(5))
-            {
-                System.Diagnostics.Debug.WriteLine($"Item {count++}: {item.Name} - {item.PackageName} - {item.Category}");
-            }
-            System.Diagnostics.Debug.WriteLine($"=====================================");
-        }
 
         /// <summary>
         /// Handles changes to the IsAllSelected property
@@ -427,60 +401,20 @@ namespace Winhance.WPF.Features.SoftwareApps.ViewModels
         {
             get
             {
-                DebugLogger.Log($"[DEBUG] HasSelectedItems getter called - Cache valid: {_hasSelectedItemsCacheValid}, Cached value: {_hasSelectedItems}, IsTableViewMode: {IsTableViewMode}");
-                
                 if (!_hasSelectedItemsCacheValid)
                 {
                     if (IsTableViewMode && _allItems != null)
                     {
                         // Check if any table view wrapper items are selected
                         _hasSelectedItems = _allItems.Any(a => a.IsSelected);
-                        DebugLogger.Log($"[DEBUG] HasSelectedItems cache refreshed (TABLE VIEW) - New value: {_hasSelectedItems}, AllItems count: {_allItems?.Count ?? 0}");
-                        
-                        // Additional logging to show which items are selected
-                        var selectedItems = _allItems.Where(a => a.IsSelected).ToList();
-                        DebugLogger.Log($"[DEBUG] Selected table view items count: {selectedItems.Count}");
-                        foreach (var item in selectedItems.Take(5)) // Log first 5 selected items
-                        {
-                            DebugLogger.Log($"[DEBUG]   - Selected table view item: {item.Name} (IsSelected: {item.IsSelected})");
-                        }
                     }
                     else
                     {
                         // Check if any regular items are selected
                         _hasSelectedItems = Items?.Any(a => a.IsSelected) == true;
-                        DebugLogger.Log($"[DEBUG] HasSelectedItems cache refreshed (LIST VIEW) - New value: {_hasSelectedItems}, Items count: {Items?.Count ?? 0}");
-                        
-                        // Additional logging to show which items are selected
-                        if (Items != null)
-                        {
-                            var selectedItems = Items.Where(a => a.IsSelected).ToList();
-                            DebugLogger.Log($"[DEBUG] Selected items count: {selectedItems.Count}");
-                            foreach (var item in selectedItems.Take(5)) // Log first 5 selected items
-                            {
-                                DebugLogger.Log($"[DEBUG]   - Selected item: {item.Name} (IsSelected: {item.IsSelected})");
-                            }
-                        }
                     }
                     
                     _hasSelectedItemsCacheValid = true;
-                }
-                else
-                {
-                    DebugLogger.Log($"[DEBUG] HasSelectedItems returning cached value: {_hasSelectedItems}");
-                    
-                    // In debug mode, let's force a refresh to see if the cached value is actually correct
-                    if (IsTableViewMode && _allItems != null)
-                    {
-                        var actualHasSelected = _allItems.Any(a => a.IsSelected);
-                        if (actualHasSelected != _hasSelectedItems)
-                        {
-                            DebugLogger.Log($"[DEBUG] CACHE MISMATCH! Cached: {_hasSelectedItems}, Actual: {actualHasSelected}");
-                            DebugLogger.Log($"[DEBUG] Forcing cache refresh...");
-                            _hasSelectedItemsCacheValid = false;
-                            return HasSelectedItems; // Recursive call to refresh
-                        }
-                    }
                 }
                 
                 return _hasSelectedItems;
@@ -490,9 +424,9 @@ namespace Winhance.WPF.Features.SoftwareApps.ViewModels
         // Method to invalidate the HasSelectedItems cache
         private void InvalidateHasSelectedItemsCache()
         {
-            DebugLogger.Log($"[DEBUG] InvalidateHasSelectedItemsCache called - Previous cache valid: {_hasSelectedItemsCacheValid}, Previous cached value: {_hasSelectedItems}");
+
             _hasSelectedItemsCacheValid = false;
-            DebugLogger.Log($"[DEBUG] Cache invalidated - Cache valid now: {_hasSelectedItemsCacheValid}");
+
         }
         
         /// <summary>
@@ -501,7 +435,7 @@ namespace Winhance.WPF.Features.SoftwareApps.ViewModels
         /// </summary>
         public void InvalidateSelectionState()
         {
-            DebugLogger.Log($"[DEBUG] ExternalAppsViewModel.InvalidateSelectionState called");
+
             
             // Invalidate the cached value
             InvalidateHasSelectedItemsCache();
@@ -512,7 +446,7 @@ namespace Winhance.WPF.Features.SoftwareApps.ViewModels
             // Ensure parent viewmodel updates button states by raising selection changed event
             if (SelectedItemsChanged != null)
             {
-                DebugLogger.Log($"[DEBUG] Raising SelectedItemsChanged event");
+
                 SelectedItemsChanged.Invoke(this, EventArgs.Empty);
             }
         }
@@ -569,47 +503,47 @@ namespace Winhance.WPF.Features.SoftwareApps.ViewModels
         /// </summary>
         private void OnTableViewSelectionChanged()
         {
-            DebugLogger.Log("[DEBUG] ========== ExternalAppsViewModel.OnTableViewSelectionChanged START ==========");
-            DebugLogger.Log($"[DEBUG] ExternalAppsViewModel.OnTableViewSelectionChanged called - Thread: {System.Threading.Thread.CurrentThread.ManagedThreadId}");
-            DebugLogger.Log($"[DEBUG] Cache valid before invalidation: {_hasSelectedItemsCacheValid}, cached value: {_hasSelectedItems}");
+
+
+
             
             // Log selections in the _allItems collection
             if (_allItems != null)
             {
                 var selectedItems = _allItems.Where(a => a.IsSelected).ToList();
-                DebugLogger.Log($"[DEBUG] Table view selected items count: {selectedItems.Count} out of {_allItems.Count}");
+
                 foreach (var item in selectedItems.Take(5))
                 {
-                    DebugLogger.Log($"[DEBUG] Selected table item: {item.Name}");
+
                 }
             }
             
             // Force IsTableViewMode to be true since we're getting selection changes from table view
             if (!IsTableViewMode && _allItems != null && _allItems.Any())
             {
-                DebugLogger.Log($"[DEBUG] Forcing IsTableViewMode to true because we received table selection changes");
+
                 IsTableViewMode = true;
             }
             
             InvalidateHasSelectedItemsCache();
-            DebugLogger.Log($"[DEBUG] Cache invalidated - Cache valid: {_hasSelectedItemsCacheValid}");
+
             
             var hasSelected = HasSelectedItems;
-            DebugLogger.Log($"[DEBUG] HasSelectedItems evaluated to: {hasSelected}");
+
             
-            DebugLogger.Log($"[DEBUG] Calling OnPropertyChanged for HasSelectedItems");
+
             OnPropertyChanged(nameof(HasSelectedItems));
             
             // Ensure the parent view model is notified of changes by forcing an update to the property
             // This is crucial for ensuring the buttons in the parent view model are enabled/disabled properly
             Application.Current.Dispatcher.BeginInvoke(new Action(() => 
             {
-                DebugLogger.Log("[DEBUG] Dispatching additional property change notification for HasSelectedItems");
+
                 OnPropertyChanged(nameof(HasSelectedItems));
             }));
             
-            DebugLogger.Log($"[DEBUG] OnPropertyChanged completed");
-            DebugLogger.Log("[DEBUG] ========== ExternalAppsViewModel.OnTableViewSelectionChanged END ==========");
+
+
         }
 
         private void Items_CollectionChanged(
@@ -665,10 +599,7 @@ namespace Winhance.WPF.Features.SoftwareApps.ViewModels
         {
             // Initialize the table view collection
             UpdateAllItemsCollection();
-            System.Diagnostics.Debug.WriteLine($"InitializeTableViewAsync: AllItems count: {_allItems.Count}");
             
-            // Log the state of the table view
-            LogTableViewState();
         }
         
         /// <summary>
@@ -733,7 +664,6 @@ namespace Winhance.WPF.Features.SoftwareApps.ViewModels
 
             // Always update the AllItemsCollection to ensure it's populated
             UpdateAllItemsCollection();
-            System.Diagnostics.Debug.WriteLine($"ApplySearch: Updated AllItems collection, count: {_allItems.Count}");
         }
 
         public async Task LoadItemsAsync()
@@ -796,7 +726,6 @@ namespace Winhance.WPF.Features.SoftwareApps.ViewModels
 
                 // Always update the AllItemsCollection to ensure it's populated
                 UpdateAllItemsCollection();
-                System.Diagnostics.Debug.WriteLine($"LoadItemsAsync: Loaded {Items.Count} items, AllItems count: {_allItems.Count}");
             }
             catch (System.Exception ex)
             {
@@ -1126,15 +1055,14 @@ namespace Winhance.WPF.Features.SoftwareApps.ViewModels
             }
             catch (Exception ex)
             {
-                // Log any unexpected errors but don't disrupt the installation process
-                System.Diagnostics.Debug.WriteLine($"Error in connectivity check: {ex.Message}");
+                // Don't disrupt the installation process
             }
         }
 
         [RelayCommand]
         public void ClearSelectedItems()
         {
-            DebugLogger.Log($"[DEBUG] ClearSelectedItems called - IsTableViewMode: {IsTableViewMode}");
+
             
             // Set all items to not selected
             foreach (var app in Items)
@@ -1153,7 +1081,7 @@ namespace Winhance.WPF.Features.SoftwareApps.ViewModels
             // If in table view mode, also clear selections in the table view collection
             if (IsTableViewMode && _allItems != null)
             {
-                DebugLogger.Log($"[DEBUG] Clearing selections in table view collection - Count: {_allItems.Count}");
+
                 foreach (var wrapperItem in _allItems)
                 {
                     wrapperItem.IsSelected = false;
@@ -1166,7 +1094,7 @@ namespace Winhance.WPF.Features.SoftwareApps.ViewModels
             InvalidateHasSelectedItemsCache();
             OnPropertyChanged(nameof(HasSelectedItems));
             
-            DebugLogger.Log($"[DEBUG] ClearSelectedItems completed - HasSelectedItems: {HasSelectedItems}");
+
         }
 
         [RelayCommand]
@@ -1175,7 +1103,7 @@ namespace Winhance.WPF.Features.SoftwareApps.ViewModels
             if (_appInstallationService == null)
                 return;
 
-            DebugLogger.Log($"[DEBUG] InstallApps called - IsTableViewMode: {IsTableViewMode}");
+
 
             // Get all selected apps regardless of installation status
             List<ExternalApp> selectedApps;
@@ -1186,13 +1114,13 @@ namespace Winhance.WPF.Features.SoftwareApps.ViewModels
                                       .Select(wrapper => Items.FirstOrDefault(item => item.PackageName == wrapper.PackageName))
                                       .Where(app => app != null)
                                       .ToList();
-                DebugLogger.Log($"[DEBUG] InstallApps (TABLE VIEW) - Selected apps count: {selectedApps.Count}");
+
             }
             else
             {
                 // In list view mode, get selected apps from the Items collection
                 selectedApps = Items.Where(a => a.IsSelected).ToList();
-                DebugLogger.Log($"[DEBUG] InstallApps (LIST VIEW) - Selected apps count: {selectedApps.Count}");
+
             }
 
             // If no apps or WinGet items are selected, show a message
@@ -1633,10 +1561,7 @@ namespace Winhance.WPF.Features.SoftwareApps.ViewModels
             }
             catch (Exception ex)
             {
-                // Log any unexpected errors but don't disrupt the installation process
-                System.Diagnostics.Debug.WriteLine(
-                    $"Error in batch connectivity check: {ex.Message}"
-                );
+                // Don't disrupt the installation process
             }
         }
 
@@ -1644,23 +1569,14 @@ namespace Winhance.WPF.Features.SoftwareApps.ViewModels
         {
             if (IsInitialized)
             {
-                System.Diagnostics.Debug.WriteLine(
-                    "ExternalAppsViewModel already initialized, skipping LoadAppsAndCheckInstallationStatusAsync"
-                );
                 return;
             }
 
-            System.Diagnostics.Debug.WriteLine(
-                "Starting ExternalAppsViewModel LoadAppsAndCheckInstallationStatusAsync"
-            );
             await LoadItemsAsync();
             await CheckInstallationStatusAsync();
 
             // Mark as initialized after loading is complete
             IsInitialized = true;
-            System.Diagnostics.Debug.WriteLine(
-                "Completed ExternalAppsViewModel LoadAppsAndCheckInstallationStatusAsync"
-            );
         }
 
         public override async void OnNavigatedTo(object parameter)
@@ -1845,11 +1761,6 @@ namespace Winhance.WPF.Features.SoftwareApps.ViewModels
             CurrentCancellationReason = isConnectivityIssue
                 ? CancellationReason.InternetConnectivityLost
                 : CancellationReason.UserCancelled;
-
-            // Log the cancellation
-            System.Diagnostics.Debug.WriteLine(
-                $"[DEBUG] Installation {(isConnectivityIssue ? "stopped due to connectivity loss" : "cancelled by user")} - showing dialog"
-            );
 
             // Show the appropriate dialog
             await ShowCancellationDialogAsync(!isConnectivityIssue, isConnectivityIssue);

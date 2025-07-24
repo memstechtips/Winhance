@@ -214,7 +214,6 @@ namespace Winhance.WPF.Features.Common.Services
                 }
                 catch (Exception ex)
                 {
-                    System.Diagnostics.Debug.WriteLine($"Error setting dialog owner: {ex.Message}");
                     // Continue without setting the owner
                 }
             }
@@ -249,7 +248,6 @@ namespace Winhance.WPF.Features.Common.Services
                 }
                 catch (Exception ex)
                 {
-                    System.Diagnostics.Debug.WriteLine($"Error setting dialog owner: {ex.Message}");
                     // Continue without setting the owner
                 }
             }
@@ -293,8 +291,6 @@ namespace Winhance.WPF.Features.Common.Services
             }
             catch (Exception ex)
             {
-                // Log the error
-                System.Diagnostics.Debug.WriteLine($"Error showing donation dialog: {ex.Message}");
                 return (false, false);
             }
         }
@@ -319,9 +315,6 @@ namespace Winhance.WPF.Features.Common.Services
                     }
                     catch (Exception ex)
                     {
-                        System.Diagnostics.Debug.WriteLine(
-                            $"Error setting dialog owner: {ex.Message}"
-                        );
                         // Continue without setting the owner
                     }
                 }
@@ -339,10 +332,6 @@ namespace Winhance.WPF.Features.Common.Services
             }
             catch (Exception ex)
             {
-                // Log the error
-                System.Diagnostics.Debug.WriteLine(
-                    $"Error showing config import options dialog: {ex.Message}"
-                );
                 return null;
             }
         }

@@ -95,7 +95,6 @@ namespace Winhance.Infrastructure.Features.Optimize.Services
             catch (Exception ex)
             {
                 _logService.Log(LogLevel.Error, $"Error getting active power plan: {ex.Message}");
-                _logService.Log(LogLevel.Debug, $"Exception details: {ex}");
                 return BALANCED_PLAN_GUID; // Default to Balanced on error
             }
         }
@@ -327,7 +326,6 @@ namespace Winhance.Infrastructure.Features.Optimize.Services
             catch (Exception ex)
             {
                 _logService.Log(LogLevel.Error, $"Error setting power plan: {ex.Message}");
-                _logService.Log(LogLevel.Debug, $"Exception details: {ex}");
                 return false;
             }
         }
@@ -695,7 +693,6 @@ namespace Winhance.Infrastructure.Features.Optimize.Services
                         
                         // Query the current value
                         var result = await _powerShellService.ExecuteScriptAsync($"powercfg /query {activePlanGuid} {subgroupGuid} {settingGuid}");
-                        _logService.Log(LogLevel.Debug, $"Query result for {subgroupGuid} {settingGuid}: {result}");
                         
                         // Extract the current value
                         bool isAcSetting = command.Contains("setacvalueindex");
@@ -803,7 +800,6 @@ namespace Winhance.Infrastructure.Features.Optimize.Services
         {
             try
             {
-                _logService.Log(LogLevel.Debug, $"Extracting power setting value from query result (isAC={isAcSetting})");
                 
                 // Try multiple patterns to extract the current value
                 
@@ -817,7 +813,6 @@ namespace Winhance.Infrastructure.Features.Optimize.Services
                 if (match.Success)
                 {
                     string value = match.Groups[1].Value.Trim();
-                    _logService.Log(LogLevel.Debug, $"Found value using pattern 1: {value}");
                     return value;
                 }
                 
@@ -828,7 +823,6 @@ namespace Winhance.Infrastructure.Features.Optimize.Services
                 if (match.Success)
                 {
                     string value = match.Groups[1].Value.Trim();
-                    _logService.Log(LogLevel.Debug, $"Found value using pattern 2: {value}");
                     return value;
                 }
                 
@@ -842,7 +836,6 @@ namespace Winhance.Infrastructure.Features.Optimize.Services
                     {
                         string fullMatch = match.Value.Trim();
                         string value = fullMatch.Substring(fullMatch.IndexOf("0x"));
-                        _logService.Log(LogLevel.Debug, $"Found value using AC pattern: {value}");
                         return value;
                     }
                 }
@@ -855,7 +848,6 @@ namespace Winhance.Infrastructure.Features.Optimize.Services
                     {
                         string fullMatch = match.Value.Trim();
                         string value = fullMatch.Substring(fullMatch.IndexOf("0x"));
-                        _logService.Log(LogLevel.Debug, $"Found value using DC pattern: {value}");
                         return value;
                     }
                 }
@@ -867,7 +859,6 @@ namespace Winhance.Infrastructure.Features.Optimize.Services
                 if (match.Success)
                 {
                     string value = match.Value.Trim();
-                    _logService.Log(LogLevel.Debug, $"Found value using hex pattern: {value}");
                     return value;
                 }
                 

@@ -171,14 +171,7 @@ namespace Winhance.WPF.Features.Common.Services
             try
             {
                 _logService.Log(LogLevel.Info, $"Applying unified configuration to selected sections: {string.Join(", ", selectedSections)}");
-                
-                // Log the contents of the unified configuration
-                _logService.Log(LogLevel.Debug, $"Unified configuration contains: " +
-                    $"WindowsApps: {config.WindowsApps?.Items?.Count ?? 0} items, " +
-                    $"ExternalApps: {config.ExternalApps?.Items?.Count ?? 0} items, " +
-                    $"Customize: {config.Customize?.Items?.Count ?? 0} items, " +
-                    $"Optimize: {config.Optimize?.Items?.Count ?? 0} items");
-                
+
                 // Validate the configuration
                 if (config == null)
                 {
@@ -211,7 +204,6 @@ namespace Winhance.WPF.Features.Common.Services
             catch (Exception ex)
             {
                 _logService.Log(LogLevel.Error, $"Error applying unified configuration: {ex.Message}");
-                _logService.Log(LogLevel.Debug, $"Exception details: {ex}");
                 return false;
             }
         }

@@ -169,20 +169,15 @@ namespace Winhance.WPF.Features.Common.Views
         {
             if (_themeManager == null)
             {
-                Debug.WriteLine("Cannot update theme icon: ThemeManager is null");
                 return;
             }
 
             try
             {
-                Debug.WriteLine($"Updating theme icon. Current theme: {(_themeManager.IsDarkTheme ? "Dark" : "Light")}");
-
                 // Get the appropriate icon based on the theme
                 string iconPath = _themeManager.IsDarkTheme
                     ? "pack://application:,,,/Resources/AppIcons/winhance-rocket-white-transparent-bg.ico"
                     : "pack://application:,,,/Resources/AppIcons/winhance-rocket-black-transparent-bg.ico";
-
-                Debug.WriteLine($"Selected icon path: {iconPath}");
 
                 // Create a BitmapImage from the icon path
                 var iconImage = new BitmapImage(new Uri(iconPath, UriKind.Absolute));
@@ -190,17 +185,15 @@ namespace Winhance.WPF.Features.Common.Views
 
                 // Set the window icon
                 this.Icon = iconImage;
-                Debug.WriteLine("Window icon updated");
 
                 // Set the image control source
                 if (AppIconImage != null)
                 {
                     AppIconImage.Source = iconImage;
-                    Debug.WriteLine("AppIconImage source updated");
                 }
                 else
                 {
-                    Debug.WriteLine("AppIconImage is null, cannot update source");
+                    // AppIconImage is null, cannot update source
                 }
             }
             catch (Exception ex)

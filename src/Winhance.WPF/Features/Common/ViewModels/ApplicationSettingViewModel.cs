@@ -139,7 +139,6 @@ namespace Winhance.WPF.Features.Common.ViewModels
                 // Don't show warning for settings with ActionType = Remove
                 if (RegistrySetting != null && RegistrySetting.ActionType == RegistryActionType.Remove)
                 {
-                    Console.WriteLine($"DEBUG - IsRegistryValueNull for '{Name}': Returning false because ActionType is Remove");
                     return false;
                 }
                 
@@ -154,22 +153,14 @@ namespace Winhance.WPF.Features.Common.ViewModels
                         bool allNull = LinkedRegistrySettingsWithValues.All(lv => lv.CurrentValue == null);
                         if (allNull)
                         {
-                            Console.WriteLine($"DEBUG - IsRegistryValueNull for '{Name}': Returning false because all Remove settings have null values (keys don't exist)");
                             return false;
-                        }
-                        
-                        // If any key exists when it shouldn't, we might want to show a warning
-                        Console.WriteLine($"DEBUG - IsRegistryValueNull for '{Name}': Continuing because some Remove settings have non-null values (keys exist)");
+                        }                       
                     }
                 }
-                
-                // Add debug logging to help diagnose the issue
-                Console.WriteLine($"DEBUG - IsRegistryValueNull for '{Name}': CurrentValue = {(CurrentValue == null ? "null" : CurrentValue.ToString())}");
                 
                 // Check if the registry value is null or a special value that indicates it doesn't exist
                 if (CurrentValue == null)
                 {
-                    Console.WriteLine($"DEBUG - IsRegistryValueNull for '{Name}': Returning true because CurrentValue is null");
                     return true;
                 }
                 
@@ -179,12 +170,9 @@ namespace Winhance.WPF.Features.Common.ViewModels
                     // If we have a registry setting but no current value, it might be null
                     if (Status == RegistrySettingStatus.Unknown)
                     {
-                        Console.WriteLine($"DEBUG - IsRegistryValueNull for '{Name}': Returning true because Status is Unknown");
                         return true;
                     }
-                }
-                
-                Console.WriteLine($"DEBUG - IsRegistryValueNull for '{Name}': Returning false");
+                }               
                 return false;
             }
         }

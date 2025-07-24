@@ -63,7 +63,6 @@ namespace Winhance.Infrastructure.Features.Common.Services
                 catch (Exception ex)
                 {
                     _logService.Log(LogLevel.Error, $"Error detecting battery: {ex.Message}");
-                    _logService.Log(LogLevel.Debug, $"Exception details: {ex}");
                     
                     // Default to false in case of error on desktop PCs
                     _logService.Log(LogLevel.Info, "Defaulting to no battery due to error");
@@ -115,7 +114,6 @@ namespace Winhance.Infrastructure.Features.Common.Services
                         LogLevel.Error,
                         $"Error getting battery percentage: {ex.Message}"
                     );
-                    _logService.Log(LogLevel.Debug, $"Exception details: {ex}");
                     return null;
                 }
             });
@@ -164,7 +162,6 @@ namespace Winhance.Infrastructure.Features.Common.Services
                 catch (Exception ex)
                 {
                     _logService.Log(LogLevel.Error, $"Error checking power source: {ex.Message}");
-                    _logService.Log(LogLevel.Debug, $"Exception details: {ex}");
                     
                     // Default to AC power in case of error
                     return false;
@@ -244,7 +241,6 @@ namespace Winhance.Infrastructure.Features.Common.Services
                 catch (Exception ex)
                 {
                     _logService.Log(LogLevel.Error, $"Error detecting if device has a lid: {ex.Message}");
-                    _logService.Log(LogLevel.Debug, $"Exception details: {ex}");
                     
                     // Default to showing lid settings in case of error
                     // Better to show unnecessary settings than to hide needed ones

@@ -476,10 +476,6 @@ public static class StartMenuCustomizations
         }
         catch (Exception ex)
         {
-            // Log the exception or handle it as needed
-            System.Diagnostics.Debug.WriteLine(
-                $"Error cleaning Windows 10 Start Menu: {ex.Message}"
-            );
             throw new Exception($"Error cleaning Windows 10 Start Menu: {ex.Message}", ex);
         }
     }

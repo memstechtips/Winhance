@@ -69,26 +69,16 @@ namespace Winhance.WPF.Features.Common.ViewModels
         /// <param name="items">The collection of items to filter.</param>
         /// <returns>A filtered collection of items that match the search text.</returns>
         protected IEnumerable<T> FilterItems(IEnumerable<T> items)
-        {
-            Console.WriteLine($"SearchableViewModel.FilterItems: Filtering {items.Count()} items with search text '{SearchText}'");
-            
+        {            
             // Log items before filtering
             foreach (var item in items)
             {
                 var itemName = item.GetType().GetProperty("Name")?.GetValue(item)?.ToString();
                 var itemGroupName = item.GetType().GetProperty("GroupName")?.GetValue(item)?.ToString();
-                
-                if (itemName?.Contains("Web Search") == true || itemGroupName?.Contains("Search") == true)
-                {
-                    Console.WriteLine($"SearchableViewModel.FilterItems: Found item before filtering - Name: '{itemName}', GroupName: '{itemGroupName}'");
-                }
             }
             
             var result = _searchService.FilterItems(items, SearchText);
-            
-            // Log filtered results
-            Console.WriteLine($"SearchableViewModel.FilterItems: Filtered result count: {result.Count()}");
-            
+                        
             return result;
         }
 

@@ -375,7 +375,6 @@ namespace Winhance.WPF.Features.Optimize.ViewModels
                     LogLevel.Error,
                     $"Error loading available power plans: {ex.Message}"
                 );
-                _logService.Log(LogLevel.Debug, $"Exception details: {ex}");
 
                 // Fallback to default plans
                 PowerPlanLabels.Clear();
@@ -607,7 +606,6 @@ namespace Winhance.WPF.Features.Optimize.ViewModels
             catch (Exception ex)
             {
                 _logService.Log(LogLevel.Error, $"Error loading current power plan: {ex.Message}");
-                _logService.Log(LogLevel.Debug, $"Exception details: {ex}");
                 bool wasApplying = IsApplyingPowerPlan;
                 IsApplyingPowerPlan = true;
                 PowerPlanValue = 0; // Default to Balanced on error
@@ -644,7 +642,6 @@ namespace Winhance.WPF.Features.Optimize.ViewModels
                         LogLevel.Error,
                         $"Error initiating power plan change: {ex.Message}"
                     );
-                    _logService.Log(LogLevel.Debug, $"Exception details: {ex}");
                 }
             }
             else
@@ -652,10 +649,6 @@ namespace Winhance.WPF.Features.Optimize.ViewModels
                 _logService.Log(
                     LogLevel.Info,
                     $"PowerPlanValue changed to {value}, but not applying because IsApplyingPowerPlan is true"
-                );
-                _logService.Log(
-                    LogLevel.Debug,
-                    $"Stack trace at PowerPlanValue change: {Environment.StackTrace}"
                 );
             }
         }
@@ -927,7 +920,6 @@ namespace Winhance.WPF.Features.Optimize.ViewModels
             catch (Exception ex)
             {
                 _logService.Log(LogLevel.Error, $"Error applying power plan: {ex.Message}");
-                _logService.Log(LogLevel.Debug, $"Exception details: {ex}");
                 StatusText = $"Error applying power plan: {ex.Message}";
             }
             finally
@@ -1795,25 +1787,12 @@ namespace Winhance.WPF.Features.Optimize.ViewModels
                     $"Found {allSubgroups.Count} total subgroups, filtered to {subgroups.Count} unique subgroups"
                 );
 
-                // Debug output of all subgroups
-                foreach (var sg in subgroups)
-                {
-                    _logService.Log(
-                        LogLevel.Debug,
-                        $"Subgroup: {sg.DisplayName}, GUID: {sg.Guid}, Settings: {sg.Settings.Count}"
-                    );
-                }
-
                 // Add groups to observable collection
                 foreach (var subgroup in subgroups)
                 {
                     // Skip empty subgroups
                     if (subgroup.Settings == null || subgroup.Settings.Count == 0)
                     {
-                        _logService.Log(
-                            LogLevel.Debug,
-                            $"Skipping empty subgroup: {subgroup.DisplayName}"
-                        );
                         continue;
                     }
                     
@@ -2232,7 +2211,6 @@ namespace Winhance.WPF.Features.Optimize.ViewModels
             catch (Exception ex)
             {
                 _logService.Log(LogLevel.Error, $"Error during hardware detection: {ex.Message}");
-                _logService.Log(LogLevel.Debug, $"Exception details: {ex}");
 
                 // Default to hiding battery settings but showing lid settings in case of error
                 // It's better to show lid settings unnecessarily than to hide them when needed

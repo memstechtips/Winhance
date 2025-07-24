@@ -83,11 +83,8 @@ namespace Winhance.Infrastructure.Features.SoftwareApps.Services.ScriptGeneratio
 
             if (appSection == -1)
             {
-                Console.WriteLine($"No registry settings found for {appName} in the script");
                 return scriptContent;
             }
-
-            Console.WriteLine($"Found registry settings for {appName} with header: {matchedHeader}");
 
             // Find the end of the app section (next section or end of file)
             int nextSection = scriptContent.IndexOf(
@@ -101,13 +98,11 @@ namespace Winhance.Infrastructure.Features.SoftwareApps.Services.ScriptGeneratio
                 if (nextSection == -1)
                 {
                     // If no next section, just return the original content
-                    Console.WriteLine($"Could not find end of registry settings section for {appName}");
                     return scriptContent;
                 }
             }
 
             // Remove the app registry settings section
-            Console.WriteLine($"Removing registry settings for {appName} from script");
             return scriptContent.Substring(0, appSection) + scriptContent.Substring(nextSection);
         }
     }

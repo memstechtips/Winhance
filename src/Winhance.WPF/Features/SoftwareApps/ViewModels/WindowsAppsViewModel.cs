@@ -93,7 +93,7 @@ namespace Winhance.WPF.Features.SoftwareApps.ViewModels
                     _selectionChangedCallback?.Invoke();
                     
                     // Log the selection change for debugging
-                    DebugLogger.Log($"[DEBUG] ItemWithType: Selection changed for {Name} to {value}");
+
                 }
             }
         }
@@ -491,48 +491,31 @@ namespace Winhance.WPF.Features.SoftwareApps.ViewModels
         /// Handles selection changes from TableView wrapper objects
         /// </summary>
         private void OnTableViewSelectionChanged()
-        {
-            DebugLogger.Log("[DEBUG] ========== WindowsAppsViewModel.OnTableViewSelectionChanged START ==========");
-            DebugLogger.Log($"[DEBUG] WindowsAppsViewModel.OnTableViewSelectionChanged called - Thread: {System.Threading.Thread.CurrentThread.ManagedThreadId}");
-            DebugLogger.Log($"[DEBUG] Cache valid before invalidation: {_hasSelectedItemsCacheValid}, cached value: {_hasSelectedItems}");
-            
+        {            
             // Log selections in the _allItems collection
             if (_allItems != null)
             {
                 var selectedItems = _allItems.Where(a => a.IsSelected).ToList();
-                DebugLogger.Log($"[DEBUG] Table view selected items count: {selectedItems.Count} out of {_allItems.Count}");
-                foreach (var item in selectedItems.Take(5))
-                {
-                    DebugLogger.Log($"[DEBUG] Selected table item: {item.Name}");
-                }
             }
             
             // Force IsTableViewMode to be true since we're getting selection changes from table view
             if (!IsTableViewMode && _allItems != null && _allItems.Any())
             {
-                DebugLogger.Log($"[DEBUG] Forcing IsTableViewMode to true because we received table selection changes");
                 IsTableViewMode = true;
             }
             
             InvalidateHasSelectedItemsCache();
-            DebugLogger.Log($"[DEBUG] Cache invalidated - Cache valid: {_hasSelectedItemsCacheValid}");
             
             var hasSelected = HasSelectedItems;
-            DebugLogger.Log($"[DEBUG] HasSelectedItems evaluated to: {hasSelected}");
             
-            DebugLogger.Log($"[DEBUG] Calling OnPropertyChanged for HasSelectedItems");
             OnPropertyChanged(nameof(HasSelectedItems));
             
             // Ensure the parent view model is notified of changes by forcing an update to the property
             // This is crucial for ensuring the buttons in the parent view model are enabled/disabled properly
             Application.Current.Dispatcher.BeginInvoke(new Action(() => 
             {
-                DebugLogger.Log("[DEBUG] Dispatching additional property change notification for HasSelectedItems");
                 OnPropertyChanged(nameof(HasSelectedItems));
-            }));
-            
-            DebugLogger.Log($"[DEBUG] OnPropertyChanged completed");
-            DebugLogger.Log("[DEBUG] ========== WindowsAppsViewModel.OnTableViewSelectionChanged END ==========");
+            }));           
         }
 
         // SaveConfig and ImportConfig methods removed as part of unified configuration cleanup
@@ -1045,13 +1028,9 @@ namespace Winhance.WPF.Features.SoftwareApps.ViewModels
         {
             if (IsInitialized)
             {
-                System.Diagnostics.Debug.WriteLine(
-                    "WindowsAppsViewModel already initialized, skipping LoadAppsAndCheckInstallationStatusAsync"
-                );
                 return;
             }
 
-            System.Diagnostics.Debug.WriteLine("Starting LoadAppsAndCheckInstallationStatusAsync");
             await LoadItemsAsync();
             await CheckInstallationStatusAsync();
 
@@ -1063,16 +1042,12 @@ namespace Winhance.WPF.Features.SoftwareApps.ViewModels
 
             // Check script status
             RefreshScriptStatus();
-            System.Diagnostics.Debug.WriteLine("Completed LoadAppsAndCheckInstallationStatusAsync");
         }
 
         [RelayCommand]
         public async Task InstallApp(WindowsApp app)
         {
             if (app == null || _appInstallationService == null)
-                System.Diagnostics.Debug.WriteLine(
-                    "Starting LoadAppsAndCheckInstallationStatusAsync"
-                );
             await LoadItemsAsync();
             await CheckInstallationStatusAsync();
 
@@ -1609,9 +1584,7 @@ namespace Winhance.WPF.Features.SoftwareApps.ViewModels
                 
                 // Notify that HasSelectedItems has changed to trigger button state updates in parent ViewModel
                 InvalidateHasSelectedItemsCache();
-                OnPropertyChanged(nameof(HasSelectedItems));
-                
-                DebugLogger.Log($"[DEBUG] WindowsAppsViewModel.Item_PropertyChanged - IsSelected changed, HasSelectedItems cache invalidated");
+                OnPropertyChanged(nameof(HasSelectedItems));                
             }
         }
         
@@ -1659,9 +1632,7 @@ namespace Winhance.WPF.Features.SoftwareApps.ViewModels
         /// Used by the view to notify the viewmodel of selection changes
         /// </summary>
         public void InvalidateSelectionState()
-        {
-            DebugLogger.Log($"[DEBUG] WindowsAppsViewModel.InvalidateSelectionState called");
-            
+        {            
             // Invalidate the cached value
             InvalidateHasSelectedItemsCache();
             
@@ -1671,7 +1642,6 @@ namespace Winhance.WPF.Features.SoftwareApps.ViewModels
             // Ensure parent viewmodel updates button states by raising selection changed event
             if (SelectedItemsChanged != null)
             {
-                DebugLogger.Log($"[DEBUG] Raising SelectedItemsChanged event");
                 SelectedItemsChanged.Invoke(this, EventArgs.Empty);
             }
         }
