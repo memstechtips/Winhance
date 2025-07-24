@@ -1015,60 +1015,111 @@ namespace Winhance.WPF.Features.Common.ViewModels
         }
 
         /// <summary>
-        /// Handles the More button click functionality
+        /// Handles the More button click functionality using flyout overlay
         /// </summary>
         public void HandleMoreButtonClick()
         {
             try
             {
-                _logService?.LogInformation("More button clicked");
+                _logService?.LogInformation("More button clicked - showing flyout");
                 
                 // Set the selected navigation item to show visual feedback
                 SelectedNavigationItem = "More";
                 
-                // Get the MainWindow and show the MoreMenu directly
-                var mainWindow = Application.Current.MainWindow;
-                if (mainWindow != null)
-                {
-                    _logService?.LogInformation("MainWindow found, searching for MoreMenu control");
-                    
-                    // Find the MoreMenu control in the window
-                    var moreMenuControl = FindVisualChild<Controls.MoreMenu>(mainWindow);
-                    if (moreMenuControl != null)
-                    {
-                        _logService?.LogInformation("MoreMenu control found");
-                        
-                        // Find the MoreButton to use as placement target
-                        var moreButton = mainWindow.FindName("MoreButton") as FrameworkElement;
-                        if (moreButton != null)
-                        {
-                            _logService?.LogInformation("MoreButton found, showing menu");
-                            
-                            // Ensure we're on the UI thread and show the menu
-                            mainWindow.Dispatcher.Invoke(() =>
-                            {
-                                moreMenuControl.ShowMenu(moreButton);
-                                _logService?.LogInformation("MoreMenu shown successfully");
-                            });
-                        }
-                        else
-                        {
-                            _logService?.LogWarning("MoreButton not found in MainWindow");
-                        }
-                    }
-                    else
-                    {
-                        _logService?.LogWarning("MoreMenu control not found in MainWindow");
-                    }
-                }
-                else
-                {
-                    _logService?.LogWarning("MainWindow is null, cannot show MoreMenu");
-                }
+                ShowMoreMenuFlyout();
             }
             catch (Exception ex)
             {
                 _logService?.LogError($"Error in HandleMoreButtonClick: {ex.Message}", ex);
+            }
+        }
+
+        /// <summary>
+        /// Shows the MoreMenu flyout overlay
+        /// </summary>
+        public void ShowMoreMenuFlyout()
+        {
+            try
+            {
+                var mainWindow = Application.Current.MainWindow;
+                if (mainWindow != null)
+                {
+                    _logService?.LogInformation("MainWindow found, showing flyout overlay");
+                    
+                    // Find the overlay and menu elements
+                    var overlay = mainWindow.FindName("MoreMenuOverlay") as FrameworkElement;
+                    var flyoutContent = mainWindow.FindName("MoreMenuFlyoutContent") as FrameworkElement;
+                    var moreButton = mainWindow.FindName("MoreButton") as FrameworkElement;
+                    
+                    _logService?.LogInformation($"Elements found - Overlay: {overlay != null}, FlyoutContent: {flyoutContent != null}, MoreButton: {moreButton != null}");
+                    
+                    if (overlay != null && flyoutContent != null && moreButton != null)
+                    {
+                        // Calculate position relative to the More button
+                        var buttonPosition = moreButton.TransformToAncestor(mainWindow).Transform(new Point(0, 0));
+                        
+                        _logService?.LogInformation($"Button position: X={buttonPosition.X}, Y={buttonPosition.Y}, Button size: {moreButton.ActualWidth}x{moreButton.ActualHeight}");
+                        
+                        // Position the flyout to the right of the More button, positioned higher for full visibility
+                        var flyoutMargin = new Thickness(
+                            buttonPosition.X + moreButton.ActualWidth + 5, // 5px spacing to the right
+                            buttonPosition.Y - (moreButton.ActualHeight * 2) - 45, // Position well above the button for full menu visibility
+                            0,
+                            0
+                        );
+                        
+                        _logService?.LogInformation($"Setting flyout margin: Left={flyoutMargin.Left}, Top={flyoutMargin.Top}");
+                        
+                        flyoutContent.Margin = flyoutMargin;
+                        overlay.Visibility = Visibility.Visible;
+                        
+                        _logService?.LogInformation($"Overlay visibility set to: {overlay.Visibility}");
+                        
+                        // Set focus on the overlay to enable keyboard events (Escape to close)
+                        overlay.Focus();
+                        
+                        _logService?.LogInformation("MoreMenu flyout shown successfully");
+                    }
+                    else
+                    {
+                        _logService?.LogWarning($"Could not find required flyout elements - Overlay: {overlay != null}, FlyoutContent: {flyoutContent != null}, MoreButton: {moreButton != null}");
+                    }
+                }
+                else
+                {
+                    _logService?.LogWarning("MainWindow is null, cannot show flyout");
+                }
+            }
+            catch (Exception ex)
+            {
+                _logService?.LogError($"Error showing MoreMenu flyout: {ex.Message}", ex);
+            }
+        }
+
+        /// <summary>
+        /// Closes the MoreMenu flyout overlay
+        /// </summary>
+        public void CloseMoreMenuFlyout()
+        {
+            try
+            {
+                var mainWindow = Application.Current.MainWindow;
+                if (mainWindow != null)
+                {
+                    var overlay = mainWindow.FindName("MoreMenuOverlay") as FrameworkElement;
+                    if (overlay != null)
+                    {
+                        overlay.Visibility = Visibility.Collapsed;
+                        _logService?.LogInformation("MoreMenu flyout closed");
+                        
+                        // Reset navigation selection
+                        SelectedNavigationItem = CurrentViewName;
+                    }
+                }
+            }
+            catch (Exception ex)
+            {
+                _logService?.LogError($"Error closing MoreMenu flyout: {ex.Message}", ex);
             }
         }
 

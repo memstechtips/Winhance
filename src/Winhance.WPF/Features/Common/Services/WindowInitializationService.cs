@@ -6,9 +6,9 @@ using System.Windows.Media;
 using System.Windows.Media.Imaging;
 using Winhance.Core.Features.Common.Interfaces;
 using Winhance.Core.Features.Common.Messaging;
-using Winhance.WPF.Features.Common.ViewModels;
-using Winhance.WPF.Features.Common.Utilities;
 using Winhance.WPF.Features.Common.Controls;
+using Winhance.WPF.Features.Common.Utilities;
+using Winhance.WPF.Features.Common.ViewModels;
 
 namespace Winhance.WPF.Features.Common.Services
 {
@@ -26,10 +26,14 @@ namespace Winhance.WPF.Features.Common.Services
         public WindowInitializationService(
             IMessengerService messengerService,
             UserPreferencesService userPreferencesService,
-            ILogService logService)
+            ILogService logService
+        )
         {
-            _messengerService = messengerService ?? throw new ArgumentNullException(nameof(messengerService));
-            _userPreferencesService = userPreferencesService ?? throw new ArgumentNullException(nameof(userPreferencesService));
+            _messengerService =
+                messengerService ?? throw new ArgumentNullException(nameof(messengerService));
+            _userPreferencesService =
+                userPreferencesService
+                ?? throw new ArgumentNullException(nameof(userPreferencesService));
             _logService = logService ?? throw new ArgumentNullException(nameof(logService));
             _windowEffectsService = new WindowEffectsService();
         }
@@ -40,7 +44,8 @@ namespace Winhance.WPF.Features.Common.Services
         /// <param name="window">The window to initialize</param>
         public void InitializeWindow(Window window)
         {
-            if (window == null) return;
+            if (window == null)
+                return;
 
             try
             {
@@ -48,7 +53,11 @@ namespace Winhance.WPF.Features.Common.Services
                 WindowSizeManager windowSizeManager = null;
                 if (_userPreferencesService != null && _logService != null)
                 {
-                    windowSizeManager = new WindowSizeManager(window, _userPreferencesService, _logService);
+                    windowSizeManager = new WindowSizeManager(
+                        window,
+                        _userPreferencesService,
+                        _logService
+                    );
                 }
 
                 // Set up window effects and messaging when loaded
@@ -58,7 +67,7 @@ namespace Winhance.WPF.Features.Common.Services
                     {
                         // Apply window effects
                         _windowEffectsService.EnableBlur(window);
-                        
+
                         if (windowSizeManager == null)
                         {
                             _windowEffectsService.SetDynamicWindowSize(window);
@@ -79,9 +88,14 @@ namespace Winhance.WPF.Features.Common.Services
                 };
 
                 // Set up messaging for window state changes
-                _messengerService.Register<WindowStateMessage>(window, (msg) => HandleWindowStateMessage(window, msg));
-                _messengerService.Register<UpdateThemeIconMessage>(window, (msg) => UpdateWindowIcon(window));
-                _messengerService.Register<ShowMoreMenuMessage>(window, (msg) => HandleShowMoreMenuMessage(window, msg));
+                _messengerService.Register<WindowStateMessage>(
+                    window,
+                    (msg) => HandleWindowStateMessage(window, msg)
+                );
+                _messengerService.Register<UpdateThemeIconMessage>(
+                    window,
+                    (msg) => UpdateWindowIcon(window)
+                );
 
                 // Clean up messaging when window closes
                 window.Closed += (sender, e) =>
@@ -151,7 +165,9 @@ namespace Winhance.WPF.Features.Common.Services
                 {
                     try
                     {
-                        var defaultIcon = new BitmapImage(new Uri(defaultIconPath, UriKind.Absolute));
+                        var defaultIcon = new BitmapImage(
+                            new Uri(defaultIconPath, UriKind.Absolute)
+                        );
                         window.Icon = defaultIcon;
                     }
                     catch
@@ -166,82 +182,11 @@ namespace Winhance.WPF.Features.Common.Services
             }
         }
 
-        private void HandleShowMoreMenuMessage(Window window, ShowMoreMenuMessage message)
-        {
-            try
-            {
-                _logService?.LogInformation("Handling ShowMoreMenuMessage - method called");
-                
-                if (window == null)
-                {
-                    _logService?.LogWarning("Window is null in HandleShowMoreMenuMessage");
-                    return;
-                }
-                
-                _logService?.LogInformation($"Window type: {window.GetType().Name}");
-                
-                // Find the MoreMenu control in the window
-                _logService?.LogInformation("Searching for MoreMenu control...");
-                var moreMenuControl = FindVisualChild<MoreMenu>(window);
-                
-                if (moreMenuControl != null)
-                {
-                    _logService?.LogInformation("MoreMenu control found successfully");
-                    
-                    // Find the MoreButton to use as placement target
-                    _logService?.LogInformation("Searching for MoreButton...");
-                    var moreButton = window.FindName("MoreButton") as FrameworkElement;
-                    
-                    if (moreButton != null)
-                    {
-                        _logService?.LogInformation($"MoreButton found: {moreButton.GetType().Name}");
-                        _logService?.LogInformation("Calling ShowMenu on MoreMenu control...");
-                        
-                        // Ensure we're on the UI thread
-                        window.Dispatcher.Invoke(() =>
-                        {
-                            moreMenuControl.ShowMenu(moreButton);
-                            _logService?.LogInformation("ShowMenu called successfully");
-                        });
-                    }
-                    else
-                    {
-                        _logService?.LogWarning("MoreButton not found in window - trying alternative search");
-                        
-                        // Try to find by type instead
-                        var allButtons = FindVisualChildren<System.Windows.Controls.Button>(window);
-                        _logService?.LogInformation($"Found {allButtons.Count()} buttons in window");
-                        
-                        foreach (var btn in allButtons)
-                        {
-                            _logService?.LogInformation($"Button found: Name='{btn.Name}', Content='{btn.Content}'");
-                        }
-                    }
-                }
-                else
-                {
-                    _logService?.LogWarning("MoreMenu control not found in window");
-                    
-                    // Try to find all UserControls to debug
-                    var allUserControls = FindVisualChildren<System.Windows.Controls.UserControl>(window);
-                    _logService?.LogInformation($"Found {allUserControls.Count()} UserControls in window");
-                    
-                    foreach (var control in allUserControls)
-                    {
-                        _logService?.LogInformation($"UserControl found: {control.GetType().Name}, Name='{control.Name}'");
-                    }
-                }
-            }
-            catch (Exception ex)
-            {
-                _logService?.LogError($"Error handling ShowMoreMenuMessage: {ex.Message}", ex);
-            }
-        }
-
         /// <summary>
         /// Helper method to find visual children in the visual tree
         /// </summary>
-        private static T FindVisualChild<T>(DependencyObject obj) where T : DependencyObject
+        private static T FindVisualChild<T>(DependencyObject obj)
+            where T : DependencyObject
         {
             for (int i = 0; i < VisualTreeHelper.GetChildrenCount(obj); i++)
             {
@@ -263,10 +208,11 @@ namespace Winhance.WPF.Features.Common.Services
         /// <summary>
         /// Helper method to find all visual children of a specific type in the visual tree
         /// </summary>
-        private static IEnumerable<T> FindVisualChildren<T>(DependencyObject obj) where T : DependencyObject
+        private static IEnumerable<T> FindVisualChildren<T>(DependencyObject obj)
+            where T : DependencyObject
         {
             var children = new List<T>();
-            
+
             for (int i = 0; i < VisualTreeHelper.GetChildrenCount(obj); i++)
             {
                 DependencyObject child = VisualTreeHelper.GetChild(obj, i);
@@ -277,7 +223,7 @@ namespace Winhance.WPF.Features.Common.Services
 
                 children.AddRange(FindVisualChildren<T>(child));
             }
-            
+
             return children;
         }
     }

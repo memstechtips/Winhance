@@ -2,6 +2,7 @@ using System.Windows;
 using System.Windows.Controls;
 using System.Windows.Input;
 using System.Windows.Media;
+using Winhance.WPF.Features.Common.ViewModels;
 
 namespace Winhance.WPF.Features.Common.Views
 {
@@ -65,6 +66,33 @@ namespace Winhance.WPF.Features.Common.Views
                 }
 
                 // Mark the event as handled to prevent it from bubbling up
+                e.Handled = true;
+            }
+        }
+
+        /// <summary>
+        /// Handles clicking outside the flyout menu to close it
+        /// This is pure UI behavior and can remain in the View
+        /// </summary>
+        private void MoreMenuOverlay_MouseLeftButtonDown(object sender, MouseButtonEventArgs e)
+        {
+            // Close the flyout when clicking on the overlay (outside the menu)
+            if (DataContext is MainViewModel mainViewModel)
+            {
+                mainViewModel.CloseMoreMenuFlyout();
+            }
+        }
+
+        /// <summary>
+        /// Handles keyboard input on the flyout overlay (Escape to close)
+        /// This is pure UI behavior and can remain in the View
+        /// </summary>
+        private void MoreMenuOverlay_KeyDown(object sender, KeyEventArgs e)
+        {
+            // Close the flyout when pressing Escape
+            if (e.Key == Key.Escape && DataContext is MainViewModel mainViewModel)
+            {
+                mainViewModel.CloseMoreMenuFlyout();
                 e.Handled = true;
             }
         }

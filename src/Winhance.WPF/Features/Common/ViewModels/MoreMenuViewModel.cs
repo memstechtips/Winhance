@@ -97,6 +97,7 @@ namespace Winhance.WPF.Features.Common.ViewModels
                 execute: () =>
                 {
                     _logService.LogInformation("CheckForUpdatesCommand executed");
+                    CloseFlyout();
                     CheckForUpdatesAsync();
                 },
                 canExecute: () => true
@@ -106,6 +107,7 @@ namespace Winhance.WPF.Features.Common.ViewModels
                 execute: () =>
                 {
                     _logService.LogInformation("OpenLogsCommand executed");
+                    CloseFlyout();
                     OpenLogs();
                 },
                 canExecute: () => true
@@ -115,6 +117,7 @@ namespace Winhance.WPF.Features.Common.ViewModels
                 execute: () =>
                 {
                     _logService.LogInformation("OpenScriptsCommand executed");
+                    CloseFlyout();
                     OpenScripts();
                 },
                 canExecute: () => true
@@ -124,10 +127,31 @@ namespace Winhance.WPF.Features.Common.ViewModels
                 execute: () =>
                 {
                     _logService.LogInformation("CloseApplicationCommand executed");
+                    CloseFlyout();
                     CloseApplication();
                 },
                 canExecute: () => true
             );
+        }
+
+        /// <summary>
+        /// Closes the flyout overlay by delegating to MainViewModel
+        /// </summary>
+        private void CloseFlyout()
+        {
+            try
+            {
+                // Find the MainWindow and get its DataContext (MainViewModel)
+                var mainWindow = Application.Current.MainWindow;
+                if (mainWindow?.DataContext is MainViewModel mainViewModel)
+                {
+                    mainViewModel.CloseMoreMenuFlyout();
+                }
+            }
+            catch (Exception ex)
+            {
+                _logService.LogError($"Error closing flyout: {ex.Message}", ex);
+            }
         }
 
         /// <summary>

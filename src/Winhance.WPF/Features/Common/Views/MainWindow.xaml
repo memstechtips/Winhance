@@ -57,11 +57,14 @@
                 Margin="0"
                 Padding="0"
                 ClipToBounds="True">
+                <!-- Root Grid to contain both main content and overlay -->
                 <Grid>
-                        <Grid.RowDefinitions>
-                                <RowDefinition Height="32"/>
-                                <RowDefinition Height="*"/>
-                        </Grid.RowDefinitions>
+                    <!-- Main Content Grid -->
+                    <Grid>
+                            <Grid.RowDefinitions>
+                                    <RowDefinition Height="32"/>
+                                    <RowDefinition Height="*"/>
+                            </Grid.RowDefinitions>
 
                         <!-- Title Bar -->
                         <Grid Grid.Row="0">
@@ -248,9 +251,6 @@
                                         
                                         <!-- Bottom Navigation Button -->
                                         <StackPanel Grid.Row="2">
-                                                <!-- More Menu Control -->
-                                                <controls:MoreMenu x:Name="MoreMenuControl" DataContext="{Binding MoreMenuViewModel}"/>
-                                                
                                                 <Button x:Name="MoreButton"
                                                         Style="{StaticResource NavigationButton}"
                                                         Content="More"
@@ -289,7 +289,25 @@
                                                                      ShowCancelButton="{Binding IsLoading}"
                                                                      CancelCommand="{Binding CancelCommand}"/>
                                 </Grid>
-                        </Grid>
+                            </Grid>
+                    </Grid>
+                    
+                    <!-- MoreMenu Flyout Overlay - positioned at root level to cover entire window -->
+                    <Grid x:Name="MoreMenuOverlay" 
+                          Background="Transparent" 
+                          Visibility="Collapsed"
+                          Panel.ZIndex="1000"
+                          Focusable="True"
+                          MouseLeftButtonDown="MoreMenuOverlay_MouseLeftButtonDown"
+                          KeyDown="MoreMenuOverlay_KeyDown">
+                        
+                        <!-- The flyout menu content positioned appropriately -->
+                        <controls:MoreMenuFlyout x:Name="MoreMenuFlyoutContent"
+                                                 DataContext="{Binding MoreMenuViewModel}"
+                                                 HorizontalAlignment="Left"
+                                                 VerticalAlignment="Top"
+                                                 Margin="0"/>
+                    </Grid>
                 </Grid>
         </Border>
 </Window>
