@@ -172,12 +172,10 @@ namespace Winhance.WPF.Features.Common.Services
         {
             try
             {
-                _logService.Log(LogLevel.Debug, "Collecting settings from WindowsAppsViewModel");
                 
                 // Ensure the view model is initialized
                 if (!viewModel.IsInitialized)
                 {
-                    _logService.Log(LogLevel.Debug, "WindowsAppsViewModel not initialized, loading items");
                     await viewModel.LoadItemsAsync();
                 }
                 

@@ -150,10 +150,6 @@
                                                         </MultiDataTrigger.Conditions>
                                                         <Setter Property="Foreground" Value="{DynamicResource ButtonHoverTextColor}" />
                                                     </MultiDataTrigger>
-                                                    <!-- When hovering over the unselected button -->
-                                                    <DataTrigger Binding="{Binding IsMouseOver, RelativeSource={RelativeSource AncestorType=Button}}" Value="True">
-                                                        <Setter Property="Foreground" Value="{DynamicResource ButtonHoverTextColor}" />
-                                                    </DataTrigger>
                                                 </Style.Triggers>
                                             </Style>
                                         </materialDesign:PackIcon.Style>
@@ -208,10 +204,6 @@
                                                         </MultiDataTrigger.Conditions>
                                                         <Setter Property="Foreground" Value="{DynamicResource ButtonHoverTextColor}" />
                                                     </MultiDataTrigger>
-                                                    <!-- When hovering over the unselected button -->
-                                                    <DataTrigger Binding="{Binding IsMouseOver, RelativeSource={RelativeSource AncestorType=Button}}" Value="True">
-                                                        <Setter Property="Foreground" Value="{DynamicResource ButtonHoverTextColor}" />
-                                                    </DataTrigger>
                                                 </Style.Triggers>
                                             </Style>
                                         </materialDesign:PackIcon.Style>

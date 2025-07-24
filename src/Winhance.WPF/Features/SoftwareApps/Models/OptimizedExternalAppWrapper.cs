@@ -80,6 +80,15 @@ namespace Winhance.WPF.Features.SoftwareApps.Models
             PropertyChanged?.Invoke(this, new PropertyChangedEventArgs(propertyName));
         }
 
+        /// <summary>
+        /// Notifies that the IsSelected property has changed (for external updates)
+        /// </summary>
+        public void NotifyIsSelectedChanged()
+        {
+            if (_disposed) return;
+            OnPropertyChanged(nameof(IsSelected));
+        }
+
         #endregion
 
         #region IDisposable

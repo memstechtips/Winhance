@@ -125,9 +125,6 @@ namespace Winhance.WPF.Features.SoftwareApps.ViewModels
         /// </summary>
         public event EventHandler SelectedItemsChanged;
 
-        private ObservableCollection<ExternalAppWithTableInfo> _allItems = new();
-        private ICollectionView _allItemsView;
-
         /// <summary>
         /// Gets the collection view for all items in the table view
         /// </summary>
@@ -175,55 +172,8 @@ namespace Winhance.WPF.Features.SoftwareApps.ViewModels
         /// </summary>
         public void UpdateAllItemsCollection()
         {
-            // Ensure we have the collection initialized
-            if (_allItems == null)
-            {
-                _allItems = new ObservableCollection<ExternalAppWithTableInfo>();
-            }
-            
-            // Create collection view if needed
-            if (_allItemsView == null)
-            {
-                _allItemsView = CollectionViewSource.GetDefaultView(_allItems);
-                
-                // Set default sort by Name
-                if (!_allItemsView.SortDescriptions.Any())
-                {
-                    _allItemsView.SortDescriptions.Add(new SortDescription("Name", ListSortDirection.Ascending));
-                }
-            }
-            
-            // Use batch operations to minimize UI updates
-            using (var deferRefresh = new DeferRefresh(_allItemsView))
-            {
-                // Clear existing items
-                _allItems.Clear();
-                
-                // Calculate total item count for pre-allocation
-                int totalItemCount = Categories.Sum(c => c.Apps.Count);
-                var newItems = new List<ExternalAppWithTableInfo>(totalItemCount);
-                
-                // Pre-populate list with all items before adding to observable collection
-                foreach (var category in Categories)
-                {
-                    foreach (var app in category.Apps)
-                    {
-                        newItems.Add(new ExternalAppWithTableInfo(app, OnTableViewSelectionChanged));
-                    }
-                }
-                
-                // Add all items in a batch to reduce collection changed events
-                foreach (var item in newItems)
-                {
-                    _allItems.Add(item);
-                }             
-            }
-            
-            // Notify property changed for AllItemsView to ensure the UI updates
-            OnPropertyChanged(nameof(AllItemsView));
-            
-            // Apply search filter if there's search text
-            ApplyTableViewFilter();
+            // Use the optimized collection update method
+            UpdateOptimizedAllItemsCollection();
         }
 
         /// <summary>
@@ -404,32 +354,8 @@ namespace Winhance.WPF.Features.SoftwareApps.ViewModels
         /// </summary>
         private void ApplyTableViewFilter()
         {
-            if (_allItemsView == null)
-                return;
-                
-            if (string.IsNullOrWhiteSpace(SearchText))
-            {
-                // Clear filter if no search text
-                _allItemsView.Filter = null;
-            }
-            else
-            {
-                // Apply filter based on search text
-                var searchTerms = SearchText.ToLower().Split(' ', StringSplitOptions.RemoveEmptyEntries);
-                _allItemsView.Filter = obj =>
-                {
-                    if (obj is ExternalAppWithTableInfo appWrapper)
-                    {
-                        // Check if all search terms match any of the searchable properties
-                        return searchTerms.All(term =>
-                            appWrapper.Name?.ToLower().Contains(term) == true ||
-                            appWrapper.Description?.ToLower().Contains(term) == true ||
-                            appWrapper.PackageName?.ToLower().Contains(term) == true ||
-                            appWrapper.Category?.ToLower().Contains(term) == true);
-                    }
-                    return false;
-                };
-            }
+            // Use the optimized filter method
+            ApplyOptimizedFilter();
         }
 
         /// <summary>
@@ -444,9 +370,9 @@ namespace Winhance.WPF.Features.SoftwareApps.ViewModels
             }
             
             // If in table view mode, also notify wrapper objects to update their UI
-            if (IsTableViewMode && _allItems != null)
+            if (IsTableViewMode && _collectionManager != null)
             {
-                foreach (var wrapperItem in _allItems)
+                foreach (var wrapperItem in _collectionManager.Collection)
                 {
                     wrapperItem.NotifyIsSelectedChanged();
                 }
@@ -473,10 +399,10 @@ namespace Winhance.WPF.Features.SoftwareApps.ViewModels
             {
                 if (!_hasSelectedItemsCacheValid)
                 {
-                    if (IsTableViewMode && _allItems != null)
+                    if (IsTableViewMode && _collectionManager != null)
                     {
                         // Check if any table view wrapper items are selected
-                        _hasSelectedItems = _allItems.Any(a => a.IsSelected);
+                        _hasSelectedItems = _collectionManager.Collection.Any(a => a.IsSelected);
                     }
                     else
                     {
@@ -567,9 +493,6 @@ namespace Winhance.WPF.Features.SoftwareApps.ViewModels
             Items.CollectionChanged += (s, e) => {
             };
 
-            // Initialize the AllItemsView with optimized collection
-            _allItemsView = _collectionManager.CollectionView;
-            
             // Notify that AllItemsView is now available
             OnPropertyChanged(nameof(AllItemsView));
 
@@ -596,21 +519,20 @@ namespace Winhance.WPF.Features.SoftwareApps.ViewModels
 
 
             
-            // Log selections in the _allItems collection
-            if (_allItems != null)
+            // Log selections in the optimized collection
+            if (_collectionManager != null)
             {
-                var selectedItems = _allItems.Where(a => a.IsSelected).ToList();
+                var selectedItems = _collectionManager.Collection.Where(a => a.IsSelected).ToList();
 
                 foreach (var item in selectedItems.Take(5))
                 {
-
+                    // Log item selection if needed
                 }
             }
             
             // Force IsTableViewMode to be true since we're getting selection changes from table view
-            if (!IsTableViewMode && _allItems != null && _allItems.Any())
+            if (!IsTableViewMode && _collectionManager != null && _collectionManager.Collection.Any())
             {
-
                 IsTableViewMode = true;
             }
             
@@ -1164,10 +1086,9 @@ namespace Winhance.WPF.Features.SoftwareApps.ViewModels
             }
 
             // If in table view mode, also clear selections in the table view collection
-            if (IsTableViewMode && _allItems != null)
+            if (IsTableViewMode && _collectionManager != null)
             {
-
-                foreach (var wrapperItem in _allItems)
+                foreach (var wrapperItem in _collectionManager.Collection)
                 {
                     wrapperItem.IsSelected = false;
                 }
@@ -1192,10 +1113,10 @@ namespace Winhance.WPF.Features.SoftwareApps.ViewModels
 
             // Get all selected apps regardless of installation status
             List<ExternalApp> selectedApps;
-            if (IsTableViewMode && _allItems != null)
+            if (IsTableViewMode && _collectionManager != null)
             {
                 // In table view mode, get selected apps from the wrapper objects
-                selectedApps = _allItems.Where(wrapper => wrapper.IsSelected)
+                selectedApps = _collectionManager.Collection.Where(wrapper => wrapper.IsSelected)
                                       .Select(wrapper => Items.FirstOrDefault(item => item.PackageName == wrapper.PackageName))
                                       .Where(app => app != null)
                                       .ToList();
