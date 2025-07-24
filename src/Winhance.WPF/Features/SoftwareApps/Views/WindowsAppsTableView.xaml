@@ -71,7 +71,7 @@
                         </DataGridTemplateColumn.HeaderStyle>
                         <DataGridTemplateColumn.CellTemplate>
                             <DataTemplate>
-                                <TextBlock Text="{Binding Name}" FontSize="18" Margin="5,2">
+                                <TextBlock Text="{Binding Name}" FontSize="18" Margin="5,2" Style="{StaticResource DataGridTextBlockStyle}">
                                     <TextBlock.ToolTip>
                                         <ToolTip Content="{Binding Description}"/>
                                     </TextBlock.ToolTip>
@@ -89,7 +89,7 @@
                         </DataGridTemplateColumn.HeaderStyle>
                         <DataGridTemplateColumn.CellTemplate>
                             <DataTemplate>
-                                <TextBlock Text="{Binding ItemType}" Margin="5,2"/>
+                                <TextBlock Text="{Binding ItemType}" Margin="5,2" Style="{StaticResource DataGridTextBlockStyle}"/>
                             </DataTemplate>
                         </DataGridTemplateColumn.CellTemplate>
                     </DataGridTemplateColumn>
@@ -110,7 +110,7 @@
                                             <ToolTip Content="{Binding IsInstalled, Converter={StaticResource InstalledStatusToTextConverter}}"/>
                                         </Ellipse.ToolTip>
                                     </Ellipse>
-                                    <TextBlock Text="{Binding IsInstalled, Converter={StaticResource InstalledStatusToTextConverter}}" Margin="5,0,0,0" />
+                                    <TextBlock Text="{Binding IsInstalled, Converter={StaticResource InstalledStatusToTextConverter}}" Margin="5,0,0,0" Style="{StaticResource DataGridTextBlockStyle}" />
                                 </StackPanel>
                             </DataTemplate>
                         </DataGridTemplateColumn.CellTemplate>
@@ -134,7 +134,7 @@
                                             <ToolTip Content="{Binding CanBeReinstalled, Converter={StaticResource BooleanToReinstallableTextConverter}}"/>
                                         </materialDesign:PackIcon.ToolTip>
                                     </materialDesign:PackIcon>
-                                    <TextBlock Text="{Binding CanBeReinstalled, Converter={StaticResource BooleanToReinstallableTextConverter}}" Margin="5,0,0,0" />
+                                    <TextBlock Text="{Binding CanBeReinstalled, Converter={StaticResource BooleanToReinstallableTextConverter}}" Margin="5,0,0,0" Style="{StaticResource DataGridTextBlockStyle}" />
                                 </StackPanel>
                             </DataTemplate>
                         </DataGridTemplateColumn.CellTemplate>

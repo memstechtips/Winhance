@@ -71,7 +71,7 @@
                         </DataGridTemplateColumn.HeaderStyle>
                         <DataGridTemplateColumn.CellTemplate>
                             <DataTemplate>
-                                <TextBlock Text="{Binding Name}" FontSize="18" Margin="5,2">
+                                <TextBlock Text="{Binding Name}" FontSize="18" Margin="5,2" Style="{StaticResource DataGridTextBlockStyle}">
                                     <TextBlock.ToolTip>
                                         <ToolTip Content="{Binding Description}"/>
                                     </TextBlock.ToolTip>
@@ -89,7 +89,7 @@
                         </DataGridTemplateColumn.HeaderStyle>
                         <DataGridTemplateColumn.CellTemplate>
                             <DataTemplate>
-                                <TextBlock Text="{Binding PackageName}" Margin="5,2"/>
+                                <TextBlock Text="{Binding PackageName}" Margin="5,2" Style="{StaticResource DataGridTextBlockStyle}"/>
                             </DataTemplate>
                         </DataGridTemplateColumn.CellTemplate>
                     </DataGridTemplateColumn>
@@ -103,7 +103,7 @@
                         </DataGridTemplateColumn.HeaderStyle>
                         <DataGridTemplateColumn.CellTemplate>
                             <DataTemplate>
-                                <TextBlock Text="{Binding Category}" Margin="5,2"/>
+                                <TextBlock Text="{Binding Category}" Margin="5,2" Style="{StaticResource DataGridTextBlockStyle}"/>
                             </DataTemplate>
                         </DataGridTemplateColumn.CellTemplate>
                     </DataGridTemplateColumn>
@@ -117,7 +117,7 @@
                         </DataGridTemplateColumn.HeaderStyle>
                         <DataGridTemplateColumn.CellTemplate>
                             <DataTemplate>
-                                <TextBlock Text="winget/msstore" Margin="5,2"/>
+                                <TextBlock Text="winget/msstore" Margin="5,2" Style="{StaticResource DataGridTextBlockStyle}"/>
                             </DataTemplate>
                         </DataGridTemplateColumn.CellTemplate>
                     </DataGridTemplateColumn>

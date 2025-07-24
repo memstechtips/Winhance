@@ -195,8 +195,8 @@
                                                 
                                                 <!-- Status Icon -->
                                                 <materialDesign:PackIcon Kind="{Binding IconKind}"
-                                                                         Width="16"
-                                                                         Height="16"
+                                                                         Width="20"
+                                                                         Height="20"
                                                                          VerticalAlignment="Center"
                                                                          HorizontalAlignment="Center">
                                                     <materialDesign:PackIcon.Style>

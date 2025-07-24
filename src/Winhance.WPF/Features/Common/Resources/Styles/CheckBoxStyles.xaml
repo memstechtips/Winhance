@@ -70,6 +70,7 @@
                                 <MultiBinding Converter="{StaticResource ParentHoverConverter}">
                                     <Binding RelativeSource="{RelativeSource FindAncestor, AncestorType={x:Type ListViewItem}}" Path="IsMouseOver" FallbackValue="False" />
                                     <Binding RelativeSource="{RelativeSource FindAncestor, AncestorType={x:Type GridViewColumnHeader}}" Path="IsMouseOver" FallbackValue="False" />
+                                    <Binding RelativeSource="{RelativeSource FindAncestor, AncestorType={x:Type DataGridRow}}" Path="IsMouseOver" FallbackValue="False" />
                                 </MultiBinding>
                             </DataTrigger.Binding>
                             <DataTrigger.Value>True</DataTrigger.Value>

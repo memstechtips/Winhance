@@ -204,13 +204,13 @@
         <Setter Property="FontSize" Value="16" />
         <Setter Property="Background" Value="Transparent" />
         <Style.Triggers>
-            <Trigger Property="IsMouseOver" Value="True">
-                <Setter Property="Background" Value="{DynamicResource ButtonHoverBackground}"/>
-                <Setter Property="Foreground" Value="{DynamicResource ButtonHoverTextColor}"/>
-            </Trigger>
             <Trigger Property="IsSelected" Value="True">
                 <Setter Property="Background" Value="{DynamicResource PrimaryHueLightBrush}" />
                 <Setter Property="Foreground" Value="{DynamicResource PrimaryHueLightForegroundBrush}" />
+            </Trigger>
+            <Trigger Property="IsMouseOver" Value="True">
+                <Setter Property="Background" Value="{DynamicResource ButtonHoverBackground}"/>
+                <Setter Property="Foreground" Value="{DynamicResource ButtonHoverTextColor}"/>
             </Trigger>
         </Style.Triggers>
     </Style>
@@ -292,5 +292,15 @@
                 </ControlTemplate>
             </Setter.Value>
         </Setter>
+    </Style>
+
+    <!-- TextBlock style for DataGrid cells that maintains hover color -->
+    <Style x:Key="DataGridTextBlockStyle" TargetType="{x:Type TextBlock}">
+        <Setter Property="Foreground" Value="{DynamicResource PrimaryTextColor}" />
+        <Style.Triggers>
+            <DataTrigger Binding="{Binding IsMouseOver, RelativeSource={RelativeSource AncestorType={x:Type DataGridRow}}}" Value="True">
+                <Setter Property="Foreground" Value="{DynamicResource ButtonHoverTextColor}" />
+            </DataTrigger>
+        </Style.Triggers>
     </Style>
 </ResourceDictionary>
