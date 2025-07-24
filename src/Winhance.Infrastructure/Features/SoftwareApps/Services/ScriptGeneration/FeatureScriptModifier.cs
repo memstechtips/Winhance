@@ -37,7 +37,6 @@ namespace Winhance.Infrastructure.Features.SoftwareApps.Services.ScriptGeneratio
             int arrayStartIndex = scriptContent.IndexOf("$optionalFeatures = @(", sectionStartIndex);
             if (arrayStartIndex == -1)
             {
-                Console.WriteLine("Could not find $optionalFeatures array in BloatRemoval.ps1");
                 return scriptContent;
             }
 
@@ -45,7 +44,6 @@ namespace Winhance.Infrastructure.Features.SoftwareApps.Services.ScriptGeneratio
             int arrayEndIndex = scriptContent.IndexOf(")", arrayStartIndex);
             if (arrayEndIndex == -1)
             {
-                Console.WriteLine("Could not find end of $optionalFeatures array in BloatRemoval.ps1");
                 return scriptContent;
             }
 

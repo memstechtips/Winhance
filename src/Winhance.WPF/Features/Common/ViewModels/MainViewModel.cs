@@ -34,6 +34,8 @@ namespace Winhance.WPF.Features.Common.ViewModels
         private readonly IUnifiedConfigurationService _unifiedConfigService;
         private readonly IDialogService _dialogService;
         private readonly Features.Common.Services.UserPreferencesService _userPreferencesService;
+        private readonly IApplicationCloseService _applicationCloseService;
+        private readonly IVersionService _versionService;
 
         public INavigationService NavigationService => _navigationService;
 
@@ -73,6 +75,16 @@ namespace Winhance.WPF.Features.Common.ViewModels
         /// </summary>
         public ICommand OpenDonateCommand { get; }
 
+        /// <summary>
+        /// Gets the command to close the application.
+        /// </summary>
+        public ICommand CloseCommand { get; }
+
+        /// <summary>
+        /// Gets the command to handle the More button click.
+        /// </summary>
+        public ICommand MoreCommand { get; }
+
         public MainViewModel(
             IThemeManager themeManager,
             INavigationService navigationService,
@@ -101,6 +113,12 @@ namespace Winhance.WPF.Features.Common.ViewModels
             _userPreferencesService =
                 userPreferencesService
                 ?? throw new ArgumentNullException(nameof(userPreferencesService));
+            _applicationCloseService =
+                applicationCloseService
+                ?? throw new ArgumentNullException(nameof(applicationCloseService));
+            _versionService =
+                versionService
+                ?? throw new ArgumentNullException(nameof(versionService));
 
             // Initialize the MoreMenuViewModel
             MoreMenuViewModel = new MoreMenuViewModel(
@@ -120,11 +138,16 @@ namespace Winhance.WPF.Features.Common.ViewModels
             SaveUnifiedConfigCommand = new RelayCommand(SaveUnifiedConfig);
             ImportUnifiedConfigCommand = new RelayCommand(ImportUnifiedConfig);
             OpenDonateCommand = new RelayCommand(OpenDonate);
+            CloseCommand = new AsyncRelayCommand(CloseWindowAsync);
+            MoreCommand = new RelayCommand(HandleMoreButtonClick);
 
             // Note: View mappings are now registered in App.xaml.cs when configuring the FrameNavigationService
 
             // Subscribe to navigation events
             _navigationService.Navigated += NavigationService_Navigated;
+
+            // Initialize the application by navigating to default view
+            InitializeApplication();
 
             // We'll initialize with the default view later, after the window is loaded
             // This will be called from MainWindow.xaml.cs after the window is loaded
@@ -932,6 +955,82 @@ namespace Winhance.WPF.Features.Common.ViewModels
                     );
                 }
             }
+        }
+
+        /// <summary>
+        /// Initializes the application by navigating to the default view
+        /// </summary>
+        private void InitializeApplication()
+        {
+            try
+            {
+                _navigationService.NavigateTo("SoftwareApps");
+            }
+            catch (Exception ex)
+            {
+                try
+                {
+                    _navigationService.NavigateTo("About");
+                }
+                catch (Exception fallbackEx)
+                {
+                    _messengerService.Send(
+                        new LogMessage
+                        {
+                            Message = $"Failed to navigate to default views: {ex.Message}, Fallback: {fallbackEx.Message}",
+                            Level = LogLevel.Error,
+                            Exception = ex,
+                        }
+                    );
+                }
+            }
+        }
+
+        /// <summary>
+        /// Handles the More button click functionality
+        /// </summary>
+        public void HandleMoreButtonClick()
+        {
+            SelectedNavigationItem = "More";
+        }
+
+        /// <summary>
+        /// Handles window state changes and updates the maximize button content
+        /// </summary>
+        /// <param name="windowState">The current window state</param>
+        public void HandleWindowStateChanged(WindowState windowState)
+        {
+            MaximizeButtonContent = windowState == WindowState.Maximized
+                ? "WindowRestore"
+                : "WindowMaximize";
+        }
+
+        /// <summary>
+        /// Gets the theme-appropriate icon path
+        /// </summary>
+        /// <returns>The icon path for the current theme</returns>
+        public string GetThemeIconPath()
+        {
+            return _themeManager.IsDarkTheme
+                ? "pack://application:,,,/Resources/AppIcons/winhance-rocket-white-transparent-bg.ico"
+                : "pack://application:,,,/Resources/AppIcons/winhance-rocket-black-transparent-bg.ico";
+        }
+
+        /// <summary>
+        /// Gets the default fallback icon path
+        /// </summary>
+        /// <returns>The default icon path</returns>
+        public string GetDefaultIconPath()
+        {
+            return "pack://application:,,,/Resources/AppIcons/winhance-rocket.ico";
+        }
+
+        /// <summary>
+        /// Requests the view to update its theme icon
+        /// </summary>
+        public void RequestThemeIconUpdate()
+        {
+            _messengerService.Send(new UpdateThemeIconMessage());
         }
     }
 }

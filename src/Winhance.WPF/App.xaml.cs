@@ -338,6 +338,12 @@ namespace Winhance.WPF
                 mainWindow.DataContext = mainViewModel;
                 LogStartupError("Main window DataContext set");
 
+                // Initialize window with effects and messaging
+                LogStartupError("Initializing window");
+                var windowInitService = _host.Services.GetRequiredService<Features.Common.Services.WindowInitializationService>();
+                windowInitService.InitializeWindow(mainWindow);
+                LogStartupError("Window initialized");
+
                 // Preload the SoftwareAppsViewModel data
                 LogStartupError("Loading apps and checking installation status...");
 
@@ -909,6 +915,9 @@ namespace Winhance.WPF
                     Features.Common.Services.DesignTimeDataService
                 >();
 
+                // Register window initialization service
+                services.AddSingleton<Features.Common.Services.WindowInitializationService>();
+
                 // Register ViewModels with explicit factory methods for all view models
                 services.AddSingleton<MainViewModel>(provider => new MainViewModel(
                     provider.GetRequiredService<IThemeManager>(),
@@ -1125,15 +1134,7 @@ namespace Winhance.WPF
                 ));
 
                 // Register Views
-                services.AddTransient<MainWindow>(provider => new MainWindow(
-                    provider.GetRequiredService<IThemeManager>(),
-                    provider,
-                    provider.GetRequiredService<Core.Features.Common.Interfaces.IMessengerService>(),
-                    provider.GetRequiredService<Core.Features.Common.Interfaces.INavigationService>(),
-                    provider.GetRequiredService<IVersionService>(),
-                    provider.GetRequiredService<Features.Common.Services.UserPreferencesService>(),
-                    provider.GetRequiredService<IApplicationCloseService>()
-                ));
+                services.AddTransient<MainWindow>();
 
                 services.AddTransient<WindowsAppsView>();
                 services.AddTransient<ExternalAppsView>();

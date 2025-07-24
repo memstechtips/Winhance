@@ -176,7 +176,7 @@
                                         <Button x:Name="CloseButton"
                                                 Style="{StaticResource WindowCloseButton}"
                                                 WindowChrome.IsHitTestVisibleInChrome="True"
-                                                Click="CloseButton_Click">
+                                                Command="{Binding CloseCommand}">
                                                 <materialDesign:PackIcon Kind="Close"
                                                                          Width="18"
                                                                          Height="18"/>
@@ -256,7 +256,7 @@
                                                         Content="More"
                                                         Margin="0,0,0,10"
                                                         VerticalAlignment="Bottom"
-                                                        Click="MoreButton_Click"
+                                                        Command="{Binding MoreCommand}"
                                                         utilities:NavigationButtonProperties.IsSelected="{Binding SelectedNavigationItem, Converter={StaticResource StringEqualityConverter}, ConverterParameter=More}">
                                                         <Button.Tag>
                                                                 <materialDesign:PackIcon Kind="MoreHoriz"
