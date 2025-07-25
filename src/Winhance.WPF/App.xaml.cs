@@ -998,6 +998,7 @@ namespace Winhance.WPF
                         provider.GetRequiredService<IRegistryService>(),
                         provider.GetRequiredService<ILogService>(),
                         provider.GetRequiredService<IDependencyManager>(),
+                        provider.GetRequiredService<ISystemServices>(),
                         provider.GetRequiredService<IViewModelLocator>(),
                         provider.GetRequiredService<ISettingsRegistry>()
                     )
@@ -1019,6 +1020,7 @@ namespace Winhance.WPF
                         provider.GetRequiredService<ITaskProgressService>(),
                         provider.GetRequiredService<IRegistryService>(),
                         provider.GetRequiredService<ILogService>(),
+                        provider.GetRequiredService<ISystemServices>(),
                         provider.GetRequiredService<IViewModelLocator>(),
                         provider.GetRequiredService<ISettingsRegistry>()
                     )
@@ -1090,7 +1092,8 @@ namespace Winhance.WPF
                         provider.GetRequiredService<ITaskProgressService>(),
                         provider.GetRequiredService<IRegistryService>(),
                         provider.GetRequiredService<ILogService>(),
-                        provider.GetRequiredService<IDependencyManager>()
+                        provider.GetRequiredService<IDependencyManager>(),
+                        provider.GetRequiredService<ISystemServices>()
                     )
                 );
 
@@ -1100,7 +1103,8 @@ namespace Winhance.WPF
                         provider.GetRequiredService<IRegistryService>(),
                         provider.GetRequiredService<ILogService>(),
                         provider.GetRequiredService<Core.Features.Common.Interfaces.IDialogService>(),
-                        provider.GetRequiredService<IDependencyManager>()
+                        provider.GetRequiredService<IDependencyManager>(),
+                        provider.GetRequiredService<ISystemServices>()
                     )
                 );
 
@@ -1109,7 +1113,8 @@ namespace Winhance.WPF
                         provider.GetRequiredService<ITaskProgressService>(),
                         provider.GetRequiredService<IRegistryService>(),
                         provider.GetRequiredService<ILogService>(),
-                        provider.GetRequiredService<IDependencyManager>()
+                        provider.GetRequiredService<IDependencyManager>(),
+                        provider.GetRequiredService<ISystemServices>()
                     )
                 );
 

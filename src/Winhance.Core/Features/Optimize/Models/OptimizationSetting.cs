@@ -19,5 +19,15 @@ namespace Winhance.Core.Features.Optimize.Models
         /// such as PowerCfg settings.
         /// </summary>
         public Dictionary<string, object> CustomProperties { get; init; } = new Dictionary<string, object>();
+        
+        /// <summary>
+        /// Gets or sets a value indicating whether this setting is only applicable to Windows 11.
+        /// </summary>
+        public bool IsWindows11Only { get; init; }
+
+        /// <summary>
+        /// Gets or sets a value indicating whether this setting is only applicable to Windows 10.
+        /// </summary>
+        public bool IsWindows10Only { get; init; }
     }
 }

@@ -77,7 +77,6 @@ namespace Winhance.WPF.Features.Customize.ViewModels
             try
             {
                 _progressService.StartTask("Cleaning taskbar...");
-                _logService.LogInformation("Cleaning taskbar started");
                 
                 // Call the static method from TaskbarCustomizations class
                 await TaskbarCustomizations.CleanTaskbar(_systemServices, _logService);
@@ -85,7 +84,6 @@ namespace Winhance.WPF.Features.Customize.ViewModels
                 // Update the status text and complete the task
                 _progressService.UpdateProgress(100, "Taskbar cleaned successfully!");
                 _progressService.CompleteTask();
-                _logService.LogInformation("Taskbar cleaned successfully");
             }
             catch (Exception ex)
             {

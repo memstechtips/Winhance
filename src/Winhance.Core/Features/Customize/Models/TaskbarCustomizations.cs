@@ -162,7 +162,7 @@ public static class TaskbarCustomizations
                 new CustomizationSetting
                 {
                     Id = "taskbar-chat-icon",
-                    Name = "Show Windows Chat Icon",
+                    Name = "Windows Chat Icon",
                     Description = "Controls Windows Chat icon visibility and menu behavior in taskbar",
                     Category = CustomizationCategory.Taskbar,
                     GroupName = "Taskbar Icons",
@@ -206,12 +206,13 @@ public static class TaskbarCustomizations
                 new CustomizationSetting
                 {
                     Id = "taskbar-meet-now-group",
-                    Name = "Show Meet Now Button",
+                    Name = "Meet Now Button",
                     Description = "Controls Meet Now button visibility in taskbar",
                     Category = CustomizationCategory.Taskbar,
                     GroupName = "Taskbar Icons",
                     IsEnabled = true,
                     ControlType = ControlType.BinaryToggle,
+                    IsWindows10Only = true,
                     RegistrySettings = new List<RegistrySetting>
                     {
                         new RegistrySetting
@@ -292,7 +293,7 @@ public static class TaskbarCustomizations
                 new CustomizationSetting
                 {
                     Id = "taskbar-copilot",
-                    Name = "Show Copilot Button",
+                    Name = "Copilot Button",
                     Description = "Controls Copilot button visibility in taskbar",
                     Category = CustomizationCategory.Taskbar,
                     GroupName = "Taskbar Icons",
@@ -326,6 +327,7 @@ public static class TaskbarCustomizations
                     GroupName = "Taskbar Behavior",
                     IsEnabled = false,
                     ControlType = ControlType.ComboBox,
+                    IsWindows11Only = true,
                     RegistrySettings = new List<RegistrySetting>
                     {
                         new RegistrySetting
@@ -358,12 +360,13 @@ public static class TaskbarCustomizations
                 new CustomizationSetting
                 {
                     Id = "taskbar-system-tray-icons",
-                    Name = "Show Hidden System Tray Icons (W10 Only)",
+                    Name = "Always Show All System Tray Icons",
                     Description = "Controls whether system tray icons are shown in the taskbar or hidden in the chevron menu",
                     Category = CustomizationCategory.Taskbar,
                     GroupName = "System Tray",
                     IsEnabled = false,
                     ControlType = ControlType.BinaryToggle,
+                    IsWindows10Only = true,
                     RegistrySettings = new List<RegistrySetting>
                     {
                         new RegistrySetting

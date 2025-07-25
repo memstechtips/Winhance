@@ -19,12 +19,14 @@ namespace Winhance.WPF.Features.Optimize.ViewModels
     /// <summary>
     /// ViewModel for Notifications optimizations.
     /// </summary>
-    public class NotificationOptimizationsViewModel : BaseSettingsViewModel<ApplicationSettingItem>
+    public partial class NotificationOptimizationsViewModel : BaseSettingsViewModel<ApplicationSettingItem>
     {
         private readonly IDialogService _dialogService;
         private readonly IDependencyManager _dependencyManager;
         private readonly IViewModelLocator? _viewModelLocator;
         private readonly ISettingsRegistry? _settingsRegistry;
+        private readonly ISystemServices _systemServices;
+        private bool _isWindows11;
 
         /// <summary>
         /// Initializes a new instance of the <see cref="NotificationOptimizationsViewModel"/> class.
@@ -35,6 +37,7 @@ namespace Winhance.WPF.Features.Optimize.ViewModels
         /// <param name="dialogService">The dialog service.</param>
         /// <param name="dependencyManager">The dependency manager.</param>
         /// <param name="viewModelLocator">The view model locator.</param>
+        /// <param name="systemServices">The system services.</param>
         /// <param name="settingsRegistry">The settings registry.</param>
         public NotificationOptimizationsViewModel(
             ITaskProgressService progressService,
@@ -42,14 +45,17 @@ namespace Winhance.WPF.Features.Optimize.ViewModels
             ILogService logService,
             IDialogService dialogService,
             IDependencyManager dependencyManager,
+            ISystemServices systemServices,
             IViewModelLocator? viewModelLocator = null,
             ISettingsRegistry? settingsRegistry = null)
             : base(progressService, registryService, logService)
         {
             _dialogService = dialogService ?? throw new ArgumentNullException(nameof(dialogService));
             _dependencyManager = dependencyManager ?? throw new ArgumentNullException(nameof(dependencyManager));
+            _systemServices = systemServices ?? throw new ArgumentNullException(nameof(systemServices));
             _viewModelLocator = viewModelLocator;
             _settingsRegistry = settingsRegistry;
+            _isWindows11 = _systemServices.IsWindows11();
             _logService.Log(LogLevel.Info, "NotificationOptimizationsViewModel instance created");
         }
 
@@ -75,6 +81,18 @@ namespace Winhance.WPF.Features.Optimize.ViewModels
                     // Add settings sorted alphabetically by name
                     foreach (var setting in notificationOptimizations.Settings.OrderBy(s => s.Name))
                     {
+                        // Skip Windows 11 specific settings on Windows 10
+                        if (!_isWindows11 && setting.IsWindows11Only)
+                        {
+                            continue;
+                        }
+
+                        // Skip Windows 10 specific settings on Windows 11
+                        if (_isWindows11 && setting.IsWindows10Only)
+                        {
+                            continue;
+                        }
+
                         // Create ApplicationSettingItem directly
                         var settingItem = new ApplicationSettingItem(_registryService, null, _logService)
                         {
@@ -84,7 +102,9 @@ namespace Winhance.WPF.Features.Optimize.ViewModels
                             IsSelected = false, // Always initialize as unchecked
                             GroupName = setting.GroupName,
                             Dependencies = setting.Dependencies,
-                            ControlType = ControlType.BinaryToggle // Default to binary toggle
+                            ControlType = ControlType.BinaryToggle, // Default to binary toggle
+                            IsWindows11Only = setting.IsWindows11Only,
+                            IsWindows10Only = setting.IsWindows10Only
                         };
 
                         // Set up the registry settings

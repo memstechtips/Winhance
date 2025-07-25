@@ -178,10 +178,9 @@ namespace Winhance.Infrastructure.Features.Common.Services
                     $"Windows build number: {result.BuildNumber}, IsWin11ByBuild: {result.IsWindows11ByBuild}, IsWin11ByProductName: {result.IsWindows11ByProductName}"
                 );
 
-                // Determine if this is Windows 11 using both methods, with ProductName taking precedence if available
-                result.IsWindows11 =
-                    result.IsWindows11ByProductName
-                    || (result.IsWindows11ByBuild && !result.IsWindows11ByProductName == false);
+                // Determine if this is Windows 11 - prioritize build number as it's more reliable
+                // Build 22000+ is definitively Windows 11, regardless of registry ProductName
+                result.IsWindows11 = result.IsWindows11ByBuild || result.IsWindows11ByProductName;
                 result.IsWindows10 = result.MajorVersion == 10 && !result.IsWindows11;
             }
             catch (Exception ex)
