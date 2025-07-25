@@ -251,11 +251,11 @@
 
         </Grid>
 
-        <!-- Main Content -->
+        <!-- Main Content Container -->
         <Border Margin="0,85,0,0" Background="{DynamicResource MainContainerBorderBrush}" CornerRadius="10">
-            <commonControls:ResponsiveScrollViewer Style="{StaticResource ModernScrollViewer}" VerticalScrollBarVisibility="Auto" HorizontalScrollBarVisibility="Disabled">
-                <StackPanel Margin="10">
-                    <!-- Tabbed Header Section -->
+            <Grid>
+                <!-- Sticky Tab Header Section -->
+                <Border Height="80" VerticalAlignment="Top" Background="{DynamicResource MainContainerBorderBrush}" CornerRadius="10,10,0,0" Padding="15,20,15,10" Panel.ZIndex="100">
                     <Border Style="{StaticResource AppSectionHeaderStyle}">
                         <Grid>
                             <Grid.ColumnDefinitions>
@@ -368,6 +368,12 @@
                             </Grid>
                         </Grid>
                     </Border>
+                </Border>
+
+                <!-- Scrollable Content Section -->
+                <Border Margin="0,75,0,0" CornerRadius="0,0,10,10">
+            <commonControls:ResponsiveScrollViewer Style="{StaticResource ModernScrollViewer}" VerticalScrollBarVisibility="Auto" HorizontalScrollBarVisibility="Disabled">
+                <StackPanel Margin="10">
 
                     <!-- Content Section -->
                     <Border Style="{StaticResource AppSectionContentBorderStyle}">
@@ -437,6 +443,8 @@
                     </Border>
                 </StackPanel>
             </commonControls:ResponsiveScrollViewer>
+                </Border>
+            </Grid>
         </Border>
         
         <!-- Help Flyout Overlay - positioned at root level to cover entire view -->

@@ -7,6 +7,7 @@
              xmlns:viewmodels="clr-namespace:Winhance.WPF.Features.Customize.ViewModels"
              xmlns:controls="clr-namespace:Winhance.WPF.Features.Common.Controls"
              xmlns:behaviors="clr-namespace:Winhance.WPF.Features.Common.Behaviors"
+             xmlns:enums="clr-namespace:Winhance.Core.Features.Common.Enums;assembly=Winhance.Core"
              d:DataContext="{d:DesignInstance Type=viewmodels:TaskbarCustomizationsViewModel}"
              mc:Ignorable="d">
 
@@ -52,9 +53,85 @@
         <!-- Separator -->
         <Separator Margin="25,0,25,20"/>
         
-        <!-- Container for Setting Labels & Toggles -->
-        <ItemsControl x:Name="TaskbarSettingsItemsControl"
-                      ItemsSource="{Binding Settings}">
+        <!-- Container for ComboBox Settings -->
+        <ItemsControl x:Name="TaskbarComboBoxSettingsItemsControl"
+                      ItemsSource="{Binding ComboBoxSettings}"
+                      Margin="0,0,0,10">
+            <ItemsControl.ItemsPanel>
+                <ItemsPanelTemplate>
+                    <StackPanel Orientation="Vertical" HorizontalAlignment="Stretch"/>
+                </ItemsPanelTemplate>
+            </ItemsControl.ItemsPanel>
+            <ItemsControl.ItemTemplate>
+                <DataTemplate>
+                    <Grid Margin="10,0,10,10">
+                        <Grid.ColumnDefinitions>
+                            <ColumnDefinition Width="*"/>
+                            <ColumnDefinition Width="Auto"/>
+                        </Grid.ColumnDefinitions>
+                        
+                        <!-- Left: Icon + Label -->
+                        <StackPanel Grid.Column="0" 
+                                   Orientation="Horizontal" 
+                                   VerticalAlignment="Center" 
+                                   Margin="15,5,0,5">
+                            <!-- Icon based on setting name -->
+                            <TextBlock FontFamily="{StaticResource MaterialSymbolsFont}" 
+                                      FontSize="20"
+                                      FontWeight="SemiBold" 
+                                      Margin="0,0,8,0" 
+                                      VerticalAlignment="Center" 
+                                      Foreground="{DynamicResource PrimaryTextColor}">
+                                <TextBlock.Style>
+                                    <Style TargetType="TextBlock">
+                                        <Style.Triggers>
+                                            <!-- Search icon for Search in Taskbar -->
+                                            <DataTrigger Binding="{Binding FullName}" Value="Search in Taskbar">
+                                                <Setter Property="Text" Value="&#xE8B6;"/>
+                                            </DataTrigger>
+                                            <!-- Alignment icon for Taskbar Alignment -->
+                                            <DataTrigger Binding="{Binding FullName}" Value="Taskbar Alignment">
+                                                <Setter Property="Text" Value="&#xF7E6;"/>
+                                            </DataTrigger>
+                                        </Style.Triggers>
+                                    </Style>
+                                </TextBlock.Style>
+                            </TextBlock>
+                            
+                            <!-- Label Text -->
+                            <TextBlock Text="{Binding FullName}"
+                                      Foreground="{DynamicResource PrimaryTextColor}"
+                                      FontSize="14"
+                                      VerticalAlignment="Center">
+                                <TextBlock.ToolTip>
+                                    <ToolTip>
+                                        <ContentPresenter Content="{Binding}"
+                                                ContentTemplate="{StaticResource RegistrySettingTooltipTemplate}"/>
+                                    </ToolTip>
+                                </TextBlock.ToolTip>
+                            </TextBlock>
+                        </StackPanel>
+                        
+                        <!-- Right: ComboBox -->
+                        <ComboBox Grid.Column="1"
+                                  Width="150"
+                                  Margin="0,5,15,5"
+                                  HorizontalAlignment="Right"
+                                  VerticalAlignment="Center"
+                                  ItemsSource="{Binding ComboBoxOptions}"
+                                  SelectedItem="{Binding SelectedValue, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}"/>
+                    </Grid>
+                </DataTemplate>
+            </ItemsControl.ItemTemplate>
+        </ItemsControl>
+        
+        <!-- Separator between ComboBox and Toggle settings -->
+        <Separator Margin="25,0,25,10" 
+                   Visibility="{Binding HasComboBoxSettings, Converter={StaticResource BooleanToVisibilityConverter}}"/>
+
+        <!-- Container for Toggle Settings -->
+        <ItemsControl x:Name="TaskbarToggleSettingsItemsControl"
+                      ItemsSource="{Binding ToggleSettings}">
             <ItemsControl.ItemsPanel>
                 <ItemsPanelTemplate>
                     <WrapPanel Orientation="Horizontal" HorizontalAlignment="Left"/>

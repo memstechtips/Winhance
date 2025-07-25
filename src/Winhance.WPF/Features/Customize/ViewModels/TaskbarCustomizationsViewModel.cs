@@ -34,6 +34,21 @@ namespace Winhance.WPF.Features.Customize.ViewModels
         public IAsyncRelayCommand CleanTaskbarCommand { get; }
 
         /// <summary>
+        /// Gets the collection of ComboBox settings.
+        /// </summary>
+        public ObservableCollection<ApplicationSettingItem> ComboBoxSettings { get; } = new ObservableCollection<ApplicationSettingItem>();
+
+        /// <summary>
+        /// Gets the collection of Toggle settings.
+        /// </summary>
+        public ObservableCollection<ApplicationSettingItem> ToggleSettings { get; } = new ObservableCollection<ApplicationSettingItem>();
+
+        /// <summary>
+        /// Gets a value indicating whether there are ComboBox settings.
+        /// </summary>
+        public bool HasComboBoxSettings => ComboBoxSettings.Count > 0;
+
+        /// <summary>
         /// Initializes a new instance of the <see cref="TaskbarCustomizationsViewModel"/> class.
         /// </summary>
         /// <param name="progressService">The task progress service.</param>
@@ -93,6 +108,8 @@ namespace Winhance.WPF.Features.Customize.ViewModels
 
                 // Clear existing settings
                 Settings.Clear();
+                ComboBoxSettings.Clear();
+                ToggleSettings.Clear();
 
                 // Load Taskbar customizations
                 var taskbarCustomizations = Core.Features.Customize.Models.TaskbarCustomizations.GetTaskbarCustomizations();
@@ -124,6 +141,12 @@ namespace Winhance.WPF.Features.Customize.ViewModels
                             IsWindows10Only = setting.IsWindows10Only
                         };
 
+                        // Handle ComboBox-specific setup
+                        if (setting.ControlType == ControlType.ComboBox)
+                        {
+                            SetupComboBoxOptions(settingItem, setting);
+                        }
+
                         // Add any actions
                         var actionsProperty = setting.GetType().GetProperty("Actions");
                         if (actionsProperty != null && 
@@ -153,6 +176,16 @@ namespace Winhance.WPF.Features.Customize.ViewModels
                         }
 
                         Settings.Add(settingItem);
+
+                        // Add to appropriate collection based on control type
+                        if (setting.ControlType == ControlType.ComboBox)
+                        {
+                            ComboBoxSettings.Add(settingItem);
+                        }
+                        else
+                        {
+                            ToggleSettings.Add(settingItem);
+                        }
                     }
 
                     // Set up property change handlers for settings
@@ -170,11 +203,96 @@ namespace Winhance.WPF.Features.Customize.ViewModels
 
                 // Check setting statuses
                 await CheckSettingStatusesAsync();
+
+                // Notify property changes
+                OnPropertyChanged(nameof(HasComboBoxSettings));
             }
             finally
             {
                 IsLoading = false;
             }
+        }
+
+        /// <summary>
+        /// Sets up ComboBox options from the setting's CustomProperties.
+        /// </summary>
+        /// <param name="settingItem">The setting item to configure.</param>
+        /// <param name="setting">The source customization setting.</param>
+        private void SetupComboBoxOptions(ApplicationSettingItem settingItem, CustomizationSetting setting)
+        {
+            if (setting.RegistrySettings.Count > 0 && 
+                setting.RegistrySettings[0].CustomProperties != null &&
+                setting.RegistrySettings[0].CustomProperties.TryGetValue("ComboBoxOptions", out var optionsObj) &&
+                optionsObj is Dictionary<string, int> options)
+            {
+                // Create ComboBox options collection
+                var comboBoxOptions = new ObservableCollection<string>(options.Keys);
+                settingItem.ComboBoxOptions = comboBoxOptions;
+
+                // Read current registry value and map to correct option
+                var registrySetting = setting.RegistrySettings[0];
+                string hiveString = GetRegistryHiveString(registrySetting.Hive);
+                var currentValue = _registryService.GetValue(
+                    $"{hiveString}\\{registrySetting.SubKey}",
+                    registrySetting.Name);
+
+                // Convert current registry value to int for comparison
+                int currentValueInt = currentValue switch
+                {
+                    int intValue => intValue,
+                    long longValue => (int)longValue,
+                    null => registrySetting.DefaultValue is int defaultInt ? defaultInt : 3, // Default to 3 (Search box)
+                    _ => registrySetting.DefaultValue is int defaultInt2 ? defaultInt2 : 3
+                };
+
+                // Find the option name that corresponds to this registry value
+                var matchingOption = options.FirstOrDefault(kvp => kvp.Value == currentValueInt);
+                
+                if (!string.IsNullOrEmpty(matchingOption.Key))
+                {
+                    settingItem.SelectedValue = matchingOption.Key;
+                    _logService.Log(LogLevel.Info, $"Set ComboBox {setting.Name} to '{matchingOption.Key}' based on current registry value {currentValueInt}");
+                }
+                else
+                {
+                    // Fallback to default option if no match found
+                    if (setting.RegistrySettings[0].CustomProperties.TryGetValue("DefaultOption", out var defaultObj) &&
+                        defaultObj is string defaultOption &&
+                        options.ContainsKey(defaultOption))
+                    {
+                        settingItem.SelectedValue = defaultOption;
+                    }
+                    else if (comboBoxOptions.Count > 0)
+                    {
+                        settingItem.SelectedValue = comboBoxOptions[0];
+                    }
+                    _logService.Log(LogLevel.Warning, $"No matching option found for registry value {currentValueInt} in {setting.Name}, using default");
+                }
+
+                _logService.Log(LogLevel.Info, $"Set up ComboBox for {setting.Name} with {options.Count} options: {string.Join(", ", options.Keys)}");
+            }
+            else
+            {
+                _logService.Log(LogLevel.Warning, $"No ComboBoxOptions found in CustomProperties for {setting.Name}");
+            }
+        }
+
+        /// <summary>
+        /// Gets the registry hive string.
+        /// </summary>
+        /// <param name="hive">The registry hive.</param>
+        /// <returns>The registry hive string.</returns>
+        private string GetRegistryHiveString(RegistryHive hive)
+        {
+            return hive switch
+            {
+                RegistryHive.ClassesRoot => "HKCR",
+                RegistryHive.CurrentUser => "HKCU",
+                RegistryHive.LocalMachine => "HKLM",
+                RegistryHive.Users => "HKU",
+                RegistryHive.CurrentConfig => "HKCC",
+                _ => throw new ArgumentOutOfRangeException(nameof(hive), hive, null)
+            };
         }
     }
 }

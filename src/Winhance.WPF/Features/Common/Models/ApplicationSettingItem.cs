@@ -108,6 +108,21 @@ namespace Winhance.WPF.Features.Common.Models
         [ObservableProperty]
         private object? _selectedValue;
 
+        partial void OnSelectedValueChanged(object? value)
+        {
+            // Skip if we're updating from code
+            if (IsUpdatingFromCode)
+            {
+                return;
+            }
+
+            // Apply the setting when SelectedValue changes for ComboBox controls
+            if (ControlType == ControlType.ComboBox)
+            {
+                ApplySetting();
+            }
+        }
+
         [ObservableProperty]
         private bool _isRegistryValueNull;
 
@@ -125,6 +140,9 @@ namespace Winhance.WPF.Features.Common.Models
 
         [ObservableProperty]
         private bool _isApplying;
+
+        [ObservableProperty]
+        private ObservableCollection<string> _comboBoxOptions = new();
 
         /// <summary>
         /// Gets or sets the registry setting.
@@ -338,10 +356,20 @@ namespace Winhance.WPF.Features.Common.Models
                     // Get the registry hive string
                     string hiveString = GetRegistryHiveString(RegistrySetting.Hive);
 
-                    // Get the appropriate value based on the toggle state
-                    object valueToApply = IsSelected 
-                        ? (RegistrySetting.EnabledValue ?? RegistrySetting.RecommendedValue) 
-                        : (RegistrySetting.DisabledValue ?? RegistrySetting.DefaultValue);
+                    // Get the appropriate value based on control type
+                    object valueToApply;
+                    if (ControlType == ControlType.ComboBox)
+                    {
+                        // For ComboBox, get the registry value from CustomProperties
+                        valueToApply = GetComboBoxRegistryValue();
+                    }
+                    else
+                    {
+                        // For binary toggle, use the traditional logic
+                        valueToApply = IsSelected 
+                            ? (RegistrySetting.EnabledValue ?? RegistrySetting.RecommendedValue) 
+                            : (RegistrySetting.DisabledValue ?? RegistrySetting.DefaultValue);
+                    }
 
                     // Apply the setting
                     _registryService.SetValue(
@@ -357,12 +385,19 @@ namespace Winhance.WPF.Features.Common.Models
                     LinkedRegistrySettingsWithValues.Clear();
                     LinkedRegistrySettingsWithValues.Add(new LinkedRegistrySettingWithValue(RegistrySetting, CurrentValue));
 
-                    // Update status without changing IsSelected
-                    Status = IsSelected ? RegistrySettingStatus.Applied : RegistrySettingStatus.NotApplied;
-                    StatusMessage = Status == RegistrySettingStatus.Applied ? "Applied" : "Not Applied";
+                    // Update status
+                    Status = RegistrySettingStatus.Applied;
+                    StatusMessage = "Applied";
 
                     // Log the action
-                    _logService?.Log(LogLevel.Info, $"Applied setting {Name}: {(IsSelected ? "Enabled" : "Disabled")}");
+                    if (ControlType == ControlType.ComboBox)
+                    {
+                        _logService?.Log(LogLevel.Info, $"Applied ComboBox setting {Name}: {SelectedValue} (Registry Value: {valueToApply})");
+                    }
+                    else
+                    {
+                        _logService?.Log(LogLevel.Info, $"Applied setting {Name}: {(IsSelected ? "Enabled" : "Disabled")}");
+                    }
                 }
                 catch (Exception ex)
                 {
@@ -874,6 +909,25 @@ namespace Winhance.WPF.Features.Common.Models
         public virtual string[] GetSearchableProperties()
         {
             return new[] { nameof(Name), nameof(Description), nameof(GroupName) };
+        }
+
+        /// <summary>
+        /// Gets the registry value for a ComboBox selection.
+        /// </summary>
+        /// <returns>The registry value corresponding to the selected ComboBox option.</returns>
+        private object GetComboBoxRegistryValue()
+        {
+            if (RegistrySetting?.CustomProperties != null &&
+                RegistrySetting.CustomProperties.TryGetValue("ComboBoxOptions", out var optionsObj) &&
+                optionsObj is Dictionary<string, int> options &&
+                !string.IsNullOrEmpty(SelectedValue?.ToString()) &&
+                options.TryGetValue(SelectedValue.ToString(), out var registryValue))
+            {
+                return registryValue;
+            }
+
+            // Fallback to default value if no mapping found
+            return RegistrySetting?.DefaultValue ?? 0;
         }
     }
 }

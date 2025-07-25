@@ -162,7 +162,7 @@ public static class TaskbarCustomizations
                 new CustomizationSetting
                 {
                     Id = "taskbar-chat-icon",
-                    Name = "Windows Chat Icon",
+                    Name = "Show Windows Chat Icon",
                     Description = "Controls Windows Chat icon visibility and menu behavior in taskbar",
                     Category = CustomizationCategory.Taskbar,
                     GroupName = "Taskbar Icons",
@@ -206,7 +206,7 @@ public static class TaskbarCustomizations
                 new CustomizationSetting
                 {
                     Id = "taskbar-meet-now-group",
-                    Name = "Meet Now Button",
+                    Name = "Show Meet Now Button",
                     Description = "Controls Meet Now button visibility in taskbar",
                     Category = CustomizationCategory.Taskbar,
                     GroupName = "Taskbar Icons",
@@ -251,11 +251,11 @@ public static class TaskbarCustomizations
                 {
                     Id = "taskbar-search-box",
                     Name = "Search in Taskbar",
-                    Description = "Controls search box visibility in taskbar",
+                    Description = "Controls search box appearance in taskbar",
                     Category = CustomizationCategory.Taskbar,
                     GroupName = "Taskbar Icons",
                     IsEnabled = false,
-                    ControlType = ControlType.BinaryToggle,
+                    ControlType = ControlType.ComboBox,
                     RegistrySettings = new List<RegistrySetting>
                     {
                         new RegistrySetting
@@ -264,21 +264,35 @@ public static class TaskbarCustomizations
                             Hive = RegistryHive.CurrentUser,
                             SubKey = "Software\\Microsoft\\Windows\\CurrentVersion\\Search",
                             Name = "SearchboxTaskbarMode",
-                            RecommendedValue = 0,  // For backward compatibility
-                            EnabledValue = 2,      // When toggle is ON, search box is shown (2 = show search box)
-                            DisabledValue = 0,     // When toggle is OFF, search box is hidden (0 = hide search box)
+                            RecommendedValue = 3,  // Default: Search box (full)
                             ValueType = RegistryValueKind.DWord,
-                            DefaultValue = 1,      // Default value when registry key exists but no value is set
-                            Description = "Controls search box visibility in taskbar",
+                            DefaultValue = 3,      // Windows default is search box
+                            Description = "Controls search box appearance in taskbar. 0=Hide, 1=Search icon only, 2=Search icon and label, 3=Search box (default)",
                             IsPrimary = true,
-                            AbsenceMeansEnabled = true
+                            AbsenceMeansEnabled = false,
+                            // ComboBox options mapping:
+                            // Value 0 = "Hide"
+                            // Value 1 = "Search icon only" 
+                            // Value 2 = "Search icon and label"
+                            // Value 3 = "Search box" (default)
+                            CustomProperties = new Dictionary<string, object>
+                            {
+                                ["ComboBoxOptions"] = new Dictionary<string, int>
+                                {
+                                    ["Hide"] = 0,
+                                    ["Search icon only"] = 1,
+                                    ["Search icon and label"] = 2,
+                                    ["Search box"] = 3
+                                },
+                                ["DefaultOption"] = "Search box"
+                            }
                         }
                     }
                 },
                 new CustomizationSetting
                 {
                     Id = "taskbar-copilot",
-                    Name = "Copilot Button",
+                    Name = "Show Copilot Button",
                     Description = "Controls Copilot button visibility in taskbar",
                     Category = CustomizationCategory.Taskbar,
                     GroupName = "Taskbar Icons",
@@ -305,13 +319,13 @@ public static class TaskbarCustomizations
                 },
                 new CustomizationSetting
                 {
-                    Id = "taskbar-left-align",
-                    Name = "Left Aligned Taskbar",
+                    Id = "taskbar-alignment",
+                    Name = "Taskbar Alignment",
                     Description = "Controls taskbar icons alignment",
                     Category = CustomizationCategory.Taskbar,
                     GroupName = "Taskbar Behavior",
                     IsEnabled = false,
-                    ControlType = ControlType.BinaryToggle,
+                    ControlType = ControlType.ComboBox,
                     RegistrySettings = new List<RegistrySetting>
                     {
                         new RegistrySetting
@@ -320,14 +334,24 @@ public static class TaskbarCustomizations
                             Hive = RegistryHive.CurrentUser,
                             SubKey = "Software\\Microsoft\\Windows\\CurrentVersion\\Explorer\\Advanced",
                             Name = "TaskbarAl",
-                            RecommendedValue = 0,  // For backward compatibility
-                            EnabledValue = 0,      // When toggle is ON, taskbar icons are left-aligned
-                            DisabledValue = 1,     // When toggle is OFF, taskbar icons are center-aligned
+                            RecommendedValue = 1,  // Default: Center alignment
                             ValueType = RegistryValueKind.DWord,
-                            DefaultValue = 1,      // Default value when registry key exists but no value is set
-                            Description = "Controls taskbar icons alignment",
+                            DefaultValue = 1,      // Windows default is center alignment
+                            Description = "Controls taskbar icons alignment. 0=Left, 1=Center (default)",
                             IsPrimary = true,
-                            AbsenceMeansEnabled = false
+                            AbsenceMeansEnabled = false,
+                            // ComboBox options mapping:
+                            // Value 0 = "Left"
+                            // Value 1 = "Center" (default)
+                            CustomProperties = new Dictionary<string, object>
+                            {
+                                ["ComboBoxOptions"] = new Dictionary<string, int>
+                                {
+                                    ["Left"] = 0,
+                                    ["Center"] = 1
+                                },
+                                ["DefaultOption"] = "Center"
+                            }
                         }
                     }
                 },
@@ -362,7 +386,7 @@ public static class TaskbarCustomizations
                 new CustomizationSetting
                 {
                     Id = "taskbar-task-view",
-                    Name = "Task View Button",
+                    Name = "Task View",
                     Description = "Controls Task View button visibility in taskbar",
                     Category = CustomizationCategory.Taskbar,
                     GroupName = "Taskbar Icons",
@@ -382,6 +406,34 @@ public static class TaskbarCustomizations
                             ValueType = RegistryValueKind.DWord,
                             DefaultValue = 1,      // Default value when registry key exists but no value is set
                             Description = "Controls Task View button visibility in taskbar",
+                            IsPrimary = true,
+                            AbsenceMeansEnabled = true
+                        }
+                    }
+                },
+                new CustomizationSetting
+                {
+                    Id = "taskbar-widgets",
+                    Name = "Widgets",
+                    Description = "Controls Widgets button visibility in taskbar",
+                    Category = CustomizationCategory.Taskbar,
+                    GroupName = "Taskbar Icons",
+                    IsEnabled = false,
+                    ControlType = ControlType.BinaryToggle,
+                    RegistrySettings = new List<RegistrySetting>
+                    {
+                        new RegistrySetting
+                        {
+                            Category = "Taskbar",
+                            Hive = RegistryHive.CurrentUser,
+                            SubKey = "Software\\Microsoft\\Windows\\CurrentVersion\\Explorer\\Advanced",
+                            Name = "TaskbarDa",
+                            RecommendedValue = 0,  // For backward compatibility
+                            EnabledValue = 1,      // When toggle is ON, Widgets button is shown
+                            DisabledValue = 0,     // When toggle is OFF, Widgets button is hidden
+                            ValueType = RegistryValueKind.DWord,
+                            DefaultValue = 1,      // Default value when registry key exists but no value is set
+                            Description = "Controls Widgets button visibility in taskbar",
                             IsPrimary = true,
                             AbsenceMeansEnabled = true
                         }
