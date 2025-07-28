@@ -1074,7 +1074,9 @@ namespace Winhance.WPF
                         provider.GetRequiredService<ITaskProgressService>(),
                         provider.GetRequiredService<IRegistryService>(),
                         provider.GetRequiredService<ILogService>(),
-                        provider.GetRequiredService<ISystemServices>()
+                        provider.GetRequiredService<ISystemServices>(),
+                        provider.GetRequiredService<Core.Features.Common.Interfaces.IDialogService>(),
+                        provider.GetRequiredService<IScheduledTaskService>()
                     )
                 );
 

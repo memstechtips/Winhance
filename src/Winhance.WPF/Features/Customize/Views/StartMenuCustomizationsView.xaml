@@ -24,7 +24,7 @@
                            Foreground="{DynamicResource PrimaryTextColor}"
                            FontWeight="Bold"
                            FontSize="14"/>
-                <TextBlock Text="Unpins all Items except Settings, File Explorer and Edge (if installed) | Requires Restart to Fully Apply Changes"
+                <TextBlock Text="Unpins all items from Start Menu | Choose to apply to current user only or all existing users"
                            Foreground="{DynamicResource PrimaryTextColor}"
                            FontSize="12"/>
             </StackPanel>
@@ -40,13 +40,7 @@
                 <Button.ToolTip>
                     <ToolTip>
                         <TextBlock TextWrapping="Wrap" MaxWidth="300">
-                            Cleans the Start Menu by removing pinned apps and restoring the default layout.
-                            <LineBreak/>
-                            For Windows 10: Creates and applies a clean StartMenuLayout.xml file.
-                            <LineBreak/>
-                            For Windows 11: Replaces the start2.bin file with a clean version.
-                            <LineBreak/>
-                            Note: This will restart Explorer and also requires a system restart to fully apply.
+                            Cleans the Start Menu by removing all pinned apps. You can choose to apply to current user only or all existing users.
                         </TextBlock>
                     </ToolTip>
                 </Button.ToolTip>
@@ -56,9 +50,71 @@
         <!-- Separator -->
         <Separator Margin="25,0,25,20"/>
         
-        <!-- Container for Setting Labels & Toggles -->
-        <ItemsControl x:Name="StartMenuSettingsItemsControl"
-                      ItemsSource="{Binding Settings}">
+        <!-- Container for ComboBox Settings -->
+        <ItemsControl x:Name="StartMenuComboBoxSettingsItemsControl"
+                      ItemsSource="{Binding ComboBoxSettings}"
+                      Margin="0,0,0,10">
+            <ItemsControl.ItemsPanel>
+                <ItemsPanelTemplate>
+                    <StackPanel Orientation="Vertical" HorizontalAlignment="Stretch"/>
+                </ItemsPanelTemplate>
+            </ItemsControl.ItemsPanel>
+            <ItemsControl.ItemTemplate>
+                <DataTemplate>
+                    <Grid Margin="10,0,10,10">
+                        <Grid.ColumnDefinitions>
+                            <ColumnDefinition Width="*"/>
+                            <ColumnDefinition Width="Auto"/>
+                        </Grid.ColumnDefinitions>
+                        
+                        <!-- Left: Icon + Label -->
+                        <StackPanel Grid.Column="0" 
+                                   Orientation="Horizontal" 
+                                   VerticalAlignment="Center" 
+                                   Margin="15,5,0,5">
+                            <!-- Icon for Start Layout -->
+                            <TextBlock FontFamily="{StaticResource MaterialSymbolsFont}" 
+                                      FontSize="20"
+                                      FontWeight="SemiBold" 
+                                      VerticalAlignment="Center" 
+                                      Margin="0,0,10,0"
+                                      Foreground="{DynamicResource PrimaryTextColor}"
+                                      Text="&#xF78C;"/> <!-- Start menu icon -->
+                            
+                            <!-- Label Text -->
+                            <TextBlock Text="{Binding FullName}"
+                                      Foreground="{DynamicResource PrimaryTextColor}"
+                                      FontSize="14"
+                                      VerticalAlignment="Center">
+                                <TextBlock.ToolTip>
+                                    <ToolTip>
+                                        <ContentPresenter Content="{Binding}"
+                                                ContentTemplate="{StaticResource RegistrySettingTooltipTemplate}"/>
+                                    </ToolTip>
+                                </TextBlock.ToolTip>
+                            </TextBlock>
+                        </StackPanel>
+                        
+                        <!-- Right: ComboBox -->
+                        <ComboBox Grid.Column="1"
+                                  Width="150"
+                                  Margin="0,5,15,5"
+                                  HorizontalAlignment="Right"
+                                  VerticalAlignment="Center"
+                                  ItemsSource="{Binding ComboBoxOptions}"
+                                  SelectedItem="{Binding SelectedValue, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}"/>
+                    </Grid>
+                </DataTemplate>
+            </ItemsControl.ItemTemplate>
+        </ItemsControl>
+        
+        <!-- Separator between ComboBox and Toggle settings -->
+        <Separator Margin="25,0,25,10" 
+                   Visibility="{Binding HasComboBoxSettings, Converter={StaticResource BooleanToVisibilityConverter}}"/>
+
+        <!-- Container for Toggle Settings -->
+        <ItemsControl x:Name="StartMenuToggleSettingsItemsControl"
+                      ItemsSource="{Binding ToggleSettings}">
             <ItemsControl.ItemsPanel>
                 <ItemsPanelTemplate>
                     <WrapPanel Orientation="Horizontal" HorizontalAlignment="Left"/>

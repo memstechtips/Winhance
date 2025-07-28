@@ -161,50 +161,6 @@ public static class TaskbarCustomizations
             {
                 new CustomizationSetting
                 {
-                    Id = "taskbar-chat-icon",
-                    Name = "Windows Chat Icon",
-                    Description = "Controls Windows Chat icon visibility and menu behavior in taskbar",
-                    Category = CustomizationCategory.Taskbar,
-                    GroupName = "Taskbar Icons",
-                    IsEnabled = false,
-                    ControlType = ControlType.BinaryToggle,
-                    RegistrySettings = new List<RegistrySetting>
-                    {
-                        new RegistrySetting
-                        {
-                            Category = "Taskbar",
-                            Hive = RegistryHive.LocalMachine,
-                            SubKey = "SOFTWARE\\Microsoft\\Windows\\Windows Chat",
-                            Name = "ChatIcon",
-                            RecommendedValue = 3,  // For backward compatibility
-                            EnabledValue = 0,      // When toggle is ON, Chat icon is shown (0 = show)
-                            DisabledValue = 3,     // When toggle is OFF, Chat icon is hidden (3 = hide)
-                            ValueType = RegistryValueKind.DWord,
-                            DefaultValue = 0,      // Default value when registry key exists but no value is set
-                            Description = "Controls Windows Chat icon visibility in taskbar",
-                            IsPrimary = true,
-                            AbsenceMeansEnabled = true
-                        },
-                        new RegistrySetting
-                        {
-                            Category = "Taskbar",
-                            Hive = RegistryHive.CurrentUser,
-                            SubKey = "Software\\Microsoft\\Windows\\CurrentVersion\\Explorer\\Advanced",
-                            Name = "TaskbarMn",
-                            RecommendedValue = 0,  // For backward compatibility
-                            EnabledValue = 1,      // When toggle is ON, taskbar menu is enabled
-                            DisabledValue = 0,     // When toggle is OFF, taskbar menu is disabled
-                            ValueType = RegistryValueKind.DWord,
-                            DefaultValue = 0,      // Default value when registry key exists but no value is set
-                            Description = "Controls taskbar menu behavior for chat",
-                            IsPrimary = false,
-                            AbsenceMeansEnabled = false
-                        }
-                    },
-                    LinkedSettingsLogic = LinkedSettingsLogic.All
-                },
-                new CustomizationSetting
-                {
                     Id = "taskbar-meet-now-group",
                     Name = "Meet Now Button",
                     Description = "Controls Meet Now button visibility in taskbar",
@@ -219,7 +175,7 @@ public static class TaskbarCustomizations
                         {
                             Category = "Taskbar",
                             Hive = RegistryHive.LocalMachine,
-                            SubKey = "SOFTWARE\\Policies\\Microsoft\\Windows\\Explorer",
+                            SubKey = "Software\\Microsoft\\Windows\\CurrentVersion\\Policies\\Explorer",
                             Name = "HideSCAMeetNow",
                             RecommendedValue = 1,  // For backward compatibility
                             EnabledValue = 0,      // When toggle is ON, Meet Now button is shown
@@ -228,21 +184,6 @@ public static class TaskbarCustomizations
                             DefaultValue = 1,      // Default value when registry key exists but no value is set
                             Description = "Controls Meet Now button visibility in taskbar",
                             IsPrimary = true,
-                            AbsenceMeansEnabled = true
-                        },
-                        new RegistrySetting
-                        {
-                            Category = "Taskbar",
-                            Hive = RegistryHive.CurrentUser,
-                            SubKey = "Software\\Microsoft\\Windows\\CurrentVersion\\Policies\\Explorer",
-                            Name = "HideSCAMeetNow",
-                            RecommendedValue = 1,  // For backward compatibility
-                            EnabledValue = 0,      // When toggle is ON, Meet Now button is shown (user level)
-                            DisabledValue = 1,     // When toggle is OFF, Meet Now button is hidden (user level)
-                            ValueType = RegistryValueKind.DWord,
-                            DefaultValue = 1,      // Default value when registry key exists but no value is set
-                            Description = "Controls Meet Now button visibility (user level)",
-                            IsPrimary = false,
                             AbsenceMeansEnabled = true
                         }
                     },
@@ -287,34 +228,6 @@ public static class TaskbarCustomizations
                                 },
                                 ["DefaultOption"] = "Search box"
                             }
-                        }
-                    }
-                },
-                new CustomizationSetting
-                {
-                    Id = "taskbar-copilot",
-                    Name = "Copilot Button",
-                    Description = "Controls Copilot button visibility in taskbar",
-                    Category = CustomizationCategory.Taskbar,
-                    GroupName = "Taskbar Icons",
-                    IsEnabled = false,
-                    ControlType = ControlType.BinaryToggle,
-                    RegistrySettings = new List<RegistrySetting>
-                    {
-                        new RegistrySetting
-                        {
-                            Category = "Taskbar",
-                            Hive = RegistryHive.CurrentUser,
-                            SubKey = "Software\\Microsoft\\Windows\\CurrentVersion\\Explorer\\Advanced",
-                            Name = "ShowCopilotButton",
-                            RecommendedValue = 0,  // For backward compatibility
-                            EnabledValue = 1,      // When toggle is ON, Copilot button is shown
-                            DisabledValue = 0,     // When toggle is OFF, Copilot button is hidden
-                            ValueType = RegistryValueKind.DWord,
-                            DefaultValue = 0,      // Default value when registry key exists but no value is set
-                            Description = "Controls Copilot button visibility in taskbar",
-                            IsPrimary = true,
-                            AbsenceMeansEnabled = true
                         }
                     }
                 },

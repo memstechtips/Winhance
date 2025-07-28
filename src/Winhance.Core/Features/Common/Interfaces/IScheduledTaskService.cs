@@ -28,5 +28,15 @@ namespace Winhance.Core.Features.Common.Interfaces
         /// <param name="taskName">The name of the task to check.</param>
         /// <returns>True if the task exists, false otherwise.</returns>
         Task<bool> IsTaskRegisteredAsync(string taskName);
+
+        /// <summary>
+        /// Creates a user-specific scheduled task that runs at user logon.
+        /// </summary>
+        /// <param name="taskName">The name of the task.</param>
+        /// <param name="command">The command to execute.</param>
+        /// <param name="username">The username to run the task for.</param>
+        /// <param name="deleteAfterRun">Whether to delete the task after it runs once.</param>
+        /// <returns>True if the task was created successfully, false otherwise.</returns>
+        Task<bool> CreateUserLogonTaskAsync(string taskName, string command, string username, bool deleteAfterRun = true);
     }
 }

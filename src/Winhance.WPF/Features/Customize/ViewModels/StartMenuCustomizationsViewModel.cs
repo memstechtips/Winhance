@@ -21,7 +21,24 @@ namespace Winhance.WPF.Features.Customize.ViewModels
     public partial class StartMenuCustomizationsViewModel : BaseSettingsViewModel<ApplicationSettingItem>
     {
         private readonly ISystemServices _systemServices;
+        private readonly IDialogService _dialogService;
+        private readonly IScheduledTaskService _scheduledTaskService;
         private bool _isWindows11;
+
+        /// <summary>
+        /// Gets the collection of ComboBox settings.
+        /// </summary>
+        public ObservableCollection<ApplicationSettingItem> ComboBoxSettings { get; } = new ObservableCollection<ApplicationSettingItem>();
+
+        /// <summary>
+        /// Gets the collection of Toggle settings.
+        /// </summary>
+        public ObservableCollection<ApplicationSettingItem> ToggleSettings { get; } = new ObservableCollection<ApplicationSettingItem>();
+
+        /// <summary>
+        /// Gets a value indicating whether there are ComboBox settings.
+        /// </summary>
+        public bool HasComboBoxSettings => ComboBoxSettings.Count > 0;
 
         /// <summary>
         /// Gets the command to clean the Start Menu.
@@ -31,27 +48,32 @@ namespace Winhance.WPF.Features.Customize.ViewModels
         {
             try
             {
-                // Start task with progress
-                _progressService.StartTask("Cleaning Start Menu...");
+                // Show options dialog to get user preferences
+                var (confirmed, applyToAllUsers) = Winhance.WPF.Features.Customize.Views.StartMenuCleaningOptionsDialog.ShowOptionsDialog();
                 
-                // Update initial progress
+                // If user cancelled, exit early
+                if (!confirmed)
+                {
+                    return;
+                }
+
+                // Start progress tracking
+                _progressService.StartTask("Cleaning Start Menu...");
                 _progressService.UpdateDetailedProgress(new TaskProgressDetail
                 {
                     StatusText = "Cleaning Start Menu...",
                     Progress = 0
                 });
-
+                
                 // Determine Windows version
                 _isWindows11 = _systemServices.IsWindows11();
-
-                // Clean Start Menu
-                await Task.Run(() =>
-                {
-                    StartMenuCustomizations.CleanStartMenu(_isWindows11, _systemServices);
-                });
-
+                
+                // Clean the Start Menu with user preferences
+                await Task.Run(() => StartMenuCustomizations.CleanStartMenu(_isWindows11, _systemServices, applyToAllUsers, _logService, _scheduledTaskService));
+                
                 // Log success
-                _logService.Log(LogLevel.Info, "Start Menu cleaned successfully");
+                var scope = applyToAllUsers ? "all users" : "current user and new accounts";
+                _logService.Log(LogLevel.Info, $"Start Menu cleaned successfully for {scope}");
 
                 // Update completion progress
                 _progressService.UpdateDetailedProgress(new TaskProgressDetail
@@ -62,6 +84,13 @@ namespace Winhance.WPF.Features.Customize.ViewModels
                 
                 // Complete the task
                 _progressService.CompleteTask();
+
+                // Show success dialog with appropriate message
+                var successMessage = applyToAllUsers 
+                    ? "Start Menu has been cleaned successfully for all users. Current user changes are immediate, other users will see changes on next login."
+                    : "Start Menu has been cleaned successfully for the current user and new user accounts.";
+                    
+                await _dialogService.ShowInformationAsync(successMessage, "Start Menu Cleaned");
             }
             catch (Exception ex)
             {
@@ -77,6 +106,11 @@ namespace Winhance.WPF.Features.Customize.ViewModels
                 
                 // Complete the task
                 _progressService.CompleteTask();
+
+                // Show error dialog
+                await _dialogService.ShowErrorAsync(
+                    $"Failed to clean Start Menu: {ex.Message}",
+                    "Start Menu Cleaning Failed");
             }
         }
 
@@ -134,14 +168,20 @@ namespace Winhance.WPF.Features.Customize.ViewModels
         /// <param name="registryService">The registry service.</param>
         /// <param name="logService">The log service.</param>
         /// <param name="systemServices">The system services.</param>
+        /// <param name="dialogService">The dialog service.</param>
+        /// <param name="scheduledTaskService">The scheduled task service.</param>
         public StartMenuCustomizationsViewModel(
             ITaskProgressService progressService,
             IRegistryService registryService,
             ILogService logService,
-            ISystemServices systemServices)
+            ISystemServices systemServices,
+            IDialogService dialogService,
+            IScheduledTaskService scheduledTaskService)
             : base(progressService, registryService, logService)
         {
             _systemServices = systemServices ?? throw new ArgumentNullException(nameof(systemServices));
+            _dialogService = dialogService ?? throw new ArgumentNullException(nameof(dialogService));
+            _scheduledTaskService = scheduledTaskService ?? throw new ArgumentNullException(nameof(scheduledTaskService));
             _isWindows11 = _systemServices.IsWindows11();
         }
 
@@ -157,6 +197,8 @@ namespace Winhance.WPF.Features.Customize.ViewModels
 
                 // Clear existing settings
                 Settings.Clear();
+                ComboBoxSettings.Clear();
+                ToggleSettings.Clear();
 
                 // Load Start Menu customizations
                 var startMenuCustomizations = Core.Features.Customize.Models.StartMenuCustomizations.GetStartMenuCustomizations();
@@ -173,6 +215,12 @@ namespace Winhance.WPF.Features.Customize.ViewModels
 
                         // Skip Windows 10 specific settings on Windows 11
                         if (_isWindows11 && setting.IsWindows10Only)
+                        {
+                            continue;
+                        }
+
+                        // Check build number compatibility
+                        if (!IsSettingSupportedOnCurrentBuild(setting))
                         {
                             continue;
                         }
@@ -221,6 +269,17 @@ namespace Winhance.WPF.Features.Customize.ViewModels
                             _logService.Log(LogLevel.Warning, $"No registry settings found for {setting.Name}");
                         }
 
+                        // Set up ComboBox options if this is a ComboBox control
+                        if (setting.ControlType == ControlType.ComboBox)
+                        {
+                            SetupComboBoxOptions(settingItem, setting);
+                            ComboBoxSettings.Add(settingItem);
+                        }
+                        else
+                        {
+                            ToggleSettings.Add(settingItem);
+                        }
+
                         Settings.Add(settingItem);
                     }
 
@@ -236,6 +295,9 @@ namespace Winhance.WPF.Features.Customize.ViewModels
                         };
                     }
                 }
+
+                // Notify property changes
+                OnPropertyChanged(nameof(HasComboBoxSettings));
 
                 // Check setting statuses
                 await CheckSettingStatusesAsync();
@@ -361,6 +423,88 @@ namespace Winhance.WPF.Features.Customize.ViewModels
         }
 
         /// <summary>
+        /// Sets up ComboBox options from the setting's CustomProperties.
+        /// </summary>
+        /// <param name="settingItem">The setting item to configure.</param>
+        /// <param name="setting">The source customization setting.</param>
+        private void SetupComboBoxOptions(ApplicationSettingItem settingItem, CustomizationSetting setting)
+        {
+            if (setting.RegistrySettings.Count > 0 && 
+                setting.RegistrySettings[0].CustomProperties != null &&
+                setting.RegistrySettings[0].CustomProperties.TryGetValue("ComboBoxOptions", out var optionsObj) &&
+                optionsObj is Dictionary<string, int> options)
+            {
+                // Create ComboBox options collection
+                var comboBoxOptions = new ObservableCollection<string>(options.Keys);
+                settingItem.ComboBoxOptions = comboBoxOptions;
+
+                // Read current registry value and map to correct option
+                var registrySetting = setting.RegistrySettings[0];
+                string hiveString = GetRegistryHiveString(registrySetting.Hive);
+                var currentValue = _registryService.GetValue(
+                    $"{hiveString}\\{registrySetting.SubKey}",
+                    registrySetting.Name);
+
+                // Convert current registry value to int for comparison
+                int currentValueInt = currentValue switch
+                {
+                    int intValue => intValue,
+                    long longValue => (int)longValue,
+                    null => registrySetting.DefaultValue is int defaultInt ? defaultInt : 0, // Default to 0 (Default layout)
+                    _ => registrySetting.DefaultValue is int defaultInt2 ? defaultInt2 : 0
+                };
+
+                // Find the option name that corresponds to this registry value
+                var matchingOption = options.FirstOrDefault(kvp => kvp.Value == currentValueInt);
+                
+                if (!string.IsNullOrEmpty(matchingOption.Key))
+                {
+                    settingItem.SelectedValue = matchingOption.Key;
+                    _logService.Log(LogLevel.Info, $"Set ComboBox {setting.Name} to '{matchingOption.Key}' based on current registry value {currentValueInt}");
+                }
+                else
+                {
+                    // Fallback to default option if no match found
+                    if (setting.RegistrySettings[0].CustomProperties.TryGetValue("DefaultOption", out var defaultObj) &&
+                        defaultObj is string defaultOption &&
+                        options.ContainsKey(defaultOption))
+                    {
+                        settingItem.SelectedValue = defaultOption;
+                    }
+                    else if (comboBoxOptions.Count > 0)
+                    {
+                        settingItem.SelectedValue = comboBoxOptions[0];
+                    }
+                    _logService.Log(LogLevel.Warning, $"No matching option found for registry value {currentValueInt} in {setting.Name}, using default");
+                }
+
+                _logService.Log(LogLevel.Info, $"Set up ComboBox for {setting.Name} with {options.Count} options: {string.Join(", ", options.Keys)}");
+            }
+            else
+            {
+                _logService.Log(LogLevel.Warning, $"No ComboBoxOptions found in CustomProperties for {setting.Name}");
+            }
+        }
+
+        /// <summary>
+        /// Gets the registry hive string.
+        /// </summary>
+        /// <param name="hive">The registry hive.</param>
+        /// <returns>The registry hive string.</returns>
+        private string GetRegistryHiveString(RegistryHive hive)
+        {
+            return hive switch
+            {
+                RegistryHive.ClassesRoot => "HKCR",
+                RegistryHive.CurrentUser => "HKCU",
+                RegistryHive.LocalMachine => "HKLM",
+                RegistryHive.Users => "HKU",
+                RegistryHive.CurrentConfig => "HKCC",
+                _ => throw new ArgumentOutOfRangeException(nameof(hive), hive, null)
+            };
+        }
+
+        /// <summary>
         /// Gets the status message for a setting.
         /// </summary>
         /// <param name="setting">The setting.</param>
@@ -401,6 +545,71 @@ namespace Winhance.WPF.Features.Customize.ViewModels
             }
 
             return message;
+        }
+
+        /// <summary>
+        /// Checks if a setting is supported on the current Windows build.
+        /// </summary>
+        /// <param name="setting">The customization setting to check.</param>
+        /// <returns>True if the setting is supported on the current build, false otherwise.</returns>
+        private bool IsSettingSupportedOnCurrentBuild(CustomizationSetting setting)
+        {
+            // Get current Windows version info
+            var versionInfo = _systemServices.GetType()
+                .GetMethod("GetWindowsVersionInfo", System.Reflection.BindingFlags.NonPublic | System.Reflection.BindingFlags.Instance)
+                ?.Invoke(_systemServices, null);
+            
+            if (versionInfo == null)
+            {
+                _logService.Log(LogLevel.Warning, "Could not get Windows version info for build filtering");
+                return true; // Default to showing the setting if we can't determine version
+            }
+
+            var buildNumberProperty = versionInfo.GetType().GetProperty("BuildNumber");
+            if (buildNumberProperty?.GetValue(versionInfo) is not int currentBuild)
+            {
+                _logService.Log(LogLevel.Warning, "Could not get current build number for filtering");
+                return true; // Default to showing the setting if we can't determine build
+            }
+
+            _logService.Log(LogLevel.Info, $"Checking build compatibility for {setting.Name} - Current build: {currentBuild}");
+
+            // Check SupportedBuildRanges first (takes precedence)
+            if (setting.SupportedBuildRanges != null && setting.SupportedBuildRanges.Count > 0)
+            {
+                bool isInRange = setting.SupportedBuildRanges.Any(range => 
+                    currentBuild >= range.MinBuild && currentBuild <= range.MaxBuild);
+                
+                _logService.Log(LogLevel.Info, 
+                    $"Setting {setting.Name} has build ranges: {string.Join(", ", setting.SupportedBuildRanges.Select(r => $"[{r.MinBuild}-{r.MaxBuild}]"))} - Supported: {isInRange}");
+                
+                return isInRange;
+            }
+
+            // Check MinimumBuildNumber
+            if (setting.MinimumBuildNumber.HasValue && currentBuild < setting.MinimumBuildNumber.Value)
+            {
+                _logService.Log(LogLevel.Info, 
+                    $"Setting {setting.Name} requires minimum build {setting.MinimumBuildNumber.Value}, current is {currentBuild} - Not supported");
+                return false;
+            }
+
+            // Check MaximumBuildNumber
+            if (setting.MaximumBuildNumber.HasValue && currentBuild > setting.MaximumBuildNumber.Value)
+            {
+                _logService.Log(LogLevel.Info, 
+                    $"Setting {setting.Name} supports maximum build {setting.MaximumBuildNumber.Value}, current is {currentBuild} - Not supported");
+                return false;
+            }
+
+            // If we get here, the setting is supported
+            if (setting.MinimumBuildNumber.HasValue || setting.MaximumBuildNumber.HasValue)
+            {
+                _logService.Log(LogLevel.Info, 
+                    $"Setting {setting.Name} is supported on current build {currentBuild}");
+            }
+
+            return true;
         }
     }
 }

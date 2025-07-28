@@ -351,5 +351,107 @@ try {{
                 return false;
             }
         }
+        
+        /// <inheritdoc/>
+        public async Task<bool> CreateUserLogonTaskAsync(string taskName, string command, string username, bool deleteAfterRun = true)
+        {
+            return await Task.Run(() =>
+            {
+                try
+                {
+                    _logService.LogInformation($"Creating user logon task: {taskName} for user: {username} using native C# Task Scheduler API");
+                    
+                    // Create Task Scheduler COM object
+                    Type taskSchedulerType = Type.GetTypeFromProgID("Schedule.Service");
+                    dynamic taskService = Activator.CreateInstance(taskSchedulerType);
+                    taskService.Connect();
+                    
+                    // Get the root task folder
+                    dynamic rootFolder = taskService.GetFolder("\\");
+                    
+                    // Remove existing task if it exists
+                    try
+                    {
+                        dynamic existingTask = rootFolder.GetTask(taskName);
+                        if (existingTask != null)
+                        {
+                            _logService.LogInformation($"Removing existing task: {taskName}");
+                            rootFolder.DeleteTask(taskName, 0);
+                        }
+                    }
+                    catch
+                    {
+                        // Task doesn't exist, which is fine
+                    }
+                    
+                    // Create a new task definition
+                    dynamic taskDefinition = taskService.NewTask(0);
+                    
+                    // Set task settings
+                    dynamic settings = taskDefinition.Settings;
+                    settings.Enabled = true;
+                    settings.AllowDemandStart = true;
+                    settings.AllowHardTerminate = true;
+                    settings.DisallowStartIfOnBatteries = false;
+                    settings.StopIfGoingOnBatteries = false;
+                    // Note: Task deletion is handled by the command itself using schtasks /delete
+                    
+                    // Create logon trigger for the specific user
+                    dynamic triggers = taskDefinition.Triggers;
+                    dynamic trigger = triggers.Create(9); // TASK_TRIGGER_LOGON = 9
+                    trigger.UserId = username;
+                    trigger.Enabled = true;
+                    // Set required trigger properties with proper XML date format
+                    trigger.StartBoundary = DateTime.Now.ToString("yyyy-MM-ddTHH:mm:ss.fffK");
+                    // Set EndBoundary to a far future date (optional but helps avoid errors)
+                    trigger.EndBoundary = DateTime.Now.AddYears(10).ToString("yyyy-MM-ddTHH:mm:ss.fffK");
+                    
+                    // Create action to execute cmd.exe with the command
+                    dynamic actions = taskDefinition.Actions;
+                    dynamic action = actions.Create(0); // TASK_ACTION_EXEC = 0
+                    action.Path = "cmd.exe";
+                    action.Arguments = command;
+                    
+                    // Set principal to run as SYSTEM with highest privileges
+                    dynamic principal = taskDefinition.Principal;
+                    principal.UserId = "SYSTEM";
+                    principal.LogonType = 5; // TASK_LOGON_SERVICE_ACCOUNT = 5
+                    principal.RunLevel = 1; // TASK_RUNLEVEL_HIGHEST = 1 (elevated privileges)
+                    
+                    // Register the task with simplified parameters
+                    dynamic registeredTask = rootFolder.RegisterTaskDefinition(
+                        taskName,
+                        taskDefinition,
+                        6, // TASK_CREATE_OR_UPDATE = 6
+                        null, // user (null to use principal.UserId)
+                        null, // password
+                        0, // logon type (use principal.LogonType)
+                        null // sddl
+                    );
+                    
+                    _logService.LogSuccess($"Successfully created user logon task: {taskName} for user: {username}");
+                    
+                    // Run the task immediately to clean the Start Menu now
+                    try
+                    {
+                        _logService.LogInformation($"Running task immediately: {taskName}");
+                        registeredTask.Run(null); // Run with no parameters
+                        _logService.LogSuccess($"Successfully executed task: {taskName}");
+                    }
+                    catch (Exception runEx)
+                    {
+                        _logService.LogError($"Error running task immediately: {taskName}", runEx);
+                        // Don't return false here - task creation was successful even if immediate run failed
+                    }
+                    
+                    return true;
+                }
+                catch (Exception ex)
+                {
+                    _logService.LogError($"Error creating user logon task: {taskName} for user: {username}", ex);
+                    return false;
+                }
+            });
+        }
     }
 }
