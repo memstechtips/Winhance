@@ -10,7 +10,7 @@ using Winhance.Core.Features.Common.Models;
 using Winhance.Core.Features.Customize.Models;
 using Winhance.Core.Features.Common.Enums;
 using Winhance.WPF.Features.Common.ViewModels;
-using Winhance.WPF.Features.Common.Extensions;
+
 using Winhance.WPF.Features.Common.Models;
 
 namespace Winhance.WPF.Features.Customize.ViewModels
@@ -48,32 +48,34 @@ namespace Winhance.WPF.Features.Customize.ViewModels
         {
             try
             {
-                // Show options dialog to get user preferences
-                var (confirmed, applyToAllUsers) = Winhance.WPF.Features.Customize.Views.StartMenuCleaningOptionsDialog.ShowOptionsDialog();
-                
+                // Show options dialog to get user confirmation
+                var confirmed = Winhance.WPF.Features.Customize.Views.StartMenuCleaningOptionsDialog.ShowOptionsDialog();
+        
                 // If user cancelled, exit early
                 if (!confirmed)
                 {
                     return;
                 }
 
+                // Determine Windows version
+                _isWindows11 = _systemServices.IsWindows11();
+
                 // Start progress tracking
                 _progressService.StartTask("Cleaning Start Menu...");
                 _progressService.UpdateDetailedProgress(new TaskProgressDetail
                 {
-                    StatusText = "Cleaning Start Menu...",
+                    StatusText = "Cleaning Start Menu and applying recommended settings...",
                     Progress = 0
                 });
-                
-                // Determine Windows version
-                _isWindows11 = _systemServices.IsWindows11();
-                
-                // Clean the Start Menu with user preferences
-                await Task.Run(() => StartMenuCustomizations.CleanStartMenu(_isWindows11, _systemServices, applyToAllUsers, _logService, _scheduledTaskService));
-                
+        
+                // Clean the Start Menu (always applies to all users)
+                await Task.Run(() => StartMenuCustomizations.CleanStartMenu(_isWindows11, _systemServices, _logService, _scheduledTaskService));
+        
+                // Apply comprehensive recommended settings based on Windows version
+                await ApplyRecommendedStartMenuSettings();
+
                 // Log success
-                var scope = applyToAllUsers ? "all users" : "current user and new accounts";
-                _logService.Log(LogLevel.Info, $"Start Menu cleaned successfully for {scope}");
+                _logService.Log(LogLevel.Info, $"Start Menu cleaned successfully");
 
                 // Update completion progress
                 _progressService.UpdateDetailedProgress(new TaskProgressDetail
@@ -86,10 +88,8 @@ namespace Winhance.WPF.Features.Customize.ViewModels
                 _progressService.CompleteTask();
 
                 // Show success dialog with appropriate message
-                var successMessage = applyToAllUsers 
-                    ? "Start Menu has been cleaned successfully for all users. Current user changes are immediate, other users will see changes on next login."
-                    : "Start Menu has been cleaned successfully for the current user and new user accounts.";
-                    
+                var successMessage = "Start Menu has been cleaned successfully for all users. Recommended privacy settings have been applied to disable suggestions, recommendations, and tracking features. Current user changes are immediate, other users will see changes on next login.";
+            
                 await _dialogService.ShowInformationAsync(successMessage, "Start Menu Cleaned");
             }
             catch (Exception ex)
@@ -115,6 +115,141 @@ namespace Winhance.WPF.Features.Customize.ViewModels
         }
 
         /// <summary>
+        /// Applies comprehensive recommended Start Menu settings based on Windows version.
+        /// </summary>
+        private async Task ApplyRecommendedStartMenuSettings()
+        {
+            try
+            {
+                _logService.Log(LogLevel.Info, "Applying recommended Start Menu settings");
+                
+                // Get all Start Menu customizations
+                var startMenuCustomizations = Core.Features.Customize.Models.StartMenuCustomizations.GetStartMenuCustomizations();
+                
+                if (_isWindows11)
+                {
+                    await ApplyWindows11RecommendedSettings(startMenuCustomizations);
+                }
+                else
+                {
+                    await ApplyWindows10RecommendedSettings(startMenuCustomizations);
+                }
+                
+                _logService.Log(LogLevel.Info, "Completed applying recommended Start Menu settings");
+            }
+            catch (Exception ex)
+            {
+                _logService.Log(LogLevel.Error, $"Error applying recommended Start Menu settings: {ex.Message}");
+            }
+        }
+
+        /// <summary>
+        /// Applies Windows 11 specific recommended settings.
+        /// </summary>
+        private async Task ApplyWindows11RecommendedSettings(CustomizationGroup startMenuCustomizations)
+        {
+            var settingsToApply = new List<(string Id, bool EnabledState, object? ComboBoxValue)>
+            {
+                ("start-menu-layout", true, 1), // Set to "More pins"
+                ("show-recently-added-apps", false, null), // Disable
+                ("start-track-progs", false, null), // Disable Show Most Used Apps
+                ("show-recommended-files", false, null), // Disable Show Recommended & Recently Opened Items
+                ("start-menu-recommendations", false, null), // Disable Show Recommended Tips, Shortcuts etc.
+                ("show-account-notifications", false, null), // Disable Show Account-related Notifications
+                ("display-bing-search-results", false, null), // Disable Display Bing Search Results
+                ("remove-recommended-section", true, null) // Enable Remove Recommended Section
+            };
+
+            foreach (var (settingId, enabledState, comboBoxValue) in settingsToApply)
+            {
+                await ApplyIndividualSetting(startMenuCustomizations, settingId, enabledState, comboBoxValue);
+            }
+        }
+
+        /// <summary>
+        /// Applies Windows 10 specific recommended settings.
+        /// </summary>
+        private async Task ApplyWindows10RecommendedSettings(CustomizationGroup startMenuCustomizations)
+        {
+            var settingsToApply = new List<(string Id, bool EnabledState, object? ComboBoxValue)>
+            {
+                ("show-recently-added-apps", false, null), // Disable
+                ("start-track-progs", false, null), // Disable Show Most Used Apps
+                ("start-menu-suggestions", false, null), // Disable Show suggestions in Start
+                ("show-recommended-files", false, null), // Disable Show Recommended & Recently Opened Items
+                ("show-account-notifications", false, null), // Disable Show Account-related Notifications
+                ("display-bing-search-results", false, null) // Disable Display Bing Search Results
+            };
+
+            foreach (var (settingId, enabledState, comboBoxValue) in settingsToApply)
+            {
+                await ApplyIndividualSetting(startMenuCustomizations, settingId, enabledState, comboBoxValue);
+            }
+        }
+
+        /// <summary>
+        /// Applies an individual setting by ID.
+        /// </summary>
+        private async Task ApplyIndividualSetting(CustomizationGroup startMenuCustomizations, string settingId, bool enabledState, object? comboBoxValue)
+        {
+            try
+            {
+                var setting = startMenuCustomizations?.Settings?.FirstOrDefault(s => s.Id == settingId);
+                if (setting?.RegistrySettings == null)
+                {
+                    _logService.Log(LogLevel.Warning, $"Setting '{settingId}' not found or has no registry settings");
+                    return;
+                }
+
+                foreach (var registrySetting in setting.RegistrySettings)
+                {
+                    // For ComboBox settings, we need to temporarily set the appropriate value
+                    if (comboBoxValue != null)
+                    {
+                        // Create a temporary registry setting with the ComboBox value
+                        var tempSetting = registrySetting with 
+                        {
+                            EnabledValue = comboBoxValue,
+                            DisabledValue = comboBoxValue
+                        };
+                        
+                        var success = await _registryService.ApplySettingAsync(tempSetting, true);
+                        
+                        if (success)
+                        {
+                            _logService.Log(LogLevel.Info, $"Applied ComboBox setting '{settingId}': {registrySetting.SubKey}\\{registrySetting.Name} = {comboBoxValue}");
+                        }
+                        else
+                        {
+                            _logService.Log(LogLevel.Warning, $"Failed to apply ComboBox setting '{settingId}': {registrySetting.SubKey}\\{registrySetting.Name}");
+                        }
+                    }
+                    else
+                    {
+                        // For toggle settings, use the registry service's ApplySettingAsync method
+                        // This will properly handle Group Policy settings by deleting values when disabling
+                        var success = await _registryService.ApplySettingAsync(registrySetting, enabledState);
+                        
+                        if (success)
+                        {
+                            var valueApplied = enabledState ? registrySetting.EnabledValue : 
+                                             (registrySetting.IsGroupPolicy && !enabledState ? "[DELETED]" : registrySetting.DisabledValue);
+                            _logService.Log(LogLevel.Info, $"Applied setting '{settingId}': {registrySetting.SubKey}\\{registrySetting.Name} = {valueApplied}");
+                        }
+                        else
+                        {
+                            _logService.Log(LogLevel.Warning, $"Failed to apply setting '{settingId}': {registrySetting.SubKey}\\{registrySetting.Name}");
+                        }
+                    }
+                }
+            }
+            catch (Exception ex)
+            {
+                _logService.Log(LogLevel.Error, $"Error applying setting '{settingId}': {ex.Message}");
+            }
+        }
+
+        /// <summary>
         /// Gets the command to execute an action.
         /// </summary>
         [RelayCommand]
@@ -127,19 +262,14 @@ namespace Winhance.WPF.Features.Customize.ViewModels
                 // Execute the registry action if present
                 if (action.RegistrySetting != null)
                 {
-                    string hiveString = action.RegistrySetting.Hive.ToString();
-                    if (hiveString == "LocalMachine") hiveString = "HKLM";
-                    else if (hiveString == "CurrentUser") hiveString = "HKCU";
-                    else if (hiveString == "ClassesRoot") hiveString = "HKCR";
-                    else if (hiveString == "Users") hiveString = "HKU";
-                    else if (hiveString == "CurrentConfig") hiveString = "HKCC";
-
-                    string fullPath = $"{hiveString}\\{action.RegistrySetting.SubKey}";
-                    _registryService.SetValue(
-                        fullPath,
-                        action.RegistrySetting.Name,
-                        action.RegistrySetting.RecommendedValue,
-                        action.RegistrySetting.ValueType);
+                    // Use the registry service's ApplySettingAsync method to properly handle Group Policy settings
+                    var tempSetting = action.RegistrySetting with 
+                    {
+                        EnabledValue = action.RegistrySetting.RecommendedValue,
+                        DisabledValue = action.RegistrySetting.DefaultValue
+                    };
+                    
+                    await _registryService.ApplySettingAsync(tempSetting, true);
                 }
 
                 // Execute custom action if present
@@ -255,14 +385,15 @@ namespace Winhance.WPF.Features.Customize.ViewModels
                         }
                         else if (setting.RegistrySettings != null && setting.RegistrySettings.Count > 1)
                         {
-                            // Linked registry settings
-                            var linkedSettings = new LinkedRegistrySettings();
+                            // Linked registry settings - use the proper method that respects LinkedSettingsLogic
+                            settingItem.LinkedRegistrySettings = setting.CreateLinkedRegistrySettings();
+                            _logService.Log(LogLevel.Info, $"Setting up linked registry settings for {setting.Name} with {setting.RegistrySettings.Count} entries and logic {setting.LinkedSettingsLogic}");
+                            
+                            // Log details about each registry entry for debugging
                             foreach (var regSetting in setting.RegistrySettings)
                             {
-                                linkedSettings.Settings.Add(regSetting);
                                 _logService.Log(LogLevel.Info, $"Adding linked registry setting for {setting.Name}: {regSetting.Hive}\\{regSetting.SubKey}\\{regSetting.Name}");
                             }
-                            settingItem.LinkedRegistrySettings = linkedSettings;
                         }
                         else
                         {
@@ -291,6 +422,12 @@ namespace Winhance.WPF.Features.Customize.ViewModels
                             if (e.PropertyName == nameof(ApplicationSettingItem.IsSelected))
                             {
                                 UpdateIsSelectedState();
+                                
+                                // Update dynamic tooltips when "Remove Recommended Section" changes
+                                if (setting.Id == "remove-recommended-section")
+                                {
+                                    UpdateDynamicTooltips();
+                                }
                             }
                         };
                     }
@@ -301,6 +438,9 @@ namespace Winhance.WPF.Features.Customize.ViewModels
 
                 // Check setting statuses
                 await CheckSettingStatusesAsync();
+                
+                // Initialize dynamic tooltips after settings are loaded
+                UpdateDynamicTooltips();
             }
             finally
             {
@@ -339,13 +479,67 @@ namespace Winhance.WPF.Features.Customize.ViewModels
             {
                 foreach (var setting in Settings)
                 {
-                    // Get status
-                    var status = await _registryService.GetSettingStatusAsync(setting.RegistrySetting);
-                    setting.Status = status;
+                    RegistrySettingStatus status;
+                    object currentValue = null;
+                    
+                    // Handle linked registry settings (multiple registry entries)
+                    if (setting.LinkedRegistrySettings != null && setting.LinkedRegistrySettings.Settings.Count > 0)
+                    {
+                        _logService.Log(LogLevel.Info, $"Checking status for linked setting: {setting.Name} with {setting.LinkedRegistrySettings.Settings.Count} registry entries");
+                        
+                        // Get the combined status of all linked settings using the registry service
+                        status = await _registryService.GetLinkedSettingsStatusAsync(setting.LinkedRegistrySettings);
+                        setting.Status = status;
+                        
+                        // For current value display, use the first setting's value
+                        if (setting.LinkedRegistrySettings.Settings.Count > 0)
+                        {
+                            var firstSetting = setting.LinkedRegistrySettings.Settings[0];
+                            currentValue = await _registryService.GetCurrentValueAsync(firstSetting);
+                            setting.CurrentValue = currentValue;
+                            
+                            // Check for null registry values and populate LinkedRegistrySettingsWithValues
+                            bool anyNull = false;
+                            setting.LinkedRegistrySettingsWithValues.Clear();
+                            
+                            foreach (var regSetting in setting.LinkedRegistrySettings.Settings)
+                            {
+                                var regCurrentValue = await _registryService.GetCurrentValueAsync(regSetting);
+                                if (regCurrentValue == null)
+                                {
+                                    anyNull = true;
+                                }
+                                setting.LinkedRegistrySettingsWithValues.Add(new LinkedRegistrySettingWithValue(regSetting, regCurrentValue));
+                            }
+                            
+                            // Set IsRegistryValueNull for linked settings
+                            setting.IsRegistryValueNull = anyNull;
+                        }
+                        else
+                        {
+                            currentValue = null;
+                        }
+                    }
+                    // Handle single registry settings
+                    else if (setting.RegistrySetting != null)
+                    {
+                        // Get status for single registry setting
+                        status = await _registryService.GetSettingStatusAsync(setting.RegistrySetting);
+                        setting.Status = status;
 
-                    // Get current value
-                    var currentValue = await _registryService.GetCurrentValueAsync(setting.RegistrySetting);
-                    setting.CurrentValue = currentValue;
+                        // Get current value for single registry setting
+                        currentValue = await _registryService.GetCurrentValueAsync(setting.RegistrySetting);
+                        setting.CurrentValue = currentValue;
+                    }
+                    else
+                    {
+                        // No registry settings configured
+                        _logService.Log(LogLevel.Warning, $"Setting {setting.Name} has no registry settings configured");
+                        status = RegistrySettingStatus.Unknown;
+                        setting.Status = status;
+                        currentValue = null;
+                        setting.CurrentValue = currentValue;
+                    }
 
                     // Set IsRegistryValueNull property based on current value
                     setting.IsRegistryValueNull = currentValue == null;
@@ -610,6 +804,58 @@ namespace Winhance.WPF.Features.Customize.ViewModels
             }
 
             return true;
+        }
+
+        /// <summary>
+        /// Updates the descriptions of settings that are affected by the "Remove Recommended Section" toggle on Windows 11.
+        /// </summary>
+        private void UpdateDynamicTooltips()
+        {
+            if (!_isWindows11)
+                return;
+
+            // Find the "Remove Recommended Section" setting
+            var removeRecommendedSetting = Settings.FirstOrDefault(s => s.Id == "remove-recommended-section");
+            if (removeRecommendedSetting == null)
+                return;
+
+            bool isRemoveRecommendedEnabled = removeRecommendedSetting.IsSelected;
+
+            // List of setting IDs that are affected by the "Remove Recommended Section" toggle
+            var affectedSettingIds = new List<string>
+            {
+                "show-recently-added-apps",
+                "start-track-progs",
+                "show-recommended-files",
+                "start-menu-recommendations"
+            };
+
+            foreach (var settingId in affectedSettingIds)
+            {
+                var setting = Settings.FirstOrDefault(s => s.Id == settingId);
+                if (setting != null)
+                {
+                    // Get the original description from the core model
+                    var startMenuCustomizations = Core.Features.Customize.Models.StartMenuCustomizations.GetStartMenuCustomizations();
+                    var originalSetting = startMenuCustomizations.Settings.FirstOrDefault(s => s.Id == settingId);
+                    
+                    if (originalSetting != null)
+                    {
+                        string baseDescription = originalSetting.Description;
+                        
+                        if (isRemoveRecommendedEnabled)
+                        {
+                            // Add the warning note when Remove Recommended Section is enabled
+                            setting.Description = baseDescription + "\n\nNote: This setting won't have any visual effect until the 'Remove Recommended Section' toggle is disabled.";
+                        }
+                        else
+                        {
+                            // Use the original description when Remove Recommended Section is disabled
+                            setting.Description = baseDescription;
+                        }
+                    }
+                }
+            }
         }
     }
 }

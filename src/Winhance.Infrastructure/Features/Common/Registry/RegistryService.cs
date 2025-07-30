@@ -294,7 +294,19 @@ namespace Winhance.Infrastructure.Features.Common.Registry
                 }
                 else
                 {
-                    // When disabling, use DisabledValue if available, otherwise fall back to DefaultValue
+                    // When disabling, check if this is a Group Policy setting
+                    if (setting.IsGroupPolicy)
+                    {
+                        // For Group Policy settings, delete the entire registry value when disabling
+                        // This ensures Windows recognizes the policy is no longer applied
+                        _logService.Log(
+                            LogLevel.Info,
+                            $"Deleting Group Policy registry value: {keyPath}\\{setting.Name} (ValueType: {setting.ValueType})"
+                        );
+                        return await DeleteValue(setting.Hive, setting.SubKey, setting.Name);
+                    }
+                    
+                    // Standard handling: use DisabledValue if available, otherwise fall back to DefaultValue
                     valueToSet = setting.DisabledValue ?? setting.DefaultValue;
                 }
 

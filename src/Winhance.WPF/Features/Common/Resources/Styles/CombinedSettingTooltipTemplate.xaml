@@ -65,7 +65,7 @@
                                     </TextBlock>
                                     <TextBlock>
                                         <Run Text="Current Value: "/>
-                                        <Run Text="{Binding CurrentValue, Mode=OneWay, TargetNullValue='null'}"/>
+                                        <Run Text="{Binding DisplayValue, Mode=OneWay}"/>
                                     </TextBlock>
                                     <TextBlock>
                                         <Run Text="Recommended Value: "/>

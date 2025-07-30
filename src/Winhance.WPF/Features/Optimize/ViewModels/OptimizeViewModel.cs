@@ -1275,7 +1275,7 @@ namespace Winhance.WPF.Features.Optimize.ViewModels
         /// </summary>
         /// <param name="setting">The setting that was changed.</param>
         [RelayCommand]
-        private void SettingChanged(Winhance.WPF.Features.Common.Models.ApplicationSettingItem setting)
+        private async void SettingChanged(Winhance.WPF.Features.Common.Models.ApplicationSettingItem setting)
         {
             if (_updatingCheckboxes)
                 return;
@@ -1295,24 +1295,8 @@ namespace Winhance.WPF.Features.Optimize.ViewModels
                     // Apply registry change
                     if (setting.RegistrySetting != null)
                     {
-                        // Use EnabledValue/DisabledValue if available, otherwise fall back to RecommendedValue/DefaultValue
-                        string valueToSet;
-                        if (setting.IsSelected)
-                        {
-                            var enabledValue = setting.RegistrySetting.EnabledValue ?? setting.RegistrySetting.RecommendedValue;
-                            valueToSet = enabledValue.ToString();
-                        }
-                        else
-                        {
-                            var disabledValue = setting.RegistrySetting.DisabledValue ?? setting.RegistrySetting.DefaultValue;
-                            valueToSet = disabledValue?.ToString() ?? "";
-                        }
-
-                        var result = _registryService.SetValue(
-                            setting.RegistrySetting.Hive + "\\" + setting.RegistrySetting.SubKey,
-                            setting.RegistrySetting.Name,
-                            valueToSet,
-                            setting.RegistrySetting.ValueType);
+                        // Use the registry service's ApplySettingAsync method to properly handle Group Policy settings
+                        var result = await _registryService.ApplySettingAsync(setting.RegistrySetting, setting.IsSelected);
 
                         if (result)
                         {

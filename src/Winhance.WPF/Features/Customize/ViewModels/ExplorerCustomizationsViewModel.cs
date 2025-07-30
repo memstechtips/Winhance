@@ -11,7 +11,7 @@ using Winhance.Core.Features.Common.Interfaces;
 using Winhance.Core.Features.Common.Models;
 using Winhance.Core.Features.Customize.Enums;
 using Winhance.Infrastructure.Features.Common.Registry;
-using Winhance.WPF.Features.Common.Extensions;
+
 using Winhance.WPF.Features.Common.Interfaces;
 using Winhance.WPF.Features.Common.Models;
 using Winhance.WPF.Features.Common.ViewModels;
@@ -40,16 +40,14 @@ namespace Winhance.WPF.Features.Customize.ViewModels
                 // Execute the registry action if present
                 if (action.RegistrySetting != null)
                 {
-                    string hiveString = RegistryExtensions.GetRegistryHiveString(
-                        action.RegistrySetting.Hive
-                    );
-                    string fullPath = $"{hiveString}\\{action.RegistrySetting.SubKey}";
-                    _registryService.SetValue(
-                        fullPath,
-                        action.RegistrySetting.Name,
-                        action.RegistrySetting.RecommendedValue,
-                        action.RegistrySetting.ValueType
-                    );
+                    // Use the registry service's ApplySettingAsync method to properly handle Group Policy settings
+                    var tempSetting = action.RegistrySetting with 
+                    {
+                        EnabledValue = action.RegistrySetting.RecommendedValue,
+                        DisabledValue = action.RegistrySetting.DefaultValue
+                    };
+                    
+                    await _registryService.ApplySettingAsync(tempSetting, true);
                 }
 
                 // Execute the command action if present

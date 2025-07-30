@@ -47,15 +47,7 @@
                       Style="{StaticResource DialogTextBlockStyle}"
                       TextWrapping="Wrap"
                       Margin="42,10,0,10"
-                      Text="You are about to remove all pinned items from the Start Menu for the current user and new user accounts created after this point."/>
-
-            <!-- Checkbox Option -->
-            <CheckBox x:Name="ApplyToAllUsersCheckBox"
-                     Grid.Row="2"
-                     Style="{StaticResource CustomCheckBox}"
-                     Margin="42,10,0,10"
-                     Content="Also apply to all existing user accounts (other users will see changes on next login)"
-                     FontSize="14"/>
+                      Text="You are about to clean the Start Menu for all users on this computer.&#x0a;&#x0a;This will remove all pinned items and apply recommended settings to disable suggestions, recommendations, and tracking features."/>
 
             <!-- Footer Text -->
             <TextBlock x:Name="FooterText"

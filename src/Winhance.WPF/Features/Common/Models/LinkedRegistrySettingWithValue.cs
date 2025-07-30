@@ -20,6 +20,22 @@ namespace Winhance.WPF.Features.Common.Models
         public object? CurrentValue { get; set; }
 
         /// <summary>
+        /// Gets a user-friendly display value for the current registry value.
+        /// Returns "Key doesn't exist" when the value is null, otherwise returns the actual value.
+        /// </summary>
+        public string DisplayValue
+        {
+            get
+            {
+                if (CurrentValue == null)
+                {
+                    return "Key doesn't exist";
+                }
+                return CurrentValue.ToString() ?? "Key doesn't exist";
+            }
+        }
+
+        /// <summary>
         /// Creates a new instance of the LinkedRegistrySettingWithValue class.
         /// </summary>
         /// <param name="setting">The registry setting.</param>

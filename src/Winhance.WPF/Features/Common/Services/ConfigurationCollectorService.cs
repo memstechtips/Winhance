@@ -328,25 +328,7 @@ namespace Winhance.WPF.Features.Common.Services
                                 
                                 _logService.Log(LogLevel.Debug, $"Forced ControlType to ComboBox for Theme Selector");
                             }
-                            else if (settingItem is ApplicationSettingViewModel applicationViewModel)
-                            {
-                                applicationViewModel.ControlType = ControlType.ComboBox;
-                                
-                                // Ensure SelectedValue is set based on SelectedTheme if available
-                                var selectedThemeProperty = applicationViewModel.GetType().GetProperty("SelectedTheme");
-                                var selectedValueProperty = applicationViewModel.GetType().GetProperty("SelectedValue");
-                                
-                                if (selectedThemeProperty != null && selectedValueProperty != null)
-                                {
-                                    var selectedTheme = selectedThemeProperty.GetValue(applicationViewModel)?.ToString();
-                                    if (!string.IsNullOrEmpty(selectedTheme))
-                                    {
-                                        selectedValueProperty.SetValue(applicationViewModel, selectedTheme);
-                                    }
-                                }
-                                
-                                _logService.Log(LogLevel.Debug, $"Forced ControlType to ComboBox for Theme Selector (ViewModel) and ensured SelectedValue is set");
-                            }
+
                             else if (settingItem is ApplicationSettingItem customizationSetting)
                             {
                                 customizationSetting.ControlType = ControlType.ComboBox;
@@ -541,73 +523,7 @@ namespace Winhance.WPF.Features.Common.Services
                                             }
                                         }
                                     }
-                                    else if (settingItem is ApplicationSettingViewModel applicationViewModel)
-                                    {
-                                        applicationViewModel.ControlType = ControlType.ComboBox;
-                                        _logService.Log(LogLevel.Debug, $"Forced ControlType to ComboBox for Power Plan (ViewModel)");
-                                        
-                                        // Get the current power plan value from the view model
-                                        if (viewModel.PowerSettingsViewModel != null)
-                                        {
-                                            // Set the SliderValue to the current power plan index
-                                            int powerPlanIndex = viewModel.PowerSettingsViewModel.PowerPlanValue;
-                                            applicationViewModel.SliderValue = powerPlanIndex;
-                                            _logService.Log(LogLevel.Debug, $"Set SliderValue to {powerPlanIndex} for Power Plan (ViewModel)");
-                                            
-                                            // Instead of replacing the item, update its properties
-                                            applicationViewModel.ControlType = ControlType.ComboBox;
-                                            applicationViewModel.SliderValue = powerPlanIndex;
-                                            
-                                            // Create a separate ConfigurationItem for the config file
-                                            var configItem = new ConfigurationItem
-                                            {
-                                                Name = "Power Plan",  // Use a consistent name
-                                                IsSelected = true,    // Always enable the Power Plan
-                                                ControlType = ControlType.ComboBox,
-                                                CustomProperties = new Dictionary<string, object>
-                                                {
-                                                    { "Id", "PowerPlanComboBox" },  // Use a consistent ID
-                                                    { "GroupName", "Power Management" },
-                                                    { "Description", "Select power plan for your system" },
-                                                    { "SliderValue", powerPlanIndex }
-                                                }
-                                            };
-                                            
-                                            // Set the SelectedValue to the current power plan name
-                                            if (powerPlanIndex >= 0 && powerPlanIndex < viewModel.PowerSettingsViewModel.PowerPlanLabels.Count)
-                                            {
-                                                string powerPlanName = viewModel.PowerSettingsViewModel.PowerPlanLabels[powerPlanIndex];
-                                                
-                                                // Set SelectedValue at the top level (this is what appears in the config file)
-                                                configItem.SelectedValue = powerPlanName;
-                                                
-                                                // Add PowerPlanOptions to CustomProperties (similar to ThemeOptions in Windows Theme)
-                                                configItem.CustomProperties["PowerPlanOptions"] = viewModel.PowerSettingsViewModel.PowerPlanLabels.ToList();
-                                                _logService.Log(LogLevel.Debug, $"Set SelectedValue to {powerPlanName} for Power Plan ConfigItem (ViewModel)");
-                                            }
-                                            
-                                            // Add this ConfigurationItem directly to the optimizeItems collection
-                                            // We'll create a wrapper that implements ISettingItem
-                                            var powerPlanSettingItem = new PowerPlanSettingItem(configItem, applicationViewModel);
-                                            
-                                            // Add it to the collection if it doesn't already exist
-                                            bool exists = false;
-                                            foreach (var item in optimizeItems)
-                                            {
-                                                if (item is PowerPlanSettingItem)
-                                                {
-                                                    exists = true;
-                                                    break;
-                                                }
-                                            }
-                                            
-                                            if (!exists)
-                                            {
-                                                optimizeItems.Add(powerPlanSettingItem);
-                                                _logService.Log(LogLevel.Debug, $"Added PowerPlanSettingItem to optimizeItems (ViewModel)");
-                                            }
-                                        }
-                                    }
+
                                 }
                                 
                                 // Skip adding the original Power Plan item since we've already added our custom PowerPlanSettingItem
@@ -679,11 +595,7 @@ namespace Winhance.WPF.Features.Common.Services
                                         applicationSetting.ControlType = ControlType.ThreeStateSlider;
                                         _logService.Log(LogLevel.Debug, $"Forced ControlType to ThreeStateSlider for UAC Slider");
                                     }
-                                    else if (settingItem is ApplicationSettingViewModel applicationViewModel)
-                                    {
-                                        applicationViewModel.ControlType = ControlType.ThreeStateSlider;
-                                        _logService.Log(LogLevel.Debug, $"Forced ControlType to ThreeStateSlider for UAC Slider (ViewModel)");
-                                    }
+
                                 }
                                 
                                 optimizeItems.Add(settingItem);

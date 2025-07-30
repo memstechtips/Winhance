@@ -70,6 +70,14 @@ namespace Winhance.Core.Features.Common.Interfaces
         Task<object?> GetCurrentValueAsync(RegistrySetting setting);
 
         /// <summary>
+        /// Applies a registry setting with proper Group Policy handling.
+        /// </summary>
+        /// <param name="setting">The registry setting to apply.</param>
+        /// <param name="enable">Whether to enable or disable the setting.</param>
+        /// <returns>True if the setting was applied successfully; otherwise, false.</returns>
+        Task<bool> ApplySettingAsync(RegistrySetting setting, bool enable);
+
+        /// <summary>
         /// Determines whether a registry key exists.
         /// </summary>
         /// <param name="keyPath">The registry key path.</param>

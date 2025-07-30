@@ -115,22 +115,6 @@ public static class StartMenuCustomizations
                         new RegistrySetting
                         {
                             Category = "Explorer",
-                            Hive = RegistryHive.CurrentUser,
-                            SubKey = "Software\\Policies\\Microsoft\\Windows\\Explorer",
-                            Name = "HideRecentlyAddedApps",
-                            RecommendedValue = 0,
-                            EnabledValue = 0, // When toggle is ON, recently added apps are shown
-                            DisabledValue = 1, // When toggle is OFF, recently added apps are hidden
-                            ValueType = RegistryValueKind.DWord,
-                            DefaultValue = 0, // Default value when registry key exists but no value is set
-                            Description =
-                                "Controls visibility of recently added apps in Start Menu",
-                            IsPrimary = true,
-                            AbsenceMeansEnabled = false,
-                        },
-                        new RegistrySetting
-                        {
-                            Category = "Explorer",
                             Hive = RegistryHive.LocalMachine,
                             SubKey = "SOFTWARE\\Policies\\Microsoft\\Windows\\Explorer",
                             Name = "HideRecentlyAddedApps",
@@ -206,7 +190,7 @@ public static class StartMenuCustomizations
                 new CustomizationSetting
                 {
                     Id = "show-recommended-files",
-                    Name = "Show Recommended Files/Recently Opened Items",
+                    Name = "Show Recommended & Recently Opened Items",
                     Description = "Controls visibility of recommended files/recently opened items in Start Menu",
                     Category = CustomizationCategory.StartMenu,
                     GroupName = "Start Menu Settings",
@@ -320,6 +304,97 @@ public static class StartMenuCustomizations
                         },
                     },
                 },
+                new CustomizationSetting
+                {
+                    Id = "display-bing-search-results",
+                    Name = "Display Bing Search Results",
+                    Description = "Controls whether Bing search results are displayed in Start Menu search",
+                    Category = CustomizationCategory.StartMenu,
+                    GroupName = "Start Menu Settings",
+                    IsEnabled = true,
+                    ControlType = ControlType.BinaryToggle,
+                    RegistrySettings = new List<RegistrySetting>
+                    {
+                        new RegistrySetting
+                        {
+                            Category = "Explorer",
+                            Hive = RegistryHive.LocalMachine,
+                            SubKey = "SOFTWARE\\Policies\\Microsoft\\Windows\\Explorer",
+                            Name = "DisableSearchBoxSuggestions",
+                            RecommendedValue = 1,
+                            EnabledValue = 0, // When toggle is ON, Bing search results are displayed (DisableSearchBoxSuggestions = 0)
+                            DisabledValue = 1, // When toggle is OFF, Bing search results are disabled (DisableSearchBoxSuggestions = 1)
+                            ValueType = RegistryValueKind.DWord,
+                            DefaultValue = 0, // Default value when registry key exists but no value is set
+                            Description = "Controls whether Bing search results are displayed in Start Menu search",
+                            IsPrimary = false,
+                            AbsenceMeansEnabled = true,
+                        },
+                    },
+                },
+                new CustomizationSetting
+                {
+                    Id = "remove-recommended-section",
+                    Name = "Remove Recommended Section",
+                    Description = "Removes the recommended section from the Start Menu",
+                    Category = CustomizationCategory.StartMenu,
+                    GroupName = "Start Menu Settings",
+                    IsEnabled = false,
+                    ControlType = ControlType.BinaryToggle,
+                    IsWindows11Only = true,
+                    LinkedSettingsLogic = LinkedSettingsLogic.All,
+                    RegistrySettings = new List<RegistrySetting>
+                    {
+                        new RegistrySetting
+                        {
+                            Category = "Explorer",
+                            Hive = RegistryHive.LocalMachine,
+                            SubKey = "SOFTWARE\\Policies\\Microsoft\\Windows\\Explorer",
+                            Name = "HideRecommendedSection",
+                            RecommendedValue = 1,
+                            EnabledValue = 1, // When toggle is ON, recommended section is hidden
+                            DisabledValue = 0, // When toggle is OFF, recommended section is shown
+                            ValueType = RegistryValueKind.DWord,
+                            DefaultValue = 0, // Default value when registry key exists but no value is set
+                            Description = "Removes the recommended section from the Start Menu",
+                            IsPrimary = true,
+                            IsGroupPolicy = true,
+                            AbsenceMeansEnabled = false,
+                        },
+                        new RegistrySetting
+                        {
+                            Category = "Start",
+                            Hive = RegistryHive.LocalMachine,
+                            SubKey = "SOFTWARE\\Microsoft\\PolicyManager\\current\\device\\Start",
+                            Name = "HideRecommendedSection",
+                            RecommendedValue = 1,
+                            EnabledValue = 1, // When toggle is ON, recommended section is hidden
+                            DisabledValue = 0, // When toggle is OFF, recommended section is shown
+                            ValueType = RegistryValueKind.DWord,
+                            DefaultValue = 0, // Default value when registry key exists but no value is set
+                            Description = "Removes the recommended section from the Start Menu (PolicyManager)",
+                            IsPrimary = false,
+                            IsGroupPolicy = true,
+                            AbsenceMeansEnabled = false,
+                        },
+                        new RegistrySetting
+                        {
+                            Category = "Education",
+                            Hive = RegistryHive.LocalMachine,
+                            SubKey = "SOFTWARE\\Microsoft\\PolicyManager\\current\\device\\Education",
+                            Name = "IsEducationEnvironment",
+                            RecommendedValue = 1,
+                            EnabledValue = 1, // When toggle is ON, education environment is enabled
+                            DisabledValue = 0, // When toggle is OFF, education environment is disabled
+                            ValueType = RegistryValueKind.DWord,
+                            DefaultValue = 0, // Default value when registry key exists but no value is set
+                            Description = "Sets education environment flag to help hide recommended section",
+                            IsPrimary = false,
+                            IsGroupPolicy = true,
+                            AbsenceMeansEnabled = false,
+                        },
+                    },
+                },
             },
         };
     }
@@ -363,28 +438,31 @@ public static class StartMenuCustomizations
     /// </summary>
     /// <param name="isWindows11">Whether the system is Windows 11.</param>
     /// <param name="windowsService">The system services.</param>
-    /// <param name="applyToAllUsers">Whether to apply cleaning to all existing user accounts.</param>
     /// <param name="logService">The logging service.</param>
-    /// <param name="scheduledTaskService">The scheduled task service.</param>
-    public static void CleanStartMenu(bool isWindows11, ISystemServices windowsService, bool applyToAllUsers = false, ILogService logService = null, IScheduledTaskService scheduledTaskService = null)
+    /// <param name="scheduledTaskService">The scheduled task service for creating user-specific tasks.</param>
+    public static void CleanStartMenu(
+        bool isWindows11,
+        ISystemServices windowsService,
+        ILogService logService = null,
+        IScheduledTaskService scheduledTaskService = null
+    )
     {
         if (isWindows11)
         {
-            CleanWindows11StartMenu(applyToAllUsers, logService, scheduledTaskService);
+            CleanWindows11StartMenu(logService);
         }
         else
         {
-            CleanWindows10StartMenu(windowsService, applyToAllUsers);
+            CleanWindows10StartMenu(windowsService, scheduledTaskService, logService);
         }
     }
 
     /// <summary>
     /// Cleans the Windows 11 Start Menu by setting registry policy and removing start menu files.
+    /// Always applies to all users on the system.
     /// </summary>
-    /// <param name="applyToAllUsers">Whether to apply cleaning to all existing user accounts.</param>
     /// <param name="logService">The logging service.</param>
-    /// <param name="scheduledTaskService">The scheduled task service.</param>
-    private static void CleanWindows11StartMenu(bool applyToAllUsers = false, ILogService logService = null, IScheduledTaskService scheduledTaskService = null)
+    private static void CleanWindows11StartMenu(ILogService logService = null)
     {
         try
         {
@@ -433,11 +511,8 @@ public static class StartMenuCustomizations
                 }
             }
 
-            // Step 3: If applying to all users, set up scheduled tasks for existing user accounts
-            if (applyToAllUsers)
-            {
-                SetupScheduledTasksForAllUsers(logService, scheduledTaskService);
-            }
+            // Step 3: Always clean other users' Start Menu files
+            CleanOtherUsersStartMenuFiles(logService);
 
             // Step 4: End the StartMenuExperienceHost process (it will automatically restart)
             TerminateStartMenuExperienceHost();
@@ -450,11 +525,16 @@ public static class StartMenuCustomizations
 
     /// <summary>
     /// Cleans the Windows 10 Start Menu by creating a LayoutModification.xml file in the Default user profile.
-    /// This applies to the current user immediately and ensures new accounts inherit the clean layout.
+    /// Always applies to all users on the system by creating scheduled tasks for existing users.
     /// </summary>
     /// <param name="windowsService">The system services.</param>
-    /// <param name="applyToAllUsers">Whether to apply cleaning to all existing user accounts.</param>
-    private static void CleanWindows10StartMenu(ISystemServices windowsService, bool applyToAllUsers = false)
+    /// <param name="scheduledTaskService">The scheduled task service for creating user-specific tasks.</param>
+    /// <param name="logService">The logging service.</param>
+    private static void CleanWindows10StartMenu(
+        ISystemServices windowsService,
+        IScheduledTaskService scheduledTaskService = null,
+        ILogService logService = null
+    )
     {
         try
         {
@@ -470,53 +550,108 @@ public static class StartMenuCustomizations
             // Ensure the directory exists for the layout file
             Directory.CreateDirectory(Path.GetDirectoryName(Win10StartLayoutPath)!);
 
-            // Set registry values to lock the Start Menu layout
-            // Use HKLM for all users, HKCU for current user only
-            var registryKey = applyToAllUsers ? Registry.LocalMachine : Registry.CurrentUser;
-            using (
-                var key = registryKey.CreateSubKey(
-                    @"SOFTWARE\Policies\Microsoft\Windows\Explorer"
-                )
-            )
+            // Always setup scheduled tasks for all existing users
+            if (scheduledTaskService != null)
             {
-                if (key != null)
-                {
-                    key.SetValue("LockedStartLayout", 1, RegistryValueKind.DWord);
-                    key.SetValue("StartLayoutFile", Win10StartLayoutPath, RegistryValueKind.String);
-                }
+                logService?.LogInformation("Setting up scheduled tasks for all existing users...");
+                SetupScheduledTasksForAllUsersWindows10(scheduledTaskService, logService);
             }
 
-            // End the StartMenuExperienceHost process to apply changes immediately
-            TerminateStartMenuExperienceHost();
-
-            // Wait for changes to take effect
-            System.Threading.Thread.Sleep(3000);
-
-            // For current user only: disable the locked layout so user can customize again
-            // For all users: keep the layout locked to ensure it applies to everyone
-            if (!applyToAllUsers)
-            {
-                using (
-                    var key = registryKey.CreateSubKey(
-                        @"SOFTWARE\Policies\Microsoft\Windows\Explorer"
-                    )
-                )
-                {
-                    if (key != null)
-                    {
-                        key.SetValue("LockedStartLayout", 0, RegistryValueKind.DWord);
-                    }
-                }
-            }
-
-            // End the StartMenuExperienceHost process again to apply final changes
-            TerminateStartMenuExperienceHost();
-
-            // Keep the layout file in place so new user accounts inherit the clean layout
+            // Also apply to current user immediately
+            ApplyWindows10LayoutToCurrentUser();
         }
         catch (Exception ex)
         {
             throw new Exception($"Error cleaning Windows 10 Start Menu: {ex.Message}", ex);
+        }
+    }
+
+    /// <summary>
+    /// Applies Windows 10 Start Menu layout to the current user only.
+    /// </summary>
+    private static void ApplyWindows10LayoutToCurrentUser()
+    {
+        // Set registry values to lock the Start Menu layout for current user
+        using (var key = Registry.CurrentUser.CreateSubKey(@"SOFTWARE\Policies\Microsoft\Windows\Explorer"))
+        {
+            if (key != null)
+            {
+                key.SetValue("LockedStartLayout", 1, RegistryValueKind.DWord);
+                key.SetValue("StartLayoutFile", Win10StartLayoutPath, RegistryValueKind.String);
+            }
+        }
+
+        // End the StartMenuExperienceHost process to apply changes immediately
+        TerminateStartMenuExperienceHost();
+
+        // Wait for changes to take effect
+        System.Threading.Thread.Sleep(3000);
+
+        // Disable the locked layout so user can customize again
+        using (var key = Registry.CurrentUser.CreateSubKey(@"SOFTWARE\Policies\Microsoft\Windows\Explorer"))
+        {
+            if (key != null)
+            {
+                key.SetValue("LockedStartLayout", 0, RegistryValueKind.DWord);
+            }
+        }
+
+        // End the StartMenuExperienceHost process again to apply final changes
+        TerminateStartMenuExperienceHost();
+    }
+
+    /// <summary>
+    /// Sets up scheduled tasks for all existing users (Windows 10).
+    /// </summary>
+    /// <param name="scheduledTaskService">The scheduled task service.</param>
+    /// <param name="logService">The logging service.</param>
+    private static void SetupScheduledTasksForAllUsersWindows10(IScheduledTaskService scheduledTaskService, ILogService logService = null)
+    {
+        try
+        {
+            var currentUsername = Environment.UserName;
+            var otherUsernames = GetOtherUsernames();
+            
+            logService?.LogInformation($"Creating scheduled tasks for {otherUsernames.Count} other users (excluding current user: {currentUsername})");
+            
+            if (otherUsernames.Count == 0)
+            {
+                logService?.LogInformation("No other users found to create scheduled tasks for");
+                return;
+            }
+
+            foreach (var username in otherUsernames)
+            {
+                try
+                {
+                    var taskName = $"StartStTest_{username}";
+                    
+                    // PowerShell command matching XML template with self-deletion
+                    var command = $"-ExecutionPolicy Bypass -WindowStyle Hidden -Command \"$loggedInUser = (Get-WmiObject -Class Win32_ComputerSystem).UserName.Split('\\')[1]; $userSID = (New-Object System.Security.Principal.NTAccount($loggedInUser)).Translate([System.Security.Principal.SecurityIdentifier]).Value; reg add ('HKU\\' + $userSID + '\\SOFTWARE\\Policies\\Microsoft\\Windows\\Explorer') /v LockedStartLayout /t REG_DWORD /d 1 /f; reg add ('HKU\\' + $userSID + '\\SOFTWARE\\Policies\\Microsoft\\Windows\\Explorer') /v StartLayoutFile /t REG_SZ /d 'C:\\Users\\Default\\AppData\\Local\\Microsoft\\Windows\\Shell\\LayoutModification.xml' /f; Stop-Process -Name 'StartMenuExperienceHost' -Force -ErrorAction SilentlyContinue; Start-Sleep 10; Set-ItemProperty -Path ('Registry::HKU\\' + $userSID + '\\SOFTWARE\\Policies\\Microsoft\\Windows\\Explorer') -Name 'LockedStartLayout' -Value 0; Stop-Process -Name 'StartMenuExperienceHost' -Force -ErrorAction SilentlyContinue; schtasks /delete /tn 'Winhance\\{taskName}' /f\"";
+                    
+                    // Create the scheduled task using the service
+                    Task.Run(async () =>
+                    {
+                        try
+                        {
+                            await scheduledTaskService.CreateUserLogonTaskAsync(taskName, command, username, false);
+                            logService?.LogInformation($"Successfully created scheduled task '{taskName}' for user '{username}'");
+                        }
+                        catch (Exception ex)
+                        {
+                            logService?.LogError($"Failed to create scheduled task for user '{username}': {ex.Message}");
+                        }
+                    });
+                }
+                catch (Exception ex)
+                {
+                    logService?.LogError($"Error setting up scheduled task for user '{username}': {ex.Message}");
+                }
+            }
+        }
+        catch (Exception ex)
+        {
+            logService?.LogError($"Error in SetupScheduledTasksForAllUsersWindows10: {ex.Message}");
         }
     }
 
@@ -545,30 +680,22 @@ public static class StartMenuCustomizations
     }
 
     /// <summary>
-    /// Sets up scheduled tasks for all existing user accounts to clean their Start Menu on next login.
-    /// Uses scheduled tasks instead of RunOnce registry entries to work with users who are not currently logged in.
+    /// Directly deletes start2.bin files from all other existing user profiles.
+    /// Since Winhance runs as administrator, we can access other user directories directly.
     /// </summary>
     /// <param name="logService">The logging service.</param>
-    /// <param name="scheduledTaskService">The scheduled task service.</param>
-    private static async void SetupScheduledTasksForAllUsers(ILogService logService = null, IScheduledTaskService scheduledTaskService = null)
+    private static void CleanOtherUsersStartMenuFiles(ILogService logService = null)
     {
         try
         {
             var currentUsername = Environment.UserName;
             var otherUsernames = GetOtherUsernames();
             
-            logService?.Log(LogLevel.Info, $"Setting up scheduled tasks for {otherUsernames.Count} other users (excluding current user: {currentUsername})");
+            logService?.Log(LogLevel.Info, $"Cleaning Start Menu files for {otherUsernames.Count} other users (excluding current user: {currentUsername})");
             
             if (otherUsernames.Count == 0)
             {
-                logService?.Log(LogLevel.Info, "No other users found to create scheduled tasks for");
-                return;
-            }
-
-            // If no scheduled task service is provided, fall back to manual creation
-            if (scheduledTaskService == null)
-            {
-                logService?.Log(LogLevel.Warning, "No scheduled task service provided, cannot create user-specific tasks");
+                logService?.Log(LogLevel.Info, "No other users found to clean Start Menu files for");
                 return;
             }
 
@@ -576,36 +703,47 @@ public static class StartMenuCustomizations
             {
                 try
                 {
-                    string taskName = $"WinhanceStartMenuClean_{username}";
-                    // Command with full user path that cleans Start Menu and deletes the task itself
+                    // Construct path to user's start2.bin file
                     string userProfilePath = $"C:\\Users\\{username}";
-                    string start2BinPath = $"{userProfilePath}\\AppData\\Local\\Packages\\Microsoft.Windows.StartMenuExperienceHost_cw5n1h2txyewy\\LocalState\\start2.bin";
-                    string command = $"/c \"del /f /q \"{start2BinPath}\" 2>nul & taskkill /f /im StartMenuExperienceHost.exe 2>nul & schtasks /delete /tn \"{taskName}\" /f 2>nul\"";
+                    string start2BinPath = Path.Combine(userProfilePath, "AppData", "Local", "Packages", 
+                        "Microsoft.Windows.StartMenuExperienceHost_cw5n1h2txyewy", "LocalState", "start2.bin");
                     
-                    logService?.Log(LogLevel.Info, $"Creating scheduled task for user: {username}");
+                    logService?.Log(LogLevel.Info, $"Attempting to delete start2.bin for user: {username}");
                     
-                    // Use the scheduled task service to create user-specific logon task
-                    bool success = await scheduledTaskService.CreateUserLogonTaskAsync(taskName, command, username, deleteAfterRun: true);
-                    
-                    if (success)
+                    // Delete start2.bin file if it exists
+                    if (File.Exists(start2BinPath))
                     {
-                        logService?.Log(LogLevel.Info, $"Successfully created scheduled task for user: {username}");
+                        File.Delete(start2BinPath);
+                        logService?.Log(LogLevel.Info, $"Successfully deleted start2.bin for user: {username}");
                     }
                     else
                     {
-                        logService?.Log(LogLevel.Warning, $"Failed to create scheduled task for user: {username}");
+                        logService?.Log(LogLevel.Info, $"start2.bin file not found for user: {username} (may not exist or user hasn't used Start Menu yet)");
+                    }
+                    
+                    // Also delete start.bin if it exists
+                    string startBinPath = Path.Combine(userProfilePath, "AppData", "Local", "Packages", 
+                        "Microsoft.Windows.StartMenuExperienceHost_cw5n1h2txyewy", "LocalState", "start.bin");
+                    
+                    if (File.Exists(startBinPath))
+                    {
+                        File.Delete(startBinPath);
+                        logService?.Log(LogLevel.Info, $"Successfully deleted start.bin for user: {username}");
                     }
                 }
                 catch (Exception ex)
                 {
-                    logService?.Log(LogLevel.Error, $"Exception creating scheduled task for user {username}: {ex.Message}");
+                    logService?.Log(LogLevel.Warning, $"Failed to delete Start Menu files for user {username}: {ex.Message}");
                     // Continue with other users even if one fails
                 }
             }
+            
+            logService?.Log(LogLevel.Info, "Completed cleaning Start Menu files for other users");
         }
-        catch
+        catch (Exception ex)
         {
-            // Ignore errors in the overall process - this is a best-effort feature
+            logService?.Log(LogLevel.Error, $"Error during other users Start Menu cleaning: {ex.Message}");
+            // Don't throw - this is a best-effort feature
         }
     }
 

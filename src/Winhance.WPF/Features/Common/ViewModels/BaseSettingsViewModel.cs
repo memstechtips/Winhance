@@ -7,7 +7,7 @@ using Microsoft.Win32;
 using Winhance.Core.Features.Common.Enums;
 using Winhance.Core.Features.Common.Interfaces;
 using Winhance.Core.Features.Common.Models;
-using Winhance.WPF.Features.Common.Extensions;
+
 using Winhance.WPF.Features.Common.Models;
 
 namespace Winhance.WPF.Features.Common.ViewModels
@@ -195,25 +195,15 @@ namespace Winhance.WPF.Features.Common.ViewModels
             // Execute the registry action if present
             if (action.RegistrySetting != null)
             {
-                string hiveString = action.RegistrySetting.Hive.ToString();
-                if (hiveString == "LocalMachine")
-                    hiveString = "HKLM";
-                else if (hiveString == "CurrentUser")
-                    hiveString = "HKCU";
-                else if (hiveString == "ClassesRoot")
-                    hiveString = "HKCR";
-                else if (hiveString == "Users")
-                    hiveString = "HKU";
-                else if (hiveString == "CurrentConfig")
-                    hiveString = "HKCC";
-
-                string fullPath = $"{hiveString}\\{action.RegistrySetting.SubKey}";
-                _registryService.SetValue(
-                    fullPath,
-                    action.RegistrySetting.Name,
-                    action.RegistrySetting.RecommendedValue,
-                    action.RegistrySetting.ValueType
-                );
+                // Use the registry service's ApplySettingAsync method to properly handle Group Policy settings
+                // For actions, we always apply the RecommendedValue (enable the action)
+                var tempSetting = action.RegistrySetting with 
+                {
+                    EnabledValue = action.RegistrySetting.RecommendedValue,
+                    DisabledValue = action.RegistrySetting.DefaultValue
+                };
+                
+                await _registryService.ApplySettingAsync(tempSetting, true);
             }
 
             // Execute custom action if present
@@ -243,16 +233,8 @@ namespace Winhance.WPF.Features.Common.ViewModels
             // Apply the setting based on its properties
             if (setting.RegistrySetting != null)
             {
-                // Apply registry setting
-                string hiveString = GetRegistryHiveString(setting.RegistrySetting.Hive);
-                _registryService.SetValue(
-                    $"{hiveString}\\{setting.RegistrySetting.SubKey}",
-                    setting.RegistrySetting.Name,
-                    setting.IsSelected
-                        ? setting.RegistrySetting.RecommendedValue
-                        : setting.RegistrySetting.DefaultValue,
-                    setting.RegistrySetting.ValueType
-                );
+                // Use the registry service's ApplySettingAsync method to properly handle Group Policy settings
+                await _registryService.ApplySettingAsync(setting.RegistrySetting, setting.IsSelected);
             }
             else if (
                 setting.LinkedRegistrySettings != null

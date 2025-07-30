@@ -8,11 +8,6 @@ namespace Winhance.WPF.Features.Customize.Views
     public partial class StartMenuCleaningOptionsDialog : Window
     {
         /// <summary>
-        /// Gets a value indicating whether the user selected to apply cleaning to all existing user accounts.
-        /// </summary>
-        public bool ApplyToAllUsers { get; private set; }
-
-        /// <summary>
         /// Initializes a new instance of the <see cref="StartMenuCleaningOptionsDialog"/> class.
         /// </summary>
         public StartMenuCleaningOptionsDialog()
@@ -28,7 +23,6 @@ namespace Winhance.WPF.Features.Customize.Views
         /// <param name="e">The event arguments.</param>
         private void ContinueButton_Click(object sender, RoutedEventArgs e)
         {
-            ApplyToAllUsers = ApplyToAllUsersCheckBox.IsChecked == true;
             DialogResult = true;
             Close();
         }
@@ -47,13 +41,13 @@ namespace Winhance.WPF.Features.Customize.Views
         /// <summary>
         /// Shows the Start Menu cleaning options dialog.
         /// </summary>
-        /// <returns>A tuple containing whether the user confirmed the action and whether to apply to all users.</returns>
-        public static (bool Confirmed, bool ApplyToAllUsers) ShowOptionsDialog()
+        /// <returns>True if the user confirmed the action, false otherwise.</returns>
+        public static bool ShowOptionsDialog()
         {
             var dialog = new StartMenuCleaningOptionsDialog();
             var result = dialog.ShowDialog();
             
-            return (result == true, dialog.ApplyToAllUsers);
+            return result == true;
         }
     }
 }

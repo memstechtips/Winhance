@@ -1117,13 +1117,15 @@ namespace Winhance.WPF.Features.Common.Services.Configuration
                         // This is important for configuration import to ensure values are applied
                         bool success = false;
 
-                        // First try using the registry service
-                        success = _registryService.SetValue(
-                            keyPath,
-                            settingItem.RegistrySetting.Name,
-                            valueToApply,
-                            settingItem.RegistrySetting.ValueType
-                        );
+                        // Use the registry service's ApplySettingAsync method to properly handle Group Policy settings
+                        // Create a temporary setting with the value to apply
+                        var tempSetting = settingItem.RegistrySetting with 
+                        {
+                            EnabledValue = valueToApply,
+                            DisabledValue = valueToApply
+                        };
+                        
+                        success = await _registryService.ApplySettingAsync(tempSetting, true);
 
                         if (success)
                         {

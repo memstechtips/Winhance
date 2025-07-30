@@ -13,7 +13,7 @@ using Winhance.Core.Features.Customize.Models;
 using Winhance.WPF.Features.Common.Models;
 using Winhance.WPF.Features.Common.ViewModels;
 
-using Winhance.WPF.Features.Common.Extensions;
+
 
 namespace Winhance.WPF.Features.Customize.ViewModels
 {

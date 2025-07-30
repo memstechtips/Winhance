@@ -12,7 +12,7 @@ using Winhance.WPF.Features.Common.Interfaces;
 using Winhance.WPF.Features.Common.Models;
 using Microsoft.Win32;
 
-using Winhance.WPF.Features.Common.Extensions;
+
 
 namespace Winhance.WPF.Features.Optimize.ViewModels
 {

@@ -366,17 +366,29 @@ try {{
                     dynamic taskService = Activator.CreateInstance(taskSchedulerType);
                     taskService.Connect();
                     
-                    // Get the root task folder
+                    // Get or create the Winhance task folder
                     dynamic rootFolder = taskService.GetFolder("\\");
+                    dynamic winhanceFolder;
+                    try
+                    {
+                        // Try to get existing Winhance folder
+                        winhanceFolder = rootFolder.GetFolder("Winhance");
+                    }
+                    catch
+                    {
+                        // Create Winhance folder if it doesn't exist
+                        winhanceFolder = rootFolder.CreateFolder("Winhance");
+                        _logService.LogInformation("Created Winhance task folder");
+                    }
                     
                     // Remove existing task if it exists
                     try
                     {
-                        dynamic existingTask = rootFolder.GetTask(taskName);
+                        dynamic existingTask = winhanceFolder.GetTask(taskName);
                         if (existingTask != null)
                         {
                             _logService.LogInformation($"Removing existing task: {taskName}");
-                            rootFolder.DeleteTask(taskName, 0);
+                            winhanceFolder.DeleteTask(taskName, 0);
                         }
                     }
                     catch
@@ -394,32 +406,27 @@ try {{
                     settings.AllowHardTerminate = true;
                     settings.DisallowStartIfOnBatteries = false;
                     settings.StopIfGoingOnBatteries = false;
-                    // Note: Task deletion is handled by the command itself using schtasks /delete
                     
                     // Create logon trigger for the specific user
-                    dynamic triggers = taskDefinition.Triggers;
-                    dynamic trigger = triggers.Create(9); // TASK_TRIGGER_LOGON = 9
-                    trigger.UserId = username;
-                    trigger.Enabled = true;
-                    // Set required trigger properties with proper XML date format
-                    trigger.StartBoundary = DateTime.Now.ToString("yyyy-MM-ddTHH:mm:ss.fffK");
-                    // Set EndBoundary to a far future date (optional but helps avoid errors)
-                    trigger.EndBoundary = DateTime.Now.AddYears(10).ToString("yyyy-MM-ddTHH:mm:ss.fffK");
+            dynamic triggers = taskDefinition.Triggers;
+            dynamic trigger = triggers.Create(9); // TASK_TRIGGER_LOGON = 9
+            trigger.UserId = username;
+            trigger.Enabled = true;
                     
-                    // Create action to execute cmd.exe with the command
-                    dynamic actions = taskDefinition.Actions;
-                    dynamic action = actions.Create(0); // TASK_ACTION_EXEC = 0
-                    action.Path = "cmd.exe";
-                    action.Arguments = command;
+                    // Create action to execute powershell.exe with the command
+            dynamic actions = taskDefinition.Actions;
+            dynamic action = actions.Create(0); // TASK_ACTION_EXEC = 0
+            action.Path = "powershell.exe";
+            action.Arguments = command;
                     
-                    // Set principal to run as SYSTEM with highest privileges
-                    dynamic principal = taskDefinition.Principal;
-                    principal.UserId = "SYSTEM";
-                    principal.LogonType = 5; // TASK_LOGON_SERVICE_ACCOUNT = 5
-                    principal.RunLevel = 1; // TASK_RUNLEVEL_HIGHEST = 1 (elevated privileges)
+                    // Set principal to run as SYSTEM whether user is logged in or not
+            dynamic principal = taskDefinition.Principal;
+            principal.UserId = "S-1-5-18"; // SYSTEM account SID
+            principal.LogonType = 5; // TASK_LOGON_SERVICE_ACCOUNT = 5 (run whether user is logged on or not)
+            principal.RunLevel = 1; // TASK_RUNLEVEL_HIGHEST = 1 (elevated privileges)
                     
                     // Register the task with simplified parameters
-                    dynamic registeredTask = rootFolder.RegisterTaskDefinition(
+                    dynamic registeredTask = winhanceFolder.RegisterTaskDefinition(
                         taskName,
                         taskDefinition,
                         6, // TASK_CREATE_OR_UPDATE = 6
@@ -430,21 +437,8 @@ try {{
                     );
                     
                     _logService.LogSuccess($"Successfully created user logon task: {taskName} for user: {username}");
-                    
-                    // Run the task immediately to clean the Start Menu now
-                    try
-                    {
-                        _logService.LogInformation($"Running task immediately: {taskName}");
-                        registeredTask.Run(null); // Run with no parameters
-                        _logService.LogSuccess($"Successfully executed task: {taskName}");
-                    }
-                    catch (Exception runEx)
-                    {
-                        _logService.LogError($"Error running task immediately: {taskName}", runEx);
-                        // Don't return false here - task creation was successful even if immediate run failed
-                    }
-                    
-                    return true;
+            
+            return true;
                 }
                 catch (Exception ex)
                 {

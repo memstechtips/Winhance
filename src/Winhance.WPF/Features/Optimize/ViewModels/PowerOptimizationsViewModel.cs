@@ -1376,36 +1376,28 @@ namespace Winhance.WPF.Features.Optimize.ViewModels
         /// <returns>A task representing the asynchronous operation.</returns>
         private async Task ApplyRegistrySetting(RegistrySetting registrySetting, object value)
         {
-            string hiveString = registrySetting.Hive.ToString();
-            if (hiveString == "LocalMachine")
-                hiveString = "HKLM";
-            else if (hiveString == "CurrentUser")
-                hiveString = "HKCU";
-            else if (hiveString == "ClassesRoot")
-                hiveString = "HKCR";
-            else if (hiveString == "Users")
-                hiveString = "HKU";
-            else if (hiveString == "CurrentConfig")
-                hiveString = "HKCC";
-
-            string fullPath = $"{hiveString}\\{registrySetting.SubKey}";
-
+            // Use the registry service's ApplySettingAsync method to properly handle Group Policy settings
             if (value == null)
             {
-                await _registryService.DeleteValue(
-                    registrySetting.Hive,
-                    registrySetting.SubKey,
-                    registrySetting.Name
-                );
+                // For null values, create a temporary setting that will delete the value
+                var tempSetting = registrySetting with 
+                {
+                    EnabledValue = null,
+                    DisabledValue = null
+                };
+                
+                await _registryService.ApplySettingAsync(tempSetting, false);
             }
             else
             {
-                _registryService.SetValue(
-                    fullPath,
-                    registrySetting.Name,
-                    value,
-                    registrySetting.ValueType
-                );
+                // For non-null values, create a temporary setting with the specified value
+                var tempSetting = registrySetting with 
+                {
+                    EnabledValue = value,
+                    DisabledValue = value
+                };
+                
+                await _registryService.ApplySettingAsync(tempSetting, true);
             }
         }
 

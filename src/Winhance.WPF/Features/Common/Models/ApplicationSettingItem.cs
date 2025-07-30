@@ -164,10 +164,25 @@ namespace Winhance.WPF.Features.Common.Models
                 // Populate LinkedRegistrySettingsWithValues when LinkedRegistrySettings is assigned
                 if (value != null && value.Settings.Count > 0)
                 {
-                    LinkedRegistrySettingsWithValues.Clear();
-                    foreach (var setting in value.Settings)
+                    // Use dispatcher if available (UI thread), otherwise update directly (for unit tests)
+                    if (Application.Current?.Dispatcher != null)
                     {
-                        LinkedRegistrySettingsWithValues.Add(new LinkedRegistrySettingWithValue(setting, null));
+                        Application.Current.Dispatcher.Invoke(() =>
+                        {
+                            LinkedRegistrySettingsWithValues.Clear();
+                            foreach (var setting in value.Settings)
+                            {
+                                LinkedRegistrySettingsWithValues.Add(new LinkedRegistrySettingWithValue(setting, null));
+                            }
+                        });
+                    }
+                    else
+                    {
+                        LinkedRegistrySettingsWithValues.Clear();
+                        foreach (var setting in value.Settings)
+                        {
+                            LinkedRegistrySettingsWithValues.Add(new LinkedRegistrySettingWithValue(setting, null));
+                        }
                     }
                 }
             }
@@ -313,7 +328,7 @@ namespace Winhance.WPF.Features.Common.Models
             // Apply registry settings if available
             if (_registryService != null)
             {
-                ApplyRegistrySettings();
+                await Task.Run(ApplyRegistrySettings);
             }
             
             // Apply command settings if available
@@ -326,81 +341,97 @@ namespace Winhance.WPF.Features.Common.Models
         /// <summary>
         /// Applies the registry settings.
         /// </summary>
-        private void ApplyRegistrySettings()
+        private async void ApplyRegistrySettings()
         {
             if (_registryService == null)
             {
                 return;
             }
-            
-            // Set the _lastIsEnabled field in the registry service using reflection
-            // This is needed for GUID subkey operations to know whether to create or remove the key
-            try
-            {
-                var field = _registryService.GetType().GetField("_lastIsEnabled", System.Reflection.BindingFlags.NonPublic | System.Reflection.BindingFlags.Instance);
-                if (field != null)
-                {
-                    field.SetValue(_registryService, IsSelected);
-                }
-            }
-            catch
-            {
-                // Ignore any reflection errors
-            }
 
-            // Apply the setting
+            // Apply the setting using the registry service's ApplySettingAsync method
+            // This ensures Group Policy settings are handled properly
             if (RegistrySetting != null)
             {
                 try
                 {
-                    // Get the registry hive string
-                    string hiveString = GetRegistryHiveString(RegistrySetting.Hive);
-
-                    // Get the appropriate value based on control type
-                    object valueToApply;
-                    if (ControlType == ControlType.ComboBox)
-                    {
-                        // For ComboBox, get the registry value from CustomProperties
-                        valueToApply = GetComboBoxRegistryValue();
-                    }
-                    else
-                    {
-                        // For binary toggle, use the traditional logic
-                        valueToApply = IsSelected 
-                            ? (RegistrySetting.EnabledValue ?? RegistrySetting.RecommendedValue) 
-                            : (RegistrySetting.DisabledValue ?? RegistrySetting.DefaultValue);
-                    }
-
-                    // Apply the setting
-                    _registryService.SetValue(
-                        $"{hiveString}\\{RegistrySetting.SubKey}",
-                        RegistrySetting.Name,
-                        valueToApply,
-                        RegistrySetting.ValueType);
-
-                    // Update the current value and linked registry settings with values
-                    CurrentValue = valueToApply;
+                    bool success;
                     
-                    // Update the linked registry settings with values collection
-                    LinkedRegistrySettingsWithValues.Clear();
-                    LinkedRegistrySettingsWithValues.Add(new LinkedRegistrySettingWithValue(RegistrySetting, CurrentValue));
-
-                    // Update status
-                    Status = RegistrySettingStatus.Applied;
-                    StatusMessage = "Applied";
-
-                    // Log the action
                     if (ControlType == ControlType.ComboBox)
                     {
-                        _logService?.Log(LogLevel.Info, $"Applied ComboBox setting {Name}: {SelectedValue} (Registry Value: {valueToApply})");
+                        // For ComboBox settings, create a temporary setting with the selected value
+                        var comboBoxValue = GetComboBoxRegistryValue();
+                        var tempSetting = RegistrySetting with 
+                        {
+                            EnabledValue = comboBoxValue,
+                            DisabledValue = comboBoxValue
+                        };
+                        
+                        success = await _registryService.ApplySettingAsync(tempSetting, true);
+                        
+                        if (success)
+                        {
+                            CurrentValue = comboBoxValue;
+                            _logService?.Log(LogLevel.Info, $"Applied ComboBox setting {Name}: {SelectedValue} (Registry Value: {comboBoxValue})");
+                        }
                     }
                     else
                     {
-                        _logService?.Log(LogLevel.Info, $"Applied setting {Name}: {(IsSelected ? "Enabled" : "Disabled")}");
+                        // For binary toggle settings, use the registry service's ApplySettingAsync method
+                        success = await _registryService.ApplySettingAsync(RegistrySetting, IsSelected);
+                        
+                        if (success)
+                        {
+                            // Update current value based on what was actually applied
+                            if (IsSelected)
+                            {
+                                CurrentValue = RegistrySetting.EnabledValue ?? RegistrySetting.RecommendedValue;
+                            }
+                            else
+                            {
+                                // For Group Policy settings that were disabled, the value was deleted
+                                CurrentValue = RegistrySetting.IsGroupPolicy ? "[DELETED]" : 
+                                             (RegistrySetting.DisabledValue ?? RegistrySetting.DefaultValue);
+                            }
+                            
+                            _logService?.Log(LogLevel.Info, $"Applied setting {Name}: {(IsSelected ? "Enabled" : "Disabled")}");
+                        }
+                    }
+                    
+                    if (success)
+                    {
+                        // Add a small delay to ensure registry changes are fully committed
+                        await Task.Delay(100);
+                        
+                        // Update the linked registry settings with values collection on UI thread
+                        if (Application.Current?.Dispatcher != null)
+                        {
+                            await Application.Current.Dispatcher.InvokeAsync(() =>
+                            {
+                                LinkedRegistrySettingsWithValues.Clear();
+                                LinkedRegistrySettingsWithValues.Add(new LinkedRegistrySettingWithValue(RegistrySetting, CurrentValue));
+                            });
+                        }
+                        else
+                        {
+                            LinkedRegistrySettingsWithValues.Clear();
+                            LinkedRegistrySettingsWithValues.Add(new LinkedRegistrySettingWithValue(RegistrySetting, CurrentValue));
+                        }
+
+                        // Update status
+                        Status = RegistrySettingStatus.Applied;
+                        StatusMessage = "Applied";
+                    }
+                    else
+                    {
+                        Status = RegistrySettingStatus.Error;
+                        StatusMessage = "Failed to apply";
+                        _logService?.Log(LogLevel.Error, $"Failed to apply setting {Name}");
                     }
                 }
                 catch (Exception ex)
                 {
+                    Status = RegistrySettingStatus.Error;
+                    StatusMessage = "Error occurred";
                     _logService?.Log(LogLevel.Error, $"Error applying setting {Name}: {ex.Message}");
                 }
             }
@@ -408,45 +439,70 @@ namespace Winhance.WPF.Features.Common.Models
             {
                 try
                 {
-                    // Clear the existing values
-                    LinkedRegistrySettingsWithValues.Clear();
+                    // Apply linked settings using the registry service's ApplyLinkedSettingsAsync method
+                    var success = await _registryService.ApplyLinkedSettingsAsync(LinkedRegistrySettings, IsSelected);
                     
-                    // Apply all linked settings
+                    // Clear registry cache to ensure we read fresh values (fixes cache key mismatch between delete and read operations)
+                    _registryService.ClearRegistryCaches();
+                    
+                    // Always update tooltip collection after any toggle operation to reflect current registry state
+                    // Add a small delay to ensure registry changes are fully committed
+                    await Task.Delay(100);
+                    
+                    // Get the current values after applying (on background thread)
+                    var updatedValues = new List<LinkedRegistrySettingWithValue>();
                     foreach (var setting in LinkedRegistrySettings.Settings)
                     {
-                        // Get the registry hive string
-                        string hiveString = GetRegistryHiveString(setting.Hive);
-
-                        // Get the appropriate value based on the toggle state
-                        object valueToApply = IsSelected 
-                            ? (setting.EnabledValue ?? setting.RecommendedValue) 
-                            : (setting.DisabledValue ?? setting.DefaultValue);
+                        // Get the current value after applying
+                        var registryPath = GetRegistryHiveString(setting.Hive) + "\\" + setting.SubKey;
+                        var currentValue = _registryService.GetValue(registryPath, setting.Name);
                         
-                        // Apply the setting
-                        _registryService.SetValue(
-                            $"{hiveString}\\{setting.SubKey}",
-                            setting.Name,
-                            valueToApply,
-                            setting.ValueType);
-                            
-                        // Add to the linked registry settings with values collection
-                        LinkedRegistrySettingsWithValues.Add(new LinkedRegistrySettingWithValue(setting, valueToApply));
+                        updatedValues.Add(new LinkedRegistrySettingWithValue(setting, currentValue));
                     }
-
-                    // Update status without changing IsSelected
-                    Status = IsSelected ? RegistrySettingStatus.Applied : RegistrySettingStatus.NotApplied;
-                    StatusMessage = Status == RegistrySettingStatus.Applied ? "Applied" : "Not Applied";
-
-                    // Log the action
-                    _logService?.Log(LogLevel.Info, $"Applied linked settings for {Name}: {(IsSelected ? "Enabled" : "Disabled")}");
+                    
+                    // Update the linked registry settings with values collection on UI thread
+                    if (Application.Current?.Dispatcher != null)
+                    {
+                        await Application.Current.Dispatcher.InvokeAsync(() =>
+                        {
+                            LinkedRegistrySettingsWithValues.Clear();
+                            foreach (var value in updatedValues)
+                            {
+                                LinkedRegistrySettingsWithValues.Add(value);
+                            }
+                        });
+                    }
+                    else
+                    {
+                        LinkedRegistrySettingsWithValues.Clear();
+                        foreach (var value in updatedValues)
+                        {
+                            LinkedRegistrySettingsWithValues.Add(value);
+                        }
+                    }
+                    
+                    if (success)
+                    {
+                        // Update status
+                        Status = IsSelected ? RegistrySettingStatus.Applied : RegistrySettingStatus.NotApplied;
+                        StatusMessage = Status == RegistrySettingStatus.Applied ? "Applied" : "Not Applied";
+                        
+                        _logService?.Log(LogLevel.Info, $"Applied linked settings for {Name}: {(IsSelected ? "Enabled" : "Disabled")}");
+                    }
+                    else
+                    {
+                        Status = RegistrySettingStatus.Error;
+                        StatusMessage = "Failed to apply";
+                        _logService?.Log(LogLevel.Error, $"Failed to apply linked settings for {Name}");
+                    }
                 }
                 catch (Exception ex)
                 {
+                    Status = RegistrySettingStatus.Error;
+                    StatusMessage = "Error occurred";
                     _logService?.Log(LogLevel.Error, $"Error applying linked settings for {Name}: {ex.Message}");
                 }
             }
-
-            // Don't call RefreshStatus() here to avoid triggering additional registry operations
         }
         
         /// <summary>
@@ -488,7 +544,7 @@ namespace Winhance.WPF.Features.Common.Models
         /// <summary>
         /// Restores the setting to its default value.
         /// </summary>
-        public void RestoreDefault()
+        public async void RestoreDefault()
         {
             if (_registryService == null)
             {
@@ -501,38 +557,43 @@ namespace Winhance.WPF.Features.Common.Models
                 return;
             }
 
-            // Restore the setting to its default value
+            // Restore the setting to its default value using ApplySettingAsync
             if (RegistrySetting != null)
             {
-                // Get the registry hive string
-                string hiveString = GetRegistryHiveString(RegistrySetting.Hive);
-
-                // Apply the setting
-                _registryService.SetValue(
-                    $"{hiveString}\\{RegistrySetting.SubKey}",
-                    RegistrySetting.Name,
-                    RegistrySetting.DefaultValue,
-                    RegistrySetting.ValueType);
-
+                // Create a temporary setting with DefaultValue as both enabled and disabled value
+                var tempSetting = RegistrySetting with 
+                {
+                    EnabledValue = RegistrySetting.DefaultValue,
+                    DisabledValue = RegistrySetting.DefaultValue
+                };
+                
+                await _registryService.ApplySettingAsync(tempSetting, true);
+                
                 // Log the action
                 _logService?.Log(LogLevel.Info, $"Restored setting {Name} to default value");
             }
             else if (LinkedRegistrySettings != null && LinkedRegistrySettings.Settings.Count > 0)
             {
-                // Apply all linked settings
+                // For linked settings, create a temporary LinkedRegistrySettings with default values
+                var tempLinkedSettings = new LinkedRegistrySettings
+                {
+                    Category = LinkedRegistrySettings.Category,
+                    Description = LinkedRegistrySettings.Description,
+                    Logic = LinkedRegistrySettings.Logic
+                };
+                
                 foreach (var setting in LinkedRegistrySettings.Settings)
                 {
-                    // Get the registry hive string
-                    string hiveString = GetRegistryHiveString(setting.Hive);
-
-                    // Apply the setting
-                    _registryService.SetValue(
-                        $"{hiveString}\\{setting.SubKey}",
-                        setting.Name,
-                        setting.DefaultValue,
-                        setting.ValueType);
+                    var tempSetting = setting with 
+                    {
+                        EnabledValue = setting.DefaultValue,
+                        DisabledValue = setting.DefaultValue
+                    };
+                    tempLinkedSettings.AddSetting(tempSetting);
                 }
-
+                
+                await _registryService.ApplyLinkedSettingsAsync(tempLinkedSettings, true);
+                
                 // Log the action
                 _logService?.Log(LogLevel.Info, $"Restored linked settings for {Name} to default values");
             }
@@ -649,9 +710,20 @@ namespace Winhance.WPF.Features.Common.Models
                     CurrentValue = currentValue;
                 }
                 
-                // Update the linked registry settings with values collection
-                LinkedRegistrySettingsWithValues.Clear();
-                LinkedRegistrySettingsWithValues.Add(new LinkedRegistrySettingWithValue(RegistrySetting, currentValue));
+                // Update the linked registry settings with values collection on UI thread
+                if (Application.Current?.Dispatcher != null)
+                {
+                    await Application.Current.Dispatcher.InvokeAsync(() =>
+                    {
+                        LinkedRegistrySettingsWithValues.Clear();
+                        LinkedRegistrySettingsWithValues.Add(new LinkedRegistrySettingWithValue(RegistrySetting, currentValue));
+                    });
+                }
+                else
+                {
+                    LinkedRegistrySettingsWithValues.Clear();
+                    LinkedRegistrySettingsWithValues.Add(new LinkedRegistrySettingWithValue(RegistrySetting, currentValue));
+                }
 
                 // Determine if the value is null, but don't show as null if AbsenceMeansEnabled is true
                 IsRegistryValueNull = currentValue == null && !RegistrySetting.AbsenceMeansEnabled;
@@ -709,8 +781,18 @@ namespace Winhance.WPF.Features.Common.Models
             }
             else if (LinkedRegistrySettings != null && LinkedRegistrySettings.Settings.Count > 0)
             {
-                // Clear the existing values
-                LinkedRegistrySettingsWithValues.Clear();
+                // Clear the existing values on UI thread
+                if (Application.Current?.Dispatcher != null)
+                {
+                    await Application.Current.Dispatcher.InvokeAsync(() =>
+                    {
+                        LinkedRegistrySettingsWithValues.Clear();
+                    });
+                }
+                else
+                {
+                    LinkedRegistrySettingsWithValues.Clear();
+                }
                 
                 // Check all linked settings
                 bool allApplied = true;
@@ -731,8 +813,18 @@ namespace Winhance.WPF.Features.Common.Models
                         $"{hiveString}\\{setting.SubKey}",
                         setting.Name);
                         
-                    // Add to the linked registry settings with values collection
-                    LinkedRegistrySettingsWithValues.Add(new LinkedRegistrySettingWithValue(setting, currentValue));
+                    // Add to the linked registry settings with values collection on UI thread
+                    if (Application.Current?.Dispatcher != null)
+                    {
+                        await Application.Current.Dispatcher.InvokeAsync(() =>
+                        {
+                            LinkedRegistrySettingsWithValues.Add(new LinkedRegistrySettingWithValue(setting, currentValue));
+                        });
+                    }
+                    else
+                    {
+                        LinkedRegistrySettingsWithValues.Add(new LinkedRegistrySettingWithValue(setting, currentValue));
+                    }
 
                     // Check if the value is null
                     if (currentValue == null)
@@ -863,11 +955,11 @@ namespace Winhance.WPF.Features.Common.Models
         {
             return hive switch
             {
-                RegistryHive.ClassesRoot => "HKCR",
-                RegistryHive.CurrentUser => "HKCU",
-                RegistryHive.LocalMachine => "HKLM",
-                RegistryHive.Users => "HKU",
-                RegistryHive.CurrentConfig => "HKCC",
+                RegistryHive.ClassesRoot => "HKEY_CLASSES_ROOT",
+                RegistryHive.CurrentUser => "CurrentUser",
+                RegistryHive.LocalMachine => "LocalMachine",
+                RegistryHive.Users => "HKEY_USERS",
+                RegistryHive.CurrentConfig => "HKEY_CURRENT_CONFIG",
                 _ => throw new ArgumentOutOfRangeException(nameof(hive), hive, null)
             };
         }
