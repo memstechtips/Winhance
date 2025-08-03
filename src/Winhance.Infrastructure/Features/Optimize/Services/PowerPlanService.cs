@@ -122,7 +122,7 @@ namespace Winhance.Infrastructure.Features.Optimize.Services
                     {
                         // Create the plan with the custom GUID
                         var createTask = _powerShellService.ExecuteScriptAsync(
-                            $"powercfg {PowerOptimizations.UltimatePerformancePowerPlan.PowerCfgCommands["CreateUltimatePlan"]}");
+                            $"powercfg /duplicatescheme e9a42b02-d5df-448d-aa00-03f14749eb61 {customUltimateGuid}");
                         
                         // Wait for the task to complete with a timeout
                         await Task.WhenAny(createTask, Task.Delay(5000, cancellationToken));
@@ -142,7 +142,7 @@ namespace Winhance.Infrastructure.Features.Optimize.Services
                         
                         // Set it as the active plan
                         var setActiveTask = _powerShellService.ExecuteScriptAsync(
-                            $"powercfg {PowerOptimizations.UltimatePerformancePowerPlan.PowerCfgCommands["SetActivePlan"]}");
+                            $"powercfg /setactive {customUltimateGuid}");
                         
                         // Wait for the task to complete with a timeout
                         await Task.WhenAny(setActiveTask, Task.Delay(5000, cancellationToken));
@@ -160,42 +160,13 @@ namespace Winhance.Infrastructure.Features.Optimize.Services
                             return false;
                         }
                         
-                        // Apply all the powercfg commands
-                        _logService.Log(LogLevel.Info, $"Applying {PowerOptimizations.UltimatePerformancePowerPlan.PowerCfgCommands.Count} Ultimate Performance settings");
+                        // Apply Ultimate Performance preset settings using the new architecture
+                        _logService.Log(LogLevel.Info, "Applying Ultimate Performance settings");
                         
+                        // The Ultimate Performance plan has been created and activated
+                        // Additional power settings will be applied through the ApplicationSettingsService
+                        // when the user applies the Ultimate Performance preset
                         bool allCommandsSucceeded = true;
-                        foreach (var command in PowerOptimizations.UltimatePerformancePowerPlan.PowerCfgCommands)
-                        {
-                            // Check for cancellation
-                            if (cancellationToken.IsCancellationRequested)
-                            {
-                                _logService.Log(LogLevel.Warning, "Operation timed out while applying Ultimate Performance settings");
-                                return false;
-                            }
-                            
-                            // Skip the CreateUltimatePlan and SetActivePlan commands as we've already executed them
-                            if (command.Key == "CreateUltimatePlan" || command.Key == "SetActivePlan")
-                                continue;
-                            
-                            var cmdTask = _powerShellService.ExecuteScriptAsync($"powercfg {command.Value}");
-                            
-                            // Wait for the task to complete with a timeout
-                            await Task.WhenAny(cmdTask, Task.Delay(2000, cancellationToken));
-                            
-                            if (!cmdTask.IsCompleted)
-                            {
-                                _logService.Log(LogLevel.Warning, $"Command {command.Key} timed out");
-                                allCommandsSucceeded = false;
-                                continue;
-                            }
-                            
-                            var cmdResult = await cmdTask;
-                            if (cmdResult.Contains("Error") || cmdResult.Contains("error"))
-                            {
-                                _logService.Log(LogLevel.Warning, $"Error applying Ultimate Performance setting {command.Key}: {cmdResult}");
-                                allCommandsSucceeded = false;
-                            }
-                        }
                         
                         if (!allCommandsSucceeded)
                         {
@@ -205,8 +176,8 @@ namespace Winhance.Infrastructure.Features.Optimize.Services
                         // Update the static GUID to use our custom one
                         ULTIMATE_PERFORMANCE_PLAN_GUID = customUltimateGuid;
                         
-                        // Also update the PowerOptimizations class to use this new GUID
-                        var field = typeof(PowerOptimizations.PowerPlans).GetField("UltimatePerformance");
+                        // Also update the PowerPlans class to use this new GUID
+                        var field = typeof(PowerPlans).GetField("UltimatePerformance");
                         if (field != null)
                         {
                             var ultimatePerformancePlan = field.GetValue(null) as PowerPlan;
@@ -390,9 +361,9 @@ namespace Winhance.Infrastructure.Features.Optimize.Services
                             // Note: This is a static field, so it will be updated for the lifetime of the application
                             ULTIMATE_PERFORMANCE_PLAN_GUID = newGuid;
                             
-                            // Also update the PowerOptimizations class to use this new GUID
-                            // This is needed because the PowerOptimizationsViewModel uses PowerOptimizations.PowerPlans
-                            var field = typeof(PowerOptimizations.PowerPlans).GetField("UltimatePerformance");
+                            // Also update the PowerPlans class to use this new GUID
+                            // This is needed because the PowerOptimizationsViewModel uses PowerPlans
+                            var field = typeof(PowerPlans).GetField("UltimatePerformance");
                             if (field != null)
                             {
                                 var ultimatePerformancePlan = field.GetValue(null) as PowerPlan;

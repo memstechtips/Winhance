@@ -78,7 +78,7 @@ namespace Winhance.WPF.Features.Common.Services.Configuration
                 if (!viewModel.IsInitialized)
                 {
                     _logService.Log(LogLevel.Info, "CustomizeViewModel not initialized, initializing now");
-                    await viewModel.InitializeCommand.ExecuteAsync(null);
+                    await viewModel.InitializeAsync();
                 }
                 
                 int totalUpdatedCount = 0;
@@ -86,8 +86,8 @@ namespace Winhance.WPF.Features.Common.Services.Configuration
                 // Handle Windows Theme customizations
                 totalUpdatedCount += await ApplyWindowsThemeCustomizations(viewModel, configFile);
                 
-                // Apply the configuration directly to the view model's items
-                int itemsUpdatedCount = await _propertyUpdater.UpdateItemsAsync(viewModel.Items, configFile);
+                // Apply the configuration directly to the view model's settings
+                int itemsUpdatedCount = await _propertyUpdater.UpdateItemsAsync(viewModel.Settings, configFile);
                 totalUpdatedCount += itemsUpdatedCount;
                 
                 _logService.Log(LogLevel.Info, $"Updated {totalUpdatedCount} items in CustomizeViewModel");
@@ -119,76 +119,20 @@ namespace Winhance.WPF.Features.Common.Services.Configuration
                 _logService.Log(LogLevel.Info, "Prompting for cleaning taskbar and Start Menu");
                 
                 // Prompt for cleaning taskbar
-                if (viewModel.TaskbarSettings != null)
-                {
-                    // Use Application.Current.Dispatcher to ensure we're on the UI thread
-                    bool? cleanTaskbarResult = await Application.Current.Dispatcher.InvokeAsync(() => {
-                        return CustomDialog.ShowConfirmation(
-                            "Clean Taskbar",
-                            "Do you want to clean the taskbar?",
-                            new List<string> { "Cleaning the taskbar will remove pinned items and reset it to default settings." }, // Put message in the middle section
-                            "" // Empty footer
-                        );
-                    });
-                    
-                    bool cleanTaskbar = cleanTaskbarResult == true;
-                    
-                    if (cleanTaskbar)
-                    {
-                        _logService.Log(LogLevel.Info, "User chose to clean the taskbar");
-                        
-                        // Execute the clean taskbar command
-                        if (viewModel.TaskbarSettings.CleanTaskbarCommand != null && 
-                            viewModel.TaskbarSettings.CleanTaskbarCommand.CanExecute(null))
-                        {
-                            await viewModel.TaskbarSettings.CleanTaskbarCommand.ExecuteAsync(null);
-                        }
-                        else
-                        {
-                            _logService.Log(LogLevel.Warning, "CleanTaskbarCommand not available");
-                        }
-                    }
-                    else
-                    {
-                        _logService.Log(LogLevel.Info, "User chose not to clean the taskbar");
-                    }
-                }
+                // Note: In clean architecture, we would need to access taskbar cleaning through the service layer
+                // For now, we'll skip this functionality until the service layer provides these operations
+                _logService.Log(LogLevel.Info, "Taskbar cleaning functionality needs to be implemented in the service layer");
+                
+                // TODO: Implement taskbar cleaning through IApplicationSettingsService
+                // Example: await _settingsService.CleanTaskbarAsync();
                 
                 // Prompt for cleaning Start Menu
-                if (viewModel.StartMenuSettings != null)
-                {
-                    // Use Application.Current.Dispatcher to ensure we're on the UI thread
-                    bool? cleanStartMenuResult = await Application.Current.Dispatcher.InvokeAsync(() => {
-                        return CustomDialog.ShowConfirmation(
-                            "Clean Start Menu",
-                            "Do you want to clean the Start Menu?",
-                            new List<string> { "Cleaning the Start Menu will remove pinned items and reset it to default settings." }, // Put message in the middle section
-                            "" // Empty footer
-                        );
-                    });
-                    
-                    bool cleanStartMenu = cleanStartMenuResult == true;
-                    
-                    if (cleanStartMenu)
-                    {
-                        _logService.Log(LogLevel.Info, "User chose to clean the Start Menu");
-                        
-                        // Execute the clean Start Menu command
-                        if (viewModel.StartMenuSettings.CleanStartMenuCommand != null && 
-                            viewModel.StartMenuSettings.CleanStartMenuCommand.CanExecute(null))
-                        {
-                            await viewModel.StartMenuSettings.CleanStartMenuCommand.ExecuteAsync(null);
-                        }
-                        else
-                        {
-                            _logService.Log(LogLevel.Warning, "CleanStartMenuCommand not available");
-                        }
-                    }
-                    else
-                    {
-                        _logService.Log(LogLevel.Info, "User chose not to clean the Start Menu");
-                    }
-                }
+                // Note: In clean architecture, we would need to access Start Menu cleaning through the service layer
+                // For now, we'll skip this functionality until the service layer provides these operations
+                _logService.Log(LogLevel.Info, "Start Menu cleaning functionality needs to be implemented in the service layer");
+                
+                // TODO: Implement Start Menu cleaning through IApplicationSettingsService
+                // Example: await _settingsService.CleanStartMenuAsync();
             }
             catch (Exception ex)
             {
@@ -202,11 +146,12 @@ namespace Winhance.WPF.Features.Common.Services.Configuration
             
             try
             {
-                // Get the WindowsThemeSettings property from the view model
-                var windowsThemeViewModel = viewModel.WindowsThemeSettings;
-                if (windowsThemeViewModel == null)
+                // In clean architecture, theme settings are part of the unified Settings collection
+                // Find theme-related settings in the Settings collection
+                var themeSettings = viewModel.Settings?.Where(s => s.GroupName?.Contains("Theme") == true || s.GroupName?.Contains("Windows Theme") == true).ToList();
+                if (themeSettings == null || !themeSettings.Any())
                 {
-                    _logService.Log(LogLevel.Warning, "WindowsThemeSettings not found in CustomizeViewModel");
+                    _logService.Log(LogLevel.Warning, "No theme settings found in CustomizeViewModel.Settings");
                     return 0;
                 }
                 
@@ -249,23 +194,30 @@ namespace Winhance.WPF.Features.Common.Services.Configuration
                     {
                         _logService.Log(LogLevel.Info, $"Updating theme settings in view model to: {newSelectedTheme}");
                         
-                        // Store the current state of the view model
-                        bool currentIsDarkMode = windowsThemeViewModel.IsDarkModeEnabled;
-                        string currentTheme = windowsThemeViewModel.SelectedTheme;
-                        
-                        // Update the view model properties to trigger the property change handlers
-                        // This will show the wallpaper dialog through the normal UI flow
+                        // Apply theme through the service layer (clean architecture)
                         try
                         {
-                            // Update the IsDarkModeEnabled property first
-                            bool isDarkMode = newSelectedTheme == "Dark Mode";
+                            // Determine if this is a dark mode theme
+                            bool isDarkMode = newSelectedTheme.Contains("Dark", StringComparison.OrdinalIgnoreCase);
                             
-                            _logService.Log(LogLevel.Info, $"Setting IsDarkModeEnabled to {isDarkMode}");
-                            windowsThemeViewModel.IsDarkModeEnabled = isDarkMode;
+                            _logService.Log(LogLevel.Info, $"Applying theme through service layer: {newSelectedTheme} (Dark Mode: {isDarkMode})");
                             
-                            // Then update the SelectedTheme property
-                            _logService.Log(LogLevel.Info, $"Setting SelectedTheme to {newSelectedTheme}");
-                            windowsThemeViewModel.SelectedTheme = newSelectedTheme;
+                            // Apply the theme through the theme service
+                            await _themeService.ApplyThemeAsync(isDarkMode, false);
+                            
+                            // Update the corresponding setting in the viewModel to reflect the change
+                            var themeSetting = themeSettings.FirstOrDefault(s => s.Name?.Contains("Theme") == true);
+                            if (themeSetting != null)
+                            {
+                                if (themeSetting.ControlType == ControlType.ComboBox)
+                                {
+                                    themeSetting.SelectedValue = newSelectedTheme;
+                                }
+                                else if (themeSetting.ControlType == ControlType.BinaryToggle)
+                                {
+                                    themeSetting.IsSelected = isDarkMode;
+                                }
+                            }
                             
                             // The property change handlers in WindowsThemeCustomizationsViewModel will
                             // show the wallpaper dialog and apply the theme

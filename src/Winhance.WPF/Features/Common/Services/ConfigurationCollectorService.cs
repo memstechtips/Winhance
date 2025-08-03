@@ -94,7 +94,6 @@ namespace Winhance.WPF.Features.Common.Services
                 
                 // Initialize other required properties
                 Dependencies = new List<SettingDependency>();
-                IsUpdatingFromCode = false;
                 ApplySettingCommand = null;
             }
 
@@ -106,11 +105,12 @@ namespace Winhance.WPF.Features.Common.Services
             public string GroupName { get => _groupName; set => _groupName = value; }
             public bool IsVisible { get => _isVisible; set => _isVisible = value; }
             public ControlType ControlType { get => _controlType; set => _controlType = value; }
+            public object? SelectedValue { get => _configItem.SelectedValue; set => _configItem.SelectedValue = value?.ToString(); }
             public int SliderValue { get => _sliderValue; set => _sliderValue = value; }
             
             // Additional required properties
             public List<SettingDependency> Dependencies { get; set; }
-            public bool IsUpdatingFromCode { get; set; }
+
             public System.Windows.Input.ICommand ApplySettingCommand { get; set; }
         }
 
@@ -289,14 +289,14 @@ namespace Winhance.WPF.Features.Common.Services
                 // Ensure the view model is initialized
                 if (!viewModel.IsInitialized)
                 {
-                    _logService.Log(LogLevel.Debug, "CustomizeViewModel not initialized, loading items");
-                    await viewModel.LoadItemsAsync();
+                    _logService.Log(LogLevel.Debug, "CustomizeViewModel not initialized, loading settings");
+                    await viewModel.LoadSettingsAsync();
                 }
                 
                 // Collect settings directly
                 var customizeItems = new List<ISettingItem>();
                 
-                foreach (var item in viewModel.Items)
+                foreach (var item in viewModel.Settings)
                 {
                     if (item is ISettingItem settingItem)
                     {
@@ -380,18 +380,18 @@ namespace Winhance.WPF.Features.Common.Services
                     _logService.Log(LogLevel.Debug, "OptimizeViewModel initialized");
                 }
                 
-                // Force load items even if already initialized to ensure we have the latest data
-                _logService.Log(LogLevel.Debug, "Loading OptimizeViewModel items");
-                await viewModel.LoadItemsAsync();
-                _logService.Log(LogLevel.Debug, $"OptimizeViewModel items loaded, count: {viewModel.Items?.Count ?? 0}");
+                // Force load settings even if already initialized to ensure we have the latest data
+                _logService.Log(LogLevel.Debug, "Loading OptimizeViewModel settings");
+                await viewModel.LoadSettingsAsync();
+                _logService.Log(LogLevel.Debug, $"OptimizeViewModel settings loaded, count: {viewModel.Settings?.Count ?? 0}");
                 
                 // Collect settings directly
                 var optimizeItems = new List<ISettingItem>();
                 
-                // First check if Items collection has any settings
-                if (viewModel.Items != null && viewModel.Items.Count > 0)
+                // First check if Settings collection has any settings
+                if (viewModel.Settings != null && viewModel.Settings.Count > 0)
                 {
-                    foreach (var item in viewModel.Items)
+                    foreach (var item in viewModel.Settings)
                     {
                         if (item is ISettingItem settingItem)
                         {
@@ -406,7 +406,7 @@ namespace Winhance.WPF.Features.Common.Services
                 {
                     _logService.Log(LogLevel.Debug, "No items found in Items collection, collecting from child view models");
                     
-                    // Collect from GamingandPerformanceOptimizationsViewModel
+                    // Collect from GamingViewModel
                     if (viewModel.GamingandPerformanceOptimizationsViewModel?.Settings != null)
                     {
                         foreach (var setting in viewModel.GamingandPerformanceOptimizationsViewModel.Settings)

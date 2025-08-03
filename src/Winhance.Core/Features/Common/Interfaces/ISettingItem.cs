@@ -46,14 +46,14 @@ namespace Winhance.Core.Features.Common.Interfaces
         ControlType ControlType { get; set; }
 
         /// <summary>
+        /// Gets or sets the selected value for ComboBox controls.
+        /// </summary>
+        object? SelectedValue { get; set; }
+
+        /// <summary>
         /// Gets or sets the dependencies for this setting.
         /// </summary>
         List<SettingDependency> Dependencies { get; set; }
-
-        /// <summary>
-        /// Gets or sets a value indicating whether the setting is being updated from code.
-        /// </summary>
-        bool IsUpdatingFromCode { get; set; }
 
         /// <summary>
         /// Gets the command to apply the setting.

@@ -9,6 +9,7 @@ using Winhance.Core.Features.Common.Interfaces;
 using Winhance.Core.Features.Common.Models;
 using Winhance.Core.Features.Common.Services;
 using Winhance.Core.Features.Customize.Interfaces;
+using Winhance.Core.Features.Optimize.Interfaces;
 using Winhance.Core.Features.Optimize.Models;
 using Winhance.Core.Features.Optimize.Services;
 using Winhance.Core.Features.SoftwareApps.Interfaces;
@@ -420,6 +421,20 @@ namespace Winhance.WPF
                     await softwareAppsViewModel.InitializeCommand.ExecuteAsync(null);
                     LogStartupError("SoftwareAppsViewModel initialized");
 
+                    // Initialize all settings definitions before loading ViewModels
+                    LogStartupError("Getting SettingsInitializationService");
+                    var settingsInitService = _host.Services.GetRequiredService<ISettingsInitializationService>();
+                    LogStartupError("Got SettingsInitializationService");
+
+                    LogStartupError("Starting settings initialization");
+                    if (loadingWindow?.DataContext is LoadingWindowViewModel loadingVMSettings)
+                    {
+                        loadingVMSettings.StatusMessage = "Initializing settings definitions...";
+                        loadingVMSettings.DetailMessage = "Loading customization and optimization settings...";
+                    }
+                    await settingsInitService.InitializeAllSettingsAsync();
+                    LogStartupError("Settings initialization completed");
+
                     // Preload the OptimizeViewModel to ensure all registry settings are loaded
                     LogStartupError("Getting OptimizeViewModel");
                     var optimizeViewModel = _host.Services.GetRequiredService<OptimizeViewModel>();
@@ -633,7 +648,34 @@ namespace Winhance.WPF
                 services.AddSingleton<IRegistryService, RegistryService>();
                 services.AddSingleton<ICommandService, CommandService>();
                 services.AddSingleton<IDependencyManager, DependencyManager>();
+                services.AddSingleton<IGlobalSettingsRegistry, GlobalSettingsRegistry>();
                 services.AddSingleton<ISettingsRegistry, SettingsRegistry>();
+
+                // System Settings Discovery Service - coordinates between RegistryService and CommandService
+                services.AddSingleton<ISystemSettingsDiscoveryService>(
+                    provider => new Winhance.Infrastructure.Features.Common.Services.SystemSettingsDiscoveryService(
+                        provider.GetRequiredService<IRegistryService>(),
+                        provider.GetRequiredService<ICommandService>(),
+                        provider.GetRequiredService<ILogService>()
+                    )
+                );
+
+                // Register the Domain Dependency Service (Clean Architecture)
+                services.AddSingleton<IDomainDependencyService, DomainDependencyService>();
+
+                // Register the new generic Application Settings Service (Clean Architecture)
+                services.AddScoped<IApplicationSettingsService>(provider => new ApplicationSettingsService(
+                    provider.GetRequiredService<IRegistryService>(),
+                    provider.GetRequiredService<ICommandService>(),
+                    provider.GetRequiredService<IDomainDependencyService>(),
+                    provider.GetRequiredService<ILogService>(),
+                    provider.GetRequiredService<ISystemSettingsDiscoveryService>(),
+                    provider.GetRequiredService<ISystemServices>()
+                ));
+
+                // Register the Settings Initialization Service
+                services.AddSingleton<ISettingsInitializationService, SettingsInitializationService>();
+
                 services.AddSingleton<IViewModelLocator, ViewModelLocator>();
                 services.AddSingleton<IBatteryService, BatteryService>();
                 services.AddSingleton<IScriptPathService, ScriptPathService>();
@@ -732,6 +774,12 @@ namespace Winhance.WPF
                 services.AddSingleton<
                     IPowerPlanManagerService,
                     Winhance.Infrastructure.Features.Optimize.Services.PowerPlanManagerService
+                >();
+                
+                // Register UAC settings service
+                services.AddSingleton<
+                    IUacSettingsService,
+                    Winhance.WPF.Features.Common.Services.UacSettingsService
                 >();
 
                 // Register the installation and removal services
@@ -981,11 +1029,11 @@ namespace Winhance.WPF
                     )
                 );
 
-                // Register child ViewModels for OptimizeViewModel
+                // Register child ViewModels for OptimizeViewModel - Clean Architecture
                 services.AddSingleton<WindowsSecurityOptimizationsViewModel>(
                     provider => new WindowsSecurityOptimizationsViewModel(
+                        provider.GetRequiredService<IApplicationSettingsService>(),
                         provider.GetRequiredService<ITaskProgressService>(),
-                        provider.GetRequiredService<IRegistryService>(),
                         provider.GetRequiredService<ILogService>(),
                         provider.GetRequiredService<ISystemServices>(),
                         provider.GetRequiredService<IUacSettingsService>()
@@ -994,58 +1042,46 @@ namespace Winhance.WPF
 
                 services.AddSingleton<PrivacyOptimizationsViewModel>(
                     provider => new PrivacyOptimizationsViewModel(
+                        provider.GetRequiredService<IApplicationSettingsService>(),
                         provider.GetRequiredService<ITaskProgressService>(),
-                        provider.GetRequiredService<IRegistryService>(),
-                        provider.GetRequiredService<ILogService>(),
-                        provider.GetRequiredService<IDependencyManager>(),
-                        provider.GetRequiredService<ISystemServices>(),
-                        provider.GetRequiredService<IViewModelLocator>(),
-                        provider.GetRequiredService<ISettingsRegistry>()
+                        provider.GetRequiredService<ILogService>()
                     )
                 );
 
                 services.AddSingleton<GamingandPerformanceOptimizationsViewModel>(
                     provider => new GamingandPerformanceOptimizationsViewModel(
+                        provider.GetRequiredService<IApplicationSettingsService>(),
                         provider.GetRequiredService<ITaskProgressService>(),
-                        provider.GetRequiredService<IRegistryService>(),
-                        provider.GetRequiredService<ILogService>(),
-                        provider.GetRequiredService<ICommandService>(),
-                        provider.GetRequiredService<IViewModelLocator>(),
-                        provider.GetRequiredService<ISettingsRegistry>()
+                        provider.GetRequiredService<ILogService>()
                     )
                 );
 
                 services.AddSingleton<UpdateOptimizationsViewModel>(
                     provider => new UpdateOptimizationsViewModel(
+                        provider.GetRequiredService<IApplicationSettingsService>(),
                         provider.GetRequiredService<ITaskProgressService>(),
-                        provider.GetRequiredService<IRegistryService>(),
-                        provider.GetRequiredService<ILogService>(),
-                        provider.GetRequiredService<ISystemServices>(),
-                        provider.GetRequiredService<IViewModelLocator>(),
-                        provider.GetRequiredService<ISettingsRegistry>()
+                        provider.GetRequiredService<ILogService>()
                     )
                 );
 
                 services.AddSingleton<PowerOptimizationsViewModel>(
                     provider => new PowerOptimizationsViewModel(
+                        provider.GetRequiredService<IApplicationSettingsService>(),
                         provider.GetRequiredService<ITaskProgressService>(),
-                        provider.GetRequiredService<IRegistryService>(),
                         provider.GetRequiredService<ILogService>(),
                         provider.GetRequiredService<Winhance.Core.Features.Optimize.Interfaces.IPowerPlanService>(),
-                        provider.GetService<IPowerSettingService>(),
-                        provider.GetService<IPowerPlanManagerService>(),
-                        provider.GetService<IViewModelLocator>(),
-                        provider.GetService<ISettingsRegistry>()
+                        provider.GetRequiredService<IPowerSettingService>(),
+                        provider.GetRequiredService<IPowerPlanManagerService>()
                     )
                 );
 
                 // ViewModels are registered above
 
                 services.AddSingleton<OptimizeViewModel>(provider => new OptimizeViewModel(
-                    provider.GetRequiredService<IRegistryService>(),
-                    provider.GetRequiredService<IDialogService>(),
-                    provider.GetRequiredService<ILogService>(),
+                    provider.GetRequiredService<IApplicationSettingsService>(),
                     provider.GetRequiredService<ITaskProgressService>(),
+                    provider.GetRequiredService<ILogService>(),
+                    provider.GetRequiredService<IDialogService>(),
                     provider.GetRequiredService<ISearchService>(),
                     provider.GetRequiredService<IConfigurationService>(),
                     provider.GetRequiredService<GamingandPerformanceOptimizationsViewModel>(),
@@ -1059,20 +1095,30 @@ namespace Winhance.WPF
                     provider.GetRequiredService<Core.Features.Common.Interfaces.IMessengerService>()
                 ));
 
-                // Register child ViewModels for CustomizeViewModel
+                // Register child ViewModels for CustomizeViewModel - Clean Architecture
                 services.AddSingleton<TaskbarCustomizationsViewModel>(
                     provider => new TaskbarCustomizationsViewModel(
-                        provider.GetRequiredService<ITaskProgressService>(),
-                        provider.GetRequiredService<IRegistryService>(),
+                        provider.GetRequiredService<IApplicationSettingsService>(),
                         provider.GetRequiredService<ILogService>(),
-                        provider.GetRequiredService<ISystemServices>()
+                        provider.GetRequiredService<Core.Features.Common.Interfaces.IDialogService>(),
+                        provider.GetRequiredService<ISystemServices>(),
+                        provider.GetRequiredService<ITaskProgressService>()
                     )
                 );
 
+                services.AddSingleton<ExplorerCustomizationsViewModel>(
+                    provider => new ExplorerCustomizationsViewModel(
+                        provider.GetRequiredService<IApplicationSettingsService>(),
+                        provider.GetRequiredService<ILogService>(),
+                        provider.GetRequiredService<Core.Features.Common.Interfaces.IDialogService>(),
+                        provider.GetRequiredService<ITaskProgressService>()
+                    )
+                );
+                
                 services.AddSingleton<StartMenuCustomizationsViewModel>(
                     provider => new StartMenuCustomizationsViewModel(
+                        provider.GetRequiredService<IApplicationSettingsService>(),
                         provider.GetRequiredService<ITaskProgressService>(),
-                        provider.GetRequiredService<IRegistryService>(),
                         provider.GetRequiredService<ILogService>(),
                         provider.GetRequiredService<ISystemServices>(),
                         provider.GetRequiredService<Core.Features.Common.Interfaces.IDialogService>(),
@@ -1080,70 +1126,146 @@ namespace Winhance.WPF
                     )
                 );
 
-                services.AddSingleton<ExplorerCustomizationsViewModel>(
-                    provider => new ExplorerCustomizationsViewModel(
-                        provider.GetRequiredService<ITaskProgressService>(),
-                        provider.GetRequiredService<IRegistryService>(),
-                        provider.GetRequiredService<ILogService>(),
-                        provider.GetRequiredService<Core.Features.Common.Interfaces.IDialogService>()
-                    )
-                );
-
                 services.AddSingleton<ExplorerOptimizationsViewModel>(
                     provider => new ExplorerOptimizationsViewModel(
+                        provider.GetRequiredService<IApplicationSettingsService>(),
                         provider.GetRequiredService<ITaskProgressService>(),
-                        provider.GetRequiredService<IRegistryService>(),
-                        provider.GetRequiredService<ILogService>(),
-                        provider.GetRequiredService<IDependencyManager>(),
-                        provider.GetRequiredService<ISystemServices>()
+                        provider.GetRequiredService<ILogService>()
                     )
                 );
 
                 services.AddSingleton<NotificationOptimizationsViewModel>(
                     provider => new NotificationOptimizationsViewModel(
+                        provider.GetRequiredService<IApplicationSettingsService>(),
                         provider.GetRequiredService<ITaskProgressService>(),
-                        provider.GetRequiredService<IRegistryService>(),
-                        provider.GetRequiredService<ILogService>(),
-                        provider.GetRequiredService<Core.Features.Common.Interfaces.IDialogService>(),
-                        provider.GetRequiredService<IDependencyManager>(),
-                        provider.GetRequiredService<ISystemServices>()
+                        provider.GetRequiredService<ILogService>()
                     )
                 );
 
                 services.AddSingleton<SoundOptimizationsViewModel>(
                     provider => new SoundOptimizationsViewModel(
+                        provider.GetRequiredService<IApplicationSettingsService>(),
                         provider.GetRequiredService<ITaskProgressService>(),
-                        provider.GetRequiredService<IRegistryService>(),
+                        provider.GetRequiredService<ILogService>()
+                    )
+                );
+
+                services.AddSingleton<UpdateOptimizationsViewModel>(
+                    provider => new UpdateOptimizationsViewModel(
+                        provider.GetRequiredService<IApplicationSettingsService>(),
+                        provider.GetRequiredService<ITaskProgressService>(),
+                        provider.GetRequiredService<ILogService>()
+                    )
+                );
+
+                services.AddSingleton<PowerOptimizationsViewModel>(
+                    provider => new PowerOptimizationsViewModel(
+                        provider.GetRequiredService<IApplicationSettingsService>(),
+                        provider.GetRequiredService<ITaskProgressService>(),
                         provider.GetRequiredService<ILogService>(),
-                        provider.GetRequiredService<IDependencyManager>(),
-                        provider.GetRequiredService<ISystemServices>()
+                        provider.GetRequiredService<IPowerPlanService>(),
+                        provider.GetRequiredService<IPowerSettingService>(),
+                        provider.GetRequiredService<IPowerPlanManagerService>()
+                    )
+                );
+
+                services.AddSingleton<WindowsSecurityOptimizationsViewModel>(
+                    provider => new WindowsSecurityOptimizationsViewModel(
+                        provider.GetRequiredService<IApplicationSettingsService>(),
+                        provider.GetRequiredService<ITaskProgressService>(),
+                        provider.GetRequiredService<ILogService>(),
+                        provider.GetRequiredService<ISystemServices>(),
+                        provider.GetRequiredService<IUacSettingsService>()
+                    )
+                );
+
+                services.AddSingleton<PrivacyOptimizationsViewModel>(
+                    provider => new PrivacyOptimizationsViewModel(
+                        provider.GetRequiredService<IApplicationSettingsService>(),
+                        provider.GetRequiredService<ITaskProgressService>(),
+                        provider.GetRequiredService<ILogService>()
+                    )
+                );
+
+                services.AddSingleton<OptimizeViewModel>(
+                    provider => new OptimizeViewModel(
+                        provider.GetRequiredService<IApplicationSettingsService>(),
+                        provider.GetRequiredService<ITaskProgressService>(),
+                        provider.GetRequiredService<ILogService>(),
+                        provider.GetRequiredService<Core.Features.Common.Interfaces.IDialogService>(),
+                        provider.GetRequiredService<ISearchService>(),
+                        provider.GetRequiredService<IConfigurationService>(),
+                        provider.GetRequiredService<GamingandPerformanceOptimizationsViewModel>(),
+                        provider.GetRequiredService<PrivacyOptimizationsViewModel>(),
+                        provider.GetRequiredService<UpdateOptimizationsViewModel>(),
+                        provider.GetRequiredService<PowerOptimizationsViewModel>(),
+                        provider.GetRequiredService<WindowsSecurityOptimizationsViewModel>(),
+                        provider.GetRequiredService<ExplorerOptimizationsViewModel>(),
+                        provider.GetRequiredService<NotificationOptimizationsViewModel>(),
+                        provider.GetRequiredService<SoundOptimizationsViewModel>(),
+                        provider.GetRequiredService<Core.Features.Common.Interfaces.IMessengerService>()
                     )
                 );
 
                 services.AddSingleton<WindowsThemeCustomizationsViewModel>(
                     provider => new WindowsThemeCustomizationsViewModel(
-                        provider.GetRequiredService<ITaskProgressService>(),
-                        provider.GetRequiredService<IRegistryService>(),
+                        provider.GetRequiredService<IApplicationSettingsService>(),
                         provider.GetRequiredService<ILogService>(),
                         provider.GetRequiredService<Core.Features.Common.Interfaces.IDialogService>(),
-                        provider.GetRequiredService<Core.Features.Customize.Interfaces.IThemeService>()
+                        provider.GetRequiredService<Core.Features.Customize.Interfaces.IThemeService>(),
+                        provider.GetRequiredService<ISystemServices>(),
+                        provider.GetRequiredService<ITaskProgressService>()
                     )
                 );
 
-                services.AddSingleton<CustomizeViewModel>(provider => new CustomizeViewModel(
+                // Register individual customization ViewModels
+                services.AddSingleton<StartMenuCustomizationsViewModel>(provider => new StartMenuCustomizationsViewModel(
+                    provider.GetRequiredService<IApplicationSettingsService>(),
                     provider.GetRequiredService<ITaskProgressService>(),
+                    provider.GetRequiredService<ILogService>(),
                     provider.GetRequiredService<ISystemServices>(),
+                    provider.GetRequiredService<Core.Features.Common.Interfaces.IDialogService>(),
+                    provider.GetRequiredService<IScheduledTaskService>()
+                ));
+
+                services.AddSingleton<TaskbarCustomizationsViewModel>(provider => new TaskbarCustomizationsViewModel(
+                    provider.GetRequiredService<IApplicationSettingsService>(),
+                    provider.GetRequiredService<ILogService>(),
+                    provider.GetRequiredService<Core.Features.Common.Interfaces.IDialogService>(),
+                    provider.GetRequiredService<ISystemServices>(),
+                    provider.GetRequiredService<ITaskProgressService>()
+                ));
+
+                services.AddSingleton<ExplorerCustomizationsViewModel>(provider => new ExplorerCustomizationsViewModel(
+                    provider.GetRequiredService<IApplicationSettingsService>(),
+                    provider.GetRequiredService<ILogService>(),
+                    provider.GetRequiredService<Core.Features.Common.Interfaces.IDialogService>(),
+                    provider.GetRequiredService<ITaskProgressService>()
+                ));
+
+                services.AddSingleton<WindowsThemeCustomizationsViewModel>(provider => new WindowsThemeCustomizationsViewModel(
+                    provider.GetRequiredService<IApplicationSettingsService>(),
+                    provider.GetRequiredService<ILogService>(),
+                    provider.GetRequiredService<Core.Features.Common.Interfaces.IDialogService>(),
+                    provider.GetRequiredService<IThemeService>(),
+                    provider.GetRequiredService<ISystemServices>(),
+                    provider.GetRequiredService<ITaskProgressService>()
+                ));
+
+                services.AddSingleton<CustomizeViewModel>(provider => new CustomizeViewModel(
+                    provider.GetRequiredService<IApplicationSettingsService>(),
+                    provider.GetRequiredService<ITaskProgressService>(),
                     provider.GetRequiredService<ILogService>(),
                     provider.GetRequiredService<Core.Features.Common.Interfaces.IDialogService>(),
                     provider.GetRequiredService<IThemeManager>(),
-                    provider.GetRequiredService<ISearchService>(),
-                    provider.GetRequiredService<IConfigurationService>(),
-                    provider.GetRequiredService<TaskbarCustomizationsViewModel>(),
-                    provider.GetRequiredService<StartMenuCustomizationsViewModel>(),
-                    provider.GetRequiredService<ExplorerCustomizationsViewModel>(),
+                    provider.GetRequiredService<Core.Features.Common.Interfaces.IMessengerService>(),
                     provider.GetRequiredService<WindowsThemeCustomizationsViewModel>(),
-                    provider.GetRequiredService<Core.Features.Common.Interfaces.IMessengerService>()
+                    provider.GetRequiredService<StartMenuCustomizationsViewModel>(),
+                    provider.GetRequiredService<TaskbarCustomizationsViewModel>(),
+                    provider.GetRequiredService<ExplorerCustomizationsViewModel>()
                 ));
+
+
 
                 services.AddSingleton<SoftwareAppsViewModel>(provider => new SoftwareAppsViewModel(
                     provider.GetRequiredService<ITaskProgressService>(),

@@ -13,11 +13,11 @@ namespace Winhance.WPF.Features.SoftwareApps.Models
     public class WindowsAppSettingItem : ISettingItem
     {
         private readonly WindowsApp _windowsApp;
-        
+
         public WindowsAppSettingItem(WindowsApp windowsApp)
         {
             _windowsApp = windowsApp;
-            
+
             // Initialize properties required by ISettingItem
             Id = windowsApp.PackageId;
             Name = windowsApp.DisplayName;
@@ -27,11 +27,11 @@ namespace Winhance.WPF.Features.SoftwareApps.Models
             IsVisible = true;
             ControlType = ControlType.BinaryToggle;
             Dependencies = new List<SettingDependency>();
-            
+
             // Create a command that does nothing (placeholder)
             ApplySettingCommand = new RelayCommand(() => { });
         }
-        
+
         // ISettingItem implementation
         public string Id { get; set; }
         public string Name { get; set; }
@@ -40,10 +40,11 @@ namespace Winhance.WPF.Features.SoftwareApps.Models
         public string GroupName { get; set; }
         public bool IsVisible { get; set; }
         public ControlType ControlType { get; set; }
+        public object? SelectedValue { get; set; }
         public List<SettingDependency> Dependencies { get; set; }
-        public bool IsUpdatingFromCode { get; set; }
+
         public ICommand ApplySettingCommand { get; }
-        
+
         // Method to convert back to WindowsApp
         public WindowsApp ToWindowsApp()
         {
@@ -51,9 +52,11 @@ namespace Winhance.WPF.Features.SoftwareApps.Models
             _windowsApp.IsSelected = IsSelected;
             return _windowsApp;
         }
-        
+
         // Static method to convert a collection of WindowsApps to WindowsAppSettingItems
-        public static IEnumerable<WindowsAppSettingItem> FromWindowsApps(IEnumerable<WindowsApp> windowsApps)
+        public static IEnumerable<WindowsAppSettingItem> FromWindowsApps(
+            IEnumerable<WindowsApp> windowsApps
+        )
         {
             foreach (var app in windowsApps)
             {

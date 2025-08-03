@@ -45,7 +45,6 @@ namespace Winhance.WPF.Features.Common.Views
         {
             var dialog = new CustomDialog { Title = title };
 
-            dialog.DialogIcon.Source = Application.Current.Resources["QuestionIcon"] as ImageSource;
             dialog.HeaderText.Text = headerText;
             dialog.MessageContent.Text = message;
             dialog.FooterText.Text = footerText;
@@ -76,7 +75,6 @@ namespace Winhance.WPF.Features.Common.Views
         {
             var dialog = new CustomDialog { Title = title };
 
-            dialog.DialogIcon.Source = Application.Current.Resources["InfoIcon"] as ImageSource;
             dialog.HeaderText.Text = headerText;
             dialog.MessageContent.Text = message;
             dialog.FooterText.Text = footerText;
@@ -152,7 +150,6 @@ namespace Winhance.WPF.Features.Common.Views
         {
             var dialog = new CustomDialog { Title = title };
 
-            dialog.DialogIcon.Source = Application.Current.Resources["QuestionIcon"] as ImageSource;
             dialog.HeaderText.Text = headerText;
             dialog.MessageContent.Text = message;
             dialog.FooterText.Text = footerText;

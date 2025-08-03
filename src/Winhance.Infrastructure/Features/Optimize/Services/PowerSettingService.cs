@@ -31,7 +31,7 @@ namespace Winhance.Infrastructure.Features.Optimize.Services
         /// <returns>A list of all power settings.</returns>
         public List<PowerSettingDefinition> GetAllSettings()
         {
-            return PowerSettingCatalog.GetAllSettings();
+            return PowerOptimizations.GetAllSettings();
         }
 
         /// <summary>
@@ -40,7 +40,7 @@ namespace Winhance.Infrastructure.Features.Optimize.Services
         /// <returns>A list of all power setting subgroups.</returns>
         public List<PowerSettingSubgroup> GetAllSubgroups()
         {
-            return PowerSettingCatalog.GetAllSubgroups();
+            return PowerOptimizations.GetAllSubgroups();
         }
 
         /// <summary>
@@ -50,7 +50,7 @@ namespace Winhance.Infrastructure.Features.Optimize.Services
         /// <returns>The power setting definition, or null if not found.</returns>
         public PowerSettingDefinition? GetSettingByGuid(string guid)
         {
-            return PowerSettingCatalog.GetSettingByGuid(guid);
+            return PowerOptimizations.GetSettingByGuid(guid);
         }
 
         /// <summary>
@@ -60,7 +60,7 @@ namespace Winhance.Infrastructure.Features.Optimize.Services
         /// <returns>The power setting definition, or null if not found.</returns>
         public PowerSettingDefinition? GetSettingByAlias(string alias)
         {
-            return PowerSettingCatalog.GetSettingByAlias(alias);
+            return PowerOptimizations.GetSettingByAlias(alias);
         }
 
         /// <summary>
@@ -73,7 +73,7 @@ namespace Winhance.Infrastructure.Features.Optimize.Services
         public async Task<(int acValue, int dcValue)> GetSettingValueAsync(string powerPlanGuid, string subgroupGuid, string settingGuid)
         {
             // Check if this is a custom command setting
-            var settingDefinition = PowerSettingCatalog.GetSettingByGuid(settingGuid);
+            var settingDefinition = PowerOptimizations.GetSettingByGuid(settingGuid);
             if (settingDefinition != null && settingDefinition.CustomCommand)
             {
                 // For custom commands like hibernation, we need to determine the current state
@@ -177,7 +177,7 @@ namespace Winhance.Infrastructure.Features.Optimize.Services
         public async Task<bool> ApplySettingValueAsync(PowerSettingApplyValue settingValue)
         {
             // Get the setting definition to check if it's a custom command
-            var settingDefinition = PowerSettingCatalog.GetSettingByGuid(settingValue.SettingGuid);
+            var settingDefinition = PowerOptimizations.GetSettingByGuid(settingValue.SettingGuid);
             
             // If this is a custom command setting, handle it differently
             if (settingDefinition != null && settingDefinition.CustomCommand)
@@ -269,7 +269,7 @@ namespace Winhance.Infrastructure.Features.Optimize.Services
                 // Check if this is a custom command setting
                 if (!string.IsNullOrEmpty(settingGuid))
                 {
-                    var settingDefinition = PowerSettingCatalog.GetSettingByGuid(settingGuid);
+                    var settingDefinition = PowerOptimizations.GetSettingByGuid(settingGuid);
                     if (settingDefinition != null && settingDefinition.CustomCommand)
                     {
                         // For custom commands like hibernation, we consider them to exist if they're defined in our catalog

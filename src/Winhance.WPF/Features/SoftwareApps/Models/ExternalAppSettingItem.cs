@@ -40,8 +40,9 @@ namespace Winhance.WPF.Features.SoftwareApps.Models
         public string GroupName { get; set; }
         public bool IsVisible { get; set; }
         public ControlType ControlType { get; set; }
+        public object? SelectedValue { get; set; }
         public List<SettingDependency> Dependencies { get; set; }
-        public bool IsUpdatingFromCode { get; set; }
+
         public ICommand ApplySettingCommand { get; }
         
         // Method to convert back to ExternalApp

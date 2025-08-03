@@ -19,7 +19,12 @@ namespace Winhance.Core.Features.Optimize.Models
         /// <summary>
         /// A setting with predefined options (e.g., On/Off, High/Medium/Low).
         /// </summary>
-        Enum
+        Enum,
+
+        /// <summary>
+        /// A setting with a boolean value (true/false, on/off).
+        /// </summary>
+        Boolean
     }
 
     /// <summary>

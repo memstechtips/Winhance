@@ -14,7 +14,8 @@ namespace Winhance.Core.Features.Customize.Models;
 
 public static class StartMenuCustomizations
 {
-    private const string Win10StartLayoutPath = @"C:\Users\Default\AppData\Local\Microsoft\Windows\Shell\LayoutModification.xml";
+    private const string Win10StartLayoutPath =
+        @"C:\Users\Default\AppData\Local\Microsoft\Windows\Shell\LayoutModification.xml";
 
     public static CustomizationGroup GetStartMenuCustomizations()
     {
@@ -28,12 +29,14 @@ public static class StartMenuCustomizations
                 {
                     Id = "start-menu-layout",
                     Name = "Start Layout",
-                    Description = "Controls Start Menu layout configuration (Windows 11 24H2 only, removed in build 26120.4250+)",
+                    Description =
+                        "Controls Start Menu layout configuration (Windows 11 24H2 only, removed in build 26120.4250+)",
                     Category = CustomizationCategory.StartMenu,
                     GroupName = "Layout",
-                    IsEnabled = false,
+                    IsEnabled = true,
                     ControlType = ControlType.ComboBox,
                     IsWindows11Only = true,
+                    Icon = "\uF78C", // Start menu icon
                     MinimumBuildNumber = 22000, // Windows 11 24H2 starts around build 26100
                     MaximumBuildNumber = 26120, // Removed in build 26120.4250, so max 26120
                     RegistrySettings = new List<RegistrySetting>
@@ -42,17 +45,19 @@ public static class StartMenuCustomizations
                         {
                             Category = "StartMenu",
                             Hive = RegistryHive.CurrentUser,
-                            SubKey = "Software\\Microsoft\\Windows\\CurrentVersion\\Explorer\\Advanced",
+                            SubKey =
+                                "Software\\Microsoft\\Windows\\CurrentVersion\\Explorer\\Advanced",
                             Name = "Start_Layout",
-                            RecommendedValue = 1,  // More Pins
+                            RecommendedValue = 1, // More Pins
                             ValueType = RegistryValueKind.DWord,
-                            DefaultValue = 0,      // Windows default is default layout
-                            Description = "Controls Start Menu layout configuration. 0=Default, 1=More pins, 2=More recommendations",
+                            DefaultValue = 0, // Windows default is default layout
+                            Description =
+                                "Controls Start Menu layout configuration. 0=Default, 1=More pins, 2=More recommendations",
                             IsPrimary = true,
                             AbsenceMeansEnabled = false,
                             // ComboBox options mapping:
                             // Value 0 = "Default"
-                            // Value 1 = "More pins" 
+                            // Value 1 = "More pins"
                             // Value 2 = "More recommendations"
                             CustomProperties = new Dictionary<string, object>
                             {
@@ -60,27 +65,133 @@ public static class StartMenuCustomizations
                                 {
                                     ["Default"] = 0,
                                     ["More pins"] = 1,
-                                    ["More recommendations"] = 2
+                                    ["More recommendations"] = 2,
                                 },
-                                ["DefaultOption"] = "Default"
-                            }
-                        }
-                    }
+                                ["DefaultOption"] = "Default",
+                            },
+                        },
+                    },
+                },
+                new CustomizationSetting
+                {
+                    Id = "recommended-section",
+                    Name = "Recommended Section",
+                    Description =
+                        "Controls the visibility of the recommended section in the Start Menu",
+                    Category = CustomizationCategory.StartMenu,
+                    GroupName = "Layout",
+                    IsEnabled = true,
+                    ControlType = ControlType.ComboBox,
+                    IsWindows11Only = true,
+                    Icon = "\uF054", // Reviews icon
+                    LinkedSettingsLogic = LinkedSettingsLogic.All,
+                    RegistrySettings = new List<RegistrySetting>
+                    {
+                        new RegistrySetting
+                        {
+                            Category = "Explorer",
+                            Hive = RegistryHive.LocalMachine,
+                            SubKey = "SOFTWARE\\Policies\\Microsoft\\Windows\\Explorer",
+                            Name = "HideRecommendedSection",
+                            RecommendedValue = 1, // Hide recommended section
+                            EnabledValue = 1, // When "Hide" is selected, set value to 1
+                            DisabledValue = null, // When "Show" is selected, delete the value (Group Policy)
+                            ValueType = RegistryValueKind.DWord,
+                            DefaultValue = 0, // Default value when registry key exists but no value is set
+                            Description =
+                                "Controls the visibility of the recommended section in the Start Menu",
+                            IsPrimary = true,
+                            IsGroupPolicy = true,
+                            AbsenceMeansEnabled = false,
+                            // ComboBox options mapping:
+                            // "Show" = delete registry value (null will trigger deletion)
+                            // "Hide" = set value to 1
+                            CustomProperties = new Dictionary<string, object>
+                            {
+                                ["ComboBoxOptions"] = new Dictionary<string, int>
+                                {
+                                    ["Show"] = 0, // This will trigger Group Policy deletion
+                                    ["Hide"] = 1, // This will set the value to 1
+                                },
+                                ["DefaultOption"] = "Show",
+                            },
+                        },
+                        new RegistrySetting
+                        {
+                            Category = "Start",
+                            Hive = RegistryHive.LocalMachine,
+                            SubKey = "SOFTWARE\\Microsoft\\PolicyManager\\current\\device\\Start",
+                            Name = "HideRecommendedSection",
+                            RecommendedValue = 1, // Hide recommended section
+                            EnabledValue = 1, // When "Hide" is selected, set value to 1
+                            DisabledValue = null, // When "Show" is selected, delete the value (Group Policy)
+                            ValueType = RegistryValueKind.DWord,
+                            DefaultValue = 0, // Default value when registry key exists but no value is set
+                            Description =
+                                "Controls the visibility of the recommended section in the Start Menu (PolicyManager)",
+                            IsPrimary = false,
+                            IsGroupPolicy = true,
+                            AbsenceMeansEnabled = false,
+                            // ComboBox options mapping:
+                            // "Show" = delete registry value (null will trigger deletion)
+                            // "Hide" = set value to 1
+                            CustomProperties = new Dictionary<string, object>
+                            {
+                                ["ComboBoxOptions"] = new Dictionary<string, int>
+                                {
+                                    ["Show"] = 0, // This will trigger Group Policy deletion
+                                    ["Hide"] = 1, // This will set the value to 1
+                                },
+                                ["DefaultOption"] = "Show",
+                            },
+                        },
+                        new RegistrySetting
+                        {
+                            Category = "Education",
+                            Hive = RegistryHive.LocalMachine,
+                            SubKey =
+                                "SOFTWARE\\Microsoft\\PolicyManager\\current\\device\\Education",
+                            Name = "IsEducationEnvironment",
+                            RecommendedValue = 1, // Enable education environment
+                            EnabledValue = 1, // When "Hide" is selected, set value to 1
+                            DisabledValue = null, // When "Show" is selected, delete the value (Group Policy)
+                            ValueType = RegistryValueKind.DWord,
+                            DefaultValue = 0, // Default value when registry key exists but no value is set
+                            Description =
+                                "Sets education environment flag to help hide recommended section",
+                            IsPrimary = false,
+                            IsGroupPolicy = true,
+                            AbsenceMeansEnabled = false,
+                            // ComboBox options mapping:
+                            // "Show" = delete registry value (null will trigger deletion)
+                            // "Hide" = set value to 1
+                            CustomProperties = new Dictionary<string, object>
+                            {
+                                ["ComboBoxOptions"] = new Dictionary<string, int>
+                                {
+                                    ["Show"] = 0, // This will trigger Group Policy deletion
+                                    ["Hide"] = 1, // This will set the value to 1
+                                },
+                                ["DefaultOption"] = "Show",
+                            },
+                        },
+                    },
                 },
                 new CustomizationSetting
                 {
                     Id = "show-all-pins-by-default",
                     Name = "Show all pins by default",
-                    Description = "Controls whether all pins are shown by default in Start Menu (Windows 11 24H2 build 26120.4250+ and 25H2 build 26200.5670+)",
+                    Description =
+                        "Controls whether all pins are shown by default in Start Menu (Windows 11 24H2 build 26120.4250+ and 25H2 build 26200.5670+)",
                     Category = CustomizationCategory.StartMenu,
                     GroupName = "Start Menu Settings",
-                    IsEnabled = false,
+                    IsEnabled = true,
                     ControlType = ControlType.BinaryToggle,
                     IsWindows11Only = true,
                     SupportedBuildRanges = new List<(int, int)>
                     {
                         (26120, int.MaxValue), // Windows 11 24H2 build 26120.4250 and later
-                        (26200, int.MaxValue)  // Windows 11 25H2 build 26200.5670 and later
+                        (26200, int.MaxValue), // Windows 11 25H2 build 26200.5670 and later
                     },
                     RegistrySettings = new List<RegistrySetting>
                     {
@@ -95,7 +206,8 @@ public static class StartMenuCustomizations
                             DisabledValue = 0, // When toggle is OFF, all pins are not shown
                             ValueType = RegistryValueKind.DWord,
                             DefaultValue = 1, // Default value when registry key exists but no value is set
-                            Description = "Controls whether all pins are shown by default in Start Menu",
+                            Description =
+                                "Controls whether all pins are shown by default in Start Menu",
                             IsPrimary = true,
                             AbsenceMeansEnabled = true,
                         },
@@ -115,44 +227,77 @@ public static class StartMenuCustomizations
                         new RegistrySetting
                         {
                             Category = "Explorer",
-                            Hive = RegistryHive.LocalMachine,
-                            SubKey = "SOFTWARE\\Policies\\Microsoft\\Windows\\Explorer",
-                            Name = "HideRecentlyAddedApps",
+                            Hive = RegistryHive.CurrentUser,
+                            SubKey = "Software\\Microsoft\\Windows\\CurrentVersion\\Start",
+                            Name = "ShowRecentList",
                             RecommendedValue = 0,
-                            EnabledValue = 0, // When toggle is ON, recently added apps are shown
-                            DisabledValue = 1, // When toggle is OFF, recently added apps are hidden
+                            EnabledValue = 1, // When toggle is ON, recently added apps are shown
+                            DisabledValue = 0, // When toggle is OFF, recently added apps are hidden
                             ValueType = RegistryValueKind.DWord,
-                            DefaultValue = 0, // Default value when registry key exists but no value is set
+                            DefaultValue = 1, // Default value when registry key exists but no value is set
                             Description =
                                 "Controls visibility of recently added apps in Start Menu",
                             IsPrimary = false,
-                            AbsenceMeansEnabled = false,
+                            AbsenceMeansEnabled = true,
                         },
                     },
                 },
+                // Windows 11 - Show Most Used Apps (uses ShowFrequentList)
                 new CustomizationSetting
                 {
-                    Id = "start-track-progs",
+                    Id = "show-frequent-list",
                     Name = "Show Most Used Apps",
-                    Description = "Controls Show Most Used Apps Setting in Start Menu",
+                    Description = "Controls Show Most Used Apps Setting in Start Menu (Windows 11)",
                     Category = CustomizationCategory.StartMenu,
                     GroupName = "Start Menu",
                     IsEnabled = true,
                     ControlType = ControlType.BinaryToggle,
+                    IsWindows11Only = true,
                     RegistrySettings = new List<RegistrySetting>
                     {
                         new RegistrySetting
                         {
                             Category = "StartMenu",
                             Hive = RegistryHive.CurrentUser,
-                            SubKey = "Software\\Microsoft\\Windows\\CurrentVersion\\Explorer\\Advanced",
+                            SubKey = "Software\\Microsoft\\Windows\\CurrentVersion\\Start",
+                            Name = "ShowFrequentList",
+                            RecommendedValue = 0,
+                            EnabledValue = 1, // When toggle is ON, frequently used programs list is shown
+                            DisabledValue = 0, // When toggle is OFF, frequently used programs list is hidden
+                            ValueType = RegistryValueKind.DWord,
+                            DefaultValue = 1, // Default value when registry key exists but no value is set
+                            Description = "Controls Show Most Used Apps Setting in Start Menu (Windows 11)",
+                            IsPrimary = true,
+                            AbsenceMeansEnabled = true,
+                        },
+                    },
+                },
+                // Windows 10 - Show Most Used Apps (uses Start_TrackProgs)
+                new CustomizationSetting
+                {
+                    Id = "start-track-progs",
+                    Name = "Show Most Used Apps",
+                    Description = "Controls Show Most Used Apps Setting in Start Menu (Windows 10)",
+                    Category = CustomizationCategory.StartMenu,
+                    GroupName = "Start Menu",
+                    IsEnabled = true,
+                    ControlType = ControlType.BinaryToggle,
+                    IsWindows10Only = true,
+                    RegistrySettings = new List<RegistrySetting>
+                    {
+                        new RegistrySetting
+                        {
+                            Category = "StartMenu",
+                            Hive = RegistryHive.CurrentUser,
+                            SubKey =
+                                "Software\\Microsoft\\Windows\\CurrentVersion\\Explorer\\Advanced",
                             Name = "Start_TrackProgs",
                             RecommendedValue = 0,
                             EnabledValue = 1, // When toggle is ON, frequently used programs list is shown
                             DisabledValue = 0, // When toggle is OFF, frequently used programs list is hidden
                             ValueType = RegistryValueKind.DWord,
                             DefaultValue = 1, // Default value when registry key exists but no value is set
-                            Description = "Controls Show Most Used Apps Setting in Start Menu",
+                            Description = "Controls Show Most Used Apps Setting in Start Menu (Windows 10)",
                             IsPrimary = true,
                             AbsenceMeansEnabled = true,
                         },
@@ -165,7 +310,7 @@ public static class StartMenuCustomizations
                     Description = "Controls visibility of suggestions in Start Menu",
                     Category = CustomizationCategory.StartMenu,
                     GroupName = "Start Menu Settings",
-                    IsEnabled = false,
+                    IsEnabled = true,
                     ControlType = ControlType.BinaryToggle,
                     IsWindows10Only = true,
                     RegistrySettings = new List<RegistrySetting>
@@ -174,7 +319,8 @@ public static class StartMenuCustomizations
                         {
                             Category = "ContentDelivery",
                             Hive = RegistryHive.CurrentUser,
-                            SubKey = "SOFTWARE\\Microsoft\\Windows\\CurrentVersion\\ContentDeliveryManager",
+                            SubKey =
+                                "SOFTWARE\\Microsoft\\Windows\\CurrentVersion\\ContentDeliveryManager",
                             Name = "SubscribedContent-338388Enabled",
                             RecommendedValue = 0,
                             EnabledValue = 1, // When toggle is ON, suggestions are shown
@@ -190,12 +336,23 @@ public static class StartMenuCustomizations
                 new CustomizationSetting
                 {
                     Id = "show-recommended-files",
-                    Name = "Show Recommended & Recently Opened Items",
-                    Description = "Controls visibility of recommended files/recently opened items in Start Menu",
+                    Name = "Show Recommended/Recently Opened Items",
+                    Description =
+                        "Controls visibility of recommended files/recently opened items in Start Menu",
                     Category = CustomizationCategory.StartMenu,
                     GroupName = "Start Menu Settings",
                     IsEnabled = true,
                     ControlType = ControlType.BinaryToggle,
+                    Dependencies = new List<SettingDependency>
+                    {
+                        new SettingDependency
+                        {
+                            DependencyType = SettingDependencyType.RequiresSpecificValue,
+                            DependentSettingId = "show-recommended-files",
+                            RequiredSettingId = "recommended-section",
+                            RequiredValue = "Show",
+                        },
+                    },
                     RegistrySettings = new List<RegistrySetting>
                     {
                         new RegistrySetting
@@ -210,7 +367,8 @@ public static class StartMenuCustomizations
                             DisabledValue = 0, // When toggle is OFF, recommended files are hidden
                             ValueType = RegistryValueKind.DWord,
                             DefaultValue = 1, // Default value when registry key exists but no value is set
-                            Description = "Controls visibility of recommended files/recently opened items in Start Menu",
+                            Description =
+                                "Controls visibility of recommended files/recently opened items in Start Menu",
                             IsPrimary = true,
                             AbsenceMeansEnabled = true,
                         },
@@ -223,7 +381,7 @@ public static class StartMenuCustomizations
                     Description = "Controls recommendations for tips and shortcuts",
                     Category = CustomizationCategory.StartMenu,
                     GroupName = "Start Menu Settings",
-                    IsEnabled = false,
+                    IsEnabled = true,
                     ControlType = ControlType.BinaryToggle,
                     IsWindows11Only = true,
                     RegistrySettings = new List<RegistrySetting>
@@ -250,10 +408,11 @@ public static class StartMenuCustomizations
                 {
                     Id = "show-account-notifications",
                     Name = "Show Account-related Notifications",
-                    Description = "Controls visibility of account-related notifications in Start Menu",
+                    Description =
+                        "Controls visibility of account-related notifications in Start Menu",
                     Category = CustomizationCategory.StartMenu,
                     GroupName = "Start Menu Settings",
-                    IsEnabled = false,
+                    IsEnabled = true,
                     ControlType = ControlType.BinaryToggle,
                     RegistrySettings = new List<RegistrySetting>
                     {
@@ -261,14 +420,16 @@ public static class StartMenuCustomizations
                         {
                             Category = "Explorer",
                             Hive = RegistryHive.CurrentUser,
-                            SubKey = "Software\\Microsoft\\Windows\\CurrentVersion\\Explorer\\Advanced",
+                            SubKey =
+                                "Software\\Microsoft\\Windows\\CurrentVersion\\Explorer\\Advanced",
                             Name = "Start_AccountNotifications",
                             RecommendedValue = 0,
                             EnabledValue = 1, // When toggle is ON, account notifications are shown
                             DisabledValue = 0, // When toggle is OFF, account notifications are hidden
                             ValueType = RegistryValueKind.DWord,
                             DefaultValue = 1, // Default value when registry key exists but no value is set
-                            Description = "Controls visibility of account-related notifications in Start Menu",
+                            Description =
+                                "Controls visibility of account-related notifications in Start Menu",
                             IsPrimary = true,
                             AbsenceMeansEnabled = true,
                         },
@@ -278,10 +439,11 @@ public static class StartMenuCustomizations
                 {
                     Id = "power-lock-option",
                     Name = "Hide Lock Option",
-                    Description = "Controls whether the lock option is hidden in the Start menu power flyout",
+                    Description =
+                        "Controls whether the lock option is hidden in the Start menu power flyout",
                     Category = CustomizationCategory.StartMenu,
                     GroupName = "Start Menu",
-                    IsEnabled = false,
+                    IsEnabled = true,
                     ControlType = ControlType.BinaryToggle,
                     RegistrySettings = new List<RegistrySetting>
                     {
@@ -300,15 +462,17 @@ public static class StartMenuCustomizations
                             Description =
                                 "Controls whether the lock option is hidden in the Start menu power flyout",
                             IsPrimary = true,
+                            IsGroupPolicy = true,
                             AbsenceMeansEnabled = false,
                         },
                     },
                 },
                 new CustomizationSetting
                 {
-                    Id = "display-bing-search-results",
-                    Name = "Display Bing Search Results",
-                    Description = "Controls whether Bing search results are displayed in Start Menu search",
+                    Id = "disable-bing-search-results",
+                    Name = "Disable Bing Search Results",
+                    Description =
+                        "Controls whether Bing search results are displayed in Start Menu search",
                     Category = CustomizationCategory.StartMenu,
                     GroupName = "Start Menu Settings",
                     IsEnabled = true,
@@ -322,73 +486,12 @@ public static class StartMenuCustomizations
                             SubKey = "SOFTWARE\\Policies\\Microsoft\\Windows\\Explorer",
                             Name = "DisableSearchBoxSuggestions",
                             RecommendedValue = 1,
-                            EnabledValue = 0, // When toggle is ON, Bing search results are displayed (DisableSearchBoxSuggestions = 0)
-                            DisabledValue = 1, // When toggle is OFF, Bing search results are disabled (DisableSearchBoxSuggestions = 1)
+                            EnabledValue = 1, // When toggle is ON, Bing search results are not displayed in Start Menu search
+                            DisabledValue = 0, // When toggle is OFF, Bing search results are displayed in Start Menu search
                             ValueType = RegistryValueKind.DWord,
                             DefaultValue = 0, // Default value when registry key exists but no value is set
-                            Description = "Controls whether Bing search results are displayed in Start Menu search",
-                            IsPrimary = false,
-                            AbsenceMeansEnabled = true,
-                        },
-                    },
-                },
-                new CustomizationSetting
-                {
-                    Id = "remove-recommended-section",
-                    Name = "Remove Recommended Section",
-                    Description = "Removes the recommended section from the Start Menu",
-                    Category = CustomizationCategory.StartMenu,
-                    GroupName = "Start Menu Settings",
-                    IsEnabled = false,
-                    ControlType = ControlType.BinaryToggle,
-                    IsWindows11Only = true,
-                    LinkedSettingsLogic = LinkedSettingsLogic.All,
-                    RegistrySettings = new List<RegistrySetting>
-                    {
-                        new RegistrySetting
-                        {
-                            Category = "Explorer",
-                            Hive = RegistryHive.LocalMachine,
-                            SubKey = "SOFTWARE\\Policies\\Microsoft\\Windows\\Explorer",
-                            Name = "HideRecommendedSection",
-                            RecommendedValue = 1,
-                            EnabledValue = 1, // When toggle is ON, recommended section is hidden
-                            DisabledValue = 0, // When toggle is OFF, recommended section is shown
-                            ValueType = RegistryValueKind.DWord,
-                            DefaultValue = 0, // Default value when registry key exists but no value is set
-                            Description = "Removes the recommended section from the Start Menu",
-                            IsPrimary = true,
-                            IsGroupPolicy = true,
-                            AbsenceMeansEnabled = false,
-                        },
-                        new RegistrySetting
-                        {
-                            Category = "Start",
-                            Hive = RegistryHive.LocalMachine,
-                            SubKey = "SOFTWARE\\Microsoft\\PolicyManager\\current\\device\\Start",
-                            Name = "HideRecommendedSection",
-                            RecommendedValue = 1,
-                            EnabledValue = 1, // When toggle is ON, recommended section is hidden
-                            DisabledValue = 0, // When toggle is OFF, recommended section is shown
-                            ValueType = RegistryValueKind.DWord,
-                            DefaultValue = 0, // Default value when registry key exists but no value is set
-                            Description = "Removes the recommended section from the Start Menu (PolicyManager)",
-                            IsPrimary = false,
-                            IsGroupPolicy = true,
-                            AbsenceMeansEnabled = false,
-                        },
-                        new RegistrySetting
-                        {
-                            Category = "Education",
-                            Hive = RegistryHive.LocalMachine,
-                            SubKey = "SOFTWARE\\Microsoft\\PolicyManager\\current\\device\\Education",
-                            Name = "IsEducationEnvironment",
-                            RecommendedValue = 1,
-                            EnabledValue = 1, // When toggle is ON, education environment is enabled
-                            DisabledValue = 0, // When toggle is OFF, education environment is disabled
-                            ValueType = RegistryValueKind.DWord,
-                            DefaultValue = 0, // Default value when registry key exists but no value is set
-                            Description = "Sets education environment flag to help hide recommended section",
+                            Description =
+                                "Controls whether Bing search results are displayed in Start Menu search",
                             IsPrimary = false,
                             IsGroupPolicy = true,
                             AbsenceMeansEnabled = false,
@@ -472,12 +575,13 @@ public static class StartMenuCustomizations
                 process.StartInfo = new System.Diagnostics.ProcessStartInfo
                 {
                     FileName = "reg.exe",
-                    Arguments = "add \"HKLM\\SOFTWARE\\Microsoft\\PolicyManager\\current\\device\\Start\" /v \"ConfigureStartPins\" /t REG_SZ /d \"{\\\"pinnedList\\\":[]}\" /f",
+                    Arguments =
+                        "add \"HKLM\\SOFTWARE\\Microsoft\\PolicyManager\\current\\device\\Start\" /v \"ConfigureStartPins\" /t REG_SZ /d \"{\\\"pinnedList\\\":[]}\" /f",
                     UseShellExecute = false,
                     RedirectStandardOutput = true,
                     RedirectStandardError = true,
                     CreateNoWindow = true,
-                    Verb = "runas" // Run as administrator
+                    Verb = "runas", // Run as administrator
                 };
 
                 process.Start();
@@ -486,13 +590,22 @@ public static class StartMenuCustomizations
                 if (process.ExitCode != 0)
                 {
                     string error = process.StandardError.ReadToEnd();
-                    throw new Exception($"Failed to add registry entry. Exit code: {process.ExitCode}. Error: {error}");
+                    throw new Exception(
+                        $"Failed to add registry entry. Exit code: {process.ExitCode}. Error: {error}"
+                    );
                 }
             }
 
             // Step 2: Delete start.bin and start2.bin files from LocalState directory
-            string localAppData = Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData);
-            string startMenuLocalStatePath = Path.Combine(localAppData, "Packages", "Microsoft.Windows.StartMenuExperienceHost_cw5n1h2txyewy", "LocalState");
+            string localAppData = Environment.GetFolderPath(
+                Environment.SpecialFolder.LocalApplicationData
+            );
+            string startMenuLocalStatePath = Path.Combine(
+                localAppData,
+                "Packages",
+                "Microsoft.Windows.StartMenuExperienceHost_cw5n1h2txyewy",
+                "LocalState"
+            );
 
             if (Directory.Exists(startMenuLocalStatePath))
             {
@@ -572,7 +685,11 @@ public static class StartMenuCustomizations
     private static void ApplyWindows10LayoutToCurrentUser()
     {
         // Set registry values to lock the Start Menu layout for current user
-        using (var key = Registry.CurrentUser.CreateSubKey(@"SOFTWARE\Policies\Microsoft\Windows\Explorer"))
+        using (
+            var key = Registry.CurrentUser.CreateSubKey(
+                @"SOFTWARE\Policies\Microsoft\Windows\Explorer"
+            )
+        )
         {
             if (key != null)
             {
@@ -588,7 +705,11 @@ public static class StartMenuCustomizations
         System.Threading.Thread.Sleep(3000);
 
         // Disable the locked layout so user can customize again
-        using (var key = Registry.CurrentUser.CreateSubKey(@"SOFTWARE\Policies\Microsoft\Windows\Explorer"))
+        using (
+            var key = Registry.CurrentUser.CreateSubKey(
+                @"SOFTWARE\Policies\Microsoft\Windows\Explorer"
+            )
+        )
         {
             if (key != null)
             {
@@ -605,15 +726,20 @@ public static class StartMenuCustomizations
     /// </summary>
     /// <param name="scheduledTaskService">The scheduled task service.</param>
     /// <param name="logService">The logging service.</param>
-    private static void SetupScheduledTasksForAllUsersWindows10(IScheduledTaskService scheduledTaskService, ILogService logService = null)
+    private static void SetupScheduledTasksForAllUsersWindows10(
+        IScheduledTaskService scheduledTaskService,
+        ILogService logService = null
+    )
     {
         try
         {
             var currentUsername = Environment.UserName;
             var otherUsernames = GetOtherUsernames();
-            
-            logService?.LogInformation($"Creating scheduled tasks for {otherUsernames.Count} other users (excluding current user: {currentUsername})");
-            
+
+            logService?.LogInformation(
+                $"Creating scheduled tasks for {otherUsernames.Count} other users (excluding current user: {currentUsername})"
+            );
+
             if (otherUsernames.Count == 0)
             {
                 logService?.LogInformation("No other users found to create scheduled tasks for");
@@ -624,28 +750,40 @@ public static class StartMenuCustomizations
             {
                 try
                 {
-                    var taskName = $"StartStTest_{username}";
-                    
+                    var taskName = $"CleanStartMenu_{username}";
+
                     // PowerShell command matching XML template with self-deletion
-                    var command = $"-ExecutionPolicy Bypass -WindowStyle Hidden -Command \"$loggedInUser = (Get-WmiObject -Class Win32_ComputerSystem).UserName.Split('\\')[1]; $userSID = (New-Object System.Security.Principal.NTAccount($loggedInUser)).Translate([System.Security.Principal.SecurityIdentifier]).Value; reg add ('HKU\\' + $userSID + '\\SOFTWARE\\Policies\\Microsoft\\Windows\\Explorer') /v LockedStartLayout /t REG_DWORD /d 1 /f; reg add ('HKU\\' + $userSID + '\\SOFTWARE\\Policies\\Microsoft\\Windows\\Explorer') /v StartLayoutFile /t REG_SZ /d 'C:\\Users\\Default\\AppData\\Local\\Microsoft\\Windows\\Shell\\LayoutModification.xml' /f; Stop-Process -Name 'StartMenuExperienceHost' -Force -ErrorAction SilentlyContinue; Start-Sleep 10; Set-ItemProperty -Path ('Registry::HKU\\' + $userSID + '\\SOFTWARE\\Policies\\Microsoft\\Windows\\Explorer') -Name 'LockedStartLayout' -Value 0; Stop-Process -Name 'StartMenuExperienceHost' -Force -ErrorAction SilentlyContinue; schtasks /delete /tn 'Winhance\\{taskName}' /f\"";
-                    
+                    var command =
+                        $"-ExecutionPolicy Bypass -WindowStyle Hidden -Command \"$loggedInUser = (Get-WmiObject -Class Win32_ComputerSystem).UserName.Split('\\')[1]; $userSID = (New-Object System.Security.Principal.NTAccount($loggedInUser)).Translate([System.Security.Principal.SecurityIdentifier]).Value; reg add ('HKU\\' + $userSID + '\\SOFTWARE\\Policies\\Microsoft\\Windows\\Explorer') /v LockedStartLayout /t REG_DWORD /d 1 /f; reg add ('HKU\\' + $userSID + '\\SOFTWARE\\Policies\\Microsoft\\Windows\\Explorer') /v StartLayoutFile /t REG_SZ /d 'C:\\Users\\Default\\AppData\\Local\\Microsoft\\Windows\\Shell\\LayoutModification.xml' /f; Stop-Process -Name 'StartMenuExperienceHost' -Force -ErrorAction SilentlyContinue; Start-Sleep 10; Set-ItemProperty -Path ('Registry::HKU\\' + $userSID + '\\SOFTWARE\\Policies\\Microsoft\\Windows\\Explorer') -Name 'LockedStartLayout' -Value 0; Stop-Process -Name 'StartMenuExperienceHost' -Force -ErrorAction SilentlyContinue; schtasks /delete /tn 'Winhance\\{taskName}' /f\"";
+
                     // Create the scheduled task using the service
                     Task.Run(async () =>
                     {
                         try
                         {
-                            await scheduledTaskService.CreateUserLogonTaskAsync(taskName, command, username, false);
-                            logService?.LogInformation($"Successfully created scheduled task '{taskName}' for user '{username}'");
+                            await scheduledTaskService.CreateUserLogonTaskAsync(
+                                taskName,
+                                command,
+                                username,
+                                false
+                            );
+                            logService?.LogInformation(
+                                $"Successfully created scheduled task '{taskName}' for user '{username}'"
+                            );
                         }
                         catch (Exception ex)
                         {
-                            logService?.LogError($"Failed to create scheduled task for user '{username}': {ex.Message}");
+                            logService?.LogError(
+                                $"Failed to create scheduled task for user '{username}': {ex.Message}"
+                            );
                         }
                     });
                 }
                 catch (Exception ex)
                 {
-                    logService?.LogError($"Error setting up scheduled task for user '{username}': {ex.Message}");
+                    logService?.LogError(
+                        $"Error setting up scheduled task for user '{username}': {ex.Message}"
+                    );
                 }
             }
         }
@@ -658,9 +796,11 @@ public static class StartMenuCustomizations
     /// <summary>
     /// Terminates all StartMenuExperienceHost processes.
     /// </summary>
-    private static void TerminateStartMenuExperienceHost()
+    public static void TerminateStartMenuExperienceHost()
     {
-        var startMenuProcesses = System.Diagnostics.Process.GetProcessesByName("StartMenuExperienceHost");
+        var startMenuProcesses = System.Diagnostics.Process.GetProcessesByName(
+            "StartMenuExperienceHost"
+        );
         foreach (var process in startMenuProcesses)
         {
             try
@@ -690,12 +830,18 @@ public static class StartMenuCustomizations
         {
             var currentUsername = Environment.UserName;
             var otherUsernames = GetOtherUsernames();
-            
-            logService?.Log(LogLevel.Info, $"Cleaning Start Menu files for {otherUsernames.Count} other users (excluding current user: {currentUsername})");
-            
+
+            logService?.Log(
+                LogLevel.Info,
+                $"Cleaning Start Menu files for {otherUsernames.Count} other users (excluding current user: {currentUsername})"
+            );
+
             if (otherUsernames.Count == 0)
             {
-                logService?.Log(LogLevel.Info, "No other users found to clean Start Menu files for");
+                logService?.Log(
+                    LogLevel.Info,
+                    "No other users found to clean Start Menu files for"
+                );
                 return;
             }
 
@@ -705,44 +851,76 @@ public static class StartMenuCustomizations
                 {
                     // Construct path to user's start2.bin file
                     string userProfilePath = $"C:\\Users\\{username}";
-                    string start2BinPath = Path.Combine(userProfilePath, "AppData", "Local", "Packages", 
-                        "Microsoft.Windows.StartMenuExperienceHost_cw5n1h2txyewy", "LocalState", "start2.bin");
-                    
-                    logService?.Log(LogLevel.Info, $"Attempting to delete start2.bin for user: {username}");
-                    
+                    string start2BinPath = Path.Combine(
+                        userProfilePath,
+                        "AppData",
+                        "Local",
+                        "Packages",
+                        "Microsoft.Windows.StartMenuExperienceHost_cw5n1h2txyewy",
+                        "LocalState",
+                        "start2.bin"
+                    );
+
+                    logService?.Log(
+                        LogLevel.Info,
+                        $"Attempting to delete start2.bin for user: {username}"
+                    );
+
                     // Delete start2.bin file if it exists
                     if (File.Exists(start2BinPath))
                     {
                         File.Delete(start2BinPath);
-                        logService?.Log(LogLevel.Info, $"Successfully deleted start2.bin for user: {username}");
+                        logService?.Log(
+                            LogLevel.Info,
+                            $"Successfully deleted start2.bin for user: {username}"
+                        );
                     }
                     else
                     {
-                        logService?.Log(LogLevel.Info, $"start2.bin file not found for user: {username} (may not exist or user hasn't used Start Menu yet)");
+                        logService?.Log(
+                            LogLevel.Info,
+                            $"start2.bin file not found for user: {username} (may not exist or user hasn't used Start Menu yet)"
+                        );
                     }
-                    
+
                     // Also delete start.bin if it exists
-                    string startBinPath = Path.Combine(userProfilePath, "AppData", "Local", "Packages", 
-                        "Microsoft.Windows.StartMenuExperienceHost_cw5n1h2txyewy", "LocalState", "start.bin");
-                    
+                    string startBinPath = Path.Combine(
+                        userProfilePath,
+                        "AppData",
+                        "Local",
+                        "Packages",
+                        "Microsoft.Windows.StartMenuExperienceHost_cw5n1h2txyewy",
+                        "LocalState",
+                        "start.bin"
+                    );
+
                     if (File.Exists(startBinPath))
                     {
                         File.Delete(startBinPath);
-                        logService?.Log(LogLevel.Info, $"Successfully deleted start.bin for user: {username}");
+                        logService?.Log(
+                            LogLevel.Info,
+                            $"Successfully deleted start.bin for user: {username}"
+                        );
                     }
                 }
                 catch (Exception ex)
                 {
-                    logService?.Log(LogLevel.Warning, $"Failed to delete Start Menu files for user {username}: {ex.Message}");
+                    logService?.Log(
+                        LogLevel.Warning,
+                        $"Failed to delete Start Menu files for user {username}: {ex.Message}"
+                    );
                     // Continue with other users even if one fails
                 }
             }
-            
+
             logService?.Log(LogLevel.Info, "Completed cleaning Start Menu files for other users");
         }
         catch (Exception ex)
         {
-            logService?.Log(LogLevel.Error, $"Error during other users Start Menu cleaning: {ex.Message}");
+            logService?.Log(
+                LogLevel.Error,
+                $"Error during other users Start Menu cleaning: {ex.Message}"
+            );
             // Don't throw - this is a best-effort feature
         }
     }
@@ -775,12 +953,15 @@ public static class StartMenuCustomizations
     {
         var usernames = new List<string>();
         string currentUsername = Environment.UserName;
-        
+
         try
         {
             // Use ProfileList registry to get ALL users (logged in or not)
-            using (var profileList = Registry.LocalMachine.OpenSubKey(
-                @"SOFTWARE\Microsoft\Windows NT\CurrentVersion\ProfileList"))
+            using (
+                var profileList = Registry.LocalMachine.OpenSubKey(
+                    @"SOFTWARE\Microsoft\Windows NT\CurrentVersion\ProfileList"
+                )
+            )
             {
                 if (profileList != null)
                 {
@@ -790,7 +971,9 @@ public static class StartMenuCustomizations
                         {
                             using (var userKey = profileList.OpenSubKey(sidKey))
                             {
-                                string profilePath = userKey?.GetValue("ProfileImagePath")?.ToString();
+                                string profilePath = userKey
+                                    ?.GetValue("ProfileImagePath")
+                                    ?.ToString();
                                 if (!string.IsNullOrEmpty(profilePath))
                                 {
                                     string username = Path.GetFileName(profilePath);
@@ -810,10 +993,10 @@ public static class StartMenuCustomizations
         {
             // Return empty list if we can't enumerate users
         }
-        
+
         return usernames;
     }
-    
+
     /// <summary>
     /// Checks if a username represents a system account that should be excluded.
     /// </summary>

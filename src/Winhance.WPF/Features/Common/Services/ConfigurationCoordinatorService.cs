@@ -326,7 +326,7 @@ namespace Winhance.WPF.Features.Common.Services
                     // Ensure the view model is initialized
                     if (!customizeViewModel.IsInitialized)
                     {
-                        await customizeViewModel.LoadItemsAsync();
+                        await customizeViewModel.LoadSettingsAsync();
                     }
 
                     // For CustomizeViewModel, we need to get the settings directly
@@ -376,7 +376,7 @@ namespace Winhance.WPF.Features.Common.Services
                         await optimizeViewModel.LoadItemsAsync();
                         _logService.Log(
                             LogLevel.Debug,
-                            $"OptimizeViewModel initialized and loaded with {optimizeViewModel.Items?.Count ?? 0} items"
+                            $"OptimizeViewModel initialized and loaded with {optimizeViewModel.Settings?.Count ?? 0} items"
                         );
                     }
                     else
@@ -384,7 +384,7 @@ namespace Winhance.WPF.Features.Common.Services
                         _logService.Log(LogLevel.Debug, "OptimizeViewModel already initialized");
 
                         // Even if initialized, make sure items are loaded
-                        if (optimizeViewModel.Items == null || optimizeViewModel.Items.Count == 0)
+                        if (optimizeViewModel.Settings == null || optimizeViewModel.Settings.Count == 0)
                         {
                             _logService.Log(
                                 LogLevel.Debug,
@@ -393,7 +393,7 @@ namespace Winhance.WPF.Features.Common.Services
                             await optimizeViewModel.LoadItemsAsync();
                             _logService.Log(
                                 LogLevel.Debug,
-                                $"OptimizeViewModel items loaded, count: {optimizeViewModel.Items?.Count ?? 0}"
+                                $"OptimizeViewModel items loaded, count: {optimizeViewModel.Settings?.Count ?? 0}"
                             );
                         }
                     }
@@ -2184,8 +2184,8 @@ namespace Winhance.WPF.Features.Common.Services
                     var nameProperty = item.GetType().GetProperty("Name");
                     var idProperty = item.GetType().GetProperty("Id");
                     var isSelectedProperty = item.GetType().GetProperty("IsSelected");
-                    var isUpdatingFromCodeProperty = item.GetType()
-                        .GetProperty("IsUpdatingFromCode");
+                    var updateUIStateFromRegistryMethod = item.GetType()
+                        .GetMethod("UpdateUIStateFromRegistry");
 
                     if (nameProperty != null && isSelectedProperty != null)
                     {
@@ -2220,20 +2220,33 @@ namespace Winhance.WPF.Features.Common.Services
                                 isSelectedProperty.GetValue(item) ?? false
                             );
 
-                            // Set IsUpdatingFromCode to true before making changes
-                            if (isUpdatingFromCodeProperty != null)
-                            {
-                                isUpdatingFromCodeProperty.SetValue(item, true);
-                            }
-
-                            // Update IsSelected
+                            // Update UI state using the new method without triggering property change events
                             if (currentIsSelected != configItem.IsSelected)
                             {
                                 _logService.Log(
                                     LogLevel.Debug,
                                     $"Updating IsSelected for {name} from {currentIsSelected} to {configItem.IsSelected}"
                                 );
-                                isSelectedProperty.SetValue(item, configItem.IsSelected);
+                                
+                                // Use UpdateUIStateFromRegistry if available, otherwise fall back to direct property setting
+                                if (updateUIStateFromRegistryMethod != null)
+                                {
+                                    // Get current status and value for the method call
+                                    var statusProperty = item.GetType().GetProperty("Status");
+                                    var currentValueProperty = item.GetType().GetProperty("CurrentValue");
+                                    var selectedValueProperty = item.GetType().GetProperty("SelectedValue");
+                                    
+                                    var status = statusProperty?.GetValue(item);
+                                    var currentValue = currentValueProperty?.GetValue(item);
+                                    var selectedValue = selectedValueProperty?.GetValue(item);
+                                    
+                                    updateUIStateFromRegistryMethod.Invoke(item, new object[] { configItem.IsSelected, selectedValue, status, currentValue });
+                                }
+                                else
+                                {
+                                    // Fallback for items that don't have UpdateUIStateFromRegistry method
+                                    isSelectedProperty.SetValue(item, configItem.IsSelected);
+                                }
                             }
 
                             // Update other properties if available
@@ -2243,12 +2256,6 @@ namespace Winhance.WPF.Features.Common.Services
                             if (currentIsSelected != configItem.IsSelected || propertiesUpdated)
                             {
                                 updatedCount++;
-                            }
-
-                            // Set IsUpdatingFromCode back to false to allow property change events to trigger
-                            if (isUpdatingFromCodeProperty != null)
-                            {
-                                isUpdatingFromCodeProperty.SetValue(item, false);
                             }
 
                             // Ensure UI state is properly updated

@@ -161,7 +161,10 @@
                 </Grid>
             </Border>
 
-            <!-- Container for Setting Labels & Toggles -->
+            <!-- Container for Setting Labels & Toggles - REMOVED to eliminate duplicate power settings -->
+            <!-- This section was showing binary toggles that duplicated the advanced power settings above -->
+            <!-- The advanced power settings with proper controls (ComboBox, NumericUpDown) are shown above -->
+            <!--
             <ItemsControl x:Name="PowerSettingsItemsControl" ItemsSource="{Binding Settings}">
                 <ItemsControl.ItemsPanel>
                     <ItemsPanelTemplate>
@@ -177,11 +180,11 @@
                 </ItemsControl.ItemContainerStyle>
                 <ItemsControl.ItemTemplate>
                     <DataTemplate>
-                        <!-- Group header template -->
+                        Group header template
                         <Grid>
                             <TextBlock Text="{Binding Name}" Foreground="{DynamicResource PrimaryTextColor}" FontWeight="SemiBold" Margin="25,15,0,5" Visibility="{Binding IsGroupHeader, Converter={StaticResource BooleanToVisibilityConverter}}"/>
 
-                            <!-- Setting Labels & Toggles -->
+                            Setting Labels & Toggles
                             <StackPanel Orientation="Horizontal" Visibility="{Binding IsVisible, Converter={StaticResource BooleanToVisibilityConverter}}">
                                 <ToggleButton Style="{StaticResource MaterialToggleSwitch}" IsChecked="{Binding IsSelected}" Margin="15,3,0,3" HorizontalAlignment="Left" VerticalAlignment="Center" Content="">
                                     <ToggleButton.ToolTip>
@@ -198,7 +201,7 @@
                                     </TextBlock.ToolTip>
                                 </TextBlock>
 
-                                <!-- Warning Icon (visible only when registry value is null) -->
+                                Warning Icon (visible only when registry value is null)
                                 <TextBlock Text="&#xEA76;" FontFamily="{StaticResource MaterialSymbolsFont}" FontSize="18" Foreground="#FF2800" Margin="5,5,0,0" VerticalAlignment="Center" Visibility="{Binding IsRegistryValueNull, Converter={StaticResource BooleanToVisibilityConverter}}">
                                     <TextBlock.ToolTip>
                                         <ToolTip>
@@ -214,6 +217,7 @@
                     </DataTemplate>
                 </ItemsControl.ItemTemplate>
             </ItemsControl>
+            -->
         </StackPanel>
     </Border>
 </UserControl>

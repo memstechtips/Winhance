@@ -1072,8 +1072,7 @@ namespace Winhance.WPF.Features.Common.Services.Configuration
                                         LogLevel.Warning,
                                         "Could not find _selectedUacLevel field, using property setter instead"
                                     );
-                                    viewModel.SelectedUacLevel =
-                                        (Winhance.Core.Models.Enums.UacLevel)newUacLevel;
+                                    viewModel.SelectedUacLevel = (int)newUacLevel;
                                     _logService.Log(
                                         LogLevel.Info,
                                         $"Updated SelectedUacLevel property to {newUacLevel}"

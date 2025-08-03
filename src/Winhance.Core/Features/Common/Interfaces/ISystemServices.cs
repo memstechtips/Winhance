@@ -33,6 +33,12 @@ namespace Winhance.Core.Features.Common.Interfaces
         string GetWindowsVersion();
 
         /// <summary>
+        /// Gets the Windows build number.
+        /// </summary>
+        /// <returns>The Windows build number as an integer.</returns>
+        int GetWindowsBuildNumber();
+
+        /// <summary>
         /// Refreshes the desktop.
         /// </summary>
         void RefreshDesktop();

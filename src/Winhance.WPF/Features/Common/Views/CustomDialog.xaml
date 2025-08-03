@@ -4,7 +4,7 @@
         xmlns:converters="clr-namespace:Winhance.WPF.Features.Common.Converters"
         x:Name="DialogWindow"
         Title="{Binding Title}"
-        Width="750"
+        Width="500"
         SizeToContent="Height"
         WindowStartupLocation="CenterScreen"
         ResizeMode="NoResize"
@@ -31,32 +31,29 @@
                 <RowDefinition Height="Auto"/>
             </Grid.RowDefinitions>
 
-        <!-- Header with Icon -->
-        <DockPanel Grid.Row="0" LastChildFill="True" Style="{StaticResource DialogHeaderStyle}">
-            <Image x:Name="DialogIcon"
-                   Style="{StaticResource DialogIconStyle}"
-                   DockPanel.Dock="Left"/>
-            <TextBlock x:Name="HeaderText"
-                      Style="{StaticResource DialogTextBlockStyle}"
-                      FontWeight="SemiBold"
-                      FontSize="16"
-                      TextWrapping="Wrap"
-                      VerticalAlignment="Center"/>
-        </DockPanel>
+        <!-- Header -->
+        <TextBlock x:Name="HeaderText"
+                  Grid.Row="0"
+                  Style="{StaticResource DialogTextBlockStyle}"
+                  FontWeight="SemiBold"
+                  FontSize="16"
+                  TextWrapping="Wrap"
+                  VerticalAlignment="Center"
+                  Margin="0,0,0,10"/>
 
         <!-- Message Content -->
         <TextBlock x:Name="MessageContent"
                   Grid.Row="1"
                   Style="{StaticResource DialogTextBlockStyle}"
                   TextWrapping="Wrap"
-                  Margin="42,10,0,10"/>
+                  Margin="0,10,0,10"/>
 
         <!-- Footer Text -->
         <TextBlock x:Name="FooterText"
                   Grid.Row="2"
                   Style="{StaticResource DialogFooterStyle}"
                   TextWrapping="Wrap"
-                  Margin="42,10,0,15"/>
+                  Margin="0,10,0,15"/>
 
         <!-- Buttons -->
         <StackPanel x:Name="ButtonsPanel"

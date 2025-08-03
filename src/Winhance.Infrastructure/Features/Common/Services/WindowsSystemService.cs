@@ -217,6 +217,21 @@ namespace Winhance.Infrastructure.Features.Common.Services
             }
         }
 
+        public int GetWindowsBuildNumber()
+        {
+            try
+            {
+                var versionInfo = GetWindowsVersionInfo();
+                _logService.LogInformation($"Detected Windows build number: {versionInfo.BuildNumber}");
+                return versionInfo.BuildNumber;
+            }
+            catch (Exception ex)
+            {
+                _logService.LogError("Error detecting Windows build number", ex);
+                return 0; // Return 0 as fallback
+            }
+        }
+
         public void RestartExplorer()
         {
             try

@@ -65,6 +65,11 @@ namespace Winhance.Core.Features.Common.Models
         public bool IsEnabled { get; init; }
 
         /// <summary>
+        /// Gets or sets the icon for this setting (Material Symbols font character).
+        /// </summary>
+        public string? Icon { get; init; }
+
+        /// <summary>
         /// Creates a LinkedRegistrySettings object from the RegistrySettings collection.
         /// </summary>
         /// <returns>A LinkedRegistrySettings object.</returns>

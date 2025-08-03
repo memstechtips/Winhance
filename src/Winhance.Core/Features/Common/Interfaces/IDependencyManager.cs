@@ -44,5 +44,21 @@ namespace Winhance.Core.Features.Common.Interfaces
         /// <param name="dependencies">The dependencies to enable.</param>
         /// <returns>True if all dependencies were enabled successfully; otherwise, false.</returns>
         bool EnableDependencies(IEnumerable<ISettingItem> dependencies);
+        
+        /// <summary>
+        /// Enables all dependencies for a specific setting.
+        /// </summary>
+        /// <param name="settingId">The ID of the setting whose dependencies need to be enabled.</param>
+        /// <param name="allSettings">All available settings.</param>
+        /// <returns>True if all dependencies were enabled successfully; otherwise, false.</returns>
+        bool EnableDependenciesForSetting(string settingId, IEnumerable<ISettingItem> allSettings);
+        
+        /// <summary>
+        /// Handles the value change of a setting by automatically disabling dependent settings
+        /// that require specific values that are no longer satisfied.
+        /// </summary>
+        /// <param name="settingId">The ID of the setting whose value was changed.</param>
+        /// <param name="allSettings">All available settings that might depend on the changed setting.</param>
+        void HandleSettingValueChanged(string settingId, IEnumerable<ISettingItem> allSettings);
     }
 }

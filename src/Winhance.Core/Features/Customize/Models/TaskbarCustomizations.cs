@@ -162,7 +162,7 @@ public static class TaskbarCustomizations
                 new CustomizationSetting
                 {
                     Id = "taskbar-meet-now-group",
-                    Name = "Meet Now Button",
+                    Name = "Show Meet Now Button",
                     Description = "Controls Meet Now button visibility in taskbar",
                     Category = CustomizationCategory.Taskbar,
                     GroupName = "Taskbar Icons",
@@ -302,7 +302,7 @@ public static class TaskbarCustomizations
                 new CustomizationSetting
                 {
                     Id = "taskbar-task-view",
-                    Name = "Task View",
+                    Name = "Show Task View Button",
                     Description = "Controls Task View button visibility in taskbar",
                     Category = CustomizationCategory.Taskbar,
                     GroupName = "Taskbar Icons",
@@ -330,31 +330,133 @@ public static class TaskbarCustomizations
                 new CustomizationSetting
                 {
                     Id = "taskbar-widgets",
-                    Name = "Widgets",
-                    Description = "Controls Widgets button visibility in taskbar",
+                    Name = "Show Widgets",
+                    Description = "Controls Widgets visibility in taskbar",
                     Category = CustomizationCategory.Taskbar,
                     GroupName = "Taskbar Icons",
                     IsEnabled = false,
                     ControlType = ControlType.BinaryToggle,
+                    IsWindows11Only = true,
                     RegistrySettings = new List<RegistrySetting>
                     {
                         new RegistrySetting
                         {
                             Category = "Taskbar",
-                            Hive = RegistryHive.CurrentUser,
-                            SubKey = "Software\\Microsoft\\Windows\\CurrentVersion\\Explorer\\Advanced",
-                            Name = "TaskbarDa",
+                            Hive = RegistryHive.LocalMachine,
+                            SubKey = "Software\\Policies\\Microsoft\\Dsh",
+                            Name = "AllowNewsAndInterests",
                             RecommendedValue = 0,  // For backward compatibility
                             EnabledValue = 1,      // When toggle is ON, Widgets button is shown
                             DisabledValue = 0,     // When toggle is OFF, Widgets button is hidden
                             ValueType = RegistryValueKind.DWord,
                             DefaultValue = 1,      // Default value when registry key exists but no value is set
-                            Description = "Controls Widgets button visibility in taskbar",
+                            Description = "Controls Widgets visibility in taskbar",
                             IsPrimary = true,
+                            IsGroupPolicy = true,
                             AbsenceMeansEnabled = true
                         }
                     }
-                }
+                },
+                new CustomizationSetting
+                {
+                    Id = "taskbar-news-and-interests",
+                    Name = "Show News and Interests",
+                    Description = "Controls News and Interests visibility in taskbar",
+                    Category = CustomizationCategory.Taskbar,
+                    GroupName = "Taskbar Icons",
+                    IsEnabled = false,
+                    ControlType = ControlType.BinaryToggle,
+                    IsWindows10Only = true,
+                    RegistrySettings = new List<RegistrySetting>
+                    {
+                        new RegistrySetting
+                        {
+                            Category = "Taskbar",
+                            Hive = RegistryHive.LocalMachine,
+                            SubKey = "Software\\Policies\\Microsoft\\Windows\\Windows Feeds",
+                            Name = "EnableFeeds",
+                            RecommendedValue = 0,  // For backward compatibility
+                            EnabledValue = 1,      // When toggle is ON, News and Interests is shown
+                            DisabledValue = 0,     // When toggle is OFF, News and Interests is hidden
+                            ValueType = RegistryValueKind.DWord,
+                            DefaultValue = 1,      // Default value when registry key exists but no value is set
+                            Description = "Controls News and Interests visibility in taskbar",
+                            IsPrimary = true,
+                            IsGroupPolicy = true,
+                            AbsenceMeansEnabled = true
+                        }
+                    }
+                },
+                new CustomizationSetting
+                {
+                    Id = "make-taskbar-transparent",
+                    Name = "Make Taskbar Transparent",
+                    Description = "Controls the transparency of the taskbar",
+                    Category = CustomizationCategory.StartMenu,
+                    GroupName = "Taskbar",
+                    IsEnabled = true,
+                    ControlType = ControlType.BinaryToggle,
+                    IsWindows10Only = true,
+                    Dependencies = new List<SettingDependency>
+                    {
+                        new SettingDependency
+                        {
+                            DependencyType = SettingDependencyType.RequiresEnabled,
+                            DependentSettingId = "make-taskbar-transparent",
+                            RequiredSettingId = "theme-transparency",
+                            RequiredModule = "WindowsThemeSettings",
+                        },
+                    },
+                    RegistrySettings = new List<RegistrySetting>
+                    {
+                        new RegistrySetting
+                        {
+                            Category = "Explorer",
+                            Hive = RegistryHive.CurrentUser,
+                            SubKey =
+                                "SOFTWARE\\Microsoft\\Windows\\CurrentVersion\\Explorer\\Advanced",
+                            Name = "TaskbarAcrylicOpacity",
+                            RecommendedValue = 0,
+                            EnabledValue = 0, // Transparent
+                            DisabledValue = 1, // Opaque
+                            ValueType = RegistryValueKind.DWord,
+                            DefaultValue = 1, // Default is opaque
+                            Description = "Controls the transparency of the taskbar",
+                            IsPrimary = true,
+                            AbsenceMeansEnabled = false,
+                        },
+                    },
+                },
+                new CustomizationSetting
+                {
+                    Id = "make-taskbar-small",
+                    Name = "Make Taskbar Small",
+                    Description = "Controls the size of taskbar icons",
+                    Category = CustomizationCategory.StartMenu,
+                    GroupName = "Taskbar",
+                    IsEnabled = true,
+                    ControlType = ControlType.BinaryToggle,
+                    IsWindows10Only = true,
+                    RegistrySettings = new List<RegistrySetting>
+                    {
+                        new RegistrySetting
+                        {
+                            Category = "Explorer",
+                            Hive = RegistryHive.CurrentUser,
+                            SubKey =
+                                "SOFTWARE\\Microsoft\\Windows\\CurrentVersion\\Explorer\\Advanced",
+                            Name = "TaskbarSmallIcons",
+                            RecommendedValue = 1,
+                            EnabledValue = 1, // Small icons
+                            DisabledValue = 0, // Normal icons
+                            ValueType = RegistryValueKind.DWord,
+                            DefaultValue = 0, // Default is normal icons
+                            Description = "Controls the size of taskbar icons",
+                            IsPrimary = true,
+                            AbsenceMeansEnabled = false,
+                        },
+                    },
+                },
             }
         };
     }

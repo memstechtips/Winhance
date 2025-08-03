@@ -44,7 +44,6 @@ namespace Winhance.WPF.Features.SoftwareApps.Views
         {
             var dialog = new SoftwareAppsDialog { Title = title };
 
-            dialog.DialogIcon.Source = Application.Current.Resources["QuestionIcon"] as ImageSource;
             dialog.HeaderText.Text = headerText;
             dialog.AppList.ItemsSource = apps;
             dialog.FooterText.Text = footerText;
@@ -65,7 +64,6 @@ namespace Winhance.WPF.Features.SoftwareApps.Views
         {
             var dialog = new SoftwareAppsDialog { Title = title };
 
-            dialog.DialogIcon.Source = Application.Current.Resources["InfoIcon"] as ImageSource;
             dialog.HeaderText.Text = headerText;
             dialog.AppList.ItemsSource = apps;
             dialog.FooterText.Text = footerText;
@@ -107,7 +105,6 @@ namespace Winhance.WPF.Features.SoftwareApps.Views
         {
             var dialog = new SoftwareAppsDialog { Title = title };
 
-            dialog.DialogIcon.Source = Application.Current.Resources["QuestionIcon"] as ImageSource;
             dialog.HeaderText.Text = headerText;
             dialog.AppList.ItemsSource = apps;
             dialog.FooterText.Text = footerText;

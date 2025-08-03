@@ -40,6 +40,11 @@ namespace Winhance.Core.Features.Common.Enums
         /// <summary>
         /// A color picker control.
         /// </summary>
-        ColorPicker
+        ColorPicker,
+
+        /// <summary>
+        /// A numeric up/down control for entering numeric values.
+        /// </summary>
+        NumericUpDown
     }
 }

@@ -1,94 +1,190 @@
 using System;
+using System.Collections.Generic;
 using System.Collections.ObjectModel;
 using System.Linq;
 using System.Threading.Tasks;
+using System.Windows.Input;
 using CommunityToolkit.Mvvm.ComponentModel;
-using Microsoft.Win32;
+using CommunityToolkit.Mvvm.Input;
 using Winhance.Core.Features.Common.Enums;
 using Winhance.Core.Features.Common.Interfaces;
 using Winhance.Core.Features.Common.Models;
-
+using Winhance.WPF.Features.Common.Helpers;
 using Winhance.WPF.Features.Common.Models;
 
 namespace Winhance.WPF.Features.Common.ViewModels
 {
     /// <summary>
-    /// Base class for settings view models.
+    /// Modern base class for settings view models using clean architecture principles.
+    /// Uses IApplicationSettingsService for business logic and SettingUIItem for UI state.
     /// </summary>
-    /// <typeparam name="T">The type of settings.</typeparam>
-    public partial class BaseSettingsViewModel<T> : ObservableObject
-        where T : ApplicationSettingItem
+    public abstract partial class BaseSettingsViewModel : ObservableObject
     {
+        #region Protected Services
+
+        protected readonly IApplicationSettingsService _settingsService;
         protected readonly ITaskProgressService _progressService;
-        protected readonly IRegistryService _registryService;
         protected readonly ILogService _logService;
 
-        /// <summary>
-        /// Gets the collection of settings.
-        /// </summary>
-        public ObservableCollection<T> Settings { get; } = new();
+        #endregion
+
+        #region Observable Properties
 
         /// <summary>
-        /// Gets or sets a value indicating whether the settings are being loaded.
+        /// Collection of UI setting items for display.
+        /// </summary>
+        public ObservableCollection<SettingUIItem> Settings { get; } = new();
+
+        /// <summary>
+        /// Collection of grouped settings for organized display.
+        /// </summary>
+        public ObservableCollection<SettingGroup> SettingGroups { get; } = new();
+
+        /// <summary>
+        /// Whether settings are currently being loaded.
         /// </summary>
         [ObservableProperty]
         private bool _isLoading;
 
         /// <summary>
-        /// Gets or sets a value indicating whether all settings are selected.
+        /// Whether all settings are selected (for bulk operations).
         /// </summary>
         [ObservableProperty]
-        private bool _isSelected;
+        private bool _isAllSelected;
 
         /// <summary>
-        /// Gets or sets a value indicating whether the view model has visible settings.
+        /// Whether there are visible settings to display.
         /// </summary>
         [ObservableProperty]
         private bool _hasVisibleSettings = true;
 
         /// <summary>
-        /// Gets or sets the category name for this settings view model.
+        /// The category name for this settings view model.
         /// </summary>
         [ObservableProperty]
         private string _categoryName = string.Empty;
 
         /// <summary>
-        /// Initializes a new instance of the <see cref="BaseSettingsViewModel{T}"/> class.
+        /// Current search/filter text.
         /// </summary>
-        /// <param name="progressService">The task progress service.</param>
-        /// <param name="registryService">The registry service.</param>
-        /// <param name="logService">The log service.</param>
-        protected BaseSettingsViewModel(
-            ITaskProgressService progressService,
-            IRegistryService registryService,
-            ILogService logService
-        )
-        {
-            _progressService =
-                progressService ?? throw new ArgumentNullException(nameof(progressService));
-            _registryService =
-                registryService ?? throw new ArgumentNullException(nameof(registryService));
-            _logService = logService ?? throw new ArgumentNullException(nameof(logService));
-        }
+        [ObservableProperty]
+        private string _searchText = string.Empty;
+
+        #endregion
+
+        #region Commands
 
         /// <summary>
-        /// Loads the settings.
+        /// Command to apply a specific setting.
         /// </summary>
-        /// <returns>A task representing the asynchronous operation.</returns>
+        public ICommand ApplySettingCommand { get; }
+
+        /// <summary>
+        /// Command to apply all selected settings.
+        /// </summary>
+        public ICommand ApplyAllSelectedCommand { get; }
+
+        /// <summary>
+        /// Command to refresh all settings status.
+        /// </summary>
+        public ICommand RefreshAllCommand { get; }
+
+        /// <summary>
+        /// Command to select/deselect all settings.
+        /// </summary>
+        public ICommand SelectAllCommand { get; }
+
+        #endregion
+
+        #region Constructor
+
+        protected BaseSettingsViewModel(
+            IApplicationSettingsService settingsService,
+            ITaskProgressService progressService,
+            ILogService logService)
+        {
+            _settingsService = settingsService ?? throw new ArgumentNullException(nameof(settingsService));
+            _progressService = progressService ?? throw new ArgumentNullException(nameof(progressService));
+            _logService = logService ?? throw new ArgumentNullException(nameof(logService));
+
+            // Initialize commands
+            ApplySettingCommand = new AsyncRelayCommand<SettingUIItem>(ApplySettingAsync);
+            ApplyAllSelectedCommand = new AsyncRelayCommand(ApplyAllSelectedAsync);
+            RefreshAllCommand = new AsyncRelayCommand(RefreshAllSettingsAsync);
+            SelectAllCommand = new RelayCommand<bool>(SelectAllSettings);
+
+            // Subscribe to service events
+            _settingsService.SettingStatusChanged += OnSettingStatusChanged;
+
+            // Subscribe to property changes for search
+            PropertyChanged += (s, e) =>
+            {
+                if (e.PropertyName == nameof(SearchText))
+                {
+                    FilterSettings();
+                }
+            };
+        }
+
+        #endregion
+
+        #region Abstract Methods
+
+        /// <summary>
+        /// Derived classes must implement this to provide their specific application settings.
+        /// </summary>
+        /// <returns>A task that returns the collection of application settings for this view model.</returns>
+        protected abstract Task<IEnumerable<ApplicationSetting>> GetApplicationSettingsAsync();
+
+        #endregion
+
+        #region Public Methods
+
+        /// <summary>
+        /// Loads settings and initializes the UI state.
+        /// </summary>
         public virtual async Task LoadSettingsAsync()
         {
             try
             {
                 IsLoading = true;
+                _logService.Log(LogLevel.Info, $"Loading settings for {CategoryName}");
 
-                // Clear existing settings
+                // Clear existing collections
                 Settings.Clear();
+                SettingGroups.Clear();
 
-                // Load settings (to be implemented by derived classes)
-                await Task.CompletedTask;
+                // Get application settings from derived class
+                var applicationSettings = await GetApplicationSettingsAsync();
 
-                // Refresh status for all settings after loading
-                await RefreshAllSettingsStatusAsync();
+                // Register settings with the service
+                _settingsService.RegisterSettings(applicationSettings);
+
+                // Convert to UI models
+                var uiItems = SettingUIMapper.ToUIItems(applicationSettings).ToList();
+
+                // Add to collections
+                foreach (var uiItem in uiItems)
+                {
+                    Settings.Add(uiItem);
+                }
+
+                // Create grouped view
+                var groups = SettingUIMapper.ToGroupedUIItems(applicationSettings);
+                foreach (var group in groups)
+                {
+                    SettingGroups.Add(group);
+                }
+
+                // Refresh status for all settings
+                await RefreshAllSettingsAsync();
+
+                _logService.Log(LogLevel.Info, $"Loaded {Settings.Count} settings for {CategoryName}");
+            }
+            catch (Exception ex)
+            {
+                _logService.Log(LogLevel.Error, $"Error loading settings for {CategoryName}: {ex.Message}");
+                throw;
             }
             finally
             {
@@ -97,179 +193,203 @@ namespace Winhance.WPF.Features.Common.ViewModels
         }
 
         /// <summary>
-        /// Refreshes the status of all settings.
+        /// Refreshes the status of all settings from the system.
         /// </summary>
-        /// <returns>A task representing the asynchronous operation.</returns>
-        protected async Task RefreshAllSettingsStatusAsync()
+        public virtual async Task RefreshAllSettingsAsync()
         {
-            foreach (var setting in Settings)
+            try
             {
-                await setting.RefreshStatus();
-            }
-        }
+                _logService.Log(LogLevel.Debug, "Refreshing all settings status");
 
-        /// <summary>
-        /// Checks the status of all settings.
-        /// </summary>
-        /// <returns>A task representing the asynchronous operation.</returns>
-        public virtual async Task CheckSettingStatusesAsync()
-        {
-            _logService.Log(
-                LogLevel.Info,
-                $"Checking status of {Settings.Count} settings in {GetType().Name}"
-            );
-
-            foreach (var setting in Settings)
-            {
-                if (setting.IsGroupHeader)
-                {
-                    continue;
-                }
-
-                // Direct method call without reflection
-                await setting.RefreshStatus();
-            }
-
-            // Update the overall IsSelected state
-            UpdateIsSelectedState();
-        }
-
-        /// <summary>
-        /// Updates the IsSelected state based on individual selections.
-        /// </summary>
-        protected void UpdateIsSelectedState()
-        {
-            var nonHeaderSettings = Settings.Where(s => !s.IsGroupHeader).ToList();
-            if (nonHeaderSettings.Count == 0)
-            {
-                IsSelected = false;
-                return;
-            }
-
-            IsSelected = nonHeaderSettings.All(s => s.IsSelected);
-        }
-
-        /// <summary>
-        /// Executes the specified action asynchronously.
-        /// </summary>
-        /// <param name="actionName">The name of the action to execute.</param>
-        /// <returns>A task representing the asynchronous operation.</returns>
-        public virtual async Task ExecuteActionAsync(string actionName)
-        {
-            _logService.Log(LogLevel.Info, $"Executing action: {actionName}");
-
-            // Find the setting with the specified action
-            foreach (var setting in Settings)
-            {
-                var action = setting.Actions.FirstOrDefault(a => a.Name == actionName);
-                if (action != null)
-                {
-                    _logService.Log(
-                        LogLevel.Info,
-                        $"Found action {actionName} in setting {setting.Name}"
-                    );
-
-                    await ExecuteActionAsync(action);
-                    return;
-                }
-            }
-
-            _logService.Log(LogLevel.Warning, $"Action {actionName} not found");
-        }
-
-        /// <summary>
-        /// Executes the specified action asynchronously.
-        /// </summary>
-        /// <param name="action">The action to execute.</param>
-        /// <returns>A task representing the asynchronous operation.</returns>
-        public virtual async Task ExecuteActionAsync(ApplicationAction action)
-        {
-            if (action == null)
-            {
-                _logService.Log(LogLevel.Warning, "Cannot execute null action");
-                return;
-            }
-
-            _logService.Log(LogLevel.Info, $"Executing action: {action.Name}");
-
-            // Execute the registry action if present
-            if (action.RegistrySetting != null)
-            {
-                // Use the registry service's ApplySettingAsync method to properly handle Group Policy settings
-                // For actions, we always apply the RecommendedValue (enable the action)
-                var tempSetting = action.RegistrySetting with 
-                {
-                    EnabledValue = action.RegistrySetting.RecommendedValue,
-                    DisabledValue = action.RegistrySetting.DefaultValue
-                };
+                var settingIds = Settings.Select(s => s.Id).ToList();
                 
-                await _registryService.ApplySettingAsync(tempSetting, true);
-            }
+                // Get current state from service
+                var statesTask = _settingsService.GetMultipleSettingsStateAsync(settingIds);
+                var valuesTask = _settingsService.GetMultipleSettingsValuesAsync(settingIds);
 
-            // Execute custom action if present
-            if (action.CustomAction != null)
+                await Task.WhenAll(statesTask, valuesTask);
+
+                var states = statesTask.Result;
+                var values = valuesTask.Result;
+
+                // Update UI items
+                foreach (var uiItem in Settings)
+                {
+                    if (states.TryGetValue(uiItem.Id, out var isEnabled) &&
+                        values.TryGetValue(uiItem.Id, out var currentValue))
+                    {
+                        var status = isEnabled ? RegistrySettingStatus.Applied : RegistrySettingStatus.NotApplied;
+                        SettingUIMapper.UpdateFromSystemState(uiItem, isEnabled, currentValue, status);
+                    }
+                }
+
+                UpdateHasVisibleSettings();
+            }
+            catch (Exception ex)
             {
-                await action.CustomAction();
+                _logService.Log(LogLevel.Error, $"Error refreshing settings status: {ex.Message}");
+                throw;
             }
+        }
 
-            _logService.Log(LogLevel.Info, $"Action '{action.Name}' executed successfully");
+        #endregion
+
+        #region Command Handlers
+
+        /// <summary>
+        /// Applies a specific setting using the service.
+        /// </summary>
+        private async Task ApplySettingAsync(SettingUIItem? uiItem)
+        {
+            if (uiItem == null) return;
+
+            try
+            {
+                uiItem.IsApplying = true;
+                _logService.Log(LogLevel.Info, $"Applying setting: {uiItem.Name}");
+
+                // Use the service to apply the setting
+                await _settingsService.ApplySettingAsync(uiItem.Id, uiItem.IsSelected, uiItem.SelectedValue);
+
+                // Refresh this setting's status
+                await RefreshSettingStatusAsync(uiItem.Id);
+
+                _logService.Log(LogLevel.Info, $"Successfully applied setting: {uiItem.Name}");
+            }
+            catch (Exception ex)
+            {
+                _logService.Log(LogLevel.Error, $"Error applying setting {uiItem.Name}: {ex.Message}");
+                // TODO: Show user-friendly error message
+                throw;
+            }
+            finally
+            {
+                uiItem.IsApplying = false;
+            }
         }
 
         /// <summary>
-        /// Applies the setting asynchronously.
+        /// Applies all selected settings.
         /// </summary>
-        /// <param name="setting">The setting to apply.</param>
-        /// <returns>A task representing the asynchronous operation.</returns>
-        protected virtual async Task ApplySettingAsync(T setting)
+        private async Task ApplyAllSelectedAsync()
         {
-            if (setting == null)
+            try
             {
-                _logService.Log(LogLevel.Warning, "Cannot apply null setting");
-                return;
-            }
+                var selectedSettings = Settings.Where(s => s.IsSelected).ToList();
+                if (!selectedSettings.Any()) return;
 
-            _logService.Log(LogLevel.Info, $"Applying setting: {setting.Name}");
+                _progressService.StartTask($"Applying {selectedSettings.Count} settings...");
 
-            // Apply the setting based on its properties
-            if (setting.RegistrySetting != null)
-            {
-                // Use the registry service's ApplySettingAsync method to properly handle Group Policy settings
-                await _registryService.ApplySettingAsync(setting.RegistrySetting, setting.IsSelected);
-            }
-            else if (
-                setting.LinkedRegistrySettings != null
-                && setting.LinkedRegistrySettings.Settings.Count > 0
-            )
-            {
-                // Apply linked registry settings
-                await _registryService.ApplyLinkedSettingsAsync(
-                    setting.LinkedRegistrySettings,
-                    setting.IsSelected
+                var settingsToApply = selectedSettings.ToDictionary(
+                    s => s.Id, 
+                    s => (s.IsSelected, s.SelectedValue)
                 );
+
+                await _settingsService.ApplyMultipleSettingsAsync(settingsToApply);
+                await RefreshAllSettingsAsync();
+
+                _progressService.CompleteTask();
+                _logService.Log(LogLevel.Info, $"Applied {selectedSettings.Count} settings successfully");
             }
-
-            _logService.Log(LogLevel.Info, $"Setting {setting.Name} applied successfully");
-
-            // Add a small delay to ensure registry changes are processed
-            await Task.Delay(50);
+            catch (Exception ex)
+            {
+                _progressService.CompleteTask();
+                _logService.Log(LogLevel.Error, $"Error applying multiple settings: {ex.Message}");
+                throw;
+            }
         }
 
         /// <summary>
-        /// Gets the registry hive string.
+        /// Selects or deselects all settings.
         /// </summary>
-        /// <param name="hive">The registry hive.</param>
-        /// <returns>The registry hive string.</returns>
-        private string GetRegistryHiveString(RegistryHive hive)
+        private void SelectAllSettings(bool selectAll)
         {
-            return hive switch
+            foreach (var setting in Settings.Where(s => s.IsEnabled))
             {
-                RegistryHive.ClassesRoot => "HKCR",
-                RegistryHive.CurrentUser => "HKCU",
-                RegistryHive.LocalMachine => "HKLM",
-                RegistryHive.Users => "HKU",
-                RegistryHive.CurrentConfig => "HKCC",
-                _ => throw new ArgumentOutOfRangeException(nameof(hive), hive, null),
-            };
+                setting.IsSelected = selectAll;
+            }
+
+            IsAllSelected = selectAll;
         }
+
+        #endregion
+
+        #region Private Methods
+
+        /// <summary>
+        /// Handles setting status change events from the service.
+        /// </summary>
+        private void OnSettingStatusChanged(object? sender, SettingStatusChangedEventArgs e)
+        {
+            var uiItem = Settings.FirstOrDefault(s => s.Id == e.SettingId);
+            if (uiItem != null)
+            {
+                var status = e.IsEnabled ? RegistrySettingStatus.Applied : RegistrySettingStatus.NotApplied;
+                SettingUIMapper.UpdateFromSystemState(uiItem, e.IsEnabled, e.CurrentValue, status);
+            }
+        }
+
+        /// <summary>
+        /// Refreshes the status of a specific setting.
+        /// </summary>
+        private async Task RefreshSettingStatusAsync(string settingId)
+        {
+            try
+            {
+                await _settingsService.RefreshSettingStatusAsync(settingId);
+            }
+            catch (Exception ex)
+            {
+                _logService.Log(LogLevel.Error, $"Error refreshing setting {settingId}: {ex.Message}");
+            }
+        }
+
+        /// <summary>
+        /// Filters settings based on search text.
+        /// </summary>
+        private void FilterSettings()
+        {
+            foreach (var setting in Settings)
+            {
+                setting.IsVisible = string.IsNullOrWhiteSpace(SearchText) || 
+                                   setting.MatchesSearch(SearchText);
+            }
+
+            // Update group visibility
+            foreach (var group in SettingGroups)
+            {
+                group.UpdateVisibility();
+            }
+
+            UpdateHasVisibleSettings();
+        }
+
+        /// <summary>
+        /// Updates the HasVisibleSettings property based on current visibility.
+        /// </summary>
+        private void UpdateHasVisibleSettings()
+        {
+            HasVisibleSettings = Settings.Any(s => s.IsVisible);
+        }
+
+        #endregion
+
+        #region IDisposable
+
+        protected virtual void Dispose(bool disposing)
+        {
+            if (disposing)
+            {
+                _settingsService.SettingStatusChanged -= OnSettingStatusChanged;
+            }
+        }
+
+        public void Dispose()
+        {
+            Dispose(true);
+            GC.SuppressFinalize(this);
+        }
+
+        #endregion
     }
 }

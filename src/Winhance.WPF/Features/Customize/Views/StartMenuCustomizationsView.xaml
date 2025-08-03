@@ -24,7 +24,7 @@
                            Foreground="{DynamicResource PrimaryTextColor}"
                            FontWeight="Bold"
                            FontSize="14"/>
-                <TextBlock Text="Unpins all items from Start Menu | Choose to apply to current user only or all existing users"
+                <TextBlock Text="Unpins all items from the Start Menu and applies recommended settings to disable suggestions, recommendations, and tracking features."
                            Foreground="{DynamicResource PrimaryTextColor}"
                            FontSize="12"/>
             </StackPanel>
@@ -40,7 +40,7 @@
                 <Button.ToolTip>
                     <ToolTip>
                         <TextBlock TextWrapping="Wrap" MaxWidth="300">
-                            Cleans the Start Menu by removing all pinned apps. You can choose to apply to current user only or all existing users.
+                            Cleans the Start Menu by removing all pinned apps and applying recommended settings.
                         </TextBlock>
                     </ToolTip>
                 </Button.ToolTip>
@@ -72,14 +72,14 @@
                                    Orientation="Horizontal" 
                                    VerticalAlignment="Center" 
                                    Margin="15,5,0,5">
-                            <!-- Icon for Start Layout -->
+                            <!-- Dynamic Icon -->
                             <TextBlock FontFamily="{StaticResource MaterialSymbolsFont}" 
                                       FontSize="20"
                                       FontWeight="SemiBold" 
                                       VerticalAlignment="Center" 
                                       Margin="0,0,10,0"
                                       Foreground="{DynamicResource PrimaryTextColor}"
-                                      Text="&#xF78C;"/> <!-- Start menu icon -->
+                                      Text="{Binding Icon, FallbackValue='\uF78C'}"/>
                             
                             <!-- Label Text -->
                             <TextBlock Text="{Binding FullName}"

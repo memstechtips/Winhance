@@ -40,6 +40,15 @@ namespace Winhance.WPF.Features.Common.Services.Configuration
                 )
                 {
                     // Refresh child view models first
+                    await optimizeViewModel.GamingandPerformanceOptimizationsViewModel.LoadSettingsAsync();
+                    await optimizeViewModel.PrivacyOptimizationsViewModel.LoadSettingsAsync();
+                    await optimizeViewModel.UpdateOptimizationsViewModel.LoadSettingsAsync();
+                    await optimizeViewModel.PowerSettingsViewModel.LoadSettingsAsync();
+                    await optimizeViewModel.WindowsSecuritySettingsViewModel.LoadSettingsAsync();
+                    await optimizeViewModel.ExplorerOptimizationsViewModel.LoadSettingsAsync();
+                    await optimizeViewModel.NotificationOptimizationsViewModel.LoadSettingsAsync();
+                    await optimizeViewModel.SoundOptimizationsViewModel.LoadSettingsAsync();
+                    
                     var childViewModels = new object[]
                     {
                         optimizeViewModel.GamingandPerformanceOptimizationsViewModel,

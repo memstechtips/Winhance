@@ -12,7 +12,6 @@ namespace Winhance.Core.Features.Optimize.Models
     {
         private int _acValue;
         private int _dcValue;
-        private bool _isUpdatingFromCode;
 
         /// <summary>
         /// Gets or sets the definition of the power setting.
@@ -51,21 +50,7 @@ namespace Winhance.Core.Features.Optimize.Models
             }
         }
 
-        /// <summary>
-        /// Gets or sets a value indicating whether the setting is currently being updated from code.
-        /// </summary>
-        public bool IsUpdatingFromCode
-        {
-            get => _isUpdatingFromCode;
-            set
-            {
-                if (_isUpdatingFromCode != value)
-                {
-                    _isUpdatingFromCode = value;
-                    OnPropertyChanged();
-                }
-            }
-        }
+        // Note: IsUpdatingFromCode property removed as part of refactoring to use UpdateUIStateFromRegistry pattern
 
         /// <summary>
         /// Gets or sets the display name of the setting.
