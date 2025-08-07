@@ -1,8 +1,10 @@
 using System;
+using System.Collections.Generic;
 using System.Linq;
 using System.Threading;
 using System.Threading.Tasks;
-using Microsoft.Extensions.DependencyInjection;
+using System.ComponentModel;
+using System.Reflection;
 using Winhance.Core.Features.Common.Enums;
 using Winhance.Core.Features.Common.Interfaces;
 using Winhance.Core.Features.Common.Models;
@@ -13,440 +15,81 @@ namespace Winhance.WPF.Features.Common.Services.Configuration
     /// <summary>
     /// Service for applying configuration to the Optimize section.
     /// </summary>
-    public class OptimizeConfigurationApplier : ISectionConfigurationApplier
+    public class OptimizeConfigurationApplier : Core.Features.Common.Interfaces.IOptimizeConfigurationApplier
     {
-        private readonly IServiceProvider _serviceProvider;
         private readonly ILogService _logService;
-        private readonly IViewModelRefresher _viewModelRefresher;
-        private readonly IConfigurationPropertyUpdater _propertyUpdater;
-
-        /// <summary>
-        /// Gets the section name that this applier handles.
-        /// </summary>
-        public string SectionName => "Optimize";
+        private readonly IPropertyUpdater _propertyUpdater;
 
         /// <summary>
         /// Initializes a new instance of the <see cref="OptimizeConfigurationApplier"/> class.
         /// </summary>
-        /// <param name="serviceProvider">The service provider.</param>
         /// <param name="logService">The log service.</param>
-        /// <param name="viewModelRefresher">The view model refresher.</param>
-        /// <param name="propertyUpdater">The property updater.</param>
-        public OptimizeConfigurationApplier(
-            IServiceProvider serviceProvider,
-            ILogService logService,
-            IViewModelRefresher viewModelRefresher,
-            IConfigurationPropertyUpdater propertyUpdater
-        )
+        public OptimizeConfigurationApplier(ILogService logService, IPropertyUpdater propertyUpdater = null)
         {
-            _serviceProvider =
-                serviceProvider ?? throw new ArgumentNullException(nameof(serviceProvider));
             _logService = logService ?? throw new ArgumentNullException(nameof(logService));
-            _viewModelRefresher =
-                viewModelRefresher ?? throw new ArgumentNullException(nameof(viewModelRefresher));
-            _propertyUpdater =
-                propertyUpdater ?? throw new ArgumentNullException(nameof(propertyUpdater));
+            _propertyUpdater = propertyUpdater;
         }
 
         /// <summary>
-        /// Applies the configuration to the Optimize section.
+        /// Applies configuration to the OptimizeCompositionViewModel.
         /// </summary>
-        /// <param name="configFile">The configuration file to apply.</param>
-        /// <returns>True if any items were updated, false otherwise.</returns>
-        public async Task<bool> ApplyConfigAsync(ConfigurationFile configFile)
-        {
-            try
-            {
-                _logService.Log(LogLevel.Info, "Applying configuration to OptimizeViewModel");
-
-                var viewModel = _serviceProvider.GetService<OptimizeViewModel>();
-                if (viewModel == null)
-                {
-                    _logService.Log(LogLevel.Warning, "OptimizeViewModel not available");
-                    return false;
-                }
-
-                // Set a timeout for the operation to prevent hanging
-                using var cancellationTokenSource = new System.Threading.CancellationTokenSource(
-                    TimeSpan.FromSeconds(45)
-                );
-                var cancellationToken = cancellationTokenSource.Token;
-
-                // Add a log entry to track execution time
-                var startTime = DateTime.Now;
-                _logService.Log(
-                    LogLevel.Info,
-                    $"Starting OptimizeConfigurationApplier.ApplyConfigAsync at {startTime}"
-                );
-
-                // Ensure the view model is initialized
-                if (!viewModel.IsInitialized)
-                {
-                    _logService.Log(
-                        LogLevel.Info,
-                        "OptimizeViewModel not initialized, initializing now"
-                    );
-                    try
-                    {
-                        var initializeTask = viewModel.InitializeCommand.ExecuteAsync(null);
-                        await Task.WhenAny(initializeTask, Task.Delay(10000, cancellationToken)); // 10 second timeout
-
-                        if (!initializeTask.IsCompleted)
-                        {
-                            _logService.Log(
-                                LogLevel.Warning,
-                                "Initialization timed out, proceeding with partial initialization"
-                            );
-                        }
-                    }
-                    catch (Exception ex)
-                    {
-                        _logService.Log(
-                            LogLevel.Error,
-                            $"Error initializing OptimizeViewModel: {ex.Message}"
-                        );
-                        // Continue with the import even if initialization fails
-                    }
-                }
-
-                int totalUpdatedCount = 0;
-
-                // Apply the configuration directly to the view model's items
-                try
-                {
-                    int mainItemsUpdatedCount = await _propertyUpdater.UpdateItemsAsync(
-                        viewModel.Items,
-                        configFile
-                    );
-                    totalUpdatedCount += mainItemsUpdatedCount;
-                    _logService.Log(
-                        LogLevel.Info,
-                        $"Updated {mainItemsUpdatedCount} items in OptimizeViewModel.Items"
-                    );
-                }
-                catch (Exception ex)
-                {
-                    _logService.Log(LogLevel.Error, $"Error updating main items: {ex.Message}");
-                }
-
-                // Also apply to child view models - wrap each in try/catch to ensure one failure doesn't stop others
-
-                // Gaming and Performance Settings
-                if (viewModel.GamingandPerformanceOptimizationsViewModel?.Settings != null)
-                {
-                    try
-                    {
-                        int updatedCount = await _propertyUpdater.UpdateItemsAsync(
-                            viewModel.GamingandPerformanceOptimizationsViewModel.Settings,
-                            configFile
-                        );
-                        totalUpdatedCount += updatedCount;
-                        _logService.Log(
-                            LogLevel.Info,
-                            $"Updated {updatedCount} items in GamingandPerformanceOptimizationsViewModel"
-                        );
-                    }
-                    catch (Exception ex)
-                    {
-                        _logService.Log(
-                            LogLevel.Error,
-                            $"Error updating GamingandPerformanceOptimizationsViewModel: {ex.Message}"
-                        );
-                    }
-                }
-
-                // Privacy Settings
-                if (viewModel.PrivacyOptimizationsViewModel?.Settings != null)
-                {
-                    try
-                    {
-                        int updatedCount = await _propertyUpdater.UpdateItemsAsync(
-                            viewModel.PrivacyOptimizationsViewModel.Settings,
-                            configFile
-                        );
-                        totalUpdatedCount += updatedCount;
-                        _logService.Log(
-                            LogLevel.Info,
-                            $"Updated {updatedCount} items in PrivacyOptimizationsViewModel"
-                        );
-                    }
-                    catch (Exception ex)
-                    {
-                        _logService.Log(
-                            LogLevel.Error,
-                            $"Error updating PrivacyOptimizationsViewModel: {ex.Message}"
-                        );
-                    }
-                }
-
-                // Update Settings
-                if (viewModel.UpdateOptimizationsViewModel?.Settings != null)
-                {
-                    try
-                    {
-                        int updatedCount = await _propertyUpdater.UpdateItemsAsync(
-                            viewModel.UpdateOptimizationsViewModel.Settings,
-                            configFile
-                        );
-                        totalUpdatedCount += updatedCount;
-                        _logService.Log(
-                            LogLevel.Info,
-                            $"Updated {updatedCount} items in UpdateOptimizationsViewModel"
-                        );
-                    }
-                    catch (Exception ex)
-                    {
-                        _logService.Log(
-                            LogLevel.Error,
-                            $"Error updating UpdateOptimizationsViewModel: {ex.Message}"
-                        );
-                    }
-                }
-
-                // Power Settings - this is the most likely place for hangs
-                if (viewModel.PowerSettingsViewModel?.Settings != null)
-                {
-                    try
-                    {
-                        // Use a separate timeout for power settings
-                        using var powerSettingsCts = new System.Threading.CancellationTokenSource(
-                            TimeSpan.FromSeconds(10)
-                        );
-
-                        var powerSettingsTask = ApplyPowerSettings(
-                            viewModel.PowerSettingsViewModel,
-                            configFile
-                        );
-                        await Task.WhenAny(
-                            powerSettingsTask,
-                            Task.Delay(10000, powerSettingsCts.Token)
-                        );
-
-                        if (powerSettingsTask.IsCompleted)
-                        {
-                            int updatedCount = await powerSettingsTask;
-                            totalUpdatedCount += updatedCount;
-                            _logService.Log(
-                                LogLevel.Info,
-                                $"Updated {updatedCount} items in PowerSettingsViewModel"
-                            );
-                        }
-                        else
-                        {
-                            _logService.Log(
-                                LogLevel.Warning,
-                                "Power settings update timed out, skipping"
-                            );
-                        }
-                    }
-                    catch (Exception ex)
-                    {
-                        _logService.Log(
-                            LogLevel.Error,
-                            $"Error updating PowerSettingsViewModel: {ex.Message}"
-                        );
-                    }
-                }
-
-                // Explorer Settings
-                if (viewModel.ExplorerOptimizationsViewModel?.Settings != null)
-                {
-                    try
-                    {
-                        int updatedCount = await _propertyUpdater.UpdateItemsAsync(
-                            viewModel.ExplorerOptimizationsViewModel.Settings,
-                            configFile
-                        );
-                        totalUpdatedCount += updatedCount;
-                        _logService.Log(
-                            LogLevel.Info,
-                            $"Updated {updatedCount} items in ExplorerOptimizationsViewModel"
-                        );
-                    }
-                    catch (Exception ex)
-                    {
-                        _logService.Log(
-                            LogLevel.Error,
-                            $"Error updating ExplorerOptimizationsViewModel: {ex.Message}"
-                        );
-                    }
-                }
-
-                // Notification Settings
-                if (viewModel.NotificationOptimizationsViewModel?.Settings != null)
-                {
-                    try
-                    {
-                        int updatedCount = await _propertyUpdater.UpdateItemsAsync(
-                            viewModel.NotificationOptimizationsViewModel.Settings,
-                            configFile
-                        );
-                        totalUpdatedCount += updatedCount;
-                        _logService.Log(
-                            LogLevel.Info,
-                            $"Updated {updatedCount} items in NotificationOptimizationsViewModel"
-                        );
-                    }
-                    catch (Exception ex)
-                    {
-                        _logService.Log(
-                            LogLevel.Error,
-                            $"Error updating NotificationOptimizationsViewModel: {ex.Message}"
-                        );
-                    }
-                }
-
-                // Sound Settings
-                if (viewModel.SoundOptimizationsViewModel?.Settings != null)
-                {
-                    try
-                    {
-                        int updatedCount = await _propertyUpdater.UpdateItemsAsync(
-                            viewModel.SoundOptimizationsViewModel.Settings,
-                            configFile
-                        );
-                        totalUpdatedCount += updatedCount;
-                        _logService.Log(
-                            LogLevel.Info,
-                            $"Updated {updatedCount} items in SoundOptimizationsViewModel"
-                        );
-                    }
-                    catch (Exception ex)
-                    {
-                        _logService.Log(
-                            LogLevel.Error,
-                            $"Error updating SoundOptimizationsViewModel: {ex.Message}"
-                        );
-                    }
-                }
-
-                // Windows Security Settings
-                _logService.Log(LogLevel.Info, "Starting to process Windows Security Settings");
-                var securityStartTime = DateTime.Now;
-
-                if (viewModel.WindowsSecuritySettingsViewModel?.Settings != null)
-                {
-                    try
-                    {
-                        // Use a separate timeout for security settings
-                        using var securitySettingsCts =
-                            new System.Threading.CancellationTokenSource(TimeSpan.FromSeconds(10));
-
-                        var securitySettingsTask = ApplySecuritySettings(
-                            viewModel.WindowsSecuritySettingsViewModel,
-                            configFile
-                        );
-                        await Task.WhenAny(
-                            securitySettingsTask,
-                            Task.Delay(10000, securitySettingsCts.Token)
-                        );
-
-                        if (securitySettingsTask.IsCompleted)
-                        {
-                            int updatedCount = await securitySettingsTask;
-                            totalUpdatedCount += updatedCount;
-                            _logService.Log(
-                                LogLevel.Info,
-                                $"Updated {updatedCount} items in WindowsSecuritySettingsViewModel"
-                            );
-                        }
-                        else
-                        {
-                            _logService.Log(
-                                LogLevel.Warning,
-                                "Security settings update timed out, skipping"
-                            );
-                            securitySettingsCts.Cancel();
-                        }
-                    }
-                    catch (Exception ex)
-                    {
-                        _logService.Log(
-                            LogLevel.Error,
-                            $"Error updating WindowsSecuritySettingsViewModel: {ex.Message}"
-                        );
-                    }
-
-                    var securityEndTime = DateTime.Now;
-                    var securityExecutionTime = securityEndTime - securityStartTime;
-                    _logService.Log(
-                        LogLevel.Info,
-                        $"Completed Windows Security Settings processing in {securityExecutionTime.TotalSeconds:F2} seconds"
-                    );
-                }
-
-                _logService.Log(
-                    LogLevel.Info,
-                    $"Updated a total of {totalUpdatedCount} items in OptimizeViewModel and its child view models"
-                );
-
-                // Refresh the UI
-                try
-                {
-                    await _viewModelRefresher.RefreshViewModelAsync(viewModel);
-                }
-                catch (Exception ex)
-                {
-                    _logService.Log(LogLevel.Error, $"Error refreshing view model: {ex.Message}");
-                }
-
-                // Skip calling ApplyOptimizations during import to avoid system changes
-                // We'll just update the UI to reflect the imported values
-
-                // Reload the main Items collection to reflect the changes in child view models
-                try
-                {
-                    await viewModel.LoadItemsAsync();
-                }
-                catch (Exception ex)
-                {
-                    _logService.Log(LogLevel.Error, $"Error reloading items: {ex.Message}");
-                }
-
-                // Calculate and log execution time
-                var endTime = DateTime.Now;
-                var executionTime = endTime - startTime;
-                _logService.Log(
-                    LogLevel.Info,
-                    $"Completed OptimizeConfigurationApplier.ApplyConfigAsync in {executionTime.TotalSeconds:F2} seconds"
-                );
-
-                return totalUpdatedCount > 0;
-            }
-            catch (TaskCanceledException)
-            {
-                _logService.Log(
-                    LogLevel.Warning,
-                    "OptimizeConfigurationApplier.ApplyConfigAsync was canceled due to timeout"
-                );
-                return false;
-            }
-            catch (Exception ex)
-            {
-                _logService.Log(
-                    LogLevel.Error,
-                    $"Error applying Optimize configuration: {ex.Message}"
-                );
-                return false;
-            }
-        }
-
-        private async Task<int> ApplyPowerSettings(
-            PowerOptimizationsViewModel viewModel,
+        /// <param name="viewModelObj">The view model object to apply configuration to.</param>
+        /// <param name="configFile">The configuration file containing settings to apply.</param>
+        /// <returns>True if configuration was applied successfully, false otherwise.</returns>
+        public async Task<bool> ApplyConfigAsync(
+            object viewModelObj,
             ConfigurationFile configFile
         )
         {
-            int updatedCount = 0;
+            if (viewModelObj == null)
+            {
+                _logService.Log(LogLevel.Error, "Cannot apply config to null view model");
+                return false;
+            }
 
-            // Use a cancellation token with a timeout to prevent hanging
-            using var cancellationTokenSource = new CancellationTokenSource(
-                TimeSpan.FromSeconds(15)
+            if (configFile == null)
+            {
+                _logService.Log(LogLevel.Error, "Cannot apply null config file");
+                return false;
+            }
+
+            // Check if this is an OptimizeCompositionViewModel
+            if (viewModelObj is OptimizeCompositionViewModel)
+            {
+                _logService.Log(
+                    LogLevel.Info,
+                    "Detected OptimizeCompositionViewModel, skipping configuration application"
+                );
+
+                // Skip handling for OptimizeCompositionViewModel
+                // as it uses a different architecture and doesn't have the same properties/methods
+                _logService.Log(
+                    LogLevel.Info,
+                    "OptimizeCompositionViewModel uses a composition pattern which is incompatible with the legacy configuration system"
+                );
+
+                // Return early as we can't apply configuration to the composition-based ViewModel
+                return false;
+            }
+
+            // This is not an OptimizeCompositionViewModel, so we don't handle it
+            _logService.Log(
+                LogLevel.Info,
+                $"Not handling view model of type {viewModelObj.GetType().Name}"
             );
-            var cancellationToken = cancellationTokenSource.Token;
+            return false;
+        }
 
-            // Track execution time
+        /// <summary>
+        /// Applies power plan settings to the PowerOptimizationsViewModel.
+        /// </summary>
+        /// <param name="viewModel">The view model to apply settings to.</param>
+        /// <param name="configFile">The configuration file containing settings.</param>
+        /// <returns>Number of settings applied.</returns>
+        private async Task<int> ApplyPowerSettings(dynamic viewModel, ConfigurationFile configFile)
+        {
+            int updatedCount = 0;
             var startTime = DateTime.Now;
-            _logService.Log(LogLevel.Info, $"Starting ApplyPowerSettings at {startTime}");
 
             try
             {
@@ -778,10 +421,11 @@ namespace Winhance.WPF.Features.Common.Services.Configuration
                             try
                             {
                                 // Find the ComboBox control in the PowerSettingsViewModel
-                                var powerPlanComboBox = viewModel.Settings.FirstOrDefault(s =>
-                                    s.Id == "PowerPlanComboBox"
-                                    || s.Name?.Contains("Power Plan") == true
-                                );
+                                Func<object, bool> powerPlanPredicate = s => {
+                                    var item = s as dynamic;
+                                    return item.Id == "PowerPlanComboBox" || (item.Name as string)?.Contains("Power Plan") == true;
+                                };
+                                var powerPlanComboBox = viewModel.Settings.FirstOrDefault(powerPlanPredicate);
 
                                 if (powerPlanComboBox != null)
                                 {
@@ -815,9 +459,11 @@ namespace Winhance.WPF.Features.Common.Services.Configuration
                     _logService.Log(LogLevel.Warning, "No Power Plan item found in config file");
 
                     // Try to find a power plan setting in the Settings collection
-                    var powerPlanSetting = viewModel.Settings?.FirstOrDefault(s =>
-                        s.Id == "PowerPlanComboBox" || s.Name?.Contains("Power Plan") == true
-                    );
+                    Func<object, bool> powerPlanSettingPredicate = s => {
+                        var item = s as dynamic;
+                        return item.Id == "PowerPlanComboBox" || (item.Name as string)?.Contains("Power Plan") == true;
+                    };
+                    var powerPlanSetting = viewModel.Settings?.FirstOrDefault(powerPlanSettingPredicate);
 
                     if (powerPlanSetting != null)
                     {
@@ -893,10 +539,13 @@ namespace Winhance.WPF.Features.Common.Services.Configuration
             return updatedCount;
         }
 
-        private async Task<int> ApplySecuritySettings(
-            WindowsSecurityOptimizationsViewModel viewModel,
-            ConfigurationFile configFile
-        )
+        /// <summary>
+        /// Applies security settings to the WindowsSecurityOptimizationsViewModel.
+        /// </summary>
+        /// <param name="viewModel">The view model to apply settings to.</param>
+        /// <param name="configFile">The configuration file containing settings.</param>
+        /// <returns>Number of settings applied.</returns>
+        private async Task<int> ApplySecuritySettings(WindowsSecurityOptimizationsViewModel viewModel, ConfigurationFile configFile)
         {
             int updatedCount = 0;
 
@@ -1204,21 +853,14 @@ namespace Winhance.WPF.Features.Common.Services.Configuration
                     LogLevel.Warning,
                     "ApplySecuritySettings was canceled due to timeout"
                 );
+                return 0;
             }
             catch (Exception ex)
             {
                 _logService.Log(LogLevel.Error, $"Error applying security settings: {ex.Message}");
+                return 0;
             }
-
-            // Calculate and log execution time
-            var endTime = DateTime.Now;
-            var executionTime = endTime - startTime;
-            _logService.Log(
-                LogLevel.Info,
-                $"Completed ApplySecuritySettings in {executionTime.TotalSeconds:F2} seconds"
-            );
-
-            return updatedCount;
+            return 0;
         }
     }
 }

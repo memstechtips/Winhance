@@ -25,7 +25,9 @@ namespace Winhance.WPF.Features.Common.Services.Configuration
             services.AddTransient<ISectionConfigurationApplier, WindowsAppsConfigurationApplier>();
             services.AddTransient<ISectionConfigurationApplier, ExternalAppsConfigurationApplier>();
             services.AddTransient<ISectionConfigurationApplier, CustomizeConfigurationApplier>();
-            services.AddTransient<ISectionConfigurationApplier, OptimizeConfigurationApplier>();
+            
+            // Register the new Optimize configuration applier for composition-based ViewModel
+            services.AddTransient<Winhance.Core.Features.Common.Interfaces.IOptimizeConfigurationApplier, OptimizeConfigurationApplier>();
             
             return services;
         }

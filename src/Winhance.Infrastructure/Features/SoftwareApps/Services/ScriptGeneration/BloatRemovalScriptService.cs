@@ -10,7 +10,7 @@ using Winhance.Core.Features.Common.Models;
 using Winhance.Core.Features.SoftwareApps.Interfaces;
 using Winhance.Core.Features.SoftwareApps.Interfaces.ScriptGeneration;
 using Winhance.Core.Features.SoftwareApps.Models;
-using Winhance.Infrastructure.Features.Common.Utilities;
+
 
 namespace Winhance.Infrastructure.Features.SoftwareApps.Services.ScriptGeneration
 {
@@ -29,7 +29,7 @@ namespace Winhance.Infrastructure.Features.SoftwareApps.Services.ScriptGeneratio
         private readonly IBloatRemovalScriptContentModifier _bloatRemovalScriptContentModifier;
         private readonly IBloatRemovalScriptGenerationService _bloatRemovalScriptGenerationService;
         private readonly IBloatRemovalScriptSavingService _bloatRemovalScriptSavingService;
-        private readonly IScriptPathService _scriptPathService;
+        private readonly IScriptPathDetectionService _scriptPathDetectionService;
 
         /// <summary>
         /// Initializes a new instance of the <see cref="BloatRemovalScriptService"/> class.
@@ -43,7 +43,7 @@ namespace Winhance.Infrastructure.Features.SoftwareApps.Services.ScriptGeneratio
         /// <param name="bloatRemovalScriptContentModifier">The bloat removal script content modifier.</param>
         /// <param name="bloatRemovalScriptGenerationService">The bloat removal script generation service.</param>
         /// <param name="bloatRemovalScriptSavingService">The bloat removal script saving service.</param>
-        /// <param name="scriptPathService">The script path service.</param>
+        /// <param name="scriptPathDetectionService">The script path detection service.</param>
         public BloatRemovalScriptService(
             ILogService logService,
             IAppDiscoveryService appDiscoveryService,
@@ -54,7 +54,7 @@ namespace Winhance.Infrastructure.Features.SoftwareApps.Services.ScriptGeneratio
             IBloatRemovalScriptContentModifier bloatRemovalScriptContentModifier,
             IBloatRemovalScriptGenerationService bloatRemovalScriptGenerationService,
             IBloatRemovalScriptSavingService bloatRemovalScriptSavingService,
-            IScriptPathService scriptPathService
+            IScriptPathDetectionService scriptPathDetectionService
         )
         {
             _logService = logService ?? throw new ArgumentNullException(nameof(logService));
@@ -77,11 +77,14 @@ namespace Winhance.Infrastructure.Features.SoftwareApps.Services.ScriptGeneratio
             _bloatRemovalScriptSavingService =
                 bloatRemovalScriptSavingService
                 ?? throw new ArgumentNullException(nameof(bloatRemovalScriptSavingService));
-            _scriptPathService = scriptPathService ?? throw new ArgumentNullException(nameof(scriptPathService));
+            _scriptPathDetectionService = scriptPathDetectionService ?? throw new ArgumentNullException(nameof(scriptPathDetectionService));
             
             // Ensure scripts directory exists
-            var scriptsDirectory = _scriptPathService.GetScriptsDirectory();
-            Directory.CreateDirectory(scriptsDirectory);
+            var scriptsDirectory = _scriptPathDetectionService.GetScriptsDirectory();
+            if (!Directory.Exists(scriptsDirectory))
+            {
+                Directory.CreateDirectory(scriptsDirectory);
+            }
         }
 
         /// <inheritdoc/>
@@ -581,7 +584,7 @@ namespace Winhance.Infrastructure.Features.SoftwareApps.Services.ScriptGeneratio
         /// <returns>The path to the BloatRemoval script.</returns>
         private string GetBloatRemovalScriptPath()
         {
-            return _scriptPathService.GetScriptPath("BloatRemoval");
+            return Path.Combine(_scriptPathDetectionService.GetScriptsDirectory(), "BloatRemoval.ps1");
         }
 
         /// <summary>

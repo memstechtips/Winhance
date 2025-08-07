@@ -16,7 +16,8 @@ public enum OptimizationCategory
     Accessibility,
     Search,
     Services,
-    Power
+    Power,
+    Security
 }
 
 public enum WindowsAppType

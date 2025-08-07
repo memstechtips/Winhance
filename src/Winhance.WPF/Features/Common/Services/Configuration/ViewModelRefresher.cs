@@ -33,97 +33,20 @@ namespace Winhance.WPF.Features.Common.Services.Configuration
         {
             try
             {
-                // Special handling for OptimizeViewModel
+                // Skip handling for OptimizeCompositionViewModel as it uses a different architecture
                 if (
                     viewModel
-                    is Winhance.WPF.Features.Optimize.ViewModels.OptimizeViewModel optimizeViewModel
+                    is Winhance.WPF.Features.Optimize.ViewModels.OptimizeCompositionViewModel
                 )
                 {
-                    // Refresh child view models first
-                    await optimizeViewModel.GamingandPerformanceOptimizationsViewModel.LoadSettingsAsync();
-                    await optimizeViewModel.PrivacyOptimizationsViewModel.LoadSettingsAsync();
-                    await optimizeViewModel.UpdateOptimizationsViewModel.LoadSettingsAsync();
-                    await optimizeViewModel.PowerSettingsViewModel.LoadSettingsAsync();
-                    await optimizeViewModel.WindowsSecuritySettingsViewModel.LoadSettingsAsync();
-                    await optimizeViewModel.ExplorerOptimizationsViewModel.LoadSettingsAsync();
-                    await optimizeViewModel.NotificationOptimizationsViewModel.LoadSettingsAsync();
-                    await optimizeViewModel.SoundOptimizationsViewModel.LoadSettingsAsync();
+                    // OptimizeCompositionViewModel uses a composition pattern and doesn't expose child ViewModels directly
+                    // It manages its own feature Views and their ViewModels internally
+                    _logService.Log(LogLevel.Info, "Skipping refresh for OptimizeCompositionViewModel as it uses a composition pattern");
+                    return;
                     
-                    var childViewModels = new object[]
-                    {
-                        optimizeViewModel.GamingandPerformanceOptimizationsViewModel,
-                        optimizeViewModel.PrivacyOptimizationsViewModel,
-                        optimizeViewModel.UpdateOptimizationsViewModel,
-                        optimizeViewModel.PowerSettingsViewModel,
-                        optimizeViewModel.WindowsSecuritySettingsViewModel,
-                        optimizeViewModel.ExplorerOptimizationsViewModel,
-                        optimizeViewModel.NotificationOptimizationsViewModel,
-                        optimizeViewModel.SoundOptimizationsViewModel,
-                    };
-
-                    foreach (var childViewModel in childViewModels)
-                    {
-                        if (childViewModel != null)
-                        {
-                            // Try to refresh each child view model
-                            await RefreshChildViewModelAsync(childViewModel);
-                        }
-                    }
-
-                    // Then reload the main view model's items to reflect changes in child view models
-                    await optimizeViewModel.LoadItemsAsync();
-
-                    // Notify UI of changes using a safer approach
-                    try
-                    {
-                        // Try to find a method that takes a string parameter
-                        var methods = optimizeViewModel
-                            .GetType()
-                            .GetMethods(
-                                System.Reflection.BindingFlags.Public
-                                    | System.Reflection.BindingFlags.NonPublic
-                                    | System.Reflection.BindingFlags.Instance
-                            )
-                            .Where(m =>
-                                (m.Name == "RaisePropertyChanged" || m.Name == "OnPropertyChanged")
-                                && m.GetParameters().Length == 1
-                                && m.GetParameters()[0].ParameterType == typeof(string)
-                            )
-                            .ToList();
-
-                        if (methods.Any())
-                        {
-                            var method = methods.First();
-                            // Refresh key properties
-                            // Execute property change notifications on the UI thread
-                            ExecuteOnUIThread(() =>
-                            {
-                                method.Invoke(optimizeViewModel, new object[] { "Items" });
-                                method.Invoke(optimizeViewModel, new object[] { "IsInitialized" });
-                                method.Invoke(optimizeViewModel, new object[] { "IsLoading" });
-                            });
-                        }
-                        else
-                        {
-                            // If no suitable method is found, try using RefreshCommand
-                            var refreshCommand =
-                                optimizeViewModel
-                                    .GetType()
-                                    .GetProperty("RefreshCommand")
-                                    ?.GetValue(optimizeViewModel) as System.Windows.Input.ICommand;
-                            if (refreshCommand != null && refreshCommand.CanExecute(null))
-                            {
-                                ExecuteOnUIThread(() =>
-                                {
-                                    refreshCommand.Execute(null);
-                                });
-                            }
-                        }
-                    }
-                    catch (Exception ex)
-                    {
-                        // Error refreshing OptimizeViewModel: {ex.Message}");
-                    }
+                    // Legacy code for OptimizeCompositionViewModel has been removed as it uses a different architecture
+                    // The composition-based ViewModel manages its own child ViewModels and their refresh logic
+                    _logService.Log(LogLevel.Info, "Skipping refresh for OptimizeCompositionViewModel as it uses a composition pattern");
 
                     return;
                 }

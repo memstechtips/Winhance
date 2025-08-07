@@ -53,7 +53,7 @@ namespace Winhance.Infrastructure.Features.SoftwareApps.Services.ScriptGeneratio
                     sp.GetRequiredService<IBloatRemovalScriptContentModifier>(),
                     sp.GetRequiredService<IBloatRemovalScriptGenerationService>(),
                     sp.GetRequiredService<IBloatRemovalScriptSavingService>(),
-                    sp.GetRequiredService<IScriptPathService>()
+                    sp.GetRequiredService<IScriptPathDetectionService>()
                 );
             });
 
@@ -83,7 +83,7 @@ namespace Winhance.Infrastructure.Features.SoftwareApps.Services.ScriptGeneratio
                     sp.GetRequiredService<IAppDiscoveryService>(),
                     sp.GetRequiredService<IBloatRemovalScriptContentModifier>(),
                     sp.GetRequiredService<IBloatRemovalScriptTemplateProvider>(),
-                    sp.GetRequiredService<IScriptPathService>()
+                    sp.GetRequiredService<IScriptPathDetectionService>()
                 );
             });
 

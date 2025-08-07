@@ -1,0 +1,251 @@
+using System;
+using System.Collections.Generic;
+using System.Linq;
+using System.Threading.Tasks;
+using Winhance.Core.Features.Common.Enums;
+using Winhance.Core.Features.Common.Interfaces;
+using Winhance.Core.Features.Common.Models;
+using Winhance.Core.Features.Optimize.Interfaces;
+using Winhance.Core.Features.Optimize.Models;
+
+namespace Winhance.Infrastructure.Features.Optimize.Services
+{
+    /// <summary>
+    /// Service implementation for managing Windows security optimization settings.
+    /// Handles UAC, Windows Defender, and security-related optimizations.
+    /// </summary>
+    public class SecurityService : ISecurityService
+    {
+        private readonly IRegistryService _registryService;
+        private readonly ICommandService _commandService;
+        private readonly ILogService _logService;
+        private readonly ISystemSettingsDiscoveryService _systemSettingsDiscoveryService;
+
+        public string DomainName => "Security";
+
+        public SecurityService(
+            IRegistryService registryService,
+            ICommandService commandService,
+            ILogService logService,
+            ISystemSettingsDiscoveryService systemSettingsDiscoveryService)
+        {
+            _registryService = registryService ?? throw new ArgumentNullException(nameof(registryService));
+            _commandService = commandService ?? throw new ArgumentNullException(nameof(commandService));
+            _logService = logService ?? throw new ArgumentNullException(nameof(logService));
+            _systemSettingsDiscoveryService = systemSettingsDiscoveryService ?? throw new ArgumentNullException(nameof(systemSettingsDiscoveryService));
+        }
+
+        public async Task<IEnumerable<ApplicationSetting>> GetSettingsAsync()
+        {
+            try
+            {
+                _logService.Log(LogLevel.Info, "Loading Security settings with system state");
+                
+                var optimizations = WindowsSecurityOptimizations.GetWindowsSecurityOptimizations();
+                var settings = optimizations.Settings.ToList();
+
+                // Initialize settings with their actual system state
+                var systemStates = await _systemSettingsDiscoveryService.GetCurrentSettingsStateAndValuesAsync(settings);
+
+                // Create new settings with updated IsInitiallyEnabled values
+                var updatedSettings = new List<ApplicationSetting>();
+                foreach (var originalSetting in settings)
+                {
+                    if (systemStates.TryGetValue(originalSetting.Id, out var state))
+                    {
+                        var updatedSetting = originalSetting with
+                        {
+                            IsInitiallyEnabled = state.IsEnabled,
+                            CurrentValue = state.CurrentValue,
+                            IsEnabled = true // Settings are always enabled for interaction
+                        };
+                        updatedSettings.Add(updatedSetting);
+                    }
+                    else
+                    {
+                        _logService.Log(LogLevel.Warning, 
+                            $"No system state found for setting '{originalSetting.Id}', using defaults");
+                        updatedSettings.Add(originalSetting);
+                    }
+                }
+
+                return updatedSettings;
+            }
+            catch (Exception ex)
+            {
+                _logService.Log(
+                    LogLevel.Error,
+                    $"Error loading Security settings: {ex.Message}"
+                );
+                return Enumerable.Empty<ApplicationSetting>();
+            }
+        }
+
+        public async Task ApplySettingAsync(string settingId, bool enable, object? value = null)
+        {
+            try
+            {
+                _logService.Log(
+                    LogLevel.Info,
+                    $"Applying Security setting '{settingId}': enable={enable}, value={value}"
+                );
+
+                var settings = await GetSettingsAsync();
+                var setting = settings.FirstOrDefault(s => s.Id == settingId);
+                
+                if (setting == null)
+                {
+                    throw new ArgumentException(
+                        $"Setting '{settingId}' not found in Security domain"
+                    );
+                }
+
+                // Handle registry settings with value support for comboboxes
+                if (setting.RegistrySettings?.Count > 0)
+                {
+                    // Handle combobox settings with specific values
+                    if (setting.ControlType == ControlType.ComboBox && value != null)
+                    {
+                        await ApplyComboBoxSettingAsync(setting, value);
+                    }
+                    else
+                    {
+                        // Handle toggle settings with boolean enable/disable
+                        foreach (var registrySetting in setting.RegistrySettings)
+                        {
+                            await _registryService.ApplySettingAsync(registrySetting, enable);
+                        }
+                    }
+                }
+
+                // Apply command settings
+                if (setting.CommandSettings?.Count > 0)
+                {
+                    foreach (var commandSetting in setting.CommandSettings)
+                    {
+                        await _commandService.ApplyCommandSettingsAsync(new[] { commandSetting }, enable);
+                    }
+                }
+
+                _logService.Log(
+                    LogLevel.Info,
+                    $"Successfully applied Security setting '{settingId}'"
+                );
+            }
+            catch (Exception ex)
+            {
+                _logService.Log(
+                    LogLevel.Error,
+                    $"Error applying Security setting '{settingId}': {ex.Message}"
+                );
+                throw;
+            }
+        }
+
+        public async Task<bool> GetSettingStatusAsync(string settingId)
+        {
+            try
+            {
+                var settings = await GetSettingsAsync();
+                var setting = settings.FirstOrDefault(s => s.Id == settingId);
+                
+                if (setting?.RegistrySettings?.Count > 0)
+                {
+                    var status = await _registryService.GetSettingStatusAsync(setting.RegistrySettings[0]);
+                    return status == RegistrySettingStatus.Applied;
+                }
+                
+                return false;
+            }
+            catch (Exception ex)
+            {
+                _logService.Log(
+                    LogLevel.Error,
+                    $"Error checking Security setting '{settingId}': {ex.Message}"
+                );
+                return false;
+            }
+        }
+
+        public async Task<object?> GetSettingValueAsync(string settingId)
+        {
+            try
+            {
+                var settings = await GetSettingsAsync();
+                var setting = settings.FirstOrDefault(s => s.Id == settingId);
+                
+                if (setting?.RegistrySettings?.Count > 0)
+                {
+                    return await _registryService.GetCurrentValueAsync(setting.RegistrySettings[0]);
+                }
+                
+                return null;
+            }
+            catch (Exception ex)
+            {
+                _logService.Log(
+                    LogLevel.Error,
+                    $"Error getting Security setting value '{settingId}': {ex.Message}"
+                );
+                return null;
+            }
+        }
+        public async Task<bool> IsSettingEnabledAsync(string settingId)
+        {
+            try
+            {
+                _logService.Log(LogLevel.Info, $"Checking if setting '{settingId}' is enabled");
+                
+                var settings = await GetSettingsAsync();
+                var setting = settings.FirstOrDefault(s => s.Id == settingId);
+                if (setting?.RegistrySettings?.Count > 0)
+                {
+                    var status = await _registryService.GetSettingStatusAsync(setting.RegistrySettings[0]);
+                    return status == RegistrySettingStatus.Applied;
+                }
+                
+                return false;
+            }
+            catch (Exception ex)
+            {
+                _logService.Log(
+                    LogLevel.Error,
+                    $"Error checking if setting '{settingId}' is enabled: {ex.Message}"
+                );
+                return false;
+            }
+        }
+
+        private async Task ApplyComboBoxSettingAsync(ApplicationSetting setting, object value)
+        {
+            try
+            // Handle UAC level specifically with LinkedRegistrySettings
+            if (setting.Id == "windows-security-uac-level")
+            {
+                await ApplyUacLevelSettingAsync(intValue);
+                return;
+            }
+
+            // Generic combobox handling for other settings
+            if (setting.RegistrySettings?.Count > 0)
+            {
+                foreach (var registrySetting in setting.RegistrySettings)
+                {
+                    _registryService.SetValue(
+                        $"{registrySetting.Hive}\\{registrySetting.SubKey}",
+                        registrySetting.Name,
+                        intValue,
+                        RegistryValueKind.DWord
+                    );
+                }
+            }
+
+            _logService.Log(LogLevel.Info, $"Successfully applied combobox setting '{setting.Id}' with value: {intValue}");
+        }
+        catch (Exception ex)
+        {
+            _logService.Log(LogLevel.Error, $"Error applying combobox setting '{setting.Id}': {ex.Message}");
+            throw;
+        }
+    }
+}

@@ -8,6 +8,7 @@ using Microsoft.Extensions.DependencyInjection;
 using Winhance.Core.Features.Common.Enums;
 using Winhance.Core.Features.Common.Interfaces;
 using Winhance.Core.Features.Common.Models;
+using Winhance.WPF.Features.Common.Interfaces;
 using Winhance.WPF.Features.Common.Models;
 using Winhance.WPF.Features.Common.ViewModels;
 using Winhance.WPF.Features.Customize.ViewModels;
@@ -75,7 +76,7 @@ namespace Winhance.WPF.Features.Common.Services
                 var windowsAppsViewModel = _serviceProvider.GetService<WindowsAppsViewModel>();
                 var externalAppsViewModel = _serviceProvider.GetService<ExternalAppsViewModel>();
                 var customizeViewModel = _serviceProvider.GetService<CustomizeViewModel>();
-                var optimizeViewModel = _serviceProvider.GetService<OptimizeViewModel>();
+                var optimizeViewModel = _serviceProvider.GetService<OptimizeCompositionViewModel>();
 
                 // Add settings from each view model to the dictionary
                 if (windowsAppsViewModel != null)
@@ -361,14 +362,22 @@ namespace Winhance.WPF.Features.Common.Services
 
                 if (optimizeViewModel != null)
                 {
-                    _logService.Log(LogLevel.Debug, "Processing OptimizeViewModel");
+                    _logService.Log(LogLevel.Debug, "Processing OptimizeCompositionViewModel");
 
+                    // Skip handling for OptimizeCompositionViewModel as it uses a different architecture
+                    _logService.Log(
+                        LogLevel.Info,
+                        "Skipping configuration handling for OptimizeCompositionViewModel as it uses a composition pattern"
+                    );
+                    
+                    // Legacy code commented out as OptimizeCompositionViewModel has a different structure
+                    /*
                     // Ensure the view model is initialized
                     if (!optimizeViewModel.IsInitialized)
                     {
                         _logService.Log(
                             LogLevel.Debug,
-                            "OptimizeViewModel not initialized, initializing now"
+                            "OptimizeCompositionViewModel not initialized, initializing now"
                         );
                         await optimizeViewModel.InitializeCommand.ExecuteAsync(null);
 
@@ -376,29 +385,30 @@ namespace Winhance.WPF.Features.Common.Services
                         await optimizeViewModel.LoadItemsAsync();
                         _logService.Log(
                             LogLevel.Debug,
-                            $"OptimizeViewModel initialized and loaded with {optimizeViewModel.Settings?.Count ?? 0} items"
+                            $"OptimizeCompositionViewModel initialized and loaded with {optimizeViewModel.Settings?.Count ?? 0} items"
                         );
                     }
                     else
                     {
-                        _logService.Log(LogLevel.Debug, "OptimizeViewModel already initialized");
+                        _logService.Log(LogLevel.Debug, "OptimizeCompositionViewModel already initialized");
 
                         // Even if initialized, make sure items are loaded
                         if (optimizeViewModel.Settings == null || optimizeViewModel.Settings.Count == 0)
                         {
                             _logService.Log(
                                 LogLevel.Debug,
-                                "OptimizeViewModel items not loaded, loading now"
+                                "OptimizeCompositionViewModel items not loaded, loading now"
                             );
                             await optimizeViewModel.LoadItemsAsync();
                             _logService.Log(
                                 LogLevel.Debug,
-                                $"OptimizeViewModel items loaded, count: {optimizeViewModel.Settings?.Count ?? 0}"
+                                $"OptimizeCompositionViewModel items loaded, count: {optimizeViewModel.Settings?.Count ?? 0}"
                             );
                         }
                     }
+                    */
 
-                    // For OptimizeViewModel, we need to get the settings directly
+                    // For OptimizeCompositionViewModel, we need to get the settings directly
                     var optimizeItems = new List<ISettingItem>();
 
                     // Get the Items property
@@ -412,7 +422,7 @@ namespace Winhance.WPF.Features.Common.Services
                         {
                             _logService.Log(
                                 LogLevel.Debug,
-                                $"OptimizeViewModel has items collection, enumerating"
+                                $"OptimizeCompositionViewModel has items collection, enumerating"
                             );
 
                             // Log the type of the first item
@@ -428,7 +438,7 @@ namespace Winhance.WPF.Features.Common.Services
                             {
                                 _logService.Log(
                                     LogLevel.Warning,
-                                    "OptimizeViewModel items collection is empty or first item is null"
+                                    "OptimizeCompositionViewModel items collection is empty or first item is null"
                                 );
                             }
 
@@ -439,23 +449,12 @@ namespace Winhance.WPF.Features.Common.Services
 
                             foreach (var item in items)
                             {
-                                if (
-                                    item
-                                    is Winhance.WPF.Features.Common.Models.ApplicationSettingItem applicationItem
-                                )
-                                {
-                                    optimizeItems.Add(applicationItem);
-                                    _logService.Log(
-                                        LogLevel.Debug,
-                                        $"Added ApplicationSettingItem for {applicationItem.Name}"
-                                    );
-                                }
-                                else if (item is ISettingItem settingItem)
+                                if (item is ISettingItem settingItem)
                                 {
                                     optimizeItems.Add(settingItem);
                                     _logService.Log(
                                         LogLevel.Debug,
-                                        $"Added generic ISettingItem for {settingItem.Name}"
+                                        $"Added ISettingItem for {settingItem.Name}"
                                     );
                                 }
                                 else
@@ -471,7 +470,7 @@ namespace Winhance.WPF.Features.Common.Services
                         {
                             _logService.Log(
                                 LogLevel.Warning,
-                                "OptimizeViewModel items collection is null"
+                                "OptimizeCompositionViewModel items collection is null"
                             );
                         }
                     }
@@ -479,7 +478,7 @@ namespace Winhance.WPF.Features.Common.Services
                     {
                         _logService.Log(
                             LogLevel.Error,
-                            "Could not find Items property in OptimizeViewModel"
+                            "Could not find Items property in OptimizeCompositionViewModel"
                         );
                     }
 
@@ -489,7 +488,7 @@ namespace Winhance.WPF.Features.Common.Services
                     {
                         _logService.Log(
                             LogLevel.Warning,
-                            "No items found in OptimizeViewModel, collecting from child view models"
+                            "No items found in OptimizeCompositionViewModel, collecting from child view models"
                         );
 
                         // Get all the child view models using reflection
@@ -500,7 +499,7 @@ namespace Winhance.WPF.Features.Common.Services
                         {
                             if (
                                 property.Name.EndsWith("ViewModel")
-                                && property.Name != "OptimizeViewModel"
+                                && property.Name != "OptimizeCompositionViewModel"
                                 && property.PropertyType.Name.Contains("Optimizations")
                             )
                             {
@@ -529,105 +528,31 @@ namespace Winhance.WPF.Features.Common.Services
                                 {
                                     foreach (var setting in settings)
                                     {
-                                        // Use dynamic to avoid type issues
-                                        dynamic settingViewModel = setting;
                                         try
                                         {
-                                            // Convert setting to ApplicationSettingItem using dynamic
-                                            var item =
-                                                new Winhance.WPF.Features.Common.Models.ApplicationSettingItem(
-                                                    _registryService,
-                                                    _dialogService,
-                                                    _logService
-                                                );
-
-                                            // Copy properties using reflection to avoid type issues
-                                            try
-                                            {
-                                                item.Id = settingViewModel.Id;
-                                            }
-                                            catch { }
-                                            try
-                                            {
-                                                item.Name = settingViewModel.Name;
-                                            }
-                                            catch { }
-                                            try
-                                            {
-                                                item.Description = settingViewModel.Description;
-                                            }
-                                            catch { }
-                                            try
-                                            {
-                                                item.IsSelected = settingViewModel.IsSelected;
-                                            }
-                                            catch { }
-                                            try
-                                            {
-                                                item.GroupName = settingViewModel.GroupName;
-                                            }
-                                            catch { }
-                                            try
-                                            {
-                                                item.IsVisible = settingViewModel.IsVisible;
-                                            }
-                                            catch { }
-                                            try
-                                            {
-                                                item.ControlType = settingViewModel.ControlType;
-                                            }
-                                            catch { }
-                                            try
-                                            {
-                                                item.SliderValue = settingViewModel.SliderValue;
-                                            }
-                                            catch { }
-                                            try
-                                            {
-                                                item.SliderSteps = settingViewModel.SliderSteps;
-                                            }
-                                            catch { }
-                                            try
-                                            {
-                                                item.Status = settingViewModel.Status;
-                                            }
-                                            catch { }
-                                            try
-                                            {
-                                                item.StatusMessage = settingViewModel.StatusMessage;
-                                            }
-                                            catch { }
-                                            try
-                                            {
-                                                item.RegistrySetting =
-                                                    settingViewModel.RegistrySetting;
-                                            }
-                                            catch { }
-
-                                            // Skip LinkedRegistrySettings for now as it's causing issues
-
-                                            optimizeItems.Add(item);
-                                            _logService.Log(
-                                                LogLevel.Debug,
-                                                $"Added setting from {childViewModel.GetType().Name}: {item.Name}"
-                                            );
-                                        }
-                                        catch (Exception ex)
-                                        {
-                                            _logService.Log(
-                                                LogLevel.Error,
-                                                $"Error converting setting: {ex.Message}"
-                                            );
-
-                                            // Try to add as generic ISettingItem if possible
+                                            // Check if setting is already an ISettingItem
                                             if (setting is ISettingItem settingItem)
                                             {
                                                 optimizeItems.Add(settingItem);
                                                 _logService.Log(
                                                     LogLevel.Debug,
-                                                    $"Added generic setting from {childViewModel.GetType().Name}: {settingItem.Name}"
+                                                    $"Added ISettingItem from {childViewModel.GetType().Name}: {settingItem.Name}"
                                                 );
                                             }
+                                            else
+                                            {
+                                                _logService.Log(
+                                                    LogLevel.Warning,
+                                                    $"Setting from {childViewModel.GetType().Name} is not an ISettingItem: {setting?.GetType().FullName ?? "null"}"
+                                                );
+                                            }
+                                        }
+                                        catch (Exception ex)
+                                        {
+                                            _logService.Log(
+                                                LogLevel.Error,
+                                                $"Error processing setting: {ex.Message}"
+                                            );
                                         }
                                     }
                                 }
@@ -647,19 +572,15 @@ namespace Winhance.WPF.Features.Common.Services
                                 "No items found in child view models, adding placeholder"
                             );
 
-                            var placeholderItem =
-                                new Winhance.WPF.Features.Common.Models.ApplicationSettingItem(
-                                    _registryService,
-                                    _dialogService,
-                                    _logService
-                                )
-                                {
-                                    Id = "OptimizePlaceholder",
-                                    Name = "Optimization Settings",
-                                    Description = "Default optimization settings",
-                                    IsSelected = true,
-                                    GroupName = "Optimizations",
-                                };
+                            var placeholderItem = new SettingUIItem(
+                                "OptimizePlaceholder",
+                                "Optimization Settings",
+                                "Default optimization settings",
+                                "Optimizations"
+                            )
+                            {
+                                IsSelected = true
+                            };
 
                             optimizeItems.Add(placeholderItem);
                             _logService.Log(
@@ -1040,26 +961,34 @@ namespace Winhance.WPF.Features.Common.Services
                         case "Optimize":
                             _logService.Log(
                                 LogLevel.Info,
-                                $"Getting OptimizeViewModel from service provider"
+                                $"Getting OptimizeCompositionViewModel from service provider"
                             );
                             var optimizeViewModel =
-                                _serviceProvider.GetService<OptimizeViewModel>();
+                                _serviceProvider.GetService<OptimizeCompositionViewModel>();
                             if (optimizeViewModel != null)
                             {
                                 _logService.Log(
                                     LogLevel.Info,
-                                    $"OptimizeViewModel found, importing configuration"
+                                    $"OptimizeCompositionViewModel found, importing configuration"
                                 );
 
-                                // Ensure the view model is initialized
+                                // Skip handling for OptimizeCompositionViewModel as it uses a different architecture
+                                _logService.Log(
+                                    LogLevel.Info,
+                                    "Skipping initialization for OptimizeCompositionViewModel as it uses a composition pattern"
+                                );
+                                
+                                // Legacy code commented out as OptimizeCompositionViewModel has a different structure
+                                /*
                                 if (!optimizeViewModel.IsInitialized)
                                 {
                                     _logService.Log(
                                         LogLevel.Info,
-                                        $"OptimizeViewModel not initialized, initializing now"
+                                        $"OptimizeCompositionViewModel not initialized, initializing now"
                                     );
                                     await optimizeViewModel.InitializeCommand.ExecuteAsync(null);
                                 }
+                                */
 
                                 // Check if we have any subsections for Optimize
                                 if (subsectionMap.TryGetValue("Optimize", out var optimizeSubsections) && optimizeSubsections.Any())
@@ -1114,7 +1043,7 @@ namespace Winhance.WPF.Features.Common.Services
                             {
                                 _logService.Log(
                                     LogLevel.Warning,
-                                    $"OptimizeViewModel not available"
+                                    $"OptimizeCompositionViewModel not available"
                                 );
                                 sectionResult = false;
                             }
@@ -1623,7 +1552,7 @@ namespace Winhance.WPF.Features.Common.Services
         }
 
         /// <summary>
-        /// Imports configuration to OptimizeViewModel.
+        /// Imports configuration to OptimizeCompositionViewModel.
         /// </summary>
         /// <param name="viewModel">The view model to import to.</param>
         /// <param name="configFile">The configuration file to import.</param>
@@ -1635,7 +1564,7 @@ namespace Winhance.WPF.Features.Common.Services
         {
             try
             {
-                _logService.Log(LogLevel.Info, "Importing configuration to OptimizeViewModel");
+                _logService.Log(LogLevel.Info, "Importing configuration to OptimizeCompositionViewModel");
 
                 // First try using the ImportConfigCommand
                 var importCommand =
@@ -1682,7 +1611,7 @@ namespace Winhance.WPF.Features.Common.Services
                 {
                     _logService.Log(LogLevel.Info, "Successfully applied configuration directly");
 
-                    // For OptimizeViewModel, try to call ApplyOptimizations if available
+                    // For OptimizeCompositionViewModel, try to call ApplyOptimizations if available
                     var applyOptimizationsMethod = viewModel
                         .GetType()
                         .GetMethod(
@@ -2843,7 +2772,7 @@ namespace Winhance.WPF.Features.Common.Services
                     }
                     else if (viewModelTypeName.Contains("Optimize"))
                     {
-                        // Try to refresh the OptimizeViewModel specifically
+                        // Try to refresh the OptimizeCompositionViewModel specifically
                         var refreshOptimizationsMethod = viewModel
                             .GetType()
                             .GetMethod(

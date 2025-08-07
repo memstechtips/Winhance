@@ -31,9 +31,12 @@
                 <DataTemplate DataType="{x:Type softwareAppsViewModels:ExternalAppsViewModel}">
                         <softwareAppsViews:ExternalAppsView/>
                 </DataTemplate>
-                <DataTemplate DataType="{x:Type optimizeViewModels:OptimizeViewModel}">
-                        <optimizeViews:OptimizeView/>
+                <!-- New SOLID-compliant composition view -->
+                <DataTemplate DataType="{x:Type optimizeViewModels:OptimizeCompositionViewModel}">
+                        <optimizeViews:OptimizeCompositionView/>
                 </DataTemplate>
+                
+                <!-- Legacy container view removed - using composition approach -->
                 <DataTemplate DataType="{x:Type customizeViewModels:CustomizeViewModel}">
                         <customizeViews:CustomizeView/>
                 </DataTemplate>

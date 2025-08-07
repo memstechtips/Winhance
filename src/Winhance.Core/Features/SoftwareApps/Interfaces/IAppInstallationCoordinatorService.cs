@@ -43,7 +43,7 @@ namespace Winhance.Core.Features.SoftwareApps.Interfaces
         /// <summary>
         /// Gets or sets the error message if the installation failed.
         /// </summary>
-        public string ErrorMessage { get; set; }
+        public string? ErrorMessage { get; set; }
         
         /// <summary>
         /// Gets or sets a value indicating whether the installation was cancelled by the user.

@@ -47,7 +47,7 @@ namespace Winhance.Core.Features.SoftwareApps.Interfaces
         /// <summary>
         /// Gets the notification service.
         /// </summary>
-        INotificationService NotificationService { get; }
+        IWinhanceNotificationService NotificationService { get; }
 
         /// <summary>
         /// Gets all installable applications.

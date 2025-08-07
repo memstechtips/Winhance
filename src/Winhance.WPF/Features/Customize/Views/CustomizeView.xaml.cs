@@ -4,8 +4,9 @@ using System.Windows.Controls;
 using System.Windows.Input;
 using System.Windows.Media;
 using MaterialDesignThemes.Wpf;
+using Winhance.Core.Features.Common.Events;
 using Winhance.Core.Features.Common.Interfaces;
-using Winhance.WPF.Features.Common.Messages;
+using Winhance.WPF.Features.Common.Events;
 using Winhance.WPF.Features.Customize.ViewModels;
 
 namespace Winhance.WPF.Features.Customize.Views
@@ -15,38 +16,32 @@ namespace Winhance.WPF.Features.Customize.Views
     /// </summary>
     public partial class CustomizeView : UserControl
     {
-        private IMessengerService? _messengerService; // Changed from readonly to allow assignment
+        private IEventBus? _eventBus; // Event bus for subscribing to events
         
         public CustomizeView()
         {
             InitializeComponent();
             Loaded += CustomizeView_Loaded;
             
-            // Get messenger service from DataContext when it's set
+            // Get event bus from DataContext when it's set
             DataContextChanged += (s, e) => 
             {
                 if (e.NewValue is CustomizeViewModel viewModel && 
-                    viewModel.MessengerService is IMessengerService messengerService)
+                    viewModel is { } vm)
                 {
-                    _messengerService = messengerService;
-                    SubscribeToMessages();
+                    // Get event bus from dependency injection
+                    _eventBus = ((App)App.Current).ServiceProvider.GetService(typeof(IEventBus)) as IEventBus;
+                    SubscribeToEvents();
                 }
             };
         }
         
-        private void SubscribeToMessages()
+        private void SubscribeToEvents()
         {
-            if (_messengerService == null)
+            if (_eventBus == null)
                 return;
                 
-            // Subscribe to the message that signals resetting expansion states
-            _messengerService.Register<ResetExpansionStateMessage>(this, OnResetExpansionState);
-        }
-        
-        private void OnResetExpansionState(ResetExpansionStateMessage message)
-        {
-            // Reset all sections to be expanded
-            ResetAllExpansionStates();
+            // Event subscriptions can be added here if needed in the future
         }
         
         /// <summary>

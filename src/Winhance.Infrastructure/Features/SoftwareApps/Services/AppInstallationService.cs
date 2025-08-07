@@ -17,7 +17,7 @@ using Winhance.Core.Features.SoftwareApps.Interfaces;
 using Winhance.Core.Features.SoftwareApps.Interfaces.ScriptGeneration;
 using Winhance.Core.Features.SoftwareApps.Models;
 using Winhance.Infrastructure.Features.Common.Services;
-using Winhance.Infrastructure.Features.Common.Utilities;
+
 using Winhance.Infrastructure.Features.SoftwareApps.Services.ScriptGeneration;
 
 namespace Winhance.Infrastructure.Features.SoftwareApps.Services;

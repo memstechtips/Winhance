@@ -9,7 +9,7 @@ using CommunityToolkit.Mvvm.ComponentModel;
 using CommunityToolkit.Mvvm.Input;
 using Winhance.Core.Features.Common.Enums;
 using Winhance.Core.Features.Common.Interfaces;
-using Winhance.Core.Features.Common.Messaging;
+using Winhance.Core.Features.Common.Events;
 using Winhance.Core.Features.Common.Models;
 using Winhance.WPF.Features.Common.Views;
 
@@ -22,10 +22,10 @@ namespace Winhance.WPF.Features.Common.ViewModels
     {
         private readonly ILogService _logService;
         private readonly IVersionService _versionService;
-        private readonly IMessengerService _messengerService;
+        private readonly IEventBus _eventBus;
         private readonly IApplicationCloseService _applicationCloseService;
         private readonly IDialogService _dialogService;
-        private readonly IScriptPathService _scriptPathService;
+        private readonly IScriptPathDetectionService _scriptPathDetectionService;
 
         private string _versionInfo;
 
@@ -66,28 +66,28 @@ namespace Winhance.WPF.Features.Common.ViewModels
         /// <param name="messengerService">Service for messaging between components</param>
         /// <param name="applicationCloseService">Service for closing the application</param>
         /// <param name="dialogService">Service for showing dialogs</param>
-        /// <param name="scriptPathService">Service for script path management</param>
+        /// <param name="scriptPathDetectionService">Service for script path detection</param>
         public MoreMenuViewModel(
             ILogService logService,
             IVersionService versionService,
-            IMessengerService messengerService,
+            IEventBus eventBus,
             IApplicationCloseService applicationCloseService,
             IDialogService dialogService,
-            IScriptPathService scriptPathService
+            IScriptPathDetectionService scriptPathDetectionService
         )
         {
             _logService = logService ?? throw new ArgumentNullException(nameof(logService));
             _versionService =
                 versionService ?? throw new ArgumentNullException(nameof(versionService));
-            _messengerService =
-                messengerService ?? throw new ArgumentNullException(nameof(messengerService));
+            _eventBus =
+                eventBus ?? throw new ArgumentNullException(nameof(eventBus));
             _applicationCloseService =
                 applicationCloseService
                 ?? throw new ArgumentNullException(nameof(applicationCloseService));
             _dialogService =
                 dialogService ?? throw new ArgumentNullException(nameof(dialogService));
-            _scriptPathService =
-                scriptPathService ?? throw new ArgumentNullException(nameof(scriptPathService));
+            _scriptPathDetectionService =
+                scriptPathDetectionService ?? throw new ArgumentNullException(nameof(scriptPathDetectionService));
 
             // Initialize version info
             UpdateVersionInfo();
@@ -288,7 +288,7 @@ namespace Winhance.WPF.Features.Common.ViewModels
             try
             {
                 // Get the scripts folder path
-                string scriptsFolder = _scriptPathService.GetScriptsDirectory();
+                string scriptsFolder = _scriptPathDetectionService.GetScriptsDirectory();
 
                 // Create the folder if it doesn't exist
                 if (!Directory.Exists(scriptsFolder))

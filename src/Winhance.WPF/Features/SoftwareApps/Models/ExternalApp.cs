@@ -21,7 +21,7 @@ namespace Winhance.WPF.Features.SoftwareApps.Models
         private bool _isSelected;
         
         [ObservableProperty]
-        private string _lastOperationError;
+        private string _lastOperationError = string.Empty;
 
         public static ExternalApp FromAppInfo(AppInfo appInfo)
         {

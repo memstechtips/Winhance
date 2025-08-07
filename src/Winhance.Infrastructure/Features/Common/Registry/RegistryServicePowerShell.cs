@@ -2,6 +2,7 @@ using Microsoft.Win32;
 using System;
 using System.Diagnostics;
 using System.Text;
+using Winhance.Core.Features.Common.Enums;
 
 namespace Winhance.Infrastructure.Features.Common.Registry
 {
@@ -66,15 +67,8 @@ namespace Winhance.Infrastructure.Features.Common.Registry
                     {
                         _logService.LogSuccess($"Successfully set registry value using non-elevated PowerShell: {keyPath}\\{valueName}");
                         
-                        // Clear the cache for this value
-                        string fullValuePath = $"{keyPath}\\{valueName}";
-                        lock (_valueCache)
-                        {
-                            if (_valueCache.ContainsKey(fullValuePath))
-                            {
-                                _valueCache.Remove(fullValuePath);
-                            }
-                        }
+                        // No caching - direct registry access only
+                        _logService.Log(LogLevel.Debug, $"Registry value set via PowerShell: {keyPath}\\{valueName}");
                         
                         return true;
                     }
@@ -94,13 +88,8 @@ namespace Winhance.Infrastructure.Features.Common.Registry
                     
                     // Clear the cache for this value
                     string fullValuePath = $"{keyPath}\\{valueName}";
-                    lock (_valueCache)
-                    {
-                        if (_valueCache.ContainsKey(fullValuePath))
-                        {
-                            _valueCache.Remove(fullValuePath);
-                        }
-                    }
+                    // No caching - direct registry access only
+                    _logService.Log(LogLevel.Debug, $"Registry value set via elevated PowerShell: {fullValuePath}");
                     
                     return true;
                 }
@@ -149,7 +138,7 @@ namespace Winhance.Infrastructure.Features.Common.Registry
                                   valueName == "{e88865ea-0e1c-4e20-9aa6-edcd0212c87c}" || // Gallery
                                   valueName == "{0DB7E03F-FC29-4DC6-9020-FF41B59E513A}"; // 3D Objects
                 
-                // Check if we're in the ApplicationSettingItem.ApplyRegistrySettings method
+                // Check if we're disabling a setting with a null value
                 // If the value is null and we're disabling the setting, we need to remove the key
                 if (value == null && !_lastIsEnabled)
                 {

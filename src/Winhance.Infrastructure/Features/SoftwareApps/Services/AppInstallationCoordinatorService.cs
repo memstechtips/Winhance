@@ -18,7 +18,7 @@ namespace Winhance.Infrastructure.Features.SoftwareApps.Services
         private readonly IAppInstallationService _appInstallationService;
         private readonly IInternetConnectivityService _connectivityService;
         private readonly ILogService _logService;
-        private readonly INotificationService _notificationService;
+        private readonly IWinhanceNotificationService _notificationService;
         private readonly IDialogService _dialogService;
         
         /// <summary>
@@ -38,7 +38,7 @@ namespace Winhance.Infrastructure.Features.SoftwareApps.Services
             IAppInstallationService appInstallationService,
             IInternetConnectivityService connectivityService,
             ILogService logService,
-            INotificationService notificationService = null,
+            IWinhanceNotificationService notificationService = null,
             IDialogService dialogService = null)
         {
             _appInstallationService = appInstallationService ?? throw new ArgumentNullException(nameof(appInstallationService));

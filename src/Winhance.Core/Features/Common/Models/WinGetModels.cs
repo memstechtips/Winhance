@@ -41,7 +41,7 @@ namespace Winhance.Core.Features.Common.Models
         /// <summary>
         /// Gets or sets the error output from the installation process.
         /// </summary>
-        public string Error { get; set; }
+        public string? Error { get; set; }
     }
 
     

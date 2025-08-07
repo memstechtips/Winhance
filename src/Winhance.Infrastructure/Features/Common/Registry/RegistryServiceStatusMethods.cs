@@ -32,16 +32,9 @@ namespace Winhance.Infrastructure.Features.Common.Registry
 
                 _logService.Log(LogLevel.Info, $"Checking registry setting status: {fullValuePath}");
 
-                // Check if the key exists (using cache)
-                bool keyExists;
-                lock (_keyExistsCache)
-                {
-                    if (!_keyExistsCache.TryGetValue(fullPath, out keyExists))
-                    {
-                        keyExists = KeyExists(fullPath);
-                        _keyExistsCache[fullPath] = keyExists;
-                    }
-                }
+                // Check if the key exists (direct registry access)
+                bool keyExists = KeyExists(fullPath);
+                _logService.Log(LogLevel.Debug, $"Registry key exists check: {fullPath} = {keyExists}");
 
                 // Handle non-existence of the key
                 if (!keyExists)
@@ -64,15 +57,9 @@ namespace Winhance.Infrastructure.Features.Common.Registry
                 }
 
                 // Check if the value exists (using cache)
-                bool valueExists;
-                lock (_valueExistsCache)
-                {
-                    if (!_valueExistsCache.TryGetValue(fullValuePath, out valueExists))
-                    {
-                        valueExists = ValueExists(fullPath, setting.Name);
-                        _valueExistsCache[fullValuePath] = valueExists;
-                    }
-                }
+                // Check if the value exists (direct registry access)
+                bool valueExists = ValueExists(fullPath, setting.Name);
+                _logService.Log(LogLevel.Debug, $"Registry value exists check: {fullValuePath} = {valueExists}");
 
                 // Handle non-existence of the value
                 if (!valueExists)
@@ -125,15 +112,9 @@ namespace Winhance.Infrastructure.Features.Common.Registry
                 }
 
                 // Get the current value (using cache)
-                object? currentValue;
-                lock (_valueCache)
-                {
-                    if (!_valueCache.TryGetValue(fullValuePath, out currentValue))
-                    {
-                        currentValue = GetValue(fullPath, setting.Name);
-                        _valueCache[fullValuePath] = currentValue;
-                    }
-                }
+                // Get the current value directly from the registry
+                object? currentValue = GetValue(fullPath, setting.Name);
+                _logService.Log(LogLevel.Debug, $"Retrieved registry value for {fullValuePath}");
 
                 // If the value is null, consider it not applied
                 if (currentValue == null)

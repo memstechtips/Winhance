@@ -1,27 +1,16 @@
 using System.Collections.Generic;
-using System.Threading.Tasks;
 using Microsoft.Win32;
 using Winhance.Core.Features.Common.Enums;
 using Winhance.Core.Features.Common.Models;
 using Winhance.Core.Features.Customize.Enums;
-using Winhance.Core.Features.Customize.Interfaces;
 
 namespace Winhance.Core.Features.Customize.Models
 {
     /// <summary>
     /// Model for Windows theme settings.
     /// </summary>
-    public class WindowsThemeSettings
+    public static class WindowsThemeSettings
     {
-        // Registry paths and keys
-        public static class Registry
-        {
-            public const string ThemesPersonalizeSubKey =
-                @"Software\Microsoft\Windows\CurrentVersion\Themes\Personalize";
-            public const string AppsUseLightThemeName = "AppsUseLightTheme";
-            public const string SystemUsesLightThemeName = "SystemUsesLightTheme";
-        }
-
         // Wallpaper paths
         public static class Wallpaper
         {
@@ -48,147 +37,6 @@ namespace Winhance.Core.Features.Customize.Models
             }
         }
 
-        private readonly IThemeService _themeService;
-        private bool _isDarkMode;
-        private bool _changeWallpaper;
-
-        /// <summary>
-        /// Gets or sets a value indicating whether dark mode is enabled.
-        /// </summary>
-        public bool IsDarkMode
-        {
-            get => _isDarkMode;
-            set => _isDarkMode = value;
-        }
-
-        /// <summary>
-        /// Gets or sets a value indicating whether to change the wallpaper when changing the theme.
-        /// </summary>
-        public bool ChangeWallpaper
-        {
-            get => _changeWallpaper;
-            set => _changeWallpaper = value;
-        }
-
-        /// <summary>
-        /// Gets the current theme name.
-        /// </summary>
-        public string ThemeName => IsDarkMode ? "Dark Mode" : "Light Mode";
-
-        /// <summary>
-        /// Gets the available theme options.
-        /// </summary>
-        public List<string> ThemeOptions { get; } = new List<string> { "Light Mode", "Dark Mode" };
-
-        /// <summary>
-        /// Initializes a new instance of the <see cref="WindowsThemeSettings"/> class.
-        /// </summary>
-        public WindowsThemeSettings()
-        {
-            // Default constructor for serialization
-        }
-
-        /// <summary>
-        /// Initializes a new instance of the <see cref="WindowsThemeSettings"/> class.
-        /// </summary>
-        /// <param name="themeService">The theme service.</param>
-        public WindowsThemeSettings(IThemeService themeService)
-        {
-            _themeService = themeService;
-            _isDarkMode = themeService?.IsDarkModeEnabled() ?? false;
-        }
-
-        /// <summary>
-        /// Loads the current theme settings from the system.
-        /// </summary>
-        public void LoadCurrentSettings()
-        {
-            if (_themeService != null)
-            {
-                _isDarkMode = _themeService.IsDarkModeEnabled();
-            }
-        }
-
-        /// <summary>
-        /// Applies the current theme settings to the system.
-        /// </summary>
-        /// <returns>True if the operation succeeded; otherwise, false.</returns>
-        public bool ApplyTheme()
-        {
-            return _themeService?.SetThemeMode(_isDarkMode) ?? false;
-        }
-
-        /// <summary>
-        /// Applies the current theme settings to the system asynchronously.
-        /// </summary>
-        /// <returns>A task representing the asynchronous operation.</returns>
-        public async Task<bool> ApplyThemeAsync()
-        {
-            if (_themeService == null)
-                return false;
-
-            return await _themeService.ApplyThemeAsync(_isDarkMode, _changeWallpaper);
-        }
-
-        /// <summary>
-        /// Creates registry settings for Windows theme.
-        /// </summary>
-        /// <returns>A list of registry settings.</returns>
-        public static List<RegistrySetting> CreateRegistrySettings()
-        {
-            return new List<RegistrySetting>
-            {
-                new RegistrySetting
-                {
-                    Category = "WindowsTheme",
-                    Hive = RegistryHive.CurrentUser,
-                    SubKey = Registry.ThemesPersonalizeSubKey,
-                    Name = Registry.AppsUseLightThemeName,
-                    EnabledValue = 0, // Dark mode
-                    DisabledValue = 1, // Light mode
-                    ValueType = RegistryValueKind.DWord,
-                    Description = "Windows Apps Theme Mode",
-                    // For backward compatibility
-                    RecommendedValue = 0,
-                    DefaultValue = 1,
-                },
-                new RegistrySetting
-                {
-                    Category = "WindowsTheme",
-                    Hive = RegistryHive.CurrentUser,
-                    SubKey = Registry.ThemesPersonalizeSubKey,
-                    Name = Registry.SystemUsesLightThemeName,
-                    EnabledValue = 0, // Dark mode
-                    DisabledValue = 1, // Light mode
-                    ValueType = RegistryValueKind.DWord,
-                    Description = "Windows System Theme Mode",
-                    // For backward compatibility
-                    RecommendedValue = 0,
-                    DefaultValue = 1,
-                },
-            };
-        }
-
-        /// <summary>
-        /// Creates a customization setting for Windows theme.
-        /// </summary>
-        /// <returns>A customization setting.</returns>
-        public static CustomizationSetting CreateCustomizationSetting()
-        {
-            var setting = new CustomizationSetting
-            {
-                Id = "WindowsTheme",
-                Name = "Windows Theme",
-                Description = "Toggle between light and dark theme for Windows",
-                GroupName = "Windows Theme",
-                Category = CustomizationCategory.Theme,
-                ControlType = ControlType.ComboBox,
-                RegistrySettings = CreateRegistrySettings(),
-            };
-
-            return setting;
-        }
-
         public static CustomizationGroup GetWindowsThemeCustomizations()
         {
             return new CustomizationGroup
@@ -197,6 +45,57 @@ namespace Winhance.Core.Features.Customize.Models
                 Category = CustomizationCategory.WindowsTheme,
                 Settings = new List<CustomizationSetting>
                 {
+                    // Theme Mode Selection (ComboBox)
+                    new CustomizationSetting
+                    {
+                        Id = "windows-theme-mode",
+                        Name = "Theme Mode",
+                        Description = "Choose between Light and Dark mode for Windows",
+                        Category = CustomizationCategory.WindowsTheme,
+                        GroupName = "Windows Theme",
+                        IsEnabled = true,
+                        ControlType = ControlType.ComboBox,
+                        Icon = "🎨", // Theme icon
+                        RegistrySettings = new List<RegistrySetting>
+                        {
+                            new RegistrySetting
+                            {
+                                Category = "WindowsTheme",
+                                Hive = RegistryHive.CurrentUser,
+                                SubKey = "Software\\Microsoft\\Windows\\CurrentVersion\\Themes\\Personalize",
+                                Name = "AppsUseLightTheme",
+                                RecommendedValue = 0, // Dark mode recommended
+                                ValueType = RegistryValueKind.DWord,
+                                DefaultValue = 1, // Light mode is Windows default
+                                Description = "Controls Windows Apps theme mode (0=Dark, 1=Light)",
+                                IsPrimary = true,
+                                AbsenceMeansEnabled = false,
+                                CustomProperties = new Dictionary<string, object>
+                                {
+                                    ["ComboBoxOptions"] = new Dictionary<string, int>
+                                    {
+                                        ["Light Mode"] = 1,  // AppsUseLightTheme = 1
+                                        ["Dark Mode"] = 0,   // AppsUseLightTheme = 0
+                                    },
+                                    ["DefaultOption"] = "Light Mode",
+                                },
+                            },
+                            new RegistrySetting
+                            {
+                                Category = "WindowsTheme",
+                                Hive = RegistryHive.CurrentUser,
+                                SubKey = "Software\\Microsoft\\Windows\\CurrentVersion\\Themes\\Personalize",
+                                Name = "SystemUsesLightTheme",
+                                RecommendedValue = 0, // Dark mode recommended
+                                ValueType = RegistryValueKind.DWord,
+                                DefaultValue = 1, // Light mode is Windows default
+                                Description = "Controls Windows System theme mode (0=Dark, 1=Light)",
+                                IsPrimary = false, // Secondary setting, follows the primary
+                                AbsenceMeansEnabled = false,
+                            },
+                        },
+                    },
+                    // Transparency Effects Toggle
                     new CustomizationSetting
                     {
                         Id = "theme-transparency",
@@ -204,18 +103,18 @@ namespace Winhance.Core.Features.Customize.Models
                         Description = "Controls transparency effects in Windows",
                         Category = CustomizationCategory.WindowsTheme,
                         GroupName = "Windows Theme",
-                        IsEnabled = false,
+                        IsEnabled = true, // Enable this setting
                         ControlType = ControlType.BinaryToggle,
+                        Icon = "💎", // Transparency icon
                         RegistrySettings = new List<RegistrySetting>
                         {
                             new RegistrySetting
                             {
                                 Category = "WindowsTheme",
                                 Hive = RegistryHive.CurrentUser,
-                                SubKey =
-                                    "Software\\Microsoft\\Windows\\CurrentVersion\\Themes\\Personalize",
+                                SubKey = "Software\\Microsoft\\Windows\\CurrentVersion\\Themes\\Personalize",
                                 Name = "EnableTransparency",
-                                RecommendedValue = 0, // For backward compatibility
+                                RecommendedValue = 1, // Enable transparency recommended
                                 EnabledValue = 1, // When toggle is ON, transparency effects are enabled
                                 DisabledValue = 0, // When toggle is OFF, transparency effects are disabled
                                 ValueType = RegistryValueKind.DWord,

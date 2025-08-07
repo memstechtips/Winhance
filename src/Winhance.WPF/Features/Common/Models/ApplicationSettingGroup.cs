@@ -1,5 +1,6 @@
 using CommunityToolkit.Mvvm.ComponentModel;
 using System.Collections.ObjectModel;
+using Winhance.Core.Features.Common.Interfaces;
 
 namespace Winhance.WPF.Features.Common.Models
 {
@@ -29,6 +30,6 @@ namespace Winhance.WPF.Features.Common.Models
         /// <summary>
         /// Gets the collection of settings in this group.
         /// </summary>
-        public ObservableCollection<ApplicationSettingItem> Settings { get; } = new();
+        public ObservableCollection<ISettingItem> Settings { get; } = new();
     }
 }

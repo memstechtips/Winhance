@@ -1,49 +1,85 @@
 using System;
 using System.Collections.Generic;
 using System.Collections.ObjectModel;
+using System.Linq;
 using System.Threading.Tasks;
+using System.Windows.Input;
 using CommunityToolkit.Mvvm.ComponentModel;
 using CommunityToolkit.Mvvm.Input;
 using Winhance.Core.Features.Common.Enums;
 using Winhance.Core.Features.Common.Interfaces;
 using Winhance.Core.Features.Common.Models;
+using Winhance.Core.Features.Customize.Interfaces;
+using Winhance.WPF.Features.Common.Interfaces;
 using Winhance.WPF.Features.Common.Models;
-using Winhance.WPF.Features.Common.ViewModels;
 
 namespace Winhance.WPF.Features.Customize.ViewModels
 {
     /// <summary>
     /// ViewModel for Explorer customizations using clean architecture principles.
     /// </summary>
-    public partial class ExplorerCustomizationsViewModel : BaseSettingsViewModel
+    public partial class ExplorerCustomizationsViewModel : ObservableObject, IFeatureViewModel
     {
+        private readonly IExplorerCustomizationService _explorerService;
         private readonly IDialogService _dialogService;
+        private readonly ISettingsUICoordinator _uiCoordinator;
+        private readonly ILogService _logService;
+        private readonly ITaskProgressService _progressService;
 
         /// <summary>
         /// Gets the command to execute an action.
         /// </summary>
         public IAsyncRelayCommand<string> ExecuteActionCommand { get; }
 
+        // LoadSettingsCommand is now defined as ICommand for IFeatureViewModel interface
+
+        // Delegating properties to UI coordinator
+        public ObservableCollection<SettingUIItem> Settings => _uiCoordinator.Settings;
+        public ObservableCollection<SettingGroup> SettingGroups => _uiCoordinator.SettingGroups;
+        public bool IsLoading => _uiCoordinator.IsLoading;
+        public string CategoryName => _uiCoordinator.CategoryName;
+        public string SearchText
+        {
+            get => _uiCoordinator.SearchText;
+            set => _uiCoordinator.SearchText = value;
+        }
+        public bool HasVisibleSettings => _uiCoordinator.HasVisibleSettings;
+
+        // IFeatureViewModel implementation
+        public string ModuleId => "ExplorerCustomization";
+        public string DisplayName => "Explorer";
+        public int SettingsCount => Settings?.Count ?? 0;
+        public string Category => "Customize";
+        public string Description => "Customize Windows Explorer settings";
+        public int SortOrder => 1;
+        public ICommand LoadSettingsCommand { get; private set; }
+
         /// <summary>
         /// Initializes a new instance of the <see cref="ExplorerCustomizationsViewModel"/> class.
         /// </summary>
-        /// <param name="settingsService">The application settings service.</param>
+        /// <param name="explorerService">The explorer domain service.</param>
+        /// <param name="uiCoordinator">The settings UI coordinator.</param>
         /// <param name="logService">The log service.</param>
         /// <param name="dialogService">The dialog service.</param>
         /// <param name="progressService">The task progress service.</param>
         public ExplorerCustomizationsViewModel(
-            IApplicationSettingsService settingsService,
+            IExplorerCustomizationService explorerService,
+            ISettingsUICoordinator uiCoordinator,
             ILogService logService,
             IDialogService dialogService,
             ITaskProgressService progressService)
-            : base(settingsService, progressService, logService)
         {
+            _explorerService = explorerService ?? throw new ArgumentNullException(nameof(explorerService));
+            _uiCoordinator = uiCoordinator ?? throw new ArgumentNullException(nameof(uiCoordinator));
+            _logService = logService ?? throw new ArgumentNullException(nameof(logService));
             _dialogService = dialogService ?? throw new ArgumentNullException(nameof(dialogService));
+            _progressService = progressService ?? throw new ArgumentNullException(nameof(progressService));
             
-            CategoryName = "Explorer";
+            _uiCoordinator.CategoryName = "Explorer";
             
             // Initialize commands
             ExecuteActionCommand = new AsyncRelayCommand<string>(ExecuteActionAsync);
+            LoadSettingsCommand = new AsyncRelayCommand(LoadSettingsAsync);
         }
 
         /// <summary>
@@ -59,11 +95,11 @@ namespace Winhance.WPF.Features.Customize.ViewModels
             {
                 _progressService.StartTask($"Executing action: {actionId}...");
                 
-                // Use the settings service to execute the action
-                await _settingsService.ExecuteExplorerActionAsync(actionId);
+                // Use the explorer service to execute the action
+                await _explorerService.ExecuteExplorerActionAsync(actionId);
                 
                 // Refresh settings after action
-                await RefreshAllSettingsAsync();
+                await LoadSettingsAsync();
                 
                 _progressService.CompleteTask();
             }
@@ -78,72 +114,17 @@ namespace Winhance.WPF.Features.Customize.ViewModels
         /// <summary>
         /// Loads settings and initializes the UI state.
         /// </summary>
-        public override async Task LoadSettingsAsync()
+        public async Task LoadSettingsAsync()
         {
             try
             {
-                IsLoading = true;
                 _progressService.StartTask("Loading explorer settings...");
                 
-                // Clear existing collections
-                Settings.Clear();
+                // Use UI coordinator to load settings
+                await _uiCoordinator.LoadSettingsAsync(() => _explorerService.GetSettingsAsync());
                 
-                // Load settings from the service
-                var explorerSettings = await _settingsService.GetExplorerSettingsAsync();
-                
-                foreach (var setting in explorerSettings)
-                {
-                    // Create UI item from the setting
-                    var uiItem = new SettingUIItem
-                    {
-                        Id = setting.Id,
-                        Name = setting.Name,
-                        Description = setting.Description,
-                        GroupName = setting.GroupName,
-                        IsEnabled = setting.IsEnabled,
-                        ControlType = setting.ControlType,
-                        IsSelected = false,
-                        IsVisible = true,
-                        CurrentValue = null
-                    };
-                    
-                    // For ComboBox settings, we'll need to populate options from registry settings
-                    if (setting.ControlType == ControlType.ComboBox)
-                    {
-                        // TODO: Populate ComboBox options from registry settings or configuration
-                        // For now, just set a default selected value
-                        uiItem.SelectedValue = "Default";
-                    }
-                    else if (setting.ControlType == ControlType.BinaryToggle)
-                    {
-                        // Set toggle state based on current setting state
-                        uiItem.IsSelected = setting.IsEnabled;
-                    }
-                    
-                    // Add to settings collection
-                    Settings.Add(uiItem);
-                }
-                
-                // Organize settings into groups if needed
-                if (Settings.Count > 0)
-                {
-                    var groups = Settings.GroupBy(s => s.GroupName).ToList();
-                    foreach (var group in groups)
-                    {
-                        if (!string.IsNullOrEmpty(group.Key))
-                        {
-                            var settingGroup = new SettingGroup(group.Key);
-                            foreach (var setting in group)
-                            {
-                                settingGroup.AddSetting(setting);
-                            }
-                            SettingGroups.Add(settingGroup);
-                        }
-                    }
-                }
-                
-                // Refresh status of all settings
-                await RefreshAllSettingsAsync();
+                // Apply any Explorer-specific filtering or organization
+                OrganizeExplorerSettings();
                 
                 _progressService.CompleteTask();
             }
@@ -153,19 +134,32 @@ namespace Winhance.WPF.Features.Customize.ViewModels
                 _logService.Log(LogLevel.Error, $"Error loading explorer settings: {ex.Message}");
                 throw;
             }
-            finally
-            {
-                IsLoading = false;
-            }
         }
 
         /// <summary>
-        /// Gets the application settings that this ViewModel manages.
+        /// Organizes Explorer settings with specific grouping and display logic.
         /// </summary>
-        /// <returns>Collection of application settings for explorer customizations.</returns>
-        protected override async Task<IEnumerable<ApplicationSetting>> GetApplicationSettingsAsync()
+        private void OrganizeExplorerSettings()
         {
-            return await _settingsService.GetExplorerSettingsAsync();
+            // Apply Explorer-specific organization if needed
+            // The UI coordinator already handles basic grouping
+            // This method can be used for Explorer-specific customizations
+        }
+
+        /// <summary>
+        /// Refreshes the settings for this feature asynchronously.
+        /// </summary>
+        public async Task RefreshSettingsAsync()
+        {
+            await LoadSettingsAsync();
+        }
+
+        /// <summary>
+        /// Clears all settings and resets the feature state.
+        /// </summary>
+        public void ClearSettings()
+        {
+            _uiCoordinator.ClearSettings();
         }
     }
 }

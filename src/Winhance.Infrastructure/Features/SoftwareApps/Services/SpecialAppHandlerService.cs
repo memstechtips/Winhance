@@ -7,7 +7,6 @@ using System.Threading.Tasks;
 using Winhance.Core.Features.Common.Interfaces;
 using Winhance.Core.Features.SoftwareApps.Interfaces;
 using Winhance.Core.Features.SoftwareApps.Models;
-using Winhance.Infrastructure.Features.Common.Utilities;
 
 namespace Winhance.Infrastructure.Features.SoftwareApps.Services
 {
@@ -18,17 +17,17 @@ namespace Winhance.Infrastructure.Features.SoftwareApps.Services
     {
         private readonly ILogService _logService;
         private readonly SpecialAppHandler[] _handlers;
-        private readonly ISystemServices _systemServices;
+        private readonly IPowerShellDetectionService _powerShellDetectionService;
 
         /// <summary>
         /// Initializes a new instance of the <see cref="SpecialAppHandlerService"/> class.
         /// </summary>
         /// <param name="logService">The logging service.</param>
-        /// <param name="systemServices">The system services.</param>
-        public SpecialAppHandlerService(ILogService logService, ISystemServices systemServices)
+        /// <param name="powerShellDetectionService">The PowerShell detection service.</param>
+        public SpecialAppHandlerService(ILogService logService, IPowerShellDetectionService powerShellDetectionService)
         {
-            _logService = logService;
-            _systemServices = systemServices;
+            _logService = logService ?? throw new ArgumentNullException(nameof(logService));
+            _powerShellDetectionService = powerShellDetectionService ?? throw new ArgumentNullException(nameof(powerShellDetectionService));
             _handlers = SpecialAppHandler.GetPredefinedHandlers();
         }
 
@@ -135,10 +134,7 @@ namespace Winhance.Infrastructure.Features.SoftwareApps.Services
                 }
 
                 // Register scheduled task to prevent reinstallation
-                using var taskPowerShell = PowerShellFactory.CreateForAppxCommands(
-                    _logService,
-                    _systemServices
-                );
+                using var taskPowerShell = PowerShell.Create();
                 var taskCommand =
                     $@"
                 Register-ScheduledTask -TaskName '{handler.ScheduledTaskName}' `
@@ -224,10 +220,7 @@ namespace Winhance.Infrastructure.Features.SoftwareApps.Services
                 }
 
                 // Register scheduled task to prevent reinstallation
-                using var taskPowerShell = PowerShellFactory.CreateForAppxCommands(
-                    _logService,
-                    _systemServices
-                );
+                using var taskPowerShell = PowerShell.Create();
                 var taskCommand =
                     $@"
                 Register-ScheduledTask -TaskName '{handler.ScheduledTaskName}' `
@@ -311,10 +304,7 @@ namespace Winhance.Infrastructure.Features.SoftwareApps.Services
                 }
 
                 // Register scheduled task to prevent reinstallation
-                using var taskPowerShell = PowerShellFactory.CreateForAppxCommands(
-                    _logService,
-                    _systemServices
-                );
+                using var taskPowerShell = PowerShell.Create();
                 var taskCommand =
                     $@"
                 Register-ScheduledTask -TaskName '{handler.ScheduledTaskName}' `
@@ -351,7 +341,5 @@ namespace Winhance.Infrastructure.Features.SoftwareApps.Services
         {
             return _handlers;
         }
-
-        // SetExecutionPolicy is now handled by PowerShellFactory
     }
 }

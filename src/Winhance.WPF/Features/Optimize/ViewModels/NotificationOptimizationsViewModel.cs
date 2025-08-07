@@ -1,107 +1,96 @@
 using System;
 using System.Collections.Generic;
-using System.Linq;
+using System.Collections.ObjectModel;
 using System.Threading.Tasks;
+using System.Windows.Input;
 using CommunityToolkit.Mvvm.ComponentModel;
+using CommunityToolkit.Mvvm.Input;
 using Winhance.Core.Features.Common.Enums;
 using Winhance.Core.Features.Common.Interfaces;
 using Winhance.Core.Features.Common.Models;
+using Winhance.Core.Features.Optimize.Interfaces;
+using Winhance.WPF.Features.Common.Interfaces;
 using Winhance.WPF.Features.Common.Models;
-using Winhance.WPF.Features.Common.ViewModels;
 
 namespace Winhance.WPF.Features.Optimize.ViewModels
 {
     /// <summary>
     /// ViewModel for Notification optimizations using clean architecture principles.
     /// </summary>
-    public partial class NotificationOptimizationsViewModel : BaseSettingsViewModel
+    public partial class NotificationOptimizationsViewModel : ObservableObject, IFeatureViewModel
     {
+        private readonly Winhance.Core.Features.Optimize.Interfaces.INotificationService _notificationService;
+        private readonly ISettingsUICoordinator _uiCoordinator;
+        private readonly ILogService _logService;
+        private readonly ITaskProgressService _progressService;
+
+        // LoadSettingsCommand is now defined as ICommand for IFeatureViewModel interface
+
+        // Delegating properties to UI coordinator
+        public ObservableCollection<SettingUIItem> Settings => _uiCoordinator.Settings;
+        public ObservableCollection<SettingGroup> SettingGroups => _uiCoordinator.SettingGroups;
+        public bool IsLoading => _uiCoordinator.IsLoading;
+        public string CategoryName => _uiCoordinator.CategoryName;
+        public string SearchText
+        {
+            get => _uiCoordinator.SearchText;
+            set => _uiCoordinator.SearchText = value;
+        }
+        public bool HasVisibleSettings => _uiCoordinator.HasVisibleSettings;
+
+        // IFeatureViewModel implementation
+        public string ModuleId => "Notification";
+        public string DisplayName => "Notification";
+        public int SettingsCount => Settings?.Count ?? 0;
+        public string Category => "Optimize";
+        public string Description => "Optimize Windows notification settings";
+        public int SortOrder => 7;
+        public ICommand LoadSettingsCommand { get; private set; }
+        
+        [ObservableProperty]
+        private bool _isExpanded = true;
+        
+        public ICommand ToggleExpandCommand { get; }
         /// <summary>
         /// Initializes a new instance of the <see cref="NotificationOptimizationsViewModel"/> class.
         /// </summary>
-        /// <param name="settingsService">The application settings service.</param>
+        /// <param name="notificationService">The notification domain service.</param>
+        /// <param name="uiCoordinator">The settings UI coordinator.</param>
         /// <param name="progressService">The task progress service.</param>
         /// <param name="logService">The log service.</param>
         public NotificationOptimizationsViewModel(
-            IApplicationSettingsService settingsService,
+            Winhance.Core.Features.Optimize.Interfaces.INotificationService notificationService,
+            ISettingsUICoordinator uiCoordinator,
             ITaskProgressService progressService,
             ILogService logService)
-            : base(settingsService, progressService, logService)
         {
-            CategoryName = "Notification Optimizations";
+            _notificationService = notificationService ?? throw new ArgumentNullException(nameof(notificationService));
+            _uiCoordinator = uiCoordinator ?? throw new ArgumentNullException(nameof(uiCoordinator));
+            _progressService = progressService ?? throw new ArgumentNullException(nameof(progressService));
+            _logService = logService ?? throw new ArgumentNullException(nameof(logService));
+            
+            _uiCoordinator.CategoryName = "Notification Optimizations";
+            
+            // Initialize commands
+            LoadSettingsCommand = new AsyncRelayCommand(LoadSettingsAsync);
+            ToggleExpandCommand = new RelayCommand(ToggleExpand);
         }
 
         /// <summary>
         /// Loads settings and initializes the UI state.
         /// </summary>
-        public override async Task LoadSettingsAsync()
+        public async Task LoadSettingsAsync()
         {
             try
             {
-                IsLoading = true;
                 _progressService.StartTask("Loading notification optimization settings...");
                 
-                // Clear existing collections
-                Settings.Clear();
-                
-                // Load settings from the service
-                var notificationSettings = await _settingsService.GetNotificationOptimizationSettingsAsync();
-                
-                foreach (var setting in notificationSettings)
-                {
-                    // Create UI item from the setting
-                    var uiItem = new SettingUIItem
-                    {
-                        Id = setting.Id,
-                        Name = setting.Name,
-                        Description = setting.Description,
-                        GroupName = setting.GroupName,
-                        IsEnabled = setting.IsEnabled,
-                        ControlType = setting.ControlType,
-                        IsSelected = false,
-                        IsVisible = true
-                    };
-                    
-                    // Add options for ComboBox settings
-                    if (setting.ControlType == ControlType.ComboBox)
-                    {
-                        // Add default options for ComboBox settings
-                        uiItem.ComboBoxOptions.Add("Disabled");
-                        uiItem.ComboBoxOptions.Add("Enabled");
-                        
-                        // Set selected value
-                        uiItem.SelectedValue = "0"; // Default to disabled
-                    }
-                    else if (setting.ControlType == ControlType.BinaryToggle)
-                    {
-                        // Set toggle state
-                        uiItem.IsSelected = setting.IsEnabled;
-                    }
-                    
-                    // Add to settings collection
-                    Settings.Add(uiItem);
-                }
-                
-                // Organize settings into groups if needed
-                if (Settings.Count > 0)
-                {
-                    var groups = Settings.GroupBy(s => s.GroupName).ToList();
-                    foreach (var group in groups)
-                    {
-                        if (!string.IsNullOrEmpty(group.Key))
-                        {
-                            var settingGroup = new SettingGroup(group.Key);
-                            foreach (var setting in group)
-                            {
-                                settingGroup.AddSetting(setting);
-                            }
-                            SettingGroups.Add(settingGroup);
-                        }
-                    }
-                }
-                
-                // Refresh status of all settings
-                await RefreshAllSettingsAsync();
+                // Use UI coordinator to load settings with both setting change and value change handlers
+                await _uiCoordinator.LoadSettingsAsync(
+                    () => _notificationService.GetSettingsAsync(),
+                    async (settingId, isEnabled) => await _notificationService.ApplySettingAsync(settingId, isEnabled),
+                    async (settingId, value) => await _notificationService.ApplySettingAsync(settingId, true, value)
+                );
                 
                 _progressService.CompleteTask();
             }
@@ -111,19 +100,27 @@ namespace Winhance.WPF.Features.Optimize.ViewModels
                 _logService.Log(LogLevel.Error, $"Error loading notification optimization settings: {ex.Message}");
                 throw;
             }
-            finally
-            {
-                IsLoading = false;
-            }
         }
 
         /// <summary>
-        /// Gets the application settings that this ViewModel manages.
+        /// Refreshes the settings for this feature asynchronously.
         /// </summary>
-        /// <returns>Collection of application settings for notification optimizations.</returns>
-        protected override async Task<IEnumerable<ApplicationSetting>> GetApplicationSettingsAsync()
+        public async Task RefreshSettingsAsync()
         {
-            return await _settingsService.GetNotificationOptimizationSettingsAsync();
+            await LoadSettingsAsync();
+        }
+
+        /// <summary>
+        /// Clears all settings and resets the feature state.
+        /// </summary>
+        public void ClearSettings()
+        {
+            _uiCoordinator.ClearSettings();
+        }
+        
+        private void ToggleExpand()
+        {
+            IsExpanded = !IsExpanded;
         }
     }
 }

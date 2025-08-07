@@ -15,7 +15,7 @@ namespace Winhance.WPF.Features.SoftwareApps.ViewModels
     public class RemovalStatusContainerViewModel : INotifyPropertyChanged, IDisposable
     {
         public RemovalStatusContainerViewModel(
-            IScriptPathService scriptPathService,
+            IScriptPathDetectionService scriptPathDetectionService,
             IScheduledTaskService scheduledTaskService,
             ILogService logService)
         {
@@ -27,7 +27,7 @@ namespace Winhance.WPF.Features.SoftwareApps.ViewModels
                     "#00FF3C", // Green
                     "BloatRemoval.ps1",
                     "BloatRemoval", // Try just the task name without folder
-                    scriptPathService,
+                    scriptPathDetectionService,
                     scheduledTaskService,
                     logService),
 
@@ -37,7 +37,7 @@ namespace Winhance.WPF.Features.SoftwareApps.ViewModels
                     "#0078D4", // Microsoft Blue (we'll handle gradient in XAML)
                     "EdgeRemoval.ps1",
                     "Winhance\\EdgeRemoval",
-                    scriptPathService,
+                    scriptPathDetectionService,
                     scheduledTaskService,
                     logService),
 
@@ -47,7 +47,7 @@ namespace Winhance.WPF.Features.SoftwareApps.ViewModels
                     "#0078D4", // Microsoft blue
                     "OneDriveRemoval.ps1",
                     "Winhance\\OneDriveRemoval",
-                    scriptPathService,
+                    scriptPathDetectionService,
                     scheduledTaskService,
                     logService),
 
@@ -57,7 +57,7 @@ namespace Winhance.WPF.Features.SoftwareApps.ViewModels
                     "#7719AA", // OneNote Purple
                     "OneNoteRemoval.ps1",
                     "Winhance\\OneNoteRemoval",
-                    scriptPathService,
+                    scriptPathDetectionService,
                     scheduledTaskService,
                     logService)
             };

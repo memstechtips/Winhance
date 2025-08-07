@@ -16,7 +16,7 @@ namespace Winhance.WPF.Features.SoftwareApps.ViewModels
     /// </summary>
     public class RemovalStatusViewModel : INotifyPropertyChanged, IDisposable
     {
-        private readonly IScriptPathService _scriptPathService;
+        private readonly IScriptPathDetectionService _scriptPathDetectionService;
         private readonly IScheduledTaskService _scheduledTaskService;
         private readonly ILogService _logService;
         private readonly CancellationTokenSource _cancellationTokenSource;
@@ -30,7 +30,7 @@ namespace Winhance.WPF.Features.SoftwareApps.ViewModels
             string activeColor,
             string scriptFileName,
             string scheduledTaskName,
-            IScriptPathService scriptPathService,
+            IScriptPathDetectionService scriptPathDetectionService,
             IScheduledTaskService scheduledTaskService,
             ILogService logService
         )
@@ -40,7 +40,7 @@ namespace Winhance.WPF.Features.SoftwareApps.ViewModels
             ActiveColor = activeColor;
             ScriptFileName = scriptFileName;
             ScheduledTaskName = scheduledTaskName;
-            _scriptPathService = scriptPathService;
+            _scriptPathDetectionService = scriptPathDetectionService;
             _scheduledTaskService = scheduledTaskService;
             _logService = logService;
 
@@ -109,7 +109,7 @@ namespace Winhance.WPF.Features.SoftwareApps.ViewModels
                     () =>
                     {
                         cancellationToken.ThrowIfCancellationRequested();
-                        var scriptPath = _scriptPathService.GetScriptPath(ScriptFileName);
+                        var scriptPath = Path.Combine(_scriptPathDetectionService.GetScriptsDirectory(), ScriptFileName);
                         return File.Exists(scriptPath);
                     },
                     cancellationToken
@@ -184,7 +184,7 @@ var taskRemoved = await _scheduledTaskService.UnregisterScheduledTaskAsync(
                 // Remove script file
                 try
                 {
-                    var scriptPath = _scriptPathService.GetScriptPath(ScriptFileName);
+                    var scriptPath = Path.Combine(_scriptPathDetectionService.GetScriptsDirectory(), ScriptFileName);
                     if (File.Exists(scriptPath))
                     {
                         File.Delete(scriptPath);

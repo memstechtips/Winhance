@@ -1,9 +1,10 @@
 using System;
 using System.Linq;
+using System.Management.Automation;
 using System.Threading.Tasks;
 using Winhance.Core.Features.Common.Interfaces;
 using Winhance.Core.Features.SoftwareApps.Interfaces;
-using Winhance.Infrastructure.Features.Common.Utilities;
+
 
 namespace Winhance.Infrastructure.Features.SoftwareApps.Services;
 
@@ -13,19 +14,17 @@ namespace Winhance.Infrastructure.Features.SoftwareApps.Services;
 public class AppVerificationService : IAppVerificationService
 {
     private readonly ILogService _logService;
-    private readonly ISystemServices _systemServices;
+    private readonly IPowerShellDetectionService _powerShellDetectionService;
 
     /// <summary>
     /// Initializes a new instance of the <see cref="AppVerificationService"/> class.
     /// </summary>
-    /// <param name="logService">The log service.</param>
-    /// <param name="systemServices">The system services.</param>
-    public AppVerificationService(
-        ILogService logService,
-        ISystemServices systemServices)
+    /// <param name="logService">The logging service.</param>
+    /// <param name="powerShellDetectionService">The PowerShell detection service.</param>
+    public AppVerificationService(ILogService logService, IPowerShellDetectionService powerShellDetectionService)
     {
-        _logService = logService;
-        _systemServices = systemServices;
+        _logService = logService ?? throw new ArgumentNullException(nameof(logService));
+        _powerShellDetectionService = powerShellDetectionService ?? throw new ArgumentNullException(nameof(powerShellDetectionService));
     }
 
     /// <inheritdoc/>
@@ -34,14 +33,14 @@ public class AppVerificationService : IAppVerificationService
         try
         {
             // Create PowerShell instance
-            using var powerShell = PowerShellFactory.CreateWindowsPowerShell(_logService);
+            using var powerShell = PowerShell.Create();
 
             // For Microsoft Store apps (package IDs that are alphanumeric with no dots)
             if (packageName.All(char.IsLetterOrDigit) && !packageName.Contains('.'))
             {
                 // Use Get-AppxPackage to check if the Microsoft Store app is installed
                 // Ensure we're using Windows PowerShell for Appx commands
-                using var appxPowerShell = PowerShellFactory.CreateForAppxCommands(_logService, _systemServices);
+                using var appxPowerShell = PowerShell.Create();
                 appxPowerShell.AddScript(
                     $"Get-AppxPackage | Where-Object {{ $_.PackageFullName -like '*{packageName}*' }}"
                 );

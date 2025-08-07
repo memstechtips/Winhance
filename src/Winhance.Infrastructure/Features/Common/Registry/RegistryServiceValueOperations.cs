@@ -65,15 +65,9 @@ namespace Winhance.Infrastructure.Features.Common.Registry
                     {
                         targetKey.SetValue(valueName, value, valueKind);
 
-                        // Clear the cache for this value
-                        string fullValuePath = $"{keyPath}\\{valueName}";
-                        lock (_valueCache)
-                        {
-                            if (_valueCache.ContainsKey(fullValuePath))
-                            {
-                                _valueCache.Remove(fullValuePath);
-                            }
-                        }
+                        // No caching - direct registry access only
+                        _logService.Log(LogLevel.Debug, $"Registry value set: {keyPath}\\{valueName}");
+                        _logService.Log(LogLevel.Debug, $"Registry cache cleared for: {keyPath}\\{valueName}");
 
                         _logService.Log(LogLevel.Success, $"Successfully set registry value: {keyPath}\\{valueName}");
                         return true;
@@ -95,11 +89,12 @@ namespace Winhance.Infrastructure.Features.Common.Registry
         }
 
         /// <summary>
-        /// Gets a value from the registry.
+        /// Gets a value directly from the registry without caching.
+        /// Always returns the current value from the Windows Registry.
         /// </summary>
         /// <param name="keyPath">The registry key path.</param>
         /// <param name="valueName">The name of the value to get.</param>
-        /// <returns>The value from the registry, or null if it doesn't exist.</returns>
+        /// <returns>The current value from the registry, or null if it doesn't exist.</returns>
         public object? GetValue(string keyPath, string valueName)
         {
             try
@@ -107,40 +102,32 @@ namespace Winhance.Infrastructure.Features.Common.Registry
                 if (!CheckWindowsPlatform())
                     return null;
 
-                // Check the cache first
-                string fullValuePath = $"{keyPath}\\{valueName}";
-                lock (_valueCache)
+                _logService.Log(LogLevel.Debug, $"Getting registry value: {keyPath}\\{valueName}");
+
+                // Use direct Windows Registry API to ensure we get the most up-to-date value
+                string[] pathParts = keyPath.Split('\\');
+                RegistryKey? rootKey = GetRootKey(pathParts[0]);
+
+                if (rootKey == null)
                 {
-                    if (_valueCache.TryGetValue(fullValuePath, out object? cachedValue))
-                    {
-                        return cachedValue;
-                    }
+                    _logService.Log(LogLevel.Error, $"Invalid root key: {pathParts[0]}");
+                    return null;
                 }
 
-                // Open the key for reading
-                using (RegistryKey? key = OpenRegistryKey(keyPath, false))
+                string subKeyPath = string.Join('\\', pathParts.Skip(1));
+
+                // Open the key directly with the Windows Registry API
+                using (RegistryKey? key = rootKey.OpenSubKey(subKeyPath, false))
                 {
                     if (key == null)
                     {
-                        
-                        // Cache the null result
-                        lock (_valueCache)
-                        {
-                            _valueCache[fullValuePath] = null;
-                        }
-                        
+                        _logService.Log(LogLevel.Debug, $"Registry key not found: {keyPath}");
                         return null;
                     }
 
-                    // Get the value
+                    // Get the value directly from the registry
                     object? value = key.GetValue(valueName);
-                    
-                    // Cache the result
-                    lock (_valueCache)
-                    {
-                        _valueCache[fullValuePath] = value;
-                    }
-                    
+                    _logService.Log(LogLevel.Debug, $"Registry value for {keyPath}\\{valueName}: {value}");
                     return value;
                 }
             }
@@ -178,24 +165,9 @@ namespace Winhance.Infrastructure.Features.Common.Registry
                     // Delete the value
                     key.DeleteValue(valueName, false);
                     
-                    // Clear the cache for this value
-                    string fullValuePath = $"{keyPath}\\{valueName}";
-                    lock (_valueCache)
-                    {
-                        if (_valueCache.ContainsKey(fullValuePath))
-                        {
-                            _valueCache.Remove(fullValuePath);
-                        }
-                    }
-                    
-                    // Also clear the value exists cache
-                    lock (_valueExistsCache)
-                    {
-                        if (_valueExistsCache.ContainsKey(fullValuePath))
-                        {
-                            _valueExistsCache.Remove(fullValuePath);
-                        }
-                    }
+                    // No caching - direct registry access only
+                    _logService.Log(LogLevel.Debug, $"Registry value deleted: {keyPath}\\{valueName}");
+                    _logService.Log(LogLevel.Debug, $"Registry cache cleared for deleted value: {keyPath}\\{valueName}");
 
                     _logService.Log(LogLevel.Success, $"Successfully deleted registry value: {keyPath}\\{valueName}");
                     return true;
@@ -222,7 +194,7 @@ namespace Winhance.Infrastructure.Features.Common.Registry
         }
 
         /// <summary>
-        /// Checks if a registry value exists.
+        /// Checks if a registry value exists by directly accessing the registry.
         /// </summary>
         /// <param name="keyPath">The registry key path.</param>
         /// <param name="valueName">The name of the value to check.</param>
@@ -234,40 +206,22 @@ namespace Winhance.Infrastructure.Features.Common.Registry
                 if (!CheckWindowsPlatform())
                     return false;
 
-                // Check the cache first
-                string fullValuePath = $"{keyPath}\\{valueName}";
-                lock (_valueExistsCache)
-                {
-                    if (_valueExistsCache.TryGetValue(fullValuePath, out bool exists))
-                    {
-                        return exists;
-                    }
-                }
+                _logService.Log(LogLevel.Debug, $"Checking if registry value exists: {keyPath}\\{valueName}");
 
-                // Open the key for reading
+                // Open the key for reading directly
                 using (RegistryKey? key = OpenRegistryKey(keyPath, false))
                 {
                     if (key == null)
                     {
-                        // Cache the result
-                        lock (_valueExistsCache)
-                        {
-                            _valueExistsCache[fullValuePath] = false;
-                        }
-                        
+                        _logService.Log(LogLevel.Debug, $"Registry key not found: {keyPath}");
                         return false;
                     }
 
-                    // Check if the value exists
+                    // Check if the value exists directly from the registry
                     string[] valueNames = key.GetValueNames();
                     bool exists = valueNames.Contains(valueName, StringComparer.OrdinalIgnoreCase);
                     
-                    // Cache the result
-                    lock (_valueExistsCache)
-                    {
-                        _valueExistsCache[fullValuePath] = exists;
-                    }
-                    
+                    _logService.Log(LogLevel.Debug, $"Registry value {keyPath}\\{valueName} exists: {exists}");
                     return exists;
                 }
             }

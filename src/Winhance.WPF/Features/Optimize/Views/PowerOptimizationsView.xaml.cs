@@ -10,6 +10,7 @@ namespace Winhance.WPF.Features.Optimize.Views
         public PowerOptimizationsView()
         {
             InitializeComponent();
+            // DataContext will be set programmatically by composition ViewModel
         }
     }
 }

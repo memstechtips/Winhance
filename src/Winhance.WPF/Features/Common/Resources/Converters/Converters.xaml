@@ -36,4 +36,8 @@
     <converters:EnumToVisibilityConverter x:Key="EnumToVisibilityConverter"/>
     <converters:StringEqualityConverter x:Key="StringEqualityConverter"/>
     <converters:BooleanToValueConverter x:Key="BooleanToValueConverter"/>
+    <converters:EnumTypeToVisibilityConverter x:Key="EnumTypeToVisibilityConverter"/>
+    <converters:NumericTypeToVisibilityConverter x:Key="NumericTypeToVisibilityConverter"/>
+    <converters:BoolTypeToVisibilityConverter x:Key="BoolTypeToVisibilityConverter"/>
+    <converters:BooleanToRotationConverter x:Key="BooleanToRotationConverter"/>
 </ResourceDictionary>

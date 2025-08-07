@@ -1,105 +1,96 @@
 using System;
 using System.Collections.Generic;
-using System.Linq;
+using System.Collections.ObjectModel;
 using System.Threading.Tasks;
+using System.Windows.Input;
 using CommunityToolkit.Mvvm.ComponentModel;
+using CommunityToolkit.Mvvm.Input;
 using Winhance.Core.Features.Common.Enums;
 using Winhance.Core.Features.Common.Interfaces;
 using Winhance.Core.Features.Common.Models;
+using Winhance.Core.Features.Optimize.Interfaces;
+using Winhance.WPF.Features.Common.Interfaces;
 using Winhance.WPF.Features.Common.Models;
-using Winhance.WPF.Features.Common.ViewModels;
 
 namespace Winhance.WPF.Features.Optimize.ViewModels
 {
     /// <summary>
     /// ViewModel for Explorer optimizations using clean architecture principles.
     /// </summary>
-    public partial class ExplorerOptimizationsViewModel : BaseSettingsViewModel
+    public partial class ExplorerOptimizationsViewModel : ObservableObject, IFeatureViewModel
     {
+        private readonly IExplorerOptimizationService _explorerService;
+        private readonly ISettingsUICoordinator _uiCoordinator;
+        private readonly ILogService _logService;
+        private readonly ITaskProgressService _progressService;
+
+        // LoadSettingsCommand is now defined as ICommand for IFeatureViewModel interface
+
+        // Delegating properties to UI coordinator
+        public ObservableCollection<SettingUIItem> Settings => _uiCoordinator.Settings;
+        public ObservableCollection<SettingGroup> SettingGroups => _uiCoordinator.SettingGroups;
+        public bool IsLoading => _uiCoordinator.IsLoading;
+        public string CategoryName => _uiCoordinator.CategoryName;
+        public string SearchText
+        {
+            get => _uiCoordinator.SearchText;
+            set => _uiCoordinator.SearchText = value;
+        }
+        public bool HasVisibleSettings => _uiCoordinator.HasVisibleSettings;
+
+        // IFeatureViewModel implementation
+        public string ModuleId => "ExplorerOptimization";
+        public string DisplayName => "Explorer";
+        public int SettingsCount => Settings?.Count ?? 0;
+        public string Category => "Optimize";
+        public string Description => "Optimize Windows Explorer settings";
+        public int SortOrder => 6;
+        public ICommand LoadSettingsCommand { get; private set; }
+        
+        [ObservableProperty]
+        private bool _isExpanded = true;
+        
+        public ICommand ToggleExpandCommand { get; }
         /// <summary>
         /// Initializes a new instance of the <see cref="ExplorerOptimizationsViewModel"/> class.
         /// </summary>
-        /// <param name="settingsService">The application settings service.</param>
+        /// <param name="explorerService">The explorer domain service.</param>
+        /// <param name="uiCoordinator">The settings UI coordinator.</param>
         /// <param name="progressService">The task progress service.</param>
         /// <param name="logService">The log service.</param>
         public ExplorerOptimizationsViewModel(
-            IApplicationSettingsService settingsService,
+            IExplorerOptimizationService explorerService,
+            ISettingsUICoordinator uiCoordinator,
             ITaskProgressService progressService,
             ILogService logService)
-            : base(settingsService, progressService, logService)
         {
-            CategoryName = "Explorer Optimizations";
+            _explorerService = explorerService ?? throw new ArgumentNullException(nameof(explorerService));
+            _uiCoordinator = uiCoordinator ?? throw new ArgumentNullException(nameof(uiCoordinator));
+            _progressService = progressService ?? throw new ArgumentNullException(nameof(progressService));
+            _logService = logService ?? throw new ArgumentNullException(nameof(logService));
+            
+            _uiCoordinator.CategoryName = "Explorer Optimizations";
+            
+            // Initialize commands
+            LoadSettingsCommand = new AsyncRelayCommand(LoadSettingsAsync);
+            ToggleExpandCommand = new RelayCommand(ToggleExpand);
         }
 
         /// <summary>
         /// Loads settings and initializes the UI state.
         /// </summary>
-        public override async Task LoadSettingsAsync()
+        public async Task LoadSettingsAsync()
         {
             try
             {
-                IsLoading = true;
                 _progressService.StartTask("Loading explorer optimization settings...");
                 
-                // Clear existing collections
-                Settings.Clear();
-                
-                // Load settings from the service
-                var explorerSettings = await _settingsService.GetExplorerOptimizationSettingsAsync();
-                
-                foreach (var setting in explorerSettings)
-                {
-                    // Create UI item from the setting
-                    var uiItem = new SettingUIItem
-                    {
-                        Id = setting.Id,
-                        Name = setting.Name,
-                        Description = setting.Description,
-                        GroupName = setting.GroupName,
-                        IsEnabled = setting.IsEnabled,
-                        ControlType = setting.ControlType,
-                        IsSelected = false,
-                        IsVisible = true,
-                        StatusMessage = "Ready"
-                    };
-                    
-                    // For ComboBox settings, we'll need to populate options from registry settings
-                    if (setting.ControlType == ControlType.ComboBox)
-                    {
-                        // TODO: Populate ComboBox options from registry settings or configuration
-                        // For now, just set a default selected value
-                        uiItem.SelectedValue = "Default";
-                    }
-                    else if (setting.ControlType == ControlType.BinaryToggle)
-                    {
-                        // Set toggle state based on IsEnabled
-                        uiItem.IsSelected = setting.IsEnabled;
-                    }
-                    
-                    // Add to settings collection
-                    Settings.Add(uiItem);
-                }
-                
-                // Organize settings into groups if needed
-                if (Settings.Count > 0)
-                {
-                    var groups = Settings.GroupBy(s => s.GroupName).ToList();
-                    foreach (var group in groups)
-                    {
-                        if (!string.IsNullOrEmpty(group.Key))
-                        {
-                            var settingGroup = new SettingGroup(group.Key);
-                            foreach (var setting in group)
-                            {
-                                settingGroup.AddSetting(setting);
-                            }
-                            SettingGroups.Add(settingGroup);
-                        }
-                    }
-                }
-                
-                // Refresh status of all settings
-                await RefreshAllSettingsAsync();
+                // Use UI coordinator to load settings with both setting change and value change handlers
+                await _uiCoordinator.LoadSettingsAsync(
+                    () => _explorerService.GetSettingsAsync(),
+                    async (settingId, isEnabled) => await _explorerService.ApplySettingAsync(settingId, isEnabled),
+                    async (settingId, value) => await _explorerService.ApplySettingAsync(settingId, true, value)
+                );
                 
                 _progressService.CompleteTask();
             }
@@ -109,19 +100,27 @@ namespace Winhance.WPF.Features.Optimize.ViewModels
                 _logService.Log(LogLevel.Error, $"Error loading explorer optimization settings: {ex.Message}");
                 throw;
             }
-            finally
-            {
-                IsLoading = false;
-            }
         }
 
         /// <summary>
-        /// Gets the application settings that this ViewModel manages.
+        /// Refreshes the settings for this feature asynchronously.
         /// </summary>
-        /// <returns>Collection of application settings for explorer optimizations.</returns>
-        protected override async Task<IEnumerable<ApplicationSetting>> GetApplicationSettingsAsync()
+        public async Task RefreshSettingsAsync()
         {
-            return await _settingsService.GetExplorerOptimizationSettingsAsync();
+            await LoadSettingsAsync();
+        }
+
+        /// <summary>
+        /// Clears all settings and resets the feature state.
+        /// </summary>
+        public void ClearSettings()
+        {
+            _uiCoordinator.ClearSettings();
+        }
+        
+        private void ToggleExpand()
+        {
+            IsExpanded = !IsExpanded;
         }
     }
 }

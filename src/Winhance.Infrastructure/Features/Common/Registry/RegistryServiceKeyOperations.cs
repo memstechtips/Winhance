@@ -78,11 +78,8 @@ namespace Winhance.Infrastructure.Features.Common.Registry
 
                 targetKey.Close();
                 
-                // Update the cache to indicate that this key now exists
-                lock (_keyExistsCache)
-                {
-                    _keyExistsCache[keyPath] = true;
-                }
+                // No caching - direct registry access only
+                _logService.Log(LogLevel.Debug, $"Registry key created: {keyPath}");
                 
                 _logService.Log(LogLevel.Success, $"Successfully created or verified registry key: {keyPath}");
                 return true;
@@ -133,18 +130,8 @@ namespace Winhance.Infrastructure.Features.Common.Registry
                     // Delete the key
                     parentKey.DeleteSubKey(keyName, false);
                     
-                    // Clear the cache for this key
-                    lock (_keyExistsCache)
-                    {
-                        var keysToRemove = _keyExistsCache.Keys
-                            .Where(k => k.StartsWith(keyPath, StringComparison.OrdinalIgnoreCase))
-                            .ToList();
-                        
-                        foreach (var key in keysToRemove)
-                        {
-                            _keyExistsCache.Remove(key);
-                        }
-                    }
+                    // No caching - direct registry access only
+                    _logService.Log(LogLevel.Debug, $"Registry key deleted: {keyPath}");
 
                     _logService.Log(LogLevel.Success, $"Successfully deleted registry key: {keyPath}");
                     return true;
@@ -158,7 +145,7 @@ namespace Winhance.Infrastructure.Features.Common.Registry
         }
 
         /// <summary>
-        /// Checks if a registry key exists.
+        /// Checks if a registry key exists by directly accessing the registry.
         /// </summary>
         /// <param name="keyPath">The full path to the registry key.</param>
         /// <returns>True if the key exists; otherwise, false.</returns>
@@ -169,14 +156,7 @@ namespace Winhance.Infrastructure.Features.Common.Registry
 
             try
             {
-                // Check the cache first
-                lock (_keyExistsCache)
-                {
-                    if (_keyExistsCache.TryGetValue(keyPath, out bool exists))
-                    {
-                        return exists;
-                    }
-                }
+                _logService.Log(LogLevel.Debug, $"Checking if registry key exists: {keyPath}");
 
                 string[] pathParts = keyPath.Split('\\');
                 RegistryKey? rootKey = GetRootKey(pathParts[0]);
@@ -189,17 +169,11 @@ namespace Winhance.Infrastructure.Features.Common.Registry
 
                 string subKeyPath = string.Join('\\', pathParts.Skip(1));
 
-                // Try to open the key
+                // Try to open the key directly from the registry
                 using (RegistryKey? key = rootKey.OpenSubKey(subKeyPath))
                 {
                     bool exists = key != null;
-                    
-                    // Cache the result
-                    lock (_keyExistsCache)
-                    {
-                        _keyExistsCache[keyPath] = exists;
-                    }
-                    
+                    _logService.Log(LogLevel.Debug, $"Registry key {keyPath} exists: {exists}");
                     return exists;
                 }
             }

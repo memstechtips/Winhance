@@ -1,10 +1,11 @@
 using System;
 using System.Collections.Generic;
 using System.Linq;
+using System.Management.Automation;
 using System.Threading.Tasks;
 using Winhance.Core.Features.Common.Interfaces;
 using Winhance.Core.Features.Common.Models;
-using Winhance.Infrastructure.Features.Common.Utilities;
+
 
 namespace Winhance.Infrastructure.Features.Common.Services
 {
@@ -14,18 +15,23 @@ namespace Winhance.Infrastructure.Features.Common.Services
     public class CommandService : ICommandService
     {
         private readonly ILogService _logService;
+        private readonly IScriptPathDetectionService _scriptPathDetectionService;
+        private readonly IPowerShellDetectionService _powerShellDetectionService;
         private readonly ISystemServices _systemServices;
 
         /// <summary>
         /// Initializes a new instance of the <see cref="CommandService"/> class.
         /// </summary>
-        /// <param name="logService">The log service.</param>
+        /// <param name="logService">The logging service.</param>
+        /// <param name="scriptPathDetectionService">The script path detection service.</param>
+        /// <param name="powerShellDetectionService">The PowerShell detection service.</param>
         /// <param name="systemServices">The system services.</param>
-        public CommandService(ILogService logService, ISystemServices systemServices)
+        public CommandService(ILogService logService, IScriptPathDetectionService scriptPathDetectionService, IPowerShellDetectionService powerShellDetectionService, ISystemServices systemServices)
         {
             _logService = logService ?? throw new ArgumentNullException(nameof(logService));
-            _systemServices =
-                systemServices ?? throw new ArgumentNullException(nameof(systemServices));
+            _scriptPathDetectionService = scriptPathDetectionService ?? throw new ArgumentNullException(nameof(scriptPathDetectionService));
+            _powerShellDetectionService = powerShellDetectionService ?? throw new ArgumentNullException(nameof(powerShellDetectionService));
+            _systemServices = systemServices ?? throw new ArgumentNullException(nameof(systemServices));
         }
 
         /// <inheritdoc/>
@@ -38,11 +44,8 @@ namespace Winhance.Infrastructure.Features.Common.Services
             {
                 _logService.LogInformation($"Executing command: {command}");
 
-                // Create a PowerShell instance using the factory
-                var powerShell = PowerShellFactory.CreateWindowsPowerShell(
-                    _logService,
-                    _systemServices
-                );
+                // Create a PowerShell instance
+                var powerShell = PowerShell.Create();
 
                 // Add the command to execute
                 powerShell.AddScript(command);

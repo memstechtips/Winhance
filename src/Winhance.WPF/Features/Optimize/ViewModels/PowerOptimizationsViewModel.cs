@@ -3,28 +3,29 @@ using System.Collections.Generic;
 using System.Collections.ObjectModel;
 using System.Linq;
 using System.Threading.Tasks;
+using System.Windows.Input;
 using CommunityToolkit.Mvvm.ComponentModel;
 using CommunityToolkit.Mvvm.Input;
 using Winhance.Core.Features.Common.Enums;
 using Winhance.Core.Features.Common.Interfaces;
 using Winhance.Core.Features.Common.Models;
 using Winhance.Core.Features.Optimize.Interfaces;
+using Winhance.WPF.Features.Common.Interfaces;
 using Winhance.Core.Features.Optimize.Models;
-using Winhance.Core.Features.Optimize.Services;
-using Winhance.Infrastructure.Features.Optimize.Services;
 using Winhance.WPF.Features.Common.Models;
-using Winhance.WPF.Features.Common.ViewModels;
-
 namespace Winhance.WPF.Features.Optimize.ViewModels
 {
     /// <summary>
     /// ViewModel for Power optimizations using clean architecture principles.
+    /// Uses composition pattern with ISettingsUICoordinator.
     /// </summary>
-    public partial class PowerOptimizationsViewModel : BaseSettingsViewModel
+    public partial class PowerOptimizationsViewModel : ObservableObject, IFeatureViewModel
     {
-        private readonly IPowerPlanService _powerPlanService;
-        private readonly IPowerSettingService _powerSettingService;
-        private readonly IPowerPlanManagerService _powerPlanManagerService;
+        private readonly IPowerService _powerService;
+        private readonly IDialogService _dialogService;
+        private readonly ISettingsUICoordinator _uiCoordinator;
+        private readonly ITaskProgressService _progressService;
+        private readonly ILogService _logService;
 
         /// <summary>
         /// Gets or sets a value indicating whether the system has a battery.
@@ -88,166 +89,107 @@ namespace Winhance.WPF.Features.Optimize.ViewModels
             "High Performance",
             "Balanced",
             "Power Saver",
-            "Ultimate Performance"
+            "Ultimate Performance",
         };
+
+        // Delegate properties to UI Coordinator
+        public ObservableCollection<SettingUIItem> Settings => _uiCoordinator.Settings;
+        public ObservableCollection<SettingGroup> SettingGroups => _uiCoordinator.SettingGroups;
+        public bool IsLoading
+        {
+            get => _uiCoordinator.IsLoading;
+            set => _uiCoordinator.IsLoading = value;
+        }
+        public string CategoryName
+        {
+            get => _uiCoordinator.CategoryName;
+            set => _uiCoordinator.CategoryName = value;
+        }
+        public string SearchText
+        {
+            get => _uiCoordinator.SearchText;
+            set => _uiCoordinator.SearchText = value;
+        }
+        public bool HasVisibleSettings => _uiCoordinator.HasVisibleSettings;
+
+        // IFeatureViewModel implementation
+        public string ModuleId => "Power";
+        public string DisplayName => "Power";
+        public int SettingsCount => Settings?.Count ?? 0;
+        public string Category => "Optimize";
+        public string Description => "Optimize Windows power settings";
+        public int SortOrder => 4;
+        public ICommand LoadSettingsCommand { get; }
+        
+        [ObservableProperty]
+        private bool _isExpanded = true;
+        
+        public ICommand ToggleExpandCommand { get; }
+        
+
 
         /// <summary>
         /// Initializes a new instance of the <see cref="PowerOptimizationsViewModel"/> class.
         /// </summary>
-        /// <param name="settingsService">The application settings service.</param>
+        /// <param name="powerService">The power domain service.</param>
+        /// <param name="uiCoordinator">The settings UI coordinator.</param>
         /// <param name="progressService">The task progress service.</param>
         /// <param name="logService">The log service.</param>
-        /// <param name="powerPlanService">The power plan service.</param>
-        /// <param name="powerSettingService">The power setting service.</param>
-        /// <param name="powerPlanManagerService">The power plan manager service.</param>
+        /// <param name="dialogService">The dialog service.</param>
         public PowerOptimizationsViewModel(
-            IApplicationSettingsService settingsService,
+            IPowerService powerService,
+            ISettingsUICoordinator uiCoordinator,
             ITaskProgressService progressService,
             ILogService logService,
-            IPowerPlanService powerPlanService,
-            IPowerSettingService powerSettingService,
-            IPowerPlanManagerService powerPlanManagerService)
-            : base(settingsService, progressService, logService)
+            IDialogService dialogService)
         {
-            _powerPlanService = powerPlanService ?? throw new ArgumentNullException(nameof(powerPlanService));
-            _powerSettingService = powerSettingService ?? throw new ArgumentNullException(nameof(powerSettingService));
-            _powerPlanManagerService = powerPlanManagerService ?? throw new ArgumentNullException(nameof(powerPlanManagerService));
+            _powerService = powerService ?? throw new ArgumentNullException(nameof(powerService));
+            _dialogService = dialogService ?? throw new ArgumentNullException(nameof(dialogService));
+            _uiCoordinator = uiCoordinator ?? throw new ArgumentNullException(nameof(uiCoordinator));
+            _progressService = progressService ?? throw new ArgumentNullException(nameof(progressService));
+            _logService = logService ?? throw new ArgumentNullException(nameof(logService));
+
+            _uiCoordinator.CategoryName = "Power Settings";
             
-            CategoryName = "Power Optimizations";
+            // Subscribe to coordinator's PropertyChanged events to relay them to the UI
+            _uiCoordinator.PropertyChanged += (sender, e) => OnPropertyChanged(e.PropertyName);
+            
+            // Initialize commands
+            LoadSettingsCommand = new AsyncRelayCommand(LoadSettingsAsync);
+            ToggleExpandCommand = new RelayCommand(ToggleExpand);
         }
 
         /// <summary>
         /// Loads settings and initializes the UI state.
         /// </summary>
-        public override async Task LoadSettingsAsync()
+        public async Task LoadSettingsAsync()
         {
             try
             {
-                IsLoading = true;
                 _progressService.StartTask("Loading power optimization settings...");
                 
-                // Clear existing collections
-                Settings.Clear();
-                
-                // Load available power plans
-                var powerPlans = await _settingsService.GetAvailablePowerPlansAsync();
+                // Load available power plans for the power plan selector
+                var powerPlans = await _powerService.GetAvailablePowerPlansAsync();
                 PowerPlans.Clear();
                 foreach (var plan in powerPlans.Cast<PowerPlan>())
                 {
                     PowerPlans.Add(plan);
                 }
                 
-                // Load advanced power settings (for UI display)
-                var advancedGroups = await _settingsService.GetAdvancedPowerSettingGroupsAsync();
-                AdvancedPowerSettingGroups.Clear();
-                foreach (var group in advancedGroups.Cast<AdvancedPowerSettingGroup>())
-                {
-                    AdvancedPowerSettingGroups.Add(group);
-                }
-                
                 // Get active power plan
-                var activePlan = await _settingsService.GetActivePowerPlanAsync() as PowerPlan;
+                var activePlan = await _powerService.GetActivePowerPlanAsync() as PowerPlan;
                 if (activePlan != null)
                 {
                     SelectedPowerPlan = activePlan;
                 }
                 
                 // Check system capabilities
-                var capabilities = await _settingsService.CheckPowerSystemCapabilitiesAsync();
+                var capabilities = await _powerService.CheckPowerSystemCapabilitiesAsync();
                 HasBattery = capabilities.GetValueOrDefault("HasBattery", false);
                 HasLid = capabilities.GetValueOrDefault("HasLid", false);
                 
-                // Load power optimization settings from the service (now includes converted advanced settings)
-                var powerSettings = await _settingsService.GetPowerOptimizationSettingsAsync();
-                
-                foreach (var setting in powerSettings)
-                {
-                    // Cast to OptimizationSetting to access CustomProperties
-                    var optimizationSetting = setting as OptimizationSetting;
-                    
-                    // Create UI item from the setting
-                    var uiItem = new SettingUIItem
-                    {
-                        Id = setting.Id,
-                        Name = setting.Name,
-                        Description = setting.Description,
-                        GroupName = setting.GroupName,
-                        IsEnabled = setting.IsEnabled,
-                        ControlType = setting.ControlType,
-                        IsSelected = false,
-                        IsVisible = true
-                    };
-                    
-                    // Add options for ComboBox settings
-                    if (setting.ControlType == ControlType.ComboBox)
-                    {
-                        // Check if we have advanced power setting options
-                        if (optimizationSetting?.CustomProperties?.ContainsKey("ComboBoxOptions") == true &&
-                            optimizationSetting.CustomProperties["ComboBoxOptions"] is Dictionary<string, object> options)
-                        {
-                            // Use the proper advanced power setting options
-                            foreach (var option in options.Keys)
-                            {
-                                uiItem.ComboBoxOptions.Add(option);
-                            }
-                            
-                            // Set default selected value
-                            var defaultValue = optimizationSetting.CustomProperties.GetValueOrDefault("DefaultValue", 0);
-                            var defaultOption = options.FirstOrDefault(kvp => kvp.Value.Equals(defaultValue)).Key;
-                            uiItem.SelectedValue = defaultOption ?? options.Keys.FirstOrDefault() ?? "";
-                        }
-                        else
-                        {
-                            // Fallback to basic options
-                            uiItem.ComboBoxOptions.Add("Disabled");
-                            uiItem.ComboBoxOptions.Add("Enabled");
-                            uiItem.SelectedValue = "Disabled";
-                        }
-                    }
-                    else if (setting.ControlType == ControlType.BinaryToggle)
-                    {
-                        // Set toggle state
-                        uiItem.IsSelected = setting.IsEnabled;
-                    }
-                    else if (setting.ControlType == ControlType.NumericUpDown)
-                    {
-                        // Handle numeric settings
-                        if (optimizationSetting?.CustomProperties != null)
-                        {
-                            var minValue = optimizationSetting.CustomProperties.GetValueOrDefault("MinValue", 0);
-                            var maxValue = optimizationSetting.CustomProperties.GetValueOrDefault("MaxValue", 100);
-                            var units = optimizationSetting.CustomProperties.GetValueOrDefault("Units", "")?.ToString() ?? "";
-                            
-                            // Store numeric range info for UI (SettingUIItem doesn't have CustomProperties, so we'll use a different approach)
-                            // For now, we can store this info in the description or handle it differently
-                            uiItem.Description += $" (Range: {minValue}-{maxValue} {units})".Trim();
-                        }
-                    }
-                    
-                    // Add to settings collection
-                    Settings.Add(uiItem);
-                }
-                
-                // Organize settings into groups if needed
-                if (Settings.Count > 0)
-                {
-                    var groups = Settings.GroupBy(s => s.GroupName).ToList();
-                    foreach (var group in groups)
-                    {
-                        if (!string.IsNullOrEmpty(group.Key))
-                        {
-                            var settingGroup = new SettingGroup(group.Key);
-                            foreach (var setting in group)
-                            {
-                                settingGroup.AddSetting(setting);
-                            }
-                            SettingGroups.Add(settingGroup);
-                        }
-                    }
-                }
-                
-                // Refresh status of all settings
-                await RefreshAllSettingsAsync();
+                // Load settings using UI coordinator (this will handle all the UI mapping)
+                await _uiCoordinator.LoadSettingsAsync(() => _powerService.GetSettingsAsync());
                 
                 _progressService.CompleteTask();
             }
@@ -256,10 +198,6 @@ namespace Winhance.WPF.Features.Optimize.ViewModels
                 _progressService.CompleteTask();
                 _logService.Log(LogLevel.Error, $"Error loading power optimization settings: {ex.Message}");
                 throw;
-            }
-            finally
-            {
-                IsLoading = false;
             }
         }
 
@@ -287,9 +225,30 @@ namespace Winhance.WPF.Features.Optimize.ViewModels
         /// Gets the application settings that this ViewModel manages.
         /// </summary>
         /// <returns>Collection of application settings for power optimizations.</returns>
-        protected override async Task<IEnumerable<ApplicationSetting>> GetApplicationSettingsAsync()
+        private async Task<IEnumerable<ApplicationSetting>> GetApplicationSettingsAsync()
         {
-            return await _settingsService.GetPowerOptimizationSettingsAsync();
+            return await _powerService.GetSettingsAsync();
+        }
+
+        /// <summary>
+        /// Refreshes the settings for this feature asynchronously.
+        /// </summary>
+        public async Task RefreshSettingsAsync()
+        {
+            await LoadSettingsAsync();
+        }
+
+        /// <summary>
+        /// Clears all settings and resets the feature state.
+        /// </summary>
+        public void ClearSettings()
+        {
+            _uiCoordinator.ClearSettings();
+        }
+        
+        private void ToggleExpand()
+        {
+            IsExpanded = !IsExpanded;
         }
     }
 }

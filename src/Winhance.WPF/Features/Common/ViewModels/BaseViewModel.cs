@@ -10,7 +10,8 @@ using CommunityToolkit.Mvvm.ComponentModel;
 using CommunityToolkit.Mvvm.Input;
 using Winhance.Core.Features.Common.Enums;
 using Winhance.Core.Features.Common.Interfaces;
-using Winhance.Core.Features.Common.Messaging;
+using Winhance.Core.Features.Common.Events;
+using Winhance.Core.Features.Common.Events.UI;
 using Winhance.Core.Features.Common.Models;
 using Winhance.WPF.Features.Common.Models;
 
@@ -23,7 +24,7 @@ namespace Winhance.WPF.Features.Common.ViewModels
     {
         private readonly ITaskProgressService _progressService;
         private readonly ILogService _logService;
-        private readonly IMessengerService _messengerService;
+        private readonly IEventBus _eventBus;
         private bool _isDisposed;
         private bool _isLoading;
         private string _statusText = string.Empty;
@@ -120,33 +121,24 @@ namespace Winhance.WPF.Features.Common.ViewModels
         /// </summary>
         /// <param name="progressService">The task progress service.</param>
         /// <param name="logService">The log service.</param>
-        /// <param name="messengerService">The messenger service.</param>
+        /// <param name="eventBus">The event bus.</param>
         protected BaseViewModel(
             ITaskProgressService progressService,
             ILogService logService,
-            IMessengerService messengerService
+            IEventBus eventBus
         )
         {
             _progressService =
                 progressService ?? throw new ArgumentNullException(nameof(progressService));
-            _logService = logService ?? throw new ArgumentNullException(nameof(logService));
-            _messengerService =
-                messengerService ?? throw new ArgumentNullException(nameof(messengerService));
+            _logService = logService;
+            _eventBus = eventBus;
 
             // Subscribe to progress service events
-            if (_progressService != null)
-            {
-                _progressService.ProgressUpdated -= ProgressService_ProgressUpdated;
-                _progressService.ProgressUpdated += ProgressService_ProgressUpdated;
-                _progressService.LogMessageAdded -= ProgressService_LogMessageAdded;
-                _progressService.LogMessageAdded += ProgressService_LogMessageAdded;
-            }
+            _progressService.ProgressUpdated += ProgressService_ProgressUpdated;
+            _progressService.LogMessageAdded += ProgressService_LogMessageAdded;
 
-            CancelTaskCommand = new RelayCommand(
-                CancelCurrentTask,
-                () => CanCancelTask && IsTaskRunning
-            );
-            _cancelCommand = CancelTaskCommand; // Ensure both commands point to the same implementation
+            // Initialize commands
+            CancelTaskCommand = new RelayCommand(CancelCurrentTask, () => CanCancelTask);
         }
 
         /// <summary>
@@ -154,16 +146,12 @@ namespace Winhance.WPF.Features.Common.ViewModels
         /// This constructor is for backward compatibility.
         /// </summary>
         /// <param name="progressService">The task progress service.</param>
-        /// <param name="messengerService">The messenger service.</param>
-        protected BaseViewModel(
-            ITaskProgressService progressService,
-            IMessengerService messengerService
-        )
-            : this(
-                progressService,
-                new Core.Features.Common.Services.LogService(),
-                messengerService
-            ) { }
+        /// <param name="eventBus">The event bus.</param>
+        protected BaseViewModel(ITaskProgressService progressService, IEventBus eventBus)
+            : this(progressService, null, eventBus)
+        {
+            // This constructor is for backward compatibility
+        }
 
         /// <summary>
         /// Initializes a new instance of the <see cref="BaseViewModel"/> class.
@@ -171,11 +159,10 @@ namespace Winhance.WPF.Features.Common.ViewModels
         /// </summary>
         /// <param name="progressService">The task progress service.</param>
         protected BaseViewModel(ITaskProgressService progressService)
-            : this(
-                progressService,
-                new Core.Features.Common.Services.LogService(),
-                new Features.Common.Services.MessengerService()
-            ) { }
+            : this(progressService, null, null)
+        {
+            // This constructor is for backward compatibility
+        }
 
         /// <summary>
         /// Disposes of the resources used by the ViewModel
@@ -200,11 +187,7 @@ namespace Winhance.WPF.Features.Common.ViewModels
                     _progressService.ProgressUpdated -= ProgressService_ProgressUpdated;
                     _progressService.LogMessageAdded -= ProgressService_LogMessageAdded;
 
-                    // Unregister from messenger
-                    if (_messengerService != null)
-                    {
-                        _messengerService.Unregister(this);
-                    }
+                    // No need to unregister from event bus as it's handled by subscription tokens
                 }
 
                 _isDisposed = true;
@@ -249,9 +232,10 @@ namespace Winhance.WPF.Features.Common.ViewModels
                 _progressService.IsTaskRunning
                 && _progressService.CurrentTaskCancellationSource != null;
 
-            // Send a message for UI updates that may occur in other threads
-            _messengerService.Send(
-                new TaskProgressMessage
+            // Publish event for UI updates that may occur in other threads
+            if (_eventBus != null)
+            {
+                _eventBus.Publish(new TaskProgressEvent
                 {
                     Progress = detail.Progress ?? 0,
                     StatusText = detail.StatusText ?? string.Empty,
@@ -260,8 +244,8 @@ namespace Winhance.WPF.Features.Common.ViewModels
                     CanCancel =
                         _progressService.IsTaskRunning
                         && _progressService.CurrentTaskCancellationSource != null,
-                }
-            );
+                });
+            }
         }
 
         /// <summary>
@@ -286,15 +270,16 @@ namespace Winhance.WPF.Features.Common.ViewModels
 
             // Auto-expand details on error or warning (we can't determine this from the string message)
 
-            // Send a message for UI updates that may occur in other threads
-            _messengerService.Send(
-                new LogMessage
+            // Publish event for UI updates that may occur in other threads
+            if (_eventBus != null)
+            {
+                _eventBus.Publish(new LogEvent
                 {
                     Message = message,
                     Level = LogLevel.Info, // Default to Info since we don't have level information
                     Exception = null,
-                }
-            );
+                });
+            };
         }
 
         /// <summary>
@@ -329,7 +314,7 @@ namespace Winhance.WPF.Features.Common.ViewModels
             }
             catch (Exception ex)
             {
-                _logService.LogError($"Error in {taskName}: {ex.Message}", ex);
+                _logService?.LogError($"Error in {taskName}: {ex.Message}", ex);
                 _progressService.AddLogMessage($"Error: {ex.Message}");
                 throw;
             }
@@ -363,7 +348,7 @@ namespace Winhance.WPF.Features.Common.ViewModels
             }
             catch (Exception ex)
             {
-                _logService.LogError($"Error in {taskName}: {ex.Message}", ex);
+                _logService?.LogError($"Error in {taskName}: {ex.Message}", ex);
                 _progressService.AddLogMessage($"Error: {ex.Message}");
                 throw;
             }
@@ -410,7 +395,7 @@ namespace Winhance.WPF.Features.Common.ViewModels
             }
             catch (Exception ex)
             {
-                _logService.LogError($"Error in {taskName}: {ex.Message}", ex);
+                _logService?.LogError($"Error in {taskName}: {ex.Message}", ex);
                 _progressService.AddLogMessage($"Error: {ex.Message}");
                 throw;
             }
@@ -459,7 +444,7 @@ namespace Winhance.WPF.Features.Common.ViewModels
             }
             catch (Exception ex)
             {
-                _logService.LogError($"Error in {taskName}: {ex.Message}", ex);
+                _logService?.LogError($"Error in {taskName}: {ex.Message}", ex);
                 _progressService.AddLogMessage($"Error: {ex.Message}");
                 throw;
             }
@@ -483,7 +468,7 @@ namespace Winhance.WPF.Features.Common.ViewModels
         /// <param name="message">The message to log.</param>
         protected void LogInfo(string message)
         {
-            _logService.LogInformation(message);
+            _logService?.LogInformation(message);
         }
 
         /// <summary>
@@ -493,7 +478,7 @@ namespace Winhance.WPF.Features.Common.ViewModels
         /// <param name="exception">The exception associated with the error, if any.</param>
         protected void LogError(string message, Exception? exception = null)
         {
-            _logService.LogError(message, exception);
+            _logService?.LogError(message, exception);
         }
     }
 }

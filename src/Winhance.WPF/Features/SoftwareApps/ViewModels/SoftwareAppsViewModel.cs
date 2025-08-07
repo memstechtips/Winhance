@@ -521,20 +521,16 @@ namespace Winhance.WPF.Features.SoftwareApps.ViewModels
             if (IsWindowsAppsTabSelected)
             {
                 // Create Windows Apps help content
-                var scriptPathService = _serviceProvider.GetRequiredService<IScriptPathService>();
-                var scheduledTaskService =
-                    _serviceProvider.GetRequiredService<IScheduledTaskService>();
                 var logService = _serviceProvider.GetRequiredService<ILogService>();
-
+                var scheduledTaskService = _serviceProvider.GetRequiredService<IScheduledTaskService>();
+                var scriptPathDetectionService = _serviceProvider.GetRequiredService<IScriptPathDetectionService>();
+                
                 var viewModel = new WindowsAppsHelpContentViewModel(
-                    scriptPathService,
+                    scriptPathDetectionService,
                     scheduledTaskService,
                     logService
                 );
-
-                // Set the close command to hide the flyout
-                viewModel.CloseHelpCommand = HideHelpFlyoutCommand;
-
+                
                 var helpContent = new WindowsAppsHelpContent(viewModel);
                 CurrentHelpContent = helpContent;
             }

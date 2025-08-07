@@ -39,6 +39,18 @@ namespace Winhance.Core.Features.Common.Interfaces
         int GetWindowsBuildNumber();
 
         /// <summary>
+        /// Gets the friendly OS version string (e.g., "Windows 10" or "Windows 11")
+        /// </summary>
+        /// <returns>A friendly OS version string</returns>
+        string GetOsVersionString();
+
+        /// <summary>
+        /// Gets the OS build number as a string
+        /// </summary>
+        /// <returns>The OS build number as a string</returns>
+        string GetOsBuildString();
+
+        /// <summary>
         /// Refreshes the desktop.
         /// </summary>
         void RefreshDesktop();
@@ -79,18 +91,6 @@ namespace Winhance.Core.Features.Common.Interfaces
         /// </summary>
         /// <param name="enabled">True to enable dark mode; false to disable it.</param>
         void SetDarkMode(bool enabled);
-
-        /// <summary>
-        /// Sets the UAC level.
-        /// </summary>
-        /// <param name="level">The UAC level to set.</param>
-        void SetUacLevel(Winhance.Core.Models.Enums.UacLevel level);
-
-        /// <summary>
-        /// Gets the UAC level.
-        /// </summary>
-        /// <returns>The current UAC level.</returns>
-        Winhance.Core.Models.Enums.UacLevel GetUacLevel();
 
         /// <summary>
         /// Refreshes the Windows GUI.

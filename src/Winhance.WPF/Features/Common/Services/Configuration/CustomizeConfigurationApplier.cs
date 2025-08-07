@@ -23,7 +23,7 @@ namespace Winhance.WPF.Features.Common.Services.Configuration
         private readonly ILogService _logService;
         private readonly IViewModelRefresher _viewModelRefresher;
         private readonly IConfigurationPropertyUpdater _propertyUpdater;
-        private readonly IThemeService _themeService;
+        private readonly IWindowsThemeService _windowsThemeService;
         private readonly IDialogService _dialogService;
 
         /// <summary>
@@ -38,21 +38,21 @@ namespace Winhance.WPF.Features.Common.Services.Configuration
         /// <param name="logService">The log service.</param>
         /// <param name="viewModelRefresher">The view model refresher.</param>
         /// <param name="propertyUpdater">The property updater.</param>
-        /// <param name="themeService">The theme service.</param>
+        /// <param name="windowsThemeService">The Windows theme service.</param>
         /// <param name="dialogService">The dialog service.</param>
         public CustomizeConfigurationApplier(
             IServiceProvider serviceProvider,
             ILogService logService,
             IViewModelRefresher viewModelRefresher,
             IConfigurationPropertyUpdater propertyUpdater,
-            IThemeService themeService,
+            IWindowsThemeService windowsThemeService,
             IDialogService dialogService)
         {
             _serviceProvider = serviceProvider ?? throw new ArgumentNullException(nameof(serviceProvider));
             _logService = logService ?? throw new ArgumentNullException(nameof(logService));
             _viewModelRefresher = viewModelRefresher ?? throw new ArgumentNullException(nameof(viewModelRefresher));
             _propertyUpdater = propertyUpdater ?? throw new ArgumentNullException(nameof(propertyUpdater));
-            _themeService = themeService ?? throw new ArgumentNullException(nameof(themeService));
+            _windowsThemeService = windowsThemeService ?? throw new ArgumentNullException(nameof(windowsThemeService));
             _dialogService = dialogService ?? throw new ArgumentNullException(nameof(dialogService));
         }
 
@@ -202,8 +202,8 @@ namespace Winhance.WPF.Features.Common.Services.Configuration
                             
                             _logService.Log(LogLevel.Info, $"Applying theme through service layer: {newSelectedTheme} (Dark Mode: {isDarkMode})");
                             
-                            // Apply the theme through the theme service
-                            await _themeService.ApplyThemeAsync(isDarkMode, false);
+                            // Apply the theme through the Windows theme service
+                            await _windowsThemeService.ApplyThemeAsync(isDarkMode, false);
                             
                             // Update the corresponding setting in the viewModel to reflect the change
                             var themeSetting = themeSettings.FirstOrDefault(s => s.Name?.Contains("Theme") == true);

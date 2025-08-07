@@ -30,7 +30,7 @@ namespace Winhance.Infrastructure.Features.Common.Services
         }
 
         /// <inheritdoc/>
-        public async Task<Dictionary<string, bool>> GetCurrentSettingsStateAsync(IEnumerable<CustomizationSetting> settings)
+        public async Task<Dictionary<string, bool>> GetCurrentSettingsStateAsync(IEnumerable<ApplicationSetting> settings)
         {
             var results = new Dictionary<string, bool>();
 
@@ -102,7 +102,7 @@ namespace Winhance.Infrastructure.Features.Common.Services
         }
 
         /// <inheritdoc/>
-        public async Task<Dictionary<string, object?>> GetCurrentSettingsValuesAsync(IEnumerable<CustomizationSetting> settings)
+        public async Task<Dictionary<string, object?>> GetCurrentSettingsValuesAsync(IEnumerable<ApplicationSetting> settings)
         {
             var results = new Dictionary<string, object?>();
 
@@ -120,8 +120,13 @@ namespace Winhance.Infrastructure.Features.Common.Services
                 {
                     object? currentValue = null;
 
-                    // For ComboBox settings, we need to get the current selected value
-                    if (setting.ControlType == ControlType.ComboBox)
+                    // Handle UAC level mapping for ComboBox
+                    if (setting.Id == "windows-security-uac-level" && setting.ControlType == ControlType.ComboBox)
+                    {
+                        currentValue = await GetUacLevelValueAsync(setting);
+                    }
+                    // For other ComboBox settings, we need to get the current selected value
+                    else if (setting.ControlType == ControlType.ComboBox)
                     {
                         if (setting.RegistrySettings != null && setting.RegistrySettings.Count > 0)
                         {
@@ -161,7 +166,7 @@ namespace Winhance.Infrastructure.Features.Common.Services
         }
 
         /// <inheritdoc/>
-        public async Task<Dictionary<string, (bool IsEnabled, object? CurrentValue)>> GetCurrentSettingsStateAndValuesAsync(IEnumerable<CustomizationSetting> settings)
+        public async Task<Dictionary<string, (bool IsEnabled, object? CurrentValue)>> GetCurrentSettingsStateAndValuesAsync(IEnumerable<ApplicationSetting> settings)
         {
             var results = new Dictionary<string, (bool IsEnabled, object? CurrentValue)>();
 
@@ -196,6 +201,94 @@ namespace Winhance.Infrastructure.Features.Common.Services
         }
 
         /// <summary>
+        /// Gets the current UAC level by reading both registry values and mapping to ComboBox index
+        /// </summary>
+        /// <param name="setting">The UAC setting</param>
+        /// <returns>The ComboBox index representing the current UAC level</returns>
+        private async Task<int?> GetUacLevelValueAsync(ApplicationSetting setting)
+        {
+            try
+            {
+                if (setting.RegistrySettings == null || setting.RegistrySettings.Count < 2)
+                    return null;
+
+                // Get both registry values
+                var consentPromptValue = await GetRegistryValueAsync(setting.RegistrySettings[0]) as int? ?? 5;
+                var secureDesktopValue = await GetRegistryValueAsync(setting.RegistrySettings[1]) as int? ?? 1;
+
+                _logService.Log(LogLevel.Debug, 
+                    $"UAC registry values: ConsentPrompt={consentPromptValue}, SecureDesktop={secureDesktopValue}");
+
+                // Map to ComboBox index using WindowsSecurityOptimizations logic
+                var mappings = new Dictionary<(int ConsentPrompt, int SecureDesktop), int>
+                {
+                    [(2, 1)] = 0, // Always notify
+                    [(5, 1)] = 1, // Notify changes only
+                    [(5, 0)] = 2, // Notify changes no dim
+                    [(0, 0)] = 3, // Never notify
+                };
+
+                var key = (consentPromptValue, secureDesktopValue);
+                var level = mappings.TryGetValue(key, out var mappedLevel) ? mappedLevel : 4; // Custom
+
+                _logService.Log(LogLevel.Info, 
+                    $"UAC level mapped to: {level} (ComboBox index)");
+
+                return level;
+            }
+            catch (Exception ex)
+            {
+                _logService.LogError($"Error getting UAC level: {ex.Message}");
+                return 1; // Default to "Notify changes only"
+            }
+        }
+
+        /// <inheritdoc/>
+        public async Task<Dictionary<string, Dictionary<RegistrySetting, object?>>> GetIndividualRegistryValuesAsync(IEnumerable<ApplicationSetting> settings)
+        {
+            var results = new Dictionary<string, Dictionary<RegistrySetting, object?>>();
+
+            if (settings == null)
+            {
+                _logService.LogWarning("GetIndividualRegistryValuesAsync called with null settings");
+                return results;
+            }
+
+            _logService.Log(LogLevel.Info, "Starting individual registry values discovery for tooltips");
+
+            foreach (var setting in settings)
+            {
+                try
+                {
+                    var individualValues = new Dictionary<RegistrySetting, object?>();
+
+                    // Get individual values for each registry setting
+                    if (setting.RegistrySettings != null && setting.RegistrySettings.Count > 0)
+                    {
+                        foreach (var registrySetting in setting.RegistrySettings)
+                        {
+                            var currentValue = await GetRegistryValueAsync(registrySetting);
+                            individualValues[registrySetting] = currentValue;
+                            
+                            _logService.Log(LogLevel.Debug, 
+                                $"Individual registry value for '{setting.Id}' - '{registrySetting.Name}': {currentValue}");
+                        }
+                    }
+
+                    results[setting.Id] = individualValues;
+                }
+                catch (Exception ex)
+                {
+                    _logService.LogError($"Error getting individual registry values for setting '{setting.Id}': {ex.Message}");
+                    results[setting.Id] = new Dictionary<RegistrySetting, object?>();
+                }
+            }
+
+            _logService.Log(LogLevel.Info, $"Individual registry values discovery completed. Processed {results.Count} settings");
+            return results;
+        }
+
+        /// <summary>
         /// Helper method to get the current value from a registry setting.
         /// </summary>
         /// <param name="registrySetting">The registry setting to read</param>
@@ -204,15 +297,13 @@ namespace Winhance.Infrastructure.Features.Common.Services
         {
             try
             {
-                // Use the RegistryService's value reading capabilities
-                // We need to access the value reading methods from RegistryService
-                // This might require adding a public method to RegistryService or using reflection
+                // Use RegistryService to get the current value
+                var currentValue = await _registryService.GetCurrentValueAsync(registrySetting);
                 
-                // For now, we'll return null and log that this needs implementation
                 _logService.Log(LogLevel.Debug, 
-                    $"GetRegistryValueAsync for '{registrySetting.Name}' - implementation needed");
+                    $"GetRegistryValueAsync for '{registrySetting.Name}': CurrentValue={currentValue}");
                 
-                return null;
+                return currentValue;
             }
             catch (Exception ex)
             {

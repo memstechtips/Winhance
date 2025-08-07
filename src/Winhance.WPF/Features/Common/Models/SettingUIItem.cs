@@ -1,8 +1,12 @@
+using System.Collections.Generic;
 using System.Collections.ObjectModel;
 using System.ComponentModel;
+using System.Windows.Input;
 using CommunityToolkit.Mvvm.ComponentModel;
+using CommunityToolkit.Mvvm.Input;
 using Winhance.Core.Features.Common.Enums;
 using Winhance.Core.Features.Common.Interfaces;
+using Winhance.Core.Features.Common.Models;
 
 namespace Winhance.WPF.Features.Common.Models
 {
@@ -11,7 +15,7 @@ namespace Winhance.WPF.Features.Common.Models
     /// Contains ONLY UI-related properties and state - NO business logic.
     /// Replaces the massive ApplicationSettingItem god object with clean separation of concerns.
     /// </summary>
-    public partial class SettingUIItem : ObservableObject, ISearchable
+    public partial class SettingUIItem : ObservableObject, ISettingItem, ISearchable
     {
         #region Core Properties
 
@@ -42,7 +46,7 @@ namespace Winhance.WPF.Features.Common.Models
         /// This is PURE UI state - does NOT trigger business logic automatically.
         /// </summary>
         [ObservableProperty]
-        private bool _isSelected;
+        private bool _isSelected = false;
 
         /// <summary>
         /// The currently selected value for ComboBox controls.
@@ -64,6 +68,12 @@ namespace Winhance.WPF.Features.Common.Models
         private bool _isApplying;
 
         /// <summary>
+        /// The type of control to display for this setting.
+        /// </summary>
+        [ObservableProperty]
+        private ControlType _controlType = ControlType.BinaryToggle;
+
+        /// <summary>
         /// Whether this setting is visible in the UI (for filtering).
         /// </summary>
         [ObservableProperty]
@@ -74,6 +84,18 @@ namespace Winhance.WPF.Features.Common.Models
         /// </summary>
         [ObservableProperty]
         private bool _isGroupHeader;
+
+        /// <summary>
+        /// Action to be called when this setting's selection state changes.
+        /// This should be set by the coordinator to handle the actual setting application.
+        /// </summary>
+        public Func<bool, Task>? OnSettingChanged { get; set; }
+
+        /// <summary>
+        /// Action to be called when this setting's value changes (for comboboxes).
+        /// This should be set by the coordinator to handle the actual setting application.
+        /// </summary>
+        public Func<object?, Task>? OnSettingValueChanged { get; set; }
 
         #endregion
 
@@ -114,20 +136,64 @@ namespace Winhance.WPF.Features.Common.Models
         }
 
         /// <summary>
-        /// Whether the current registry value is null (for display logic).
+        /// Whether the registry value is null (key doesn't exist).
         /// </summary>
         [ObservableProperty]
         private bool _isRegistryValueNull;
 
         #endregion
 
-        #region Control Type Properties
+        #region Tooltip Properties
 
         /// <summary>
-        /// The type of UI control to display for this setting.
+        /// Single registry setting for tooltip display.
+        /// This is populated from the first registry setting in the domain model.
         /// </summary>
-        [ObservableProperty]
-        private ControlType _controlType = ControlType.BinaryToggle;
+        public RegistrySetting? RegistrySetting { get; set; }
+
+        /// <summary>
+        /// Collection of linked registry settings with their current values for tooltip display.
+        /// This is populated when the setting has multiple registry settings.
+        /// </summary>
+        public ObservableCollection<LinkedRegistrySettingWithValue> LinkedRegistrySettingsWithValues { get; set; } = new();
+
+        /// <summary>
+        /// Collection of command settings for tooltip display.
+        /// This is populated from the domain model's command settings.
+        /// </summary>
+        public List<CommandSetting> CommandSettings { get; set; } = new();
+
+        /// <summary>
+        /// Gets a value indicating whether this setting only has command settings (no registry settings).
+        /// Used by the tooltip template to determine display logic.
+        /// </summary>
+        public bool HasCommandSettingsOnly
+        {
+            get
+            {
+                bool hasRegistrySettings = RegistrySetting != null || LinkedRegistrySettingsWithValues.Count > 0;
+                bool hasCommandSettings = CommandSettings.Count > 0;
+                return hasCommandSettings && !hasRegistrySettings;
+            }
+        }
+
+        /// <summary>
+        /// Gets a value indicating whether there are no settings to display in the tooltip.
+        /// Used by the tooltip template to show a "no settings" message.
+        /// </summary>
+        public bool HasNoSettings
+        {
+            get
+            {
+                bool hasRegistrySettings = RegistrySetting != null || LinkedRegistrySettingsWithValues.Count > 0;
+                bool hasCommandSettings = CommandSettings.Count > 0;
+                return !hasRegistrySettings && !hasCommandSettings;
+            }
+        }
+
+        #endregion
+
+        #region Control Type Properties
 
         /// <summary>
         /// Number of steps for slider controls.
@@ -162,6 +228,7 @@ namespace Winhance.WPF.Features.Common.Models
         /// </summary>
         public SettingUIItem()
         {
+            InitializeApplyCommand();
         }
 
         /// <summary>
@@ -178,6 +245,7 @@ namespace Winhance.WPF.Features.Common.Models
             FullName = name;
             Description = description;
             GroupName = groupName;
+            InitializeApplyCommand();
         }
 
         #endregion
@@ -193,6 +261,56 @@ namespace Winhance.WPF.Features.Common.Models
         {
             IsRegistryValueNull = value == null;
             OnPropertyChanged(nameof(DisplayValue));
+        }
+
+        partial void OnSelectedValueChanged(object? value)
+        {
+            // Handle combobox value changes
+            if (ControlType == ControlType.ComboBox && OnSettingValueChanged != null && !IsApplying)
+            {
+                System.Diagnostics.Debug.WriteLine($"[SettingUIItem] OnSelectedValueChanged called for ComboBox setting '{Id}', display value: {value}");
+                
+                // Convert display string back to numeric index for service layer
+                var numericValue = GetNumericValueFromDisplayString(value?.ToString());
+                System.Diagnostics.Debug.WriteLine($"[SettingUIItem] Converted display value '{value}' to numeric value: {numericValue}");
+                
+                _ = OnSettingValueChanged(numericValue);
+            }
+            else
+            {
+                System.Diagnostics.Debug.WriteLine($"[SettingUIItem] NOT calling OnSettingValueChanged delegate: ControlType={ControlType}, OnSettingValueChanged={OnSettingValueChanged != null}, IsApplying={IsApplying}");
+            }
+        }
+        
+        /// <summary>
+        /// Converts a ComboBox display string back to its numeric index.
+        /// </summary>
+        /// <param name="displayString">The display string selected in the ComboBox.</param>
+        /// <returns>The numeric index corresponding to the display string.</returns>
+        private int GetNumericValueFromDisplayString(string? displayString)
+        {
+            if (string.IsNullOrEmpty(displayString) || ComboBoxOptions.Count == 0)
+                return 0;
+                
+            // Find the index of the display string in ComboBoxOptions
+            var index = ComboBoxOptions.ToList().IndexOf(displayString);
+            return index >= 0 ? index : 0;
+        }
+
+        partial void OnIsSelectedChanged(bool value)
+        {
+            System.Diagnostics.Debug.WriteLine($"[SettingUIItem] OnIsSelectedChanged called for '{Id}', value: {value}, OnSettingChanged: {OnSettingChanged != null}, IsApplying: {IsApplying}");
+            
+            // Only trigger setting change if not during initialization/refresh
+            if (OnSettingChanged != null && !IsApplying)
+            {
+                System.Diagnostics.Debug.WriteLine($"[SettingUIItem] Calling OnSettingChanged delegate for '{Id}'");
+                _ = OnSettingChanged(value);
+            }
+            else
+            {
+                System.Diagnostics.Debug.WriteLine($"[SettingUIItem] NOT calling OnSettingChanged delegate for '{Id}' - OnSettingChanged: {OnSettingChanged != null}, IsApplying: {IsApplying}");
+            }
         }
 
         #endregion
@@ -264,6 +382,10 @@ namespace Winhance.WPF.Features.Common.Models
             StatusMessage = GetStatusMessage(status);
             
             OnPropertyChanged(nameof(DisplayValue));
+            
+            // Notify tooltip-related computed properties that they may have changed
+            OnPropertyChanged(nameof(HasCommandSettingsOnly));
+            OnPropertyChanged(nameof(HasNoSettings));
         }
 
         /// <summary>
@@ -282,6 +404,35 @@ namespace Winhance.WPF.Features.Common.Models
                 RegistrySettingStatus.Unknown => "Unknown",
                 _ => "Unknown"
             };
+        }
+
+        #endregion
+
+        #region ISettingItem Implementation
+
+        /// <summary>
+        /// Gets or sets the dependencies for this setting.
+        /// </summary>
+        public List<SettingDependency> Dependencies { get; set; } = new();
+
+        /// <summary>
+        /// Gets the command to apply the setting.
+        /// This delegates to the OnSettingChanged action if available.
+        /// </summary>
+        public ICommand ApplySettingCommand { get; private set; }
+
+        /// <summary>
+        /// Initializes the ApplySettingCommand.
+        /// </summary>
+        private void InitializeApplyCommand()
+        {
+            ApplySettingCommand = new AsyncRelayCommand(async () =>
+            {
+                if (OnSettingChanged != null)
+                {
+                    await OnSettingChanged(IsSelected);
+                }
+            });
         }
 
         #endregion

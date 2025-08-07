@@ -48,7 +48,7 @@ namespace Winhance.Infrastructure.Features.SoftwareApps.Services
         public ISystemServices SystemServices { get; }
 
         /// <inheritdoc/>
-        public INotificationService NotificationService { get; }
+        public IWinhanceNotificationService NotificationService { get; }
 
         /// <summary>
         /// Initializes a new instance of the <see cref="PackageManager"/> class.
@@ -66,7 +66,7 @@ namespace Winhance.Infrastructure.Features.SoftwareApps.Services
             ISpecialAppHandlerService specialAppHandlerService,
             IBloatRemovalScriptService bloatRemovalScriptService,
             ISystemServices systemServices,
-            INotificationService notificationService
+            IWinhanceNotificationService notificationService
         )
         {
             LogService = logService;

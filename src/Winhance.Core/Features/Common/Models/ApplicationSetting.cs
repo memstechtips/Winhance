@@ -65,9 +65,28 @@ namespace Winhance.Core.Features.Common.Models
         public bool IsEnabled { get; init; }
 
         /// <summary>
+        /// Gets or sets the initial enabled state based on actual system state.
+        /// This property is used during initialization to reflect the true system state.
+        /// </summary>
+        public bool IsInitiallyEnabled { get; set; }
+
+        /// <summary>
+        /// Gets or sets the current value from the system.
+        /// This property is used to store the actual current registry/command value.
+        /// </summary>
+        public object? CurrentValue { get; set; }
+
+        /// <summary>
         /// Gets or sets the icon for this setting (Material Symbols font character).
         /// </summary>
         public string? Icon { get; init; }
+
+        /// <summary>
+        /// Gets or sets custom properties for this setting.
+        /// This can be used to store additional data specific to certain setting types,
+        /// such as combobox options, value mappings, or other configuration metadata.
+        /// </summary>
+        public Dictionary<string, object> CustomProperties { get; init; } = new Dictionary<string, object>();
 
         /// <summary>
         /// Creates a LinkedRegistrySettings object from the RegistrySettings collection.

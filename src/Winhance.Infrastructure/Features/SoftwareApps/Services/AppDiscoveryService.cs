@@ -8,7 +8,7 @@ using Winhance.Core.Features.Common.Interfaces;
 using Winhance.Core.Features.Common.Models;
 using Winhance.Core.Features.SoftwareApps.Interfaces;
 using Winhance.Core.Features.SoftwareApps.Models;
-using Winhance.Infrastructure.Features.Common.Utilities;
+
 
 namespace Winhance.Infrastructure.Features.SoftwareApps.Services;
 
@@ -31,13 +31,17 @@ public class AppDiscoveryService
     private readonly TimeSpan _cacheLifetime = TimeSpan.FromMinutes(5);
     private readonly object _cacheLock = new object();
 
+    private readonly IPowerShellDetectionService _powerShellDetectionService;
+
     /// <summary>
     /// Initializes a new instance of the <see cref="AppDiscoveryService"/> class.
     /// </summary>
     /// <param name="logService">The logging service.</param>
-    public AppDiscoveryService(ILogService logService)
+    /// <param name="powerShellDetectionService">The PowerShell detection service.</param>
+    public AppDiscoveryService(ILogService logService, IPowerShellDetectionService powerShellDetectionService)
     {
-        _logService = logService;
+        _logService = logService ?? throw new ArgumentNullException(nameof(logService));
+        _powerShellDetectionService = powerShellDetectionService ?? throw new ArgumentNullException(nameof(powerShellDetectionService));
         _externalAppCatalog = ExternalAppCatalog.CreateDefault();
         _windowsAppCatalog = WindowsAppCatalog.CreateDefault();
         _capabilityCatalog = CapabilityCatalog.CreateDefault();
@@ -182,7 +186,7 @@ public class AppDiscoveryService
                 }
             }
 
-            using var powerShell = PowerShellFactory.CreateWindowsPowerShell(_logService);
+            using var powerShell = CreatePowerShell();
             // No need to set execution policy as it's already done in the factory
 
             if (isCapability)
@@ -226,7 +230,7 @@ public class AppDiscoveryService
             {
                 // Check standard app status using the same approach as the original PowerShell script
                 // But also check subpackages if the main package is not installed
-                using var powerShellForAppx = PowerShellFactory.CreateForAppxCommands(_logService);
+                using var powerShellForAppx = CreatePowerShell();
                 powerShellForAppx.AddScript(
                     @"
                 param($packageName, $subPackages)
@@ -420,7 +424,7 @@ public class AppDiscoveryService
     {
         var result = new Dictionary<string, bool>(StringComparer.OrdinalIgnoreCase);
 
-        using var powerShell = PowerShellFactory.CreateWindowsPowerShell(_logService);
+        using var powerShell = CreatePowerShell();
         // No need to set execution policy as it's already done in the factory
 
         // Get all installed capabilities in one query
@@ -465,7 +469,7 @@ public class AppDiscoveryService
     {
         var result = new Dictionary<string, bool>(StringComparer.OrdinalIgnoreCase);
 
-        using var powerShell = PowerShellFactory.CreateWindowsPowerShell(_logService);
+        using var powerShell = CreatePowerShell();
         // No need to set execution policy as it's already done in the factory
 
         // Get all enabled features in one query
@@ -510,7 +514,7 @@ public class AppDiscoveryService
     {
         var result = new Dictionary<string, bool>(StringComparer.OrdinalIgnoreCase);
 
-        using var powerShell = PowerShellFactory.CreateForAppxCommands(_logService);
+        using var powerShell = CreatePowerShell();
         // No need to set execution policy as it's already done in the factory
 
         // Get all installed apps in one query using the same approach as the original PowerShell script
@@ -594,7 +598,7 @@ public class AppDiscoveryService
         {
             _logService.LogInformation("Checking if Microsoft Edge is installed");
 
-            using var powerShell = PowerShellFactory.CreateWindowsPowerShell(_logService);
+            using var powerShell = CreatePowerShell();
             // No need to set execution policy as it's already done in the factory
 
             // Only check the specific registry key as requested
@@ -631,7 +635,7 @@ public class AppDiscoveryService
         {
             _logService.LogInformation("Checking if OneDrive is installed");
 
-            using var powerShell = PowerShellFactory.CreateWindowsPowerShell(_logService);
+            using var powerShell = CreatePowerShell();
             // No need to set execution policy as it's already done in the factory
 
             // Check the specific registry keys
@@ -673,7 +677,7 @@ public class AppDiscoveryService
             _logService.LogInformation("Checking if OneNote is installed");
 
             // First, try a simpler, more direct approach without recursive searches
-            using var powerShell = PowerShellFactory.CreateWindowsPowerShell(_logService);
+            using var powerShell = CreatePowerShell();
 
             // Use a more targeted, non-recursive approach for better performance and reliability
             powerShell.AddScript(
@@ -730,7 +734,22 @@ public class AppDiscoveryService
         }
     }
 
-    // SetExecutionPolicy is now handled by PowerShellFactory
+    // PowerShell configuration is handled by the detection service
+
+    /// <summary>
+    /// Creates a new PowerShell instance based on the detected PowerShell environment.
+    /// </summary>
+    /// <returns>A new PowerShell instance configured for the detected environment.</returns>
+    private PowerShell CreatePowerShell()
+    {
+        var powerShellInfo = _powerShellDetectionService.GetPowerShellInfo();
+        var powerShell = PowerShell.Create();
+        
+        // The detection service has already handled any necessary configuration
+        _logService.LogInformation($"Created PowerShell instance using: {powerShellInfo.PowerShellPath}");
+        
+        return powerShell;
+    }
 
     /// <summary>
     /// Clears the installation status cache, forcing fresh checks on next query.

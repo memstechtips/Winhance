@@ -14,12 +14,12 @@ namespace Winhance.WPF.Features.SoftwareApps.ViewModels
     public class WindowsAppsHelpContentViewModel : INotifyPropertyChanged, IDisposable
     {
         public WindowsAppsHelpContentViewModel(
-            IScriptPathService scriptPathService,
+            IScriptPathDetectionService scriptPathDetectionService,
             IScheduledTaskService scheduledTaskService,
             ILogService logService)
         {
             RemovalStatusContainer = new RemovalStatusContainerViewModel(
-                scriptPathService,
+                scriptPathDetectionService,
                 scheduledTaskService,
                 logService);
             

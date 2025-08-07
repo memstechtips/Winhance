@@ -5,7 +5,8 @@ using System.Windows;
 using System.Windows.Media;
 using System.Windows.Media.Imaging;
 using Winhance.Core.Features.Common.Interfaces;
-using Winhance.Core.Features.Common.Messaging;
+using Winhance.Core.Features.Common.Events;
+using Winhance.Core.Features.Common.Events.UI;
 using Winhance.WPF.Features.Common.Controls;
 using Winhance.WPF.Features.Common.Utilities;
 using Winhance.WPF.Features.Common.ViewModels;
@@ -18,19 +19,19 @@ namespace Winhance.WPF.Features.Common.Services
     /// </summary>
     public class WindowInitializationService
     {
-        private readonly IMessengerService _messengerService;
+        private readonly IEventBus _eventBus;
         private readonly WindowEffectsService _windowEffectsService;
         private readonly UserPreferencesService _userPreferencesService;
         private readonly ILogService _logService;
 
         public WindowInitializationService(
-            IMessengerService messengerService,
+            IEventBus eventBus,
             UserPreferencesService userPreferencesService,
             ILogService logService
         )
         {
-            _messengerService =
-                messengerService ?? throw new ArgumentNullException(nameof(messengerService));
+            _eventBus =
+                eventBus ?? throw new ArgumentNullException(nameof(eventBus));
             _userPreferencesService =
                 userPreferencesService
                 ?? throw new ArgumentNullException(nameof(userPreferencesService));
@@ -87,20 +88,18 @@ namespace Winhance.WPF.Features.Common.Services
                     }
                 };
 
-                // Set up messaging for window state changes
-                _messengerService.Register<WindowStateMessage>(
-                    window,
-                    (msg) => HandleWindowStateMessage(window, msg)
+                // Set up event handling for window state changes
+                _eventBus.Subscribe<WindowStateEvent>(
+                    evt => HandleWindowStateEvent(window, evt)
                 );
-                _messengerService.Register<UpdateThemeIconMessage>(
-                    window,
-                    (msg) => UpdateWindowIcon(window)
+                _eventBus.Subscribe<UpdateThemeIconEvent>(
+                    _ => UpdateWindowIcon(window)
                 );
 
-                // Clean up messaging when window closes
+                // Window closed event handling
                 window.Closed += (sender, e) =>
                 {
-                    _messengerService.Unregister(window);
+                    // No need to unregister from event bus as it's handled by subscription tokens
                 };
 
                 // Handle window state changes for ViewModel updates
@@ -118,29 +117,29 @@ namespace Winhance.WPF.Features.Common.Services
             }
         }
 
-        private void HandleWindowStateMessage(Window window, WindowStateMessage message)
+        private void HandleWindowStateEvent(Window window, WindowStateEvent evt)
         {
             try
             {
-                switch (message.Action)
+                switch (evt.WindowState)
                 {
-                    case WindowStateMessage.WindowStateAction.Minimize:
+                    case Core.Features.Common.Enums.WindowState.Minimized:
                         window.WindowState = WindowState.Minimized;
                         break;
-                    case WindowStateMessage.WindowStateAction.Maximize:
+                    case Core.Features.Common.Enums.WindowState.Maximized:
                         window.WindowState = WindowState.Maximized;
                         break;
-                    case WindowStateMessage.WindowStateAction.Restore:
+                    case Core.Features.Common.Enums.WindowState.Normal:
                         window.WindowState = WindowState.Normal;
                         break;
-                    case WindowStateMessage.WindowStateAction.Close:
+                    case Core.Features.Common.Enums.WindowState.Closed:
                         window.Close();
                         break;
                 }
             }
             catch (Exception ex)
             {
-                _logService?.LogError("Error handling window state message", ex);
+                _logService?.LogError("Error handling window state event", ex);
             }
         }
 

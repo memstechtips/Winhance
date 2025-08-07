@@ -11,15 +11,15 @@ namespace Winhance.Infrastructure.Features.SoftwareApps.Services.ScriptGeneratio
     /// </summary>
     public class ScriptDetectionService : IScriptDetectionService
     {
-        private readonly IScriptPathService _scriptPathService;
+        private readonly IScriptPathDetectionService _scriptPathDetectionService;
         
         /// <summary>
         /// Initializes a new instance of the <see cref="ScriptDetectionService"/> class.
         /// </summary>
-        /// <param name="scriptPathService">The script path service.</param>
-        public ScriptDetectionService(IScriptPathService scriptPathService)
+        /// <param name="scriptPathDetectionService">The script path detection service.</param>
+        public ScriptDetectionService(IScriptPathDetectionService scriptPathDetectionService)
         {
-            _scriptPathService = scriptPathService ?? throw new ArgumentNullException(nameof(scriptPathService));
+            _scriptPathDetectionService = scriptPathDetectionService ?? throw new ArgumentNullException(nameof(scriptPathDetectionService));
         }
 
         private static readonly Dictionary<string, string> ScriptDescriptions = new Dictionary<
@@ -36,7 +36,7 @@ namespace Winhance.Infrastructure.Features.SoftwareApps.Services.ScriptGeneratio
         /// <inheritdoc />
         public bool AreRemovalScriptsPresent()
         {
-            var scriptsDirectory = _scriptPathService.GetScriptsDirectory();
+            var scriptsDirectory = _scriptPathDetectionService.GetScriptsDirectory();
             if (!Directory.Exists(scriptsDirectory))
             {
                 return false;
@@ -48,7 +48,7 @@ namespace Winhance.Infrastructure.Features.SoftwareApps.Services.ScriptGeneratio
         /// <inheritdoc />
         public IEnumerable<ScriptInfo> GetActiveScripts()
         {
-            var scriptsDirectory = _scriptPathService.GetScriptsDirectory();
+            var scriptsDirectory = _scriptPathDetectionService.GetScriptsDirectory();
             if (!Directory.Exists(scriptsDirectory))
             {
                 return Enumerable.Empty<ScriptInfo>();
@@ -66,7 +66,7 @@ namespace Winhance.Infrastructure.Features.SoftwareApps.Services.ScriptGeneratio
 
         private IEnumerable<string> GetScriptFiles()
         {
-            var scriptsDirectory = _scriptPathService.GetScriptsDirectory();
+            var scriptsDirectory = _scriptPathDetectionService.GetScriptsDirectory();
             if (!Directory.Exists(scriptsDirectory))
             {
                 return Enumerable.Empty<string>();

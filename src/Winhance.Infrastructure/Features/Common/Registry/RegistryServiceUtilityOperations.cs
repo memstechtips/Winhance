@@ -542,6 +542,7 @@ namespace Winhance.Infrastructure.Features.Common.Registry
                 return null;
 
             string keyPath = $"{RegistryExtensions.GetRegistryHiveString(setting.Hive)}\\{setting.SubKey}";
+            _logService.Log(LogLevel.Debug, $"Getting current registry value for {setting.Name}");
             return GetValue(keyPath, setting.Name);
         }
 

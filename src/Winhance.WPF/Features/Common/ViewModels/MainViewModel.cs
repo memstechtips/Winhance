@@ -15,7 +15,8 @@ using Microsoft.Extensions.DependencyInjection;
 using Winhance.Core.Features.Common.Enums;
 using Winhance.Core.Features.Common.Enums;
 using Winhance.Core.Features.Common.Interfaces;
-using Winhance.Core.Features.Common.Messaging;
+using Winhance.Core.Features.Common.Events;
+using Winhance.Core.Features.Common.Events.UI;
 using Winhance.Core.Features.Common.Models;
 using Winhance.WPF.Features.Common.Models;
 using Winhance.WPF.Features.Common.Resources.Theme;
@@ -32,7 +33,7 @@ namespace Winhance.WPF.Features.Common.ViewModels
 
         private readonly IThemeManager _themeManager;
         private readonly INavigationService _navigationService;
-        private readonly IMessengerService _messengerService;
+        private readonly IEventBus _eventBus;
         private readonly IUnifiedConfigurationService _unifiedConfigService;
         private readonly IDialogService _dialogService;
         private readonly Features.Common.Services.UserPreferencesService _userPreferencesService;
@@ -96,22 +97,21 @@ namespace Winhance.WPF.Features.Common.ViewModels
             IThemeManager themeManager,
             INavigationService navigationService,
             ITaskProgressService progressService,
-            IMessengerService messengerService,
+            IEventBus eventBus,
             IDialogService dialogService,
             IUnifiedConfigurationService unifiedConfigService,
             Features.Common.Services.UserPreferencesService userPreferencesService,
             ILogService logService,
             IVersionService versionService,
             IApplicationCloseService applicationCloseService,
-            IScriptPathService scriptPathService
+            IScriptPathDetectionService scriptPathDetectionService
         )
-            : base(progressService, messengerService)
+            : base(progressService)
         {
             _themeManager = themeManager ?? throw new ArgumentNullException(nameof(themeManager));
             _navigationService =
                 navigationService ?? throw new ArgumentNullException(nameof(navigationService));
-            _messengerService =
-                messengerService ?? throw new ArgumentNullException(nameof(messengerService));
+            _eventBus = eventBus ?? throw new ArgumentNullException(nameof(eventBus));
             _dialogService =
                 dialogService ?? throw new ArgumentNullException(nameof(dialogService));
             _unifiedConfigService =
@@ -132,10 +132,10 @@ namespace Winhance.WPF.Features.Common.ViewModels
             MoreMenuViewModel = new MoreMenuViewModel(
                 logService,
                 versionService,
-                _messengerService,
+                _eventBus,
                 applicationCloseService,
                 _dialogService,
-                scriptPathService
+                scriptPathDetectionService
             );
 
             // Initialize command properties
@@ -184,8 +184,8 @@ namespace Winhance.WPF.Features.Common.ViewModels
                 }
                 catch (Exception ex)
                 {
-                    _messengerService.Send(
-                        new LogMessage
+                    _eventBus.Publish(
+                        new LogEvent
                         {
                             Message = $"Error getting current view model: {ex.Message}",
                             Level = LogLevel.Error,
@@ -206,8 +206,8 @@ namespace Winhance.WPF.Features.Common.ViewModels
             catch (Exception ex)
             {
                 // Log the error using the messaging system
-                _messengerService.Send(
-                    new LogMessage
+                _eventBus.Publish(
+                    new LogEvent
                     {
                         Message = $"Navigation error to {viewName}: {ex.Message}",
                         Level = LogLevel.Error,
@@ -245,23 +245,20 @@ namespace Winhance.WPF.Features.Common.ViewModels
                 }
 
                 // Try to minimize the window directly
-                mainWindow.WindowState = WindowState.Minimized;
+                mainWindow.WindowState = System.Windows.WindowState.Minimized;
                 _logService?.LogInformation("Window minimized successfully");
             }
             catch (Exception ex)
             {
                 _logService?.LogError($"Failed to minimize window directly: {ex.Message}", ex);
                 
-                // Fall back to messaging
+                // Fall back to event bus
                 try
                 {
-                    _messengerService.Send(
-                        new WindowStateMessage
-                        {
-                            Action = WindowStateMessage.WindowStateAction.Minimize,
-                        }
+                    _eventBus.Publish(
+                        new WindowStateEvent(Core.Features.Common.Enums.WindowState.Minimized)
                     );
-                    _logService?.LogInformation("Sent minimize window message as fallback");
+                    _logService?.LogInformation("Published minimize window event as fallback");
                 }
                 catch (Exception msgEx)
                 {
@@ -284,12 +281,12 @@ namespace Winhance.WPF.Features.Common.ViewModels
                     return;
                 }
 
-                if (mainWindow.WindowState == WindowState.Maximized)
+                if (mainWindow.WindowState == System.Windows.WindowState.Maximized)
                 {
                     // Try to restore the window directly
                     try
                     {
-                        mainWindow.WindowState = WindowState.Normal;
+                        mainWindow.WindowState = System.Windows.WindowState.Normal;
                         MaximizeButtonContent = "\uE739"; // Maximize icon
                         _logService?.LogInformation("Window restored successfully");
                     }
@@ -297,17 +294,14 @@ namespace Winhance.WPF.Features.Common.ViewModels
                     {
                         _logService?.LogError($"Failed to restore window directly: {ex.Message}", ex);
                         
-                        // Fall back to messaging
+                        // Fall back to event bus
                         try
                         {
-                            _messengerService.Send(
-                                new WindowStateMessage
-                                {
-                                    Action = WindowStateMessage.WindowStateAction.Restore,
-                                }
+                            _eventBus.Publish(
+                                new WindowStateEvent(Core.Features.Common.Enums.WindowState.Normal)
                             );
                             MaximizeButtonContent = "\uE739"; // Maximize icon
-                            _logService?.LogInformation("Sent restore window message as fallback");
+                            _logService?.LogInformation("Published restore window event as fallback");
                         }
                         catch (Exception msgEx)
                         {
@@ -320,7 +314,7 @@ namespace Winhance.WPF.Features.Common.ViewModels
                     // Try to maximize the window directly
                     try
                     {
-                        mainWindow.WindowState = WindowState.Maximized;
+                        mainWindow.WindowState = System.Windows.WindowState.Maximized;
                         MaximizeButtonContent = "\uE923"; // Restore icon
                         _logService?.LogInformation("Window maximized successfully");
                     }
@@ -328,17 +322,14 @@ namespace Winhance.WPF.Features.Common.ViewModels
                     {
                         _logService?.LogError($"Failed to maximize window directly: {ex.Message}", ex);
                         
-                        // Fall back to messaging
+                        // Fall back to event bus
                         try
                         {
-                            _messengerService.Send(
-                                new WindowStateMessage
-                                {
-                                    Action = WindowStateMessage.WindowStateAction.Maximize,
-                                }
+                            _eventBus.Publish(
+                                new WindowStateEvent(Core.Features.Common.Enums.WindowState.Maximized)
                             );
                             MaximizeButtonContent = "\uE923"; // Restore icon
-                            _logService?.LogInformation("Sent maximize window message as fallback");
+                            _logService?.LogInformation("Published maximize window event as fallback");
                         }
                         catch (Exception msgEx)
                         {
@@ -382,11 +373,11 @@ namespace Winhance.WPF.Features.Common.ViewModels
                     }
                     else
                     {
-                        // Fall back to messaging
-                        _messengerService.Send(
-                            new WindowStateMessage { Action = WindowStateMessage.WindowStateAction.Close }
+                        // Fall back to event bus
+                        _eventBus.Publish(
+                            new WindowStateEvent(Core.Features.Common.Enums.WindowState.Closed)
                         );
-                        _logService?.LogInformation("Fallback: Sent close window message");
+                        _logService?.LogInformation("Fallback: Published close window event");
                     }
                 }
                 catch (Exception fallbackEx)
@@ -418,8 +409,8 @@ namespace Winhance.WPF.Features.Common.ViewModels
 
                 if (unifiedConfigService == null)
                 {
-                    _messengerService.Send(
-                        new LogMessage
+                    _eventBus.Publish(
+                        new LogEvent
                         {
                             Message = "UnifiedConfigurationService not available",
                             Level = LogLevel.Error,
@@ -428,8 +419,8 @@ namespace Winhance.WPF.Features.Common.ViewModels
                     return;
                 }
 
-                _messengerService.Send(
-                    new LogMessage
+                _eventBus.Publish(
+                    new LogEvent
                     {
                         Message = "Using UnifiedConfigurationService to save unified configuration",
                         Level = LogLevel.Info,
@@ -474,8 +465,8 @@ namespace Winhance.WPF.Features.Common.ViewModels
                     }
                     catch (Exception ex)
                     {
-                        _messengerService.Send(
-                            new LogMessage
+                        _eventBus.Publish(
+                            new LogEvent
                             {
                                 Message = $"Error accessing ConfigurationService: {ex.Message}",
                                 Level = LogLevel.Error,
@@ -487,8 +478,8 @@ namespace Winhance.WPF.Features.Common.ViewModels
 
                 if (configService == null)
                 {
-                    _messengerService.Send(
-                        new LogMessage
+                    _eventBus.Publish(
+                        new LogEvent
                         {
                             Message = "ConfigurationService not available",
                             Level = LogLevel.Error,
@@ -504,8 +495,8 @@ namespace Winhance.WPF.Features.Common.ViewModels
 
                 if (saveResult)
                 {
-                    _messengerService.Send(
-                        new LogMessage
+                    _eventBus.Publish(
+                        new LogEvent
                         {
                             Message = "Unified configuration saved successfully",
                             Level = LogLevel.Info,
@@ -532,8 +523,8 @@ namespace Winhance.WPF.Features.Common.ViewModels
                 }
                 else
                 {
-                    _messengerService.Send(
-                        new LogMessage
+                    _eventBus.Publish(
+                        new LogEvent
                         {
                             Message = "Save unified configuration canceled by user",
                             Level = LogLevel.Info,
@@ -543,8 +534,8 @@ namespace Winhance.WPF.Features.Common.ViewModels
             }
             catch (Exception ex)
             {
-                _messengerService.Send(
-                    new LogMessage
+                _eventBus.Publish(
+                    new LogEvent
                     {
                         Message = $"Error saving unified configuration: {ex.Message}",
                         Level = LogLevel.Error,
@@ -563,8 +554,8 @@ namespace Winhance.WPF.Features.Common.ViewModels
         {
             try
             {
-                _messengerService.Send(
-                    new LogMessage
+                _eventBus.Publish(
+                    new LogEvent
                     {
                         Message = "Starting unified configuration import process",
                         Level = LogLevel.Info,
@@ -574,8 +565,8 @@ namespace Winhance.WPF.Features.Common.ViewModels
                 // Use the injected unified configuration service
                 var unifiedConfigService = _unifiedConfigService;
 
-                _messengerService.Send(
-                    new LogMessage
+                _eventBus.Publish(
+                    new LogEvent
                     {
                         Message =
                             "Using UnifiedConfigurationService to import unified configuration",
@@ -618,8 +609,8 @@ namespace Winhance.WPF.Features.Common.ViewModels
                     }
                     catch (Exception ex)
                     {
-                        _messengerService.Send(
-                            new LogMessage
+                        _eventBus.Publish(
+                            new LogEvent
                             {
                                 Message = $"Error accessing ConfigurationService: {ex.Message}",
                                 Level = LogLevel.Error,
@@ -631,8 +622,8 @@ namespace Winhance.WPF.Features.Common.ViewModels
 
                 if (configService == null)
                 {
-                    _messengerService.Send(
-                        new LogMessage
+                    _eventBus.Publish(
+                        new LogEvent
                         {
                             Message = "ConfigurationService not available",
                             Level = LogLevel.Error,
@@ -642,8 +633,8 @@ namespace Winhance.WPF.Features.Common.ViewModels
                 }
 
                 // Show the config import options dialog using the DialogService
-                _messengerService.Send(
-                    new LogMessage
+                _eventBus.Publish(
+                    new LogEvent
                     {
                         Message = "Showing config import options dialog",
                         Level = LogLevel.Info,
@@ -655,8 +646,8 @@ namespace Winhance.WPF.Features.Common.ViewModels
 
                 if (selectedOption == null)
                 {
-                    _messengerService.Send(
-                        new LogMessage
+                    _eventBus.Publish(
+                        new LogEvent
                         {
                             Message = "User canceled config import options dialog",
                             Level = LogLevel.Info,
@@ -671,8 +662,8 @@ namespace Winhance.WPF.Features.Common.ViewModels
                 switch (selectedOption)
                 {
                     case ImportOption.ImportOwn:
-                        _messengerService.Send(
-                            new LogMessage
+                        _eventBus.Publish(
+                            new LogEvent
                             {
                                 Message = "User selected to import their own configuration",
                                 Level = LogLevel.Info,
@@ -680,8 +671,8 @@ namespace Winhance.WPF.Features.Common.ViewModels
                         );
 
                         // Load the unified configuration from file
-                        _messengerService.Send(
-                            new LogMessage
+                        _eventBus.Publish(
+                            new LogEvent
                             {
                                 Message = "Showing file dialog to select configuration file",
                                 Level = LogLevel.Info,
@@ -692,8 +683,8 @@ namespace Winhance.WPF.Features.Common.ViewModels
                         break;
 
                     case ImportOption.ImportRecommended:
-                        _messengerService.Send(
-                            new LogMessage
+                        _eventBus.Publish(
+                            new LogEvent
                             {
                                 Message = "User selected to import recommended configuration",
                                 Level = LogLevel.Info,
@@ -701,8 +692,8 @@ namespace Winhance.WPF.Features.Common.ViewModels
                         );
 
                         // Download and load the recommended configuration
-                        _messengerService.Send(
-                            new LogMessage
+                        _eventBus.Publish(
+                            new LogEvent
                             {
                                 Message = "Downloading recommended configuration",
                                 Level = LogLevel.Info,
@@ -715,8 +706,8 @@ namespace Winhance.WPF.Features.Common.ViewModels
 
                 if (unifiedConfig == null)
                 {
-                    _messengerService.Send(
-                        new LogMessage
+                    _eventBus.Publish(
+                        new LogEvent
                         {
                             Message = "Import unified configuration canceled by user",
                             Level = LogLevel.Info,
@@ -725,8 +716,8 @@ namespace Winhance.WPF.Features.Common.ViewModels
                     return;
                 }
 
-                _messengerService.Send(
-                    new LogMessage
+                _eventBus.Publish(
+                    new LogEvent
                     {
                         Message =
                             $"Configuration loaded with sections: WindowsApps ({unifiedConfig.WindowsApps.Items.Count} items), "
@@ -738,8 +729,8 @@ namespace Winhance.WPF.Features.Common.ViewModels
                 );
 
                 // Show the unified configuration dialog to let the user select which sections to import
-                _messengerService.Send(
-                    new LogMessage
+                _eventBus.Publish(
+                    new LogEvent
                     {
                         Message = "Showing unified configuration dialog for section selection",
                         Level = LogLevel.Info,
@@ -822,8 +813,8 @@ namespace Winhance.WPF.Features.Common.ViewModels
 
                 if (result == null)
                 {
-                    _messengerService.Send(
-                        new LogMessage
+                    _eventBus.Publish(
+                        new LogEvent
                         {
                             Message = "User canceled unified configuration import",
                             Level = LogLevel.Info,
@@ -838,8 +829,8 @@ namespace Winhance.WPF.Features.Common.ViewModels
                     .Select(kvp => kvp.Key)
                     .ToList();
 
-                _messengerService.Send(
-                    new LogMessage
+                _eventBus.Publish(
+                    new LogEvent
                     {
                         Message = $"Selected sections: {string.Join(", ", selectedSections)}",
                         Level = LogLevel.Info,
@@ -848,8 +839,8 @@ namespace Winhance.WPF.Features.Common.ViewModels
 
                 if (!selectedSections.Any())
                 {
-                    _messengerService.Send(
-                        new LogMessage
+                    _eventBus.Publish(
+                        new LogEvent
                         {
                             Message = "No sections selected for import",
                             Level = LogLevel.Info,
@@ -863,8 +854,8 @@ namespace Winhance.WPF.Features.Common.ViewModels
                 }
 
                 // Apply the configuration to the selected sections
-                _messengerService.Send(
-                    new LogMessage
+                _eventBus.Publish(
+                    new LogEvent
                     {
                         Message =
                             $"Applying configuration to selected sections: {string.Join(", ", selectedSections)}",
@@ -880,8 +871,8 @@ namespace Winhance.WPF.Features.Common.ViewModels
 
                 // Always show a success message since the settings are being applied correctly
                 // even if the updatedCount is 0
-                _messengerService.Send(
-                    new LogMessage
+                _eventBus.Publish(
+                    new LogEvent
                     {
                         Message = "Unified configuration imported successfully",
                         Level = LogLevel.Info,
@@ -918,8 +909,8 @@ namespace Winhance.WPF.Features.Common.ViewModels
             }
             catch (Exception ex)
             {
-                _messengerService.Send(
-                    new LogMessage
+                _eventBus.Publish(
+                    new LogEvent
                     {
                         Message = $"Error importing unified configuration: {ex.Message}",
                         Level = LogLevel.Error,
@@ -947,8 +938,8 @@ namespace Winhance.WPF.Features.Common.ViewModels
         {
             try
             {
-                _messengerService.Send(
-                    new LogMessage
+                _eventBus.Publish(
+                    new LogEvent
                     {
                         Message = "Opening donation page in browser",
                         Level = LogLevel.Info,
@@ -965,8 +956,8 @@ namespace Winhance.WPF.Features.Common.ViewModels
             }
             catch (Exception ex)
             {
-                _messengerService.Send(
-                    new LogMessage
+                _eventBus.Publish(
+                    new LogEvent
                     {
                         Message = $"Error opening donation page: {ex.Message}",
                         Level = LogLevel.Error,
@@ -1002,8 +993,8 @@ namespace Winhance.WPF.Features.Common.ViewModels
                 }
                 catch (Exception fallbackEx)
                 {
-                    _messengerService.Send(
-                        new LogMessage
+                    _eventBus.Publish(
+                        new LogEvent
                         {
                             Message = $"Failed to navigate to default views: {ex.Message}, Fallback: {fallbackEx.Message}",
                             Level = LogLevel.Error,
@@ -1127,9 +1118,9 @@ namespace Winhance.WPF.Features.Common.ViewModels
         /// Handles window state changes and updates the maximize button content
         /// </summary>
         /// <param name="windowState">The current window state</param>
-        public void HandleWindowStateChanged(WindowState windowState)
+        public void HandleWindowStateChanged(System.Windows.WindowState windowState)
         {
-            MaximizeButtonContent = windowState == WindowState.Maximized
+            MaximizeButtonContent = windowState == System.Windows.WindowState.Maximized
                 ? "WindowRestore"
                 : "WindowMaximize";
         }
@@ -1159,7 +1150,7 @@ namespace Winhance.WPF.Features.Common.ViewModels
         /// </summary>
         public void RequestThemeIconUpdate()
         {
-            _messengerService.Send(new UpdateThemeIconMessage());
+            _eventBus.Publish(new UpdateThemeIconEvent());
         }
 
         /// <summary>

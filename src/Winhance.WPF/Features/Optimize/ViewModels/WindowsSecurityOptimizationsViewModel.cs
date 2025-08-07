@@ -1,23 +1,30 @@
 using System;
 using System.Collections.Generic;
-using System.Linq;
+using System.Collections.ObjectModel;
 using System.Threading.Tasks;
+using System.Windows.Input;
 using CommunityToolkit.Mvvm.ComponentModel;
+using CommunityToolkit.Mvvm.Input;
 using Winhance.Core.Features.Common.Enums;
 using Winhance.Core.Features.Common.Interfaces;
 using Winhance.Core.Features.Common.Models;
+using Winhance.Core.Features.Optimize.Interfaces;
+using Winhance.WPF.Features.Common.Interfaces;
 using Winhance.WPF.Features.Common.Models;
-using Winhance.WPF.Features.Common.ViewModels;
 
 namespace Winhance.WPF.Features.Optimize.ViewModels
 {
     /// <summary>
     /// ViewModel for Windows Security optimizations using clean architecture principles.
     /// </summary>
-    public partial class WindowsSecurityOptimizationsViewModel : BaseSettingsViewModel
+    public partial class WindowsSecurityOptimizationsViewModel : ObservableObject, IFeatureViewModel
     {
+        private readonly ISecurityService _securityService;
         private readonly ISystemServices _systemServices;
         private readonly IUacSettingsService _uacSettingsService;
+        private readonly ISettingsUICoordinator _uiCoordinator;
+        private readonly ILogService _logService;
+        private readonly ITaskProgressService _progressService;
 
         /// <summary>
         /// Gets or sets the selected UAC level for backward compatibility.
@@ -25,100 +32,112 @@ namespace Winhance.WPF.Features.Optimize.ViewModels
         [ObservableProperty]
         private int _selectedUacLevel;
 
+
+
+        // Delegating properties to UI coordinator
+        public ObservableCollection<SettingUIItem> Settings => _uiCoordinator.Settings;
+        public ObservableCollection<SettingGroup> SettingGroups => _uiCoordinator.SettingGroups;
+        public bool IsLoading => _uiCoordinator.IsLoading;
+        public string CategoryName => _uiCoordinator.CategoryName;
+        public string SearchText
+        {
+            get => _uiCoordinator.SearchText;
+            set => _uiCoordinator.SearchText = value;
+        }
+        public bool HasVisibleSettings => _uiCoordinator.HasVisibleSettings;
+
+        // IFeatureViewModel implementation
+        public string ModuleId => "WindowsSecurity";
+        public string DisplayName => "Windows Security";
+        public int SettingsCount => Settings?.Count ?? 0;
+        public string Category => "Optimize";
+        public string Description => "Optimize Windows security settings";
+        public int SortOrder => 5;
+        public ICommand LoadSettingsCommand { get; }
+        
+        [ObservableProperty]
+        private bool _isExpanded = true;
+        
+        public ICommand ToggleExpandCommand { get; }
+
         /// <summary>
         /// Initializes a new instance of the <see cref="WindowsSecurityOptimizationsViewModel"/> class.
         /// </summary>
-        /// <param name="settingsService">The application settings service.</param>
+        /// <param name="securityService">The security domain service.</param>
+        /// <param name="uiCoordinator">The settings UI coordinator.</param>
         /// <param name="progressService">The task progress service.</param>
         /// <param name="logService">The log service.</param>
-        /// <param name="systemServices">The system services.</param>
-        /// <param name="uacSettingsService">The UAC settings service.</param>
         public WindowsSecurityOptimizationsViewModel(
-            IApplicationSettingsService settingsService,
+            ISecurityService securityService,
+            ISettingsUICoordinator uiCoordinator,
             ITaskProgressService progressService,
-            ILogService logService,
-            ISystemServices systemServices,
-            IUacSettingsService uacSettingsService)
-            : base(settingsService, progressService, logService)
+            ILogService logService)
         {
-            _systemServices = systemServices ?? throw new ArgumentNullException(nameof(systemServices));
-            _uacSettingsService = uacSettingsService ?? throw new ArgumentNullException(nameof(uacSettingsService));
+            _securityService = securityService ?? throw new ArgumentNullException(nameof(securityService));
+            _uiCoordinator = uiCoordinator ?? throw new ArgumentNullException(nameof(uiCoordinator));
+            _progressService = progressService ?? throw new ArgumentNullException(nameof(progressService));
+            _logService = logService ?? throw new ArgumentNullException(nameof(logService));
             
-            CategoryName = "Windows Security Optimizations";
+            _uiCoordinator.CategoryName = "Windows Security Optimizations";
+            
+            // Subscribe to coordinator property changes to forward them to the UI
+            _uiCoordinator.PropertyChanged += (sender, e) =>
+            {
+                switch (e.PropertyName)
+                {
+                    case nameof(ISettingsUICoordinator.HasVisibleSettings):
+                        OnPropertyChanged(nameof(HasVisibleSettings));
+                        break;
+                    case nameof(ISettingsUICoordinator.Settings):
+                        OnPropertyChanged(nameof(Settings));
+                        OnPropertyChanged(nameof(SettingsCount));
+                        break;
+                    case nameof(ISettingsUICoordinator.SettingGroups):
+                        OnPropertyChanged(nameof(SettingGroups));
+                        break;
+                    case nameof(ISettingsUICoordinator.IsLoading):
+                        OnPropertyChanged(nameof(IsLoading));
+                        break;
+                }
+            };
+            
+            // Initialize commands
+            LoadSettingsCommand = new AsyncRelayCommand(LoadSettingsAsync);
+            ToggleExpandCommand = new RelayCommand(ToggleExpand);
         }
 
         /// <summary>
         /// Loads settings and initializes the UI state.
         /// </summary>
-        public override async Task LoadSettingsAsync()
+        public async Task LoadSettingsAsync()
         {
             try
             {
-                IsLoading = true;
                 _progressService.StartTask("Loading Windows security optimization settings...");
                 
-                // Clear existing collections
-                Settings.Clear();
+                _logService.Log(LogLevel.Debug, "WindowsSecurityOptimizations: Starting to load settings...");
                 
-                // Load settings from the service
-                var securitySettings = await _settingsService.GetWindowsSecurityOptimizationSettingsAsync();
-                
-                foreach (var setting in securitySettings)
+                // Use UI coordinator to load settings with both setting change and value change handlers
+                await _uiCoordinator.LoadSettingsAsync(
+                () => _securityService.GetSettingsAsync(),
+                async (settingId, isEnabled) => 
                 {
-                    // Create UI item from the setting
-                    var uiItem = new SettingUIItem
-                    {
-                        Id = setting.Id,
-                        Name = setting.Name,
-                        Description = setting.Description,
-                        GroupName = setting.GroupName,
-                        IsEnabled = setting.IsEnabled,
-                        ControlType = setting.ControlType == ControlType.BinaryToggle ? ControlType.BinaryToggle : ControlType.ComboBox,
-                        IsSelected = false,
-                        IsVisible = true
-                    };
-                    
-                    // Add options for ComboBox settings
-                    if (setting.ControlType == ControlType.ComboBox)
-                    {
-                        // Add default options for ComboBox settings
-                        uiItem.ComboBoxOptions.Add("Disabled");
-                        uiItem.ComboBoxOptions.Add("Enabled");
-                        
-                        // Set selected value
-                        uiItem.SelectedValue = "Disabled"; // Default to disabled
-                    }
-                    else if (setting.ControlType == ControlType.BinaryToggle)
-                    {
-                        // Set toggle state
-                        uiItem.IsSelected = setting.IsEnabled;
-                    }
-                    
-                    // Add to settings collection
-                    Settings.Add(uiItem);
-                }
-                
-                // Organize settings into groups if needed
-                if (Settings.Count > 0)
+                    _logService.Log(LogLevel.Debug, $"[DEBUG] ViewModel: Applying setting change: {settingId}, enabled: {isEnabled}");
+                    System.Diagnostics.Debug.WriteLine($"[ViewModel] Applying setting change: {settingId}, enabled: {isEnabled}");
+                    await _securityService.ApplySettingAsync(settingId, isEnabled);
+                    _logService.Log(LogLevel.Debug, $"[DEBUG] ViewModel: Successfully applied setting change: {settingId}");
+                },
+                async (settingId, value) => 
                 {
-                    var groups = Settings.GroupBy(s => s.GroupName).ToList();
-                    foreach (var group in groups)
-                    {
-                        if (!string.IsNullOrEmpty(group.Key))
-                        {
-                            var settingGroup = new SettingGroup(group.Key);
-                            foreach (var setting in group)
-                            {
-                                settingGroup.AddSetting(setting);
-                            }
-                            SettingGroups.Add(settingGroup);
-                        }
-                    }
+                    _logService.Log(LogLevel.Debug, $"[DEBUG] ViewModel: Applying setting VALUE change: {settingId}, value: {value}");
+                    System.Diagnostics.Debug.WriteLine($"[ViewModel] Applying setting VALUE change: {settingId}, value: {value}");
+                    await _securityService.ApplySettingAsync(settingId, true, value);
+                    _logService.Log(LogLevel.Debug, $"[DEBUG] ViewModel: Successfully applied setting value change: {settingId}");
+                    System.Diagnostics.Debug.WriteLine($"[ViewModel] Successfully applied setting value change: {settingId}");
                 }
+            );
                 
-                // Refresh status of all settings
-                await RefreshAllSettingsAsync();
-                
+                _logService.Log(LogLevel.Debug, "WindowsSecurityOptimizations: Settings loaded successfully");
                 _progressService.CompleteTask();
             }
             catch (Exception ex)
@@ -127,19 +146,27 @@ namespace Winhance.WPF.Features.Optimize.ViewModels
                 _logService.Log(LogLevel.Error, $"Error loading Windows security optimization settings: {ex.Message}");
                 throw;
             }
-            finally
-            {
-                IsLoading = false;
-            }
         }
 
         /// <summary>
-        /// Gets the application settings that this ViewModel manages.
+        /// Refreshes the settings for this feature asynchronously.
         /// </summary>
-        /// <returns>Collection of application settings for Windows security optimizations.</returns>
-        protected override async Task<IEnumerable<ApplicationSetting>> GetApplicationSettingsAsync()
+        public async Task RefreshSettingsAsync()
         {
-            return await _settingsService.GetWindowsSecurityOptimizationSettingsAsync();
+            await LoadSettingsAsync();
+        }
+
+        /// <summary>
+        /// Clears all settings and resets the feature state.
+        /// </summary>
+        public void ClearSettings()
+        {
+            _uiCoordinator.ClearSettings();
+        }
+        
+        private void ToggleExpand()
+        {
+            IsExpanded = !IsExpanded;
         }
     }
 }

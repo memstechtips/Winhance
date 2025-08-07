@@ -13,6 +13,7 @@ using Microsoft.Extensions.DependencyInjection;
 using Winhance.Core.Features.Common.Enums;
 using Winhance.Core.Features.Common.Interfaces;
 using Winhance.Core.Features.Common.Models;
+using Winhance.Core.Features.Common.Events;
 using Winhance.Core.Features.SoftwareApps;
 using Winhance.Core.Features.SoftwareApps.Interfaces;
 using Winhance.Core.Features.SoftwareApps.Models;
@@ -461,7 +462,7 @@ namespace Winhance.WPF.Features.SoftwareApps.ViewModels
         ) : base(
             progressService,
             serviceProvider.GetRequiredService<ILogService>(),
-            serviceProvider.GetRequiredService<IMessengerService>()
+            serviceProvider.GetRequiredService<IEventBus>()
         )
         {
             

@@ -14,8 +14,6 @@ using Winhance.Core.Features.Customize.Models;
 using Winhance.Core.Features.Optimize.Models;
 using Winhance.Core.Models.Enums;
 
-// We're now using the UacLevel from Models.Enums directly
-
 namespace Winhance.Infrastructure.Features.Common.Services
 {
     /// <summary>
@@ -74,15 +72,22 @@ namespace Winhance.Infrastructure.Features.Common.Services
         // Dependencies
         private readonly IRegistryService _registryService;
         private readonly ILogService _logService;
-        private readonly IThemeService _themeService;
+        private readonly IWindowsThemeService _windowsThemeService;
         private readonly IUacSettingsService _uacSettingsService;
         private readonly IInternetConnectivityService _connectivityService;
+
+        // Caching fields
+        private readonly Lazy<WindowsVersionInfo> _cachedWindowsVersionInfo;
+        private readonly Lazy<string> _cachedOsVersionString;
+        private readonly Lazy<string> _cachedOsBuildString;
+        private readonly Lazy<bool> _cachedIsWindows11;
+        private readonly Lazy<bool> _cachedIsAdministrator;
 
         public WindowsSystemService(
             IRegistryService registryService,
             ILogService logService,
             IInternetConnectivityService connectivityService,
-            IThemeService themeService = null,
+            IWindowsThemeService windowsThemeService = null,
             IUacSettingsService uacSettingsService = null
         ) // Optional to maintain backward compatibility
         {
@@ -91,8 +96,15 @@ namespace Winhance.Infrastructure.Features.Common.Services
             _logService = logService ?? throw new ArgumentNullException(nameof(logService));
             _connectivityService =
                 connectivityService ?? throw new ArgumentNullException(nameof(connectivityService));
-            _themeService = themeService; // May be null if not provided
+            _windowsThemeService = windowsThemeService; // May be null if not provided
             _uacSettingsService = uacSettingsService; // May be null if not provided
+
+            // Initialize cached values using Lazy<T> for thread-safe, on-demand initialization
+            _cachedWindowsVersionInfo = new Lazy<WindowsVersionInfo>(GetWindowsVersionInfoInternal);
+            _cachedOsVersionString = new Lazy<string>(GetOsVersionStringInternal);
+            _cachedOsBuildString = new Lazy<string>(GetOsBuildStringInternal);
+            _cachedIsWindows11 = new Lazy<bool>(() => GetWindowsVersionInfoInternal().IsWindows11);
+            _cachedIsAdministrator = new Lazy<bool>(IsAdministratorInternal);
         }
 
         /// <summary>
@@ -101,6 +113,11 @@ namespace Winhance.Infrastructure.Features.Common.Services
         public IRegistryService RegistryService => _registryService;
 
         public bool IsAdministrator()
+        {
+            return _cachedIsAdministrator.Value;
+        }
+
+        private bool IsAdministratorInternal()
         {
             try
             {
@@ -148,35 +165,22 @@ namespace Winhance.Infrastructure.Features.Common.Services
                 // Check registry ProductName for more reliable detection
                 try
                 {
-                    using (
-                        var key = Microsoft.Win32.Registry.LocalMachine.OpenSubKey(
-                            @"SOFTWARE\Microsoft\Windows NT\CurrentVersion"
-                        )
-                    )
-                    {
-                        if (key != null)
-                        {
-                            result.ProductName = key.GetValue("ProductName") as string;
-                            result.IsWindows11ByProductName =
-                                result.ProductName != null
-                                && result.ProductName.Contains("Windows 11");
+                    var productName = _registryService.GetValue(
+                        "HKLM\\SOFTWARE\\Microsoft\\Windows NT\\CurrentVersion",
+                        "ProductName"
+                    );
+                    result.ProductName = productName?.ToString() ?? "Unknown";
 
-                            // Log the actual product name for debugging
-                            _logService.LogInformation(
-                                $"Windows registry ProductName: {result.ProductName}"
-                            );
-                        }
-                    }
+                    // Check if product name indicates Windows 11
+                    var productNameStr = productName?.ToString() ?? "";
+                    result.IsWindows11ByProductName =
+                        productNameStr.IndexOf("Windows 11", StringComparison.OrdinalIgnoreCase) >= 0;
                 }
-                catch (Exception regEx)
+                catch
                 {
-                    _logService.LogWarning($"Error reading registry ProductName: {regEx.Message}");
+                    result.ProductName = "Unknown";
+                    result.IsWindows11ByProductName = false;
                 }
-
-                // Log detailed version information
-                _logService.LogInformation(
-                    $"Windows build number: {result.BuildNumber}, IsWin11ByBuild: {result.IsWindows11ByBuild}, IsWin11ByProductName: {result.IsWindows11ByProductName}"
-                );
 
                 // Determine if this is Windows 11 - prioritize build number as it's more reliable
                 // Build 22000+ is definitively Windows 11, regardless of registry ProductName
@@ -189,6 +193,32 @@ namespace Winhance.Infrastructure.Features.Common.Services
             }
 
             return result;
+        }
+
+        private string GetOsVersionStringInternal()
+        {
+            try
+            {
+                var versionInfo = GetWindowsVersionInfoInternal();
+                return versionInfo.IsWindows11 ? "Windows 11" : "Windows 10";
+            }
+            catch
+            {
+                return "Unknown Windows Version";
+            }
+        }
+
+        private string GetOsBuildStringInternal()
+        {
+            try
+            {
+                var versionInfo = GetWindowsVersionInfoInternal();
+                return versionInfo.BuildNumber.ToString();
+            }
+            catch
+            {
+                return "Unknown";
+            }
         }
 
         public string GetWindowsVersion()
@@ -336,21 +366,25 @@ namespace Winhance.Infrastructure.Features.Common.Services
 
         public bool IsWindows11()
         {
-            try
-            {
-                // Use our centralized version detection method
-                var versionInfo = GetWindowsVersionInfo();
+            return _cachedIsWindows11.Value;
+        }
 
-                _logService.LogInformation(
-                    $"Windows 11 check completed. Is Windows 11: {versionInfo.IsWindows11} (By build: {versionInfo.IsWindows11ByBuild}, By ProductName: {versionInfo.IsWindows11ByProductName})"
-                );
-                return versionInfo.IsWindows11;
-            }
-            catch (Exception ex)
-            {
-                _logService.LogError("Error checking Windows 11 version", ex);
-                return false;
-            }
+        /// <summary>
+        /// Gets the friendly OS version string (e.g., "Windows 10" or "Windows 11")
+        /// </summary>
+        /// <returns>A friendly OS version string</returns>
+        public string GetOsVersionString()
+        {
+            return _cachedOsVersionString.Value;
+        }
+
+        /// <summary>
+        /// Gets the OS build number as a string
+        /// </summary>
+        /// <returns>The OS build number as a string</returns>
+        public string GetOsBuildString()
+        {
+            return _cachedOsBuildString.Value;
         }
 
         public bool RequireAdministrator()
@@ -423,11 +457,11 @@ namespace Winhance.Infrastructure.Features.Common.Services
         public bool IsDarkModeEnabled()
         {
             // Delegate to ThemeService if available, otherwise use legacy implementation
-            if (_themeService != null)
+            if (_windowsThemeService != null)
             {
                 try
                 {
-                    return _themeService.IsDarkModeEnabled();
+                    return _windowsThemeService.IsDarkModeEnabled();
                 }
                 catch (Exception ex)
                 {
@@ -443,7 +477,7 @@ namespace Winhance.Infrastructure.Features.Common.Services
             try
             {
                 using var key = Microsoft.Win32.Registry.CurrentUser.OpenSubKey(
-                    WindowsThemeSettings.Registry.ThemesPersonalizeSubKey
+                    "Software\\Microsoft\\Windows\\CurrentVersion\\Themes\\Personalize"
                 );
 
                 if (key == null)
@@ -452,7 +486,7 @@ namespace Winhance.Infrastructure.Features.Common.Services
                     return false;
                 }
 
-                var value = key.GetValue(WindowsThemeSettings.Registry.AppsUseLightThemeName);
+                var value = key.GetValue("AppsUseLightTheme");
                 bool isDarkMode = value != null && (int)value == 0;
 
                 _logService.LogInformation(
@@ -470,11 +504,11 @@ namespace Winhance.Infrastructure.Features.Common.Services
         public void SetDarkMode(bool enabled)
         {
             // Delegate to ThemeService if available, otherwise use legacy implementation
-            if (_themeService != null)
+            if (_windowsThemeService != null)
             {
                 try
                 {
-                    _themeService.SetThemeMode(enabled);
+                    _windowsThemeService.SetThemeMode(enabled);
                     return;
                 }
                 catch (Exception ex)
@@ -494,12 +528,12 @@ namespace Winhance.Infrastructure.Features.Common.Services
                     $"Attempting to {(enabled ? "enable" : "disable")} dark mode"
                 );
 
-                string[] keys = new[] { WindowsThemeSettings.Registry.ThemesPersonalizeSubKey };
+                string[] keys = new[] { "Software\\Microsoft\\Windows\\CurrentVersion\\Themes\\Personalize" };
 
                 string[] values = new[]
                 {
-                    WindowsThemeSettings.Registry.AppsUseLightThemeName,
-                    WindowsThemeSettings.Registry.SystemUsesLightThemeName,
+                    "AppsUseLightTheme",
+                    "SystemUsesLightTheme",
                 };
 
                 foreach (var key in keys)
@@ -532,169 +566,6 @@ namespace Winhance.Infrastructure.Features.Common.Services
             catch (Exception ex)
             {
                 _logService.LogError($"Failed to {(enabled ? "enable" : "disable")} dark mode", ex);
-            }
-        }
-
-        public void SetUacLevel(Winhance.Core.Models.Enums.UacLevel level)
-        {
-            try
-            {
-                // No need to convert as we're already using the Core UacLevel
-                Winhance.Core.Models.Enums.UacLevel coreLevel = level;
-
-                // Special handling for Custom UAC level
-                if (coreLevel == Winhance.Core.Models.Enums.UacLevel.Custom)
-                {
-                    // For Custom level, try to get the saved custom settings and apply them
-                    if (_uacSettingsService != null && _uacSettingsService.TryGetCustomUacValues(
-                        out int customConsentPromptValue, 
-                        out int customSecureDesktopValue))
-                    {
-                        _logService.Log(
-                            LogLevel.Info,
-                            $"Applying saved custom UAC settings: ConsentPrompt={customConsentPromptValue}, SecureDesktop={customSecureDesktopValue}"
-                        );
-                        
-                        string registryPath = $"HKLM\\{UacOptimizations.RegistryPath}";
-                        
-                        // Set the ConsentPromptBehaviorAdmin value
-                        _registryService.SetValue(
-                            registryPath,
-                            UacOptimizations.ConsentPromptName,
-                            customConsentPromptValue,
-                            UacOptimizations.ValueKind
-                        );
-                        
-                        // Set the PromptOnSecureDesktop value
-                        _registryService.SetValue(
-                            registryPath,
-                            UacOptimizations.SecureDesktopName,
-                            customSecureDesktopValue,
-                            UacOptimizations.ValueKind
-                        );
-                        
-                        return;
-                    }
-                    else
-                    {
-                        // No saved custom settings found
-                        _logService.Log(
-                            LogLevel.Warning,
-                            "Custom UAC level selected but no saved settings found - preserving current registry settings"
-                        );
-                        return;
-                    }
-                }
-
-                // Get both registry values for the selected UAC level
-                if (
-                    !UacOptimizations.UacLevelToConsentPromptValue.TryGetValue(
-                        coreLevel,
-                        out int consentPromptValue
-                    )
-                    || !UacOptimizations.UacLevelToSecureDesktopValue.TryGetValue(
-                        coreLevel,
-                        out int secureDesktopValue
-                    )
-                )
-                {
-                    throw new ArgumentException($"Invalid UAC level: {level}");
-                }
-
-                string fullPath = $"HKLM\\{UacOptimizations.RegistryPath}";
-
-                bool keyExists = _registryService.KeyExists(fullPath);
-                if (!keyExists)
-                {
-                    _logService.Log(
-                        LogLevel.Info,
-                        $"UAC registry key doesn't exist, creating: {fullPath}"
-                    );
-                    _registryService.CreateKey(fullPath);
-                }
-
-                // Set the ConsentPromptBehaviorAdmin value
-                _registryService.SetValue(
-                    fullPath,
-                    UacOptimizations.ConsentPromptName,
-                    consentPromptValue,
-                    UacOptimizations.ValueKind
-                );
-
-                // Set the PromptOnSecureDesktop value
-                _registryService.SetValue(
-                    fullPath,
-                    UacOptimizations.SecureDesktopName,
-                    secureDesktopValue,
-                    UacOptimizations.ValueKind
-                );
-
-                string levelName = UacOptimizations.UacLevelNames.TryGetValue(
-                    coreLevel,
-                    out string name
-                )
-                    ? name
-                    : coreLevel.ToString();
-                _logService.Log(
-                    LogLevel.Info,
-                    $"UAC level set to {levelName} (ConsentPrompt: {consentPromptValue}, SecureDesktop: {secureDesktopValue})"
-                );
-            }
-            catch (Exception ex)
-            {
-                _logService.Log(LogLevel.Error, $"Error setting UAC level: {ex.Message}");
-                throw;
-            }
-        }
-
-        public Winhance.Core.Models.Enums.UacLevel GetUacLevel()
-        {
-            try
-            {
-                string fullPath = $"HKLM\\{UacOptimizations.RegistryPath}";
-
-                // Get both registry values needed to determine the UAC level
-                var consentPromptValue = _registryService.GetValue(
-                    fullPath,
-                    UacOptimizations.ConsentPromptName
-                );
-                var secureDesktopValue = _registryService.GetValue(
-                    fullPath,
-                    UacOptimizations.SecureDesktopName
-                );
-
-                // Convert to integers with appropriate defaults if values are null
-                var consentPromptInt = Convert.ToInt32(consentPromptValue ?? 5); // Default to 5 (Notify)
-                var secureDesktopInt = Convert.ToInt32(secureDesktopValue ?? 1); // Default to 1 (Enabled)
-
-                _logService.Log(
-                    LogLevel.Info,
-                    $"UAC registry values retrieved: ConsentPrompt={consentPromptInt}, SecureDesktop={secureDesktopInt}"
-                );
-
-                // Determine the UacLevel from both registry values
-                Winhance.Core.Models.Enums.UacLevel coreLevel =
-                    UacOptimizations.GetUacLevelFromRegistryValues(
-                        consentPromptInt,
-                        secureDesktopInt,
-                        _uacSettingsService
-                    );
-                string levelName = UacOptimizations.UacLevelNames.TryGetValue(
-                    coreLevel,
-                    out string name
-                )
-                    ? name
-                    : coreLevel.ToString();
-
-                _logService.Log(LogLevel.Info, $"UAC level mapped to: {levelName}");
-
-                // Return the Core UacLevel directly
-                return coreLevel;
-            }
-            catch (Exception ex)
-            {
-                _logService.Log(LogLevel.Error, $"Error getting UAC level: {ex.Message}");
-                return Winhance.Core.Models.Enums.UacLevel.NotifyChangesOnly; // Default value
             }
         }
 
@@ -939,5 +810,89 @@ namespace Winhance.Infrastructure.Features.Common.Services
                 throw;
             }
         }
+
+        #region Internal Helper Methods for Caching
+
+        private WindowsVersionInfo GetWindowsVersionInfoInternal()
+        {
+            try
+            {
+                var os = Environment.OSVersion;
+                var version = os.Version;
+                
+                string productName = "Unknown Windows Version";
+                string buildNumber = version.Build.ToString();
+                bool isWindows11ByBuild = false;
+                bool isWindows11ByProductName = false;
+                bool isWindows11 = false;
+                bool isWindows10 = false;
+
+                try
+                {
+                    using (RegistryKey key = Microsoft.Win32.Registry.LocalMachine.OpenSubKey("SOFTWARE\\Microsoft\\Windows NT\\CurrentVersion"))
+                    {
+                        if (key != null)
+                        {
+                            object productNameValue = key.GetValue("ProductName");
+                            if (productNameValue != null)
+                            {
+                                productName = productNameValue.ToString();
+                            }
+
+                            object currentBuildValue = key.GetValue("CurrentBuild");
+                            if (currentBuildValue != null)
+                            {
+                                buildNumber = currentBuildValue.ToString();
+                            }
+
+                            // Detect Windows 11 based on product name
+                            isWindows11ByProductName = productName.IndexOf("Windows 11", StringComparison.OrdinalIgnoreCase) >= 0;
+                            
+                            // Detect Windows 11 based on build number
+                            isWindows11ByBuild = (version.Major == 10 && version.Build >= 22000);
+                            
+                            // Combined determination
+                            isWindows11 = isWindows11ByBuild || isWindows11ByProductName;
+                            isWindows10 = !isWindows11 && version.Major == 10;
+                        }
+                    }
+                }
+                catch (Exception ex)
+                {
+                    _logService.LogWarning($"Error reading registry for Windows version: {ex.Message}");
+                }
+
+                return new WindowsVersionInfo
+                {
+                    Version = version,
+                    MajorVersion = version.Major,
+                    MinorVersion = version.Minor,
+                    BuildNumber = int.TryParse(buildNumber, out int build) ? build : version.Build,
+                    ProductName = productName,
+                    IsWindows11ByBuild = isWindows11ByBuild,
+                    IsWindows11ByProductName = isWindows11ByProductName,
+                    IsWindows11 = isWindows11,
+                    IsWindows10 = isWindows10
+                };
+            }
+            catch (Exception ex)
+            {
+                _logService.LogError($"Error getting Windows version info: {ex.Message}", ex);
+                return new WindowsVersionInfo
+                {
+                    Version = new Version(0, 0, 0, 0),
+                    MajorVersion = 0,
+                    MinorVersion = 0,
+                    BuildNumber = 0,
+                    ProductName = "Unknown",
+                    IsWindows11ByBuild = false,
+                    IsWindows11ByProductName = false,
+                    IsWindows11 = false,
+                    IsWindows10 = false
+                };
+            }
+        }
+
+        #endregion
     }
 }

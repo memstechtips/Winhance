@@ -14,7 +14,7 @@ using Winhance.Core.Features.Common.Models;
 using Winhance.Core.Features.Common.Verification;
 using Winhance.Core.Features.SoftwareApps.Models;
 using Winhance.Infrastructure.Features.Common.Extensions;
-using Winhance.Infrastructure.Features.Common.Utilities;
+
 using Winhance.Infrastructure.Features.SoftwareApps.Services.WinGet.Interfaces;
 using Winhance.Infrastructure.Features.SoftwareApps.Services.WinGet.Utilities;
 using Winhance.Infrastructure.Features.SoftwareApps.Services.WinGet.Verification;

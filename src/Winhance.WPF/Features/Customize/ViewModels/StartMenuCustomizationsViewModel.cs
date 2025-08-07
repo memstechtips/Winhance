@@ -9,6 +9,8 @@ using CommunityToolkit.Mvvm.Input;
 using Winhance.Core.Features.Common.Enums;
 using Winhance.Core.Features.Common.Interfaces;
 using Winhance.Core.Features.Common.Models;
+using Winhance.Core.Features.Customize.Interfaces;
+using Winhance.WPF.Features.Common.Interfaces;
 using Winhance.Core.Features.Customize.Models;
 using Winhance.WPF.Features.Common.ViewModels;
 using Winhance.WPF.Features.Common.Models;
@@ -17,13 +19,17 @@ namespace Winhance.WPF.Features.Customize.ViewModels
 {
     /// <summary>
     /// Clean architecture ViewModel for Start Menu customizations.
-    /// Uses IApplicationSettingsService for business logic and SettingUIItem for UI state.
-    /// Replaces the complex 963-line StartMenuCustomizationsViewModel with clean separation of concerns.
+    /// Uses composition pattern with ISettingsUICoordinator for UI state management.
+    /// Follows SOLID principles and clean separation of concerns.
     /// </summary>
-    public partial class StartMenuCustomizationsViewModel : BaseSettingsViewModel
+    public partial class StartMenuCustomizationsViewModel : ObservableObject, IFeatureViewModel
     {
         #region Private Fields
 
+        private readonly IStartMenuService _startMenuService;
+        private readonly ISettingsUICoordinator _uiCoordinator;
+        private readonly ITaskProgressService _progressService;
+        private readonly ILogService _logService;
         private readonly ISystemServices _systemServices;
         private readonly IDialogService _dialogService;
         private readonly IScheduledTaskService _scheduledTaskService;
@@ -53,6 +59,35 @@ namespace Winhance.WPF.Features.Customize.ViewModels
         /// </summary>
         public bool HasToggleSettings => ToggleSettings.Count > 0;
 
+        // Delegate properties to UI Coordinator
+        public ObservableCollection<SettingUIItem> Settings => _uiCoordinator.Settings;
+        public ObservableCollection<SettingGroup> SettingGroups => _uiCoordinator.SettingGroups;
+        public bool IsLoading
+        {
+            get => _uiCoordinator.IsLoading;
+            set => _uiCoordinator.IsLoading = value;
+        }
+        public string CategoryName
+        {
+            get => _uiCoordinator.CategoryName;
+            set => _uiCoordinator.CategoryName = value;
+        }
+        public string SearchText
+        {
+            get => _uiCoordinator.SearchText;
+            set => _uiCoordinator.SearchText = value;
+        }
+        public bool HasVisibleSettings => _uiCoordinator.HasVisibleSettings;
+
+        // IFeatureViewModel implementation
+        public string ModuleId => "StartMenuCustomization";
+        public string DisplayName => "Start Menu";
+        public int SettingsCount => Settings?.Count ?? 0;
+        public string Category => "Customize";
+        public string Description => "Customize Windows Start Menu settings";
+        public int SortOrder => 3;
+        public ICommand LoadSettingsCommand { get; private set; }
+
         #endregion
 
         #region Commands
@@ -71,62 +106,64 @@ namespace Winhance.WPF.Features.Customize.ViewModels
         /// Command to execute a specific action.
         /// </summary>
         public ICommand ExecuteActionCommand { get; }
+        
+        // LoadSettingsCommand is now defined in IFeatureViewModel implementation section
 
         #endregion
 
         #region Constructor
 
         public StartMenuCustomizationsViewModel(
-            IApplicationSettingsService settingsService,
+            IStartMenuService startMenuService,
+            ISettingsUICoordinator uiCoordinator,
             ITaskProgressService progressService,
             ILogService logService,
             ISystemServices systemServices,
             IDialogService dialogService,
             IScheduledTaskService scheduledTaskService)
-            : base(settingsService, progressService, logService)
         {
+            _startMenuService = startMenuService ?? throw new ArgumentNullException(nameof(startMenuService));
+            _uiCoordinator = uiCoordinator ?? throw new ArgumentNullException(nameof(uiCoordinator));
+            _progressService = progressService ?? throw new ArgumentNullException(nameof(progressService));
+            _logService = logService ?? throw new ArgumentNullException(nameof(logService));
             _systemServices = systemServices ?? throw new ArgumentNullException(nameof(systemServices));
             _dialogService = dialogService ?? throw new ArgumentNullException(nameof(dialogService));
             _scheduledTaskService = scheduledTaskService ?? throw new ArgumentNullException(nameof(scheduledTaskService));
 
             _isWindows11 = _systemServices.IsWindows11();
-            CategoryName = "Start Menu";
+            _uiCoordinator.CategoryName = "Start Menu";
 
             // Initialize commands
             CleanStartMenuCommand = new AsyncRelayCommand(CleanStartMenuAsync);
             ApplyRecommendedSettingsCommand = new AsyncRelayCommand(ApplyRecommendedSettingsAsync);
             ExecuteActionCommand = new AsyncRelayCommand<string>(ExecuteActionAsync);
+            LoadSettingsCommand = new AsyncRelayCommand(LoadSettingsAsync);
         }
 
         #endregion
 
         #region Protected Override Methods
 
-        /// <summary>
-        /// Gets the Start Menu customization settings.
-        /// </summary>
-        protected override async Task<IEnumerable<ApplicationSetting>> GetApplicationSettingsAsync()
-        {
-            await Task.CompletedTask; // Placeholder for any async initialization
 
-            var startMenuCustomizations = StartMenuCustomizations.GetStartMenuCustomizations();
-            
-            // Filter settings based on Windows version and build
-            var filteredSettings = startMenuCustomizations.Settings
-                .Where(IsSettingSupportedOnCurrentSystem)
-                .ToList();
-
-            _logService.Log(LogLevel.Info, $"Loaded {filteredSettings.Count} Start Menu settings for current system");
-
-            return filteredSettings;
-        }
 
         /// <summary>
         /// Loads settings and organizes them by control type.
         /// </summary>
-        public override async Task LoadSettingsAsync()
+        public async Task LoadSettingsAsync()
         {
-            await base.LoadSettingsAsync();
+            await _uiCoordinator.LoadSettingsAsync<ApplicationSetting>(async () =>
+            {
+                var startMenuCustomizations = StartMenuCustomizations.GetStartMenuCustomizations();
+                
+                // Filter settings based on Windows version and build
+                var filteredSettings = startMenuCustomizations.Settings
+                    .Where(IsSettingSupportedOnCurrentSystem)
+                    .ToList();
+
+                _logService.Log(LogLevel.Info, $"Loaded {filteredSettings.Count} Start Menu settings for current system");
+
+                return filteredSettings;
+            });
 
             // Organize settings by control type for specialized UI display
             OrganizeSettingsByControlType();
@@ -172,7 +209,7 @@ namespace Winhance.WPF.Features.Customize.ViewModels
                 _logService.Log(LogLevel.Info, "Start Menu cleaned successfully");
 
                 // Refresh all settings to reflect changes
-                await RefreshAllSettingsAsync();
+                await LoadSettingsAsync();
             }
             catch (Exception ex)
             {
@@ -192,9 +229,10 @@ namespace Winhance.WPF.Features.Customize.ViewModels
                 _logService.Log(LogLevel.Info, $"Applying recommended Start Menu settings for Windows {(_isWindows11 ? "11" : "10")}");
 
                 var recommendedSettingIds = GetRecommendedSettingIds();
-                var settingsToApply = recommendedSettingIds.ToDictionary(id => id, _ => (true, (object?)null));
+                var allSettings = await _startMenuService.GetSettingsAsync();
+                var settingsToApply = allSettings.Where(s => recommendedSettingIds.Contains(s.Id));
 
-                await _settingsService.ApplyMultipleSettingsAsync(settingsToApply);
+                await _startMenuService.ApplyMultipleSettingsAsync(settingsToApply, true);
                 
                 _logService.Log(LogLevel.Info, $"Applied {recommendedSettingIds.Count} recommended settings");
             }
@@ -231,7 +269,7 @@ namespace Winhance.WPF.Features.Customize.ViewModels
                 {
                     // For actions, we apply the recommended value from the first registry setting
                     var registrySetting = action.RegistrySettings[0];
-                    await _settingsService.ApplySettingAsync($"action_{actionName}", true, registrySetting.RecommendedValue);
+                    await _startMenuService.ApplySettingAsync($"action_{actionName}", true, registrySetting.RecommendedValue);
                 }
 
                 // For now, we don't have custom actions in the new architecture
@@ -382,6 +420,26 @@ namespace Winhance.WPF.Features.Customize.ViewModels
                     }
                 }
             }
+        }
+
+        /// <summary>
+        /// Refreshes the settings for this feature asynchronously.
+        /// </summary>
+        public async Task RefreshSettingsAsync()
+        {
+            await LoadSettingsAsync();
+        }
+
+        /// <summary>
+        /// Clears all settings and resets the feature state.
+        /// </summary>
+        public void ClearSettings()
+        {
+            _uiCoordinator.ClearSettings();
+            ComboBoxSettings.Clear();
+            ToggleSettings.Clear();
+            OnPropertyChanged(nameof(HasComboBoxSettings));
+            OnPropertyChanged(nameof(HasToggleSettings));
         }
 
         #endregion

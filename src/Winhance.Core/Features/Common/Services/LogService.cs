@@ -12,6 +12,7 @@ namespace Winhance.Core.Features.Common.Services
         private string _logPath;
         private StreamWriter? _logWriter;
         private readonly object _lockObject = new object();
+        private ISystemServices _systemServices;
         
         public event EventHandler<LogMessageEventArgs>? LogMessageGenerated;
 
@@ -23,6 +24,11 @@ namespace Winhance.Core.Features.Common.Services
                 "Logs",
                 $"Winhance_Log_{DateTime.Now:yyyyMMdd_HHmmss}.log"
             );
+        }
+
+        public void Initialize(ISystemServices systemServices)
+        {
+            _systemServices = systemServices;
         }
 
         public void Log(LogLevel level, string message, Exception? exception = null)
@@ -83,7 +89,16 @@ namespace Winhance.Core.Features.Common.Services
                 LogInformation($"Timestamp: {DateTime.Now}");
                 LogInformation($"User: {Environment.UserName}");
                 LogInformation($"Machine: {Environment.MachineName}");
-                LogInformation($"OS Version: {Environment.OSVersion}");
+                
+                if (_systemServices != null)
+                {
+                    LogInformation($"OS Version: {_systemServices.GetOsVersionString()}");
+                    LogInformation($"OS Build: {_systemServices.GetOsBuildString()}");
+                }
+                else
+                {
+                    LogInformation($"OS Version: {Environment.OSVersion}");
+                }
                 LogInformation("===========================");
             }
             catch (Exception ex)

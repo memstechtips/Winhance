@@ -6,15 +6,77 @@
              xmlns:viewmodels="clr-namespace:Winhance.WPF.Features.Optimize.ViewModels"
              xmlns:materialDesign="http://materialdesigninxaml.net/winfx/xaml/themes"
              xmlns:enums="clr-namespace:Winhance.Core.Models.Enums;assembly=Winhance.Core"
+             xmlns:controls="clr-namespace:Winhance.WPF.Features.Common.Controls"
+             xmlns:behaviors="clr-namespace:Winhance.WPF.Features.Common.Behaviors"
              d:DataContext="{d:DesignInstance Type=viewmodels:WindowsSecurityOptimizationsViewModel}"
              mc:Ignorable="d">
 
-    <Border Background="{DynamicResource ContentSectionBorderBrush}"
-            CornerRadius="5"
-            Margin="5,0,5,5"
-            Effect="{StaticResource LightShadowEffect}">
+    <StackPanel>
+        <!-- Collapsible Header -->
+        <Border x:Name="HeaderBorder"
+                Background="{DynamicResource ContentSectionBorderBrush}"
+                CornerRadius="5"
+                Margin="0,5,0,5"
+                Effect="{StaticResource ShadowEffect}"
+                Cursor="Hand"
+                ClipToBounds="False"
+                Panel.ZIndex="100">
+            <Border.InputBindings>
+                <MouseBinding MouseAction="LeftClick" Command="{Binding ToggleExpandCommand}"/>
+            </Border.InputBindings>
+            <Grid x:Name="Header" Height="40">
+                <Grid.ColumnDefinitions>
+                    <ColumnDefinition Width="*"/>
+                    <ColumnDefinition Width="Auto"/>
+                </Grid.ColumnDefinitions>
+                
+                <!-- Left content -->
+                <StackPanel Orientation="Horizontal" 
+                           VerticalAlignment="Center"
+                           HorizontalAlignment="Left"
+                           Grid.Column="0">
+                    <!-- Category Icon -->
+                    <TextBlock Text="&#xE32A;"
+                               FontFamily="{StaticResource MaterialSymbolsFont}"
+                               FontSize="24"
+                               Margin="15,6,5,6"
+                               Foreground="{DynamicResource PrimaryTextColor}"
+                               VerticalAlignment="Center"/>
+                    <!-- Category Name -->
+                    <TextBlock Text="{Binding DisplayName}"
+                               FontSize="14"
+                               FontWeight="SemiBold"
+                               Margin="5,6,0,6"
+                               Foreground="{DynamicResource PrimaryTextColor}"
+                               VerticalAlignment="Center"/>
+                </StackPanel>
+                
+                <!-- Chevron - positioned in right column with fixed alignment -->
+                <materialDesign:PackIcon x:Name="HeaderIcon"
+                                         Kind="ChevronDown"
+                                         Width="24"
+                                         Height="24"
+                                         VerticalAlignment="Center"
+                                         HorizontalAlignment="Right"
+                                         Foreground="{DynamicResource PrimaryTextColor}"
+                                         Margin="0,0,15,0"
+                                         Grid.Column="1"
+                                         RenderTransformOrigin="0.5,0.5">
+                    <materialDesign:PackIcon.RenderTransform>
+                        <RotateTransform Angle="{Binding IsExpanded, Converter={StaticResource BooleanToRotationConverter}}"/>
+                    </materialDesign:PackIcon.RenderTransform>
+                </materialDesign:PackIcon>
+            </Grid>
+        </Border>
+        
+        <!-- Content Section -->
+        <Border Background="{DynamicResource ContentSectionBorderBrush}"
+                CornerRadius="5"
+                Margin="0,0,0,5"
+                Effect="{StaticResource LightShadowEffect}"
+                Visibility="{Binding IsExpanded, Converter={StaticResource BooleanToVisibilityConverter}}">
         <StackPanel Margin="0,10,0,10">
-            <!-- UAC Notification Level Section -->
+            <!-- Settings Container -->
             <Grid Margin="10,0,10,20">
                 <Grid.RowDefinitions>
                     <RowDefinition Height="Auto"/>
@@ -22,46 +84,70 @@
                 </Grid.RowDefinitions>
 
                 <!-- Title -->
-                <TextBlock Text="User Account Control (UAC)"
+                <TextBlock Text="Windows Security Settings"
                            Foreground="{DynamicResource PrimaryTextColor}"
                            FontWeight="SemiBold"
                            Margin="25,0,0,10"/>
 
-                <!-- UAC Level Dropdown -->
-                <Grid Grid.Row="1"
-                      Margin="25,0,25,0">
-                    <Grid.ColumnDefinitions>
-                        <ColumnDefinition Width="*"/>
-                        <ColumnDefinition Width="Auto"/>
-                    </Grid.ColumnDefinitions>
+                <!-- Settings -->
+                <Grid Grid.Row="1" Margin="25,0,25,0">
+                    <TextBlock Text="No security settings found" 
+                               Foreground="{DynamicResource SecondaryTextColor}" 
+                               HorizontalAlignment="Center" 
+                               Margin="0,20,0,0" 
+                               Visibility="{Binding HasVisibleSettings, Converter={StaticResource InverseBooleanToVisibilityConverter}}"/>
+                    
+                    <!-- Settings Groups -->
+                    <ItemsControl ItemsSource="{Binding SettingGroups}" 
+                                  Visibility="{Binding HasVisibleSettings, Converter={StaticResource BooleanToVisibilityConverter}}">
+                        <ItemsControl.ItemTemplate>
+                            <DataTemplate>
+                                <StackPanel>
+                                    <TextBlock Text="{Binding Name}" 
+                                               Foreground="{DynamicResource PrimaryTextColor}" 
+                                               FontWeight="SemiBold" 
+                                               Margin="0,15,0,5"/>
+                                    
+                                    <ItemsControl ItemsSource="{Binding Settings}">
+                                        <ItemsControl.ItemTemplate>
+                                            <DataTemplate>
+                                                <Grid Margin="0,5">
+                                                    <Grid.ColumnDefinitions>
+                                                        <ColumnDefinition Width="*"/>
+                                                        <ColumnDefinition Width="Auto"/>
+                                                    </Grid.ColumnDefinitions>
 
-                    <!-- Left: Description -->
-                    <TextBlock Text="Control when Windows notifies you about changes"
-                               Foreground="{DynamicResource PrimaryTextColor}"
-                               VerticalAlignment="Center"/>
+                                                    <!-- Setting Name and Description -->
+                                                    <StackPanel>
+                                                        <TextBlock Text="{Binding Name}" 
+                                                                   Foreground="{DynamicResource PrimaryTextColor}" 
+                                                                   FontWeight="Medium" 
+                                                                   FontSize="14"/>
+                                                        <TextBlock Text="{Binding Description}" 
+                                                                   Foreground="{DynamicResource SecondaryTextColor}" 
+                                                                   TextWrapping="Wrap" 
+                                                                   Margin="0,2,0,0"/>
+                                                    </StackPanel>
 
-                    <!-- Right: ComboBox -->
-                    <StackPanel Grid.Column="1"
-                                Margin="10,0,0,0">
-                        <ComboBox ItemsSource="{Binding UacLevelOptions}"
-                                  SelectedValue="{Binding SelectedUacLevel, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}"
-                                  SelectedValuePath="Key"
-                                  DisplayMemberPath="Value"
-                                  Width="250"
-                                  HorizontalAlignment="Right"
-                                  VerticalAlignment="Center"/>
-                    </StackPanel>
+                                                    <!-- Control for UAC Settings -->
+                                                    <StackPanel Grid.Column="1" Margin="10,0,0,0">
+                                                        <!-- ComboBox for UAC Level Selection -->
+                                                        <ComboBox Width="200" 
+                                                                  ItemsSource="{Binding ComboBoxOptions}" 
+                                                                  SelectedItem="{Binding SelectedValue, Mode=TwoWay}" 
+                                                                  behaviors:ComboBoxDropdownBehavior.StayWithParent="True"/>
+                                                    </StackPanel>
+                                                </Grid>
+                                            </DataTemplate>
+                                        </ItemsControl.ItemTemplate>
+                                    </ItemsControl>
+                                </StackPanel>
+                            </DataTemplate>
+                        </ItemsControl.ItemTemplate>
+                    </ItemsControl>
                 </Grid>
-
-                <!-- Loading Spinner -->
-                <ProgressBar Grid.Row="1"
-                             HorizontalAlignment="Right"
-                             Margin="0,0,10,0"
-                             IsIndeterminate="True"
-                             Width="20"
-                             Height="20"
-                             Visibility="{Binding IsApplyingUacLevel, Converter={StaticResource BooleanToVisibilityConverter}}"/>
             </Grid>
         </StackPanel>
-    </Border>
+        </Border>
+    </StackPanel>
 </UserControl>

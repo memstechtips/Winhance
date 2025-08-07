@@ -31,39 +31,6 @@ namespace Winhance.Infrastructure.Features.Common.Registry
     [SupportedOSPlatform("windows")]
     public partial class RegistryService : IRegistryService
     {
-        // Cache for registry key existence to avoid repeated checks
-        private readonly Dictionary<string, bool> _keyExistsCache = new Dictionary<string, bool>();
-
-        // Cache for registry value existence to avoid repeated checks
-        private readonly Dictionary<string, bool> _valueExistsCache =
-            new Dictionary<string, bool>();
-
-        // Cache for registry values to avoid repeated reads
-        private readonly Dictionary<string, object?> _valueCache =
-            new Dictionary<string, object?>();
-
-        /// <summary>
-        /// Clears all registry caches to ensure fresh reads
-        /// </summary>
-        public void ClearRegistryCaches()
-        {
-            lock (_keyExistsCache)
-            {
-                _keyExistsCache.Clear();
-            }
-
-            lock (_valueExistsCache)
-            {
-                _valueExistsCache.Clear();
-            }
-
-            lock (_valueCache)
-            {
-                _valueCache.Clear();
-            }
-
-            _logService.Log(LogLevel.Info, "Registry caches cleared");
-        }
 
         /// <summary>
         /// Applies a registry setting.
@@ -132,6 +99,10 @@ namespace Winhance.Infrastructure.Features.Common.Registry
                     LogLevel.Success,
                     $"Successfully created GUID subkey using PowerShell: {guidSubkeyPath}"
                 );
+                
+                // Publish registry change event for key creation
+                OnRegistryValueChanged(setting, null, string.Empty);
+                
                 return true;
             }
             else
@@ -170,6 +141,9 @@ namespace Winhance.Infrastructure.Features.Common.Registry
 
             try
             {
+                // Get the current value before change
+                var oldValue = GetValue($"{setting.Hive}\\{setting.SubKey}", setting.Name);
+                
                 // Set the _lastIsEnabled field to track whether we're enabling or disabling the setting
                 _lastIsEnabled = isEnabled;
                 string keyPath = $"{setting.Hive}\\{setting.SubKey}";
@@ -240,6 +214,10 @@ namespace Winhance.Infrastructure.Features.Common.Registry
                             LogLevel.Success,
                             $"Successfully created registry key for Remove action: {fullKeyPath}"
                         );
+                        
+                        // Publish registry change event for key creation
+                        OnRegistryValueChanged(setting, null, string.Empty);
+                        
                         return true;
                     }
                     else
@@ -609,8 +587,8 @@ namespace Winhance.Infrastructure.Features.Common.Registry
                     return false;
                 }
 
-                // Clear all caches to ensure fresh reads
-                ClearRegistryCaches();
+                // No caching - direct registry access only
+                _logService.Log(LogLevel.Debug, "Registry key imported successfully");
 
                 return true;
             }

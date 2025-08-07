@@ -23,11 +23,12 @@ namespace Winhance.Core.Features.Common.Interfaces
         bool SetValue(string keyPath, string valueName, object value, Microsoft.Win32.RegistryValueKind valueKind);
 
         /// <summary>
-        /// Gets a value from the registry.
+        /// Gets a value directly from the registry without caching.
+        /// Always returns the current value from the Windows Registry.
         /// </summary>
         /// <param name="keyPath">The registry key path.</param>
         /// <param name="valueName">The name of the value to get.</param>
-        /// <returns>The value from the registry, or null if it doesn't exist.</returns>
+        /// <returns>The current value from the registry, or null if it doesn't exist.</returns>
         object? GetValue(string keyPath, string valueName);
 
         /// <summary>
@@ -186,10 +187,7 @@ namespace Winhance.Core.Features.Common.Interfaces
         /// <returns>True if all settings were applied successfully; otherwise, false.</returns>
         Task<bool> ApplyLinkedSettingsAsync(LinkedRegistrySettings linkedSettings, bool enable);
 
-        /// <summary>
-        /// Clears all registry caches to ensure fresh reads
-        /// </summary>
-        void ClearRegistryCaches();
+        // Registry caching has been removed - all registry operations now read directly from the registry
 
         /// <summary>
         /// Gets the status of an optimization setting that may contain multiple registry settings.

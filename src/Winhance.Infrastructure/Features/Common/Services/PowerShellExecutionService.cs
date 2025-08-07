@@ -17,17 +17,19 @@ namespace Winhance.Infrastructure.Features.Common.Services
     {
         private readonly ILogService _logService;
         private readonly ISystemServices _systemServices;
+        private readonly IPowerShellDetectionService _powerShellDetectionService;
 
         /// <summary>
         /// Initializes a new instance of the <see cref="PowerShellExecutionService"/> class.
         /// </summary>
-        /// <param name="logService">The log service.</param>
+        /// <param name="logService">The logging service.</param>
         /// <param name="systemServices">The system services.</param>
-        public PowerShellExecutionService(ILogService logService, ISystemServices systemServices)
+        /// <param name="powerShellDetectionService">The PowerShell detection service.</param>
+        public PowerShellExecutionService(ILogService logService, ISystemServices systemServices, IPowerShellDetectionService powerShellDetectionService)
         {
             _logService = logService ?? throw new ArgumentNullException(nameof(logService));
-            _systemServices =
-                systemServices ?? throw new ArgumentNullException(nameof(systemServices));
+            _systemServices = systemServices ?? throw new ArgumentNullException(nameof(systemServices));
+            _powerShellDetectionService = powerShellDetectionService ?? throw new ArgumentNullException(nameof(powerShellDetectionService));
         }
 
         /// <inheritdoc/>
@@ -42,10 +44,7 @@ namespace Winhance.Infrastructure.Features.Common.Services
                 throw new ArgumentException("Script cannot be null or empty.", nameof(script));
             }
 
-            using var powerShell = Utilities.PowerShellFactory.CreateWindowsPowerShell(
-                _logService,
-                _systemServices
-            );
+            using var powerShell = PowerShell.Create();
             // No need to set execution policy as it's already done in the factory
 
             powerShell.AddScript(script);
@@ -343,7 +342,7 @@ namespace Winhance.Infrastructure.Features.Common.Services
             target.Report(detail);
         }
 
-        // SetExecutionPolicy is now handled by PowerShellFactory
+        // PowerShell configuration is handled by the detection service
 
         /// <summary>
         /// Disposes resources used by the service.

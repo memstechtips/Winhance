@@ -5,7 +5,6 @@ using System.Threading.Tasks;
 using System.Windows;
 using Winhance.Core.Features.Common.Enums;
 using Winhance.Core.Features.Common.Interfaces;
-using Winhance.Core.Features.Common.Messaging;
 using Winhance.WPF.Features.Common.Views;
 
 namespace Winhance.WPF.Features.Common.Services

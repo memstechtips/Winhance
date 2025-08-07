@@ -7,7 +7,7 @@ using System.Threading;
 using System.Threading.Tasks;
 using Winhance.Core.Features.Common.Interfaces;
 using Winhance.Core.Features.Common.Models;
-using Winhance.Infrastructure.Features.Common.Utilities;
+
 
 namespace Winhance.Infrastructure.Features.SoftwareApps.Services.WinGet.Utilities
 {
@@ -213,10 +213,8 @@ finally {
                 );
 
                 // Execute the PowerShell script with elevated privileges
-                // Use PowerShellFactory to ensure we get the right PowerShell version based on OS
-                // This is especially important for Windows 10 where Add-AppxPackage needs Windows PowerShell 5.1
-                // We need to use Windows PowerShell 5.1 on Windows 10 for Add-AppxPackage command
-                using (var powerShell = PowerShellFactory.CreateForAppxCommands(logger))
+                // Use the detected PowerShell environment
+                using (var powerShell = PowerShell.Create())
                 {
                     // Add the script to execute
                     powerShell.AddScript($". '{scriptPath}'");
