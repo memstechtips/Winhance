@@ -115,29 +115,10 @@ namespace Winhance.WPF.Features.Optimize.ViewModels
             {
                 _progressService.StartTask("Loading Windows security optimization settings...");
                 
-                _logService.Log(LogLevel.Debug, "WindowsSecurityOptimizations: Starting to load settings...");
                 
-                // Use UI coordinator to load settings with both setting change and value change handlers
-                await _uiCoordinator.LoadSettingsAsync(
-                () => _securityService.GetSettingsAsync(),
-                async (settingId, isEnabled) => 
-                {
-                    _logService.Log(LogLevel.Debug, $"[DEBUG] ViewModel: Applying setting change: {settingId}, enabled: {isEnabled}");
-                    System.Diagnostics.Debug.WriteLine($"[ViewModel] Applying setting change: {settingId}, enabled: {isEnabled}");
-                    await _securityService.ApplySettingAsync(settingId, isEnabled);
-                    _logService.Log(LogLevel.Debug, $"[DEBUG] ViewModel: Successfully applied setting change: {settingId}");
-                },
-                async (settingId, value) => 
-                {
-                    _logService.Log(LogLevel.Debug, $"[DEBUG] ViewModel: Applying setting VALUE change: {settingId}, value: {value}");
-                    System.Diagnostics.Debug.WriteLine($"[ViewModel] Applying setting VALUE change: {settingId}, value: {value}");
-                    await _securityService.ApplySettingAsync(settingId, true, value);
-                    _logService.Log(LogLevel.Debug, $"[DEBUG] ViewModel: Successfully applied setting value change: {settingId}");
-                    System.Diagnostics.Debug.WriteLine($"[ViewModel] Successfully applied setting value change: {settingId}");
-                }
-            );
+                // Use UI coordinator to load settings - Application Service handles business logic
+                await _uiCoordinator.LoadSettingsAsync(() => _securityService.GetSettingsAsync());
                 
-                _logService.Log(LogLevel.Debug, "WindowsSecurityOptimizations: Settings loaded successfully");
                 _progressService.CompleteTask();
             }
             catch (Exception ex)

@@ -17,15 +17,18 @@ namespace Winhance.Infrastructure.Features.Common.Services
     {
         private readonly IRegistryService _registryService;
         private readonly ICommandService _commandService;
+        private readonly IComboBoxDiscoveryService _comboBoxDiscoveryService;
         private readonly ILogService _logService;
 
         public SystemSettingsDiscoveryService(
             IRegistryService registryService,
             ICommandService commandService,
+            IComboBoxDiscoveryService comboBoxDiscoveryService,
             ILogService logService)
         {
             _registryService = registryService ?? throw new ArgumentNullException(nameof(registryService));
             _commandService = commandService ?? throw new ArgumentNullException(nameof(commandService));
+            _comboBoxDiscoveryService = comboBoxDiscoveryService ?? throw new ArgumentNullException(nameof(comboBoxDiscoveryService));
             _logService = logService ?? throw new ArgumentNullException(nameof(logService));
         }
 
@@ -40,6 +43,7 @@ namespace Winhance.Infrastructure.Features.Common.Services
                 return results;
             }
 
+            // Only log once at the beginning of settings discovery
             _logService.Log(LogLevel.Info, "Starting system settings state discovery");
 
             foreach (var setting in settings)
@@ -56,9 +60,6 @@ namespace Winhance.Infrastructure.Features.Common.Services
                             // Single registry setting
                             var status = await _registryService.GetSettingStatusAsync(setting.RegistrySettings[0]);
                             isEnabled = status == RegistrySettingStatus.Applied;
-                            
-                            _logService.Log(LogLevel.Debug, 
-                                $"Registry setting '{setting.Id}': Status={status}, IsEnabled={isEnabled}");
                         }
                         else
                         {
@@ -66,9 +67,6 @@ namespace Winhance.Infrastructure.Features.Common.Services
                             var linkedSettings = setting.CreateLinkedRegistrySettings();
                             var status = await _registryService.GetLinkedSettingsStatusAsync(linkedSettings);
                             isEnabled = status == RegistrySettingStatus.Applied;
-                            
-                            _logService.Log(LogLevel.Debug, 
-                                $"Linked registry setting '{setting.Id}': Status={status}, IsEnabled={isEnabled}");
                         }
                     }
                     // Check command-based settings
@@ -78,9 +76,6 @@ namespace Winhance.Infrastructure.Features.Common.Services
                         // This might require checking specific registry keys or system state
                         // For now, we'll assume they're not applied (can be enhanced later)
                         isEnabled = false;
-                        
-                        _logService.Log(LogLevel.Debug, 
-                            $"Command setting '{setting.Id}': IsEnabled={isEnabled} (command settings not fully implemented)");
                     }
                     else
                     {
@@ -112,6 +107,7 @@ namespace Winhance.Infrastructure.Features.Common.Services
                 return results;
             }
 
+            // Only log once at the beginning of values discovery
             _logService.Log(LogLevel.Info, "Starting system settings values discovery");
 
             foreach (var setting in settings)
@@ -120,32 +116,14 @@ namespace Winhance.Infrastructure.Features.Common.Services
                 {
                     object? currentValue = null;
 
-                    // Handle UAC level mapping for ComboBox
-                    if (setting.Id == "windows-security-uac-level" && setting.ControlType == ControlType.ComboBox)
+                    // Handle ComboBox settings using improved architecture
+                    if (setting.ControlType == ControlType.ComboBox)
                     {
-                        currentValue = await GetUacLevelValueAsync(setting);
+                        _logService.Log(LogLevel.Info, $"[INFO] Processing ComboBox setting '{setting.Id}' using domain resolvers");
+                        currentValue = await _comboBoxDiscoveryService.ResolveCurrentIndexAsync(setting);
+                        _logService.Log(LogLevel.Info, $"[INFO] ComboBox setting '{setting.Id}' current value discovered: {currentValue}");
                     }
-                    // For other ComboBox settings, we need to get the current selected value
-                    else if (setting.ControlType == ControlType.ComboBox)
-                    {
-                        if (setting.RegistrySettings != null && setting.RegistrySettings.Count > 0)
-                        {
-                            // Get the current registry value from the first registry setting
-                            currentValue = await GetRegistryValueAsync(setting.RegistrySettings[0]);
-                            
-                            _logService.Log(LogLevel.Debug, 
-                                $"ComboBox setting '{setting.Id}': CurrentValue={currentValue}");
-                        }
-                        else if (setting.RegistrySettings != null && setting.RegistrySettings.Count > 1)
-                        {
-                            // For multiple registry settings, we might need more complex logic
-                            // For now, return null (can be enhanced later)
-                            currentValue = null;
-                            
-                            _logService.Log(LogLevel.Debug, 
-                                $"Linked ComboBox setting '{setting.Id}': CurrentValue=null (not implemented)");
-                        }
-                    }
+
                     else
                     {
                         // For Toggle settings, the value is typically the enabled/disabled state
@@ -176,6 +154,7 @@ namespace Winhance.Infrastructure.Features.Common.Services
                 return results;
             }
 
+            // Only log once at the beginning of combined discovery
             _logService.Log(LogLevel.Info, "Starting combined system settings state and values discovery");
 
             // Get both state and values in parallel for efficiency
@@ -200,48 +179,8 @@ namespace Winhance.Infrastructure.Features.Common.Services
             return results;
         }
 
-        /// <summary>
-        /// Gets the current UAC level by reading both registry values and mapping to ComboBox index
-        /// </summary>
-        /// <param name="setting">The UAC setting</param>
-        /// <returns>The ComboBox index representing the current UAC level</returns>
-        private async Task<int?> GetUacLevelValueAsync(ApplicationSetting setting)
-        {
-            try
-            {
-                if (setting.RegistrySettings == null || setting.RegistrySettings.Count < 2)
-                    return null;
 
-                // Get both registry values
-                var consentPromptValue = await GetRegistryValueAsync(setting.RegistrySettings[0]) as int? ?? 5;
-                var secureDesktopValue = await GetRegistryValueAsync(setting.RegistrySettings[1]) as int? ?? 1;
 
-                _logService.Log(LogLevel.Debug, 
-                    $"UAC registry values: ConsentPrompt={consentPromptValue}, SecureDesktop={secureDesktopValue}");
-
-                // Map to ComboBox index using WindowsSecurityOptimizations logic
-                var mappings = new Dictionary<(int ConsentPrompt, int SecureDesktop), int>
-                {
-                    [(2, 1)] = 0, // Always notify
-                    [(5, 1)] = 1, // Notify changes only
-                    [(5, 0)] = 2, // Notify changes no dim
-                    [(0, 0)] = 3, // Never notify
-                };
-
-                var key = (consentPromptValue, secureDesktopValue);
-                var level = mappings.TryGetValue(key, out var mappedLevel) ? mappedLevel : 4; // Custom
-
-                _logService.Log(LogLevel.Info, 
-                    $"UAC level mapped to: {level} (ComboBox index)");
-
-                return level;
-            }
-            catch (Exception ex)
-            {
-                _logService.LogError($"Error getting UAC level: {ex.Message}");
-                return 1; // Default to "Notify changes only"
-            }
-        }
 
         /// <inheritdoc/>
         public async Task<Dictionary<string, Dictionary<RegistrySetting, object?>>> GetIndividualRegistryValuesAsync(IEnumerable<ApplicationSetting> settings)
@@ -300,8 +239,7 @@ namespace Winhance.Infrastructure.Features.Common.Services
                 // Use RegistryService to get the current value
                 var currentValue = await _registryService.GetCurrentValueAsync(registrySetting);
                 
-                _logService.Log(LogLevel.Debug, 
-                    $"GetRegistryValueAsync for '{registrySetting.Name}': CurrentValue={currentValue}");
+                // Removed excessive debug logging for registry value retrieval
                 
                 return currentValue;
             }

@@ -85,12 +85,8 @@ namespace Winhance.WPF.Features.Optimize.ViewModels
             {
                 _progressService.StartTask("Loading explorer optimization settings...");
                 
-                // Use UI coordinator to load settings with both setting change and value change handlers
-                await _uiCoordinator.LoadSettingsAsync(
-                    () => _explorerService.GetSettingsAsync(),
-                    async (settingId, isEnabled) => await _explorerService.ApplySettingAsync(settingId, isEnabled),
-                    async (settingId, value) => await _explorerService.ApplySettingAsync(settingId, true, value)
-                );
+                // Use UI coordinator to load settings - Application Service handles business logic
+                await _uiCoordinator.LoadSettingsAsync(() => _explorerService.GetSettingsAsync());
                 
                 _progressService.CompleteTask();
             }

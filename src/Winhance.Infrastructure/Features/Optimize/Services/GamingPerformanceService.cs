@@ -65,8 +65,7 @@ namespace Winhance.Infrastructure.Features.Optimize.Services
         
                         updatedSettings.Add(updatedSetting);
         
-                        _logService.Log(LogLevel.Debug, 
-                            $"Setting '{originalSetting.Id}' initialized: IsInitiallyEnabled={state.IsEnabled}, CurrentValue={state.CurrentValue}");
+                        // Removed excessive debug logging for individual setting initialization
                     }
                     else
                     {
@@ -152,7 +151,7 @@ namespace Winhance.Infrastructure.Features.Optimize.Services
             try
             {
                 int intValue = Convert.ToInt32(value);
-                _logService.Log(LogLevel.Info, $"Applying combobox setting '{setting.Id}' with value: {intValue}");
+                // Log only once at the end of the operation, not both at start and end
 
                 if (setting.RegistrySettings?.Count > 0)
                 {
@@ -167,7 +166,7 @@ namespace Winhance.Infrastructure.Features.Optimize.Services
                     }
                 }
 
-                _logService.Log(LogLevel.Info, $"Successfully applied combobox setting '{setting.Id}' with value: {intValue}");
+                _logService.Log(LogLevel.Info, $"Applied combobox setting '{setting.Id}' with value: {intValue}");
             }
             catch (Exception ex)
             {
@@ -229,8 +228,6 @@ namespace Winhance.Infrastructure.Features.Optimize.Services
         {
             try
             {
-                _logService.Log(LogLevel.Info, $"Checking if setting '{settingId}' is enabled");
-                
                 var settings = await GetSettingsAsync();
                 var setting = settings.FirstOrDefault(s => s.Id == settingId);
                 if (setting != null)

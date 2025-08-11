@@ -86,12 +86,8 @@ namespace Winhance.WPF.Features.Optimize.ViewModels
             {
                 _progressService.StartTask("Loading privacy optimization settings...");
                 
-                // Use UI coordinator to load settings with both setting change and value change handlers
-                await _uiCoordinator.LoadSettingsAsync(
-                    () => _privacyService.GetSettingsAsync(),
-                    async (settingId, isEnabled) => await _privacyService.ApplySettingAsync(settingId, isEnabled),
-                    async (settingId, value) => await _privacyService.ApplySettingAsync(settingId, true, value)
-                );
+                // Use UI coordinator to load settings - Application Service handles business logic
+                await _uiCoordinator.LoadSettingsAsync(() => _privacyService.GetSettingsAsync());
                 
                 _progressService.CompleteTask();
             }

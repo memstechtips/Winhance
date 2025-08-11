@@ -43,8 +43,6 @@ namespace Winhance.WPF.Features.Common.Services
 
             try
             {
-                _logService.Log(LogLevel.Info, "Getting tooltip data for settings with direct registry access");
-
                 var settingsList = settings.ToList();
                 
                 // Create tooltip data for each setting with direct registry access
@@ -70,8 +68,6 @@ namespace Winhance.WPF.Features.Common.Services
                             var freshValue = _registryService.GetValue(keyPath, registrySetting.Name);
                             registryValues[registrySetting] = freshValue;
                         
-                            _logService.Log(LogLevel.Info, 
-                                $"Direct registry value for tooltip '{setting.Id}' - '{registrySetting.Name}': {freshValue}");
                         }
                     
                         tooltipData.IndividualRegistryValues = registryValues;
@@ -79,8 +75,6 @@ namespace Winhance.WPF.Features.Common.Services
 
                     results[setting.Id] = tooltipData;
                 }
-
-                _logService.Log(LogLevel.Info, $"Tooltip data retrieved for {results.Count} settings");
             }
             catch (Exception ex)
             {

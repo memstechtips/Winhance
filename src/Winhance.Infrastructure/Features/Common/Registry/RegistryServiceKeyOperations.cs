@@ -79,7 +79,7 @@ namespace Winhance.Infrastructure.Features.Common.Registry
                 targetKey.Close();
                 
                 // No caching - direct registry access only
-                _logService.Log(LogLevel.Debug, $"Registry key created: {keyPath}");
+                // Removed excessive debug logging for registry key creation
                 
                 _logService.Log(LogLevel.Success, $"Successfully created or verified registry key: {keyPath}");
                 return true;
@@ -131,7 +131,7 @@ namespace Winhance.Infrastructure.Features.Common.Registry
                     parentKey.DeleteSubKey(keyName, false);
                     
                     // No caching - direct registry access only
-                    _logService.Log(LogLevel.Debug, $"Registry key deleted: {keyPath}");
+                    // Removed excessive debug logging for registry key deletion
 
                     _logService.Log(LogLevel.Success, $"Successfully deleted registry key: {keyPath}");
                     return true;
@@ -156,7 +156,7 @@ namespace Winhance.Infrastructure.Features.Common.Registry
 
             try
             {
-                _logService.Log(LogLevel.Debug, $"Checking if registry key exists: {keyPath}");
+                // Removed excessive debug logging for registry key existence check
 
                 string[] pathParts = keyPath.Split('\\');
                 RegistryKey? rootKey = GetRootKey(pathParts[0]);
@@ -173,7 +173,7 @@ namespace Winhance.Infrastructure.Features.Common.Registry
                 using (RegistryKey? key = rootKey.OpenSubKey(subKeyPath))
                 {
                     bool exists = key != null;
-                    _logService.Log(LogLevel.Debug, $"Registry key {keyPath} exists: {exists}");
+                    // Removed excessive debug logging for registry key existence result
                     return exists;
                 }
             }

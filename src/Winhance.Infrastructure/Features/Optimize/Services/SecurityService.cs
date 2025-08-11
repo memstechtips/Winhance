@@ -19,6 +19,7 @@ namespace Winhance.Infrastructure.Features.Optimize.Services
     {
         private readonly IRegistryService _registryService;
         private readonly ICommandService _commandService;
+        private readonly IComboBoxDiscoveryService _comboBoxDiscoveryService;
         private readonly ILogService _logService;
         private readonly ISystemSettingsDiscoveryService _systemSettingsDiscoveryService;
 
@@ -27,11 +28,13 @@ namespace Winhance.Infrastructure.Features.Optimize.Services
         public SecurityService(
             IRegistryService registryService,
             ICommandService commandService,
+            IComboBoxDiscoveryService comboBoxDiscoveryService,
             ILogService logService,
             ISystemSettingsDiscoveryService systemSettingsDiscoveryService)
         {
             _registryService = registryService ?? throw new ArgumentNullException(nameof(registryService));
             _commandService = commandService ?? throw new ArgumentNullException(nameof(commandService));
+            _comboBoxDiscoveryService = comboBoxDiscoveryService ?? throw new ArgumentNullException(nameof(comboBoxDiscoveryService));
             _logService = logService ?? throw new ArgumentNullException(nameof(logService));
             _systemSettingsDiscoveryService = systemSettingsDiscoveryService ?? throw new ArgumentNullException(nameof(systemSettingsDiscoveryService));
         }
@@ -104,11 +107,12 @@ namespace Winhance.Infrastructure.Features.Optimize.Services
 
                 _logService.Log(LogLevel.Debug, $"[DEBUG] Found setting: Id='{setting.Id}', Name='{setting.Name}', ControlType={setting.ControlType}");
 
-                // Handle combobox settings with specific values
+                // Handle combobox settings using improved architecture
                 if (setting.ControlType == ControlType.ComboBox && value != null)
                 {
-                    _logService.Log(LogLevel.Debug, $"[DEBUG] Detected combobox setting, calling ApplyComboBoxSettingAsync");
-                    await ApplyComboBoxSettingAsync(setting, value);
+                    _logService.Log(LogLevel.Debug, $"[DEBUG] Detected combobox setting, delegating to ComboBox discovery service");
+                    int intValue = Convert.ToInt32(value);
+                    await _comboBoxDiscoveryService.ApplyIndexAsync(setting, intValue);
                 }
                 else
                 {
@@ -223,135 +227,6 @@ namespace Winhance.Infrastructure.Features.Optimize.Services
             return await GetSettingStatusAsync(settingId);
         }
 
-        private async Task ApplyComboBoxSettingAsync(ApplicationSetting setting, object value)
-        {
-            try
-            {
-                int intValue = Convert.ToInt32(value);
-                _logService.Log(LogLevel.Debug, $"[DEBUG] ApplyComboBoxSettingAsync called: setting.Id='{setting.Id}', value={intValue}");
 
-                // Log CustomProperties for debugging
-                if (setting.CustomProperties != null)
-                {
-                    _logService.Log(LogLevel.Debug, $"[DEBUG] Setting has {setting.CustomProperties.Count} custom properties");
-                    foreach (var prop in setting.CustomProperties)
-                    {
-                        _logService.Log(LogLevel.Debug, $"[DEBUG] CustomProperty: {prop.Key} = {prop.Value}");
-                    }
-                }
-                else
-                {
-                    _logService.Log(LogLevel.Debug, $"[DEBUG] Setting has no custom properties");
-                }
-
-                // Handle combobox settings with value mappings
-                if (setting.CustomProperties?.ContainsKey("ValueMappings") == true)
-                {
-                    _logService.Log(LogLevel.Debug, $"[DEBUG] Found ValueMappings, calling ApplyComboboxWithValueMappingsAsync");
-                    await ApplyComboboxWithValueMappingsAsync(setting, intValue);
-                    return;
-                }
-
-                _logService.Log(LogLevel.Debug, $"[DEBUG] No ValueMappings found, using generic combobox handling");
-
-                // Generic combobox handling for simple settings
-                if (setting.RegistrySettings?.Count > 0)
-                {
-                    foreach (var registrySetting in setting.RegistrySettings)
-                    {
-                        string hiveName = registrySetting.Hive switch
-                        {
-                            RegistryHive.LocalMachine => "HKEY_LOCAL_MACHINE",
-                            RegistryHive.CurrentUser => "HKEY_CURRENT_USER",
-                            RegistryHive.ClassesRoot => "HKEY_CLASSES_ROOT",
-                            RegistryHive.Users => "HKEY_USERS",
-                            RegistryHive.CurrentConfig => "HKEY_CURRENT_CONFIG",
-                            _ => registrySetting.Hive.ToString()
-                        };
-                        
-                        _logService.Log(LogLevel.Debug, $"[DEBUG] Setting registry: {hiveName}\\{registrySetting.SubKey}\\{registrySetting.Name} = {intValue}");
-                        
-                        _registryService.SetValue(
-                            $"{hiveName}\\{registrySetting.SubKey}",
-                            registrySetting.Name,
-                            intValue,
-                            RegistryValueKind.DWord
-                        );
-                    }
-                }
-
-                _logService.Log(LogLevel.Info, $"Successfully applied combobox setting '{setting.Id}' with value: {intValue}");
-            }
-            catch (Exception ex)
-            {
-                _logService.Log(LogLevel.Error, $"Error applying combobox setting '{setting.Id}': {ex.Message}");
-                throw;
-            }
-        }
-
-        private async Task ApplyComboboxWithValueMappingsAsync(ApplicationSetting setting, int comboboxValue)
-        {
-            try
-            {
-                _logService.Log(LogLevel.Debug, $"[DEBUG] ApplyComboboxWithValueMappingsAsync called: setting.Id='{setting.Id}', comboboxValue={comboboxValue}");
-                
-                var valueMappings = setting.CustomProperties["ValueMappings"] as Dictionary<int, Dictionary<string, int>>;
-                _logService.Log(LogLevel.Debug, $"[DEBUG] ValueMappings contains {valueMappings?.Count ?? 0} entries");
-                
-                if (!valueMappings.TryGetValue(comboboxValue, out var registryValueMappings))
-                {
-                    _logService.Log(LogLevel.Error, $"[ERROR] Invalid combobox value {comboboxValue} for setting {setting.Id}. Available values: {string.Join(", ", valueMappings?.Keys?.ToArray() ?? new int[0])}");
-                    throw new ArgumentException($"Invalid combobox value {comboboxValue} for setting {setting.Id}");
-                }
-
-                _logService.Log(LogLevel.Debug, $"[DEBUG] Found {registryValueMappings.Count} registry value mappings for combobox value {comboboxValue}");
-                foreach (var mapping in registryValueMappings)
-                {
-                    _logService.Log(LogLevel.Debug, $"[DEBUG] Registry mapping: {mapping.Key} = {mapping.Value}");
-                }
-
-                // Apply the mapped values to each registry setting
-                foreach (var registrySetting in setting.RegistrySettings ?? new List<RegistrySetting>())
-                {
-                    string hiveName = registrySetting.Hive switch
-                    {
-                        RegistryHive.LocalMachine => "HKEY_LOCAL_MACHINE",
-                        RegistryHive.CurrentUser => "HKEY_CURRENT_USER",
-                        RegistryHive.ClassesRoot => "HKEY_CLASSES_ROOT",
-                        RegistryHive.Users => "HKEY_USERS",
-                        RegistryHive.CurrentConfig => "HKEY_CURRENT_CONFIG",
-                        _ => registrySetting.Hive.ToString()
-                    };
-
-                    _logService.Log(LogLevel.Debug, $"[DEBUG] Processing registry setting: {registrySetting.Name}");
-
-                    // Get the specific value for this registry setting name
-                    if (registryValueMappings.TryGetValue(registrySetting.Name, out int valueToSet))
-                    {
-                        _logService.Log(LogLevel.Debug, $"[DEBUG] Setting registry: {hiveName}\\{registrySetting.SubKey}\\{registrySetting.Name} = {valueToSet}");
-                        
-                        _registryService.SetValue(
-                            $"{hiveName}\\{registrySetting.SubKey}",
-                            registrySetting.Name,
-                            valueToSet,
-                            RegistryValueKind.DWord
-                        );
-                        
-                        _logService.Log(LogLevel.Info, $"Set {registrySetting.Name} = {valueToSet}");
-                    }
-                    else
-                    {
-                        _logService.Log(LogLevel.Debug, $"[DEBUG] No mapping found for registry setting: {registrySetting.Name}");
-                    }
-                }
-
-                _logService.Log(LogLevel.Info, $"Successfully applied combobox setting '{setting.Id}' with value mappings");
-            }
-            catch (Exception ex)
-            {
-                _logService.Log(LogLevel.Error, $"Error applying combobox setting with value mappings '{setting.Id}': {ex.Message}");
-                throw;
-            }
-        }
     }
 }

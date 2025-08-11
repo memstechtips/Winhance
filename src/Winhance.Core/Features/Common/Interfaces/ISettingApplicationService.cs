@@ -1,0 +1,57 @@
+using System;
+using System.Collections.Generic;
+using System.Threading.Tasks;
+using Winhance.Core.Features.Common.Enums;
+using Winhance.Core.Features.Common.Models;
+
+namespace Winhance.Core.Features.Common.Interfaces
+{
+    /// <summary>
+    /// Application service interface for coordinating setting operations across domains.
+    /// Follows Clean Architecture by handling use cases and orchestrating domain services.
+    /// </summary>
+    public interface ISettingApplicationService
+    {
+        /// <summary>
+        /// Applies a setting change by finding the appropriate domain service and delegating to it.
+        /// Handles all control types (BinaryToggle, ComboBox, NumericUpDown, Slider).
+        /// </summary>
+        /// <param name="settingId">The ID of the setting to apply.</param>
+        /// <param name="enable">Whether the setting should be enabled (for binary toggles).</param>
+        /// <param name="value">The value to apply (for ComboBox, NumericUpDown, Slider).</param>
+        /// <returns>A task representing the asynchronous operation.</returns>
+        Task ApplySettingAsync(string settingId, bool enable, object? value = null);
+
+        /// <summary>
+        /// Gets the current state and value of a setting by finding the appropriate domain service.
+        /// </summary>
+        /// <param name="settingId">The ID of the setting to check.</param>
+        /// <returns>A result containing the setting's current state and value.</returns>
+        Task<SettingApplicationResult> GetSettingStateAsync(string settingId);
+
+        /// <summary>
+        /// Gets all settings from all domain services.
+        /// </summary>
+        /// <returns>A collection of all application settings across all domains.</returns>
+        Task<IEnumerable<ApplicationSetting>> GetAllSettingsAsync();
+
+        /// <summary>
+        /// Gets settings from a specific domain service.
+        /// </summary>
+        /// <param name="domainName">The name of the domain to get settings from.</param>
+        /// <returns>A collection of settings from the specified domain.</returns>
+        Task<IEnumerable<ApplicationSetting>> GetSettingsByDomainAsync(string domainName);
+    }
+
+    /// <summary>
+    /// Result model for setting application operations.
+    /// </summary>
+    public class SettingApplicationResult
+    {
+        public bool IsEnabled { get; set; }
+        public object? CurrentValue { get; set; }
+        public RegistrySettingStatus Status { get; set; }
+        public string? ErrorMessage { get; set; }
+        public bool Success { get; set; }
+    }
+}

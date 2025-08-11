@@ -48,14 +48,6 @@ namespace Winhance.Infrastructure.Features.Common.Registry
                 if (targetKey == null)
                 {
                     _logService.Log(LogLevel.Warning, $"Could not open or create registry key: {keyPath}");
-                    
-                    // Try using PowerShell as a fallback for policy keys
-                    if (keyPath.Contains("Policies", StringComparison.OrdinalIgnoreCase))
-                    {
-                        _logService.Log(LogLevel.Info, $"Attempting to set policy registry value using PowerShell: {keyPath}\\{valueName}");
-                        return SetValueUsingPowerShell(keyPath, valueName, value, valueKind);
-                    }
-                    
                     return false;
                 }
 
@@ -65,19 +57,13 @@ namespace Winhance.Infrastructure.Features.Common.Registry
                     {
                         targetKey.SetValue(valueName, value, valueKind);
 
-                        // No caching - direct registry access only
-                        _logService.Log(LogLevel.Debug, $"Registry value set: {keyPath}\\{valueName}");
-                        _logService.Log(LogLevel.Debug, $"Registry cache cleared for: {keyPath}\\{valueName}");
-
                         _logService.Log(LogLevel.Success, $"Successfully set registry value: {keyPath}\\{valueName}");
                         return true;
                     }
                     catch (Exception ex)
                     {
                         _logService.Log(LogLevel.Error, $"Failed to set registry value even after taking ownership: {ex.Message}");
-
-                        // Try using PowerShell as a fallback
-                        return SetValueUsingPowerShell(keyPath, valueName, value, valueKind);
+                        return false;
                     }
                 }
             }
@@ -102,8 +88,6 @@ namespace Winhance.Infrastructure.Features.Common.Registry
                 if (!CheckWindowsPlatform())
                     return null;
 
-                _logService.Log(LogLevel.Debug, $"Getting registry value: {keyPath}\\{valueName}");
-
                 // Use direct Windows Registry API to ensure we get the most up-to-date value
                 string[] pathParts = keyPath.Split('\\');
                 RegistryKey? rootKey = GetRootKey(pathParts[0]);
@@ -121,13 +105,11 @@ namespace Winhance.Infrastructure.Features.Common.Registry
                 {
                     if (key == null)
                     {
-                        _logService.Log(LogLevel.Debug, $"Registry key not found: {keyPath}");
                         return null;
                     }
 
                     // Get the value directly from the registry
                     object? value = key.GetValue(valueName);
-                    _logService.Log(LogLevel.Debug, $"Registry value for {keyPath}\\{valueName}: {value}");
                     return value;
                 }
             }
@@ -164,10 +146,6 @@ namespace Winhance.Infrastructure.Features.Common.Registry
 
                     // Delete the value
                     key.DeleteValue(valueName, false);
-                    
-                    // No caching - direct registry access only
-                    _logService.Log(LogLevel.Debug, $"Registry value deleted: {keyPath}\\{valueName}");
-                    _logService.Log(LogLevel.Debug, $"Registry cache cleared for deleted value: {keyPath}\\{valueName}");
 
                     _logService.Log(LogLevel.Success, $"Successfully deleted registry value: {keyPath}\\{valueName}");
                     return true;
@@ -206,22 +184,17 @@ namespace Winhance.Infrastructure.Features.Common.Registry
                 if (!CheckWindowsPlatform())
                     return false;
 
-                _logService.Log(LogLevel.Debug, $"Checking if registry value exists: {keyPath}\\{valueName}");
-
                 // Open the key for reading directly
                 using (RegistryKey? key = OpenRegistryKey(keyPath, false))
                 {
                     if (key == null)
                     {
-                        _logService.Log(LogLevel.Debug, $"Registry key not found: {keyPath}");
                         return false;
                     }
 
                     // Check if the value exists directly from the registry
                     string[] valueNames = key.GetValueNames();
                     bool exists = valueNames.Contains(valueName, StringComparer.OrdinalIgnoreCase);
-                    
-                    _logService.Log(LogLevel.Debug, $"Registry value {keyPath}\\{valueName} exists: {exists}");
                     return exists;
                 }
             }
@@ -230,6 +203,22 @@ namespace Winhance.Infrastructure.Features.Common.Registry
                 _logService.Log(LogLevel.Error, $"Error checking if registry value exists {keyPath}\\{valueName}: {ex.Message}");
                 return false;
             }
+        }
+        
+        /// <summary>
+        /// Gets the current value of a registry setting by directly reading from the registry.
+        /// </summary>
+        /// <param name="setting">The registry setting descriptor.</param>
+        /// <returns>The current value, or null if not present.</returns>
+        public Task<object?> GetCurrentValueAsync(RegistrySetting setting)
+        {
+            if (setting == null)
+                return Task.FromResult<object?>(null);
+
+            string keyPath = $"{RegistryExtensions.GetRegistryHiveString(setting.Hive)}\\{setting.SubKey}";
+            // Removed excessive debug logging for current registry value retrieval
+            object? value = GetValue(keyPath, setting.Name);
+            return Task.FromResult(value);
         }
     }
 }

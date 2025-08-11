@@ -86,7 +86,7 @@ namespace Winhance.WPF.Features.Optimize.ViewModels
             LoadSettingsCommand = new AsyncRelayCommand(LoadSettingsAsync);
             ToggleExpandCommand = new RelayCommand(ToggleExpand);
             
-            _logService.Log(LogLevel.Info, "GamingandPerformanceOptimizationsViewModel constructor completed");
+            // Removed excessive constructor completion logging
         }
 
         /// <summary>
@@ -98,7 +98,7 @@ namespace Winhance.WPF.Features.Optimize.ViewModels
             {
                 _progressService.StartTask("Loading gaming and performance settings...");
                 
-                // Load settings using UI coordinator (this will handle all the UI mapping)
+                // Use UI coordinator to load settings - Application Service handles business logic
                 await _uiCoordinator.LoadSettingsAsync(() => _gamingPerformanceService.GetSettingsAsync());
                 
                 _progressService.CompleteTask();

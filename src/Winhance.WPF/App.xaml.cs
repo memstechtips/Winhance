@@ -665,6 +665,10 @@ namespace Winhance.WPF
                 // Core Services
                 services.AddSingleton<ILogService, LogService>();
                 services.AddSingleton<IRegistryService, RegistryService>();
+                // Register segregated registry interfaces for ISP compliance
+                services.AddSingleton<IRegistryReader>(sp => (RegistryService)sp.GetRequiredService<IRegistryService>());
+                services.AddSingleton<IRegistryWriter>(sp => (RegistryService)sp.GetRequiredService<IRegistryService>());
+                services.AddSingleton<IRegistryStatus>(sp => (RegistryService)sp.GetRequiredService<IRegistryService>());
                 services.AddSingleton<ICommandService, CommandService>();
                 services.AddSingleton<IDependencyManager, DependencyManager>();
                 services.AddSingleton<IGlobalSettingsRegistry, GlobalSettingsRegistry>();
@@ -675,6 +679,7 @@ namespace Winhance.WPF
                     provider => new Winhance.Infrastructure.Features.Common.Services.SystemSettingsDiscoveryService(
                         provider.GetRequiredService<IRegistryService>(),
                         provider.GetRequiredService<ICommandService>(),
+                        provider.GetRequiredService<IComboBoxDiscoveryService>(),
                         provider.GetRequiredService<ILogService>()
                     )
                 );
@@ -686,21 +691,54 @@ namespace Winhance.WPF
                 services.AddSingleton<IWallpaperService, WallpaperService>();
 
                 // Register Domain Services (Domain-Driven Design)
+                // Each service needs to be registered as both its specific interface and IDomainService
                 services.AddScoped<IWindowsThemeService, WindowsThemeService>();
+                services.AddScoped<IDomainService>(sp => sp.GetRequiredService<IWindowsThemeService>());
+                
                 services.AddScoped<IStartMenuService, StartMenuService>();
+                services.AddScoped<IDomainService>(sp => sp.GetRequiredService<IStartMenuService>());
+                
                 services.AddScoped<ITaskbarService, TaskbarService>();
+                services.AddScoped<IDomainService>(sp => sp.GetRequiredService<ITaskbarService>());
+                
                 services.AddScoped<Winhance.Core.Features.Optimize.Interfaces.IExplorerOptimizationService, Winhance.Infrastructure.Features.Optimize.Services.ExplorerOptimizationService>();
+                services.AddScoped<IDomainService>(sp => sp.GetRequiredService<Winhance.Core.Features.Optimize.Interfaces.IExplorerOptimizationService>());
+                
                 services.AddScoped<Winhance.Core.Features.Customize.Interfaces.IExplorerCustomizationService, Winhance.Infrastructure.Features.Customize.Services.ExplorerCustomizationService>();
+                services.AddScoped<IDomainService>(sp => sp.GetRequiredService<Winhance.Core.Features.Customize.Interfaces.IExplorerCustomizationService>());
+                
                 services.AddScoped<IGamingPerformanceService, GamingPerformanceService>();
+                services.AddScoped<IDomainService>(sp => sp.GetRequiredService<IGamingPerformanceService>());
+                
                 services.AddScoped<IPrivacyService, PrivacyService>();
+                services.AddScoped<IDomainService>(sp => sp.GetRequiredService<IPrivacyService>());
+                
                 services.AddScoped<IUpdateService, UpdateService>();
+                services.AddScoped<IDomainService>(sp => sp.GetRequiredService<IUpdateService>());
+                
                 services.AddScoped<IPowerService, PowerService>();
+                services.AddScoped<IDomainService>(sp => sp.GetRequiredService<IPowerService>());
+                
                 services.AddScoped<INotificationService, NotificationService>();
+                services.AddScoped<IDomainService>(sp => sp.GetRequiredService<INotificationService>());
+                
                 services.AddScoped<ISoundService, SoundService>();
+                services.AddScoped<IDomainService>(sp => sp.GetRequiredService<ISoundService>());
+                
                 services.AddScoped<ISecurityService, SecurityService>();
+                services.AddScoped<IDomainService>(sp => sp.GetRequiredService<ISecurityService>());
 
                 // Register Domain Service Registry
                 services.AddScoped<IDomainServiceRegistry, DomainServiceRegistry>();
+
+                // Register Application Layer Services (Clean Architecture)
+                services.AddScoped<IDomainServiceLocator, DomainServiceLocator>();
+                services.AddScoped<ISettingApplicationService, SettingApplicationService>();
+                
+                // Register ComboBox Architecture Services (New SOLID-compliant architecture)
+                services.AddScoped<IComboBoxDiscoveryService, ComboBoxDiscoveryService>();
+                services.AddScoped<ISecurityComboBoxValueResolver, SecurityComboBoxValueResolver>();
+                services.AddScoped<IComboBoxValueResolver, SecurityComboBoxValueResolver>();
 
                 // Register Feature Discovery Service (New Architecture) with feature registration
                 services.AddSingleton<Winhance.Core.Features.Common.Interfaces.IFeatureDiscoveryService>(provider =>
@@ -744,8 +782,8 @@ namespace Winhance.WPF
                 services.AddTransient<Winhance.WPF.Features.Common.Interfaces.ISettingsUICoordinator>(
                     provider => new Winhance.WPF.Features.Common.Services.SettingsUICoordinator(
                         provider.GetRequiredService<SettingTooltipDataService>(),
+                        provider.GetRequiredService<ISettingApplicationService>(),
                         provider.GetRequiredService<ILogService>(),
-                        provider.GetRequiredService<IRegistryService>(),
                         provider.GetRequiredService<IEventBus>()
                     )
                 );
@@ -991,15 +1029,6 @@ namespace Winhance.WPF
                 services.AddTransient<SettingTooltipDataService>();
                 services.AddTransient<ReactiveTooltipDataService>();
 
-                // Register Settings UI Coordinator (Composition Pattern)
-                services.AddTransient<Features.Common.Interfaces.ISettingsUICoordinator>(
-                    provider => new Features.Common.Services.SettingsUICoordinator(
-                        provider.GetRequiredService<SettingTooltipDataService>(),
-                        provider.GetRequiredService<ILogService>(),
-                        provider.GetRequiredService<IRegistryService>(),
-                        provider.GetRequiredService<IEventBus>()
-                    )
-                );
 
                 // Register the notification service
                 services.AddSingleton<

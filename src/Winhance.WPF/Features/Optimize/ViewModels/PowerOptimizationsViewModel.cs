@@ -188,7 +188,7 @@ namespace Winhance.WPF.Features.Optimize.ViewModels
                 HasBattery = capabilities.GetValueOrDefault("HasBattery", false);
                 HasLid = capabilities.GetValueOrDefault("HasLid", false);
                 
-                // Load settings using UI coordinator (this will handle all the UI mapping)
+                // Load settings using UI coordinator - Application Service handles business logic
                 await _uiCoordinator.LoadSettingsAsync(() => _powerService.GetSettingsAsync());
                 
                 _progressService.CompleteTask();

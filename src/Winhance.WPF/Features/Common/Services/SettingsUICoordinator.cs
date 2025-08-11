@@ -1,41 +1,35 @@
 using System;
 using System.Collections.ObjectModel;
 using System.ComponentModel;
-using System.Diagnostics;
 using System.Collections.Generic;
+using System.IO;
 using System.Linq;
 using System.Threading.Tasks;
 using System.Windows;
-using CommunityToolkit.Mvvm.ComponentModel;
 using Winhance.Core.Features.Common.Enums;
 using Winhance.Core.Features.Common.Events;
 using Winhance.Core.Features.Common.Events.Registry;
 using Winhance.Core.Features.Common.Events.UI;
 using Winhance.Core.Features.Common.Interfaces;
 using Winhance.Core.Features.Common.Models;
-using Winhance.Core.Features.Optimize.Models;
 using Winhance.WPF.Features.Common.Events;
 using Winhance.WPF.Features.Common.Interfaces;
 using Winhance.WPF.Features.Common.Models;
-using Winhance.WPF.Features.Common.Services;
-using Winhance.WPF.Features.Common.Services.Configuration;
 using Winhance.WPF.Features.Common.Helpers;
 
 namespace Winhance.WPF.Features.Common.Services;
 
 /// <summary>
-/// Coordinates UI state management using existing components:
-/// - SettingUIItem for individual setting state
-/// - SettingGroup for grouping and bulk operations  
-/// - SettingUIMapper for Core ↔ WPF mapping
-/// - ISearchable (in SettingUIItem) for filtering
+/// Pure UI coordinator for managing setting display state.
+/// Focuses solely on UI concerns: loading, filtering, grouping, and state management.
+/// Business logic has been moved to ISettingApplicationService.
 /// </summary>
 public class SettingsUICoordinator : EventHandlerBase, ISettingsUICoordinator, INotifyPropertyChanged, IDisposable
 {
     private readonly string _instanceId = Guid.NewGuid().ToString("N")[..8];
     private readonly SettingTooltipDataService _tooltipDataService;
+    private readonly ISettingApplicationService _settingApplicationService;
     private readonly ILogService _logService;
-    private readonly IRegistryService _registryService;
     private readonly Dictionary<string, ApplicationSetting> _settingModels = new();
     private bool _isLoading;
     private string _categoryName = string.Empty;
@@ -75,12 +69,16 @@ public class SettingsUICoordinator : EventHandlerBase, ISettingsUICoordinator, I
 
     public string InstanceId => _instanceId;
 
-    public SettingsUICoordinator(SettingTooltipDataService tooltipDataService, ILogService logService, IRegistryService registryService, IEventBus eventBus)
+    public SettingsUICoordinator(
+        SettingTooltipDataService tooltipDataService, 
+        ISettingApplicationService settingApplicationService,
+        ILogService logService, 
+        IEventBus eventBus)
         : base(eventBus, logService)
     {
         _tooltipDataService = tooltipDataService ?? throw new ArgumentNullException(nameof(tooltipDataService));
+        _settingApplicationService = settingApplicationService ?? throw new ArgumentNullException(nameof(settingApplicationService));
         _logService = logService ?? throw new ArgumentNullException(nameof(logService));
-        _registryService = registryService ?? throw new ArgumentNullException(nameof(registryService));
 
         SubscribeToRegistryEvents();
     }
@@ -114,20 +112,44 @@ public class SettingsUICoordinator : EventHandlerBase, ISettingsUICoordinator, I
 
     public bool HasVisibleSettings => Settings.Any(s => s.IsVisible);
 
+    private readonly HashSet<string> _initializedFeatures = new();
+    
     /// <summary>
-    /// Loads settings using existing SettingUIMapper for Core ↔ WPF mapping
+    /// Loads settings using existing SettingUIMapper for Core ↔ WPF mapping.
+    /// Now uses ISettingApplicationService for all business logic.
     /// </summary>
-    public async Task LoadSettingsAsync<T>(Func<Task<IEnumerable<T>>> settingsLoader, Func<string, bool, Task>? settingChangeHandler = null, Func<string, object?, Task>? settingValueChangeHandler = null) where T : ApplicationSetting
+    public async Task LoadSettingsAsync<T>(Func<Task<IEnumerable<T>>> settingsLoader) where T : ApplicationSetting
     {
-        IsLoading = true;
         try
         {
+            // Generate feature key to track initialization state using a more unique identifier
+            var featureKey = $"{typeof(T).Name}_{CategoryName}_{_instanceId}";
+            
+            // CRITICAL FIX: Prevent multiple initialization cycles (SOLID compliance)
+            if (_initializedFeatures.Contains(featureKey))
+            {
+                _logService.Log(LogLevel.Debug, $"Feature '{featureKey}' already initialized. Refreshing data only (preserving delegates).");
+                await RefreshFeatureDataAsync(settingsLoader);
+                return;
+            }
+            
+            _logService.Log(LogLevel.Info, $"Initializing feature '{featureKey}' for the first time");
+            
+            // Debug cross-feature loading
+            try
+            {
+                /* Debug logging removed */
+            }
+            catch { /* Ignore debug file errors */ }
+            
+            IsLoading = true;
             var settings = await settingsLoader();
             var settingsList = settings.ToList();
 
-            var uiItems = SettingUIMapper.ToUIItems(settings);
-            var groups = SettingUIMapper.ToGroupedUIItems(settings);
+            var uiItems = SettingUIMapper.ToUIItems(settings).ToList(); // CRITICAL: Materialize to prevent double execution
+            var groups = SettingUIMapper.ToGroupedUIItems(uiItems);
 
+            // Only clear during initial initialization, not refresh
             Settings.Clear();
             SettingGroups.Clear();
             _settingModels.Clear();
@@ -140,30 +162,40 @@ public class SettingsUICoordinator : EventHandlerBase, ISettingsUICoordinator, I
 
             foreach (var item in uiItems)
             {
-                _logService.Log(LogLevel.Info, $"Setting up UI item: {item.Id}, settingChangeHandler: {settingChangeHandler != null}");
-                
-                // Wire up the setting change handler if provided
-                if (settingChangeHandler != null)
+                // CRITICAL FIX: Assign delegates BEFORE adding to collection to prevent race conditions
+                switch (item.ControlType)
                 {
-                    _logService.Log(LogLevel.Info, $"Wiring up OnSettingChanged delegate for {item.Id}");
-                    item.OnSettingChanged = async (isEnabled) => 
-                    {
-                        _logService.Log(LogLevel.Info, $"OnSettingChanged delegate called for {item.Id}, isEnabled: {isEnabled}");
-                        await HandleSettingChangeAsync(item.Id, isEnabled, settingChangeHandler);
-                    };
-                }
-                else
-                {
-                    _logService.Log(LogLevel.Warning, $"No settingChangeHandler provided for {item.Id}");
-                }
-
-                // Wire up the setting value change handler if provided
-                if (settingValueChangeHandler != null)
-                {
-                    item.OnSettingValueChanged = async (value) => 
-                    {
-                        await HandleSettingValueChangeAsync(item.Id, value, settingValueChangeHandler);
-                    };
+                    case ControlType.BinaryToggle:
+                        item.OnSettingChanged = async (isEnabled) => 
+                        {
+                            await HandleSettingChangeAsync(item.Id, isEnabled);
+                        };
+                        _logService.Log(LogLevel.Debug, $"Binary toggle delegate assigned for setting '{item.Id}'");
+                        break;
+                        
+                    case ControlType.ComboBox:
+                    case ControlType.NumericUpDown:
+                    case ControlType.Slider:
+                        item.OnSettingValueChanged = async (value) => 
+                        {
+                            _logService.Log(LogLevel.Debug, $"OnSettingValueChanged delegate invoked for '{item.Id}', value: {value}");
+                            
+                            // Debug to desktop file
+                            if (item.ControlType == ControlType.ComboBox)
+                            {
+                                /* Debug logging removed */
+                            }
+                            
+                            await HandleSettingValueChangeAsync(item.Id, value);
+                        };
+                        _logService.Log(LogLevel.Debug, $"{item.ControlType} delegate assigned for setting '{item.Id}'");
+                        
+                        /* Debug logging removed */
+                        break;
+                        
+                    default:
+                        _logService.Log(LogLevel.Warning, $"Unknown control type '{item.ControlType}' for setting '{item.Id}'. No delegates assigned.");
+                        break;
                 }
                 
                 // Subscribe to IsVisible property changes to update HasVisibleSettings
@@ -199,8 +231,12 @@ public class SettingsUICoordinator : EventHandlerBase, ISettingsUICoordinator, I
             catch (Exception ex)
             {
                 // Log tooltip data error but don't fail the entire load operation
-                System.Diagnostics.Debug.WriteLine($"[SettingsUICoordinator] Error loading tooltip data: {ex.Message}");
+                
             }
+            
+            // Mark feature as initialized to prevent future destructive reloads
+            _initializedFeatures.Add(featureKey);
+            _logService.Log(LogLevel.Info, $"Feature '{featureKey}' initialization completed successfully");
             
             OnPropertyChanged(nameof(HasVisibleSettings));
         }
@@ -211,11 +247,69 @@ public class SettingsUICoordinator : EventHandlerBase, ISettingsUICoordinator, I
     }
 
     /// <summary>
+    /// Refreshes feature data without destroying delegates or UI state.
+    /// Follows SRP by handling only data refresh operations.
+    /// </summary>
+    private async Task RefreshFeatureDataAsync<T>(Func<Task<IEnumerable<T>>> settingsLoader) where T : ApplicationSetting
+    {
+        try
+        {
+            _logService.Log(LogLevel.Debug, "Refreshing feature data while preserving delegates");
+            IsLoading = true;
+            
+            var settings = await settingsLoader();
+            var settingsList = settings.ToList();
+            
+            // Update _settingModels for tooltip refresh without clearing delegates
+            _settingModels.Clear();
+            foreach (var setting in settingsList)
+            {
+                _settingModels[setting.Id] = setting;
+            }
+            
+            // Update existing UI items with current system values (preserve delegates)
+            foreach (var setting in settingsList)
+            {
+                var existingUIItem = Settings.FirstOrDefault(ui => ui.Id == setting.Id);
+                if (existingUIItem != null)
+                {
+                    // Use existing SettingUIMapper to properly update UI state from system
+                    // This preserves delegates while updating the UI with current system state
+                    SettingUIMapper.UpdateFromSystemState(existingUIItem, setting.IsEnabled, setting.CurrentValue, RegistrySettingStatus.Applied);
+                }
+            }
+            
+            // Refresh tooltips with current registry data
+            try
+            {
+                var tooltipData = await _tooltipDataService.GetTooltipDataAsync(settingsList);
+                foreach (var item in Settings)
+                {
+                    if (tooltipData.TryGetValue(item.Id, out var itemTooltipData))
+                    {
+                        SettingUIMapper.UpdateTooltipData(item, itemTooltipData);
+                    }
+                }
+            }
+            catch (Exception ex)
+            {
+                _logService.Log(LogLevel.Warning, $"Error refreshing tooltip data: {ex.Message}");
+            }
+            
+            _logService.Log(LogLevel.Debug, "Feature data refresh completed successfully");
+        }
+        finally
+        {
+            IsLoading = false;
+        }
+    }
+
+
+    /// <summary>
     /// Filters settings using existing ISearchable implementation in SettingUIItem
     /// </summary>
     public void FilterSettings(string searchText)
     {
-        _logService?.Log(LogLevel.Debug, $"[SettingsUICoordinator-{_instanceId}] FilterSettings called with: '{searchText}', Total settings: {Settings.Count}");
         
         int visibleCount = 0;
         int totalCount = 0;
@@ -231,16 +325,13 @@ public class SettingsUICoordinator : EventHandlerBase, ISettingsUICoordinator, I
             if (matches)
             {
                 visibleCount++;
-                _logService?.Log(LogLevel.Debug, $"[SettingsUICoordinator-{_instanceId}] Setting '{setting.Name}' matches search '{searchText}'");
             }
             
             if (wasVisible != matches)
             {
-                _logService?.Log(LogLevel.Debug, $"[SettingsUICoordinator-{_instanceId}] Setting '{setting.Name}' visibility changed from {wasVisible} to {matches}");
             }
         }
         
-        _logService?.Log(LogLevel.Debug, $"[SettingsUICoordinator-{_instanceId}] After filtering: {visibleCount}/{totalCount} settings visible");
         
         // Use existing SettingGroup.UpdateVisibility() method
         foreach (var group in SettingGroups)
@@ -249,7 +340,6 @@ public class SettingsUICoordinator : EventHandlerBase, ISettingsUICoordinator, I
         }
         
         var hasVisibleSettings = Settings.Any(s => s.IsVisible);
-        _logService?.Log(LogLevel.Debug, $"[SettingsUICoordinator-{_instanceId}] HasVisibleSettings: {hasVisibleSettings}");
         
         OnPropertyChanged(nameof(HasVisibleSettings));
     }
@@ -306,12 +396,11 @@ public class SettingsUICoordinator : EventHandlerBase, ISettingsUICoordinator, I
     }
 
     /// <summary>
-    /// Handles setting changes by delegating to the appropriate service
+    /// Handles setting changes by delegating to the Application Service
     /// </summary>
     /// <param name="settingId">The ID of the setting that changed</param>
     /// <param name="isEnabled">Whether the setting should be enabled</param>
-    /// <param name="applySettingAsync">The async function to apply the setting</param>
-    public async Task HandleSettingChangeAsync(string settingId, bool isEnabled, Func<string, bool, Task> applySettingAsync)
+    public async Task HandleSettingChangeAsync(string settingId, bool isEnabled)
     {
         _logService.Log(LogLevel.Info, $"HandleSettingChangeAsync called for setting: {settingId}, isEnabled: {isEnabled}");
         
@@ -328,7 +417,8 @@ public class SettingsUICoordinator : EventHandlerBase, ISettingsUICoordinator, I
             setting.Status = RegistrySettingStatus.Unknown;
             setting.StatusMessage = "Applying...";
 
-            await applySettingAsync(settingId, isEnabled);
+            // Delegate to Application Service
+            await _settingApplicationService.ApplySettingAsync(settingId, isEnabled);
 
             setting.Status = RegistrySettingStatus.Applied;
             setting.StatusMessage = "Applied";
@@ -361,10 +451,11 @@ public class SettingsUICoordinator : EventHandlerBase, ISettingsUICoordinator, I
     /// </summary>
     /// <param name="settingId">The ID of the setting being changed.</param>
     /// <param name="value">The new value for the setting.</param>
-    /// <param name="settingValueChangeHandler">The handler function to apply the setting value change.</param>
     /// <returns>A task representing the asynchronous operation.</returns>
-    public async Task HandleSettingValueChangeAsync(string settingId, object? value, Func<string, object?, Task> settingValueChangeHandler)
+    public async Task HandleSettingValueChangeAsync(string settingId, object? value)
     {
+        _logService.Log(LogLevel.Info, $"HandleSettingValueChangeAsync called for setting: {settingId}, value: {value}");
+
         var setting = Settings.FirstOrDefault(s => s.Id == settingId);
         if (setting == null)
         {
@@ -378,9 +469,12 @@ public class SettingsUICoordinator : EventHandlerBase, ISettingsUICoordinator, I
             setting.Status = RegistrySettingStatus.Unknown;
             setting.StatusMessage = "Applying...";
 
-            _logService.Log(LogLevel.Debug, $"Handling value change for setting: {settingId}, new value: {value ?? "null"}");
+            _logService.Log(LogLevel.Debug, $"About to call Application Service for setting: {settingId}, value: {value}");
             
-            await settingValueChangeHandler(settingId, value);
+            // Delegate to Application Service
+            await _settingApplicationService.ApplySettingAsync(settingId, true, value);
+
+            _logService.Log(LogLevel.Debug, $"Application Service completed successfully for {settingId}");
 
             setting.Status = RegistrySettingStatus.Applied;
             setting.StatusMessage = "Applied";
@@ -394,7 +488,6 @@ public class SettingsUICoordinator : EventHandlerBase, ISettingsUICoordinator, I
                 await RefreshTooltipDataAsync(applicationSetting);
             }
             
-            _logService.Log(LogLevel.Debug, $"Successfully applied value change for setting: {settingId}");
         }
         catch (Exception ex)
         {
@@ -443,10 +536,7 @@ public class SettingsUICoordinator : EventHandlerBase, ISettingsUICoordinator, I
     {
         try
         {
-            _logService.Log(
-                LogLevel.Info, 
-                $"SettingsUICoordinator received registry change for {@event.ValuePath}"
-            );
+            // Removed excessive logging for registry change events
 
             // Find the affected setting and refresh its tooltip data
             var affectedSetting = _settingModels.Values
@@ -475,10 +565,7 @@ public class SettingsUICoordinator : EventHandlerBase, ISettingsUICoordinator, I
     {
         try
         {
-            _logService.Log(
-                LogLevel.Debug, 
-                $"Tooltip data refreshed for registry path: {@event.RegistryPath}"
-            );
+            
 
             // Find the affected settings and refresh their tooltip data
             var affectedSettings = _settingModels.Values
@@ -490,7 +577,7 @@ public class SettingsUICoordinator : EventHandlerBase, ISettingsUICoordinator, I
 
             foreach (var setting in affectedSettings)
             {
-                _logService.Log(LogLevel.Info, $"Refreshing tooltip for setting {setting.Id} due to registry change");
+                // Removed excessive logging for tooltip refresh
                 await RefreshTooltipDataAsync(setting);
             }
         }
@@ -525,7 +612,7 @@ public class SettingsUICoordinator : EventHandlerBase, ISettingsUICoordinator, I
             }
             else
             {
-                _logService.Log(LogLevel.Debug, "No tooltip data found for setting during refresh");
+                
             }
     }
     catch (Exception ex)

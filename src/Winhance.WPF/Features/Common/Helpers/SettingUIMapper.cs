@@ -29,14 +29,20 @@ namespace Winhance.WPF.Features.Common.Helpers
                 ControlType = applicationSetting.ControlType,
                 SliderSteps = applicationSetting.SliderSteps,
                 IsEnabled = true, // Settings should be enabled for interaction
-                IsSelected = applicationSetting.IsInitiallyEnabled // This represents the actual toggle state
             };
 
             // Set up ComboBox options if this is a ComboBox control
             if (applicationSetting.ControlType == ControlType.ComboBox)
             {
                 SetupComboBoxOptions(uiItem, applicationSetting);
-                uiItem.SelectedValue = GetComboBoxSelectedValue(uiItem, applicationSetting.CurrentValue);
+                // Use UpdateUIStateFromSystem to prevent triggering delegates during initialization
+                var selectedValue = GetComboBoxSelectedValue(uiItem, applicationSetting.CurrentValue);
+                uiItem.UpdateUIStateFromSystem(applicationSetting.IsInitiallyEnabled, selectedValue, RegistrySettingStatus.Unknown, applicationSetting.CurrentValue);
+            }
+            else
+            {
+                // For non-ComboBox controls, set IsSelected normally
+                uiItem.UpdateUIStateFromSystem(applicationSetting.IsInitiallyEnabled, null, RegistrySettingStatus.Unknown, applicationSetting.CurrentValue);
             }
 
             // Set up slider labels if this is a Slider control
@@ -62,17 +68,17 @@ namespace Winhance.WPF.Features.Common.Helpers
         }
 
         /// <summary>
-        /// Creates grouped SettingUIItems organized by GroupName.
+        /// Creates grouped SettingUIItems organized by GroupName using existing UI items.
         /// </summary>
-        /// <param name="applicationSettings">The application settings to group.</param>
+        /// <param name="uiItems">The existing UI items to group.</param>
         /// <returns>A collection of SettingGroups with their associated SettingUIItems.</returns>
-        public static IEnumerable<SettingGroup> ToGroupedUIItems(IEnumerable<ApplicationSetting> applicationSettings)
+        public static IEnumerable<SettingGroup> ToGroupedUIItems(IEnumerable<SettingUIItem> uiItems)
         {
-            var groups = applicationSettings
+            var groups = uiItems
                 .GroupBy(s => s.GroupName)
                 .Select(g => new SettingGroup(g.Key)
                 {
-                    Settings = new ObservableCollection<SettingUIItem>(g.Select(ToUIItem))
+                    Settings = new ObservableCollection<SettingUIItem>(g)
                 });
 
             return groups;
@@ -251,24 +257,18 @@ namespace Winhance.WPF.Features.Common.Helpers
         {
             if (tooltipData == null) 
             {
-                System.Diagnostics.Debug.WriteLine($"[SettingUIMapper] UpdateTooltipData called with null tooltipData for {uiItem.Id}");
                 return;
             }
-
-            System.Diagnostics.Debug.WriteLine($"[SettingUIMapper] UpdateTooltipData called for {uiItem.Id}, LinkedRegistrySettingsWithValues count: {uiItem.LinkedRegistrySettingsWithValues.Count}, IndividualRegistryValues count: {tooltipData.IndividualRegistryValues.Count}");
 
             // Update LinkedRegistrySettingsWithValues with actual individual registry values
             foreach (var linkedSetting in uiItem.LinkedRegistrySettingsWithValues)
             {
-                System.Diagnostics.Debug.WriteLine($"[SettingUIMapper] Checking linkedSetting for {linkedSetting.Setting.Name}");
                 if (tooltipData.IndividualRegistryValues.TryGetValue(linkedSetting.Setting, out var individualValue))
                 {
-                    System.Diagnostics.Debug.WriteLine($"[SettingUIMapper] Found individual value for {linkedSetting.Setting.Name}: {individualValue}, updating CurrentValue from {linkedSetting.CurrentValue}");
                     linkedSetting.CurrentValue = individualValue;
                 }
                 else
                 {
-                    System.Diagnostics.Debug.WriteLine($"[SettingUIMapper] No individual value found for {linkedSetting.Setting.Name}");
                 }
             }
             
@@ -276,13 +276,11 @@ namespace Winhance.WPF.Features.Common.Helpers
             // This is used by the single registry setting section in the tooltip template
             if (uiItem.RegistrySetting != null && tooltipData.IndividualRegistryValues.TryGetValue(uiItem.RegistrySetting, out var mainCurrentValue))
             {
-                System.Diagnostics.Debug.WriteLine($"[SettingUIMapper] Updating main CurrentValue for {uiItem.Id} from {uiItem.CurrentValue} to {mainCurrentValue}");
                 uiItem.CurrentValue = mainCurrentValue;
             }
 
             // Update command settings (they might have changed)
             uiItem.CommandSettings = new List<CommandSetting>(tooltipData.CommandSettings);
-            System.Diagnostics.Debug.WriteLine($"[SettingUIMapper] UpdateTooltipData completed for {uiItem.Id}");
         }
 
         /// <summary>

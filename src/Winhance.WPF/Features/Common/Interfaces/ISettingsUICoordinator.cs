@@ -28,7 +28,7 @@ public interface ISettingsUICoordinator : INotifyPropertyChanged
     string InstanceId { get; }
     
     // Core Operations (delegates to existing components)
-    Task LoadSettingsAsync<T>(Func<Task<IEnumerable<T>>> settingsLoader, Func<string, bool, Task>? settingChangeHandler = null, Func<string, object?, Task>? settingValueChangeHandler = null) where T : ApplicationSetting;
+    Task LoadSettingsAsync<T>(Func<Task<IEnumerable<T>>> settingsLoader) where T : ApplicationSetting;
     void FilterSettings(string searchText);
     void SelectAllSettings(bool selected);
     Task RefreshSettingStatusAsync(string settingId, Func<string, Task<(bool isEnabled, object? value, RegistrySettingStatus status)>> statusChecker);
@@ -38,18 +38,16 @@ public interface ISettingsUICoordinator : INotifyPropertyChanged
     /// </summary>
     /// <param name="settingId">The ID of the setting being changed.</param>
     /// <param name="enable">Whether the setting should be enabled.</param>
-    /// <param name="settingChangeHandler">The handler function to apply the setting change.</param>
     /// <returns>A task representing the asynchronous operation.</returns>
-    Task HandleSettingChangeAsync(string settingId, bool enable, Func<string, bool, Task> settingChangeHandler);
+    Task HandleSettingChangeAsync(string settingId, bool enable);
 
     /// <summary>
     /// Handles a setting value change by applying the setting and updating UI state.
     /// </summary>
     /// <param name="settingId">The ID of the setting being changed.</param>
     /// <param name="value">The new value for the setting.</param>
-    /// <param name="settingValueChangeHandler">The handler function to apply the setting value change.</param>
     /// <returns>A task representing the asynchronous operation.</returns>
-    Task HandleSettingValueChangeAsync(string settingId, object? value, Func<string, object?, Task> settingValueChangeHandler);
+    Task HandleSettingValueChangeAsync(string settingId, object? value);
     
     // Utility Methods
     void ClearSettings();

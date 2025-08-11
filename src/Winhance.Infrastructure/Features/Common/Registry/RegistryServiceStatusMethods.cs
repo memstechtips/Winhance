@@ -30,11 +30,11 @@ namespace Winhance.Infrastructure.Features.Common.Registry
                 string fullPath = $"{hiveString}\\{setting.SubKey}";
                 string fullValuePath = $"{fullPath}\\{setting.Name}";
 
-                _logService.Log(LogLevel.Info, $"Checking registry setting status: {fullValuePath}");
+                // Removed excessive logging for registry setting status checks
 
                 // Check if the key exists (direct registry access)
                 bool keyExists = KeyExists(fullPath);
-                _logService.Log(LogLevel.Debug, $"Registry key exists check: {fullPath} = {keyExists}");
+                // Removed excessive debug logging for registry key existence check
 
                 // Handle non-existence of the key
                 if (!keyExists)
@@ -59,7 +59,7 @@ namespace Winhance.Infrastructure.Features.Common.Registry
                 // Check if the value exists (using cache)
                 // Check if the value exists (direct registry access)
                 bool valueExists = ValueExists(fullPath, setting.Name);
-                _logService.Log(LogLevel.Debug, $"Registry value exists check: {fullValuePath} = {valueExists}");
+                // Removed excessive debug logging for registry value existence check
 
                 // Handle non-existence of the value
                 if (!valueExists)
@@ -114,7 +114,7 @@ namespace Winhance.Infrastructure.Features.Common.Registry
                 // Get the current value (using cache)
                 // Get the current value directly from the registry
                 object? currentValue = GetValue(fullPath, setting.Name);
-                _logService.Log(LogLevel.Debug, $"Retrieved registry value for {fullValuePath}");
+                // Removed excessive debug logging for registry value retrieval
 
                 // If the value is null, consider it not applied
                 if (currentValue == null)

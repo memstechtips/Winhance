@@ -120,7 +120,7 @@ namespace Winhance.WPF.Features.Customize.ViewModels
             {
                 _progressService.StartTask("Loading explorer settings...");
                 
-                // Use UI coordinator to load settings
+                // Use UI coordinator to load settings - Application Service handles business logic
                 await _uiCoordinator.LoadSettingsAsync(() => _explorerService.GetSettingsAsync());
                 
                 // Apply any Explorer-specific filtering or organization

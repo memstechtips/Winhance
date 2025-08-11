@@ -85,12 +85,8 @@ namespace Winhance.WPF.Features.Optimize.ViewModels
             {
                 _progressService.StartTask("Loading notification optimization settings...");
                 
-                // Use UI coordinator to load settings with both setting change and value change handlers
-                await _uiCoordinator.LoadSettingsAsync(
-                    () => _notificationService.GetSettingsAsync(),
-                    async (settingId, isEnabled) => await _notificationService.ApplySettingAsync(settingId, isEnabled),
-                    async (settingId, value) => await _notificationService.ApplySettingAsync(settingId, true, value)
-                );
+                // Use UI coordinator to load settings - Application Service handles business logic
+                await _uiCoordinator.LoadSettingsAsync(() => _notificationService.GetSettingsAsync());
                 
                 _progressService.CompleteTask();
             }

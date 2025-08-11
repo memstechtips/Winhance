@@ -134,7 +134,7 @@
                                                         <!-- ComboBox for UAC Level Selection -->
                                                         <ComboBox Width="200" 
                                                                   ItemsSource="{Binding ComboBoxOptions}" 
-                                                                  SelectedItem="{Binding SelectedValue, Mode=TwoWay}" 
+                                                                  SelectedItem="{Binding SelectedValue, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}" 
                                                                   behaviors:ComboBoxDropdownBehavior.StayWithParent="True"/>
                                                     </StackPanel>
                                                 </Grid>

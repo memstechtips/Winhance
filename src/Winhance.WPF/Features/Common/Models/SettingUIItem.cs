@@ -1,6 +1,9 @@
+using System;
 using System.Collections.Generic;
 using System.Collections.ObjectModel;
 using System.ComponentModel;
+using System.Diagnostics;
+using System.IO;
 using System.Windows.Input;
 using CommunityToolkit.Mvvm.ComponentModel;
 using CommunityToolkit.Mvvm.Input;
@@ -265,20 +268,23 @@ namespace Winhance.WPF.Features.Common.Models
 
         partial void OnSelectedValueChanged(object? value)
         {
-            // Handle combobox value changes
-            if (ControlType == ControlType.ComboBox && OnSettingValueChanged != null && !IsApplying)
+            // Handle value-based controls (ComboBox, NumericUpDown, Slider)
+            if (OnSettingValueChanged != null && !IsApplying)
             {
-                System.Diagnostics.Debug.WriteLine($"[SettingUIItem] OnSelectedValueChanged called for ComboBox setting '{Id}', display value: {value}");
-                
-                // Convert display string back to numeric index for service layer
-                var numericValue = GetNumericValueFromDisplayString(value?.ToString());
-                System.Diagnostics.Debug.WriteLine($"[SettingUIItem] Converted display value '{value}' to numeric value: {numericValue}");
-                
-                _ = OnSettingValueChanged(numericValue);
-            }
-            else
-            {
-                System.Diagnostics.Debug.WriteLine($"[SettingUIItem] NOT calling OnSettingValueChanged delegate: ControlType={ControlType}, OnSettingValueChanged={OnSettingValueChanged != null}, IsApplying={IsApplying}");
+                switch (ControlType)
+                {
+                    case ControlType.ComboBox:
+                        // Convert display string back to numeric index for service layer
+                        var numericValue = GetNumericValueFromDisplayString(value?.ToString());
+                        _ = OnSettingValueChanged(numericValue);
+                        break;
+                        
+                    case ControlType.NumericUpDown:
+                    case ControlType.Slider:
+                        // Pass the value directly for numeric controls
+                        _ = OnSettingValueChanged(value);
+                        break;
+                }
             }
         }
         
@@ -299,17 +305,10 @@ namespace Winhance.WPF.Features.Common.Models
 
         partial void OnIsSelectedChanged(bool value)
         {
-            System.Diagnostics.Debug.WriteLine($"[SettingUIItem] OnIsSelectedChanged called for '{Id}', value: {value}, OnSettingChanged: {OnSettingChanged != null}, IsApplying: {IsApplying}");
-            
             // Only trigger setting change if not during initialization/refresh
             if (OnSettingChanged != null && !IsApplying)
             {
-                System.Diagnostics.Debug.WriteLine($"[SettingUIItem] Calling OnSettingChanged delegate for '{Id}'");
                 _ = OnSettingChanged(value);
-            }
-            else
-            {
-                System.Diagnostics.Debug.WriteLine($"[SettingUIItem] NOT calling OnSettingChanged delegate for '{Id}' - OnSettingChanged: {OnSettingChanged != null}, IsApplying: {IsApplying}");
             }
         }
 

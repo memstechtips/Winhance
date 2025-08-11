@@ -23,10 +23,7 @@ namespace Winhance.Infrastructure.Features.Common.Registry
     /// - RegistryServiceValueOperations.cs - Value reading and writing
     /// - RegistryServiceStatusMethods.cs - Status checking methods
     /// - RegistryServiceEnsureKey.cs - Key creation with security settings
-    /// - RegistryServicePowerShell.cs - PowerShell fallback methods
-    /// - RegistryServiceTestMethods.cs - Testing methods
     /// - RegistryServiceCompletion.cs - Helper methods
-    /// - RegistryServiceUtilityOperations.cs - Additional utility operations (export, backup, restore)
     /// </summary>
     [SupportedOSPlatform("windows")]
     public partial class RegistryService : IRegistryService
@@ -54,51 +51,32 @@ namespace Winhance.Infrastructure.Features.Common.Registry
                 $"Applying GUID subkey setting: {setting.Name}, IsEnabled={isEnabled}, Path={guidSubkeyPath}"
             );
             
-            // Convert registry hive to PowerShell drive notation
-            string psDrive = setting.Hive switch
-            {
-                RegistryHive.LocalMachine => "HKLM:",
-                RegistryHive.CurrentUser => "HKCU:",
-                RegistryHive.ClassesRoot => "HKCR:",
-                RegistryHive.Users => "HKU:",
-                RegistryHive.CurrentConfig => "HKCC:",
-                _ => throw new ArgumentException($"Unsupported registry hive: {setting.Hive}")
-            };
-            
             if (isEnabled)
             {
-                // When enabling, create the GUID subkey
                 _logService.Log(LogLevel.Info, $"Creating GUID subkey: {guidSubkeyPath}");
-                
-                // Use PowerShell directly to create the subkey with a simple command
-                var startInfo = new System.Diagnostics.ProcessStartInfo
+
+                // Ensure parent exists and then create subkey via native API
+                if (!CreateKeyIfNotExists(parentKeyPath))
                 {
-                    FileName = "powershell.exe",
-                    Arguments = $"-NoProfile -ExecutionPolicy Bypass -Command \"New-Item -Path '{psDrive}\\{setting.SubKey}\\{setting.Name}' -Force\"",
-                    UseShellExecute = false,
-                    RedirectStandardOutput = true,
-                    RedirectStandardError = true,
-                    CreateNoWindow = true
-                };
-                
-                using var process = new System.Diagnostics.Process { StartInfo = startInfo };
-                process.Start();
-                await process.WaitForExitAsync();
-                
-                if (process.ExitCode != 0)
-                {
-                    string error = await process.StandardError.ReadToEndAsync();
-                    _logService.Log(
-                        LogLevel.Error,
-                        $"PowerShell failed to create GUID subkey: {error}"
-                    );
+                    _logService.Log(LogLevel.Warning, $"Failed to ensure parent key exists: {parentKeyPath}");
                     return false;
                 }
-                
-                _logService.Log(
-                    LogLevel.Success,
-                    $"Successfully created GUID subkey using PowerShell: {guidSubkeyPath}"
-                );
+
+                using (var parent = OpenRegistryKey(parentKeyPath, true))
+                {
+                    if (parent == null)
+                    {
+                        _logService.Log(LogLevel.Warning, $"Could not open parent key for write: {parentKeyPath}");
+                        return false;
+                    }
+                    using var created = parent.CreateSubKey(setting.Name, true);
+                    if (created == null)
+                    {
+                        _logService.Log(LogLevel.Warning, $"Failed to create GUID subkey: {guidSubkeyPath}");
+                        return false;
+                    }
+                }
+                _logService.Log(LogLevel.Success, $"Successfully created GUID subkey: {guidSubkeyPath}");
                 
                 // Publish registry change event for key creation
                 OnRegistryValueChanged(setting, null, string.Empty);
@@ -107,30 +85,8 @@ namespace Winhance.Infrastructure.Features.Common.Registry
             }
             else
             {
-                // When disabling, delete the GUID subkey
                 _logService.Log(LogLevel.Info, $"Deleting GUID subkey: {guidSubkeyPath}");
-                
-                // Use PowerShell directly to delete the subkey with a simple command
-                var startInfo = new System.Diagnostics.ProcessStartInfo
-                {
-                    FileName = "powershell.exe",
-                    Arguments = $"-NoProfile -ExecutionPolicy Bypass -Command \"Remove-Item -Path '{psDrive}\\{setting.SubKey}\\{setting.Name}' -Force\"",
-                    UseShellExecute = false,
-                    RedirectStandardOutput = true,
-                    RedirectStandardError = true,
-                    CreateNoWindow = true
-                };
-                
-                using var process = new System.Diagnostics.Process { StartInfo = startInfo };
-                process.Start();
-                await process.WaitForExitAsync();
-                
-                _logService.Log(
-                    LogLevel.Success,
-                    $"PowerShell command to delete GUID subkey completed with exit code: {process.ExitCode}"
-                );
-                
-                return true;
+                return DeleteKey(guidSubkeyPath);
             }
         }
 
@@ -144,8 +100,7 @@ namespace Winhance.Infrastructure.Features.Common.Registry
                 // Get the current value before change
                 var oldValue = GetValue($"{setting.Hive}\\{setting.SubKey}", setting.Name);
                 
-                // Set the _lastIsEnabled field to track whether we're enabling or disabling the setting
-                _lastIsEnabled = isEnabled;
+                // Track enable/disable state (no persisted field needed after PowerShell removal)
                 string keyPath = $"{setting.Hive}\\{setting.SubKey}";
 
                 _logService.Log(
@@ -167,98 +122,19 @@ namespace Winhance.Infrastructure.Features.Common.Registry
                     
                     if (isEnabled)
                     {
-                        // When enabling a Remove action, we create the key (for special cases like Home Folder)
-                        _logService.Log(
-                            LogLevel.Info, 
-                            $"Creating registry key/value for Remove action: {fullKeyPath}"
-                        );
-                        
-                        // For special cases like navigation pane items, use a simple PowerShell command
-                        // to create the key directly
-                        string psDrive = setting.Hive switch
+                        _logService.Log(LogLevel.Info, $"Creating registry key/value for Remove action: {fullKeyPath}");
+                        if (!CreateKeyIfNotExists(fullKeyPath))
                         {
-                            RegistryHive.LocalMachine => "HKLM:",
-                            RegistryHive.CurrentUser => "HKCU:",
-                            RegistryHive.ClassesRoot => "HKCR:",
-                            RegistryHive.Users => "HKU:",
-                            RegistryHive.CurrentConfig => "HKCC:",
-                            _ => throw new ArgumentException($"Unsupported registry hive: {setting.Hive}")
-                        };
-                        
-                        // Use PowerShell to create the key with a simple command
-                        var startInfo = new System.Diagnostics.ProcessStartInfo
-                        {
-                            FileName = "powershell.exe",
-                            Arguments = $"-NoProfile -ExecutionPolicy Bypass -Command \"New-Item -Path '{psDrive}\\{setting.SubKey}\\{setting.Name}' -Force\"",
-                            UseShellExecute = false,
-                            RedirectStandardOutput = true,
-                            RedirectStandardError = true,
-                            CreateNoWindow = true
-                        };
-                        
-                        using var process = new System.Diagnostics.Process { StartInfo = startInfo };
-                        process.Start();
-                        process.WaitForExit();
-                        
-                        if (process.ExitCode != 0)
-                        {
-                            string error = process.StandardError.ReadToEnd();
-                            _logService.Log(
-                                LogLevel.Error,
-                                $"PowerShell failed to create registry key: {error}"
-                            );
+                            _logService.Log(LogLevel.Warning, $"Failed to create registry key for Remove action: {fullKeyPath}");
                             return false;
                         }
-                        
-                        _logService.Log(
-                            LogLevel.Success,
-                            $"Successfully created registry key for Remove action: {fullKeyPath}"
-                        );
-                        
-                        // Publish registry change event for key creation
                         OnRegistryValueChanged(setting, null, string.Empty);
-                        
                         return true;
                     }
                     else
                     {
-                        // When disabling a Remove action, we delete the key/value
-                        _logService.Log(
-                            LogLevel.Info, 
-                            $"Deleting registry key/value for Remove action: {fullKeyPath}"
-                        );
-                        
-                        // Use PowerShell to remove the key with a simple command
-                        string psDrive = setting.Hive switch
-                        {
-                            RegistryHive.LocalMachine => "HKLM:",
-                            RegistryHive.CurrentUser => "HKCU:",
-                            RegistryHive.ClassesRoot => "HKCR:",
-                            RegistryHive.Users => "HKU:",
-                            RegistryHive.CurrentConfig => "HKCC:",
-                            _ => throw new ArgumentException($"Unsupported registry hive: {setting.Hive}")
-                        };
-                        
-                        var startInfo = new System.Diagnostics.ProcessStartInfo
-                        {
-                            FileName = "powershell.exe",
-                            Arguments = $"-NoProfile -ExecutionPolicy Bypass -Command \"Remove-Item -Path '{psDrive}\\{setting.SubKey}\\{setting.Name}' -Force -ErrorAction SilentlyContinue\"",
-                            UseShellExecute = false,
-                            RedirectStandardOutput = true,
-                            RedirectStandardError = true,
-                            CreateNoWindow = true
-                        };
-                        
-                        using var process = new System.Diagnostics.Process { StartInfo = startInfo };
-                        process.Start();
-                        process.WaitForExit();
-                        
-                        _logService.Log(
-                            LogLevel.Success,
-                            $"PowerShell command to remove registry key completed with exit code: {process.ExitCode}"
-                        );
-                        
-                        return true;
+                        _logService.Log(LogLevel.Info, $"Deleting registry key/value for Remove action: {fullKeyPath}");
+                        return DeleteKey(fullKeyPath);
                     }
                 }
                 
@@ -309,23 +185,7 @@ namespace Winhance.Infrastructure.Features.Common.Registry
                     bool keyCreated = CreateKeyIfNotExists(keyPath);
                     if (!keyCreated)
                     {
-                        _logService.Log(
-                            LogLevel.Warning,
-                            $"Failed to create registry key: {keyPath}, attempting PowerShell fallback"
-                        );
-                        
-                        // Try to use PowerShell to create the key if direct creation failed
-                        if (keyPath.Contains("Policies", StringComparison.OrdinalIgnoreCase))
-                        {
-                            _logService.Log(
-                                LogLevel.Info,
-                                $"Attempting to create policy registry key using PowerShell: {keyPath}"
-                            );
-                            
-                            // Use SetValueUsingPowerShell which will create the key as part of setting the value
-                            return SetValueUsingPowerShell(keyPath, setting.Name, valueToSet, setting.ValueType);
-                        }
-                        
+                        _logService.Log(LogLevel.Warning, $"Failed to create registry key: {keyPath}");
                         return false;
                     }
                     
@@ -348,13 +208,8 @@ namespace Winhance.Infrastructure.Features.Common.Registry
                         object? verifyValue = GetValue(keyPath, setting.Name);
                         if (verifyValue == null)
                         {
-                            _logService.Log(
-                                LogLevel.Warning,
-                                $"Value verification failed - value is null after setting: {keyPath}\\{setting.Name}"
-                            );
-                            
-                            // Try one more time with PowerShell
-                            return SetValueUsingPowerShell(keyPath, setting.Name, valueToSet, setting.ValueType);
+                            _logService.Log(LogLevel.Warning, $"Value verification failed - value is null after setting: {keyPath}\\{setting.Name}");
+                            return false;
                         }
                         
                         _logService.Log(

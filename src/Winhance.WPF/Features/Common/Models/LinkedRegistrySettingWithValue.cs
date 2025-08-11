@@ -27,7 +27,6 @@ namespace Winhance.WPF.Features.Common.Models
             {
                 if (_currentValue != value)
                 {
-                    System.Diagnostics.Debug.WriteLine($"[LinkedRegistrySettingWithValue] CurrentValue changed from '{_currentValue}' to '{value}' for setting '{Setting.Name}'");
                     _currentValue = value;
                     OnPropertyChanged(nameof(CurrentValue));
                     OnPropertyChanged(nameof(DisplayValue));

@@ -41,7 +41,7 @@ namespace Winhance.WPF.Features.Common.Events
             {
                 var token = _eventBus.Subscribe(handler);
                 _subscriptionTokens.Add(token);
-                _logService.Log(LogLevel.Debug, $"Subscribed to {typeof(TEvent).Name} events");
+                // Removed excessive logging for event subscriptions
             }
             catch (Exception ex)
             {

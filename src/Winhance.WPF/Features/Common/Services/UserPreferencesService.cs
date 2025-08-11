@@ -44,9 +44,6 @@ namespace Winhance.WPF.Features.Common.Services
                 // Combine with Winhance/Config
                 string appDataPath = Path.Combine(localAppData, "Winhance", "Config");
                 
-                // Log the path
-                _logService.Log(LogLevel.Debug, $"Preferences directory path: {appDataPath}");
-                
                 // Ensure the directory exists
                 if (!Directory.Exists(appDataPath))
                 {
@@ -56,7 +53,6 @@ namespace Winhance.WPF.Features.Common.Services
                 
                 // Get the full file path
                 string filePath = Path.Combine(appDataPath, PreferencesFileName);
-                _logService.Log(LogLevel.Debug, $"Preferences file path: {filePath}");
                 
                 return filePath;
             }
@@ -84,9 +80,6 @@ namespace Winhance.WPF.Features.Common.Services
             {
                 string filePath = GetPreferencesFilePath();
                 
-                // Log the file path
-                _logService.Log(LogLevel.Debug, $"Getting preferences from '{filePath}'");
-                
                 if (!File.Exists(filePath))
                 {
                     _logService.Log(LogLevel.Info, $"User preferences file does not exist at '{filePath}', returning empty preferences");
@@ -96,13 +89,7 @@ namespace Winhance.WPF.Features.Common.Services
                 // Read the file
                 string json = await File.ReadAllTextAsync(filePath);
                 
-                // Log a sample of the JSON (first 100 characters)
-                if (!string.IsNullOrEmpty(json))
-                {
-                    string sample = json.Length > 100 ? json.Substring(0, 100) + "..." : json;
-                    _logService.Log(LogLevel.Debug, $"JSON sample: {sample}");
-                }
-                else
+                if (string.IsNullOrEmpty(json))
                 {
                     _logService.Log(LogLevel.Warning, "Preferences file exists but is empty");
                     return new Dictionary<string, object>();
@@ -119,21 +106,9 @@ namespace Winhance.WPF.Features.Common.Services
                 // Use a custom converter to properly handle boolean values
                 var preferences = JsonConvert.DeserializeObject<Dictionary<string, object>>(json, settings);
                 
-                // Log the raw type of the DontShowSupport value if it exists
-                if (preferences != null && preferences.TryGetValue("DontShowSupport", out var dontShowValue))
-                {
-                    _logService.Log(LogLevel.Debug, $"DontShowSupport raw value type: {dontShowValue?.GetType().FullName}, value: {dontShowValue}");
-                }
-                
                 if (preferences != null)
                 {
                     _logService.Log(LogLevel.Info, $"Successfully loaded {preferences.Count} preferences");
-                    
-                    // Log the keys for debugging
-                    if (preferences.Count > 0)
-                    {
-                        _logService.Log(LogLevel.Debug, $"Preference keys: {string.Join(", ", preferences.Keys)}");
-                    }
                     
                     return preferences;
                 }
@@ -165,9 +140,6 @@ namespace Winhance.WPF.Features.Common.Services
             {
                 string filePath = GetPreferencesFilePath();
                 
-                // Log the file path and preferences count
-                _logService.Log(LogLevel.Debug, $"Saving preferences to '{filePath}', count: {preferences.Count}");
-                
                 // Use more robust serialization settings
                 var settings = new JsonSerializerSettings
                 {
@@ -179,19 +151,11 @@ namespace Winhance.WPF.Features.Common.Services
                 
                 string json = JsonConvert.SerializeObject(preferences, settings);
                 
-                // Log a sample of the JSON (first 100 characters)
-                if (json.Length > 0)
-                {
-                    string sample = json.Length > 100 ? json.Substring(0, 100) + "..." : json;
-                    _logService.Log(LogLevel.Debug, $"JSON sample: {sample}");
-                }
-                
                 // Ensure the directory exists
                 string directory = Path.GetDirectoryName(filePath);
                 if (!Directory.Exists(directory))
                 {
                     Directory.CreateDirectory(directory);
-                    _logService.Log(LogLevel.Debug, $"Created directory: {directory}");
                 }
                 
                 // Write the file
@@ -235,9 +199,6 @@ namespace Winhance.WPF.Features.Common.Services
             {
                 try
                 {
-                    // Log the actual type and value for debugging
-                    _logService.Log(LogLevel.Debug, $"GetPreferenceAsync for key '{key}': value type = {value?.GetType().FullName}, value = {value}");
-                    
                     // Special case for DontShowSupport boolean preference
                     if (key == "DontShowSupport" && typeof(T) == typeof(bool))
                     {
@@ -247,12 +208,10 @@ namespace Winhance.WPF.Features.Common.Services
                             string valueStr = value.ToString().ToLowerInvariant();
                             if (valueStr == "true" || valueStr == "1")
                             {
-                                _logService.Log(LogLevel.Debug, $"DontShowSupport detected as TRUE");
                                 return (T)(object)true;
                             }
                             else if (valueStr == "false" || valueStr == "0")
                             {
-                                _logService.Log(LogLevel.Debug, $"DontShowSupport detected as FALSE");
                                 return (T)(object)false;
                             }
                         }
@@ -273,79 +232,37 @@ namespace Winhance.WPF.Features.Common.Services
                             {
                                 // Use ToObject instead of Value<T>
                                 bool boolValue = (bool)jToken.ToObject(typeof(bool));
-                                _logService.Log(LogLevel.Debug, $"JToken boolean value: {boolValue}");
                                 return (T)(object)boolValue;
                             }
                             else if (jToken.Type == Newtonsoft.Json.Linq.JTokenType.String)
                             {
-                                // Use ToString() instead of Value<string>
+                                // Try to parse string to boolean
                                 string strValue = jToken.ToString();
                                 if (bool.TryParse(strValue, out bool boolResult))
                                 {
-                                    _logService.Log(LogLevel.Debug, $"JToken string parsed as boolean: {boolResult}");
                                     return (T)(object)boolResult;
+                                }
+                                else if (strValue == "1")
+                                {
+                                    return (T)(object)true;
+                                }
+                                else if (strValue == "0")
+                                {
+                                    return (T)(object)false;
                                 }
                             }
                             else if (jToken.Type == Newtonsoft.Json.Linq.JTokenType.Integer)
                             {
-                                // Use ToObject instead of Value<int>
-                                int intValue = (int)jToken.ToObject(typeof(int));
-                                bool boolValue = intValue != 0;
-                                _logService.Log(LogLevel.Debug, $"JToken integer converted to boolean: {boolValue}");
+                                // Handle numeric representations (0 = false, non-zero = true)
+                                double numValue = Convert.ToDouble(jToken.ToObject<object>());
+                                bool boolValue = numValue != 0;
                                 return (T)(object)boolValue;
                             }
-                        }
-                        
-                        var result = jToken.ToObject<T>();
-                        _logService.Log(LogLevel.Debug, $"JToken converted to {typeof(T).Name}: {result}");
-                        return result;
-                    }
-                    
-                    // Special handling for boolean values
-                    if (typeof(T) == typeof(bool) && value != null)
-                    {
-                        // Handle string representations of boolean values
-                        if (value is string strValue)
-                        {
-                            if (bool.TryParse(strValue, out bool boolResult))
-                            {
-                                _logService.Log(LogLevel.Debug, $"String value '{strValue}' parsed as boolean: {boolResult}");
-                                return (T)(object)boolResult;
-                            }
-                            
-                            // Also check for "1" and "0" string values
-                            if (strValue == "1")
-                            {
-                                _logService.Log(LogLevel.Debug, $"String value '1' converted to boolean: true");
-                                return (T)(object)true;
-                            }
-                            else if (strValue == "0")
-                            {
-                                _logService.Log(LogLevel.Debug, $"String value '0' converted to boolean: false");
-                                return (T)(object)false;
-                            }
-                        }
-                        
-                        // Handle numeric representations (0 = false, non-zero = true)
-                        if (value is long || value is int || value is double || value is float)
-                        {
-                            double numValue = Convert.ToDouble(value);
-                            bool boolResult2 = numValue != 0; // Renamed to avoid conflict
-                            _logService.Log(LogLevel.Debug, $"Numeric value {numValue} converted to boolean: {boolResult2}");
-                            return (T)(object)boolResult2;
-                        }
-                        
-                        // Handle direct boolean values
-                        if (value is bool boolValue)
-                        {
-                            _logService.Log(LogLevel.Debug, $"Direct boolean value: {boolValue}");
-                            return (T)(object)boolValue;
                         }
                     }
                     
                     // Try to convert the value to the requested type
                     var convertedValue = (T)Convert.ChangeType(value, typeof(T));
-                    _logService.Log(LogLevel.Debug, $"Converted value to {typeof(T).Name}: {convertedValue}");
                     return convertedValue;
                 }
                 catch (Exception ex)
@@ -360,7 +277,6 @@ namespace Winhance.WPF.Features.Common.Services
                 }
             }
             
-            _logService.Log(LogLevel.Debug, $"Preference '{key}' not found, returning default value: {defaultValue}");
             return defaultValue;
         }
 
@@ -376,9 +292,6 @@ namespace Winhance.WPF.Features.Common.Services
             try
             {
                 var preferences = await GetPreferencesAsync();
-                
-                // Log the preference being set
-                _logService.Log(LogLevel.Debug, $"Setting preference '{key}' to '{value}'");
                 
                 preferences[key] = value;
                 
