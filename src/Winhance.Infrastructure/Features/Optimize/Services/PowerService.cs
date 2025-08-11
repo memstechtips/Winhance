@@ -7,6 +7,7 @@ using Winhance.Core.Features.Common.Interfaces;
 using Winhance.Core.Features.Common.Models;
 using Winhance.Core.Features.Optimize.Interfaces;
 using Winhance.Core.Features.Optimize.Models;
+using Winhance.Infrastructure.Features.Common.Services;
 
 namespace Winhance.Infrastructure.Features.Optimize.Services
 {
@@ -14,170 +15,32 @@ namespace Winhance.Infrastructure.Features.Optimize.Services
     /// Service implementation for managing power management optimization settings.
     /// Handles power plans, sleep settings, and power-related optimizations.
     /// </summary>
-    public class PowerService : IPowerService
+    public class PowerService : BaseSystemSettingsService, IPowerService
     {
-        private readonly IRegistryService _registryService;
-        private readonly ICommandService _commandService;
-        private readonly ILogService _logService;
-        private readonly ISystemSettingsDiscoveryService _discoveryService;
+        /// <summary>
+        /// Gets the domain name for Power optimizations.
+        /// </summary>
+        public override string DomainName => "Power";
 
-        public string DomainName => "Power";
-
+        /// <summary>
+        /// Initializes a new instance of the <see cref="PowerService"/> class.
+        /// </summary>
         public PowerService(
             IRegistryService registryService,
             ICommandService commandService,
             ILogService logService,
-            ISystemSettingsDiscoveryService discoveryService)
+            ISystemSettingsDiscoveryService systemSettingsDiscoveryService)
+            : base(registryService, commandService, logService, systemSettingsDiscoveryService)
         {
-            _registryService = registryService ?? throw new ArgumentNullException(nameof(registryService));
-            _commandService = commandService ?? throw new ArgumentNullException(nameof(commandService));
-            _logService = logService ?? throw new ArgumentNullException(nameof(logService));
-            _discoveryService = discoveryService ?? throw new ArgumentNullException(nameof(discoveryService));
         }
 
-        public async Task<IEnumerable<ApplicationSetting>> GetSettingsAsync()
+        /// <summary>
+        /// Gets all Power optimization settings with their current system state.
+        /// </summary>
+        public override async Task<IEnumerable<ApplicationSetting>> GetSettingsAsync()
         {
-            try
-            {
-                _logService.Log(LogLevel.Info, "Loading Power settings");
-                
-                var optimizations = PowerOptimizations.GetPowerOptimizations();
-                return optimizations.Settings;
-            }
-            catch (Exception ex)
-            {
-                _logService.Log(
-                    LogLevel.Error,
-                    $"Error loading Power settings: {ex.Message}"
-                );
-                return Enumerable.Empty<ApplicationSetting>();
-            }
-        }
-
-        public async Task ApplySettingAsync(string settingId, bool enable, object? value = null)
-        {
-            try
-            {
-                _logService.Log(
-                    LogLevel.Info,
-                    $"Applying Power setting '{settingId}': enable={enable}"
-                );
-
-                var settings = await GetSettingsAsync();
-                var setting = settings.FirstOrDefault(s => s.Id == settingId);
-                
-                if (setting == null)
-                {
-                    throw new ArgumentException(
-                        $"Setting '{settingId}' not found in Power domain"
-                    );
-                }
-
-                // Apply registry settings
-                if (setting.RegistrySettings?.Count > 0)
-                {
-                    foreach (var registrySetting in setting.RegistrySettings)
-                    {
-                        await _registryService.ApplySettingAsync(registrySetting, enable);
-                    }
-                }
-
-                // Apply command settings
-                if (setting.CommandSettings?.Count > 0)
-                {
-                    foreach (var commandSetting in setting.CommandSettings)
-                    {
-                        await _commandService.ApplyCommandSettingsAsync(new[] { commandSetting }, enable);
-                    }
-                }
-
-                _logService.Log(
-                    LogLevel.Info,
-                    $"Successfully applied Power setting '{settingId}'"
-                );
-            }
-            catch (Exception ex)
-            {
-                _logService.Log(
-                    LogLevel.Error,
-                    $"Error applying Power setting '{settingId}': {ex.Message}"
-                );
-                throw;
-            }
-        }
-
-        public async Task<bool> GetSettingStatusAsync(string settingId)
-        {
-            try
-            {
-                var settings = await GetSettingsAsync();
-                var setting = settings.FirstOrDefault(s => s.Id == settingId);
-                
-                if (setting?.RegistrySettings?.Count > 0)
-                {
-                    var status = await _registryService.GetSettingStatusAsync(setting.RegistrySettings[0]);
-                    return status == RegistrySettingStatus.Applied;
-                }
-                
-                return false;
-            }
-            catch (Exception ex)
-            {
-                _logService.Log(
-                    LogLevel.Error,
-                    $"Error checking Power setting '{settingId}': {ex.Message}"
-                );
-                return false;
-            }
-        }
-
-        public async Task<object?> GetSettingValueAsync(string settingId)
-        {
-            try
-            {
-                var settings = await GetSettingsAsync();
-                var setting = settings.FirstOrDefault(s => s.Id == settingId);
-                
-                if (setting?.RegistrySettings?.Count > 0)
-                {
-                    return await _registryService.GetCurrentValueAsync(setting.RegistrySettings[0]);
-                }
-                
-                return null;
-            }
-            catch (Exception ex)
-            {
-                _logService.Log(
-                    LogLevel.Error,
-                    $"Error getting Power setting value '{settingId}': {ex.Message}"
-                );
-                return null;
-            }
-        }
-        public async Task<bool> IsSettingEnabledAsync(string settingId)
-        {
-            try
-            {
-                _logService.Log(LogLevel.Info, $"Checking if setting '{settingId}' is enabled");
-                
-                var settings = await GetSettingsAsync();
-                var setting = settings.FirstOrDefault(s => s.Id == settingId);
-                if (setting?.RegistrySettings?.Count > 0)
-                {
-                    var status = await _registryService.GetSettingStatusAsync(setting.RegistrySettings[0]);
-                    return status == RegistrySettingStatus.Applied;
-                }
-                
-                return false;
-            }
-            catch (Exception ex)
-            {
-                _logService.Log(
-                    LogLevel.Error,
-                    $"Error checking if setting '{settingId}' is enabled: {ex.Message}"
-                );
-                return false;
-            }
+            var optimizations = PowerOptimizations.GetPowerOptimizations();
+            return await GetSettingsWithSystemStateAsync(optimizations.Settings);
         }
 
         public async Task<PowerPlan?> GetActivePowerPlanAsync()

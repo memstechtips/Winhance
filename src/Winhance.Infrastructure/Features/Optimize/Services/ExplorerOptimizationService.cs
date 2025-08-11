@@ -7,78 +7,45 @@ using Winhance.Core.Features.Common.Interfaces;
 using Winhance.Core.Features.Common.Models;
 using Winhance.Core.Features.Optimize.Interfaces;
 using Winhance.Core.Features.Optimize.Models;
+using Winhance.Infrastructure.Features.Common.Services;
 
 namespace Winhance.Infrastructure.Features.Optimize.Services
 {
     /// <summary>
     /// Service implementation for managing Windows Explorer optimization settings.
     /// Handles file explorer performance, indexing, search optimization, and system efficiency tweaks.
+    /// Extends BaseSystemSettingsService to inherit common setting application logic.
     /// </summary>
-    public class ExplorerOptimizationService : IExplorerOptimizationService
+    public class ExplorerOptimizationService : BaseSystemSettingsService, IExplorerOptimizationService
     {
-        private readonly IRegistryService _registryService;
-        private readonly ICommandService _commandService;
-        private readonly ILogService _logService;
-        private readonly ISystemSettingsDiscoveryService _systemSettingsDiscoveryService;
+        /// <summary>
+        /// Gets the domain name for explorer optimizations.
+        /// </summary>
+        public override string DomainName => "ExplorerOptimization";
 
-        public string DomainName => "ExplorerOptimization";
-
+        /// <summary>
+        /// Initializes a new instance of the <see cref="ExplorerOptimizationService"/> class.
+        /// </summary>
+        /// <param name="registryService">The registry service for registry manipulations.</param>
+        /// <param name="commandService">The command service for command-based settings.</param>
+        /// <param name="logService">The log service for logging operations.</param>
+        /// <param name="systemSettingsDiscoveryService">The system settings discovery service.</param>
         public ExplorerOptimizationService(
             IRegistryService registryService,
             ICommandService commandService,
             ILogService logService,
             ISystemSettingsDiscoveryService systemSettingsDiscoveryService)
+            : base(registryService, commandService, logService, systemSettingsDiscoveryService)
         {
-            _registryService = registryService ?? throw new ArgumentNullException(nameof(registryService));
-            _commandService = commandService ?? throw new ArgumentNullException(nameof(commandService));
-            _logService = logService ?? throw new ArgumentNullException(nameof(logService));
-            _systemSettingsDiscoveryService = systemSettingsDiscoveryService ?? throw new ArgumentNullException(nameof(systemSettingsDiscoveryService));
         }
 
-        public async Task<IEnumerable<ApplicationSetting>> GetSettingsAsync()
+        /// <summary>
+        /// Gets all Explorer optimization settings with their current system state.
+        /// </summary>
+        public override async Task<IEnumerable<ApplicationSetting>> GetSettingsAsync()
         {
-            try
-            {
-                _logService.Log(LogLevel.Info, "Loading Explorer optimization settings with system state");
-                
-                var optimizations = ExplorerOptimizations.GetExplorerOptimizations();
-                var settings = optimizations.Settings.ToList();
-
-                // Initialize settings with their actual system state
-                var systemStates = await _systemSettingsDiscoveryService.GetCurrentSettingsStateAndValuesAsync(settings);
-
-                // Create new settings with updated IsInitiallyEnabled values
-                var updatedSettings = new List<ApplicationSetting>();
-                foreach (var originalSetting in settings)
-                {
-                    if (systemStates.TryGetValue(originalSetting.Id, out var state))
-                    {
-                        var updatedSetting = originalSetting with
-                        {
-                            IsInitiallyEnabled = state.IsEnabled,
-                            CurrentValue = state.CurrentValue,
-                            IsEnabled = true // Settings are always enabled for interaction
-                        };
-                        updatedSettings.Add(updatedSetting);
-                    }
-                    else
-                    {
-                        _logService.Log(LogLevel.Warning, 
-                            $"No system state found for setting '{originalSetting.Id}', using defaults");
-                        updatedSettings.Add(originalSetting);
-                    }
-                }
-
-                return updatedSettings;
-            }
-            catch (Exception ex)
-            {
-                _logService.Log(
-                    LogLevel.Error,
-                    $"Error loading Explorer optimization settings: {ex.Message}"
-                );
-                return Enumerable.Empty<ApplicationSetting>();
-            }
+            var optimizations = ExplorerOptimizations.GetExplorerOptimizations();
+            return await GetSettingsWithSystemStateAsync(optimizations.Settings);
         }
 
         public async Task ApplySettingAsync(string settingId, bool enable, object? value = null)

@@ -14,13 +14,6 @@ namespace Winhance.Core.Features.Optimize.Models
         public required OptimizationCategory Category { get; init; }
         
         /// <summary>
-        /// Gets or sets custom properties for this setting.
-        /// This can be used to store additional data specific to certain optimization types,
-        /// such as PowerCfg settings.
-        /// </summary>
-        public Dictionary<string, object> CustomProperties { get; init; } = new Dictionary<string, object>();
-        
-        /// <summary>
         /// Gets or sets a value indicating whether this setting is only applicable to Windows 11.
         /// </summary>
         public bool IsWindows11Only { get; init; }

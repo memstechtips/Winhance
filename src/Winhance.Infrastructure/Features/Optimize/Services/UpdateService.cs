@@ -7,6 +7,7 @@ using Winhance.Core.Features.Common.Interfaces;
 using Winhance.Core.Features.Common.Models;
 using Winhance.Core.Features.Optimize.Interfaces;
 using Winhance.Core.Features.Optimize.Models;
+using Winhance.Infrastructure.Features.Common.Services;
 
 namespace Winhance.Infrastructure.Features.Optimize.Services
 {
@@ -14,197 +15,39 @@ namespace Winhance.Infrastructure.Features.Optimize.Services
     /// Service implementation for managing Windows Update optimization settings.
     /// Handles update policies, delivery optimization, and update-related settings.
     /// </summary>
-    public class UpdateService : IUpdateService
+    public class UpdateService : BaseSystemSettingsService, IUpdateService
     {
-        private readonly IRegistryService _registryService;
-        private readonly ICommandService _commandService;
-        private readonly ILogService _logService;
-        private readonly ISystemSettingsDiscoveryService _systemSettingsDiscoveryService;
+        /// <summary>
+        /// Gets the domain name for Update optimizations.
+        /// </summary>
+        public override string DomainName => "Update";
 
-        public string DomainName => "Update";
-
+        /// <summary>
+        /// Initializes a new instance of the <see cref="UpdateService"/> class.
+        /// </summary>
         public UpdateService(
             IRegistryService registryService,
             ICommandService commandService,
             ILogService logService,
             ISystemSettingsDiscoveryService systemSettingsDiscoveryService)
+            : base(registryService, commandService, logService, systemSettingsDiscoveryService)
         {
-            _registryService = registryService ?? throw new ArgumentNullException(nameof(registryService));
-            _commandService = commandService ?? throw new ArgumentNullException(nameof(commandService));
-            _logService = logService ?? throw new ArgumentNullException(nameof(logService));
-            _systemSettingsDiscoveryService = systemSettingsDiscoveryService ?? throw new ArgumentNullException(nameof(systemSettingsDiscoveryService));
         }
 
-        public async Task<IEnumerable<ApplicationSetting>> GetSettingsAsync()
+        /// <summary>
+        /// Gets all Update optimization settings with their current system state.
+        /// </summary>
+        public override async Task<IEnumerable<ApplicationSetting>> GetSettingsAsync()
         {
-            try
-            {
-                _logService.Log(LogLevel.Info, "Loading Update settings with system state");
-                
-                var optimizations = UpdateOptimizations.GetUpdateOptimizations();
-                var settings = optimizations.Settings.ToList();
-
-                // Initialize settings with their actual system state
-                var systemStates = await _systemSettingsDiscoveryService.GetCurrentSettingsStateAndValuesAsync(settings);
-
-                // Create new settings with updated IsInitiallyEnabled values
-                var updatedSettings = new List<ApplicationSetting>();
-                foreach (var originalSetting in settings)
-                {
-                    if (systemStates.TryGetValue(originalSetting.Id, out var state))
-                    {
-                        var updatedSetting = originalSetting with
-                        {
-                            IsInitiallyEnabled = state.IsEnabled,
-                            CurrentValue = state.CurrentValue,
-                            IsEnabled = true // Settings are always enabled for interaction
-                        };
-                        updatedSettings.Add(updatedSetting);
-                    }
-                    else
-                    {
-                        _logService.Log(LogLevel.Warning, 
-                            $"No system state found for setting '{originalSetting.Id}', using defaults");
-                        updatedSettings.Add(originalSetting);
-                    }
-                }
-
-                return updatedSettings;
-            }
-            catch (Exception ex)
-            {
-                _logService.Log(
-                    LogLevel.Error,
-                    $"Error loading Update settings: {ex.Message}"
-                );
-                return Enumerable.Empty<ApplicationSetting>();
-            }
+            var optimizations = UpdateOptimizations.GetUpdateOptimizations();
+            return await GetSettingsWithSystemStateAsync(optimizations.Settings);
         }
 
-        public async Task ApplySettingAsync(string settingId, bool enable, object? value = null)
-        {
-            try
-            {
-                _logService.Log(
-                    LogLevel.Info,
-                    $"Applying Update setting '{settingId}': enable={enable}"
-                );
+        // All other methods (ApplySettingAsync, GetSettingStatusAsync, GetSettingValueAsync, IsSettingEnabledAsync)
+        // are inherited from BaseSystemSettingsService and work automatically with the settings from GetSettingsAsync()
 
-                var settings = await GetSettingsAsync();
-                var setting = settings.FirstOrDefault(s => s.Id == settingId);
-                
-                if (setting == null)
-                {
-                    throw new ArgumentException(
-                        $"Setting '{settingId}' not found in Update domain"
-                    );
-                }
 
-                // Apply registry settings
-                if (setting.RegistrySettings?.Count > 0)
-                {
-                    foreach (var registrySetting in setting.RegistrySettings)
-                    {
-                        await _registryService.ApplySettingAsync(registrySetting, enable);
-                    }
-                }
 
-                // Apply command settings
-                if (setting.CommandSettings?.Count > 0)
-                {
-                    foreach (var commandSetting in setting.CommandSettings)
-                    {
-                        await _commandService.ApplyCommandSettingsAsync(new[] { commandSetting }, enable);
-                    }
-                }
 
-                _logService.Log(
-                    LogLevel.Info,
-                    $"Successfully applied Update setting '{settingId}'"
-                );
-            }
-            catch (Exception ex)
-            {
-                _logService.Log(
-                    LogLevel.Error,
-                    $"Error applying Update setting '{settingId}': {ex.Message}"
-                );
-                throw;
-            }
-        }
-
-        public async Task<bool> GetSettingStatusAsync(string settingId)
-        {
-            try
-            {
-                var settings = await GetSettingsAsync();
-                var setting = settings.FirstOrDefault(s => s.Id == settingId);
-                
-                if (setting?.RegistrySettings?.Count > 0)
-                {
-                    var status = await _registryService.GetSettingStatusAsync(setting.RegistrySettings[0]);
-                    return status == RegistrySettingStatus.Applied;
-                }
-                
-                return false;
-            }
-            catch (Exception ex)
-            {
-                _logService.Log(
-                    LogLevel.Error,
-                    $"Error checking Update setting '{settingId}': {ex.Message}"
-                );
-                return false;
-            }
-        }
-
-        public async Task<object?> GetSettingValueAsync(string settingId)
-        {
-            try
-            {
-                var settings = await GetSettingsAsync();
-                var setting = settings.FirstOrDefault(s => s.Id == settingId);
-                
-                if (setting?.RegistrySettings?.Count > 0)
-                {
-                    return await _registryService.GetCurrentValueAsync(setting.RegistrySettings[0]);
-                }
-                
-                return null;
-            }
-            catch (Exception ex)
-            {
-                _logService.Log(
-                    LogLevel.Error,
-                    $"Error getting Update setting value '{settingId}': {ex.Message}"
-                );
-                return null;
-            }
-        }
-        public async Task<bool> IsSettingEnabledAsync(string settingId)
-        {
-            try
-            {
-                _logService.Log(LogLevel.Info, $"Checking if setting '{settingId}' is enabled");
-                
-                var settings = await GetSettingsAsync();
-                var setting = settings.FirstOrDefault(s => s.Id == settingId);
-                if (setting?.RegistrySettings?.Count > 0)
-                {
-                    var status = await _registryService.GetSettingStatusAsync(setting.RegistrySettings[0]);
-                    return status == RegistrySettingStatus.Applied;
-                }
-                
-                return false;
-            }
-            catch (Exception ex)
-            {
-                _logService.Log(
-                    LogLevel.Error,
-                    $"Error checking if setting '{settingId}' is enabled: {ex.Message}"
-                );
-                return false;
-            }
-        }
     }
 }
