@@ -2,6 +2,7 @@ using System;
 using System.Collections.Generic;
 using System.ComponentModel;
 using System.Runtime.CompilerServices;
+using Winhance.Core.Features.Common.Enums;
 
 namespace Winhance.Core.Features.Optimize.Models
 {
@@ -78,9 +79,9 @@ namespace Winhance.Core.Features.Optimize.Models
         public string Alias => Definition?.Alias ?? string.Empty;
 
         /// <summary>
-        /// Gets or sets the type of the setting.
+        /// Gets the control type for the setting.
         /// </summary>
-        public PowerSettingType SettingType => Definition?.SettingType ?? PowerSettingType.Numeric;
+        public ControlType ControlType => Definition?.ControlType ?? ControlType.NumericUpDown;
 
         /// <summary>
         /// Gets or sets the possible values for enum settings.
@@ -100,7 +101,7 @@ namespace Winhance.Core.Features.Optimize.Models
         /// <summary>
         /// Gets or sets the maximum value for numeric settings.
         /// </summary>
-        public int MaxValue => Definition?.MaxValue ?? 100;
+        public int MaxValue => Definition?.MaxValue ?? 1200; // Use reasonable default that doesn't cap legitimate values
 
         /// <summary>
         /// Gets or sets the increment for numeric settings.
@@ -124,7 +125,7 @@ namespace Winhance.Core.Features.Optimize.Models
         {
             get
             {
-                if (Definition?.SettingType == PowerSettingType.Enum && Definition.PossibleValues != null)
+                if (Definition?.ControlType == ControlType.ComboBox && Definition.PossibleValues != null)
                 {
                     var value = Definition.PossibleValues.Find(v => v.Index == AcValue);
                     return value?.FriendlyName ?? AcValue.ToString();
@@ -140,7 +141,7 @@ namespace Winhance.Core.Features.Optimize.Models
         {
             get
             {
-                if (Definition?.SettingType == PowerSettingType.Enum && Definition.PossibleValues != null)
+                if (Definition?.ControlType == ControlType.ComboBox && Definition.PossibleValues != null)
                 {
                     var value = Definition.PossibleValues.Find(v => v.Index == DcValue);
                     return value?.FriendlyName ?? DcValue.ToString();

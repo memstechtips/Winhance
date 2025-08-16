@@ -15,39 +15,72 @@ namespace Winhance.Infrastructure.Features.Optimize.Services
     /// Service implementation for managing sound optimization settings.
     /// Handles audio enhancements, sound schemes, and audio-related optimizations.
     /// </summary>
-    public class SoundService : BaseSystemSettingsService, ISoundService
+    public class SoundService : ISoundService
     {
+        private readonly SystemSettingOrchestrator _orchestrator;
+        private readonly ILogService _logService;
+
         /// <summary>
         /// Gets the domain name for Sound optimizations.
         /// </summary>
-        public override string DomainName => "Sound";
+        public string DomainName => "Sound";
 
         /// <summary>
         /// Initializes a new instance of the <see cref="SoundService"/> class.
         /// </summary>
-        public SoundService(
-            IRegistryService registryService,
-            ICommandService commandService,
-            ILogService logService,
-            ISystemSettingsDiscoveryService systemSettingsDiscoveryService)
-            : base(registryService, commandService, logService, systemSettingsDiscoveryService)
+        public SoundService(SystemSettingOrchestrator orchestrator, ILogService logService)
         {
+            _orchestrator = orchestrator ?? throw new ArgumentNullException(nameof(orchestrator));
+            _logService = logService ?? throw new ArgumentNullException(nameof(logService));
         }
 
         /// <summary>
         /// Gets all Sound optimization settings with their current system state.
         /// </summary>
-        public override async Task<IEnumerable<ApplicationSetting>> GetSettingsAsync()
+        public async Task<IEnumerable<ApplicationSetting>> GetSettingsAsync()
         {
-            var optimizations = SoundOptimizations.GetSoundOptimizations();
-            return await GetSettingsWithSystemStateAsync(optimizations.Settings);
+            try
+            {
+                _logService.Log(LogLevel.Info, "Loading Sound optimization settings");
+
+                var optimizations = SoundOptimizations.GetSoundOptimizations();
+                return await _orchestrator.GetSettingsWithSystemStateAsync(
+                    optimizations.Settings,
+                    DomainName
+                );
+            }
+            catch (Exception ex)
+            {
+                _logService.Log(
+                    LogLevel.Error,
+                    $"Error loading Sound optimization settings: {ex.Message}"
+                );
+                return Enumerable.Empty<ApplicationSetting>();
+            }
         }
 
-        // All other methods (ApplySettingAsync, GetSettingStatusAsync, GetSettingValueAsync, IsSettingEnabledAsync)
-        // are inherited from BaseSystemSettingsService and work automatically with the settings from GetSettingsAsync()
+        public async Task ApplySettingAsync(string settingId, bool enable, object? value = null)
+        {
+            var settings = await GetRawSettingsAsync();
+            await _orchestrator.ApplySettingAsync(settingId, enable, value, settings, DomainName);
+        }
 
+        public async Task<bool> IsSettingEnabledAsync(string settingId)
+        {
+            var settings = await GetRawSettingsAsync();
+            return await _orchestrator.GetSettingStatusAsync(settingId, settings);
+        }
 
+        public async Task<object?> GetSettingValueAsync(string settingId)
+        {
+            var settings = await GetRawSettingsAsync();
+            return await _orchestrator.GetSettingValueAsync(settingId, settings);
+        }
 
-
+        private async Task<IEnumerable<ApplicationSetting>> GetRawSettingsAsync()
+        {
+            var optimizations = SoundOptimizations.GetSoundOptimizations();
+            return await Task.FromResult(optimizations.Settings);
+        }
     }
 }

@@ -1,4 +1,6 @@
 using Microsoft.Extensions.DependencyInjection;
+using Winhance.Core.Features.Common.Interfaces;
+using Winhance.WPF.Features.Common.Services;
 
 namespace Winhance.WPF.Features.Common.Services.Configuration
 {
@@ -16,19 +18,25 @@ namespace Winhance.WPF.Features.Common.Services.Configuration
         {
             // Register the main configuration applier service
             services.AddTransient<IConfigurationApplierService, ConfigurationApplierService>();
-            
+
             // Register the property updater and view model refresher
             services.AddTransient<IConfigurationPropertyUpdater, ConfigurationPropertyUpdater>();
             services.AddTransient<IViewModelRefresher, ViewModelRefresher>();
-            
+
             // Register all section-specific appliers
             services.AddTransient<ISectionConfigurationApplier, WindowsAppsConfigurationApplier>();
             services.AddTransient<ISectionConfigurationApplier, ExternalAppsConfigurationApplier>();
             services.AddTransient<ISectionConfigurationApplier, CustomizeConfigurationApplier>();
-            
+
             // Register the new Optimize configuration applier for composition-based ViewModel
-            services.AddTransient<Winhance.Core.Features.Common.Interfaces.IOptimizeConfigurationApplier, OptimizeConfigurationApplier>();
-            
+            services.AddTransient<
+                Winhance.Core.Features.Common.Interfaces.IOptimizeConfigurationApplier,
+                OptimizeConfigurationApplier
+            >();
+
+            // Register the unified configuration service with all its dependencies available
+            services.AddSingleton<IUnifiedConfigurationService, UnifiedConfigurationService>();
+
             return services;
         }
     }

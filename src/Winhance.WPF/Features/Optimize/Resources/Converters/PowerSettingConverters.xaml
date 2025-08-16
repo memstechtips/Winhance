@@ -2,11 +2,12 @@
                     xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
                     xmlns:converters="clr-namespace:Winhance.WPF.Features.Optimize.Converters">
     
-    <!-- Power Setting Type Converters -->
+    <!-- Power Setting Control Type Converters -->
     <converters:BoolToVisibilityConverter x:Key="BoolToVisibilityConverter" />
-    <converters:EnumTypeToVisibilityConverter x:Key="EnumTypeToVisibilityConverter" />
-    <converters:NumericTypeToVisibilityConverter x:Key="NumericTypeToVisibilityConverter" />
+    <converters:ComboBoxTypeToVisibilityConverter x:Key="ComboBoxTypeToVisibilityConverter" />
+    <converters:NumericUpDownTypeToVisibilityConverter x:Key="NumericUpDownTypeToVisibilityConverter" />
     <converters:BoolToExpandCollapseConverter x:Key="BoolToExpandCollapseConverter" />
     <converters:InverseBoolToVisibilityConverter x:Key="InverseBoolToVisibilityConverter" />
+    <converters:BinaryToggleTypeToVisibilityConverter x:Key="BinaryToggleTypeToVisibilityConverter" />
     
 </ResourceDictionary>

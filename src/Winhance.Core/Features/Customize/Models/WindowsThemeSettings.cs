@@ -48,21 +48,27 @@ namespace Winhance.Core.Features.Customize.Models
                     // Theme Mode Selection (ComboBox)
                     new CustomizationSetting
                     {
-                        Id = "windows-theme-mode",
-                        Name = "Theme Mode",
-                        Description = "Choose between Light and Dark mode for Windows",
+                        Id = "theme-mode-windows",
+                        Name = "Choose Your Mode",
+                        Description = "Choose between Light and Dark mode for Windows and apps",
                         Category = CustomizationCategory.WindowsTheme,
                         GroupName = "Windows Theme",
                         IsEnabled = true,
                         ControlType = ControlType.ComboBox,
-                        Icon = "🎨", // Theme icon
+                        RequiresConfirmation = true,
+                        ConfirmationTitle = "Windows Theme Change",
+                        ConfirmationMessage =
+                            "You are about to apply {themeMode} to Windows and apps.\n\nDo you want to continue?",
+                        ConfirmationCheckboxText =
+                            "Apply default Windows wallpaper for {themeMode}",
                         RegistrySettings = new List<RegistrySetting>
                         {
                             new RegistrySetting
                             {
                                 Category = "WindowsTheme",
-                                Hive = RegistryHive.CurrentUser,
-                                SubKey = "Software\\Microsoft\\Windows\\CurrentVersion\\Themes\\Personalize",
+                                Hive = "HKEY_CURRENT_USER",
+                                SubKey =
+                                    "Software\\Microsoft\\Windows\\CurrentVersion\\Themes\\Personalize",
                                 Name = "AppsUseLightTheme",
                                 RecommendedValue = 0, // Dark mode recommended
                                 ValueType = RegistryValueKind.DWord,
@@ -74,8 +80,8 @@ namespace Winhance.Core.Features.Customize.Models
                                 {
                                     ["ComboBoxOptions"] = new Dictionary<string, int>
                                     {
-                                        ["Light Mode"] = 1,  // AppsUseLightTheme = 1
-                                        ["Dark Mode"] = 0,   // AppsUseLightTheme = 0
+                                        ["Light Mode"] = 1, // AppsUseLightTheme = 1
+                                        ["Dark Mode"] = 0, // AppsUseLightTheme = 0
                                     },
                                     ["DefaultOption"] = "Light Mode",
                                 },
@@ -83,13 +89,15 @@ namespace Winhance.Core.Features.Customize.Models
                             new RegistrySetting
                             {
                                 Category = "WindowsTheme",
-                                Hive = RegistryHive.CurrentUser,
-                                SubKey = "Software\\Microsoft\\Windows\\CurrentVersion\\Themes\\Personalize",
+                                Hive = "HKEY_CURRENT_USER",
+                                SubKey =
+                                    "Software\\Microsoft\\Windows\\CurrentVersion\\Themes\\Personalize",
                                 Name = "SystemUsesLightTheme",
                                 RecommendedValue = 0, // Dark mode recommended
                                 ValueType = RegistryValueKind.DWord,
                                 DefaultValue = 1, // Light mode is Windows default
-                                Description = "Controls Windows System theme mode (0=Dark, 1=Light)",
+                                Description =
+                                    "Controls Windows System theme mode (0=Dark, 1=Light)",
                                 IsPrimary = false, // Secondary setting, follows the primary
                                 AbsenceMeansEnabled = false,
                             },
@@ -100,19 +108,19 @@ namespace Winhance.Core.Features.Customize.Models
                     {
                         Id = "theme-transparency",
                         Name = "Transparency Effects",
-                        Description = "Controls transparency effects in Windows",
+                        Description = "Controls whether windows and surfaces appear translucent",
                         Category = CustomizationCategory.WindowsTheme,
                         GroupName = "Windows Theme",
                         IsEnabled = true, // Enable this setting
                         ControlType = ControlType.BinaryToggle,
-                        Icon = "💎", // Transparency icon
                         RegistrySettings = new List<RegistrySetting>
                         {
                             new RegistrySetting
                             {
                                 Category = "WindowsTheme",
-                                Hive = RegistryHive.CurrentUser,
-                                SubKey = "Software\\Microsoft\\Windows\\CurrentVersion\\Themes\\Personalize",
+                                Hive = "HKEY_CURRENT_USER",
+                                SubKey =
+                                    "Software\\Microsoft\\Windows\\CurrentVersion\\Themes\\Personalize",
                                 Name = "EnableTransparency",
                                 RecommendedValue = 1, // Enable transparency recommended
                                 EnabledValue = 1, // When toggle is ON, transparency effects are enabled

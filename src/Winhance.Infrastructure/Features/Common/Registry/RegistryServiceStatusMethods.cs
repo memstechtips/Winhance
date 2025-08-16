@@ -26,8 +26,7 @@ namespace Winhance.Infrastructure.Features.Common.Registry
                     return RegistrySettingStatus.Unknown;
                 }
 
-                string hiveString = RegistryExtensions.GetRegistryHiveString(setting.Hive);
-                string fullPath = $"{hiveString}\\{setting.SubKey}";
+                string fullPath = $"{setting.Hive}\\{setting.SubKey}";
                 string fullValuePath = $"{fullPath}\\{setting.Name}";
 
                 // Removed excessive logging for registry setting status checks
@@ -196,7 +195,7 @@ namespace Winhance.Infrastructure.Features.Common.Registry
                     
                     foreach (var setting in linkedSettings.Settings)
                     {
-                        string fullPath = $"{RegistryExtensions.GetRegistryHiveString(setting.Hive)}\\{setting.SubKey}";
+                        string fullPath = $"{setting.Hive}\\{setting.SubKey}";
                         string fullValuePath = $"{fullPath}\\{setting.Name}";
                         
                         // Check if the key exists

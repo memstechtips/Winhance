@@ -167,9 +167,6 @@ namespace Winhance.Infrastructure.Features.Common.Services
         
                 // Explorer Customization domain
                 var id when id.StartsWith("explorer-customization-") => _explorerCustomizationService,
-        
-                // Legacy Explorer domain (route to optimization by default)
-                var id when id.StartsWith("explorer-") => _explorerOptimizationService,
                 
                 // Gaming & Performance domain
                 var id when id.StartsWith("gaming-") || id.StartsWith("performance-") => _gamingPerformanceService,
@@ -178,19 +175,19 @@ namespace Winhance.Infrastructure.Features.Common.Services
                 var id when id.StartsWith("privacy-") => _privacyService,
                 
                 // Update domain
-                var id when id.StartsWith("update-") => _updateService,
+                var id when id.StartsWith("updates-") => _updateService,
                 
                 // Power domain
                 var id when id.StartsWith("power-") => _powerService,
                 
                 // Notification domain
-                var id when id.StartsWith("notification-") => _notificationService,
+                var id when id.StartsWith("notifications-") => _notificationService,
                 
                 // Sound domain
                 var id when id.StartsWith("sound-") => _soundService,
                 
                 // Security domain
-                var id when id.StartsWith("security-") || id.StartsWith("uac-") => _securityService,
+                var id when id.StartsWith("security-") => _securityService,
                 
                 // Default case - throw exception for unknown settings
                 _ => throw new ArgumentException($"No domain service found for setting '{settingId}'. " +

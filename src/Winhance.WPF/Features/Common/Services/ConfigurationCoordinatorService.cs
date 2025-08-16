@@ -76,7 +76,7 @@ namespace Winhance.WPF.Features.Common.Services
                 var windowsAppsViewModel = _serviceProvider.GetService<WindowsAppsViewModel>();
                 var externalAppsViewModel = _serviceProvider.GetService<ExternalAppsViewModel>();
                 var customizeViewModel = _serviceProvider.GetService<CustomizeViewModel>();
-                var optimizeViewModel = _serviceProvider.GetService<OptimizeCompositionViewModel>();
+                var optimizeViewModel = _serviceProvider.GetService<OptimizeViewModel>();
 
                 // Add settings from each view model to the dictionary
                 if (windowsAppsViewModel != null)
@@ -362,22 +362,22 @@ namespace Winhance.WPF.Features.Common.Services
 
                 if (optimizeViewModel != null)
                 {
-                    _logService.Log(LogLevel.Debug, "Processing OptimizeCompositionViewModel");
+                    _logService.Log(LogLevel.Debug, "Processing OptimizeViewModel");
 
-                    // Skip handling for OptimizeCompositionViewModel as it uses a different architecture
+                    // Skip handling for OptimizeViewModel as it uses a different architecture
                     _logService.Log(
                         LogLevel.Info,
-                        "Skipping configuration handling for OptimizeCompositionViewModel as it uses a composition pattern"
+                        "Skipping configuration handling for OptimizeViewModel as it uses a composition pattern"
                     );
                     
-                    // Legacy code commented out as OptimizeCompositionViewModel has a different structure
+                    // Legacy code commented out as OptimizeViewModel has a different structure
                     /*
                     // Ensure the view model is initialized
                     if (!optimizeViewModel.IsInitialized)
                     {
                         _logService.Log(
                             LogLevel.Debug,
-                            "OptimizeCompositionViewModel not initialized, initializing now"
+                            "OptimizeViewModel not initialized, initializing now"
                         );
                         await optimizeViewModel.InitializeCommand.ExecuteAsync(null);
 
@@ -385,30 +385,30 @@ namespace Winhance.WPF.Features.Common.Services
                         await optimizeViewModel.LoadItemsAsync();
                         _logService.Log(
                             LogLevel.Debug,
-                            $"OptimizeCompositionViewModel initialized and loaded with {optimizeViewModel.Settings?.Count ?? 0} items"
+                            $"OptimizeViewModel initialized and loaded with {optimizeViewModel.Settings?.Count ?? 0} items"
                         );
                     }
                     else
                     {
-                        _logService.Log(LogLevel.Debug, "OptimizeCompositionViewModel already initialized");
+                        _logService.Log(LogLevel.Debug, "OptimizeViewModel already initialized");
 
                         // Even if initialized, make sure items are loaded
                         if (optimizeViewModel.Settings == null || optimizeViewModel.Settings.Count == 0)
                         {
                             _logService.Log(
                                 LogLevel.Debug,
-                                "OptimizeCompositionViewModel items not loaded, loading now"
+                                "OptimizeViewModel items not loaded, loading now"
                             );
                             await optimizeViewModel.LoadItemsAsync();
                             _logService.Log(
                                 LogLevel.Debug,
-                                $"OptimizeCompositionViewModel items loaded, count: {optimizeViewModel.Settings?.Count ?? 0}"
+                                $"OptimizeViewModel items loaded, count: {optimizeViewModel.Settings?.Count ?? 0}"
                             );
                         }
                     }
                     */
 
-                    // For OptimizeCompositionViewModel, we need to get the settings directly
+                    // For OptimizeViewModel, we need to get the settings directly
                     var optimizeItems = new List<ISettingItem>();
 
                     // Get the Items property
@@ -422,7 +422,7 @@ namespace Winhance.WPF.Features.Common.Services
                         {
                             _logService.Log(
                                 LogLevel.Debug,
-                                $"OptimizeCompositionViewModel has items collection, enumerating"
+                                $"OptimizeViewModel has items collection, enumerating"
                             );
 
                             // Log the type of the first item
@@ -438,7 +438,7 @@ namespace Winhance.WPF.Features.Common.Services
                             {
                                 _logService.Log(
                                     LogLevel.Warning,
-                                    "OptimizeCompositionViewModel items collection is empty or first item is null"
+                                    "OptimizeViewModel items collection is empty or first item is null"
                                 );
                             }
 
@@ -470,7 +470,7 @@ namespace Winhance.WPF.Features.Common.Services
                         {
                             _logService.Log(
                                 LogLevel.Warning,
-                                "OptimizeCompositionViewModel items collection is null"
+                                "OptimizeViewModel items collection is null"
                             );
                         }
                     }
@@ -478,7 +478,7 @@ namespace Winhance.WPF.Features.Common.Services
                     {
                         _logService.Log(
                             LogLevel.Error,
-                            "Could not find Items property in OptimizeCompositionViewModel"
+                            "Could not find Items property in OptimizeViewModel"
                         );
                     }
 
@@ -488,7 +488,7 @@ namespace Winhance.WPF.Features.Common.Services
                     {
                         _logService.Log(
                             LogLevel.Warning,
-                            "No items found in OptimizeCompositionViewModel, collecting from child view models"
+                            "No items found in OptimizeViewModel, collecting from child view models"
                         );
 
                         // Get all the child view models using reflection
@@ -499,7 +499,7 @@ namespace Winhance.WPF.Features.Common.Services
                         {
                             if (
                                 property.Name.EndsWith("ViewModel")
-                                && property.Name != "OptimizeCompositionViewModel"
+                                && property.Name != "OptimizeViewModel"
                                 && property.PropertyType.Name.Contains("Optimizations")
                             )
                             {
@@ -961,30 +961,30 @@ namespace Winhance.WPF.Features.Common.Services
                         case "Optimize":
                             _logService.Log(
                                 LogLevel.Info,
-                                $"Getting OptimizeCompositionViewModel from service provider"
+                                $"Getting OptimizeViewModel from service provider"
                             );
                             var optimizeViewModel =
-                                _serviceProvider.GetService<OptimizeCompositionViewModel>();
+                                _serviceProvider.GetService<OptimizeViewModel>();
                             if (optimizeViewModel != null)
                             {
                                 _logService.Log(
                                     LogLevel.Info,
-                                    $"OptimizeCompositionViewModel found, importing configuration"
+                                    $"OptimizeViewModel found, importing configuration"
                                 );
 
-                                // Skip handling for OptimizeCompositionViewModel as it uses a different architecture
+                                // Skip handling for OptimizeViewModel as it uses a different architecture
                                 _logService.Log(
                                     LogLevel.Info,
-                                    "Skipping initialization for OptimizeCompositionViewModel as it uses a composition pattern"
+                                    "Skipping initialization for OptimizeViewModel as it uses a composition pattern"
                                 );
                                 
-                                // Legacy code commented out as OptimizeCompositionViewModel has a different structure
+                                // Legacy code commented out as OptimizeViewModel has a different structure
                                 /*
                                 if (!optimizeViewModel.IsInitialized)
                                 {
                                     _logService.Log(
                                         LogLevel.Info,
-                                        $"OptimizeCompositionViewModel not initialized, initializing now"
+                                        $"OptimizeViewModel not initialized, initializing now"
                                     );
                                     await optimizeViewModel.InitializeCommand.ExecuteAsync(null);
                                 }
@@ -1043,7 +1043,7 @@ namespace Winhance.WPF.Features.Common.Services
                             {
                                 _logService.Log(
                                     LogLevel.Warning,
-                                    $"OptimizeCompositionViewModel not available"
+                                    $"OptimizeViewModel not available"
                                 );
                                 sectionResult = false;
                             }
@@ -1552,7 +1552,7 @@ namespace Winhance.WPF.Features.Common.Services
         }
 
         /// <summary>
-        /// Imports configuration to OptimizeCompositionViewModel.
+        /// Imports configuration to OptimizeViewModel.
         /// </summary>
         /// <param name="viewModel">The view model to import to.</param>
         /// <param name="configFile">The configuration file to import.</param>
@@ -1564,7 +1564,7 @@ namespace Winhance.WPF.Features.Common.Services
         {
             try
             {
-                _logService.Log(LogLevel.Info, "Importing configuration to OptimizeCompositionViewModel");
+                _logService.Log(LogLevel.Info, "Importing configuration to OptimizeViewModel");
 
                 // First try using the ImportConfigCommand
                 var importCommand =
@@ -1611,7 +1611,7 @@ namespace Winhance.WPF.Features.Common.Services
                 {
                     _logService.Log(LogLevel.Info, "Successfully applied configuration directly");
 
-                    // For OptimizeCompositionViewModel, try to call ApplyOptimizations if available
+                    // For OptimizeViewModel, try to call ApplyOptimizations if available
                     var applyOptimizationsMethod = viewModel
                         .GetType()
                         .GetMethod(
@@ -2772,7 +2772,7 @@ namespace Winhance.WPF.Features.Common.Services
                     }
                     else if (viewModelTypeName.Contains("Optimize"))
                     {
-                        // Try to refresh the OptimizeCompositionViewModel specifically
+                        // Try to refresh the OptimizeViewModel specifically
                         var refreshOptimizationsMethod = viewModel
                             .GetType()
                             .GetMethod(

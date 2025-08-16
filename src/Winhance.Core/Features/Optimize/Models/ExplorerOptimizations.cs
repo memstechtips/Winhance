@@ -17,7 +17,7 @@ public static class ExplorerOptimizations
             {
                 new OptimizationSetting
                 {
-                    Id = "explorer-long-paths-enabled",
+                    Id = "explorer-optimization-long-paths-enabled",
                     Name = "Long Paths Enabled",
                     Description = "Controls support for long file paths (up to 32,767 characters)",
                     Category = OptimizationCategory.Explorer,
@@ -29,7 +29,7 @@ public static class ExplorerOptimizations
                         new RegistrySetting
                         {
                             Category = "Explorer",
-                            Hive = RegistryHive.LocalMachine,
+                            Hive = "HKEY_LOCAL_MACHINE",
                             SubKey = "SYSTEM\\CurrentControlSet\\Control\\FileSystem",
                             Name = "LongPathsEnabled",
                             RecommendedValue = 1,
@@ -46,7 +46,7 @@ public static class ExplorerOptimizations
                 },
                 new OptimizationSetting
                 {
-                    Id = "explorer-block-aad-workplace-join",
+                    Id = "explorer-optimization-block-aad-workplace-join",
                     Name = "Block AAD Workplace Join",
                     Description = "Controls 'Allow my organization to manage my device' pop-up",
                     Category = OptimizationCategory.Explorer,
@@ -58,7 +58,7 @@ public static class ExplorerOptimizations
                         new RegistrySetting
                         {
                             Category = "Explorer",
-                            Hive = RegistryHive.LocalMachine,
+                            Hive = "HKEY_LOCAL_MACHINE",
                             SubKey =
                                 "Software\\Microsoft\\Windows\\CurrentVersion\\Policies\\System",
                             Name = "BlockAADWorkplaceJoin",
@@ -76,7 +76,7 @@ public static class ExplorerOptimizations
                 },
                 new OptimizationSetting
                 {
-                    Id = "explorer-disable-sync-provider-notifications",
+                    Id = "explorer-optimization-disable-sync-provider-notifications",
                     Name = "Sync Provider Notifications",
                     Description = "Controls sync provider notifications visibility",
                     Category = OptimizationCategory.Explorer,
@@ -88,7 +88,7 @@ public static class ExplorerOptimizations
                         new RegistrySetting
                         {
                             Category = "Explorer",
-                            Hive = RegistryHive.CurrentUser,
+                            Hive = "HKEY_CURRENT_USER",
                             SubKey =
                                 "Software\\Microsoft\\Windows\\CurrentVersion\\Explorer\\Advanced",
                             Name = "ShowSyncProviderNotifications",
@@ -105,7 +105,7 @@ public static class ExplorerOptimizations
                 },
                 new OptimizationSetting
                 {
-                    Id = "explorer-tablet-mode",
+                    Id = "explorer-optimization-tablet-mode",
                     Name = "Tablet Mode",
                     Description = "Controls Tablet Mode",
                     Category = OptimizationCategory.Explorer,
@@ -117,7 +117,7 @@ public static class ExplorerOptimizations
                         new RegistrySetting
                         {
                             Category = "Explorer",
-                            Hive = RegistryHive.CurrentUser,
+                            Hive = "HKEY_CURRENT_USER",
                             SubKey = "Software\\Microsoft\\Windows\\CurrentVersion\\ImmersiveShell",
                             Name = "TabletMode",
                             RecommendedValue = 0,
@@ -133,7 +133,7 @@ public static class ExplorerOptimizations
                 },
                 new OptimizationSetting
                 {
-                    Id = "explorer-desktop-mode-signin",
+                    Id = "explorer-optimization-desktop-mode-signin",
                     Name = "Desktop Mode on Sign-in",
                     Description = "Controls whether the system goes to desktop mode on sign-in",
                     Category = OptimizationCategory.Explorer,
@@ -145,7 +145,7 @@ public static class ExplorerOptimizations
                         new RegistrySetting
                         {
                             Category = "Explorer",
-                            Hive = RegistryHive.CurrentUser,
+                            Hive = "HKEY_CURRENT_USER",
                             SubKey = "Software\\Microsoft\\Windows\\CurrentVersion\\ImmersiveShell",
                             Name = "SignInMode",
                             RecommendedValue = 1,
@@ -162,7 +162,7 @@ public static class ExplorerOptimizations
                 },
                 new OptimizationSetting
                 {
-                    Id = "explorer-voice-typing",
+                    Id = "explorer-optimization-voice-typing",
                     Name = "Voice Typing Button",
                     Description = "Controls voice typing microphone button",
                     Category = OptimizationCategory.Explorer,
@@ -174,7 +174,7 @@ public static class ExplorerOptimizations
                         new RegistrySetting
                         {
                             Category = "Explorer",
-                            Hive = RegistryHive.CurrentUser,
+                            Hive = "HKEY_CURRENT_USER",
                             SubKey = "Software\\Microsoft\\InputSettings",
                             Name = "IsVoiceTypingKeyEnabled",
                             RecommendedValue = 0,
@@ -190,7 +190,7 @@ public static class ExplorerOptimizations
                 },
                 new OptimizationSetting
                 {
-                    Id = "explorer-typing-insights",
+                    Id = "explorer-optimization-typing-insights",
                     Name = "Typing Insights",
                     Description = "Controls typing insights and suggestions",
                     Category = OptimizationCategory.Explorer,
@@ -202,7 +202,7 @@ public static class ExplorerOptimizations
                         new RegistrySetting
                         {
                             Category = "Explorer",
-                            Hive = RegistryHive.CurrentUser,
+                            Hive = "HKEY_CURRENT_USER",
                             SubKey = "Software\\Microsoft\\InputSettings",
                             Name = "InsightsEnabled",
                             RecommendedValue = 0,
@@ -218,7 +218,7 @@ public static class ExplorerOptimizations
                 },
                 new OptimizationSetting
                 {
-                    Id = "explorer-suggested-actions",
+                    Id = "explorer-optimization-suggested-actions",
                     Name = "Clipboard Suggested Actions",
                     Description = "Controls suggested actions for clipboard content",
                     Category = OptimizationCategory.Explorer,
@@ -230,7 +230,7 @@ public static class ExplorerOptimizations
                         new RegistrySetting
                         {
                             Category = "Explorer",
-                            Hive = RegistryHive.CurrentUser,
+                            Hive = "HKEY_CURRENT_USER",
                             SubKey =
                                 "Software\\Microsoft\\Windows\\CurrentVersion\\Explorer\\SmartActionPlatform\\SmartClipboard",
                             Name = "Disabled",
@@ -247,7 +247,7 @@ public static class ExplorerOptimizations
                 },
                 new OptimizationSetting
                 {
-                    Id = "explorer-windows-manage-printer",
+                    Id = "explorer-optimization-windows-manage-printer",
                     Name = "Default Printer Management",
                     Description = "Controls Windows managing default printer",
                     Category = OptimizationCategory.Explorer,
@@ -259,7 +259,7 @@ public static class ExplorerOptimizations
                         new RegistrySetting
                         {
                             Category = "Explorer",
-                            Hive = RegistryHive.CurrentUser,
+                            Hive = "HKEY_CURRENT_USER",
                             SubKey =
                                 "Software\\Microsoft\\Windows\\CurrentVersion\\Explorer\\Windows",
                             Name = "LegacyDefaultPrinterMode",
@@ -276,7 +276,7 @@ public static class ExplorerOptimizations
                 },
                 new OptimizationSetting
                 {
-                    Id = "explorer-disable-snap-assist",
+                    Id = "explorer-optimization-disable-snap-assist",
                     Name = "Snap Assist",
                     Description = "Controls Snap Assist feature",
                     Category = OptimizationCategory.Explorer,
@@ -288,7 +288,7 @@ public static class ExplorerOptimizations
                         new RegistrySetting
                         {
                             Category = "Explorer",
-                            Hive = RegistryHive.CurrentUser,
+                            Hive = "HKEY_CURRENT_USER",
                             SubKey =
                                 "Software\\Microsoft\\Windows\\CurrentVersion\\Explorer\\Advanced",
                             Name = "SnapAssist",
@@ -305,7 +305,7 @@ public static class ExplorerOptimizations
                 },
                 new OptimizationSetting
                 {
-                    Id = "explorer-frequent-folders",
+                    Id = "explorer-optimization-frequent-folders",
                     Name = "Frequent Folders in Quick Access",
                     Description = "Controls display of frequent folders in Quick Access",
                     Category = OptimizationCategory.Explorer,
@@ -317,7 +317,7 @@ public static class ExplorerOptimizations
                         new RegistrySetting
                         {
                             Category = "Explorer",
-                            Hive = RegistryHive.CurrentUser,
+                            Hive = "HKEY_CURRENT_USER",
                             SubKey = "Software\\Microsoft\\Windows\\CurrentVersion\\Explorer",
                             Name = "ShowFrequent",
                             RecommendedValue = 0,
@@ -333,7 +333,7 @@ public static class ExplorerOptimizations
                 },
                 new OptimizationSetting
                 {
-                    Id = "compress-desktop-wallpaper",
+                    Id = "explorer-optimization-compress-desktop-wallpaper",
                     Name = "Compress Desktop Wallpaper",
                     Description = "Controls compression of desktop wallpaper",
                     Category = OptimizationCategory.Explorer,
@@ -345,7 +345,7 @@ public static class ExplorerOptimizations
                         new RegistrySetting
                         {
                             Category = "Explorer",
-                            Hive = RegistryHive.CurrentUser,
+                            Hive = "HKEY_CURRENT_USER",
                             SubKey = "Control Panel\\Desktop",
                             Name = "JPEGImportQuality",
                             RecommendedValue = 100,
@@ -361,7 +361,7 @@ public static class ExplorerOptimizations
                 },
                 new OptimizationSetting
                 {
-                    Id = "explorer-office-files",
+                    Id = "explorer-optimization-office-files",
                     Name = "Office Files in Quick Access",
                     Description = "Controls display of files from Office.com in Quick Access",
                     Category = OptimizationCategory.Explorer,
@@ -373,7 +373,7 @@ public static class ExplorerOptimizations
                         new RegistrySetting
                         {
                             Category = "Explorer",
-                            Hive = RegistryHive.CurrentUser,
+                            Hive = "HKEY_CURRENT_USER",
                             SubKey = "Software\\Microsoft\\Windows\\CurrentVersion\\Explorer",
                             Name = "ShowCloudFilesInQuickAccess",
                             RecommendedValue = 0,

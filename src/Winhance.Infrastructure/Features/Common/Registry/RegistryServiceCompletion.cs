@@ -36,16 +36,16 @@ namespace Winhance.Infrastructure.Features.Common.Registry
             if (rootKeyName == "HKEY_CURRENT_CONFIG")
                 return Microsoft.Win32.Registry.CurrentConfig;
             
-            // Then check for abbreviated names using the extension method's constants
-            if (rootKeyName == RegistryExtensions.GetRegistryHiveString(RegistryHive.LocalMachine))
+            // Then check for abbreviated names using direct string constants
+            if (rootKeyName == "HKLM")
                 return Microsoft.Win32.Registry.LocalMachine;
-            if (rootKeyName == RegistryExtensions.GetRegistryHiveString(RegistryHive.CurrentUser))
+            if (rootKeyName == "HKCU")
                 return Microsoft.Win32.Registry.CurrentUser;
-            if (rootKeyName == RegistryExtensions.GetRegistryHiveString(RegistryHive.ClassesRoot))
+            if (rootKeyName == "HKCR")
                 return Microsoft.Win32.Registry.ClassesRoot;
-            if (rootKeyName == RegistryExtensions.GetRegistryHiveString(RegistryHive.Users))
+            if (rootKeyName == "HKU")
                 return Microsoft.Win32.Registry.Users;
-            if (rootKeyName == RegistryExtensions.GetRegistryHiveString(RegistryHive.CurrentConfig))
+            if (rootKeyName == "HKCC")
                 return Microsoft.Win32.Registry.CurrentConfig;
             
             // If no match is found, return null

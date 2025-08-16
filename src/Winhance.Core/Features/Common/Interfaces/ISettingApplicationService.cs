@@ -22,6 +22,7 @@ namespace Winhance.Core.Features.Common.Interfaces
         /// <returns>A task representing the asynchronous operation.</returns>
         Task ApplySettingAsync(string settingId, bool enable, object? value = null);
 
+
         /// <summary>
         /// Gets the current state and value of a setting by finding the appropriate domain service.
         /// </summary>

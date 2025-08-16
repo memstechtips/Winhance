@@ -21,5 +21,12 @@ namespace Winhance.Core.Features.Customize.Interfaces
         /// <param name="isEnabled">Whether the settings should be enabled.</param>
         /// <returns>A task representing the asynchronous operation.</returns>
         Task ApplyMultipleSettingsAsync(IEnumerable<ApplicationSetting> settings, bool isEnabled);
+
+        /// <summary>
+        /// Executes Start Menu cleanup operation.
+        /// Removes all pinned items and applies recommended settings.
+        /// </summary>
+        /// <returns>A task representing the asynchronous operation.</returns>
+        Task CleanStartMenuAsync();
     }
 }

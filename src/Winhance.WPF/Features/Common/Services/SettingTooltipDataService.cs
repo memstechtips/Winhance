@@ -62,7 +62,7 @@ namespace Winhance.WPF.Features.Common.Services
                         foreach (var registrySetting in setting.RegistrySettings)
                         {
                             // Get the registry path
-                            var keyPath = $"{RegistryExtensions.GetRegistryHiveString(registrySetting.Hive)}\\{registrySetting.SubKey}";
+                            var keyPath = $"{registrySetting.Hive}\\{registrySetting.SubKey}";
                         
                             // Get fresh value directly from registry service
                             var freshValue = _registryService.GetValue(keyPath, registrySetting.Name);

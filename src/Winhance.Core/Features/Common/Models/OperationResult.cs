@@ -35,6 +35,16 @@ namespace Winhance.Core.Features.Common.Models
         public Dictionary<string, string>? ErrorDetails { get; set; }
 
         /// <summary>
+        /// Gets or sets whether this operation requires user confirmation before proceeding.
+        /// </summary>
+        public bool RequiresConfirmation { get; set; }
+
+        /// <summary>
+        /// Gets or sets the confirmation request details if RequiresConfirmation is true.
+        /// </summary>
+        public ConfirmationRequest? ConfirmationRequest { get; set; }
+
+        /// <summary>
         /// Creates a successful operation result with the specified result value.
         /// </summary>
         /// <param name="result">The result value.</param>
@@ -184,6 +194,20 @@ namespace Winhance.Core.Features.Common.Models
                 Result = result
             };
         }
+
+        /// <summary>
+        /// Creates an operation result that requires user confirmation.
+        /// </summary>
+        /// <param name="confirmationRequest">The confirmation request details.</param>
+        /// <returns>An operation result requiring confirmation.</returns>
+        public static OperationResult<T> CreateConfirmationRequired(ConfirmationRequest confirmationRequest)
+        {
+            return new OperationResult<T>
+            {
+                RequiresConfirmation = true,
+                ConfirmationRequest = confirmationRequest
+            };
+        }
     }
 
     /// <summary>
@@ -210,6 +234,16 @@ namespace Winhance.Core.Features.Common.Models
         /// Gets or sets additional error details.
         /// </summary>
         public Dictionary<string, string>? ErrorDetails { get; set; }
+
+        /// <summary>
+        /// Gets or sets whether this operation requires user confirmation before proceeding.
+        /// </summary>
+        public bool RequiresConfirmation { get; set; }
+
+        /// <summary>
+        /// Gets or sets the confirmation request details if RequiresConfirmation is true.
+        /// </summary>
+        public ConfirmationRequest? ConfirmationRequest { get; set; }
 
         /// <summary>
         /// Creates a successful operation result.
@@ -327,6 +361,20 @@ namespace Winhance.Core.Features.Common.Models
                 Success = false,
                 ErrorMessage = message,
                 Exception = exception
+            };
+        }
+
+        /// <summary>
+        /// Creates an operation result that requires user confirmation.
+        /// </summary>
+        /// <param name="confirmationRequest">The confirmation request details.</param>
+        /// <returns>An operation result requiring confirmation.</returns>
+        public static OperationResult CreateConfirmationRequired(ConfirmationRequest confirmationRequest)
+        {
+            return new OperationResult
+            {
+                RequiresConfirmation = true,
+                ConfirmationRequest = confirmationRequest
             };
         }
     }

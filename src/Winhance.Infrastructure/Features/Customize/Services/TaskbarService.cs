@@ -7,29 +7,31 @@ using Winhance.Core.Features.Common.Interfaces;
 using Winhance.Core.Features.Common.Models;
 using Winhance.Core.Features.Customize.Interfaces;
 using Winhance.Core.Features.Customize.Models;
+using Winhance.Infrastructure.Features.Common.Services;
 
 namespace Winhance.Infrastructure.Features.Customize.Services
 {
     /// <summary>
     /// Service implementation for managing Taskbar customization settings.
     /// Handles taskbar appearance, behavior, and cleanup operations.
+    /// Maintains exact same method signatures and behavior for compatibility.
     /// </summary>
     public class TaskbarService : ITaskbarService
     {
-        private readonly IRegistryService _registryService;
-        private readonly ICommandService _commandService;
+        private readonly SystemSettingOrchestrator _orchestrator;
         private readonly ILogService _logService;
+        private readonly ICommandService _commandService;
 
         public string DomainName => "Taskbar";
 
         public TaskbarService(
-            IRegistryService registryService,
-            ICommandService commandService,
-            ILogService logService)
+            SystemSettingOrchestrator orchestrator,
+            ILogService logService,
+            ICommandService commandService)
         {
-            _registryService = registryService ?? throw new ArgumentNullException(nameof(registryService));
-            _commandService = commandService ?? throw new ArgumentNullException(nameof(commandService));
+            _orchestrator = orchestrator ?? throw new ArgumentNullException(nameof(orchestrator));
             _logService = logService ?? throw new ArgumentNullException(nameof(logService));
+            _commandService = commandService ?? throw new ArgumentNullException(nameof(commandService));
         }
 
         public async Task<IEnumerable<ApplicationSetting>> GetSettingsAsync()
@@ -39,7 +41,7 @@ namespace Winhance.Infrastructure.Features.Customize.Services
                 _logService.Log(LogLevel.Info, "Loading Taskbar settings");
                 
                 var group = TaskbarCustomizations.GetTaskbarCustomizations();
-                return group.Settings;
+                return await _orchestrator.GetSettingsWithSystemStateAsync(group.Settings, DomainName);
             }
             catch (Exception ex)
             {
@@ -48,113 +50,40 @@ namespace Winhance.Infrastructure.Features.Customize.Services
             }
         }
 
+        /// <summary>
+        /// Applies a setting.
+        /// </summary>
         public async Task ApplySettingAsync(string settingId, bool enable, object? value = null)
         {
-            try
-            {
-                _logService.Log(LogLevel.Info, $"Applying Taskbar setting '{settingId}': enable={enable}");
-
-                var settings = await GetSettingsAsync();
-                var setting = settings.FirstOrDefault(s => s.Id == settingId);
-                
-                if (setting == null)
-                {
-                    throw new ArgumentException($"Setting '{settingId}' not found in Taskbar domain");
-                }
-
-                // Apply registry settings
-                if (setting.RegistrySettings?.Count > 0)
-                {
-                    foreach (var registrySetting in setting.RegistrySettings)
-                    {
-                        await _registryService.ApplySettingAsync(registrySetting, enable);
-                    }
-                }
-
-                // Apply command settings
-                if (setting.CommandSettings?.Count > 0)
-                {
-                    foreach (var commandSetting in setting.CommandSettings)
-                    {
-                        await _commandService.ApplyCommandSettingsAsync(new[] { commandSetting }, enable);
-                    }
-                }
-
-                _logService.Log(LogLevel.Info, $"Successfully applied Taskbar setting '{settingId}'");
-            }
-            catch (Exception ex)
-            {
-                _logService.Log(LogLevel.Error, $"Error applying Taskbar setting '{settingId}': {ex.Message}");
-                throw;
-            }
+            var settings = await GetRawSettingsAsync();
+            await _orchestrator.ApplySettingAsync(settingId, enable, value, settings, DomainName);
         }
 
-        public async Task<bool> GetSettingStatusAsync(string settingId)
-        {
-            try
-            {
-                var settings = await GetSettingsAsync();
-                var setting = settings.FirstOrDefault(s => s.Id == settingId);
-                
-                if (setting?.RegistrySettings?.Count > 0)
-                {
-                    var status = await _registryService.GetSettingStatusAsync(setting.RegistrySettings[0]);
-                    return status == RegistrySettingStatus.Applied;
-                }
-                
-                return false;
-            }
-            catch (Exception ex)
-            {
-                _logService.Log(LogLevel.Error, $"Error checking Taskbar setting '{settingId}': {ex.Message}");
-                return false;
-            }
-        }
-
-        public async Task<object?> GetSettingValueAsync(string settingId)
-        {
-            try
-            {
-                var settings = await GetSettingsAsync();
-                var setting = settings.FirstOrDefault(s => s.Id == settingId);
-                
-                if (setting?.RegistrySettings?.Count > 0)
-                {
-                    return await _registryService.GetCurrentValueAsync(setting.RegistrySettings[0]);
-                }
-                
-                return null;
-            }
-            catch (Exception ex)
-            {
-                _logService.Log(LogLevel.Error, $"Error getting Taskbar setting value '{settingId}': {ex.Message}");
-                return null;
-            }
-        }
+        /// <summary>
+        /// Checks if a setting is enabled.
+        /// </summary>
         public async Task<bool> IsSettingEnabledAsync(string settingId)
         {
-            try
-            {
-                _logService.Log(LogLevel.Info, $"Checking if setting '{settingId}' is enabled");
-                
-                var settings = await GetSettingsAsync();
-                var setting = settings.FirstOrDefault(s => s.Id == settingId);
-                if (setting?.RegistrySettings?.Count > 0)
-                {
-                    var status = await _registryService.GetSettingStatusAsync(setting.RegistrySettings[0]);
-                    return status == RegistrySettingStatus.Applied;
-                }
-                
-                return false;
-            }
-            catch (Exception ex)
-            {
-                _logService.Log(
-                    LogLevel.Error,
-                    $"Error checking if setting '{settingId}' is enabled: {ex.Message}"
-                );
-                return false;
-            }
+            var settings = await GetRawSettingsAsync();
+            return await _orchestrator.GetSettingStatusAsync(settingId, settings);
+        }
+
+        /// <summary>
+        /// Gets the current value of a setting.
+        /// </summary>
+        public async Task<object?> GetSettingValueAsync(string settingId)
+        {
+            var settings = await GetRawSettingsAsync();
+            return await _orchestrator.GetSettingValueAsync(settingId, settings);
+        }
+
+        /// <summary>
+        /// Helper method to get raw settings without system state.
+        /// </summary>
+        private async Task<IEnumerable<ApplicationSetting>> GetRawSettingsAsync()
+        {
+            var group = TaskbarCustomizations.GetTaskbarCustomizations();
+            return await Task.FromResult(group.Settings);
         }
 
         public async Task ExecuteTaskbarCleanupAsync()

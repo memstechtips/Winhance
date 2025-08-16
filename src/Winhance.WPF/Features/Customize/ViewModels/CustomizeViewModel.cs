@@ -1,105 +1,59 @@
 using System;
 using System.Collections.Generic;
 using System.Collections.ObjectModel;
-using System.ComponentModel;
 using System.Linq;
 using System.Threading.Tasks;
+using System.Windows;
+using System.Windows.Controls;
 using CommunityToolkit.Mvvm.ComponentModel;
 using CommunityToolkit.Mvvm.Input;
-using Winhance.Core.Features.Common.Enums;
-using Winhance.Core.Features.Common.Events;
 using Winhance.Core.Features.Common.Interfaces;
+using Winhance.Core.Features.Common.Events;
+using Winhance.Core.Features.Common.Enums;
 using Winhance.WPF.Features.Common.Interfaces;
-using Winhance.WPF.Features.Common.Models;
 using Winhance.WPF.Features.Common.Factories;
+using Winhance.WPF.Features.Common.Models;
 using Winhance.WPF.Features.Common.Resources.Theme;
+using Winhance.WPF.Features.Customize.Views;
 
 namespace Winhance.WPF.Features.Customize.ViewModels
 {
     /// <summary>
-    /// Factory-based container ViewModel for the Customize view that dynamically loads customization features.
-    /// Uses the new architecture with feature discovery and factory pattern for clean separation of concerns.
+    /// Clean architecture composition ViewModel for Customize feature.
+    /// Follows SOLID principles with proper dependency injection.
+    /// Uses dynamic feature discovery and factory patterns.
     /// </summary>
-    public partial class CustomizeViewModel : ObservableObject
+    public partial class CustomizeViewModel : ObservableObject, IDisposable
     {
         #region Private Fields
-
+        
         private readonly IFeatureDiscoveryService _featureDiscoveryService;
         private readonly IFeatureViewModelFactory _featureViewModelFactory;
-        private readonly ILogService _logService;
         private readonly IThemeManager _themeManager;
         private readonly IEventBus _eventBus;
-
+        private readonly ILogService _logService;
+        private readonly ISearchTextCoordinationService _searchTextCoordinationService;
+        
         #endregion
-
-        #region Dynamic Features
-
-        /// <summary>
-        /// Gets the collection of dynamically loaded customization feature ViewModels.
-        /// </summary>
-        public ObservableCollection<IFeatureViewModel> Features { get; } = new();
-
-        // Legacy property accessors for backward compatibility with existing Views and configuration services
-        public WindowsThemeCustomizationsViewModel WindowsThemeViewModel => 
-            Features.OfType<WindowsThemeCustomizationsViewModel>().FirstOrDefault();
-        public StartMenuCustomizationsViewModel StartMenuViewModel => 
-            Features.OfType<StartMenuCustomizationsViewModel>().FirstOrDefault();
-        public TaskbarCustomizationsViewModel TaskbarViewModel => 
-            Features.OfType<TaskbarCustomizationsViewModel>().FirstOrDefault();
-        public ExplorerCustomizationsViewModel ExplorerViewModel => 
-            Features.OfType<ExplorerCustomizationsViewModel>().FirstOrDefault();
-
-        #endregion
-
+        
         #region Observable Properties
-
+        
         /// <summary>
-        /// Gets or sets a value indicating whether search has any results across all child ViewModels.
+        /// Collection of feature Views dynamically created via factory pattern.
         /// </summary>
-        [ObservableProperty]
-        private bool _hasSearchResults = true;
-
-        /// <summary>
-        /// Gets or sets the status text.
-        /// </summary>
+        public ObservableCollection<UserControl> FeatureViews { get; } = new();
+        
         [ObservableProperty]
         private string _statusText = "Customize Your Windows Experience";
-
-        /// <summary>
-        /// Gets or sets the search text that will be applied to all child ViewModels.
-        /// </summary>
+        
         [ObservableProperty]
         private string _searchText = string.Empty;
-
-        /// <summary>
-        /// Gets or sets a value indicating whether any child ViewModel is loading.
-        /// </summary>
+        
+        [ObservableProperty]
+        private bool _hasSearchResults = true;
+        
         [ObservableProperty]
         private bool _isLoading;
-
-        #endregion
-
-        #region Aggregate Properties
-
-        /// <summary>
-        /// Gets a value indicating whether any feature ViewModel has visible settings.
-        /// </summary>
-        public bool HasAnyVisibleSettings => Features.Any(f => f.HasVisibleSettings);
-
-        /// <summary>
-        /// Gets the total count of all settings across feature ViewModels.
-        /// </summary>
-        public int TotalSettingsCount => Features.Sum(f => f.Settings.Count);
-
-        /// <summary>
-        /// Gets the command to load all settings from child ViewModels.
-        /// </summary>
-        public IAsyncRelayCommand LoadAllSettingsCommand { get; }
-
-        /// <summary>
-        /// Gets the command to search across all child ViewModels.
-        /// </summary>
-        public IRelayCommand<string> SearchAllCommand { get; }
         
         /// <summary>
         /// Gets a value indicating whether the ViewModel is initialized.
@@ -107,199 +61,336 @@ namespace Winhance.WPF.Features.Customize.ViewModels
         public bool IsInitialized { get; private set; }
         
         /// <summary>
-        /// Gets the command to initialize the ViewModel.
-        /// </summary>
-        public IAsyncRelayCommand InitializeCommand { get; }
-        
-        /// <summary>
-        /// Gets the aggregated settings from all child ViewModels.
+        /// Gets the aggregated settings from all feature ViewModels.
         /// </summary>
         public ObservableCollection<SettingUIItem> Settings
         {
             get
             {
                 var allSettings = new ObservableCollection<SettingUIItem>();
-                foreach (var setting in WindowsThemeViewModel.Settings) allSettings.Add(setting);
-                foreach (var setting in StartMenuViewModel.Settings) allSettings.Add(setting);
-                foreach (var setting in TaskbarViewModel.Settings) allSettings.Add(setting);
-                foreach (var setting in ExplorerViewModel.Settings) allSettings.Add(setting);
+                foreach (var view in FeatureViews)
+                {
+                    if (view.DataContext is IFeatureViewModel featureViewModel)
+                    {
+                        foreach (var setting in featureViewModel.Settings)
+                            allSettings.Add(setting);
+                    }
+                }
                 return allSettings;
             }
         }
         
-        /// <summary>
-        /// Loads settings asynchronously (public method for configuration services).
-        /// </summary>
-        public async Task LoadSettingsAsync() => await LoadAllSettingsAsync();
+        #endregion
+        
+        #region Commands
         
         /// <summary>
-        /// Initializes the ViewModel asynchronously.
+        /// Command to initialize the ViewModel asynchronously.
         /// </summary>
-        public async Task InitializeAsync()
-        {
-            if (!IsInitialized)
-            {
-                await LoadAllSettingsAsync();
-                IsInitialized = true;
-            }
-        }
-
+        public IAsyncRelayCommand InitializeCommand { get; }
+        
         #endregion
-
+        
         #region Constructor
-
+        
         /// <summary>
-        /// Initializes a new instance of the <see cref="CustomizeViewModel"/> class.
+        /// Initializes a new instance of the CustomizeViewModel with proper dependency injection.
+        /// Follows Dependency Inversion Principle - depends on abstractions, not concretions.
         /// </summary>
-        /// <param name="featureDiscoveryService">The feature discovery service.</param>
-        /// <param name="featureViewModelFactory">The feature ViewModel factory.</param>
-        /// <param name="themeManager">The theme manager.</param>
-        /// <param name="eventBus">The event bus.</param>
-        /// <param name="logService">The log service.</param>
+        /// <param name="featureDiscoveryService">Service for discovering customize features.</param>
+        /// <param name="featureViewModelFactory">Factory for creating feature ViewModels.</param>
+        /// <param name="themeManager">Service for managing application themes.</param>
+        /// <param name="eventBus">Service for event communication.</param>
+        /// <param name="logService">Service for logging operations.</param>
+        /// <param name="searchTextCoordinationService">Service for coordinating search text across features.</param>
         public CustomizeViewModel(
             IFeatureDiscoveryService featureDiscoveryService,
             IFeatureViewModelFactory featureViewModelFactory,
             IThemeManager themeManager,
             IEventBus eventBus,
-            ILogService logService)
+            ILogService logService,
+            ISearchTextCoordinationService searchTextCoordinationService)
         {
+            // Null checks for Fail-Fast principle
             _featureDiscoveryService = featureDiscoveryService ?? throw new ArgumentNullException(nameof(featureDiscoveryService));
             _featureViewModelFactory = featureViewModelFactory ?? throw new ArgumentNullException(nameof(featureViewModelFactory));
             _themeManager = themeManager ?? throw new ArgumentNullException(nameof(themeManager));
             _eventBus = eventBus ?? throw new ArgumentNullException(nameof(eventBus));
             _logService = logService ?? throw new ArgumentNullException(nameof(logService));
             
-            // Initialize commands
-            LoadAllSettingsCommand = new AsyncRelayCommand(LoadAllSettingsAsync);
-            InitializeCommand = new AsyncRelayCommand(InitializeAsync);
-            SearchAllCommand = new RelayCommand<string>(SearchAll);
+            _searchTextCoordinationService = searchTextCoordinationService ?? throw new ArgumentNullException(nameof(searchTextCoordinationService));
             
-            // Subscribe to SearchText changes to propagate to children
-            PropertyChanged += OnPropertyChanged;
+            // Initialize commands
+            InitializeCommand = new AsyncRelayCommand(InitializeAsync);
+            
+            // Subscribe to search text coordination
+            _searchTextCoordinationService.SearchTextChanged += OnSearchTextChanged;
+            
+            // Auto-initialize on UI thread
+            _ = InitializeAsync();
         }
-
+        
         #endregion
-
-        #region Public Properties
-
+        
+        #region Public Methods
+        
         /// <summary>
-        /// Gets the event bus for communication with other ViewModels.
+        /// Initializes the ViewModel asynchronously following clean architecture patterns.
         /// </summary>
-        public IEventBus EventBus => _eventBus;
-
-        #endregion
-
-        #region Private Methods
-
-        /// <summary>
-        /// Loads all customization features dynamically using the factory pattern.
-        /// </summary>
-        /// <returns>A task representing the asynchronous operation.</returns>
-        public async Task LoadAllSettingsAsync()
+        public async Task InitializeAsync()
         {
+            if (IsInitialized) return;
+            
             try
             {
                 IsLoading = true;
                 StatusText = "Discovering customization features...";
                 
-                // Clear existing features
-                Features.Clear();
-                
-                // Discover customization features
-                var customizationFeatures = await _featureDiscoveryService.DiscoverFeaturesAsync("Customization");
+                // Use domain service to discover features (Single Responsibility)
+                var features = await _featureDiscoveryService.DiscoverFeaturesAsync("Customization");
                 
                 StatusText = "Loading customization features...";
                 
-                // Create ViewModels for each discovered feature
-                var featureViewModels = new List<IFeatureViewModel>();
-                foreach (var descriptor in customizationFeatures)
-                {
-                    try
-                    {
-                        var viewModel = await _featureViewModelFactory.CreateAsync(descriptor);
-                        if (viewModel != null)
-                        {
-                            featureViewModels.Add(viewModel);
-                            _logService.Log(LogLevel.Info, $"Loaded customization feature: {descriptor.DisplayName}");
-                        }
-                    }
-                    catch (Exception ex)
-                    {
-                        _logService.Log(LogLevel.Warning, $"Failed to load customization feature '{descriptor.DisplayName}': {ex.Message}");
-                    }
-                }
+                // Create feature views using factory pattern (Open/Closed Principle)
+                await CreateFeatureViewsAsync(features);
                 
-                // Add features to collection
-                foreach (var viewModel in featureViewModels.OrderBy(f => f.SortOrder))
-                {
-                    Features.Add(viewModel);
-                }
+                // Load settings for all features first
+                await LoadSettingsAsync();
                 
-                // Load settings from all feature ViewModels in parallel
-                if (Features.Any())
-                {
-                    StatusText = "Loading customization settings...";
-                    var loadTasks = Features.Select(f => f.LoadSettingsAsync());
-                    await Task.WhenAll(loadTasks);
-                }
-
-                StatusText = $"Loaded {Features.Count} customization features with {TotalSettingsCount} settings";
-                OnPropertyChanged(nameof(HasAnyVisibleSettings));
-                OnPropertyChanged(nameof(TotalSettingsCount));
+                // Subscribe to feature visibility changes after settings are loaded
+                SubscribeToFeatureVisibilityChanges();
+                
+                StatusText = $"Loaded {FeatureViews.Count} customization features";
+                IsInitialized = true;
+                
+                _logService.Log(LogLevel.Info, $"CustomizeViewModel initialized with {FeatureViews.Count} features");
             }
             catch (Exception ex)
             {
-                _logService.Log(LogLevel.Error, $"Error loading customization features: {ex.Message}");
+                _logService.Log(LogLevel.Error, $"Error initializing CustomizeViewModel: {ex.Message}");
                 StatusText = "Error loading customization features";
+                throw;
             }
             finally
             {
                 IsLoading = false;
             }
         }
-
+        
         /// <summary>
-        /// Searches across all feature ViewModels.
+        /// Loads settings asynchronously (for configuration services compatibility).
         /// </summary>
-        /// <param name="searchText">The search text to apply.</param>
-        private void SearchAll(string searchText)
+        public async Task LoadSettingsAsync()
         {
-            var search = searchText ?? string.Empty;
+            // Load settings for all feature ViewModels
+            var loadTasks = new List<Task>();
             
-            // Apply search to all feature ViewModels
-            foreach (var feature in Features)
+            foreach (var view in FeatureViews)
             {
-                feature.SearchText = search;
+                if (view.DataContext is IFeatureViewModel featureViewModel)
+                {
+                    loadTasks.Add(LoadFeatureSettingsAsync(featureViewModel));
+                }
             }
             
-            // Update aggregate properties
-            OnPropertyChanged(nameof(HasAnyVisibleSettings));
-            UpdateSearchResults();
-        }
-
-        /// <summary>
-        /// Handles property changes to propagate SearchText changes.
-        /// </summary>
-        /// <param name="sender">The sender.</param>
-        /// <param name="e">The property changed event args.</param>
-        private void OnPropertyChanged(object sender, PropertyChangedEventArgs e)
-        {
-            if (e.PropertyName == nameof(SearchText))
+            if (loadTasks.Any())
             {
-                SearchAll(SearchText);
+                await Task.WhenAll(loadTasks);
             }
+            
+            // Notify that Settings property has changed
+            OnPropertyChanged(nameof(Settings));
         }
-
-        /// <summary>
-        /// Updates the search results status.
-        /// </summary>
-        private void UpdateSearchResults()
+        
+        private async Task LoadFeatureSettingsAsync(IFeatureViewModel featureViewModel)
         {
-            HasSearchResults = string.IsNullOrEmpty(SearchText) || HasAnyVisibleSettings;
+            await featureViewModel.LoadSettingsAsync();
+            _logService.Log(LogLevel.Info, $"ViewModel {featureViewModel.ModuleId}: HasVisibleSettings = {featureViewModel.HasVisibleSettings}, SettingsCount = {featureViewModel.SettingsCount}");
         }
-
+        
         #endregion
-
-
+        
+        #region Private Methods
+        
+        /// <summary>
+        /// Creates feature views using factory pattern and proper error handling.
+        /// Follows Single Responsibility and Interface Segregation principles.
+        /// </summary>
+        private async Task CreateFeatureViewsAsync(IEnumerable<IFeatureDescriptor> features)
+        {
+            FeatureViews.Clear();
+            
+            foreach (var descriptor in features.OrderBy(f => f.SortOrder))
+            {
+                try
+                {
+                    // Use factory to create ViewModel (Dependency Inversion)
+                    var featureViewModel = await _featureViewModelFactory.CreateAsync(descriptor);
+                    if (featureViewModel == null) continue;
+                    
+                    // Create corresponding view based on ModuleId
+                    var view = CreateViewForFeature(descriptor.ModuleId, featureViewModel);
+                    if (view != null)
+                    {
+                        FeatureViews.Add(view);
+                        _logService.Log(LogLevel.Info, $"Created customize feature: {descriptor.DisplayName}");
+                        _logService.Log(LogLevel.Info, $"FeatureViews collection now has {FeatureViews.Count} items");
+                    }
+                    else
+                    {
+                        _logService.Log(LogLevel.Warning, $"Failed to create view for feature: {descriptor.DisplayName} (ModuleId: {descriptor.ModuleId})");
+                    }
+                }
+                catch (Exception ex)
+                {
+                    _logService.Log(LogLevel.Warning, $"Failed to create customize feature '{descriptor.DisplayName}': {ex.Message}");
+                }
+            }
+        }
+        
+        /// <summary>
+        /// Creates the appropriate View for a feature based on its ModuleId.
+        /// Follows Factory pattern principles.
+        /// </summary>
+        private UserControl CreateViewForFeature(string moduleId, IFeatureViewModel viewModel)
+        {
+            _logService.Log(LogLevel.Info, $"Creating view for moduleId: {moduleId}");
+            
+            UserControl view = moduleId switch
+            {
+                "explorer-customization" => new ExplorerCustomizationsView(),
+                "start-menu" => new StartMenuCustomizationsView(),
+                "taskbar" => new TaskbarCustomizationsView(),
+                "windows-theme" => new WindowsThemeCustomizationsView(),
+                _ => null
+            };
+            
+            if (view != null)
+            {
+                _logService.Log(LogLevel.Info, $"Successfully created view for moduleId: {moduleId}");
+                view.DataContext = viewModel;
+            }
+            
+            return view;
+        }
+        
+        /// <summary>
+        /// Subscribes to feature visibility changes for search coordination.
+        /// Clean architecture approach - features handle their own filtering logic.
+        /// </summary>
+        private void SubscribeToFeatureVisibilityChanges()
+        {
+            foreach (var view in FeatureViews)
+            {
+                if (view.DataContext is ISearchableFeatureViewModel searchableFeature)
+                {
+                    // Subscribe to visibility changes from searchable features
+                    searchableFeature.VisibilityChanged += OnFeatureVisibilityChanged;
+                }
+            }
+        }
+        
+        /// <summary>
+        /// Handles search text changes and propagates to child features.
+        /// Clean architecture - each child handles its own filtering logic.
+        /// </summary>
+        private void OnSearchTextChanged(object? sender, SearchTextChangedEventArgs e)
+        {
+            // Propagate search text to all child features
+            foreach (var view in FeatureViews)
+            {
+                if (view.DataContext is ISearchableFeatureViewModel searchableFeature)
+                {
+                    searchableFeature.ApplySearchFilter(e.SearchText);
+                }
+                else if (view.DataContext is IFeatureViewModel basicFeature)
+                {
+                    // For basic features, set the SearchText property
+                    basicFeature.SearchText = e.SearchText;
+                }
+            }
+            
+            // Update feature visibility based on their self-reported results
+            UpdateFeatureVisibility();
+        }
+        
+        /// <summary>
+        /// Handles individual feature visibility changes.
+        /// Clean architecture - features report their own visibility state.
+        /// </summary>
+        private void OnFeatureVisibilityChanged(object? sender, FeatureVisibilityChangedEventArgs e)
+        {
+            // Features handle their own visibility logic, we just update the UI
+            UpdateFeatureVisibility();
+        }
+        
+        /// <summary>
+        /// Updates feature visibility based on search results.
+        /// Clean architecture - features determine their own visibility.
+        /// </summary>
+        private void UpdateFeatureVisibility()
+        {
+            bool hasAnyVisibleFeatures = false;
+            bool hasActiveSearch = !string.IsNullOrWhiteSpace(_searchTextCoordinationService.CurrentSearchText);
+            
+            foreach (var view in FeatureViews)
+            {
+                bool shouldShow = true;
+                
+                if (hasActiveSearch)
+                {
+                    if (view.DataContext is ISearchableFeatureViewModel searchableFeature)
+                    {
+                        shouldShow = searchableFeature.IsVisibleInSearch;
+                    }
+                    else if (view.DataContext is IFeatureViewModel basicFeature)
+                    {
+                        shouldShow = basicFeature.HasVisibleSettings;
+                    }
+                }
+                
+                view.Visibility = shouldShow ? Visibility.Visible : Visibility.Collapsed;
+                
+                if (shouldShow)
+                    hasAnyVisibleFeatures = true;
+            }
+            
+            HasSearchResults = hasAnyVisibleFeatures;
+        }
+        
+        /// <summary>
+        /// Handles SearchText property changes.
+        /// </summary>
+        partial void OnSearchTextChanged(string value)
+        {
+            _searchTextCoordinationService.UpdateSearchText(value ?? string.Empty);
+        }
+        
+        #endregion
+        
+        #region IDisposable
+        
+        /// <summary>
+        /// Disposes resources and unsubscribes from events.
+        /// Follows proper disposal pattern to prevent memory leaks.
+        /// </summary>
+        public void Dispose()
+        {
+            // Unsubscribe from search text coordination
+            _searchTextCoordinationService.SearchTextChanged -= OnSearchTextChanged;
+            
+            // Clean up feature event subscriptions
+            foreach (var view in FeatureViews)
+            {
+                if (view.DataContext is ISearchableFeatureViewModel searchableFeature)
+                {
+                    searchableFeature.VisibilityChanged -= OnFeatureVisibilityChanged;
+                }
+            }
+            
+            GC.SuppressFinalize(this);
+        }
+        
+        #endregion
     }
 }

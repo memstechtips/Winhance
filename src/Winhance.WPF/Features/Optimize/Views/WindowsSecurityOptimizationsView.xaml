@@ -83,12 +83,6 @@
                     <RowDefinition Height="Auto"/>
                 </Grid.RowDefinitions>
 
-                <!-- Title -->
-                <TextBlock Text="Windows Security Settings"
-                           Foreground="{DynamicResource PrimaryTextColor}"
-                           FontWeight="SemiBold"
-                           Margin="25,0,0,10"/>
-
                 <!-- Settings -->
                 <Grid Grid.Row="1" Margin="25,0,25,0">
                     <TextBlock Text="No security settings found" 
@@ -97,20 +91,11 @@
                                Margin="0,20,0,0" 
                                Visibility="{Binding HasVisibleSettings, Converter={StaticResource InverseBooleanToVisibilityConverter}}"/>
                     
-                    <!-- Settings Groups -->
-                    <ItemsControl ItemsSource="{Binding SettingGroups}" 
+                    <!-- Direct Settings Binding -->
+                    <ItemsControl ItemsSource="{Binding Settings}" 
                                   Visibility="{Binding HasVisibleSettings, Converter={StaticResource BooleanToVisibilityConverter}}">
                         <ItemsControl.ItemTemplate>
                             <DataTemplate>
-                                <StackPanel>
-                                    <TextBlock Text="{Binding Name}" 
-                                               Foreground="{DynamicResource PrimaryTextColor}" 
-                                               FontWeight="SemiBold" 
-                                               Margin="0,15,0,5"/>
-                                    
-                                    <ItemsControl ItemsSource="{Binding Settings}">
-                                        <ItemsControl.ItemTemplate>
-                                            <DataTemplate>
                                                 <Grid Margin="0,5">
                                                     <Grid.ColumnDefinitions>
                                                         <ColumnDefinition Width="*"/>
@@ -139,10 +124,6 @@
                                                     </StackPanel>
                                                 </Grid>
                                             </DataTemplate>
-                                        </ItemsControl.ItemTemplate>
-                                    </ItemsControl>
-                                </StackPanel>
-                            </DataTemplate>
                         </ItemsControl.ItemTemplate>
                     </ItemsControl>
                 </Grid>

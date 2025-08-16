@@ -1,5 +1,5 @@
-using Microsoft.Win32;
 using System.Collections.Generic;
+using Microsoft.Win32;
 using Winhance.Core.Features.Common.Enums;
 
 namespace Winhance.Core.Features.Common.Models
@@ -86,7 +86,34 @@ namespace Winhance.Core.Features.Common.Models
         /// This can be used to store additional data specific to certain setting types,
         /// such as combobox options, value mappings, or other configuration metadata.
         /// </summary>
-        public Dictionary<string, object> CustomProperties { get; init; } = new Dictionary<string, object>();
+        public Dictionary<string, object> CustomProperties { get; init; } =
+            new Dictionary<string, object>();
+
+        /// <summary>
+        /// Gets or sets whether this setting requires user confirmation before applying.
+        /// When true, a confirmation dialog will be shown before the setting is applied.
+        /// </summary>
+        public bool RequiresConfirmation { get; init; } = false;
+
+        /// <summary>
+        /// Gets or sets the title for the confirmation dialog.
+        /// Only used when RequiresConfirmation is true.
+        /// </summary>
+        public string? ConfirmationTitle { get; init; }
+
+        /// <summary>
+        /// Gets or sets the message for the confirmation dialog.
+        /// Supports placeholders that will be replaced at runtime.
+        /// Only used when RequiresConfirmation is true.
+        /// </summary>
+        public string? ConfirmationMessage { get; init; }
+
+        /// <summary>
+        /// Gets or sets the checkbox text for the confirmation dialog.
+        /// If null, no checkbox will be shown. Supports placeholders that will be replaced at runtime.
+        /// Only used when RequiresConfirmation is true.
+        /// </summary>
+        public string? ConfirmationCheckboxText { get; init; }
 
         /// <summary>
         /// Creates a LinkedRegistrySettings object from the RegistrySettings collection.
@@ -103,7 +130,7 @@ namespace Winhance.Core.Features.Common.Models
             {
                 Category = RegistrySettings[0].Category,
                 Description = Description,
-                Logic = LinkedSettingsLogic
+                Logic = LinkedSettingsLogic,
             };
 
             foreach (var registrySetting in RegistrySettings)

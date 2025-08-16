@@ -29,7 +29,7 @@ public static class GamingandPerformanceOptimizations
                         new RegistrySetting
                         {
                             Category = "Gaming",
-                            Hive = RegistryHive.CurrentUser,
+                            Hive = "HKEY_CURRENT_USER",
                             SubKey = "System\\GameConfigStore",
                             Name = "GameDVR_Enabled",
                             RecommendedValue = 0, // For backward compatibility
@@ -44,7 +44,7 @@ public static class GamingandPerformanceOptimizations
                         new RegistrySetting
                         {
                             Category = "Gaming",
-                            Hive = RegistryHive.LocalMachine,
+                            Hive = "HKEY_LOCAL_MACHINE",
                             SubKey =
                                 "SOFTWARE\\Microsoft\\Windows\\CurrentVersion\\GameConfigStore",
                             Name = "AllowGameDVR",
@@ -74,7 +74,7 @@ public static class GamingandPerformanceOptimizations
                         new RegistrySetting
                         {
                             Category = "Gaming",
-                            Hive = RegistryHive.CurrentUser,
+                            Hive = "HKEY_CURRENT_USER",
                             SubKey = "Software\\Microsoft\\GameBar",
                             Name = "UseNexusForGameBarEnabled",
                             RecommendedValue = 0, // For backward compatibility
@@ -102,7 +102,7 @@ public static class GamingandPerformanceOptimizations
                         new RegistrySetting
                         {
                             Category = "Gaming",
-                            Hive = RegistryHive.CurrentUser,
+                            Hive = "HKEY_CURRENT_USER",
                             SubKey = "Software\\Microsoft\\GameBar",
                             Name = "AutoGameModeEnabled",
                             RecommendedValue = 1, // For backward compatibility
@@ -130,7 +130,7 @@ public static class GamingandPerformanceOptimizations
                         new RegistrySetting
                         {
                             Category = "Gaming",
-                            Hive = RegistryHive.CurrentUser,
+                            Hive = "HKEY_CURRENT_USER",
                             SubKey = "Software\\Microsoft\\DirectX\\UserGpuPreferences",
                             Name = "DirectXUserGlobalSettings",
                             RecommendedValue = "SwapEffectUpgradeEnable=1;VRROptimizeEnable=0;", // For backward compatibility
@@ -159,7 +159,7 @@ public static class GamingandPerformanceOptimizations
                         new RegistrySetting
                         {
                             Category = "Gaming",
-                            Hive = RegistryHive.LocalMachine,
+                            Hive = "HKEY_LOCAL_MACHINE",
                             SubKey = "Software\\NVIDIA Corporation\\Global\\FTS",
                             Name = "EnableGR535",
                             RecommendedValue = 0, // For backward compatibility
@@ -221,7 +221,7 @@ public static class GamingandPerformanceOptimizations
                         new RegistrySetting
                         {
                             Category = "Gaming",
-                            Hive = RegistryHive.LocalMachine,
+                            Hive = "HKEY_LOCAL_MACHINE",
                             SubKey =
                                 "Software\\Microsoft\\Windows NT\\CurrentVersion\\Multimedia\\SystemProfile",
                             Name = "SystemResponsiveness",
@@ -251,7 +251,7 @@ public static class GamingandPerformanceOptimizations
                         new RegistrySetting
                         {
                             Category = "Gaming",
-                            Hive = RegistryHive.LocalMachine,
+                            Hive = "HKEY_LOCAL_MACHINE",
                             SubKey =
                                 "Software\\Microsoft\\Windows NT\\CurrentVersion\\Multimedia\\SystemProfile",
                             Name = "NetworkThrottlingIndex",
@@ -281,7 +281,7 @@ public static class GamingandPerformanceOptimizations
                         new RegistrySetting
                         {
                             Category = "Gaming",
-                            Hive = RegistryHive.LocalMachine,
+                            Hive = "HKEY_LOCAL_MACHINE",
                             SubKey =
                                 "Software\\Microsoft\\Windows NT\\CurrentVersion\\Multimedia\\SystemProfile\\Tasks\\Games",
                             Name = "GPU Priority",
@@ -310,7 +310,7 @@ public static class GamingandPerformanceOptimizations
                         new RegistrySetting
                         {
                             Category = "Gaming",
-                            Hive = RegistryHive.LocalMachine,
+                            Hive = "HKEY_LOCAL_MACHINE",
                             SubKey =
                                 "Software\\Microsoft\\Windows NT\\CurrentVersion\\Multimedia\\SystemProfile\\Tasks\\Games",
                             Name = "Priority",
@@ -339,7 +339,7 @@ public static class GamingandPerformanceOptimizations
                         new RegistrySetting
                         {
                             Category = "Gaming",
-                            Hive = RegistryHive.LocalMachine,
+                            Hive = "HKEY_LOCAL_MACHINE",
                             SubKey =
                                 "Software\\Microsoft\\Windows NT\\CurrentVersion\\Multimedia\\SystemProfile\\Tasks\\Games",
                             Name = "Scheduling Category",
@@ -368,7 +368,7 @@ public static class GamingandPerformanceOptimizations
                         new RegistrySetting
                         {
                             Category = "Gaming",
-                            Hive = RegistryHive.LocalMachine,
+                            Hive = "HKEY_LOCAL_MACHINE",
                             SubKey = "System\\CurrentControlSet\\Control\\GraphicsDrivers",
                             Name = "HwSchMode",
                             RecommendedValue = 2, // For backward compatibility
@@ -396,7 +396,7 @@ public static class GamingandPerformanceOptimizations
                         new RegistrySetting
                         {
                             Category = "Gaming",
-                            Hive = RegistryHive.LocalMachine,
+                            Hive = "HKEY_LOCAL_MACHINE",
                             SubKey = "System\\CurrentControlSet\\Control\\PriorityControl",
                             Name = "Win32PrioritySeparation",
                             RecommendedValue = 38, // For backward compatibility
@@ -425,7 +425,7 @@ public static class GamingandPerformanceOptimizations
                         new RegistrySetting
                         {
                             Category = "Gaming",
-                            Hive = RegistryHive.LocalMachine,
+                            Hive = "HKEY_LOCAL_MACHINE",
                             SubKey = "SOFTWARE\\Policies\\Microsoft\\Windows\\StorageSense",
                             Name = "AllowStorageSenseGlobal",
                             RecommendedValue = 0, // For backward compatibility
@@ -441,7 +441,7 @@ public static class GamingandPerformanceOptimizations
                 },
                 new OptimizationSetting
                 {
-                    Id = "performance-animations",
+                    Id = "gaming-performance-animations",
                     Name = "UI Animations",
                     Description = "Controls UI animations for improved performance",
                     Category = OptimizationCategory.GamingandPerformance,
@@ -453,7 +453,7 @@ public static class GamingandPerformanceOptimizations
                         new RegistrySetting
                         {
                             Category = "Performance",
-                            Hive = RegistryHive.CurrentUser,
+                            Hive = "HKEY_CURRENT_USER",
                             SubKey = "Control Panel\\Desktop\\WindowMetrics",
                             Name = "MinAnimate",
                             RecommendedValue = 0, // For backward compatibility
@@ -469,7 +469,7 @@ public static class GamingandPerformanceOptimizations
                 },
                 new OptimizationSetting
                 {
-                    Id = "performance-autostart-delay",
+                    Id = "gaming-performance-autostart-delay",
                     Name = "Startup Delay for Apps",
                     Description = "Controls startup delay for applications",
                     Category = OptimizationCategory.GamingandPerformance,
@@ -481,7 +481,7 @@ public static class GamingandPerformanceOptimizations
                         new RegistrySetting
                         {
                             Category = "Performance",
-                            Hive = RegistryHive.CurrentUser,
+                            Hive = "HKEY_CURRENT_USER",
                             SubKey =
                                 "Software\\Microsoft\\Windows\\CurrentVersion\\Explorer\\Serialize",
                             Name = "StartupDelayInMSec",
@@ -498,7 +498,7 @@ public static class GamingandPerformanceOptimizations
                 },
                 new OptimizationSetting
                 {
-                    Id = "performance-background-services",
+                    Id = "gaming-performance-background-services",
                     Name = "Optimize Background Services",
                     Description = "Controls background services for better performance",
                     Category = OptimizationCategory.GamingandPerformance,
@@ -510,7 +510,7 @@ public static class GamingandPerformanceOptimizations
                         new RegistrySetting
                         {
                             Category = "Performance",
-                            Hive = RegistryHive.LocalMachine,
+                            Hive = "HKEY_LOCAL_MACHINE",
                             SubKey = "SYSTEM\\CurrentControlSet\\Control",
                             Name = "ServicesPipeTimeout",
                             RecommendedValue = 60000, // For backward compatibility
@@ -526,7 +526,7 @@ public static class GamingandPerformanceOptimizations
                 },
                 new OptimizationSetting
                 {
-                    Id = "performance-desktop-composition",
+                    Id = "gaming-performance-desktop-composition",
                     Name = "Desktop Composition Effects",
                     Description = "Controls desktop composition effects",
                     Category = OptimizationCategory.GamingandPerformance,
@@ -538,7 +538,7 @@ public static class GamingandPerformanceOptimizations
                         new RegistrySetting
                         {
                             Category = "Performance",
-                            Hive = RegistryHive.CurrentUser,
+                            Hive = "HKEY_CURRENT_USER",
                             SubKey = "Software\\Microsoft\\Windows\\DWM",
                             Name = "CompositionPolicy",
                             RecommendedValue = 0, // For backward compatibility
@@ -554,7 +554,7 @@ public static class GamingandPerformanceOptimizations
                 },
                 new OptimizationSetting
                 {
-                    Id = "performance-fast-startup",
+                    Id = "gaming-performance-fast-startup",
                     Name = "Fast Startup",
                     Description = "Controls fast startup feature",
                     Category = OptimizationCategory.GamingandPerformance,
@@ -566,7 +566,7 @@ public static class GamingandPerformanceOptimizations
                         new RegistrySetting
                         {
                             Category = "Performance",
-                            Hive = RegistryHive.LocalMachine,
+                            Hive = "HKEY_LOCAL_MACHINE",
                             SubKey = "SYSTEM\\CurrentControlSet\\Control\\Session Manager\\Power",
                             Name = "HiberbootEnabled",
                             RecommendedValue = 0, // For backward compatibility
@@ -582,7 +582,7 @@ public static class GamingandPerformanceOptimizations
                 },
                 new OptimizationSetting
                 {
-                    Id = "performance-explorer-search",
+                    Id = "gaming-performance-explorer-search",
                     Name = "Optimize File Explorer Search",
                     Description = "Controls file explorer search indexing",
                     Category = OptimizationCategory.GamingandPerformance,
@@ -594,7 +594,7 @@ public static class GamingandPerformanceOptimizations
                         new RegistrySetting
                         {
                             Category = "Performance",
-                            Hive = RegistryHive.CurrentUser,
+                            Hive = "HKEY_CURRENT_USER",
                             SubKey =
                                 "Software\\Microsoft\\Windows\\CurrentVersion\\Explorer\\Search\\Preferences",
                             Name = "WholeFileSystem",
@@ -611,7 +611,7 @@ public static class GamingandPerformanceOptimizations
                 },
                 new OptimizationSetting
                 {
-                    Id = "performance-prefetch",
+                    Id = "gaming-performance-prefetch",
                     Name = "Prefetch Feature",
                     Description = "Controls Windows prefetch feature",
                     Category = OptimizationCategory.GamingandPerformance,
@@ -623,7 +623,7 @@ public static class GamingandPerformanceOptimizations
                         new RegistrySetting
                         {
                             Category = "Performance",
-                            Hive = RegistryHive.LocalMachine,
+                            Hive = "HKEY_LOCAL_MACHINE",
                             SubKey =
                                 "SYSTEM\\CurrentControlSet\\Control\\Session Manager\\Memory Management\\PrefetchParameters",
                             Name = "EnablePrefetcher",
@@ -640,7 +640,7 @@ public static class GamingandPerformanceOptimizations
                 },
                 new OptimizationSetting
                 {
-                    Id = "performance-remote-assistance",
+                    Id = "gaming-performance-remote-assistance",
                     Name = "Remote Assistance",
                     Description = "Controls remote assistance feature",
                     Category = OptimizationCategory.GamingandPerformance,
@@ -652,7 +652,7 @@ public static class GamingandPerformanceOptimizations
                         new RegistrySetting
                         {
                             Category = "Performance",
-                            Hive = RegistryHive.LocalMachine,
+                            Hive = "HKEY_LOCAL_MACHINE",
                             SubKey = "SYSTEM\\CurrentControlSet\\Control\\Remote Assistance",
                             Name = "fAllowToGetHelp",
                             RecommendedValue = 0, // For backward compatibility
@@ -668,7 +668,7 @@ public static class GamingandPerformanceOptimizations
                 },
                 new OptimizationSetting
                 {
-                    Id = "performance-superfetch",
+                    Id = "gaming-performance-superfetch",
                     Name = "Superfetch Service",
                     Description = "Controls superfetch/SysMain service",
                     Category = OptimizationCategory.GamingandPerformance,
@@ -680,7 +680,7 @@ public static class GamingandPerformanceOptimizations
                         new RegistrySetting
                         {
                             Category = "Performance",
-                            Hive = RegistryHive.LocalMachine,
+                            Hive = "HKEY_LOCAL_MACHINE",
                             SubKey =
                                 "SYSTEM\\CurrentControlSet\\Control\\Session Manager\\Memory Management\\PrefetchParameters",
                             Name = "EnableSuperfetch",
@@ -697,7 +697,7 @@ public static class GamingandPerformanceOptimizations
                 },
                 new OptimizationSetting
                 {
-                    Id = "performance-visual-effects",
+                    Id = "gaming-performance-visual-effects",
                     Name = "Optimize Visual Effects",
                     Description = "Controls visual effects for best performance",
                     Category = OptimizationCategory.GamingandPerformance,
@@ -709,7 +709,7 @@ public static class GamingandPerformanceOptimizations
                         new RegistrySetting
                         {
                             Category = "Performance",
-                            Hive = RegistryHive.CurrentUser,
+                            Hive = "HKEY_CURRENT_USER",
                             SubKey =
                                 "Software\\Microsoft\\Windows\\CurrentVersion\\Explorer\\VisualEffects",
                             Name = "VisualFXSetting",
@@ -726,7 +726,7 @@ public static class GamingandPerformanceOptimizations
                 },
                 new OptimizationSetting
                 {
-                    Id = "explorer-mouse-precision",
+                    Id = "gaming-performance-explorer-mouse-precision",
                     Name = "Enhance Pointer Precision",
                     Description = "Controls enhanced pointer precision (mouse acceleration)",
                     Category = OptimizationCategory.GamingandPerformance,
@@ -738,7 +738,7 @@ public static class GamingandPerformanceOptimizations
                         new RegistrySetting
                         {
                             Category = "Explorer",
-                            Hive = RegistryHive.CurrentUser,
+                            Hive = "HKEY_CURRENT_USER",
                             SubKey = "Control Panel\\Mouse",
                             Name = "MouseSpeed",
                             RecommendedValue = "0",
@@ -755,7 +755,7 @@ public static class GamingandPerformanceOptimizations
                 },
                 new OptimizationSetting
                 {
-                    Id = "explorer-animations",
+                    Id = "gaming-performance-explorer-animations",
                     Name = "System Animations",
                     Description = "Controls animations and visual effects",
                     Category = OptimizationCategory.GamingandPerformance,
@@ -767,7 +767,7 @@ public static class GamingandPerformanceOptimizations
                         new RegistrySetting
                         {
                             Category = "Explorer",
-                            Hive = RegistryHive.CurrentUser,
+                            Hive = "HKEY_CURRENT_USER",
                             SubKey = "Control Panel\\Desktop",
                             Name = "UserPreferencesMask",
                             RecommendedValue = new byte[]
@@ -823,7 +823,7 @@ public static class GamingandPerformanceOptimizations
                 },
                 new OptimizationSetting
                 {
-                    Id = "explorer-menu-show-delay",
+                    Id = "gaming-performance-explorer-menu-show-delay",
                     Name = "Menu Show Delay",
                     Description = "Controls menu show delay",
                     Category = OptimizationCategory.GamingandPerformance,
@@ -835,7 +835,7 @@ public static class GamingandPerformanceOptimizations
                         new RegistrySetting
                         {
                             Category = "Explorer",
-                            Hive = RegistryHive.CurrentUser,
+                            Hive = "HKEY_CURRENT_USER",
                             SubKey = "Control Panel\\Desktop",
                             Name = "MenuShowDelay",
                             RecommendedValue = 0,
@@ -851,7 +851,7 @@ public static class GamingandPerformanceOptimizations
                 },
                 new OptimizationSetting
                 {
-                    Id = "explorer-set-visual-effects",
+                    Id = "gaming-performance-explorer-set-visual-effects",
                     Name = "Set Visual Effects",
                     Description = "Sets appearance options to custom",
                     Category = OptimizationCategory.GamingandPerformance,
@@ -863,7 +863,7 @@ public static class GamingandPerformanceOptimizations
                         new RegistrySetting
                         {
                             Category = "Explorer",
-                            Hive = RegistryHive.CurrentUser,
+                            Hive = "HKEY_CURRENT_USER",
                             SubKey =
                                 "Software\\Microsoft\\Windows\\CurrentVersion\\Explorer\\VisualEffects",
                             Name = "VisualFXSetting",
@@ -880,7 +880,7 @@ public static class GamingandPerformanceOptimizations
                 },
                 new OptimizationSetting
                 {
-                    Id = "explorer-taskbar-animations",
+                    Id = "gaming-performance-explorer-taskbar-animations",
                     Name = "Taskbar Animations",
                     Description = "Controls taskbar animations",
                     Category = OptimizationCategory.GamingandPerformance,
@@ -892,7 +892,7 @@ public static class GamingandPerformanceOptimizations
                         new RegistrySetting
                         {
                             Category = "Explorer",
-                            Hive = RegistryHive.CurrentUser,
+                            Hive = "HKEY_CURRENT_USER",
                             SubKey =
                                 "Software\\Microsoft\\Windows\\CurrentVersion\\Explorer\\Advanced",
                             Name = "TaskbarAnimations",
@@ -909,7 +909,7 @@ public static class GamingandPerformanceOptimizations
                 },
                 new OptimizationSetting
                 {
-                    Id = "background-apps",
+                    Id = "gaming-background-apps",
                     Name = "Let Apps Run in Background",
                     Description = "Controls whether apps can run in the background",
                     Category = OptimizationCategory.GamingandPerformance,
@@ -921,7 +921,7 @@ public static class GamingandPerformanceOptimizations
                         new RegistrySetting
                         {
                             Category = "Performance",
-                            Hive = RegistryHive.LocalMachine,
+                            Hive = "HKEY_LOCAL_MACHINE",
                             SubKey = "SOFTWARE\\Policies\\Microsoft\\Windows\\AppPrivacy",
                             Name = "LetAppsRunInBackground",
                             RecommendedValue = 0,
@@ -937,7 +937,7 @@ public static class GamingandPerformanceOptimizations
                 },
                 new OptimizationSetting
                 {
-                    Id = "power-cpu-unpark",
+                    Id = "gaming-power-cpu-unpark",
                     Name = "CPU Core Unparking",
                     Description = "Controls CPU core parking for better performance",
                     Category = OptimizationCategory.GamingandPerformance,
@@ -949,7 +949,7 @@ public static class GamingandPerformanceOptimizations
                         new RegistrySetting
                         {
                             Category = "Power",
-                            Hive = RegistryHive.LocalMachine,
+                            Hive = "HKEY_LOCAL_MACHINE",
                             SubKey =
                                 "SYSTEM\\ControlSet001\\Control\\Power\\PowerSettings\\54533251-82be-4824-96c1-47b60b740d00\\0cc5b647-c1df-4637-891a-dec35c318583",
                             Name = "ValueMax",
@@ -966,7 +966,7 @@ public static class GamingandPerformanceOptimizations
                 },
                 new OptimizationSetting
                 {
-                    Id = "power-throttling",
+                    Id = "gaming-power-throttling",
                     Name = "Power Throttling",
                     Description = "Controls power throttling for better performance",
                     Category = OptimizationCategory.GamingandPerformance,
@@ -978,7 +978,7 @@ public static class GamingandPerformanceOptimizations
                         new RegistrySetting
                         {
                             Category = "Power",
-                            Hive = RegistryHive.LocalMachine,
+                            Hive = "HKEY_LOCAL_MACHINE",
                             SubKey = "SYSTEM\\CurrentControlSet\\Control\\Power\\PowerThrottling",
                             Name = "PowerThrottlingOff",
                             RecommendedValue = 1,   // For backward compatibility
@@ -994,7 +994,7 @@ public static class GamingandPerformanceOptimizations
                 },
                 new OptimizationSetting
                 {
-                    Id = "explorer-alt-tab-filter",
+                    Id = "gaming-explorer-alt-tab-filter",
                     Name = "Alt+Tab Filter",
                     Description = "Sets Alt+Tab to show open windows only",
                     Category = OptimizationCategory.GamingandPerformance,
@@ -1006,7 +1006,7 @@ public static class GamingandPerformanceOptimizations
                         new RegistrySetting
                         {
                             Category = "Explorer",
-                            Hive = RegistryHive.CurrentUser,
+                            Hive = "HKEY_CURRENT_USER",
                             SubKey =
                                 "Software\\Microsoft\\Windows\\CurrentVersion\\Explorer\\Advanced",
                             Name = "MultiTaskingAltTabFilter",

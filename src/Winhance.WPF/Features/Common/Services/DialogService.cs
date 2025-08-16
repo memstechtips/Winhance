@@ -5,6 +5,7 @@ using System.Threading.Tasks;
 using System.Windows;
 using Winhance.Core.Features.Common.Enums;
 using Winhance.Core.Features.Common.Interfaces;
+using Winhance.Core.Features.Common.Models;
 using Winhance.WPF.Features.Common.ViewModels;
 using Winhance.WPF.Features.Common.Views;
 
@@ -333,6 +334,76 @@ namespace Winhance.WPF.Features.Common.Services
             catch (Exception ex)
             {
                 return null;
+            }
+        }
+
+        public async Task<(bool Confirmed, bool CheckboxChecked)> ShowConfirmationWithCheckboxAsync(
+            string message,
+            string? checkboxText = null,
+            string title = "Confirmation",
+            string continueButtonText = "Continue",
+            string cancelButtonText = "Cancel")
+        {
+            try
+            {
+                // Ensure dialog runs on UI thread
+                var result = await System.Windows.Application.Current.Dispatcher.InvokeAsync(() =>
+                {
+                    return CustomDialog.ShowConfirmationWithCheckbox(
+                        title, 
+                        message, 
+                        checkboxText, 
+                        continueButtonText, 
+                        cancelButtonText
+                    );
+                });
+
+                return result ?? (false, false);
+            }
+            catch (Exception ex)
+            {
+                // Log the actual exception to help with debugging
+                System.Diagnostics.Debug.WriteLine($"Dialog error: {ex.Message}");
+                return (false, false);
+            }
+        }
+
+        /// <summary>
+        /// Displays a confirmation dialog based on a confirmation request.
+        /// Provides a generic way to handle confirmation dialogs across all features.
+        /// </summary>
+        public async Task<ConfirmationResponse> ShowConfirmationAsync(
+            ConfirmationRequest confirmationRequest,
+            string continueButtonText = "Continue",
+            string cancelButtonText = "Cancel")
+        {
+            try
+            {
+                // Use the existing ShowConfirmationWithCheckboxAsync method
+                var (confirmed, checkboxChecked) = await ShowConfirmationWithCheckboxAsync(
+                    confirmationRequest.Message,
+                    confirmationRequest.CheckboxText,
+                    confirmationRequest.Title,
+                    continueButtonText,
+                    cancelButtonText
+                );
+
+                return new ConfirmationResponse
+                {
+                    Confirmed = confirmed,
+                    CheckboxChecked = checkboxChecked,
+                    Context = confirmationRequest.Context
+                };
+            }
+            catch (Exception ex)
+            {
+                // Log the actual exception to help with debugging
+                System.Diagnostics.Debug.WriteLine($"Dialog error: {ex.Message}");
+                return new ConfirmationResponse
+                {
+                    Confirmed = false,
+                    CheckboxChecked = false
+                };
             }
         }
     }

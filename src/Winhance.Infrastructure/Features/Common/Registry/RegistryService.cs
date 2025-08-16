@@ -157,7 +157,7 @@ namespace Winhance.Infrastructure.Features.Common.Registry
                             LogLevel.Info,
                             $"Deleting Group Policy registry value: {keyPath}\\{setting.Name} (ValueType: {setting.ValueType})"
                         );
-                        return await DeleteValue(setting.Hive, setting.SubKey, setting.Name);
+                        return DeleteValue($"{setting.Hive}\\{setting.SubKey}", setting.Name);
                     }
                     
                     // Standard handling: use DisabledValue if available, otherwise fall back to DefaultValue
@@ -171,7 +171,7 @@ namespace Winhance.Infrastructure.Features.Common.Registry
                         LogLevel.Warning,
                         $"Value to set for {setting.Name} is null, deleting the value"
                     );
-                    return await DeleteValue(setting.Hive, setting.SubKey, setting.Name);
+                    return DeleteValue($"{setting.Hive}\\{setting.SubKey}", setting.Name);
                 }
                 else
                 {

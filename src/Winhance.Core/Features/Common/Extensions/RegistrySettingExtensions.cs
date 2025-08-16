@@ -54,9 +54,8 @@ namespace Winhance.Core.Features.Common.Extensions
                  (setting.EnabledValue is string strValue && strValue == "0")))
             {
                 // When enabling language list access, Windows deletes the key entirely
-                string hiveString = GetRegistryHiveString(setting.Hive);
                 return registryService.DeleteValue(
-                    $"{hiveString}\\{setting.SubKey}",
+                    $"{setting.Hive}\\{setting.SubKey}",
                     setting.Name);
             }
 
@@ -64,22 +63,6 @@ namespace Winhance.Core.Features.Common.Extensions
             return false;
         }
 
-        /// <summary>
-        /// Converts a RegistryHive enum to its string representation (HKCU, HKLM, etc.)
-        /// </summary>
-        /// <param name="hive">The registry hive.</param>
-        /// <returns>The string representation of the registry hive.</returns>
-        private static string GetRegistryHiveString(RegistryHive hive)
-        {
-            return hive switch
-            {
-                RegistryHive.ClassesRoot => "HKCR",
-                RegistryHive.CurrentUser => "HKCU",
-                RegistryHive.LocalMachine => "HKLM",
-                RegistryHive.Users => "HKU",
-                RegistryHive.CurrentConfig => "HKCC",
-                _ => throw new System.ArgumentException($"Unsupported registry hive: {hive}")
-            };
-        }
+
     }
 }

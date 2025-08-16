@@ -72,7 +72,7 @@ namespace Winhance.Infrastructure.Features.Common.Services
         // Dependencies
         private readonly IRegistryService _registryService;
         private readonly ILogService _logService;
-        private readonly IWindowsThemeService _windowsThemeService;
+        private readonly IThemeStateQuery _themeStateQuery;
         private readonly IUacSettingsService _uacSettingsService;
         private readonly IInternetConnectivityService _connectivityService;
 
@@ -87,16 +87,16 @@ namespace Winhance.Infrastructure.Features.Common.Services
             IRegistryService registryService,
             ILogService logService,
             IInternetConnectivityService connectivityService,
-            IWindowsThemeService windowsThemeService = null,
+            IThemeStateQuery themeStateQuery = null,
             IUacSettingsService uacSettingsService = null
-        ) // Optional to maintain backward compatibility
+        ) 
         {
             _registryService =
                 registryService ?? throw new ArgumentNullException(nameof(registryService));
             _logService = logService ?? throw new ArgumentNullException(nameof(logService));
             _connectivityService =
                 connectivityService ?? throw new ArgumentNullException(nameof(connectivityService));
-            _windowsThemeService = windowsThemeService; // May be null if not provided
+            _themeStateQuery = themeStateQuery; // May be null if not provided - ISP compliant
             _uacSettingsService = uacSettingsService; // May be null if not provided
 
             // Initialize cached values using Lazy<T> for thread-safe, on-demand initialization
@@ -456,18 +456,18 @@ namespace Winhance.Infrastructure.Features.Common.Services
 
         public bool IsDarkModeEnabled()
         {
-            // Delegate to ThemeService if available, otherwise use legacy implementation
-            if (_windowsThemeService != null)
+            // Delegate to ThemeStateQuery if available, otherwise use legacy implementation
+            if (_themeStateQuery != null)
             {
                 try
                 {
-                    return _windowsThemeService.IsDarkModeEnabled();
+                    return _themeStateQuery.IsDarkModeEnabled();
                 }
                 catch (Exception ex)
                 {
                     _logService.Log(
                         LogLevel.Warning,
-                        $"Error using ThemeService.IsDarkModeEnabled: {ex.Message}. Falling back to legacy implementation."
+                        $"Error using ThemeStateQuery.IsDarkModeEnabled: {ex.Message}. Falling back to legacy implementation."
                     );
                     // Fall through to legacy implementation
                 }
@@ -503,23 +503,10 @@ namespace Winhance.Infrastructure.Features.Common.Services
 
         public void SetDarkMode(bool enabled)
         {
-            // Delegate to ThemeService if available, otherwise use legacy implementation
-            if (_windowsThemeService != null)
-            {
-                try
-                {
-                    _windowsThemeService.SetThemeMode(enabled);
-                    return;
-                }
-                catch (Exception ex)
-                {
-                    _logService.Log(
-                        LogLevel.Warning,
-                        $"Error using ThemeService.SetThemeMode: {ex.Message}. Falling back to legacy implementation."
-                    );
-                    // Fall through to legacy implementation
-                }
-            }
+            // Use domain service pattern through dependency injection if available
+            // Note: For setting operations, we would need IWindowsThemeService (domain service)
+            // For now, using legacy implementation to maintain backward compatibility
+            // This could be improved with proper service injection in the future
 
             // Legacy implementation
             try

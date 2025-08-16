@@ -29,7 +29,7 @@ public static class UpdateOptimizations
                         new RegistrySetting
                         {
                             Category = "Updates",
-                            Hive = RegistryHive.LocalMachine,
+                            Hive = "HKEY_LOCAL_MACHINE",
                             SubKey = "SOFTWARE\\Policies\\Microsoft\\Windows\\WindowsUpdate\\AU",
                             Name = "NoAutoUpdate",
                             RecommendedValue = 1,
@@ -44,7 +44,7 @@ public static class UpdateOptimizations
                         new RegistrySetting
                         {
                             Category = "Updates",
-                            Hive = RegistryHive.LocalMachine,
+                            Hive = "HKEY_LOCAL_MACHINE",
                             SubKey = "SOFTWARE\\Policies\\Microsoft\\Windows\\WindowsUpdate\\AU",
                             Name = "AUOptions",
                             RecommendedValue = 2,
@@ -57,7 +57,7 @@ public static class UpdateOptimizations
                         new RegistrySetting
                         {
                             Category = "Updates",
-                            Hive = RegistryHive.LocalMachine,
+                            Hive = "HKEY_LOCAL_MACHINE",
                             SubKey = "SOFTWARE\\Policies\\Microsoft\\Windows\\WindowsUpdate\\AU",
                             Name = "AutoInstallMinorUpdates",
                             RecommendedValue = 0,
@@ -84,7 +84,7 @@ public static class UpdateOptimizations
                         new RegistrySetting
                         {
                             Category = "Updates",
-                            Hive = RegistryHive.LocalMachine,
+                            Hive = "HKEY_LOCAL_MACHINE",
                             SubKey = "SOFTWARE\\Policies\\Microsoft\\Windows\\WindowsUpdate",
                             Name = "DeferFeatureUpdates",
                             RecommendedValue = 1,
@@ -99,7 +99,7 @@ public static class UpdateOptimizations
                         new RegistrySetting
                         {
                             Category = "Updates",
-                            Hive = RegistryHive.LocalMachine,
+                            Hive = "HKEY_LOCAL_MACHINE",
                             SubKey = "SOFTWARE\\Policies\\Microsoft\\Windows\\WindowsUpdate",
                             Name = "DeferFeatureUpdatesPeriodInDays",
                             RecommendedValue = 365,
@@ -127,7 +127,7 @@ public static class UpdateOptimizations
                         new RegistrySetting
                         {
                             Category = "Updates",
-                            Hive = RegistryHive.LocalMachine,
+                            Hive = "HKEY_LOCAL_MACHINE",
                             SubKey = "SOFTWARE\\Policies\\Microsoft\\Windows\\WindowsUpdate",
                             Name = "DeferQualityUpdates",
                             RecommendedValue = 1,
@@ -142,7 +142,7 @@ public static class UpdateOptimizations
                         new RegistrySetting
                         {
                             Category = "Updates",
-                            Hive = RegistryHive.LocalMachine,
+                            Hive = "HKEY_LOCAL_MACHINE",
                             SubKey = "SOFTWARE\\Policies\\Microsoft\\Windows\\WindowsUpdate",
                             Name = "DeferQualityUpdatesPeriodInDays",
                             RecommendedValue = 7,
@@ -170,7 +170,7 @@ public static class UpdateOptimizations
                         new RegistrySetting
                         {
                             Category = "Updates",
-                            Hive = RegistryHive.LocalMachine,
+                            Hive = "HKEY_LOCAL_MACHINE",
                             SubKey = "SOFTWARE\\Policies\\Microsoft\\Windows\\DeliveryOptimization",
                             Name = "DODownloadMode",
                             RecommendedValue = 0,
@@ -198,7 +198,7 @@ public static class UpdateOptimizations
                         new RegistrySetting
                         {
                             Category = "Updates",
-                            Hive = RegistryHive.LocalMachine,
+                            Hive = "HKEY_LOCAL_MACHINE",
                             SubKey = "SOFTWARE\\Policies\\Microsoft\\WindowsStore",
                             Name = "AutoDownload",
                             RecommendedValue = 2,
@@ -226,7 +226,7 @@ public static class UpdateOptimizations
                         new RegistrySetting
                         {
                             Category = "Updates",
-                            Hive = RegistryHive.LocalMachine,
+                            Hive = "HKEY_LOCAL_MACHINE",
                             SubKey = "SOFTWARE\\Policies\\Microsoft\\Windows\\Appx",
                             Name = "AllowAutomaticAppArchiving",
                             RecommendedValue = 0,
@@ -255,7 +255,7 @@ public static class UpdateOptimizations
                         new RegistrySetting
                         {
                             Category = "Updates",
-                            Hive = RegistryHive.LocalMachine,
+                            Hive = "HKEY_LOCAL_MACHINE",
                             SubKey = "SOFTWARE\\Policies\\Microsoft\\Windows\\WindowsUpdate\\AU",
                             Name = "NoAutoRebootWithLoggedOnUsers",
                             RecommendedValue = 1,
@@ -283,7 +283,7 @@ public static class UpdateOptimizations
                         new RegistrySetting
                         {
                             Category = "Updates",
-                            Hive = RegistryHive.LocalMachine,
+                            Hive = "HKEY_LOCAL_MACHINE",
                             SubKey = "SOFTWARE\\Policies\\Microsoft\\Windows\\WindowsUpdate",
                             Name = "ExcludeWUDriversInQualityUpdate",
                             RecommendedValue = 1,
@@ -312,7 +312,7 @@ public static class UpdateOptimizations
                         new RegistrySetting
                         {
                             Category = "Updates",
-                            Hive = RegistryHive.LocalMachine,
+                            Hive = "HKEY_LOCAL_MACHINE",
                             SubKey = "SOFTWARE\\Policies\\Microsoft\\Windows\\WindowsUpdate",
                             Name = "SetUpdateNotificationLevel",
                             RecommendedValue = 1,
@@ -341,7 +341,7 @@ public static class UpdateOptimizations
                         new RegistrySetting
                         {
                             Category = "Updates",
-                            Hive = RegistryHive.CurrentUser,
+                            Hive = "HKEY_CURRENT_USER",
                             SubKey = "SOFTWARE\\Microsoft\\WindowsUpdate\\UX\\Settings",
                             Name = "AllowAutoWindowsUpdateDownloadOverMeteredNetwork",
                             RecommendedValue = 0,

@@ -1,5 +1,4 @@
 using System;
-using Microsoft.Win32;
 
 namespace Winhance.Core.Features.Common.Events.UI
 {
@@ -21,7 +20,7 @@ namespace Winhance.Core.Features.Common.Events.UI
         /// <summary>
         /// Gets the registry hive that was refreshed
         /// </summary>
-        public RegistryHive Hive { get; }
+        public string Hive { get; }
         
         /// <summary>
         /// Gets the registry subkey that was refreshed
@@ -44,11 +43,11 @@ namespace Winhance.Core.Features.Common.Events.UI
         /// <param name="hive">The registry hive</param>
         /// <param name="subKey">The registry subkey</param>
         /// <param name="name">The registry value name</param>
-        public TooltipDataRefreshedEvent(RegistryHive hive, string subKey, string name)
+        public TooltipDataRefreshedEvent(string hive, string subKey, string name)
         {
             Timestamp = DateTime.UtcNow;
             EventId = Guid.NewGuid();
-            Hive = hive;
+            Hive = hive ?? throw new ArgumentNullException(nameof(hive));
             SubKey = subKey ?? throw new ArgumentNullException(nameof(subKey));
             Name = name ?? throw new ArgumentNullException(nameof(name));
             RegistryPath = $"{hive}\\{subKey}\\{name}";

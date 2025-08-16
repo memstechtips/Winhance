@@ -5,30 +5,26 @@ using System.Threading.Tasks;
 using Winhance.Core.Features.Common.Enums;
 using Winhance.Core.Features.Common.Interfaces;
 using Winhance.Core.Features.Common.Models;
-using Winhance.Core.Features.Customize.Models;
 
 namespace Winhance.Infrastructure.Features.Common.Services
 {
     /// <summary>
     /// Service for discovering current system settings state without side effects.
-    /// Coordinates between RegistryService and CommandService to query system state during initialization.
+    /// Coordinates between RegistryService and CommandService to query basic system state.
     /// </summary>
     public class SystemSettingsDiscoveryService : ISystemSettingsDiscoveryService
     {
         private readonly IRegistryService _registryService;
         private readonly ICommandService _commandService;
-        private readonly IComboBoxDiscoveryService _comboBoxDiscoveryService;
         private readonly ILogService _logService;
 
         public SystemSettingsDiscoveryService(
             IRegistryService registryService,
             ICommandService commandService,
-            IComboBoxDiscoveryService comboBoxDiscoveryService,
             ILogService logService)
         {
             _registryService = registryService ?? throw new ArgumentNullException(nameof(registryService));
             _commandService = commandService ?? throw new ArgumentNullException(nameof(commandService));
-            _comboBoxDiscoveryService = comboBoxDiscoveryService ?? throw new ArgumentNullException(nameof(comboBoxDiscoveryService));
             _logService = logService ?? throw new ArgumentNullException(nameof(logService));
         }
 
@@ -116,17 +112,15 @@ namespace Winhance.Infrastructure.Features.Common.Services
                 {
                     object? currentValue = null;
 
-                    // Handle ComboBox settings using improved architecture
-                    if (setting.ControlType == ControlType.ComboBox)
+                    // Get raw registry values for all settings
+                    if (setting.RegistrySettings?.Count > 0)
                     {
-                        _logService.Log(LogLevel.Info, $"[INFO] Processing ComboBox setting '{setting.Id}' using domain resolvers");
-                        currentValue = await _comboBoxDiscoveryService.ResolveCurrentIndexAsync(setting);
-                        _logService.Log(LogLevel.Info, $"[INFO] ComboBox setting '{setting.Id}' current value discovered: {currentValue}");
+                        // For single registry settings, get the current value
+                        currentValue = await _registryService.GetCurrentValueAsync(setting.RegistrySettings[0]);
                     }
-
                     else
                     {
-                        // For Toggle settings, the value is typically the enabled/disabled state
+                        // For non-registry settings (like command-based), value discovery may be enhanced later
                         currentValue = null;
                     }
 

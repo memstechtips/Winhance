@@ -16,8 +16,14 @@
       "Bash(sed:*)",
       "Bash(whoami:*)",
       "mcp__ide__getDiagnostics",
-      "Bash(rg:*)"
+      "Bash(rg:*)",
+      "Bash(mv:*)",
+      "Bash(powercfg:*)",
+      "Bash(dotnet sln add:*)",
+      "Bash(cp:*)",
+      "Bash(dotnet remove:*)"
     ],
-    "deny": []
+    "deny": [],
+    "defaultMode": "acceptEdits"
   }
 }

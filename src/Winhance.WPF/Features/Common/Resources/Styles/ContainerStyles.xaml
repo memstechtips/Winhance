@@ -130,4 +130,13 @@
         <Setter Property="Padding" Value="0"/>
         <Setter Property="Background" Value="Transparent"/>
     </Style>
+
+    <!-- Settings Item Container Style -->
+    <!-- Used for consistent settings layout across all customize features -->
+    <!-- Matches the layout pattern from WindowsThemeCustomizationsView -->
+    <Style x:Key="SettingsItemContainerStyle" TargetType="ContentPresenter">
+        <Setter Property="Grid.ColumnSpan" 
+                Value="{Binding IsGroupHeader, Converter={StaticResource BooleanToGridSpanConverter}}"/>
+        <Setter Property="Margin" Value="5,2,5,2"/>
+    </Style>
 </ResourceDictionary>

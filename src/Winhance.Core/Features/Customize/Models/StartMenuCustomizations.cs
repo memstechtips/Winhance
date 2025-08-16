@@ -44,7 +44,7 @@ public static class StartMenuCustomizations
                         new RegistrySetting
                         {
                             Category = "StartMenu",
-                            Hive = RegistryHive.CurrentUser,
+                            Hive = "HKEY_CURRENT_USER",
                             SubKey =
                                 "Software\\Microsoft\\Windows\\CurrentVersion\\Explorer\\Advanced",
                             Name = "Start_Layout",
@@ -74,7 +74,7 @@ public static class StartMenuCustomizations
                 },
                 new CustomizationSetting
                 {
-                    Id = "recommended-section",
+                    Id = "start-recommended-section",
                     Name = "Recommended Section",
                     Description =
                         "Controls the visibility of the recommended section in the Start Menu",
@@ -90,7 +90,7 @@ public static class StartMenuCustomizations
                         new RegistrySetting
                         {
                             Category = "Explorer",
-                            Hive = RegistryHive.LocalMachine,
+                            Hive = "HKEY_LOCAL_MACHINE",
                             SubKey = "SOFTWARE\\Policies\\Microsoft\\Windows\\Explorer",
                             Name = "HideRecommendedSection",
                             RecommendedValue = 1, // Hide recommended section
@@ -119,7 +119,7 @@ public static class StartMenuCustomizations
                         new RegistrySetting
                         {
                             Category = "Start",
-                            Hive = RegistryHive.LocalMachine,
+                            Hive = "HKEY_LOCAL_MACHINE",
                             SubKey = "SOFTWARE\\Microsoft\\PolicyManager\\current\\device\\Start",
                             Name = "HideRecommendedSection",
                             RecommendedValue = 1, // Hide recommended section
@@ -148,7 +148,7 @@ public static class StartMenuCustomizations
                         new RegistrySetting
                         {
                             Category = "Education",
-                            Hive = RegistryHive.LocalMachine,
+                            Hive = "HKEY_LOCAL_MACHINE",
                             SubKey =
                                 "SOFTWARE\\Microsoft\\PolicyManager\\current\\device\\Education",
                             Name = "IsEducationEnvironment",
@@ -179,7 +179,7 @@ public static class StartMenuCustomizations
                 },
                 new CustomizationSetting
                 {
-                    Id = "show-all-pins-by-default",
+                    Id = "start-show-all-pins-by-default",
                     Name = "Show all pins by default",
                     Description =
                         "Controls whether all pins are shown by default in Start Menu (Windows 11 24H2 build 26120.4250+ and 25H2 build 26200.5670+)",
@@ -198,7 +198,7 @@ public static class StartMenuCustomizations
                         new RegistrySetting
                         {
                             Category = "StartMenu",
-                            Hive = RegistryHive.CurrentUser,
+                            Hive = "HKEY_CURRENT_USER",
                             SubKey = "Software\\Microsoft\\Windows\\CurrentVersion\\Start",
                             Name = "ShowAllPinsList",
                             RecommendedValue = 1,
@@ -215,7 +215,7 @@ public static class StartMenuCustomizations
                 },
                 new CustomizationSetting
                 {
-                    Id = "show-recently-added-apps",
+                    Id = "start-show-recently-added-apps",
                     Name = "Show Recently Added Apps",
                     Description = "Controls visibility of recently added apps in Start Menu",
                     Category = CustomizationCategory.StartMenu,
@@ -227,7 +227,7 @@ public static class StartMenuCustomizations
                         new RegistrySetting
                         {
                             Category = "Explorer",
-                            Hive = RegistryHive.CurrentUser,
+                            Hive = "HKEY_CURRENT_USER",
                             SubKey = "Software\\Microsoft\\Windows\\CurrentVersion\\Start",
                             Name = "ShowRecentList",
                             RecommendedValue = 0,
@@ -245,7 +245,7 @@ public static class StartMenuCustomizations
                 // Windows 11 - Show Most Used Apps (uses ShowFrequentList)
                 new CustomizationSetting
                 {
-                    Id = "show-frequent-list",
+                    Id = "start-show-frequent-list",
                     Name = "Show Most Used Apps",
                     Description = "Controls Show Most Used Apps Setting in Start Menu (Windows 11)",
                     Category = CustomizationCategory.StartMenu,
@@ -258,7 +258,7 @@ public static class StartMenuCustomizations
                         new RegistrySetting
                         {
                             Category = "StartMenu",
-                            Hive = RegistryHive.CurrentUser,
+                            Hive = "HKEY_CURRENT_USER",
                             SubKey = "Software\\Microsoft\\Windows\\CurrentVersion\\Start",
                             Name = "ShowFrequentList",
                             RecommendedValue = 0,
@@ -288,7 +288,7 @@ public static class StartMenuCustomizations
                         new RegistrySetting
                         {
                             Category = "StartMenu",
-                            Hive = RegistryHive.CurrentUser,
+                            Hive = "HKEY_CURRENT_USER",
                             SubKey =
                                 "Software\\Microsoft\\Windows\\CurrentVersion\\Explorer\\Advanced",
                             Name = "Start_TrackProgs",
@@ -305,7 +305,7 @@ public static class StartMenuCustomizations
                 },
                 new CustomizationSetting
                 {
-                    Id = "show-suggestions-in-start",
+                    Id = "start-show-suggestions",
                     Name = "Show suggestions in Start",
                     Description = "Controls visibility of suggestions in Start Menu",
                     Category = CustomizationCategory.StartMenu,
@@ -318,7 +318,7 @@ public static class StartMenuCustomizations
                         new RegistrySetting
                         {
                             Category = "ContentDelivery",
-                            Hive = RegistryHive.CurrentUser,
+                            Hive = "HKEY_CURRENT_USER",
                             SubKey =
                                 "SOFTWARE\\Microsoft\\Windows\\CurrentVersion\\ContentDeliveryManager",
                             Name = "SubscribedContent-338388Enabled",
@@ -335,7 +335,7 @@ public static class StartMenuCustomizations
                 },
                 new CustomizationSetting
                 {
-                    Id = "show-recommended-files",
+                    Id = "start-show-recommended-files",
                     Name = "Show Recommended/Recently Opened Items",
                     Description =
                         "Controls visibility of recommended files/recently opened items in Start Menu",
@@ -348,8 +348,8 @@ public static class StartMenuCustomizations
                         new SettingDependency
                         {
                             DependencyType = SettingDependencyType.RequiresSpecificValue,
-                            DependentSettingId = "show-recommended-files",
-                            RequiredSettingId = "recommended-section",
+                            DependentSettingId = "start-show-recommended-files",
+                            RequiredSettingId = "start-recommended-section",
                             RequiredValue = "Show",
                         },
                     },
@@ -358,7 +358,7 @@ public static class StartMenuCustomizations
                         new RegistrySetting
                         {
                             Category = "Explorer",
-                            Hive = RegistryHive.CurrentUser,
+                            Hive = "HKEY_CURRENT_USER",
                             SubKey =
                                 "Software\\Microsoft\\Windows\\CurrentVersion\\Explorer\\Advanced",
                             Name = "Start_TrackDocs",
@@ -389,7 +389,7 @@ public static class StartMenuCustomizations
                         new RegistrySetting
                         {
                             Category = "Explorer",
-                            Hive = RegistryHive.CurrentUser,
+                            Hive = "HKEY_CURRENT_USER",
                             SubKey =
                                 "Software\\Microsoft\\Windows\\CurrentVersion\\Explorer\\Advanced",
                             Name = "Start_IrisRecommendations",
@@ -406,7 +406,7 @@ public static class StartMenuCustomizations
                 },
                 new CustomizationSetting
                 {
-                    Id = "show-account-notifications",
+                    Id = "start-show-account-notifications",
                     Name = "Show Account-related Notifications",
                     Description =
                         "Controls visibility of account-related notifications in Start Menu",
@@ -419,7 +419,7 @@ public static class StartMenuCustomizations
                         new RegistrySetting
                         {
                             Category = "Explorer",
-                            Hive = RegistryHive.CurrentUser,
+                            Hive = "HKEY_CURRENT_USER",
                             SubKey =
                                 "Software\\Microsoft\\Windows\\CurrentVersion\\Explorer\\Advanced",
                             Name = "Start_AccountNotifications",
@@ -437,7 +437,7 @@ public static class StartMenuCustomizations
                 },
                 new CustomizationSetting
                 {
-                    Id = "power-lock-option",
+                    Id = "start-power-lock-option",
                     Name = "Hide Lock Option",
                     Description =
                         "Controls whether the lock option is hidden in the Start menu power flyout",
@@ -450,7 +450,7 @@ public static class StartMenuCustomizations
                         new RegistrySetting
                         {
                             Category = "Power",
-                            Hive = RegistryHive.LocalMachine,
+                            Hive = "HKEY_LOCAL_MACHINE",
                             SubKey =
                                 "Software\\Microsoft\\Windows\\CurrentVersion\\Policies\\System",
                             Name = "DisableLockWorkstation",
@@ -469,7 +469,7 @@ public static class StartMenuCustomizations
                 },
                 new CustomizationSetting
                 {
-                    Id = "disable-bing-search-results",
+                    Id = "start-disable-bing-search-results",
                     Name = "Disable Bing Search Results",
                     Description =
                         "Controls whether Bing search results are displayed in Start Menu search",
@@ -482,7 +482,7 @@ public static class StartMenuCustomizations
                         new RegistrySetting
                         {
                             Category = "Explorer",
-                            Hive = RegistryHive.LocalMachine,
+                            Hive = "HKEY_LOCAL_MACHINE",
                             SubKey = "SOFTWARE\\Policies\\Microsoft\\Windows\\Explorer",
                             Name = "DisableSearchBoxSuggestions",
                             RecommendedValue = 1,
@@ -539,25 +539,18 @@ public static class StartMenuCustomizations
     /// <summary>
     /// Cleans the Start Menu for Windows 10 or Windows 11.
     /// </summary>
-    /// <param name="isWindows11">Whether the system is Windows 11.</param>
     /// <param name="windowsService">The system services.</param>
     /// <param name="logService">The logging service.</param>
     /// <param name="scheduledTaskService">The scheduled task service for creating user-specific tasks.</param>
     public static void CleanStartMenu(
-        bool isWindows11,
         ISystemServices windowsService,
         ILogService logService = null,
         IScheduledTaskService scheduledTaskService = null
     )
     {
-        if (isWindows11)
-        {
+
             CleanWindows11StartMenu(logService);
-        }
-        else
-        {
             CleanWindows10StartMenu(windowsService, scheduledTaskService, logService);
-        }
     }
 
     /// <summary>

@@ -7,7 +7,7 @@ namespace Winhance.Core.Features.Common.Models;
 public record RegistrySetting
 {
     public required string Category { get; init; }
-    public required RegistryHive Hive { get; init; }
+    public required string Hive { get; init; }
     public required string SubKey { get; init; }
     public required string Name { get; init; }
 

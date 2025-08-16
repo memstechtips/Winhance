@@ -59,6 +59,13 @@ namespace Winhance.WPF.Features.Common.Models
         private object? _selectedValue;
 
         /// <summary>
+        /// The currently selected option object for ComboBox controls (used with SelectedItem binding).
+        /// This provides direct access to the option object with Name and Value properties.
+        /// </summary>
+        [ObservableProperty]
+        private object? _selectedOption;
+
+        /// <summary>
         /// Whether this setting is currently enabled/available for interaction.
         /// </summary>
         [ObservableProperty]
@@ -211,6 +218,24 @@ namespace Winhance.WPF.Features.Common.Models
         private int _sliderValue;
 
         /// <summary>
+        /// Minimum value for numeric controls (NumericUpDown).
+        /// </summary>
+        [ObservableProperty]
+        private int _minValue;
+
+        /// <summary>
+        /// Maximum value for numeric controls (NumericUpDown).
+        /// </summary>
+        [ObservableProperty]
+        private int _maxValue = 1200; // Default to 1200 for time-based settings
+
+        /// <summary>
+        /// Units for numeric controls (e.g., "Minutes", "%").
+        /// </summary>
+        [ObservableProperty]
+        private string _units = string.Empty;
+
+        /// <summary>
         /// Labels for slider steps.
         /// </summary>
         [ObservableProperty]
@@ -221,6 +246,13 @@ namespace Winhance.WPF.Features.Common.Models
         /// </summary>
         [ObservableProperty]
         private ObservableCollection<string> _comboBoxOptions = new();
+
+        /// <summary>
+        /// Available options for ComboBox controls with Name and Value properties.
+        /// This is what the XAML actually binds to for advanced power settings.
+        /// </summary>
+        [ObservableProperty]
+        private ObservableCollection<object> _options = new();
 
         #endregion
 
@@ -268,7 +300,11 @@ namespace Winhance.WPF.Features.Common.Models
 
         partial void OnSelectedValueChanged(object? value)
         {
+            // ENHANCED DEBUG: Log all value changes and whether they trigger application
+            System.Diagnostics.Debug.WriteLine($"[SettingUIItem] OnSelectedValueChanged: ID={Id}, Name={Name}, Value={value}, ValueType={value?.GetType().Name ?? "null"}, IsApplying={IsApplying}, ControlType={ControlType}");
+            
             // Handle value-based controls (ComboBox, NumericUpDown, Slider)
+            // Only trigger during user interaction, not during initialization
             if (OnSettingValueChanged != null && !IsApplying)
             {
                 switch (ControlType)
@@ -276,14 +312,47 @@ namespace Winhance.WPF.Features.Common.Models
                     case ControlType.ComboBox:
                         // Convert display string back to numeric index for service layer
                         var numericValue = GetNumericValueFromDisplayString(value?.ToString());
-                        _ = OnSettingValueChanged(numericValue);
+                        _ = Task.Run(async () => await OnSettingValueChanged(numericValue));
                         break;
                         
                     case ControlType.NumericUpDown:
                     case ControlType.Slider:
                         // Pass the value directly for numeric controls
-                        _ = OnSettingValueChanged(value);
+                        _ = Task.Run(async () => await OnSettingValueChanged(value));
                         break;
+                        
+                    default:
+                        // For any other control types, pass the value as-is
+                        _ = Task.Run(async () => await OnSettingValueChanged(value));
+                        break;
+                }
+            }
+        }
+
+        partial void OnSelectedOptionChanged(object? option)
+        {
+            // Debug logging to understand ComboBox option selection
+            System.Diagnostics.Debug.WriteLine($"[SettingUIItem] OnSelectedOptionChanged: ID={Id}, Option={option}, OptionType={option?.GetType().Name ?? "null"}, IsApplying={IsApplying}");
+            
+            // Handle ComboBox option selection (SelectedItem binding)
+            // Only trigger during user interaction, not during initialization
+            if (OnSettingValueChanged != null && !IsApplying && ControlType == ControlType.ComboBox)
+            {
+                if (option != null)
+                {
+                    // Extract the Value property from the option object
+                    var optionType = option.GetType();
+                    var valueProperty = optionType.GetProperty("Value");
+                    if (valueProperty != null)
+                    {
+                        var extractedValue = valueProperty.GetValue(option);
+                        System.Diagnostics.Debug.WriteLine($"[SettingUIItem] Extracted Value: {extractedValue} from option {option}");
+                        _ = Task.Run(async () => await OnSettingValueChanged(extractedValue));
+                    }
+                    else
+                    {
+                        System.Diagnostics.Debug.WriteLine($"[SettingUIItem] No Value property found on option type {optionType.Name}");
+                    }
                 }
             }
         }
@@ -308,7 +377,7 @@ namespace Winhance.WPF.Features.Common.Models
             // Only trigger setting change if not during initialization/refresh
             if (OnSettingChanged != null && !IsApplying)
             {
-                _ = OnSettingChanged(value);
+                _ = Task.Run(async () => await OnSettingChanged(value));
             }
         }
 
@@ -361,8 +430,9 @@ namespace Winhance.WPF.Features.Common.Models
         #region Helper Methods
 
         /// <summary>
-        /// Updates the UI state from external sources without triggering property change events.
+        /// Updates the UI state from external sources without triggering setting application.
         /// This should only be used during initialization or refresh operations.
+        /// CRITICAL: Prevents automatic setting application during discovery/loading operations.
         /// </summary>
         /// <param name="isSelected">Whether the setting should be selected.</param>
         /// <param name="selectedValue">The value that should be selected.</param>
@@ -370,21 +440,41 @@ namespace Winhance.WPF.Features.Common.Models
         /// <param name="currentValue">The current value from the system.</param>
         public void UpdateUIStateFromSystem(bool isSelected, object? selectedValue, RegistrySettingStatus status, object? currentValue)
         {
-            // Update properties without triggering change notifications during initialization
-            SetProperty(ref _isSelected, isSelected, nameof(IsSelected));
-            SetProperty(ref _selectedValue, selectedValue, nameof(SelectedValue));
-            SetProperty(ref _status, status, nameof(Status));
-            SetProperty(ref _currentValue, currentValue, nameof(CurrentValue));
+            // CRITICAL: Temporarily set IsApplying to prevent automatic setting application during loading
+            var wasApplying = IsApplying;
+            IsApplying = true;
             
-            // Update derived properties
-            IsRegistryValueNull = currentValue == null;
-            StatusMessage = GetStatusMessage(status);
-            
-            OnPropertyChanged(nameof(DisplayValue));
-            
-            // Notify tooltip-related computed properties that they may have changed
-            OnPropertyChanged(nameof(HasCommandSettingsOnly));
-            OnPropertyChanged(nameof(HasNoSettings));
+            try
+            {
+                // Update properties - now safely preventing automatic application
+                SetProperty(ref _isSelected, isSelected, nameof(IsSelected));
+                
+                // For ComboBox/NumericUpDown controls, SelectedValue should match CurrentValue for proper display
+                // If selectedValue is provided, use it; otherwise use currentValue for initial display
+                var displayValue = selectedValue ?? currentValue;
+                
+                // DEBUGGING: Log system state update values
+                System.Diagnostics.Debug.WriteLine($"[SettingUIItem] UpdateUIStateFromSystem - ID: {Id}, Name: {Name}, SelectedValue: {selectedValue}, CurrentValue: {currentValue}, DisplayValue: {displayValue}, ControlType: {ControlType}");
+                
+                SetProperty(ref _selectedValue, displayValue, nameof(SelectedValue));
+                SetProperty(ref _status, status, nameof(Status));
+                SetProperty(ref _currentValue, currentValue, nameof(CurrentValue));
+                
+                // Update derived properties
+                IsRegistryValueNull = currentValue == null;
+                StatusMessage = GetStatusMessage(status);
+                
+                OnPropertyChanged(nameof(DisplayValue));
+                
+                // Notify tooltip-related computed properties that they may have changed
+                OnPropertyChanged(nameof(HasCommandSettingsOnly));
+                OnPropertyChanged(nameof(HasNoSettings));
+            }
+            finally
+            {
+                // Restore original IsApplying state
+                IsApplying = wasApplying;
+            }
         }
 
         /// <summary>

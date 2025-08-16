@@ -31,7 +31,7 @@
     <converters:BooleanToThemeConverter x:Key="BooleanToThemeConverter"/>
     <converters:BooleanToThemeIconConverter x:Key="BooleanToThemeIconConverter"/>
     <converters:BooleanConverter x:Key="BooleanConverter"/>
-    <converters:RegistryHiveToFullNameConverter x:Key="RegistryHiveToFullNameConverter"/>
+
     <converters:IsPrimaryToVisibilityConverter x:Key="IsPrimaryToVisibilityConverter"/>
     <converters:EnumToVisibilityConverter x:Key="EnumToVisibilityConverter"/>
     <converters:StringEqualityConverter x:Key="StringEqualityConverter"/>

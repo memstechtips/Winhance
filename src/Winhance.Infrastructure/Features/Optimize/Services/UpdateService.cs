@@ -15,39 +15,72 @@ namespace Winhance.Infrastructure.Features.Optimize.Services
     /// Service implementation for managing Windows Update optimization settings.
     /// Handles update policies, delivery optimization, and update-related settings.
     /// </summary>
-    public class UpdateService : BaseSystemSettingsService, IUpdateService
+    public class UpdateService : IUpdateService
     {
+        private readonly SystemSettingOrchestrator _orchestrator;
+        private readonly ILogService _logService;
+
         /// <summary>
         /// Gets the domain name for Update optimizations.
         /// </summary>
-        public override string DomainName => "Update";
+        public string DomainName => "Update";
 
         /// <summary>
         /// Initializes a new instance of the <see cref="UpdateService"/> class.
         /// </summary>
-        public UpdateService(
-            IRegistryService registryService,
-            ICommandService commandService,
-            ILogService logService,
-            ISystemSettingsDiscoveryService systemSettingsDiscoveryService)
-            : base(registryService, commandService, logService, systemSettingsDiscoveryService)
+        public UpdateService(SystemSettingOrchestrator orchestrator, ILogService logService)
         {
+            _orchestrator = orchestrator ?? throw new ArgumentNullException(nameof(orchestrator));
+            _logService = logService ?? throw new ArgumentNullException(nameof(logService));
         }
 
         /// <summary>
         /// Gets all Update optimization settings with their current system state.
         /// </summary>
-        public override async Task<IEnumerable<ApplicationSetting>> GetSettingsAsync()
+        public async Task<IEnumerable<ApplicationSetting>> GetSettingsAsync()
         {
-            var optimizations = UpdateOptimizations.GetUpdateOptimizations();
-            return await GetSettingsWithSystemStateAsync(optimizations.Settings);
+            try
+            {
+                _logService.Log(LogLevel.Info, "Loading Update optimization settings");
+
+                var optimizations = UpdateOptimizations.GetUpdateOptimizations();
+                return await _orchestrator.GetSettingsWithSystemStateAsync(
+                    optimizations.Settings,
+                    DomainName
+                );
+            }
+            catch (Exception ex)
+            {
+                _logService.Log(
+                    LogLevel.Error,
+                    $"Error loading Update optimization settings: {ex.Message}"
+                );
+                return Enumerable.Empty<ApplicationSetting>();
+            }
         }
 
-        // All other methods (ApplySettingAsync, GetSettingStatusAsync, GetSettingValueAsync, IsSettingEnabledAsync)
-        // are inherited from BaseSystemSettingsService and work automatically with the settings from GetSettingsAsync()
+        public async Task ApplySettingAsync(string settingId, bool enable, object? value = null)
+        {
+            var settings = await GetRawSettingsAsync();
+            await _orchestrator.ApplySettingAsync(settingId, enable, value, settings, DomainName);
+        }
 
+        public async Task<bool> IsSettingEnabledAsync(string settingId)
+        {
+            var settings = await GetRawSettingsAsync();
+            return await _orchestrator.GetSettingStatusAsync(settingId, settings);
+        }
 
+        public async Task<object?> GetSettingValueAsync(string settingId)
+        {
+            var settings = await GetRawSettingsAsync();
+            return await _orchestrator.GetSettingValueAsync(settingId, settings);
+        }
 
-
+        private async Task<IEnumerable<ApplicationSetting>> GetRawSettingsAsync()
+        {
+            var optimizations = UpdateOptimizations.GetUpdateOptimizations();
+            return await Task.FromResult(optimizations.Settings);
+        }
     }
 }

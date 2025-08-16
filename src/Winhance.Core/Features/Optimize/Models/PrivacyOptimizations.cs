@@ -30,7 +30,7 @@ public static class PrivacyOptimizations
                         new RegistrySetting
                         {
                             Category = "Privacy",
-                            Hive = RegistryHive.LocalMachine,
+                            Hive = "HKEY_LOCAL_MACHINE",
                             SubKey = "SOFTWARE\\Policies\\Microsoft\\Windows\\System",
                             Name = "PublishUserActivities",
                             RecommendedValue = 0,
@@ -59,7 +59,7 @@ public static class PrivacyOptimizations
                         new RegistrySetting
                         {
                             Category = "Privacy",
-                            Hive = RegistryHive.CurrentUser,
+                            Hive = "HKEY_CURRENT_USER",
                             SubKey =
                                 "Software\\Microsoft\\Windows\\CurrentVersion\\AdvertisingInfo",
                             Name = "Enabled",
@@ -75,7 +75,7 @@ public static class PrivacyOptimizations
                         new RegistrySetting
                         {
                             Category = "Privacy",
-                            Hive = RegistryHive.LocalMachine,
+                            Hive = "HKEY_LOCAL_MACHINE",
                             SubKey = "SOFTWARE\\Policies\\Microsoft\\Windows\\AdvertisingInfo",
                             Name = "DisabledByGroupPolicy",
                             RecommendedValue = 1,
@@ -106,7 +106,7 @@ public static class PrivacyOptimizations
                         new RegistrySetting
                         {
                             Category = "Privacy",
-                            Hive = RegistryHive.CurrentUser,
+                            Hive = "HKEY_CURRENT_USER",
                             SubKey = "Control Panel\\International\\User Profile",
                             Name = "HttpAcceptLanguageOptOut",
                             RecommendedValue = 0,
@@ -136,7 +136,7 @@ public static class PrivacyOptimizations
                         new RegistrySetting
                         {
                             Category = "Privacy",
-                            Hive = RegistryHive.CurrentUser,
+                            Hive = "HKEY_CURRENT_USER",
                             SubKey =
                                 "Software\\Microsoft\\Windows\\CurrentVersion\\Explorer\\Advanced",
                             Name = "Start_TrackProgs",
@@ -167,7 +167,7 @@ public static class PrivacyOptimizations
                         new RegistrySetting
                         {
                             Category = "Privacy",
-                            Hive = RegistryHive.CurrentUser,
+                            Hive = "HKEY_CURRENT_USER",
                             SubKey =
                                 "Software\\Microsoft\\Windows\\CurrentVersion\\ContentDeliveryManager",
                             Name = "SubscribedContent-338393Enabled",
@@ -183,7 +183,7 @@ public static class PrivacyOptimizations
                         new RegistrySetting
                         {
                             Category = "Privacy",
-                            Hive = RegistryHive.CurrentUser,
+                            Hive = "HKEY_CURRENT_USER",
                             SubKey =
                                 "Software\\Microsoft\\Windows\\CurrentVersion\\ContentDeliveryManager",
                             Name = "SubscribedContent-353694Enabled",
@@ -199,7 +199,7 @@ public static class PrivacyOptimizations
                         new RegistrySetting
                         {
                             Category = "Privacy",
-                            Hive = RegistryHive.CurrentUser,
+                            Hive = "HKEY_CURRENT_USER",
                             SubKey =
                                 "Software\\Microsoft\\Windows\\CurrentVersion\\ContentDeliveryManager",
                             Name = "SubscribedContent-353696Enabled",
@@ -231,7 +231,7 @@ public static class PrivacyOptimizations
                         new RegistrySetting
                         {
                             Category = "Privacy",
-                            Hive = RegistryHive.CurrentUser,
+                            Hive = "HKEY_CURRENT_USER",
                             SubKey =
                                 "Software\\Microsoft\\Windows\\CurrentVersion\\SystemSettings\\AccountNotifications",
                             Name = "EnableAccountNotifications",
@@ -262,7 +262,7 @@ public static class PrivacyOptimizations
                         new RegistrySetting
                         {
                             Category = "Privacy",
-                            Hive = RegistryHive.CurrentUser,
+                            Hive = "HKEY_CURRENT_USER",
                             SubKey =
                                 "Software\\Microsoft\\Speech_OneCore\\Settings\\OnlineSpeechPrivacy",
                             Name = "HasAccepted",
@@ -278,7 +278,7 @@ public static class PrivacyOptimizations
                         new RegistrySetting
                         {
                             Category = "Privacy",
-                            Hive = RegistryHive.LocalMachine,
+                            Hive = "HKEY_LOCAL_MACHINE",
                             SubKey = "SOFTWARE\\Policies\\Microsoft\\InputPersonalization",
                             Name = "AllowInputPersonalization",
                             RecommendedValue = 0,
@@ -309,7 +309,7 @@ public static class PrivacyOptimizations
                         new RegistrySetting
                         {
                             Category = "Privacy",
-                            Hive = RegistryHive.CurrentUser,
+                            Hive = "HKEY_CURRENT_USER",
                             SubKey =
                                 "Software\\Microsoft\\Windows\\CurrentVersion\\CPSS\\Store\\InkingAndTypingPersonalization",
                             Name = "Value",
@@ -325,7 +325,7 @@ public static class PrivacyOptimizations
                         new RegistrySetting
                         {
                             Category = "Privacy",
-                            Hive = RegistryHive.CurrentUser,
+                            Hive = "HKEY_CURRENT_USER",
                             SubKey = "Software\\Microsoft\\Personalization\\Settings",
                             Name = "AcceptedPrivacyPolicy",
                             RecommendedValue = 0,
@@ -340,7 +340,7 @@ public static class PrivacyOptimizations
                         new RegistrySetting
                         {
                             Category = "Privacy",
-                            Hive = RegistryHive.CurrentUser,
+                            Hive = "HKEY_CURRENT_USER",
                             SubKey = "Software\\Microsoft\\InputPersonalization",
                             Name = "RestrictImplicitTextCollection",
                             RecommendedValue = 1,
@@ -355,7 +355,7 @@ public static class PrivacyOptimizations
                         new RegistrySetting
                         {
                             Category = "Privacy",
-                            Hive = RegistryHive.CurrentUser,
+                            Hive = "HKEY_CURRENT_USER",
                             SubKey = "Software\\Microsoft\\InputPersonalization\\TrainedDataStore",
                             Name = "HarvestContacts",
                             RecommendedValue = 0,
@@ -385,7 +385,7 @@ public static class PrivacyOptimizations
                         new RegistrySetting
                         {
                             Category = "Privacy",
-                            Hive = RegistryHive.CurrentUser,
+                            Hive = "HKEY_CURRENT_USER",
                             SubKey =
                                 "SOFTWARE\\Microsoft\\Windows\\CurrentVersion\\Diagnostics\\DiagTrack",
                             Name = "ShowedToastAtLevel",
@@ -401,7 +401,7 @@ public static class PrivacyOptimizations
                         new RegistrySetting
                         {
                             Category = "Privacy",
-                            Hive = RegistryHive.LocalMachine,
+                            Hive = "HKEY_LOCAL_MACHINE",
                             SubKey =
                                 "SOFTWARE\\Microsoft\\Windows\\CurrentVersion\\Policies\\DataCollection",
                             Name = "AllowTelemetry",
@@ -417,7 +417,7 @@ public static class PrivacyOptimizations
                         new RegistrySetting
                         {
                             Category = "Privacy",
-                            Hive = RegistryHive.LocalMachine,
+                            Hive = "HKEY_LOCAL_MACHINE",
                             SubKey =
                                 "SOFTWARE\\Microsoft\\Windows\\CurrentVersion\\Policies\\DataCollection",
                             Name = "MaxTelemetryAllowed",
@@ -433,7 +433,7 @@ public static class PrivacyOptimizations
                         new RegistrySetting
                         {
                             Category = "Privacy",
-                            Hive = RegistryHive.LocalMachine,
+                            Hive = "HKEY_LOCAL_MACHINE",
                             SubKey = "SOFTWARE\\Policies\\Microsoft\\Windows\\DataCollection",
                             Name = "AllowTelemetry",
                             RecommendedValue = 1,
@@ -472,7 +472,7 @@ public static class PrivacyOptimizations
                         new RegistrySetting
                         {
                             Category = "Privacy",
-                            Hive = RegistryHive.CurrentUser,
+                            Hive = "HKEY_CURRENT_USER",
                             SubKey = "Software\\Microsoft\\Input\\TIPC",
                             Name = "Enabled",
                             RecommendedValue = 0,
@@ -487,7 +487,7 @@ public static class PrivacyOptimizations
                         new RegistrySetting
                         {
                             Category = "Privacy",
-                            Hive = RegistryHive.CurrentUser,
+                            Hive = "HKEY_CURRENT_USER",
                             SubKey =
                                 "Software\\Microsoft\\Windows\\CurrentVersion\\CPSS\\Store\\ImproveInkingAndTyping",
                             Name = "Value",
@@ -518,7 +518,7 @@ public static class PrivacyOptimizations
                         new RegistrySetting
                         {
                             Category = "Privacy",
-                            Hive = RegistryHive.CurrentUser,
+                            Hive = "HKEY_CURRENT_USER",
                             SubKey = "Software\\Microsoft\\Windows\\CurrentVersion\\Privacy",
                             Name = "TailoredExperiencesWithDiagnosticDataEnabled",
                             RecommendedValue = 0,
@@ -533,7 +533,7 @@ public static class PrivacyOptimizations
                         new RegistrySetting
                         {
                             Category = "Privacy",
-                            Hive = RegistryHive.CurrentUser,
+                            Hive = "HKEY_CURRENT_USER",
                             SubKey = "Software\\Policies\\Microsoft\\Windows\\CloudContent",
                             Name = "DisableTailoredExperiencesWithDiagnosticData",
                             RecommendedValue = 1,
@@ -563,7 +563,7 @@ public static class PrivacyOptimizations
                         new RegistrySetting
                         {
                             Category = "Privacy",
-                            Hive = RegistryHive.LocalMachine,
+                            Hive = "HKEY_LOCAL_MACHINE",
                             SubKey =
                                 "SOFTWARE\\Microsoft\\Windows\\CurrentVersion\\CapabilityAccessManager\\ConsentStore\\location",
                             Name = "Value",
@@ -579,7 +579,7 @@ public static class PrivacyOptimizations
                         new RegistrySetting
                         {
                             Category = "Privacy",
-                            Hive = RegistryHive.LocalMachine,
+                            Hive = "HKEY_LOCAL_MACHINE",
                             SubKey = "SOFTWARE\\Policies\\Microsoft\\Windows\\LocationAndSensors",
                             Name = "DisableLocation",
                             RecommendedValue = 1,
@@ -609,7 +609,7 @@ public static class PrivacyOptimizations
                         new RegistrySetting
                         {
                             Category = "Privacy",
-                            Hive = RegistryHive.LocalMachine,
+                            Hive = "HKEY_LOCAL_MACHINE",
                             SubKey =
                                 "SOFTWARE\\Microsoft\\Windows\\CurrentVersion\\CapabilityAccessManager\\ConsentStore\\webcam",
                             Name = "Value",
@@ -639,7 +639,7 @@ public static class PrivacyOptimizations
                         new RegistrySetting
                         {
                             Category = "Privacy",
-                            Hive = RegistryHive.LocalMachine,
+                            Hive = "HKEY_LOCAL_MACHINE",
                             SubKey =
                                 "SOFTWARE\\Microsoft\\Windows\\CurrentVersion\\CapabilityAccessManager\\ConsentStore\\microphone",
                             Name = "Value",
@@ -669,7 +669,7 @@ public static class PrivacyOptimizations
                         new RegistrySetting
                         {
                             Category = "Privacy",
-                            Hive = RegistryHive.LocalMachine,
+                            Hive = "HKEY_LOCAL_MACHINE",
                             SubKey =
                                 "SOFTWARE\\Microsoft\\Windows\\CurrentVersion\\CapabilityAccessManager\\ConsentStore\\userAccountInformation",
                             Name = "Value",
@@ -699,7 +699,7 @@ public static class PrivacyOptimizations
                         new RegistrySetting
                         {
                             Category = "Privacy",
-                            Hive = RegistryHive.LocalMachine,
+                            Hive = "HKEY_LOCAL_MACHINE",
                             SubKey =
                                 "SOFTWARE\\Microsoft\\Windows\\CurrentVersion\\CapabilityAccessManager\\ConsentStore\\appDiagnostics",
                             Name = "Value",
@@ -729,7 +729,7 @@ public static class PrivacyOptimizations
                         new RegistrySetting
                         {
                             Category = "Privacy",
-                            Hive = RegistryHive.CurrentUser,
+                            Hive = "HKEY_CURRENT_USER",
                             SubKey = "Software\\Microsoft\\Windows\\CurrentVersion\\SearchSettings",
                             Name = "IsMSACloudSearchEnabled",
                             RecommendedValue = 0,
@@ -758,7 +758,7 @@ public static class PrivacyOptimizations
                         new RegistrySetting
                         {
                             Category = "Privacy",
-                            Hive = RegistryHive.CurrentUser,
+                            Hive = "HKEY_CURRENT_USER",
                             SubKey = "Software\\Microsoft\\Windows\\CurrentVersion\\SearchSettings",
                             Name = "IsAADCloudSearchEnabled",
                             RecommendedValue = 0,
@@ -788,7 +788,7 @@ public static class PrivacyOptimizations
                         new RegistrySetting
                         {
                             Category = "Privacy",
-                            Hive = RegistryHive.CurrentUser,
+                            Hive = "HKEY_CURRENT_USER",
                             SubKey = "Software\\Microsoft\\Windows\\CurrentVersion\\Search",
                             Name = "BingSearchEnabled",
                             RecommendedValue = 0,

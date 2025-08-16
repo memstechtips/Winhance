@@ -16,36 +16,81 @@ namespace Winhance.Infrastructure.Features.Optimize.Services
     /// Service implementation for managing Windows security optimization settings.
     /// Handles UAC, Windows Defender, and security-related optimizations.
     /// </summary>
-    public class SecurityService : BaseSystemSettingsService, ISecurityService
+    public class SecurityService : ISecurityService
     {
-        private readonly IComboBoxDiscoveryService _comboBoxDiscoveryService;
+        private readonly SystemSettingOrchestrator _orchestrator;
+        private readonly ILogService _logService;
+        private readonly IComboBoxValueResolver _comboBoxResolver;
 
         /// <summary>
         /// Gets the domain name for Security optimizations.
         /// </summary>
-        public override string DomainName => "Security";
+        public string DomainName => "Security";
 
         /// <summary>
         /// Initializes a new instance of the <see cref="SecurityService"/> class.
+        /// Uses composition with SystemSettingOrchestrator and maintains ComboBox resolver capability.
         /// </summary>
         public SecurityService(
-            IRegistryService registryService,
-            ICommandService commandService,
-            IComboBoxDiscoveryService comboBoxDiscoveryService,
+            SystemSettingOrchestrator orchestrator,
             ILogService logService,
-            ISystemSettingsDiscoveryService systemSettingsDiscoveryService)
-            : base(registryService, commandService, logService, systemSettingsDiscoveryService)
+            IComboBoxValueResolver comboBoxValueResolver
+        )
         {
-            _comboBoxDiscoveryService = comboBoxDiscoveryService ?? throw new ArgumentNullException(nameof(comboBoxDiscoveryService));
+            _orchestrator = orchestrator ?? throw new ArgumentNullException(nameof(orchestrator));
+            _logService = logService ?? throw new ArgumentNullException(nameof(logService));
+            _comboBoxResolver =
+                comboBoxValueResolver
+                ?? throw new ArgumentNullException(nameof(comboBoxValueResolver));
         }
 
         /// <summary>
         /// Gets all Security optimization settings with their current system state.
         /// </summary>
-        public override async Task<IEnumerable<ApplicationSetting>> GetSettingsAsync()
+        public async Task<IEnumerable<ApplicationSetting>> GetSettingsAsync()
+        {
+            try
+            {
+                _logService.Log(LogLevel.Info, "Loading Security optimization settings");
+
+                var optimizations = WindowsSecurityOptimizations.GetWindowsSecurityOptimizations();
+                return await _orchestrator.GetSettingsWithSystemStateAsync(
+                    optimizations.Settings,
+                    DomainName
+                );
+            }
+            catch (Exception ex)
+            {
+                _logService.Log(
+                    LogLevel.Error,
+                    $"Error loading Security optimization settings: {ex.Message}"
+                );
+                return Enumerable.Empty<ApplicationSetting>();
+            }
+        }
+
+        public async Task ApplySettingAsync(string settingId, bool enable, object? value = null)
+        {
+            var settings = await GetRawSettingsAsync();
+            await _orchestrator.ApplySettingAsync(settingId, enable, value, settings, DomainName);
+        }
+
+        public async Task<bool> IsSettingEnabledAsync(string settingId)
+        {
+            var settings = await GetRawSettingsAsync();
+            return await _orchestrator.GetSettingStatusAsync(settingId, settings);
+        }
+
+        public async Task<object?> GetSettingValueAsync(string settingId)
+        {
+            var settings = await GetRawSettingsAsync();
+            return await _orchestrator.GetSettingValueAsync(settingId, settings);
+        }
+
+        private async Task<IEnumerable<ApplicationSetting>> GetRawSettingsAsync()
         {
             var optimizations = WindowsSecurityOptimizations.GetWindowsSecurityOptimizations();
-            return await GetSettingsWithSystemStateAsync(optimizations.Settings);
+            return await Task.FromResult(optimizations.Settings);
         }
     }
 }

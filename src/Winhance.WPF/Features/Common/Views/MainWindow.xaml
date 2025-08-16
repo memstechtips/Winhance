@@ -32,8 +32,8 @@
                         <softwareAppsViews:ExternalAppsView/>
                 </DataTemplate>
                 <!-- New SOLID-compliant composition view -->
-                <DataTemplate DataType="{x:Type optimizeViewModels:OptimizeCompositionViewModel}">
-                        <optimizeViews:OptimizeCompositionView/>
+                <DataTemplate DataType="{x:Type optimizeViewModels:OptimizeViewModel}">
+                        <optimizeViews:OptimizeView/>
                 </DataTemplate>
                 
                 <!-- Legacy container view removed - using composition approach -->

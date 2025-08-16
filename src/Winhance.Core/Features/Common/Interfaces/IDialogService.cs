@@ -1,6 +1,7 @@
 using System.Threading.Tasks;
 using System.Collections.Generic;
 using Winhance.Core.Features.Common.Enums;
+using Winhance.Core.Features.Common.Models;
 
 namespace Winhance.Core.Features.Common.Interfaces
 {
@@ -102,5 +103,22 @@ namespace Winhance.Core.Features.Common.Interfaces
         /// </summary>
         /// <returns>The selected import option if the user clicked OK, or null if the user canceled.</returns>
         Task<ImportOption?> ShowConfigImportOptionsDialogAsync();
+
+        /// <summary>
+        /// Displays a confirmation dialog with an optional checkbox.
+        /// </summary>
+        /// <param name="message">The confirmation message to display.</param>
+        /// <param name="checkboxText">The text for the checkbox (null if no checkbox needed).</param>
+        /// <param name="title">The title of the dialog box.</param>
+        /// <param name="continueButtonText">The text for the continue button.</param>
+        /// <param name="cancelButtonText">The text for the cancel button.</param>
+        /// <returns>A tuple containing whether user confirmed and checkbox state (if applicable).</returns>
+        Task<(bool Confirmed, bool CheckboxChecked)> ShowConfirmationWithCheckboxAsync(
+            string message, 
+            string? checkboxText = null, 
+            string title = "Confirmation", 
+            string continueButtonText = "Continue", 
+            string cancelButtonText = "Cancel");
+
     }
 }

@@ -29,7 +29,7 @@ public static class SoundOptimizations
                         new RegistrySetting
                         {
                             Category = "Sound",
-                            Hive = RegistryHive.LocalMachine,
+                            Hive = "HKEY_LOCAL_MACHINE",
                             SubKey =
                                 "Software\\Microsoft\\Windows\\CurrentVersion\\Authentication\\LogonUI\\BootAnimation",
                             Name = "DisableStartupSound",
@@ -45,7 +45,7 @@ public static class SoundOptimizations
                         new RegistrySetting
                         {
                             Category = "Sound",
-                            Hive = RegistryHive.LocalMachine,
+                            Hive = "HKEY_LOCAL_MACHINE",
                             SubKey =
                                 "Software\\Microsoft\\Windows\\CurrentVersion\\EditionOverrides",
                             Name = "UserSetting_DisableStartupSound",
@@ -75,7 +75,7 @@ public static class SoundOptimizations
                         new RegistrySetting
                         {
                             Category = "Sound",
-                            Hive = RegistryHive.CurrentUser,
+                            Hive = "HKEY_CURRENT_USER",
                             SubKey = "Software\\Microsoft\\Multimedia\\Audio",
                             Name = "UserDuckingPreference",
                             RecommendedValue = 3, // For backward compatibility
@@ -103,7 +103,7 @@ public static class SoundOptimizations
                         new RegistrySetting
                         {
                             Category = "Sound",
-                            Hive = RegistryHive.LocalMachine,
+                            Hive = "HKEY_LOCAL_MACHINE",
                             SubKey =
                                 "Software\\Microsoft\\Windows\\CurrentVersion\\SpeechOneCore\\Settings",
                             Name = "AgentActivationEnabled",
@@ -132,7 +132,7 @@ public static class SoundOptimizations
                         new RegistrySetting
                         {
                             Category = "Sound",
-                            Hive = RegistryHive.LocalMachine,
+                            Hive = "HKEY_LOCAL_MACHINE",
                             SubKey =
                                 "Software\\Microsoft\\Windows\\CurrentVersion\\SpeechOneCore\\Settings",
                             Name = "AgentActivationLastUsed",
@@ -161,7 +161,7 @@ public static class SoundOptimizations
                         new RegistrySetting
                         {
                             Category = "Sound",
-                            Hive = RegistryHive.CurrentUser,
+                            Hive = "HKEY_CURRENT_USER",
                             SubKey = "Software\\Microsoft\\Multimedia\\Audio\\DeviceFx",
                             Name = "EnableDeviceEffects",
                             RecommendedValue = 0, // For backward compatibility
@@ -189,7 +189,7 @@ public static class SoundOptimizations
                         new RegistrySetting
                         {
                             Category = "Sound",
-                            Hive = RegistryHive.CurrentUser,
+                            Hive = "HKEY_CURRENT_USER",
                             SubKey = "Software\\Microsoft\\Windows\\CurrentVersion\\Audio",
                             Name = "EnableSpatialSound",
                             RecommendedValue = 0, // For backward compatibility

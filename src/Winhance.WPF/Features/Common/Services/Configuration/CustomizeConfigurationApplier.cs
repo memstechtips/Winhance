@@ -202,8 +202,8 @@ namespace Winhance.WPF.Features.Common.Services.Configuration
                             
                             _logService.Log(LogLevel.Info, $"Applying theme through service layer: {newSelectedTheme} (Dark Mode: {isDarkMode})");
                             
-                            // Apply the theme through the Windows theme service
-                            await _windowsThemeService.ApplyThemeAsync(isDarkMode, false);
+                            // Apply the theme through the Windows theme service using proper domain service pattern
+                            await _windowsThemeService.ApplySettingAsync("theme-mode-windows", isDarkMode);
                             
                             // Update the corresponding setting in the viewModel to reflect the change
                             var themeSetting = themeSettings.FirstOrDefault(s => s.Name?.Contains("Theme") == true);

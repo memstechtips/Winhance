@@ -1,18 +1,14 @@
 using System;
-using System.Collections.Generic;
 using System.Collections.ObjectModel;
-using System.Linq;
 using System.Threading.Tasks;
 using System.Windows.Input;
 using CommunityToolkit.Mvvm.ComponentModel;
 using CommunityToolkit.Mvvm.Input;
 using Winhance.Core.Features.Common.Enums;
 using Winhance.Core.Features.Common.Interfaces;
-using Winhance.Core.Features.Common.Models;
 using Winhance.Core.Features.Customize.Interfaces;
-using Winhance.WPF.Features.Common.Interfaces;
 using Winhance.Core.Features.Customize.Models;
-using Winhance.WPF.Features.Common.ViewModels;
+using Winhance.WPF.Features.Common.Interfaces;
 using Winhance.WPF.Features.Common.Models;
 
 namespace Winhance.WPF.Features.Customize.ViewModels
@@ -24,40 +20,12 @@ namespace Winhance.WPF.Features.Customize.ViewModels
     /// </summary>
     public partial class StartMenuCustomizationsViewModel : ObservableObject, IFeatureViewModel
     {
-        #region Private Fields
-
         private readonly IStartMenuService _startMenuService;
         private readonly ISettingsUICoordinator _uiCoordinator;
         private readonly ITaskProgressService _progressService;
         private readonly ILogService _logService;
         private readonly ISystemServices _systemServices;
         private readonly IDialogService _dialogService;
-        private readonly IScheduledTaskService _scheduledTaskService;
-        private bool _isWindows11;
-
-        #endregion
-
-        #region Observable Properties
-
-        /// <summary>
-        /// Collection of ComboBox settings for specialized display.
-        /// </summary>
-        public ObservableCollection<SettingUIItem> ComboBoxSettings { get; } = new();
-
-        /// <summary>
-        /// Collection of Toggle settings for specialized display.
-        /// </summary>
-        public ObservableCollection<SettingUIItem> ToggleSettings { get; } = new();
-
-        /// <summary>
-        /// Whether there are ComboBox settings available.
-        /// </summary>
-        public bool HasComboBoxSettings => ComboBoxSettings.Count > 0;
-
-        /// <summary>
-        /// Whether there are Toggle settings available.
-        /// </summary>
-        public bool HasToggleSettings => ToggleSettings.Count > 0;
 
         // Delegate properties to UI Coordinator
         public ObservableCollection<SettingUIItem> Settings => _uiCoordinator.Settings;
@@ -80,345 +48,138 @@ namespace Winhance.WPF.Features.Customize.ViewModels
         public bool HasVisibleSettings => _uiCoordinator.HasVisibleSettings;
 
         // IFeatureViewModel implementation
-        public string ModuleId => "StartMenuCustomization";
+        public string ModuleId => "start-menu";
         public string DisplayName => "Start Menu";
         public int SettingsCount => Settings?.Count ?? 0;
         public string Category => "Customize";
         public string Description => "Customize Windows Start Menu settings";
         public int SortOrder => 3;
+
+        /// <summary>
+        /// Gets the command to load settings.
+        /// </summary>
         public ICommand LoadSettingsCommand { get; private set; }
 
-        #endregion
+        // Header properties
+        [ObservableProperty]
+        private bool _isExpanded = true;
 
-        #region Commands
+        public ICommand ToggleExpandCommand { get; private set; }
 
         /// <summary>
         /// Command to clean the Start Menu.
         /// </summary>
         public ICommand CleanStartMenuCommand { get; }
 
-        /// <summary>
-        /// Command to apply recommended Start Menu settings.
-        /// </summary>
-        public ICommand ApplyRecommendedSettingsCommand { get; }
-
-        /// <summary>
-        /// Command to execute a specific action.
-        /// </summary>
-        public ICommand ExecuteActionCommand { get; }
-        
-        // LoadSettingsCommand is now defined in IFeatureViewModel implementation section
-
-        #endregion
-
-        #region Constructor
-
         public StartMenuCustomizationsViewModel(
             IStartMenuService startMenuService,
             ISettingsUICoordinator uiCoordinator,
-            ITaskProgressService progressService,
             ILogService logService,
-            ISystemServices systemServices,
             IDialogService dialogService,
-            IScheduledTaskService scheduledTaskService)
+            ITaskProgressService progressService,
+            ISystemServices systemServices
+        )
         {
-            _startMenuService = startMenuService ?? throw new ArgumentNullException(nameof(startMenuService));
-            _uiCoordinator = uiCoordinator ?? throw new ArgumentNullException(nameof(uiCoordinator));
-            _progressService = progressService ?? throw new ArgumentNullException(nameof(progressService));
+            _startMenuService =
+                startMenuService ?? throw new ArgumentNullException(nameof(startMenuService));
+            _uiCoordinator =
+                uiCoordinator ?? throw new ArgumentNullException(nameof(uiCoordinator));
             _logService = logService ?? throw new ArgumentNullException(nameof(logService));
-            _systemServices = systemServices ?? throw new ArgumentNullException(nameof(systemServices));
-            _dialogService = dialogService ?? throw new ArgumentNullException(nameof(dialogService));
-            _scheduledTaskService = scheduledTaskService ?? throw new ArgumentNullException(nameof(scheduledTaskService));
+            _dialogService =
+                dialogService ?? throw new ArgumentNullException(nameof(dialogService));
+            _progressService =
+                progressService ?? throw new ArgumentNullException(nameof(progressService));
+            _systemServices =
+                systemServices ?? throw new ArgumentNullException(nameof(systemServices));
 
-            _isWindows11 = _systemServices.IsWindows11();
             _uiCoordinator.CategoryName = "Start Menu";
+
+            // Subscribe to coordinator's PropertyChanged events to relay them to the UI
+            _uiCoordinator.PropertyChanged += (sender, e) => OnPropertyChanged(e.PropertyName);
 
             // Initialize commands
             CleanStartMenuCommand = new AsyncRelayCommand(CleanStartMenuAsync);
-            ApplyRecommendedSettingsCommand = new AsyncRelayCommand(ApplyRecommendedSettingsAsync);
-            ExecuteActionCommand = new AsyncRelayCommand<string>(ExecuteActionAsync);
             LoadSettingsCommand = new AsyncRelayCommand(LoadSettingsAsync);
+            ToggleExpandCommand = new RelayCommand(ToggleExpand);
         }
-
-        #endregion
-
-        #region Protected Override Methods
-
-
 
         /// <summary>
         /// Loads settings and organizes them by control type.
         /// </summary>
         public async Task LoadSettingsAsync()
         {
-            await _uiCoordinator.LoadSettingsAsync<ApplicationSetting>(async () =>
-            {
-                var startMenuCustomizations = StartMenuCustomizations.GetStartMenuCustomizations();
-                
-                // Filter settings based on Windows version and build
-                var filteredSettings = startMenuCustomizations.Settings
-                    .Where(IsSettingSupportedOnCurrentSystem)
-                    .ToList();
+            _logService.Log(
+                LogLevel.Info,
+                "StartMenuCustomizationsViewModel: Starting LoadSettingsAsync"
+            );
 
-                _logService.Log(LogLevel.Info, $"Loaded {filteredSettings.Count} Start Menu settings for current system");
-
-                return filteredSettings;
-            });
-
-            // Organize settings by control type for specialized UI display
-            OrganizeSettingsByControlType();
-
-            // Update dynamic tooltips for Windows 11
-            if (_isWindows11)
-            {
-                UpdateDynamicTooltips();
-            }
-        }
-
-        #endregion
-
-        #region Command Handlers
-
-        /// <summary>
-        /// Cleans the Start Menu by removing all pinned items and applying recommended settings.
-        /// </summary>
-        private async Task CleanStartMenuAsync()
-        {
             try
             {
-                // Show confirmation dialog
-                var confirmed = await _dialogService.ShowConfirmationAsync(
-                    "You are about to clean the Start Menu for all users on this computer.\n\n" +
-                    "This will remove all pinned items and apply recommended settings to disable suggestions, " +
-                    "recommendations, and tracking features.\n\n" +
-                    "Do you want to continue?",
-                    "Start Menu Cleaning Options");
+                _progressService.StartTask("Loading start menu settings...");
 
-                if (!confirmed) return;
+                // Use the domain service which provides centralized ComboBox resolution
+                await _uiCoordinator.LoadSettingsAsync(() => _startMenuService.GetSettingsAsync());
 
-                _progressService.StartTask("Cleaning Start Menu...");
-                _logService.Log(LogLevel.Info, "Starting Start Menu cleaning process");
-
-                // Clean the Start Menu using the static method
-                await Task.Run(() => StartMenuCustomizations.CleanStartMenu(_isWindows11, _systemServices, _logService, _scheduledTaskService));
-
-                // Apply recommended settings
-                await ApplyRecommendedSettingsAsync();
+                _logService.Log(
+                    LogLevel.Info,
+                    $"StartMenuCustomizationsViewModel: UI Coordinator has {_uiCoordinator.Settings.Count} settings after load"
+                );
 
                 _progressService.CompleteTask();
-                _logService.Log(LogLevel.Info, "Start Menu cleaned successfully");
-
-                // Refresh all settings to reflect changes
-                await LoadSettingsAsync();
             }
             catch (Exception ex)
             {
                 _progressService.CompleteTask();
-                _logService.Log(LogLevel.Error, $"Error cleaning Start Menu: {ex.Message}");
-                await _dialogService.ShowErrorAsync($"Failed to clean Start Menu: {ex.Message}", "Error");
-            }
-        }
-
-        /// <summary>
-        /// Applies comprehensive recommended Start Menu settings based on Windows version.
-        /// </summary>
-        private async Task ApplyRecommendedSettingsAsync()
-        {
-            try
-            {
-                _logService.Log(LogLevel.Info, $"Applying recommended Start Menu settings for Windows {(_isWindows11 ? "11" : "10")}");
-
-                var recommendedSettingIds = GetRecommendedSettingIds();
-                var allSettings = await _startMenuService.GetSettingsAsync();
-                var settingsToApply = allSettings.Where(s => recommendedSettingIds.Contains(s.Id));
-
-                await _startMenuService.ApplyMultipleSettingsAsync(settingsToApply, true);
-                
-                _logService.Log(LogLevel.Info, $"Applied {recommendedSettingIds.Count} recommended settings");
-            }
-            catch (Exception ex)
-            {
-                _logService.Log(LogLevel.Error, $"Error applying recommended settings: {ex.Message}");
+                _logService.Log(LogLevel.Error, $"Error loading Start Menu settings: {ex.Message}");
                 throw;
             }
         }
 
         /// <summary>
-        /// Executes a specific action by name.
+        /// Executes the clean Start Menu operation using UI coordination.
+        /// Delegates actual business logic to the domain service.
         /// </summary>
-        private async Task ExecuteActionAsync(string? actionName)
+        private async Task CleanStartMenuAsync()
         {
-            if (string.IsNullOrEmpty(actionName)) return;
-
             try
             {
-                _logService.Log(LogLevel.Info, $"Executing action: {actionName}");
+                // UI: Show confirmation dialog
+                var confirmed = await _dialogService.ShowConfirmationAsync(
+                    "You are about to clean the Start Menu for all users on this computer.\n\n"
+                        + "This will remove all pinned items and apply recommended settings to disable suggestions, "
+                        + "recommendations, and tracking features.\n\n"
+                        + "Do you want to continue?",
+                    "Start Menu Cleaning Options"
+                );
 
-                // Find the action in the Start Menu customizations
-                var startMenuCustomizations = StartMenuCustomizations.GetStartMenuCustomizations();
-                var action = startMenuCustomizations.Settings?.FirstOrDefault(a => a.Name == actionName);
-
-                if (action == null)
-                {
-                    _logService.Log(LogLevel.Warning, $"Action '{actionName}' not found");
+                if (!confirmed)
                     return;
-                }
 
-                // Execute the action using the service
-                if (action.RegistrySettings?.Count > 0)
-                {
-                    // For actions, we apply the recommended value from the first registry setting
-                    var registrySetting = action.RegistrySettings[0];
-                    await _startMenuService.ApplySettingAsync($"action_{actionName}", true, registrySetting.RecommendedValue);
-                }
+                // UI: Start progress tracking
+                _progressService.StartTask("Cleaning Start Menu...");
 
-                // For now, we don't have custom actions in the new architecture
-                // TODO: Implement custom action handling if needed
+                // DELEGATE: Call domain service for business logic
+                await _startMenuService.CleanStartMenuAsync();
 
-                _logService.Log(LogLevel.Info, $"Action '{actionName}' executed successfully");
+                // UI: Complete progress and show success
+                _progressService.CompleteTask();
+                await _dialogService.ShowInformationAsync(
+                    "Start Menu has been cleaned successfully.",
+                    "Start Menu Cleanup"
+                );
+
+                // UI: Refresh settings to reflect changes
+                await LoadSettingsAsync();
             }
             catch (Exception ex)
             {
-                _logService.Log(LogLevel.Error, $"Error executing action '{actionName}': {ex.Message}");
-                await _dialogService.ShowErrorAsync($"Failed to execute action '{actionName}': {ex.Message}", "Error");
-            }
-        }
-
-        #endregion
-
-        #region Private Helper Methods
-
-        /// <summary>
-        /// Determines if a setting is supported on the current system.
-        /// </summary>
-        private bool IsSettingSupportedOnCurrentSystem(CustomizationSetting setting)
-        {
-            // Check Windows version requirements
-            if (setting.IsWindows11Only && !_isWindows11) return false;
-            if (setting.IsWindows10Only && _isWindows11) return false;
-
-            // Check build number requirements - using Windows version instead
-            var windowsVersion = _systemServices.GetWindowsVersion();
-            // For now, assume we can proceed without specific build number checks
-            var currentBuild = 0; // TODO: Parse build number from version string if needed
-
-            // Check supported build ranges (takes precedence)
-            if (setting.SupportedBuildRanges?.Any() == true)
-            {
-                return setting.SupportedBuildRanges.Any(range => 
-                    currentBuild >= range.MinBuild && currentBuild <= range.MaxBuild);
-            }
-
-            // Check minimum build requirement
-            if (setting.MinimumBuildNumber.HasValue && currentBuild < setting.MinimumBuildNumber.Value)
-                return false;
-
-            // Check maximum build requirement
-            if (setting.MaximumBuildNumber.HasValue && currentBuild > setting.MaximumBuildNumber.Value)
-                return false;
-
-            return true;
-        }
-
-        /// <summary>
-        /// Organizes settings by control type for specialized UI display.
-        /// </summary>
-        private void OrganizeSettingsByControlType()
-        {
-            ComboBoxSettings.Clear();
-            ToggleSettings.Clear();
-
-            foreach (var setting in Settings)
-            {
-                switch (setting.ControlType)
-                {
-                    case ControlType.ComboBox:
-                        ComboBoxSettings.Add(setting);
-                        break;
-                    case ControlType.BinaryToggle:
-                        ToggleSettings.Add(setting);
-                        break;
-                    // Add other control types as needed
-                }
-            }
-
-            // Notify property changes
-            OnPropertyChanged(nameof(HasComboBoxSettings));
-            OnPropertyChanged(nameof(HasToggleSettings));
-        }
-
-        /// <summary>
-        /// Gets the list of recommended setting IDs based on Windows version.
-        /// </summary>
-        private List<string> GetRecommendedSettingIds()
-        {
-            if (_isWindows11)
-            {
-                return new List<string>
-                {
-                    "show-recently-added-apps",
-                    "start-track-progs",
-                    "show-recommended-files",
-                    "start-menu-recommendations",
-                    "recommended-section"
-                };
-            }
-            else
-            {
-                return new List<string>
-                {
-                    "show-recently-added-apps",
-                    "start-track-progs",
-                    "show-most-used-apps",
-                    "show-suggestions"
-                };
-            }
-        }
-
-        /// <summary>
-        /// Updates the descriptions of settings that are affected by the "Recommended Section" ComboBox on Windows 11.
-        /// </summary>
-        private void UpdateDynamicTooltips()
-        {
-            if (!_isWindows11) return;
-
-            var recommendedSectionSetting = Settings.FirstOrDefault(s => s.Id == "recommended-section");
-            if (recommendedSectionSetting == null) return;
-
-            bool isRecommendedSectionHidden = recommendedSectionSetting.SelectedValue?.ToString() == "Hide";
-
-            var affectedSettingIds = new List<string>
-            {
-                "show-recently-added-apps",
-                "start-track-progs",
-                "show-recommended-files",
-                "start-menu-recommendations"
-            };
-
-            foreach (var settingId in affectedSettingIds)
-            {
-                var setting = Settings.FirstOrDefault(s => s.Id == settingId);
-                if (setting != null)
-                {
-                    // Get original description from core model
-                    var startMenuCustomizations = StartMenuCustomizations.GetStartMenuCustomizations();
-                    var originalSetting = startMenuCustomizations.Settings.FirstOrDefault(s => s.Id == settingId);
-                    
-                    if (originalSetting != null)
-                    {
-                        string baseDescription = originalSetting.Description;
-                        
-                        if (isRecommendedSectionHidden)
-                        {
-                            setting.Description = baseDescription + 
-                                "\n\nNote: This setting won't have any visual effect while the 'Recommended Section' is set to 'Hide'.";
-                        }
-                        else
-                        {
-                            setting.Description = baseDescription;
-                        }
-                    }
-                }
+                // UI: Handle error display and cleanup
+                _progressService.CompleteTask();
+                _logService.Log(LogLevel.Error, $"Error cleaning Start Menu: {ex.Message}");
+                await _dialogService.ShowErrorAsync(
+                    $"Failed to clean Start Menu: {ex.Message}",
+                    "Start Menu Cleanup Error"
+                );
             }
         }
 
@@ -436,12 +197,14 @@ namespace Winhance.WPF.Features.Customize.ViewModels
         public void ClearSettings()
         {
             _uiCoordinator.ClearSettings();
-            ComboBoxSettings.Clear();
-            ToggleSettings.Clear();
-            OnPropertyChanged(nameof(HasComboBoxSettings));
-            OnPropertyChanged(nameof(HasToggleSettings));
         }
 
-        #endregion
+        /// <summary>
+        /// Toggles the expand/collapse state of this feature section.
+        /// </summary>
+        private void ToggleExpand()
+        {
+            IsExpanded = !IsExpanded;
+        }
     }
 }

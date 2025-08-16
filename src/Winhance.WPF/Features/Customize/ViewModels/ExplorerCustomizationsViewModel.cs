@@ -1,14 +1,11 @@
 using System;
-using System.Collections.Generic;
 using System.Collections.ObjectModel;
-using System.Linq;
 using System.Threading.Tasks;
 using System.Windows.Input;
 using CommunityToolkit.Mvvm.ComponentModel;
 using CommunityToolkit.Mvvm.Input;
 using Winhance.Core.Features.Common.Enums;
 using Winhance.Core.Features.Common.Interfaces;
-using Winhance.Core.Features.Common.Models;
 using Winhance.Core.Features.Customize.Interfaces;
 using Winhance.WPF.Features.Common.Interfaces;
 using Winhance.WPF.Features.Common.Models;
@@ -21,23 +18,25 @@ namespace Winhance.WPF.Features.Customize.ViewModels
     public partial class ExplorerCustomizationsViewModel : ObservableObject, IFeatureViewModel
     {
         private readonly IExplorerCustomizationService _explorerService;
-        private readonly IDialogService _dialogService;
         private readonly ISettingsUICoordinator _uiCoordinator;
         private readonly ILogService _logService;
+        private readonly IDialogService _dialogService;
         private readonly ITaskProgressService _progressService;
-
-        /// <summary>
-        /// Gets the command to execute an action.
-        /// </summary>
-        public IAsyncRelayCommand<string> ExecuteActionCommand { get; }
-
-        // LoadSettingsCommand is now defined as ICommand for IFeatureViewModel interface
+        private readonly ISystemServices _systemServices;
 
         // Delegating properties to UI coordinator
         public ObservableCollection<SettingUIItem> Settings => _uiCoordinator.Settings;
         public ObservableCollection<SettingGroup> SettingGroups => _uiCoordinator.SettingGroups;
-        public bool IsLoading => _uiCoordinator.IsLoading;
-        public string CategoryName => _uiCoordinator.CategoryName;
+        public bool IsLoading
+        {
+            get => _uiCoordinator.IsLoading;
+            set => _uiCoordinator.IsLoading = value;
+        }
+        public string CategoryName
+        {
+            get => _uiCoordinator.CategoryName;
+            set => _uiCoordinator.CategoryName = value;
+        }
         public string SearchText
         {
             get => _uiCoordinator.SearchText;
@@ -46,13 +45,23 @@ namespace Winhance.WPF.Features.Customize.ViewModels
         public bool HasVisibleSettings => _uiCoordinator.HasVisibleSettings;
 
         // IFeatureViewModel implementation
-        public string ModuleId => "ExplorerCustomization";
+        public string ModuleId => "explorer-customization";
         public string DisplayName => "Explorer";
         public int SettingsCount => Settings?.Count ?? 0;
         public string Category => "Customize";
         public string Description => "Customize Windows Explorer settings";
-        public int SortOrder => 1;
+        public int SortOrder => 4;
+
+        /// <summary>
+        /// Gets the command to load settings.
+        /// </summary>
         public ICommand LoadSettingsCommand { get; private set; }
+
+        // Header properties
+        [ObservableProperty]
+        private bool _isExpanded = true;
+
+        public ICommand ToggleExpandCommand { get; private set; }
 
         /// <summary>
         /// Initializes a new instance of the <see cref="ExplorerCustomizationsViewModel"/> class.
@@ -67,48 +76,30 @@ namespace Winhance.WPF.Features.Customize.ViewModels
             ISettingsUICoordinator uiCoordinator,
             ILogService logService,
             IDialogService dialogService,
-            ITaskProgressService progressService)
+            ITaskProgressService progressService,
+            ISystemServices systemServices
+        )
         {
-            _explorerService = explorerService ?? throw new ArgumentNullException(nameof(explorerService));
-            _uiCoordinator = uiCoordinator ?? throw new ArgumentNullException(nameof(uiCoordinator));
+            _explorerService =
+                explorerService ?? throw new ArgumentNullException(nameof(explorerService));
+            _uiCoordinator =
+                uiCoordinator ?? throw new ArgumentNullException(nameof(uiCoordinator));
             _logService = logService ?? throw new ArgumentNullException(nameof(logService));
-            _dialogService = dialogService ?? throw new ArgumentNullException(nameof(dialogService));
-            _progressService = progressService ?? throw new ArgumentNullException(nameof(progressService));
-            
+            _dialogService =
+                dialogService ?? throw new ArgumentNullException(nameof(dialogService));
+            _progressService =
+                progressService ?? throw new ArgumentNullException(nameof(progressService));
+            _systemServices =
+                systemServices ?? throw new ArgumentNullException(nameof(systemServices));
+
             _uiCoordinator.CategoryName = "Explorer";
-            
+
+            // Subscribe to coordinator's PropertyChanged events to relay them to the UI
+            _uiCoordinator.PropertyChanged += (sender, e) => OnPropertyChanged(e.PropertyName);
+
             // Initialize commands
-            ExecuteActionCommand = new AsyncRelayCommand<string>(ExecuteActionAsync);
             LoadSettingsCommand = new AsyncRelayCommand(LoadSettingsAsync);
-        }
-
-        /// <summary>
-        /// Executes a named action.
-        /// </summary>
-        /// <param name="actionId">The ID of the action to execute.</param>
-        private async Task ExecuteActionAsync(string actionId)
-        {
-            if (string.IsNullOrEmpty(actionId))
-                return;
-
-            try
-            {
-                _progressService.StartTask($"Executing action: {actionId}...");
-                
-                // Use the explorer service to execute the action
-                await _explorerService.ExecuteExplorerActionAsync(actionId);
-                
-                // Refresh settings after action
-                await LoadSettingsAsync();
-                
-                _progressService.CompleteTask();
-            }
-            catch (Exception ex)
-            {
-                _progressService.CompleteTask();
-                _logService.Log(LogLevel.Error, $"Error executing action {actionId}: {ex.Message}");
-                await _dialogService.ShowErrorAsync($"Failed to execute action: {ex.Message}", "Action Error");
-            }
+            ToggleExpandCommand = new RelayCommand(ToggleExpand);
         }
 
         /// <summary>
@@ -116,16 +107,23 @@ namespace Winhance.WPF.Features.Customize.ViewModels
         /// </summary>
         public async Task LoadSettingsAsync()
         {
+            _logService.Log(
+                LogLevel.Info,
+                "ExplorerCustomizationsViewModel: Starting LoadSettingsAsync"
+            );
+
             try
             {
                 _progressService.StartTask("Loading explorer settings...");
-                
-                // Use UI coordinator to load settings - Application Service handles business logic
+
+                // Use UI coordinator to load settings - Domain service handles business logic
                 await _uiCoordinator.LoadSettingsAsync(() => _explorerService.GetSettingsAsync());
-                
-                // Apply any Explorer-specific filtering or organization
-                OrganizeExplorerSettings();
-                
+
+                _logService.Log(
+                    LogLevel.Info,
+                    $"ExplorerCustomizationsViewModel: UI Coordinator has {_uiCoordinator.Settings.Count} settings after load"
+                );
+
                 _progressService.CompleteTask();
             }
             catch (Exception ex)
@@ -134,16 +132,6 @@ namespace Winhance.WPF.Features.Customize.ViewModels
                 _logService.Log(LogLevel.Error, $"Error loading explorer settings: {ex.Message}");
                 throw;
             }
-        }
-
-        /// <summary>
-        /// Organizes Explorer settings with specific grouping and display logic.
-        /// </summary>
-        private void OrganizeExplorerSettings()
-        {
-            // Apply Explorer-specific organization if needed
-            // The UI coordinator already handles basic grouping
-            // This method can be used for Explorer-specific customizations
         }
 
         /// <summary>
@@ -160,6 +148,14 @@ namespace Winhance.WPF.Features.Customize.ViewModels
         public void ClearSettings()
         {
             _uiCoordinator.ClearSettings();
+        }
+
+        /// <summary>
+        /// Toggles the expand/collapse state of this feature section.
+        /// </summary>
+        private void ToggleExpand()
+        {
+            IsExpanded = !IsExpanded;
         }
     }
 }

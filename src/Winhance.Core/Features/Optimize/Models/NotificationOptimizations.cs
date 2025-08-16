@@ -29,7 +29,7 @@ public static class NotificationOptimizations
                         new RegistrySetting
                         {
                             Category = "Notifications",
-                            Hive = RegistryHive.CurrentUser,
+                            Hive = "HKEY_CURRENT_USER",
                             SubKey = "SOFTWARE\\Microsoft\\Windows\\CurrentVersion\\PushNotifications",
                             Name = "ToastEnabled",
                             RecommendedValue = 0,
@@ -57,7 +57,7 @@ public static class NotificationOptimizations
                         new RegistrySetting
                         {
                             Category = "Notifications",
-                            Hive = RegistryHive.CurrentUser,
+                            Hive = "HKEY_CURRENT_USER",
                             SubKey = "SOFTWARE\\Microsoft\\Windows\\CurrentVersion\\Notifications\\Settings",
                             Name = "NOC_GLOBAL_SETTING_ALLOW_NOTIFICATION_SOUND",
                             RecommendedValue = 0,
@@ -85,7 +85,7 @@ public static class NotificationOptimizations
                         new RegistrySetting
                         {
                             Category = "Notifications",
-                            Hive = RegistryHive.CurrentUser,
+                            Hive = "HKEY_CURRENT_USER",
                             SubKey = "SOFTWARE\\Microsoft\\Windows\\CurrentVersion\\Notifications\\Settings",
                             Name = "NOC_GLOBAL_SETTING_ALLOW_TOASTS_ABOVE_LOCK",
                             RecommendedValue = 0,
@@ -100,7 +100,7 @@ public static class NotificationOptimizations
                         new RegistrySetting
                         {
                             Category = "Notifications",
-                            Hive = RegistryHive.CurrentUser,
+                            Hive = "HKEY_CURRENT_USER",
                             SubKey = "SOFTWARE\\Microsoft\\Windows\\CurrentVersion\\PushNotifications",
                             Name = "LockScreenToastEnabled",
                             RecommendedValue = 0,
@@ -129,7 +129,7 @@ public static class NotificationOptimizations
                         new RegistrySetting
                         {
                             Category = "Notifications",
-                            Hive = RegistryHive.CurrentUser,
+                            Hive = "HKEY_CURRENT_USER",
                             SubKey = "SOFTWARE\\Microsoft\\Windows\\CurrentVersion\\Notifications\\Settings",
                             Name = "NOC_GLOBAL_SETTING_ALLOW_CRITICAL_TOASTS_ABOVE_LOCK",
                             RecommendedValue = 0,
@@ -157,7 +157,7 @@ public static class NotificationOptimizations
                         new RegistrySetting
                         {
                             Category = "Notifications",
-                            Hive = RegistryHive.CurrentUser,
+                            Hive = "HKEY_CURRENT_USER",
                             SubKey = "SOFTWARE\\Microsoft\\Windows\\CurrentVersion\\Notifications\\Settings\\Windows.SystemToast.SecurityAndMaintenance",
                             Name = "Enabled",
                             RecommendedValue = 0,
@@ -185,7 +185,7 @@ public static class NotificationOptimizations
                         new RegistrySetting
                         {
                             Category = "Notifications",
-                            Hive = RegistryHive.CurrentUser,
+                            Hive = "HKEY_CURRENT_USER",
                             SubKey = "SOFTWARE\\Microsoft\\Windows\\CurrentVersion\\Notifications\\Settings\\Windows.SystemToast.CapabilityAccess",
                             Name = "Enabled",
                             RecommendedValue = 0,
@@ -213,7 +213,7 @@ public static class NotificationOptimizations
                         new RegistrySetting
                         {
                             Category = "Notifications",
-                            Hive = RegistryHive.CurrentUser,
+                            Hive = "HKEY_CURRENT_USER",
                             SubKey = "SOFTWARE\\Microsoft\\Windows\\CurrentVersion\\Notifications\\Settings\\Windows.SystemToast.StartupApp",
                             Name = "Enabled",
                             RecommendedValue = 0,
@@ -241,7 +241,7 @@ public static class NotificationOptimizations
                         new RegistrySetting
                         {
                             Category = "Notifications",
-                            Hive = RegistryHive.CurrentUser,
+                            Hive = "HKEY_CURRENT_USER",
                             SubKey = "SOFTWARE\\Microsoft\\Windows\\CurrentVersion\\UserProfileEngagement",
                             Name = "ScoobeSystemSettingEnabled",
                             RecommendedValue = 0,
@@ -269,7 +269,7 @@ public static class NotificationOptimizations
                         new RegistrySetting
                         {
                             Category = "Notifications",
-                            Hive = RegistryHive.CurrentUser,
+                            Hive = "HKEY_CURRENT_USER",
                             SubKey = "Software\\Microsoft\\Windows\\CurrentVersion\\CapabilityAccessManager\\ConsentStore\\location",
                             Name = "ShowGlobalPrompts",
                             RecommendedValue = 1,
@@ -297,7 +297,7 @@ public static class NotificationOptimizations
                         new RegistrySetting
                         {
                             Category = "Notifications",
-                            Hive = RegistryHive.LocalMachine,
+                            Hive = "HKEY_LOCAL_MACHINE",
                             SubKey = "SOFTWARE\\Microsoft\\Windows Defender Security Center\\Notifications",
                             Name = "DisableNotifications",
                             RecommendedValue = 0,
@@ -312,7 +312,7 @@ public static class NotificationOptimizations
                         new RegistrySetting
                         {
                             Category = "Notifications",
-                            Hive = RegistryHive.LocalMachine,
+                            Hive = "HKEY_LOCAL_MACHINE",
                             SubKey = "SOFTWARE\\Policies\\Microsoft\\Windows Defender Security Center\\Notifications",
                             Name = "DisableNotifications",
                             RecommendedValue = 0,
@@ -327,7 +327,7 @@ public static class NotificationOptimizations
                         new RegistrySetting
                         {
                             Category = "Notifications",
-                            Hive = RegistryHive.LocalMachine,
+                            Hive = "HKEY_LOCAL_MACHINE",
                             SubKey = "SOFTWARE\\Policies\\Microsoft\\Windows Defender Security Center\\Notifications",
                             Name = "DisableEnhancedNotifications",
                             RecommendedValue = 0,
@@ -356,7 +356,7 @@ public static class NotificationOptimizations
                         new RegistrySetting
                         {
                             Category = "Notifications",
-                            Hive = RegistryHive.CurrentUser,
+                            Hive = "HKEY_CURRENT_USER",
                             SubKey = "Control Panel\\Desktop",
                             Name = "DstNotification",
                             RecommendedValue = 0,

@@ -31,7 +31,7 @@ namespace Winhance.WPF.Features.Common.Services.Configuration
         }
 
         /// <summary>
-        /// Applies configuration to the OptimizeCompositionViewModel.
+        /// Applies configuration to the OptimizeViewModel.
         /// </summary>
         /// <param name="viewModelObj">The view model object to apply configuration to.</param>
         /// <param name="configFile">The configuration file containing settings to apply.</param>
@@ -53,26 +53,26 @@ namespace Winhance.WPF.Features.Common.Services.Configuration
                 return false;
             }
 
-            // Check if this is an OptimizeCompositionViewModel
-            if (viewModelObj is OptimizeCompositionViewModel)
+            // Check if this is an OptimizeViewModel
+            if (viewModelObj is OptimizeViewModel)
             {
                 _logService.Log(
                     LogLevel.Info,
-                    "Detected OptimizeCompositionViewModel, skipping configuration application"
+                    "Detected OptimizeViewModel, skipping configuration application"
                 );
 
-                // Skip handling for OptimizeCompositionViewModel
+                // Skip handling for OptimizeViewModel
                 // as it uses a different architecture and doesn't have the same properties/methods
                 _logService.Log(
                     LogLevel.Info,
-                    "OptimizeCompositionViewModel uses a composition pattern which is incompatible with the legacy configuration system"
+                    "OptimizeViewModel uses a composition pattern which is incompatible with the legacy configuration system"
                 );
 
                 // Return early as we can't apply configuration to the composition-based ViewModel
                 return false;
             }
 
-            // This is not an OptimizeCompositionViewModel, so we don't handle it
+            // This is not an OptimizeViewModel, so we don't handle it
             _logService.Log(
                 LogLevel.Info,
                 $"Not handling view model of type {viewModelObj.GetType().Name}"

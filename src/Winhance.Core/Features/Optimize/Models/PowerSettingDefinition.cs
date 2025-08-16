@@ -3,29 +3,10 @@ using System.Collections.Generic;
 using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
+using Winhance.Core.Features.Common.Enums;
 
 namespace Winhance.Core.Features.Optimize.Models
 {
-    /// <summary>
-    /// Represents the type of power setting.
-    /// </summary>
-    public enum PowerSettingType
-    {
-        /// <summary>
-        /// A setting with a numeric value (e.g., minutes, percentage).
-        /// </summary>
-        Numeric,
-
-        /// <summary>
-        /// A setting with predefined options (e.g., On/Off, High/Medium/Low).
-        /// </summary>
-        Enum,
-
-        /// <summary>
-        /// A setting with a boolean value (true/false, on/off).
-        /// </summary>
-        Boolean
-    }
 
     /// <summary>
     /// Represents a power setting subgroup.
@@ -78,10 +59,6 @@ namespace Winhance.Core.Features.Optimize.Models
         /// </summary>
         public string Description { get; set; } = string.Empty;
 
-        /// <summary>
-        /// Gets or sets the type of the setting.
-        /// </summary>
-        public PowerSettingType SettingType { get; set; }
 
         /// <summary>
         /// Gets or sets the parent subgroup GUID.
@@ -147,6 +124,11 @@ namespace Winhance.Core.Features.Optimize.Models
         /// Gets or sets a mapping from index values to command arguments.
         /// </summary>
         public Dictionary<int, string> CustomCommandValueMap { get; set; } = new Dictionary<int, string>();
+
+        /// <summary>
+        /// Gets or sets the control type to use in the UI for this setting.
+        /// </summary>
+        public ControlType ControlType { get; set; } = ControlType.NumericUpDown;
     }
 
     /// <summary>

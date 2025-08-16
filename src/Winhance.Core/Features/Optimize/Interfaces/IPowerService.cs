@@ -51,5 +51,38 @@ namespace Winhance.Core.Features.Optimize.Interfaces
         /// </summary>
         /// <returns>A collection of advanced power setting groups.</returns>
         Task<IEnumerable<AdvancedPowerSettingGroup>> GetAdvancedPowerSettingGroupsAsync();
+
+        /// <summary>
+        /// Sets the active power plan.
+        /// </summary>
+        /// <param name="powerPlanGuid">The GUID of the power plan to activate.</param>
+        /// <returns>True if successful, false otherwise.</returns>
+        Task<bool> SetActivePowerPlanAsync(string powerPlanGuid);
+
+        /// <summary>
+        /// Gets the current value of a power setting.
+        /// </summary>
+        /// <param name="powerPlanGuid">The power plan GUID.</param>
+        /// <param name="subgroupGuid">The subgroup GUID.</param>
+        /// <param name="settingGuid">The setting GUID.</param>
+        /// <returns>A tuple containing the AC and DC values.</returns>
+        Task<(int acValue, int dcValue)> GetSettingValueAsync(string powerPlanGuid, string subgroupGuid, string settingGuid);
+
+        /// <summary>
+        /// Applies a dynamic power setting change based on a SettingUIItem.
+        /// Handles all business logic for extracting metadata and applying the setting.
+        /// </summary>
+        /// <param name="settingId">The ID of the setting to apply.</param>
+        /// <param name="isSelected">For toggle controls, whether the setting is selected.</param>
+        /// <param name="selectedValue">For value controls, the selected value.</param>
+        /// <returns>A task representing the asynchronous operation.</returns>
+        Task ApplyDynamicPowerSettingAsync(string settingId, bool isSelected, object? selectedValue);
+
+        /// <summary>
+        /// Gets the available timeout options for display and sleep settings.
+        /// Domain service provides business data, not hardcoded in ViewModel.
+        /// </summary>
+        /// <returns>Collection of timeout option display strings.</returns>
+        IEnumerable<string> GetTimeoutOptions();
     }
 }

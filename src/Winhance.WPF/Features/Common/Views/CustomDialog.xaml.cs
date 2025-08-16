@@ -36,6 +36,13 @@ namespace Winhance.WPF.Features.Common.Views
             Close();
         }
 
+        private void CloseButton_Click(object sender, RoutedEventArgs e)
+        {
+            // Set DialogResult to null for Cancel (same behavior as TertiaryButton)
+            DialogResult = null;
+            Close();
+        }
+
         public static CustomDialog CreateConfirmationDialog(
             string title,
             string headerText,
@@ -240,6 +247,46 @@ namespace Winhance.WPF.Features.Common.Views
             var result = dialog.ShowDialog();
 
             return result;
+        }
+
+        public static (bool Confirmed, bool CheckboxChecked)? ShowConfirmationWithCheckbox(
+            string title,
+            string message,
+            string? checkboxText = null,
+            string continueButtonText = "Continue",
+            string cancelButtonText = "Cancel")
+        {
+            var dialog = new CustomDialog { Title = title };
+
+            dialog.HeaderText.Text = title;
+            dialog.MessageContent.Text = message;
+            dialog.FooterText.Text = "";
+
+            // Configure checkbox if provided
+            if (!string.IsNullOrEmpty(checkboxText))
+            {
+                dialog.OptionCheckbox.Content = checkboxText;
+                dialog.OptionCheckbox.Visibility = Visibility.Visible;
+                dialog.OptionCheckbox.IsChecked = false; // Default unchecked
+            }
+            else
+            {
+                dialog.OptionCheckbox.Visibility = Visibility.Collapsed;
+            }
+
+            dialog.PrimaryButton.Content = continueButtonText;
+            dialog.SecondaryButton.Content = cancelButtonText;
+
+            var result = dialog.ShowDialog();
+
+            if (result == true)
+            {
+                return (true, dialog.OptionCheckbox.IsChecked == true);
+            }
+            else
+            {
+                return (false, false);
+            }
         }
     }
 }

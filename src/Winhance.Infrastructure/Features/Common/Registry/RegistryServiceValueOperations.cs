@@ -167,7 +167,8 @@ namespace Winhance.Infrastructure.Features.Common.Registry
         /// <returns>True if the operation succeeded; otherwise, false.</returns>
         public async Task<bool> DeleteValue(RegistryHive hive, string subKey, string valueName)
         {
-            string keyPath = $"{RegistryExtensions.GetRegistryHiveString(hive)}\\{subKey}";
+            // Note: This method should be updated to accept string hive parameter instead of RegistryHive enum
+            string keyPath = $"{hive}\\{subKey}";
             return DeleteValue(keyPath, valueName);
         }
 
@@ -215,7 +216,7 @@ namespace Winhance.Infrastructure.Features.Common.Registry
             if (setting == null)
                 return Task.FromResult<object?>(null);
 
-            string keyPath = $"{RegistryExtensions.GetRegistryHiveString(setting.Hive)}\\{setting.SubKey}";
+            string keyPath = $"{setting.Hive}\\{setting.SubKey}";
             // Removed excessive debug logging for current registry value retrieval
             object? value = GetValue(keyPath, setting.Name);
             return Task.FromResult(value);

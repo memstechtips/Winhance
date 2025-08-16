@@ -4,11 +4,8 @@
              xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
              xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
              xmlns:viewModels="clr-namespace:Winhance.WPF.Features.Customize.ViewModels"
-             xmlns:materialDesign="http://materialdesigninxaml.net/winfx/xaml/themes"
              xmlns:commonControls="clr-namespace:Winhance.WPF.Features.Common.Controls"
-             xmlns:customize="clr-namespace:Winhance.WPF.Features.Customize.Views"
-             xmlns:optimize="clr-namespace:Winhance.WPF.Features.Optimize.Views"
-             xmlns:behaviors="clr-namespace:Winhance.WPF.Features.Common.Behaviors"
+             xmlns:materialDesign="http://materialdesigninxaml.net/winfx/xaml/themes"
              d:DataContext="{d:DesignInstance Type=viewModels:CustomizeViewModel}"
              mc:Ignorable="d">
 
@@ -86,230 +83,22 @@
 
                     <StackPanel Grid.Row="0"
                             Margin="10">
-    
-                    <!-- Windows Theme Section -->
-                    <StackPanel Visibility="{Binding WindowsThemeSettings.HasVisibleSettings, Converter={StaticResource BooleanToVisibilityConverter}}">
-                        <Border Background="{DynamicResource ContentSectionBorderBrush}"
-                                CornerRadius="5"
-                                Margin="0,5,0,5"
-                                Effect="{StaticResource ShadowEffect}"
-                                Cursor="Hand"
-                                MouseLeftButtonDown="HeaderBorder_MouseLeftButtonDown"
-                                Tag="3">
-                            <DockPanel VerticalAlignment="Center"
-                                       HorizontalAlignment="Stretch">
-                                <!-- Category Icon -->
-                                <TextBlock Text="&#xE3AE;"
-                                           FontFamily="{StaticResource MaterialSymbolsFont}"
-                                           FontSize="24"
-                                           Margin="15,6,5,6"
-                                           Foreground="{DynamicResource PrimaryTextColor}"
-                                           VerticalAlignment="Center"
-                                           DockPanel.Dock="Left"/>
-                                <!-- Category Name -->
-                                <TextBlock Text="Windows Theme"
-                                           FontSize="14"
-                                           FontWeight="SemiBold"
-                                           Margin="5,6,0,6"
-                                           Foreground="{DynamicResource PrimaryTextColor}"
-                                           VerticalAlignment="Center"
-                                           DockPanel.Dock="Left"/>
-                                <!-- Hidden Button to handle the toggle command -->
-                                <Button x:Name="WindowsThemeToggleButton"
-                                        Command="{Binding ToggleCategoryCommand}"
-                                        CommandParameter="{Binding CustomizationItems[3]}"
-                                        Opacity="0"
-                                        Width="0"
-                                        Height="0"/>
-                                <materialDesign:PackIcon x:Name="WindowsThemeHeaderIcon"
-                                                         Kind="ChevronDown"
-                                                         Width="24"
-                                                         Height="24"
-                                                         HorizontalAlignment="Right"
-                                                         VerticalAlignment="Center"
-                                                         Foreground="{DynamicResource PrimaryTextColor}"
-                                                         Margin="0,0,10,0"
-                                                         DockPanel.Dock="Right"/>
-                            </DockPanel>
-                        </Border>
-                        <Border x:Name="WindowsThemeContent"
-                                Background="{DynamicResource ContentSectionBorderBrush}"
-                                CornerRadius="5"
-                                Margin="5,0,5,5"
-                                Effect="{StaticResource LightShadowEffect}">
-                            <customize:WindowsThemeCustomizationsView DataContext="{Binding WindowsThemeSettings}"/>
-                        </Border>
+                        
+                        <!-- Dynamically created feature Views with proper DI -->
+                        <ItemsControl ItemsSource="{Binding FeatureViews}">
+                            <ItemsControl.ItemTemplate>
+                                <DataTemplate>
+                                    <ContentPresenter Content="{Binding}"/>
+                                </DataTemplate>
+                            </ItemsControl.ItemTemplate>
+                        </ItemsControl>
+                        
                     </StackPanel>
 
-                    <!-- Start Menu Section -->
-                    <StackPanel Visibility="{Binding StartMenuSettings.HasVisibleSettings, Converter={StaticResource BooleanToVisibilityConverter}}">
-                        <Border Background="{DynamicResource ContentSectionBorderBrush}"
-                                CornerRadius="5"
-                                Margin="0,5,0,5"
-                                Effect="{StaticResource ShadowEffect}"
-                                Cursor="Hand"
-                                MouseLeftButtonDown="HeaderBorder_MouseLeftButtonDown"
-                                Tag="1">
-                            <DockPanel VerticalAlignment="Center"
-                                       HorizontalAlignment="Stretch">
-                                <!-- Category Icon -->
-                                <TextBlock Text="&#xE5D2;"
-                                           FontFamily="{StaticResource MaterialSymbolsFont}"
-                                           FontSize="24"
-                                           Margin="15,6,5,6"
-                                           Foreground="{DynamicResource PrimaryTextColor}"
-                                           VerticalAlignment="Center"
-                                           DockPanel.Dock="Left"/>
-                                <!-- Category Name -->
-                                <TextBlock Text="Start Menu"
-                                           FontSize="14"
-                                           FontWeight="SemiBold"
-                                           Margin="5,6,0,6"
-                                           Foreground="{DynamicResource PrimaryTextColor}"
-                                           VerticalAlignment="Center"
-                                           DockPanel.Dock="Left"/>
-                                <!-- Hidden Button to handle the toggle command -->
-                                <Button x:Name="StartMenuToggleButton"
-                                        Command="{Binding ToggleCategoryCommand}"
-                                        CommandParameter="{Binding CustomizationItems[1]}"
-                                        Opacity="0"
-                                        Width="0"
-                                        Height="0"/>
-                                <materialDesign:PackIcon x:Name="StartMenuHeaderIcon"
-                                                         Kind="ChevronDown"
-                                                         Width="24"
-                                                         Height="24"
-                                                         HorizontalAlignment="Right"
-                                                         VerticalAlignment="Center"
-                                                         Foreground="{DynamicResource PrimaryTextColor}"
-                                                         Margin="0,0,10,0"
-                                                         DockPanel.Dock="Right"/>
-                            </DockPanel>
-                        </Border>
-                        <Border x:Name="StartMenuContent"
-                                Background="{DynamicResource ContentSectionBorderBrush}"
-                                CornerRadius="5"
-                                Margin="5,0,5,5"
-                                Effect="{StaticResource LightShadowEffect}">
-                            <customize:StartMenuCustomizationsView DataContext="{Binding StartMenuSettings}"/>
-                        </Border>
-                    </StackPanel>
-
-                    <!-- Taskbar Section -->
-                    <StackPanel Visibility="{Binding TaskbarSettings.HasVisibleSettings, Converter={StaticResource BooleanToVisibilityConverter}}">
-                        <Border Background="{DynamicResource ContentSectionBorderBrush}"
-                                CornerRadius="5"
-                                Margin="0,5,0,5"
-                                Effect="{StaticResource ShadowEffect}"
-                                Cursor="Hand"
-                                MouseLeftButtonDown="HeaderBorder_MouseLeftButtonDown"
-                                Tag="0">
-                            <DockPanel VerticalAlignment="Center"
-                                       HorizontalAlignment="Stretch">
-                                <!-- Category Icon -->
-                                <TextBlock Text="&#xF7E6;"
-                                           FontFamily="{StaticResource MaterialSymbolsFont}"
-                                           FontSize="24"
-                                           Margin="15,6,5,6"
-                                           Foreground="{DynamicResource PrimaryTextColor}"
-                                           VerticalAlignment="Center"
-                                           DockPanel.Dock="Left"/>
-                                <!-- Category Name -->
-                                <TextBlock Text="Taskbar"
-                                           FontSize="14"
-                                           FontWeight="SemiBold"
-                                           Margin="5,6,0,6"
-                                           Foreground="{DynamicResource PrimaryTextColor}"
-                                           VerticalAlignment="Center"
-                                           DockPanel.Dock="Left"/>
-                                <!-- Hidden Button to handle the toggle command -->
-                                <Button x:Name="TaskbarToggleButton"
-                                        Command="{Binding ToggleCategoryCommand}"
-                                        CommandParameter="{Binding CustomizationItems[0]}"
-                                        Opacity="0"
-                                        Width="0"
-                                        Height="0"/>
-                                <materialDesign:PackIcon x:Name="TaskbarHeaderIcon"
-                                                         Kind="ChevronDown"
-                                                         Width="24"
-                                                         Height="24"
-                                                         HorizontalAlignment="Right"
-                                                         VerticalAlignment="Center"
-                                                         Foreground="{DynamicResource PrimaryTextColor}"
-                                                         Margin="0,0,10,0"
-                                                         DockPanel.Dock="Right"/>
-                            </DockPanel>
-                        </Border>
-                        <Border x:Name="TaskbarContent"
-                                Background="{DynamicResource ContentSectionBorderBrush}"
-                                CornerRadius="5"
-                                Margin="5,0,5,5"
-                                Effect="{StaticResource LightShadowEffect}">
-                            <customize:TaskbarCustomizationsView DataContext="{Binding TaskbarSettings}"/>
-                        </Border>
-                    </StackPanel>
-
-                    <!-- Explorer Section -->
-                    <StackPanel Visibility="{Binding ExplorerSettings.HasVisibleSettings, Converter={StaticResource BooleanToVisibilityConverter}}">
-                        <Border Background="{DynamicResource ContentSectionBorderBrush}"
-                                CornerRadius="5"
-                                Margin="0,5,0,5"
-                                Effect="{StaticResource ShadowEffect}"
-                                Cursor="Hand"
-                                MouseLeftButtonDown="HeaderBorder_MouseLeftButtonDown"
-                                Tag="2">
-                            <DockPanel VerticalAlignment="Center"
-                                       HorizontalAlignment="Stretch">
-                                <!-- Category Icon -->
-                                <TextBlock Text="&#xE2C7;"
-                                           FontFamily="{StaticResource MaterialSymbolsFont}"
-                                           FontSize="24"
-                                           Margin="15,6,5,6"
-                                           Foreground="{DynamicResource PrimaryTextColor}"
-                                           VerticalAlignment="Center"
-                                           DockPanel.Dock="Left"/>
-                                <!-- Category Name -->
-                                <TextBlock Text="Explorer"
-                                           FontSize="14"
-                                           FontWeight="SemiBold"
-                                           Margin="5,6,0,6"
-                                           Foreground="{DynamicResource PrimaryTextColor}"
-                                           VerticalAlignment="Center"
-                                           DockPanel.Dock="Left"/>
-                                <!-- Hidden Button to handle the toggle command -->
-                                <Button x:Name="ExplorerToggleButton"
-                                        Command="{Binding ToggleCategoryCommand}"
-                                        CommandParameter="{Binding CustomizationItems[2]}"
-                                        Opacity="0"
-                                        Width="0"
-                                        Height="0"/>
-                                <materialDesign:PackIcon x:Name="ExplorerHeaderIcon"
-                                                         Kind="ChevronDown"
-                                                         Width="24"
-                                                         Height="24"
-                                                         HorizontalAlignment="Right"
-                                                         VerticalAlignment="Center"
-                                                         Foreground="{DynamicResource PrimaryTextColor}"
-                                                         Margin="0,0,10,0"
-                                                         DockPanel.Dock="Right"/>
-                            </DockPanel>
-                        </Border>
-                        <Border x:Name="ExplorerContent"
-                                Background="{DynamicResource ContentSectionBorderBrush}"
-                                CornerRadius="5"
-                                Margin="5,0,5,5"
-                                Effect="{StaticResource LightShadowEffect}">
-                            <customize:ExplorerCustomizationsView DataContext="{Binding ExplorerSettings}"/>
-                        </Border>
-                    </StackPanel>
-
-
-                    </StackPanel>
-                    
                     <!-- No Search Results Message -->
                     <TextBlock Grid.Row="1"
-                               HorizontalAlignment="Center" 
-                               VerticalAlignment="Center" 
+                               HorizontalAlignment="Center"
+                               VerticalAlignment="Center"
                                Margin="0,50,0,20"
                                TextAlignment="Center"
                                TextWrapping="Wrap"

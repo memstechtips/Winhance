@@ -5,7 +5,7 @@
 
     <converters:CountToVisibilityConverter x:Key="CountToVisibilityConverter"/>
     <converters:InverseCountToVisibilityConverter x:Key="InverseCountToVisibilityConverter"/>
-    <converters:RegistryHiveToFullNameConverter x:Key="RegistryHiveToFullNameConverter"/>
+
     <oldConverters:BooleanToVisibilityConverter x:Key="BooleanToVisibilityConverter"/>
     <converters:InverseBooleanToVisibilityConverter x:Key="InverseBooleanToVisibilityConverter"/>
 
@@ -20,7 +20,7 @@
             <StackPanel Visibility="{Binding LinkedRegistrySettingsWithValues.Count, Converter={StaticResource InverseCountToVisibilityConverter}}">
                 <TextBlock>
                     <Run Text="Registry Path: "/>
-                    <Run Text="{Binding RegistrySetting.Hive, Converter={StaticResource RegistryHiveToFullNameConverter}, Mode=OneWay, TargetNullValue='null'}"/><Run Text="\"/><Run Text="{Binding RegistrySetting.SubKey, Mode=OneWay, TargetNullValue='null'}"/>
+                    <Run Text="{Binding RegistrySetting.Hive, Mode=OneWay, TargetNullValue='null'}"/><Run Text="\"/><Run Text="{Binding RegistrySetting.SubKey, Mode=OneWay, TargetNullValue='null'}"/>
                 </TextBlock>
                 <TextBlock>
                     <Run Text="Value Name: "/>
@@ -54,7 +54,7 @@
                             <StackPanel Margin="0,0,0,10">
                                 <TextBlock>
                                     <Run Text="Registry Path: "/>
-                                    <Run Text="{Binding Setting.Hive, Converter={StaticResource RegistryHiveToFullNameConverter}, Mode=OneWay, TargetNullValue='null'}"/><Run Text="\"/><Run Text="{Binding Setting.SubKey, Mode=OneWay, TargetNullValue='null'}"/>
+                                    <Run Text="{Binding Setting.Hive, Mode=OneWay, TargetNullValue='null'}"/><Run Text="\"/><Run Text="{Binding Setting.SubKey, Mode=OneWay, TargetNullValue='null'}"/>
                                 </TextBlock>
                                 <TextBlock>
                                     <Run Text="Value Name: "/>

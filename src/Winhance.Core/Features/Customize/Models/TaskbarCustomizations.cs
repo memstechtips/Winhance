@@ -174,7 +174,7 @@ public static class TaskbarCustomizations
                         new RegistrySetting
                         {
                             Category = "Taskbar",
-                            Hive = RegistryHive.LocalMachine,
+                            Hive = "HKEY_LOCAL_MACHINE",
                             SubKey = "Software\\Microsoft\\Windows\\CurrentVersion\\Policies\\Explorer",
                             Name = "HideSCAMeetNow",
                             RecommendedValue = 1,  // For backward compatibility
@@ -196,14 +196,14 @@ public static class TaskbarCustomizations
                     Description = "Controls search box appearance in taskbar",
                     Category = CustomizationCategory.Taskbar,
                     GroupName = "Taskbar Icons",
-                    IsEnabled = false,
+                    IsEnabled = true,
                     ControlType = ControlType.ComboBox,
                     RegistrySettings = new List<RegistrySetting>
                     {
                         new RegistrySetting
                         {
                             Category = "Taskbar",
-                            Hive = RegistryHive.CurrentUser,
+                            Hive = "HKEY_CURRENT_USER",
                             SubKey = "Software\\Microsoft\\Windows\\CurrentVersion\\Search",
                             Name = "SearchboxTaskbarMode",
                             RecommendedValue = 3,  // Default: Search box (full)
@@ -238,7 +238,7 @@ public static class TaskbarCustomizations
                     Description = "Controls taskbar icons alignment",
                     Category = CustomizationCategory.Taskbar,
                     GroupName = "Taskbar Behavior",
-                    IsEnabled = false,
+                    IsEnabled = true,
                     ControlType = ControlType.ComboBox,
                     IsWindows11Only = true,
                     RegistrySettings = new List<RegistrySetting>
@@ -246,7 +246,7 @@ public static class TaskbarCustomizations
                         new RegistrySetting
                         {
                             Category = "Taskbar",
-                            Hive = RegistryHive.CurrentUser,
+                            Hive = "HKEY_CURRENT_USER",
                             SubKey = "Software\\Microsoft\\Windows\\CurrentVersion\\Explorer\\Advanced",
                             Name = "TaskbarAl",
                             RecommendedValue = 1,  // Default: Center alignment
@@ -277,7 +277,7 @@ public static class TaskbarCustomizations
                     Description = "Controls whether system tray icons are shown in the taskbar or hidden in the chevron menu",
                     Category = CustomizationCategory.Taskbar,
                     GroupName = "System Tray",
-                    IsEnabled = false,
+                    IsEnabled = true,
                     ControlType = ControlType.BinaryToggle,
                     IsWindows10Only = true,
                     RegistrySettings = new List<RegistrySetting>
@@ -285,7 +285,7 @@ public static class TaskbarCustomizations
                         new RegistrySetting
                         {
                             Category = "Taskbar",
-                            Hive = RegistryHive.CurrentUser,
+                            Hive = "HKEY_CURRENT_USER",
                             SubKey = "SOFTWARE\\Microsoft\\Windows\\CurrentVersion\\Explorer",
                             Name = "EnableAutoTray",
                             RecommendedValue = 0,
@@ -306,14 +306,14 @@ public static class TaskbarCustomizations
                     Description = "Controls Task View button visibility in taskbar",
                     Category = CustomizationCategory.Taskbar,
                     GroupName = "Taskbar Icons",
-                    IsEnabled = false,
+                    IsEnabled = true,
                     ControlType = ControlType.BinaryToggle,
                     RegistrySettings = new List<RegistrySetting>
                     {
                         new RegistrySetting
                         {
                             Category = "Taskbar",
-                            Hive = RegistryHive.CurrentUser,
+                            Hive = "HKEY_CURRENT_USER",
                             SubKey = "Software\\Microsoft\\Windows\\CurrentVersion\\Explorer\\Advanced",
                             Name = "ShowTaskViewButton",
                             RecommendedValue = 0,  // For backward compatibility
@@ -334,7 +334,7 @@ public static class TaskbarCustomizations
                     Description = "Controls Widgets visibility in taskbar",
                     Category = CustomizationCategory.Taskbar,
                     GroupName = "Taskbar Icons",
-                    IsEnabled = false,
+                    IsEnabled = true,
                     ControlType = ControlType.BinaryToggle,
                     IsWindows11Only = true,
                     RegistrySettings = new List<RegistrySetting>
@@ -342,7 +342,7 @@ public static class TaskbarCustomizations
                         new RegistrySetting
                         {
                             Category = "Taskbar",
-                            Hive = RegistryHive.LocalMachine,
+                            Hive = "HKEY_LOCAL_MACHINE",
                             SubKey = "Software\\Policies\\Microsoft\\Dsh",
                             Name = "AllowNewsAndInterests",
                             RecommendedValue = 0,  // For backward compatibility
@@ -364,7 +364,7 @@ public static class TaskbarCustomizations
                     Description = "Controls News and Interests visibility in taskbar",
                     Category = CustomizationCategory.Taskbar,
                     GroupName = "Taskbar Icons",
-                    IsEnabled = false,
+                    IsEnabled = true,
                     ControlType = ControlType.BinaryToggle,
                     IsWindows10Only = true,
                     RegistrySettings = new List<RegistrySetting>
@@ -372,7 +372,7 @@ public static class TaskbarCustomizations
                         new RegistrySetting
                         {
                             Category = "Taskbar",
-                            Hive = RegistryHive.LocalMachine,
+                            Hive = "HKEY_LOCAL_MACHINE",
                             SubKey = "Software\\Policies\\Microsoft\\Windows\\Windows Feeds",
                             Name = "EnableFeeds",
                             RecommendedValue = 0,  // For backward compatibility
@@ -389,7 +389,7 @@ public static class TaskbarCustomizations
                 },
                 new CustomizationSetting
                 {
-                    Id = "make-taskbar-transparent",
+                    Id = "taskbar-transparent",
                     Name = "Make Taskbar Transparent",
                     Description = "Controls the transparency of the taskbar",
                     Category = CustomizationCategory.StartMenu,
@@ -402,7 +402,7 @@ public static class TaskbarCustomizations
                         new SettingDependency
                         {
                             DependencyType = SettingDependencyType.RequiresEnabled,
-                            DependentSettingId = "make-taskbar-transparent",
+                            DependentSettingId = "taskbar-transparent",
                             RequiredSettingId = "theme-transparency",
                             RequiredModule = "WindowsThemeSettings",
                         },
@@ -412,7 +412,7 @@ public static class TaskbarCustomizations
                         new RegistrySetting
                         {
                             Category = "Explorer",
-                            Hive = RegistryHive.CurrentUser,
+                            Hive = "HKEY_CURRENT_USER",
                             SubKey =
                                 "SOFTWARE\\Microsoft\\Windows\\CurrentVersion\\Explorer\\Advanced",
                             Name = "TaskbarAcrylicOpacity",
@@ -429,7 +429,7 @@ public static class TaskbarCustomizations
                 },
                 new CustomizationSetting
                 {
-                    Id = "make-taskbar-small",
+                    Id = "taskbar-small",
                     Name = "Make Taskbar Small",
                     Description = "Controls the size of taskbar icons",
                     Category = CustomizationCategory.StartMenu,
@@ -442,7 +442,7 @@ public static class TaskbarCustomizations
                         new RegistrySetting
                         {
                             Category = "Explorer",
-                            Hive = RegistryHive.CurrentUser,
+                            Hive = "HKEY_CURRENT_USER",
                             SubKey =
                                 "SOFTWARE\\Microsoft\\Windows\\CurrentVersion\\Explorer\\Advanced",
                             Name = "TaskbarSmallIcons",

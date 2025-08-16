@@ -27,11 +27,11 @@ namespace Winhance.Core.Features.Optimize.Models
                 {
                     new OptimizationSetting
                     {
-                        Id = "windows-security-uac-level",
+                        Id = "security-uac-level",
                         Name = "User Account Control Level",
                         Description = "Controls UAC notification level and secure desktop behavior",
                         Category = OptimizationCategory.Security,
-                        GroupName = "User Account Control",
+                        GroupName = "Windows Security Settings",
                         IsEnabled = true,
                         ControlType = ControlType.ComboBox,
                         RegistrySettings = new List<RegistrySetting>
@@ -39,7 +39,7 @@ namespace Winhance.Core.Features.Optimize.Models
                             new RegistrySetting
                             {
                                 Category = "Security",
-                                Hive = RegistryHive.LocalMachine,
+                                Hive = "HKEY_LOCAL_MACHINE",
                                 SubKey = UacRegistryPath,
                                 Name = "ConsentPromptBehaviorAdmin",
                                 RecommendedValue = 5, // NotifyChangesOnly
@@ -50,22 +50,11 @@ namespace Winhance.Core.Features.Optimize.Models
                                 Description = "Controls UAC consent prompt behavior for administrators",
                                 IsPrimary = true,
                                 AbsenceMeansEnabled = false,
-                                CustomProperties = new Dictionary<string, object>
-                                {
-                                    ["ComboBoxOptions"] = new Dictionary<string, int>
-                                    {
-                                        ["Always notify"] = 0, // ConsentPrompt=2, SecureDesktop=1
-                                        ["Notify when apps try to make changes"] = 1, // ConsentPrompt=5, SecureDesktop=1
-                                        ["Notify when apps try to make changes (no dim)"] = 2, // ConsentPrompt=5, SecureDesktop=0
-                                        ["Never notify"] = 3, // ConsentPrompt=0, SecureDesktop=0
-                                        ["Custom UAC Setting"] = 4, // Any other combination
-                                    },
-                                }
                             },
                             new RegistrySetting
                             {
                                 Category = "Security",
-                                Hive = RegistryHive.LocalMachine,
+                                Hive = "HKEY_LOCAL_MACHINE",
                                 SubKey = UacRegistryPath,
                                 Name = "PromptOnSecureDesktop",
                                 RecommendedValue = 1, // Secure desktop enabled
@@ -80,12 +69,12 @@ namespace Winhance.Core.Features.Optimize.Models
                         },
                         CustomProperties = new Dictionary<string, object>
                         {
-                            ["ComboBoxOptions"] = new Dictionary<string, int>
+                            ["ComboBoxDisplayNames"] = new string[]
                             {
-                                ["Always notify"] = 0,
-                                ["Notify when apps try to make changes"] = 1,
-                                ["Notify when apps try to make changes (no dim)"] = 2,
-                                ["Never notify"] = 3,
+                                "Always notify",
+                                "Notify when apps try to make changes", 
+                                "Notify when apps try to make changes (no dim)",
+                                "Never notify"
                             },
                             ["ValueMappings"] = new Dictionary<int, Dictionary<string, int>>
                             {

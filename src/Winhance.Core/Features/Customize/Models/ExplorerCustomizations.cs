@@ -18,7 +18,7 @@ public static class ExplorerCustomizations
             {
                 new CustomizationSetting
                 {
-                    Id = "explorer-3d-objects",
+                    Id = "explorer-customization-3d-objects",
                     Name = "3D Objects in This PC",
                     Description = "Controls 3D Objects folder visibility in This PC",
                     Category = CustomizationCategory.Explorer,
@@ -30,7 +30,7 @@ public static class ExplorerCustomizations
                         new RegistrySetting
                         {
                             Category = "Explorer",
-                            Hive = RegistryHive.LocalMachine,
+                            Hive = "HKEY_LOCAL_MACHINE",
                             SubKey =
                                 "Software\\Microsoft\\Windows\\CurrentVersion\\Explorer\\MyComputer\\NameSpace",
                             Name = "{0DB7E03F-FC29-4DC6-9020-FF41B59E513A}",
@@ -47,7 +47,7 @@ public static class ExplorerCustomizations
                 },
                 new CustomizationSetting
                 {
-                    Id = "explorer-home-folder",
+                    Id = "explorer-customization-home-folder",
                     Name = "Home Folder in Navigation Pane",
                     Description = "Controls Home Folder visibility in Navigation Pane",
                     Category = CustomizationCategory.Explorer,
@@ -59,7 +59,7 @@ public static class ExplorerCustomizations
                         new RegistrySetting
                         {
                             Category = "Explorer",
-                            Hive = RegistryHive.LocalMachine,
+                            Hive = "HKEY_LOCAL_MACHINE",
                             SubKey =
                                 "Software\\Microsoft\\Windows\\CurrentVersion\\Explorer\\Desktop\\NameSpace",
                             Name = "{f874310e-b6b7-47dc-bc84-b9e6b38f5903}",
@@ -78,7 +78,7 @@ public static class ExplorerCustomizations
                 },
                 new CustomizationSetting
                 {
-                    Id = "explorer-launch-to",
+                    Id = "explorer-customization-launch-to",
                     Name = "Launch to This PC",
                     Description = "Controls where File Explorer opens by default",
                     Category = CustomizationCategory.Explorer,
@@ -90,7 +90,7 @@ public static class ExplorerCustomizations
                         new RegistrySetting
                         {
                             Category = "Explorer",
-                            Hive = RegistryHive.CurrentUser,
+                            Hive = "HKEY_CURRENT_USER",
                             SubKey =
                                 "Software\\Microsoft\\Windows\\CurrentVersion\\Explorer\\Advanced",
                             Name = "LaunchTo",
@@ -107,7 +107,7 @@ public static class ExplorerCustomizations
                 },
                 new CustomizationSetting
                 {
-                    Id = "explorer-show-file-ext",
+                    Id = "explorer-customization-show-file-ext",
                     Name = "Show File Extensions",
                     Description = "Controls visibility of file name extensions",
                     Category = CustomizationCategory.Explorer,
@@ -119,7 +119,7 @@ public static class ExplorerCustomizations
                         new RegistrySetting
                         {
                             Category = "Explorer",
-                            Hive = RegistryHive.CurrentUser,
+                            Hive = "HKEY_CURRENT_USER",
                             SubKey =
                                 "Software\\Microsoft\\Windows\\CurrentVersion\\Explorer\\Advanced",
                             Name = "HideFileExt",
@@ -136,7 +136,7 @@ public static class ExplorerCustomizations
                 },
                 new CustomizationSetting
                 {
-                    Id = "explorer-show-hidden-files",
+                    Id = "explorer-customization-show-hidden-files",
                     Name = "Show Hidden Files, Folders & Drives",
                     Description = "Controls visibility of hidden files and folders",
                     Category = CustomizationCategory.Explorer,
@@ -148,7 +148,7 @@ public static class ExplorerCustomizations
                         new RegistrySetting
                         {
                             Category = "Explorer",
-                            Hive = RegistryHive.CurrentUser,
+                            Hive = "HKEY_CURRENT_USER",
                             SubKey =
                                 "Software\\Microsoft\\Windows\\CurrentVersion\\Explorer\\Advanced",
                             Name = "Hidden",
@@ -165,7 +165,7 @@ public static class ExplorerCustomizations
                 },
                 new CustomizationSetting
                 {
-                    Id = "explorer-hide-protected-files",
+                    Id = "explorer-customization-hide-protected-files",
                     Name = "Hide Protected Operating System Files",
                     Description = "Controls visibility of protected operating system files",
                     Category = CustomizationCategory.Explorer,
@@ -177,7 +177,7 @@ public static class ExplorerCustomizations
                         new RegistrySetting
                         {
                             Category = "Explorer",
-                            Hive = RegistryHive.CurrentUser,
+                            Hive = "HKEY_CURRENT_USER",
                             SubKey =
                                 "Software\\Microsoft\\Windows\\CurrentVersion\\Explorer\\Advanced",
                             Name = "ShowSuperHidden",
@@ -194,7 +194,7 @@ public static class ExplorerCustomizations
                 },
                 new CustomizationSetting
                 {
-                    Id = "explorer-folder-tips",
+                    Id = "explorer-customization-folder-tips",
                     Name = "Folder Tips",
                     Description = "Controls file size information in folder tips",
                     Category = CustomizationCategory.Explorer,
@@ -206,7 +206,7 @@ public static class ExplorerCustomizations
                         new RegistrySetting
                         {
                             Category = "Explorer",
-                            Hive = RegistryHive.CurrentUser,
+                            Hive = "HKEY_CURRENT_USER",
                             SubKey =
                                 "Software\\Microsoft\\Windows\\CurrentVersion\\Explorer\\Advanced",
                             Name = "FolderContentsInfoTip",
@@ -223,7 +223,7 @@ public static class ExplorerCustomizations
                 },
                 new CustomizationSetting
                 {
-                    Id = "explorer-popup-descriptions",
+                    Id = "explorer-customization-popup-descriptions",
                     Name = "Pop-up Descriptions",
                     Description = "Controls pop-up descriptions for folder and desktop items",
                     Category = CustomizationCategory.Explorer,
@@ -235,7 +235,7 @@ public static class ExplorerCustomizations
                         new RegistrySetting
                         {
                             Category = "Explorer",
-                            Hive = RegistryHive.CurrentUser,
+                            Hive = "HKEY_CURRENT_USER",
                             SubKey =
                                 "Software\\Microsoft\\Windows\\CurrentVersion\\Explorer\\Advanced",
                             Name = "ShowInfoTip",
@@ -253,7 +253,7 @@ public static class ExplorerCustomizations
                 },
                 new CustomizationSetting
                 {
-                    Id = "explorer-preview-handlers",
+                    Id = "explorer-customization-preview-handlers",
                     Name = "Preview Handlers",
                     Description = "Controls preview handlers in preview pane",
                     Category = CustomizationCategory.Explorer,
@@ -265,7 +265,7 @@ public static class ExplorerCustomizations
                         new RegistrySetting
                         {
                             Category = "Explorer",
-                            Hive = RegistryHive.CurrentUser,
+                            Hive = "HKEY_CURRENT_USER",
                             SubKey =
                                 "Software\\Microsoft\\Windows\\CurrentVersion\\Explorer\\Advanced",
                             Name = "ShowPreviewHandlers",
@@ -282,7 +282,7 @@ public static class ExplorerCustomizations
                 },
                 new CustomizationSetting
                 {
-                    Id = "explorer-status-bar",
+                    Id = "explorer-customization-status-bar",
                     Name = "Status Bar",
                     Description = "Controls status bar visibility in File Explorer",
                     Category = CustomizationCategory.Explorer,
@@ -294,7 +294,7 @@ public static class ExplorerCustomizations
                         new RegistrySetting
                         {
                             Category = "Explorer",
-                            Hive = RegistryHive.CurrentUser,
+                            Hive = "HKEY_CURRENT_USER",
                             SubKey =
                                 "Software\\Microsoft\\Windows\\CurrentVersion\\Explorer\\Advanced",
                             Name = "ShowStatusBar",
@@ -311,7 +311,7 @@ public static class ExplorerCustomizations
                 },
                 new CustomizationSetting
                 {
-                    Id = "explorer-show-thumbnails",
+                    Id = "explorer-customization-show-thumbnails",
                     Name = "Show Thumbnails",
                     Description = "Controls whether to show thumbnails or icons",
                     Category = CustomizationCategory.Explorer,
@@ -323,7 +323,7 @@ public static class ExplorerCustomizations
                         new RegistrySetting
                         {
                             Category = "Explorer",
-                            Hive = RegistryHive.CurrentUser,
+                            Hive = "HKEY_CURRENT_USER",
                             SubKey =
                                 "Software\\Microsoft\\Windows\\CurrentVersion\\Explorer\\Advanced",
                             Name = "IconsOnly",
@@ -340,7 +340,7 @@ public static class ExplorerCustomizations
                 },
                 new CustomizationSetting
                 {
-                    Id = "explorer-translucent-selection",
+                    Id = "explorer-customization-translucent-selection",
                     Name = "Translucent Selection",
                     Description = "Controls translucent selection rectangle",
                     Category = CustomizationCategory.Explorer,
@@ -352,7 +352,7 @@ public static class ExplorerCustomizations
                         new RegistrySetting
                         {
                             Category = "Explorer",
-                            Hive = RegistryHive.CurrentUser,
+                            Hive = "HKEY_CURRENT_USER",
                             SubKey =
                                 "Software\\Microsoft\\Windows\\CurrentVersion\\Explorer\\Advanced",
                             Name = "ListviewAlphaSelect",
@@ -369,7 +369,7 @@ public static class ExplorerCustomizations
                 },
                 new CustomizationSetting
                 {
-                    Id = "explorer-drop-shadows",
+                    Id = "explorer-customization-drop-shadows",
                     Name = "Drop Shadows",
                     Description = "Controls drop shadows for icon labels",
                     Category = CustomizationCategory.Explorer,
@@ -381,7 +381,7 @@ public static class ExplorerCustomizations
                         new RegistrySetting
                         {
                             Category = "Explorer",
-                            Hive = RegistryHive.CurrentUser,
+                            Hive = "HKEY_CURRENT_USER",
                             SubKey =
                                 "Software\\Microsoft\\Windows\\CurrentVersion\\Explorer\\Advanced",
                             Name = "ListviewShadow",
@@ -398,7 +398,7 @@ public static class ExplorerCustomizations
                 },
                 new CustomizationSetting
                 {
-                    Id = "explorer-full-path",
+                    Id = "explorer-customization-full-path",
                     Name = "Full Path in Title Bar",
                     Description = "Controls full path display in the title bar",
                     Category = CustomizationCategory.Explorer,
@@ -410,7 +410,7 @@ public static class ExplorerCustomizations
                         new RegistrySetting
                         {
                             Category = "Explorer",
-                            Hive = RegistryHive.CurrentUser,
+                            Hive = "HKEY_CURRENT_USER",
                             SubKey =
                                 "Software\\Microsoft\\Windows\\CurrentVersion\\Explorer\\CabinetState",
                             Name = "FullPath",
@@ -427,7 +427,7 @@ public static class ExplorerCustomizations
                 },
                 new CustomizationSetting
                 {
-                    Id = "explorer-font-smoothing",
+                    Id = "explorer-customization-font-smoothing",
                     Name = "Font Smoothing",
                     Description = "Controls smooth edges of screen fonts",
                     Category = CustomizationCategory.Explorer,
@@ -439,7 +439,7 @@ public static class ExplorerCustomizations
                         new RegistrySetting
                         {
                             Category = "Explorer",
-                            Hive = RegistryHive.CurrentUser,
+                            Hive = "HKEY_CURRENT_USER",
                             SubKey = "Control Panel\\Desktop",
                             Name = "FontSmoothing",
                             RecommendedValue = "2",
@@ -455,7 +455,7 @@ public static class ExplorerCustomizations
                 },
                 new CustomizationSetting
                 {
-                    Id = "explorer-dpi-scaling",
+                    Id = "explorer-customization-dpi-scaling",
                     Name = "DPI Scaling (100%)",
                     Description = "Controls DPI scaling setting",
                     Category = CustomizationCategory.Explorer,
@@ -467,7 +467,7 @@ public static class ExplorerCustomizations
                         new RegistrySetting
                         {
                             Category = "Explorer",
-                            Hive = RegistryHive.CurrentUser,
+                            Hive = "HKEY_CURRENT_USER",
                             SubKey = "Control Panel\\Desktop",
                             Name = "LogPixels",
                             RecommendedValue = 96,
@@ -483,7 +483,7 @@ public static class ExplorerCustomizations
                 },
                 new CustomizationSetting
                 {
-                    Id = "explorer-per-process-dpi",
+                    Id = "explorer-customization-per-process-dpi",
                     Name = "Per-Process DPI",
                     Description = "Controls per-process system DPI",
                     Category = CustomizationCategory.Explorer,
@@ -495,7 +495,7 @@ public static class ExplorerCustomizations
                         new RegistrySetting
                         {
                             Category = "Explorer",
-                            Hive = RegistryHive.CurrentUser,
+                            Hive = "HKEY_CURRENT_USER",
                             SubKey = "Control Panel\\Desktop",
                             Name = "EnablePerProcessSystemDPI",
                             RecommendedValue = 0,
@@ -511,7 +511,7 @@ public static class ExplorerCustomizations
                 },
                 new CustomizationSetting
                 {
-                    Id = "explorer-lock-screen",
+                    Id = "explorer-customization-lock-screen",
                     Name = "Lock Screen",
                     Description = "Controls lock screen visibility",
                     Category = CustomizationCategory.Explorer,
@@ -523,7 +523,7 @@ public static class ExplorerCustomizations
                         new RegistrySetting
                         {
                             Category = "Explorer",
-                            Hive = RegistryHive.LocalMachine,
+                            Hive = "HKEY_LOCAL_MACHINE",
                             SubKey = "SOFTWARE\\Policies\\Microsoft\\Windows\\Personalization",
                             Name = "NoLockScreen",
                             RecommendedValue = 0,
@@ -539,7 +539,7 @@ public static class ExplorerCustomizations
                 },
                 new CustomizationSetting
                 {
-                    Id = "explorer-gallery",
+                    Id = "explorer-customization-gallery",
                     Name = "Gallery in Navigation Pane",
                     Description = "Controls gallery visibility in navigation pane",
                     Category = CustomizationCategory.Explorer,
@@ -551,7 +551,7 @@ public static class ExplorerCustomizations
                         new RegistrySetting
                         {
                             Category = "Explorer",
-                            Hive = RegistryHive.LocalMachine,
+                            Hive = "HKEY_LOCAL_MACHINE",
                             SubKey =
                                 "Software\\Microsoft\\Windows\\CurrentVersion\\Explorer\\Desktop\\NameSpace",
                             Name = "{e88865ea-0e1c-4e20-9aa6-edcd0212c87c}",
@@ -570,7 +570,7 @@ public static class ExplorerCustomizations
                 },
                 new CustomizationSetting
                 {
-                    Id = "explorer-context-menu",
+                    Id = "explorer-customization-context-menu",
                     Name = "Classic Context Menu",
                     Description = "Controls context menu style (classic or modern)",
                     Category = CustomizationCategory.Explorer,
@@ -582,7 +582,7 @@ public static class ExplorerCustomizations
                         new RegistrySetting
                         {
                             Category = "Explorer",
-                            Hive = RegistryHive.CurrentUser,
+                            Hive = "HKEY_CURRENT_USER",
                             SubKey =
                                 "Software\\Classes\\CLSID\\{86ca1aa0-34aa-4e8b-a509-50c905bae2a2}\\InprocServer32",
                             Name = "",

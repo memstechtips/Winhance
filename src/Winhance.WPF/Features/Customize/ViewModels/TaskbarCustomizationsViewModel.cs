@@ -1,18 +1,14 @@
 using System;
-using System.Collections.Generic;
 using System.Collections.ObjectModel;
-using System.Linq;
 using System.Threading.Tasks;
 using System.Windows.Input;
 using CommunityToolkit.Mvvm.ComponentModel;
 using CommunityToolkit.Mvvm.Input;
 using Winhance.Core.Features.Common.Enums;
 using Winhance.Core.Features.Common.Interfaces;
-using Winhance.Core.Features.Common.Models;
 using Winhance.Core.Features.Customize.Interfaces;
 using Winhance.WPF.Features.Common.Interfaces;
 using Winhance.WPF.Features.Common.Models;
-using Winhance.WPF.Features.Common.ViewModels;
 
 namespace Winhance.WPF.Features.Customize.ViewModels
 {
@@ -28,22 +24,6 @@ namespace Winhance.WPF.Features.Customize.ViewModels
         private readonly ILogService _logService;
         private readonly ISystemServices _systemServices;
         private readonly IDialogService _dialogService;
-        private bool _isWindows11;
-
-        /// <summary>
-        /// Gets the collection of ComboBox settings.
-        /// </summary>
-        public ObservableCollection<SettingUIItem> ComboBoxSettings { get; } = new();
-
-        /// <summary>
-        /// Gets the collection of Toggle settings.
-        /// </summary>
-        public ObservableCollection<SettingUIItem> ToggleSettings { get; } = new();
-
-        /// <summary>
-        /// Gets a value indicating whether there are ComboBox settings.
-        /// </summary>
-        public bool HasComboBoxSettings => ComboBoxSettings.Count > 0;
 
         // Delegate properties to UI Coordinator
         public ObservableCollection<SettingUIItem> Settings => _uiCoordinator.Settings;
@@ -66,13 +46,23 @@ namespace Winhance.WPF.Features.Customize.ViewModels
         public bool HasVisibleSettings => _uiCoordinator.HasVisibleSettings;
 
         // IFeatureViewModel implementation
-        public string ModuleId => "TaskbarCustomization";
+        public string ModuleId => "taskbar";
         public string DisplayName => "Taskbar";
         public int SettingsCount => Settings?.Count ?? 0;
         public string Category => "Customize";
         public string Description => "Customize Windows Taskbar settings";
         public int SortOrder => 2;
+
+        /// <summary>
+        /// Gets the command to load settings.
+        /// </summary>
         public ICommand LoadSettingsCommand { get; private set; }
+
+        // Header properties
+        [ObservableProperty]
+        private bool _isExpanded = true;
+
+        public ICommand ToggleExpandCommand { get; private set; }
 
         /// <summary>
         /// Gets the command to clean the taskbar.
@@ -93,47 +83,77 @@ namespace Winhance.WPF.Features.Customize.ViewModels
             ISettingsUICoordinator uiCoordinator,
             ILogService logService,
             IDialogService dialogService,
-            ISystemServices systemServices,
-            ITaskProgressService progressService)
+            ITaskProgressService progressService,
+            ISystemServices systemServices
+        )
         {
-            _taskbarService = taskbarService ?? throw new ArgumentNullException(nameof(taskbarService));
-            _uiCoordinator = uiCoordinator ?? throw new ArgumentNullException(nameof(uiCoordinator));
+            _taskbarService =
+                taskbarService ?? throw new ArgumentNullException(nameof(taskbarService));
+            _uiCoordinator =
+                uiCoordinator ?? throw new ArgumentNullException(nameof(uiCoordinator));
             _logService = logService ?? throw new ArgumentNullException(nameof(logService));
-            _dialogService = dialogService ?? throw new ArgumentNullException(nameof(dialogService));
-            _systemServices = systemServices ?? throw new ArgumentNullException(nameof(systemServices));
-            _progressService = progressService ?? throw new ArgumentNullException(nameof(progressService));
-            _isWindows11 = _systemServices.IsWindows11();
-            
+            _dialogService =
+                dialogService ?? throw new ArgumentNullException(nameof(dialogService));
+            _progressService =
+                progressService ?? throw new ArgumentNullException(nameof(progressService));
+            _systemServices =
+                systemServices ?? throw new ArgumentNullException(nameof(systemServices));
+
             _uiCoordinator.CategoryName = "Taskbar";
-            
+
+            // Subscribe to coordinator's PropertyChanged events to relay them to the UI
+            _uiCoordinator.PropertyChanged += (sender, e) => OnPropertyChanged(e.PropertyName);
+
             // Initialize commands
             CleanTaskbarCommand = new AsyncRelayCommand(ExecuteCleanTaskbarAsync);
             LoadSettingsCommand = new AsyncRelayCommand(LoadSettingsAsync);
+            ToggleExpandCommand = new RelayCommand(ToggleExpand);
         }
 
         /// <summary>
-        /// Executes the clean taskbar operation.
+        /// Executes the clean taskbar operation using UI coordination.
+        /// Delegates actual business logic to the domain service.
         /// </summary>
         private async Task ExecuteCleanTaskbarAsync()
         {
             try
             {
+                // UI: Show confirmation dialog
+                var confirmed = await _dialogService.ShowConfirmationAsync(
+                    "You are about to clean the Taskbar for the current user.\n\n"
+                        + "This will remove all pinned apps except File Explorer and restore the default taskbar layout.\n\n"
+                        + "Do you want to continue?",
+                    "Taskbar Cleanup Confirmation"
+                );
+
+                if (!confirmed)
+                    return;
+
+                // UI: Start progress tracking
                 _progressService.StartTask("Cleaning taskbar...");
-                
-                // Use the taskbar service to clean the taskbar
+
+                // DELEGATE: Call domain service for business logic
                 await _taskbarService.ExecuteTaskbarCleanupAsync();
-                
-                // Refresh settings after cleanup
-                await LoadSettingsAsync();
-                
+
+                // UI: Complete progress and show success
                 _progressService.CompleteTask();
-                await _dialogService.ShowInformationAsync("Taskbar has been cleaned successfully.", "Taskbar Cleanup");
+                await _dialogService.ShowInformationAsync(
+                    "Taskbar has been cleaned successfully.",
+                    "Taskbar Cleanup"
+                );
+
+                // UI: Refresh settings to reflect changes
+                await LoadSettingsAsync();
             }
             catch (Exception ex)
             {
+                // UI: Handle error display and cleanup
                 _progressService.CompleteTask();
                 _logService.Log(LogLevel.Error, $"Error cleaning taskbar: {ex.Message}");
-                await _dialogService.ShowErrorAsync($"Failed to clean taskbar: {ex.Message}", "Taskbar Cleanup Error");
+                await _dialogService.ShowErrorAsync(
+                    $"Failed to clean taskbar: {ex.Message}",
+                    "Taskbar Cleanup Error"
+                );
             }
         }
 
@@ -142,36 +162,31 @@ namespace Winhance.WPF.Features.Customize.ViewModels
         /// </summary>
         public async Task LoadSettingsAsync()
         {
-            await _uiCoordinator.LoadSettingsAsync(() => _taskbarService.GetSettingsAsync());
+            _logService.Log(
+                LogLevel.Info,
+                "TaskbarCustomizationsViewModel: Starting LoadSettingsAsync"
+            );
 
-            // Organize settings by control type for specialized UI display
-            OrganizeSettingsByControlType();
-        }
-        
-        /// <summary>
-        /// Organizes settings by control type for specialized UI display.
-        /// </summary>
-        private void OrganizeSettingsByControlType()
-        {
-            ComboBoxSettings.Clear();
-            ToggleSettings.Clear();
-
-            foreach (var setting in Settings)
+            try
             {
-                switch (setting.ControlType)
-                {
-                    case ControlType.ComboBox:
-                        ComboBoxSettings.Add(setting);
-                        break;
-                    case ControlType.BinaryToggle:
-                        ToggleSettings.Add(setting);
-                        break;
-                    // Add other control types as needed
-                }
-            }
+                _progressService.StartTask("Loading taskbar settings...");
 
-            // Notify property changes
-            OnPropertyChanged(nameof(HasComboBoxSettings));
+                // Use the domain service which provides centralized ComboBox resolution
+                await _uiCoordinator.LoadSettingsAsync(() => _taskbarService.GetSettingsAsync());
+
+                _logService.Log(
+                    LogLevel.Info,
+                    $"TaskbarCustomizationsViewModel: UI Coordinator has {_uiCoordinator.Settings.Count} settings after load"
+                );
+
+                _progressService.CompleteTask();
+            }
+            catch (Exception ex)
+            {
+                _progressService.CompleteTask();
+                _logService.Log(LogLevel.Error, $"Error loading Taskbar settings: {ex.Message}");
+                throw;
+            }
         }
 
         /// <summary>
@@ -188,9 +203,14 @@ namespace Winhance.WPF.Features.Customize.ViewModels
         public void ClearSettings()
         {
             _uiCoordinator.ClearSettings();
-            ComboBoxSettings.Clear();
-            ToggleSettings.Clear();
-            OnPropertyChanged(nameof(HasComboBoxSettings));
+        }
+
+        /// <summary>
+        /// Toggles the expand/collapse state of this feature section.
+        /// </summary>
+        private void ToggleExpand()
+        {
+            IsExpanded = !IsExpanded;
         }
     }
 }

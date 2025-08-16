@@ -10,6 +10,7 @@
     xmlns:behaviors="clr-namespace:Winhance.WPF.Features.Common.Behaviors"
     xmlns:converters="clr-namespace:Winhance.WPF.Features.Common.Converters"
     xmlns:models="clr-namespace:Winhance.Core.Features.Optimize.Models;assembly=Winhance.Core"
+    xmlns:enums="clr-namespace:Winhance.Core.Features.Common.Enums;assembly=Winhance.Core"
     xmlns:materialDesign="http://materialdesigninxaml.net/winfx/xaml/themes"
     mc:Ignorable="d" d:DesignHeight="450" d:DesignWidth="800" d:DataContext="{d:DesignInstance Type=viewModels:PowerOptimizationsViewModel}">
 
@@ -17,14 +18,13 @@
         <BooleanToVisibilityConverter x:Key="BoolToVisibilityConverter" />
         <converters:InverseBooleanToVisibilityConverter x:Key="InverseBoolToVisibilityConverter" />
         <converters:BoolToExpandCollapseConverter x:Key="BoolToExpandCollapseConverter" />
+        <converters:BooleanToRotationConverter x:Key="BooleanToRotationConverter" />
 
-        <!-- Power Setting Type enum values -->
-        <models:PowerSettingType x:Key="EnumType">Enum</models:PowerSettingType>
-        <models:PowerSettingType x:Key="NumericType">Numeric</models:PowerSettingType>
-
-        <!-- Converter for power setting types -->
-        <converters:EnumMatchToVisibilityConverter x:Key="EnumTypeToVisibilityConverter" MatchValue="{StaticResource EnumType}" />
-        <converters:EnumMatchToVisibilityConverter x:Key="NumericTypeToVisibilityConverter" MatchValue="{StaticResource NumericType}" />
+        <!-- Converters for control types -->
+        <powerConverters:ComboBoxTypeToVisibilityConverter x:Key="ComboBoxTypeToVisibilityConverter" />
+        <powerConverters:NumericUpDownTypeToVisibilityConverter x:Key="NumericUpDownTypeToVisibilityConverter" />
+        <powerConverters:BinaryToggleTypeToVisibilityConverter x:Key="BinaryToggleTypeToVisibilityConverter" />
+        <powerConverters:AdvancedSettingVisibilityConverter x:Key="AdvancedSettingVisibilityConverter" />
     </UserControl.Resources>
 
     <StackPanel>
@@ -92,144 +92,206 @@
                 Effect="{StaticResource LightShadowEffect}"
                 Visibility="{Binding IsExpanded, Converter={StaticResource BooleanToVisibilityConverter}}">
         <StackPanel Margin="0,10,0,10">
-            <!-- Power Plan Slider -->
+            <!-- Primary Power Settings Section -->
             <Grid Margin="10,0,10,20">
                 <Grid.RowDefinitions>
                     <RowDefinition Height="Auto"/>
                     <RowDefinition Height="Auto"/>
+                    <RowDefinition Height="Auto"/>
+                    <RowDefinition Height="Auto"/>
                 </Grid.RowDefinitions>
 
-                <!-- Title -->
-                <TextBlock Text="Power Plan" FontSize="16" Foreground="{DynamicResource PrimaryTextColor}" FontWeight="SemiBold" Margin="25,0,0,0"/>
-
-                <!-- Power Plan -->
-                <Grid Grid.Row="1" Margin="25,0,25,0">
+                <!-- Power Plan Setting -->
+                <Grid Grid.Row="0" Margin="25,0,25,10">
                     <Grid.ColumnDefinitions>
                         <ColumnDefinition Width="*"/>
                         <ColumnDefinition Width="Auto"/>
                     </Grid.ColumnDefinitions>
 
-                    <!-- Left: Description -->
-                    <TextBlock Text="Select a power plan for your system" Foreground="{DynamicResource PrimaryTextColor}" VerticalAlignment="Center"/>
+                    <!-- Setting Name and Description -->
+                    <StackPanel>
+                        <TextBlock Text="Power Plan" 
+                                   Foreground="{DynamicResource PrimaryTextColor}" 
+                                   FontWeight="SemiBold" 
+                                   FontSize="14"/>
+                        <TextBlock Text="Select a power plan for your system" 
+                                   Foreground="{DynamicResource SecondaryTextColor}" 
+                                   TextWrapping="Wrap" 
+                                   Margin="0,2,0,0"/>
+                    </StackPanel>
 
-                    <!-- Right: ComboBox -->
+                    <!-- Power Plan ComboBox -->
                     <StackPanel Grid.Column="1" Margin="10,0,0,0">
-                        <ComboBox ItemsSource="{Binding PowerPlanLabels}" SelectedIndex="{Binding PowerPlanValue, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}" Width="200" HorizontalAlignment="Right" VerticalAlignment="Center"/>
+                        <ComboBox ItemsSource="{Binding PowerPlans}" 
+                                  DisplayMemberPath="Name"
+                                  SelectedItem="{Binding SelectedPowerPlan, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}" 
+                                  Width="200" 
+                                  HorizontalAlignment="Right" 
+                                  VerticalAlignment="Center"
+                                  behaviors:ComboBoxDropdownBehavior.StayWithParent="True"/>
+                        <!-- Auto-apply on selection change, no need for Enter key -->
+                        
+                        <!-- Loading Spinner -->
+                        <ProgressBar HorizontalAlignment="Center" Margin="0,5,0,0" IsIndeterminate="True" Width="20" Height="20" 
+                                     Visibility="{Binding IsApplyingPowerPlan, Converter={StaticResource BooleanToVisibilityConverter}}"/>
                     </StackPanel>
                 </Grid>
 
-                <!-- Loading Spinner -->
-                <ProgressBar Grid.Row="1" HorizontalAlignment="Right" Margin="0,0,10,0" IsIndeterminate="True" Width="20" Height="20" Visibility="{Binding IsApplyingPowerPlan, Converter={StaticResource BooleanToVisibilityConverter}}"/>
+                <!-- Turn off the display Setting -->
+                <Grid Grid.Row="1" Margin="25,0,25,10">
+                    <Grid.ColumnDefinitions>
+                        <ColumnDefinition Width="*"/>
+                        <ColumnDefinition Width="Auto"/>
+                    </Grid.ColumnDefinitions>
+
+                    <!-- Setting Name and Description -->
+                    <StackPanel>
+                        <TextBlock Text="Turn off the display" 
+                                   Foreground="{DynamicResource PrimaryTextColor}" 
+                                   FontWeight="SemiBold" 
+                                   FontSize="14"/>
+                        <TextBlock Text="Specifies the period of inactivity before Windows turns off the display" 
+                                   Foreground="{DynamicResource SecondaryTextColor}" 
+                                   TextWrapping="Wrap" 
+                                   Margin="0,2,0,0"/>
+                    </StackPanel>
+
+                    <!-- Display Timeout ComboBox -->
+                    <StackPanel Grid.Column="1" Margin="10,0,0,0">
+                        <ComboBox Width="200" 
+                                  HorizontalAlignment="Right" 
+                                  VerticalAlignment="Center"
+                                  ItemsSource="{Binding TimeoutOptions}"
+                                  SelectedIndex="{Binding SelectedDisplayTimeoutIndex, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}"
+                                  behaviors:ComboBoxDropdownBehavior.StayWithParent="True"/>
+                        <!-- Auto-apply on selection change -->
+                    </StackPanel>
+                </Grid>
+
+                <!-- Put the computer to sleep Setting -->
+                <Grid Grid.Row="2" Margin="25,0,25,10">
+                    <Grid.ColumnDefinitions>
+                        <ColumnDefinition Width="*"/>
+                        <ColumnDefinition Width="Auto"/>
+                    </Grid.ColumnDefinitions>
+
+                    <!-- Setting Name and Description -->
+                    <StackPanel>
+                        <TextBlock Text="Put the computer to sleep" 
+                                   Foreground="{DynamicResource PrimaryTextColor}" 
+                                   FontWeight="SemiBold" 
+                                   FontSize="14"/>
+                        <TextBlock Text="Specifies the period of inactivity before Windows puts the computer to sleep" 
+                                   Foreground="{DynamicResource SecondaryTextColor}" 
+                                   TextWrapping="Wrap" 
+                                   Margin="0,2,0,0"/>
+                    </StackPanel>
+
+                    <!-- Sleep Timeout ComboBox -->
+                    <StackPanel Grid.Column="1" Margin="10,0,0,0">
+                        <ComboBox Width="200" 
+                                  HorizontalAlignment="Right" 
+                                  VerticalAlignment="Center"
+                                  ItemsSource="{Binding TimeoutOptions}"
+                                  SelectedIndex="{Binding SelectedSleepTimeoutIndex, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}"
+                                  behaviors:ComboBoxDropdownBehavior.StayWithParent="True"/>
+                        <!-- Auto-apply on selection change -->
+                    </StackPanel>
+                </Grid>
             </Grid> 
 
-            <!-- Advanced Power Settings -->
+            <!-- Advanced Power Settings Section -->
             <Grid Margin="10,0,10,10">
-                <Grid.ColumnDefinitions>
-                    <ColumnDefinition Width="*"/>
-                    <ColumnDefinition Width="Auto"/>
-                </Grid.ColumnDefinitions>
+                <Grid.RowDefinitions>
+                    <RowDefinition Height="Auto"/>
+                    <RowDefinition Height="Auto"/>
+                </Grid.RowDefinitions>
 
-                <TextBlock Text="Advanced Power Settings" FontSize="16" Foreground="{DynamicResource PrimaryTextColor}" FontWeight="SemiBold" Margin="25,0,0,0" VerticalAlignment="Center"/>
-            </Grid>
+                <!-- Advanced Power Settings Title -->
+                <TextBlock Text="Advanced Power Settings" 
+                           FontSize="16" 
+                           Foreground="{DynamicResource PrimaryTextColor}" 
+                           FontWeight="SemiBold" 
+                           Margin="25,10,0,10" 
+                           VerticalAlignment="Center"/>
 
-            <!-- Separator -->
-            <Separator Margin="25,0,25,20"/>
-
-            <!-- Advanced Power Settings Panel -->
-            <Border BorderThickness="0,1,0,0" BorderBrush="{DynamicResource BorderBrush}" Margin="35,0,35,20">
-                <Grid>
-                    <Grid.RowDefinitions>
-                        <RowDefinition Height="Auto"/>
-                        <RowDefinition Height="*"/>
-                    </Grid.RowDefinitions>
-
-                    <!-- Spacing -->
-                    <Grid Margin="0,10,0,10">
-                    </Grid>
-
+                <!-- Advanced Power Settings Content - Dynamic settings from PowerService -->
+                <StackPanel Grid.Row="1" Margin="0,0,0,0">
+                    
                     <!-- Loading Indicator -->
-                    <Grid Grid.Row="1" Visibility="{Binding IsLoadingAdvancedSettings, Converter={StaticResource BoolToVisibilityConverter}}">
+                    <Grid Visibility="{Binding IsLoadingAdvancedSettings, Converter={StaticResource BoolToVisibilityConverter}}" Margin="25,10,25,10">
                         <StackPanel VerticalAlignment="Center" HorizontalAlignment="Center">
                             <ProgressBar IsIndeterminate="True" Width="100" Height="10" Margin="0,0,0,10"/>
-                            <TextBlock Text="Loading advanced power settings..." Foreground="{DynamicResource SecondaryTextColor}" HorizontalAlignment="Center"/>
+                            <TextBlock Text="Loading advanced power settings..." 
+                                       Foreground="{DynamicResource SecondaryTextColor}" 
+                                       HorizontalAlignment="Center"/>
                         </StackPanel>
                     </Grid>
 
-                    <!-- Power Settings -->
-                    <Grid>
-                        <TextBlock Text="No power settings found" Foreground="{DynamicResource SecondaryTextColor}" HorizontalAlignment="Center" Margin="0,20,0,0" Visibility="{Binding HasVisibleSettings, Converter={StaticResource InverseBoolToVisibilityConverter}}"/>
-                        
-                        <!-- Settings Groups -->
-                        <ItemsControl ItemsSource="{Binding SettingGroups}" Visibility="{Binding HasVisibleSettings, Converter={StaticResource BoolToVisibilityConverter}}">
-                            <ItemsControl.ItemTemplate>
-                                <DataTemplate>
+                    <!-- Dynamic Power Settings - All available settings from powercfg -->
+                    <ItemsControl ItemsSource="{Binding Settings}" 
+                                  Visibility="{Binding IsLoadingAdvancedSettings, Converter={StaticResource InverseBoolToVisibilityConverter}}">
+                        <ItemsControl.ItemTemplate>
+                            <DataTemplate>
+                                <!-- Skip the main power settings that are already shown above -->
+                                <Grid Margin="25,0,25,10" 
+                                      Visibility="{Binding Path=., Converter={StaticResource AdvancedSettingVisibilityConverter}}">
+                                    <Grid.ColumnDefinitions>
+                                        <ColumnDefinition Width="*"/>
+                                        <ColumnDefinition Width="Auto"/>
+                                    </Grid.ColumnDefinitions>
+
+                                    <!-- Setting Name and Description - Consistent with primary settings -->
                                     <StackPanel>
-                                        <TextBlock Text="{Binding Name}" Foreground="{DynamicResource PrimaryTextColor}" FontWeight="SemiBold" Margin="25,15,0,5"/>
-                                        
-                                        <ItemsControl ItemsSource="{Binding Settings}">
-                                            <ItemsControl.ItemTemplate>
-                                                <DataTemplate>
-                                                    <Grid Margin="25,5,25,5">
-                                                        <Grid.ColumnDefinitions>
-                                                            <ColumnDefinition Width="*"/>
-                                                            <ColumnDefinition Width="Auto"/>
-                                                            <ColumnDefinition Width="Auto"/>
-                                                        </Grid.ColumnDefinitions>
-                                                        <Grid.RowDefinitions>
-                                                            <RowDefinition Height="Auto"/>
-                                                            <RowDefinition Height="Auto"/>
-                                                        </Grid.RowDefinitions>
-
-                                                        <!-- Setting Name and Description -->
-                                                        <StackPanel>
-                                                            <TextBlock Text="{Binding DisplayName}" Foreground="{DynamicResource PrimaryTextColor}" FontWeight="Medium" FontSize="14"/>
-                                                            <TextBlock Text="{Binding Description}" Foreground="{DynamicResource SecondaryTextColor}" TextWrapping="Wrap" Margin="0,2,0,0"/>
-                                                        </StackPanel>
-
-                                                        <!-- AC Value Control -->
-                                                        <StackPanel Grid.Column="1" Margin="10,0">
-                                                            <TextBlock Text="AC Power" Foreground="{DynamicResource SecondaryTextColor}" HorizontalAlignment="Center" Margin="0,0,0,2"/>
-
-                                                            <!-- Enum Type Settings (ComboBox) -->
-                                                            <ComboBox Width="120" Visibility="{Binding SettingType, Converter={StaticResource EnumTypeToVisibilityConverter}}" ItemsSource="{Binding PossibleValues}" DisplayMemberPath="FriendlyName" SelectedValue="{Binding AcValue, Mode=TwoWay}" SelectedValuePath="Index" behaviors:ComboBoxDropdownBehavior.StayWithParent="True"/>
-
-                                                            <!-- Numeric Type Settings (ComboBox for time intervals or NumericUpDown) -->
-                                                            <StackPanel Visibility="{Binding SettingType, Converter={StaticResource NumericTypeToVisibilityConverter}}">
-                                                                <!-- Time Interval ComboBox -->
-                                                                <ComboBox Width="120" Visibility="{Binding UseTimeIntervals, Converter={StaticResource BoolToVisibilityConverter}}" ItemsSource="{Binding TimeValues}" DisplayMemberPath="DisplayName" SelectedValue="{Binding AcValue, Mode=TwoWay}" SelectedValuePath="Minutes" behaviors:ComboBoxDropdownBehavior.StayWithParent="True"/>
-
-                                                                <!-- NumericUpDown for other numeric settings -->
-                                                                <controls:NumericUpDown Width="120" Visibility="{Binding UseTimeIntervals, Converter={StaticResource InverseBooleanToVisibilityConverter}}" Minimum="{Binding MinValue}" Maximum="{Binding MaxValue}" Value="{Binding AcValue, Mode=TwoWay}" Increment="{Binding Increment}" Units="{Binding Units}"/>
-                                                            </StackPanel>
-                                                        </StackPanel>
-
-                                                        <!-- DC Value Control -->
-                                                        <StackPanel Grid.Column="2" Visibility="{Binding DataContext.HasBattery, RelativeSource={RelativeSource AncestorType=UserControl}, Converter={StaticResource BoolToVisibilityConverter}}">
-                                                            <TextBlock Text="Battery" Foreground="{DynamicResource SecondaryTextColor}" HorizontalAlignment="Center" Margin="0,0,0,2"/>
-
-                                                            <!-- Enum Type Settings (ComboBox) -->
-                                                            <ComboBox Width="120" Visibility="{Binding SettingType, Converter={StaticResource EnumTypeToVisibilityConverter}}" ItemsSource="{Binding PossibleValues}" DisplayMemberPath="FriendlyName" SelectedValue="{Binding DcValue, Mode=TwoWay}" SelectedValuePath="Index" behaviors:ComboBoxDropdownBehavior.StayWithParent="True"/>
-
-                                                            <!-- Numeric Type Settings (ComboBox for time intervals or NumericUpDown) -->
-                                                            <StackPanel Visibility="{Binding SettingType, Converter={StaticResource NumericTypeToVisibilityConverter}}">
-                                                                <!-- Time Interval ComboBox -->
-                                                                <ComboBox Width="120" Visibility="{Binding UseTimeIntervals, Converter={StaticResource BoolToVisibilityConverter}}" ItemsSource="{Binding TimeValues}" DisplayMemberPath="DisplayName" SelectedValue="{Binding DcValue, Mode=TwoWay}" SelectedValuePath="Minutes" behaviors:ComboBoxDropdownBehavior.StayWithParent="True"/>
-
-                                                                <!-- NumericUpDown for other numeric settings -->
-                                                                <controls:NumericUpDown Width="120" Visibility="{Binding UseTimeIntervals, Converter={StaticResource InverseBooleanToVisibilityConverter}}" Minimum="{Binding MinValue}" Maximum="{Binding MaxValue}" Value="{Binding DcValue, Mode=TwoWay}" Increment="{Binding Increment}" Units="{Binding Units}"/>
-                                                            </StackPanel>
-                                                        </StackPanel>
-                                                    </Grid>
-                                                </DataTemplate>
-                                            </ItemsControl.ItemTemplate>
-                                        </ItemsControl>
+                                        <TextBlock Text="{Binding DisplayName}" 
+                                                   Foreground="{DynamicResource PrimaryTextColor}" 
+                                                   FontWeight="SemiBold" 
+                                                   FontSize="14"/>
+                                        <TextBlock Text="{Binding Description}" 
+                                                   Foreground="{DynamicResource SecondaryTextColor}" 
+                                                   TextWrapping="Wrap" 
+                                                   Margin="0,2,0,0"/>
                                     </StackPanel>
-                                </DataTemplate>
-                            </ItemsControl.ItemTemplate>
-                        </ItemsControl>
-                    </Grid>
-                </Grid>
-            </Border>
+
+                                    <!-- Dynamic Control based on ControlType -->
+                                    <StackPanel Grid.Column="1" Margin="10,0,0,0">
+                                        
+                                        <!-- ComboBox for dropdown settings -->
+                                        <ComboBox Width="200" 
+                                                  HorizontalAlignment="Right" 
+                                                  VerticalAlignment="Center"
+                                                  ItemsSource="{Binding Options}"
+                                                  DisplayMemberPath="Name"
+                                                  SelectedItem="{Binding SelectedOption, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}"
+                                                  Visibility="{Binding ControlType, Converter={StaticResource ComboBoxTypeToVisibilityConverter}}"
+                                                  behaviors:ComboBoxDropdownBehavior.StayWithParent="True"/>
+                                        
+                                        <!-- NumericUpDown for numeric settings -->
+                                        <controls:NumericUpDown Width="200" 
+                                                                HorizontalAlignment="Right" 
+                                                                VerticalAlignment="Center"
+                                                                Minimum="{Binding MinValue}" 
+                                                                Maximum="{Binding MaxValue}" 
+                                                                Value="{Binding SelectedValue, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}" 
+                                                                Increment="1" 
+                                                                Units="{Binding Units}"
+                                                                Visibility="{Binding ControlType, Converter={StaticResource NumericUpDownTypeToVisibilityConverter}}"/>
+                                        
+                                        <!-- Toggle for boolean settings -->
+                                        <ToggleButton Style="{StaticResource MaterialToggleSwitch}" 
+                                                      IsChecked="{Binding IsSelected, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}"
+                                                      HorizontalAlignment="Right"
+                                                      VerticalAlignment="Center"
+                                                      Visibility="{Binding ControlType, Converter={StaticResource BinaryToggleTypeToVisibilityConverter}}"/>
+                                        
+                                    </StackPanel>
+                                </Grid>
+                            </DataTemplate>
+                        </ItemsControl.ItemTemplate>
+                    </ItemsControl>
+
+                </StackPanel>
+            </Grid>
 
             <!-- Container for Setting Labels & Toggles - REMOVED to eliminate duplicate power settings -->
             <!-- This section was showing binary toggles that duplicated the advanced power settings above -->
