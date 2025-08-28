@@ -52,6 +52,7 @@ namespace Winhance.WPF.Features.Common.Resources.Theme
             { "ToggleKnobCheckedColor", Color.FromRgb(255, 222, 0) },
             { "ContentSectionBorderColor", Color.FromRgb(31, 32, 34) },
             { "MainContainerBorderColor", Color.FromRgb(43, 45, 48) },
+            { "SettingsItemBackgroundColor", Color.FromRgb(37, 38, 40) },
             { "PrimaryButtonForegroundColor", Color.FromRgb(255, 255, 255) },
             { "AccentColor", Color.FromRgb(255, 222, 0) },
             { "ButtonHoverTextColor", Color.FromRgb(32, 33, 36) },
@@ -83,12 +84,13 @@ namespace Winhance.WPF.Features.Common.Resources.Theme
             { "ToggleKnobCheckedColor", Color.FromRgb(66, 66, 66) },
             { "ContentSectionBorderColor", Color.FromRgb(246, 248, 252) },
             { "MainContainerBorderColor", Color.FromRgb(255, 255, 255) },
+            { "SettingsItemBackgroundColor", Color.FromRgb(255, 255, 255) },
             { "PrimaryButtonForegroundColor", Color.FromRgb(32, 33, 36) },
             { "AccentColor", Color.FromRgb(66, 66, 66) },
             { "ButtonHoverTextColor", Color.FromRgb(255, 255, 255) },
             { "ButtonDisabledForegroundColor", Color.FromRgb(204, 204, 204) },
             { "ButtonDisabledBorderColor", Color.FromRgb(238, 238, 238) },
-            { "NavigationButtonBackgroundColor", Color.FromRgb(246, 248, 252) }, // Changed to match BackgroundColor
+            { "NavigationButtonBackgroundColor", Color.FromRgb(246, 248, 252) },
             { "NavigationButtonForegroundColor", Color.FromRgb(32, 33, 36) },
             { "SliderTrackColor", Color.FromRgb(204, 204, 204) },
             { "BackgroundColor", Color.FromRgb(246, 248, 252) },
@@ -153,6 +155,10 @@ namespace Winhance.WPF.Features.Common.Resources.Theme
                     (
                         "MainContainerBorderBrush",
                         new SolidColorBrush(themeColors["MainContainerBorderColor"])
+                    ),
+                    (
+                        "SettingsItemBackground",
+                        new SolidColorBrush(themeColors["SettingsItemBackgroundColor"])
                     ),
                     (
                         "NavigationButtonBackground",

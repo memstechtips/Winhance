@@ -34,7 +34,7 @@ namespace Winhance.Core.Features.Optimize.Models
                 Units = "Minutes",
                 UseTimeIntervals = true,
                 TimeValues = GetStandardTimeIntervals(),
-                ControlType = ControlType.ComboBox
+                InputType = SettingInputType.Selection
             });
 
             // Put the computer to sleep (Combobox with time intervals)
@@ -51,7 +51,7 @@ namespace Winhance.Core.Features.Optimize.Models
                 Units = "Minutes",
                 UseTimeIntervals = true,
                 TimeValues = GetStandardTimeIntervals(),
-                ControlType = ControlType.ComboBox
+                InputType = SettingInputType.Selection
             });
 
             return primarySettings;
@@ -109,7 +109,7 @@ namespace Winhance.Core.Features.Optimize.Models
                 DisplayName = "Active Power Plan",
                 Description = "Selects the active power plan for the system. Different power plans optimize for performance, battery life, or balanced usage.",
                 SubgroupGuid = subgroup.Guid,
-                ControlType = ControlType.ComboBox,
+                InputType = SettingInputType.Selection,
                 CustomCommand = true,
                 CustomCommandTemplate = "powercfg /setactive {0}",
                 CustomCommandValueMap = new Dictionary<int, string>
@@ -155,7 +155,7 @@ namespace Winhance.Core.Features.Optimize.Models
                 Increment = 1,
                 Units = "Minutes",
                 UseTimeIntervals = false,
-                ControlType = ControlType.NumericUpDown, // Use NumericUpDown for advanced settings
+                InputType = SettingInputType.NumericRange, // Use NumericUpDown for advanced settings
             };
 
             subgroup.Settings.Add(turnOffHardDiskAfter);
@@ -187,7 +187,7 @@ namespace Winhance.Core.Features.Optimize.Models
                 Increment = 1,
                 Units = "Minutes",
                 UseTimeIntervals = false,
-                ControlType = ControlType.NumericUpDown, // Use NumericUpDown for advanced settings
+                InputType = SettingInputType.NumericRange, // Use NumericUpDown for advanced settings
             };
 
             // Hibernate after - Time-based setting
@@ -204,7 +204,7 @@ namespace Winhance.Core.Features.Optimize.Models
                 Units = "Minutes",
                 UseTimeIntervals = true,
                 TimeValues = GetStandardTimeIntervals(),
-                ControlType = ControlType.ComboBox, // Time intervals use ComboBox
+                InputType = SettingInputType.Selection, // Time intervals use ComboBox
             };
 
             // Allow hybrid sleep - Enum setting
@@ -215,7 +215,7 @@ namespace Winhance.Core.Features.Optimize.Models
                 DisplayName = "Allow hybrid sleep",
                 Description = "Enables or disables hybrid sleep mode.",
                 SubgroupGuid = subgroup.Guid,
-                ControlType = ControlType.ComboBox, // Enum settings use ComboBox
+                InputType = SettingInputType.Selection, // Enum settings use ComboBox
                 PossibleValues = new List<PowerSettingValue>
                 {
                     new PowerSettingValue { Index = 0, FriendlyName = "Off" },
@@ -231,7 +231,7 @@ namespace Winhance.Core.Features.Optimize.Models
                 DisplayName = "Allow wake timers",
                 Description = "Determines whether Windows allows or ignores wake timer events.",
                 SubgroupGuid = subgroup.Guid,
-                ControlType = ControlType.ComboBox, // Enum settings use ComboBox
+                InputType = SettingInputType.Selection, // Enum settings use ComboBox
                 PossibleValues = new List<PowerSettingValue>
                 {
                     new PowerSettingValue { Index = 0, FriendlyName = "Disable" },
@@ -248,7 +248,7 @@ namespace Winhance.Core.Features.Optimize.Models
                 DisplayName = "Enable Hibernation",
                 Description = "Enables or disables system hibernation. Note: Disabling hibernation also disables Fast Startup.",
                 SubgroupGuid = subgroup.Guid,
-                ControlType = ControlType.ComboBox, // Enum settings use ComboBox
+                InputType = SettingInputType.Selection, // Enum settings use ComboBox
                 PossibleValues = new List<PowerSettingValue>
                 {
                     new PowerSettingValue { Index = 0, FriendlyName = "Off" },
@@ -291,7 +291,7 @@ namespace Winhance.Core.Features.Optimize.Models
                 DisplayName = "Power button action",
                 Description = "Specifies the action that Windows takes when the user presses the power button.",
                 SubgroupGuid = subgroup.Guid,
-                ControlType = ControlType.ComboBox, // Button actions use ComboBox
+                InputType = SettingInputType.Selection, // Button actions use ComboBox
                 PossibleValues = new List<PowerSettingValue>
                 {
                     new PowerSettingValue { Index = 0, FriendlyName = "Do nothing" },
@@ -310,7 +310,7 @@ namespace Winhance.Core.Features.Optimize.Models
                 DisplayName = "Sleep button action",
                 Description = "Specifies the action that Windows takes when the user presses the sleep button.",
                 SubgroupGuid = subgroup.Guid,
-                ControlType = ControlType.ComboBox, // Button actions use ComboBox
+                InputType = SettingInputType.Selection, // Button actions use ComboBox
                 PossibleValues = new List<PowerSettingValue>
                 {
                     new PowerSettingValue { Index = 0, FriendlyName = "Do nothing" },
@@ -329,7 +329,7 @@ namespace Winhance.Core.Features.Optimize.Models
                 DisplayName = "Lid close action",
                 Description = "Specifies the action that Windows takes when the user closes the lid on a laptop.",
                 SubgroupGuid = subgroup.Guid,
-                ControlType = ControlType.ComboBox, // Button actions use ComboBox
+                InputType = SettingInputType.Selection, // Button actions use ComboBox
                 PossibleValues = new List<PowerSettingValue>
                 {
                     new PowerSettingValue { Index = 0, FriendlyName = "Do nothing" },
@@ -370,7 +370,7 @@ namespace Winhance.Core.Features.Optimize.Models
                 Increment = 1,
                 Units = "Minutes",
                 UseTimeIntervals = false,
-                ControlType = ControlType.NumericUpDown, // Use NumericUpDown for advanced settings
+                InputType = SettingInputType.NumericRange, // Use NumericUpDown for advanced settings
             };
 
             // Display brightness - Percentage setting
@@ -385,7 +385,7 @@ namespace Winhance.Core.Features.Optimize.Models
                 MaxValue = 100,
                 Increment = 1,
                 Units = "%",
-                ControlType = ControlType.NumericUpDown, // Percentage values use NumericUpDown
+                InputType = SettingInputType.NumericRange, // Percentage values use NumericUpDown
             };
 
             // Dimmed display brightness - Percentage setting
@@ -400,7 +400,7 @@ namespace Winhance.Core.Features.Optimize.Models
                 MaxValue = 100,
                 Increment = 1,
                 Units = "%",
-                ControlType = ControlType.NumericUpDown, // Percentage values use NumericUpDown
+                InputType = SettingInputType.NumericRange, // Percentage values use NumericUpDown
             };
 
             // Enable adaptive brightness - Enum setting
@@ -411,7 +411,7 @@ namespace Winhance.Core.Features.Optimize.Models
                 DisplayName = "Enable adaptive brightness",
                 Description = "Specifies whether Windows automatically adjusts display brightness based on ambient light.",
                 SubgroupGuid = subgroup.Guid,
-                ControlType = ControlType.ComboBox, // On/Off settings use ComboBox
+                InputType = SettingInputType.Selection, // On/Off settings use ComboBox
                 PossibleValues = new List<PowerSettingValue>
                 {
                     new PowerSettingValue { Index = 0, FriendlyName = "Off" },
@@ -450,7 +450,7 @@ namespace Winhance.Core.Features.Optimize.Models
                 MaxValue = 100,
                 Increment = 1,
                 Units = "%",
-                ControlType = ControlType.NumericUpDown, // Percentage values use NumericUpDown
+                InputType = SettingInputType.NumericRange, // Percentage values use NumericUpDown
             };
 
             // Maximum processor state - Percentage setting
@@ -465,7 +465,7 @@ namespace Winhance.Core.Features.Optimize.Models
                 MaxValue = 100,
                 Increment = 1,
                 Units = "%",
-                ControlType = ControlType.NumericUpDown, // Percentage values use NumericUpDown
+                InputType = SettingInputType.NumericRange, // Percentage values use NumericUpDown
             };
 
             // System cooling policy - Enum setting
@@ -476,7 +476,7 @@ namespace Winhance.Core.Features.Optimize.Models
                 DisplayName = "System cooling policy",
                 Description = "Specifies the cooling mode that Windows uses for the current power plan.",
                 SubgroupGuid = subgroup.Guid,
-                ControlType = ControlType.ComboBox, // Enum settings use ComboBox
+                InputType = SettingInputType.Selection, // Enum settings use ComboBox
                 PossibleValues = new List<PowerSettingValue>
                 {
                     new PowerSettingValue { Index = 0, FriendlyName = "Passive" },
@@ -510,7 +510,7 @@ namespace Winhance.Core.Features.Optimize.Models
                 DisplayName = "Critical battery action",
                 Description = "Specifies the action that Windows takes when battery capacity reaches the critical battery level.",
                 SubgroupGuid = subgroup.Guid,
-                ControlType = ControlType.ComboBox, // Action settings use ComboBox
+                InputType = SettingInputType.Selection, // Action settings use ComboBox
                 PossibleValues = new List<PowerSettingValue>
                 {
                     new PowerSettingValue { Index = 0, FriendlyName = "Do nothing" },
@@ -532,7 +532,7 @@ namespace Winhance.Core.Features.Optimize.Models
                 MaxValue = 100,
                 Increment = 1,
                 Units = "%",
-                ControlType = ControlType.NumericUpDown, // Percentage values use NumericUpDown
+                InputType = SettingInputType.NumericRange, // Percentage values use NumericUpDown
             };
 
             // Critical battery level - Percentage setting
@@ -547,7 +547,7 @@ namespace Winhance.Core.Features.Optimize.Models
                 MaxValue = 100,
                 Increment = 1,
                 Units = "%",
-                ControlType = ControlType.NumericUpDown, // Percentage values use NumericUpDown
+                InputType = SettingInputType.NumericRange, // Percentage values use NumericUpDown
             };
 
             // Low battery notification - Enum setting
@@ -558,7 +558,7 @@ namespace Winhance.Core.Features.Optimize.Models
                 DisplayName = "Low battery notification",
                 Description = "Specifies whether Windows notifies the user when battery capacity reaches the low battery level.",
                 SubgroupGuid = subgroup.Guid,
-                ControlType = ControlType.ComboBox, // On/Off settings use ComboBox
+                InputType = SettingInputType.Selection, // On/Off settings use ComboBox
                 PossibleValues = new List<PowerSettingValue>
                 {
                     new PowerSettingValue { Index = 0, FriendlyName = "Off" },
@@ -592,7 +592,7 @@ namespace Winhance.Core.Features.Optimize.Models
                 DisplayName = "Slide show",
                 Description = "Specify when you want the desktop background slide show to be available.",
                 SubgroupGuid = subgroup.Guid,
-                ControlType = ControlType.ComboBox, // Enum settings use ComboBox
+                InputType = SettingInputType.Selection, // Enum settings use ComboBox
                 PossibleValues = new List<PowerSettingValue>
                 {
                     new PowerSettingValue { Index = 0, FriendlyName = "Available" },
@@ -623,7 +623,7 @@ namespace Winhance.Core.Features.Optimize.Models
                 DisplayName = "Power Saving Mode",
                 Description = "Specifies the power saving mode for the wireless adapter.",
                 SubgroupGuid = subgroup.Guid,
-                ControlType = ControlType.ComboBox, // Enum settings use ComboBox
+                InputType = SettingInputType.Selection, // Enum settings use ComboBox
                 PossibleValues = new List<PowerSettingValue>
                 {
                     new PowerSettingValue { Index = 0, FriendlyName = "Maximum Performance" },
@@ -656,7 +656,7 @@ namespace Winhance.Core.Features.Optimize.Models
                 DisplayName = "USB selective suspend setting",
                 Description = "Specifies whether the USB selective suspend feature is enabled.",
                 SubgroupGuid = subgroup.Guid,
-                ControlType = ControlType.ComboBox, // Enable/Disable settings use ComboBox
+                InputType = SettingInputType.Selection, // Enable/Disable settings use ComboBox
                 PossibleValues = new List<PowerSettingValue>
                 {
                     new PowerSettingValue { Index = 0, FriendlyName = "Disabled" },
@@ -687,7 +687,7 @@ namespace Winhance.Core.Features.Optimize.Models
                 DisplayName = "Link State Power Management",
                 Description = "Specifies the Active State Power Management (ASPM) policy to use for capable PCIe devices.",
                 SubgroupGuid = subgroup.Guid,
-                ControlType = ControlType.ComboBox, // Enum settings use ComboBox
+                InputType = SettingInputType.Selection, // Enum settings use ComboBox
                 PossibleValues = new List<PowerSettingValue>
                 {
                     new PowerSettingValue { Index = 0, FriendlyName = "Off" },
@@ -719,7 +719,7 @@ namespace Winhance.Core.Features.Optimize.Models
                 DisplayName = "When sharing media",
                 Description = "Specifies the power management behavior when sharing media with other devices.",
                 SubgroupGuid = subgroup.Guid,
-                ControlType = ControlType.ComboBox, // Enum settings use ComboBox
+                InputType = SettingInputType.Selection, // Enum settings use ComboBox
                 PossibleValues = new List<PowerSettingValue>
                 {
                     new PowerSettingValue { Index = 0, FriendlyName = "Allow the computer to sleep" },
@@ -735,7 +735,7 @@ namespace Winhance.Core.Features.Optimize.Models
                 DisplayName = "Video playback quality bias",
                 Description = "Specifies the bias for video playback quality versus energy savings.",
                 SubgroupGuid = subgroup.Guid,
-                ControlType = ControlType.ComboBox, // Enum settings use ComboBox
+                InputType = SettingInputType.Selection, // Enum settings use ComboBox
                 PossibleValues = new List<PowerSettingValue>
                 {
                     new PowerSettingValue { Index = 0, FriendlyName = "Video playback power-saving bias" },
@@ -750,7 +750,7 @@ namespace Winhance.Core.Features.Optimize.Models
                 DisplayName = "When playing video",
                 Description = "Specifies the power management behavior when playing video.",
                 SubgroupGuid = subgroup.Guid,
-                ControlType = ControlType.ComboBox, // Enum settings use ComboBox
+                InputType = SettingInputType.Selection, // Enum settings use ComboBox
                 PossibleValues = new List<PowerSettingValue>
                 {
                     new PowerSettingValue { Index = 0, FriendlyName = "Optimize video quality" },
@@ -784,7 +784,7 @@ namespace Winhance.Core.Features.Optimize.Models
                 DisplayName = "Overlay",
                 Description = "Specifies the AMD Power Slider overlay settings.",
                 SubgroupGuid = subgroup.Guid,
-                ControlType = ControlType.ComboBox, // Enum settings use ComboBox
+                InputType = SettingInputType.Selection, // Enum settings use ComboBox
                 PossibleValues = new List<PowerSettingValue>
                 {
                     new PowerSettingValue { Index = 0, FriendlyName = "Battery saver" },
@@ -817,7 +817,7 @@ namespace Winhance.Core.Features.Optimize.Models
                 DisplayName = "JavaScript Timer Frequency",
                 Description = "Specifies the frequency of JavaScript timers.",
                 SubgroupGuid = subgroup.Guid,
-                ControlType = ControlType.ComboBox, // Enum settings use ComboBox
+                InputType = SettingInputType.Selection, // Enum settings use ComboBox
                 PossibleValues = new List<PowerSettingValue>
                 {
                     new PowerSettingValue { Index = 0, FriendlyName = "Maximum Power Savings" },
@@ -848,7 +848,7 @@ namespace Winhance.Core.Features.Optimize.Models
                 DisplayName = "Graphics Power Plan",
                 Description = "Specifies the power plan for Intel Graphics.",
                 SubgroupGuid = subgroup.Guid,
-                ControlType = ControlType.ComboBox, // Enum settings use ComboBox
+                InputType = SettingInputType.Selection, // Enum settings use ComboBox
                 PossibleValues = new List<PowerSettingValue>
                 {
                     new PowerSettingValue { Index = 0, FriendlyName = "Maximum Battery Life" },
@@ -880,7 +880,7 @@ namespace Winhance.Core.Features.Optimize.Models
                 DisplayName = "PowerPlay Setting",
                 Description = "Specifies the power management mode for legacy AMD GPUs.",
                 SubgroupGuid = subgroup.Guid,
-                ControlType = ControlType.ComboBox, // Enum settings use ComboBox
+                InputType = SettingInputType.Selection, // Enum settings use ComboBox
                 PossibleValues = new List<PowerSettingValue>
                 {
                     new PowerSettingValue { Index = 0, FriendlyName = "Battery Optimized" },
@@ -912,7 +912,7 @@ namespace Winhance.Core.Features.Optimize.Models
                 DisplayName = "GPU Preference",
                 Description = "Specifies which GPU to use in hybrid graphics systems.",
                 SubgroupGuid = subgroup.Guid,
-                ControlType = ControlType.ComboBox, // Enum settings use ComboBox
+                InputType = SettingInputType.Selection, // Enum settings use ComboBox
                 PossibleValues = new List<PowerSettingValue>
                 {
                     new PowerSettingValue { Index = 0, FriendlyName = "Power Saving" },

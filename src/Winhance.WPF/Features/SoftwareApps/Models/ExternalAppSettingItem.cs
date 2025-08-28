@@ -2,48 +2,37 @@ using System.Collections.Generic;
 using System.Windows.Input;
 using CommunityToolkit.Mvvm.Input;
 using Winhance.Core.Features.Common.Enums;
-using Winhance.Core.Features.Common.Interfaces;
-using Winhance.Core.Features.Common.Models;
+using Winhance.Core.Features.SoftwareApps.Interfaces;
 
 namespace Winhance.WPF.Features.SoftwareApps.Models
 {
     /// <summary>
-    /// Adapter class that wraps an ExternalApp and implements ISettingItem.
+    /// Adapter class that wraps an ExternalApp and implements IExternalApp.
     /// </summary>
-    public class ExternalAppSettingItem : ISettingItem
+    public class ExternalAppSettingItem : IExternalApp
     {
         private readonly ExternalApp _externalApp;
         
         public ExternalAppSettingItem(ExternalApp externalApp)
         {
             _externalApp = externalApp;
-            
-            // Initialize properties required by ISettingItem
-            Id = externalApp.PackageName;
-            Name = externalApp.Name;
-            Description = externalApp.Description;
-            IsSelected = externalApp.IsSelected;
-            GroupName = externalApp.Category;
-            IsVisible = true;
-            ControlType = ControlType.BinaryToggle;
-            Dependencies = new List<SettingDependency>();
-            
-            // Create a command that does nothing (placeholder)
-            ApplySettingCommand = new RelayCommand(() => { });
         }
         
-        // ISettingItem implementation
-        public string Id { get; set; }
-        public string Name { get; set; }
-        public string Description { get; set; }
-        public bool IsSelected { get; set; }
-        public string GroupName { get; set; }
-        public bool IsVisible { get; set; }
-        public ControlType ControlType { get; set; }
-        public object? SelectedValue { get; set; }
-        public List<SettingDependency> Dependencies { get; set; }
-
-        public ICommand ApplySettingCommand { get; }
+        // IExternalApp implementation
+        public string Id => _externalApp.PackageName;
+        public string Name => _externalApp.Name;
+        public string Description => _externalApp.Description;
+        public string PackageName => _externalApp.PackageName;
+        public string Version => _externalApp.Version;
+        public bool IsInstalled => _externalApp.IsInstalled;
+        public bool CanBeReinstalled => _externalApp.CanBeReinstalled;
+        public string Category => _externalApp.Category;
+        
+        public bool IsSelected 
+        { 
+            get => _externalApp.IsSelected;
+            set => _externalApp.IsSelected = value;
+        }
         
         // Method to convert back to ExternalApp
         public ExternalApp ToExternalApp()

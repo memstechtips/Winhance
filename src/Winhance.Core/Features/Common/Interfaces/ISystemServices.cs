@@ -1,7 +1,7 @@
 using System.Threading;
 using System.Threading.Tasks;
+using Winhance.Core.Features.Common.Interfaces.WindowsRegistry;
 using Winhance.Core.Models.Enums;
-using Winhance.Core.Features.Customize.Enums;
 
 namespace Winhance.Core.Features.Common.Interfaces
 {
@@ -13,7 +13,7 @@ namespace Winhance.Core.Features.Common.Interfaces
         /// <summary>
         /// Gets the registry service.
         /// </summary>
-        IRegistryService RegistryService { get; }
+        IWindowsRegistryService WindowsRegistryService { get; }
 
         /// <summary>
         /// Restarts the Windows Explorer process.
@@ -118,6 +118,10 @@ namespace Winhance.Core.Features.Common.Interfaces
         /// <param name="forceCheck">If true, bypasses the cache and performs a fresh check.</param>
         /// <param name="cancellationToken">Cancellation token for the operation.</param>
         /// <returns>True if internet is connected, false otherwise.</returns>
-        Task<bool> IsInternetConnectedAsync(bool forceCheck = false, CancellationToken cancellationToken = default, bool userInitiatedCancellation = false);
+        Task<bool> IsInternetConnectedAsync(
+            bool forceCheck = false,
+            CancellationToken cancellationToken = default,
+            bool userInitiatedCancellation = false
+        );
     }
 }

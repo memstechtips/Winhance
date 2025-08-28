@@ -19,7 +19,7 @@ namespace Winhance.WPF.Features.Common.Interfaces
         Task<(bool confirmed, bool checkboxChecked)> HandleConfirmationAsync(
             string settingId, 
             object? value, 
-            ApplicationSetting setting);
+            SettingDefinition setting);
 
         /// <summary>
         /// Replaces placeholders in confirmation dialog text with runtime values.

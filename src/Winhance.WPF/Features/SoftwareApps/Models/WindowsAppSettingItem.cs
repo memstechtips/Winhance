@@ -2,48 +2,37 @@ using System.Collections.Generic;
 using System.Windows.Input;
 using CommunityToolkit.Mvvm.Input;
 using Winhance.Core.Features.Common.Enums;
-using Winhance.Core.Features.Common.Interfaces;
-using Winhance.Core.Features.Common.Models;
+using Winhance.Core.Features.SoftwareApps.Interfaces;
 
 namespace Winhance.WPF.Features.SoftwareApps.Models
 {
     /// <summary>
-    /// Adapter class that wraps a WindowsApp and implements ISettingItem.
+    /// Adapter class that wraps a WindowsApp and implements IWindowsApp.
     /// </summary>
-    public class WindowsAppSettingItem : ISettingItem
+    public class WindowsAppSettingItem : IWindowsApp
     {
         private readonly WindowsApp _windowsApp;
 
         public WindowsAppSettingItem(WindowsApp windowsApp)
         {
             _windowsApp = windowsApp;
-
-            // Initialize properties required by ISettingItem
-            Id = windowsApp.PackageId;
-            Name = windowsApp.DisplayName;
-            Description = windowsApp.Description;
-            IsSelected = windowsApp.IsSelected;
-            GroupName = windowsApp.Category;
-            IsVisible = true;
-            ControlType = ControlType.BinaryToggle;
-            Dependencies = new List<SettingDependency>();
-
-            // Create a command that does nothing (placeholder)
-            ApplySettingCommand = new RelayCommand(() => { });
         }
 
-        // ISettingItem implementation
-        public string Id { get; set; }
-        public string Name { get; set; }
-        public string Description { get; set; }
-        public bool IsSelected { get; set; }
-        public string GroupName { get; set; }
-        public bool IsVisible { get; set; }
-        public ControlType ControlType { get; set; }
-        public object? SelectedValue { get; set; }
-        public List<SettingDependency> Dependencies { get; set; }
-
-        public ICommand ApplySettingCommand { get; }
+        // IWindowsApp implementation
+        public string Id => _windowsApp.PackageId;
+        public string Name => _windowsApp.Name;
+        public string Description => _windowsApp.Description;
+        public string PackageId => _windowsApp.PackageId;
+        public bool IsInstalled => _windowsApp.IsInstalled;
+        public bool RequiresRestart => _windowsApp.RequiresRestart;
+        public bool CanBeReinstalled => _windowsApp.CanBeReinstalled;
+        public string Category => _windowsApp.Category;
+        
+        public bool IsSelected 
+        { 
+            get => _windowsApp.IsSelected;
+            set => _windowsApp.IsSelected = value;
+        }
 
         // Method to convert back to WindowsApp
         public WindowsApp ToWindowsApp()

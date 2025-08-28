@@ -7,7 +7,7 @@ namespace Winhance.WPF.Features.Common.Models
     /// <summary>
     /// Base class for application setting groups used in both Optimization and Customization features.
     /// </summary>
-    public partial class ApplicationSettingGroup : ObservableObject
+    public partial class SettingDefinitionGroup : ObservableObject
     {
         [ObservableProperty]
         private string _name = string.Empty;

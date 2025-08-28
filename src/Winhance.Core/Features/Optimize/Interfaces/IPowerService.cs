@@ -69,7 +69,7 @@ namespace Winhance.Core.Features.Optimize.Interfaces
         Task<(int acValue, int dcValue)> GetSettingValueAsync(string powerPlanGuid, string subgroupGuid, string settingGuid);
 
         /// <summary>
-        /// Applies a dynamic power setting change based on a SettingUIItem.
+        /// Applies a dynamic power setting change.
         /// Handles all business logic for extracting metadata and applying the setting.
         /// </summary>
         /// <param name="settingId">The ID of the setting to apply.</param>

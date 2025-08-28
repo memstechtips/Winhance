@@ -1,6 +1,7 @@
 using System;
 using CommunityToolkit.Mvvm.ComponentModel;
 using Winhance.Core.Features.SoftwareApps.Models;
+using Winhance.Core.Features.SoftwareApps.Interfaces;
 using Winhance.Core.Features.Common.Interfaces;
 using Winhance.Core.Features.Common.Models;
 using Winhance.Core.Features.Common.Enums;
@@ -33,8 +34,10 @@ namespace Winhance.WPF.Features.SoftwareApps.Models
     /// Represents a Windows built-in application that can be installed or removed.
     /// This includes system components, default Windows apps, and capabilities.
     /// </summary>
-    public partial class WindowsApp : ObservableObject, IInstallableItem, ISearchable
+    public partial class WindowsApp : ObservableObject, IWindowsApp, IInstallableItem, ISearchable
     {
+        // IWindowsApp implementation
+        public string Id => PackageID;
         public string PackageId => PackageID;
         public string DisplayName => Name;
         public InstallItemType ItemType => AppType switch

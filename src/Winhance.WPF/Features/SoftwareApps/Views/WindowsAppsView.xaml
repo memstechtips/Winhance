@@ -95,7 +95,7 @@
                             <materialDesign:PackIcon
                                 Style="{StaticResource ReinstallabilityIndicatorStyle}"
                                 Kind="{Binding CanBeReinstalled, Converter={StaticResource BooleanToReinstallableIconConverter}}"
-                                Foreground="{Binding CanBeReinstalled, Converter={StaticResource StatusToColorConverter}}">
+                                Foreground="{Binding CanBeReinstalled, Converter={StaticResource InstalledStatusToColorConverter}}">
                                 <materialDesign:PackIcon.ToolTip>
                                     <ToolTip Content="{Binding CanBeReinstalled, Converter={StaticResource BooleanToReinstallableTextConverter}}"/>
                                 </materialDesign:PackIcon.ToolTip>
@@ -153,7 +153,7 @@
                             <materialDesign:PackIcon
                                 Style="{StaticResource ReinstallabilityIndicatorStyle}"
                                 Kind="{Binding CanBeReinstalled, Converter={StaticResource BooleanToReinstallableIconConverter}}"
-                                Foreground="{Binding CanBeReinstalled, Converter={StaticResource StatusToColorConverter}}">
+                                Foreground="{Binding CanBeReinstalled, Converter={StaticResource InstalledStatusToColorConverter}}">
                                 <materialDesign:PackIcon.ToolTip>
                                     <ToolTip Content="{Binding CanBeReinstalled, Converter={StaticResource BooleanToReinstallableTextConverter}}"/>
                                 </materialDesign:PackIcon.ToolTip>
@@ -211,7 +211,7 @@
                             <materialDesign:PackIcon
                                 Style="{StaticResource ReinstallabilityIndicatorStyle}"
                                 Kind="{Binding CanBeReinstalled, Converter={StaticResource BooleanToReinstallableIconConverter}}"
-                                Foreground="{Binding CanBeReinstalled, Converter={StaticResource StatusToColorConverter}}">
+                                Foreground="{Binding CanBeReinstalled, Converter={StaticResource InstalledStatusToColorConverter}}">
                                 <materialDesign:PackIcon.ToolTip>
                                     <ToolTip Content="{Binding CanBeReinstalled, Converter={StaticResource BooleanToReinstallableTextConverter}}"/>
                                 </materialDesign:PackIcon.ToolTip>

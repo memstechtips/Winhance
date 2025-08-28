@@ -1,0 +1,109 @@
+<ResourceDictionary xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+                    xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+                    xmlns:materialDesign="http://materialdesigninxaml.net/winfx/xaml/themes"
+                    xmlns:viewModels="clr-namespace:Winhance.WPF.Features.Customize.ViewModels"
+                    xmlns:optimizeViewModels="clr-namespace:Winhance.WPF.Features.Optimize.ViewModels">
+
+    <!-- Implicit Icon DataTemplates - Automatically Applied by ViewModel Type -->
+
+    <!-- TODO: Add WindowsApps and ExternalApps-->
+    
+    <!-- OptimizeView -->
+    <!-- Gaming and Performance Icon -->
+    <DataTemplate DataType="{x:Type optimizeViewModels:GamingandPerformanceOptimizationsViewModel}">
+        <materialDesign:PackIcon Kind="Controller"
+                                 Width="24"
+                                 Height="24"
+                                 Foreground="{DynamicResource PrimaryTextColor}"/>
+    </DataTemplate>
+
+    <!-- Power Icon -->
+    <DataTemplate DataType="{x:Type optimizeViewModels:PowerOptimizationsViewModel}">
+        <materialDesign:PackIcon Kind="PowerPlug"
+                                 Width="24"
+                                 Height="24"
+                                 Foreground="{DynamicResource PrimaryTextColor}"/>
+    </DataTemplate>
+
+    <!-- Privacy Icon -->
+    <DataTemplate DataType="{x:Type optimizeViewModels:PrivacyOptimizationsViewModel}">
+        <materialDesign:PackIcon Kind="Lock"
+                                 Width="24"
+                                 Height="24"
+                                 Foreground="{DynamicResource PrimaryTextColor}"/>
+    </DataTemplate>
+
+    <!-- Update Icon -->
+    <DataTemplate DataType="{x:Type optimizeViewModels:UpdateOptimizationsViewModel}">
+        <materialDesign:PackIcon Kind="Update"
+                                 Width="24"
+                                 Height="24"
+                                 Foreground="{DynamicResource PrimaryTextColor}"/>
+    </DataTemplate>
+
+    <!-- Windows Security Icon -->
+    <DataTemplate DataType="{x:Type optimizeViewModels:WindowsSecurityOptimizationsViewModel}">
+        <materialDesign:PackIcon Kind="Security"
+                                 Width="24"
+                                 Height="24"
+                                 Foreground="{DynamicResource PrimaryTextColor}"/>
+    </DataTemplate>
+
+    <!-- Explorer Optimizations Icon -->
+    <DataTemplate DataType="{x:Type optimizeViewModels:ExplorerOptimizationsViewModel}">
+        <materialDesign:PackIcon Kind="Folder"
+                                 Width="24"
+                                 Height="24"
+                                 Foreground="{DynamicResource PrimaryTextColor}"/>
+    </DataTemplate>
+
+    <!-- Notification Icon -->
+    <DataTemplate DataType="{x:Type optimizeViewModels:NotificationOptimizationsViewModel}">
+        <materialDesign:PackIcon Kind="BellRing"
+                                 Width="24"
+                                 Height="24"
+                                 Foreground="{DynamicResource PrimaryTextColor}"/>
+    </DataTemplate>
+
+    <!-- Sound Icon -->
+    <DataTemplate DataType="{x:Type optimizeViewModels:SoundOptimizationsViewModel}">
+        <materialDesign:PackIcon Kind="VolumeHigh"
+                                 Width="24"
+                                 Height="24"
+                                 Foreground="{DynamicResource PrimaryTextColor}"/>
+    </DataTemplate>
+
+    <!-- CustomizeView -->
+    <!-- Windows Theme Icon -->
+    <DataTemplate DataType="{x:Type viewModels:WindowsThemeCustomizationsViewModel}">
+        <materialDesign:PackIcon Kind="Brush"
+                                 Width="24"
+                                 Height="24"
+                                 Foreground="{DynamicResource PrimaryTextColor}"/>
+    </DataTemplate>
+
+    <!-- Start Menu Icon -->
+    <DataTemplate DataType="{x:Type viewModels:StartMenuCustomizationsViewModel}">
+        <materialDesign:PackIcon Kind="Menu"
+                                 Width="24"
+                                 Height="24"
+                                 Foreground="{DynamicResource PrimaryTextColor}"/>
+    </DataTemplate>
+
+    <!-- Taskbar Icon -->
+    <DataTemplate DataType="{x:Type viewModels:TaskbarCustomizationsViewModel}">
+        <materialDesign:PackIcon Kind="DockBottom"
+                                 Width="24"
+                                 Height="24"
+                                 Foreground="{DynamicResource PrimaryTextColor}"/>
+    </DataTemplate>
+
+    <!-- Explorer Customizations Icon -->
+    <DataTemplate DataType="{x:Type viewModels:ExplorerCustomizationsViewModel}">
+        <materialDesign:PackIcon Kind="Folder"
+                                 Width="24"
+                                 Height="24"
+                                 Foreground="{DynamicResource PrimaryTextColor}"/>
+    </DataTemplate>
+    
+</ResourceDictionary>

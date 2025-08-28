@@ -1,13 +1,17 @@
 <ResourceDictionary xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
                     xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
-                    xmlns:converters="clr-namespace:Winhance.WPF.Features.Optimize.Converters">
+                    xmlns:converters="clr-namespace:Winhance.WPF.Features.Optimize.Converters"
+                    xmlns:commonConverters="clr-namespace:Winhance.WPF.Features.Common.Converters">
     
-    <!-- Power Setting Control Type Converters -->
+    <!-- Power Setting Converters -->
     <converters:BoolToVisibilityConverter x:Key="BoolToVisibilityConverter" />
-    <converters:ComboBoxTypeToVisibilityConverter x:Key="ComboBoxTypeToVisibilityConverter" />
-    <converters:NumericUpDownTypeToVisibilityConverter x:Key="NumericUpDownTypeToVisibilityConverter" />
     <converters:BoolToExpandCollapseConverter x:Key="BoolToExpandCollapseConverter" />
     <converters:InverseBoolToVisibilityConverter x:Key="InverseBoolToVisibilityConverter" />
-    <converters:BinaryToggleTypeToVisibilityConverter x:Key="BinaryToggleTypeToVisibilityConverter" />
+    
+    <!-- Input Type Visibility Converters -->
+    <commonConverters:ToggleInputTypeToVisibilityConverter x:Key="ToggleInputTypeToVisibilityConverter" />
+    <commonConverters:SelectionInputTypeToVisibilityConverter x:Key="SelectionInputTypeToVisibilityConverter" />
+    <commonConverters:NumericRangeInputTypeToVisibilityConverter x:Key="NumericRangeInputTypeToVisibilityConverter" />
+    <commonConverters:ActionInputTypeToVisibilityConverter x:Key="ActionInputTypeToVisibilityConverter" />
     
 </ResourceDictionary>

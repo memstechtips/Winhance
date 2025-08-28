@@ -5,6 +5,7 @@ using System.Threading.Tasks;
 using Microsoft.Win32;
 using Winhance.Core.Features.Common.Enums;
 using Winhance.Core.Features.Common.Interfaces;
+using Winhance.Core.Features.Common.Interfaces.WindowsRegistry;
 using Winhance.Core.Features.Common.Models;
 using Winhance.WPF.Features.Common.Models;
 
@@ -16,7 +17,7 @@ namespace Winhance.WPF.Features.Common.Services.Configuration
     public class ConfigurationPropertyUpdater : IConfigurationPropertyUpdater
     {
         private readonly ILogService _logService;
-        private readonly IRegistryService _registryService;
+        private readonly IWindowsRegistryService _registryService;
 
         /// <summary>
         /// Initializes a new instance of the <see cref="ConfigurationPropertyUpdater"/> class.
@@ -25,11 +26,11 @@ namespace Winhance.WPF.Features.Common.Services.Configuration
         /// <param name="registryService">The registry service.</param>
         public ConfigurationPropertyUpdater(
             ILogService logService,
-            IRegistryService registryService
+            IWindowsRegistryService windowsRegistryService
         )
         {
             _logService = logService;
-            _registryService = registryService;
+            _registryService = windowsRegistryService;
         }
 
         /// <summary>
@@ -347,21 +348,21 @@ namespace Winhance.WPF.Features.Common.Services.Configuration
                                 );
 
                                 // Get the control type
-                                var controlTypeProperty = itemType.GetProperty("ControlType");
-                                if (controlTypeProperty != null)
+                                var inputTypeProperty = itemType.GetProperty("InputType");
+                                if (inputTypeProperty != null)
                                 {
-                                    var controlType = controlTypeProperty.GetValue(item);
+                                    var inputType = inputTypeProperty.GetValue(item);
                                     _logService.Log(
                                         LogLevel.Info,
-                                        $"Item {itemName} has ControlType: {controlType}"
+                                        $"Item {itemName} has InputType: {inputType}"
                                     );
 
                                     // If this is a ComboBox, also update the SelectedValue property if available
-                                    if (controlType?.ToString() == "ComboBox")
+                                    if (inputType?.ToString() == "Selection")
                                     {
                                         _logService.Log(
                                             LogLevel.Info,
-                                            $"Item {itemName} is a ComboBox, checking for SelectedValue property"
+                                            $"Item {itemName} is a Selection, checking for SelectedValue property"
                                         );
                                         var comboBoxSelectedValueProperty = itemType.GetProperty(
                                             "SelectedValue"
@@ -680,15 +681,15 @@ namespace Winhance.WPF.Features.Common.Services.Configuration
                                         );
 
                                         // Force the correct ControlType
-                                        if (controlTypeProperty != null)
+                                        if (inputTypeProperty != null)
                                         {
-                                            controlTypeProperty.SetValue(
+                                            inputTypeProperty.SetValue(
                                                 item,
-                                                ControlType.ThreeStateSlider
+                                                SettingInputType.NumericRange
                                             );
                                             _logService.Log(
                                                 LogLevel.Debug,
-                                                $"Forced ControlType to ThreeStateSlider for item {itemName}"
+                                                $"Forced InputType to NumericRange for item {itemName}"
                                             );
                                         }
                                     }

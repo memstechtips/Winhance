@@ -1,5 +1,6 @@
-using Winhance.Core.Features.Common.Enums;
 using Winhance.Core.Features.Common.Models;
+using Winhance.Core.Features.Common.Models.WindowsRegistry;
+using Winhance.Core.Features.SoftwareApps.Enums;
 
 namespace Winhance.Core.Features.SoftwareApps.Models;
 
@@ -27,6 +28,4 @@ public record WindowsService
     public required string Name { get; init; }
     public required string DisplayName { get; init; }
     public required string Description { get; init; }
-    public required ServiceStartupType RecommendedState { get; init; }
-    public ServiceStartupType? CurrentState { get; init; }
 }

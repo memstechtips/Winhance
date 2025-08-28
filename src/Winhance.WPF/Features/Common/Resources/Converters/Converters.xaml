@@ -10,16 +10,10 @@
     <oldConverters:InstalledStatusToColorConverter x:Key="InstalledStatusToColorConverter"/>
     <oldConverters:InstalledStatusToTextConverter x:Key="InstalledStatusToTextConverter"/>
     <x:Static x:Key="ViewNameToBackgroundConverter" Member="converters:ViewNameToBackgroundConverter.Instance"/>
-    <converters:StatusToColorConverter x:Key="StatusToColorConverter"/>
-    <converters:StatusToTextConverter x:Key="StatusToTextConverter"/>
     <oldConverters:NullToVisibilityConverter x:Key="NullToVisibilityConverter"/>
     <converters:CountToVisibilityConverter x:Key="CountToVisibilityConverter"/>
     <converters:InverseCountToVisibilityConverter x:Key="InverseCountToVisibilityConverter"/>
-    <converters:RemoveActionToVisibilityConverter x:Key="RemoveActionToVisibilityConverter"/>
-    <converters:AppliedStatusToVisibilityConverter x:Key="AppliedStatusToVisibilityConverter"/>
-    <converters:RegistryValueStatusConverter x:Key="RegistryValueStatusConverter"/>
-    <converters:RegistryValueStatusToColorConverter x:Key="RegistryValueStatusToColorConverter"/>
-    <converters:RegistryValueStatusToIconConverter x:Key="RegistryValueStatusToIconConverter"/>
+    <converters:InverseNullToVisibilityConverter x:Key="InverseNullToVisibilityConverter"/>
     <oldConverters:WindowStateToCommandConverter x:Key="WindowStateToCommandConverter"/>
     <oldConverters:BooleanToReinstallableIconConverter x:Key="BooleanToReinstallableIconConverter"/>
     <oldConverters:BooleanToReinstallableTextConverter x:Key="BooleanToReinstallableTextConverter"/>
@@ -36,8 +30,5 @@
     <converters:EnumToVisibilityConverter x:Key="EnumToVisibilityConverter"/>
     <converters:StringEqualityConverter x:Key="StringEqualityConverter"/>
     <converters:BooleanToValueConverter x:Key="BooleanToValueConverter"/>
-    <converters:EnumTypeToVisibilityConverter x:Key="EnumTypeToVisibilityConverter"/>
-    <converters:NumericTypeToVisibilityConverter x:Key="NumericTypeToVisibilityConverter"/>
-    <converters:BoolTypeToVisibilityConverter x:Key="BoolTypeToVisibilityConverter"/>
     <converters:BooleanToRotationConverter x:Key="BooleanToRotationConverter"/>
 </ResourceDictionary>

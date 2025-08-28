@@ -1,7 +1,9 @@
+using System;
 using System.Windows;
 using System.Windows.Controls;
 using System.Windows.Input;
 using System.Windows.Media;
+using System.Windows.Media.Imaging;
 using Winhance.WPF.Features.Common.ViewModels;
 
 namespace Winhance.WPF.Features.Common.Views
@@ -18,6 +20,9 @@ namespace Winhance.WPF.Features.Common.Views
             
             // Only essential UI event handlers remain in the View
             this.PreviewMouseWheel += MainWindow_PreviewMouseWheel;
+            
+            // Initialize the app icon
+            UpdateThemeIcon();
         }
 
         /// <summary>
@@ -94,6 +99,55 @@ namespace Winhance.WPF.Features.Common.Views
             {
                 mainViewModel.CloseMoreMenuFlyout();
                 e.Handled = true;
+            }
+        }
+
+        /// <summary>
+        /// Updates the window and image icons based on the current theme
+        /// This method is called by the ThemeManager via reflection
+        /// </summary>
+        private void UpdateThemeIcon()
+        {
+            try
+            {
+                // Get theme information from application resources
+                bool isDarkTheme = Application.Current.Resources.Contains("IsDarkTheme") &&
+                                 Application.Current.Resources["IsDarkTheme"] is bool darkTheme && darkTheme;
+
+                // Get the appropriate icon based on the theme
+                string iconPath = isDarkTheme
+                    ? "pack://application:,,,/Resources/AppIcons/winhance-rocket-white-transparent-bg.ico"
+                    : "pack://application:,,,/Resources/AppIcons/winhance-rocket-black-transparent-bg.ico";
+
+                // Create a BitmapImage from the icon path
+                var iconImage = new BitmapImage(new Uri(iconPath, UriKind.Absolute));
+                iconImage.Freeze(); // Freeze for better performance and thread safety
+
+                // Set the window icon
+                this.Icon = iconImage;
+
+                // Set the image control source
+                if (AppIconImage != null)
+                {
+                    AppIconImage.Source = iconImage;
+                }
+            }
+            catch (Exception ex)
+            {
+                // If there's an error, fall back to the default icon
+                try
+                {
+                    var defaultIcon = new BitmapImage(new Uri("pack://application:,,,/Resources/AppIcons/winhance-rocket.ico", UriKind.Absolute));
+                    this.Icon = defaultIcon;
+                    if (AppIconImage != null)
+                    {
+                        AppIconImage.Source = defaultIcon;
+                    }
+                }
+                catch
+                {
+                    // Ignore any errors with the fallback icon
+                }
             }
         }
     }

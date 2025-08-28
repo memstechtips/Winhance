@@ -4,7 +4,7 @@ using Winhance.Core.Features.Common.Models;
 namespace Winhance.Core.Features.Common.Interfaces
 {
     /// <summary>
-    /// Service for managing dependencies between domain settings (ApplicationSetting objects).
+    /// Service for managing dependencies between domain settings (SettingDefinition objects).
     /// This handles business logic dependencies at the domain layer.
     /// </summary>
     public interface IDomainDependencyService
@@ -16,7 +16,7 @@ namespace Winhance.Core.Features.Common.Interfaces
         /// <param name="allSettings">All available settings that might be dependencies.</param>
         /// <param name="currentSettingsState">Current state of all settings (enabled/disabled).</param>
         /// <returns>True if the setting can be enabled; otherwise, false.</returns>
-        bool CanEnableSetting(string settingId, IEnumerable<ApplicationSetting> allSettings, Dictionary<string, bool> currentSettingsState);
+        bool CanEnableSetting(string settingId, IEnumerable<SettingDefinition> allSettings, Dictionary<string, bool> currentSettingsState);
 
         /// <summary>
         /// Gets the list of settings that must be enabled before the specified setting can be enabled.
@@ -24,7 +24,7 @@ namespace Winhance.Core.Features.Common.Interfaces
         /// <param name="settingId">The ID of the setting to check.</param>
         /// <param name="allSettings">All available settings that might be dependencies.</param>
         /// <returns>List of setting IDs that must be enabled first.</returns>
-        IEnumerable<string> GetRequiredDependencies(string settingId, IEnumerable<ApplicationSetting> allSettings);
+        IEnumerable<string> GetRequiredDependencies(string settingId, IEnumerable<SettingDefinition> allSettings);
 
         /// <summary>
         /// Gets the list of settings that must be disabled before the specified setting can be enabled.
@@ -32,7 +32,7 @@ namespace Winhance.Core.Features.Common.Interfaces
         /// <param name="settingId">The ID of the setting to check.</param>
         /// <param name="allSettings">All available settings that might be dependencies.</param>
         /// <returns>List of setting IDs that must be disabled first.</returns>
-        IEnumerable<string> GetConflictingDependencies(string settingId, IEnumerable<ApplicationSetting> allSettings);
+        IEnumerable<string> GetConflictingDependencies(string settingId, IEnumerable<SettingDefinition> allSettings);
 
         /// <summary>
         /// Gets the list of settings that will be automatically disabled when the specified setting is disabled.
@@ -40,7 +40,7 @@ namespace Winhance.Core.Features.Common.Interfaces
         /// <param name="settingId">The ID of the setting being disabled.</param>
         /// <param name="allSettings">All available settings that might depend on this setting.</param>
         /// <returns>List of setting IDs that depend on the specified setting.</returns>
-        IEnumerable<string> GetDependentSettings(string settingId, IEnumerable<ApplicationSetting> allSettings);
+        IEnumerable<string> GetDependentSettings(string settingId, IEnumerable<SettingDefinition> allSettings);
 
         /// <summary>
         /// Validates that the current settings state is consistent with all dependencies.
@@ -48,7 +48,7 @@ namespace Winhance.Core.Features.Common.Interfaces
         /// <param name="allSettings">All available settings.</param>
         /// <param name="currentSettingsState">Current state of all settings.</param>
         /// <returns>Dictionary of setting IDs and their validation errors (empty if valid).</returns>
-        Dictionary<string, string> ValidateSettingsDependencies(IEnumerable<ApplicationSetting> allSettings, Dictionary<string, bool> currentSettingsState);
+        Dictionary<string, string> ValidateSettingsDependencies(IEnumerable<SettingDefinition> allSettings, Dictionary<string, bool> currentSettingsState);
 
         /// <summary>
         /// Attempts to automatically resolve dependencies for a setting.
@@ -57,6 +57,6 @@ namespace Winhance.Core.Features.Common.Interfaces
         /// <param name="allSettings">All available settings.</param>
         /// <param name="currentSettingsState">Current state of all settings.</param>
         /// <returns>Dictionary of setting IDs and their required states to satisfy dependencies.</returns>
-        Dictionary<string, bool> GetDependencyResolutionPlan(string settingId, IEnumerable<ApplicationSetting> allSettings, Dictionary<string, bool> currentSettingsState);
+        Dictionary<string, bool> GetDependencyResolutionPlan(string settingId, IEnumerable<SettingDefinition> allSettings, Dictionary<string, bool> currentSettingsState);
     }
 }

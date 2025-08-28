@@ -23,7 +23,7 @@ namespace Winhance.Core.Features.Common.Models;
 ///     DependencyType = SettingDependencyType.RequiresEnabled,
 ///     DependentSettingId = "make-taskbar-transparent",
 ///     RequiredSettingId = "theme-transparency",
-///     RequiredModule = "WindowsThemeSettings"
+///     RequiredModule = "WindowsThemeCustomizations"
 /// }
 /// // ComboBox value dependency example:
 /// new SettingDependency
@@ -54,7 +54,7 @@ public record SettingDependency
     /// <summary>
     /// The module/feature where the required setting is located.
     /// Used for cross-module dependencies. If null, assumes same module.
-    /// Examples: "WindowsThemeSettings", "StartMenuCustomizations", "PrivacyOptimizations"
+    /// Examples: "WindowsThemeCustomizations", "StartMenuCustomizations", "PrivacyOptimizations"
     /// </summary>
     public string? RequiredModule { get; init; }
 

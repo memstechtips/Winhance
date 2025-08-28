@@ -45,77 +45,6 @@ namespace Winhance.WPF.Features.Optimize.Converters
             return false;
         }
     }
-    /// <summary>
-    /// Converts a ControlType to Visibility for ComboBox type settings.
-    /// </summary>
-    public class ComboBoxTypeToVisibilityConverter : IValueConverter
-    {
-        /// <summary>
-        /// Converts a ControlType to Visibility.
-        /// </summary>
-        /// <param name="value">The ControlType value.</param>
-        /// <param name="targetType">The target type.</param>
-        /// <param name="parameter">The converter parameter.</param>
-        /// <param name="culture">The culture information.</param>
-        /// <returns>Visibility.Visible if the value is ControlType.ComboBox, otherwise Visibility.Collapsed.</returns>
-        public object Convert(object value, Type targetType, object parameter, CultureInfo culture)
-        {
-            if (value is ControlType controlType && controlType == ControlType.ComboBox)
-            {
-                return Visibility.Visible;
-            }
-            return Visibility.Collapsed;
-        }
-
-        /// <summary>
-        /// Converts back from Visibility to ControlType.
-        /// </summary>
-        /// <param name="value">The Visibility value.</param>
-        /// <param name="targetType">The target type.</param>
-        /// <param name="parameter">The converter parameter.</param>
-        /// <param name="culture">The culture information.</param>
-        /// <returns>Not implemented.</returns>
-        public object ConvertBack(object value, Type targetType, object parameter, CultureInfo culture)
-        {
-            throw new NotImplementedException();
-        }
-    }
-
-    /// <summary>
-    /// Converts a ControlType to Visibility for NumericUpDown type settings.
-    /// </summary>
-    public class NumericUpDownTypeToVisibilityConverter : IValueConverter
-    {
-        /// <summary>
-        /// Converts a ControlType to Visibility.
-        /// </summary>
-        /// <param name="value">The ControlType value.</param>
-        /// <param name="targetType">The target type.</param>
-        /// <param name="parameter">The converter parameter.</param>
-        /// <param name="culture">The culture information.</param>
-        /// <returns>Visibility.Visible if the value is ControlType.NumericUpDown, otherwise Visibility.Collapsed.</returns>
-        public object Convert(object value, Type targetType, object parameter, CultureInfo culture)
-        {
-            if (value is ControlType controlType && controlType == ControlType.NumericUpDown)
-            {
-                return Visibility.Visible;
-            }
-            return Visibility.Collapsed;
-        }
-
-        /// <summary>
-        /// Converts back from Visibility to ControlType.
-        /// </summary>
-        /// <param name="value">The Visibility value.</param>
-        /// <param name="targetType">The target type.</param>
-        /// <param name="parameter">The converter parameter.</param>
-        /// <param name="culture">The culture information.</param>
-        /// <returns>Not implemented.</returns>
-        public object ConvertBack(object value, Type targetType, object parameter, CultureInfo culture)
-        {
-            throw new NotImplementedException();
-        }
-    }
 
     /// <summary>
     /// Converts a boolean value to an expand/collapse string.
@@ -190,50 +119,14 @@ namespace Winhance.WPF.Features.Optimize.Converters
     }
 
     /// <summary>
-    /// Converts a ControlType to a Visibility value. Returns Visible if the value is ControlType.BinaryToggle, otherwise Collapsed.
-    /// </summary>
-    public class BinaryToggleTypeToVisibilityConverter : IValueConverter
-    {
-        /// <summary>
-        /// Converts a ControlType to Visibility.
-        /// </summary>
-        /// <param name="value">The ControlType value.</param>
-        /// <param name="targetType">The target type.</param>
-        /// <param name="parameter">The converter parameter.</param>
-        /// <param name="culture">The culture information.</param>
-        /// <returns>Visibility.Visible if the value is ControlType.BinaryToggle, otherwise Visibility.Collapsed.</returns>
-        public object Convert(object value, Type targetType, object parameter, CultureInfo culture)
-        {
-            if (value is ControlType controlType && controlType == ControlType.BinaryToggle)
-            {
-                return Visibility.Visible;
-            }
-            return Visibility.Collapsed;
-        }
-
-        /// <summary>
-        /// Converts back from Visibility to ControlType.
-        /// </summary>
-        /// <param name="value">The Visibility value.</param>
-        /// <param name="targetType">The target type.</param>
-        /// <param name="parameter">The converter parameter.</param>
-        /// <param name="culture">The culture information.</param>
-        /// <returns>Not implemented.</returns>
-        public object ConvertBack(object value, Type targetType, object parameter, CultureInfo culture)
-        {
-            throw new NotImplementedException();
-        }
-    }
-
-    /// <summary>
-    /// Converts an ApplicationSetting to Visibility, hiding main power settings that are shown above.
+    /// Converts an SettingDefinition to Visibility, hiding main power settings that are shown above.
     /// </summary>
     public class AdvancedSettingVisibilityConverter : IValueConverter
     {
         /// <summary>
-        /// Converts an ApplicationSetting to Visibility.
+        /// Converts an SettingDefinition to Visibility.
         /// </summary>
-        /// <param name="value">The ApplicationSetting value.</param>
+        /// <param name="value">The SettingDefinition value.</param>
         /// <param name="targetType">The target type.</param>
         /// <param name="parameter">The converter parameter.</param>
         /// <param name="culture">The culture information.</param>
@@ -266,7 +159,7 @@ namespace Winhance.WPF.Features.Optimize.Converters
         }
 
         /// <summary>
-        /// Converts back from Visibility to ApplicationSetting.
+        /// Converts back from Visibility to SettingDefinition.
         /// </summary>
         /// <param name="value">The Visibility value.</param>
         /// <param name="targetType">The target type.</param>

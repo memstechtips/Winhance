@@ -8,6 +8,12 @@ namespace Winhance.Core.Features.Customize.Models;
 public static class StartMenuLayouts
 {
     /// <summary>
+    /// Path to the Windows 10 Start Menu layout file.
+    /// </summary>
+    public const string Win10StartLayoutPath =
+        @"C:\Users\Default\AppData\Local\Microsoft\Windows\Shell\LayoutModification.xml";
+
+    /// <summary>
     /// Gets the Windows 10 Start Menu layout XML template.
     /// </summary>
     public static string Windows10Layout => @"<?xml version=""1.0"" encoding=""utf-8""?>

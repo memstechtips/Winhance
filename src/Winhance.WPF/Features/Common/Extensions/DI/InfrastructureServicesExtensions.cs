@@ -1,9 +1,10 @@
 using Microsoft.Extensions.DependencyInjection;
 using Winhance.Core.Features.Common.Events;
 using Winhance.Core.Features.Common.Interfaces;
+using Winhance.Core.Features.Common.Interfaces.WindowsRegistry;
 using Winhance.Core.Features.Common.Services;
 using Winhance.Infrastructure.Features.Common.Events;
-using Winhance.Infrastructure.Features.Common.Registry;
+using Winhance.Infrastructure.Features.Common.WindowsRegistry;
 using Winhance.Infrastructure.Features.Common.Services;
 
 namespace Winhance.WPF.Features.Common.Extensions.DI
@@ -25,12 +26,7 @@ namespace Winhance.WPF.Features.Common.Extensions.DI
         {
             // Core Infrastructure Services (Singleton - Cross-cutting concerns)
             services.AddSingleton<ILogService, Winhance.Core.Features.Common.Services.LogService>();
-            services.AddSingleton<IRegistryService, RegistryService>();
-
-            // Register segregated registry interfaces for ISP compliance
-            services.AddSingleton<IRegistryReader>(sp => sp.GetRequiredService<IRegistryService>());
-            services.AddSingleton<IRegistryWriter>(sp => sp.GetRequiredService<IRegistryService>());
-            services.AddSingleton<IRegistryStatus>(sp => sp.GetRequiredService<IRegistryService>());
+            services.AddSingleton<IWindowsRegistryService, WindowsRegistryService>();
 
             services.AddSingleton<ICommandService, CommandService>();
             services.AddSingleton<
@@ -78,11 +74,19 @@ namespace Winhance.WPF.Features.Common.Extensions.DI
             services.AddSingleton<IConfigurationService, ConfigurationService>();
             services.AddSingleton<IVersionService, VersionService>();
 
+            // Tooltip Services (Singleton - Application-wide tooltip management)
+            services.AddSingleton<ITooltipDataService, TooltipDataService>();
+
             // System Settings Discovery (Singleton - Coordinates between services)
-            services.AddSingleton<
-                ISystemSettingsDiscoveryService,
-                SystemSettingsDiscoveryService
-            >();
+            services.AddSingleton<ISystemSettingsDiscoveryService>(provider =>
+                new SystemSettingsDiscoveryService(
+                    provider.GetRequiredService<IWindowsRegistryService>(),
+                    provider.GetRequiredService<ICommandService>(),
+                    provider.GetRequiredService<ILogService>(),
+                    provider.GetRequiredService<IWindowsCompatibilityFilter>(),
+                    provider.GetRequiredService<IComboBoxResolver>()
+                )
+            );
 
             // Scheduled Task Service (Singleton - System-wide resource)
             services.AddSingleton<IScheduledTaskService, ScheduledTaskService>();
@@ -101,63 +105,30 @@ namespace Winhance.WPF.Features.Common.Extensions.DI
             });
             services.AddSingleton<IParameterSerializer, JsonParameterSerializer>();
 
-            // Feature Discovery (Singleton - Expensive operation)
-            services.AddSingleton<IFeatureDiscoveryService>(provider =>
-            {
-                var discoveryService = new FeatureDiscoveryService(
-                    provider,
-                    provider.GetRequiredService<ILogService>()
-                );
-
-                // Register Optimization Feature Descriptors
-                discoveryService.RegisterFeature(
-                    new Winhance.Infrastructure.Features.Optimize.Descriptors.GamingPerformanceFeatureDescriptor()
-                );
-                discoveryService.RegisterFeature(
-                    new Winhance.Infrastructure.Features.Optimize.Descriptors.PrivacyFeatureDescriptor()
-                );
-                discoveryService.RegisterFeature(
-                    new Winhance.Infrastructure.Features.Optimize.Descriptors.UpdateFeatureDescriptor()
-                );
-                discoveryService.RegisterFeature(
-                    new Winhance.Infrastructure.Features.Optimize.Descriptors.PowerFeatureDescriptor()
-                );
-                discoveryService.RegisterFeature(
-                    new Winhance.Infrastructure.Features.Optimize.Descriptors.SecurityFeatureDescriptor()
-                );
-                discoveryService.RegisterFeature(
-                    new Winhance.Infrastructure.Features.Optimize.Descriptors.ExplorerFeatureDescriptor()
-                );
-                discoveryService.RegisterFeature(
-                    new Winhance.Infrastructure.Features.Optimize.Descriptors.NotificationFeatureDescriptor()
-                );
-                discoveryService.RegisterFeature(
-                    new Winhance.Infrastructure.Features.Optimize.Descriptors.SoundFeatureDescriptor()
-                );
-
-                // Register Customization Feature Descriptors
-                discoveryService.RegisterFeature(
-                    new Winhance.Infrastructure.Features.Customize.Descriptors.WindowsThemeFeatureDescriptor()
-                );
-                discoveryService.RegisterFeature(
-                    new Winhance.Infrastructure.Features.Customize.Descriptors.StartMenuFeatureDescriptor()
-                );
-                discoveryService.RegisterFeature(
-                    new Winhance.Infrastructure.Features.Customize.Descriptors.TaskbarFeatureDescriptor()
-                );
-                discoveryService.RegisterFeature(
-                    new Winhance.Infrastructure.Features.Customize.Descriptors.ExplorerCustomizationFeatureDescriptor()
-                );
-
-                return discoveryService;
-            });
 
             // ComboBox Services (Scoped - Per-operation state)
-            services.AddScoped<IComboBoxDiscoveryService, ComboBoxDiscoveryService>();
-            services.AddScoped<IComboBoxValueResolver, GenericComboBoxValueResolver>();
+            services.AddScoped<IComboBoxSetupService, ComboBoxSetupService>();
+            services.AddScoped<IComboBoxResolver, ComboBoxResolver>();
 
-            // Tooltip Data Service (Singleton - Can be shared)
-            services.AddSingleton<ITooltipDataService, TooltipDataService>();
+            // RecommendedSettings Service (Singleton - Application-wide recommendation logic)
+            services.AddSingleton<IRecommendedSettingsService>(provider => 
+                new Infrastructure.Features.Common.Services.RecommendedSettingsService(
+                    provider.GetRequiredService<IDomainServiceRouter>(),
+                    provider.GetRequiredService<ISystemServices>(),
+                    provider.GetRequiredService<ILogService>()
+                ));
+
+            // Settings Loading Service (Scoped - Per-feature loading operation)
+            services.AddScoped<ISettingsLoadingService>(
+                provider => new Winhance.WPF.Features.Common.Services.SettingsLoadingService(
+                    provider.GetRequiredService<ISettingApplicationService>(),
+                    provider.GetRequiredService<ITaskProgressService>(),
+                    provider.GetRequiredService<IEventBus>(),
+                    provider.GetRequiredService<ILogService>(),
+                    provider.GetRequiredService<IComboBoxSetupService>(),
+                    provider.GetRequiredService<IDomainServiceRouter>()
+                )
+            );
 
             // Windows Compatibility Filter (Transient - Stateless)
             services.AddTransient<IWindowsCompatibilityFilter, WindowsCompatibilityFilter>();
@@ -178,10 +149,10 @@ namespace Winhance.WPF.Features.Common.Extensions.DI
             // System Services (requires IUacSettingsService from UI layer)
             services.AddSingleton<ISystemServices>(
                 provider => new Winhance.Infrastructure.Features.Common.Services.WindowsSystemService(
-                    provider.GetRequiredService<IRegistryService>(),
+                    provider.GetRequiredService<IWindowsRegistryService>(),
                     provider.GetRequiredService<ILogService>(),
                     provider.GetRequiredService<IInternetConnectivityService>(),
-                    null, // Intentionally not passing IWindowsThemeService to break circular dependency
+                    null, // Intentionally not passing IDomainService to break circular dependency
                     provider.GetRequiredService<IUacSettingsService>()
                 )
             );
@@ -199,24 +170,18 @@ namespace Winhance.WPF.Features.Common.Extensions.DI
         }
 
         /// <summary>
-        /// Registers strategy pattern services for SOLID compliance.
+        /// Registers simplified controlHandler services.
         /// </summary>
         /// <param name="services">The service collection to configure</param>
         /// <returns>The service collection for method chaining</returns>
-        public static IServiceCollection AddStrategyServices(this IServiceCollection services)
+        public static IServiceCollection AddcontrolHandlerServices(this IServiceCollection services)
         {
-            // Strategy Pattern Services (Scoped - Per-operation strategy selection)
-            services.AddScoped<
-                ISettingApplicationStrategy,
-                Winhance.Infrastructure.Features.Common.Services.Strategies.RegistrySettingApplicationStrategy
-            >();
-            services.AddScoped<
-                ISettingApplicationStrategy,
-                Winhance.Infrastructure.Features.Common.Services.Strategies.CommandSettingApplicationStrategy
-            >();
-
-            // System Setting Orchestrator (Scoped - Coordinates strategies)
-            services.AddScoped<SystemSettingOrchestrator>();
+            // System Setting controlHandler (Scoped - Coordinates registry operations)
+            services.AddScoped< SettingControlHandler>(sp => new  SettingControlHandler(
+                sp.GetRequiredService<IWindowsRegistryService>(),
+                sp.GetRequiredService<IComboBoxResolver>(),
+                sp.GetRequiredService<ILogService>()
+            ));
 
             return services;
         }

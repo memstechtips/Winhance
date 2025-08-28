@@ -11,7 +11,7 @@ namespace Winhance.Core.Features.Common.Interfaces
         /// <summary>
         /// Registers settings from a module.
         /// </summary>
-        /// <param name="moduleName">The name of the module (e.g., "StartMenuCustomizations", "WindowsThemeSettings")</param>
+        /// <param name="moduleName">The name of the module (e.g., "StartMenuCustomizations", "WindowsThemeCustomizations")</param>
         /// <param name="settings">The settings to register</param>
         void RegisterSettings(string moduleName, IEnumerable<ISettingItem> settings);
 
@@ -41,6 +41,14 @@ namespace Winhance.Core.Features.Common.Interfaces
         /// </summary>
         /// <param name="moduleName">The name of the module</param>
         void UnregisterModule(string moduleName);
+
+        /// <summary>
+        /// Registers a single setting from a module, preserving existing settings.
+        /// Used by SettingApplicationService to register settings on-demand during application.
+        /// </summary>
+        /// <param name="moduleName">The name of the module</param>
+        /// <param name="setting">The setting to register</param>
+        void RegisterSetting(string moduleName, ISettingItem setting);
 
         /// <summary>
         /// Clears all registered settings.

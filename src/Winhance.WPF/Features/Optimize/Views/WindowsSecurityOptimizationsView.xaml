@@ -3,132 +3,15 @@
              xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
              xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
              xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
-             xmlns:viewmodels="clr-namespace:Winhance.WPF.Features.Optimize.ViewModels"
-             xmlns:materialDesign="http://materialdesigninxaml.net/winfx/xaml/themes"
-             xmlns:enums="clr-namespace:Winhance.Core.Models.Enums;assembly=Winhance.Core"
-             xmlns:controls="clr-namespace:Winhance.WPF.Features.Common.Controls"
-             xmlns:behaviors="clr-namespace:Winhance.WPF.Features.Common.Behaviors"
-             d:DataContext="{d:DesignInstance Type=viewmodels:WindowsSecurityOptimizationsViewModel}"
+             xmlns:viewModels="clr-namespace:Winhance.WPF.Features.Optimize.ViewModels"
+             d:DataContext="{d:DesignInstance Type=viewModels:WindowsSecurityOptimizationsViewModel}"
              mc:Ignorable="d">
 
     <StackPanel>
         <!-- Collapsible Header -->
-        <Border x:Name="HeaderBorder"
-                Background="{DynamicResource ContentSectionBorderBrush}"
-                CornerRadius="5"
-                Margin="0,5,0,5"
-                Effect="{StaticResource ShadowEffect}"
-                Cursor="Hand"
-                ClipToBounds="False"
-                Panel.ZIndex="100">
-            <Border.InputBindings>
-                <MouseBinding MouseAction="LeftClick" Command="{Binding ToggleExpandCommand}"/>
-            </Border.InputBindings>
-            <Grid x:Name="Header" Height="40">
-                <Grid.ColumnDefinitions>
-                    <ColumnDefinition Width="*"/>
-                    <ColumnDefinition Width="Auto"/>
-                </Grid.ColumnDefinitions>
-                
-                <!-- Left content -->
-                <StackPanel Orientation="Horizontal" 
-                           VerticalAlignment="Center"
-                           HorizontalAlignment="Left"
-                           Grid.Column="0">
-                    <!-- Category Icon -->
-                    <TextBlock Text="&#xE32A;"
-                               FontFamily="{StaticResource MaterialSymbolsFont}"
-                               FontSize="24"
-                               Margin="15,6,5,6"
-                               Foreground="{DynamicResource PrimaryTextColor}"
-                               VerticalAlignment="Center"/>
-                    <!-- Category Name -->
-                    <TextBlock Text="{Binding DisplayName}"
-                               FontSize="14"
-                               FontWeight="SemiBold"
-                               Margin="5,6,0,6"
-                               Foreground="{DynamicResource PrimaryTextColor}"
-                               VerticalAlignment="Center"/>
-                </StackPanel>
-                
-                <!-- Chevron - positioned in right column with fixed alignment -->
-                <materialDesign:PackIcon x:Name="HeaderIcon"
-                                         Kind="ChevronDown"
-                                         Width="24"
-                                         Height="24"
-                                         VerticalAlignment="Center"
-                                         HorizontalAlignment="Right"
-                                         Foreground="{DynamicResource PrimaryTextColor}"
-                                         Margin="0,0,15,0"
-                                         Grid.Column="1"
-                                         RenderTransformOrigin="0.5,0.5">
-                    <materialDesign:PackIcon.RenderTransform>
-                        <RotateTransform Angle="{Binding IsExpanded, Converter={StaticResource BooleanToRotationConverter}}"/>
-                    </materialDesign:PackIcon.RenderTransform>
-                </materialDesign:PackIcon>
-            </Grid>
-        </Border>
-        
+        <ContentControl Template="{StaticResource CollapsibleHeaderTemplate}"/>
+
         <!-- Content Section -->
-        <Border Background="{DynamicResource ContentSectionBorderBrush}"
-                CornerRadius="5"
-                Margin="0,0,0,5"
-                Effect="{StaticResource LightShadowEffect}"
-                Visibility="{Binding IsExpanded, Converter={StaticResource BooleanToVisibilityConverter}}">
-        <StackPanel Margin="0,10,0,10">
-            <!-- Settings Container -->
-            <Grid Margin="10,0,10,20">
-                <Grid.RowDefinitions>
-                    <RowDefinition Height="Auto"/>
-                    <RowDefinition Height="Auto"/>
-                </Grid.RowDefinitions>
-
-                <!-- Settings -->
-                <Grid Grid.Row="1" Margin="25,0,25,0">
-                    <TextBlock Text="No security settings found" 
-                               Foreground="{DynamicResource SecondaryTextColor}" 
-                               HorizontalAlignment="Center" 
-                               Margin="0,20,0,0" 
-                               Visibility="{Binding HasVisibleSettings, Converter={StaticResource InverseBooleanToVisibilityConverter}}"/>
-                    
-                    <!-- Direct Settings Binding -->
-                    <ItemsControl ItemsSource="{Binding Settings}" 
-                                  Visibility="{Binding HasVisibleSettings, Converter={StaticResource BooleanToVisibilityConverter}}">
-                        <ItemsControl.ItemTemplate>
-                            <DataTemplate>
-                                                <Grid Margin="0,5">
-                                                    <Grid.ColumnDefinitions>
-                                                        <ColumnDefinition Width="*"/>
-                                                        <ColumnDefinition Width="Auto"/>
-                                                    </Grid.ColumnDefinitions>
-
-                                                    <!-- Setting Name and Description -->
-                                                    <StackPanel>
-                                                        <TextBlock Text="{Binding Name}" 
-                                                                   Foreground="{DynamicResource PrimaryTextColor}" 
-                                                                   FontWeight="Medium" 
-                                                                   FontSize="14"/>
-                                                        <TextBlock Text="{Binding Description}" 
-                                                                   Foreground="{DynamicResource SecondaryTextColor}" 
-                                                                   TextWrapping="Wrap" 
-                                                                   Margin="0,2,0,0"/>
-                                                    </StackPanel>
-
-                                                    <!-- Control for UAC Settings -->
-                                                    <StackPanel Grid.Column="1" Margin="10,0,0,0">
-                                                        <!-- ComboBox for UAC Level Selection -->
-                                                        <ComboBox Width="200" 
-                                                                  ItemsSource="{Binding ComboBoxOptions}" 
-                                                                  SelectedItem="{Binding SelectedValue, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}" 
-                                                                  behaviors:ComboBoxDropdownBehavior.StayWithParent="True"/>
-                                                    </StackPanel>
-                                                </Grid>
-                                            </DataTemplate>
-                        </ItemsControl.ItemTemplate>
-                    </ItemsControl>
-                </Grid>
-            </Grid>
-        </StackPanel>
-        </Border>
+        <ContentControl Template="{StaticResource ContentSectionTemplate}"/>
     </StackPanel>
 </UserControl>

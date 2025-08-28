@@ -6,6 +6,7 @@ using System.Windows;
 using Microsoft.Extensions.DependencyInjection;
 using Winhance.Core.Features.Common.Enums;
 using Winhance.Core.Features.Common.Interfaces;
+using Winhance.Core.Features.Common.Interfaces.WindowsRegistry;
 using Winhance.Core.Features.Common.Models;
 using Winhance.WPF.Features.Common.Services.Configuration;
 using Winhance.WPF.Features.Common.Views;
@@ -21,7 +22,7 @@ namespace Winhance.WPF.Features.Common.Services
         private readonly IConfigurationService _configurationService;
         private readonly ILogService _logService;
         private readonly IDialogService _dialogService;
-        private readonly IRegistryService _registryService;
+        private readonly IWindowsRegistryService _registryService;
         private readonly ConfigurationCollectorService _collectorService;
         private readonly IConfigurationApplierService _applierService;
         private readonly ConfigurationUIService _uiService;
@@ -39,13 +40,13 @@ namespace Winhance.WPF.Features.Common.Services
             IConfigurationService configurationService,
             ILogService logService,
             IDialogService dialogService,
-            IRegistryService registryService)
+            IWindowsRegistryService windowsRegistryService)
         {
             _serviceProvider = serviceProvider ?? throw new ArgumentNullException(nameof(serviceProvider));
             _configurationService = configurationService ?? throw new ArgumentNullException(nameof(configurationService));
             _logService = logService ?? throw new ArgumentNullException(nameof(logService));
             _dialogService = dialogService ?? throw new ArgumentNullException(nameof(dialogService));
-            _registryService = registryService ?? throw new ArgumentNullException(nameof(registryService));
+            _registryService = windowsRegistryService ?? throw new ArgumentNullException(nameof(windowsRegistryService));
             
             // Initialize helper services
             _collectorService = new ConfigurationCollectorService(serviceProvider, logService);

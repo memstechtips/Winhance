@@ -1,390 +1,292 @@
 using System.Collections.Generic;
 using Microsoft.Win32;
+using Winhance.Core.Features.Common.Constants;
 using Winhance.Core.Features.Common.Enums;
 using Winhance.Core.Features.Common.Models;
+using Winhance.Core.Features.Common.Models.WindowsRegistry;
 
 namespace Winhance.Core.Features.Optimize.Models;
 
 public static class ExplorerOptimizations
 {
-    public static OptimizationGroup GetExplorerOptimizations()
+    public static SettingGroup GetExplorerOptimizations()
     {
-        return new OptimizationGroup
+        return new SettingGroup
         {
-            Name = "Explorer",
-            Category = OptimizationCategory.Explorer,
-            Settings = new List<OptimizationSetting>
+            Name = "ExplorerOptimizations",
+            FeatureId = FeatureIds.ExplorerOptimization,
+            Settings = new List<SettingDefinition>
             {
-                new OptimizationSetting
+                new SettingDefinition
                 {
                     Id = "explorer-optimization-long-paths-enabled",
                     Name = "Long Paths Enabled",
                     Description = "Controls support for long file paths (up to 32,767 characters)",
-                    Category = OptimizationCategory.Explorer,
                     GroupName = "File Explorer Settings",
-                    IsEnabled = false,
-                    ControlType = ControlType.BinaryToggle,
+                    InputType = SettingInputType.Toggle,
                     RegistrySettings = new List<RegistrySetting>
                     {
                         new RegistrySetting
                         {
-                            Category = "Explorer",
-                            Hive = "HKEY_LOCAL_MACHINE",
-                            SubKey = "SYSTEM\\CurrentControlSet\\Control\\FileSystem",
-                            Name = "LongPathsEnabled",
+                            KeyPath = @"HKEY_LOCAL_MACHINE\SYSTEM\CurrentControlSet\Control\FileSystem",
+                            ValueName = "LongPathsEnabled",
                             RecommendedValue = 1,
                             EnabledValue = 1,
                             DisabledValue = 0,
-                            ValueType = RegistryValueKind.DWord,
                             DefaultValue = 0,
-                            Description =
-                                "Controls support for long file paths (up to 32,767 characters)",
-                            IsPrimary = true,
-                            AbsenceMeansEnabled = false,
+                            ValueType = RegistryValueKind.DWord,
                         },
                     },
                 },
-                new OptimizationSetting
+                new SettingDefinition
                 {
                     Id = "explorer-optimization-block-aad-workplace-join",
                     Name = "Block AAD Workplace Join",
                     Description = "Controls 'Allow my organization to manage my device' pop-up",
-                    Category = OptimizationCategory.Explorer,
                     GroupName = "File Explorer Settings",
-                    IsEnabled = false,
-                    ControlType = ControlType.BinaryToggle,
+                    InputType = SettingInputType.Toggle,
                     RegistrySettings = new List<RegistrySetting>
                     {
                         new RegistrySetting
                         {
-                            Category = "Explorer",
-                            Hive = "HKEY_LOCAL_MACHINE",
-                            SubKey =
-                                "Software\\Microsoft\\Windows\\CurrentVersion\\Policies\\System",
-                            Name = "BlockAADWorkplaceJoin",
+                            KeyPath = @"HKEY_LOCAL_MACHINE\Software\Microsoft\Windows\CurrentVersion\Policies\System",
+                            ValueName = "BlockAADWorkplaceJoin",
                             RecommendedValue = 1,
                             EnabledValue = 1,
                             DisabledValue = 0,
-                            ValueType = RegistryValueKind.DWord,
                             DefaultValue = 0,
-                            Description =
-                                "Controls 'Allow my organization to manage my device' pop-up",
-                            IsPrimary = true,
-                            AbsenceMeansEnabled = false,
+                            ValueType = RegistryValueKind.DWord,
                         },
                     },
                 },
-                new OptimizationSetting
+                new SettingDefinition
                 {
                     Id = "explorer-optimization-disable-sync-provider-notifications",
                     Name = "Sync Provider Notifications",
                     Description = "Controls sync provider notifications visibility",
-                    Category = OptimizationCategory.Explorer,
                     GroupName = "File Explorer Settings",
-                    IsEnabled = false,
-                    ControlType = ControlType.BinaryToggle,
+                    InputType = SettingInputType.Toggle,
                     RegistrySettings = new List<RegistrySetting>
                     {
                         new RegistrySetting
                         {
-                            Category = "Explorer",
-                            Hive = "HKEY_CURRENT_USER",
-                            SubKey =
-                                "Software\\Microsoft\\Windows\\CurrentVersion\\Explorer\\Advanced",
-                            Name = "ShowSyncProviderNotifications",
+                            KeyPath = @"HKEY_CURRENT_USER\Software\Microsoft\Windows\CurrentVersion\Explorer\Advanced",
+                            ValueName = "ShowSyncProviderNotifications",
                             RecommendedValue = 0,
                             EnabledValue = 1,
                             DisabledValue = 0,
-                            ValueType = RegistryValueKind.DWord,
                             DefaultValue = 1,
-                            Description = "Controls sync provider notifications visibility",
-                            IsPrimary = true,
-                            AbsenceMeansEnabled = true,
+                            ValueType = RegistryValueKind.DWord,
                         },
                     },
                 },
-                new OptimizationSetting
+                new SettingDefinition
                 {
                     Id = "explorer-optimization-tablet-mode",
                     Name = "Tablet Mode",
                     Description = "Controls Tablet Mode",
-                    Category = OptimizationCategory.Explorer,
                     GroupName = "System Interface",
-                    IsEnabled = false,
-                    ControlType = ControlType.BinaryToggle,
+                    InputType = SettingInputType.Toggle,
                     RegistrySettings = new List<RegistrySetting>
                     {
                         new RegistrySetting
                         {
-                            Category = "Explorer",
-                            Hive = "HKEY_CURRENT_USER",
-                            SubKey = "Software\\Microsoft\\Windows\\CurrentVersion\\ImmersiveShell",
-                            Name = "TabletMode",
+                            KeyPath = @"HKEY_CURRENT_USER\Software\Microsoft\Windows\CurrentVersion\ImmersiveShell",
+                            ValueName = "TabletMode",
                             RecommendedValue = 0,
                             EnabledValue = 1, // When toggle is ON, tablet mode is enabled
                             DisabledValue = 0, // When toggle is OFF, tablet mode is disabled
-                            ValueType = RegistryValueKind.DWord,
                             DefaultValue = 0,
-                            Description = "Controls Tablet Mode",
-                            IsPrimary = true,
-                            AbsenceMeansEnabled = false,
+                            ValueType = RegistryValueKind.DWord,
                         },
                     },
                 },
-                new OptimizationSetting
+                new SettingDefinition
                 {
                     Id = "explorer-optimization-desktop-mode-signin",
                     Name = "Desktop Mode on Sign-in",
                     Description = "Controls whether the system goes to desktop mode on sign-in",
-                    Category = OptimizationCategory.Explorer,
                     GroupName = "System Interface",
-                    IsEnabled = false,
-                    ControlType = ControlType.BinaryToggle,
+                    InputType = SettingInputType.Toggle,
                     RegistrySettings = new List<RegistrySetting>
                     {
                         new RegistrySetting
                         {
-                            Category = "Explorer",
-                            Hive = "HKEY_CURRENT_USER",
-                            SubKey = "Software\\Microsoft\\Windows\\CurrentVersion\\ImmersiveShell",
-                            Name = "SignInMode",
+                            KeyPath = @"HKEY_CURRENT_USER\Software\Microsoft\Windows\CurrentVersion\ImmersiveShell",
+                            ValueName = "SignInMode",
                             RecommendedValue = 1,
                             EnabledValue = 1, // When toggle is ON, system goes to desktop mode on sign-in
                             DisabledValue = 0, // When toggle is OFF, system uses default behavior
+                            DefaultValue = 1,
                             ValueType = RegistryValueKind.DWord,
-                            DefaultValue = 0,
-                            Description =
-                                "Controls whether the system goes to desktop mode on sign-in",
-                            IsPrimary = true,
-                            AbsenceMeansEnabled = false,
                         },
                     },
                 },
-                new OptimizationSetting
+                new SettingDefinition
                 {
                     Id = "explorer-optimization-voice-typing",
                     Name = "Voice Typing Button",
                     Description = "Controls voice typing microphone button",
-                    Category = OptimizationCategory.Explorer,
                     GroupName = "Input Settings",
-                    IsEnabled = false,
-                    ControlType = ControlType.BinaryToggle,
+                    InputType = SettingInputType.Toggle,
                     RegistrySettings = new List<RegistrySetting>
                     {
                         new RegistrySetting
                         {
-                            Category = "Explorer",
-                            Hive = "HKEY_CURRENT_USER",
-                            SubKey = "Software\\Microsoft\\InputSettings",
-                            Name = "IsVoiceTypingKeyEnabled",
+                            KeyPath = @"HKEY_CURRENT_USER\Software\Microsoft\InputSettings",
+                            ValueName = "IsVoiceTypingKeyEnabled",
                             RecommendedValue = 0,
                             EnabledValue = 1, // When toggle is ON, voice typing is enabled
                             DisabledValue = 0, // When toggle is OFF, voice typing is disabled
-                            ValueType = RegistryValueKind.DWord,
                             DefaultValue = 1,
-                            Description = "Controls voice typing microphone button",
-                            IsPrimary = true,
-                            AbsenceMeansEnabled = true,
+                            ValueType = RegistryValueKind.DWord,
                         },
                     },
                 },
-                new OptimizationSetting
+                new SettingDefinition
                 {
                     Id = "explorer-optimization-typing-insights",
                     Name = "Typing Insights",
                     Description = "Controls typing insights and suggestions",
-                    Category = OptimizationCategory.Explorer,
                     GroupName = "Input Settings",
-                    IsEnabled = false,
-                    ControlType = ControlType.BinaryToggle,
+                    InputType = SettingInputType.Toggle,
                     RegistrySettings = new List<RegistrySetting>
                     {
                         new RegistrySetting
                         {
-                            Category = "Explorer",
-                            Hive = "HKEY_CURRENT_USER",
-                            SubKey = "Software\\Microsoft\\InputSettings",
-                            Name = "InsightsEnabled",
+                            KeyPath = @"HKEY_CURRENT_USER\Software\Microsoft\InputSettings",
+                            ValueName = "InsightsEnabled",
                             RecommendedValue = 0,
                             EnabledValue = 1, // When toggle is ON, typing insights are enabled
                             DisabledValue = 0, // When toggle is OFF, typing insights are disabled
-                            ValueType = RegistryValueKind.DWord,
                             DefaultValue = 1,
-                            Description = "Controls typing insights and suggestions",
-                            IsPrimary = true,
-                            AbsenceMeansEnabled = true,
+                            ValueType = RegistryValueKind.DWord,
                         },
                     },
                 },
-                new OptimizationSetting
+                new SettingDefinition
                 {
                     Id = "explorer-optimization-suggested-actions",
                     Name = "Clipboard Suggested Actions",
                     Description = "Controls suggested actions for clipboard content",
-                    Category = OptimizationCategory.Explorer,
                     GroupName = "System Interface",
-                    IsEnabled = false,
-                    ControlType = ControlType.BinaryToggle,
+                    InputType = SettingInputType.Toggle,
                     RegistrySettings = new List<RegistrySetting>
                     {
                         new RegistrySetting
                         {
-                            Category = "Explorer",
-                            Hive = "HKEY_CURRENT_USER",
-                            SubKey =
-                                "Software\\Microsoft\\Windows\\CurrentVersion\\Explorer\\SmartActionPlatform\\SmartClipboard",
-                            Name = "Disabled",
+                            KeyPath = @"HKEY_CURRENT_USER\Software\Microsoft\Windows\CurrentVersion\Explorer\SmartActionPlatform\SmartClipboard",
+                            ValueName = "Disabled",
                             RecommendedValue = 1,
                             EnabledValue = 0, // When toggle is ON, suggested actions are enabled
                             DisabledValue = 1, // When toggle is OFF, suggested actions are disabled
-                            ValueType = RegistryValueKind.DWord,
                             DefaultValue = 0,
-                            Description = "Controls suggested actions for clipboard content",
-                            IsPrimary = true,
-                            AbsenceMeansEnabled = false,
+                            ValueType = RegistryValueKind.DWord,
                         },
                     },
                 },
-                new OptimizationSetting
+                new SettingDefinition
                 {
                     Id = "explorer-optimization-windows-manage-printer",
                     Name = "Default Printer Management",
                     Description = "Controls Windows managing default printer",
-                    Category = OptimizationCategory.Explorer,
                     GroupName = "Printer Settings",
-                    IsEnabled = false,
-                    ControlType = ControlType.BinaryToggle,
+                    InputType = SettingInputType.Toggle,
                     RegistrySettings = new List<RegistrySetting>
                     {
                         new RegistrySetting
                         {
-                            Category = "Explorer",
-                            Hive = "HKEY_CURRENT_USER",
-                            SubKey =
-                                "Software\\Microsoft\\Windows\\CurrentVersion\\Explorer\\Windows",
-                            Name = "LegacyDefaultPrinterMode",
+                            KeyPath = @"HKEY_CURRENT_USER\Software\Microsoft\Windows\CurrentVersion\Explorer\Windows",
+                            ValueName = "LegacyDefaultPrinterMode",
                             RecommendedValue = 1,
                             EnabledValue = 0, // When toggle is ON, Windows manages default printer
                             DisabledValue = 1, // When toggle is OFF, Windows does not manage default printer
-                            ValueType = RegistryValueKind.DWord,
                             DefaultValue = 0,
-                            Description = "Controls Windows managing default printer",
-                            IsPrimary = true,
-                            AbsenceMeansEnabled = false,
+                            ValueType = RegistryValueKind.DWord,
                         },
                     },
                 },
-                new OptimizationSetting
+                new SettingDefinition
                 {
                     Id = "explorer-optimization-disable-snap-assist",
                     Name = "Snap Assist",
                     Description = "Controls Snap Assist feature",
-                    Category = OptimizationCategory.Explorer,
                     GroupName = "File Explorer Settings",
-                    IsEnabled = false,
-                    ControlType = ControlType.BinaryToggle,
+                    InputType = SettingInputType.Toggle,
                     RegistrySettings = new List<RegistrySetting>
                     {
                         new RegistrySetting
                         {
-                            Category = "Explorer",
-                            Hive = "HKEY_CURRENT_USER",
-                            SubKey =
-                                "Software\\Microsoft\\Windows\\CurrentVersion\\Explorer\\Advanced",
-                            Name = "SnapAssist",
+                            KeyPath = @"HKEY_CURRENT_USER\Software\Microsoft\Windows\CurrentVersion\Explorer\Advanced",
+                            ValueName = "SnapAssist",
                             RecommendedValue = 0,
                             EnabledValue = 1,
                             DisabledValue = 0,
-                            ValueType = RegistryValueKind.DWord,
                             DefaultValue = 1,
-                            Description = "Controls Snap Assist feature",
-                            IsPrimary = true,
-                            AbsenceMeansEnabled = true,
+                            ValueType = RegistryValueKind.DWord,
                         },
                     },
                 },
-                new OptimizationSetting
+                new SettingDefinition
                 {
                     Id = "explorer-optimization-frequent-folders",
                     Name = "Frequent Folders in Quick Access",
                     Description = "Controls display of frequent folders in Quick Access",
-                    Category = OptimizationCategory.Explorer,
                     GroupName = "File Explorer Settings",
-                    IsEnabled = false,
-                    ControlType = ControlType.BinaryToggle,
+                    InputType = SettingInputType.Toggle,
                     RegistrySettings = new List<RegistrySetting>
                     {
                         new RegistrySetting
                         {
-                            Category = "Explorer",
-                            Hive = "HKEY_CURRENT_USER",
-                            SubKey = "Software\\Microsoft\\Windows\\CurrentVersion\\Explorer",
-                            Name = "ShowFrequent",
+                            KeyPath = @"HKEY_CURRENT_USER\Software\Microsoft\Windows\CurrentVersion\Explorer",
+                            ValueName = "ShowFrequent",
                             RecommendedValue = 0,
                             EnabledValue = 1, // When toggle is ON, frequent folders are shown
                             DisabledValue = 0, // When toggle is OFF, frequent folders are hidden
-                            ValueType = RegistryValueKind.DWord,
                             DefaultValue = 1,
-                            Description = "Controls display of frequent folders in Quick Access",
-                            IsPrimary = true,
-                            AbsenceMeansEnabled = true,
+                            ValueType = RegistryValueKind.DWord,
                         },
                     },
                 },
-                new OptimizationSetting
+                new SettingDefinition
                 {
                     Id = "explorer-optimization-compress-desktop-wallpaper",
                     Name = "Compress Desktop Wallpaper",
                     Description = "Controls compression of desktop wallpaper",
-                    Category = OptimizationCategory.Explorer,
                     GroupName = "Desktop Settings",
-                    IsEnabled = false,
-                    ControlType = ControlType.BinaryToggle,
+                    InputType = SettingInputType.Toggle,
                     RegistrySettings = new List<RegistrySetting>
                     {
                         new RegistrySetting
                         {
-                            Category = "Explorer",
-                            Hive = "HKEY_CURRENT_USER",
-                            SubKey = "Control Panel\\Desktop",
-                            Name = "JPEGImportQuality",
+                            KeyPath = @"HKEY_CURRENT_USER\Control Panel\Desktop",
+                            ValueName = "JPEGImportQuality",
                             RecommendedValue = 100,
                             EnabledValue = 0,
                             DisabledValue = 100,
-                            ValueType = RegistryValueKind.DWord,
                             DefaultValue = 0,
-                            Description = "Controls compression of desktop wallpaper",
-                            IsPrimary = true,
-                            AbsenceMeansEnabled = true,
+                            ValueType = RegistryValueKind.DWord,
                         },
                     },
                 },
-                new OptimizationSetting
+                new SettingDefinition
                 {
                     Id = "explorer-optimization-office-files",
                     Name = "Office Files in Quick Access",
                     Description = "Controls display of files from Office.com in Quick Access",
-                    Category = OptimizationCategory.Explorer,
                     GroupName = "File Explorer Settings",
-                    IsEnabled = false,
-                    ControlType = ControlType.BinaryToggle,
+                    InputType = SettingInputType.Toggle,
                     RegistrySettings = new List<RegistrySetting>
                     {
                         new RegistrySetting
                         {
-                            Category = "Explorer",
-                            Hive = "HKEY_CURRENT_USER",
-                            SubKey = "Software\\Microsoft\\Windows\\CurrentVersion\\Explorer",
-                            Name = "ShowCloudFilesInQuickAccess",
+                            KeyPath = @"HKEY_CURRENT_USER\Software\Microsoft\Windows\CurrentVersion\Explorer",
+                            ValueName = "ShowCloudFilesInQuickAccess",
                             RecommendedValue = 0,
                             EnabledValue = 1, // When toggle is ON, Office.com files are shown
                             DisabledValue = 0, // When toggle is OFF, Office.com files are hidden
-                            ValueType = RegistryValueKind.DWord,
                             DefaultValue = 1,
-                            Description =
-                                "Controls display of files from Office.com in Quick Access",
-                            IsPrimary = true,
-                            AbsenceMeansEnabled = true,
+                            ValueType = RegistryValueKind.DWord,
                         },
                     },
                 },

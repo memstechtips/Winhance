@@ -1,34 +1,24 @@
 <ResourceDictionary xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
-                    xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
-                    xmlns:controls="clr-namespace:Winhance.WPF.Features.Common.Controls">
+    xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+    xmlns:controls="clr-namespace:Winhance.WPF.Features.Common.Controls"
+    xmlns:materialDesign="http://materialdesigninxaml.net/winfx/xaml/themes">
 
     <!-- Section Containers -->
-    <Style x:Key="ContentSectionStyle"
-            TargetType="Border">
-        <Setter Property="Background"
-                Value="{DynamicResource ContentSectionBorderBrush}"/>
-        <Setter Property="CornerRadius"
-                Value="5"/>
-        <Setter Property="Margin"
-                Value="5"/>
+    <Style x:Key="ContentSectionStyle" TargetType="Border">
+        <Setter Property="Background" Value="{DynamicResource ContentSectionBorderBrush}"/>
+        <Setter Property="CornerRadius" Value="5"/>
+        <Setter Property="Margin" Value="5"/>
         <Setter Property="Effect">
             <Setter.Value>
-                <DropShadowEffect ShadowDepth="5"
-                        BlurRadius="10"
-                        Color="Black"
-                        Opacity="0.5"/>
+                <DropShadowEffect ShadowDepth="5" BlurRadius="10" Color="Black" Opacity="0.5"/>
             </Setter.Value>
         </Setter>
     </Style>
 
-    <Style x:Key="MainContentBorderStyle"
-            TargetType="Border">
-        <Setter Property="Background"
-                Value="{DynamicResource MainContainerBorderBrush}"/>
-        <Setter Property="CornerRadius"
-                Value="10"/>
-        <Setter Property="Margin"
-                Value="0,5,0,0"/>
+    <Style x:Key="MainContentBorderStyle" TargetType="Border">
+        <Setter Property="Background" Value="{DynamicResource MainContainerBorderBrush}"/>
+        <Setter Property="CornerRadius" Value="10"/>
+        <Setter Property="Margin" Value="0,5,0,0"/>
     </Style>
 
     <!-- App Item Styles -->
@@ -68,58 +58,31 @@
     </Style>
 
     <!-- List Containers -->
-    <Style x:Key="ListViewContainerStyle"
-            TargetType="ListView">
-        <Setter Property="Background"
-                Value="Transparent"/>
-        <Setter Property="BorderThickness"
-                Value="0"/>
-        <Setter Property="ScrollViewer.HorizontalScrollBarVisibility"
-                Value="Disabled"/>
-        <Setter Property="ScrollViewer.VerticalScrollBarVisibility"
-                Value="Auto"/>
-        <Setter Property="Padding"
-                Value="0"/>
-        <Setter Property="Margin"
-                Value="0"/>
-    </Style>
-
-    <Style x:Key="ScrollViewerStyle"
-            TargetType="ScrollViewer">
-        <Setter Property="VerticalScrollBarVisibility"
-                Value="Auto"/>
-        <Setter Property="HorizontalScrollBarVisibility"
-                Value="Disabled"/>
-        <Setter Property="Padding"
-                Value="0"/>
-        <Setter Property="Background"
-                Value="Transparent"/>
+    <Style x:Key="ListViewContainerStyle" TargetType="ListView">
+        <Setter Property="Background" Value="Transparent"/>
+        <Setter Property="BorderThickness" Value="0"/>
+        <Setter Property="ScrollViewer.HorizontalScrollBarVisibility" Value="Disabled"/>
+        <Setter Property="ScrollViewer.VerticalScrollBarVisibility" Value="Auto"/>
+        <Setter Property="Padding" Value="0"/>
+        <Setter Property="Margin" Value="0"/>
     </Style>
 
     <!-- Panel Containers -->
-    <Style x:Key="ContentStackPanelStyle"
-            TargetType="StackPanel">
-        <Setter Property="Margin"
-                Value="10"/>
+    <Style x:Key="ContentStackPanelStyle" TargetType="StackPanel">
+        <Setter Property="Margin" Value="10"/>
     </Style>
 
-    <Style x:Key="HeaderStackPanelStyle"
-            TargetType="StackPanel">
-        <Setter Property="VerticalAlignment"
-                Value="Center"/>
+    <Style x:Key="HeaderStackPanelStyle" TargetType="StackPanel">
+        <Setter Property="VerticalAlignment" Value="Center"/>
     </Style>
 
     <!-- Grid Containers -->
-    <Style x:Key="ContentGridStyle"
-            TargetType="Grid">
-        <Setter Property="Margin"
-                Value="10"/>
+    <Style x:Key="ContentGridStyle" TargetType="Grid">
+        <Setter Property="Margin" Value="10"/>
     </Style>
 
-    <Style x:Key="SectionGridStyle"
-            TargetType="Grid">
-        <Setter Property="Margin"
-                Value="10,5"/>
+    <Style x:Key="SectionGridStyle" TargetType="Grid">
+        <Setter Property="Margin" Value="10,5"/>
     </Style>
 
     <!-- Modern ScrollViewer Style -->
@@ -135,8 +98,121 @@
     <!-- Used for consistent settings layout across all customize features -->
     <!-- Matches the layout pattern from WindowsThemeCustomizationsView -->
     <Style x:Key="SettingsItemContainerStyle" TargetType="ContentPresenter">
-        <Setter Property="Grid.ColumnSpan" 
-                Value="{Binding IsGroupHeader, Converter={StaticResource BooleanToGridSpanConverter}}"/>
+        <Setter Property="Grid.ColumnSpan" Value="{Binding IsGroupHeader, Converter={StaticResource BooleanToGridSpanConverter}}"/>
         <Setter Property="Margin" Value="5,2,5,2"/>
     </Style>
+
+    <!-- FEATURE SECTION TEMPLATES -->
+    <!-- Collapsible Header Template -->
+    <ControlTemplate x:Key="CollapsibleHeaderTemplate" TargetType="ContentControl">
+        <Border x:Name="HeaderBorder" Background="{DynamicResource ContentSectionBorderBrush}" CornerRadius="5" Margin="0,5,0,5" Effect="{StaticResource ShadowEffect}" Cursor="Hand" ClipToBounds="False" Panel.ZIndex="100">
+            <Border.InputBindings>
+                <MouseBinding MouseAction="LeftClick" Command="{Binding ToggleExpandCommand}"/>
+            </Border.InputBindings>
+            <Grid x:Name="Header" Height="40">
+                <Grid.ColumnDefinitions>
+                    <ColumnDefinition Width="*"/>
+                    <ColumnDefinition Width="Auto"/>
+                </Grid.ColumnDefinitions>
+
+                <!-- Left content -->
+                <StackPanel Orientation="Horizontal" VerticalAlignment="Center" HorizontalAlignment="Left" Grid.Column="0">
+                    <!-- Category Icon -->
+                    <ContentPresenter Content="{Binding}" Margin="15,6,5,6" VerticalAlignment="Center"/>
+                    <!-- Category Name -->
+                    <TextBlock Text="{Binding DisplayName}" FontSize="14" FontWeight="SemiBold" Margin="5,6,0,6" Foreground="{DynamicResource PrimaryTextColor}" VerticalAlignment="Center"/>
+                </StackPanel>
+
+                <!-- Chevron - positioned in right column with fixed alignment -->
+                <materialDesign:PackIcon x:Name="HeaderIcon" Kind="ChevronDown" Width="24" Height="24" VerticalAlignment="Center" HorizontalAlignment="Right" Foreground="{DynamicResource PrimaryTextColor}" Margin="0,0,15,0" Grid.Column="1" RenderTransformOrigin="0.5,0.5">
+                    <materialDesign:PackIcon.RenderTransform>
+                        <RotateTransform Angle="{Binding IsExpanded, Converter={StaticResource BooleanToRotationConverter}}"/>
+                    </materialDesign:PackIcon.RenderTransform>
+                </materialDesign:PackIcon>
+            </Grid>
+        </Border>
+    </ControlTemplate>
+
+    <!-- Modern Settings Item Template (Card-style layout) -->
+    <DataTemplate x:Key="ModernSettingsItemTemplate">
+        <!-- Group header template -->
+        <Grid>
+            <TextBlock Text="{Binding Name}" Foreground="{DynamicResource PrimaryTextColor}" FontWeight="SemiBold" Margin="25,15,0,5" Visibility="{Binding IsGroupHeader, Converter={StaticResource BooleanToVisibilityConverter}}"/>
+
+            <!-- Setting Card Wrapper -->
+            <Border Background="{DynamicResource SettingsItemBackground}" CornerRadius="4" Margin="8,4,8,4" Visibility="{Binding IsVisible, Converter={StaticResource BooleanToVisibilityConverter}}">
+                <Grid>
+                    <Grid.ColumnDefinitions>
+                        <ColumnDefinition Width="*"/>
+                        <ColumnDefinition Width="Auto"/>
+                    </Grid.ColumnDefinitions>
+
+                    <!-- Setting Text and Description (Left-aligned) -->
+                    <StackPanel Grid.Column="0" HorizontalAlignment="Left" VerticalAlignment="Center" Margin="15,10,0,10">
+                        <TextBlock Text="{Binding Name}" FontWeight="SemiBold" Style="{StaticResource AppItemTextStyle}" VerticalAlignment="Center"/>
+                        <TextBlock Text="{Binding Description}" FontSize="12" Foreground="{DynamicResource SecondaryTextColor}" TextWrapping="Wrap" Margin="0,2,0,0" VerticalAlignment="Center"/>
+                    </StackPanel>
+
+                    <!-- ComboBox for ComboBox settings (Right-aligned) -->
+                    <ComboBox Grid.Column="1" ItemsSource="{Binding ComboBoxOptions}" SelectedValue="{Binding SelectedValue, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}" DisplayMemberPath="DisplayText" FontWeight="SemiBold" SelectedValuePath="Value" Width="150" Margin="15,10,15,10" HorizontalAlignment="Right" VerticalAlignment="Center" Visibility="{Binding InputType, Converter={StaticResource SelectionInputTypeToVisibilityConverter}}" Panel.ZIndex="10">
+                        <ComboBox.ToolTip>
+                            <ToolTip Background="Transparent" BorderThickness="0" Padding="0" HasDropShadow="False">
+                                <ContentPresenter Content="{Binding TooltipData}" ContentTemplate="{StaticResource RegistrySettingTooltipTemplate}"/>
+                            </ToolTip>
+                        </ComboBox.ToolTip>
+                    </ComboBox>
+
+                    <!-- Toggle for binary settings -->
+                    <ToggleButton Grid.Column="1" Style="{StaticResource MaterialToggleSwitch}" IsChecked="{Binding IsSelected, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}" Margin="15,10,15,10" HorizontalAlignment="Right" VerticalAlignment="Center" Visibility="{Binding InputType, Converter={StaticResource ToggleInputTypeToVisibilityConverter}}" Content="">
+                        <ToggleButton.ToolTip>
+                            <ToolTip Background="Transparent" BorderThickness="0" Padding="0" HasDropShadow="False">
+                                <ContentPresenter Content="{Binding TooltipData}" ContentTemplate="{StaticResource RegistrySettingTooltipTemplate}"/>
+                            </ToolTip>
+                        </ToggleButton.ToolTip>
+                    </ToggleButton>
+
+                    <!-- NumericUpDown for NumericRange settings -->
+                    <controls:NumericUpDown Grid.Column="1" Value="{Binding NumericValue, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}" Minimum="{Binding MinValue}" Maximum="{Binding MaxValue}" Margin="15,10,15,10" HorizontalAlignment="Right" VerticalAlignment="Center" Visibility="{Binding InputType, Converter={StaticResource NumericRangeInputTypeToVisibilityConverter}}">
+                        <controls:NumericUpDown.ToolTip>
+                            <ToolTip Background="Transparent" BorderThickness="0" Padding="0" HasDropShadow="False">
+                                <ContentPresenter Content="{Binding TooltipData}" ContentTemplate="{StaticResource RegistrySettingTooltipTemplate}"/>
+                            </ToolTip>
+                        </controls:NumericUpDown.ToolTip>
+                    </controls:NumericUpDown>
+
+                    <!-- Action Button for ActionButton settings -->
+                    <Button Grid.Column="1" Content="Apply" Style="{StaticResource PrimaryButtonStyle}" Command="{Binding ActionCommand}" Margin="15,10,15,10" HorizontalAlignment="Right" VerticalAlignment="Center" Padding="10,5" Visibility="{Binding InputType, Converter={StaticResource ActionInputTypeToVisibilityConverter}}">
+                    </Button>
+                </Grid>
+            </Border>
+        </Grid>
+    </DataTemplate>
+
+    <!-- Content Section Template -->
+    <ControlTemplate x:Key="ContentSectionTemplate" TargetType="ContentControl">
+        <Border Background="{DynamicResource ContentSectionBorderBrush}" CornerRadius="5" Margin="0,0,0,5" Effect="{StaticResource LightShadowEffect}" Visibility="{Binding IsExpanded, Converter={StaticResource BooleanToVisibilityConverter}}">
+            <StackPanel Margin="0,10,0,10">
+
+                <!-- Container for Setting Labels & Controls -->
+                <ItemsControl ItemsSource="{Binding Settings}">
+                    <ItemsControl.ItemsPanel>
+                        <ItemsPanelTemplate>
+                            <StackPanel Orientation="Vertical"/>
+                        </ItemsPanelTemplate>
+                    </ItemsControl.ItemsPanel>
+                    <ItemsControl.ItemContainerStyle>
+                        <Style BasedOn="{StaticResource SettingsItemContainerStyle}" TargetType="ContentPresenter">
+                        </Style>
+                    </ItemsControl.ItemContainerStyle>
+                    <ItemsControl.ItemTemplate>
+                        <DataTemplate>
+                            <ContentPresenter Content="{Binding}" ContentTemplate="{StaticResource ModernSettingsItemTemplate}"/>
+                        </DataTemplate>
+                    </ItemsControl.ItemTemplate>
+                </ItemsControl>
+            </StackPanel>
+        </Border>
+    </ControlTemplate>
+
+
 </ResourceDictionary>

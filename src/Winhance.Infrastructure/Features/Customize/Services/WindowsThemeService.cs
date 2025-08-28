@@ -3,6 +3,7 @@ using System.Collections.Generic;
 using System.Linq;
 using System.Threading.Tasks;
 using Microsoft.Win32;
+using Winhance.Core.Features.Common.Constants;
 using Winhance.Core.Features.Common.Enums;
 using Winhance.Core.Features.Common.Interfaces;
 using Winhance.Core.Features.Common.Models;
@@ -17,19 +18,21 @@ namespace Winhance.Infrastructure.Features.Customize.Services
     /// Handles dark/light mode, transparency effects, and wallpaper changes.
     /// Maintains exact same method signatures and behavior for compatibility.
     /// </summary>
-    public class WindowsThemeService : IWindowsThemeService
+    public class WindowsThemeService : IDomainService
     {
         private readonly IWallpaperService _wallpaperService;
         private readonly ISystemServices _systemServices;
-        private readonly SystemSettingOrchestrator _orchestrator;
+        private readonly SettingControlHandler _controlHandler;
+        private readonly ISystemSettingsDiscoveryService _discoveryService;
         private readonly ILogService _logService;
 
-        public string DomainName => "WindowsTheme";
+        public string DomainName => FeatureIds.WindowsTheme;
 
         public WindowsThemeService(
             IWallpaperService wallpaperService,
             ISystemServices systemServices,
-            SystemSettingOrchestrator orchestrator,
+            SettingControlHandler controlHandler,
+            ISystemSettingsDiscoveryService discoveryService,
             ILogService logService
         )
         {
@@ -37,26 +40,29 @@ namespace Winhance.Infrastructure.Features.Customize.Services
                 wallpaperService ?? throw new ArgumentNullException(nameof(wallpaperService));
             _systemServices =
                 systemServices ?? throw new ArgumentNullException(nameof(systemServices));
-            _orchestrator =
-                orchestrator ?? throw new ArgumentNullException(nameof(orchestrator));
-            _logService =
-                logService ?? throw new ArgumentNullException(nameof(logService));
+            _controlHandler = controlHandler ?? throw new ArgumentNullException(nameof(controlHandler));
+            _discoveryService = discoveryService ?? throw new ArgumentNullException(nameof(discoveryService));
+            _logService = logService ?? throw new ArgumentNullException(nameof(logService));
         }
 
-        public async Task<IEnumerable<ApplicationSetting>> GetSettingsAsync()
+        public async Task<IEnumerable<SettingDefinition>> GetSettingsAsync()
         {
-            var group = WindowsThemeSettings.GetWindowsThemeCustomizations();
-            return await _orchestrator.GetSettingsWithSystemStateAsync(group.Settings, DomainName);
+            try
+            {
+                var group = WindowsThemeCustomizations.GetWindowsThemeCustomizations();
+                return await _discoveryService.GetSettingsWithSystemStateAsync(group.Settings, DomainName);
+            }
+            catch (Exception ex)
+            {
+                _logService.Log(LogLevel.Error, $"Error loading Windows theme settings: {ex.Message}");
+                return Enumerable.Empty<SettingDefinition>();
+            }
         }
 
         /// <summary>
         /// Applies a setting with theme-specific behavior.
         /// </summary>
-        public async Task ApplySettingAsync(
-            string settingId,
-            bool enable,
-            object? value = null
-        )
+        public async Task ApplySettingAsync(string settingId, bool enable, object? value = null)
         {
             try
             {
@@ -65,9 +71,26 @@ namespace Winhance.Infrastructure.Features.Customize.Services
                     $"Applying Windows theme setting '{settingId}': enable={enable}, value={value}"
                 );
 
-                // Get settings and apply using orchestrator
+                // Get settings and apply using direct switch logic
                 var settings = await GetRawSettingsAsync();
-                await _orchestrator.ApplySettingAsync(settingId, enable, value, settings, DomainName);
+                var setting = settings.FirstOrDefault(s => s.Id == settingId);
+                if (setting == null)
+                    throw new ArgumentException($"Setting '{settingId}' not found");
+
+                switch (setting.InputType)
+                {
+                    case SettingInputType.Toggle:
+                        await _controlHandler.ApplyBinaryToggleAsync(setting, enable);
+                        break;
+                    case SettingInputType.Selection when value is int index:
+                        await _controlHandler.ApplyComboBoxIndexAsync(setting, index);
+                        break;
+                    case SettingInputType.NumericRange when value != null:
+                        await _controlHandler.ApplyNumericUpDownAsync(setting, value);
+                        break;
+                    default:
+                        throw new NotSupportedException($"Input type '{setting.InputType}' not supported");
+                }
 
                 // Theme-specific post-processing
                 if (settingId == "theme-mode-windows")
@@ -80,7 +103,7 @@ namespace Winhance.Infrastructure.Features.Customize.Services
                             var isDarkMode = value is int comboBoxIndex ? comboBoxIndex == 0 : true;
                             var isWindows11 = _systemServices.IsWindows11();
                             var wallpaperPath =
-                                WindowsThemeSettings.Wallpaper.GetDefaultWallpaperPath(
+                                WindowsThemeCustomizations.Wallpaper.GetDefaultWallpaperPath(
                                     isWindows11,
                                     isDarkMode
                                 );
@@ -160,13 +183,13 @@ namespace Winhance.Infrastructure.Features.Customize.Services
         public async Task<bool> IsSettingEnabledAsync(string settingId)
         {
             var settings = await GetRawSettingsAsync();
-            return await _orchestrator.GetSettingStatusAsync(settingId, settings);
+            return await _controlHandler.GetSettingStatusAsync(settingId, settings);
         }
 
         public async Task<object?> GetSettingValueAsync(string settingId)
         {
             var settings = await GetRawSettingsAsync();
-            return await _orchestrator.GetSettingValueAsync(settingId, settings);
+            return await _controlHandler.GetSettingValueAsync(settingId, settings);
         }
 
         public bool IsDarkModeEnabled()
@@ -189,9 +212,9 @@ namespace Winhance.Infrastructure.Features.Customize.Services
         /// <summary>
         /// Helper method to get raw settings without system state.
         /// </summary>
-        private async Task<IEnumerable<ApplicationSetting>> GetRawSettingsAsync()
+        public async Task<IEnumerable<SettingDefinition>> GetRawSettingsAsync()
         {
-            var group = WindowsThemeSettings.GetWindowsThemeCustomizations();
+            var group = WindowsThemeCustomizations.GetWindowsThemeCustomizations();
             return await Task.FromResult(group.Settings);
         }
     }

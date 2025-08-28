@@ -5,7 +5,7 @@ using System.Linq;
 using System.Threading;
 using System.Threading.Tasks;
 using Winhance.Core.Features.Common.Interfaces;
-using Winhance.Core.Features.Optimize.Models;
+using Winhance.Core.Features.Common.Models;
 using Winhance.Core.Features.SoftwareApps.Interfaces;
 using Winhance.Core.Features.SoftwareApps.Interfaces.ScriptGeneration;
 using Winhance.Core.Features.SoftwareApps.Models;

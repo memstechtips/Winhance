@@ -1,8 +1,8 @@
 using Microsoft.Extensions.DependencyInjection;
+using Winhance.Core.Features.Common.Events;
 using Winhance.Core.Features.Common.Interfaces;
 using Winhance.Core.Features.UI.Interfaces;
 using Winhance.Infrastructure.Features.UI.Services;
-using Winhance.WPF.Features.Common.Factories;
 using Winhance.WPF.Features.Common.Interfaces;
 using Winhance.WPF.Features.Common.Resources.Theme;
 using Winhance.WPF.Features.Common.Services;
@@ -80,29 +80,25 @@ namespace Winhance.WPF.Features.Common.Extensions.DI
         /// <returns>The service collection for method chaining</returns>
         public static IServiceCollection AddUICoordinationServices(this IServiceCollection services)
         {
-            // Settings UI Coordinator (Transient - Per-ViewModel instance)
-            services.AddTransient<ISettingsUICoordinator, SettingsUICoordinator>();
-
-            // Settings Delegate Assignment Service (Transient - Stateless)
-            services.AddTransient<
-                ISettingsDelegateAssignmentService,
-                SettingsDelegateAssignmentService
-            >();
-
             // Settings Confirmation Service (Transient - Per-operation)
             services.AddTransient<ISettingsConfirmationService, SettingsConfirmationService>();
 
-            // Feature ViewModel Factory (Singleton - Factory pattern)
-            services.AddSingleton<IFeatureViewModelFactory, FeatureViewModelFactory>();
 
-            // Tooltip Data Service (Transient - Per-request data)
-            services.AddTransient<SettingTooltipDataService>();
+            // Event Handlers (Singleton - Event subscribers should be long-lived)
+            services.AddSingleton<Infrastructure.Features.Common.EventHandlers.TooltipRefreshEventHandler>();
+
+            // Removed duplicate SettingTooltipDataService - using ITooltipDataService instead
 
             // Application Layer Services
-            services.AddScoped<
-                ISettingApplicationService,
-                Infrastructure.Features.Common.Services.SettingApplicationService
-            >();
+            services.AddScoped<ISettingApplicationService>(sp => 
+                new Infrastructure.Features.Common.Services.SettingApplicationService(
+                    sp.GetRequiredService<IDomainServiceRouter>(),
+                    sp.GetRequiredService<ILogService>(),
+                    sp.GetRequiredService<IRecommendedSettingsService>(),
+                    sp.GetRequiredService<IDependencyManager>(),
+                    sp.GetRequiredService<IGlobalSettingsRegistry>(),
+                    sp.GetRequiredService<IEventBus>()
+                ));
             services.AddTransient<IPropertyUpdater, PropertyUpdater>();
             // TODO: Fix ambiguous IOptimizeConfigurationApplier reference
             // services.AddTransient<IOptimizeConfigurationApplier, OptimizeConfigurationApplier>();

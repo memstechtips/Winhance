@@ -1,7 +1,7 @@
 using System.Collections.ObjectModel;
 using System.Threading.Tasks;
 using System.Windows.Input;
-using Winhance.WPF.Features.Common.Models;
+using Winhance.WPF.Features.Common.ViewModels;
 
 namespace Winhance.WPF.Features.Common.Interfaces
 {
@@ -24,7 +24,7 @@ namespace Winhance.WPF.Features.Common.Interfaces
         /// <summary>
         /// Gets the collection of UI settings managed by this feature.
         /// </summary>
-        ObservableCollection<SettingUIItem> Settings { get; }
+        ObservableCollection<SettingItemViewModel> Settings { get; }
 
         /// <summary>
         /// Gets a value indicating whether this feature has any visible settings.

@@ -25,13 +25,13 @@ namespace Winhance.Core.Features.Common.Models
         public bool IsSelected { get; set; }
         
         /// <summary>
-        /// Gets or sets the type of control used for this item.
+        /// Gets or sets the type of input used for this item.
         /// </summary>
-        public ControlType ControlType { get; set; } = ControlType.BinaryToggle;
+        public SettingInputType InputType { get; set; } = SettingInputType.Toggle;
         
         /// <summary>
-        /// Gets or sets the selected value for ComboBox controls.
-        /// This is used when ControlType is ComboBox.
+        /// Gets or sets the selected value for Selection controls.
+        /// This is used when InputType is Selection.
         /// </summary>
         public string SelectedValue { get; set; }
         
@@ -42,12 +42,12 @@ namespace Winhance.Core.Features.Common.Models
         public Dictionary<string, object> CustomProperties { get; set; } = new Dictionary<string, object>();
         
         /// <summary>
-        /// Ensures that SelectedValue is set for ComboBox controls based on SliderValue and available options.
+        /// Ensures that SelectedValue is set for Selection controls based on SliderValue and available options.
         /// </summary>
         public void EnsureSelectedValueIsSet()
         {
-            // Only process ComboBox controls with null SelectedValue
-            if (ControlType == ControlType.ComboBox && string.IsNullOrEmpty(SelectedValue))
+            // Only process Selection controls with null SelectedValue
+            if (InputType == SettingInputType.Selection && string.IsNullOrEmpty(SelectedValue))
             {
                 // For Power Plan
                 if (Name?.Contains("Power Plan") == true ||

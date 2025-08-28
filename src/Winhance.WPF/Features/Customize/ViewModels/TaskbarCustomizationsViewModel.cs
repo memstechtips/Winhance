@@ -1,52 +1,50 @@
 using System;
 using System.Collections.ObjectModel;
+using System.Linq;
 using System.Threading.Tasks;
 using System.Windows.Input;
 using CommunityToolkit.Mvvm.ComponentModel;
 using CommunityToolkit.Mvvm.Input;
+using Winhance.Core.Features.Common.Constants;
 using Winhance.Core.Features.Common.Enums;
+using Winhance.Core.Features.Common.Events;
+using Winhance.Core.Features.Common.Events.Features;
 using Winhance.Core.Features.Common.Interfaces;
 using Winhance.Core.Features.Customize.Interfaces;
 using Winhance.WPF.Features.Common.Interfaces;
-using Winhance.WPF.Features.Common.Models;
+using Winhance.WPF.Features.Common.ViewModels;
 
 namespace Winhance.WPF.Features.Customize.ViewModels
 {
     /// <summary>
     /// ViewModel for Taskbar customizations using clean architecture principles.
-    /// Uses composition pattern with ISettingsUICoordinator for UI state management.
+    /// Directly manages settings using domain services without UI coordinator.
     /// </summary>
     public partial class TaskbarCustomizationsViewModel : ObservableObject, IFeatureViewModel
     {
-        private readonly ITaskbarService _taskbarService;
-        private readonly ISettingsUICoordinator _uiCoordinator;
+        private readonly IDomainServiceRouter _domainServiceRouter;
+        private readonly ISettingApplicationService _settingApplicationService;
+        private readonly IEventBus _eventBus;
         private readonly ITaskProgressService _progressService;
         private readonly ILogService _logService;
         private readonly ISystemServices _systemServices;
         private readonly IDialogService _dialogService;
+        private readonly ISettingsLoadingService _settingsLoadingService;
 
-        // Delegate properties to UI Coordinator
-        public ObservableCollection<SettingUIItem> Settings => _uiCoordinator.Settings;
-        public ObservableCollection<SettingGroup> SettingGroups => _uiCoordinator.SettingGroups;
-        public bool IsLoading
-        {
-            get => _uiCoordinator.IsLoading;
-            set => _uiCoordinator.IsLoading = value;
-        }
-        public string CategoryName
-        {
-            get => _uiCoordinator.CategoryName;
-            set => _uiCoordinator.CategoryName = value;
-        }
-        public string SearchText
-        {
-            get => _uiCoordinator.SearchText;
-            set => _uiCoordinator.SearchText = value;
-        }
-        public bool HasVisibleSettings => _uiCoordinator.HasVisibleSettings;
+        [ObservableProperty]
+        private ObservableCollection<SettingItemViewModel> _settings = new();
+
+        [ObservableProperty]
+        private bool _isLoading;
+
+        [ObservableProperty]
+        private string _searchText = string.Empty;
+
+        public string CategoryName => "Taskbar";
+        public bool HasVisibleSettings => Settings.Any(s => s.IsVisible);
 
         // IFeatureViewModel implementation
-        public string ModuleId => "taskbar";
+        public string ModuleId => FeatureIds.Taskbar;
         public string DisplayName => "Taskbar";
         public int SettingsCount => Settings?.Count ?? 0;
         public string Category => "Customize";
@@ -69,28 +67,24 @@ namespace Winhance.WPF.Features.Customize.ViewModels
         /// </summary>
         public IAsyncRelayCommand CleanTaskbarCommand { get; }
 
-        /// <summary>
-        /// Initializes a new instance of the <see cref="TaskbarCustomizationsViewModel"/> class.
-        /// </summary>
-        /// <param name="taskbarService">The taskbar domain service.</param>
-        /// <param name="settingsService">The application settings service.</param>
-        /// <param name="logService">The log service.</param>
-        /// <param name="dialogService">The dialog service.</param>
-        /// <param name="systemServices">The system services.</param>
-        /// <param name="progressService">The task progress service.</param>
         public TaskbarCustomizationsViewModel(
-            ITaskbarService taskbarService,
-            ISettingsUICoordinator uiCoordinator,
+            IDomainServiceRouter DomainServiceRouter,
+            ISettingApplicationService settingApplicationService,
+            IEventBus eventBus,
             ILogService logService,
             IDialogService dialogService,
             ITaskProgressService progressService,
-            ISystemServices systemServices
+            ISystemServices systemServices,
+            ISettingsLoadingService settingsLoadingService
         )
         {
-            _taskbarService =
-                taskbarService ?? throw new ArgumentNullException(nameof(taskbarService));
-            _uiCoordinator =
-                uiCoordinator ?? throw new ArgumentNullException(nameof(uiCoordinator));
+            _domainServiceRouter =
+                DomainServiceRouter
+                ?? throw new ArgumentNullException(nameof(DomainServiceRouter));
+            _settingApplicationService =
+                settingApplicationService
+                ?? throw new ArgumentNullException(nameof(settingApplicationService));
+            _eventBus = eventBus ?? throw new ArgumentNullException(nameof(eventBus));
             _logService = logService ?? throw new ArgumentNullException(nameof(logService));
             _dialogService =
                 dialogService ?? throw new ArgumentNullException(nameof(dialogService));
@@ -98,94 +92,44 @@ namespace Winhance.WPF.Features.Customize.ViewModels
                 progressService ?? throw new ArgumentNullException(nameof(progressService));
             _systemServices =
                 systemServices ?? throw new ArgumentNullException(nameof(systemServices));
-
-            _uiCoordinator.CategoryName = "Taskbar";
-
-            // Subscribe to coordinator's PropertyChanged events to relay them to the UI
-            _uiCoordinator.PropertyChanged += (sender, e) => OnPropertyChanged(e.PropertyName);
+            _settingsLoadingService =
+                settingsLoadingService
+                ?? throw new ArgumentNullException(nameof(settingsLoadingService));
 
             // Initialize commands
-            CleanTaskbarCommand = new AsyncRelayCommand(ExecuteCleanTaskbarAsync);
             LoadSettingsCommand = new AsyncRelayCommand(LoadSettingsAsync);
             ToggleExpandCommand = new RelayCommand(ToggleExpand);
         }
 
-        /// <summary>
-        /// Executes the clean taskbar operation using UI coordination.
-        /// Delegates actual business logic to the domain service.
-        /// </summary>
-        private async Task ExecuteCleanTaskbarAsync()
-        {
-            try
-            {
-                // UI: Show confirmation dialog
-                var confirmed = await _dialogService.ShowConfirmationAsync(
-                    "You are about to clean the Taskbar for the current user.\n\n"
-                        + "This will remove all pinned apps except File Explorer and restore the default taskbar layout.\n\n"
-                        + "Do you want to continue?",
-                    "Taskbar Cleanup Confirmation"
-                );
-
-                if (!confirmed)
-                    return;
-
-                // UI: Start progress tracking
-                _progressService.StartTask("Cleaning taskbar...");
-
-                // DELEGATE: Call domain service for business logic
-                await _taskbarService.ExecuteTaskbarCleanupAsync();
-
-                // UI: Complete progress and show success
-                _progressService.CompleteTask();
-                await _dialogService.ShowInformationAsync(
-                    "Taskbar has been cleaned successfully.",
-                    "Taskbar Cleanup"
-                );
-
-                // UI: Refresh settings to reflect changes
-                await LoadSettingsAsync();
-            }
-            catch (Exception ex)
-            {
-                // UI: Handle error display and cleanup
-                _progressService.CompleteTask();
-                _logService.Log(LogLevel.Error, $"Error cleaning taskbar: {ex.Message}");
-                await _dialogService.ShowErrorAsync(
-                    $"Failed to clean taskbar: {ex.Message}",
-                    "Taskbar Cleanup Error"
-                );
-            }
-        }
-
-        /// <summary>
-        /// Loads settings and initializes the UI state.
-        /// </summary>
         public async Task LoadSettingsAsync()
         {
-            _logService.Log(
-                LogLevel.Info,
-                "TaskbarCustomizationsViewModel: Starting LoadSettingsAsync"
-            );
-
             try
             {
-                _progressService.StartTask("Loading taskbar settings...");
+                IsLoading = true;
 
-                // Use the domain service which provides centralized ComboBox resolution
-                await _uiCoordinator.LoadSettingsAsync(() => _taskbarService.GetSettingsAsync());
+                Settings = new ObservableCollection<SettingItemViewModel>(
+                    (
+                        await _settingsLoadingService.LoadConfiguredSettingsAsync(
+                            _domainServiceRouter.GetDomainService(ModuleId),
+                            ModuleId,
+                            "Loading theme settings..."
+                        )
+                    ).Cast<SettingItemViewModel>()
+                );
 
                 _logService.Log(
                     LogLevel.Info,
-                    $"TaskbarCustomizationsViewModel: UI Coordinator has {_uiCoordinator.Settings.Count} settings after load"
+                    $"TaskbarCustomizationsViewModel: Successfully loaded {Settings.Count} settings"
                 );
-
-                _progressService.CompleteTask();
             }
             catch (Exception ex)
             {
-                _progressService.CompleteTask();
-                _logService.Log(LogLevel.Error, $"Error loading Taskbar settings: {ex.Message}");
+                _logService.Log(LogLevel.Error, $"Error loading taskbar settings: {ex.Message}");
                 throw;
+            }
+            finally
+            {
+                IsLoading = false;
             }
         }
 
@@ -194,7 +138,10 @@ namespace Winhance.WPF.Features.Customize.ViewModels
         /// </summary>
         public async Task RefreshSettingsAsync()
         {
-            await LoadSettingsAsync();
+            foreach (var setting in Settings)
+            {
+                await setting.RefreshStateAsync();
+            }
         }
 
         /// <summary>
@@ -202,7 +149,19 @@ namespace Winhance.WPF.Features.Customize.ViewModels
         /// </summary>
         public void ClearSettings()
         {
-            _uiCoordinator.ClearSettings();
+            Settings.Clear();
+        }
+
+        /// <summary>
+        /// Updates visibility of settings based on search text.
+        /// </summary>
+        partial void OnSearchTextChanged(string value)
+        {
+            foreach (var setting in Settings)
+            {
+                setting.UpdateVisibility(value);
+            }
+            OnPropertyChanged(nameof(HasVisibleSettings));
         }
 
         /// <summary>

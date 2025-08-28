@@ -14,28 +14,28 @@ namespace Winhance.Core.Features.Common.Interfaces
         /// </summary>
         /// <param name="setting">The setting to check.</param>
         /// <returns>True if this strategy can handle the setting.</returns>
-        bool CanHandle(ApplicationSetting setting);
+        bool CanHandle(SettingDefinition setting);
 
         /// <summary>
         /// Applies a binary toggle setting.
         /// </summary>
         /// <param name="setting">The setting to apply.</param>
         /// <param name="enable">Whether to enable or disable the setting.</param>
-        Task ApplyBinaryToggleAsync(ApplicationSetting setting, bool enable);
+        Task ApplyBinaryToggleAsync(SettingDefinition setting, bool enable);
 
         /// <summary>
         /// Applies a ComboBox setting using the centralized resolver pattern.
         /// </summary>
         /// <param name="setting">The ComboBox setting to apply.</param>
         /// <param name="comboBoxIndex">The selected ComboBox index.</param>
-        Task ApplyComboBoxIndexAsync(ApplicationSetting setting, int comboBoxIndex);
+        Task ApplyComboBoxIndexAsync(SettingDefinition setting, int comboBoxIndex);
 
         /// <summary>
         /// Applies a numeric up/down setting with a specific value.
         /// </summary>
         /// <param name="setting">The setting to apply.</param>
         /// <param name="value">The numeric value to set.</param>
-        Task ApplyNumericUpDownAsync(ApplicationSetting setting, object value);
+        Task ApplyNumericUpDownAsync(SettingDefinition setting, object value);
 
         /// <summary>
         /// Gets the current status of a setting.
@@ -45,7 +45,7 @@ namespace Winhance.Core.Features.Common.Interfaces
         /// <returns>True if the setting is enabled, false otherwise.</returns>
         Task<bool> GetSettingStatusAsync(
             string settingId,
-            System.Collections.Generic.IEnumerable<ApplicationSetting> settings
+            System.Collections.Generic.IEnumerable<SettingDefinition> settings
         );
 
         /// <summary>
@@ -56,7 +56,7 @@ namespace Winhance.Core.Features.Common.Interfaces
         /// <returns>The current value of the setting, or null if not found.</returns>
         Task<object?> GetSettingValueAsync(
             string settingId,
-            System.Collections.Generic.IEnumerable<ApplicationSetting> settings
+            System.Collections.Generic.IEnumerable<SettingDefinition> settings
         );
     }
 }

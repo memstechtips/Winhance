@@ -83,6 +83,7 @@ namespace Winhance.WPF.Features.Common.Extensions.DI
 
             // Feature-specific ViewModels (Transient - Clean state per use)
             services.AddTransient<WindowsThemeCustomizationsViewModel>();
+
             services.AddTransient<StartMenuCustomizationsViewModel>();
             services.AddTransient<TaskbarCustomizationsViewModel>();
             services.AddTransient<ExplorerCustomizationsViewModel>();

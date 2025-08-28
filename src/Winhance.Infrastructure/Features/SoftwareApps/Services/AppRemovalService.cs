@@ -5,6 +5,7 @@ using System.Threading;
 using System.Threading.Tasks;
 using Winhance.Core.Features.Common.Enums;
 using Winhance.Core.Features.Common.Interfaces;
+using Winhance.Core.Features.Common.Interfaces.WindowsRegistry;
 using Winhance.Core.Features.Common.Models;
 using Winhance.Core.Features.SoftwareApps.Interfaces;
 using Winhance.Core.Features.SoftwareApps.Interfaces.ScriptGeneration;
@@ -22,7 +23,7 @@ namespace Winhance.Infrastructure.Features.SoftwareApps.Services
         private readonly IAppDiscoveryService _appDiscoveryService;
         private readonly IBloatRemovalScriptService _bloatRemovalScriptService;
         private readonly ISystemServices _systemServices;
-        private readonly IRegistryService _registryService;
+        private readonly IWindowsRegistryService _registryService;
 
         /// <summary>
         /// Initializes a new instance of the <see cref="AppRemovalService"/> class.
@@ -39,7 +40,7 @@ namespace Winhance.Infrastructure.Features.SoftwareApps.Services
             IAppDiscoveryService appDiscoveryService,
             IBloatRemovalScriptService bloatRemovalScriptService,
             ISystemServices systemServices,
-            IRegistryService registryService
+            IWindowsRegistryService windowsRegistryService
         )
         {
             _logService = logService;
@@ -47,7 +48,7 @@ namespace Winhance.Infrastructure.Features.SoftwareApps.Services
             _appDiscoveryService = appDiscoveryService;
             _bloatRemovalScriptService = bloatRemovalScriptService;
             _systemServices = systemServices;
-            _registryService = registryService;
+            _registryService = windowsRegistryService;
         }
 
         /// <inheritdoc/>

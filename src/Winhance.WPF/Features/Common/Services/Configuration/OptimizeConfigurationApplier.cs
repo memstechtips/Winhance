@@ -477,7 +477,7 @@ namespace Winhance.WPF.Features.Common.Services.Configuration
                         {
                             Name = powerPlanSetting.Name,
                             IsSelected = true,
-                            ControlType = ControlType.ComboBox,
+                            InputType = SettingInputType.Selection,
                             CustomProperties = new Dictionary<string, object>
                             {
                                 { "Id", "PowerPlanComboBox" },

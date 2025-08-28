@@ -1,4 +1,5 @@
 using System.Collections.Generic;
+using Winhance.Core.Features.Common.Models.WindowsRegistry;
 
 namespace Winhance.Core.Features.Common.Models
 {
@@ -6,6 +7,7 @@ namespace Winhance.Core.Features.Common.Models
     /// Domain model for tooltip display data.
     /// Contains individual registry values that are already retrieved during system state discovery.
     /// This keeps UI concerns separate from domain models while reusing existing registry calls.
+    /// Extended to support RegistrySettingTooltipTemplate binding.
     /// </summary>
     public class SettingTooltipData
     {
@@ -13,6 +15,23 @@ namespace Winhance.Core.Features.Common.Models
         /// Gets or sets the setting ID this tooltip data belongs to.
         /// </summary>
         public string SettingId { get; set; } = string.Empty;
+
+        /// <summary>
+        /// Gets or sets the description for this setting (for tooltip display).
+        /// </summary>
+        public string Description { get; set; } = string.Empty;
+
+        /// <summary>
+        /// Gets or sets the primary registry setting (for single setting tooltips).
+        /// Used by RegistrySettingTooltipTemplate when displaying single registry settings.
+        /// </summary>
+        public RegistrySetting? RegistrySetting { get; set; }
+
+        /// <summary>
+        /// Gets or sets the display value for the primary registry setting.
+        /// Used by RegistrySettingTooltipTemplate for showing current value.
+        /// </summary>
+        public string DisplayValue { get; set; } = string.Empty;
 
         /// <summary>
         /// Gets or sets the individual current values for each registry setting.

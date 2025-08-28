@@ -4,7 +4,6 @@ using System.Threading;
 using System.Threading.Tasks;
 using Winhance.Core.Features.Common.Interfaces;
 using Winhance.Core.Features.Common.Models;
-using Winhance.Core.Features.Optimize.Models;
 using Winhance.Core.Features.Common.Enums;
 using Winhance.Core.Features.SoftwareApps.Models;
 using Winhance.Core.Features.SoftwareApps.Interfaces;

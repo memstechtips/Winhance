@@ -1007,7 +1007,7 @@ namespace Winhance.Infrastructure.Features.SoftwareApps.Services.ScriptGeneratio
 
                         // Apply the registry settings to delete the keys
                         // TODO: ApplyRegistrySettingsAsync is not on IAppRemovalService.
-                        // Need to inject IRegistryService or move this logic. Commenting out for now.
+                        // Need to inject IWindowsRegistryService or move this logic. Commenting out for now.
                         _logService.LogInformation(
                             $"Applying {deleteRegistrySettings.Count} registry settings to delete keys for {app.PackageName}"
                         );

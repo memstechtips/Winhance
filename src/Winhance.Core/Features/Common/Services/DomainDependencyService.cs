@@ -8,7 +8,7 @@ using Winhance.Core.Features.Common.Models;
 namespace Winhance.Core.Features.Common.Services
 {
     /// <summary>
-    /// Service for managing dependencies between domain settings (ApplicationSetting objects).
+    /// Service for managing dependencies between domain settings (SettingDefinition objects).
     /// This handles business logic dependencies at the domain layer.
     /// </summary>
     public class DomainDependencyService : IDomainDependencyService
@@ -20,7 +20,7 @@ namespace Winhance.Core.Features.Common.Services
             _logService = logService ?? throw new ArgumentNullException(nameof(logService));
         }
 
-        public bool CanEnableSetting(string settingId, IEnumerable<ApplicationSetting> allSettings, Dictionary<string, bool> currentSettingsState)
+        public bool CanEnableSetting(string settingId, IEnumerable<SettingDefinition> allSettings, Dictionary<string, bool> currentSettingsState)
         {
             if (string.IsNullOrEmpty(settingId))
             {
@@ -67,7 +67,7 @@ namespace Winhance.Core.Features.Common.Services
             return true;
         }
 
-        public IEnumerable<string> GetRequiredDependencies(string settingId, IEnumerable<ApplicationSetting> allSettings)
+        public IEnumerable<string> GetRequiredDependencies(string settingId, IEnumerable<SettingDefinition> allSettings)
         {
             var setting = allSettings.FirstOrDefault(s => s.Id == settingId);
             if (setting?.Dependencies == null)
@@ -81,7 +81,7 @@ namespace Winhance.Core.Features.Common.Services
                 .ToList();
         }
 
-        public IEnumerable<string> GetConflictingDependencies(string settingId, IEnumerable<ApplicationSetting> allSettings)
+        public IEnumerable<string> GetConflictingDependencies(string settingId, IEnumerable<SettingDefinition> allSettings)
         {
             var setting = allSettings.FirstOrDefault(s => s.Id == settingId);
             if (setting?.Dependencies == null)
@@ -95,7 +95,7 @@ namespace Winhance.Core.Features.Common.Services
                 .ToList();
         }
 
-        public IEnumerable<string> GetDependentSettings(string settingId, IEnumerable<ApplicationSetting> allSettings)
+        public IEnumerable<string> GetDependentSettings(string settingId, IEnumerable<SettingDefinition> allSettings)
         {
             return allSettings
                 .Where(s => s.Dependencies?.Any(d => d.RequiredSettingId == settingId && d.DependencyType == SettingDependencyType.RequiresEnabled) == true)
@@ -103,7 +103,7 @@ namespace Winhance.Core.Features.Common.Services
                 .ToList();
         }
 
-        public Dictionary<string, string> ValidateSettingsDependencies(IEnumerable<ApplicationSetting> allSettings, Dictionary<string, bool> currentSettingsState)
+        public Dictionary<string, string> ValidateSettingsDependencies(IEnumerable<SettingDefinition> allSettings, Dictionary<string, bool> currentSettingsState)
         {
             var validationErrors = new Dictionary<string, string>();
 
@@ -143,7 +143,7 @@ namespace Winhance.Core.Features.Common.Services
             return validationErrors;
         }
 
-        public Dictionary<string, bool> GetDependencyResolutionPlan(string settingId, IEnumerable<ApplicationSetting> allSettings, Dictionary<string, bool> currentSettingsState)
+        public Dictionary<string, bool> GetDependencyResolutionPlan(string settingId, IEnumerable<SettingDefinition> allSettings, Dictionary<string, bool> currentSettingsState)
         {
             var resolutionPlan = new Dictionary<string, bool>();
             var settingsToProcess = new Queue<string>();

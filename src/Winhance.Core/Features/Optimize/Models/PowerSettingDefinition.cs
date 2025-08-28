@@ -1,8 +1,4 @@
-using System;
 using System.Collections.Generic;
-using System.Linq;
-using System.Text;
-using System.Threading.Tasks;
 using Winhance.Core.Features.Common.Enums;
 
 namespace Winhance.Core.Features.Optimize.Models
@@ -126,9 +122,9 @@ namespace Winhance.Core.Features.Optimize.Models
         public Dictionary<int, string> CustomCommandValueMap { get; set; } = new Dictionary<int, string>();
 
         /// <summary>
-        /// Gets or sets the control type to use in the UI for this setting.
+        /// Gets or sets the input type to use in the UI for this setting.
         /// </summary>
-        public ControlType ControlType { get; set; } = ControlType.NumericUpDown;
+        public SettingInputType InputType { get; set; } = SettingInputType.NumericRange;
     }
 
     /// <summary>

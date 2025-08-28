@@ -1,7 +1,10 @@
 using System.Collections.Generic;
 using Microsoft.Win32;
+using Winhance.Core.Features.Common.Constants;
 using Winhance.Core.Features.Common.Enums;
+
 using Winhance.Core.Features.Common.Models;
+using Winhance.Core.Features.Common.Models.WindowsRegistry;
 
 namespace Winhance.Core.Features.Optimize.Models
 {
@@ -11,98 +14,83 @@ namespace Winhance.Core.Features.Optimize.Models
     /// </summary>
     public static class WindowsSecurityOptimizations
     {
-        public const string UacRegistryPath = @"SOFTWARE\Microsoft\Windows\CurrentVersion\Policies\System";
+        public const string UacRegistryPath =
+            @"SOFTWARE\Microsoft\Windows\CurrentVersion\Policies\System";
         public static readonly RegistryValueKind ValueKind = RegistryValueKind.DWord;
 
-        /// <summary>
-        /// Gets Windows Security optimization settings
-        /// </summary>
-        public static OptimizationGroup GetWindowsSecurityOptimizations()
+        public static SettingGroup GetWindowsSecurityOptimizations()
         {
-            return new OptimizationGroup
+            return new SettingGroup
             {
                 Name = "Windows Security",
-                Category = OptimizationCategory.Security,
-                Settings = new List<OptimizationSetting>
+                FeatureId = FeatureIds.Security,
+                Settings = new List<SettingDefinition>
                 {
-                    new OptimizationSetting
+                    new SettingDefinition
                     {
                         Id = "security-uac-level",
                         Name = "User Account Control Level",
                         Description = "Controls UAC notification level and secure desktop behavior",
-                        Category = OptimizationCategory.Security,
                         GroupName = "Windows Security Settings",
-                        IsEnabled = true,
-                        ControlType = ControlType.ComboBox,
+                        InputType = SettingInputType.Selection,
                         RegistrySettings = new List<RegistrySetting>
                         {
                             new RegistrySetting
                             {
-                                Category = "Security",
-                                Hive = "HKEY_LOCAL_MACHINE",
-                                SubKey = UacRegistryPath,
-                                Name = "ConsentPromptBehaviorAdmin",
+                                KeyPath = @"SOFTWARE\Microsoft\Windows\CurrentVersion\Policies\System",
+                                ValueName = "ConsentPromptBehaviorAdmin",
                                 RecommendedValue = 5, // NotifyChangesOnly
                                 EnabledValue = 5,
                                 DisabledValue = 0,
-                                ValueType = ValueKind,
                                 DefaultValue = 5,
-                                Description = "Controls UAC consent prompt behavior for administrators",
-                                IsPrimary = true,
-                                AbsenceMeansEnabled = false,
+                                ValueType = RegistryValueKind.DWord,
                             },
                             new RegistrySetting
                             {
-                                Category = "Security",
-                                Hive = "HKEY_LOCAL_MACHINE",
-                                SubKey = UacRegistryPath,
-                                Name = "PromptOnSecureDesktop",
+                                KeyPath = @"SOFTWARE\Microsoft\Windows\CurrentVersion\Policies\System",
+                                ValueName = "PromptOnSecureDesktop",
                                 RecommendedValue = 1, // Secure desktop enabled
                                 EnabledValue = 1,
                                 DisabledValue = 0,
-                                ValueType = ValueKind,
                                 DefaultValue = 1,
-                                Description = "Controls whether UAC prompts appear on secure desktop",
-                                IsPrimary = false,
-                                AbsenceMeansEnabled = false,
+                                ValueType = RegistryValueKind.DWord,
                             },
                         },
                         CustomProperties = new Dictionary<string, object>
                         {
-                            ["ComboBoxDisplayNames"] = new string[]
+                            [CustomPropertyKeys.ComboBoxDisplayNames] = new string[]
                             {
                                 "Always notify",
-                                "Notify when apps try to make changes", 
+                                "Notify when apps try to make changes",
                                 "Notify when apps try to make changes (no dim)",
-                                "Never notify"
+                                "Never notify",
                             },
-                            ["ValueMappings"] = new Dictionary<int, Dictionary<string, int>>
+                            [CustomPropertyKeys.ValueMappings] = new Dictionary<int, Dictionary<string, int>>
                             {
                                 [0] = new Dictionary<string, int> // Always notify
                                 {
                                     ["ConsentPromptBehaviorAdmin"] = 2,
-                                    ["PromptOnSecureDesktop"] = 1
+                                    ["PromptOnSecureDesktop"] = 1,
                                 },
                                 [1] = new Dictionary<string, int> // Notify changes only
                                 {
                                     ["ConsentPromptBehaviorAdmin"] = 5,
-                                    ["PromptOnSecureDesktop"] = 1
+                                    ["PromptOnSecureDesktop"] = 1,
                                 },
                                 [2] = new Dictionary<string, int> // Notify changes no dim
                                 {
                                     ["ConsentPromptBehaviorAdmin"] = 5,
-                                    ["PromptOnSecureDesktop"] = 0
+                                    ["PromptOnSecureDesktop"] = 0,
                                 },
                                 [3] = new Dictionary<string, int> // Never notify
                                 {
                                     ["ConsentPromptBehaviorAdmin"] = 0,
-                                    ["PromptOnSecureDesktop"] = 0
-                                }
-                            }
+                                    ["PromptOnSecureDesktop"] = 0,
+                                },
+                            },
                         },
-                        LinkedSettingsLogic = LinkedSettingsLogic.All
-                    }
-                }
+                    },
+                },
             };
         }
 

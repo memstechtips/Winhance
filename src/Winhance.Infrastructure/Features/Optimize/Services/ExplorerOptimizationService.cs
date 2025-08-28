@@ -2,6 +2,7 @@ using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Threading.Tasks;
+using Winhance.Core.Features.Common.Constants;
 using Winhance.Core.Features.Common.Enums;
 using Winhance.Core.Features.Common.Interfaces;
 using Winhance.Core.Features.Common.Models;
@@ -16,52 +17,47 @@ namespace Winhance.Infrastructure.Features.Optimize.Services
     /// Handles file explorer performance, indexing, search optimization, and system efficiency tweaks.
     /// Maintains exact same method signatures and behavior for compatibility.
     /// </summary>
-    public class ExplorerOptimizationService : IExplorerOptimizationService
+    public class ExplorerOptimizationService : IDomainService
     {
-        private readonly SystemSettingOrchestrator _orchestrator;
+        private readonly  SettingControlHandler _controlHandler;
+        private readonly ISystemSettingsDiscoveryService _discoveryService;
         private readonly ILogService _logService;
 
         /// <summary>
         /// Gets the domain name for explorer optimizations.
         /// </summary>
-        public string DomainName => "ExplorerOptimization";
+        public string DomainName => FeatureIds.ExplorerOptimization;
 
         /// <summary>
         /// Initializes a new instance of the <see cref="ExplorerOptimizationService"/> class.
         /// </summary>
-        /// <param name="orchestrator">The system setting orchestrator for applying settings.</param>
+        /// <param name="controlHandler">The system setting controlHandler for applying settings.</param>
         /// <param name="logService">The log service for logging operations.</param>
         public ExplorerOptimizationService(
-            SystemSettingOrchestrator orchestrator,
+             SettingControlHandler controlHandler,
+            ISystemSettingsDiscoveryService discoveryService,
             ILogService logService
         )
         {
-            _orchestrator = orchestrator ?? throw new ArgumentNullException(nameof(orchestrator));
+            _controlHandler = controlHandler ?? throw new ArgumentNullException(nameof(controlHandler));
+            _discoveryService = discoveryService ?? throw new ArgumentNullException(nameof(discoveryService));
             _logService = logService ?? throw new ArgumentNullException(nameof(logService));
         }
 
         /// <summary>
         /// Gets all Explorer optimization settings with their current system state.
         /// </summary>
-        public async Task<IEnumerable<ApplicationSetting>> GetSettingsAsync()
+        public async Task<IEnumerable<SettingDefinition>> GetSettingsAsync()
         {
             try
             {
-                _logService.Log(LogLevel.Info, "Loading Explorer optimization settings");
-
                 var optimizations = ExplorerOptimizations.GetExplorerOptimizations();
-                return await _orchestrator.GetSettingsWithSystemStateAsync(
-                    optimizations.Settings,
-                    DomainName
-                );
+                return await _discoveryService.GetSettingsWithSystemStateAsync(optimizations.Settings, DomainName);
             }
             catch (Exception ex)
             {
-                _logService.Log(
-                    LogLevel.Error,
-                    $"Error loading Explorer optimization settings: {ex.Message}"
-                );
-                return Enumerable.Empty<ApplicationSetting>();
+                _logService.Log(LogLevel.Error, $"Error loading Explorer optimization settings: {ex.Message}");
+                return Enumerable.Empty<SettingDefinition>();
             }
         }
 
@@ -71,7 +67,24 @@ namespace Winhance.Infrastructure.Features.Optimize.Services
         public async Task ApplySettingAsync(string settingId, bool enable, object? value = null)
         {
             var settings = await GetRawSettingsAsync();
-            await _orchestrator.ApplySettingAsync(settingId, enable, value, settings, DomainName);
+            var setting = settings.FirstOrDefault(s => s.Id == settingId);
+            if (setting == null)
+                throw new ArgumentException($"Setting '{settingId}' not found");
+
+            switch (setting.InputType)
+            {
+                case SettingInputType.Toggle:
+                    await _controlHandler.ApplyBinaryToggleAsync(setting, enable);
+                    break;
+                case SettingInputType.Selection when value is int index:
+                    await _controlHandler.ApplyComboBoxIndexAsync(setting, index);
+                    break;
+                case SettingInputType.NumericRange when value != null:
+                    await _controlHandler.ApplyNumericUpDownAsync(setting, value);
+                    break;
+                default:
+                    throw new NotSupportedException($"Input type '{setting.InputType}' not supported");
+            }
         }
 
         /// <summary>
@@ -80,7 +93,7 @@ namespace Winhance.Infrastructure.Features.Optimize.Services
         public async Task<bool> IsSettingEnabledAsync(string settingId)
         {
             var settings = await GetRawSettingsAsync();
-            return await _orchestrator.GetSettingStatusAsync(settingId, settings);
+            return await _controlHandler.GetSettingStatusAsync(settingId, settings);
         }
 
         /// <summary>
@@ -89,13 +102,13 @@ namespace Winhance.Infrastructure.Features.Optimize.Services
         public async Task<object?> GetSettingValueAsync(string settingId)
         {
             var settings = await GetRawSettingsAsync();
-            return await _orchestrator.GetSettingValueAsync(settingId, settings);
+            return await _controlHandler.GetSettingValueAsync(settingId, settings);
         }
 
         /// <summary>
         /// Helper method to get raw settings without system state.
         /// </summary>
-        private async Task<IEnumerable<ApplicationSetting>> GetRawSettingsAsync()
+        public async Task<IEnumerable<SettingDefinition>> GetRawSettingsAsync()
         {
             var optimizations = ExplorerOptimizations.GetExplorerOptimizations();
             return await Task.FromResult(optimizations.Settings);
@@ -114,31 +127,31 @@ namespace Winhance.Infrastructure.Features.Optimize.Services
                 switch (actionId.ToLowerInvariant())
                 {
                     case "restart-explorer":
-                        // Note: This method now needs ICommandService injected or accessed through orchestrator
+                        // Note: This method now needs ICommandService injected or accessed through controlHandler
                         _logService.Log(
                             LogLevel.Warning,
-                            "ExecuteExplorerActionAsync requires command execution capability - consider refactoring to use orchestrator"
+                            "ExecuteExplorerActionAsync requires command execution capability - consider refactoring to use controlHandler"
                         );
                         break;
 
                     case "clear-thumbnail-cache":
                         _logService.Log(
                             LogLevel.Warning,
-                            "ExecuteExplorerActionAsync requires command execution capability - consider refactoring to use orchestrator"
+                            "ExecuteExplorerActionAsync requires command execution capability - consider refactoring to use controlHandler"
                         );
                         break;
 
                     case "rebuild-search-index":
                         _logService.Log(
                             LogLevel.Warning,
-                            "ExecuteExplorerActionAsync requires command execution capability - consider refactoring to use orchestrator"
+                            "ExecuteExplorerActionAsync requires command execution capability - consider refactoring to use controlHandler"
                         );
                         break;
 
                     case "optimize-indexing":
                         _logService.Log(
                             LogLevel.Warning,
-                            "ExecuteExplorerActionAsync requires command execution capability - consider refactoring to use orchestrator"
+                            "ExecuteExplorerActionAsync requires command execution capability - consider refactoring to use controlHandler"
                         );
                         break;
 

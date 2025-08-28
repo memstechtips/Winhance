@@ -1,54 +1,50 @@
 using System;
 using System.Collections.ObjectModel;
+using System.Linq;
 using System.Threading.Tasks;
 using System.Windows.Input;
 using CommunityToolkit.Mvvm.ComponentModel;
 using CommunityToolkit.Mvvm.Input;
+using Winhance.Core.Features.Common.Constants;
 using Winhance.Core.Features.Common.Enums;
+using Winhance.Core.Features.Common.Events;
+using Winhance.Core.Features.Common.Events.Features;
 using Winhance.Core.Features.Common.Interfaces;
 using Winhance.Core.Features.Customize.Interfaces;
-using Winhance.Core.Features.Customize.Models;
 using Winhance.WPF.Features.Common.Interfaces;
-using Winhance.WPF.Features.Common.Models;
+using Winhance.WPF.Features.Common.ViewModels;
 
 namespace Winhance.WPF.Features.Customize.ViewModels
 {
     /// <summary>
     /// Clean architecture ViewModel for Start Menu customizations.
-    /// Uses composition pattern with ISettingsUICoordinator for UI state management.
-    /// Follows SOLID principles and clean separation of concerns.
+    /// Directly manages settings using domain services without UI coordinator.
     /// </summary>
     public partial class StartMenuCustomizationsViewModel : ObservableObject, IFeatureViewModel
     {
-        private readonly IStartMenuService _startMenuService;
-        private readonly ISettingsUICoordinator _uiCoordinator;
+        private readonly IDomainServiceRouter _domainServiceRouter;
+        private readonly ISettingApplicationService _settingApplicationService;
+        private readonly IEventBus _eventBus;
         private readonly ITaskProgressService _progressService;
         private readonly ILogService _logService;
         private readonly ISystemServices _systemServices;
         private readonly IDialogService _dialogService;
+        private readonly ISettingsLoadingService _settingsLoadingService;
 
-        // Delegate properties to UI Coordinator
-        public ObservableCollection<SettingUIItem> Settings => _uiCoordinator.Settings;
-        public ObservableCollection<SettingGroup> SettingGroups => _uiCoordinator.SettingGroups;
-        public bool IsLoading
-        {
-            get => _uiCoordinator.IsLoading;
-            set => _uiCoordinator.IsLoading = value;
-        }
-        public string CategoryName
-        {
-            get => _uiCoordinator.CategoryName;
-            set => _uiCoordinator.CategoryName = value;
-        }
-        public string SearchText
-        {
-            get => _uiCoordinator.SearchText;
-            set => _uiCoordinator.SearchText = value;
-        }
-        public bool HasVisibleSettings => _uiCoordinator.HasVisibleSettings;
+        [ObservableProperty]
+        private ObservableCollection<SettingItemViewModel> _settings = new();
+
+        [ObservableProperty]
+        private bool _isLoading;
+
+        [ObservableProperty]
+        private string _searchText = string.Empty;
+
+        public string CategoryName => "Start Menu";
+        public bool HasVisibleSettings => Settings.Any(s => s.IsVisible);
 
         // IFeatureViewModel implementation
-        public string ModuleId => "start-menu";
+        public string ModuleId => FeatureIds.StartMenu;
         public string DisplayName => "Start Menu";
         public int SettingsCount => Settings?.Count ?? 0;
         public string Category => "Customize";
@@ -66,24 +62,22 @@ namespace Winhance.WPF.Features.Customize.ViewModels
 
         public ICommand ToggleExpandCommand { get; private set; }
 
-        /// <summary>
-        /// Command to clean the Start Menu.
-        /// </summary>
-        public ICommand CleanStartMenuCommand { get; }
-
         public StartMenuCustomizationsViewModel(
-            IStartMenuService startMenuService,
-            ISettingsUICoordinator uiCoordinator,
+            IDomainServiceRouter DomainServiceRouter,
+            ISettingApplicationService settingApplicationService,
+            IEventBus eventBus,
             ILogService logService,
             IDialogService dialogService,
             ITaskProgressService progressService,
-            ISystemServices systemServices
+            ISystemServices systemServices,
+            ISettingsLoadingService settingsLoadingService
         )
         {
-            _startMenuService =
-                startMenuService ?? throw new ArgumentNullException(nameof(startMenuService));
-            _uiCoordinator =
-                uiCoordinator ?? throw new ArgumentNullException(nameof(uiCoordinator));
+            _domainServiceRouter =
+                DomainServiceRouter ?? throw new ArgumentNullException(nameof(DomainServiceRouter));
+            _settingApplicationService =
+                settingApplicationService ?? throw new ArgumentNullException(nameof(settingApplicationService));
+            _eventBus = eventBus ?? throw new ArgumentNullException(nameof(eventBus));
             _logService = logService ?? throw new ArgumentNullException(nameof(logService));
             _dialogService =
                 dialogService ?? throw new ArgumentNullException(nameof(dialogService));
@@ -91,95 +85,43 @@ namespace Winhance.WPF.Features.Customize.ViewModels
                 progressService ?? throw new ArgumentNullException(nameof(progressService));
             _systemServices =
                 systemServices ?? throw new ArgumentNullException(nameof(systemServices));
-
-            _uiCoordinator.CategoryName = "Start Menu";
-
-            // Subscribe to coordinator's PropertyChanged events to relay them to the UI
-            _uiCoordinator.PropertyChanged += (sender, e) => OnPropertyChanged(e.PropertyName);
+            _settingsLoadingService =
+                settingsLoadingService ?? throw new ArgumentNullException(nameof(settingsLoadingService));
 
             // Initialize commands
-            CleanStartMenuCommand = new AsyncRelayCommand(CleanStartMenuAsync);
             LoadSettingsCommand = new AsyncRelayCommand(LoadSettingsAsync);
             ToggleExpandCommand = new RelayCommand(ToggleExpand);
         }
 
-        /// <summary>
-        /// Loads settings and organizes them by control type.
-        /// </summary>
         public async Task LoadSettingsAsync()
         {
-            _logService.Log(
-                LogLevel.Info,
-                "StartMenuCustomizationsViewModel: Starting LoadSettingsAsync"
-            );
-
             try
             {
-                _progressService.StartTask("Loading start menu settings...");
+                IsLoading = true;
 
-                // Use the domain service which provides centralized ComboBox resolution
-                await _uiCoordinator.LoadSettingsAsync(() => _startMenuService.GetSettingsAsync());
+                Settings = new ObservableCollection<SettingItemViewModel>(
+                    (
+                        await _settingsLoadingService.LoadConfiguredSettingsAsync(
+                            _domainServiceRouter.GetDomainService(ModuleId),
+                            ModuleId,
+                            "Loading theme settings..."
+                        )
+                    ).Cast<SettingItemViewModel>()
+                );
 
                 _logService.Log(
                     LogLevel.Info,
-                    $"StartMenuCustomizationsViewModel: UI Coordinator has {_uiCoordinator.Settings.Count} settings after load"
+                    $"StartMenuCustomizationsViewModel: Successfully loaded {Settings.Count} settings"
                 );
-
-                _progressService.CompleteTask();
             }
             catch (Exception ex)
             {
-                _progressService.CompleteTask();
                 _logService.Log(LogLevel.Error, $"Error loading Start Menu settings: {ex.Message}");
                 throw;
             }
-        }
-
-        /// <summary>
-        /// Executes the clean Start Menu operation using UI coordination.
-        /// Delegates actual business logic to the domain service.
-        /// </summary>
-        private async Task CleanStartMenuAsync()
-        {
-            try
+            finally
             {
-                // UI: Show confirmation dialog
-                var confirmed = await _dialogService.ShowConfirmationAsync(
-                    "You are about to clean the Start Menu for all users on this computer.\n\n"
-                        + "This will remove all pinned items and apply recommended settings to disable suggestions, "
-                        + "recommendations, and tracking features.\n\n"
-                        + "Do you want to continue?",
-                    "Start Menu Cleaning Options"
-                );
-
-                if (!confirmed)
-                    return;
-
-                // UI: Start progress tracking
-                _progressService.StartTask("Cleaning Start Menu...");
-
-                // DELEGATE: Call domain service for business logic
-                await _startMenuService.CleanStartMenuAsync();
-
-                // UI: Complete progress and show success
-                _progressService.CompleteTask();
-                await _dialogService.ShowInformationAsync(
-                    "Start Menu has been cleaned successfully.",
-                    "Start Menu Cleanup"
-                );
-
-                // UI: Refresh settings to reflect changes
-                await LoadSettingsAsync();
-            }
-            catch (Exception ex)
-            {
-                // UI: Handle error display and cleanup
-                _progressService.CompleteTask();
-                _logService.Log(LogLevel.Error, $"Error cleaning Start Menu: {ex.Message}");
-                await _dialogService.ShowErrorAsync(
-                    $"Failed to clean Start Menu: {ex.Message}",
-                    "Start Menu Cleanup Error"
-                );
+                IsLoading = false;
             }
         }
 
@@ -188,15 +130,24 @@ namespace Winhance.WPF.Features.Customize.ViewModels
         /// </summary>
         public async Task RefreshSettingsAsync()
         {
-            await LoadSettingsAsync();
+            foreach (var setting in Settings)
+            {
+                await setting.RefreshStateAsync();
+            }
         }
 
-        /// <summary>
-        /// Clears all settings and resets the feature state.
-        /// </summary>
         public void ClearSettings()
         {
-            _uiCoordinator.ClearSettings();
+            Settings.Clear();
+        }
+
+        partial void OnSearchTextChanged(string value)
+        {
+            foreach (var setting in Settings)
+            {
+                setting.UpdateVisibility(value);
+            }
+            OnPropertyChanged(nameof(HasVisibleSettings));
         }
 
         /// <summary>

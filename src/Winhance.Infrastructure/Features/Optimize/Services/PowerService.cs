@@ -2,6 +2,7 @@ using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Threading.Tasks;
+using Winhance.Core.Features.Common.Constants;
 using Winhance.Core.Features.Common.Enums;
 using Winhance.Core.Features.Common.Interfaces;
 using Winhance.Core.Features.Common.Models;
@@ -18,15 +19,16 @@ namespace Winhance.Infrastructure.Features.Optimize.Services
     /// </summary>
     public class PowerService : IPowerService, IPowerSettingService
     {
-        private readonly SystemSettingOrchestrator _orchestrator;
+        private readonly  SettingControlHandler _controlHandler;
+        private readonly ISystemSettingsDiscoveryService _discoveryService;
         private readonly ILogService _logService;
-        private readonly IComboBoxValueResolver _comboBoxResolver;
+        private readonly IComboBoxResolver _comboBoxResolver;
         private readonly ICommandService _commandService;
 
         /// <summary>
         /// Gets the domain name for Power optimizations.
         /// </summary>
-        public string DomainName => "Power";
+        public string DomainName => FeatureIds.Power;
 
         private readonly IBatteryService _batteryService;
         private readonly IPowerShellExecutionService _powerShellService;
@@ -34,18 +36,20 @@ namespace Winhance.Infrastructure.Features.Optimize.Services
 
         /// <summary>
         /// Initializes a new instance of the <see cref="PowerService"/> class.
-        /// Uses composition with SystemSettingOrchestrator and dedicated services.
+        /// Uses composition with  SettingControlHandler and dedicated services.
         /// </summary>
         public PowerService(
-            SystemSettingOrchestrator orchestrator,
+             SettingControlHandler controlHandler,
+            ISystemSettingsDiscoveryService discoveryService,
             ILogService logService,
-            IComboBoxValueResolver comboBoxResolver,
+            IComboBoxResolver comboBoxResolver,
             ICommandService commandService,
             IBatteryService batteryService,
             IPowerShellExecutionService powerShellService
         )
         {
-            _orchestrator = orchestrator ?? throw new ArgumentNullException(nameof(orchestrator));
+            _controlHandler = controlHandler ?? throw new ArgumentNullException(nameof(controlHandler));
+            _discoveryService = discoveryService ?? throw new ArgumentNullException(nameof(discoveryService));
             _logService = logService ?? throw new ArgumentNullException(nameof(logService));
             _comboBoxResolver =
                 comboBoxResolver ?? throw new ArgumentNullException(nameof(comboBoxResolver));
@@ -60,7 +64,7 @@ namespace Winhance.Infrastructure.Features.Optimize.Services
         /// <summary>
         /// Gets all Power optimization settings with their current system state, filtered by system capabilities.
         /// </summary>
-        public async Task<IEnumerable<ApplicationSetting>> GetSettingsAsync()
+        public async Task<IEnumerable<SettingDefinition>> GetSettingsAsync()
         {
             try
             {
@@ -68,24 +72,24 @@ namespace Winhance.Infrastructure.Features.Optimize.Services
 
                 // Use filtered subgroups that only show available settings for this system
                 var filteredSubgroups = await GetFilteredSubgroupsAsync();
-                var filteredSettings = new List<OptimizationSetting>();
+                var filteredSettings = new List<SettingDefinition>();
 
                 // Convert filtered subgroups to optimization settings
                 foreach (var subgroup in filteredSubgroups)
                 {
                     foreach (var setting in subgroup.Settings)
                     {
-                        var optimizationSetting = PowerOptimizations.ConvertToOptimizationSetting(
+                        var SettingDefinition = PowerOptimizations.ConvertToSettingDefinition(
                             setting
                         );
-                        if (optimizationSetting != null)
+                        if (SettingDefinition != null)
                         {
-                            filteredSettings.Add(optimizationSetting);
+                            filteredSettings.Add(SettingDefinition);
                         }
                     }
                 }
 
-                return await _orchestrator.GetSettingsWithSystemStateAsync(
+                return await _discoveryService.GetSettingsWithSystemStateAsync(
                     filteredSettings,
                     DomainName
                 );
@@ -96,7 +100,7 @@ namespace Winhance.Infrastructure.Features.Optimize.Services
                     LogLevel.Error,
                     $"Error loading Power optimization settings: {ex.Message}"
                 );
-                return Enumerable.Empty<ApplicationSetting>();
+                return Enumerable.Empty<SettingDefinition>();
             }
         }
 
@@ -106,7 +110,24 @@ namespace Winhance.Infrastructure.Features.Optimize.Services
         public async Task ApplySettingAsync(string settingId, bool enable, object? value = null)
         {
             var settings = await GetRawSettingsAsync();
-            await _orchestrator.ApplySettingAsync(settingId, enable, value, settings, DomainName);
+            var setting = settings.FirstOrDefault(s => s.Id == settingId);
+            if (setting == null)
+                throw new ArgumentException($"Setting '{settingId}' not found");
+
+            switch (setting.InputType)
+            {
+                case SettingInputType.Toggle:
+                    await _controlHandler.ApplyBinaryToggleAsync(setting, enable);
+                    break;
+                case SettingInputType.Selection when value is int index:
+                    await _controlHandler.ApplyComboBoxIndexAsync(setting, index);
+                    break;
+                case SettingInputType.NumericRange when value != null:
+                    await _controlHandler.ApplyNumericUpDownAsync(setting, value);
+                    break;
+                default:
+                    throw new NotSupportedException($"Input type '{setting.InputType}' not supported");
+            }
         }
 
         /// <summary>
@@ -115,7 +136,7 @@ namespace Winhance.Infrastructure.Features.Optimize.Services
         public async Task<bool> IsSettingEnabledAsync(string settingId)
         {
             var settings = await GetRawSettingsAsync();
-            return await _orchestrator.GetSettingStatusAsync(settingId, settings);
+            return await _controlHandler.GetSettingStatusAsync(settingId, settings);
         }
 
         /// <summary>
@@ -124,35 +145,35 @@ namespace Winhance.Infrastructure.Features.Optimize.Services
         public async Task<object?> GetSettingValueAsync(string settingId)
         {
             var settings = await GetRawSettingsAsync();
-            return await _orchestrator.GetSettingValueAsync(settingId, settings);
+            return await _controlHandler.GetSettingValueAsync(settingId, settings);
         }
 
         /// <summary>
         /// Helper method to get raw settings without system state.
         /// </summary>
-        private async Task<IEnumerable<ApplicationSetting>> GetRawSettingsAsync()
+        public async Task<IEnumerable<SettingDefinition>> GetRawSettingsAsync()
         {
             // Use filtered subgroups that only show available settings for this system
             var filteredSubgroups = await GetFilteredSubgroupsAsync();
-            var filteredSettings = new List<OptimizationSetting>();
+            var filteredSettings = new List<SettingDefinition>();
 
             // Convert filtered subgroups to optimization settings
             foreach (var subgroup in filteredSubgroups)
             {
                 foreach (var setting in subgroup.Settings)
                 {
-                    var optimizationSetting = PowerOptimizations.ConvertToOptimizationSetting(
+                    var SettingDefinition = PowerOptimizations.ConvertToSettingDefinition(
                         setting
                     );
-                    if (optimizationSetting != null)
+                    if (SettingDefinition != null)
                     {
-                        filteredSettings.Add(optimizationSetting);
+                        filteredSettings.Add(SettingDefinition);
                     }
                 }
             }
 
             return await GetPowerSettingsWithSystemStateAsync(
-                filteredSettings.AsEnumerable<ApplicationSetting>()
+                filteredSettings.AsEnumerable<SettingDefinition>()
             );
         }
 
@@ -980,8 +1001,8 @@ namespace Winhance.Infrastructure.Features.Optimize.Services
         /// Power settings require special handling since they use powercfg instead of registry.
         /// Used internally by GetRawSettingsAsync to provide system state for power settings.
         /// </summary>
-        private async Task<IEnumerable<ApplicationSetting>> GetPowerSettingsWithSystemStateAsync(
-            IEnumerable<ApplicationSetting> originalSettings
+        private async Task<IEnumerable<SettingDefinition>> GetPowerSettingsWithSystemStateAsync(
+            IEnumerable<SettingDefinition> originalSettings
         )
         {
             try
@@ -998,7 +1019,7 @@ namespace Winhance.Infrastructure.Features.Optimize.Services
                     return originalSettings;
                 }
 
-                var updatedSettings = new List<ApplicationSetting>();
+                var updatedSettings = new List<SettingDefinition>();
 
                 foreach (var setting in originalSettings)
                 {
@@ -1020,9 +1041,9 @@ namespace Winhance.Infrastructure.Features.Optimize.Services
 
                             var updatedSetting = setting with
                             {
-                                CurrentValue = currentPlanIndex,
-                                IsInitiallyEnabled = true, // Power plan is always "enabled"
-                                IsEnabled = true,
+                                // TODO: Remove runtime state - PowerService needs refactoring
+                                // CurrentValue = currentPlanIndex,
+                                // IsInitiallyEnabled = true, // Power plan is always "enabled"
                                 CustomProperties = new Dictionary<string, object>(
                                     setting.CustomProperties ?? new Dictionary<string, object>()
                                 )
@@ -1098,9 +1119,6 @@ namespace Winhance.Infrastructure.Features.Optimize.Services
                             // to prevent the default Maximum=100 from capping values during binding initialization
                             var updatedSetting = setting with
                             {
-                                CurrentValue = displayValue, // Use converted value for UI display
-                                IsInitiallyEnabled = acValue != 0, // Non-zero typically means enabled
-                                IsEnabled = acValue != 0,
                                 // Store both values in custom properties for advanced scenarios
                                 CustomProperties = new Dictionary<string, object>(
                                     setting.CustomProperties ?? new Dictionary<string, object>()
@@ -1291,7 +1309,7 @@ namespace Winhance.Infrastructure.Features.Optimize.Services
         }
 
         /// <summary>
-        /// Applies a dynamic power setting change based on a SettingUIItem.
+        /// Applies a dynamic power setting change.
         /// Handles all business logic for extracting metadata and applying the setting.
         /// </summary>
         /// <param name="settingId">The ID of the setting to apply.</param>
@@ -1348,7 +1366,7 @@ namespace Winhance.Infrastructure.Features.Optimize.Services
 
                 _logService.Log(
                     LogLevel.Info,
-                    $"[PowerService] Found target setting: '{targetSetting.DisplayName}' [{settingGuid}], Subgroup: {targetSetting.SubgroupGuid}, ControlType: {targetSetting.ControlType}"
+                    $"[PowerService] Found target setting: '{targetSetting.DisplayName}' [{settingGuid}], Subgroup: {targetSetting.SubgroupGuid}, InputType: {targetSetting.InputType}"
                 );
 
                 string subgroupGuid = targetSetting.SubgroupGuid;
@@ -1366,33 +1384,29 @@ namespace Winhance.Infrastructure.Features.Optimize.Services
                     $"[PowerService] Using active power plan: {activePlan.Name} [{activePlan.Guid}]"
                 );
 
-                // Convert UI value to power setting value based on control type
-                int valueToApply = targetSetting.ControlType switch
+                // Convert UI value to power setting value based on input type
+                int valueToApply = targetSetting.InputType switch
                 {
-                    ControlType.BinaryToggle => isSelected ? 1 : 0,
-                    ControlType.ComboBox => selectedValue != null
+                    SettingInputType.Toggle => isSelected ? 1 : 0,
+                    SettingInputType.Selection => selectedValue != null
                     && int.TryParse(selectedValue.ToString(), out int comboValue)
                         ? comboValue
                         : 0,
-                    ControlType.NumericUpDown => ConvertNumericUpDownValue(
+                    SettingInputType.NumericRange => ConvertNumericUpDownValue(
                         targetSetting,
                         selectedValue
                     ),
-                    ControlType.Slider => selectedValue != null
-                    && int.TryParse(selectedValue.ToString(), out int sliderValue)
-                        ? sliderValue
-                        : 0,
                     _ => 0,
                 };
 
                 _logService.Log(
                     LogLevel.Info,
-                    $"[PowerService] Converting value for {targetSetting.ControlType}: '{selectedValue}' -> {valueToApply}"
+                    $"[PowerService] Converting value for {targetSetting.InputType}: '{selectedValue}' -> {valueToApply}"
                 );
 
                 // For ComboBox settings, let's validate the mapping
                 if (
-                    targetSetting.ControlType == ControlType.ComboBox
+                    targetSetting.InputType == SettingInputType.Selection
                     && targetSetting.PossibleValues?.Count > 0
                 )
                 {

@@ -1,12 +1,15 @@
 using System;
 using CommunityToolkit.Mvvm.ComponentModel;
 using Winhance.Core.Features.Common.Interfaces;
+using Winhance.Core.Features.SoftwareApps.Interfaces;
 using Winhance.Core.Features.SoftwareApps.Models;
 
 namespace Winhance.WPF.Features.SoftwareApps.Models
 {
-    public partial class ExternalApp : ObservableObject, ISearchable
+    public partial class ExternalApp : ObservableObject, IExternalApp, ISearchable
     {
+        // IExternalApp implementation
+        public string Id => PackageName;
         public string Name { get; set; }
         public string Description { get; set; }
         public string PackageName { get; set; }

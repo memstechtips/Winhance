@@ -28,7 +28,7 @@ namespace Winhance.WPF.Features.Common.Extensions.DI
                 services
                     .AddCoreServices() // Core abstractions and interfaces
                     .AddInfrastructureServices() // Infrastructure implementations
-                    .AddStrategyServices() // Strategy pattern services
+                    .AddcontrolHandlerServices() // Simplified orchestrator services
                     .AddDomainServices() // Domain services following DDD
                     // Add existing script generation and bloat removal services
                     .AddScriptGenerationServices() // From Infrastructure.Features.SoftwareApps.Services.ScriptGeneration
@@ -37,11 +37,6 @@ namespace Winhance.WPF.Features.Common.Extensions.DI
                     .AddUIServices() // UI layer services
                     .AddViewModels() // ViewModels with proper lifetimes
                     .AddViews(); // View registrations
-
-                // Validate the service configuration in debug mode
-#if DEBUG
-                ValidateServiceConfiguration(services);
-#endif
 
                 return services;
             }
@@ -68,43 +63,6 @@ namespace Winhance.WPF.Features.Common.Extensions.DI
                         services.ConfigureWinhanceServices();
                     }
                 );
-        }
-
-        /// <summary>
-        /// Validates the service configuration for common issues.
-        /// This method helps catch configuration problems early in development.
-        /// </summary>
-        /// <param name="services">The service collection to validate</param>
-        private static void ValidateServiceConfiguration(IServiceCollection services)
-        {
-            try
-            {
-                var validator = new DIConfigurationValidator();
-                var validationResults = validator.ValidateConfiguration(services);
-
-                if (validationResults.HasErrors)
-                {
-                    var errorMessage = string.Join("\n", validationResults.Errors);
-                    throw new InvalidOperationException(
-                        $"DI Configuration validation failed:\n{errorMessage}"
-                    );
-                }
-
-                if (validationResults.HasWarnings)
-                {
-                    var warningMessage = string.Join("\n", validationResults.Warnings);
-                    System.Diagnostics.Debug.WriteLine(
-                        $"DI Configuration warnings:\n{warningMessage}"
-                    );
-                }
-            }
-            catch (Exception ex)
-            {
-                // Don't fail the application for validation errors in release mode
-                System.Diagnostics.Debug.WriteLine(
-                    $"DI Configuration validation failed: {ex.Message}"
-                );
-            }
         }
 
         /// <summary>

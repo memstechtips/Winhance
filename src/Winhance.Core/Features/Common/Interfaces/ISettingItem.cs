@@ -1,5 +1,4 @@
 using System.Collections.Generic;
-using System.Windows.Input;
 using Winhance.Core.Features.Common.Enums;
 using Winhance.Core.Features.Common.Models;
 
@@ -7,57 +6,39 @@ namespace Winhance.Core.Features.Common.Interfaces
 {
     /// <summary>
     /// Defines the common properties that all setting items should have.
+    /// Represents the data model contract without UI state.
     /// </summary>
     public interface ISettingItem
     {
         /// <summary>
-        /// Gets or sets the unique identifier for the setting.
+        /// Gets the unique identifier for the setting.
         /// </summary>
-        string Id { get; set; }
+        string Id { get; }
 
         /// <summary>
-        /// Gets or sets the name of the setting.
+        /// Gets the name of the setting.
         /// </summary>
-        string Name { get; set; }
+        string Name { get; }
 
         /// <summary>
-        /// Gets or sets the description of the setting.
+        /// Gets the description of the setting.
         /// </summary>
-        string Description { get; set; }
+        string Description { get; }
 
         /// <summary>
-        /// Gets or sets a value indicating whether the setting is selected.
+        /// Gets the group name that this setting belongs to.
         /// </summary>
-        bool IsSelected { get; set; }
+        string GroupName { get; }
 
         /// <summary>
-        /// Gets or sets the group name that this setting belongs to.
+        /// Gets the type of input used for this setting.
         /// </summary>
-        string GroupName { get; set; }
+        SettingInputType InputType { get; }
 
         /// <summary>
-        /// Gets or sets a value indicating whether the setting is visible in the UI.
+        /// Gets the dependencies for this setting.
         /// </summary>
-        bool IsVisible { get; set; }
+        List<SettingDependency> Dependencies { get; }
 
-        /// <summary>
-        /// Gets or sets the type of control used for this setting.
-        /// </summary>
-        ControlType ControlType { get; set; }
-
-        /// <summary>
-        /// Gets or sets the selected value for ComboBox controls.
-        /// </summary>
-        object? SelectedValue { get; set; }
-
-        /// <summary>
-        /// Gets or sets the dependencies for this setting.
-        /// </summary>
-        List<SettingDependency> Dependencies { get; set; }
-
-        /// <summary>
-        /// Gets the command to apply the setting.
-        /// </summary>
-        ICommand ApplySettingCommand { get; }
     }
 }

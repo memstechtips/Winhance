@@ -34,14 +34,29 @@ namespace Winhance.Core.Features.Common.Interfaces
         /// Gets all settings from all domain services.
         /// </summary>
         /// <returns>A collection of all application settings across all domains.</returns>
-        Task<IEnumerable<ApplicationSetting>> GetAllSettingsAsync();
+        Task<IEnumerable<SettingDefinition>> GetAllSettingsAsync();
 
         /// <summary>
         /// Gets settings from a specific domain service.
         /// </summary>
         /// <param name="domainName">The name of the domain to get settings from.</param>
         /// <returns>A collection of settings from the specified domain.</returns>
-        Task<IEnumerable<ApplicationSetting>> GetSettingsByDomainAsync(string domainName);
+        Task<IEnumerable<SettingDefinition>> GetSettingsByDomainAsync(string domainName);
+
+        /// <summary>
+        /// Executes an ActionCommand by finding the appropriate domain service and method.
+        /// </summary>
+        /// <param name="settingId">The ID of the setting with the ActionCommand.</param>
+        /// <param name="commandString">The ActionCommand string to execute (e.g., "CleanWindows11StartMenu").</param>
+        /// <returns>A task representing the asynchronous operation.</returns>
+        Task ExecuteActionCommandAsync(string settingId, string commandString);
+
+        /// <summary>
+        /// Executes an ActionCommand with additional context parameters.
+        /// </summary>
+        /// <param name="context">The execution context containing all parameters for the action.</param>
+        /// <returns>A task representing the asynchronous operation.</returns>
+        Task ExecuteActionCommandAsync(ActionExecutionContext context);
     }
 
     /// <summary>
@@ -51,7 +66,7 @@ namespace Winhance.Core.Features.Common.Interfaces
     {
         public bool IsEnabled { get; set; }
         public object? CurrentValue { get; set; }
-        public RegistrySettingStatus Status { get; set; }
+        public bool Status { get; set; }
         public string? ErrorMessage { get; set; }
         public bool Success { get; set; }
     }

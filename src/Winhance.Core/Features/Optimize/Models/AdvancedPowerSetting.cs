@@ -79,9 +79,9 @@ namespace Winhance.Core.Features.Optimize.Models
         public string Alias => Definition?.Alias ?? string.Empty;
 
         /// <summary>
-        /// Gets the control type for the setting.
+        /// Gets the input type for the setting.
         /// </summary>
-        public ControlType ControlType => Definition?.ControlType ?? ControlType.NumericUpDown;
+        public SettingInputType InputType => Definition?.InputType ?? SettingInputType.NumericRange;
 
         /// <summary>
         /// Gets or sets the possible values for enum settings.
@@ -125,7 +125,7 @@ namespace Winhance.Core.Features.Optimize.Models
         {
             get
             {
-                if (Definition?.ControlType == ControlType.ComboBox && Definition.PossibleValues != null)
+                if (Definition?.InputType == SettingInputType.Selection && Definition.PossibleValues != null)
                 {
                     var value = Definition.PossibleValues.Find(v => v.Index == AcValue);
                     return value?.FriendlyName ?? AcValue.ToString();
@@ -141,7 +141,7 @@ namespace Winhance.Core.Features.Optimize.Models
         {
             get
             {
-                if (Definition?.ControlType == ControlType.ComboBox && Definition.PossibleValues != null)
+                if (Definition?.InputType == SettingInputType.Selection && Definition.PossibleValues != null)
                 {
                     var value = Definition.PossibleValues.Find(v => v.Index == DcValue);
                     return value?.FriendlyName ?? DcValue.ToString();

@@ -6,6 +6,10 @@
     <Application.Resources>
         <ResourceDictionary>
             <ResourceDictionary.MergedDictionaries>
+                <!-- Material Symbols Font - Must be loaded first -->
+                <ResourceDictionary>
+                    <FontFamily x:Key="MaterialSymbolsFont">pack://application:,,,/Resources/Fonts/#Material Symbols Outlined</FontFamily>
+                </ResourceDictionary>
                 <!-- Material Design Theme -->
                 <!-- Use the BundledTheme which includes all necessary resources -->
                 <materialDesign:BundledTheme BaseTheme="Dark" PrimaryColor="Blue" SecondaryColor="LightBlue" />
@@ -21,24 +25,20 @@
                 <ResourceDictionary Source="Features/Common/Resources/Styles/SliderStyles.xaml"/>
                 <ResourceDictionary Source="Features/Common/Resources/Styles/ToolTipStyles.xaml"/>
                 <ResourceDictionary Source="Features/Common/Resources/Styles/TextStyles.xaml"/>
+                <ResourceDictionary Source="Features/Optimize/Resources/Converters/PowerSettingConverters.xaml"/>
+                <ResourceDictionary Source="Features/Common/Resources/Styles/AppItemStyles.xaml"/>
+                <ResourceDictionary Source="Features/Common/Resources/Styles/RegistryTooltipTemplate.xaml"/>
                 <ResourceDictionary Source="Features/Common/Resources/Styles/ContainerStyles.xaml"/>
                 <ResourceDictionary Source="Features/Common/Resources/Styles/ScrollBarStyles.xaml"/>
                 <ResourceDictionary Source="Features/Common/Resources/Styles/ProgressIndicatorStyles.xaml"/>
                 <ResourceDictionary Source="Features/Common/Resources/Styles/DialogStyles.xaml"/>
                 <ResourceDictionary Source="Features/Common/Resources/Styles/ModalDialogStyles.xaml"/>
-                <ResourceDictionary Source="Features/Common/Resources/Styles/AppItemStyles.xaml"/>
-                <ResourceDictionary Source="Features/Common/Resources/Styles/RegistryTooltipTemplate.xaml"/>
-                <ResourceDictionary Source="Features/Common/Resources/Styles/CommandTooltipTemplate.xaml"/>
-                <ResourceDictionary Source="Features/Common/Resources/Styles/CombinedSettingTooltipTemplate.xaml"/>
                 <ResourceDictionary Source="Features/Common/Resources/Styles/ResponsiveStyles.xaml"/>
                 <ResourceDictionary Source="Features/Common/Resources/Styles/MenuStyles.xaml"/>
                 <ResourceDictionary Source="Features/Common/Resources/Styles/TableViewStyles.xaml"/>
+                <ResourceDictionary Source="Features/Common/Resources/Styles/FeatureTemplates.xaml"/>
                 <ResourceDictionary Source="Features/Common/Resources/Icons.xaml"/>
-                <ResourceDictionary Source="Features/Optimize/Resources/Converters/PowerSettingConverters.xaml"/>
             </ResourceDictionary.MergedDictionaries>
-
-            <!-- Material Symbols Font -->
-            <FontFamily x:Key="MaterialSymbolsFont">pack://application:,,,/Resources/Fonts/#Material Symbols Outlined</FontFamily>
 
             <!-- Theme-specific app icons -->
             <BitmapImage x:Key="DarkThemeAppIcon" UriSource="pack://application:,,,/Resources/AppIcons/winhance-rocket-white-transparent-bg.ico" />

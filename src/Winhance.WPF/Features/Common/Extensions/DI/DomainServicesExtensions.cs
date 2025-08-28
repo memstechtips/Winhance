@@ -1,13 +1,12 @@
 using Microsoft.Extensions.DependencyInjection;
 using Winhance.Core.Features.Common.Interfaces;
+using Winhance.Core.Features.Common.Interfaces.WindowsRegistry;
 using Winhance.Core.Features.Common.Services;
 using Winhance.Core.Features.Customize.Interfaces;
 using Winhance.Core.Features.Optimize.Interfaces;
 using Winhance.Core.Features.SoftwareApps.Interfaces;
 using Winhance.Infrastructure.Features.Common.Services;
-using Winhance.Infrastructure.Features.Customize.Descriptors;
 using Winhance.Infrastructure.Features.Customize.Services;
-using Winhance.Infrastructure.Features.Optimize.Descriptors;
 using Winhance.Infrastructure.Features.Optimize.Services;
 using Winhance.Infrastructure.Features.SoftwareApps.Services;
 using Winhance.Infrastructure.Features.SoftwareApps.Services.WinGet.Implementations;
@@ -30,131 +29,136 @@ namespace Winhance.WPF.Features.Common.Extensions.DI
         public static IServiceCollection AddDomainServices(this IServiceCollection services)
         {
             return services
-                .AddCustomizationServices()
-                .AddOptimizationServices()
+                .AddCustomizationDomainServices()
+                .AddOptimizationDomainServices()
                 .AddSoftwareAppServices()
-                .AddDomainServiceRegistry();
+                .AddDomainServiceRouter();
         }
 
-        /// <summary>
-        /// Registers customization domain services.
-        /// </summary>
-        /// <param name="services">The service collection to configure</param>
-        /// <returns>The service collection for method chaining</returns>
-        public static IServiceCollection AddCustomizationServices(this IServiceCollection services)
+        public static IServiceCollection AddCustomizationDomainServices(
+            this IServiceCollection services
+        )
         {
-            // Wallpaper Service (Singleton - System resource)
+            // Register WallpaperService (required by WindowsThemeService)
             services.AddSingleton<IWallpaperService, WallpaperService>();
 
-            // Customization Domain Services (Scoped - DDD pattern)
-            services.AddScoped<IWindowsThemeService>(sp => new WindowsThemeService(
+            // Register WindowsThemeService
+            services.AddSingleton<WindowsThemeService>(sp => new WindowsThemeService(
                 sp.GetRequiredService<IWallpaperService>(),
                 sp.GetRequiredService<ISystemServices>(),
-                sp.GetRequiredService<SystemSettingOrchestrator>(),
+                sp.GetRequiredService<SettingControlHandler>(),
+                sp.GetRequiredService<ISystemSettingsDiscoveryService>(),
                 sp.GetRequiredService<ILogService>()
             ));
-            services.AddScoped<IDomainService>(sp => sp.GetRequiredService<IWindowsThemeService>());
+            // Register as IDomainService for registry
+            services.AddSingleton<IDomainService>(sp => sp.GetRequiredService<WindowsThemeService>());
 
-            services.AddScoped<IStartMenuService>(sp => new StartMenuService(
+            // Register StartMenuService
+            services.AddSingleton<StartMenuService>(sp => new StartMenuService(
                 sp.GetRequiredService<IScheduledTaskService>(),
-                sp.GetRequiredService<SystemSettingOrchestrator>(),
+                sp.GetRequiredService<SettingControlHandler>(),
+                sp.GetRequiredService<ISystemSettingsDiscoveryService>(),
                 sp.GetRequiredService<ILogService>(),
                 sp.GetRequiredService<ISystemServices>()
             ));
-            services.AddScoped<IDomainService>(sp => sp.GetRequiredService<IStartMenuService>());
+            services.AddSingleton<IDomainService>(sp => sp.GetRequiredService<StartMenuService>());
 
-            services.AddScoped<ITaskbarService>(sp => new TaskbarService(
-                sp.GetRequiredService<SystemSettingOrchestrator>(),
+            // Register TaskbarService
+            services.AddSingleton<TaskbarService>(sp => new TaskbarService(
+                sp.GetRequiredService<SettingControlHandler>(),
+                sp.GetRequiredService<ISystemSettingsDiscoveryService>(),
                 sp.GetRequiredService<ILogService>(),
-                sp.GetRequiredService<ICommandService>()
+                sp.GetRequiredService<ICommandService>(),
+                sp.GetRequiredService<IWindowsRegistryService>()
             ));
-            services.AddScoped<IDomainService>(sp => sp.GetRequiredService<ITaskbarService>());
+            services.AddSingleton<IDomainService>(sp => sp.GetRequiredService<TaskbarService>());
 
-            services.AddScoped<IExplorerCustomizationService>(
-                sp => new ExplorerCustomizationService(
-                    sp.GetRequiredService<SystemSettingOrchestrator>(),
-                    sp.GetRequiredService<ILogService>(),
-                    sp.GetRequiredService<ICommandService>(),
-                    sp.GetRequiredService<IRegistryService>()
-                )
-            );
-            services.AddScoped<IDomainService>(sp =>
-                sp.GetRequiredService<IExplorerCustomizationService>()
-            );
-
-            // Feature descriptors are registered with IFeatureDiscoveryService in InfrastructureServices
+            // Register ExplorerCustomizationService
+            services.AddSingleton<ExplorerCustomizationService>(sp => new ExplorerCustomizationService(
+                sp.GetRequiredService<SettingControlHandler>(),
+                sp.GetRequiredService<ISystemSettingsDiscoveryService>(),
+                sp.GetRequiredService<ILogService>(),
+                sp.GetRequiredService<ICommandService>(),
+                sp.GetRequiredService<IWindowsRegistryService>()
+            ));
+            services.AddSingleton<IDomainService>(sp => sp.GetRequiredService<ExplorerCustomizationService>());
 
             return services;
         }
 
-        /// <summary>
-        /// Registers optimization domain services.
-        /// </summary>
-        /// <param name="services">The service collection to configure</param>
-        /// <returns>The service collection for method chaining</returns>
-        public static IServiceCollection AddOptimizationServices(this IServiceCollection services)
+        public static IServiceCollection AddOptimizationDomainServices(
+            this IServiceCollection services
+        )
         {
-            // Optimization Domain Services (Scoped - DDD pattern)
-            services.AddScoped<IPowerService>(sp => new PowerService(
-                sp.GetRequiredService<SystemSettingOrchestrator>(),
+            // Register PowerService
+            services.AddSingleton<PowerService>(sp => new PowerService(
+                sp.GetRequiredService<SettingControlHandler>(),
+                sp.GetRequiredService<ISystemSettingsDiscoveryService>(),
                 sp.GetRequiredService<ILogService>(),
-                sp.GetRequiredService<IComboBoxValueResolver>(),
+                sp.GetRequiredService<IComboBoxResolver>(),
                 sp.GetRequiredService<ICommandService>(),
                 sp.GetRequiredService<IBatteryService>(),
                 sp.GetRequiredService<IPowerShellExecutionService>()
             ));
-            services.AddScoped<IDomainService>(sp => sp.GetRequiredService<IPowerService>());
+            services.AddSingleton<IDomainService>(sp => sp.GetRequiredService<PowerService>());
+            // Register as IPowerService for ViewModels that still use direct injection
+            services.AddSingleton<IPowerService>(sp => sp.GetRequiredService<PowerService>());
 
-            services.AddScoped<IPrivacyService>(sp => new PrivacyService(
-                sp.GetRequiredService<SystemSettingOrchestrator>(),
+            // Register PrivacyService
+            services.AddSingleton<PrivacyService>(sp => new PrivacyService(
+                sp.GetRequiredService<SettingControlHandler>(),
+                sp.GetRequiredService<ISystemSettingsDiscoveryService>(),
                 sp.GetRequiredService<ILogService>()
             ));
-            services.AddScoped<IDomainService>(sp => sp.GetRequiredService<IPrivacyService>());
+            services.AddSingleton<IDomainService>(sp => sp.GetRequiredService<PrivacyService>());
 
-            services.AddScoped<ISecurityService>(sp => new SecurityService(
-                sp.GetRequiredService<SystemSettingOrchestrator>(),
-                sp.GetRequiredService<ILogService>(),
-                sp.GetRequiredService<IComboBoxValueResolver>()
-            ));
-            services.AddScoped<IDomainService>(sp => sp.GetRequiredService<ISecurityService>());
-
-            services.AddScoped<IGamingPerformanceService>(sp => new GamingPerformanceService(
-                sp.GetRequiredService<SystemSettingOrchestrator>(),
+            // Register SecurityService
+            services.AddSingleton<SecurityService>(sp => new SecurityService(
+                sp.GetRequiredService<SettingControlHandler>(),
+                sp.GetRequiredService<ISystemSettingsDiscoveryService>(),
                 sp.GetRequiredService<ILogService>()
             ));
-            services.AddScoped<IDomainService>(sp =>
-                sp.GetRequiredService<IGamingPerformanceService>()
-            );
+            services.AddSingleton<IDomainService>(sp => sp.GetRequiredService<SecurityService>());
 
-            services.AddScoped<INotificationService>(sp => new NotificationService(
-                sp.GetRequiredService<SystemSettingOrchestrator>(),
+            // Register GamingPerformanceService
+            services.AddSingleton<GamingPerformanceService>(sp => new GamingPerformanceService(
+                sp.GetRequiredService<SettingControlHandler>(),
+                sp.GetRequiredService<ISystemSettingsDiscoveryService>(),
                 sp.GetRequiredService<ILogService>()
             ));
-            services.AddScoped<IDomainService>(sp => sp.GetRequiredService<INotificationService>());
+            services.AddSingleton<IDomainService>(sp => sp.GetRequiredService<GamingPerformanceService>());
 
-            services.AddScoped<ISoundService>(sp => new SoundService(
-                sp.GetRequiredService<SystemSettingOrchestrator>(),
+            // Register NotificationService
+            services.AddSingleton<NotificationService>(sp => new NotificationService(
+                sp.GetRequiredService<SettingControlHandler>(),
+                sp.GetRequiredService<ISystemSettingsDiscoveryService>(),
                 sp.GetRequiredService<ILogService>()
             ));
-            services.AddScoped<IDomainService>(sp => sp.GetRequiredService<ISoundService>());
+            services.AddSingleton<IDomainService>(sp => sp.GetRequiredService<NotificationService>());
 
-            services.AddScoped<IUpdateService>(sp => new UpdateService(
-                sp.GetRequiredService<SystemSettingOrchestrator>(),
+            // Register SoundService
+            services.AddSingleton<SoundService>(sp => new SoundService(
+                sp.GetRequiredService<SettingControlHandler>(),
+                sp.GetRequiredService<ISystemSettingsDiscoveryService>(),
                 sp.GetRequiredService<ILogService>()
             ));
-            services.AddScoped<IDomainService>(sp => sp.GetRequiredService<IUpdateService>());
+            services.AddSingleton<IDomainService>(sp => sp.GetRequiredService<SoundService>());
 
-            services.AddScoped<IExplorerOptimizationService>(
-                sp => new Winhance.Infrastructure.Features.Optimize.Services.ExplorerOptimizationService(
-                    sp.GetRequiredService<SystemSettingOrchestrator>(),
-                    sp.GetRequiredService<ILogService>()
-                )
-            );
-            services.AddScoped<IDomainService>(sp =>
-                sp.GetRequiredService<IExplorerOptimizationService>()
-            );
+            // Register UpdateService
+            services.AddSingleton<UpdateService>(sp => new UpdateService(
+                sp.GetRequiredService<SettingControlHandler>(),
+                sp.GetRequiredService<ISystemSettingsDiscoveryService>(),
+                sp.GetRequiredService<ILogService>()
+            ));
+            services.AddSingleton<IDomainService>(sp => sp.GetRequiredService<UpdateService>());
 
-            // Feature descriptors are registered with IFeatureDiscoveryService in InfrastructureServices
+            // Register ExplorerOptimizationService
+            services.AddSingleton<ExplorerOptimizationService>(sp => new ExplorerOptimizationService(
+                sp.GetRequiredService<SettingControlHandler>(),
+                sp.GetRequiredService<ISystemSettingsDiscoveryService>(),
+                sp.GetRequiredService<ILogService>()
+            ));
+            services.AddSingleton<IDomainService>(sp => sp.GetRequiredService<ExplorerOptimizationService>());
 
             return services;
         }
@@ -213,12 +217,12 @@ namespace Winhance.WPF.Features.Common.Extensions.DI
         /// </summary>
         /// <param name="services">The service collection to configure</param>
         /// <returns>The service collection for method chaining</returns>
-        public static IServiceCollection AddDomainServiceRegistry(this IServiceCollection services)
+        public static IServiceCollection AddDomainServiceRouter(this IServiceCollection services)
         {
             // Domain Service Registry (Scoped - Per-operation service discovery)
             services.AddScoped<
-                IDomainServiceRegistry,
-                Infrastructure.Features.Common.Services.DomainServiceRegistry
+                IDomainServiceRouter,
+                Infrastructure.Features.Common.Services.DomainServiceRouter
             >();
 
             // Domain Dependency Service (Singleton - Clean Architecture enforcement)

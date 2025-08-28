@@ -5,7 +5,6 @@ using Winhance.Core.Features.Common.Enums;
 using Winhance.Core.Features.Common.Interfaces;
 using Winhance.Core.Features.Common.Models;
 using Winhance.Core.Features.Customize.Models;
-using Winhance.Core.Features.Optimize.Models;
 
 namespace Winhance.Infrastructure.Features.Common.Services
 {
@@ -27,10 +26,10 @@ namespace Winhance.Infrastructure.Features.Common.Services
 
         /// <summary>
         /// Filters settings based on Windows version and build number compatibility.
-        /// Supports both OptimizationSetting and CustomizationSetting polymorphically.
+        /// Supports both SettingDefinition and SettingDefinition polymorphically.
         /// </summary>
-        public virtual IEnumerable<ApplicationSetting> FilterSettingsByWindowsVersion(
-            IEnumerable<ApplicationSetting> settings)
+        public virtual IEnumerable<SettingDefinition> FilterSettingsByWindowsVersion(
+            IEnumerable<SettingDefinition> settings)
         {
             try
             {
@@ -40,7 +39,7 @@ namespace Winhance.Infrastructure.Features.Common.Services
                 _logService.Log(LogLevel.Info, 
                     $"Filtering settings for Windows {(isWindows11 ? "11" : "10")} build {buildNumber}");
 
-                var compatibleSettings = new List<ApplicationSetting>();
+                var compatibleSettings = new List<SettingDefinition>();
                 var filteredCount = 0;
 
                 foreach (var setting in settings)
@@ -55,23 +54,14 @@ namespace Winhance.Infrastructure.Features.Common.Services
                     int? maximumBuild = null;
                     List<(int MinBuild, int MaxBuild)>? supportedRanges = null;
 
-                    // Extract version info polymorphically
-                    switch (setting)
+                    // Extract version info from SettingDefinition
+                    if (setting is SettingDefinition appSetting)
                     {
-                        case OptimizationSetting optSetting:
-                            isWindows10Only = optSetting.IsWindows10Only;
-                            isWindows11Only = optSetting.IsWindows11Only;
-                            minimumBuild = optSetting.MinimumBuildNumber;
-                            maximumBuild = optSetting.MaximumBuildNumber;
-                            supportedRanges = optSetting.SupportedBuildRanges;
-                            break;
-                        case CustomizationSetting custSetting:
-                            isWindows10Only = custSetting.IsWindows10Only;
-                            isWindows11Only = custSetting.IsWindows11Only;
-                            minimumBuild = custSetting.MinimumBuildNumber;
-                            maximumBuild = custSetting.MaximumBuildNumber;
-                            supportedRanges = custSetting.SupportedBuildRanges;
-                            break;
+                        isWindows10Only = appSetting.IsWindows10Only;
+                        isWindows11Only = appSetting.IsWindows11Only;
+                        minimumBuild = appSetting.MinimumBuildNumber;
+                        maximumBuild = appSetting.MaximumBuildNumber;
+                        supportedRanges = appSetting.SupportedBuildRanges;
                     }
 
                     // Check Windows 10 only restriction

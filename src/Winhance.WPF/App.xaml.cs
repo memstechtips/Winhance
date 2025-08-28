@@ -68,6 +68,9 @@ namespace Winhance.WPF
                 await _host.StartAsync();
                 LogStartupMessage("Host started successfully");
 
+                // Initialize event handlers for domain events
+                await InitializeEventHandlers();
+
                 // Initialize main window and view model
                 var (mainWindow, mainViewModel) = CreateMainWindow();
 
@@ -119,6 +122,24 @@ namespace Winhance.WPF
 
         #region Private Methods
 
+        private async Task InitializeEventHandlers()
+        {
+            try
+            {
+                LogStartupMessage("Initializing domain event handlers");
+                
+                // Initialize the TooltipRefreshEventHandler by getting it from DI
+                // This triggers its constructor which subscribes to SettingAppliedEvent
+                var tooltipHandler = _host.Services.GetRequiredService<Infrastructure.Features.Common.EventHandlers.TooltipRefreshEventHandler>();
+                
+                LogStartupMessage("TooltipRefreshEventHandler initialized");
+            }
+            catch (Exception ex)
+            {
+                LogStartupError("Error initializing event handlers", ex);
+            }
+        }
+
         private async Task InitializeLoggingService()
         {
             try
@@ -129,7 +150,8 @@ namespace Winhance.WPF
                 if (logService is Winhance.Core.Features.Common.Services.LogService concreteLogService && systemServices != null)
                 {
                     concreteLogService.Initialize(systemServices);
-                    LogStartupMessage("LogService initialized with ISystemServices");
+                    concreteLogService.StartLog();
+                    LogStartupMessage("LogService initialized with ISystemServices and logging started");
                 }
             }
             catch (Exception initEx)

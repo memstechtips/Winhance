@@ -1,45 +1,48 @@
 using System;
-using System.Collections.Generic;
 using System.Collections.ObjectModel;
+using System.Linq;
 using System.Threading.Tasks;
 using System.Windows.Input;
 using CommunityToolkit.Mvvm.ComponentModel;
 using CommunityToolkit.Mvvm.Input;
+using Winhance.Core.Features.Common.Constants;
 using Winhance.Core.Features.Common.Enums;
+using Winhance.Core.Features.Common.Events;
+using Winhance.Core.Features.Common.Events.Features;
 using Winhance.Core.Features.Common.Interfaces;
-using Winhance.Core.Features.Common.Models;
 using Winhance.Core.Features.Optimize.Interfaces;
 using Winhance.WPF.Features.Common.Interfaces;
-using Winhance.WPF.Features.Common.Models;
+using Winhance.WPF.Features.Common.ViewModels;
 
 namespace Winhance.WPF.Features.Optimize.ViewModels
 {
     /// <summary>
     /// ViewModel for Update optimizations using clean architecture principles.
+    /// Directly manages settings using domain services without UI coordinator.
     /// </summary>
     public partial class UpdateOptimizationsViewModel : ObservableObject, IFeatureViewModel
     {
-        private readonly IUpdateService _updateService;
-        private readonly ISettingsUICoordinator _uiCoordinator;
+        private readonly IDomainServiceRouter _domainServiceRouter;
+        private readonly ISettingApplicationService _settingApplicationService;
+        private readonly IEventBus _eventBus;
         private readonly ILogService _logService;
         private readonly ITaskProgressService _progressService;
+        private readonly ISettingsLoadingService _settingsLoadingService;
 
+        [ObservableProperty]
+        private ObservableCollection<SettingItemViewModel> _settings = new();
 
+        [ObservableProperty]
+        private bool _isLoading;
 
-        // Delegating properties to UI coordinator
-        public ObservableCollection<SettingUIItem> Settings => _uiCoordinator.Settings;
-        public ObservableCollection<SettingGroup> SettingGroups => _uiCoordinator.SettingGroups;
-        public bool IsLoading => _uiCoordinator.IsLoading;
-        public string CategoryName => _uiCoordinator.CategoryName;
-        public string SearchText
-        {
-            get => _uiCoordinator.SearchText;
-            set => _uiCoordinator.SearchText = value;
-        }
-        public bool HasVisibleSettings => _uiCoordinator.HasVisibleSettings;
+        [ObservableProperty]
+        private string _searchText = string.Empty;
+
+        public string CategoryName => "Update";
+        public bool HasVisibleSettings => Settings.Any(s => s.IsVisible);
 
         // IFeatureViewModel implementation
-        public string ModuleId => "Update";
+        public string ModuleId => FeatureIds.Update;
         public string DisplayName => "Update";
         public int SettingsCount => Settings?.Count ?? 0;
         public string Category => "Optimize";
@@ -52,25 +55,20 @@ namespace Winhance.WPF.Features.Optimize.ViewModels
         
         public ICommand ToggleExpandCommand { get; }
 
-        /// <summary>
-        /// Initializes a new instance of the <see cref="UpdateOptimizationsViewModel"/> class.
-        /// </summary>
-        /// <param name="updateService">The update domain service.</param>
-        /// <param name="uiCoordinator">The settings UI coordinator.</param>
-        /// <param name="progressService">The task progress service.</param>
-        /// <param name="logService">The log service.</param>
         public UpdateOptimizationsViewModel(
-            IUpdateService updateService,
-            ISettingsUICoordinator uiCoordinator,
+            IDomainServiceRouter DomainServiceRouter,
+            ISettingApplicationService settingApplicationService,
+            IEventBus eventBus,
             ITaskProgressService progressService,
-            ILogService logService)
+            ILogService logService,
+            ISettingsLoadingService settingsLoadingService)
         {
-            _updateService = updateService ?? throw new ArgumentNullException(nameof(updateService));
-            _uiCoordinator = uiCoordinator ?? throw new ArgumentNullException(nameof(uiCoordinator));
+            _domainServiceRouter = DomainServiceRouter ?? throw new ArgumentNullException(nameof(DomainServiceRouter));
+            _settingApplicationService = settingApplicationService ?? throw new ArgumentNullException(nameof(settingApplicationService));
+            _eventBus = eventBus ?? throw new ArgumentNullException(nameof(eventBus));
             _progressService = progressService ?? throw new ArgumentNullException(nameof(progressService));
             _logService = logService ?? throw new ArgumentNullException(nameof(logService));
-            
-            _uiCoordinator.CategoryName = "Update Optimizations";
+            _settingsLoadingService = settingsLoadingService ?? throw new ArgumentNullException(nameof(settingsLoadingService));
             
             // Initialize commands
             LoadSettingsCommand = new AsyncRelayCommand(LoadSettingsAsync);
@@ -78,24 +76,37 @@ namespace Winhance.WPF.Features.Optimize.ViewModels
         }
 
         /// <summary>
-        /// Loads settings and initializes the UI state.
+        /// Loads settings and initializes the UI state using the centralized loading service.
         /// </summary>
         public async Task LoadSettingsAsync()
         {
             try
             {
-                _progressService.StartTask("Loading update optimization settings...");
-                
-                // Use UI coordinator to load settings - Application Service handles business logic
-                await _uiCoordinator.LoadSettingsAsync(() => _updateService.GetSettingsAsync());
-                
-                _progressService.CompleteTask();
+                IsLoading = true;
+
+                Settings = new ObservableCollection<SettingItemViewModel>(
+                    (
+                        await _settingsLoadingService.LoadConfiguredSettingsAsync(
+                            _domainServiceRouter.GetDomainService(ModuleId),
+                            ModuleId,
+                            "Loading update settings..."
+                        )
+                    ).Cast<SettingItemViewModel>()
+                );
+
+                _logService.Log(
+                    LogLevel.Info,
+                    $"UpdateOptimizationsViewModel: Successfully loaded {Settings.Count} settings"
+                );
             }
             catch (Exception ex)
             {
-                _progressService.CompleteTask();
-                _logService.Log(LogLevel.Error, $"Error loading update optimization settings: {ex.Message}");
+                _logService.Log(LogLevel.Error, $"Error loading update settings: {ex.Message}");
                 throw;
+            }
+            finally
+            {
+                IsLoading = false;
             }
         }
 
@@ -104,7 +115,10 @@ namespace Winhance.WPF.Features.Optimize.ViewModels
         /// </summary>
         public async Task RefreshSettingsAsync()
         {
-            await LoadSettingsAsync();
+            foreach (var setting in Settings)
+            {
+                await setting.RefreshStateAsync();
+            }
         }
 
         /// <summary>
@@ -112,7 +126,19 @@ namespace Winhance.WPF.Features.Optimize.ViewModels
         /// </summary>
         public void ClearSettings()
         {
-            _uiCoordinator.ClearSettings();
+            Settings.Clear();
+        }
+
+        /// <summary>
+        /// Updates visibility of settings based on search text.
+        /// </summary>
+        partial void OnSearchTextChanged(string value)
+        {
+            foreach (var setting in Settings)
+            {
+                setting.UpdateVisibility(value);
+            }
+            OnPropertyChanged(nameof(HasVisibleSettings));
         }
         
         private void ToggleExpand()

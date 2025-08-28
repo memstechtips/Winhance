@@ -22,7 +22,7 @@ namespace Winhance.WPF.Features.Common.Services
         public async Task<(bool confirmed, bool checkboxChecked)> HandleConfirmationAsync(
             string settingId, 
             object? value, 
-            ApplicationSetting setting)
+            SettingDefinition setting)
         {
             if (setting == null) throw new ArgumentNullException(nameof(setting));
 

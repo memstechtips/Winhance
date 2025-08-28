@@ -7,11 +7,11 @@ using System.Threading.Tasks;
 using Microsoft.Win32;
 using Winhance.Core.Features.Common.Enums;
 using Winhance.Core.Features.Common.Interfaces;
+using Winhance.Core.Features.Common.Interfaces.WindowsRegistry;
 using Winhance.Core.Features.Common.Models;
 using Winhance.Core.Features.Common.Services;
 using Winhance.Core.Features.Customize.Interfaces;
 using Winhance.Core.Features.Customize.Models;
-using Winhance.Core.Features.Optimize.Models;
 using Winhance.Core.Models.Enums;
 
 namespace Winhance.Infrastructure.Features.Common.Services
@@ -70,7 +70,7 @@ namespace Winhance.Infrastructure.Features.Common.Services
     public class WindowsSystemService : ISystemServices
     {
         // Dependencies
-        private readonly IRegistryService _registryService;
+        private readonly IWindowsRegistryService _registryService;
         private readonly ILogService _logService;
         private readonly IThemeStateQuery _themeStateQuery;
         private readonly IUacSettingsService _uacSettingsService;
@@ -84,15 +84,15 @@ namespace Winhance.Infrastructure.Features.Common.Services
         private readonly Lazy<bool> _cachedIsAdministrator;
 
         public WindowsSystemService(
-            IRegistryService registryService,
+            IWindowsRegistryService windowsRegistryService,
             ILogService logService,
             IInternetConnectivityService connectivityService,
             IThemeStateQuery themeStateQuery = null,
             IUacSettingsService uacSettingsService = null
-        ) 
+        )
         {
             _registryService =
-                registryService ?? throw new ArgumentNullException(nameof(registryService));
+                windowsRegistryService ?? throw new ArgumentNullException(nameof(windowsRegistryService));
             _logService = logService ?? throw new ArgumentNullException(nameof(logService));
             _connectivityService =
                 connectivityService ?? throw new ArgumentNullException(nameof(connectivityService));
@@ -110,7 +110,7 @@ namespace Winhance.Infrastructure.Features.Common.Services
         /// <summary>
         /// Gets the registry service.
         /// </summary>
-        public IRegistryService RegistryService => _registryService;
+        public IWindowsRegistryService WindowsRegistryService => _registryService;
 
         public bool IsAdministrator()
         {
@@ -174,7 +174,8 @@ namespace Winhance.Infrastructure.Features.Common.Services
                     // Check if product name indicates Windows 11
                     var productNameStr = productName?.ToString() ?? "";
                     result.IsWindows11ByProductName =
-                        productNameStr.IndexOf("Windows 11", StringComparison.OrdinalIgnoreCase) >= 0;
+                        productNameStr.IndexOf("Windows 11", StringComparison.OrdinalIgnoreCase)
+                        >= 0;
                 }
                 catch
                 {
@@ -252,7 +253,9 @@ namespace Winhance.Infrastructure.Features.Common.Services
             try
             {
                 var versionInfo = GetWindowsVersionInfo();
-                _logService.LogInformation($"Detected Windows build number: {versionInfo.BuildNumber}");
+                _logService.LogInformation(
+                    $"Detected Windows build number: {versionInfo.BuildNumber}"
+                );
                 return versionInfo.BuildNumber;
             }
             catch (Exception ex)
@@ -391,7 +394,9 @@ namespace Winhance.Infrastructure.Features.Common.Services
         {
             try
             {
-                if (!IsAdministrator())
+                bool isAdmin = IsAdministrator();
+
+                if (!isAdmin)
                 {
                     _logService.LogWarning(
                         "Application requires administrator privileges. Attempting to elevate."
@@ -443,9 +448,14 @@ namespace Winhance.Infrastructure.Features.Common.Services
                         return false;
                     }
                 }
+                else
+                {
+                    _logService.LogInformation(
+                        "Application is running with administrator privileges"
+                    );
+                }
 
-                _logService.LogInformation("Application is running with administrator privileges");
-                return true;
+                return isAdmin;
             }
             catch (Exception ex)
             {
@@ -515,13 +525,12 @@ namespace Winhance.Infrastructure.Features.Common.Services
                     $"Attempting to {(enabled ? "enable" : "disable")} dark mode"
                 );
 
-                string[] keys = new[] { "Software\\Microsoft\\Windows\\CurrentVersion\\Themes\\Personalize" };
-
-                string[] values = new[]
+                string[] keys = new[]
                 {
-                    "AppsUseLightTheme",
-                    "SystemUsesLightTheme",
+                    "Software\\Microsoft\\Windows\\CurrentVersion\\Themes\\Personalize",
                 };
+
+                string[] values = new[] { "AppsUseLightTheme", "SystemUsesLightTheme" };
 
                 foreach (var key in keys)
                 {
@@ -806,7 +815,7 @@ namespace Winhance.Infrastructure.Features.Common.Services
             {
                 var os = Environment.OSVersion;
                 var version = os.Version;
-                
+
                 string productName = "Unknown Windows Version";
                 string buildNumber = version.Build.ToString();
                 bool isWindows11ByBuild = false;
@@ -816,7 +825,11 @@ namespace Winhance.Infrastructure.Features.Common.Services
 
                 try
                 {
-                    using (RegistryKey key = Microsoft.Win32.Registry.LocalMachine.OpenSubKey("SOFTWARE\\Microsoft\\Windows NT\\CurrentVersion"))
+                    using (
+                        RegistryKey key = Microsoft.Win32.Registry.LocalMachine.OpenSubKey(
+                            "SOFTWARE\\Microsoft\\Windows NT\\CurrentVersion"
+                        )
+                    )
                     {
                         if (key != null)
                         {
@@ -833,11 +846,15 @@ namespace Winhance.Infrastructure.Features.Common.Services
                             }
 
                             // Detect Windows 11 based on product name
-                            isWindows11ByProductName = productName.IndexOf("Windows 11", StringComparison.OrdinalIgnoreCase) >= 0;
-                            
+                            isWindows11ByProductName =
+                                productName.IndexOf(
+                                    "Windows 11",
+                                    StringComparison.OrdinalIgnoreCase
+                                ) >= 0;
+
                             // Detect Windows 11 based on build number
                             isWindows11ByBuild = (version.Major == 10 && version.Build >= 22000);
-                            
+
                             // Combined determination
                             isWindows11 = isWindows11ByBuild || isWindows11ByProductName;
                             isWindows10 = !isWindows11 && version.Major == 10;
@@ -846,7 +863,9 @@ namespace Winhance.Infrastructure.Features.Common.Services
                 }
                 catch (Exception ex)
                 {
-                    _logService.LogWarning($"Error reading registry for Windows version: {ex.Message}");
+                    _logService.LogWarning(
+                        $"Error reading registry for Windows version: {ex.Message}"
+                    );
                 }
 
                 return new WindowsVersionInfo
@@ -859,7 +878,7 @@ namespace Winhance.Infrastructure.Features.Common.Services
                     IsWindows11ByBuild = isWindows11ByBuild,
                     IsWindows11ByProductName = isWindows11ByProductName,
                     IsWindows11 = isWindows11,
-                    IsWindows10 = isWindows10
+                    IsWindows10 = isWindows10,
                 };
             }
             catch (Exception ex)
@@ -875,7 +894,7 @@ namespace Winhance.Infrastructure.Features.Common.Services
                     IsWindows11ByBuild = false,
                     IsWindows11ByProductName = false,
                     IsWindows11 = false,
-                    IsWindows10 = false
+                    IsWindows10 = false,
                 };
             }
         }

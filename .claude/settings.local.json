@@ -21,7 +21,8 @@
       "Bash(powercfg:*)",
       "Bash(dotnet sln add:*)",
       "Bash(cp:*)",
-      "Bash(dotnet remove:*)"
+      "Bash(dotnet remove:*)",
+      "WebSearch"
     ],
     "deny": [],
     "defaultMode": "acceptEdits"

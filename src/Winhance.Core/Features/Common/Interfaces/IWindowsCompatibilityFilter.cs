@@ -11,12 +11,12 @@ namespace Winhance.Core.Features.Common.Interfaces
     {
         /// <summary>
         /// Filters settings based on Windows version and build number compatibility.
-        /// Supports both OptimizationSetting and CustomizationSetting polymorphically.
+        /// Supports both SettingDefinition and SettingDefinition polymorphically.
         /// </summary>
         /// <param name="settings">The settings to filter.</param>
         /// <returns>Settings that are compatible with the current Windows version.</returns>
-        IEnumerable<ApplicationSetting> FilterSettingsByWindowsVersion(
-            IEnumerable<ApplicationSetting> settings
+        IEnumerable<SettingDefinition> FilterSettingsByWindowsVersion(
+            IEnumerable<SettingDefinition> settings
         );
     }
 }

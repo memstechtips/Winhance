@@ -256,48 +256,6 @@ namespace Winhance.Core.Features.Optimize.Models
             };
         }
 
-        /// <summary>
-        /// Applies a preset to the current power optimization settings.
-        /// </summary>
-        /// <param name="presetName">The name of the preset to apply.</param>
-        /// <param name="currentSettings">The current optimization settings to update.</param>
-        /// <returns>The updated settings with preset values applied.</returns>
-        public static List<OptimizationSetting> ApplyPreset(string presetName, List<OptimizationSetting> currentSettings)
-        {
-            var presets = GetPresets();
-            if (!presets.ContainsKey(presetName))
-            {
-                return currentSettings; // Return unchanged if preset not found
-            }
-
-            var presetValues = presets[presetName];
-            var updatedSettings = new List<OptimizationSetting>();
-            
-            foreach (var setting in currentSettings)
-            {
-                // Extract the alias from the setting ID (format: "power-{alias}")
-                var alias = setting.Id.StartsWith("power-") ? setting.Id.Substring(6) : setting.Id;
-                
-                if (presetValues.ContainsKey(alias))
-                {
-                    var presetValue = presetValues[alias];
-                    
-                    // Create a new setting with the preset value applied
-                    var updatedSetting = setting with
-                    {
-                        IsEnabled = Convert.ToBoolean(presetValue)
-                    };
-                    
-                    updatedSettings.Add(updatedSetting);
-                }
-                else
-                {
-                    updatedSettings.Add(setting);
-                }
-            }
-
-            return updatedSettings;
-        }
 
         /// <summary>
         /// Gets the list of available preset names.

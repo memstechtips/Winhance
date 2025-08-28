@@ -21,11 +21,11 @@ namespace Winhance.WPF.Features.Common.Utilities
         private readonly ILogService _logService;
 
         // Default window dimensions
-        private const double DEFAULT_WIDTH = 1600;
-        private const double DEFAULT_HEIGHT = 900;
-        private const double MIN_WIDTH = 1024;
-        private const double MIN_HEIGHT = 700; // Reduced minimum height to fit better on smaller screens
-        private const double SCREEN_PERCENTAGE = 0.9; // Use 90% of screen size for better fit
+        private const double DEFAULT_WIDTH = 1360;
+        private const double DEFAULT_HEIGHT = 768;
+        private const double MIN_WIDTH = 800;
+        private const double MIN_HEIGHT = 600; // Reduced minimum height to fit better on smaller screens
+        private const double SCREEN_PERCENTAGE = 0.95; // Use 95% of screen size for better fit
 
         public WindowSizeManager(Window window, UserPreferencesService userPreferencesService, ILogService logService)
         {

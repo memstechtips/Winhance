@@ -2,6 +2,7 @@ using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Threading.Tasks;
+using Winhance.Core.Features.Common.Constants;
 using Winhance.Core.Features.Common.Enums;
 using Winhance.Core.Features.Common.Interfaces;
 using Winhance.Core.Features.Common.Models;
@@ -15,69 +16,83 @@ namespace Winhance.Infrastructure.Features.Optimize.Services
     /// Service implementation for managing Windows Update optimization settings.
     /// Handles update policies, delivery optimization, and update-related settings.
     /// </summary>
-    public class UpdateService : IUpdateService
+    public class UpdateService : IDomainService
     {
-        private readonly SystemSettingOrchestrator _orchestrator;
+        private readonly  SettingControlHandler _controlHandler;
+        private readonly ISystemSettingsDiscoveryService _discoveryService;
         private readonly ILogService _logService;
 
         /// <summary>
         /// Gets the domain name for Update optimizations.
         /// </summary>
-        public string DomainName => "Update";
+        public string DomainName => FeatureIds.Update;
 
         /// <summary>
         /// Initializes a new instance of the <see cref="UpdateService"/> class.
         /// </summary>
-        public UpdateService(SystemSettingOrchestrator orchestrator, ILogService logService)
+        public UpdateService(
+             SettingControlHandler controlHandler,
+            ISystemSettingsDiscoveryService discoveryService,
+            ILogService logService)
         {
-            _orchestrator = orchestrator ?? throw new ArgumentNullException(nameof(orchestrator));
+            _controlHandler = controlHandler ?? throw new ArgumentNullException(nameof(controlHandler));
+            _discoveryService = discoveryService ?? throw new ArgumentNullException(nameof(discoveryService));
             _logService = logService ?? throw new ArgumentNullException(nameof(logService));
         }
 
         /// <summary>
         /// Gets all Update optimization settings with their current system state.
         /// </summary>
-        public async Task<IEnumerable<ApplicationSetting>> GetSettingsAsync()
+        public async Task<IEnumerable<SettingDefinition>> GetSettingsAsync()
         {
             try
             {
-                _logService.Log(LogLevel.Info, "Loading Update optimization settings");
-
                 var optimizations = UpdateOptimizations.GetUpdateOptimizations();
-                return await _orchestrator.GetSettingsWithSystemStateAsync(
-                    optimizations.Settings,
-                    DomainName
-                );
+                return await _discoveryService.GetSettingsWithSystemStateAsync(optimizations.Settings, DomainName);
             }
             catch (Exception ex)
             {
-                _logService.Log(
-                    LogLevel.Error,
-                    $"Error loading Update optimization settings: {ex.Message}"
-                );
-                return Enumerable.Empty<ApplicationSetting>();
+                _logService.Log(LogLevel.Error, $"Error loading Update settings: {ex.Message}");
+                return Enumerable.Empty<SettingDefinition>();
             }
         }
 
         public async Task ApplySettingAsync(string settingId, bool enable, object? value = null)
         {
             var settings = await GetRawSettingsAsync();
-            await _orchestrator.ApplySettingAsync(settingId, enable, value, settings, DomainName);
+            var setting = settings.FirstOrDefault(s => s.Id == settingId);
+            if (setting == null)
+                throw new ArgumentException($"Setting '{settingId}' not found");
+
+            switch (setting.InputType)
+            {
+                case SettingInputType.Toggle:
+                    await _controlHandler.ApplyBinaryToggleAsync(setting, enable);
+                    break;
+                case SettingInputType.Selection when value is int index:
+                    await _controlHandler.ApplyComboBoxIndexAsync(setting, index);
+                    break;
+                case SettingInputType.NumericRange when value != null:
+                    await _controlHandler.ApplyNumericUpDownAsync(setting, value);
+                    break;
+                default:
+                    throw new NotSupportedException($"Input type '{setting.InputType}' not supported");
+            }
         }
 
         public async Task<bool> IsSettingEnabledAsync(string settingId)
         {
             var settings = await GetRawSettingsAsync();
-            return await _orchestrator.GetSettingStatusAsync(settingId, settings);
+            return await _controlHandler.GetSettingStatusAsync(settingId, settings);
         }
 
         public async Task<object?> GetSettingValueAsync(string settingId)
         {
             var settings = await GetRawSettingsAsync();
-            return await _orchestrator.GetSettingValueAsync(settingId, settings);
+            return await _controlHandler.GetSettingValueAsync(settingId, settings);
         }
 
-        private async Task<IEnumerable<ApplicationSetting>> GetRawSettingsAsync()
+        public async Task<IEnumerable<SettingDefinition>> GetRawSettingsAsync()
         {
             var optimizations = UpdateOptimizations.GetUpdateOptimizations();
             return await Task.FromResult(optimizations.Settings);

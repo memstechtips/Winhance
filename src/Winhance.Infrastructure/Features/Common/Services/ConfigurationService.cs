@@ -6,6 +6,7 @@ using System.IO;
 using System.Linq;
 using System.Threading.Tasks;
 using System.Windows;
+using Winhance.Core.Features.Common.Constants;
 using Winhance.Core.Features.Common.Enums;
 using Winhance.Core.Features.Common.Interfaces;
 using Winhance.Core.Features.Common.Models;
@@ -76,7 +77,7 @@ namespace Winhance.Infrastructure.Features.Common.Services
                     var nameProperty = properties.FirstOrDefault(p => p.Name == "Name");
                     var packageNameProperty = properties.FirstOrDefault(p => p.Name == "PackageName");
                     var isSelectedProperty = properties.FirstOrDefault(p => p.Name == "IsSelected");
-                    var controlTypeProperty = properties.FirstOrDefault(p => p.Name == "ControlType");
+                    var inputTypeProperty = properties.FirstOrDefault(p => p.Name == "InputType");
                     var registrySettingProperty = properties.FirstOrDefault(p => p.Name == "RegistrySetting");
                     var idProperty = properties.FirstOrDefault(p => p.Name == "Id");
 
@@ -94,13 +95,13 @@ namespace Winhance.Infrastructure.Features.Common.Services
                             IsSelected = isSelected
                         };
                         
-                        // Add control type if available
-                        if (controlTypeProperty != null)
+                        // Add input type if available
+                        if (inputTypeProperty != null)
                         {
-                            var controlType = controlTypeProperty.GetValue(item);
-                            if (controlType != null)
+                            var inputType = inputTypeProperty.GetValue(item);
+                            if (inputType != null)
                             {
-                                configItem.ControlType = (ControlType)controlType;
+                                configItem.InputType = (SettingInputType)inputType;
                             }
                         }
                         
@@ -110,13 +111,13 @@ namespace Winhance.Infrastructure.Features.Common.Services
                             var id = idProperty.GetValue(item);
                             if (id != null)
                             {
-                                configItem.CustomProperties["Id"] = id.ToString();
+                                configItem.CustomProperties[CustomPropertyKeys.Id] = id.ToString();
                                 _logService.Log(LogLevel.Info, $"Stored Id for {configItem.Name}: {id}");
                             }
                         }
                         
-                        // Handle ComboBox and ThreeStateSlider control types
-                        if (configItem.ControlType == ControlType.ComboBox || configItem.ControlType == ControlType.ThreeStateSlider)
+                        // Handle Selection input types
+                        if (configItem.InputType == SettingInputType.Selection)
                         {
                             // For ComboBox, get the selected value
                             var selectedThemeProperty = properties.FirstOrDefault(p => p.Name == "SelectedTheme");
@@ -144,9 +145,9 @@ namespace Winhance.Infrastructure.Features.Common.Services
                                 }
                             }
                             
-                            // Store the SliderValue for ComboBox or ThreeStateSlider
-                            // Note: In this application, ComboBox controls use SliderValue to store the selected index
-                            if (configItem.ControlType == ControlType.ComboBox || configItem.ControlType == ControlType.ThreeStateSlider)
+                            // Store the SliderValue for Selection
+                            // Note: In this application, Selection controls use SliderValue to store the selected index
+                            if (configItem.InputType == SettingInputType.Selection)
                             {
                                 var sliderValueProperty = properties.FirstOrDefault(p => p.Name == "SliderValue");
                                 if (sliderValueProperty != null)
@@ -154,8 +155,8 @@ namespace Winhance.Infrastructure.Features.Common.Services
                                     var sliderValue = sliderValueProperty.GetValue(item);
                                     if (sliderValue != null)
                                     {
-                                        configItem.CustomProperties["SliderValue"] = sliderValue;
-                                        _logService.Log(LogLevel.Info, $"Stored SliderValue for {configItem.ControlType} {configItem.Name}: {sliderValue}");
+                                        configItem.CustomProperties[CustomPropertyKeys.SliderValue] = sliderValue;
+                                        _logService.Log(LogLevel.Info, $"Stored SliderValue for {configItem.InputType} {configItem.Name}: {sliderValue}");
                                     }
                                 }
                                 
@@ -168,16 +169,16 @@ namespace Winhance.Infrastructure.Features.Common.Services
                                     {
                                         // Store the labels as a comma-separated string
                                         var labelsString = string.Join(",", sliderLabels.Cast<object>().Select(l => l.ToString()));
-                                        configItem.CustomProperties["SliderLabels"] = labelsString;
-                                        _logService.Log(LogLevel.Info, $"Stored SliderLabels for {configItem.ControlType} {configItem.Name}: {labelsString}");
+                                        configItem.CustomProperties[CustomPropertyKeys.SliderLabels] = labelsString;
+                                        _logService.Log(LogLevel.Info, $"Stored SliderLabels for {configItem.InputType} {configItem.Name}: {labelsString}");
                                         
                                         // For Power Plan, also store the labels as PowerPlanOptions
                                         if (configItem.Name.Contains("Power Plan") ||
                                             (configItem.CustomProperties.ContainsKey("Id") &&
-                                             configItem.CustomProperties["Id"]?.ToString() == "PowerPlanComboBox"))
+                                             configItem.CustomProperties[CustomPropertyKeys.Id]?.ToString() == "PowerPlanComboBox"))
                                         {
                                             // Store the actual list of options
-                                            configItem.CustomProperties["PowerPlanOptions"] = sliderLabels.Cast<object>().Select(l => l.ToString()).ToList();
+                                            configItem.CustomProperties[CustomPropertyKeys.PowerPlanOptions] = sliderLabels.Cast<object>().Select(l => l.ToString()).ToList();
                                             _logService.Log(LogLevel.Info, $"Stored PowerPlanOptions for {configItem.Name}: {labelsString}");
                                         }
                                     }
@@ -208,7 +209,7 @@ namespace Winhance.Infrastructure.Features.Common.Services
                             }
                         }
                         
-                        // Ensure SelectedValue is set for ComboBox controls
+                        // Ensure SelectedValue is set for Selection controls
                         configItem.EnsureSelectedValueIsSet();
                         
                         // Add the configuration item to the file
@@ -224,12 +225,12 @@ namespace Winhance.Infrastructure.Features.Common.Services
                 
                 _logService.Log(LogLevel.Info, $"Successfully saved {configType} configuration with {configFile.Items.Count} items to {saveFileDialog.FileName}");
                 
-                // Log details about ComboBox items if any
-                var comboBoxItems = configFile.Items.Where(i => i.ControlType == ControlType.ComboBox).ToList();
-                if (comboBoxItems.Any())
+                // Log details about Selection items if any
+                var selectionItems = configFile.Items.Where(i => i.InputType == SettingInputType.Selection).ToList();
+                if (selectionItems.Any())
                 {
-                    _logService.Log(LogLevel.Info, $"Saved {comboBoxItems.Count} ComboBox items:");
-                    foreach (var item in comboBoxItems)
+                    _logService.Log(LogLevel.Info, $"Saved {selectionItems.Count} Selection items:");
+                    foreach (var item in selectionItems)
                     {
                         _logService.Log(LogLevel.Info, $"  - {item.Name}: SelectedValue={item.SelectedValue}, CustomProperties={string.Join(", ", item.CustomProperties.Select(kv => $"{kv.Key}={kv.Value}"))}");
                     }
@@ -284,124 +285,24 @@ namespace Winhance.Infrastructure.Features.Common.Services
                     item.EnsureSelectedValueIsSet();
                 }
                 
-                // Process the configuration items to ensure SelectedValue is set for ComboBox and ThreeStateSlider items
+                // Process the configuration items to ensure SelectedValue is set for Selection items
                 foreach (var item in configFile.Items)
                 {
-                    // Handle ComboBox items
-                    if (item.ControlType == ControlType.ComboBox && string.IsNullOrEmpty(item.SelectedValue))
+                    // Handle Selection items
+                    if (item.InputType == SettingInputType.Selection && string.IsNullOrEmpty(item.SelectedValue))
                     {
                         // Try to get the SelectedTheme from CustomProperties
                         if (item.CustomProperties.TryGetValue("SelectedTheme", out var selectedTheme) && selectedTheme != null)
                         {
                             item.SelectedValue = selectedTheme.ToString();
-                            _logService.Log(LogLevel.Info, $"Set SelectedValue for ComboBox {item.Name} from CustomProperties: {item.SelectedValue}");
+                            _logService.Log(LogLevel.Info, $"Set SelectedValue for Selection {item.Name} from CustomProperties: {item.SelectedValue}");
                         }
                         // If not available, try to derive it from SliderValue
                         else if (item.CustomProperties.TryGetValue("SliderValue", out var sliderValue))
                         {
                             int sliderValueInt = Convert.ToInt32(sliderValue);
                             item.SelectedValue = sliderValueInt == 1 ? "Dark Mode" : "Light Mode";
-                            _logService.Log(LogLevel.Info, $"Derived SelectedValue for ComboBox {item.Name} from SliderValue: {sliderValueInt} -> {item.SelectedValue}");
-                        }
-                    }
-                    
-                    // Handle ThreeStateSlider items
-                    if (item.ControlType == ControlType.ThreeStateSlider)
-                    {
-                        // Ensure SliderValue is available in CustomProperties
-                        if (item.CustomProperties.TryGetValue("SliderValue", out var sliderValue))
-                        {
-                            int sliderValueInt = Convert.ToInt32(sliderValue);
-                            
-                            // Try to derive SelectedValue from SliderLabels if available
-                            if (item.CustomProperties.TryGetValue("SliderLabels", out var sliderLabelsString) &&
-                                sliderLabelsString != null)
-                            {
-                                var labels = sliderLabelsString.ToString().Split(',');
-                                if (sliderValueInt >= 0 && sliderValueInt < labels.Length)
-                                {
-                                    item.SelectedValue = labels[sliderValueInt];
-                                    _logService.Log(LogLevel.Info, $"Derived SelectedValue for ThreeStateSlider {item.Name} from SliderLabels: {sliderValueInt} -> {item.SelectedValue}");
-                                }
-                            }
-                            // If no labels available, use a generic approach
-                            else if (string.IsNullOrEmpty(item.SelectedValue))
-                            {
-                                // For UAC slider
-                                if (item.Name.Contains("User Account Control") || item.Name.Contains("UAC"))
-                                {
-                                    item.SelectedValue = sliderValueInt switch
-                                    {
-                                        0 => "Low",
-                                        1 => "Moderate",
-                                        2 => "High",
-                                        _ => $"Level {sliderValueInt}"
-                                    };
-                                }
-                                // For Power Plan slider
-                                else if (item.Name.Contains("Power Plan"))
-                                {
-                                    // First try to get the value from PowerPlanOptions if available
-                                    if (item.CustomProperties.TryGetValue("PowerPlanOptions", out var powerPlanOptions))
-                                    {
-                                        // Handle different types of PowerPlanOptions
-                                        if (powerPlanOptions is List<string> options && sliderValueInt >= 0 && sliderValueInt < options.Count)
-                                        {
-                                            item.SelectedValue = options[sliderValueInt];
-                                            _logService.Log(LogLevel.Info, $"Set SelectedValue for Power Plan from PowerPlanOptions (List<string>): {item.SelectedValue}");
-                                        }
-                                        else if (powerPlanOptions is Newtonsoft.Json.Linq.JArray jArray && sliderValueInt >= 0 && sliderValueInt < jArray.Count)
-                                        {
-                                            item.SelectedValue = jArray[sliderValueInt]?.ToString();
-                                            _logService.Log(LogLevel.Info, $"Set SelectedValue for Power Plan from PowerPlanOptions (JArray): {item.SelectedValue}");
-                                        }
-                                        else
-                                        {
-                                            // If PowerPlanOptions exists but we can't use it, log the issue
-                                            _logService.Log(LogLevel.Warning, $"PowerPlanOptions exists but couldn't be used. Type: {powerPlanOptions?.GetType().Name}, SliderValue: {sliderValueInt}");
-                                            
-                                            // Fall back to default values
-                                            item.SelectedValue = sliderValueInt switch
-                                            {
-                                                0 => "Balanced",
-                                                1 => "High Performance",
-                                                2 => "Ultimate Performance",
-                                                _ => $"Plan {sliderValueInt}"
-                                            };
-                                            _logService.Log(LogLevel.Info, $"Set SelectedValue for Power Plan from default mapping: {item.SelectedValue}");
-                                            
-                                            // Add PowerPlanOptions if it doesn't exist in the right format
-                                            string[] defaultOptions = { "Balanced", "High Performance", "Ultimate Performance" };
-                                            item.CustomProperties["PowerPlanOptions"] = new List<string>(defaultOptions);
-                                            _logService.Log(LogLevel.Info, $"Added default PowerPlanOptions to CustomProperties");
-                                        }
-                                    }
-                                    else
-                                    {
-                                        // Fall back to default values
-                                        item.SelectedValue = sliderValueInt switch
-                                        {
-                                            0 => "Balanced",
-                                            1 => "High Performance",
-                                            2 => "Ultimate Performance",
-                                            _ => $"Plan {sliderValueInt}"
-                                        };
-                                        _logService.Log(LogLevel.Info, $"Set SelectedValue for Power Plan from default mapping: {item.SelectedValue}");
-                                        
-                                        // Add PowerPlanOptions if it doesn't exist
-                                        string[] defaultOptions = { "Balanced", "High Performance", "Ultimate Performance" };
-                                        item.CustomProperties["PowerPlanOptions"] = new List<string>(defaultOptions);
-                                        _logService.Log(LogLevel.Info, $"Added default PowerPlanOptions to CustomProperties");
-                                    }
-                                }
-                                // Generic approach for other sliders
-                                else
-                                {
-                                    item.SelectedValue = $"Level {sliderValueInt}";
-                                }
-                                
-                                _logService.Log(LogLevel.Info, $"Set generic SelectedValue for ThreeStateSlider {item.Name}: {item.SelectedValue}");
-                            }
+                            _logService.Log(LogLevel.Info, $"Derived SelectedValue for Selection {item.Name} from SliderValue: {sliderValueInt} -> {item.SelectedValue}");
                         }
                     }
                 }
@@ -420,12 +321,12 @@ namespace Winhance.Infrastructure.Features.Common.Services
 
                 _logService.Log(LogLevel.Info, $"Successfully loaded {configType} configuration with {configFile.Items.Count} items from {openFileDialog.FileName}");
                 
-                // Log details about ComboBox items if any
-                var comboBoxItems = configFile.Items.Where(i => i.ControlType == ControlType.ComboBox).ToList();
-                if (comboBoxItems.Any())
+                // Log details about Selection items if any
+                var selectionItems = configFile.Items.Where(i => i.InputType == SettingInputType.Selection).ToList();
+                if (selectionItems.Any())
                 {
-                    _logService.Log(LogLevel.Info, $"Loaded {comboBoxItems.Count} ComboBox items:");
-                    foreach (var item in comboBoxItems)
+                    _logService.Log(LogLevel.Info, $"Loaded {selectionItems.Count} Selection items:");
+                    foreach (var item in selectionItems)
                     {
                         _logService.Log(LogLevel.Info, $"  - {item.Name}: SelectedValue={item.SelectedValue}, CustomProperties={string.Join(", ", item.CustomProperties.Select(kv => $"{kv.Key}={kv.Value}"))}");
                     }
@@ -450,60 +351,60 @@ namespace Winhance.Infrastructure.Features.Common.Services
         /// <returns>A task representing the asynchronous operation. Returns true if successful, false otherwise.</returns>
         public async Task<bool> SaveUnifiedConfigurationAsync(UnifiedConfigurationFile unifiedConfig)
         {
-                            try
-                            {
-                                _logService.Log(LogLevel.Info, "Starting to save unified configuration");
-                                
-                                // Create a save file dialog
-                                var saveFileDialog = new SaveFileDialog
-                                {
-                                    Filter = UnifiedFileFilter,
-                                    DefaultExt = FileExtension,
-                                    Title = "Save Unified Configuration",
-                                    FileName = $"Winhance_Unified_Config_{DateTime.Now:yyyyMMdd}{FileExtension}"
-                                };
+            try
+            {
+                _logService.Log(LogLevel.Info, "Starting to save unified configuration");
                 
-                                // Show the save file dialog
-                                if (saveFileDialog.ShowDialog() != true)
-                                {
-                                    _logService.Log(LogLevel.Info, "Save unified configuration canceled by user");
-                                    return false;
-                                }
-                                
-                                _logService.Log(LogLevel.Info, $"Saving unified configuration to {saveFileDialog.FileName}");
+                // Create a save file dialog
+                var saveFileDialog = new SaveFileDialog
+                {
+                    Filter = UnifiedFileFilter,
+                    DefaultExt = FileExtension,
+                    Title = "Save Unified Configuration",
+                    FileName = $"Winhance_Unified_Config_{DateTime.Now:yyyyMMdd}{FileExtension}"
+                };
+
+                // Show the save file dialog
+                if (saveFileDialog.ShowDialog() != true)
+                {
+                    _logService.Log(LogLevel.Info, "Save unified configuration canceled by user");
+                    return false;
+                }
                 
-                                // Ensure all sections are included by default
-                                unifiedConfig.WindowsApps.IsIncluded = true;
-                                unifiedConfig.ExternalApps.IsIncluded = true;
-                                unifiedConfig.Customize.IsIncluded = true;
-                                unifiedConfig.Optimize.IsIncluded = true;
-                                
-                                if (unifiedConfig.WindowsApps.Items == null)
-                                {
-                                    unifiedConfig.WindowsApps.Items = new List<ConfigurationItem>();
-                                }
-                                
-                                // Serialize the configuration file to JSON
-                                var json = JsonConvert.SerializeObject(unifiedConfig, Formatting.Indented);
+                _logService.Log(LogLevel.Info, $"Saving unified configuration to {saveFileDialog.FileName}");
+
+                // Ensure all sections are included by default
+                unifiedConfig.WindowsApps.IsIncluded = true;
+                unifiedConfig.ExternalApps.IsIncluded = true;
+                unifiedConfig.Customize.IsIncluded = true;
+                unifiedConfig.Optimize.IsIncluded = true;
                 
-                                // Write the JSON to the file
-                                await File.WriteAllTextAsync(saveFileDialog.FileName, json);
-                                
-                                _logService.Log(LogLevel.Info, "Successfully saved unified configuration");
-                                
-                                // Log details about included sections
-                                var includedSections = new List<string> { "WindowsApps", "ExternalApps", "Customize", "Optimize" };
-                                _logService.Log(LogLevel.Info, $"Included sections: {string.Join(", ", includedSections)}");
+                if (unifiedConfig.WindowsApps.Items == null)
+                {
+                    unifiedConfig.WindowsApps.Items = new List<ConfigurationItem>();
+                }
                 
-                                return true;
-                            }
-                            catch (Exception ex)
-                            {
-                                _logService.Log(LogLevel.Error, $"Error saving unified configuration: {ex.Message}");
-                                MessageBox.Show($"Error saving unified configuration: {ex.Message}", "Error", MessageBoxButton.OK, MessageBoxImage.Error);
-                                return false;
-                            }
-                        }
+                // Serialize the configuration file to JSON
+                var json = JsonConvert.SerializeObject(unifiedConfig, Formatting.Indented);
+
+                // Write the JSON to the file
+                await File.WriteAllTextAsync(saveFileDialog.FileName, json);
+                
+                _logService.Log(LogLevel.Info, "Successfully saved unified configuration");
+                
+                // Log details about included sections
+                var includedSections = new List<string> { "WindowsApps", "ExternalApps", "Customize", "Optimize" };
+                _logService.Log(LogLevel.Info, $"Included sections: {string.Join(", ", includedSections)}");
+
+                return true;
+            }
+            catch (Exception ex)
+            {
+                _logService.Log(LogLevel.Error, $"Error saving unified configuration: {ex.Message}");
+                MessageBox.Show($"Error saving unified configuration: {ex.Message}", "Error", MessageBoxButton.OK, MessageBoxImage.Error);
+                return false;
+            }
+        }
 
         /// <summary>
         /// Loads a unified configuration file.
@@ -511,39 +412,39 @@ namespace Winhance.Infrastructure.Features.Common.Services
         /// <returns>A task representing the asynchronous operation. Returns the unified configuration file if successful, null otherwise.</returns>
         public async Task<UnifiedConfigurationFile> LoadUnifiedConfigurationAsync()
         {
-                            try
-                            {
-                                _logService.Log(LogLevel.Info, "Starting to load unified configuration");
-                                
-                                // Create an open file dialog
-                                var openFileDialog = new OpenFileDialog
-                                {
-                                    Filter = UnifiedFileFilter,
-                                    DefaultExt = FileExtension,
-                                    Title = "Open Unified Configuration"
-                                };
+            try
+            {
+                _logService.Log(LogLevel.Info, "Starting to load unified configuration");
                 
-                                // Show the open file dialog
-                                if (openFileDialog.ShowDialog() != true)
-                                {
-                                    _logService.Log(LogLevel.Info, "Load unified configuration canceled by user");
-                                    return null;
-                                }
-                                
-                                _logService.Log(LogLevel.Info, $"Loading unified configuration from {openFileDialog.FileName}");
+                // Create an open file dialog
+                var openFileDialog = new OpenFileDialog
+                {
+                    Filter = UnifiedFileFilter,
+                    DefaultExt = FileExtension,
+                    Title = "Open Unified Configuration"
+                };
+
+                // Show the open file dialog
+                if (openFileDialog.ShowDialog() != true)
+                {
+                    _logService.Log(LogLevel.Info, "Load unified configuration canceled by user");
+                    return null;
+                }
                 
-                                // Read the JSON from the file
-                                var json = await File.ReadAllTextAsync(openFileDialog.FileName);
-                
-                                return DeserializeUnifiedConfiguration(json);
-                            }
-                            catch (Exception ex)
-                            {
-                                _logService.Log(LogLevel.Error, $"Error loading unified configuration: {ex.Message}");
-                                MessageBox.Show($"Error loading unified configuration: {ex.Message}", "Error", MessageBoxButton.OK, MessageBoxImage.Error);
-                                return null;
-                            }
-                        }
+                _logService.Log(LogLevel.Info, $"Loading unified configuration from {openFileDialog.FileName}");
+
+                // Read the JSON from the file
+                var json = await File.ReadAllTextAsync(openFileDialog.FileName);
+
+                return DeserializeUnifiedConfiguration(json);
+            }
+            catch (Exception ex)
+            {
+                _logService.Log(LogLevel.Error, $"Error loading unified configuration: {ex.Message}");
+                MessageBox.Show($"Error loading unified configuration: {ex.Message}", "Error", MessageBoxButton.OK, MessageBoxImage.Error);
+                return null;
+            }
+        }
                         
         /// <summary>
         /// Downloads and loads the recommended configuration file from GitHub.
@@ -811,27 +712,27 @@ namespace Winhance.Infrastructure.Features.Common.Services
                 var configItem = new ConfigurationItem
                 {
                     Name = item.Name,
-                    IsSelected = item.IsSelected,
-                    ControlType = item.ControlType,
+                    IsSelected = false,
+                    InputType = item.InputType,
                     CustomProperties = new Dictionary<string, object>()
                 };
                 
                 // Add Id to custom properties
                 if (!string.IsNullOrEmpty(item.Id))
                 {
-                    configItem.CustomProperties["Id"] = item.Id;
+                    configItem.CustomProperties[CustomPropertyKeys.Id] = item.Id;
                 }
                 
                 // Add GroupName to custom properties
                 if (!string.IsNullOrEmpty(item.GroupName))
                 {
-                    configItem.CustomProperties["GroupName"] = item.GroupName;
+                    configItem.CustomProperties[CustomPropertyKeys.GroupName] = item.GroupName;
                 }
                 
                 // Add Description to custom properties
                 if (!string.IsNullOrEmpty(item.Description))
                 {
-                    configItem.CustomProperties["Description"] = item.Description;
+                    configItem.CustomProperties[CustomPropertyKeys.Description] = item.Description;
                 }
                 
                 // Handle specific properties based on the item's type
@@ -859,7 +760,7 @@ namespace Winhance.Infrastructure.Features.Common.Services
                     var sliderValue = sliderValueProperty.GetValue(item);
                     if (sliderValue != null)
                     {
-                        configItem.CustomProperties["SliderValue"] = sliderValue;
+                        configItem.CustomProperties[CustomPropertyKeys.SliderValue] = sliderValue;
                     }
                 }
                 
@@ -872,13 +773,13 @@ namespace Winhance.Infrastructure.Features.Common.Services
                     {
                         // Store the labels as a comma-separated string
                         var labelsString = string.Join(",", sliderLabels.Cast<object>().Select(l => l.ToString()));
-                        configItem.CustomProperties["SliderLabels"] = labelsString;
+                        configItem.CustomProperties[CustomPropertyKeys.SliderLabels] = labelsString;
                         
                         // For Power Plan, also store the labels as PowerPlanOptions
                         if (item.Name.Contains("Power Plan") || item.Id == "PowerPlanComboBox")
                         {
                             // Store the actual list of options
-                            configItem.CustomProperties["PowerPlanOptions"] = sliderLabels.Cast<object>().Select(l => l.ToString()).ToList();
+                            configItem.CustomProperties[CustomPropertyKeys.PowerPlanOptions] = sliderLabels.Cast<object>().Select(l => l.ToString()).ToList();
                         }
                     }
                 }
@@ -907,7 +808,7 @@ namespace Winhance.Infrastructure.Features.Common.Services
                     }
                 }
                 
-                // Ensure SelectedValue is set for ComboBox controls
+                // Ensure SelectedValue is set for Selection controls
                 configItem.EnsureSelectedValueIsSet();
                 
                 configItems.Add(configItem);

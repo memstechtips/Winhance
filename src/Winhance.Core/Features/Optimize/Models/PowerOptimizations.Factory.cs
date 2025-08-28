@@ -1,6 +1,7 @@
 using System;
 using System.Collections.Generic;
 using System.Linq;
+using Winhance.Core.Features.Common.Constants;
 using Winhance.Core.Features.Common.Enums;
 using Winhance.Core.Features.Common.Models;
 
@@ -38,53 +39,54 @@ namespace Winhance.Core.Features.Optimize.Models
         }
 
         /// <summary>
-        /// Gets all power optimizations as an OptimizationGroup.
+        /// Gets all power optimizations as an SettingGroup.
         /// </summary>
-        /// <returns>An OptimizationGroup containing all power settings converted to optimization settings.</returns>
-        public static OptimizationGroup GetPowerOptimizations()
+        /// <returns>An SettingGroup containing all power settings converted to optimization settings.</returns>
+        public static SettingGroup GetPowerOptimizations()
         {
-            var settings = new List<OptimizationSetting>();
+            var settings = new List<SettingDefinition>();
             var powerSettingDefinitions = GetAllSettings();
 
-            // Convert each PowerSettingDefinition to OptimizationSetting
+            // Convert each PowerSettingDefinition to SettingDefinition
             foreach (var definition in powerSettingDefinitions)
             {
-                var optimizationSetting = ConvertToOptimizationSetting(definition);
-                if (optimizationSetting != null)
+                var SettingDefinition = ConvertToSettingDefinition(definition);
+                if (SettingDefinition != null)
                 {
-                    settings.Add(optimizationSetting);
+                    settings.Add(SettingDefinition);
                 }
             }
 
-            return new OptimizationGroup
+            return new SettingGroup
             {
                 Name = "Power",
-                Category = OptimizationCategory.Power,
-                Settings = settings
+                FeatureId = FeatureIds.Power,
+                Settings = settings,
             };
         }
 
         /// <summary>
-        /// Converts a PowerSettingDefinition to an OptimizationSetting.
+        /// Converts a PowerSettingDefinition to an SettingDefinition.
         /// </summary>
         /// <param name="definition">The power setting definition to convert.</param>
         /// <returns>The converted optimization setting, or null if conversion is not supported.</returns>
-        public static OptimizationSetting? ConvertToOptimizationSetting(PowerSettingDefinition definition)
+        public static SettingDefinition? ConvertToSettingDefinition(
+            PowerSettingDefinition definition
+        )
         {
-            // Use the ControlType directly from the definition (no fallback needed since we removed SettingType)
-            var controlType = definition.ControlType;
+            // Use the InputType directly from the definition (no fallback needed since we removed SettingType)
+            var inputType = definition.InputType;
 
-            var setting = new OptimizationSetting
+            var setting = new SettingDefinition
             {
                 Id = definition.Guid, // Use actual GUID as ID for proper mapping
                 Name = definition.DisplayName,
                 Description = definition.Description,
-                Category = OptimizationCategory.Power,
                 GroupName = GetSubgroupDisplayName(definition.SubgroupGuid),
-                ControlType = controlType,
+                InputType = inputType,
                 CommandSettings = CreatePowerCfgCommands(definition),
                 // Copy power-specific properties to CustomProperties for UI use
-                CustomProperties = CreateCustomProperties(definition)
+                CustomProperties = CreateCustomProperties(definition),
             };
 
             return setting;
@@ -93,15 +95,21 @@ namespace Winhance.Core.Features.Optimize.Models
         /// <summary>
         /// Creates custom properties for power settings that need special handling in the UI.
         /// </summary>
-        private static Dictionary<string, object> CreateCustomProperties(PowerSettingDefinition definition)
+        private static Dictionary<string, object> CreateCustomProperties(
+            PowerSettingDefinition definition
+        )
         {
             var properties = new Dictionary<string, object>();
 
-            // Add ComboBox options for enum-like settings  
+            // Add ComboBox options for enum-like settings
             if (definition.PossibleValues?.Count > 0)
             {
-                var options = definition.PossibleValues
-                    .Select(v => new PowerSettingOption { Name = v.FriendlyName, Value = v.Index })
+                var options = definition
+                    .PossibleValues.Select(v => new PowerSettingOption
+                    {
+                        Name = v.FriendlyName,
+                        Value = v.Index,
+                    })
                     .ToList();
                 properties["Options"] = options;
             }
@@ -109,14 +117,18 @@ namespace Winhance.Core.Features.Optimize.Models
             // Add time intervals for time-based settings
             if (definition.UseTimeIntervals && definition.TimeValues?.Count > 0)
             {
-                var options = definition.TimeValues
-                    .Select(t => new PowerSettingOption { Name = t.DisplayName, Value = t.Minutes })
+                var options = definition
+                    .TimeValues.Select(t => new PowerSettingOption
+                    {
+                        Name = t.DisplayName,
+                        Value = t.Minutes,
+                    })
                     .ToList();
                 properties["Options"] = options;
             }
 
             // Add min/max/increment for numeric settings
-            if (definition.ControlType == ControlType.NumericUpDown)
+            if (definition.InputType == SettingInputType.NumericRange)
             {
                 properties["MinValue"] = definition.MinValue;
                 properties["MaxValue"] = definition.MaxValue;
@@ -139,7 +151,10 @@ namespace Winhance.Core.Features.Optimize.Models
         /// <returns>The display name of the subgroup.</returns>
         private static string GetSubgroupDisplayName(string subgroupGuid)
         {
-            var subgroup = GetAllSubgroups().FirstOrDefault(s => s.Guid.Equals(subgroupGuid, StringComparison.OrdinalIgnoreCase));
+            var subgroup = GetAllSubgroups()
+                .FirstOrDefault(s =>
+                    s.Guid.Equals(subgroupGuid, StringComparison.OrdinalIgnoreCase)
+                );
             return subgroup?.DisplayName ?? "Power Settings";
         }
 
@@ -148,51 +163,67 @@ namespace Winhance.Core.Features.Optimize.Models
         /// </summary>
         /// <param name="definition">The power setting definition.</param>
         /// <returns>A list of command settings.</returns>
-        private static List<CommandSetting> CreatePowerCfgCommands(PowerSettingDefinition definition)
+        private static List<CommandSetting> CreatePowerCfgCommands(
+            PowerSettingDefinition definition
+        )
         {
             var commands = new List<CommandSetting>();
 
             // Handle custom commands (like hibernation)
             if (definition.CustomCommand && !string.IsNullOrEmpty(definition.CustomCommandTemplate))
             {
-                commands.Add(new CommandSetting
-                {
-                    Id = $"power-{definition.Alias}-custom",
-                    Category = "Power",
-                    EnabledCommand = $"powercfg {definition.CustomCommandTemplate.Replace("{0}", "on")}",
-                    DisabledCommand = $"powercfg {definition.CustomCommandTemplate.Replace("{0}", "off")}",
-                    Description = $"Toggle {definition.DisplayName}"
-                });
+                commands.Add(
+                    new CommandSetting
+                    {
+                        Id = $"power-{definition.Alias}-custom",
+                        Category = "Power",
+                        EnabledCommand =
+                            $"powercfg {definition.CustomCommandTemplate.Replace("{0}", "on")}",
+                        DisabledCommand =
+                            $"powercfg {definition.CustomCommandTemplate.Replace("{0}", "off")}",
+                        Description = $"Toggle {definition.DisplayName}",
+                    }
+                );
             }
             else
             {
                 // Standard powercfg commands for AC and DC power
-                commands.Add(new CommandSetting
-                {
-                    Id = $"power-{definition.Alias}-ac",
-                    Category = "Power",
-                    EnabledCommand = $"powercfg /setacvalueindex SCHEME_CURRENT {definition.SubgroupGuid} {definition.Guid} 1",
-                    DisabledCommand = $"powercfg /setacvalueindex SCHEME_CURRENT {definition.SubgroupGuid} {definition.Guid} 0",
-                    Description = $"Set {definition.DisplayName} on AC power"
-                });
+                commands.Add(
+                    new CommandSetting
+                    {
+                        Id = $"power-{definition.Alias}-ac",
+                        Category = "Power",
+                        EnabledCommand =
+                            $"powercfg /setacvalueindex SCHEME_CURRENT {definition.SubgroupGuid} {definition.Guid} 1",
+                        DisabledCommand =
+                            $"powercfg /setacvalueindex SCHEME_CURRENT {definition.SubgroupGuid} {definition.Guid} 0",
+                        Description = $"Set {definition.DisplayName} on AC power",
+                    }
+                );
 
-                commands.Add(new CommandSetting
-                {
-                    Id = $"power-{definition.Alias}-dc",
-                    Category = "Power",
-                    EnabledCommand = $"powercfg /setdcvalueindex SCHEME_CURRENT {definition.SubgroupGuid} {definition.Guid} 1",
-                    DisabledCommand = $"powercfg /setdcvalueindex SCHEME_CURRENT {definition.SubgroupGuid} {definition.Guid} 0",
-                    Description = $"Set {definition.DisplayName} on battery power"
-                });
+                commands.Add(
+                    new CommandSetting
+                    {
+                        Id = $"power-{definition.Alias}-dc",
+                        Category = "Power",
+                        EnabledCommand =
+                            $"powercfg /setdcvalueindex SCHEME_CURRENT {definition.SubgroupGuid} {definition.Guid} 1",
+                        DisabledCommand =
+                            $"powercfg /setdcvalueindex SCHEME_CURRENT {definition.SubgroupGuid} {definition.Guid} 0",
+                        Description = $"Set {definition.DisplayName} on battery power",
+                    }
+                );
 
-                commands.Add(new CommandSetting
-                {
-                    Id = $"power-{definition.Alias}-apply",
-                    Category = "Power",
-                    EnabledCommand = "powercfg /setactive SCHEME_CURRENT",
-                    DisabledCommand = "powercfg /setactive SCHEME_CURRENT",
-                    Description = "Apply power plan changes"
-                });
+                commands.Add(
+                    new CommandSetting
+                    {
+                        Id = $"power-{definition.Alias}-apply",
+                        Category = "Power",
+                        EnabledCommand = "powercfg /setactive SCHEME_CURRENT",
+                        DisabledCommand = "powercfg /setactive SCHEME_CURRENT",
+                        Description = "Apply power plan changes",
+                    }
+                );
             }
 
             return commands;
@@ -205,13 +236,17 @@ namespace Winhance.Core.Features.Optimize.Models
         /// <param name="acValue">The current AC value from the system.</param>
         /// <param name="dcValue">The current DC value from the system.</param>
         /// <returns>An AdvancedPowerSetting ready for UI binding.</returns>
-        public static AdvancedPowerSetting CreateAdvancedPowerSetting(PowerSettingDefinition definition, int acValue = 0, int dcValue = 0)
+        public static AdvancedPowerSetting CreateAdvancedPowerSetting(
+            PowerSettingDefinition definition,
+            int acValue = 0,
+            int dcValue = 0
+        )
         {
             return new AdvancedPowerSetting
             {
                 Definition = definition,
                 AcValue = acValue,
-                DcValue = dcValue
+                DcValue = dcValue,
             };
         }
 
@@ -222,19 +257,17 @@ namespace Winhance.Core.Features.Optimize.Models
         /// <param name="systemValues">Dictionary of setting GUID to (AC, DC) values from the system.</param>
         /// <returns>An AdvancedPowerSettingGroup ready for UI binding.</returns>
         public static AdvancedPowerSettingGroup CreateAdvancedPowerSettingGroup(
-            PowerSettingSubgroup subgroup, 
-            Dictionary<string, (int ac, int dc)> systemValues = null)
+            PowerSettingSubgroup subgroup,
+            Dictionary<string, (int ac, int dc)> systemValues = null
+        )
         {
-            var group = new AdvancedPowerSettingGroup
-            {
-                Subgroup = subgroup
-            };
+            var group = new AdvancedPowerSettingGroup { Subgroup = subgroup };
 
             foreach (var settingDef in subgroup.Settings)
             {
                 var acValue = 0;
                 var dcValue = 0;
-                
+
                 if (systemValues?.ContainsKey(settingDef.Guid) == true)
                 {
                     (acValue, dcValue) = systemValues[settingDef.Guid];
