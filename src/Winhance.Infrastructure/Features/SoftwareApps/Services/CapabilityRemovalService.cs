@@ -47,13 +47,14 @@ namespace Winhance.Infrastructure.Features.SoftwareApps.Services
             {
                 throw new ArgumentNullException(nameof(capabilityInfo));
             }
-            
+
             try
             {
                 _logService.LogInformation($"Adding capability {capabilityInfo.Name} to BloatRemoval script");
-                progress?.Report(new TaskProgressDetail { 
-                    Progress = 0, 
-                    StatusText = $"Adding capability {capabilityInfo.Name} to BloatRemoval script..." 
+                progress?.Report(new TaskProgressDetail
+                {
+                    Progress = 0,
+                    StatusText = $"Adding capability {capabilityInfo.Name} to BloatRemoval script..."
                 });
 
                 // Add the capability to the BloatRemoval script
@@ -63,8 +64,9 @@ namespace Winhance.Infrastructure.Features.SoftwareApps.Services
                     cancellationToken);
 
                 _logService.LogSuccess($"Successfully added capability {capabilityInfo.Name} to BloatRemoval script");
-                progress?.Report(new TaskProgressDetail { 
-                    Progress = 100, 
+                progress?.Report(new TaskProgressDetail
+                {
+                    Progress = 100,
                     StatusText = $"Successfully added capability {capabilityInfo.Name} to BloatRemoval script",
                     LogLevel = LogLevel.Success
                 });
@@ -74,8 +76,9 @@ namespace Winhance.Infrastructure.Features.SoftwareApps.Services
             catch (Exception ex)
             {
                 _logService.LogError($"Error adding capability {capabilityInfo.Name} to BloatRemoval script", ex);
-                progress?.Report(new TaskProgressDetail { 
-                    Progress = 0, 
+                progress?.Report(new TaskProgressDetail
+                {
+                    Progress = 0,
                     StatusText = $"Error adding capability {capabilityInfo.Name} to BloatRemoval script: {ex.Message}",
                     LogLevel = LogLevel.Error
                 });
@@ -105,7 +108,8 @@ namespace Winhance.Infrastructure.Features.SoftwareApps.Services
             catch (Exception ex)
             {
                 _logService.LogError($"Error removing capability: {capabilityName}", ex);
-                progress?.Report(new TaskProgressDetail {
+                progress?.Report(new TaskProgressDetail
+                {
                     Progress = 0,
                     StatusText = $"Error removing {capabilityName}: {ex.Message}",
                     LogLevel = LogLevel.Error
@@ -150,7 +154,7 @@ namespace Winhance.Infrastructure.Features.SoftwareApps.Services
             catch (Exception ex)
             {
                 _logService.LogError($"Error adding capabilities to BloatRemoval script: {ex.Message}", ex);
-                
+
                 // Mark all as failed
                 foreach (var capability in capabilities)
                 {

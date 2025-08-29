@@ -25,10 +25,10 @@ namespace Winhance.WPF.Features.Common.Converters
             {
                 return boolValue ? Visibility.Collapsed : Visibility.Visible;
             }
-            
+
             return Visibility.Visible;
         }
-        
+
         /// <summary>
         /// Converts a Visibility value back to a boolean value, with the boolean value inverted.
         /// </summary>
@@ -43,7 +43,7 @@ namespace Winhance.WPF.Features.Common.Converters
             {
                 return visibility != Visibility.Visible;
             }
-            
+
             return false;
         }
     }

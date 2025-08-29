@@ -52,7 +52,7 @@ namespace Winhance.Infrastructure.Features.SoftwareApps.Services
                 // This is a placeholder implementation
                 // In a real implementation, this would query the system for available capabilities
                 _logService.LogInformation("Loading Windows capabilities");
-                
+
                 // Return an empty list for now
                 return Enumerable.Empty<CapabilityInfo>();
             }
@@ -132,7 +132,7 @@ namespace Winhance.Infrastructure.Features.SoftwareApps.Services
         public async Task<Dictionary<string, bool>> GetBatchInstallStatusAsync(IEnumerable<string> packageIds)
         {
             ValidationHelper.NotNull(packageIds, nameof(packageIds));
-                
+
             var distinctIds = packageIds
                 .Where(id => !string.IsNullOrWhiteSpace(id))
                 .Distinct()
@@ -171,12 +171,12 @@ namespace Winhance.Infrastructure.Features.SoftwareApps.Services
                     .Where(app => app != null && !string.IsNullOrWhiteSpace(app.PackageID)) // Use PackageID from AppInfo
                     .Select(app => app.PackageID)
                     .Distinct();
-                
+
                 if (!packageIds.Any())
                 {
                     return OperationResult<bool>.Succeeded(true); // No apps to refresh
                 }
-                
+
                 var statuses = await GetBatchInstallStatusAsync(packageIds);
 
                 foreach (var app in apps) // Iterate through AppInfo
@@ -188,7 +188,7 @@ namespace Winhance.Infrastructure.Features.SoftwareApps.Services
                         // app.IsInstalled = isInstalled; // This depends if AppInfo is mutable and if this side-effect is desired
                     }
                 }
-                
+
                 return OperationResult<bool>.Succeeded(true);
             }
             catch (Exception ex)

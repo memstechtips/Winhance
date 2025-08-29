@@ -16,7 +16,7 @@ namespace Winhance.Infrastructure.Features.SoftwareApps.Services.WinGet.Interfac
         /// <param name="cancellationToken">A cancellation token to cancel the operation.</param>
         /// <returns>A task representing the asynchronous operation with the verification result.</returns>
         Task<VerificationResult> VerifyInstallationAsync(
-            string packageId, 
+            string packageId,
             CancellationToken cancellationToken = default);
 
         /// <summary>
@@ -27,8 +27,8 @@ namespace Winhance.Infrastructure.Features.SoftwareApps.Services.WinGet.Interfac
         /// <param name="cancellationToken">A cancellation token to cancel the operation.</param>
         /// <returns>A task representing the asynchronous operation with the verification result.</returns>
         Task<VerificationResult> VerifyInstallationAsync(
-            string packageId, 
-            string version, 
+            string packageId,
+            string version,
             CancellationToken cancellationToken = default);
     }
 }

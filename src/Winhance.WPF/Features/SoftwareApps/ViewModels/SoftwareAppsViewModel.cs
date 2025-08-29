@@ -524,13 +524,13 @@ namespace Winhance.WPF.Features.SoftwareApps.ViewModels
                 var logService = _serviceProvider.GetRequiredService<ILogService>();
                 var scheduledTaskService = _serviceProvider.GetRequiredService<IScheduledTaskService>();
                 var scriptPathDetectionService = _serviceProvider.GetRequiredService<IScriptPathDetectionService>();
-                
+
                 var viewModel = new WindowsAppsHelpContentViewModel(
                     scriptPathDetectionService,
                     scheduledTaskService,
                     logService
                 );
-                
+
                 var helpContent = new WindowsAppsHelpContent(viewModel);
                 CurrentHelpContent = helpContent;
             }
@@ -538,11 +538,11 @@ namespace Winhance.WPF.Features.SoftwareApps.ViewModels
             {
                 // Create External Apps help content with a simple ViewModel for the close command
                 var helpContent = new ExternalAppsHelpContent();
-                
+
                 // Create a simple ViewModel with CloseHelpCommand
                 var viewModel = new ExternalAppsHelpViewModel { CloseHelpCommand = HideHelpFlyoutCommand };
                 helpContent.DataContext = viewModel;
-                
+
                 CurrentHelpContent = helpContent;
             }
 
@@ -550,7 +550,7 @@ namespace Winhance.WPF.Features.SoftwareApps.ViewModels
             CalculateHelpFlyoutPosition();
             IsHelpFlyoutVisible = true;
             IsHelpButtonActive = true; // Highlight the Help button
-            
+
             // Trigger focus on the overlay to enable keyboard input
             ShouldFocusHelpOverlay = !ShouldFocusHelpOverlay; // Toggle to trigger property change
         }
@@ -563,14 +563,14 @@ namespace Winhance.WPF.Features.SoftwareApps.ViewModels
         {
             IsHelpFlyoutVisible = false;
             IsHelpButtonActive = false; // Remove highlight from Help button
-            
+
             // Dispose ViewModels if they implement IDisposable
-            if (CurrentHelpContent is UserControl helpControl && 
+            if (CurrentHelpContent is UserControl helpControl &&
                 helpControl.DataContext is IDisposable disposableViewModel)
             {
                 disposableViewModel.Dispose();
             }
-            
+
             CurrentHelpContent = null;
         }
 
@@ -603,19 +603,19 @@ namespace Winhance.WPF.Features.SoftwareApps.ViewModels
                     {
                         HelpFlyoutLeft = 20;
                     }
-                    
+
                     // Adjust horizontal position if it would go off the right edge
                     if (HelpFlyoutLeft + 520 > softwareAppsView.ActualWidth - 20)
                     {
                         HelpFlyoutLeft = softwareAppsView.ActualWidth - 540;
                     }
-                    
+
                     // Adjust vertical position if it would go off the bottom edge
                     if (HelpFlyoutTop + 450 > softwareAppsView.ActualHeight - 20)
                     {
                         // Position above the button instead
                         HelpFlyoutTop = buttonPosition.Y - 455; // Above the button with small gap
-                        
+
                         // Ensure it doesn't go off the top
                         if (HelpFlyoutTop < 20)
                         {
@@ -629,7 +629,7 @@ namespace Winhance.WPF.Features.SoftwareApps.ViewModels
                 // Fallback to center positioning if calculation fails
                 var logService = _serviceProvider.GetRequiredService<ILogService>();
                 logService.LogWarning($"Failed to calculate help flyout position: {ex.Message}");
-                
+
                 // Use positioning near the top-right as fallback (where help button typically is)
                 HelpFlyoutLeft = 200; // Reasonable offset from left
                 HelpFlyoutTop = 100;  // Reasonable offset from top

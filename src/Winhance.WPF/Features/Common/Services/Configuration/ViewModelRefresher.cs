@@ -43,7 +43,7 @@ namespace Winhance.WPF.Features.Common.Services.Configuration
                     // It manages its own feature Views and their ViewModels internally
                     _logService.Log(LogLevel.Info, "Skipping refresh for OptimizeViewModel as it uses a composition pattern");
                     return;
-                    
+
                     // Legacy code for OptimizeViewModel has been removed as it uses a different architecture
                     // The composition-based ViewModel manages its own child ViewModels and their refresh logic
                     _logService.Log(LogLevel.Info, "Skipping refresh for OptimizeViewModel as it uses a composition pattern");

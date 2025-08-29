@@ -1,5 +1,3 @@
-using System.Collections.Generic;
-using System.Threading.Tasks;
 using Winhance.Core.Features.Common.Models;
 
 namespace Winhance.Core.Features.Common.Interfaces
@@ -37,7 +35,7 @@ namespace Winhance.Core.Features.Common.Interfaces
         /// </summary>
         /// <returns>A task representing the asynchronous operation. Returns the unified configuration file if successful, null otherwise.</returns>
         Task<UnifiedConfigurationFile> LoadUnifiedConfigurationAsync();
-        
+
         /// <summary>
         /// Downloads and loads the recommended configuration file from GitHub.
         /// </summary>

@@ -1,7 +1,7 @@
 public static class FeatureIds
 {
     // TODO: Add SoftwareApps
-    
+
     // Optimize Features
     public const string GamingPerformance = "GamingPerformance";
     public const string Notification = "Notification";

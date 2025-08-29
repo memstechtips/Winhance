@@ -64,8 +64,8 @@ namespace Winhance.WPF.Features.Common.ViewModels
         /// <param name="sections">The dictionary of section names, their availability, and item counts.</param>
         /// <param name="isSaveDialog">Whether this is a save dialog (true) or an import dialog (false).</param>
         public UnifiedConfigurationDialogViewModel(
-            string title, 
-            string description, 
+            string title,
+            string description,
             Dictionary<string, (bool IsSelected, bool IsAvailable, int ItemCount)> sections,
             bool isSaveDialog)
         {
@@ -78,11 +78,11 @@ namespace Winhance.WPF.Features.Common.ViewModels
             {
                 Name = "Software & Apps",
                 Description = "Settings for Windows built-in and third-party applications",
-                IsSelected = sections.ContainsKey("WindowsApps") && sections.ContainsKey("ExternalApps") && 
+                IsSelected = sections.ContainsKey("WindowsApps") && sections.ContainsKey("ExternalApps") &&
                             (sections["WindowsApps"].IsSelected || sections["ExternalApps"].IsSelected),
-                IsAvailable = sections.ContainsKey("WindowsApps") && sections.ContainsKey("ExternalApps") && 
+                IsAvailable = sections.ContainsKey("WindowsApps") && sections.ContainsKey("ExternalApps") &&
                               (sections["WindowsApps"].IsAvailable || sections["ExternalApps"].IsAvailable),
-                ItemCount = (sections.ContainsKey("WindowsApps") ? sections["WindowsApps"].ItemCount : 0) + 
+                ItemCount = (sections.ContainsKey("WindowsApps") ? sections["WindowsApps"].ItemCount : 0) +
                            (sections.ContainsKey("ExternalApps") ? sections["ExternalApps"].ItemCount : 0),
                 SectionKey = "SoftwareAndApps",
                 HasSubSections = true
@@ -235,7 +235,7 @@ namespace Winhance.WPF.Features.Common.ViewModels
                     {
                         // Add the main section selection state
                         result[section.SectionKey] = section.IsSelected;
-                        
+
                         // Add subsection selection states with their specialized keys
                         foreach (var subSection in section.SubSections)
                         {
@@ -316,7 +316,7 @@ namespace Winhance.WPF.Features.Common.ViewModels
         public bool IsSelected
         {
             get => _isSelected;
-            set 
+            set
             {
                 if (SetProperty(ref _isSelected, value))
                 {
@@ -358,7 +358,7 @@ namespace Winhance.WPF.Features.Common.ViewModels
             get => _sectionKey;
             set => SetProperty(ref _sectionKey, value);
         }
-        
+
         /// <summary>
         /// Gets or sets a value indicating whether this section has subsections.
         /// </summary>
@@ -367,12 +367,12 @@ namespace Winhance.WPF.Features.Common.ViewModels
             get => _hasSubSections;
             set => SetProperty(ref _hasSubSections, value);
         }
-        
+
         /// <summary>
         /// Gets the collection of subsections.
         /// </summary>
         public ObservableCollection<UnifiedConfigurationSectionViewModel> SubSections { get; } = new ObservableCollection<UnifiedConfigurationSectionViewModel>();
-        
+
         /// <summary>
         /// Updates the IsSelected property based on the state of subsections.
         /// </summary>
@@ -385,7 +385,7 @@ namespace Winhance.WPF.Features.Common.ViewModels
                 // If some are selected, select the parent (partial selection)
                 bool allSelected = SubSections.All(s => s.IsSelected);
                 bool noneSelected = SubSections.All(s => !s.IsSelected);
-                
+
                 _isSelected = allSelected || (!noneSelected); // Don't trigger the setter to avoid recursion
                 OnPropertyChanged(nameof(IsSelected));
             }

@@ -62,18 +62,18 @@ public class CapabilityInstallationService : BaseInstallationService<CapabilityI
         CancellationToken cancellationToken)
     {
         var result = await InstallCapabilityAsync(capabilityInfo.PackageName, progress, cancellationToken);
-        
+
         // Only update BloatRemoval.ps1 script if installation was successful
         if (result.Success)
         {
             try
             {
                 _logService.LogInformation($"Starting BloatRemoval.ps1 script update for {capabilityInfo.Name}");
-                
+
                 // Update the BloatRemoval.ps1 script to remove the installed capability from the removal list
                 var appNames = new List<string> { capabilityInfo.PackageName };
                 _logService.LogInformation($"Removing capability name from BloatRemoval.ps1: {capabilityInfo.PackageName}");
-                
+
                 var appsWithRegistry = new Dictionary<string, List<AppRegistrySetting>>();
                 var appSubPackages = new Dictionary<string, string[]>();
 
@@ -85,7 +85,7 @@ public class CapabilityInstallationService : BaseInstallationService<CapabilityI
                 }
 
                 _logService.LogInformation($"Updating BloatRemoval.ps1 to remove {capabilityInfo.Name} from removal list");
-                
+
                 // Check if the capability name already includes a version (~~~~)
                 string fullCapabilityName = capabilityInfo.PackageName;
                 if (!fullCapabilityName.Contains("~~~~"))
@@ -98,16 +98,16 @@ public class CapabilityInstallationService : BaseInstallationService<CapabilityI
                 {
                     _logService.LogInformation($"Using full capability name with version: {fullCapabilityName}");
                 }
-                
+
                 // Always use the package name as provided
                 appNames = new List<string> { fullCapabilityName };
-                
+
                 var scriptResult = await _scriptUpdateService.UpdateExistingBloatRemovalScriptAsync(
                     appNames,
                     appsWithRegistry,
                     appSubPackages,
                     true); // true = install operation, so remove from script
-                
+
                 // Register the scheduled task to ensure it's updated with the latest script content
                 if (scriptResult != null)
                 {
@@ -115,7 +115,7 @@ public class CapabilityInstallationService : BaseInstallationService<CapabilityI
                     {
                         var scheduledTaskService = new ScheduledTaskService(_logService);
                         bool taskRegistered = await scheduledTaskService.RegisterScheduledTaskAsync(scriptResult);
-                        
+
                         if (taskRegistered)
                         {
                             _logService.LogInformation("Successfully registered updated BloatRemoval scheduled task");
@@ -131,7 +131,7 @@ public class CapabilityInstallationService : BaseInstallationService<CapabilityI
                         // Don't fail the installation if task registration fails
                     }
                 }
-                
+
                 _logService.LogInformation($"Successfully updated BloatRemoval.ps1 script - {capabilityInfo.Name} will no longer be removed");
                 _logService.LogInformation($"Script update result: {scriptResult?.Name ?? "null"}");
             }
@@ -147,7 +147,7 @@ public class CapabilityInstallationService : BaseInstallationService<CapabilityI
         {
             _logService.LogInformation($"Skipping BloatRemoval.ps1 update because installation of {capabilityInfo.Name} was not successful");
         }
-        
+
         return result;
     }
 
@@ -168,7 +168,7 @@ public class CapabilityInstallationService : BaseInstallationService<CapabilityI
         {
             // Get the friendly name of the capability from the catalog
             string friendlyName = GetFriendlyName(capabilityName);
-            
+
             // Set a more descriptive initial status using the friendly name with download expectation
             progress?.Report(
                 new TaskProgressDetail
@@ -180,22 +180,23 @@ public class CapabilityInstallationService : BaseInstallationService<CapabilityI
             );
 
             _logService.LogInformation($"Attempting to enable capability: {capabilityName}");
-            
+
             // Create an optimized progress handler that reduces reporting frequency for long operations
             DateTime lastProgressReport = DateTime.MinValue;
-            var progressHandler = new Progress<TaskProgressDetail>(detail => {
+            var progressHandler = new Progress<TaskProgressDetail>(detail =>
+            {
                 // Throttle progress updates for responsive UI while maintaining performance
                 var now = DateTime.Now;
                 bool shouldReport = (now - lastProgressReport).TotalSeconds >= 3; // Report every 3 seconds for fast performance
-                
+
                 // Always report significant progress changes or completion
                 if (detail.Progress.HasValue && (detail.Progress >= 100 || detail.Progress == 0))
                     shouldReport = true;
-                
+
                 if (!shouldReport) return;
-                
+
                 lastProgressReport = now;
-                
+
                 // If we get a generic "Operation: Running" status, replace it with our more descriptive one
                 if (detail.StatusText != null && detail.StatusText.StartsWith("Operation:"))
                 {
@@ -209,7 +210,7 @@ public class CapabilityInstallationService : BaseInstallationService<CapabilityI
                         detail.StatusText = $"Enabling {friendlyName}... Files are being downloaded via Windows Update, this process could take 15 minutes or more, please wait...";
                     }
                 }
-                
+
                 // Forward the updated progress to the original progress reporter
                 progress?.Report(detail);
             });
@@ -301,77 +302,77 @@ public class CapabilityInstallationService : BaseInstallationService<CapabilityI
             // Process the result string
             if (!string.IsNullOrEmpty(resultString))
             {
-                 var parts = resultString.Split('|');
-                 if (parts.Length >= 2)
-                 {
-                     string status = parts[0];
-                     string message = parts[1];
-                     bool rebootRequired = parts.Length > 2 && bool.TryParse(parts[2], out bool req) && req;
+                var parts = resultString.Split('|');
+                if (parts.Length >= 2)
+                {
+                    string status = parts[0];
+                    string message = parts[1];
+                    bool rebootRequired = parts.Length > 2 && bool.TryParse(parts[2], out bool req) && req;
 
-                     if (status.Equals("SUCCESS", StringComparison.OrdinalIgnoreCase))
-                     {
-                          progress?.Report(new TaskProgressDetail
-                          {
-                              Progress = 100,
-                              StatusText = $"Successfully enabled {GetFriendlyName(capabilityName)}! Thank you for waiting.",
-                              DetailedMessage = $"{message} The Windows Update download and installation process is now complete."
-                          });
-                         _logService.LogSuccess($"Successfully enabled capability: {capabilityName}. {message}");
+                    if (status.Equals("SUCCESS", StringComparison.OrdinalIgnoreCase))
+                    {
+                        progress?.Report(new TaskProgressDetail
+                        {
+                            Progress = 100,
+                            StatusText = $"Successfully enabled {GetFriendlyName(capabilityName)}! Thank you for waiting.",
+                            DetailedMessage = $"{message} The Windows Update download and installation process is now complete."
+                        });
+                        _logService.LogSuccess($"Successfully enabled capability: {capabilityName}. {message}");
 
-                         if (rebootRequired)
-                         {
-                             progress?.Report(new TaskProgressDetail
-                             {
-                                 StatusText = "A system restart is required to complete the installation",
-                                 DetailedMessage = "Please restart your computer to complete the installation",
-                                 LogLevel = LogLevel.Warning
-                             });
-                             _logService.LogWarning($"A system restart is required for {GetFriendlyName(capabilityName)}");
-                         }
-                         return OperationResult<bool>.Succeeded(true); // Indicate success
-                     }
-                     else // FAILURE
-                     {
-                         progress?.Report(new TaskProgressDetail
-                         {
-                             Progress = 0, // Indicate failure
-                             StatusText = $"Failed to enable {GetFriendlyName(capabilityName)}",
-                             DetailedMessage = message,
-                             LogLevel = LogLevel.Error
-                         });
-                         _logService.LogError($"Failed to enable capability: {capabilityName}. {message}");
-                         return OperationResult<bool>.Failed(message); // Indicate failure with message
-                     }
-                 }
-                 else
-                 {
-                     // Handle unexpected script output format
-                     _logService.LogError($"Unexpected script output format for {capabilityName}: {resultString}");
-                     progress?.Report(new TaskProgressDetail { StatusText = "Error processing script result", LogLevel = LogLevel.Error });
-                     return OperationResult<bool>.Failed("Unexpected script output format: " + resultString); // Indicate failure with message
-                 }
+                        if (rebootRequired)
+                        {
+                            progress?.Report(new TaskProgressDetail
+                            {
+                                StatusText = "A system restart is required to complete the installation",
+                                DetailedMessage = "Please restart your computer to complete the installation",
+                                LogLevel = LogLevel.Warning
+                            });
+                            _logService.LogWarning($"A system restart is required for {GetFriendlyName(capabilityName)}");
+                        }
+                        return OperationResult<bool>.Succeeded(true); // Indicate success
+                    }
+                    else // FAILURE
+                    {
+                        progress?.Report(new TaskProgressDetail
+                        {
+                            Progress = 0, // Indicate failure
+                            StatusText = $"Failed to enable {GetFriendlyName(capabilityName)}",
+                            DetailedMessage = message,
+                            LogLevel = LogLevel.Error
+                        });
+                        _logService.LogError($"Failed to enable capability: {capabilityName}. {message}");
+                        return OperationResult<bool>.Failed(message); // Indicate failure with message
+                    }
+                }
+                else
+                {
+                    // Handle unexpected script output format
+                    _logService.LogError($"Unexpected script output format for {capabilityName}: {resultString}");
+                    progress?.Report(new TaskProgressDetail { StatusText = "Error processing script result", LogLevel = LogLevel.Error });
+                    return OperationResult<bool>.Failed("Unexpected script output format: " + resultString); // Indicate failure with message
+                }
             }
             else
             {
-                 // Handle case where script returned empty string
-                 // Check if this is due to cancellation
-                 if (cancellationToken.IsCancellationRequested)
-                 {
-                     _logService.LogWarning($"Capability installation was cancelled: {capabilityName}");
-                     progress?.Report(new TaskProgressDetail 
-                     { 
-                         StatusText = $"Installation of {GetFriendlyName(capabilityName)} was cancelled", 
-                         DetailedMessage = "The installation was cancelled by the user",
-                         LogLevel = LogLevel.Warning 
-                     });
-                     return OperationResult<bool>.Failed("The installation was cancelled by the user");
-                 }
-                 else
-                 {
-                     _logService.LogError($"Empty result returned when enabling capability: {capabilityName}");
-                     progress?.Report(new TaskProgressDetail { StatusText = "Script returned no result", LogLevel = LogLevel.Error });
-                     return OperationResult<bool>.Failed("Script returned no result"); // Indicate failure with message
-                 }
+                // Handle case where script returned empty string
+                // Check if this is due to cancellation
+                if (cancellationToken.IsCancellationRequested)
+                {
+                    _logService.LogWarning($"Capability installation was cancelled: {capabilityName}");
+                    progress?.Report(new TaskProgressDetail
+                    {
+                        StatusText = $"Installation of {GetFriendlyName(capabilityName)} was cancelled",
+                        DetailedMessage = "The installation was cancelled by the user",
+                        LogLevel = LogLevel.Warning
+                    });
+                    return OperationResult<bool>.Failed("The installation was cancelled by the user");
+                }
+                else
+                {
+                    _logService.LogError($"Empty result returned when enabling capability: {capabilityName}");
+                    progress?.Report(new TaskProgressDetail { StatusText = "Script returned no result", LogLevel = LogLevel.Error });
+                    return OperationResult<bool>.Failed("Script returned no result"); // Indicate failure with message
+                }
             }
         }
         catch (OperationCanceledException)
@@ -387,10 +388,10 @@ public class CapabilityInstallationService : BaseInstallationService<CapabilityI
             );
 
             _logService.LogWarning($"Operation cancelled when enabling capability: {capabilityName}");
-            
+
             // Attempt to stop related Windows processes that may still be running
             await StopCapabilityInstallationProcessesAsync(capabilityName, progress);
-            
+
             progress?.Report(
                 new TaskProgressDetail
                 {
@@ -400,7 +401,7 @@ public class CapabilityInstallationService : BaseInstallationService<CapabilityI
                     LogLevel = LogLevel.Warning,
                 }
             );
-            
+
             return OperationResult<bool>.Failed("The operation was cancelled by the user"); // Return cancellation result
         }
         catch (Exception ex)
@@ -490,13 +491,13 @@ public class CapabilityInstallationService : BaseInstallationService<CapabilityI
             ";
 
             var result = await _powerShellService.ExecuteScriptAsync(checkScript);
-            
+
             // If already installed, it's "offline available" in the sense that no download is needed
             if (result?.Trim() == "ALREADY_INSTALLED")
             {
                 return true;
             }
-            
+
             // For now, assume most capabilities require download
             // This could be enhanced with more sophisticated local cache checking
             return false;
@@ -519,7 +520,7 @@ public class CapabilityInstallationService : BaseInstallationService<CapabilityI
         try
         {
             _logService.LogInformation($"Attempting to stop Windows processes for cancelled capability installation: {capabilityName}");
-            
+
             // PowerShell script to stop Windows capability installation processes
             string stopScript = @"
                 try {
@@ -584,10 +585,10 @@ public class CapabilityInstallationService : BaseInstallationService<CapabilityI
                     return ""PARTIAL|Some processes may still be running: $($_.Exception.Message)""
                 }
             ";
-            
+
             // Execute the cleanup script
             var result = await _powerShellService.ExecuteScriptAsync(stopScript);
-            
+
             if (result?.Contains("SUCCESS") == true)
             {
                 _logService.LogInformation("Successfully stopped Windows capability installation processes");
@@ -613,11 +614,11 @@ public class CapabilityInstallationService : BaseInstallationService<CapabilityI
     {
         // Remove any version information from the package name (e.g., "Media.WindowsMediaPlayer~~~~0.0.12.0" -> "Media.WindowsMediaPlayer")
         string basePackageName = packageName.Split('~')[0];
-        
+
         // Look up the capability in the catalog by its package name
         var capability = _capabilityCatalog.Capabilities.FirstOrDefault(c =>
             c.PackageName.Equals(basePackageName, StringComparison.OrdinalIgnoreCase));
-        
+
         // Return the friendly name if found, otherwise return the package name
         return capability?.Name ?? packageName;
     }

@@ -1,15 +1,14 @@
-using System;
 using System.Collections.ObjectModel;
-using System.Linq;
-using System.Threading.Tasks;
 using CommunityToolkit.Mvvm.ComponentModel;
 using CommunityToolkit.Mvvm.Input;
 using Winhance.Core.Features.Common.Enums;
 using Winhance.Core.Features.Common.Events;
 using Winhance.Core.Features.Common.Events.Features;
+using Winhance.Core.Features.Common.Events.Settings;
 using Winhance.Core.Features.Common.Events.UI;
 using Winhance.Core.Features.Common.Interfaces;
 using Winhance.Core.Features.Common.Models;
+using Winhance.WPF.Features.Common.Interfaces;
 
 namespace Winhance.WPF.Features.Common.ViewModels
 {
@@ -17,14 +16,17 @@ namespace Winhance.WPF.Features.Common.ViewModels
     /// Universal ViewModel for individual settings across all features.
     /// Works with both Customize and Optimize features, handling all control types.
     /// </summary>
-    public partial class SettingItemViewModel : ObservableObject, IDisposable
+    public partial class SettingItemViewModel : ObservableObject, ISearchable, IDisposable
     {
         private readonly ISettingApplicationService _settingApplicationService;
         private readonly IEventBus _eventBus;
         private readonly ILogService _logService;
+        private readonly ISettingsConfirmationService _confirmationService;
+        private readonly IDomainServiceRouter _domainServiceRouter;
         private ISubscriptionToken? _tooltipUpdatedSubscription;
         private ISubscriptionToken? _tooltipsBulkLoadedSubscription;
         private ISubscriptionToken? _featureComposedSubscription;
+        private ISubscriptionToken? _settingAppliedSubscription;
         private bool _isInitializing = true;
 
         [ObservableProperty]
@@ -161,19 +163,22 @@ namespace Winhance.WPF.Features.Common.ViewModels
         public SettingItemViewModel(
             ISettingApplicationService settingService,
             IEventBus eventBus,
-            ILogService logService
+            ILogService logService,
+            ISettingsConfirmationService confirmationService,
+            IDomainServiceRouter domainServiceRouter
         )
         {
             _settingApplicationService =
                 settingService ?? throw new ArgumentNullException(nameof(settingService));
             _eventBus = eventBus ?? throw new ArgumentNullException(nameof(eventBus));
             _logService = logService ?? throw new ArgumentNullException(nameof(logService));
+            _confirmationService = confirmationService ?? throw new ArgumentNullException(nameof(confirmationService));
+            _domainServiceRouter = domainServiceRouter ?? throw new ArgumentNullException(nameof(domainServiceRouter));
 
             ToggleCommand = new AsyncRelayCommand(HandleToggleAsync);
             ValueChangedCommand = new AsyncRelayCommand<object>(HandleValueChangedAsync);
             ActionCommand = new AsyncRelayCommand(HandleActionAsync);
 
-            // Subscribe to events
             _tooltipUpdatedSubscription = _eventBus.Subscribe<TooltipUpdatedEvent>(
                 HandleTooltipUpdated
             );
@@ -183,11 +188,11 @@ namespace Winhance.WPF.Features.Common.ViewModels
             _featureComposedSubscription = _eventBus.Subscribe<FeatureComposedEvent>(
                 HandleFeatureComposed
             );
+            _settingAppliedSubscription = _eventBus.Subscribe<SettingAppliedEvent>(
+                HandleSettingApplied
+            );
         }
 
-        /// <summary>
-        /// Handles binary toggle changes (BinaryToggle control type).
-        /// </summary>
         private async Task HandleToggleAsync()
         {
             if (IsApplying)
@@ -198,40 +203,38 @@ namespace Winhance.WPF.Features.Common.ViewModels
 
             try
             {
-                // Use existing ISettingApplicationService - proper layer separation
-                await _settingApplicationService.ApplySettingAsync(SettingId, IsSelected);
+                var (canProceed, applyWallpaper) = await HandleConfirmationIfNeeded(IsSelected);
+                if (!canProceed)
+                {
+                    IsSelected = !IsSelected;
+                    Status = string.Empty;
+                    return;
+                }
+
+                if (SettingId == "theme-mode-windows")
+                {
+                    await _settingApplicationService.ApplySettingAsync(SettingId, IsSelected, SelectedValue, applyWallpaper);
+                }
+                else
+                {
+                    await _settingApplicationService.ApplySettingAsync(SettingId, IsSelected);
+                }
 
                 Status = "Applied";
-                _logService.Log(
-                    LogLevel.Info,
-                    $"Successfully applied setting {SettingId} with value {IsSelected}"
-                );
             }
             catch (Exception ex)
             {
                 Status = "Error";
-                IsSelected = !IsSelected; // Revert UI state on error
-                _logService.Log(
-                    LogLevel.Error,
-                    $"Exception applying setting {SettingId}: {ex.Message}"
-                );
+                IsSelected = !IsSelected;
+                _logService.Log(LogLevel.Error, $"Exception applying setting {SettingId}: {ex.Message}");
             }
             finally
             {
                 IsApplying = false;
-
-                // Clear status after a delay
-                _ = Task.Delay(3000)
-                    .ContinueWith(
-                        _ => Status = string.Empty,
-                        TaskScheduler.FromCurrentSynchronizationContext()
-                    );
+                _ = Task.Delay(3000).ContinueWith(_ => Status = string.Empty, TaskScheduler.FromCurrentSynchronizationContext());
             }
         }
 
-        /// <summary>
-        /// Handles value changes for ComboBox, NumericUpDown, and Slider control types.
-        /// </summary>
         private async Task HandleValueChangedAsync(object? value)
         {
             if (IsApplying)
@@ -243,89 +246,74 @@ namespace Winhance.WPF.Features.Common.ViewModels
 
             try
             {
-                // Use existing ISettingApplicationService with value parameter
-                await _settingApplicationService.ApplySettingAsync(
-                    SettingId,
-                    IsSelected,
-                    SelectedValue
-                );
+                var (canProceed, applyWallpaper) = await HandleConfirmationIfNeeded(SelectedValue);
+                if (!canProceed)
+                {
+                    SelectedValue = previousValue;
+                    Status = string.Empty;
+                    return;
+                }
+
+                if (SettingId == "theme-mode-windows")
+                {
+                    await _settingApplicationService.ApplySettingAsync(SettingId, IsSelected, SelectedValue, applyWallpaper);
+                }
+                else
+                {
+                    await _settingApplicationService.ApplySettingAsync(SettingId, IsSelected, SelectedValue);
+                }
 
                 Status = "Applied";
-                _logService.Log(
-                    LogLevel.Info,
-                    $"Successfully applied setting {SettingId} with value {value}"
-                );
             }
             catch (Exception ex)
             {
                 Status = "Error";
-                SelectedValue = previousValue; // Revert to previous value on error
-                _logService.Log(
-                    LogLevel.Error,
-                    $"Exception applying setting {SettingId}: {ex.Message}"
-                );
+                SelectedValue = previousValue;
+                _logService.Log(LogLevel.Error, $"Exception applying setting {SettingId}: {ex.Message}");
             }
             finally
             {
                 IsApplying = false;
-
-                // Clear status after a delay
-                _ = Task.Delay(3000)
-                    .ContinueWith(
-                        _ => Status = string.Empty,
-                        TaskScheduler.FromCurrentSynchronizationContext()
-                    );
+                _ = Task.Delay(3000).ContinueWith(_ => Status = string.Empty, TaskScheduler.FromCurrentSynchronizationContext());
             }
         }
 
-        /// <summary>
-        /// Handles action button clicks (ActionButton control type).
-        /// </summary>
         private async Task HandleActionAsync()
         {
             if (IsApplying || string.IsNullOrEmpty(ActionCommandName))
                 return;
-
-            _logService.Log(
-                LogLevel.Debug,
-                $"SettingItemViewModel: Action requested for {SettingId}, command: {ActionCommandName}"
-            );
 
             IsApplying = true;
             Status = "Executing...";
 
             try
             {
-                // Use existing ISettingApplicationService to execute action commands
-                await _settingApplicationService.ExecuteActionCommandAsync(
-                    SettingId,
-                    ActionCommandName
-                );
+                var (canProceed, applyRecommended) = await HandleConfirmationIfNeeded(null);
+                if (!canProceed)
+                {
+                    Status = string.Empty;
+                    return;
+                }
 
+                var context = new ActionExecutionContext
+                {
+                    SettingId = SettingId,
+                    CommandString = ActionCommandName,
+                    ApplyRecommendedSettings = applyRecommended
+                };
+
+                await _settingApplicationService.ExecuteActionCommandAsync(context);
                 Status = "Completed";
-                _logService.Log(
-                    LogLevel.Info,
-                    $"Successfully executed action {ActionCommandName} for setting {SettingId}"
-                );
             }
             catch (Exception ex)
             {
                 Status = "Error";
-                _logService.Log(
-                    LogLevel.Error,
-                    $"Exception executing action {ActionCommandName} for setting {SettingId}: {ex.Message}"
-                );
+                _logService.Log(LogLevel.Error, $"Exception executing action {ActionCommandName} for setting {SettingId}: {ex.Message}");
             }
             finally
             {
                 IsApplying = false;
-
-                // Clear status after a delay
-                _ = Task.Delay(3000)
-                    .ContinueWith(
-                        _ => Status = string.Empty,
-                        TaskScheduler.FromCurrentSynchronizationContext()
-                    );
+                _ = Task.Delay(3000).ContinueWith(_ => Status = string.Empty, TaskScheduler.FromCurrentSynchronizationContext());
             }
         }
 
@@ -340,8 +328,14 @@ namespace Winhance.WPF.Features.Common.ViewModels
 
                 if (result.Success)
                 {
+                    // Temporarily supress property change events to avoid calls to domain services (only update UI)
+                    _isInitializing = true;
+
                     IsSelected = result.IsEnabled;
                     SelectedValue = result.CurrentValue;
+
+                    // Re-enable property change events
+                    _isInitializing = false;
                 }
             }
             catch (Exception ex)
@@ -388,19 +382,29 @@ namespace Winhance.WPF.Features.Common.ViewModels
         /// </summary>
         private void HandleFeatureComposed(FeatureComposedEvent evt)
         {
-            // Check if this setting belongs to the composed feature
             if (evt.Settings.Any(s => s.Id == SettingId))
             {
                 _isInitializing = false;
-                _logService.Log(
-                    LogLevel.Debug,
-                    $"SettingItemViewModel: Completed initialization for setting '{SettingId}' via FeatureComposedEvent"
-                );
             }
         }
 
+        public bool MatchesSearch(string searchText)
+        {
+            if (string.IsNullOrWhiteSpace(searchText)) return true;
+
+            var searchLower = searchText.ToLowerInvariant();
+            return Name.ToLowerInvariant().Contains(searchLower) ||
+            Description.ToLowerInvariant().Contains(searchLower) ||
+            GroupName.ToLowerInvariant().Contains(searchLower);
+        }
+
+        public string[] GetSearchableProperties()
+        {
+            return new[] { nameof(Name), nameof(Description), nameof(GroupName) };
+        }
+
         /// <summary>
-        /// Updates visibility based on search text.
+        /// Updates visibility based on search text. Called by BaseSettingsFeatureViewModel.
         /// </summary>
         public void UpdateVisibility(string searchText)
         {
@@ -410,25 +414,47 @@ namespace Winhance.WPF.Features.Common.ViewModels
                 return;
             }
 
-            var searchLower = searchText.ToLowerInvariant();
-            IsVisible =
-                Name.ToLowerInvariant().Contains(searchLower)
-                || Description.ToLowerInvariant().Contains(searchLower)
-                || GroupName.ToLowerInvariant().Contains(searchLower);
+            IsVisible = MatchesSearch(searchText);
         }
 
-        /// <summary>
-        /// Disposes of event subscriptions to prevent memory leaks.
-        /// </summary>
+        private async Task<(bool canProceed, bool checkboxResult)> HandleConfirmationIfNeeded(object? value)
+        {
+            var setting = await GetSettingDefinition();
+            if (setting?.RequiresConfirmation != true)
+                return (true, false);
+
+            var (confirmed, checkboxChecked) = await _confirmationService.HandleConfirmationAsync(SettingId, value, setting);
+            return (confirmed, checkboxChecked);
+        }
+
+        private async Task<SettingDefinition?> GetSettingDefinition()
+        {
+            try
+            {
+                var domainService = _domainServiceRouter.GetDomainService(SettingId);
+                var settings = await domainService.GetRawSettingsAsync();
+                return settings.FirstOrDefault(s => s.Id == SettingId);
+            }
+            catch
+            {
+                return null;
+            }
+        }
+
+        private async void HandleSettingApplied(SettingAppliedEvent evt)
+        {
+            if (evt.SettingId == SettingId)
+            {
+                await RefreshStateAsync();
+            }
+        }
+
         public void Dispose()
         {
             _tooltipUpdatedSubscription?.Dispose();
             _tooltipsBulkLoadedSubscription?.Dispose();
             _featureComposedSubscription?.Dispose();
-            _logService.Log(
-                LogLevel.Debug,
-                $"SettingItemViewModel: Disposed event subscriptions for setting '{SettingId}'"
-            );
+            _settingAppliedSubscription?.Dispose();
         }
     }
 }

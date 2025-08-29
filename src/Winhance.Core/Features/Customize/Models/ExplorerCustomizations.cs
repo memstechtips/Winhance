@@ -34,7 +34,7 @@ public static class ExplorerCustomizations
                             EnabledValue = null, // When toggle is ON, 3D Objects folder is shown (key exists)
                             DisabledValue = null, // When toggle is OFF, 3D Objects folder is hidden (key removed)
                             DefaultValue = null,
-                            ValueType = RegistryValueKind.None,  
+                            ValueType = RegistryValueKind.None,
                         },
                     },
                 },
@@ -72,7 +72,7 @@ public static class ExplorerCustomizations
                         {
                             KeyPath = @"HKEY_CURRENT_USER\Software\Microsoft\Windows\CurrentVersion\Explorer\Advanced",
                             ValueName = "LaunchTo",
-                            RecommendedValue = 1, 
+                            RecommendedValue = 1,
                             EnabledValue = 1, // When toggle is ON, File Explorer opens to 'This PC'
                             DisabledValue = 2, // When toggle is OFF, File Explorer opens to 'Quick access'
                             DefaultValue = 2,
@@ -93,7 +93,7 @@ public static class ExplorerCustomizations
                         {
                             KeyPath = @"HKEY_CURRENT_USER\Software\Microsoft\Windows\CurrentVersion\Explorer\Advanced",
                             ValueName = "HideFileExt",
-                            RecommendedValue = 0, 
+                            RecommendedValue = 0,
                             EnabledValue = 0, // When toggle is ON, file extensions are shown
                             DisabledValue = 1, // When toggle is OFF, file extensions are hidden
                             DefaultValue = 1,

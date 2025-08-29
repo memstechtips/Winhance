@@ -306,7 +306,7 @@ public class AppInstallationService
                         {
                             var scheduledTaskService = new ScheduledTaskService(_logService);
                             bool taskRegistered = await scheduledTaskService.RegisterScheduledTaskAsync(result);
-                            
+
                             if (taskRegistered)
                             {
                                 _logService.LogInformation("Successfully registered updated BloatRemoval scheduled task");

@@ -23,13 +23,13 @@ namespace Winhance.Core.Features.SoftwareApps.Interfaces
             AppInfo appInfo,
             IProgress<TaskProgressDetail> progress,
             CancellationToken cancellationToken = default);
-            
+
         /// <summary>
         /// Event that is raised when the installation status changes.
         /// </summary>
         event EventHandler<InstallationStatusChangedEventArgs> InstallationStatusChanged;
     }
-    
+
     /// <summary>
     /// Result of an installation coordination operation.
     /// </summary>
@@ -39,28 +39,28 @@ namespace Winhance.Core.Features.SoftwareApps.Interfaces
         /// Gets or sets a value indicating whether the installation was successful.
         /// </summary>
         public bool Success { get; set; }
-        
+
         /// <summary>
         /// Gets or sets the error message if the installation failed.
         /// </summary>
         public string? ErrorMessage { get; set; }
-        
+
         /// <summary>
         /// Gets or sets a value indicating whether the installation was cancelled by the user.
         /// </summary>
         public bool WasCancelled { get; set; }
-        
+
         /// <summary>
         /// Gets or sets a value indicating whether the installation failed due to connectivity issues.
         /// </summary>
         public bool WasConnectivityIssue { get; set; }
-        
+
         /// <summary>
         /// Gets or sets the application information.
         /// </summary>
         public AppInfo AppInfo { get; set; }
     }
-    
+
     /// <summary>
     /// Event arguments for installation status change events.
     /// </summary>
@@ -70,37 +70,37 @@ namespace Winhance.Core.Features.SoftwareApps.Interfaces
         /// Gets the application information.
         /// </summary>
         public AppInfo AppInfo { get; }
-        
+
         /// <summary>
         /// Gets the status message.
         /// </summary>
         public string StatusMessage { get; }
-        
+
         /// <summary>
         /// Gets a value indicating whether the installation is complete.
         /// </summary>
         public bool IsComplete { get; }
-        
+
         /// <summary>
         /// Gets a value indicating whether the installation was successful.
         /// </summary>
         public bool IsSuccess { get; }
-        
+
         /// <summary>
         /// Gets a value indicating whether the installation was cancelled by the user.
         /// </summary>
         public bool IsCancelled { get; }
-        
+
         /// <summary>
         /// Gets a value indicating whether the installation failed due to connectivity issues.
         /// </summary>
         public bool IsConnectivityIssue { get; }
-        
+
         /// <summary>
         /// Gets the timestamp when the status changed.
         /// </summary>
         public DateTime Timestamp { get; }
-        
+
         /// <summary>
         /// Initializes a new instance of the <see cref="InstallationStatusChangedEventArgs"/> class.
         /// </summary>

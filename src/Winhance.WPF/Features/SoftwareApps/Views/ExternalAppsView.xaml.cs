@@ -52,10 +52,10 @@ namespace Winhance.WPF.Features.SoftwareApps.Views
             for (int i = 0; i < childrenCount; i++)
             {
                 DependencyObject child = VisualTreeHelper.GetChild(parent, i);
-                
+
                 if (child is T childOfType)
                     yield return childOfType;
-                    
+
                 foreach (T childOfChild in FindVisualChildren<T>(child))
                     yield return childOfChild;
             }

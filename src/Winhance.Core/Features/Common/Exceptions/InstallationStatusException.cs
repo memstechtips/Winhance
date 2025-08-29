@@ -8,7 +8,7 @@ namespace Winhance.Core.Models.Exceptions
         {
         }
 
-        public InstallationStatusException(string message, Exception innerException) 
+        public InstallationStatusException(string message, Exception innerException)
             : base(message, innerException)
         {
         }

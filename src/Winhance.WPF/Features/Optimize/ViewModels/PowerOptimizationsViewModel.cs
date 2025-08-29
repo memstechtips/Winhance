@@ -1,14 +1,9 @@
-using System;
-using System.Collections.Generic;
 using System.Collections.ObjectModel;
-using System.Linq;
-using System.Threading.Tasks;
 using System.Windows.Input;
 using CommunityToolkit.Mvvm.ComponentModel;
 using CommunityToolkit.Mvvm.Input;
 using Winhance.Core.Features.Common.Enums;
 using Winhance.Core.Features.Common.Events;
-using Winhance.Core.Features.Common.Events.Features;
 using Winhance.Core.Features.Common.Interfaces;
 using Winhance.Core.Features.Common.Models;
 using Winhance.Core.Features.Optimize.Interfaces;
@@ -21,23 +16,14 @@ namespace Winhance.WPF.Features.Optimize.ViewModels
     /// ViewModel for Power optimizations using clean architecture principles.
     /// Directly manages settings using domain services without UI coordinator.
     /// </summary>
-    public partial class PowerOptimizationsViewModel : ObservableObject, IFeatureViewModel
+    public partial class PowerOptimizationsViewModel : BaseSettingsFeatureViewModel
     {
         private readonly IPowerService _powerService;
         private readonly IDialogService _dialogService;
         private readonly ISettingApplicationService _settingApplicationService;
         private readonly IEventBus _eventBus;
         private readonly ITaskProgressService _progressService;
-        private readonly ILogService _logService;
-
-        [ObservableProperty]
-        private ObservableCollection<SettingItemViewModel> _settings = new();
-
-        [ObservableProperty]
-        private bool _isLoading;
-
-        [ObservableProperty]
-        private string _searchText = string.Empty;
+        private readonly ISettingsConfirmationService _confirmationService;
 
         /// <summary>
         /// Gets or sets a value indicating whether the system has a battery.
@@ -166,26 +152,11 @@ namespace Winhance.WPF.Features.Optimize.ViewModels
         /// </summary>
         public ICommand ApplySleepTimeoutCommand { get; }
 
-
-
-        public string CategoryName => "Power";
-        public bool HasVisibleSettings => Settings.Any(s => s.IsVisible);
-
-        // IFeatureViewModel implementation
-        public string ModuleId => "Power";
-        public string DisplayName => "Power";
-        public int SettingsCount => Settings?.Count ?? 0;
-        public string Category => "Optimize";
-        public string Description => "Optimize Windows power settings";
-        public int SortOrder => 4;
-        public ICommand LoadSettingsCommand { get; }
-        
-        [ObservableProperty]
-        private bool _isExpanded = true;
-        
-        public ICommand ToggleExpandCommand { get; }
-        
-
+        public override string ModuleId => "Power";
+        public override string DisplayName => "Power";
+        public override string Category => "Optimize";
+        public override string Description => "Optimize Windows power settings";
+        public override int SortOrder => 4;
 
         /// <summary>
         /// Initializes a new instance of the <see cref="PowerOptimizationsViewModel"/> class.
@@ -196,23 +167,25 @@ namespace Winhance.WPF.Features.Optimize.ViewModels
         /// <param name="logService">The log service.</param>
         /// <param name="dialogService">The dialog service.</param>
         public PowerOptimizationsViewModel(
+            IDomainServiceRouter domainServiceRouter,
+            ISettingsLoadingService settingsLoadingService,
+            ILogService logService,
             IPowerService powerService,
             ISettingApplicationService settingApplicationService,
             IEventBus eventBus,
             ITaskProgressService progressService,
-            ILogService logService,
-            IDialogService dialogService)
+            IDialogService dialogService,
+            ISettingsConfirmationService confirmationService
+        ) : base(domainServiceRouter, settingsLoadingService, logService)
         {
             _powerService = powerService ?? throw new ArgumentNullException(nameof(powerService));
             _dialogService = dialogService ?? throw new ArgumentNullException(nameof(dialogService));
             _settingApplicationService = settingApplicationService ?? throw new ArgumentNullException(nameof(settingApplicationService));
             _eventBus = eventBus ?? throw new ArgumentNullException(nameof(eventBus));
             _progressService = progressService ?? throw new ArgumentNullException(nameof(progressService));
-            _logService = logService ?? throw new ArgumentNullException(nameof(logService));
-            
+            _confirmationService = confirmationService ?? throw new ArgumentNullException(nameof(confirmationService));
+
             // Initialize commands
-            LoadSettingsCommand = new AsyncRelayCommand(LoadSettingsAsync);
-            ToggleExpandCommand = new RelayCommand(ToggleExpand);
             ApplyPowerPlanCommand = new AsyncRelayCommand(ApplyPowerPlanAsync);
             ApplyDisplayTimeoutCommand = new AsyncRelayCommand(ApplyDisplayTimeoutAsync);
             ApplySleepTimeoutCommand = new AsyncRelayCommand(ApplySleepTimeoutAsync);
@@ -221,14 +194,14 @@ namespace Winhance.WPF.Features.Optimize.ViewModels
         /// <summary>
         /// Loads settings and initializes the UI state.
         /// </summary>
-        public async Task LoadSettingsAsync()
+        public override async Task LoadSettingsAsync()
         {
             try
             {
                 _loadingState = true; // Prevent auto-apply during loading
                 _progressService.StartTask("Loading power optimization settings...");
                 IsLoadingAdvancedSettings = true; // Start loading advanced settings
-                
+
                 // Load available power plans for the power plan selector
                 var powerPlans = await _powerService.GetAvailablePowerPlansAsync();
                 PowerPlans.Clear();
@@ -236,7 +209,7 @@ namespace Winhance.WPF.Features.Optimize.ViewModels
                 {
                     PowerPlans.Add(plan);
                 }
-                
+
                 // Set the active power plan as selected
                 var activePlan = PowerPlans.FirstOrDefault(p => p.IsActive);
                 if (activePlan != null)
@@ -248,39 +221,39 @@ namespace Winhance.WPF.Features.Optimize.ViewModels
                 {
                     _logService.Log(LogLevel.Warning, "No active power plan found in power plans collection");
                 }
-                
+
                 // Check system capabilities
                 var capabilities = await _powerService.CheckPowerSystemCapabilitiesAsync();
                 HasBattery = capabilities.GetValueOrDefault("HasBattery", false);
                 HasLid = capabilities.GetValueOrDefault("HasLid", false);
-                
+
                 // Load timeout options from domain service (clean architecture compliance)
                 TimeoutOptions = _powerService.GetTimeoutOptions().ToList();
-                
+
                 // Load current system power settings (display timeout, sleep timeout)
                 await LoadCurrentSystemSettingsAsync();
-                
+
                 // Load settings for the new architecture
                 await LoadPowerSettingsAsync();
-                
+
                 // Subscribe to property changes on dynamic settings for auto-apply
                 SubscribeToSettingsChanges();
-                
+
                 // Advanced settings are now loaded
                 IsLoadingAdvancedSettings = false;
-                
+
                 // CRITICAL FIX: Delay enabling auto-apply until after UI binding completes
                 // This prevents automatic setting application during UI initialization
                 _ = Task.Run(async () =>
                 {
                     // Wait for UI thread to complete all pending binding operations
                     await Task.Delay(500); // Allow UI binding to complete
-                    
+
                     // Now it's safe to enable auto-apply for user interactions
                     _loadingState = false;
                     _logService.Log(LogLevel.Info, "[PowerVM] Auto-apply enabled after UI initialization completed");
                 });
-                
+
                 _progressService.CompleteTask();
                 _logService.Log(LogLevel.Info, "Power optimization settings loaded successfully");
             }
@@ -305,7 +278,7 @@ namespace Winhance.WPF.Features.Optimize.ViewModels
                 // This can be enhanced later with proper system detection
                 HasBattery = false;
                 HasLid = false;
-                
+
                 _logService.Log(LogLevel.Info, $"System capabilities: Battery={HasBattery}, Lid={HasLid}");
             }
             catch (Exception ex)
@@ -326,26 +299,6 @@ namespace Winhance.WPF.Features.Optimize.ViewModels
         /// <summary>
         /// Refreshes the settings for this feature asynchronously.
         /// </summary>
-        public async Task RefreshSettingsAsync()
-        {
-            foreach (var setting in Settings)
-            {
-                await setting.RefreshStateAsync();
-            }
-        }
-
-        /// <summary>
-        /// Clears all settings and resets the feature state.
-        /// </summary>
-        public void ClearSettings()
-        {
-            Settings.Clear();
-        }
-        
-        private void ToggleExpand()
-        {
-            IsExpanded = !IsExpanded;
-        }
 
         /// <summary>
         /// Applies the selected power plan to the system.
@@ -392,11 +345,11 @@ namespace Winhance.WPF.Features.Optimize.ViewModels
             try
             {
                 _logService.Log(LogLevel.Info, $"Applying display timeout: {TimeoutOptions[SelectedDisplayTimeoutIndex]}");
-                
+
                 int timeoutMinutes = ConvertTimeoutIndexToMinutes(SelectedDisplayTimeoutIndex);
                 int timeoutSeconds = timeoutMinutes * 60; // Convert minutes to seconds
                 await ApplyPowerSettingAsync("3c0bc021-c8a8-4e07-a973-6b14cbcb2b7e", "7516b95f-f776-4464-8c53-06167f40cc99", "3c0bc021-c8a8-4e07-a973-6b14cbcb2b7e", timeoutSeconds);
-                
+
                 _logService.Log(LogLevel.Info, $"Successfully applied display timeout: {timeoutMinutes} minutes ({timeoutSeconds} seconds)");
             }
             catch (Exception ex)
@@ -413,11 +366,11 @@ namespace Winhance.WPF.Features.Optimize.ViewModels
             try
             {
                 _logService.Log(LogLevel.Info, $"Applying sleep timeout: {TimeoutOptions[SelectedSleepTimeoutIndex]}");
-                
+
                 int timeoutMinutes = ConvertTimeoutIndexToMinutes(SelectedSleepTimeoutIndex);
                 int timeoutSeconds = timeoutMinutes * 60; // Convert minutes to seconds
                 await ApplyPowerSettingAsync("238c9fa8-0aad-41ed-83f4-97be242c8f20", "238c9fa8-0aad-41ed-83f4-97be242c8f20", "29f6c1db-86da-48c5-9fdb-f2b67b1f44da", timeoutSeconds);
-                
+
                 _logService.Log(LogLevel.Info, $"Successfully applied sleep timeout: {timeoutMinutes} minutes ({timeoutSeconds} seconds)");
             }
             catch (Exception ex)
@@ -439,7 +392,7 @@ namespace Winhance.WPF.Features.Optimize.ViewModels
                 {
                     PowerPlans.Add(plan);
                 }
-                
+
                 // Update selected plan to the active one
                 var activePlan = PowerPlans.FirstOrDefault(p => p.IsActive);
                 if (activePlan != null)
@@ -526,7 +479,7 @@ namespace Winhance.WPF.Features.Optimize.ViewModels
         /// </summary>
         private void SubscribeToSettingsChanges()
         {
-            if (Settings == null) 
+            if (Settings == null)
             {
                 _logService.Log(LogLevel.Warning, "[PowerVM] No settings available for subscription");
                 return;
@@ -538,35 +491,35 @@ namespace Winhance.WPF.Features.Optimize.ViewModels
             foreach (var setting in Settings)
             {
                 _logService.Log(LogLevel.Debug, $"[PowerVM] Setting up callbacks for setting: {setting.SettingId} - {setting.Name}");
-                
+
                 // Subscribe to IsSelected property changes for toggle controls
                 setting.PropertyChanged += async (sender, e) =>
                 {
                     if (e.PropertyName == nameof(setting.IsSelected))
                     {
                         _logService.Log(LogLevel.Info, $"[PowerVM] IsSelected changed for {setting.SettingId}: IsLoading={_loadingState}, IsSelected={setting.IsSelected}");
-                        
+
                         // Only apply changes after initial loading is complete
-                        if (_loadingState) 
+                        if (_loadingState)
                         {
                             _logService.Log(LogLevel.Info, $"[PowerVM] Skipping application for {setting.SettingId} - still loading");
                             return;
                         }
-                        
+
                         // Delegate to domain service - no business logic in ViewModel
                         await ApplyDynamicPowerSettingAsync(setting.SettingId, setting.IsSelected, null);
                     }
                     else if (e.PropertyName == nameof(setting.SelectedValue))
                     {
                         _logService.Log(LogLevel.Info, $"[PowerVM] SelectedValue changed for {setting.SettingId}: IsLoading={_loadingState}, NewValue={setting.SelectedValue}, ValueType={setting.SelectedValue?.GetType().Name ?? "null"}");
-                        
+
                         // Only apply changes after initial loading is complete
-                        if (_loadingState) 
+                        if (_loadingState)
                         {
                             _logService.Log(LogLevel.Info, $"[PowerVM] Skipping value application for {setting.SettingId} - still loading");
                             return;
                         }
-                        
+
                         // Delegate to domain service - no business logic in ViewModel
                         await ApplyDynamicPowerSettingAsync(setting.SettingId, setting.IsSelected, setting.SelectedValue);
                     }
@@ -585,20 +538,20 @@ namespace Winhance.WPF.Features.Optimize.ViewModels
             try
             {
                 _logService.Log(LogLevel.Info, $"[PowerVM] Applying dynamic power setting change - ID: {settingId}, Selected: {isSelected}, Value: {selectedValue}, ValueType: {selectedValue?.GetType().Name ?? "null"}");
-                
+
                 // Delegate all business logic to domain service (SOLID compliance)
                 await _powerService.ApplyDynamicPowerSettingAsync(settingId, isSelected, selectedValue);
-                
+
                 _logService.Log(LogLevel.Info, $"[PowerVM] Successfully applied dynamic power setting change for ID: {settingId}");
             }
             catch (Exception ex)
             {
                 _logService.Log(LogLevel.Error, $"[PowerVM] Error applying dynamic power setting change for ID: {settingId} - {ex.Message}");
                 _logService.Log(LogLevel.Error, $"[PowerVM] Stack trace: {ex.StackTrace}");
-                
+
                 // ViewModel only handles UI concerns - user notification
                 await _dialogService.ShowErrorAsync(
-                    "Power Setting Error", 
+                    "Power Setting Error",
                     $"Failed to apply power setting: {ex.Message}");
             }
         }
@@ -617,7 +570,7 @@ namespace Winhance.WPF.Features.Optimize.ViewModels
                 foreach (var setting in SettingDefinitions)
                 {
                     // Create SettingItemViewModel for each setting
-                    var settingViewModel = new SettingItemViewModel(_settingApplicationService, _eventBus, _logService)
+                    var settingViewModel = new SettingItemViewModel(_settingApplicationService, _eventBus, _logService, _confirmationService, _domainServiceRouter)
                     {
                         SettingId = setting.Id,
                         Name = setting.Name,
@@ -683,16 +636,16 @@ namespace Winhance.WPF.Features.Optimize.ViewModels
 
                 // Load display timeout setting (GUID format: power plan, subgroup, setting)
                 var (displayAcValue, displayDcValue) = await _powerService.GetSettingValueAsync(
-                    cleanGuid, 
-                    "7516b95f-f776-4464-8c53-06167f40cc99", 
+                    cleanGuid,
+                    "7516b95f-f776-4464-8c53-06167f40cc99",
                     "3c0bc021-c8a8-4e07-a973-6b14cbcb2b7e");
                 int displayMinutes = displayAcValue / 60; // Convert seconds to minutes
                 SelectedDisplayTimeoutIndex = ConvertMinutesToTimeoutIndex(displayMinutes);
 
                 // Load sleep timeout setting (GUID format: power plan, subgroup, setting)
                 var (sleepAcValue, sleepDcValue) = await _powerService.GetSettingValueAsync(
-                    cleanGuid, 
-                    "238c9fa8-0aad-41ed-83f4-97be242c8f20", 
+                    cleanGuid,
+                    "238c9fa8-0aad-41ed-83f4-97be242c8f20",
                     "29f6c1db-86da-48c5-9fdb-f2b67b1f44da");
                 int sleepMinutes = sleepAcValue / 60; // Convert seconds to minutes
                 SelectedSleepTimeoutIndex = ConvertMinutesToTimeoutIndex(sleepMinutes);

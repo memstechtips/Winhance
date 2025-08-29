@@ -47,13 +47,14 @@ namespace Winhance.Infrastructure.Features.SoftwareApps.Services
             {
                 throw new ArgumentNullException(nameof(featureInfo));
             }
-            
+
             try
             {
                 _logService.LogInformation($"Adding feature {featureInfo.Name} to BloatRemoval script");
-                progress?.Report(new TaskProgressDetail { 
-                    Progress = 0, 
-                    StatusText = $"Adding feature {featureInfo.Name} to BloatRemoval script..." 
+                progress?.Report(new TaskProgressDetail
+                {
+                    Progress = 0,
+                    StatusText = $"Adding feature {featureInfo.Name} to BloatRemoval script..."
                 });
 
                 // Add the feature to the BloatRemoval script
@@ -63,8 +64,9 @@ namespace Winhance.Infrastructure.Features.SoftwareApps.Services
                     cancellationToken);
 
                 _logService.LogSuccess($"Successfully added feature {featureInfo.Name} to BloatRemoval script");
-                progress?.Report(new TaskProgressDetail { 
-                    Progress = 100, 
+                progress?.Report(new TaskProgressDetail
+                {
+                    Progress = 100,
                     StatusText = $"Successfully added feature {featureInfo.Name} to BloatRemoval script",
                     LogLevel = LogLevel.Success
                 });
@@ -74,8 +76,9 @@ namespace Winhance.Infrastructure.Features.SoftwareApps.Services
             catch (Exception ex)
             {
                 _logService.LogError($"Error adding feature {featureInfo.Name} to BloatRemoval script", ex);
-                progress?.Report(new TaskProgressDetail { 
-                    Progress = 0, 
+                progress?.Report(new TaskProgressDetail
+                {
+                    Progress = 0,
                     StatusText = $"Error adding feature {featureInfo.Name} to BloatRemoval script: {ex.Message}",
                     LogLevel = LogLevel.Error
                 });
@@ -105,7 +108,8 @@ namespace Winhance.Infrastructure.Features.SoftwareApps.Services
             catch (Exception ex)
             {
                 _logService.LogError($"Error removing feature: {featureName}", ex);
-                progress?.Report(new TaskProgressDetail {
+                progress?.Report(new TaskProgressDetail
+                {
                     Progress = 0,
                     StatusText = $"Error removing {featureName}: {ex.Message}",
                     LogLevel = LogLevel.Error
@@ -150,7 +154,7 @@ namespace Winhance.Infrastructure.Features.SoftwareApps.Services
             catch (Exception ex)
             {
                 _logService.LogError($"Error adding features to BloatRemoval script: {ex.Message}", ex);
-                
+
                 // Mark all as failed
                 foreach (var feature in features)
                 {

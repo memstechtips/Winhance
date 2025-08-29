@@ -32,7 +32,7 @@ namespace Winhance.WPF.Features.Common.Converters
 
             // If parameter is provided, use it instead of MatchValue
             object compareValue = parameter ?? MatchValue;
-            
+
             // Compare the enum values as integers if they are enums
             if (value is Enum && compareValue is Enum)
             {
@@ -40,7 +40,7 @@ namespace Winhance.WPF.Features.Common.Converters
                     ? Visibility.Visible
                     : Visibility.Collapsed;
             }
-            
+
             return Equals(value, compareValue)
                 ? Visibility.Visible
                 : Visibility.Collapsed;

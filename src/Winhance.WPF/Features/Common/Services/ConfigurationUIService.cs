@@ -37,7 +37,7 @@ namespace Winhance.WPF.Features.Common.Services
             try
             {
                 _logService.Log(LogLevel.Info, $"Showing unified configuration dialog (isSaveDialog: {isSaveDialog})");
-                
+
                 // Create a dictionary of sections with their availability and item counts
                 var sectionInfo = new Dictionary<string, (bool IsSelected, bool IsAvailable, int ItemCount)>
                 {
@@ -46,28 +46,28 @@ namespace Winhance.WPF.Features.Common.Services
                     { "Customize", (true, config.Customize.Items.Count > 0, config.Customize.Items.Count) },
                     { "Optimize", (true, config.Optimize.Items.Count > 0, config.Optimize.Items.Count) }
                 };
-                
+
                 // Create and show the dialog
                 var dialog = new UnifiedConfigurationDialog(
                     isSaveDialog ? "Save Configuration" : "Select Configuration Sections",
                     isSaveDialog ? "Select which sections you want to save to the unified configuration." : "Select which sections you want to import from the unified configuration.",
                     sectionInfo,
                     isSaveDialog);
-                
+
                 dialog.Owner = Application.Current.MainWindow;
                 bool? dialogResult = dialog.ShowDialog();
-                
+
                 if (dialogResult != true)
                 {
                     _logService.Log(LogLevel.Info, "User canceled unified configuration dialog");
                     return new Dictionary<string, bool>();
                 }
-                
+
                 // Get the selected sections from the dialog
                 var result = dialog.GetResult();
-                
+
                 _logService.Log(LogLevel.Info, $"Selected sections: {string.Join(", ", result.Where(kvp => kvp.Value).Select(kvp => kvp.Key))}");
-                
+
                 return result;
             }
             catch (Exception ex)

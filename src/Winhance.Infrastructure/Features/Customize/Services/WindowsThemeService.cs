@@ -59,124 +59,63 @@ namespace Winhance.Infrastructure.Features.Customize.Services
             }
         }
 
-        /// <summary>
-        /// Applies a setting with theme-specific behavior.
-        /// </summary>
         public async Task ApplySettingAsync(string settingId, bool enable, object? value = null)
         {
-            try
+            await ApplySettingWithContextAsync(settingId, enable, value, true);
+        }
+
+        public async Task ApplySettingWithContextAsync(string settingId, bool enable, object? value, bool applyWallpaper)
+        {
+            var settings = await GetRawSettingsAsync();
+            var setting = settings.FirstOrDefault(s => s.Id == settingId);
+            if (setting == null)
+                throw new ArgumentException($"Setting '{settingId}' not found");
+
+            switch (setting.InputType)
             {
-                _logService.Log(
-                    LogLevel.Info,
-                    $"Applying Windows theme setting '{settingId}': enable={enable}, value={value}"
-                );
+                case SettingInputType.Toggle:
+                    await _controlHandler.ApplyBinaryToggleAsync(setting, enable);
+                    break;
+                case SettingInputType.Selection when value is int index:
+                    await _controlHandler.ApplyComboBoxIndexAsync(setting, index);
+                    break;
+                case SettingInputType.NumericRange when value != null:
+                    await _controlHandler.ApplyNumericUpDownAsync(setting, value);
+                    break;
+                default:
+                    throw new NotSupportedException($"Input type '{setting.InputType}' not supported");
+            }
 
-                // Get settings and apply using direct switch logic
-                var settings = await GetRawSettingsAsync();
-                var setting = settings.FirstOrDefault(s => s.Id == settingId);
-                if (setting == null)
-                    throw new ArgumentException($"Setting '{settingId}' not found");
-
-                switch (setting.InputType)
+            if (settingId == "theme-mode-windows")
+            {
+                if (enable && applyWallpaper)
                 {
-                    case SettingInputType.Toggle:
-                        await _controlHandler.ApplyBinaryToggleAsync(setting, enable);
-                        break;
-                    case SettingInputType.Selection when value is int index:
-                        await _controlHandler.ApplyComboBoxIndexAsync(setting, index);
-                        break;
-                    case SettingInputType.NumericRange when value != null:
-                        await _controlHandler.ApplyNumericUpDownAsync(setting, value);
-                        break;
-                    default:
-                        throw new NotSupportedException($"Input type '{setting.InputType}' not supported");
-                }
-
-                // Theme-specific post-processing
-                if (settingId == "theme-mode-windows")
-                {
-                    // Apply wallpaper if enabled
-                    if (enable)
-                    {
-                        try
-                        {
-                            var isDarkMode = value is int comboBoxIndex ? comboBoxIndex == 0 : true;
-                            var isWindows11 = _systemServices.IsWindows11();
-                            var wallpaperPath =
-                                WindowsThemeCustomizations.Wallpaper.GetDefaultWallpaperPath(
-                                    isWindows11,
-                                    isDarkMode
-                                );
-
-                            if (System.IO.File.Exists(wallpaperPath))
-                            {
-                                await _wallpaperService.SetWallpaperAsync(wallpaperPath);
-                                _logService.Log(
-                                    LogLevel.Info,
-                                    $"Wallpaper changed to: {wallpaperPath}"
-                                );
-                            }
-                            else
-                            {
-                                _logService.Log(
-                                    LogLevel.Warning,
-                                    $"Wallpaper file not found: {wallpaperPath}"
-                                );
-                            }
-                        }
-                        catch (Exception ex)
-                        {
-                            _logService.Log(
-                                LogLevel.Warning,
-                                $"Failed to change wallpaper: {ex.Message}"
-                            );
-                            // Don't throw - wallpaper change is optional
-                        }
-                    }
-
-                    // Refresh Windows GUI to apply theme changes
                     try
                     {
-                        _logService.Log(
-                            LogLevel.Info,
-                            "Refreshing Windows GUI to apply theme changes"
-                        );
-                        var refreshResult = await _systemServices.RefreshWindowsGUI();
+                        var isDarkMode = value is int comboBoxIndex ? comboBoxIndex == 1 : false;
+                        var isWindows11 = _systemServices.IsWindows11();
+                        var wallpaperPath = WindowsThemeCustomizations.Wallpaper.GetDefaultWallpaperPath(isWindows11, isDarkMode);
 
-                        if (refreshResult)
+                        if (System.IO.File.Exists(wallpaperPath))
                         {
-                            _logService.Log(LogLevel.Info, "Windows GUI successfully refreshed");
-                        }
-                        else
-                        {
-                            _logService.Log(
-                                LogLevel.Warning,
-                                "Windows GUI refresh completed but may not have been fully successful"
-                            );
+                            await _wallpaperService.SetWallpaperAsync(wallpaperPath);
+                            _logService.Log(LogLevel.Info, $"Wallpaper changed to: {wallpaperPath}");
                         }
                     }
                     catch (Exception ex)
                     {
-                        _logService.Log(
-                            LogLevel.Warning,
-                            $"Failed to refresh Windows GUI: {ex.Message}"
-                        );
-                        // Don't throw - GUI refresh failure shouldn't prevent theme change completion
+                        _logService.Log(LogLevel.Warning, $"Failed to change wallpaper: {ex.Message}");
                     }
                 }
 
-                _logService.Log(
-                    LogLevel.Info,
-                    $"Successfully applied Windows theme setting '{settingId}'"
-                );
-            }
-            catch (Exception ex)
-            {
-                _logService.Log(
-                    LogLevel.Error,
-                    $"Error applying Windows theme setting '{settingId}': {ex.Message}"
-                );
-                throw;
+                try
+                {
+                    await _systemServices.RefreshWindowsGUI();
+                }
+                catch (Exception ex)
+                {
+                    _logService.Log(LogLevel.Warning, $"Failed to refresh Windows GUI: {ex.Message}");
+                }
             }
         }
 

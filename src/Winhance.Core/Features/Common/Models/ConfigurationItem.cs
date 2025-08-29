@@ -23,24 +23,24 @@ namespace Winhance.Core.Features.Common.Models
         /// Gets or sets a value indicating whether the item is selected.
         /// </summary>
         public bool IsSelected { get; set; }
-        
+
         /// <summary>
         /// Gets or sets the type of input used for this item.
         /// </summary>
         public SettingInputType InputType { get; set; } = SettingInputType.Toggle;
-        
+
         /// <summary>
         /// Gets or sets the selected value for Selection controls.
         /// This is used when InputType is Selection.
         /// </summary>
         public string SelectedValue { get; set; }
-        
+
         /// <summary>
         /// Gets or sets additional properties for the item.
         /// This can be used to store custom properties like wallpaper change preference.
         /// </summary>
         public Dictionary<string, object> CustomProperties { get; set; } = new Dictionary<string, object>();
-        
+
         /// <summary>
         /// Ensures that SelectedValue is set for Selection controls based on SliderValue and available options.
         /// </summary>
@@ -75,7 +75,7 @@ namespace Winhance.Core.Features.Common.Models
                             SelectedValue = defaultOptions[index];
                         }
                     }
-                    
+
                     // If we still don't have a SelectedValue, add PowerPlanOptions
                     if (string.IsNullOrEmpty(SelectedValue) && CustomProperties.TryGetValue("SliderValue", out var sv2))
                     {

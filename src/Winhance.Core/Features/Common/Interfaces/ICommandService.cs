@@ -16,7 +16,7 @@ namespace Winhance.Core.Features.Common.Interfaces
         /// <param name="requiresElevation">Whether the command requires elevation.</param>
         /// <returns>The result of the command execution.</returns>
         Task<(bool Success, string Output, string Error)> ExecuteCommandAsync(string command, bool requiresElevation = true);
-        
+
         /// <summary>
         /// Applies the command settings based on the enabled state.
         /// </summary>
@@ -24,7 +24,7 @@ namespace Winhance.Core.Features.Common.Interfaces
         /// <param name="isEnabled">Whether the optimization is enabled.</param>
         /// <returns>A result indicating success or failure with details.</returns>
         Task<(bool Success, string Message)> ApplyCommandSettingsAsync(IEnumerable<CommandSetting> settings, bool isEnabled);
-        
+
         /// <summary>
         /// Gets the current state of a command setting.
         /// </summary>

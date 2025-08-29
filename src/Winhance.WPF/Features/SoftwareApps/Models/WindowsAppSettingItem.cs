@@ -27,9 +27,9 @@ namespace Winhance.WPF.Features.SoftwareApps.Models
         public bool RequiresRestart => _windowsApp.RequiresRestart;
         public bool CanBeReinstalled => _windowsApp.CanBeReinstalled;
         public string Category => _windowsApp.Category;
-        
-        public bool IsSelected 
-        { 
+
+        public bool IsSelected
+        {
             get => _windowsApp.IsSelected;
             set => _windowsApp.IsSelected = value;
         }

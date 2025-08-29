@@ -19,14 +19,14 @@ namespace Winhance.Infrastructure.Features.Optimize.Services
     /// </summary>
     public class PrivacyService : IDomainService
     {
-        private readonly  SettingControlHandler _controlHandler;
+        private readonly SettingControlHandler _controlHandler;
         private readonly ISystemSettingsDiscoveryService _discoveryService;
         private readonly ILogService _logService;
 
         public string DomainName => FeatureIds.Privacy;
 
         public PrivacyService(
-             SettingControlHandler controlHandler, 
+             SettingControlHandler controlHandler,
             ISystemSettingsDiscoveryService discoveryService,
             ILogService logService)
         {

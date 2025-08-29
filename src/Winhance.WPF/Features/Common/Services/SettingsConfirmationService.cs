@@ -20,8 +20,8 @@ namespace Winhance.WPF.Features.Common.Services
         }
 
         public async Task<(bool confirmed, bool checkboxChecked)> HandleConfirmationAsync(
-            string settingId, 
-            object? value, 
+            string settingId,
+            object? value,
             SettingDefinition setting)
         {
             if (setting == null) throw new ArgumentNullException(nameof(setting));
@@ -38,7 +38,7 @@ namespace Winhance.WPF.Features.Common.Services
                 settingId,
                 value
             );
-            
+
             var confirmationCheckboxText = ReplacePlaceholders(
                 setting.ConfirmationCheckboxText ?? "",
                 settingId,
@@ -62,7 +62,7 @@ namespace Winhance.WPF.Features.Common.Services
             // Replace {themeMode} placeholder for theme settings
             if (settingId == "theme-mode-windows")
             {
-                var isDarkMode = value is int comboBoxIndex ? comboBoxIndex == 0 : true;
+                var isDarkMode = value is int comboBoxIndex ? comboBoxIndex == 1 : false;
                 var themeMode = isDarkMode ? "Dark Mode" : "Light Mode";
                 text = text.Replace("{themeMode}", themeMode);
             }

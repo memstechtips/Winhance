@@ -22,7 +22,6 @@
                 <ResourceDictionary Source="Features/Common/Resources/Styles/ComboBoxStyles.xaml"/>
                 <ResourceDictionary Source="Features/Common/Resources/Styles/NumericUpDownStyles.xaml"/>
                 <ResourceDictionary Source="Features/Common/Resources/Styles/ToggleSwitchStyles.xaml"/>
-                <ResourceDictionary Source="Features/Common/Resources/Styles/SliderStyles.xaml"/>
                 <ResourceDictionary Source="Features/Common/Resources/Styles/ToolTipStyles.xaml"/>
                 <ResourceDictionary Source="Features/Common/Resources/Styles/TextStyles.xaml"/>
                 <ResourceDictionary Source="Features/Optimize/Resources/Converters/PowerSettingConverters.xaml"/>

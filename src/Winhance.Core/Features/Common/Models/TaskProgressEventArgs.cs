@@ -13,27 +13,27 @@ namespace Winhance.Core.Features.Common.Models
         /// Gets the progress value (0-100), or null if not applicable.
         /// </summary>
         public double Progress { get; }
-        
+
         /// <summary>
         /// Gets the status text.
         /// </summary>
         public string StatusText { get; }
-        
+
         /// <summary>
         /// Gets a detailed message about the current operation.
         /// </summary>
         public string DetailedMessage { get; }
-        
+
         /// <summary>
         /// Gets the log level for the detailed message.
         /// </summary>
         public LogLevel LogLevel { get; }
-        
+
         /// <summary>
         /// Gets whether the progress is indeterminate.
         /// </summary>
         public bool IsIndeterminate { get; }
-        
+
         /// <summary>
         /// Gets whether a task is currently running.
         /// </summary>

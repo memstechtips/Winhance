@@ -19,26 +19,26 @@ namespace Winhance.WPF.Features.Common.Views
         {
             InitializeComponent();
             ApplyModalDialogStyle();
-            
+
             // Set window properties
             Width = width;
             Height = height;
-            
+
             // Set title and content in the XAML template
             SetTitleAndContent(title, content);
         }
-        
+
         private void SetTitleAndContent(string title, object content)
         {
             // Find the title text block and content presenter in the XAML
             var titleTextBlock = FindName("PART_TitleText") as TextBlock;
             var contentPresenter = FindName("PART_ContentPresenter") as ContentPresenter;
-            
+
             if (titleTextBlock != null)
             {
                 titleTextBlock.Text = title;
             }
-            
+
             if (contentPresenter != null)
             {
                 contentPresenter.Content = content;
@@ -61,7 +61,7 @@ namespace Winhance.WPF.Features.Common.Views
             {
                 // Style not found, continue to fallback
             }
-            
+
             // Fallback: Apply basic styling manually with proper window layering
             WindowStyle = WindowStyle.None;
             AllowsTransparency = true;

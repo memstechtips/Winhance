@@ -10,6 +10,7 @@ using Winhance.Core.Features.Common.Events.Features;
 using Winhance.Core.Features.Common.Interfaces;
 using Winhance.Core.Features.Common.Models;
 using Winhance.WPF.Features.Common.ViewModels;
+using Winhance.WPF.Features.Common.Interfaces;
 
 namespace Winhance.WPF.Features.Common.Services
 {
@@ -26,6 +27,8 @@ namespace Winhance.WPF.Features.Common.Services
         private readonly ILogService _logService;
         private readonly IComboBoxSetupService _comboBoxSetupService;
         private readonly IDomainServiceRouter _domainServiceRouter;
+        private readonly ISettingsConfirmationService _confirmationService;
+        private readonly IGlobalSettingsRegistry _globalSettingsRegistry;
 
         public SettingsLoadingService(
             ISettingApplicationService settingApplicationService,
@@ -33,7 +36,9 @@ namespace Winhance.WPF.Features.Common.Services
             IEventBus eventBus,
             ILogService logService,
             IComboBoxSetupService comboBoxSetupService,
-            IDomainServiceRouter DomainServiceRouter)
+            IDomainServiceRouter DomainServiceRouter,
+            ISettingsConfirmationService confirmationService,
+            IGlobalSettingsRegistry globalSettingsRegistry)
         {
             _settingApplicationService = settingApplicationService ?? throw new ArgumentNullException(nameof(settingApplicationService));
             _progressService = progressService ?? throw new ArgumentNullException(nameof(progressService));
@@ -41,6 +46,8 @@ namespace Winhance.WPF.Features.Common.Services
             _logService = logService ?? throw new ArgumentNullException(nameof(logService));
             _comboBoxSetupService = comboBoxSetupService ?? throw new ArgumentNullException(nameof(comboBoxSetupService));
             _domainServiceRouter = DomainServiceRouter ?? throw new ArgumentNullException(nameof(DomainServiceRouter));
+            _confirmationService = confirmationService ?? throw new ArgumentNullException(nameof(confirmationService));
+            _globalSettingsRegistry = globalSettingsRegistry ?? throw new ArgumentNullException(nameof(globalSettingsRegistry));
         }
 
         /// <summary>
@@ -96,12 +103,15 @@ namespace Winhance.WPF.Features.Common.Services
                 // Build mapping synchronously
                 _domainServiceRouter.AddSettingMappings(featureModuleId, settingsList.Select(s => s.Id));
 
+                _globalSettingsRegistry.RegisterSettings(featureModuleId, settingsList);
+                _logService.Log(LogLevel.Debug, $"Registered {settingsList.Count} settings for module '{featureModuleId}'");
+
                 // Create and configure SettingItemViewModels
                 var settingViewModels = new ObservableCollection<object>();
                 foreach (var setting in settingsList)
                 {
                     // Create SettingItemViewModel for each setting
-                    var settingViewModel = new SettingItemViewModel(_settingApplicationService, _eventBus, _logService)
+                    var settingViewModel = new SettingItemViewModel(_settingApplicationService, _eventBus, _logService, _confirmationService, _domainServiceRouter)
                     {
                         SettingId = setting.Id,
                         Name = setting.Name,
@@ -129,7 +139,7 @@ namespace Winhance.WPF.Features.Common.Services
                         // For non-ComboBox controls, set SelectedValue normally
                         settingViewModel.SelectedValue = currentState.CurrentValue;
                     }
-                    
+
                     settingViewModels.Add(settingViewModel);
                 }
 

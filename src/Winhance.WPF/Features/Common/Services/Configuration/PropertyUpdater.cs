@@ -80,7 +80,7 @@ namespace Winhance.WPF.Features.Common.Services.Configuration
             if (configItem.CustomProperties.TryGetValue("Id", out var id) && id != null)
             {
                 var idString = id.ToString();
-                var matchById = items.FirstOrDefault(item => 
+                var matchById = items.FirstOrDefault(item =>
                 {
                     var idProperty = item.GetType().GetProperty("Id");
                     return idProperty != null && idProperty.GetValue(item)?.ToString() == idString;
@@ -95,7 +95,7 @@ namespace Winhance.WPF.Features.Common.Services.Configuration
             // Then try by name
             if (!string.IsNullOrEmpty(configItem.Name))
             {
-                var matchByName = items.FirstOrDefault(item => 
+                var matchByName = items.FirstOrDefault(item =>
                 {
                     var nameProperty = item.GetType().GetProperty("Name");
                     return nameProperty != null && nameProperty.GetValue(item)?.ToString() == configItem.Name;
@@ -148,7 +148,7 @@ namespace Winhance.WPF.Features.Common.Services.Configuration
                     }
                     catch (Exception ex)
                     {
-                        _logService.Log(LogLevel.Warning, 
+                        _logService.Log(LogLevel.Warning,
                             $"Could not convert value for property {customProp.Key}: {ex.Message}");
                     }
                 }

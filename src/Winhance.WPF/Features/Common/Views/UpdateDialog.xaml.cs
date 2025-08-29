@@ -17,7 +17,7 @@ namespace Winhance.WPF.Features.Common.Views
         private readonly VersionInfo _currentVersion;
         private readonly VersionInfo _latestVersion;
         private readonly Func<Task> _downloadAndInstallAction;
-        
+
         // Add a property for theme binding that defaults to dark theme
         private bool _isThemeDark = true;
         public bool IsThemeDark
@@ -32,26 +32,26 @@ namespace Winhance.WPF.Features.Common.Views
                 }
             }
         }
-        
+
         public bool IsDownloading { get; private set; }
 
         // Implement INotifyPropertyChanged
         public event System.ComponentModel.PropertyChangedEventHandler PropertyChanged;
-        
+
         protected virtual void OnPropertyChanged(string propertyName)
         {
             PropertyChanged?.Invoke(this, new System.ComponentModel.PropertyChangedEventArgs(propertyName));
         }
-        
+
         private UpdateDialog(string title, string message, VersionInfo currentVersion, VersionInfo latestVersion, Func<Task> downloadAndInstallAction)
         {
             InitializeComponent();
             DataContext = this;
-            
+
             _currentVersion = currentVersion;
             _latestVersion = latestVersion;
             _downloadAndInstallAction = downloadAndInstallAction;
-            
+
             // Try to determine the Winhance theme
             try
             {
@@ -64,7 +64,7 @@ namespace Winhance.WPF.Features.Common.Views
                 {
                     // Fall back to system theme if Winhance theme is not available
                     bool systemUsesLightTheme = false;
-                    
+
                     try
                     {
                         // Try to read the Windows registry to determine the system theme
@@ -84,7 +84,7 @@ namespace Winhance.WPF.Features.Common.Views
                     {
                         // Ignore errors reading the registry
                     }
-                    
+
                     // Set the IsThemeDark property based on the system theme
                     IsThemeDark = !systemUsesLightTheme;
                 }
@@ -94,7 +94,7 @@ namespace Winhance.WPF.Features.Common.Views
                 // Default to dark theme if we can't determine the theme
                 IsThemeDark = true;
             }
-            
+
             // Set up a handler to listen for theme changes
             this.Loaded += (sender, e) =>
             {
@@ -117,25 +117,25 @@ namespace Winhance.WPF.Features.Common.Views
                                 }
                             }
                         };
-                        
+
                         // Add the handler to the event
                         eventInfo.AddEventHandler(resourceDictionary, resourceChangedHandler);
                     }
                 }
             };
-            
+
             Title = title;
             HeaderText.Text = title;
             MessageText.Text = message;
-            
+
             // Ensure version text is properly displayed
             CurrentVersionText.Text = currentVersion.Version;
             LatestVersionText.Text = latestVersion.Version;
-            
+
             // Make sure the footer text is visible
             FooterText.Visibility = Visibility.Visible;
         }
-        
+
         private async void PrimaryButton_Click(object sender, RoutedEventArgs e)
         {
             try
@@ -143,19 +143,19 @@ namespace Winhance.WPF.Features.Common.Views
                 // Disable buttons during download
                 PrimaryButton.IsEnabled = false;
                 SecondaryButton.IsEnabled = false;
-                
+
                 // Show progress indicator
                 IsDownloading = true;
                 OnPropertyChanged(nameof(IsDownloading));
                 DownloadProgress.Visibility = Visibility.Visible;
                 StatusText.Text = "Downloading update...";
-                
+
                 // Hide the footer text during download
                 FooterText.Visibility = Visibility.Collapsed;
-                
+
                 // Execute the download and install action
                 await _downloadAndInstallAction();
-                
+
                 // Set dialog result and close
                 DialogResult = true;
                 Close();
@@ -165,15 +165,15 @@ namespace Winhance.WPF.Features.Common.Views
                 // Re-enable buttons
                 PrimaryButton.IsEnabled = true;
                 SecondaryButton.IsEnabled = true;
-                
+
                 // Hide progress indicator
                 IsDownloading = false;
                 OnPropertyChanged(nameof(IsDownloading));
                 DownloadProgress.Visibility = Visibility.Collapsed;
-                
+
                 // Show error message
                 StatusText.Text = $"Error downloading update: {ex.Message}";
-                
+
                 // Show the footer text again
                 FooterText.Visibility = Visibility.Visible;
             }
@@ -185,7 +185,7 @@ namespace Winhance.WPF.Features.Common.Views
             DialogResult = false;
             Close();
         }
-        
+
         /// <summary>
         /// Shows an update dialog with the specified parameters
         /// </summary>
@@ -196,10 +196,10 @@ namespace Winhance.WPF.Features.Common.Views
         /// <param name="downloadAndInstallAction">The action to execute when the user clicks Download & Install</param>
         /// <returns>True if the user chose to download and install, false otherwise</returns>
         public static async Task<bool> ShowAsync(
-            string title, 
-            string message, 
-            VersionInfo currentVersion, 
-            VersionInfo latestVersion, 
+            string title,
+            string message,
+            VersionInfo currentVersion,
+            VersionInfo latestVersion,
             Func<Task> downloadAndInstallAction)
         {
             try
@@ -210,7 +210,7 @@ namespace Winhance.WPF.Features.Common.Views
                     ShowInTaskbar = false,
                     Topmost = true
                 };
-                
+
                 // Set the owner to the main window to ensure it appears on top
                 if (Application.Current.MainWindow != null && Application.Current.MainWindow != dialog)
                 {
@@ -228,7 +228,7 @@ namespace Winhance.WPF.Features.Common.Views
                         }
                     }
                 }
-                
+
                 // Show the dialog and wait for the result
                 return await Task.Run(() =>
                 {

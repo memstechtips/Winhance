@@ -11,7 +11,7 @@ namespace Winhance.Core.Features.Common.Events
         /// Gets the timestamp when the event occurred
         /// </summary>
         DateTime Timestamp { get; }
-        
+
         /// <summary>
         /// Gets a unique identifier for the event instance
         /// </summary>

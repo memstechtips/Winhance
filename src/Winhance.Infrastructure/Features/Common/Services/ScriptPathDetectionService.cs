@@ -22,7 +22,7 @@ namespace Winhance.Infrastructure.Features.Common.Services
         public ScriptPathDetectionService(ILogService logService)
         {
             _logService = logService ?? throw new ArgumentNullException(nameof(logService));
-            
+
             _fallbackScriptsPath = Path.Combine(
                 Environment.GetFolderPath(Environment.SpecialFolder.CommonApplicationData),
                 "Winhance", "Scripts");
@@ -105,9 +105,9 @@ namespace Winhance.Infrastructure.Features.Common.Services
                     return false;
 
                 var drive = new DriveInfo(appDrive);
-                var isRemovable = drive.DriveType == DriveType.Removable || 
+                var isRemovable = drive.DriveType == DriveType.Removable ||
                                  drive.DriveType == DriveType.Network;
-                
+
                 _logService.LogInformation($"Drive {appDrive} type: {drive.DriveType}, IsRemovable: {isRemovable}");
                 return isRemovable;
             }
@@ -178,7 +178,7 @@ namespace Winhance.Infrastructure.Features.Common.Services
                     var fileName = Path.GetFileName(sourceScript);
                     var targetScript = Path.Combine(fallbackPath, fileName);
 
-                    if (!File.Exists(targetScript) || 
+                    if (!File.Exists(targetScript) ||
                         File.GetLastWriteTime(sourceScript) > File.GetLastWriteTime(targetScript))
                     {
                         File.Copy(sourceScript, targetScript, true);

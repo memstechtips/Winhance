@@ -14,8 +14,8 @@ namespace Winhance.Infrastructure.Features.Common.Services
         private readonly ILogService _logService;
 
         // ChassisTypes that indicate a laptop/portable device with a lid
-        private static readonly int[] LaptopChassisTypes = new int[] 
-        { 
+        private static readonly int[] LaptopChassisTypes = new int[]
+        {
             3,  // Laptop
             8,  // Portable
             9,  // Laptop
@@ -44,26 +44,26 @@ namespace Winhance.Infrastructure.Features.Common.Services
                 try
                 {
                     _logService.Log(LogLevel.Info, "Checking for battery presence using WMI");
-                    
+
                     // Query WMI for battery information
                     using var searcher = new ManagementObjectSearcher("SELECT * FROM Win32_Battery");
                     using var collection = searcher.Get();
-                    
+
                     int batteryCount = collection.Count;
                     _logService.Log(LogLevel.Info, $"Found {batteryCount} batteries in the system");
-                    
+
                     // If any battery objects are found, a battery is present
                     bool hasBattery = batteryCount > 0;
-                    
+
                     _logService.Log(LogLevel.Info, $"Battery detection result: {hasBattery}");
-                    
+
                     // On desktop PCs, we should return false
                     return hasBattery;
                 }
                 catch (Exception ex)
                 {
                     _logService.Log(LogLevel.Error, $"Error detecting battery: {ex.Message}");
-                    
+
                     // Default to false in case of error on desktop PCs
                     _logService.Log(LogLevel.Info, "Defaulting to no battery due to error");
                     return false;
@@ -127,18 +127,18 @@ namespace Winhance.Infrastructure.Features.Common.Services
                 try
                 {
                     _logService.Log(LogLevel.Info, "Checking if running on battery power");
-                    
+
                     // Query WMI for battery status
                     using var searcher = new ManagementObjectSearcher("SELECT * FROM Win32_Battery");
                     using var collection = searcher.Get();
-                    
+
                     // If no battery is found, we're definitely on AC power
                     if (collection.Count == 0)
                     {
                         _logService.Log(LogLevel.Info, "No battery found, running on AC power");
                         return false;
                     }
-                    
+
                     // Check each battery's power state
                     foreach (ManagementObject battery in collection)
                     {
@@ -149,12 +149,12 @@ namespace Winhance.Infrastructure.Features.Common.Services
                         {
                             int status = Convert.ToInt32(battery["BatteryStatus"]);
                             bool onBattery = status == 1;
-                            
+
                             _logService.Log(LogLevel.Info, $"Battery status: {status}, running on battery: {onBattery}");
                             return onBattery;
                         }
                     }
-                    
+
                     // Default to false (AC power) if we couldn't determine the status
                     _logService.Log(LogLevel.Warning, "Could not determine battery status, assuming AC power");
                     return false;
@@ -162,13 +162,13 @@ namespace Winhance.Infrastructure.Features.Common.Services
                 catch (Exception ex)
                 {
                     _logService.Log(LogLevel.Error, $"Error checking power source: {ex.Message}");
-                    
+
                     // Default to AC power in case of error
                     return false;
                 }
             });
         }
-        
+
         /// <inheritdoc/>
         public Task<bool> HasLidAsync()
         {
@@ -177,7 +177,7 @@ namespace Winhance.Infrastructure.Features.Common.Services
                 try
                 {
                     _logService.Log(LogLevel.Info, "Checking if device has a lid (is a laptop)");
-                    
+
                     // First check: Look for chassis type that indicates a laptop
                     using (var searcher = new ManagementObjectSearcher("SELECT ChassisTypes FROM Win32_ComputerSystem"))
                     using (var collection = searcher.Get())
@@ -190,7 +190,7 @@ namespace Winhance.Infrastructure.Features.Common.Services
                                 {
                                     int type = Convert.ToInt32(chassisType);
                                     _logService.Log(LogLevel.Info, $"Detected chassis type: {type}");
-                                    
+
                                     // Check if this is a laptop chassis type
                                     if (LaptopChassisTypes.Contains(type))
                                     {
@@ -201,7 +201,7 @@ namespace Winhance.Infrastructure.Features.Common.Services
                             }
                         }
                     }
-                    
+
                     // Second check: Look for portable computer system type
                     using (var searcher = new ManagementObjectSearcher("SELECT PCSystemType FROM Win32_ComputerSystem"))
                     using (var collection = searcher.Get())
@@ -212,7 +212,7 @@ namespace Winhance.Infrastructure.Features.Common.Services
                             {
                                 int pcSystemType = Convert.ToInt32(system["PCSystemType"]);
                                 _logService.Log(LogLevel.Info, $"PC System Type: {pcSystemType}");
-                                
+
                                 // PCSystemType = 2 means Mobile/Laptop
                                 if (pcSystemType == 2)
                                 {
@@ -222,7 +222,7 @@ namespace Winhance.Infrastructure.Features.Common.Services
                             }
                         }
                     }
-                    
+
                     // Third check: Look for battery presence as a fallback
                     // Many laptops will have a battery, so this is a reasonable fallback
                     using (var searcher = new ManagementObjectSearcher("SELECT * FROM Win32_Battery"))
@@ -234,14 +234,14 @@ namespace Winhance.Infrastructure.Features.Common.Services
                             return true;
                         }
                     }
-                    
+
                     _logService.Log(LogLevel.Info, "Device does not appear to be a laptop");
                     return false;
                 }
                 catch (Exception ex)
                 {
                     _logService.Log(LogLevel.Error, $"Error detecting if device has a lid: {ex.Message}");
-                    
+
                     // Default to showing lid settings in case of error
                     // Better to show unnecessary settings than to hide needed ones
                     return true;

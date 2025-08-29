@@ -66,18 +66,18 @@ namespace Winhance.WPF.Features.Common.Services.Configuration
             try
             {
                 _logService.Log(LogLevel.Info, "Applying configuration to CustomizeViewModel");
-                
+
                 var viewModel = _serviceProvider.GetService<CustomizeViewModel>();
                 if (viewModel == null)
                 {
                     _logService.Log(LogLevel.Warning, "CustomizeViewModel not available");
                     return false;
                 }
-                
+
                 // Skip handling for CustomizeViewModel as it uses composition pattern 
                 // which is incompatible with the legacy configuration system
                 _logService.Log(LogLevel.Info, "CustomizeViewModel uses composition pattern which is incompatible with the legacy configuration system");
-                
+
                 // Return early as we can't apply configuration to the composition-based ViewModel
                 return false;
             }

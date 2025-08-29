@@ -20,7 +20,7 @@ namespace Winhance.Infrastructure.Features.SoftwareApps.Services
         private readonly ILogService _logService;
         private readonly IWinhanceNotificationService _notificationService;
         private readonly IDialogService _dialogService;
-        
+
         /// <summary>
         /// Event that is raised when the installation status changes.
         /// </summary>
@@ -62,36 +62,36 @@ namespace Winhance.Infrastructure.Features.SoftwareApps.Services
         {
             if (appInfo == null)
                 throw new ArgumentNullException(nameof(appInfo));
-                
+
             // Create a linked cancellation token source that will be cancelled if either:
             // 1. The original cancellation token is cancelled (user initiated)
             // 2. We detect a connectivity issue and cancel the installation
             using var linkedCts = CancellationTokenSource.CreateLinkedTokenSource(cancellationToken);
-            
+
             // Update status
             var initialStatus = $"Installing {appInfo.Name}...";
             RaiseStatusChanged(appInfo, initialStatus);
-            
+
             // Start connectivity monitoring
             var connectivityMonitoringTask = StartConnectivityMonitoring(appInfo, linkedCts);
-            
+
             try
             {
                 // Perform the installation
                 var installationResult = await _appInstallationService.InstallAppAsync(
-                    appInfo, 
-                    progress, 
+                    appInfo,
+                    progress,
                     linkedCts.Token);
-                
+
                 // Stop connectivity monitoring
                 linkedCts.Cancel();
                 try { await connectivityMonitoringTask; } catch (OperationCanceledException) { /* Expected */ }
-                
+
                 if (installationResult.Success)
                 {
                     var successMessage = $"Successfully installed {appInfo.Name}";
                     RaiseStatusChanged(appInfo, successMessage, true, true);
-                    
+
                     return new InstallationCoordinationResult
                     {
                         Success = true,
@@ -102,7 +102,7 @@ namespace Winhance.Infrastructure.Features.SoftwareApps.Services
                 {
                     var errorMessage = installationResult.ErrorMessage ?? $"Failed to install {appInfo.Name}";
                     RaiseStatusChanged(appInfo, errorMessage, true, false);
-                    
+
                     return new InstallationCoordinationResult
                     {
                         Success = false,
@@ -116,9 +116,9 @@ namespace Winhance.Infrastructure.Features.SoftwareApps.Services
                 // Stop connectivity monitoring
                 linkedCts.Cancel();
                 try { await connectivityMonitoringTask; } catch (OperationCanceledException) { /* Expected */ }
-                
+
                 // Determine if this was a user cancellation or a connectivity issue
-                bool wasConnectivityIssue = await connectivityMonitoringTask.ContinueWith(t => 
+                bool wasConnectivityIssue = await connectivityMonitoringTask.ContinueWith(t =>
                 {
                     // If the task completed normally, check its result
                     if (t.Status == TaskStatus.RanToCompletion)
@@ -128,12 +128,12 @@ namespace Winhance.Infrastructure.Features.SoftwareApps.Services
                     // If the task was cancelled, assume it was a user cancellation
                     return false;
                 });
-                
+
                 if (wasConnectivityIssue)
                 {
                     var connectivityMessage = $"Installation of {appInfo.Name} was stopped due to internet connectivity issues";
                     RaiseStatusChanged(appInfo, connectivityMessage, true, false, false, true);
-                    
+
                     return new InstallationCoordinationResult
                     {
                         Success = false,
@@ -147,7 +147,7 @@ namespace Winhance.Infrastructure.Features.SoftwareApps.Services
                 {
                     var cancelMessage = $"Installation of {appInfo.Name} was cancelled by user";
                     RaiseStatusChanged(appInfo, cancelMessage, true, false, true);
-                    
+
                     return new InstallationCoordinationResult
                     {
                         Success = false,
@@ -163,22 +163,22 @@ namespace Winhance.Infrastructure.Features.SoftwareApps.Services
                 // Stop connectivity monitoring
                 linkedCts.Cancel();
                 try { await connectivityMonitoringTask; } catch (OperationCanceledException) { /* Expected */ }
-                
+
                 // Log the error
                 _logService.LogError($"Error installing {appInfo.Name}: {ex.Message}", ex);
-                
+
                 // Check if the exception is related to internet connectivity
-                bool isConnectivityIssue = ex.Message.Contains("internet") || 
-                                         ex.Message.Contains("connection") || 
+                bool isConnectivityIssue = ex.Message.Contains("internet") ||
+                                         ex.Message.Contains("connection") ||
                                          ex.Message.Contains("network") ||
                                          ex.Message.Contains("pipeline has been stopped");
-                
+
                 string errorMessage = isConnectivityIssue
                     ? "Internet connection lost during installation. Please check your network connection and try again."
                     : ex.Message;
-                
+
                 RaiseStatusChanged(appInfo, $"Error installing {appInfo.Name}: {errorMessage}", true, false, false, isConnectivityIssue);
-                
+
                 return new InstallationCoordinationResult
                 {
                     Success = false,
@@ -189,7 +189,7 @@ namespace Winhance.Infrastructure.Features.SoftwareApps.Services
                 };
             }
         }
-        
+
         /// <summary>
         /// Starts monitoring internet connectivity during installation.
         /// </summary>
@@ -199,7 +199,7 @@ namespace Winhance.Infrastructure.Features.SoftwareApps.Services
         private async Task<bool> StartConnectivityMonitoring(AppInfo appInfo, CancellationTokenSource cts)
         {
             bool connectivityIssueDetected = false;
-            
+
             // Set up connectivity change handler
             EventHandler<ConnectivityChangedEventArgs> connectivityChangedHandler = null;
             connectivityChangedHandler = (sender, args) =>
@@ -208,7 +208,7 @@ namespace Winhance.Infrastructure.Features.SoftwareApps.Services
                 {
                     return; // Installation already cancelled
                 }
-                
+
                 if (args.IsUserCancelled)
                 {
                     // User cancelled the operation
@@ -219,17 +219,17 @@ namespace Winhance.Infrastructure.Features.SoftwareApps.Services
                 {
                     // Internet connection lost
                     connectivityIssueDetected = true;
-                    
+
                     var message = $"Error: Internet connection lost while installing {appInfo.Name}. Installation stopped.";
                     RaiseStatusChanged(appInfo, message, false, false, false, true);
-                    
+
                     // Show a notification if available
                     _notificationService?.ShowToast(
                         "Internet Connection Lost",
                         "Internet connection has been lost during installation. Installation has been stopped.",
                         ToastType.Error
                     );
-                    
+
                     // Show a dialog if available
                     if (_dialogService != null)
                     {
@@ -239,20 +239,20 @@ namespace Winhance.Infrastructure.Features.SoftwareApps.Services
                             "Internet Connection Lost"
                         );
                     }
-                    
+
                     // Cancel the installation process
                     cts.Cancel();
                 }
             };
-            
+
             try
             {
                 // Subscribe to connectivity changes
                 _connectivityService.ConnectivityChanged += connectivityChangedHandler;
-                
+
                 // Start monitoring connectivity
                 await _connectivityService.StartMonitoringAsync(5, cts.Token);
-                
+
                 // Wait for the cancellation token to be triggered
                 try
                 {
@@ -263,7 +263,7 @@ namespace Winhance.Infrastructure.Features.SoftwareApps.Services
                 {
                     // Expected when installation completes or is cancelled
                 }
-                
+
                 return connectivityIssueDetected;
             }
             finally
@@ -273,12 +273,12 @@ namespace Winhance.Infrastructure.Features.SoftwareApps.Services
                 {
                     _connectivityService.ConnectivityChanged -= connectivityChangedHandler;
                 }
-                
+
                 // Stop monitoring connectivity
                 _connectivityService.StopMonitoring();
             }
         }
-        
+
         /// <summary>
         /// Raises the InstallationStatusChanged event.
         /// </summary>
@@ -297,7 +297,7 @@ namespace Winhance.Infrastructure.Features.SoftwareApps.Services
             bool isConnectivityIssue = false)
         {
             _logService.LogInformation(statusMessage);
-            
+
             InstallationStatusChanged?.Invoke(
                 this,
                 new InstallationStatusChangedEventArgs(

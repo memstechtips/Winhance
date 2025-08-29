@@ -72,7 +72,7 @@ namespace Winhance.Infrastructure.Features.Common.Services
             try
             {
                 _logService.Log(LogLevel.Debug, $"Refreshing tooltip data for setting: {settingId}");
-                
+
                 var data = await GetTooltipDataForSettingAsync(setting);
                 if (data != null)
                 {
@@ -136,7 +136,7 @@ namespace Winhance.Infrastructure.Features.Common.Services
                 var primaryRegistrySetting = registrySettings.First();
                 string primaryDisplayValue = "(not set)";
 
-                _logService.Log(LogLevel.Debug, 
+                _logService.Log(LogLevel.Debug,
                     $"Processing tooltip data for setting {setting.Id} with {registrySettings.Count} registry settings");
 
                 // Process all registry settings for this application setting
@@ -145,13 +145,13 @@ namespace Winhance.Infrastructure.Features.Common.Services
                     try
                     {
                         var keyPath = registrySetting.KeyPath;
-                        
+
                         // CRITICAL: Always get fresh values from registry (no caching for tooltips)
                         var currentValue = _registryService.GetValue(keyPath, registrySetting.ValueName);
                         var valueExists = _registryService.ValueExists(keyPath, registrySetting.ValueName);
                         var keyExists = _registryService.KeyExists(keyPath);
 
-                        _logService.Log(LogLevel.Debug, 
+                        _logService.Log(LogLevel.Debug,
                             $"Registry setting {registrySetting.ValueName}: KeyExists={keyExists}, ValueExists={valueExists}, Value={currentValue}");
 
                         // Add to individual values dictionary
@@ -165,9 +165,9 @@ namespace Winhance.Infrastructure.Features.Common.Services
                     }
                     catch (Exception regEx)
                     {
-                        _logService.Log(LogLevel.Warning, 
+                        _logService.Log(LogLevel.Warning,
                             $"Error reading registry value for {registrySetting.KeyPath}\\{registrySetting.ValueName}: {regEx.Message}");
-                        
+
                         // Still add to dictionary with null value to show in tooltip
                         individualValues[registrySetting] = null;
                     }

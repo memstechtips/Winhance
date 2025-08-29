@@ -31,7 +31,7 @@ namespace Winhance.WPF.Features.Common.Utilities
         {
             _window = window ?? throw new ArgumentNullException(nameof(window));
             _logService = logService ?? throw new ArgumentNullException(nameof(logService));
-            
+
             // No events registered - we don't save window position anymore
         }
 
@@ -44,17 +44,17 @@ namespace Winhance.WPF.Features.Common.Utilities
             {
                 // Set dynamic window size based on screen resolution (75% of screen)
                 SetDynamicWindowSize();
-                
+
                 // Always center the window on screen
                 // This ensures consistent behavior regardless of WindowStartupLocation
-                CenterWindowOnScreen();               
+                CenterWindowOnScreen();
             }
             catch (Exception ex)
             {
                 // Error initializing window size manager
             }
         }
-        
+
         /// <summary>
         /// Centers the window on the current screen
         /// </summary>
@@ -64,11 +64,11 @@ namespace Winhance.WPF.Features.Common.Utilities
             {
                 // Get the current screen's working area
                 var workArea = GetCurrentScreenWorkArea();
-                
+
                 // Get DPI scaling factor
                 double dpiScaleX = 1.0;
                 double dpiScaleY = 1.0;
-                
+
                 try
                 {
                     var presentationSource = PresentationSource.FromVisual(_window);
@@ -82,21 +82,21 @@ namespace Winhance.WPF.Features.Common.Utilities
                 {
                     // Error getting DPI scale
                 }
-                
+
                 // Convert screen coordinates to account for DPI
                 double screenWidth = workArea.Width / dpiScaleX;
                 double screenHeight = workArea.Height / dpiScaleY;
                 double screenLeft = workArea.X / dpiScaleX;
                 double screenTop = workArea.Y / dpiScaleY;
-                
+
                 // Calculate center position
                 double left = screenLeft + (screenWidth - _window.Width) / 2;
                 double top = screenTop + (screenHeight - _window.Height) / 2;
-                
+
                 // Set window position
                 _window.Left = left;
                 _window.Top = top;
-                
+
             }
             catch (Exception ex)
             {
@@ -110,14 +110,14 @@ namespace Winhance.WPF.Features.Common.Utilities
         private void SetDynamicWindowSize()
         {
             try
-            {               
+            {
                 // Get the current screen's working area (excludes taskbar)
                 var workArea = GetCurrentScreenWorkArea();
-                
+
                 // Get DPI scaling factor for the current screen
                 double dpiScaleX = 1.0;
                 double dpiScaleY = 1.0;
-                
+
                 try
                 {
                     var presentationSource = PresentationSource.FromVisual(_window);
@@ -131,23 +131,23 @@ namespace Winhance.WPF.Features.Common.Utilities
                 {
                     // Error getting DPI scale
                 }
-                
+
                 // Calculate available screen space
                 double screenWidth = workArea.Width / dpiScaleX;
                 double screenHeight = workArea.Height / dpiScaleY;
-                
+
                 // Calculate window size (75% of screen size with minimum/maximum constraints)
                 double windowWidth = Math.Min(DEFAULT_WIDTH, screenWidth * SCREEN_PERCENTAGE);
                 double windowHeight = Math.Min(DEFAULT_HEIGHT, screenHeight * SCREEN_PERCENTAGE);
-                
+
                 // Ensure minimum size for usability
                 windowWidth = Math.Max(windowWidth, MIN_WIDTH);
                 windowHeight = Math.Max(windowHeight, MIN_HEIGHT);
-                
+
                 // Only set the window size, let WPF handle the centering via WindowStartupLocation="CenterScreen"
                 _window.Width = windowWidth;
                 _window.Height = windowHeight;
-                
+
             }
             catch (Exception ex)
             {
@@ -169,7 +169,7 @@ namespace Winhance.WPF.Features.Common.Utilities
                     // Get the monitor info for the monitor containing the window
                     var monitorInfo = new MONITORINFO();
                     monitorInfo.cbSize = Marshal.SizeOf(typeof(MONITORINFO));
-                    
+
                     if (GetMonitorInfo(MonitorFromWindow(windowHandle, MONITOR_DEFAULTTONEAREST), ref monitorInfo))
                     {
                         // Convert the working area to a WPF Rect
@@ -185,7 +185,7 @@ namespace Winhance.WPF.Features.Common.Utilities
             {
                 // Error getting current screen
             }
-            
+
             // Fallback to primary screen working area
             return SystemParameters.WorkArea;
         }
@@ -194,12 +194,12 @@ namespace Winhance.WPF.Features.Common.Utilities
 
         [DllImport("user32.dll")]
         private static extern IntPtr MonitorFromWindow(IntPtr hwnd, uint dwFlags);
-        
+
         [DllImport("user32.dll")]
         private static extern bool GetMonitorInfo(IntPtr hMonitor, ref MONITORINFO lpmi);
-        
+
         private const uint MONITOR_DEFAULTTONEAREST = 2;
-        
+
         [StructLayout(LayoutKind.Sequential)]
         private struct RECT
         {
@@ -208,7 +208,7 @@ namespace Winhance.WPF.Features.Common.Utilities
             public int right;
             public int bottom;
         }
-        
+
         [StructLayout(LayoutKind.Sequential)]
         private struct MONITORINFO
         {

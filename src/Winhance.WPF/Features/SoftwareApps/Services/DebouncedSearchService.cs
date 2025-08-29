@@ -13,7 +13,7 @@ namespace Winhance.WPF.Features.SoftwareApps.Services
         private readonly DispatcherTimer _searchTimer;
         private readonly Dictionary<string, string[]> _searchTermsCache;
         private readonly object _lockObject = new object();
-        
+
         private string _lastSearchText = string.Empty;
         private Action<string> _searchAction;
         private bool _disposed = false;
@@ -21,13 +21,13 @@ namespace Winhance.WPF.Features.SoftwareApps.Services
         public DebouncedSearchService(TimeSpan debounceInterval = default)
         {
             var interval = debounceInterval == default ? TimeSpan.FromMilliseconds(300) : debounceInterval;
-            
+
             _searchTimer = new DispatcherTimer
             {
                 Interval = interval
             };
             _searchTimer.Tick += OnSearchTimerTick;
-            
+
             _searchTermsCache = new Dictionary<string, string[]>();
         }
 
@@ -44,7 +44,7 @@ namespace Winhance.WPF.Features.SoftwareApps.Services
             {
                 _lastSearchText = searchText ?? string.Empty;
                 _searchAction = searchAction;
-                
+
                 _searchTimer.Stop();
                 _searchTimer.Start();
             }
@@ -148,16 +148,16 @@ namespace Winhance.WPF.Features.SoftwareApps.Services
         private void OnSearchTimerTick(object sender, EventArgs e)
         {
             _searchTimer.Stop();
-            
+
             string searchText;
             Action<string> action;
-            
+
             lock (_lockObject)
             {
                 searchText = _lastSearchText;
                 action = _searchAction;
             }
-            
+
             action?.Invoke(searchText);
         }
 
@@ -166,18 +166,18 @@ namespace Winhance.WPF.Features.SoftwareApps.Services
             if (_disposed) return;
 
             _disposed = true;
-            
+
             if (_searchTimer != null)
             {
                 _searchTimer.Stop();
                 _searchTimer.Tick -= OnSearchTimerTick;
             }
-            
+
             lock (_lockObject)
             {
                 _searchTermsCache.Clear();
             }
-            
+
             GC.SuppressFinalize(this);
         }
     }

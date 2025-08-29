@@ -26,7 +26,7 @@ namespace Winhance.WPF.Features.Common.Converters
             throw new NotImplementedException();
         }
     }
-    
+
     /// <summary>
     /// Converter that checks if the parent is hovered, supporting both ListViewItem and GridViewColumnHeader parents.
     /// </summary>
@@ -42,7 +42,7 @@ namespace Winhance.WPF.Features.Common.Converters
                     return true;
                 }
             }
-            
+
             return false;
         }
 

@@ -30,10 +30,10 @@ namespace Winhance.WPF.Features.SoftwareApps.ViewModels
     {
         [ObservableProperty]
         private bool _isInitialized = false;
-        
+
         [ObservableProperty]
         private string _searchText = string.Empty;
-        
+
         private readonly ITaskProgressService _progressService;
         private bool _isLoading;
 
@@ -69,8 +69,8 @@ namespace Winhance.WPF.Features.SoftwareApps.ViewModels
         public bool IsTableViewMode
         {
             get => _viewModeManager.IsTableViewMode;
-            set 
-            { 
+            set
+            {
                 if (_viewModeManager.IsTableViewMode != value)
                 {
                     _viewModeManager.IsTableViewMode = value;
@@ -94,13 +94,13 @@ namespace Winhance.WPF.Features.SoftwareApps.ViewModels
 
         [ObservableProperty]
         private bool _isAllSelected = false;
-        
+
         /// <summary>
         /// Current sort property for table view
         /// </summary>
         [ObservableProperty]
         private string _currentSortProperty = "Name";
-        
+
         /// <summary>
         /// Current sort direction for table view
         /// </summary>
@@ -116,11 +116,11 @@ namespace Winhance.WPF.Features.SoftwareApps.ViewModels
         private readonly IAppInstallationCoordinatorService _appInstallationCoordinatorService;
         private readonly IInternetConnectivityService _connectivityService;
         private readonly SoftwareAppsDialogService _dialogService;
-        
+
         // Optimized services for performance
         private readonly OptimizedCollectionManager<ExternalApp, OptimizedExternalAppWrapper> _collectionManager;
         private readonly DebouncedSearchService _debouncedSearchService;
-        
+
         /// <summary>
         /// Event raised when selected items change to notify parent view models
         /// </summary>
@@ -129,9 +129,9 @@ namespace Winhance.WPF.Features.SoftwareApps.ViewModels
         /// <summary>
         /// Gets the collection view for all items in the table view
         /// </summary>
-        public ICollectionView AllItemsView 
+        public ICollectionView AllItemsView
         {
-            get 
+            get
             {
                 var collectionView = _collectionManager?.CollectionView;
                 return collectionView;
@@ -185,12 +185,12 @@ namespace Winhance.WPF.Features.SoftwareApps.ViewModels
         {
             if (string.IsNullOrEmpty(propertyName))
                 return;
-                
+
             // If clicking the same column, toggle sort direction
             if (propertyName == CurrentSortProperty)
             {
-                SortDirection = SortDirection == ListSortDirection.Ascending 
-                    ? ListSortDirection.Descending 
+                SortDirection = SortDirection == ListSortDirection.Ascending
+                    ? ListSortDirection.Descending
                     : ListSortDirection.Ascending;
             }
             else
@@ -199,23 +199,23 @@ namespace Winhance.WPF.Features.SoftwareApps.ViewModels
                 CurrentSortProperty = propertyName;
                 SortDirection = ListSortDirection.Ascending;
             }
-            
+
             // Apply the optimized sorting
             ApplyOptimizedSorting();
         }
-        
+
         /// <summary>
         /// Applies optimized filtering using debounced search service
         /// </summary>
         private void ApplyOptimizedFilter()
         {
             if (_collectionManager == null || _debouncedSearchService == null) return;
-            
+
             var filter = _debouncedSearchService.CreateFilterPredicate<OptimizedExternalAppWrapper>(
                 SearchText,
                 wrapper => new[] { wrapper.Name, wrapper.Description, wrapper.Publisher }
             );
-            
+
             _collectionManager.ApplyFilter(filter);
         }
 
@@ -230,9 +230,9 @@ namespace Winhance.WPF.Features.SoftwareApps.ViewModels
                 UpdateOptimizedAllItemsCollection();
             }
         }
-        
 
-        
+
+
         /// <summary>
         /// Command for handling selection changes from DataGrid behavior
         /// </summary>
@@ -241,7 +241,7 @@ namespace Winhance.WPF.Features.SoftwareApps.ViewModels
         {
             OnOptimizedSelectionChanged();
         }
-        
+
         /// <summary>
         /// Command for handling checkbox selection changes from behavior
         /// </summary>
@@ -250,23 +250,23 @@ namespace Winhance.WPF.Features.SoftwareApps.ViewModels
         {
             OnOptimizedSelectionChanged();
         }
-        
+
         /// <summary>
         /// Updates the combined collection using optimized incremental updates
         /// </summary>
         private void UpdateOptimizedAllItemsCollection()
-        {            
+        {
             if (_collectionManager == null)
             {
                 return;
             }
-            
+
             // Update collection with incremental changes (pass source items, not wrappers)
             _collectionManager.UpdateCollectionImmediate(Items);
-            
+
             // Apply current sorting and filtering
             ApplyOptimizedSorting();
-            ApplyOptimizedFilter();            
+            ApplyOptimizedFilter();
         }
         private void OnOptimizedSelectionChanged()
         {
@@ -278,37 +278,37 @@ namespace Winhance.WPF.Features.SoftwareApps.ViewModels
                 SelectedItemsChanged?.Invoke(this, EventArgs.Empty);
             }, System.Windows.Threading.DispatcherPriority.Background);
         }
-        
+
         /// <summary>
         /// Applies optimized sorting using collection manager
         /// </summary>
         private void ApplyOptimizedSorting()
         {
             if (_collectionManager == null) return;
-            
+
             _collectionManager.ApplySort(CurrentSortProperty, SortDirection);
         }
-        
+
         /// <summary>
         /// Helper class to defer ICollectionView refresh until disposed
         /// </summary>
         private class DeferRefresh : IDisposable
         {
             private readonly ICollectionView _view;
-            
+
             public DeferRefresh(ICollectionView view)
             {
                 _view = view;
                 // No direct way to suspend binding, but we can defer refresh
             }
-            
+
             public void Dispose()
             {
                 // Refresh the view when disposed
                 _view.Refresh();
             }
         }
-        
+
         /// <summary>
         /// Filters items based on the current search text.
         /// </summary>
@@ -330,7 +330,7 @@ namespace Winhance.WPF.Features.SoftwareApps.ViewModels
                     item.Category?.ToLower().Contains(term) == true);
             });
         }
-        
+
         /// <summary>
         /// Handles the SearchText property change with optimized debounced search
         /// </summary>
@@ -339,17 +339,17 @@ namespace Winhance.WPF.Features.SoftwareApps.ViewModels
         {
             // Apply search for list view (categories)
             ApplySearch();
-            
+
             // Apply optimized debounced search for table view
             if (_debouncedSearchService != null)
             {
                 _debouncedSearchService.Search(value, _ => ApplyOptimizedFilter());
             }
-            
+
             // Notify that IsSearchActive may have changed
             OnPropertyChanged(nameof(IsSearchActive));
         }
-        
+
         /// <summary>
         /// Applies the current search text to filter items in the table view.
         /// </summary>
@@ -369,7 +369,7 @@ namespace Winhance.WPF.Features.SoftwareApps.ViewModels
             {
                 item.IsSelected = value;
             }
-            
+
             // If in table view mode, also notify wrapper objects to update their UI
             if (IsTableViewMode && _collectionManager != null)
             {
@@ -410,10 +410,10 @@ namespace Winhance.WPF.Features.SoftwareApps.ViewModels
                         // Check if any regular items are selected
                         _hasSelectedItems = Items?.Any(a => a.IsSelected) == true;
                     }
-                    
+
                     _hasSelectedItemsCacheValid = true;
                 }
-                
+
                 return _hasSelectedItems;
             }
         }
@@ -425,7 +425,7 @@ namespace Winhance.WPF.Features.SoftwareApps.ViewModels
             _hasSelectedItemsCacheValid = false;
 
         }
-        
+
         /// <summary>
         /// Public method to invalidate the selection state and notify that HasSelectedItems has changed
         /// Used by the view to notify the viewmodel of selection changes
@@ -433,13 +433,13 @@ namespace Winhance.WPF.Features.SoftwareApps.ViewModels
         public void InvalidateSelectionState()
         {
 
-            
+
             // Invalidate the cached value
             InvalidateHasSelectedItemsCache();
-            
+
             // Trigger property changed notification
             OnPropertyChanged(nameof(HasSelectedItems));
-            
+
             // Ensure parent viewmodel updates button states by raising selection changed event
             if (SelectedItemsChanged != null)
             {
@@ -465,7 +465,7 @@ namespace Winhance.WPF.Features.SoftwareApps.ViewModels
             serviceProvider.GetRequiredService<IEventBus>()
         )
         {
-            
+
             _progressService = progressService;
             _appInstallationService = appInstallationService;
             _appDiscoveryService = appDiscoveryService;
@@ -476,7 +476,7 @@ namespace Winhance.WPF.Features.SoftwareApps.ViewModels
             _dialogService = dialogService;
             _connectivityService = connectivityService;
             _appInstallationCoordinatorService = appInstallationCoordinatorService;
-            
+
             // Initialize optimized services
             var logService = serviceProvider.GetRequiredService<ILogService>();
             _collectionManager = new OptimizedCollectionManager<ExternalApp, OptimizedExternalAppWrapper>(
@@ -484,21 +484,23 @@ namespace Winhance.WPF.Features.SoftwareApps.ViewModels
                 logService
             );
             _debouncedSearchService = new DebouncedSearchService(TimeSpan.FromMilliseconds(300));
-            
+
             // Initialize view mode manager
             _viewModeManager = new AppViewModeManager();
             _viewModeManager.ViewModeChanged += OnViewModeChanged;
 
             // Subscribe to collection changed events to track item selection changes
             Items.CollectionChanged += Items_CollectionChanged;
-            Items.CollectionChanged += (s, e) => {
+            Items.CollectionChanged += (s, e) =>
+            {
             };
 
             // Notify that AllItemsView is now available
             OnPropertyChanged(nameof(AllItemsView));
 
             // Set up a loaded event handler to ensure the collection is populated
-            this.PropertyChanged += (s, e) => {
+            this.PropertyChanged += (s, e) =>
+            {
                 if (e.PropertyName == nameof(IsInitialized) && IsInitialized)
                 {
                     // If we're in table view mode, update the collection
@@ -508,7 +510,7 @@ namespace Winhance.WPF.Features.SoftwareApps.ViewModels
                     }
                 }
             };
-            
+
         }
 
         /// <summary>
@@ -519,7 +521,7 @@ namespace Winhance.WPF.Features.SoftwareApps.ViewModels
 
 
 
-            
+
             // Log selections in the optimized collection
             if (_collectionManager != null)
             {
@@ -530,30 +532,30 @@ namespace Winhance.WPF.Features.SoftwareApps.ViewModels
                     // Log item selection if needed
                 }
             }
-            
+
             // Force IsTableViewMode to be true since we're getting selection changes from table view
             if (!IsTableViewMode && _collectionManager != null && _collectionManager.Collection.Any())
             {
                 IsTableViewMode = true;
             }
-            
+
             InvalidateHasSelectedItemsCache();
 
-            
+
             var hasSelected = HasSelectedItems;
 
-            
+
 
             OnPropertyChanged(nameof(HasSelectedItems));
-            
+
             // Ensure the parent view model is notified of changes by forcing an update to the property
             // This is crucial for ensuring the buttons in the parent view model are enabled/disabled properly
-            Application.Current.Dispatcher.BeginInvoke(new Action(() => 
+            Application.Current.Dispatcher.BeginInvoke(new Action(() =>
             {
 
                 OnPropertyChanged(nameof(HasSelectedItems));
             }));
-            
+
 
 
         }
@@ -611,9 +613,9 @@ namespace Winhance.WPF.Features.SoftwareApps.ViewModels
         {
             // Initialize the table view collection
             UpdateAllItemsCollection();
-            
+
         }
-        
+
         /// <summary>
         /// Applies the current search text to filter items.
         /// </summary>
@@ -624,7 +626,7 @@ namespace Winhance.WPF.Features.SoftwareApps.ViewModels
 
             // For category view mode, filter items based on search text
             var filteredItems = FilterItems(Items);
-            
+
             // Clear all categories
             foreach (var category in Categories)
             {
@@ -680,7 +682,7 @@ namespace Winhance.WPF.Features.SoftwareApps.ViewModels
 
         public async Task LoadItemsAsync()
         {
-            
+
             if (_packageManager == null)
             {
                 return;
@@ -703,12 +705,12 @@ namespace Winhance.WPF.Features.SoftwareApps.ViewModels
 
                 // Convert AppInfo objects to ExternalApp objects and group by category
                 var appsByCategory = new Dictionary<string, List<ExternalApp>>();
-                
+
                 foreach (var appInfo in apps)
                 {
                     var externalApp = ExternalApp.FromAppInfo(appInfo);
                     Items.Add(externalApp);
-                    
+
                     // Group by category for the grid view
                     string category = externalApp.Category ?? "Other";
                     if (!appsByCategory.ContainsKey(category))
@@ -716,14 +718,14 @@ namespace Winhance.WPF.Features.SoftwareApps.ViewModels
                         appsByCategory[category] = new List<ExternalApp>();
                     }
                     appsByCategory[category].Add(externalApp);
-                    
+
                 }
-                
+
                 // Create category view models
                 foreach (var categoryGroup in appsByCategory.OrderBy(x => x.Key))
                 {
                     var categoryViewModel = new ExternalAppsCategoryViewModel(
-                        categoryGroup.Key, 
+                        categoryGroup.Key,
                         new ObservableCollection<ExternalApp>(categoryGroup.Value.OrderBy(a => a.Name))
                     );
                     _categories.Add(categoryViewModel);
@@ -742,7 +744,7 @@ namespace Winhance.WPF.Features.SoftwareApps.ViewModels
             {
                 IsLoading = false;
             }
-            
+
         }
 
         public async Task CheckInstallationStatusAsync()
@@ -849,7 +851,7 @@ namespace Winhance.WPF.Features.SoftwareApps.ViewModels
                         string errorMessage =
                             operationResult.ErrorMessage
                             ?? $"Failed to install {app.Name}. Please try again.";
-                        
+
                         // Check if this is a cancellation rather than a failure
                         // Handle multiple cancellation message patterns from different services
                         bool isCancellation = errorMessage != null && (
@@ -859,24 +861,24 @@ namespace Winhance.WPF.Features.SoftwareApps.ViewModels
                             errorMessage.Contains("operation was cancelled", StringComparison.OrdinalIgnoreCase) ||
                             errorMessage.Contains("script returned no result", StringComparison.OrdinalIgnoreCase)
                         );
-                        
+
                         if (isCancellation)
                         {
                             // Set cancellation reason to user cancelled
                             CurrentCancellationReason = CancellationReason.UserCancelled;
-                            
+
                             StatusText = $"Installation of {app.Name} was cancelled";
-                            
+
                             // Show cancellation dialog
                             await ShowCancellationDialogAsync(true, false); // User-initiated cancellation
-                            
+
                             // Reset cancellation reason after showing dialog
                             CurrentCancellationReason = CancellationReason.None;
                         }
                         else
                         {
                             StatusText = errorMessage;
-                            
+
                             // Store the error message for later reference
                             app.LastOperationError = errorMessage;
 
@@ -1071,7 +1073,7 @@ namespace Winhance.WPF.Features.SoftwareApps.ViewModels
         public void ClearSelectedItems()
         {
 
-            
+
             // Set all items to not selected
             foreach (var app in Items)
             {
@@ -1100,7 +1102,7 @@ namespace Winhance.WPF.Features.SoftwareApps.ViewModels
             // Explicitly notify that HasSelectedItems has changed
             InvalidateHasSelectedItemsCache();
             OnPropertyChanged(nameof(HasSelectedItems));
-            
+
 
         }
 
@@ -1249,12 +1251,12 @@ namespace Winhance.WPF.Features.SoftwareApps.ViewModels
                                         errorMessage.Contains("operation was cancelled", StringComparison.OrdinalIgnoreCase) ||
                                         errorMessage.Contains("script returned no result", StringComparison.OrdinalIgnoreCase)
                                     );
-                                    
+
                                     if (isCancellation)
                                     {
                                         // Set cancellation reason to user cancelled
                                         CurrentCancellationReason = CancellationReason.UserCancelled;
-                                        
+
                                         progress.Report(
                                             new TaskProgressDetail
                                             {
@@ -1574,14 +1576,14 @@ namespace Winhance.WPF.Features.SoftwareApps.ViewModels
 
         public async Task LoadAppsAndCheckInstallationStatusAsync()
         {
-            
+
             if (IsInitialized)
             {
                 return;
             }
 
             await LoadItemsAsync();
-            
+
             await CheckInstallationStatusAsync();
 
             // Mark as initialized after loading is complete
@@ -1717,7 +1719,7 @@ namespace Winhance.WPF.Features.SoftwareApps.ViewModels
             // Show the confirmation dialog
             return await _dialogService.ShowConfirmationAsync(message, title);
         }
-        
+
         /// <summary>
         /// Shows a confirmation dialog for items to be processed.
         /// </summary>
@@ -1758,7 +1760,7 @@ namespace Winhance.WPF.Features.SoftwareApps.ViewModels
             // Show the confirmation dialog
             return await _dialogService.ShowConfirmationAsync(message, title);
         }
-        
+
         /// <summary>
         /// Handles the cancellation process.
         /// </summary>
@@ -1876,9 +1878,9 @@ namespace Winhance.WPF.Features.SoftwareApps.ViewModels
         }
 
         #endregion
-        
+
         #region IDisposable
-        
+
         /// <summary>
         /// Disposes of optimized services and cleans up resources
         /// </summary>
@@ -1889,17 +1891,17 @@ namespace Winhance.WPF.Features.SoftwareApps.ViewModels
                 // Dispose optimized services
                 _collectionManager?.Dispose();
                 _debouncedSearchService?.Dispose();
-                
+
                 // Unsubscribe from view mode manager events
                 if (_viewModeManager != null)
                 {
                     _viewModeManager.ViewModeChanged -= OnViewModeChanged;
                 }
             }
-            
+
             base.Dispose(disposing);
         }
-        
+
         #endregion
     }
 }

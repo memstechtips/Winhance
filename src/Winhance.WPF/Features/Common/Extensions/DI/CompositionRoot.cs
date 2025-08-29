@@ -30,7 +30,7 @@ namespace Winhance.WPF.Features.Common.Extensions.DI
                     .AddInfrastructureServices() // Infrastructure implementations
                     .AddcontrolHandlerServices() // Simplified orchestrator services
                     .AddDomainServices() // Domain services following DDD
-                    // Add existing script generation and bloat removal services
+                                         // Add existing script generation and bloat removal services
                     .AddScriptGenerationServices() // From Infrastructure.Features.SoftwareApps.Services.ScriptGeneration
                     .AddBloatRemovalServices() // From Infrastructure.Features.SoftwareApps.Services
                     .AddConfigurationServices() // From WPF.Features.Common.Services.Configuration

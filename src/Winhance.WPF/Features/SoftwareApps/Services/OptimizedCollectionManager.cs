@@ -28,7 +28,7 @@ namespace Winhance.WPF.Features.SoftwareApps.Services
         private readonly DispatcherTimer _updateTimer;
         private readonly object _lockObject = new object();
         private readonly ILogService _logService;
-        
+
         private bool _isUpdating = false;
         private bool _pendingUpdate = false;
         private bool _disposed = false;
@@ -44,8 +44,8 @@ namespace Winhance.WPF.Features.SoftwareApps.Services
             _collection = new ObservableCollection<TWrapper>();
             _collectionView = CollectionViewSource.GetDefaultView(_collection);
             _itemMap = new Dictionary<TSource, TWrapper>();
-            
-            
+
+
             // Setup debounced update timer
             _updateTimer = new DispatcherTimer
             {
@@ -66,7 +66,7 @@ namespace Winhance.WPF.Features.SoftwareApps.Services
             lock (_lockObject)
             {
                 _pendingSourceItems = sourceItems;
-                
+
                 if (_isUpdating)
                 {
                     _pendingUpdate = true;
@@ -96,7 +96,7 @@ namespace Winhance.WPF.Features.SoftwareApps.Services
         private void OnUpdateTimerTick(object sender, EventArgs e)
         {
             _updateTimer.Stop();
-            
+
             lock (_lockObject)
             {
                 if (_pendingUpdate)
@@ -105,7 +105,7 @@ namespace Winhance.WPF.Features.SoftwareApps.Services
                     _updateTimer.Start();
                     return;
                 }
-                
+
                 // Perform the actual update
                 if (_pendingSourceItems != null)
                 {
@@ -123,11 +123,11 @@ namespace Winhance.WPF.Features.SoftwareApps.Services
             try
             {
                 _isUpdating = true;
-                
+
                 var sourceList = sourceItems?.ToList() ?? new List<TSource>();
                 var currentItems = new HashSet<TSource>(_itemMap.Keys);
                 var newItems = new HashSet<TSource>(sourceList);
-                
+
 
                 // Remove items that are no longer in the source
                 var itemsToRemove = currentItems.Except(newItems).ToList();
@@ -188,7 +188,7 @@ namespace Winhance.WPF.Features.SoftwareApps.Services
             // Debounce filter updates
             _updateTimer.Stop();
             _updateTimer.Tick -= OnUpdateTimerTick;
-            
+
             // Create a temporary handler for the filter operation
             EventHandler filterHandler = null;
             filterHandler = (s, e) =>
@@ -196,10 +196,10 @@ namespace Winhance.WPF.Features.SoftwareApps.Services
                 _updateTimer.Stop();
                 _updateTimer.Tick -= filterHandler;
                 _updateTimer.Tick += OnUpdateTimerTick;
-                
+
                 _collectionView.Filter = filter;
             };
-            
+
             _updateTimer.Tick += filterHandler;
             _updateTimer.Start();
         }
@@ -217,7 +217,7 @@ namespace Winhance.WPF.Features.SoftwareApps.Services
                 {
                     wrapper.Dispose();
                 }
-                
+
                 _itemMap.Clear();
                 _collection.Clear();
             }
@@ -236,15 +236,15 @@ namespace Winhance.WPF.Features.SoftwareApps.Services
             if (_disposed) return;
 
             _disposed = true;
-            
+
             if (_updateTimer != null)
             {
                 _updateTimer.Stop();
                 _updateTimer.Tick -= OnUpdateTimerTick;
             }
-            
+
             Clear();
-            
+
             GC.SuppressFinalize(this);
         }
     }

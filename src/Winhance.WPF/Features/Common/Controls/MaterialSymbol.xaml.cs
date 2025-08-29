@@ -11,11 +11,11 @@ namespace Winhance.WPF.Features.Common.Controls
     public partial class MaterialSymbol : UserControl
     {
         public static readonly DependencyProperty IconProperty = DependencyProperty.Register(
-            "Icon", typeof(string), typeof(MaterialSymbol), 
+            "Icon", typeof(string), typeof(MaterialSymbol),
             new PropertyMetadata(string.Empty, OnIconChanged));
 
         public static readonly DependencyProperty IconTextProperty = DependencyProperty.Register(
-            "IconText", typeof(string), typeof(MaterialSymbol), 
+            "IconText", typeof(string), typeof(MaterialSymbol),
             new PropertyMetadata(string.Empty));
 
         public string Icon

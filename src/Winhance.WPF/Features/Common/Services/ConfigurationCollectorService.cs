@@ -50,7 +50,7 @@ namespace Winhance.WPF.Features.Common.Services
                 await CollectSettingDefinitionsAsync(sectionSettings);
 
                 _logService.Log(LogLevel.Info, $"System settings configuration collection completed. Total sections: {sectionSettings.Count}");
-                
+
                 return sectionSettings;
             }
             catch (Exception ex)

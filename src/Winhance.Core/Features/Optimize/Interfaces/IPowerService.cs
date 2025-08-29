@@ -39,13 +39,13 @@ namespace Winhance.Core.Features.Optimize.Interfaces
         /// </summary>
         /// <returns>Dictionary with capability information.</returns>
         Task<Dictionary<string, bool>> CheckPowerSystemCapabilitiesAsync();
-        
+
         /// <summary>
         /// Gets available power plans asynchronously.
         /// </summary>
         /// <returns>A collection of available power plans.</returns>
         Task<IEnumerable<object>> GetAvailablePowerPlansAsync();
-        
+
         /// <summary>
         /// Gets advanced power setting groups asynchronously.
         /// </summary>

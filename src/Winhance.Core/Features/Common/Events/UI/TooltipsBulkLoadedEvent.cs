@@ -12,7 +12,7 @@ namespace Winhance.Core.Features.Common.Events.UI
     {
         public DateTime Timestamp { get; }
         public Guid EventId { get; }
-        
+
         /// <summary>
         /// Dictionary mapping setting IDs to their tooltip data.
         /// </summary>

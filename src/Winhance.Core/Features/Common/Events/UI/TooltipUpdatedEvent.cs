@@ -11,12 +11,12 @@ namespace Winhance.Core.Features.Common.Events.UI
     {
         public DateTime Timestamp { get; }
         public Guid EventId { get; }
-        
+
         /// <summary>
         /// The ID of the setting whose tooltip data was updated.
         /// </summary>
         public string SettingId { get; }
-        
+
         /// <summary>
         /// The updated tooltip data for the setting.
         /// </summary>

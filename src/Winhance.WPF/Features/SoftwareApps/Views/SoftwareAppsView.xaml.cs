@@ -13,7 +13,7 @@ namespace Winhance.WPF.Features.SoftwareApps.Views
         public SoftwareAppsView()
         {
             InitializeComponent();
-            
+
             // Subscribe to DataContext changes to handle focus triggering
             DataContextChanged += SoftwareAppsView_DataContextChanged;
         }
@@ -67,7 +67,7 @@ namespace Winhance.WPF.Features.SoftwareApps.Views
             {
                 oldViewModel.PropertyChanged -= ViewModel_PropertyChanged;
             }
-            
+
             // Subscribe to new ViewModel
             if (e.NewValue is SoftwareAppsViewModel newViewModel)
             {

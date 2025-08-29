@@ -50,7 +50,7 @@ namespace Winhance.Infrastructure.Features.SoftwareApps.Services.WinGet.Verifica
                 // Clear previous results for each attempt
                 results.Clear();
                 successfulResult = null;
-                
+
                 foreach (var method in _verificationMethods)
                 {
                     try
@@ -82,7 +82,7 @@ namespace Winhance.Infrastructure.Features.SoftwareApps.Services.WinGet.Verifica
                 // If we found a successful result, return it immediately
                 if (successfulResult != null)
                     return successfulResult;
-                
+
                 // If this isn't the last attempt, wait before trying again
                 if (attempt < 3)
                 {

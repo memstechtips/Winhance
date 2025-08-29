@@ -13,7 +13,7 @@ namespace Winhance.Core.Features.Common.Interfaces
         /// <param name="searchTerm">The search term to match against.</param>
         /// <returns>True if the object matches the search term, false otherwise.</returns>
         bool MatchesSearch(string searchTerm);
-        
+
         /// <summary>
         /// Gets the searchable properties of the object.
         /// </summary>

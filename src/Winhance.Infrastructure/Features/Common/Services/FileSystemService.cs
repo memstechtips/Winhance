@@ -136,7 +136,7 @@ namespace Winhance.Infrastructure.FileSystem
 
             await File.WriteAllTextAsync(path, contents);
         }
-        
+
         /// <summary>
         /// Appends text to a file.
         /// </summary>
@@ -153,7 +153,7 @@ namespace Winhance.Infrastructure.FileSystem
 
             File.AppendAllText(path, contents);
         }
-        
+
         /// <summary>
         /// Appends text to a file asynchronously.
         /// </summary>
@@ -264,7 +264,7 @@ namespace Winhance.Infrastructure.FileSystem
         {
             return Directory.GetDirectories(path, pattern, recursive ? SearchOption.AllDirectories : SearchOption.TopDirectoryOnly);
         }
-        
+
         /// <summary>
         /// Gets the path to a special folder, such as AppData, ProgramFiles, etc.
         /// </summary>
@@ -278,7 +278,7 @@ namespace Winhance.Infrastructure.FileSystem
             }
             return string.Empty;
         }
-        
+
         /// <summary>
         /// Combines multiple paths into a single path.
         /// </summary>
@@ -288,7 +288,7 @@ namespace Winhance.Infrastructure.FileSystem
         {
             return Path.Combine(paths);
         }
-        
+
         /// <summary>
         /// Gets the current directory of the application.
         /// </summary>

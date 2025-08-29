@@ -12,15 +12,9 @@ namespace Winhance.Core.Features.Common.Interfaces
     /// </summary>
     public interface ISettingApplicationService
     {
-        /// <summary>
-        /// Applies a setting change by finding the appropriate domain service and delegating to it.
-        /// Handles all control types (BinaryToggle, ComboBox, NumericUpDown, Slider).
-        /// </summary>
-        /// <param name="settingId">The ID of the setting to apply.</param>
-        /// <param name="enable">Whether the setting should be enabled (for binary toggles).</param>
-        /// <param name="value">The value to apply (for ComboBox, NumericUpDown, Slider).</param>
-        /// <returns>A task representing the asynchronous operation.</returns>
         Task ApplySettingAsync(string settingId, bool enable, object? value = null);
+
+        Task ApplySettingAsync(string settingId, bool enable, object? value, bool applyWallpaper);
 
 
         /// <summary>

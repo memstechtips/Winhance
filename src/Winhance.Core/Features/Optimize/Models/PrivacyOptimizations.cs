@@ -1,6 +1,4 @@
-using System.Collections.Generic;
 using Microsoft.Win32;
-using Winhance.Core.Features.Common.Constants;
 using Winhance.Core.Features.Common.Enums;
 using Winhance.Core.Features.Common.Models;
 using Winhance.Core.Features.Common.Models.WindowsRegistry;

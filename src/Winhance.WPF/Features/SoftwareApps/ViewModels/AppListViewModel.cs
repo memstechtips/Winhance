@@ -13,13 +13,13 @@ namespace Winhance.WPF.Features.SoftwareApps.ViewModels
     {
         protected readonly IPackageManager? _packageManager;
         protected readonly ITaskProgressService _progressService;
-        
+
         [ObservableProperty]
         private bool _isLoading;
 
         public ObservableCollection<T> Items { get; } = new();
 
-        protected AppListViewModel(ITaskProgressService progressService, IPackageManager? packageManager) 
+        protected AppListViewModel(ITaskProgressService progressService, IPackageManager? packageManager)
             : base(progressService)
         {
             _packageManager = packageManager;

@@ -744,10 +744,10 @@ public class AppDiscoveryService
     {
         var powerShellInfo = _powerShellDetectionService.GetPowerShellInfo();
         var powerShell = PowerShell.Create();
-        
+
         // The detection service has already handled any necessary configuration
         _logService.LogInformation($"Created PowerShell instance using: {powerShellInfo.PowerShellPath}");
-        
+
         return powerShell;
     }
 
@@ -769,31 +769,31 @@ public class AppDiscoveryService
         try
         {
             _logService.LogInformation("Refreshing installation status for all apps, capabilities, and features");
-            
+
             // Clear the existing cache
             ClearInstallationStatusCache();
-            
+
             // Get all apps, capabilities, and features
             var standardApps = (await GetStandardAppsAsync()).ToList();
             var installableApps = (await GetInstallableAppsAsync()).ToList();
             var capabilities = (await GetCapabilitiesAsync()).ToList();
             var features = (await GetOptionalFeaturesAsync()).ToList();
-            
+
             // Collect all package names
             var packageNames = new List<string>();
             packageNames.AddRange(standardApps.Select(a => a.PackageName));
             packageNames.AddRange(installableApps.Select(a => a.PackageName));
             packageNames.AddRange(capabilities.Select(c => c.PackageName));
             packageNames.AddRange(features.Select(f => f.PackageName));
-            
+
             // Check installation status in batch
             await GetInstallationStatusBatchAsync(packageNames.Distinct());
-            
+
             // Also refresh special apps
             await IsEdgeInstalledAsync();
             await IsOneDriveInstalledAsync();
             await IsOneNoteInstalledAsync();
-            
+
             _logService.LogInformation("Successfully refreshed installation status for all items");
         }
         catch (Exception ex)

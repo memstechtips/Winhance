@@ -30,7 +30,7 @@ namespace Winhance.WPF.Features.Common.Extensions.DI
                 .AddUICoordinationServices()
                 .AddConfigurationServices()
                 .AddDialogServices()
-                .CompleteSystemServicesRegistration(); // Complete system services after UI dependencies are available
+                .CompleteSystemServicesRegistration();
         }
 
         /// <summary>
@@ -61,12 +61,6 @@ namespace Winhance.WPF.Features.Common.Extensions.DI
                 provider.GetRequiredService<ILogService>()
             ));
 
-            // UAC Settings Service (Singleton - System-wide settings)
-            services.AddSingleton<IUacSettingsService>(provider => new UacSettingsService(
-                provider.GetRequiredService<UserPreferencesService>(),
-                provider.GetRequiredService<ILogService>()
-            ));
-
             // Design-time Data Service (Singleton - Development support)
             services.AddSingleton<IDesignTimeDataService, DesignTimeDataService>();
 
@@ -90,7 +84,7 @@ namespace Winhance.WPF.Features.Common.Extensions.DI
             // Removed duplicate SettingTooltipDataService - using ITooltipDataService instead
 
             // Application Layer Services
-            services.AddScoped<ISettingApplicationService>(sp => 
+            services.AddScoped<ISettingApplicationService>(sp =>
                 new Infrastructure.Features.Common.Services.SettingApplicationService(
                     sp.GetRequiredService<IDomainServiceRouter>(),
                     sp.GetRequiredService<ILogService>(),
@@ -116,6 +110,7 @@ namespace Winhance.WPF.Features.Common.Extensions.DI
             // Dialog Services (Transient - Per-dialog instance)
             services.AddTransient<IDialogService, DialogService>();
             services.AddSingleton<SoftwareAppsDialogService>();
+            services.AddTransient<ISettingsConfirmationService, SettingsConfirmationService>();
 
             return services;
         }

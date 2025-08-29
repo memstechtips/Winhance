@@ -97,7 +97,7 @@ namespace Winhance.Core.Features.Optimize.Models
             var subgroup = new PowerSettingSubgroup
             {
                 Guid = "power-plan-selection",
-                Alias = "powerplanselection", 
+                Alias = "powerplanselection",
                 DisplayName = "Power Plan Selection",
             };
 

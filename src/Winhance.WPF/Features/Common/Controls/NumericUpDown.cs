@@ -12,7 +12,7 @@ namespace Winhance.WPF.Features.Common.Controls
     {
         static NumericUpDown()
         {
-            DefaultStyleKeyProperty.OverrideMetadata(typeof(NumericUpDown), 
+            DefaultStyleKeyProperty.OverrideMetadata(typeof(NumericUpDown),
                 new FrameworkPropertyMetadata(typeof(NumericUpDown)));
         }
 
@@ -20,36 +20,36 @@ namespace Winhance.WPF.Features.Common.Controls
 
         public static readonly DependencyProperty ValueProperty =
             DependencyProperty.Register(
-                "Value", 
-                typeof(int), 
+                "Value",
+                typeof(int),
                 typeof(NumericUpDown),
                 new FrameworkPropertyMetadata(0, FrameworkPropertyMetadataOptions.BindsTwoWayByDefault, OnValueChanged));
 
         public static readonly DependencyProperty MinimumProperty =
             DependencyProperty.Register(
-                "Minimum", 
-                typeof(int), 
+                "Minimum",
+                typeof(int),
                 typeof(NumericUpDown),
                 new PropertyMetadata(0, OnMinimumChanged));
 
         public static readonly DependencyProperty MaximumProperty =
             DependencyProperty.Register(
-                "Maximum", 
-                typeof(int), 
+                "Maximum",
+                typeof(int),
                 typeof(NumericUpDown),
                 new PropertyMetadata(100, OnMaximumChanged));
 
         public static readonly DependencyProperty IncrementProperty =
             DependencyProperty.Register(
-                "Increment", 
-                typeof(int), 
+                "Increment",
+                typeof(int),
                 typeof(NumericUpDown),
                 new PropertyMetadata(1));
 
         public static readonly DependencyProperty UnitsProperty =
             DependencyProperty.Register(
-                "Units", 
-                typeof(string), 
+                "Units",
+                typeof(string),
                 typeof(NumericUpDown),
                 new PropertyMetadata(string.Empty));
 

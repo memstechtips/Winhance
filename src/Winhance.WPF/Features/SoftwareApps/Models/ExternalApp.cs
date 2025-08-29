@@ -14,15 +14,15 @@ namespace Winhance.WPF.Features.SoftwareApps.Models
         public string Description { get; set; }
         public string PackageName { get; set; }
         public string Version { get; set; } = string.Empty;
-        
+
         [ObservableProperty]
         private bool _isInstalled;
-        
+
         public bool CanBeReinstalled { get; set; }
-        
+
         [ObservableProperty]
         private bool _isSelected;
-        
+
         [ObservableProperty]
         private string _lastOperationError = string.Empty;
 
@@ -41,9 +41,9 @@ namespace Winhance.WPF.Features.SoftwareApps.Models
                 Category = appInfo.Category,
                 LastOperationError = appInfo.LastOperationError
             };
-            
+
             app.IsInstalled = appInfo.IsInstalled;
-            
+
             return app;
         }
 
@@ -80,7 +80,7 @@ namespace Winhance.WPF.Features.SoftwareApps.Models
             }
 
             searchTerm = searchTerm.ToLowerInvariant();
-            
+
             // Check if the search term matches any of the searchable properties
             return Name.ToLowerInvariant().Contains(searchTerm) ||
                    (!string.IsNullOrEmpty(Description) && Description.ToLowerInvariant().Contains(searchTerm)) ||

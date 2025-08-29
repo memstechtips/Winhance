@@ -87,7 +87,7 @@ namespace Winhance.Core.Features.Optimize.Models
         // - PowerOptimizations.Catalog.cs (power setting definitions)
         // - PowerOptimizations.Factory.cs (factory and conversion methods)
         // - PowerOptimizations.Presets.cs (preset definitions and application)
-        
+
         // This main file maintains backwards compatibility while enabling
         // proper separation of concerns through partial classes.
     }

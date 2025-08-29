@@ -45,46 +45,46 @@ namespace Winhance.Infrastructure.Features.SoftwareApps.Services.WinGet.Utilitie
 
             // Skip logging specific types of output to reduce log noise
             bool shouldLog = true;
-            
+
             // Skip version outputs (like "v1.9.25200")
             if (outputLine.StartsWith("v") && outputLine.Length <= 15)
             {
                 shouldLog = false;
             }
             // Skip progress bar outputs and download information
-            else if (outputLine.Contains("Γûê") || outputLine.Contains("Γû") || 
-                    outputLine.Trim() == "-" || outputLine.Trim() == "\\" || 
+            else if (outputLine.Contains("Γûê") || outputLine.Contains("Γû") ||
+                    outputLine.Trim() == "-" || outputLine.Trim() == "\\" ||
                     outputLine.Trim() == "|" || outputLine.Trim() == "/" ||
                     outputLine.Contains("Download information") ||
                     (outputLine.Contains("MB") && outputLine.Contains("/")) ||
                     (outputLine.Contains("KB") && outputLine.Contains("/")))
             {
                 shouldLog = false;
-                
+
                 // Only log the initial download URL, not the progress bars
                 if (outputLine.Contains("Downloading ") && outputLine.Contains("http"))
                 {
                     _logService?.LogInformation($"Downloading: {outputLine.Trim()}");
                 }
-                
+
                 // Still update progress state for progress reporting
                 if (outputLine.Contains("MB") || outputLine.Contains("KB"))
                 {
                     _currentState = InstallationState.Downloading;
                 }
             }
-            
+
             if (shouldLog)
             {
                 _logService?.LogInformation($"WinGet output: {outputLine}");
             }
-            
+
             // If this is the first output line, transition from Starting state
             if (!_hasStarted)
             {
                 _hasStarted = true;
                 _currentState = InstallationState.Resolving;
-                
+
                 return new InstallationProgress
                 {
                     Status = GetStatusMessage(_currentState),
@@ -143,7 +143,7 @@ namespace Winhance.Infrastructure.Features.SoftwareApps.Services.WinGet.Utilitie
                 {
                     _logService?.LogInformation($"Downloading: {outputLine.Trim()}");
                 }
-                
+
                 // Set the current state to Downloading
                 _currentState = InstallationState.Downloading;
 

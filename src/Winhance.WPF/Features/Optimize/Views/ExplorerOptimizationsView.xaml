@@ -5,7 +5,8 @@
              xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
              xmlns:viewmodels="clr-namespace:Winhance.WPF.Features.Optimize.ViewModels"
              d:DataContext="{d:DesignInstance Type=viewmodels:ExplorerOptimizationsViewModel}"
-             mc:Ignorable="d">
+             mc:Ignorable="d"
+             Visibility="{Binding HasVisibleSettings, Converter={StaticResource BooleanToVisibilityConverter}}">
 
     <StackPanel>
         <!-- Collapsible Header -->

@@ -3,37 +3,34 @@ using System.Collections.Generic;
 using System.Linq;
 using System.Threading.Tasks;
 using Winhance.Core.Features.Common.Enums;
+using Winhance.Core.Features.Common.Events;
+using Winhance.Core.Features.Common.Events.Settings;
 using Winhance.Core.Features.Common.Interfaces;
 using Winhance.Core.Features.Common.Models;
 using Winhance.Core.Features.Customize.Models;
 
 namespace Winhance.Infrastructure.Features.Common.Services
 {
-    /// <summary>
-    /// Simple OS information class for compatibility checking.
-    /// </summary>
     internal class OSInfo
     {
         public int BuildNumber { get; set; }
         public bool IsWindows10 { get; set; }
         public bool IsWindows11 { get; set; }
     }
-    /// <summary>
-    /// Service implementation for applying recommended settings across all domains.
-    /// Uses domain service registry to apply RecommendedValue settings for any domain.
-    /// </summary>
     public class RecommendedSettingsService : IRecommendedSettingsService
     {
         private readonly IDomainServiceRouter _domainServiceRouter;
         private readonly ISystemServices _systemServices;
         private readonly ILogService _logService;
+        private readonly IEventBus _eventBus;
 
         public string DomainName => "RecommendedSettings";
 
         public RecommendedSettingsService(
             IDomainServiceRouter DomainServiceRouter,
             ISystemServices systemServices,
-            ILogService logService
+            ILogService logService,
+            IEventBus eventBus
         )
         {
             _domainServiceRouter =
@@ -42,6 +39,7 @@ namespace Winhance.Infrastructure.Features.Common.Services
             _systemServices =
                 systemServices ?? throw new ArgumentNullException(nameof(systemServices));
             _logService = logService ?? throw new ArgumentNullException(nameof(logService));
+            _eventBus = eventBus ?? throw new ArgumentNullException(nameof(eventBus));
         }
 
         public async Task ApplyRecommendedSettingsAsync(string settingId)
@@ -50,7 +48,7 @@ namespace Winhance.Infrastructure.Features.Common.Services
             {
                 // Get the domain service using the provided setting ID
                 var domainService = _domainServiceRouter.GetDomainService(settingId);
-                
+
                 _logService.Log(
                     LogLevel.Info,
                     $"[RecommendedSettings] Starting to apply recommended settings for domain '{domainService.DomainName}'"
@@ -79,7 +77,7 @@ namespace Winhance.Infrastructure.Features.Common.Services
                     {
                         // Get recommended value from registry settings
                         var recommendedValue = GetRecommendedValueForSetting(setting);
-                        
+
                         _logService.Log(
                             LogLevel.Debug,
                             $"[RecommendedSettings] Applying recommended setting '{setting.Id}' with value '{recommendedValue}'"
@@ -88,44 +86,39 @@ namespace Winhance.Infrastructure.Features.Common.Services
                         // Handle different input types appropriately
                         if (setting.InputType == SettingInputType.Toggle)
                         {
-                            // For binary toggles, the enable parameter should match the recommended value
                             bool enableValue = recommendedValue != null ? Convert.ToBoolean(recommendedValue) : true;
                             await domainService.ApplySettingAsync(setting.Id, enableValue, recommendedValue);
+                            _eventBus.Publish(new SettingAppliedEvent(setting.Id, enableValue, recommendedValue));
+                            await Task.Delay(150);
                         }
                         else if (setting.InputType == SettingInputType.Selection)
                         {
-                            // For Selection, use RecommendedOption to get the registry value, then pass that directly
                             var recommendedOption = GetRecommendedOptionFromSetting(setting);
                             _logService.Log(
                                 LogLevel.Debug,
                                 $"[RecommendedSettings] Selection '{setting.Id}': RecommendedOption='{recommendedOption}', RecommendedValue='{recommendedValue}'"
                             );
-                            
+
                             if (recommendedOption != null)
                             {
                                 var registryValue = GetRegistryValueFromOptionName(setting, recommendedOption);
                                 var comboBoxIndex = GetCorrectSelectionIndex(setting, recommendedOption, registryValue);
-                                _logService.Log(
-                                    LogLevel.Debug,
-                                    $"[RecommendedSettings] Using RecommendedOption '{recommendedOption}' → registry value {registryValue} → Selection index {comboBoxIndex} for '{setting.Id}'"
-                                );
-                                // Pass the correct Selection index that will result in the desired registry value
                                 await domainService.ApplySettingAsync(setting.Id, true, comboBoxIndex);
+                                _eventBus.Publish(new SettingAppliedEvent(setting.Id, true, comboBoxIndex));
+                                await Task.Delay(150);
                             }
                             else
                             {
-                                // Fallback: use RecommendedValue directly
-                                _logService.Log(
-                                    LogLevel.Debug,
-                                    $"[RecommendedSettings] No RecommendedOption found, using RecommendedValue '{recommendedValue}' for '{setting.Id}'"
-                                );
                                 await domainService.ApplySettingAsync(setting.Id, true, recommendedValue);
+                                _eventBus.Publish(new SettingAppliedEvent(setting.Id, true, recommendedValue));
+                                await Task.Delay(150);
                             }
                         }
                         else
                         {
-                            // For NumericRange, Slider - pass recommended value directly
                             await domainService.ApplySettingAsync(setting.Id, true, recommendedValue);
+                            _eventBus.Publish(new SettingAppliedEvent(setting.Id, true, recommendedValue));
+                            await Task.Delay(150);
                         }
 
                         _logService.Log(
@@ -166,7 +159,7 @@ namespace Winhance.Infrastructure.Features.Common.Services
             {
                 // Get the domain service using the provided setting ID
                 var domainService = _domainServiceRouter.GetDomainService(settingId);
-                
+
                 _logService.Log(
                     LogLevel.Debug,
                     $"[RecommendedSettings] Getting recommended settings for domain '{domainService.DomainName}'"
@@ -208,9 +201,6 @@ namespace Winhance.Infrastructure.Features.Common.Services
         }
 
 
-        /// <summary>
-        /// Gets the RecommendedOption for a ComboBox setting from its CustomProperties.
-        /// </summary>
         private static string? GetRecommendedOptionFromSetting(SettingDefinition setting)
         {
             var primaryRegistrySetting = setting.RegistrySettings?.FirstOrDefault(rs => rs.IsPrimary);
@@ -221,10 +211,6 @@ namespace Winhance.Infrastructure.Features.Common.Services
             return null;
         }
 
-        /// <summary>
-        /// Gets the correct Selection index that will result in the desired registry value.
-        /// This works around any ordering differences between our ComboBoxOptions and the GenericResolver.
-        /// </summary>
         private static int? GetCorrectSelectionIndex(SettingDefinition setting, string optionName, int? desiredRegistryValue)
         {
             var primaryRegistrySetting = setting.RegistrySettings?.FirstOrDefault(rs => rs.IsPrimary);
@@ -233,7 +219,7 @@ namespace Winhance.Infrastructure.Features.Common.Services
             {
                 // Create a list ordered by key name (alphabetical) to match GenericResolver logic
                 var orderedOptions = comboBoxOptions.OrderBy(kvp => kvp.Key).ToList();
-                
+
                 // Find the index of our desired option in this ordered list
                 for (int i = 0; i < orderedOptions.Count; i++)
                 {
@@ -246,9 +232,6 @@ namespace Winhance.Infrastructure.Features.Common.Services
             return null;
         }
 
-        /// <summary>
-        /// Gets the registry value for a given option name.
-        /// </summary>
         private static int? GetRegistryValueFromOptionName(SettingDefinition setting, string optionName)
         {
             var primaryRegistrySetting = setting.RegistrySettings?.FirstOrDefault(rs => rs.IsPrimary);
@@ -264,9 +247,6 @@ namespace Winhance.Infrastructure.Features.Common.Services
             return null;
         }
 
-        /// <summary>
-        /// Gets the recommended value for a setting from its registry settings.
-        /// </summary>
         private static object? GetRecommendedValueForSetting(SettingDefinition setting)
         {
             // Get the first registry setting that has a RecommendedValue
@@ -274,17 +254,11 @@ namespace Winhance.Infrastructure.Features.Common.Services
             return registrySetting?.RecommendedValue;
         }
 
-        /// <summary>
-        /// Checks if the setting has a RecommendedValue defined in any of its registry settings.
-        /// </summary>
         private static bool HasRecommendedValue(SettingDefinition setting)
         {
             return setting.RegistrySettings?.Any(rs => rs.RecommendedValue != null) == true;
         }
 
-        /// <summary>
-        /// Checks if the setting is compatible with the current OS version.
-        /// </summary>
         private static bool IsCompatibleWithCurrentOS(
             SettingDefinition setting,
             OSInfo osInfo

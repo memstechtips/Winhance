@@ -16,7 +16,7 @@ namespace Winhance.WPF.Features.Common.Services
     {
         private readonly ILogService _logService;
         private readonly string _preferencesFilePath;
-        
+
         /// <summary>
         /// Initializes a new instance of the <see cref="ApplicationCloseService"/> class
         /// </summary>
@@ -24,7 +24,7 @@ namespace Winhance.WPF.Features.Common.Services
         public ApplicationCloseService(ILogService logService)
         {
             _logService = logService ?? throw new ArgumentNullException(nameof(logService));
-            
+
             // Set up the preferences file path
             _preferencesFilePath = Path.Combine(
                 Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData),
@@ -33,21 +33,21 @@ namespace Winhance.WPF.Features.Common.Services
                 "UserPreferences.json"
             );
         }
-        
+
         /// <inheritdoc/>
         public async Task CloseApplicationWithSupportDialogAsync()
         {
             try
             {
                 _logService.LogInformation("Closing application with support dialog check");
-                
+
                 // Check if we should show the dialog
                 bool showDialog = await ShouldShowSupportDialogAsync();
-                
+
                 if (showDialog)
                 {
                     _logService.LogInformation("Showing donation dialog");
-                    
+
                     // Show the dialog
                     string supportMessage = "Your support helps keep this project going!";
                     var dialog = await DonationDialog.ShowDonationDialogAsync(
@@ -55,16 +55,16 @@ namespace Winhance.WPF.Features.Common.Services
                         supportMessage,
                         "Click 'Yes' to show your support!"
                     );
-                    
+
                     _logService.LogInformation($"Donation dialog completed with result: {dialog?.DialogResult}, DontShowAgain: {dialog?.DontShowAgain}");
-                    
+
                     // Save the "Don't show again" preference if checked
                     if (dialog != null && dialog.DontShowAgain)
                     {
                         _logService.LogInformation("Saving DontShowSupport preference");
                         await SaveDontShowSupportPreferenceAsync(true);
                     }
-                    
+
                     // Open the donation page if the user clicked Yes
                     if (dialog?.DialogResult == true)
                     {
@@ -89,7 +89,7 @@ namespace Winhance.WPF.Features.Common.Services
                 {
                     _logService.LogInformation("Skipping donation dialog due to user preference");
                 }
-                
+
                 // Close the application
                 _logService.LogInformation("Shutting down application");
                 Application.Current.Dispatcher.Invoke(() => Application.Current.Shutdown());
@@ -97,7 +97,7 @@ namespace Winhance.WPF.Features.Common.Services
             catch (Exception ex)
             {
                 _logService.LogError($"Error in CloseApplicationWithSupportDialogAsync: {ex.Message}", ex);
-                
+
                 // Fallback to direct application shutdown
                 try
                 {
@@ -107,26 +107,26 @@ namespace Winhance.WPF.Features.Common.Services
                 catch (Exception shutdownEx)
                 {
                     _logService.LogError($"Error shutting down application: {shutdownEx.Message}", shutdownEx);
-                    
+
                     // Last resort
                     Environment.Exit(0);
                 }
             }
         }
-        
+
         /// <inheritdoc/>
         public async Task<bool> ShouldShowSupportDialogAsync()
         {
             try
             {
                 _logService.LogInformation($"Checking preferences file: {_preferencesFilePath}");
-                
+
                 // Check if the preference file exists and contains the DontShowSupport setting
                 if (File.Exists(_preferencesFilePath))
                 {
                     string json = await File.ReadAllTextAsync(_preferencesFilePath);
                     _logService.LogInformation($"Preferences file content: {json}");
-                    
+
                     // Check if the preference is set to true
                     if (
                         json.Contains("\"DontShowSupport\": true")
@@ -139,7 +139,7 @@ namespace Winhance.WPF.Features.Common.Services
                         return false;
                     }
                 }
-                
+
                 // Default to showing the dialog
                 return true;
             }
@@ -150,7 +150,7 @@ namespace Winhance.WPF.Features.Common.Services
                 return true;
             }
         }
-        
+
         /// <inheritdoc/>
         public async Task SaveDontShowSupportPreferenceAsync(bool dontShow)
         {
@@ -158,20 +158,20 @@ namespace Winhance.WPF.Features.Common.Services
             {
                 // Get the preferences directory path
                 string preferencesDir = Path.GetDirectoryName(_preferencesFilePath);
-                
+
                 // Create the directory if it doesn't exist
                 if (!Directory.Exists(preferencesDir))
                 {
                     Directory.CreateDirectory(preferencesDir);
                 }
-                
+
                 // Create or update the preferences file
                 string json = "{}";
                 if (File.Exists(_preferencesFilePath))
                 {
                     json = await File.ReadAllTextAsync(_preferencesFilePath);
                 }
-                
+
                 // Simple JSON manipulation (not ideal but should work for this case)
                 if (json == "{}")
                 {
@@ -196,7 +196,7 @@ namespace Winhance.WPF.Features.Common.Services
                     // Add the new property and closing brace
                     json += " \"DontShowSupport\": " + (dontShow ? "true" : "false") + " }";
                 }
-                
+
                 // Write the updated JSON back to the file
                 await File.WriteAllTextAsync(_preferencesFilePath, json);
                 _logService.LogInformation($"Successfully saved DontShowSupport preference: {dontShow}");

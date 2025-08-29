@@ -49,13 +49,13 @@ namespace Winhance.Infrastructure.Features.SoftwareApps.Services.WinGet.Verifica
                         {
                             var pathEnv = Environment.GetEnvironmentVariable("PATH") ?? string.Empty;
                             var paths = pathEnv.Split(Path.PathSeparator);
-                            
+
 
                             foreach (var path in paths)
                             {
                                 if (string.IsNullOrEmpty(path))
                                     continue;
-                                    
+
 
                                 var exePath = Path.Combine(path, $"{packageId}.exe");
                                 if (File.Exists(exePath))
@@ -120,7 +120,7 @@ namespace Winhance.Infrastructure.Features.SoftwareApps.Services.WinGet.Verifica
                                         },
                                     };
                                 }
-                                
+
 
                                 // Check for Microsoft Store apps in Packages directory
                                 if (basePath.Contains("LocalApplicationData"))
@@ -139,7 +139,7 @@ namespace Winhance.Infrastructure.Features.SoftwareApps.Services.WinGet.Verifica
                                                     ?.IndexOf(packageId, StringComparison.OrdinalIgnoreCase) >= 0
                                             )
                                             .ToList();
-                                            
+
 
                                         foreach (var dir in storeAppDirs)
                                         {

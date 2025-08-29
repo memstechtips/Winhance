@@ -46,7 +46,7 @@ namespace Winhance.WPF.Features.SoftwareApps.ViewModels
 
             _cancellationTokenSource = new CancellationTokenSource();
             RemoveCommand = new AsyncRelayCommand(RemoveAsync);
-            
+
             // Don't start status check automatically - will be started when needed
             // This prevents background tasks from running when Help dialog is closed
         }
@@ -104,7 +104,7 @@ namespace Winhance.WPF.Features.SoftwareApps.ViewModels
             IsLoading = true;
             try
             {
-// Run script and task checks in parallel for speed
+                // Run script and task checks in parallel for speed
                 var scriptTask = Task.Run(
                     () =>
                     {
@@ -114,23 +114,23 @@ namespace Winhance.WPF.Features.SoftwareApps.ViewModels
                     },
                     cancellationToken
                 );
-                
+
                 var taskTask = _scheduledTaskService.IsTaskRegisteredAsync(ScheduledTaskName);
-                
+
                 // Wait for both checks to complete
                 // Add minimum delay to make loading animation visible
                 var minDelayTask = Task.Delay(500, cancellationToken); // 500ms minimum
                 await Task.WhenAll(scriptTask, taskTask, minDelayTask);
-                
+
                 var scriptExists = scriptTask.Result;
                 var taskExists = taskTask.Result;
 
                 // Active if both script and task exist
                 IsActive = scriptExists && taskExists;
 
-_logService.LogInformation(
-                    $"[{Name}] Status: Script={scriptExists}, Task={taskExists}, Active={IsActive}"
-                );
+                _logService.LogInformation(
+                                    $"[{Name}] Status: Script={scriptExists}, Task={taskExists}, Active={IsActive}"
+                                );
             }
             catch (System.Exception ex)
             {
@@ -150,12 +150,12 @@ _logService.LogInformation(
                 if (!IsActive)
                     return;
 
-var confirmed = CustomDialog.ShowConfirmation(
-                    "Confirm Removal",
-                    $"Are you sure you want to delete the {Name} removal script and its scheduled task?",
-                    "This will stop the automatic removal of this application/feature.",
-                    ""
-                );
+                var confirmed = CustomDialog.ShowConfirmation(
+                                    "Confirm Removal",
+                                    $"Are you sure you want to delete the {Name} removal script and its scheduled task?",
+                                    "This will stop the automatic removal of this application/feature.",
+                                    ""
+                                );
 
                 if (confirmed != true)
                     return;
@@ -166,9 +166,9 @@ var confirmed = CustomDialog.ShowConfirmation(
                 // Remove scheduled task
                 try
                 {
-var taskRemoved = await _scheduledTaskService.UnregisterScheduledTaskAsync(
-                        ScheduledTaskName
-                    );
+                    var taskRemoved = await _scheduledTaskService.UnregisterScheduledTaskAsync(
+                                            ScheduledTaskName
+                                        );
                     if (!taskRemoved)
                     {
                         errors.Add($"Failed to remove scheduled task: {ScheduledTaskName}");
@@ -204,27 +204,27 @@ var taskRemoved = await _scheduledTaskService.UnregisterScheduledTaskAsync(
                         $"Successfully removed {Name} removal script and scheduled task.",
                         "",
                         "");
-                    
+
                     // Refresh status to reflect changes
                     await RefreshStatusAsync();
                 }
                 else
                 {
-var errorMessage =
-                        $"Some errors occurred while removing {Name}:\n\n"
-                        + string.Join("\n", errors);
+                    var errorMessage =
+                                            $"Some errors occurred while removing {Name}:\n\n"
+                                            + string.Join("\n", errors);
                     CustomDialog.ShowInformation("Removal Errors", errorMessage, "", "");
                 }
             }
             catch (System.Exception ex)
             {
                 _logService.LogError($"Error in RemoveAsync for {Name}", ex);
-CustomDialog.ShowInformation(
-                    "Error",
-                    $"An unexpected error occurred while removing {Name}: {ex.Message}",
-                    "",
-                    ""
-                );
+                CustomDialog.ShowInformation(
+                                    "Error",
+                                    $"An unexpected error occurred while removing {Name}: {ex.Message}",
+                                    "",
+                                    ""
+                                );
             }
         }
 

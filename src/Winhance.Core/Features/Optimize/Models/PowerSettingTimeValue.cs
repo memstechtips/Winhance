@@ -11,7 +11,7 @@ namespace Winhance.Core.Features.Optimize.Models
         /// Gets or sets the time value in minutes.
         /// </summary>
         public int Minutes { get; set; }
-        
+
         /// <summary>
         /// Gets or sets the display name for the time value.
         /// </summary>

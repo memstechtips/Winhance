@@ -19,7 +19,7 @@ namespace Winhance.Infrastructure.Features.Optimize.Services
     /// </summary>
     public class ExplorerOptimizationService : IDomainService
     {
-        private readonly  SettingControlHandler _controlHandler;
+        private readonly SettingControlHandler _controlHandler;
         private readonly ISystemSettingsDiscoveryService _discoveryService;
         private readonly ILogService _logService;
 

@@ -60,7 +60,7 @@ namespace Winhance.WPF.Features.Common.Behaviors
                     // Attach event handlers when behavior is enabled
                     comboBox.DropDownOpened += ComboBox_DropDownOpened;
                     comboBox.DropDownClosed += ComboBox_DropDownClosed;
-                    
+
                     // Find parent ScrollViewer and attach scroll handler
                     ScrollViewer scrollViewer = FindParentScrollViewer(comboBox);
                     if (scrollViewer != null)
@@ -100,7 +100,7 @@ namespace Winhance.WPF.Features.Common.Behaviors
                     // Set the popup to use bottom placement
                     popup.Placement = PlacementMode.Bottom;
                     popup.PlacementTarget = comboBox;
-                    
+
                     // Handle the Loaded event to attach mouse wheel handling after popup is fully loaded
                     popup.Loaded += (s, args) => AttachMouseWheelHandling(popup);
                 }
@@ -114,7 +114,7 @@ namespace Winhance.WPF.Features.Common.Behaviors
             {
                 // Clear the stored position
                 comboBox.SetValue(OriginalPositionProperty, null);
-                
+
                 // Remove mouse wheel handling from the popup
                 if (comboBox.Template.FindName("Popup", comboBox) is Popup popup)
                 {
@@ -152,7 +152,7 @@ namespace Winhance.WPF.Features.Common.Behaviors
                 {
                     // Manually scroll the ScrollViewer
                     double scrollAmount = SystemParameters.WheelScrollLines * 16; // 16 pixels per line
-                    
+
                     if (e.Delta > 0)
                     {
                         // Scroll up
@@ -163,7 +163,7 @@ namespace Winhance.WPF.Features.Common.Behaviors
                         // Scroll down
                         scrollViewer.ScrollToVerticalOffset(scrollViewer.VerticalOffset + scrollAmount);
                     }
-                    
+
                     // Mark the event as handled to prevent bubbling
                     e.Handled = true;
                 }
@@ -190,10 +190,10 @@ namespace Winhance.WPF.Features.Common.Behaviors
             {
                 // Get current position
                 Point currentPosition = comboBox.PointToScreen(new Point(0, 0));
-                
+
                 // Calculate the distance moved
                 double distance = Math.Sqrt(
-                    Math.Pow(currentPosition.X - originalPosition.Value.X, 2) + 
+                    Math.Pow(currentPosition.X - originalPosition.Value.X, 2) +
                     Math.Pow(currentPosition.Y - originalPosition.Value.Y, 2));
 
                 // If the ComboBox has moved more than a small threshold, close the dropdown
@@ -214,10 +214,10 @@ namespace Winhance.WPF.Features.Common.Behaviors
         {
             if (child == null || parent == null)
                 return false;
-                
+
             if (child == parent)
                 return true;
-                
+
             DependencyObject currentParent = VisualTreeHelper.GetParent(child);
             while (currentParent != null)
             {
@@ -225,7 +225,7 @@ namespace Winhance.WPF.Features.Common.Behaviors
                     return true;
                 currentParent = VisualTreeHelper.GetParent(currentParent);
             }
-            
+
             return false;
         }
 
@@ -261,29 +261,29 @@ namespace Winhance.WPF.Features.Common.Behaviors
             for (int i = 0; i < VisualTreeHelper.GetChildrenCount(parent); i++)
             {
                 DependencyObject child = VisualTreeHelper.GetChild(parent, i);
-                
+
                 // Check for standard ScrollViewer
                 if (child is ScrollViewer scrollViewer)
                     return scrollViewer;
-                
+
                 // Check for ResponsiveScrollViewer (custom control)
                 if (child.GetType().Name == "ResponsiveScrollViewer")
                 {
                     // ResponsiveScrollViewer should inherit from ScrollViewer or contain one
                     if (child is ScrollViewer responsiveScrollViewer)
                         return responsiveScrollViewer;
-                    
+
                     // If it doesn't inherit from ScrollViewer, look for a ScrollViewer inside it
                     ScrollViewer innerScrollViewer = FindChildScrollViewer(child);
                     if (innerScrollViewer != null)
                         return innerScrollViewer;
                 }
-                
+
                 ScrollViewer result = FindChildScrollViewer(child);
                 if (result != null)
                     return result;
             }
-            
+
             return null;
         }
     }

@@ -61,18 +61,18 @@ public class FeatureInstallationService : BaseInstallationService<FeatureInfo>, 
         CancellationToken cancellationToken)
     {
         var result = await InstallFeatureAsync(featureInfo.PackageName, progress, cancellationToken);
-        
+
         // Only update BloatRemoval.ps1 script if installation was successful
         if (result.Success)
         {
             try
             {
                 _logService.LogInformation($"Starting BloatRemoval.ps1 script update for {featureInfo.Name}");
-                
+
                 // Update the BloatRemoval.ps1 script to remove the installed feature from the removal list
                 var appNames = new List<string> { featureInfo.PackageName };
                 _logService.LogInformation($"Removing feature name from BloatRemoval.ps1: {featureInfo.PackageName}");
-                
+
                 var appsWithRegistry = new Dictionary<string, List<AppRegistrySetting>>();
                 var appSubPackages = new Dictionary<string, string[]>();
 
@@ -84,16 +84,16 @@ public class FeatureInstallationService : BaseInstallationService<FeatureInfo>, 
                 }
 
                 _logService.LogInformation($"Updating BloatRemoval.ps1 to remove {featureInfo.Name} from removal list");
-                
+
                 // Make sure we're explicitly identifying this as an optional feature
                 _logService.LogInformation($"Ensuring {featureInfo.Name} is identified as an optional feature");
-                
+
                 var scriptResult = await _scriptUpdateService.UpdateExistingBloatRemovalScriptAsync(
                     appNames,
                     appsWithRegistry,
                     appSubPackages,
                     true); // true = install operation, so remove from script
-                
+
                 // Register the scheduled task to ensure it's updated with the latest script content
                 if (scriptResult != null)
                 {
@@ -101,7 +101,7 @@ public class FeatureInstallationService : BaseInstallationService<FeatureInfo>, 
                     {
                         var scheduledTaskService = new ScheduledTaskService(_logService);
                         bool taskRegistered = await scheduledTaskService.RegisterScheduledTaskAsync(scriptResult);
-                        
+
                         if (taskRegistered)
                         {
                             _logService.LogInformation("Successfully registered updated BloatRemoval scheduled task");
@@ -117,7 +117,7 @@ public class FeatureInstallationService : BaseInstallationService<FeatureInfo>, 
                         // Don't fail the installation if task registration fails
                     }
                 }
-                
+
                 _logService.LogInformation($"Successfully updated BloatRemoval.ps1 script - {featureInfo.Name} will no longer be removed");
                 _logService.LogInformation($"Script update result: {scriptResult?.Name ?? "null"}");
             }
@@ -133,7 +133,7 @@ public class FeatureInstallationService : BaseInstallationService<FeatureInfo>, 
         {
             _logService.LogInformation($"Skipping BloatRemoval.ps1 update because installation of {featureInfo.Name} was not successful");
         }
-        
+
         return result;
     }
 
@@ -154,7 +154,7 @@ public class FeatureInstallationService : BaseInstallationService<FeatureInfo>, 
         {
             // Get the friendly name of the feature from the catalog
             string friendlyName = GetFriendlyName(featureName);
-            
+
             progress?.Report(new TaskProgressDetail
             {
                 Progress = 0,
@@ -163,9 +163,10 @@ public class FeatureInstallationService : BaseInstallationService<FeatureInfo>, 
             });
 
             _logService.LogInformation($"Attempting to enable optional feature: {featureName}");
-            
+
             // Create a progress handler that overrides the generic "Operation: Running" text
-            var progressHandler = new Progress<TaskProgressDetail>(detail => {
+            var progressHandler = new Progress<TaskProgressDetail>(detail =>
+            {
                 // If we get a generic "Operation: Running" status, replace it with our more descriptive one
                 if (detail.StatusText != null && detail.StatusText.StartsWith("Operation:"))
                 {
@@ -176,7 +177,7 @@ public class FeatureInstallationService : BaseInstallationService<FeatureInfo>, 
                         detail.StatusText = $"Enabling {friendlyName}... ({detail.Progress:F0}%)";
                     }
                 }
-                
+
                 // Forward the updated progress to the original progress reporter
                 progress?.Report(detail);
             });
@@ -278,10 +279,10 @@ public class FeatureInstallationService : BaseInstallationService<FeatureInfo>, 
                 }
                 else
                 {
-                     // Handle unexpected script output format
+                    // Handle unexpected script output format
                     _logService.LogError($"Unexpected script output format for {featureName}: {resultString}");
-                     progress?.Report(new TaskProgressDetail { StatusText = "Error processing script result", LogLevel = LogLevel.Error });
-                     return OperationResult<bool>.Failed("Unexpected script output format: " + resultString); // Indicate failure with message
+                    progress?.Report(new TaskProgressDetail { StatusText = "Error processing script result", LogLevel = LogLevel.Error });
+                    return OperationResult<bool>.Failed("Unexpected script output format: " + resultString); // Indicate failure with message
                 }
             }
             else
@@ -329,9 +330,9 @@ public class FeatureInstallationService : BaseInstallationService<FeatureInfo>, 
     private string GetFriendlyName(string packageName)
     {
         // Look up the feature in the catalog by its package name
-        var feature = _featureCatalog.Features.FirstOrDefault(f => 
+        var feature = _featureCatalog.Features.FirstOrDefault(f =>
             f.PackageName.Equals(packageName, StringComparison.OrdinalIgnoreCase));
-        
+
         // Return the friendly name if found, otherwise return the package name
         return feature?.Name ?? packageName;
     }

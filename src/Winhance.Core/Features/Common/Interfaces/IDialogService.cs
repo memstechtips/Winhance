@@ -114,10 +114,10 @@ namespace Winhance.Core.Features.Common.Interfaces
         /// <param name="cancelButtonText">The text for the cancel button.</param>
         /// <returns>A tuple containing whether user confirmed and checkbox state (if applicable).</returns>
         Task<(bool Confirmed, bool CheckboxChecked)> ShowConfirmationWithCheckboxAsync(
-            string message, 
-            string? checkboxText = null, 
-            string title = "Confirmation", 
-            string continueButtonText = "Continue", 
+            string message,
+            string? checkboxText = null,
+            string title = "Confirmation",
+            string continueButtonText = "Continue",
             string cancelButtonText = "Cancel");
 
     }

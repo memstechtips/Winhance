@@ -45,7 +45,7 @@ namespace Winhance.Infrastructure.Features.SoftwareApps.Services
 
             var displayNameToUse = displayName ?? packageName;
             var progressWrapper = new ProgressAdapter(progress);
-            
+
             try
             {
                 // Report initial progress
@@ -56,10 +56,10 @@ namespace Winhance.Infrastructure.Features.SoftwareApps.Services
                 if (!wingetInstalled)
                 {
                     progressWrapper.Report(10, "WinGet is not installed. Installing WinGet first...");
-                    
+
                     // Install WinGet
                     await InstallWinGetAsync(progress).ConfigureAwait(false);
-                    
+
                     // Verify WinGet installation was successful
                     wingetInstalled = await IsWinGetInstalledAsync().ConfigureAwait(false);
                     if (!wingetInstalled)
@@ -67,7 +67,7 @@ namespace Winhance.Infrastructure.Features.SoftwareApps.Services
                         progressWrapper.Report(0, "Failed to install WinGet. Cannot proceed with application installation.");
                         return false;
                     }
-                    
+
                     progressWrapper.Report(30, $"WinGet installed successfully. Continuing with {displayNameToUse} installation...");
                 }
 
@@ -88,7 +88,7 @@ namespace Winhance.Infrastructure.Features.SoftwareApps.Services
                     progressWrapper.Report(100, $"Successfully installed {displayNameToUse}");
                     return true;
                 }
-                
+
                 progressWrapper.Report(0, $"Failed to install {displayNameToUse}: {result.Message}");
                 return false;
             }
@@ -110,21 +110,21 @@ namespace Winhance.Infrastructure.Features.SoftwareApps.Services
             }
 
             var progressWrapper = new ProgressAdapter(progress);
-            
+
             try
             {
                 progressWrapper.Report(0, "Downloading WinGet installer...");
-                
+
                 // Directly call the WinGetInstaller's method to install WinGet
                 // This is more efficient than using a search operation to trigger installation
-                try 
+                try
                 {
                     progressWrapper.Report(20, "Installing WinGet...");
-                    
+
                     // Directly trigger WinGet installation
                     var installResult = await _winGetInstaller.TryInstallWinGetAsync(CancellationToken.None)
                         .ConfigureAwait(false);
-                    
+
                     if (installResult)
                     {
                         progressWrapper.Report(80, "WinGet installation in progress...");
@@ -141,7 +141,7 @@ namespace Winhance.Infrastructure.Features.SoftwareApps.Services
                     progressWrapper.Report(0, $"Error installing WinGet: {ex.Message}");
                     throw;
                 }
-                
+
                 // Verify WinGet installation
                 bool isInstalled = await IsWinGetInstalledAsync().ConfigureAwait(false);
                 if (!isInstalled)
@@ -169,7 +169,7 @@ namespace Winhance.Infrastructure.Features.SoftwareApps.Services
                     "-v",
                     null,
                     CancellationToken.None).ConfigureAwait(false);
-                
+
                 return result.ExitCode == 0;
             }
             catch

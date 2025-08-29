@@ -28,7 +28,7 @@ namespace Winhance.Infrastructure.Features.Common.Services
         {
             _systemServices = systemServices ?? throw new ArgumentNullException(nameof(systemServices));
             _logService = logService ?? throw new ArgumentNullException(nameof(logService));
-            
+
             _cachedPowerShellInfo = new Lazy<PowerShellInfo>(
                 DetectPowerShellInfo,
                 System.Threading.LazyThreadSafetyMode.PublicationOnly);
@@ -45,14 +45,14 @@ namespace Winhance.Infrastructure.Features.Common.Services
             try
             {
                 _logService.LogInformation("Initializing PowerShell detection...");
-                
+
                 // Get OS version first to include in logs
                 var osVersion = GetOSVersion();
                 _logService.LogInformation($"Operating System is {osVersion}");
-                
+
                 // Determine which PowerShell to use
                 var useWindowsPowerShell = ShouldUseWindowsPowerShellInternal();
-                
+
                 // Log the decision based on OS
                 if (useWindowsPowerShell)
                 {
@@ -62,15 +62,15 @@ namespace Winhance.Infrastructure.Features.Common.Services
                 {
                     _logService.LogInformation("Using PowerShell Core.");
                 }
-                
+
                 // Verify paths exist
                 var powerShellPath = useWindowsPowerShell ? WindowsPowerShellPath : PowerShellCorePath;
                 var version = useWindowsPowerShell ? "5.1" : GetPowerShellCoreVersion(powerShellPath);
 
                 var info = new PowerShellInfo(useWindowsPowerShell, powerShellPath, version, osVersion);
-                
+
                 _logService.LogInformation($"PowerShell detection complete: {info.PowerShellPath} (v{info.Version})");
-                
+
                 return info;
             }
             catch (Exception ex)
@@ -86,16 +86,16 @@ namespace Winhance.Infrastructure.Features.Common.Services
             {
                 // Use the centralized Windows version detection
                 var isWindows11 = _systemServices.IsWindows11();
-                
+
                 // Check if PowerShell Core exists
                 bool powerShellCoreExists = File.Exists(PowerShellCorePath);
-                
+
                 if (!powerShellCoreExists)
                 {
                     // If PowerShell Core doesn't exist, always use Windows PowerShell
                     return true;
                 }
-                
+
                 // On Windows 10 or earlier, use Windows PowerShell for compatibility
                 // On Windows 11, use PowerShell Core if it exists
                 return !isWindows11;
@@ -113,8 +113,8 @@ namespace Winhance.Infrastructure.Features.Common.Services
             {
                 var osVersion = Environment.OSVersion;
                 var isWindows11 = _systemServices.IsWindows11();
-                
-                return isWindows11 
+
+                return isWindows11
                     ? $"Windows 11 (Build {osVersion.Version.Build})"
                     : $"Windows 10 (Build {osVersion.Version.Build})";
             }

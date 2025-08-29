@@ -1,18 +1,11 @@
-using System;
 using System.Diagnostics;
 using System.Runtime.InteropServices;
 using System.Security.Principal;
-using System.Threading;
-using System.Threading.Tasks;
 using Microsoft.Win32;
 using Winhance.Core.Features.Common.Enums;
 using Winhance.Core.Features.Common.Interfaces;
 using Winhance.Core.Features.Common.Interfaces.WindowsRegistry;
-using Winhance.Core.Features.Common.Models;
-using Winhance.Core.Features.Common.Services;
 using Winhance.Core.Features.Customize.Interfaces;
-using Winhance.Core.Features.Customize.Models;
-using Winhance.Core.Models.Enums;
 
 namespace Winhance.Infrastructure.Features.Common.Services
 {
@@ -73,7 +66,6 @@ namespace Winhance.Infrastructure.Features.Common.Services
         private readonly IWindowsRegistryService _registryService;
         private readonly ILogService _logService;
         private readonly IThemeStateQuery _themeStateQuery;
-        private readonly IUacSettingsService _uacSettingsService;
         private readonly IInternetConnectivityService _connectivityService;
 
         // Caching fields
@@ -87,8 +79,7 @@ namespace Winhance.Infrastructure.Features.Common.Services
             IWindowsRegistryService windowsRegistryService,
             ILogService logService,
             IInternetConnectivityService connectivityService,
-            IThemeStateQuery themeStateQuery = null,
-            IUacSettingsService uacSettingsService = null
+            IThemeStateQuery themeStateQuery = null
         )
         {
             _registryService =
@@ -97,7 +88,6 @@ namespace Winhance.Infrastructure.Features.Common.Services
             _connectivityService =
                 connectivityService ?? throw new ArgumentNullException(nameof(connectivityService));
             _themeStateQuery = themeStateQuery; // May be null if not provided - ISP compliant
-            _uacSettingsService = uacSettingsService; // May be null if not provided
 
             // Initialize cached values using Lazy<T> for thread-safe, on-demand initialization
             _cachedWindowsVersionInfo = new Lazy<WindowsVersionInfo>(GetWindowsVersionInfoInternal);

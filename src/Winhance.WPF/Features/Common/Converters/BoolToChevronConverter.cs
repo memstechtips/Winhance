@@ -13,7 +13,7 @@ namespace Winhance.WPF.Features.Common.Converters
             {
                 return isExpanded ? PackIconKind.ChevronUp : PackIconKind.ChevronDown;
             }
-            
+
             return PackIconKind.ChevronDown;
         }
 
@@ -23,7 +23,7 @@ namespace Winhance.WPF.Features.Common.Converters
             {
                 return kind == PackIconKind.ChevronUp;
             }
-            
+
             return false;
         }
     }

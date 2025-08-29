@@ -18,7 +18,7 @@ namespace Winhance.WPF.Features.Common.Converters
             {
                 return MaterialSymbols.GetIcon(iconName);
             }
-            
+
             return "?";
         }
 

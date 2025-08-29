@@ -17,10 +17,10 @@ namespace Winhance.WPF.Features.Common.Views
         public MainWindow()
         {
             InitializeComponent();
-            
+
             // Only essential UI event handlers remain in the View
             this.PreviewMouseWheel += MainWindow_PreviewMouseWheel;
-            
+
             // Initialize the app icon
             UpdateThemeIcon();
         }

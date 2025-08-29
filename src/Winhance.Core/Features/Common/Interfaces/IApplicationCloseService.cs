@@ -12,14 +12,14 @@ namespace Winhance.Core.Features.Common.Interfaces
         /// </summary>
         /// <returns>A task representing the asynchronous operation</returns>
         Task CloseApplicationWithSupportDialogAsync();
-        
+
         /// <summary>
         /// Saves the "Don't show support dialog" preference
         /// </summary>
         /// <param name="dontShow">Whether to show the support dialog in the future</param>
         /// <returns>A task representing the asynchronous operation</returns>
         Task SaveDontShowSupportPreferenceAsync(bool dontShow);
-        
+
         /// <summary>
         /// Checks if the support dialog should be shown based on user preferences
         /// </summary>

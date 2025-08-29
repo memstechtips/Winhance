@@ -27,7 +27,7 @@ namespace Winhance.WPF.Features.SoftwareApps.Views
         {
             // Check if the item is one of our ViewModels with the IsTableViewMode property
             bool isTableViewMode = false;
-            
+
             // Check for specific view model types
             if (item is WindowsAppsViewModel windowsAppsViewModel)
             {

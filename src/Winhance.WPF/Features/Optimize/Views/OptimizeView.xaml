@@ -18,7 +18,7 @@
                 <ColumnDefinition Width="*"/> <!-- Title and Status -->
                 <ColumnDefinition Width="Auto"/> <!-- Search Box -->
             </Grid.ColumnDefinitions>
-            
+
             <!-- Icon -->
             <TextBlock Grid.Column="0"
                        Text="&#xEB9B;"
@@ -58,7 +58,7 @@
                 <Grid.ColumnDefinitions>
                     <ColumnDefinition Width="Auto"/>
                 </Grid.ColumnDefinitions>
-                
+
                 <!-- Search Box -->
                 <commonControls:SearchBox Grid.Column="0"
                                          Width="200"
@@ -82,7 +82,7 @@
 
                     <StackPanel Grid.Row="0"
                             Margin="10">
-                        
+
                         <!-- Dynamically created feature Views with proper DI -->
                         <ItemsControl ItemsSource="{Binding FeatureViews}">
                             <ItemsControl.ItemTemplate>
@@ -91,7 +91,7 @@
                                 </DataTemplate>
                             </ItemsControl.ItemTemplate>
                         </ItemsControl>
-                        
+
                     </StackPanel>
 
                     <!-- No Search Results Message -->

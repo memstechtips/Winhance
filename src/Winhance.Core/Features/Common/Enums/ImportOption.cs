@@ -9,12 +9,12 @@ namespace Winhance.Core.Features.Common.Enums
         /// No option selected.
         /// </summary>
         None,
-        
+
         /// <summary>
         /// Import own configuration.
         /// </summary>
         ImportOwn,
-        
+
         /// <summary>
         /// Import recommended configuration.
         /// </summary>

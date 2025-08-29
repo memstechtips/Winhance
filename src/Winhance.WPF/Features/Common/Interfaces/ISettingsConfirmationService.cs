@@ -17,8 +17,8 @@ namespace Winhance.WPF.Features.Common.Interfaces
         /// <param name="setting">The application setting model containing confirmation metadata</param>
         /// <returns>A task that returns (confirmed, checkboxChecked) or (true, true) if no confirmation needed</returns>
         Task<(bool confirmed, bool checkboxChecked)> HandleConfirmationAsync(
-            string settingId, 
-            object? value, 
+            string settingId,
+            object? value,
             SettingDefinition setting);
 
         /// <summary>

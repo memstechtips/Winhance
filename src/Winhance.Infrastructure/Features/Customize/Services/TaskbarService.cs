@@ -20,7 +20,7 @@ namespace Winhance.Infrastructure.Features.Customize.Services
     /// </summary>
     public class TaskbarService : IDomainService
     {
-        private readonly  SettingControlHandler _controlHandler;
+        private readonly SettingControlHandler _controlHandler;
         private readonly ISystemSettingsDiscoveryService _discoveryService;
         private readonly ILogService _logService;
         private readonly ICommandService _commandService;
@@ -99,18 +99,18 @@ namespace Winhance.Infrastructure.Features.Customize.Services
             {
                 var settings = await GetRawSettingsAsync();
                 var setting = settings.FirstOrDefault(s => s.Id == settingId);
-                
+
                 if (setting == null || setting.RegistrySettings == null || !setting.RegistrySettings.Any())
                 {
                     return false;
                 }
 
                 // Check the primary registry setting
-                var primarySetting = setting.RegistrySettings.FirstOrDefault(rs => rs.IsPrimary) 
+                var primarySetting = setting.RegistrySettings.FirstOrDefault(rs => rs.IsPrimary)
                                    ?? setting.RegistrySettings.First();
-                
+
                 var currentValue = _registryService.GetValue(primarySetting.KeyPath, primarySetting.ValueName);
-                
+
                 if (currentValue == null)
                 {
                     return primarySetting.AbsenceMeansEnabled;
@@ -135,16 +135,16 @@ namespace Winhance.Infrastructure.Features.Customize.Services
             {
                 var settings = await GetRawSettingsAsync();
                 var setting = settings.FirstOrDefault(s => s.Id == settingId);
-                
+
                 if (setting == null || setting.RegistrySettings == null || !setting.RegistrySettings.Any())
                 {
                     return null;
                 }
 
                 // Get value from primary registry setting
-                var primarySetting = setting.RegistrySettings.FirstOrDefault(rs => rs.IsPrimary) 
+                var primarySetting = setting.RegistrySettings.FirstOrDefault(rs => rs.IsPrimary)
                                    ?? setting.RegistrySettings.First();
-                
+
                 return _registryService.GetValue(primarySetting.KeyPath, primarySetting.ValueName) ?? primarySetting.DefaultValue;
             }
             catch (Exception ex)

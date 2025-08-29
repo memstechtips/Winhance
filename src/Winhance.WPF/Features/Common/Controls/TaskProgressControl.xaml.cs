@@ -31,7 +31,7 @@ namespace Winhance.WPF.Features.Common.Controls
         /// Identifies the Progress dependency property.
         /// </summary>
         public static readonly DependencyProperty ProgressProperty =
-            DependencyProperty.Register(nameof(Progress), typeof(double), typeof(TaskProgressControl), 
+            DependencyProperty.Register(nameof(Progress), typeof(double), typeof(TaskProgressControl),
                 new PropertyMetadata(0.0, OnProgressChanged));
 
         /// <summary>
@@ -47,7 +47,7 @@ namespace Winhance.WPF.Features.Common.Controls
         /// Identifies the StatusText dependency property.
         /// </summary>
         public static readonly DependencyProperty StatusTextProperty =
-            DependencyProperty.Register(nameof(StatusText), typeof(string), typeof(TaskProgressControl), 
+            DependencyProperty.Register(nameof(StatusText), typeof(string), typeof(TaskProgressControl),
                 new PropertyMetadata(string.Empty));
 
         /// <summary>
@@ -63,7 +63,7 @@ namespace Winhance.WPF.Features.Common.Controls
         /// Identifies the IsIndeterminate dependency property.
         /// </summary>
         public static readonly DependencyProperty IsIndeterminateProperty =
-            DependencyProperty.Register(nameof(IsIndeterminate), typeof(bool), typeof(TaskProgressControl), 
+            DependencyProperty.Register(nameof(IsIndeterminate), typeof(bool), typeof(TaskProgressControl),
                 new PropertyMetadata(false));
 
         /// <summary>
@@ -79,7 +79,7 @@ namespace Winhance.WPF.Features.Common.Controls
         /// Identifies the IsVisible dependency property.
         /// </summary>
         public new static readonly DependencyProperty IsVisibleProperty =
-            DependencyProperty.Register(nameof(IsVisible), typeof(bool), typeof(TaskProgressControl), 
+            DependencyProperty.Register(nameof(IsVisible), typeof(bool), typeof(TaskProgressControl),
                 new PropertyMetadata(false));
 
         /// <summary>
@@ -95,7 +95,7 @@ namespace Winhance.WPF.Features.Common.Controls
         /// Identifies the ProgressText dependency property.
         /// </summary>
         public static readonly DependencyProperty ProgressTextProperty =
-            DependencyProperty.Register(nameof(ProgressText), typeof(string), typeof(TaskProgressControl), 
+            DependencyProperty.Register(nameof(ProgressText), typeof(string), typeof(TaskProgressControl),
                 new PropertyMetadata(string.Empty));
 
         /// <summary>
@@ -111,7 +111,7 @@ namespace Winhance.WPF.Features.Common.Controls
         /// Identifies the AreDetailsExpanded dependency property.
         /// </summary>
         public static readonly DependencyProperty AreDetailsExpandedProperty =
-            DependencyProperty.Register(nameof(AreDetailsExpanded), typeof(bool), typeof(TaskProgressControl), 
+            DependencyProperty.Register(nameof(AreDetailsExpanded), typeof(bool), typeof(TaskProgressControl),
                 new PropertyMetadata(false));
 
         /// <summary>
@@ -127,7 +127,7 @@ namespace Winhance.WPF.Features.Common.Controls
         /// Identifies the HasLogMessages dependency property.
         /// </summary>
         public static readonly DependencyProperty HasLogMessagesProperty =
-            DependencyProperty.Register(nameof(HasLogMessages), typeof(bool), typeof(TaskProgressControl), 
+            DependencyProperty.Register(nameof(HasLogMessages), typeof(bool), typeof(TaskProgressControl),
                 new PropertyMetadata(false));
 
         /// <summary>
@@ -143,7 +143,7 @@ namespace Winhance.WPF.Features.Common.Controls
         /// Identifies the LogMessages dependency property.
         /// </summary>
         public static readonly DependencyProperty LogMessagesProperty =
-            DependencyProperty.Register(nameof(LogMessages), typeof(ObservableCollection<LogMessageViewModel>), 
+            DependencyProperty.Register(nameof(LogMessages), typeof(ObservableCollection<LogMessageViewModel>),
                 typeof(TaskProgressControl), new PropertyMetadata(null));
 
         /// <summary>
@@ -159,7 +159,7 @@ namespace Winhance.WPF.Features.Common.Controls
         /// Identifies the CanCancel dependency property.
         /// </summary>
         public static readonly DependencyProperty CanCancelProperty =
-            DependencyProperty.Register(nameof(CanCancel), typeof(bool), typeof(TaskProgressControl), 
+            DependencyProperty.Register(nameof(CanCancel), typeof(bool), typeof(TaskProgressControl),
                 new PropertyMetadata(false));
 
         /// <summary>
@@ -175,7 +175,7 @@ namespace Winhance.WPF.Features.Common.Controls
         /// Identifies the IsTaskRunning dependency property.
         /// </summary>
         public static readonly DependencyProperty IsTaskRunningProperty =
-            DependencyProperty.Register(nameof(IsTaskRunning), typeof(bool), typeof(TaskProgressControl), 
+            DependencyProperty.Register(nameof(IsTaskRunning), typeof(bool), typeof(TaskProgressControl),
                 new PropertyMetadata(false));
 
         /// <summary>
@@ -191,7 +191,7 @@ namespace Winhance.WPF.Features.Common.Controls
         /// Identifies the CancelCommand dependency property.
         /// </summary>
         public static readonly DependencyProperty CancelCommandProperty =
-            DependencyProperty.Register(nameof(CancelCommand), typeof(ICommand), typeof(TaskProgressControl), 
+            DependencyProperty.Register(nameof(CancelCommand), typeof(ICommand), typeof(TaskProgressControl),
                 new PropertyMetadata(null));
 
         #endregion

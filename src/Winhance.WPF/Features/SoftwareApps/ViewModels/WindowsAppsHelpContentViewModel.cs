@@ -22,7 +22,7 @@ namespace Winhance.WPF.Features.SoftwareApps.ViewModels
                 scriptPathDetectionService,
                 scheduledTaskService,
                 logService);
-            
+
             // Start status checks when Help dialog is shown
             _ = Task.Run(async () => await RemovalStatusContainer.RefreshAllStatusesAsync());
         }

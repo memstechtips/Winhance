@@ -39,9 +39,9 @@ namespace Winhance.Infrastructure.Features.Common.Services
             // Can resolve any ComboBox setting that has proper metadata structure
             var isComboBox = setting.InputType == SettingInputType.Selection;
             var hasValidMetadata = HasValidComboBoxMetadata(setting);
-            
+
             _logService.Log(LogLevel.Info, $"[ComboBoxResolver] CanResolve '{setting.Id}': ComboBox={isComboBox}, ValidMetadata={hasValidMetadata}");
-            
+
             return isComboBox && hasValidMetadata;
         }
 
@@ -63,9 +63,9 @@ namespace Winhance.Infrastructure.Features.Common.Services
             var hasDisplayNames = setting.CustomProperties?.ContainsKey(CustomPropertyKeys.ComboBoxDisplayNames) == true;
 
             var isValid = hasValueMappings && hasDisplayNames;
-            
+
             _logService.Log(LogLevel.Info, $"[ComboBoxResolver] '{setting.Id}' metadata: ValueMappings={hasValueMappings}, ComboBoxDisplayNames={hasDisplayNames}, Valid={isValid}");
-            
+
             return isValid;
         }
 
@@ -105,9 +105,9 @@ namespace Winhance.Infrastructure.Features.Common.Services
                 {
                     var index = mapping.Key;
                     var expectedValues = mapping.Value;
-                    
-                    var matches = expectedValues.All(expected => 
-                        currentValues.TryGetValue(expected.Key, out var currentValuesList) && 
+
+                    var matches = expectedValues.All(expected =>
+                        currentValues.TryGetValue(expected.Key, out var currentValuesList) &&
                         currentValuesList.All(currentValue => currentValue == expected.Value));
 
                     if (matches)

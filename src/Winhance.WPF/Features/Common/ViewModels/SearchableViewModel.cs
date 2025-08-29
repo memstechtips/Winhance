@@ -52,7 +52,7 @@ namespace Winhance.WPF.Features.Common.ViewModels
         protected SearchableViewModel(
             ITaskProgressService progressService,
             ISearchService searchService,
-            IPackageManager? packageManager = null) 
+            IPackageManager? packageManager = null)
             : base(progressService, packageManager)
         {
             _searchService = searchService ?? throw new ArgumentNullException(nameof(searchService));
@@ -69,16 +69,16 @@ namespace Winhance.WPF.Features.Common.ViewModels
         /// <param name="items">The collection of items to filter.</param>
         /// <returns>A filtered collection of items that match the search text.</returns>
         protected IEnumerable<T> FilterItems(IEnumerable<T> items)
-        {            
+        {
             // Log items before filtering
             foreach (var item in items)
             {
                 var itemName = item.GetType().GetProperty("Name")?.GetValue(item)?.ToString();
                 var itemGroupName = item.GetType().GetProperty("GroupName")?.GetValue(item)?.ToString();
             }
-            
+
             var result = _searchService.FilterItems(items, SearchText);
-                        
+
             return result;
         }
 

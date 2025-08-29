@@ -14,13 +14,13 @@ using CommunityToolkit.Mvvm.Input;
 using Microsoft.Extensions.DependencyInjection;
 using Winhance.Core.Features.Common.Enums;
 using Winhance.Core.Features.Common.Enums;
-using Winhance.Core.Features.Common.Interfaces;
 using Winhance.Core.Features.Common.Events;
 using Winhance.Core.Features.Common.Events.UI;
+using Winhance.Core.Features.Common.Interfaces;
 using Winhance.Core.Features.Common.Models;
+using Winhance.WPF.Features.Common.Controls;
 using Winhance.WPF.Features.Common.Models;
 using Winhance.WPF.Features.Common.Resources.Theme;
-using Winhance.WPF.Features.Common.Controls;
 using Winhance.WPF.Features.Common.Utilities;
 using Winhance.WPF.Features.Common.ViewModels;
 using Winhance.WPF.Features.Common.Views;
@@ -251,7 +251,7 @@ namespace Winhance.WPF.Features.Common.ViewModels
             catch (Exception ex)
             {
                 _logService?.LogError($"Failed to minimize window directly: {ex.Message}", ex);
-                
+
                 // Fall back to event bus
                 try
                 {
@@ -293,7 +293,7 @@ namespace Winhance.WPF.Features.Common.ViewModels
                     catch (Exception ex)
                     {
                         _logService?.LogError($"Failed to restore window directly: {ex.Message}", ex);
-                        
+
                         // Fall back to event bus
                         try
                         {
@@ -321,7 +321,7 @@ namespace Winhance.WPF.Features.Common.ViewModels
                     catch (Exception ex)
                     {
                         _logService?.LogError($"Failed to maximize window directly: {ex.Message}", ex);
-                        
+
                         // Fall back to event bus
                         try
                         {
@@ -353,7 +353,7 @@ namespace Winhance.WPF.Features.Common.ViewModels
             try
             {
                 _logService?.LogInformation("Close window command executed");
-                
+
                 // Use the ApplicationCloseService to handle the close process with donation dialog
                 await _applicationCloseService.CloseApplicationWithSupportDialogAsync();
                 _logService?.LogInformation("Application close service completed");
@@ -361,7 +361,7 @@ namespace Winhance.WPF.Features.Common.ViewModels
             catch (Exception ex)
             {
                 _logService?.LogError($"Error in CloseWindowAsync: {ex.Message}", ex);
-                
+
                 // Fall back to direct window closing
                 try
                 {
@@ -383,7 +383,7 @@ namespace Winhance.WPF.Features.Common.ViewModels
                 catch (Exception fallbackEx)
                 {
                     _logService?.LogError($"Failed in fallback close: {fallbackEx.Message}", fallbackEx);
-                    
+
                     // Last resort - force application shutdown
                     try
                     {
@@ -1013,10 +1013,10 @@ namespace Winhance.WPF.Features.Common.ViewModels
             try
             {
                 _logService?.LogInformation("More button clicked - showing flyout");
-                
+
                 // Set the selected navigation item to show visual feedback
                 SelectedNavigationItem = "More";
-                
+
                 ShowMoreMenuFlyout();
             }
             catch (Exception ex)
@@ -1036,21 +1036,21 @@ namespace Winhance.WPF.Features.Common.ViewModels
                 if (mainWindow != null)
                 {
                     _logService?.LogInformation("MainWindow found, showing flyout overlay");
-                    
+
                     // Find the overlay and menu elements
                     var overlay = mainWindow.FindName("MoreMenuOverlay") as FrameworkElement;
                     var flyoutContent = mainWindow.FindName("MoreMenuFlyoutContent") as FrameworkElement;
                     var moreButton = mainWindow.FindName("MoreButton") as FrameworkElement;
-                    
+
                     _logService?.LogInformation($"Elements found - Overlay: {overlay != null}, FlyoutContent: {flyoutContent != null}, MoreButton: {moreButton != null}");
-                    
+
                     if (overlay != null && flyoutContent != null && moreButton != null)
                     {
                         // Calculate position relative to the More button
                         var buttonPosition = moreButton.TransformToAncestor(mainWindow).Transform(new Point(0, 0));
-                        
+
                         _logService?.LogInformation($"Button position: X={buttonPosition.X}, Y={buttonPosition.Y}, Button size: {moreButton.ActualWidth}x{moreButton.ActualHeight}");
-                        
+
                         // Position the flyout to the right of the More button, positioned higher for full visibility
                         var flyoutMargin = new Thickness(
                             buttonPosition.X + moreButton.ActualWidth + 5, // 5px spacing to the right
@@ -1058,17 +1058,17 @@ namespace Winhance.WPF.Features.Common.ViewModels
                             0,
                             0
                         );
-                        
+
                         _logService?.LogInformation($"Setting flyout margin: Left={flyoutMargin.Left}, Top={flyoutMargin.Top}");
-                        
+
                         flyoutContent.Margin = flyoutMargin;
                         overlay.Visibility = Visibility.Visible;
-                        
+
                         _logService?.LogInformation($"Overlay visibility set to: {overlay.Visibility}");
-                        
+
                         // Set focus on the overlay to enable keyboard events (Escape to close)
                         overlay.Focus();
-                        
+
                         _logService?.LogInformation("MoreMenu flyout shown successfully");
                     }
                     else
@@ -1102,7 +1102,7 @@ namespace Winhance.WPF.Features.Common.ViewModels
                     {
                         overlay.Visibility = Visibility.Collapsed;
                         _logService?.LogInformation("MoreMenu flyout closed");
-                        
+
                         // Reset navigation selection
                         SelectedNavigationItem = CurrentViewName;
                     }

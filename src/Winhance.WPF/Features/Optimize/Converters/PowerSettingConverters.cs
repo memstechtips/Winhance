@@ -140,15 +140,15 @@ namespace Winhance.WPF.Features.Optimize.Converters
                 if (!string.IsNullOrEmpty(setting))
                 {
                     // Hide these settings as they're shown in the primary power settings section
-                    var hiddenSettings = new[] 
+                    var hiddenSettings = new[]
                     {
                         "active-power-plan",
-                        "display-timeout", 
+                        "display-timeout",
                         "sleep-timeout",
                         "3c0bc021-c8a8-4e07-a973-6b14cbcb2b7e", // Display timeout GUID
                         "29f6c1db-86da-48c5-9fdb-f2b67b1f44da"  // Sleep timeout GUID
                     };
-                    
+
                     if (Array.Exists(hiddenSettings, s => s.Equals(setting, StringComparison.OrdinalIgnoreCase)))
                     {
                         return Visibility.Collapsed;

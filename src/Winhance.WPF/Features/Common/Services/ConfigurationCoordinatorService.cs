@@ -17,7 +17,7 @@ namespace Winhance.WPF.Features.Common.Services
         private readonly IServiceProvider _serviceProvider;
         private readonly ILogService _logService;
         private readonly ISettingApplicationService _settingApplicationService;
-        
+
         private readonly IDomainService _startMenuService;
         private readonly IDomainService _taskbarService;
         private readonly IDomainService _explorerCustomizationService;
@@ -133,7 +133,7 @@ namespace Winhance.WPF.Features.Common.Services
             foreach (var item in items)
             {
                 var state = await _settingApplicationService.GetSettingStateAsync(item.Id);
-                
+
                 var configItem = new ConfigurationItem
                 {
                     Name = item.Name,
@@ -143,10 +143,10 @@ namespace Winhance.WPF.Features.Common.Services
 
                 if (!string.IsNullOrEmpty(item.Id))
                     configItem.CustomProperties["Id"] = item.Id;
-                
+
                 if (!string.IsNullOrEmpty(item.GroupName))
                     configItem.CustomProperties["GroupName"] = item.GroupName;
-                
+
                 if (!string.IsNullOrEmpty(item.Description))
                     configItem.CustomProperties["Description"] = item.Description;
 
@@ -163,7 +163,7 @@ namespace Winhance.WPF.Features.Common.Services
         private async Task<bool> ApplyConfigurationItemsAsync(List<ConfigurationItem> items)
         {
             bool success = true;
-            
+
             foreach (var item in items)
             {
                 try
@@ -173,7 +173,7 @@ namespace Winhance.WPF.Features.Common.Services
                         object? value = null;
                         if (item.CustomProperties.TryGetValue("CurrentValue", out var currentValue))
                             value = currentValue;
-                        
+
                         await _settingApplicationService.ApplySettingAsync(id, item.IsSelected, value);
                     }
                 }
@@ -183,7 +183,7 @@ namespace Winhance.WPF.Features.Common.Services
                     success = false;
                 }
             }
-            
+
             return success;
         }
     }

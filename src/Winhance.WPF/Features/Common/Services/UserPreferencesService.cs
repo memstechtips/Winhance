@@ -32,7 +32,7 @@ namespace Winhance.WPF.Features.Common.Services
             {
                 // Get the LocalApplicationData folder (e.g., C:\Users\Username\AppData\Local)
                 string localAppData = Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData);
-                
+
                 if (string.IsNullOrEmpty(localAppData))
                 {
                     _logService.Log(LogLevel.Error, "LocalApplicationData folder path is empty");
@@ -40,31 +40,31 @@ namespace Winhance.WPF.Features.Common.Services
                     localAppData = Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.UserProfile), "AppData", "Local");
                     _logService.Log(LogLevel.Info, $"Using fallback path: {localAppData}");
                 }
-                
+
                 // Combine with Winhance/Config
                 string appDataPath = Path.Combine(localAppData, "Winhance", "Config");
-                
+
                 // Ensure the directory exists
                 if (!Directory.Exists(appDataPath))
                 {
                     Directory.CreateDirectory(appDataPath);
                     _logService.Log(LogLevel.Info, $"Created preferences directory: {appDataPath}");
                 }
-                
+
                 // Get the full file path
                 string filePath = Path.Combine(appDataPath, PreferencesFileName);
-                
+
                 return filePath;
             }
             catch (Exception ex)
             {
                 _logService.Log(LogLevel.Error, $"Error getting preferences file path: {ex.Message}");
-                
+
                 // Fallback to a temporary file
                 string tempPath = Path.Combine(Path.GetTempPath(), "Winhance", "Config");
                 Directory.CreateDirectory(tempPath);
                 string tempFilePath = Path.Combine(tempPath, PreferencesFileName);
-                
+
                 _logService.Log(LogLevel.Warning, $"Using fallback temporary path: {tempFilePath}");
                 return tempFilePath;
             }
@@ -79,22 +79,22 @@ namespace Winhance.WPF.Features.Common.Services
             try
             {
                 string filePath = GetPreferencesFilePath();
-                
+
                 if (!File.Exists(filePath))
                 {
                     _logService.Log(LogLevel.Info, $"User preferences file does not exist at '{filePath}', returning empty preferences");
                     return new Dictionary<string, object>();
                 }
-                
+
                 // Read the file
                 string json = await File.ReadAllTextAsync(filePath);
-                
+
                 if (string.IsNullOrEmpty(json))
                 {
                     _logService.Log(LogLevel.Warning, "Preferences file exists but is empty");
                     return new Dictionary<string, object>();
                 }
-                
+
                 // Use more robust deserialization settings
                 var settings = new JsonSerializerSettings
                 {
@@ -102,14 +102,14 @@ namespace Winhance.WPF.Features.Common.Services
                     TypeNameHandling = TypeNameHandling.None,
                     ReferenceLoopHandling = ReferenceLoopHandling.Ignore
                 };
-                
+
                 // Use a custom converter to properly handle boolean values
                 var preferences = JsonConvert.DeserializeObject<Dictionary<string, object>>(json, settings);
-                
+
                 if (preferences != null)
                 {
                     _logService.Log(LogLevel.Info, $"Successfully loaded {preferences.Count} preferences");
-                    
+
                     return preferences;
                 }
                 else
@@ -139,7 +139,7 @@ namespace Winhance.WPF.Features.Common.Services
             try
             {
                 string filePath = GetPreferencesFilePath();
-                
+
                 // Use more robust serialization settings
                 var settings = new JsonSerializerSettings
                 {
@@ -148,19 +148,19 @@ namespace Winhance.WPF.Features.Common.Services
                     TypeNameHandling = TypeNameHandling.None,
                     ReferenceLoopHandling = ReferenceLoopHandling.Ignore
                 };
-                
+
                 string json = JsonConvert.SerializeObject(preferences, settings);
-                
+
                 // Ensure the directory exists
                 string directory = Path.GetDirectoryName(filePath);
                 if (!Directory.Exists(directory))
                 {
                     Directory.CreateDirectory(directory);
                 }
-                
+
                 // Write the file
                 await File.WriteAllTextAsync(filePath, json);
-                
+
                 // Verify the file was written
                 if (File.Exists(filePath))
                 {
@@ -194,7 +194,7 @@ namespace Winhance.WPF.Features.Common.Services
         public async Task<T> GetPreferenceAsync<T>(string key, T defaultValue)
         {
             var preferences = await GetPreferencesAsync();
-            
+
             if (preferences.TryGetValue(key, out var value))
             {
                 try
@@ -216,12 +216,12 @@ namespace Winhance.WPF.Features.Common.Services
                             }
                         }
                     }
-                    
+
                     if (value is T typedValue)
                     {
                         return typedValue;
                     }
-                    
+
                     // Handle JToken conversion for primitive types
                     if (value is Newtonsoft.Json.Linq.JToken jToken)
                     {
@@ -260,7 +260,7 @@ namespace Winhance.WPF.Features.Common.Services
                             }
                         }
                     }
-                    
+
                     // Try to convert the value to the requested type
                     var convertedValue = (T)Convert.ChangeType(value, typeof(T));
                     return convertedValue;
@@ -276,7 +276,7 @@ namespace Winhance.WPF.Features.Common.Services
                     return defaultValue;
                 }
             }
-            
+
             return defaultValue;
         }
 
@@ -292,11 +292,11 @@ namespace Winhance.WPF.Features.Common.Services
             try
             {
                 var preferences = await GetPreferencesAsync();
-                
+
                 preferences[key] = value;
-                
+
                 bool result = await SavePreferencesAsync(preferences);
-                
+
                 // Log the result
                 if (result)
                 {
@@ -306,7 +306,7 @@ namespace Winhance.WPF.Features.Common.Services
                 {
                     _logService.Log(LogLevel.Error, $"Failed to save preference '{key}'");
                 }
-                
+
                 return result;
             }
             catch (Exception ex)

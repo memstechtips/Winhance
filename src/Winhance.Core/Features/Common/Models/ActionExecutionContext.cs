@@ -24,6 +24,11 @@ namespace Winhance.Core.Features.Common.Models
         public bool ApplyRecommendedSettings { get; set; }
 
         /// <summary>
+        /// Whether to apply wallpaper changes for theme actions.
+        /// </summary>
+        public bool ApplyWallpaper { get; set; }
+
+        /// <summary>
         /// Additional parameters that can be used for future extensibility.
         /// </summary>
         public Dictionary<string, object> AdditionalParameters { get; set; } = new();

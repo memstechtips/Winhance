@@ -20,7 +20,7 @@ namespace Winhance.WPF.Features.SoftwareApps.Models
             _item = item ?? throw new ArgumentNullException(nameof(item));
             _selectionChangedCallback = selectionChangedCallback;
             ItemType = itemType;
-            
+
             // Set TypeOrder based on the item type for custom sorting
             TypeOrder = itemType switch
             {
@@ -29,7 +29,7 @@ namespace Winhance.WPF.Features.SoftwareApps.Models
                 "Optional Feature" => 3,
                 _ => 99
             };
-            
+
             // Subscribe to property changes from the wrapped item
             if (_item is INotifyPropertyChanged notifyItem)
             {
@@ -56,7 +56,7 @@ namespace Winhance.WPF.Features.SoftwareApps.Models
                 {
                     _item.IsSelected = value;
                     OnPropertyChanged();
-                    
+
                     // Notify ViewModel that selection has changed
                     _selectionChangedCallback?.Invoke();
                 }
@@ -124,7 +124,7 @@ namespace Winhance.WPF.Features.SoftwareApps.Models
 
         public override bool Equals(object obj)
         {
-            return obj is OptimizedItemWrapper other && 
+            return obj is OptimizedItemWrapper other &&
                    ReferenceEquals(_item, other._item);
         }
 

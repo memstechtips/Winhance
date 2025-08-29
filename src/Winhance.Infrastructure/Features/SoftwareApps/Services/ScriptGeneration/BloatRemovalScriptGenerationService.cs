@@ -118,7 +118,7 @@ namespace Winhance.Infrastructure.Features.SoftwareApps.Services.ScriptGeneratio
 
                 // Use the script builder service to create the script content
                 string content = _bloatRemovalScriptBuilderService.BuildSingleAppRemovalScript(app);
-                
+
                 _logService.LogSuccess(
                     $"Created removal script content for {app.PackageName}"
                 );
@@ -142,7 +142,7 @@ namespace Winhance.Infrastructure.Features.SoftwareApps.Services.ScriptGeneratio
 
                 // Use the script builder service to create the script content
                 string content = _bloatRemovalScriptBuilderService.BuildSingleAppRemovalScript(app);
-                
+
                 _logService.LogSuccess(
                     $"Retrieved removal script content for {app.PackageName}"
                 );

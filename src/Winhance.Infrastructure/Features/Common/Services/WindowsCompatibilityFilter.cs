@@ -35,8 +35,8 @@ namespace Winhance.Infrastructure.Features.Common.Services
             {
                 var isWindows11 = _systemServices.IsWindows11();
                 var buildNumber = _systemServices.GetWindowsBuildNumber();
-                
-                _logService.Log(LogLevel.Info, 
+
+                _logService.Log(LogLevel.Info,
                     $"Filtering settings for Windows {(isWindows11 ? "11" : "10")} build {buildNumber}");
 
                 var compatibleSettings = new List<SettingDefinition>();
@@ -79,9 +79,9 @@ namespace Winhance.Infrastructure.Features.Common.Services
                     // Check build ranges (takes precedence over min/max if specified)
                     else if (supportedRanges?.Count > 0)
                     {
-                        bool inSupportedRange = supportedRanges.Any(range => 
+                        bool inSupportedRange = supportedRanges.Any(range =>
                             buildNumber >= range.MinBuild && buildNumber <= range.MaxBuild);
-                        
+
                         if (!inSupportedRange)
                         {
                             isCompatible = false;
@@ -109,19 +109,19 @@ namespace Winhance.Infrastructure.Features.Common.Services
                     else
                     {
                         filteredCount++;
-                        _logService.Log(LogLevel.Debug, 
+                        _logService.Log(LogLevel.Debug,
                             $"Filtered out setting '{setting.Id}': {incompatibilityReason}");
                     }
                 }
 
                 if (filteredCount > 0)
                 {
-                    _logService.Log(LogLevel.Info, 
+                    _logService.Log(LogLevel.Info,
                         $"Filtered out {filteredCount} incompatible settings. {compatibleSettings.Count} settings remain.");
                 }
                 else
                 {
-                    _logService.Log(LogLevel.Info, 
+                    _logService.Log(LogLevel.Info,
                         $"All {compatibleSettings.Count} settings are compatible with current Windows version.");
                 }
 
@@ -129,7 +129,7 @@ namespace Winhance.Infrastructure.Features.Common.Services
             }
             catch (Exception ex)
             {
-                _logService.Log(LogLevel.Error, 
+                _logService.Log(LogLevel.Error,
                     $"Error filtering settings by Windows version: {ex.Message}. Returning all settings.");
                 return settings;
             }

@@ -44,7 +44,7 @@ namespace Winhance.Core.Features.Common.Models
         public string? Error { get; set; }
     }
 
-    
+
     /// <summary>
     /// Represents options for package installation.
     /// </summary>
@@ -282,17 +282,17 @@ namespace Winhance.Core.Features.Common.Models
         /// Gets or sets a value indicating whether the progress is indeterminate.
         /// </summary>
         public bool IsIndeterminate { get; set; }
-        
+
         /// <summary>
         /// Gets or sets a value indicating whether the operation was cancelled.
         /// </summary>
         public bool IsCancelled { get; set; }
-        
+
         /// <summary>
         /// Gets or sets a value indicating whether an error occurred during the operation.
         /// </summary>
         public bool IsError { get; set; }
-        
+
         /// <summary>
         /// Gets or sets a value indicating whether the operation failed due to connectivity issues.
         /// </summary>

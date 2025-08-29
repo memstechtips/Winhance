@@ -47,7 +47,7 @@ namespace Winhance.WPF.Features.Common.Services
             _logService = logService ?? throw new ArgumentNullException(nameof(logService));
             _dialogService = dialogService ?? throw new ArgumentNullException(nameof(dialogService));
             _registryService = windowsRegistryService ?? throw new ArgumentNullException(nameof(windowsRegistryService));
-            
+
             // Initialize helper services
             _collectorService = new ConfigurationCollectorService(serviceProvider, logService);
             _applierService = serviceProvider.GetRequiredService<IConfigurationApplierService>();
@@ -63,18 +63,18 @@ namespace Winhance.WPF.Features.Common.Services
             try
             {
                 _logService.Log(LogLevel.Info, "Creating unified configuration from all view models");
-                
+
                 // Collect settings from all view models
                 var sectionSettings = await _collectorService.CollectAllSettingsAsync();
-                
+
                 // Create a list of all available sections - include all sections by default
                 var availableSections = new List<string> { "WindowsApps", "ExternalApps", "Customize", "Optimize" };
 
                 // Create and return the unified configuration
                 var unifiedConfig = _configurationService.CreateUnifiedConfiguration(sectionSettings, availableSections);
-                
+
                 _logService.Log(LogLevel.Info, "Successfully created unified configuration from all view models");
-                
+
                 return unifiedConfig;
             }
             catch (Exception ex)
@@ -94,9 +94,9 @@ namespace Winhance.WPF.Features.Common.Services
             try
             {
                 _logService.Log(LogLevel.Info, "Saving unified configuration");
-                
+
                 bool saveResult = await _configurationService.SaveUnifiedConfigurationAsync(config);
-                
+
                 if (saveResult)
                 {
                     _logService.Log(LogLevel.Info, "Unified configuration saved successfully");
@@ -106,7 +106,7 @@ namespace Winhance.WPF.Features.Common.Services
                 {
                     _logService.Log(LogLevel.Info, "Save unified configuration canceled by user");
                 }
-                
+
                 return saveResult;
             }
             catch (Exception ex)
@@ -126,20 +126,20 @@ namespace Winhance.WPF.Features.Common.Services
             try
             {
                 _logService.Log(LogLevel.Info, "Loading unified configuration");
-                
+
                 var unifiedConfig = await _configurationService.LoadUnifiedConfigurationAsync();
-                
+
                 if (unifiedConfig == null)
                 {
                     _logService.Log(LogLevel.Info, "Load unified configuration canceled by user");
                     return null;
                 }
-                
+
                 _logService.Log(LogLevel.Info, $"Configuration loaded with sections: WindowsApps ({unifiedConfig.WindowsApps.Items.Count} items), " +
                                   $"ExternalApps ({unifiedConfig.ExternalApps.Items.Count} items), " +
                                   $"Customize ({unifiedConfig.Customize.Items.Count} items), " +
                                   $"Optimize ({unifiedConfig.Optimize.Items.Count} items)");
-                
+
                 return unifiedConfig;
             }
             catch (Exception ex)
@@ -179,27 +179,27 @@ namespace Winhance.WPF.Features.Common.Services
                     _logService.Log(LogLevel.Error, "Unified configuration is null");
                     return false;
                 }
-                
+
                 // Validate the selected sections
                 if (selectedSections == null || !selectedSections.Any())
                 {
                     _logService.Log(LogLevel.Error, "No sections selected for import");
                     return false;
                 }
-                
+
                 // Apply the configuration to the selected sections
                 var sectionResults = await _applierService.ApplySectionsAsync(config, selectedSections);
-                
+
                 // Log the results for each section
                 _logService.Log(LogLevel.Info, "Import results by section:");
                 foreach (var sectionResult in sectionResults)
                 {
                     _logService.Log(LogLevel.Info, $"  {sectionResult.Key}: {(sectionResult.Value ? "Success" : "Failed")}");
                 }
-                
+
                 bool overallResult = sectionResults.All(r => r.Value);
                 _logService.Log(LogLevel.Info, $"Finished applying unified configuration to selected sections. Overall result: {(overallResult ? "Success" : "Partial failure")}");
-                
+
                 return overallResult;
             }
             catch (Exception ex)

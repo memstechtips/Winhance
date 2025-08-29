@@ -60,27 +60,30 @@ namespace Winhance.Infrastructure.Features.SoftwareApps.Services
             try
             {
                 _logService.LogInformation($"Adding {apps.Count} apps to BloatRemoval script");
-                progress?.Report(new TaskProgressDetail { 
-                    Progress = 0, 
-                    StatusText = $"Adding {apps.Count} apps to BloatRemoval script..." 
+                progress?.Report(new TaskProgressDetail
+                {
+                    Progress = 0,
+                    StatusText = $"Adding {apps.Count} apps to BloatRemoval script..."
                 });
 
                 // Add apps to the script
                 await _bloatRemovalScriptService.AddAppsToScriptAsync(apps, progress, cancellationToken);
-                
-                progress?.Report(new TaskProgressDetail { 
-                    Progress = 100, 
+
+                progress?.Report(new TaskProgressDetail
+                {
+                    Progress = 100,
                     StatusText = $"Successfully added {apps.Count} apps to BloatRemoval script",
                     LogLevel = LogLevel.Success
                 });
-                
+
                 return OperationResult<bool>.Succeeded(true);
             }
             catch (Exception ex)
             {
                 _logService.LogError($"Error adding apps to BloatRemoval script: {ex.Message}", ex);
-                progress?.Report(new TaskProgressDetail { 
-                    Progress = 0, 
+                progress?.Report(new TaskProgressDetail
+                {
+                    Progress = 0,
                     StatusText = $"Error adding apps to BloatRemoval script: {ex.Message}",
                     LogLevel = LogLevel.Error
                 });
@@ -103,27 +106,30 @@ namespace Winhance.Infrastructure.Features.SoftwareApps.Services
             try
             {
                 _logService.LogInformation($"Adding {capabilities.Count} capabilities to BloatRemoval script");
-                progress?.Report(new TaskProgressDetail { 
-                    Progress = 0, 
-                    StatusText = $"Adding {capabilities.Count} capabilities to BloatRemoval script..." 
+                progress?.Report(new TaskProgressDetail
+                {
+                    Progress = 0,
+                    StatusText = $"Adding {capabilities.Count} capabilities to BloatRemoval script..."
                 });
 
                 // Add capabilities to the script
                 await _bloatRemovalScriptService.AddCapabilitiesToScriptAsync(capabilities, progress, cancellationToken);
-                
-                progress?.Report(new TaskProgressDetail { 
-                    Progress = 100, 
+
+                progress?.Report(new TaskProgressDetail
+                {
+                    Progress = 100,
                     StatusText = $"Successfully added {capabilities.Count} capabilities to BloatRemoval script",
                     LogLevel = LogLevel.Success
                 });
-                
+
                 return OperationResult<bool>.Succeeded(true);
             }
             catch (Exception ex)
             {
                 _logService.LogError($"Error adding capabilities to BloatRemoval script: {ex.Message}", ex);
-                progress?.Report(new TaskProgressDetail { 
-                    Progress = 0, 
+                progress?.Report(new TaskProgressDetail
+                {
+                    Progress = 0,
                     StatusText = $"Error adding capabilities to BloatRemoval script: {ex.Message}",
                     LogLevel = LogLevel.Error
                 });
@@ -146,27 +152,30 @@ namespace Winhance.Infrastructure.Features.SoftwareApps.Services
             try
             {
                 _logService.LogInformation($"Adding {features.Count} features to BloatRemoval script");
-                progress?.Report(new TaskProgressDetail { 
-                    Progress = 0, 
-                    StatusText = $"Adding {features.Count} features to BloatRemoval script..." 
+                progress?.Report(new TaskProgressDetail
+                {
+                    Progress = 0,
+                    StatusText = $"Adding {features.Count} features to BloatRemoval script..."
                 });
 
                 // Add features to the script
                 await _bloatRemovalScriptService.AddFeaturesToScriptAsync(features, progress, cancellationToken);
-                
-                progress?.Report(new TaskProgressDetail { 
-                    Progress = 100, 
+
+                progress?.Report(new TaskProgressDetail
+                {
+                    Progress = 100,
                     StatusText = $"Successfully added {features.Count} features to BloatRemoval script",
                     LogLevel = LogLevel.Success
                 });
-                
+
                 return OperationResult<bool>.Succeeded(true);
             }
             catch (Exception ex)
             {
                 _logService.LogError($"Error adding features to BloatRemoval script: {ex.Message}", ex);
-                progress?.Report(new TaskProgressDetail { 
-                    Progress = 0, 
+                progress?.Report(new TaskProgressDetail
+                {
+                    Progress = 0,
                     StatusText = $"Error adding features to BloatRemoval script: {ex.Message}",
                     LogLevel = LogLevel.Error
                 });
@@ -182,19 +191,21 @@ namespace Winhance.Infrastructure.Features.SoftwareApps.Services
             try
             {
                 _logService.LogInformation("Executing BloatRemoval script");
-                progress?.Report(new TaskProgressDetail { 
-                    Progress = 0, 
-                    StatusText = "Executing BloatRemoval script..." 
+                progress?.Report(new TaskProgressDetail
+                {
+                    Progress = 0,
+                    StatusText = "Executing BloatRemoval script..."
                 });
 
                 // Execute the script
                 var result = await _bloatRemovalScriptService.ExecuteScriptAsync(progress, cancellationToken);
-                
+
                 if (result.Success)
                 {
                     _logService.LogSuccess("BloatRemoval script executed successfully");
-                    progress?.Report(new TaskProgressDetail { 
-                        Progress = 100, 
+                    progress?.Report(new TaskProgressDetail
+                    {
+                        Progress = 100,
                         StatusText = "BloatRemoval script executed successfully",
                         LogLevel = LogLevel.Success
                     });
@@ -202,20 +213,22 @@ namespace Winhance.Infrastructure.Features.SoftwareApps.Services
                 else
                 {
                     _logService.LogError($"BloatRemoval script execution failed: {result.ErrorMessage}");
-                    progress?.Report(new TaskProgressDetail { 
-                        Progress = 100, 
+                    progress?.Report(new TaskProgressDetail
+                    {
+                        Progress = 100,
                         StatusText = $"BloatRemoval script execution failed: {result.ErrorMessage}",
                         LogLevel = LogLevel.Error
                     });
                 }
-                
+
                 return result;
             }
             catch (Exception ex)
             {
                 _logService.LogError($"Error executing BloatRemoval script: {ex.Message}", ex);
-                progress?.Report(new TaskProgressDetail { 
-                    Progress = 0, 
+                progress?.Report(new TaskProgressDetail
+                {
+                    Progress = 0,
                     StatusText = $"Error executing BloatRemoval script: {ex.Message}",
                     LogLevel = LogLevel.Error
                 });
@@ -234,17 +247,18 @@ namespace Winhance.Infrastructure.Features.SoftwareApps.Services
             try
             {
                 int totalItems = (apps?.Count ?? 0) + (capabilities?.Count ?? 0) + (features?.Count ?? 0);
-                
+
                 if (totalItems == 0)
                 {
                     _logService.LogWarning("No items provided to remove");
                     return OperationResult<bool>.Succeeded(true);
                 }
-                
+
                 _logService.LogInformation($"Removing {totalItems} items ({apps?.Count ?? 0} apps, {capabilities?.Count ?? 0} capabilities, {features?.Count ?? 0} features)");
-                progress?.Report(new TaskProgressDetail { 
-                    Progress = 0, 
-                    StatusText = $"Preparing to remove {totalItems} items..." 
+                progress?.Report(new TaskProgressDetail
+                {
+                    Progress = 0,
+                    StatusText = $"Preparing to remove {totalItems} items..."
                 });
 
                 // Track progress for each phase
@@ -253,18 +267,19 @@ namespace Winhance.Infrastructure.Features.SoftwareApps.Services
                 const int CAPABILITIES_PHASE_WEIGHT = 30;
                 const int FEATURES_PHASE_WEIGHT = 30;
                 const int EXECUTION_PHASE_WEIGHT = 10;
-                
+
                 // Create a progress transformer for each phase
                 IProgress<TaskProgressDetail>? appsProgress = null;
                 if (progress != null)
                 {
-                    appsProgress = new Progress<TaskProgressDetail>(detail => {
+                    appsProgress = new Progress<TaskProgressDetail>(detail =>
+                    {
                         var transformedDetail = detail;
                         transformedDetail.Progress = currentProgress + (detail.Progress * APPS_PHASE_WEIGHT / 100);
                         progress.Report(transformedDetail);
                     });
                 }
-                
+
                 // Add apps to the script if any
                 if (apps != null && apps.Any())
                 {
@@ -274,25 +289,27 @@ namespace Winhance.Infrastructure.Features.SoftwareApps.Services
                         return appsResult;
                     }
                 }
-                
+
                 // Update progress
                 currentProgress += APPS_PHASE_WEIGHT;
-                progress?.Report(new TaskProgressDetail { 
-                    Progress = currentProgress, 
-                    StatusText = "Apps added to script" 
+                progress?.Report(new TaskProgressDetail
+                {
+                    Progress = currentProgress,
+                    StatusText = "Apps added to script"
                 });
-                
+
                 // Create progress transformer for capabilities phase
                 IProgress<TaskProgressDetail>? capabilitiesProgress = null;
                 if (progress != null)
                 {
-                    capabilitiesProgress = new Progress<TaskProgressDetail>(detail => {
+                    capabilitiesProgress = new Progress<TaskProgressDetail>(detail =>
+                    {
                         var transformedDetail = detail;
                         transformedDetail.Progress = currentProgress + (detail.Progress * CAPABILITIES_PHASE_WEIGHT / 100);
                         progress.Report(transformedDetail);
                     });
                 }
-                
+
                 // Add capabilities to the script if any
                 if (capabilities != null && capabilities.Any())
                 {
@@ -302,25 +319,27 @@ namespace Winhance.Infrastructure.Features.SoftwareApps.Services
                         return capabilitiesResult;
                     }
                 }
-                
+
                 // Update progress
                 currentProgress += CAPABILITIES_PHASE_WEIGHT;
-                progress?.Report(new TaskProgressDetail { 
-                    Progress = currentProgress, 
-                    StatusText = "Capabilities added to script" 
+                progress?.Report(new TaskProgressDetail
+                {
+                    Progress = currentProgress,
+                    StatusText = "Capabilities added to script"
                 });
-                
+
                 // Create progress transformer for features phase
                 IProgress<TaskProgressDetail>? featuresProgress = null;
                 if (progress != null)
                 {
-                    featuresProgress = new Progress<TaskProgressDetail>(detail => {
+                    featuresProgress = new Progress<TaskProgressDetail>(detail =>
+                    {
                         var transformedDetail = detail;
                         transformedDetail.Progress = currentProgress + (detail.Progress * FEATURES_PHASE_WEIGHT / 100);
                         progress.Report(transformedDetail);
                     });
                 }
-                
+
                 // Add features to the script if any
                 if (features != null && features.Any())
                 {
@@ -330,36 +349,39 @@ namespace Winhance.Infrastructure.Features.SoftwareApps.Services
                         return featuresResult;
                     }
                 }
-                
+
                 // Update progress
                 currentProgress += FEATURES_PHASE_WEIGHT;
-                progress?.Report(new TaskProgressDetail { 
-                    Progress = currentProgress, 
-                    StatusText = "Features added to script" 
+                progress?.Report(new TaskProgressDetail
+                {
+                    Progress = currentProgress,
+                    StatusText = "Features added to script"
                 });
-                
+
                 // Create progress transformer for execution phase
                 IProgress<TaskProgressDetail>? executionProgress = null;
                 if (progress != null)
                 {
-                    executionProgress = new Progress<TaskProgressDetail>(detail => {
+                    executionProgress = new Progress<TaskProgressDetail>(detail =>
+                    {
                         var transformedDetail = detail;
                         transformedDetail.Progress = currentProgress + (detail.Progress * EXECUTION_PHASE_WEIGHT / 100);
                         progress.Report(transformedDetail);
                     });
                 }
-                
+
                 // Execute the script
                 var executionResult = await ExecuteScriptAsync(executionProgress, cancellationToken);
-                
+
                 // Return the result of the execution
                 return executionResult;
             }
             catch (Exception ex)
             {
                 _logService.LogError($"Error removing items: {ex.Message}", ex);
-                progress?.Report(new TaskProgressDetail { 
-                    Progress = 0, 
+                progress?.Report(new TaskProgressDetail
+                {
+                    Progress = 0,
                     StatusText = $"Error removing items: {ex.Message}",
                     LogLevel = LogLevel.Error
                 });

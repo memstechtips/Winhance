@@ -21,7 +21,7 @@ namespace Winhance.WPF.Features.Common.Converters
                         return PackIconKind.WindowMaximize;
                 }
             }
-            
+
             return PackIconKind.WindowMaximize;
         }
 
@@ -39,7 +39,7 @@ namespace Winhance.WPF.Features.Common.Converters
                         return "WindowMaximize";
                 }
             }
-            
+
             return "WindowMaximize";
         }
     }

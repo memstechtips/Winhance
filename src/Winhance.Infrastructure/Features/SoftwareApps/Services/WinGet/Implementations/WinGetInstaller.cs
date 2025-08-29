@@ -159,7 +159,7 @@ namespace Winhance.Infrastructure.Features.SoftwareApps.Services.WinGet.Implemen
                         .ConfigureAwait(false);
 
                     VerificationResult verification;
-                    
+
                     // Check if version is null or empty and use the appropriate overload
                     if (string.IsNullOrWhiteSpace(options.Version))
                     {
@@ -333,7 +333,7 @@ namespace Winhance.Infrastructure.Features.SoftwareApps.Services.WinGet.Implemen
                         .ConfigureAwait(false);
 
                     VerificationResult verificationResult;
-                    
+
                     // Check if version is null or empty and use the appropriate overload
                     if (string.IsNullOrWhiteSpace(options.Version))
                     {
@@ -551,15 +551,15 @@ namespace Winhance.Infrastructure.Features.SoftwareApps.Services.WinGet.Implemen
                 );
 
             options ??= new SearchOptions();
-            
+
             // Build the command arguments - use the exact format that works in terminal
             string escapedQuery = EscapeArgument(query);
             string arguments = $"search --name {escapedQuery} --accept-source-agreements";
-            
+
             // Add count parameter if specified
             if (options.Count > 0)
                 arguments += $" --count {options.Count}";
-            
+
             // Log the exact command being executed
             _logService?.LogInformation($"Executing WinGet search command: winget {arguments}");
 
@@ -578,13 +578,13 @@ namespace Winhance.Infrastructure.Features.SoftwareApps.Services.WinGet.Implemen
                     _logService?.LogWarning($"WinGet search failed with exit code {result.ExitCode}. Error: {result.Error}");
                     return Enumerable.Empty<PackageInfo>();
                 }
-                
+
                 // Log the raw output for debugging
                 _logService?.LogInformation($"WinGet search raw output: {result.Output}");
-                
+
                 var packageList = ParsePackageList(result.Output);
                 _logService?.LogInformation($"Parsed {packageList.Count()} packages from WinGet search results");
-                
+
                 return packageList;
             }
             catch (Exception ex)
@@ -613,14 +613,14 @@ namespace Winhance.Infrastructure.Features.SoftwareApps.Services.WinGet.Implemen
                 .Split(Path.PathSeparator)
                 .Any(p => !string.IsNullOrEmpty(p) && File.Exists(Path.Combine(p, WinGetExe)));
         }
-        
+
         /// <inheritdoc/>
         public bool TryVerifyWinGetCommand()
         {
             try
             {
                 _logService?.LogInformation("Verifying WinGet by running 'winget -v' command");
-                
+
                 // Create a process to run WinGet version command
                 var processStartInfo = new ProcessStartInfo
                 {
@@ -631,7 +631,7 @@ namespace Winhance.Infrastructure.Features.SoftwareApps.Services.WinGet.Implemen
                     UseShellExecute = false,
                     CreateNoWindow = true,
                 };
-                
+
                 using (var process = new Process { StartInfo = processStartInfo })
                 {
                     try
@@ -643,7 +643,7 @@ namespace Winhance.Infrastructure.Features.SoftwareApps.Services.WinGet.Implemen
                             {
                                 string output = process.StandardOutput.ReadToEnd();
                                 string error = process.StandardError.ReadToEnd();
-                                
+
                                 // If we got output and no error, WinGet is working
                                 if (!string.IsNullOrWhiteSpace(output) && string.IsNullOrWhiteSpace(error))
                                 {
@@ -668,18 +668,18 @@ namespace Winhance.Infrastructure.Features.SoftwareApps.Services.WinGet.Implemen
                         _logService?.LogWarning($"Error verifying WinGet command: {ex.Message}");
                     }
                 }
-                
+
                 // Try an alternative approach - using WindowsApps path directly
                 string windowsAppsPath = Path.Combine(
                     Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData),
                     "Microsoft\\WindowsApps"
                 );
-                
+
                 if (Directory.Exists(windowsAppsPath))
                 {
                     processStartInfo.FileName = Path.Combine(windowsAppsPath, WinGetExe);
                     _logService?.LogInformation($"Trying alternative WinGet path: {processStartInfo.FileName}");
-                    
+
                     if (File.Exists(processStartInfo.FileName))
                     {
                         using (var process = new Process { StartInfo = processStartInfo })
@@ -692,7 +692,7 @@ namespace Winhance.Infrastructure.Features.SoftwareApps.Services.WinGet.Implemen
                                     {
                                         string output = process.StandardOutput.ReadToEnd();
                                         string error = process.StandardError.ReadToEnd();
-                                        
+
                                         if (!string.IsNullOrWhiteSpace(output) && string.IsNullOrWhiteSpace(error))
                                         {
                                             _logService?.LogInformation($"Alternative WinGet path verification successful, version: {output.Trim()}");
@@ -705,7 +705,7 @@ namespace Winhance.Infrastructure.Features.SoftwareApps.Services.WinGet.Implemen
                         }
                     }
                 }
-                
+
                 return false;
             }
             catch (Exception ex)
@@ -722,27 +722,27 @@ namespace Winhance.Infrastructure.Features.SoftwareApps.Services.WinGet.Implemen
             {
                 // First, check if WinGet is already installed and working
                 _logService?.LogInformation("Checking if WinGet is already installed...");
-                
+
                 // Try to verify WinGet command directly
                 if (TryVerifyWinGetCommand())
                 {
                     _logService?.LogInformation("WinGet is already installed and working.");
                     return true;
                 }
-                
+
                 // If not found in PATH, check if it's in the WindowsApps directory
                 string windowsAppsPath = Path.Combine(
                     Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData),
                     "Microsoft\\WindowsApps"
                 );
-                
+
                 string wingetPath = Path.Combine(windowsAppsPath, WinGetExe);
                 if (File.Exists(wingetPath))
                 {
                     _logService?.LogInformation($"Found WinGet at: {wingetPath}");
                     return true;
                 }
-                
+
                 _logService?.LogInformation("WinGet not found. Attempting to install WinGet...");
 
                 // Create a progress adapter for the task progress service
@@ -816,7 +816,7 @@ namespace Winhance.Infrastructure.Features.SoftwareApps.Services.WinGet.Implemen
                     // Handle wildcard paths
                     var directory = Path.GetDirectoryName(pathPattern);
                     var filePattern = Path.GetFileName(pathPattern);
-                    
+
                     if (Directory.Exists(directory))
                     {
                         var matchingFiles = Directory.GetFiles(
@@ -844,14 +844,14 @@ namespace Winhance.Infrastructure.Features.SoftwareApps.Services.WinGet.Implemen
             if (await TryInstallWinGetAsync(cancellationToken))
             {
                 _logService?.LogInformation("WinGet installation completed, verifying installation");
-                
+
                 // First try to verify WinGet by running a command after installation
                 if (TryVerifyWinGetCommand())
                 {
                     _logService?.LogInformation("WinGet command verified and working after installation");
                     return (WinGetExe, true);
                 }
-                
+
                 // After installation, check if it's now in the PATH
                 if (IsWinGetInPath())
                 {
@@ -866,7 +866,7 @@ namespace Winhance.Infrastructure.Features.SoftwareApps.Services.WinGet.Implemen
                         // Handle wildcard paths
                         var directory = Path.GetDirectoryName(pathPattern);
                         var filePattern = Path.GetFileName(pathPattern);
-                        
+
                         if (Directory.Exists(directory))
                         {
                             var matchingFiles = Directory.GetFiles(
@@ -911,7 +911,7 @@ namespace Winhance.Infrastructure.Features.SoftwareApps.Services.WinGet.Implemen
         }
 
         // Installation states have been moved to WinGetOutputParser.InstallationState
-        
+
         // Cache for WinGet path to avoid redundant verification
         private string _cachedWinGetPath = null;
         private bool _winGetJustInstalled = false;
@@ -932,7 +932,7 @@ namespace Winhance.Infrastructure.Features.SoftwareApps.Services.WinGet.Implemen
                 // Use cached WinGet path if available, otherwise find it
                 string winGetPath;
                 bool justInstalled;
-                
+
                 // Only verify WinGet once per session to avoid redundant checks
                 if (_cachedWinGetPath != null)
                 {
@@ -946,7 +946,7 @@ namespace Winhance.Infrastructure.Features.SoftwareApps.Services.WinGet.Implemen
                     {
                         // This will verify WinGet is working and available
                         (winGetPath, justInstalled) = await FindWinGetPathAsync(cancellationToken);
-                        
+
                         // Cache the result for future use
                         _cachedWinGetPath = winGetPath;
                         _winGetJustInstalled = justInstalled;
@@ -965,14 +965,14 @@ namespace Winhance.Infrastructure.Features.SoftwareApps.Services.WinGet.Implemen
                         return (1, string.Empty, ex.Message);
                     }
                 }
-                
+
                 // If WinGet was just installed, we might need to wait a moment for permissions to be set up
                 // This is especially important on LTSC editions where there can be a delay
                 if (justInstalled)
                 {
                     _logService?.LogInformation("WinGet was just installed. Waiting briefly before proceeding...");
                     await Task.Delay(2000, cancellationToken); // Wait 2 seconds
-                    
+
                     // Notify the user that WinGet was installed and we're continuing with the app installation
                     progressAdapter?.Report(
                         new InstallationProgress
@@ -982,13 +982,13 @@ namespace Winhance.Infrastructure.Features.SoftwareApps.Services.WinGet.Implemen
                             IsIndeterminate = false,
                         }
                     );
-                    
+
                     // For LTSC editions, we need to use a different approach after installation
                     // Try to use the full path to WinGet if it's not just "winget.exe"
                     if (!string.Equals(winGetPath, WinGetExe, StringComparison.OrdinalIgnoreCase))
                     {
                         _logService?.LogInformation($"Using full path to WinGet: {winGetPath}");
-                        
+
                         // Check if the file exists and is accessible
                         if (File.Exists(winGetPath))
                         {
@@ -1038,7 +1038,7 @@ namespace Winhance.Infrastructure.Features.SoftwareApps.Services.WinGet.Implemen
 
                 // Create an output parser for processing WinGet output
                 var outputParser = new WinGetOutputParser(_logService);
-                
+
                 // Report initial progress with more detailed status
                 progressAdapter?.Report(
                     new InstallationProgress
@@ -1054,10 +1054,10 @@ namespace Winhance.Infrastructure.Features.SoftwareApps.Services.WinGet.Implemen
                     if (e.Data != null)
                     {
                         outputBuilder.AppendLine(e.Data);
-                        
+
                         // Parse the output line and get progress update
                         var progress = outputParser.ParseOutputLine(e.Data);
-                        
+
                         // Report progress if available
                         if (progress != null)
                         {
@@ -1065,7 +1065,7 @@ namespace Winhance.Infrastructure.Features.SoftwareApps.Services.WinGet.Implemen
                         }
                     }
                 };
-                
+
                 // The parsing functionality has been moved to WinGetOutputParser
 
                 process.ErrorDataReceived += (sender, e) =>
@@ -1104,7 +1104,7 @@ namespace Winhance.Infrastructure.Features.SoftwareApps.Services.WinGet.Implemen
                 {
                     // Create a flag to track whether cancellation was due to user action or connectivity issues
                     bool isCancellationDueToConnectivity = false;
-                    
+
                     // Register cancellation callback to kill the process when cancellation is requested
                     using var cancelRegistration = cancellationToken.Register(() =>
                     {
@@ -1120,7 +1120,7 @@ namespace Winhance.Infrastructure.Features.SoftwareApps.Services.WinGet.Implemen
                                 // but the AppInstallationCoordinatorService will handle this distinction
                                 _logService?.LogWarning("WinGet process cancellation requested");
                             }
-                            
+
                             if (!process.HasExited)
                             {
                                 // Report cancellation progress immediately
@@ -1133,16 +1133,16 @@ namespace Winhance.Infrastructure.Features.SoftwareApps.Services.WinGet.Implemen
                                         IsCancelled = true
                                     }
                                 );
-                                
+
                                 // Kill the process and all child processes in a background task
                                 // to prevent UI stalling
-                                Task.Run(() => 
+                                Task.Run(() =>
                                 {
-                                    try 
+                                    try
                                     {
                                         KillProcessAndChildren(process.Id);
                                         _logService?.LogWarning("WinGet process and all child processes were killed due to cancellation");
-                                        
+
                                         // Update progress after killing processes
                                         progressAdapter?.Report(
                                             new InstallationProgress
@@ -1166,7 +1166,7 @@ namespace Winhance.Infrastructure.Features.SoftwareApps.Services.WinGet.Implemen
                             _logService?.LogError($"Error killing WinGet process: {ex.Message}");
                         }
                     });
-                    
+
                     exitCode = await processExitTask;
                     _logService?.LogInformation($"WinGet process exited with code: {exitCode}");
 
@@ -1215,17 +1215,17 @@ namespace Winhance.Infrastructure.Features.SoftwareApps.Services.WinGet.Implemen
                                     IsCancelled = true
                                 }
                             );
-                            
+
                             // Kill the process and all child processes in a background task
-                            Task.Run(() => 
+                            Task.Run(() =>
                             {
-                                try 
+                                try
                                 {
                                     KillProcessAndChildren(process.Id);
                                     _logService?.LogWarning(
                                         "WinGet process and all child processes were killed due to cancellation"
                                     );
-                                    
+
                                     // Update progress after killing processes
                                     progressAdapter?.Report(
                                         new InstallationProgress
@@ -1248,7 +1248,7 @@ namespace Winhance.Infrastructure.Features.SoftwareApps.Services.WinGet.Implemen
                             _logService?.LogError($"Error killing WinGet process: {ex.Message}");
                         }
                     }
-                    
+
                     // Report cancellation progress
                     progressAdapter?.Report(
                         new InstallationProgress
@@ -1304,7 +1304,7 @@ namespace Winhance.Infrastructure.Features.SoftwareApps.Services.WinGet.Implemen
                 // First, directly kill any Windows Store processes that might be related to the installation
                 // This is a more direct approach to ensure the installation is cancelled
                 KillWindowsStoreProcesses();
-                
+
                 // Get the process by ID
                 Process process = null;
                 try
@@ -1316,7 +1316,7 @@ namespace Winhance.Infrastructure.Features.SoftwareApps.Services.WinGet.Implemen
                     _logService?.LogWarning($"Process with ID {pid} not found");
                     return;
                 }
-                
+
                 // Use a more efficient approach to kill the process and its children
                 // with a timeout to prevent hanging
                 using (var cts = new CancellationTokenSource(TimeSpan.FromSeconds(3)))
@@ -1342,7 +1342,7 @@ namespace Winhance.Infrastructure.Features.SoftwareApps.Services.WinGet.Implemen
                                 _logService?.LogWarning($"Error killing process tree: {ex.Message}, using fallback method");
                             }
                         }
-                        
+
                         // Fallback: Kill the process and its children manually
                         KillProcessTree(pid, cts.Token);
                     }
@@ -1357,7 +1357,7 @@ namespace Winhance.Infrastructure.Features.SoftwareApps.Services.WinGet.Implemen
                 _logService?.LogError($"Error in KillProcessAndChildren for PID {pid}: {ex.Message}");
             }
         }
-        
+
         /// <summary>
         /// Kills the Windows Store processes that might be related to the installation.
         /// </summary>
@@ -1366,14 +1366,14 @@ namespace Winhance.Infrastructure.Features.SoftwareApps.Services.WinGet.Implemen
             try
             {
                 // Target specific processes known to be related to Windows Store installations
-                string[] targetProcessNames = new[] { 
-                    "WinStore.App", 
-                    "WinStore.Mobile", 
-                    "WindowsPackageManagerServer", 
+                string[] targetProcessNames = new[] {
+                    "WinStore.App",
+                    "WinStore.Mobile",
+                    "WindowsPackageManagerServer",
                     "AppInstaller",
                     "Microsoft.WindowsStore"
                 };
-                
+
                 foreach (var processName in targetProcessNames)
                 {
                     try
@@ -1406,7 +1406,7 @@ namespace Winhance.Infrastructure.Features.SoftwareApps.Services.WinGet.Implemen
                 _logService?.LogError($"Error killing Windows Store processes: {ex.Message}");
             }
         }
-        
+
         /// <summary>
         /// Kills a process tree efficiently with cancellation support.
         /// </summary>
@@ -1418,12 +1418,12 @@ namespace Winhance.Infrastructure.Features.SoftwareApps.Services.WinGet.Implemen
             {
                 // Get direct child processes using a more efficient method
                 var childProcessIds = GetChildProcessIds(pid);
-                
+
                 // Kill child processes first
                 foreach (var childPid in childProcessIds)
                 {
                     cancellationToken.ThrowIfCancellationRequested();
-                    
+
                     try
                     {
                         // Recursively kill child process trees
@@ -1434,7 +1434,7 @@ namespace Winhance.Infrastructure.Features.SoftwareApps.Services.WinGet.Implemen
                         _logService?.LogWarning($"Error killing child process {childPid}: {ex.Message}");
                     }
                 }
-                
+
                 // Kill the parent process
                 try
                 {
@@ -1464,7 +1464,7 @@ namespace Winhance.Infrastructure.Features.SoftwareApps.Services.WinGet.Implemen
                 _logService?.LogError($"Error in KillProcessTree for PID {pid}: {ex.Message}");
             }
         }
-        
+
         /// <summary>
         /// Gets the child process IDs for a given process ID efficiently.
         /// </summary>
@@ -1473,7 +1473,7 @@ namespace Winhance.Infrastructure.Features.SoftwareApps.Services.WinGet.Implemen
         private List<int> GetChildProcessIds(int parentId)
         {
             var result = new List<int>();
-            
+
             try
             {
                 // Use a more efficient query that only gets the data we need
@@ -1481,7 +1481,7 @@ namespace Winhance.Infrastructure.Features.SoftwareApps.Services.WinGet.Implemen
                     $"SELECT ProcessId FROM Win32_Process WHERE ParentProcessId = {parentId}"))
                 {
                     searcher.Options.Timeout = TimeSpan.FromSeconds(1); // Set a timeout to prevent hanging
-                    
+
                     foreach (var obj in searcher.Get())
                     {
                         try
@@ -1499,10 +1499,10 @@ namespace Winhance.Infrastructure.Features.SoftwareApps.Services.WinGet.Implemen
             {
                 _logService?.LogWarning($"Error getting child process IDs: {ex.Message}");
             }
-            
+
             return result;
         }
-        
+
         private string EscapeArgument(string arg)
         {
             if (string.IsNullOrEmpty(arg))
@@ -1582,7 +1582,7 @@ namespace Winhance.Infrastructure.Features.SoftwareApps.Services.WinGet.Implemen
             int idColumnIndex = -1;
             int versionColumnIndex = -1;
             int sourceColumnIndex = -1;
-            
+
             for (int i = 0; i < lines.Length; i++)
             {
                 var line = lines[i].Trim();
@@ -1599,7 +1599,7 @@ namespace Winhance.Infrastructure.Features.SoftwareApps.Services.WinGet.Implemen
                     idColumnIndex = line.IndexOf("Id");
                     versionColumnIndex = line.IndexOf("Version");
                     sourceColumnIndex = line.IndexOf("Source");
-                    
+
                     _logService?.LogInformation($"Found header line: {line}");
                     _logService?.LogInformation($"Column positions - Name: {nameColumnIndex}, Id: {idColumnIndex}, Version: {versionColumnIndex}, Source: {sourceColumnIndex}");
                     continue;
@@ -1620,7 +1620,7 @@ namespace Winhance.Infrastructure.Features.SoftwareApps.Services.WinGet.Implemen
                 if (nameColumnIndex < 0 || idColumnIndex < 0 || versionColumnIndex < 0)
                 {
                     _logService?.LogWarning("Could not identify column positions, using fallback parsing method");
-                    
+
                     // Parse package info from the line using simple space splitting
                     var parts = line.Split(new[] { ' ' }, StringSplitOptions.RemoveEmptyEntries);
                     if (parts.Length < 3)
@@ -1645,13 +1645,13 @@ namespace Winhance.Infrastructure.Features.SoftwareApps.Services.WinGet.Implemen
                 {
                     string name, id, version, source;
                     bool isInstalled = line.Contains("[Installed]");
-                    
+
                     // Extract name (from nameColumnIndex to idColumnIndex)
                     name = line.Substring(nameColumnIndex, idColumnIndex - nameColumnIndex).Trim();
-                    
+
                     // Extract ID (from idColumnIndex to versionColumnIndex)
                     id = line.Substring(idColumnIndex, versionColumnIndex - idColumnIndex).Trim();
-                    
+
                     // Extract version (from versionColumnIndex to sourceColumnIndex or end)
                     if (sourceColumnIndex > 0)
                     {
@@ -1663,9 +1663,9 @@ namespace Winhance.Infrastructure.Features.SoftwareApps.Services.WinGet.Implemen
                         version = line.Substring(versionColumnIndex).Trim();
                         source = string.Empty;
                     }
-                    
+
                     _logService?.LogInformation($"Parsed package - Name: '{name}', Id: '{id}', Version: '{version}', Source: '{source}'");
-                    
+
                     results.Add(new PackageInfo
                     {
                         Name = name,
@@ -1680,7 +1680,7 @@ namespace Winhance.Infrastructure.Features.SoftwareApps.Services.WinGet.Implemen
                     _logService?.LogError($"Error parsing line '{line}': {ex.Message}");
                 }
             }
-            
+
             return results;
         }
     }

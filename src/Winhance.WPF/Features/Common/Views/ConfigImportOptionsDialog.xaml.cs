@@ -21,7 +21,7 @@ namespace Winhance.WPF.Features.Common.Views
         public ConfigImportOptionsDialog()
         {
             InitializeComponent();
-            
+
             // Set the default selected option to None
             SelectedOption = ImportOption.None;
         }
@@ -36,7 +36,7 @@ namespace Winhance.WPF.Features.Common.Views
                 this.DragMove();
             }
         }
-        
+
         /// <summary>
         /// Handles the close button click event.
         /// </summary>
@@ -45,7 +45,7 @@ namespace Winhance.WPF.Features.Common.Views
             this.DialogResult = false;
             this.Close();
         }
-        
+
         /// <summary>
         /// Handles the import own config button click event.
         /// </summary>
@@ -55,7 +55,7 @@ namespace Winhance.WPF.Features.Common.Views
             this.DialogResult = true;
             this.Close();
         }
-        
+
         /// <summary>
         /// Handles the import recommended config button click event.
         /// </summary>

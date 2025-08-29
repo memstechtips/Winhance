@@ -28,7 +28,7 @@ namespace Winhance.Infrastructure.Features.Common.Services
         private DateTime _lastInternetCheckTime = DateTime.MinValue;
         private readonly TimeSpan _internetStatusCacheDuration = TimeSpan.FromSeconds(10); // Cache for 10 seconds
         private readonly ILogService _logService;
-        
+
         // Monitoring-related fields
         private CancellationTokenSource _monitoringCts;
         private Task _monitoringTask;
@@ -181,7 +181,7 @@ namespace Winhance.Infrastructure.Features.Common.Services
                     _logService.LogInformation(userInitiatedCancellation ? "Internet connectivity check was cancelled by user" : "Internet connectivity check was cancelled as part of operation cancellation");
                     throw new OperationCanceledException(cancellationToken);
                 }
-                
+
                 // Return cached result if it's still valid and force check is not requested
                 if (
                     !forceCheck
@@ -204,10 +204,10 @@ namespace Winhance.Infrastructure.Features.Common.Services
                     );
                     _cachedInternetStatus = false;
                     _lastInternetCheckTime = DateTime.Now;
-                    
+
                     // Raise the event if monitoring is active
                     OnConnectivityChanged(new ConnectivityChangedEventArgs(false));
-                    
+
                     return false;
                 }
 
@@ -221,7 +221,7 @@ namespace Winhance.Infrastructure.Features.Common.Services
                         _logService.LogInformation(userInitiatedCancellation ? "Internet connectivity check was cancelled by user" : "Internet connectivity check was cancelled as part of operation cancellation");
                         throw new OperationCanceledException(cancellationToken);
                     }
-                    
+
                     NetworkInterface[] interfaces = NetworkInterface.GetAllNetworkInterfaces();
                     foreach (NetworkInterface ni in interfaces)
                     {
@@ -246,10 +246,10 @@ namespace Winhance.Infrastructure.Features.Common.Services
                         );
                         _cachedInternetStatus = false;
                         _lastInternetCheckTime = DateTime.Now;
-                        
+
                         // Raise the event if monitoring is active
                         OnConnectivityChanged(new ConnectivityChangedEventArgs(false));
-                        
+
                         return false;
                     }
                 }
@@ -257,10 +257,10 @@ namespace Winhance.Infrastructure.Features.Common.Services
                 {
                     // This is a user-initiated cancellation, not a connectivity issue
                     _logService.LogInformation(userInitiatedCancellation ? "Internet connectivity check was cancelled by user" : "Internet connectivity check was cancelled as part of operation cancellation");
-                    
+
                     // Raise the event if monitoring is active
                     OnConnectivityChanged(new ConnectivityChangedEventArgs(false, userInitiatedCancellation));
-                    
+
                     throw; // Re-throw to be handled by the caller
                 }
                 catch (Exception ex)
@@ -281,7 +281,7 @@ namespace Winhance.Infrastructure.Features.Common.Services
                             _logService.LogInformation(userInitiatedCancellation ? "Internet connectivity check was cancelled by user" : "Internet connectivity check was cancelled as part of operation cancellation");
                             throw new OperationCanceledException(cancellationToken);
                         }
-                        
+
                         // Make a HEAD request to minimize data transfer
                         var request = new HttpRequestMessage(HttpMethod.Head, url);
                         var response = await _httpClient.SendAsync(request, cancellationToken);
@@ -291,10 +291,10 @@ namespace Winhance.Infrastructure.Features.Common.Services
                             _logService.LogInformation($"Successfully connected to {url}");
                             _cachedInternetStatus = true;
                             _lastInternetCheckTime = DateTime.Now;
-                            
+
                             // Raise the event if monitoring is active
                             OnConnectivityChanged(new ConnectivityChangedEventArgs(true));
-                            
+
                             return true;
                         }
                     }
@@ -302,10 +302,10 @@ namespace Winhance.Infrastructure.Features.Common.Services
                     {
                         // This is a user-initiated cancellation, not a connectivity issue
                         _logService.LogInformation(userInitiatedCancellation ? "Internet connectivity check was cancelled by user" : "Internet connectivity check was cancelled as part of operation cancellation");
-                        
+
                         // Raise the event if monitoring is active
                         OnConnectivityChanged(new ConnectivityChangedEventArgs(false, userInitiatedCancellation));
-                        
+
                         throw; // Re-throw to be handled by the caller
                     }
                     catch (Exception ex)
@@ -319,33 +319,33 @@ namespace Winhance.Infrastructure.Features.Common.Services
                 _logService.LogWarning("All internet connectivity checks failed");
                 _cachedInternetStatus = false;
                 _lastInternetCheckTime = DateTime.Now;
-                
+
                 // Raise the event if monitoring is active
                 OnConnectivityChanged(new ConnectivityChangedEventArgs(false));
-                
+
                 return false;
             }
             catch (OperationCanceledException)
             {
                 // This is a user-initiated cancellation, not a connectivity issue
                 _logService.LogInformation("Internet connectivity check was cancelled by user");
-                
+
                 // Raise the event if monitoring is active
                 OnConnectivityChanged(new ConnectivityChangedEventArgs(false, true));
-                
+
                 throw; // Re-throw to be handled by the caller
             }
             catch (Exception ex)
             {
                 _logService.LogError("Error checking internet connectivity", ex);
-                
+
                 // Raise the event if monitoring is active
                 OnConnectivityChanged(new ConnectivityChangedEventArgs(false));
-                
+
                 return false;
             }
         }
-        
+
         /// <summary>
         /// Starts monitoring internet connectivity during installation with optimized intervals.
         /// </summary>
@@ -370,32 +370,32 @@ namespace Winhance.Infrastructure.Features.Common.Services
                 _logService.LogWarning("Internet connectivity monitoring is already active");
                 return;
             }
-            
+
             _monitoringIntervalSeconds = intervalSeconds;
             _monitoringCts = CancellationTokenSource.CreateLinkedTokenSource(cancellationToken);
             _isMonitoring = true;
-            
+
             _logService.LogInformation($"Starting internet connectivity monitoring with {intervalSeconds} second interval");
-            
+
             _monitoringTask = Task.Run(async () =>
             {
                 try
                 {
                     bool? lastStatus = null;
-                    
+
                     while (!_monitoringCts.Token.IsCancellationRequested)
                     {
                         try
                         {
                             bool currentStatus = await IsInternetConnectedAsync(true, _monitoringCts.Token);
-                            
+
                             // Only raise the event if the status has changed
                             if (lastStatus == null || lastStatus.Value != currentStatus)
                             {
                                 _logService.LogInformation($"Internet connectivity status changed: {currentStatus}");
                                 lastStatus = currentStatus;
                             }
-                            
+
                             // Wait for the specified interval
                             await Task.Delay(TimeSpan.FromSeconds(_monitoringIntervalSeconds), _monitoringCts.Token);
                         }
@@ -407,7 +407,7 @@ namespace Winhance.Infrastructure.Features.Common.Services
                                 _logService.LogInformation("Internet connectivity monitoring was cancelled");
                                 break;
                             }
-                            
+
                             // If it's a user-initiated cancellation during a connectivity check, continue monitoring
                             _logService.LogInformation("Internet connectivity check was cancelled by user, continuing monitoring");
                             await Task.Delay(TimeSpan.FromSeconds(_monitoringIntervalSeconds), _monitoringCts.Token);
@@ -433,10 +433,10 @@ namespace Winhance.Infrastructure.Features.Common.Services
                     _isMonitoring = false;
                 }
             }, _monitoringCts.Token);
-            
+
             await Task.CompletedTask;
         }
-        
+
         /// <summary>
         /// Stops monitoring internet connectivity.
         /// </summary>
@@ -446,9 +446,9 @@ namespace Winhance.Infrastructure.Features.Common.Services
             {
                 return;
             }
-            
+
             _logService.LogInformation("Stopping internet connectivity monitoring");
-            
+
             try
             {
                 _monitoringCts?.Cancel();
@@ -462,7 +462,7 @@ namespace Winhance.Infrastructure.Features.Common.Services
                 _logService.LogError("Error stopping internet connectivity monitoring", ex);
             }
         }
-        
+
         /// <summary>
         /// Raises the ConnectivityChanged event.
         /// </summary>
@@ -474,7 +474,7 @@ namespace Winhance.Infrastructure.Features.Common.Services
                 ConnectivityChanged?.Invoke(this, args);
             }
         }
-        
+
         /// <summary>
         /// Disposes the resources used by the service.
         /// </summary>

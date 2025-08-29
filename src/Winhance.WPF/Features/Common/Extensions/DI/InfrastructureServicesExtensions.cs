@@ -2,10 +2,10 @@ using Microsoft.Extensions.DependencyInjection;
 using Winhance.Core.Features.Common.Events;
 using Winhance.Core.Features.Common.Interfaces;
 using Winhance.Core.Features.Common.Interfaces.WindowsRegistry;
-using Winhance.Core.Features.Common.Services;
 using Winhance.Infrastructure.Features.Common.Events;
-using Winhance.Infrastructure.Features.Common.WindowsRegistry;
 using Winhance.Infrastructure.Features.Common.Services;
+using Winhance.Infrastructure.Features.Common.WindowsRegistry;
+using Winhance.WPF.Features.Common.Interfaces;
 
 namespace Winhance.WPF.Features.Common.Extensions.DI
 {
@@ -54,8 +54,6 @@ namespace Winhance.WPF.Features.Common.Extensions.DI
 
             // Battery Service (Singleton - System resource)
             services.AddSingleton<IBatteryService, BatteryService>();
-
-            // System Services will be registered later after UI services due to dependency on IUacSettingsService
 
             // Detection Services (Singleton - Expensive initialization)
             services.AddSingleton<IPowerShellDetectionService, PowerShellDetectionService>();
@@ -111,11 +109,12 @@ namespace Winhance.WPF.Features.Common.Extensions.DI
             services.AddScoped<IComboBoxResolver, ComboBoxResolver>();
 
             // RecommendedSettings Service (Singleton - Application-wide recommendation logic)
-            services.AddSingleton<IRecommendedSettingsService>(provider => 
+            services.AddSingleton<IRecommendedSettingsService>(provider =>
                 new Infrastructure.Features.Common.Services.RecommendedSettingsService(
                     provider.GetRequiredService<IDomainServiceRouter>(),
                     provider.GetRequiredService<ISystemServices>(),
-                    provider.GetRequiredService<ILogService>()
+                    provider.GetRequiredService<ILogService>(),
+                    provider.GetRequiredService<IEventBus>()
                 ));
 
             // Settings Loading Service (Scoped - Per-feature loading operation)
@@ -126,7 +125,9 @@ namespace Winhance.WPF.Features.Common.Extensions.DI
                     provider.GetRequiredService<IEventBus>(),
                     provider.GetRequiredService<ILogService>(),
                     provider.GetRequiredService<IComboBoxSetupService>(),
-                    provider.GetRequiredService<IDomainServiceRouter>()
+                    provider.GetRequiredService<IDomainServiceRouter>(),
+                    provider.GetRequiredService<ISettingsConfirmationService>(),
+                    provider.GetRequiredService<IGlobalSettingsRegistry>()
                 )
             );
 
@@ -146,14 +147,13 @@ namespace Winhance.WPF.Features.Common.Extensions.DI
             this IServiceCollection services
         )
         {
-            // System Services (requires IUacSettingsService from UI layer)
+            // System Services
             services.AddSingleton<ISystemServices>(
                 provider => new Winhance.Infrastructure.Features.Common.Services.WindowsSystemService(
                     provider.GetRequiredService<IWindowsRegistryService>(),
                     provider.GetRequiredService<ILogService>(),
                     provider.GetRequiredService<IInternetConnectivityService>(),
-                    null, // Intentionally not passing IDomainService to break circular dependency
-                    provider.GetRequiredService<IUacSettingsService>()
+                    null // Intentionally not passing IDomainService to break circular dependency
                 )
             );
 
@@ -177,7 +177,7 @@ namespace Winhance.WPF.Features.Common.Extensions.DI
         public static IServiceCollection AddcontrolHandlerServices(this IServiceCollection services)
         {
             // System Setting controlHandler (Scoped - Coordinates registry operations)
-            services.AddScoped< SettingControlHandler>(sp => new  SettingControlHandler(
+            services.AddScoped<SettingControlHandler>(sp => new SettingControlHandler(
                 sp.GetRequiredService<IWindowsRegistryService>(),
                 sp.GetRequiredService<IComboBoxResolver>(),
                 sp.GetRequiredService<ILogService>()

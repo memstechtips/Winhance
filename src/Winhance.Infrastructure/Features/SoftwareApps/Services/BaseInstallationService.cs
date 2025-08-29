@@ -120,7 +120,7 @@ namespace Winhance.Infrastructure.Features.SoftwareApps.Services
                         LogLevel = LogLevel.Warning,
                     }
                 );
-                
+
                 _logService.LogWarning($"Operation cancelled when installing {item.DisplayName}");
                 return OperationResult<bool>.Failed("The installation was cancelled by the user");
             }

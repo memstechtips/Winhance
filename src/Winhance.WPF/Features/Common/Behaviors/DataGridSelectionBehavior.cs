@@ -43,7 +43,7 @@ namespace Winhance.WPF.Features.Common.Behaviors
         protected override void OnAttached()
         {
             base.OnAttached();
-            
+
             if (AssociatedObject != null)
             {
                 AssociatedObject.SelectionChanged += OnSelectionChanged;
@@ -57,11 +57,11 @@ namespace Winhance.WPF.Features.Common.Behaviors
             {
                 AssociatedObject.SelectionChanged -= OnSelectionChanged;
                 AssociatedObject.Loaded -= OnDataGridLoaded;
-                
+
                 // Unsubscribe from column header events
                 UnsubscribeFromColumnHeaders();
             }
-            
+
             base.OnDetaching();
         }
 
@@ -79,7 +79,7 @@ namespace Winhance.WPF.Features.Common.Behaviors
             try
             {
                 _isHandlingSelection = true;
-                
+
                 if (SelectionChangedCommand.CanExecute(null))
                 {
                     SelectionChangedCommand.Execute(null);
@@ -125,7 +125,7 @@ namespace Winhance.WPF.Features.Common.Behaviors
             if (sender is DataGridColumnHeader header && ColumnHeaderClickCommand != null)
             {
                 string sortProperty = GetSortPropertyFromHeader(header);
-                
+
                 if (!string.IsNullOrEmpty(sortProperty) && ColumnHeaderClickCommand.CanExecute(sortProperty))
                 {
                     ColumnHeaderClickCommand.Execute(sortProperty);

@@ -32,13 +32,13 @@ namespace Winhance.Infrastructure.Features.Common.Events
                 throw new ArgumentNullException(nameof(domainEvent));
 
             var eventType = typeof(TEvent);
-            
+
             List<Subscription> subscriptions;
             lock (_lock)
             {
                 if (!_subscriptions.TryGetValue(eventType, out subscriptions))
                     return; // No subscribers
-                
+
                 // Create a copy to avoid modification during enumeration
                 subscriptions = subscriptions.ToList();
             }
@@ -91,7 +91,7 @@ namespace Winhance.Infrastructure.Features.Common.Events
                 if (_subscriptions.TryGetValue(token.EventType, out var subscriptions))
                 {
                     subscriptions.RemoveAll(s => s.Id == token.SubscriptionId);
-                    
+
                     // Remove the event type if there are no more subscriptions
                     if (subscriptions.Count == 0)
                         _subscriptions.Remove(token.EventType);
@@ -108,12 +108,12 @@ namespace Winhance.Infrastructure.Features.Common.Events
             /// Gets the unique identifier for this subscription
             /// </summary>
             public Guid Id { get; }
-            
+
             /// <summary>
             /// Gets the type of event this subscription is for
             /// </summary>
             public Type EventType { get; }
-            
+
             /// <summary>
             /// Gets the handler for this subscription
             /// </summary>
@@ -142,7 +142,7 @@ namespace Winhance.Infrastructure.Features.Common.Events
 
             /// <inheritdoc />
             public Guid SubscriptionId { get; }
-            
+
             /// <inheritdoc />
             public Type EventType { get; }
 

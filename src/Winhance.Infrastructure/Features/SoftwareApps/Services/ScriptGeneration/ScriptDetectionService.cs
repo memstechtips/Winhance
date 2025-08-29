@@ -12,7 +12,7 @@ namespace Winhance.Infrastructure.Features.SoftwareApps.Services.ScriptGeneratio
     public class ScriptDetectionService : IScriptDetectionService
     {
         private readonly IScriptPathDetectionService _scriptPathDetectionService;
-        
+
         /// <summary>
         /// Initializes a new instance of the <see cref="ScriptDetectionService"/> class.
         /// </summary>

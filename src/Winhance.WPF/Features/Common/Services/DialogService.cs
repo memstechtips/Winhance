@@ -350,10 +350,10 @@ namespace Winhance.WPF.Features.Common.Services
                 var result = await System.Windows.Application.Current.Dispatcher.InvokeAsync(() =>
                 {
                     return CustomDialog.ShowConfirmationWithCheckbox(
-                        title, 
-                        message, 
-                        checkboxText, 
-                        continueButtonText, 
+                        title,
+                        message,
+                        checkboxText,
+                        continueButtonText,
                         cancelButtonText
                     );
                 });

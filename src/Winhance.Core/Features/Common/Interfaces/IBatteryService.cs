@@ -24,7 +24,7 @@ namespace Winhance.Core.Features.Common.Interfaces
         /// </summary>
         /// <returns>True if running on battery power, false if on AC power.</returns>
         Task<bool> IsRunningOnBatteryAsync();
-        
+
         /// <summary>
         /// Checks if the system is a laptop/portable device with a lid.
         /// </summary>

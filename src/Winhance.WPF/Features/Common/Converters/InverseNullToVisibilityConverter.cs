@@ -15,8 +15,8 @@ namespace Winhance.WPF.Features.Common.Converters
         public object Convert(object value, Type targetType, object parameter, CultureInfo culture)
         {
             // Return Collapsed if value is null or empty string, otherwise Visible
-            return value == null || string.IsNullOrWhiteSpace(value?.ToString()) 
-                ? Visibility.Collapsed 
+            return value == null || string.IsNullOrWhiteSpace(value?.ToString())
+                ? Visibility.Collapsed
                 : Visibility.Visible;
         }
 

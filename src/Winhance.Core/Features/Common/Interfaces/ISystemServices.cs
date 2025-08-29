@@ -1,7 +1,4 @@
-using System.Threading;
-using System.Threading.Tasks;
 using Winhance.Core.Features.Common.Interfaces.WindowsRegistry;
-using Winhance.Core.Models.Enums;
 
 namespace Winhance.Core.Features.Common.Interfaces
 {

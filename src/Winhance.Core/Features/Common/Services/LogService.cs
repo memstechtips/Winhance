@@ -13,7 +13,7 @@ namespace Winhance.Core.Features.Common.Services
         private StreamWriter? _logWriter;
         private readonly object _lockObject = new object();
         private ISystemServices _systemServices;
-        
+
         public event EventHandler<LogMessageEventArgs>? LogMessageGenerated;
 
         public LogService()
@@ -51,11 +51,11 @@ namespace Winhance.Core.Features.Common.Services
                     LogInformation(message);
                     break;
             }
-            
+
             // Raise event for subscribers
             LogMessageGenerated?.Invoke(this, new LogMessageEventArgs(level, message, exception));
         }
-        
+
         // This method should be removed, but it might still be used in some places
         // Redirecting to the standard method with correct parameter order
         public void Log(string message, LogLevel level)
@@ -89,7 +89,7 @@ namespace Winhance.Core.Features.Common.Services
                 LogInformation($"Timestamp: {DateTime.Now}");
                 LogInformation($"User: {Environment.UserName}");
                 LogInformation($"Machine: {Environment.MachineName}");
-                
+
                 if (_systemServices != null)
                 {
                     LogInformation($"OS Version: {_systemServices.GetOsVersionString()}");

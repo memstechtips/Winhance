@@ -53,29 +53,29 @@ namespace Winhance.WPF.Features.Common.Services.Configuration
             try
             {
                 _logService.Log(LogLevel.Info, "Applying configuration to WindowsAppsViewModel");
-                
+
                 var viewModel = _serviceProvider.GetService<WindowsAppsViewModel>();
                 if (viewModel == null)
                 {
                     _logService.Log(LogLevel.Warning, "WindowsAppsViewModel not available");
                     return false;
                 }
-                
+
                 // Ensure the view model is initialized
                 if (!viewModel.IsInitialized)
                 {
                     _logService.Log(LogLevel.Info, "WindowsAppsViewModel not initialized, initializing now");
                     await viewModel.LoadItemsAsync();
                 }
-                
+
                 // Apply the configuration directly to the view model's items
                 int updatedCount = await _propertyUpdater.UpdateItemsAsync(viewModel.Items, configFile);
-                
+
                 _logService.Log(LogLevel.Info, $"Updated {updatedCount} items in WindowsAppsViewModel");
-                
+
                 // Refresh the UI
                 await _viewModelRefresher.RefreshViewModelAsync(viewModel);
-                
+
                 return updatedCount > 0;
             }
             catch (Exception ex)

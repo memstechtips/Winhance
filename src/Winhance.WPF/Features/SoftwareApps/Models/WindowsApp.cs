@@ -262,7 +262,7 @@ namespace Winhance.WPF.Features.SoftwareApps.Models
                 Version = string.Empty // Default to empty string for version
             };
         }
-        
+
         /// <summary>
         /// Converts this WindowsApp to a CapabilityInfo object.
         /// </summary>
@@ -273,7 +273,7 @@ namespace Winhance.WPF.Features.SoftwareApps.Models
             {
                 throw new InvalidOperationException("Cannot convert non-capability WindowsApp to CapabilityInfo");
             }
-            
+
             return new CapabilityInfo
             {
                 Name = Name,
@@ -286,7 +286,7 @@ namespace Winhance.WPF.Features.SoftwareApps.Models
                 CanBeReenabled = CanBeReinstalled
             };
         }
-        
+
         /// <summary>
         /// Converts this WindowsApp to a FeatureInfo object.
         /// </summary>
@@ -297,7 +297,7 @@ namespace Winhance.WPF.Features.SoftwareApps.Models
             {
                 throw new InvalidOperationException("Cannot convert non-feature WindowsApp to FeatureInfo");
             }
-            
+
             return new FeatureInfo
             {
                 Name = Name,
@@ -324,7 +324,7 @@ namespace Winhance.WPF.Features.SoftwareApps.Models
             }
 
             searchTerm = searchTerm.ToLowerInvariant();
-            
+
             // Check if the search term matches any of the searchable properties
             return Name.ToLowerInvariant().Contains(searchTerm) ||
                    (!string.IsNullOrEmpty(Description) && Description.ToLowerInvariant().Contains(searchTerm)) ||

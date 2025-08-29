@@ -86,7 +86,7 @@ namespace Winhance.Infrastructure.Features.SoftwareApps.Services
         public async Task<Dictionary<string, bool>> GetBatchInstallStatusAsync(IEnumerable<string> packageIds)
         {
             var result = new Dictionary<string, bool>();
-            
+
             // Check for special apps first
             foreach (var packageId in packageIds)
             {
@@ -102,7 +102,7 @@ namespace Winhance.Infrastructure.Features.SoftwareApps.Services
                     result[packageId] = await _appDiscoveryService.IsOneDriveInstalledAsync();
                 }
             }
-            
+
             // Get the remaining package IDs that aren't special apps
             var remainingPackageIds = packageIds.Where(id =>
                 !result.ContainsKey(id) &&
@@ -110,16 +110,16 @@ namespace Winhance.Infrastructure.Features.SoftwareApps.Services
                 !id.Equals("msedge", StringComparison.OrdinalIgnoreCase) &&
                 !id.Equals("Edge", StringComparison.OrdinalIgnoreCase) &&
                 !id.Equals("OneDrive", StringComparison.OrdinalIgnoreCase));
-            
+
             // Use the concrete AppDiscoveryService's batch method for the remaining packages
             var batchResults = await _appDiscoveryService.GetInstallationStatusBatchAsync(remainingPackageIds);
-            
+
             // Merge the results
             foreach (var pair in batchResults)
             {
                 result[pair.Key] = pair.Value;
             }
-            
+
             return result;
         }
 

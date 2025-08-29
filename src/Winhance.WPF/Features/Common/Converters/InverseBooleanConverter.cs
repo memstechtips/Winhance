@@ -15,7 +15,7 @@ namespace Winhance.WPF.Features.Common.Converters
             {
                 return !boolValue;
             }
-            
+
             return value;
         }
 
@@ -25,7 +25,7 @@ namespace Winhance.WPF.Features.Common.Converters
             {
                 return !boolValue;
             }
-            
+
             return value;
         }
     }

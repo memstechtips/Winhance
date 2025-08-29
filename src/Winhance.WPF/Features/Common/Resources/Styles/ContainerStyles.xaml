@@ -94,14 +94,6 @@
         <Setter Property="Background" Value="Transparent"/>
     </Style>
 
-    <!-- Settings Item Container Style -->
-    <!-- Used for consistent settings layout across all customize features -->
-    <!-- Matches the layout pattern from WindowsThemeCustomizationsView -->
-    <Style x:Key="SettingsItemContainerStyle" TargetType="ContentPresenter">
-        <Setter Property="Grid.ColumnSpan" Value="{Binding IsGroupHeader, Converter={StaticResource BooleanToGridSpanConverter}}"/>
-        <Setter Property="Margin" Value="5,2,5,2"/>
-    </Style>
-
     <!-- FEATURE SECTION TEMPLATES -->
     <!-- Collapsible Header Template -->
     <ControlTemplate x:Key="CollapsibleHeaderTemplate" TargetType="ContentControl">
@@ -137,7 +129,6 @@
     <DataTemplate x:Key="ModernSettingsItemTemplate">
         <!-- Group header template -->
         <Grid>
-            <TextBlock Text="{Binding Name}" Foreground="{DynamicResource PrimaryTextColor}" FontWeight="SemiBold" Margin="25,15,0,5" Visibility="{Binding IsGroupHeader, Converter={StaticResource BooleanToVisibilityConverter}}"/>
 
             <!-- Setting Card Wrapper -->
             <Border Background="{DynamicResource SettingsItemBackground}" CornerRadius="4" Margin="8,4,8,4" Visibility="{Binding IsVisible, Converter={StaticResource BooleanToVisibilityConverter}}">
@@ -148,7 +139,7 @@
                     </Grid.ColumnDefinitions>
 
                     <!-- Setting Text and Description (Left-aligned) -->
-                    <StackPanel Grid.Column="0" HorizontalAlignment="Left" VerticalAlignment="Center" Margin="15,10,0,10">
+                    <StackPanel Grid.Column="0" HorizontalAlignment="Left" VerticalAlignment="Center" Margin="15,7,0,7">
                         <TextBlock Text="{Binding Name}" FontWeight="SemiBold" Style="{StaticResource AppItemTextStyle}" VerticalAlignment="Center"/>
                         <TextBlock Text="{Binding Description}" FontSize="12" Foreground="{DynamicResource SecondaryTextColor}" TextWrapping="Wrap" Margin="0,2,0,0" VerticalAlignment="Center"/>
                     </StackPanel>
@@ -191,7 +182,7 @@
     <!-- Content Section Template -->
     <ControlTemplate x:Key="ContentSectionTemplate" TargetType="ContentControl">
         <Border Background="{DynamicResource ContentSectionBorderBrush}" CornerRadius="5" Margin="0,0,0,5" Effect="{StaticResource LightShadowEffect}" Visibility="{Binding IsExpanded, Converter={StaticResource BooleanToVisibilityConverter}}">
-            <StackPanel Margin="0,10,0,10">
+            <StackPanel Margin="0,5,0,5">
 
                 <!-- Container for Setting Labels & Controls -->
                 <ItemsControl ItemsSource="{Binding Settings}">
@@ -201,7 +192,10 @@
                         </ItemsPanelTemplate>
                     </ItemsControl.ItemsPanel>
                     <ItemsControl.ItemContainerStyle>
-                        <Style BasedOn="{StaticResource SettingsItemContainerStyle}" TargetType="ContentPresenter">
+                        <Style TargetType="ContentPresenter">
+                            <Setter Property="Grid.ColumnSpan" Value="{Binding IsGroupHeader, Converter={StaticResource BooleanToGridSpanConverter}}"/>
+                            <Setter Property="Margin" Value="5,2,5,2"/>
+                            <Setter Property="Visibility" Value="{Binding IsVisible, Converter={StaticResource BooleanToVisibilityConverter}}"/>
                         </Style>
                     </ItemsControl.ItemContainerStyle>
                     <ItemsControl.ItemTemplate>

@@ -8,6 +8,7 @@ using Winhance.Core.Features.Common.Events.Settings;
 using Winhance.Core.Features.Common.Interfaces;
 using Winhance.Core.Features.Common.Models;
 using Winhance.Core.Features.Customize.Interfaces;
+using Winhance.Infrastructure.Features.Customize.Services;
 
 namespace Winhance.Infrastructure.Features.Common.Services
 {
@@ -45,6 +46,11 @@ namespace Winhance.Infrastructure.Features.Common.Services
 
         public async Task ApplySettingAsync(string settingId, bool enable, object? value = null)
         {
+            await ApplySettingAsync(settingId, enable, value, false);
+        }
+
+        public async Task ApplySettingAsync(string settingId, bool enable, object? value, bool applyWallpaper)
+        {
             var domainService = _domainServiceRouter.GetDomainService(settingId);
             var rawSettings = await domainService.GetRawSettingsAsync();
             var setting = rawSettings.FirstOrDefault(s => s.Id == settingId);
@@ -73,7 +79,15 @@ namespace Winhance.Infrastructure.Features.Common.Services
                     );
             }
 
-            await domainService.ApplySettingAsync(settingId, enable, value);
+            if (settingId == "theme-mode-windows" && domainService is WindowsThemeService themeService)
+            {
+                await themeService.ApplySettingWithContextAsync(settingId, enable, value, applyWallpaper);
+            }
+            else
+            {
+                await domainService.ApplySettingAsync(settingId, enable, value);
+            }
+
             _eventBus.Publish(new SettingAppliedEvent(settingId, enable, value));
 
             if (!enable)

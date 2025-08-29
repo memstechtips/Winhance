@@ -44,7 +44,7 @@ namespace Winhance.Infrastructure.Features.SoftwareApps.Services.ScriptGeneratio
 
             // Get the full script template
             string fullTemplate = _bloatRemovalScriptTemplateProvider.GetFullScriptTemplate();
-            
+
             // Create a script with just the packages
             var script = BuildCompleteRemovalScript(
                 packageNames,
@@ -52,7 +52,7 @@ namespace Winhance.Infrastructure.Features.SoftwareApps.Services.ScriptGeneratio
                 null,
                 null,
                 null);
-            
+
             return script;
         }
 
@@ -66,7 +66,7 @@ namespace Winhance.Infrastructure.Features.SoftwareApps.Services.ScriptGeneratio
 
             // Get the full script template
             string fullTemplate = _bloatRemovalScriptTemplateProvider.GetFullScriptTemplate();
-            
+
             // Create a script with just the capabilities
             var script = BuildCompleteRemovalScript(
                 null,
@@ -74,7 +74,7 @@ namespace Winhance.Infrastructure.Features.SoftwareApps.Services.ScriptGeneratio
                 null,
                 null,
                 null);
-            
+
             return script;
         }
 
@@ -88,7 +88,7 @@ namespace Winhance.Infrastructure.Features.SoftwareApps.Services.ScriptGeneratio
 
             // Get the full script template
             string fullTemplate = _bloatRemovalScriptTemplateProvider.GetFullScriptTemplate();
-            
+
             // Create a script with just the features
             var script = BuildCompleteRemovalScript(
                 null,
@@ -96,7 +96,7 @@ namespace Winhance.Infrastructure.Features.SoftwareApps.Services.ScriptGeneratio
                 featureNames,
                 null,
                 null);
-            
+
             return script;
         }
 
@@ -117,7 +117,7 @@ namespace Winhance.Infrastructure.Features.SoftwareApps.Services.ScriptGeneratio
                 null,
                 registrySettings,
                 null);
-            
+
             return script;
         }
 
@@ -132,16 +132,16 @@ namespace Winhance.Infrastructure.Features.SoftwareApps.Services.ScriptGeneratio
         {
             // Get the full script template
             string scriptTemplate = _bloatRemovalScriptTemplateProvider.GetFullScriptTemplate();
-            
+
             // Process packages
             var allPackages = new List<string>();
-            
+
             // Add main packages
             if (packageNames != null)
             {
                 allPackages.AddRange(packageNames);
             }
-            
+
             // Add subpackages
             if (subPackages != null)
             {
@@ -153,10 +153,10 @@ namespace Winhance.Infrastructure.Features.SoftwareApps.Services.ScriptGeneratio
                     }
                 }
             }
-            
+
             // Remove duplicates
             allPackages = allPackages.Distinct().ToList();
-            
+
             // Update packages array in the template
             if (allPackages.Any())
             {
@@ -165,12 +165,12 @@ namespace Winhance.Infrastructure.Features.SoftwareApps.Services.ScriptGeneratio
                 {
                     packagesBlock.AppendLine($"    '{package}'");
                 }
-                
+
                 // Replace the empty packages array with our packages
-                const string packagesPattern = "$packages = @()"; 
+                const string packagesPattern = "$packages = @()";
                 scriptTemplate = scriptTemplate.Replace(packagesPattern, $"$packages = @(\n{packagesBlock})");
             }
-            
+
             // Update capabilities array in the template
             if (capabilityNames != null && capabilityNames.Any())
             {
@@ -179,12 +179,12 @@ namespace Winhance.Infrastructure.Features.SoftwareApps.Services.ScriptGeneratio
                 {
                     capabilitiesBlock.AppendLine($"    '{capability}'");
                 }
-                
+
                 // Replace the empty capabilities array with our capabilities
-                const string capabilitiesPattern = "$capabilities = @()"; 
+                const string capabilitiesPattern = "$capabilities = @()";
                 scriptTemplate = scriptTemplate.Replace(capabilitiesPattern, $"$capabilities = @(\n{capabilitiesBlock})");
             }
-            
+
             // Update features array in the template
             if (featureNames != null && featureNames.Any())
             {
@@ -193,41 +193,41 @@ namespace Winhance.Infrastructure.Features.SoftwareApps.Services.ScriptGeneratio
                 {
                     featuresBlock.AppendLine($"    '{feature}'");
                 }
-                
+
                 // Replace the empty features array with our features
-                const string featuresPattern = "$optionalFeatures = @()"; 
+                const string featuresPattern = "$optionalFeatures = @()";
                 scriptTemplate = scriptTemplate.Replace(featuresPattern, $"$optionalFeatures = @(\n{featuresBlock})");
             }
-            
+
             // Add registry settings if needed
             if (registrySettings != null && registrySettings.Any())
             {
                 var registryBlock = new StringBuilder();
                 registryBlock.AppendLine("\n# Registry settings");
-                
+
                 foreach (var appEntry in registrySettings)
                 {
                     string appName = appEntry.Key;
                     List<AppRegistrySetting> settings = appEntry.Value;
-                    
+
                     if (settings == null || !settings.Any())
                     {
                         continue;
                     }
-                    
+
                     registryBlock.AppendLine();
                     registryBlock.AppendLine($"# Registry settings for {appName}");
-                    
+
                     foreach (var setting in settings)
                     {
                         string path = setting.Path;
                         string name = setting.Name;
                         string valueKind = GetRegTypeString(setting.ValueKind);
                         string value = setting.Value?.ToString() ?? string.Empty;
-                        
+
                         // Check if this is a delete operation (value is null or empty)
                         bool isDelete = string.IsNullOrEmpty(value);
-                        
+
                         if (isDelete)
                         {
                             registryBlock.AppendLine(
@@ -242,12 +242,12 @@ namespace Winhance.Infrastructure.Features.SoftwareApps.Services.ScriptGeneratio
                         }
                     }
                 }
-                
+
                 // Add registry settings at the end of the script, before the final log message
-                const string logMessage = "Write-Log \"Bloat removal process completed\""; 
+                const string logMessage = "Write-Log \"Bloat removal process completed\"";
                 scriptTemplate = scriptTemplate.Replace(logMessage, $"{registryBlock}\n\n{logMessage}");
             }
-            
+
             return scriptTemplate;
         }
 
@@ -261,7 +261,7 @@ namespace Winhance.Infrastructure.Features.SoftwareApps.Services.ScriptGeneratio
 
             // Create a list with just this app's package name
             var packageNames = new List<string> { app.PackageName };
-            
+
             // Use the appropriate build method based on app type
             string script;
             switch (app.Type)
@@ -269,27 +269,27 @@ namespace Winhance.Infrastructure.Features.SoftwareApps.Services.ScriptGeneratio
                 case AppType.StandardApp:
                     script = BuildPackageRemovalScript(packageNames);
                     break;
-                    
+
                 case AppType.Capability:
                     script = BuildCapabilityRemovalScript(packageNames);
                     break;
-                    
+
                 case AppType.OptionalFeature:
                     script = BuildFeatureRemovalScript(packageNames);
                     break;
-                    
+
                 default:
                     // Default to package removal
                     script = BuildPackageRemovalScript(packageNames);
                     break;
             }
-            
+
             // Add a custom header for this single app
             var header = new StringBuilder();
             header.AppendLine($"# Removal script for {app.Name} ({app.PackageName})");
             header.AppendLine($"# Generated on {DateTime.Now}");
             header.AppendLine();
-            
+
             return header.ToString() + script;
         }
 

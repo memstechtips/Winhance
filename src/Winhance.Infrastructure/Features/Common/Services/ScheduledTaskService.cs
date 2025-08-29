@@ -29,7 +29,7 @@ namespace Winhance.Infrastructure.Features.Common.Services
             try
             {
                 _logService.LogInformation($"Registering scheduled task for script: {script?.Name ?? "Unknown"}");
-                
+
                 // Ensure the script and script path are valid
                 if (script == null)
                 {
@@ -49,7 +49,7 @@ namespace Winhance.Infrastructure.Features.Common.Services
                 if (!File.Exists(scriptPath))
                 {
                     _logService.LogError($"Script file not found at: {scriptPath}");
-                    
+
                     // Try to save the script if it doesn't exist but has content
                     if (!string.IsNullOrEmpty(script.Content))
                     {
@@ -60,7 +60,7 @@ namespace Winhance.Infrastructure.Features.Common.Services
                             {
                                 Directory.CreateDirectory(directoryPath);
                             }
-                            
+
                             File.WriteAllText(scriptPath, script.Content);
                             _logService.LogInformation($"Created script file at: {scriptPath}");
                         }
@@ -77,8 +77,8 @@ namespace Winhance.Infrastructure.Features.Common.Services
                 }
 
                 // Create the scheduled task using a direct PowerShell command
-                string taskName = !string.IsNullOrEmpty(script.TargetScheduledTaskName) 
-                    ? script.TargetScheduledTaskName 
+                string taskName = !string.IsNullOrEmpty(script.TargetScheduledTaskName)
+                    ? script.TargetScheduledTaskName
                     : $"Winhance\\{script.Name}";
 
                 // Create a simple PowerShell script that registers the task
@@ -150,10 +150,10 @@ try {{
                     process.StartInfo.Verb = "runas"; // Run as administrator
                     process.StartInfo.CreateNoWindow = false;
                     process.StartInfo.WindowStyle = System.Diagnostics.ProcessWindowStyle.Hidden;
-                    
+
                     process.Start();
                     await process.WaitForExitAsync();
-                    
+
                     // Check if the process exited successfully
                     if (process.ExitCode == 0)
                     {
@@ -200,7 +200,7 @@ try {{
             try
             {
                 _logService.LogInformation($"Unregistering scheduled task: {taskName}");
-                
+
                 // Create a simple PowerShell script that unregisters the task
                 string psScript = $@"
 # Unregister the scheduled task
@@ -236,10 +236,10 @@ try {{
                     process.StartInfo.Verb = "runas"; // Run as administrator
                     process.StartInfo.CreateNoWindow = false;
                     process.StartInfo.WindowStyle = System.Diagnostics.ProcessWindowStyle.Hidden;
-                    
+
                     process.Start();
                     await process.WaitForExitAsync();
-                    
+
                     // Check if the process exited successfully
                     if (process.ExitCode == 0)
                     {
@@ -317,10 +317,10 @@ try {{
                     process.StartInfo.Arguments = $"-ExecutionPolicy Bypass -File \"{tempScriptPath}\"";
                     process.StartInfo.UseShellExecute = false;
                     process.StartInfo.CreateNoWindow = true;
-                    
+
                     process.Start();
                     await process.WaitForExitAsync();
-                    
+
                     // Check the exit code to determine if the task exists
                     return process.ExitCode == 0;
                 }
@@ -351,7 +351,7 @@ try {{
                 return false;
             }
         }
-        
+
         /// <inheritdoc/>
         public async Task<bool> CreateUserLogonTaskAsync(string taskName, string command, string username, bool deleteAfterRun = true)
         {
@@ -360,12 +360,12 @@ try {{
                 try
                 {
                     _logService.LogInformation($"Creating user logon task: {taskName} for user: {username} using native C# Task Scheduler API");
-                    
+
                     // Create Task Scheduler COM object
                     Type taskSchedulerType = Type.GetTypeFromProgID("Schedule.Service");
                     dynamic taskService = Activator.CreateInstance(taskSchedulerType);
                     taskService.Connect();
-                    
+
                     // Get or create the Winhance task folder
                     dynamic rootFolder = taskService.GetFolder("\\");
                     dynamic winhanceFolder;
@@ -380,7 +380,7 @@ try {{
                         winhanceFolder = rootFolder.CreateFolder("Winhance");
                         _logService.LogInformation("Created Winhance task folder");
                     }
-                    
+
                     // Remove existing task if it exists
                     try
                     {
@@ -395,10 +395,10 @@ try {{
                     {
                         // Task doesn't exist, which is fine
                     }
-                    
+
                     // Create a new task definition
                     dynamic taskDefinition = taskService.NewTask(0);
-                    
+
                     // Set task settings
                     dynamic settings = taskDefinition.Settings;
                     settings.Enabled = true;
@@ -406,25 +406,25 @@ try {{
                     settings.AllowHardTerminate = true;
                     settings.DisallowStartIfOnBatteries = false;
                     settings.StopIfGoingOnBatteries = false;
-                    
+
                     // Create logon trigger for the specific user
-            dynamic triggers = taskDefinition.Triggers;
-            dynamic trigger = triggers.Create(9); // TASK_TRIGGER_LOGON = 9
-            trigger.UserId = username;
-            trigger.Enabled = true;
-                    
+                    dynamic triggers = taskDefinition.Triggers;
+                    dynamic trigger = triggers.Create(9); // TASK_TRIGGER_LOGON = 9
+                    trigger.UserId = username;
+                    trigger.Enabled = true;
+
                     // Create action to execute powershell.exe with the command
-            dynamic actions = taskDefinition.Actions;
-            dynamic action = actions.Create(0); // TASK_ACTION_EXEC = 0
-            action.Path = "powershell.exe";
-            action.Arguments = command;
-                    
+                    dynamic actions = taskDefinition.Actions;
+                    dynamic action = actions.Create(0); // TASK_ACTION_EXEC = 0
+                    action.Path = "powershell.exe";
+                    action.Arguments = command;
+
                     // Set principal to run as SYSTEM whether user is logged in or not
-            dynamic principal = taskDefinition.Principal;
-            principal.UserId = "S-1-5-18"; // SYSTEM account SID
-            principal.LogonType = 5; // TASK_LOGON_SERVICE_ACCOUNT = 5 (run whether user is logged on or not)
-            principal.RunLevel = 1; // TASK_RUNLEVEL_HIGHEST = 1 (elevated privileges)
-                    
+                    dynamic principal = taskDefinition.Principal;
+                    principal.UserId = "S-1-5-18"; // SYSTEM account SID
+                    principal.LogonType = 5; // TASK_LOGON_SERVICE_ACCOUNT = 5 (run whether user is logged on or not)
+                    principal.RunLevel = 1; // TASK_RUNLEVEL_HIGHEST = 1 (elevated privileges)
+
                     // Register the task with simplified parameters
                     dynamic registeredTask = winhanceFolder.RegisterTaskDefinition(
                         taskName,
@@ -435,10 +435,10 @@ try {{
                         0, // logon type (use principal.LogonType)
                         null // sddl
                     );
-                    
+
                     _logService.LogSuccess($"Successfully created user logon task: {taskName} for user: {username}");
-            
-            return true;
+
+                    return true;
                 }
                 catch (Exception ex)
                 {

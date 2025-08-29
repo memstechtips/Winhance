@@ -19,7 +19,7 @@ namespace Winhance.WPF.Features.SoftwareApps.Models
         {
             _item = item ?? throw new ArgumentNullException(nameof(item));
             _selectionChangedCallback = selectionChangedCallback;
-            
+
             // Subscribe to property changes from the wrapped item
             if (_item is INotifyPropertyChanged notifyItem)
             {
@@ -46,7 +46,7 @@ namespace Winhance.WPF.Features.SoftwareApps.Models
                 {
                     _item.IsSelected = value;
                     OnPropertyChanged();
-                    
+
                     // Notify ViewModel that selection has changed
                     _selectionChangedCallback?.Invoke();
                 }
@@ -114,7 +114,7 @@ namespace Winhance.WPF.Features.SoftwareApps.Models
 
         public override bool Equals(object obj)
         {
-            return obj is OptimizedExternalAppWrapper other && 
+            return obj is OptimizedExternalAppWrapper other &&
                    ReferenceEquals(_item, other._item);
         }
 

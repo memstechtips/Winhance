@@ -28,7 +28,7 @@ namespace Winhance.WPF.Features.Common.Behaviors
         protected override void OnAttached()
         {
             base.OnAttached();
-            
+
             if (AssociatedObject != null)
             {
                 AssociatedObject.Checked += OnSelectionChanged;
@@ -43,7 +43,7 @@ namespace Winhance.WPF.Features.Common.Behaviors
                 AssociatedObject.Checked -= OnSelectionChanged;
                 AssociatedObject.Unchecked -= OnSelectionChanged;
             }
-            
+
             base.OnDetaching();
         }
 
@@ -55,7 +55,7 @@ namespace Winhance.WPF.Features.Common.Behaviors
             try
             {
                 _isHandlingSelection = true;
-                
+
                 if (SelectionChangedCommand.CanExecute(null))
                 {
                     SelectionChangedCommand.Execute(null);

@@ -122,27 +122,27 @@ namespace Winhance.WPF.Features.Common.Behaviors
 
             // Get the width of the ListView's viewport
             double viewportWidth = GetViewportWidth(listView);
-            
+
             // Account for vertical scrollbar if present
             double scrollBarWidth = SystemParameters.VerticalScrollBarWidth;
             ScrollViewer scrollViewer = GetScrollViewer(listView);
             bool hasVerticalScrollBar = scrollViewer != null && scrollViewer.ComputedVerticalScrollBarVisibility == Visibility.Visible;
             // Add a small buffer to ensure the column fills the entire width without leaving a gap
             double availableWidth = viewportWidth - (hasVerticalScrollBar ? scrollBarWidth : 0) + 1; // add 1 to ensure no gap
-            
+
             // First measure the total width of all columns except the stretch column
             double totalFixedColumnsWidth = 0;
             for (int i = 0; i < gridView.Columns.Count; i++)
             {
                 if (stretch && i == stretchColumnIndex)
                     continue;
-                    
+
                 if (stretch && stretchColumnIndex < 0 && i == gridView.Columns.Count - 1)
                     continue;
-                    
+
                 totalFixedColumnsWidth += gridView.Columns[i].ActualWidth;
             }
-            
+
             // If we have a specific stretch column
             if (stretch && stretchColumnIndex >= 0 && stretchColumnIndex < gridView.Columns.Count)
             {

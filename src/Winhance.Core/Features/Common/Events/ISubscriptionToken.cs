@@ -11,7 +11,7 @@ namespace Winhance.Core.Features.Common.Events
         /// Gets the unique identifier for this subscription
         /// </summary>
         Guid SubscriptionId { get; }
-        
+
         /// <summary>
         /// Gets the type of event this subscription is for
         /// </summary>

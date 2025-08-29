@@ -78,7 +78,7 @@ namespace Winhance.Infrastructure.Features.SoftwareApps.Services.ScriptGeneratio
                 bloatRemovalScriptSavingService
                 ?? throw new ArgumentNullException(nameof(bloatRemovalScriptSavingService));
             _scriptPathDetectionService = scriptPathDetectionService ?? throw new ArgumentNullException(nameof(scriptPathDetectionService));
-            
+
             // Ensure scripts directory exists
             var scriptsDirectory = _scriptPathDetectionService.GetScriptsDirectory();
             if (!Directory.Exists(scriptsDirectory))
@@ -883,10 +883,10 @@ namespace Winhance.Infrastructure.Features.SoftwareApps.Services.ScriptGeneratio
                 );
 
                 string bloatRemovalScriptPath = GetBloatRemovalScriptPath();
-                
+
                 // Use the saving service to check if the file exists and get its content
                 string scriptContent = await _bloatRemovalScriptSavingService.GetScriptContentAsync(bloatRemovalScriptPath);
-                
+
                 if (scriptContent == null)
                 {
                     _logService.LogWarning(

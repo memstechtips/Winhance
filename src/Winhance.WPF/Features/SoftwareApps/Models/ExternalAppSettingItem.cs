@@ -12,12 +12,12 @@ namespace Winhance.WPF.Features.SoftwareApps.Models
     public class ExternalAppSettingItem : IExternalApp
     {
         private readonly ExternalApp _externalApp;
-        
+
         public ExternalAppSettingItem(ExternalApp externalApp)
         {
             _externalApp = externalApp;
         }
-        
+
         // IExternalApp implementation
         public string Id => _externalApp.PackageName;
         public string Name => _externalApp.Name;
@@ -27,13 +27,13 @@ namespace Winhance.WPF.Features.SoftwareApps.Models
         public bool IsInstalled => _externalApp.IsInstalled;
         public bool CanBeReinstalled => _externalApp.CanBeReinstalled;
         public string Category => _externalApp.Category;
-        
-        public bool IsSelected 
-        { 
+
+        public bool IsSelected
+        {
             get => _externalApp.IsSelected;
             set => _externalApp.IsSelected = value;
         }
-        
+
         // Method to convert back to ExternalApp
         public ExternalApp ToExternalApp()
         {
@@ -41,7 +41,7 @@ namespace Winhance.WPF.Features.SoftwareApps.Models
             _externalApp.IsSelected = IsSelected;
             return _externalApp;
         }
-        
+
         // Static method to convert a collection of ExternalApps to ExternalAppSettingItems
         public static IEnumerable<ExternalAppSettingItem> FromExternalApps(IEnumerable<ExternalApp> externalApps)
         {

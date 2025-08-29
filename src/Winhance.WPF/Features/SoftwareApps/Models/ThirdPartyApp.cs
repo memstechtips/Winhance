@@ -17,7 +17,7 @@ namespace Winhance.WPF.Features.SoftwareApps.Models
 
         [ObservableProperty]
         private string _packageName = string.Empty;
-        
+
         [ObservableProperty]
         private string _category = string.Empty;
 

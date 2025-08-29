@@ -22,7 +22,7 @@ namespace Winhance.Infrastructure.Features.Common.Services
         private const string FileFilter = "Winhance Configuration Files|*" + FileExtension;
         private const string UnifiedFileFilter = "Winhance Unified Configuration Files|*" + FileExtension;
         private readonly ILogService _logService;
-        
+
         /// <summary>
         /// Initializes a new instance of the <see cref="ConfigurationService"/> class.
         /// </summary>
@@ -59,7 +59,7 @@ namespace Winhance.Infrastructure.Features.Common.Services
                     _logService.Log(LogLevel.Info, "Save configuration canceled by user");
                     return false;
                 }
-                
+
                 _logService.Log(LogLevel.Info, $"Saving configuration to {saveFileDialog.FileName}");
 
                 // Create a configuration file
@@ -86,7 +86,7 @@ namespace Winhance.Infrastructure.Features.Common.Services
                         var name = nameProperty.GetValue(item)?.ToString();
                         var packageName = packageNameProperty?.GetValue(item)?.ToString();
                         var isSelected = (bool)(isSelectedProperty.GetValue(item) ?? false);
-                        
+
                         // Create the configuration item
                         var configItem = new ConfigurationItem
                         {
@@ -94,7 +94,7 @@ namespace Winhance.Infrastructure.Features.Common.Services
                             PackageName = packageName,
                             IsSelected = isSelected
                         };
-                        
+
                         // Add input type if available
                         if (inputTypeProperty != null)
                         {
@@ -104,7 +104,7 @@ namespace Winhance.Infrastructure.Features.Common.Services
                                 configItem.InputType = (SettingInputType)inputType;
                             }
                         }
-                        
+
                         // Store the Id in CustomProperties if available
                         if (idProperty != null)
                         {
@@ -115,7 +115,7 @@ namespace Winhance.Infrastructure.Features.Common.Services
                                 _logService.Log(LogLevel.Info, $"Stored Id for {configItem.Name}: {id}");
                             }
                         }
-                        
+
                         // Handle Selection input types
                         if (configItem.InputType == SettingInputType.Selection)
                         {
@@ -131,12 +131,12 @@ namespace Winhance.Infrastructure.Features.Common.Services
                                 // Try to get the value from SliderLabels and SliderValue
                                 var sliderLabelsProperty = properties.FirstOrDefault(p => p.Name == "SliderLabels");
                                 var sliderValueProperty = properties.FirstOrDefault(p => p.Name == "SliderValue");
-                                
+
                                 if (sliderLabelsProperty != null && sliderValueProperty != null)
                                 {
                                     var sliderLabels = sliderLabelsProperty.GetValue(item) as System.Collections.IList;
                                     var sliderValue = sliderValueProperty.GetValue(item);
-                                    
+
                                     if (sliderLabels != null && sliderValue != null && Convert.ToInt32(sliderValue) < sliderLabels.Count)
                                     {
                                         configItem.SelectedValue = sliderLabels[Convert.ToInt32(sliderValue)]?.ToString();
@@ -144,7 +144,7 @@ namespace Winhance.Infrastructure.Features.Common.Services
                                     }
                                 }
                             }
-                            
+
                             // Store the SliderValue for Selection
                             // Note: In this application, Selection controls use SliderValue to store the selected index
                             if (configItem.InputType == SettingInputType.Selection)
@@ -159,7 +159,7 @@ namespace Winhance.Infrastructure.Features.Common.Services
                                         _logService.Log(LogLevel.Info, $"Stored SliderValue for {configItem.InputType} {configItem.Name}: {sliderValue}");
                                     }
                                 }
-                                
+
                                 // Also store SliderLabels if available
                                 var sliderLabelsProperty = properties.FirstOrDefault(p => p.Name == "SliderLabels");
                                 if (sliderLabelsProperty != null)
@@ -171,7 +171,7 @@ namespace Winhance.Infrastructure.Features.Common.Services
                                         var labelsString = string.Join(",", sliderLabels.Cast<object>().Select(l => l.ToString()));
                                         configItem.CustomProperties[CustomPropertyKeys.SliderLabels] = labelsString;
                                         _logService.Log(LogLevel.Info, $"Stored SliderLabels for {configItem.InputType} {configItem.Name}: {labelsString}");
-                                        
+
                                         // For Power Plan, also store the labels as PowerPlanOptions
                                         if (configItem.Name.Contains("Power Plan") ||
                                             (configItem.CustomProperties.ContainsKey("Id") &&
@@ -185,7 +185,7 @@ namespace Winhance.Infrastructure.Features.Common.Services
                                 }
                             }
                         }
-                        
+
                         // Add custom properties from RegistrySetting if available
                         if (registrySettingProperty != null)
                         {
@@ -208,10 +208,10 @@ namespace Winhance.Infrastructure.Features.Common.Services
                                 }
                             }
                         }
-                        
+
                         // Ensure SelectedValue is set for Selection controls
                         configItem.EnsureSelectedValueIsSet();
-                        
+
                         // Add the configuration item to the file
                         configFile.Items.Add(configItem);
                     }
@@ -222,9 +222,9 @@ namespace Winhance.Infrastructure.Features.Common.Services
 
                 // Write the JSON to the file
                 await File.WriteAllTextAsync(saveFileDialog.FileName, json);
-                
+
                 _logService.Log(LogLevel.Info, $"Successfully saved {configType} configuration with {configFile.Items.Count} items to {saveFileDialog.FileName}");
-                
+
                 // Log details about Selection items if any
                 var selectionItems = configFile.Items.Where(i => i.InputType == SettingInputType.Selection).ToList();
                 if (selectionItems.Any())
@@ -270,7 +270,7 @@ namespace Winhance.Infrastructure.Features.Common.Services
                     _logService.Log(LogLevel.Info, "Load configuration canceled by user");
                     return null;
                 }
-                
+
                 _logService.Log(LogLevel.Info, $"Loading configuration from {openFileDialog.FileName}");
 
                 // Read the JSON from the file
@@ -278,13 +278,13 @@ namespace Winhance.Infrastructure.Features.Common.Services
 
                 // Deserialize the JSON to a configuration file
                 var configFile = JsonConvert.DeserializeObject<ConfigurationFile>(json);
-                
+
                 // Ensure SelectedValue is set for all items
                 foreach (var item in configFile.Items)
                 {
                     item.EnsureSelectedValueIsSet();
                 }
-                
+
                 // Process the configuration items to ensure SelectedValue is set for Selection items
                 foreach (var item in configFile.Items)
                 {
@@ -320,7 +320,7 @@ namespace Winhance.Infrastructure.Features.Common.Services
                 }
 
                 _logService.Log(LogLevel.Info, $"Successfully loaded {configType} configuration with {configFile.Items.Count} items from {openFileDialog.FileName}");
-                
+
                 // Log details about Selection items if any
                 var selectionItems = configFile.Items.Where(i => i.InputType == SettingInputType.Selection).ToList();
                 if (selectionItems.Any())
@@ -354,7 +354,7 @@ namespace Winhance.Infrastructure.Features.Common.Services
             try
             {
                 _logService.Log(LogLevel.Info, "Starting to save unified configuration");
-                
+
                 // Create a save file dialog
                 var saveFileDialog = new SaveFileDialog
                 {
@@ -370,7 +370,7 @@ namespace Winhance.Infrastructure.Features.Common.Services
                     _logService.Log(LogLevel.Info, "Save unified configuration canceled by user");
                     return false;
                 }
-                
+
                 _logService.Log(LogLevel.Info, $"Saving unified configuration to {saveFileDialog.FileName}");
 
                 // Ensure all sections are included by default
@@ -378,20 +378,20 @@ namespace Winhance.Infrastructure.Features.Common.Services
                 unifiedConfig.ExternalApps.IsIncluded = true;
                 unifiedConfig.Customize.IsIncluded = true;
                 unifiedConfig.Optimize.IsIncluded = true;
-                
+
                 if (unifiedConfig.WindowsApps.Items == null)
                 {
                     unifiedConfig.WindowsApps.Items = new List<ConfigurationItem>();
                 }
-                
+
                 // Serialize the configuration file to JSON
                 var json = JsonConvert.SerializeObject(unifiedConfig, Formatting.Indented);
 
                 // Write the JSON to the file
                 await File.WriteAllTextAsync(saveFileDialog.FileName, json);
-                
+
                 _logService.Log(LogLevel.Info, "Successfully saved unified configuration");
-                
+
                 // Log details about included sections
                 var includedSections = new List<string> { "WindowsApps", "ExternalApps", "Customize", "Optimize" };
                 _logService.Log(LogLevel.Info, $"Included sections: {string.Join(", ", includedSections)}");
@@ -415,7 +415,7 @@ namespace Winhance.Infrastructure.Features.Common.Services
             try
             {
                 _logService.Log(LogLevel.Info, "Starting to load unified configuration");
-                
+
                 // Create an open file dialog
                 var openFileDialog = new OpenFileDialog
                 {
@@ -430,7 +430,7 @@ namespace Winhance.Infrastructure.Features.Common.Services
                     _logService.Log(LogLevel.Info, "Load unified configuration canceled by user");
                     return null;
                 }
-                
+
                 _logService.Log(LogLevel.Info, $"Loading unified configuration from {openFileDialog.FileName}");
 
                 // Read the JSON from the file
@@ -445,7 +445,7 @@ namespace Winhance.Infrastructure.Features.Common.Services
                 return null;
             }
         }
-                        
+
         /// <summary>
         /// Downloads and loads the recommended configuration file from GitHub.
         /// </summary>
@@ -455,22 +455,22 @@ namespace Winhance.Infrastructure.Features.Common.Services
             try
             {
                 _logService.Log(LogLevel.Info, "Starting to download recommended configuration");
-                
+
                 // URL of the recommended configuration file
                 const string recommendedConfigUrl = "https://github.com/memstechtips/Winhance/blob/main/Winhance_Recommended_Config.winhance";
-                
+
                 // Use the raw content URL for direct download
                 string rawUrl = recommendedConfigUrl.Replace("github.com", "raw.githubusercontent.com").Replace("/blob/", "/");
-                
+
                 _logService.Log(LogLevel.Info, $"Downloading configuration from {rawUrl}");
-                
+
                 // Create HTTP client
                 using var client = new System.Net.Http.HttpClient();
                 client.DefaultRequestHeaders.Add("User-Agent", "Winhance");
-                
+
                 // Download the file
                 var response = await client.GetAsync(rawUrl);
-                
+
                 // Check if the download was successful
                 if (!response.IsSuccessStatusCode)
                 {
@@ -479,12 +479,12 @@ namespace Winhance.Infrastructure.Features.Common.Services
                     MessageBox.Show(errorMessage, "Download Error", MessageBoxButton.OK, MessageBoxImage.Error);
                     return null;
                 }
-                
+
                 // Read the JSON content
                 var json = await response.Content.ReadAsStringAsync();
-                
+
                 _logService.Log(LogLevel.Info, "Successfully downloaded recommended configuration");
-                
+
                 return DeserializeUnifiedConfiguration(json);
             }
             catch (Exception ex)
@@ -494,7 +494,7 @@ namespace Winhance.Infrastructure.Features.Common.Services
                 return null;
             }
         }
-        
+
         /// <summary>
         /// Deserializes a JSON string into a UnifiedConfigurationFile object.
         /// </summary>
@@ -506,23 +506,23 @@ namespace Winhance.Infrastructure.Features.Common.Services
             {
                 // Deserialize the JSON to a unified configuration file
                 var unifiedConfig = JsonConvert.DeserializeObject<UnifiedConfigurationFile>(json);
-                
+
                 // Always ensure WindowsApps are included
                 unifiedConfig.WindowsApps.IsIncluded = true;
                 if (unifiedConfig.WindowsApps.Items == null)
                 {
                     unifiedConfig.WindowsApps.Items = new List<ConfigurationItem>();
                 }
-                
+
                 // Log details about included sections
                 var includedSections = new List<string>();
                 if (unifiedConfig.WindowsApps.IsIncluded) includedSections.Add("WindowsApps");
                 if (unifiedConfig.ExternalApps.IsIncluded) includedSections.Add("ExternalApps");
                 if (unifiedConfig.Customize.IsIncluded) includedSections.Add("Customize");
                 if (unifiedConfig.Optimize.IsIncluded) includedSections.Add("Optimize");
-                
+
                 _logService.Log(LogLevel.Info, $"Loaded unified configuration with sections: {string.Join(", ", includedSections)}");
-                
+
                 return unifiedConfig;
             }
             catch (Exception ex)
@@ -540,75 +540,75 @@ namespace Winhance.Infrastructure.Features.Common.Services
         /// <returns>A unified configuration file.</returns>
         public UnifiedConfigurationFile CreateUnifiedConfiguration(Dictionary<string, IEnumerable<ISettingItem>> sections, IEnumerable<string> includedSections)
         {
-                            try
-                            {
-                                _logService.Log(LogLevel.Info, "Creating unified configuration");
-                                
-                                var unifiedConfig = new UnifiedConfigurationFile
-                                {
-                                    CreatedAt = DateTime.UtcNow
-                                };
-                
-                                // Convert each section to ConfigurationItems and add to the appropriate section
-                                foreach (var sectionName in includedSections)
-                                {
-                                    if (!sections.TryGetValue(sectionName, out var items) || items == null)
-                                    {
-                                        _logService.Log(LogLevel.Warning, $"Section {sectionName} not found or has no items");
-                                        continue;
-                                    }
-                
-                                    var configItems = ConvertToConfigurationItems(items);
-                                    
-                                    switch (sectionName)
-                                    {
-                                        case "WindowsApps":
-                                            unifiedConfig.WindowsApps.IsIncluded = true;
-                                            unifiedConfig.WindowsApps.Items = configItems;
-                                            unifiedConfig.WindowsApps.Description = "Windows built-in applications";
-                                            break;
-                                        case "ExternalApps":
-                                            unifiedConfig.ExternalApps.IsIncluded = true;
-                                            unifiedConfig.ExternalApps.Items = configItems;
-                                            unifiedConfig.ExternalApps.Description = "Third-party applications";
-                                            break;
-                                        case "Customize":
-                                            unifiedConfig.Customize.IsIncluded = true;
-                                            unifiedConfig.Customize.Items = configItems;
-                                            unifiedConfig.Customize.Description = "Windows UI customization settings";
-                                            break;
-                                        case "Optimize":
-                                            unifiedConfig.Optimize.IsIncluded = true;
-                                            unifiedConfig.Optimize.Items = configItems;
-                                            unifiedConfig.Optimize.Description = "Windows optimization settings";
-                                            break;
-                                        default:
-                                            _logService.Log(LogLevel.Warning, $"Unknown section name: {sectionName}");
-                                            break;
-                                    }
-                                }
-                                
-                                // Always ensure WindowsApps are included, even if they weren't in the sections dictionary
-                                // or if they didn't have any items
-                                unifiedConfig.WindowsApps.IsIncluded = true;
-                                if (unifiedConfig.WindowsApps.Items == null)
-                                {
-                                    unifiedConfig.WindowsApps.Items = new List<ConfigurationItem>();
-                                }
-                                if (string.IsNullOrEmpty(unifiedConfig.WindowsApps.Description))
-                                {
-                                    unifiedConfig.WindowsApps.Description = "Windows built-in applications";
-                                }
-                                
-                                _logService.Log(LogLevel.Info, "Successfully created unified configuration");
-                                return unifiedConfig;
-                            }
-                            catch (Exception ex)
-                            {
-                                _logService.Log(LogLevel.Error, $"Error creating unified configuration: {ex.Message}");
-                                throw;
-                            }
-                        }
+            try
+            {
+                _logService.Log(LogLevel.Info, "Creating unified configuration");
+
+                var unifiedConfig = new UnifiedConfigurationFile
+                {
+                    CreatedAt = DateTime.UtcNow
+                };
+
+                // Convert each section to ConfigurationItems and add to the appropriate section
+                foreach (var sectionName in includedSections)
+                {
+                    if (!sections.TryGetValue(sectionName, out var items) || items == null)
+                    {
+                        _logService.Log(LogLevel.Warning, $"Section {sectionName} not found or has no items");
+                        continue;
+                    }
+
+                    var configItems = ConvertToConfigurationItems(items);
+
+                    switch (sectionName)
+                    {
+                        case "WindowsApps":
+                            unifiedConfig.WindowsApps.IsIncluded = true;
+                            unifiedConfig.WindowsApps.Items = configItems;
+                            unifiedConfig.WindowsApps.Description = "Windows built-in applications";
+                            break;
+                        case "ExternalApps":
+                            unifiedConfig.ExternalApps.IsIncluded = true;
+                            unifiedConfig.ExternalApps.Items = configItems;
+                            unifiedConfig.ExternalApps.Description = "Third-party applications";
+                            break;
+                        case "Customize":
+                            unifiedConfig.Customize.IsIncluded = true;
+                            unifiedConfig.Customize.Items = configItems;
+                            unifiedConfig.Customize.Description = "Windows UI customization settings";
+                            break;
+                        case "Optimize":
+                            unifiedConfig.Optimize.IsIncluded = true;
+                            unifiedConfig.Optimize.Items = configItems;
+                            unifiedConfig.Optimize.Description = "Windows optimization settings";
+                            break;
+                        default:
+                            _logService.Log(LogLevel.Warning, $"Unknown section name: {sectionName}");
+                            break;
+                    }
+                }
+
+                // Always ensure WindowsApps are included, even if they weren't in the sections dictionary
+                // or if they didn't have any items
+                unifiedConfig.WindowsApps.IsIncluded = true;
+                if (unifiedConfig.WindowsApps.Items == null)
+                {
+                    unifiedConfig.WindowsApps.Items = new List<ConfigurationItem>();
+                }
+                if (string.IsNullOrEmpty(unifiedConfig.WindowsApps.Description))
+                {
+                    unifiedConfig.WindowsApps.Description = "Windows built-in applications";
+                }
+
+                _logService.Log(LogLevel.Info, "Successfully created unified configuration");
+                return unifiedConfig;
+            }
+            catch (Exception ex)
+            {
+                _logService.Log(LogLevel.Error, $"Error creating unified configuration: {ex.Message}");
+                throw;
+            }
+        }
 
         /// <summary>
         /// Extracts a specific section from a unified configuration file.
@@ -621,27 +621,27 @@ namespace Winhance.Infrastructure.Features.Common.Services
             try
             {
                 _logService.Log(LogLevel.Info, $"Extracting section {sectionName} from unified configuration");
-                
+
                 // Validate inputs
                 if (unifiedConfig == null)
                 {
                     _logService.Log(LogLevel.Error, "Unified configuration is null");
                     throw new ArgumentNullException(nameof(unifiedConfig));
                 }
-                
+
                 if (string.IsNullOrEmpty(sectionName))
                 {
                     _logService.Log(LogLevel.Error, "Section name is null or empty");
                     throw new ArgumentException("Section name cannot be null or empty", nameof(sectionName));
                 }
-                
+
                 var configFile = new ConfigurationFile
                 {
                     ConfigType = sectionName,
                     CreatedAt = DateTime.UtcNow,
                     Items = new List<ConfigurationItem>()
                 };
-                
+
                 // Get the items from the appropriate section
                 switch (sectionName)
                 {
@@ -671,20 +671,20 @@ namespace Winhance.Infrastructure.Features.Common.Services
                         _logService.Log(LogLevel.Warning, $"Unknown section name: {sectionName}");
                         break;
                 }
-                
+
                 // Ensure Items is not null
                 if (configFile.Items == null)
                 {
                     configFile.Items = new List<ConfigurationItem>();
                 }
-                
+
                 _logService.Log(LogLevel.Info, $"Successfully extracted section {sectionName} with {configFile.Items.Count} items");
                 return configFile;
             }
             catch (Exception ex)
             {
                 _logService.Log(LogLevel.Error, $"Error extracting section from unified configuration: {ex.Message}");
-                
+
                 // Return an empty configuration file instead of throwing
                 var emptyConfigFile = new ConfigurationFile
                 {
@@ -692,7 +692,7 @@ namespace Winhance.Infrastructure.Features.Common.Services
                     CreatedAt = DateTime.UtcNow,
                     Items = new List<ConfigurationItem>()
                 };
-                
+
                 _logService.Log(LogLevel.Info, $"Returning empty configuration file for section {sectionName}");
                 return emptyConfigFile;
             }
@@ -706,7 +706,7 @@ namespace Winhance.Infrastructure.Features.Common.Services
         private List<ConfigurationItem> ConvertToConfigurationItems(IEnumerable<ISettingItem> items)
         {
             var configItems = new List<ConfigurationItem>();
-            
+
             foreach (var item in items)
             {
                 var configItem = new ConfigurationItem
@@ -716,43 +716,43 @@ namespace Winhance.Infrastructure.Features.Common.Services
                     InputType = item.InputType,
                     CustomProperties = new Dictionary<string, object>()
                 };
-                
+
                 // Add Id to custom properties
                 if (!string.IsNullOrEmpty(item.Id))
                 {
                     configItem.CustomProperties[CustomPropertyKeys.Id] = item.Id;
                 }
-                
+
                 // Add GroupName to custom properties
                 if (!string.IsNullOrEmpty(item.GroupName))
                 {
                     configItem.CustomProperties[CustomPropertyKeys.GroupName] = item.GroupName;
                 }
-                
+
                 // Add Description to custom properties
                 if (!string.IsNullOrEmpty(item.Description))
                 {
                     configItem.CustomProperties[CustomPropertyKeys.Description] = item.Description;
                 }
-                
+
                 // Handle specific properties based on the item's type
                 var itemType = item.GetType();
                 var properties = itemType.GetProperties();
-                
+
                 // Check for PackageName property
                 var packageNameProperty = properties.FirstOrDefault(p => p.Name == "PackageName");
                 if (packageNameProperty != null)
                 {
                     configItem.PackageName = packageNameProperty.GetValue(item)?.ToString();
                 }
-                
+
                 // Check for SelectedValue property
                 var selectedValueProperty = properties.FirstOrDefault(p => p.Name == "SelectedValue");
                 if (selectedValueProperty != null)
                 {
                     configItem.SelectedValue = selectedValueProperty.GetValue(item)?.ToString();
                 }
-                
+
                 // Check for SliderValue property
                 var sliderValueProperty = properties.FirstOrDefault(p => p.Name == "SliderValue");
                 if (sliderValueProperty != null)
@@ -763,7 +763,7 @@ namespace Winhance.Infrastructure.Features.Common.Services
                         configItem.CustomProperties[CustomPropertyKeys.SliderValue] = sliderValue;
                     }
                 }
-                
+
                 // Check for SliderLabels property
                 var sliderLabelsProperty = properties.FirstOrDefault(p => p.Name == "SliderLabels");
                 if (sliderLabelsProperty != null)
@@ -774,7 +774,7 @@ namespace Winhance.Infrastructure.Features.Common.Services
                         // Store the labels as a comma-separated string
                         var labelsString = string.Join(",", sliderLabels.Cast<object>().Select(l => l.ToString()));
                         configItem.CustomProperties[CustomPropertyKeys.SliderLabels] = labelsString;
-                        
+
                         // For Power Plan, also store the labels as PowerPlanOptions
                         if (item.Name.Contains("Power Plan") || item.Id == "PowerPlanComboBox")
                         {
@@ -783,7 +783,7 @@ namespace Winhance.Infrastructure.Features.Common.Services
                         }
                     }
                 }
-                
+
                 // Check for RegistrySetting property
                 var registrySettingProperty = properties.FirstOrDefault(p => p.Name == "RegistrySetting");
                 if (registrySettingProperty != null)
@@ -807,13 +807,13 @@ namespace Winhance.Infrastructure.Features.Common.Services
                         }
                     }
                 }
-                
+
                 // Ensure SelectedValue is set for Selection controls
                 configItem.EnsureSelectedValueIsSet();
-                
+
                 configItems.Add(configItem);
             }
-            
+
             return configItems;
         }
     }

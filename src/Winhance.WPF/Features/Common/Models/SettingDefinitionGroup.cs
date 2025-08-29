@@ -1,12 +1,10 @@
-using CommunityToolkit.Mvvm.ComponentModel;
 using System.Collections.ObjectModel;
+using CommunityToolkit.Mvvm.ComponentModel;
 using Winhance.Core.Features.Common.Interfaces;
 
 namespace Winhance.WPF.Features.Common.Models
 {
-    /// <summary>
-    /// Base class for application setting groups used in both Optimization and Customization features.
-    /// </summary>
+
     public partial class SettingDefinitionGroup : ObservableObject
     {
         [ObservableProperty]
@@ -17,19 +15,16 @@ namespace Winhance.WPF.Features.Common.Models
 
         [ObservableProperty]
         private bool _isSelected;
-        
+
         [ObservableProperty]
         private bool _isGroupHeader;
-        
+
         [ObservableProperty]
         private string _groupName = string.Empty;
-        
+
         [ObservableProperty]
         private bool _isVisible = true;
-        
-        /// <summary>
-        /// Gets the collection of settings in this group.
-        /// </summary>
+
         public ObservableCollection<ISettingItem> Settings { get; } = new();
     }
 }

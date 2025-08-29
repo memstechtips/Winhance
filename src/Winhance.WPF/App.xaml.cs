@@ -127,11 +127,11 @@ namespace Winhance.WPF
             try
             {
                 LogStartupMessage("Initializing domain event handlers");
-                
+
                 // Initialize the TooltipRefreshEventHandler by getting it from DI
                 // This triggers its constructor which subscribes to SettingAppliedEvent
                 var tooltipHandler = _host.Services.GetRequiredService<Infrastructure.Features.Common.EventHandlers.TooltipRefreshEventHandler>();
-                
+
                 LogStartupMessage("TooltipRefreshEventHandler initialized");
             }
             catch (Exception ex)
@@ -146,7 +146,7 @@ namespace Winhance.WPF
             {
                 var logService = _host.Services.GetService<ILogService>();
                 var systemServices = _host.Services.GetService<ISystemServices>();
-                
+
                 if (logService is Winhance.Core.Features.Common.Services.LogService concreteLogService && systemServices != null)
                 {
                     concreteLogService.Initialize(systemServices);
@@ -166,7 +166,7 @@ namespace Winhance.WPF
             {
                 LogStartupMessage("Checking for administrator privileges");
                 var systemServices = _host.Services.GetService<ISystemServices>();
-                
+
                 if (systemServices != null)
                 {
                     bool isAdmin = systemServices.RequireAdministrator();
@@ -219,10 +219,10 @@ namespace Winhance.WPF
             LogStartupMessage("Getting main window and view model");
             var mainWindow = _host.Services.GetRequiredService<MainWindow>();
             var mainViewModel = _host.Services.GetRequiredService<MainViewModel>();
-            
+
             mainWindow.DataContext = mainViewModel;
             Application.Current.MainWindow = mainWindow;
-            
+
             LogStartupMessage("Main window and view model initialized");
             return (mainWindow, mainViewModel);
         }
@@ -231,9 +231,9 @@ namespace Winhance.WPF
         {
             var taskProgressService = _host.Services.GetRequiredService<ITaskProgressService>();
             var progressHandler = CreateProgressHandler(loadingWindow);
-            
+
             taskProgressService.ProgressChanged += progressHandler;
-            
+
             try
             {
                 // Preload WindowsAppsViewModel data
@@ -257,11 +257,11 @@ namespace Winhance.WPF
         private void ShowMainWindow(MainWindow mainWindow, MainViewModel mainViewModel)
         {
             LogStartupMessage("Initializing and showing main window");
-            
+
             // Initialize window with effects and messaging
             var windowInitService = _host.Services.GetRequiredService<WindowInitializationService>();
             windowInitService.InitializeWindow(mainWindow);
-            
+
             mainWindow.Show();
             LogStartupMessage("Main window shown");
         }
@@ -318,8 +318,8 @@ namespace Winhance.WPF
                 downloadAndInstallAction
             );
 
-            LogStartupMessage(installNow 
-                ? "User chose to download and install the update" 
+            LogStartupMessage(installNow
+                ? "User chose to download and install the update"
                 : "User chose to be reminded later");
         }
 

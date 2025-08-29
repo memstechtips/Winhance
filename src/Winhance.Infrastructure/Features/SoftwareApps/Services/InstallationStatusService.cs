@@ -47,14 +47,14 @@ namespace Winhance.Infrastructure.Features.SoftwareApps.Services
             {
                 if (_statusCache.TryGetValue(appId, out var cachedStatus))
                 {
-                _logService.LogInformation($"Retrieved cached status for {appId}");
+                    _logService.LogInformation($"Retrieved cached status for {appId}");
                     return cachedStatus ? InstallStatus.Success : InstallStatus.Failed;
                 }
 
                 _logService.LogInformation($"Querying package manager for {appId}");
                 var isInstalled = await _packageManager.IsAppInstalledAsync(appId);
                 _statusCache.TryAdd(appId, isInstalled);
-                
+
                 _logService.LogInformation($"Install status for {appId}: {isInstalled}");
                 return isInstalled ? InstallStatus.Success : InstallStatus.Failed;
             }
@@ -73,7 +73,7 @@ namespace Winhance.Infrastructure.Features.SoftwareApps.Services
             try
             {
                 _logService.LogInformation("Refreshing installation status for batch of apps");
-                
+
                 foreach (var appId in appIds.Distinct())
                 {
                     try
@@ -89,7 +89,7 @@ namespace Winhance.Infrastructure.Features.SoftwareApps.Services
                         _logService.LogError($"Failed to refresh status for {appId}", ex);
                     }
                 }
-                
+
                 result.Errors = errors;
                 _logService.LogSuccess("Successfully refreshed installation status");
                 return result;
@@ -108,20 +108,20 @@ namespace Winhance.Infrastructure.Features.SoftwareApps.Services
             try
             {
                 _logService.LogInformation("Refreshing installation status for batch of items");
-                
+
                 var packageIds = items.Select(i => i.PackageId).Distinct();
                 var statuses = await GetBatchInstallStatusAsync(packageIds, cancellationToken);
-                
+
                 foreach (var item in items)
                 {
                     cancellationToken.ThrowIfCancellationRequested();
-                    
+
                     if (statuses.TryGetValue(item.PackageId, out var isInstalled))
                     {
                         _statusCache.TryAdd(item.PackageId, isInstalled);
                     }
                 }
-                
+
                 _logService.LogSuccess("Successfully refreshed installation status");
             }
             catch (OperationCanceledException)
@@ -148,10 +148,10 @@ namespace Winhance.Infrastructure.Features.SoftwareApps.Services
                     return cachedStatus;
                 }
 
-                    _logService.LogInformation($"Querying package manager for {item.PackageId}");
+                _logService.LogInformation($"Querying package manager for {item.PackageId}");
                 var isInstalled = await _packageManager.IsAppInstalledAsync(item.PackageId, cancellationToken);
                 _statusCache.TryAdd(item.PackageId, isInstalled);
-                
+
                 _logService.LogInformation($"Install status for {item.PackageId}: {isInstalled}");
                 return isInstalled;
             }
@@ -180,7 +180,7 @@ namespace Winhance.Infrastructure.Features.SoftwareApps.Services
                 foreach (var id in distinctIds)
                 {
                     cancellationToken.ThrowIfCancellationRequested();
-                    
+
                     if (_statusCache.TryGetValue(id, out var cachedStatus))
                     {
                         results[id] = cachedStatus;

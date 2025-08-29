@@ -47,7 +47,7 @@ namespace Winhance.Core.Features.Common.Services
                     if (!currentSettingsState.TryGetValue(dependency.RequiredSettingId, out var isEnabled) || !isEnabled)
                     {
                         var requiredSetting = allSettings.FirstOrDefault(s => s.Id == dependency.RequiredSettingId);
-                        _logService.Log(LogLevel.Warning, 
+                        _logService.Log(LogLevel.Warning,
                             $"Cannot enable '{setting.Name}' because required setting '{requiredSetting?.Name ?? dependency.RequiredSettingId}' is disabled");
                         return false;
                     }
@@ -57,7 +57,7 @@ namespace Winhance.Core.Features.Common.Services
                     if (currentSettingsState.TryGetValue(dependency.RequiredSettingId, out var isEnabled) && isEnabled)
                     {
                         var conflictingSetting = allSettings.FirstOrDefault(s => s.Id == dependency.RequiredSettingId);
-                        _logService.Log(LogLevel.Warning, 
+                        _logService.Log(LogLevel.Warning,
                             $"Cannot enable '{setting.Name}' because conflicting setting '{conflictingSetting?.Name ?? dependency.RequiredSettingId}' is enabled");
                         return false;
                     }
@@ -154,7 +154,7 @@ namespace Winhance.Core.Features.Common.Services
             while (settingsToProcess.Count > 0)
             {
                 var currentSettingId = settingsToProcess.Dequeue();
-                
+
                 if (processedSettings.Contains(currentSettingId))
                 {
                     continue; // Already processed
@@ -185,7 +185,7 @@ namespace Winhance.Core.Features.Common.Services
                         {
                             // Need to disable this conflicting setting
                             resolutionPlan[dependency.RequiredSettingId] = false;
-                            
+
                             // Also need to disable any settings that depend on this one
                             var dependentSettings = GetDependentSettings(dependency.RequiredSettingId, allSettings);
                             foreach (var dependentSettingId in dependentSettings)

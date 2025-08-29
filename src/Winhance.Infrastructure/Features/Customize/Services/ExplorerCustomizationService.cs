@@ -20,7 +20,7 @@ namespace Winhance.Infrastructure.Features.Customize.Services
     /// </summary>
     public class ExplorerCustomizationService : IDomainService
     {
-        private readonly  SettingControlHandler _controlHandler;
+        private readonly SettingControlHandler _controlHandler;
         private readonly ISystemSettingsDiscoveryService _discoveryService;
         private readonly ILogService _logService;
         private readonly ICommandService _commandService;

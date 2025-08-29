@@ -9,9 +9,9 @@ using System.Windows.Input;
 using CommunityToolkit.Mvvm.ComponentModel;
 using CommunityToolkit.Mvvm.Input;
 using Winhance.Core.Features.Common.Enums;
-using Winhance.Core.Features.Common.Interfaces;
 using Winhance.Core.Features.Common.Events;
 using Winhance.Core.Features.Common.Events.UI;
+using Winhance.Core.Features.Common.Interfaces;
 using Winhance.Core.Features.Common.Models;
 using Winhance.WPF.Features.Common.Models;
 
@@ -279,7 +279,8 @@ namespace Winhance.WPF.Features.Common.ViewModels
                     Level = LogLevel.Info, // Default to Info since we don't have level information
                     Exception = null,
                 });
-            };
+            }
+            ;
         }
 
         /// <summary>

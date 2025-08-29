@@ -94,11 +94,11 @@ public class InstallationOrchestrator : IInstallationOrchestrator
 
             _logService.LogSuccess($"Successfully installed {item.DisplayName}");
         }
-            catch (Exception ex) when (ex is not InstallationException)
-            {
-                _logService.LogError($"Failed to install {item.DisplayName}", ex);
-                throw new InstallationException(item.DisplayName, $"Installation failed for {item.DisplayName}", false, ex);
-            }
+        catch (Exception ex) when (ex is not InstallationException)
+        {
+            _logService.LogError($"Failed to install {item.DisplayName}", ex);
+            throw new InstallationException(item.DisplayName, $"Installation failed for {item.DisplayName}", false, ex);
+        }
     }
 
     /// <summary>
@@ -182,7 +182,7 @@ public class InstallationOrchestrator : IInstallationOrchestrator
                     {
                         // Scale the progress to the current item's portion of the total
                         double scaledProgress = (completedItems * 100.0 + (detail.Progress ?? 0)) / totalItems;
-                        
+
                         progress.Report(new TaskProgressDetail
                         {
                             Progress = scaledProgress,
@@ -207,7 +207,7 @@ public class InstallationOrchestrator : IInstallationOrchestrator
             catch (Exception ex) when (ex is not InstallationException)
             {
                 _logService.LogError($"Error installing {item.DisplayName}", ex);
-                
+
                 // Report error but continue with next item
                 progress?.Report(new TaskProgressDetail
                 {

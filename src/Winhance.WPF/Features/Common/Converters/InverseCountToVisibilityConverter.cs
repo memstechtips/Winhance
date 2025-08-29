@@ -17,7 +17,7 @@ namespace Winhance.WPF.Features.Common.Converters
             {
                 return count == 0 ? Visibility.Visible : Visibility.Collapsed;
             }
-            
+
             return Visibility.Visible;
         }
 

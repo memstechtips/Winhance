@@ -19,7 +19,7 @@ namespace Winhance.Infrastructure.Features.SoftwareApps.Services.WinGet.Interfac
         /// <param name="cancellationToken">A cancellation token to cancel the operation.</param>
         /// <returns>A task representing the asynchronous operation with the installation result.</returns>
         Task<InstallationResult> InstallPackageAsync(
-            string packageId, 
+            string packageId,
             InstallationOptions options = null,
             string displayName = null,
             CancellationToken cancellationToken = default);
@@ -33,7 +33,7 @@ namespace Winhance.Infrastructure.Features.SoftwareApps.Services.WinGet.Interfac
         /// <param name="cancellationToken">A cancellation token to cancel the operation.</param>
         /// <returns>A task representing the asynchronous operation with the upgrade result.</returns>
         Task<UpgradeResult> UpgradePackageAsync(
-            string packageId, 
+            string packageId,
             UpgradeOptions options = null,
             string displayName = null,
             CancellationToken cancellationToken = default);
@@ -47,7 +47,7 @@ namespace Winhance.Infrastructure.Features.SoftwareApps.Services.WinGet.Interfac
         /// <param name="cancellationToken">A cancellation token to cancel the operation.</param>
         /// <returns>A task representing the asynchronous operation with the uninstallation result.</returns>
         Task<UninstallationResult> UninstallPackageAsync(
-            string packageId, 
+            string packageId,
             UninstallationOptions options = null,
             string displayName = null,
             CancellationToken cancellationToken = default);
@@ -59,7 +59,7 @@ namespace Winhance.Infrastructure.Features.SoftwareApps.Services.WinGet.Interfac
         /// <param name="cancellationToken">A cancellation token to cancel the operation.</param>
         /// <returns>A task representing the asynchronous operation with the package information.</returns>
         Task<PackageInfo> GetPackageInfoAsync(
-            string packageId, 
+            string packageId,
             CancellationToken cancellationToken = default);
 
         /// <summary>
@@ -70,17 +70,17 @@ namespace Winhance.Infrastructure.Features.SoftwareApps.Services.WinGet.Interfac
         /// <param name="cancellationToken">A cancellation token to cancel the operation.</param>
         /// <returns>A task representing the asynchronous operation with the search results.</returns>
         Task<IEnumerable<PackageInfo>> SearchPackagesAsync(
-            string query, 
-            SearchOptions options = null, 
+            string query,
+            SearchOptions options = null,
             CancellationToken cancellationToken = default);
-            
+
         /// <summary>
         /// Attempts to install WinGet if it's not already installed.
         /// </summary>
         /// <param name="cancellationToken">A cancellation token to cancel the operation.</param>
         /// <returns>A task representing the asynchronous operation. Returns true if WinGet was installed successfully or was already installed.</returns>
         Task<bool> TryInstallWinGetAsync(CancellationToken cancellationToken = default);
-        
+
         /// <summary>
         /// Executes a WinGet command directly.
         /// </summary>

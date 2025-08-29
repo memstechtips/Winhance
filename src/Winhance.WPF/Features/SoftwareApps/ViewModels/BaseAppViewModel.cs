@@ -32,7 +32,7 @@ namespace Winhance.WPF.Features.SoftwareApps.ViewModels
         /// </summary>
         /// <param name="isTableViewMode">True if table view mode, false if list view mode</param>
         public delegate void ViewModeChangedEventHandler(bool isTableViewMode);
-        
+
         /// <summary>
         /// Event raised when view mode changes
         /// </summary>

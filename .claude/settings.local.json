@@ -22,7 +22,17 @@
       "Bash(dotnet sln add:*)",
       "Bash(cp:*)",
       "Bash(dotnet remove:*)",
-      "WebSearch"
+      "WebSearch",
+      "Bash(dotnet --version)",
+      "Read(/mnt/d/User Files/Desktop/**)",
+      "Read(/mnt/d/User Files/Desktop/**)",
+      "Read(/mnt/d/User Files/Desktop/**)",
+      "Read(/mnt/d/User Files/Desktop/**)",
+      "Read(/mnt/d/User Files/Desktop/**)",
+      "Bash(export:*)",
+      "Bash(echo $PATH)",
+      "Bash(source:*)",
+      "Bash(claude --version)"
     ],
     "deny": [],
     "defaultMode": "acceptEdits"

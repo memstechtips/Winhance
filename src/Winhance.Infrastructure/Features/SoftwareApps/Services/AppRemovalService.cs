@@ -102,7 +102,7 @@ namespace Winhance.Infrastructure.Features.SoftwareApps.Services
                         _logService.LogInformation(
                             $"Found {appInfo.RegistrySettings.Length} registry settings for {appInfo.PackageName}"
                         );
-                        
+
                         // Apply the registry settings
                         var settingsApplied = ApplyRegistrySettings(appInfo.RegistrySettings);
                         if (settingsApplied)

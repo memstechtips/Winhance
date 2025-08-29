@@ -11,15 +11,15 @@ namespace Winhance.Core.Features.Common.Services
     public class LoggingService : ILogService, IHostedService, IDisposable
     {
         private readonly ILogService _logService;
-        
+
         public event EventHandler<LogMessageEventArgs>? LogMessageGenerated;
 
         public LoggingService(ILogService logService)
         {
             _logService = logService;
-            
+
             // Subscribe to the inner log service events and forward them
-            _logService.LogMessageGenerated += (sender, args) => 
+            _logService.LogMessageGenerated += (sender, args) =>
             {
                 LogMessageGenerated?.Invoke(this, args);
             };
@@ -71,7 +71,7 @@ namespace Winhance.Core.Features.Common.Services
         {
             _logService.Log(level, message, exception);
         }
-        
+
         // Removed the incorrectly ordered Log method to fix the parameter order error
         // This was causing CS1503 errors with parameter type mismatches
 
