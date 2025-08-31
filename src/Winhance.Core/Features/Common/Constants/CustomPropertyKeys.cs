@@ -1,11 +1,12 @@
 namespace Winhance.Core.Features.Common.Constants
 {
-    // Constants for CustomProperties dictionary keys to prevent typos and improve IntelliSense.
     public static class CustomPropertyKeys
     {
         // ComboBox properties
         public const string ComboBoxDisplayNames = "ComboBoxDisplayNames";
         public const string ValueMappings = "ValueMappings";
+        public const string SupportsCustomState = "SupportsCustomState";
+        public const string CustomStateDisplayName = "CustomStateDisplayName";
 
         // Configuration properties
         public const string Id = "Id";

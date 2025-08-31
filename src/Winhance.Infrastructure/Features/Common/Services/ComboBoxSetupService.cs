@@ -9,11 +9,6 @@ using Winhance.Core.Features.Common.Models;
 
 namespace Winhance.Infrastructure.Features.Common.Services
 {
-    /// <summary>
-    /// Service for setting up ComboBox options from SettingDefinitions.
-    /// Handles ComboBoxDisplayNames + ValueMappings pattern only.
-    /// Follows DRY and SRP principles with single source of truth.
-    /// </summary>
     public class ComboBoxSetupService : IComboBoxSetupService
     {
         private readonly ILogService _logService;
@@ -35,7 +30,6 @@ namespace Winhance.Infrastructure.Features.Common.Services
                     return result;
                 }
 
-                // All settings now use ComboBoxDisplayNames + ValueMappings pattern
                 if (SetupFromComboBoxDisplayNames(setting, currentValue, result))
                 {
                     result.Success = true;
@@ -55,10 +49,6 @@ namespace Winhance.Infrastructure.Features.Common.Services
             }
         }
 
-        /// <summary>
-        /// Sets up ComboBox using ComboBoxDisplayNames + ValueMappings pattern.
-        /// This is now the only supported pattern for all ComboBox settings.
-        /// </summary>
         private bool SetupFromComboBoxDisplayNames(SettingDefinition setting, object? currentValue, ComboBoxSetupResult result)
         {
             if (!setting.CustomProperties?.ContainsKey(CustomPropertyKeys.ComboBoxDisplayNames) == true ||
@@ -71,20 +61,32 @@ namespace Winhance.Infrastructure.Features.Common.Services
             if (displayNames == null || valueMappings == null)
                 return false;
 
-            // Populate options using display names and their corresponding indices
-            for (int i = 0; i < displayNames.Length; i++)
+            var supportsCustomState = setting.CustomProperties?.TryGetValue(CustomPropertyKeys.SupportsCustomState, out var supports) == true && (bool)supports;
+            var isCustomState = currentValue?.Equals(ComboBoxResolver.CUSTOM_STATE_INDEX) == true;
+            
+            string[] finalDisplayNames = displayNames;
+            
+            if (supportsCustomState && isCustomState)
+            {
+                var customDisplayName = setting.CustomProperties?.TryGetValue(CustomPropertyKeys.CustomStateDisplayName, out var customName) == true && customName is string customStr 
+                    ? customStr 
+                    : "Custom (User Defined)";
+                    
+                finalDisplayNames = displayNames.Append(customDisplayName).ToArray();
+            }
+
+            for (int i = 0; i < finalDisplayNames.Length; i++)
             {
                 result.Options.Add(new ComboBoxOption
                 {
-                    DisplayText = displayNames[i],
-                    Value = i // Use index as value for ValueMappings pattern
+                    DisplayText = finalDisplayNames[i],
+                    Value = i < displayNames.Length ? i : ComboBoxResolver.CUSTOM_STATE_INDEX
                 });
             }
 
-            // Use the already-resolved currentValue from ComboBoxResolver
-            result.SelectedValue = currentValue;
+            result.SelectedValue = isCustomState ? ComboBoxResolver.CUSTOM_STATE_INDEX : currentValue;
 
-            _logService.Log(LogLevel.Debug, $"ComboBoxSetupService: Populated {displayNames.Length} options from ComboBoxDisplayNames for '{setting.Id}'");
+            _logService.Log(LogLevel.Debug, $"ComboBoxSetupService: Populated {finalDisplayNames.Length} options from ComboBoxDisplayNames for '{setting.Id}'");
             return true;
         }
 

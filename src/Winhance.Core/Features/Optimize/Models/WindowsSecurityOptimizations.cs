@@ -28,7 +28,7 @@ namespace Winhance.Core.Features.Optimize.Models
                         {
                             new RegistrySetting
                             {
-                                KeyPath = @"SOFTWARE\Microsoft\Windows\CurrentVersion\Policies\System",
+                                KeyPath = @"HKEY_LOCAL_MACHINE\SOFTWARE\Microsoft\Windows\CurrentVersion\Policies\System",
                                 ValueName = "ConsentPromptBehaviorAdmin",
                                 RecommendedValue = 5, // NotifyChangesOnly
                                 EnabledValue = 5,
@@ -38,7 +38,7 @@ namespace Winhance.Core.Features.Optimize.Models
                             },
                             new RegistrySetting
                             {
-                                KeyPath = @"SOFTWARE\Microsoft\Windows\CurrentVersion\Policies\System",
+                                KeyPath = @"HKEY_LOCAL_MACHINE\SOFTWARE\Microsoft\Windows\CurrentVersion\Policies\System",
                                 ValueName = "PromptOnSecureDesktop",
                                 RecommendedValue = 1, // Secure desktop enabled
                                 EnabledValue = 1,
@@ -85,6 +85,8 @@ namespace Winhance.Core.Features.Optimize.Models
                                     ["PromptOnSecureDesktop"] = 0,
                                 },
                             },
+                            [CustomPropertyKeys.SupportsCustomState] = true,
+                            [CustomPropertyKeys.CustomStateDisplayName] = "Custom (User Defined)",
                         },
                     },
                 },

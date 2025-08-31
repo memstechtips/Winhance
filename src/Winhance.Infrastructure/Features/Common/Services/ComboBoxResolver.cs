@@ -12,17 +12,11 @@ using Winhance.Core.Features.Common.Models.WindowsRegistry;
 
 namespace Winhance.Infrastructure.Features.Common.Services
 {
-    /// <summary>
-    /// ComboBox value resolver that handles standard registry-based ComboBox scenarios.
-    /// Follows DRY principle by providing common ComboBox resolution logic for all domains.
-    /// Uses Convention over Configuration pattern with SettingDefinition metadata.
-    /// Adheres to SRP by handling only registry-to-ComboBox value mapping.
-    /// Only supports ComboBoxDisplayNames + ValueMappings pattern.
-    /// </summary>
     public class ComboBoxResolver : IComboBoxResolver
     {
         private readonly IWindowsRegistryService _registryService;
         private readonly ILogService _logService;
+        public const int CUSTOM_STATE_INDEX = -1;
 
         public string DomainName => "Generic";
 
@@ -36,7 +30,6 @@ namespace Winhance.Infrastructure.Features.Common.Services
 
         public bool CanResolve(SettingDefinition setting)
         {
-            // Can resolve any ComboBox setting that has proper metadata structure
             var isComboBox = setting.InputType == SettingInputType.Selection;
             var hasValidMetadata = HasValidComboBoxMetadata(setting);
 
@@ -45,20 +38,14 @@ namespace Winhance.Infrastructure.Features.Common.Services
             return isComboBox && hasValidMetadata;
         }
 
-        /// <summary>
-        /// Determines if the setting has valid metadata for generic resolution.
-        /// Only supports ValueMappings + ComboBoxDisplayNames pattern.
-        /// </summary>
         private bool HasValidComboBoxMetadata(SettingDefinition setting)
         {
-            // Check if setting has registry settings
             if (setting.RegistrySettings?.Any() != true)
             {
                 _logService.Log(LogLevel.Warning, $"[ComboBoxResolver] '{setting.Id}' has no registry settings");
                 return false;
             }
 
-            // Only support ValueMappings + ComboBoxDisplayNames pattern
             var hasValueMappings = setting.CustomProperties?.ContainsKey(CustomPropertyKeys.ValueMappings) == true;
             var hasDisplayNames = setting.CustomProperties?.ContainsKey(CustomPropertyKeys.ComboBoxDisplayNames) == true;
 
@@ -117,6 +104,14 @@ namespace Winhance.Infrastructure.Features.Common.Services
                     }
                 }
 
+                var supportsCustomState = setting.CustomProperties?.TryGetValue(CustomPropertyKeys.SupportsCustomState, out var supports) == true && (bool)supports;
+                
+                if (supportsCustomState)
+                {
+                    _logService.Log(LogLevel.Info, $"[ComboBoxResolver] Custom registry state detected for '{setting.Id}'");
+                    return CUSTOM_STATE_INDEX;
+                }
+                
                 _logService.Log(LogLevel.Warning, $"No ValueMapping matches current registry values for '{setting.Id}'");
                 return null;
             }
@@ -131,16 +126,20 @@ namespace Winhance.Infrastructure.Features.Common.Services
         {
             try
             {
+                if (index == CUSTOM_STATE_INDEX)
+                {
+                    _logService.Log(LogLevel.Info, $"[ComboBoxResolver] Cannot apply custom state index for '{setting.Id}'");
+                    return;
+                }
+
                 _logService.Log(LogLevel.Info, $"[ComboBoxResolver] Applying ComboBox index {index} for '{setting.Id}'");
 
-                // Get ValueMappings metadata
                 if (!setting.CustomProperties.TryGetValue(CustomPropertyKeys.ValueMappings, out var mappingsObj) ||
                     mappingsObj is not Dictionary<int, Dictionary<string, int>> valueMappings)
                 {
                     throw new ArgumentException($"Invalid ValueMappings metadata for '{setting.Id}'");
                 }
 
-                // Get the registry values for the specified index
                 if (!valueMappings.TryGetValue(index, out var registryValues))
                 {
                     throw new ArgumentException($"ComboBox index {index} not found in ValueMappings for '{setting.Id}'");
@@ -217,9 +216,6 @@ namespace Winhance.Infrastructure.Features.Common.Services
             }
         }
 
-        /// <summary>
-        /// Helper method to read registry value.
-        /// </summary>
         private int? GetRegistryValueAsync(RegistrySetting registrySetting)
         {
             try
@@ -234,9 +230,6 @@ namespace Winhance.Infrastructure.Features.Common.Services
             }
         }
 
-        /// <summary>
-        /// Helper method to set registry value.
-        /// </summary>
         private async Task SetRegistryValueAsync(RegistrySetting registrySetting, int value)
         {
             try

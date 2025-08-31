@@ -108,6 +108,8 @@ namespace Winhance.Core.Features.Customize.Models
                                     ["SystemUsesLightTheme"] = 0,
                                 },
                             },
+                            [CustomPropertyKeys.SupportsCustomState] = true,
+                            [CustomPropertyKeys.CustomStateDisplayName] = "Custom (User Defined)",
                         },
                     },
                     // Transparency Effects Toggle
