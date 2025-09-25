@@ -3,7 +3,6 @@ using Microsoft.Win32;
 using Winhance.Core.Features.Common.Constants;
 using Winhance.Core.Features.Common.Enums;
 using Winhance.Core.Features.Common.Models;
-using Winhance.Core.Features.Common.Models.WindowsRegistry;
 
 namespace Winhance.Core.Features.Customize.Models;
 
@@ -23,7 +22,7 @@ public static class ExplorerCustomizations
                     Name = "3D Objects in This PC",
                     Description = "Controls 3D Objects folder visibility in This PC",
                     GroupName = "File Explorer Settings",
-                    InputType = SettingInputType.Toggle,
+                    InputType = InputType.Toggle,
                     RegistrySettings = new List<RegistrySetting>
                     {
                         new RegistrySetting
@@ -44,7 +43,7 @@ public static class ExplorerCustomizations
                     Name = "Home Folder in Navigation Pane",
                     Description = "Controls Home Folder visibility in Navigation Pane",
                     GroupName = "File Explorer Settings",
-                    InputType = SettingInputType.Toggle,
+                    InputType = InputType.Toggle,
                     RegistrySettings = new List<RegistrySetting>
                     {
                         new RegistrySetting
@@ -65,7 +64,7 @@ public static class ExplorerCustomizations
                     Name = "Launch Explorer to This PC",
                     Description = "Makes File Explorer open This PC instead of Quick Access",
                     GroupName = "File Explorer Settings",
-                    InputType = SettingInputType.Toggle,
+                    InputType = InputType.Toggle,
                     RegistrySettings = new List<RegistrySetting>
                     {
                         new RegistrySetting
@@ -86,7 +85,7 @@ public static class ExplorerCustomizations
                     Name = "Show File Extensions",
                     Description = "Controls visibility of file name extensions",
                     GroupName = "File Explorer Settings",
-                    InputType = SettingInputType.Toggle,
+                    InputType = InputType.Toggle,
                     RegistrySettings = new List<RegistrySetting>
                     {
                         new RegistrySetting
@@ -107,7 +106,7 @@ public static class ExplorerCustomizations
                     Name = "Show Hidden Files, Folders & Drives",
                     Description = "Controls visibility of hidden files and folders",
                     GroupName = "File Explorer Settings",
-                    InputType = SettingInputType.Toggle,
+                    InputType = InputType.Toggle,
                     RegistrySettings = new List<RegistrySetting>
                     {
                         new RegistrySetting
@@ -128,7 +127,7 @@ public static class ExplorerCustomizations
                     Name = "Hide Protected Operating System Files",
                     Description = "Controls visibility of protected operating system files",
                     GroupName = "File Explorer Settings",
-                    InputType = SettingInputType.Toggle,
+                    InputType = InputType.Toggle,
                     RegistrySettings = new List<RegistrySetting>
                     {
                         new RegistrySetting
@@ -149,7 +148,7 @@ public static class ExplorerCustomizations
                     Name = "Folder Tips",
                     Description = "Controls file size information in folder tips",
                     GroupName = "File Explorer Settings",
-                    InputType = SettingInputType.Toggle,
+                    InputType = InputType.Toggle,
                     RegistrySettings = new List<RegistrySetting>
                     {
                         new RegistrySetting
@@ -170,7 +169,7 @@ public static class ExplorerCustomizations
                     Name = "Pop-up Descriptions",
                     Description = "Controls pop-up descriptions for folder and desktop items",
                     GroupName = "File Explorer Settings",
-                    InputType = SettingInputType.Toggle,
+                    InputType = InputType.Toggle,
                     RegistrySettings = new List<RegistrySetting>
                     {
                         new RegistrySetting
@@ -191,7 +190,7 @@ public static class ExplorerCustomizations
                     Name = "Preview Handlers",
                     Description = "Controls preview handlers in preview pane",
                     GroupName = "File Explorer Settings",
-                    InputType = SettingInputType.Toggle,
+                    InputType = InputType.Toggle,
                     RegistrySettings = new List<RegistrySetting>
                     {
                         new RegistrySetting
@@ -212,7 +211,7 @@ public static class ExplorerCustomizations
                     Name = "Status Bar",
                     Description = "Controls status bar visibility in File Explorer",
                     GroupName = "File Explorer Settings",
-                    InputType = SettingInputType.Toggle,
+                    InputType = InputType.Toggle,
                     RegistrySettings = new List<RegistrySetting>
                     {
                         new RegistrySetting
@@ -233,7 +232,7 @@ public static class ExplorerCustomizations
                     Name = "Show Thumbnails",
                     Description = "Controls whether to show thumbnails or icons",
                     GroupName = "File Explorer Settings",
-                    InputType = SettingInputType.Toggle,
+                    InputType = InputType.Toggle,
                     RegistrySettings = new List<RegistrySetting>
                     {
                         new RegistrySetting
@@ -254,7 +253,7 @@ public static class ExplorerCustomizations
                     Name = "Translucent Selection",
                     Description = "Controls translucent selection rectangle",
                     GroupName = "File Explorer Settings",
-                    InputType = SettingInputType.Toggle,
+                    InputType = InputType.Toggle,
                     RegistrySettings = new List<RegistrySetting>
                     {
                         new RegistrySetting
@@ -275,7 +274,7 @@ public static class ExplorerCustomizations
                     Name = "Drop Shadows",
                     Description = "Controls drop shadows for icon labels",
                     GroupName = "File Explorer Settings",
-                    InputType = SettingInputType.Toggle,
+                    InputType = InputType.Toggle,
                     RegistrySettings = new List<RegistrySetting>
                     {
                         new RegistrySetting
@@ -296,7 +295,7 @@ public static class ExplorerCustomizations
                     Name = "Full Path in Title Bar",
                     Description = "Controls full path display in the title bar",
                     GroupName = "File Explorer Settings",
-                    InputType = SettingInputType.Toggle,
+                    InputType = InputType.Toggle,
                     RegistrySettings = new List<RegistrySetting>
                     {
                         new RegistrySetting
@@ -317,7 +316,7 @@ public static class ExplorerCustomizations
                     Name = "Font Smoothing",
                     Description = "Controls smooth edges of screen fonts",
                     GroupName = "File Explorer Settings",
-                    InputType = SettingInputType.Toggle,
+                    InputType = InputType.Toggle,
                     RegistrySettings = new List<RegistrySetting>
                     {
                         new RegistrySetting
@@ -338,7 +337,7 @@ public static class ExplorerCustomizations
                     Name = "DPI Scaling (100%)",
                     Description = "Controls DPI scaling setting",
                     GroupName = "File Explorer Settings",
-                    InputType = SettingInputType.Toggle,
+                    InputType = InputType.Toggle,
                     RegistrySettings = new List<RegistrySetting>
                     {
                         new RegistrySetting
@@ -359,7 +358,7 @@ public static class ExplorerCustomizations
                     Name = "Per-Process DPI",
                     Description = "Controls per-process system DPI",
                     GroupName = "File Explorer Settings",
-                    InputType = SettingInputType.Toggle,
+                    InputType = InputType.Toggle,
                     RegistrySettings = new List<RegistrySetting>
                     {
                         new RegistrySetting
@@ -380,7 +379,7 @@ public static class ExplorerCustomizations
                     Name = "Lock Screen",
                     Description = "Controls lock screen visibility",
                     GroupName = "File Explorer Settings",
-                    InputType = SettingInputType.Toggle,
+                    InputType = InputType.Toggle,
                     RegistrySettings = new List<RegistrySetting>
                     {
                         new RegistrySetting
@@ -401,7 +400,7 @@ public static class ExplorerCustomizations
                     Name = "Gallery in Navigation Pane",
                     Description = "Controls gallery visibility in navigation pane",
                     GroupName = "File Explorer Settings",
-                    InputType = SettingInputType.Toggle,
+                    InputType = InputType.Toggle,
                     RegistrySettings = new List<RegistrySetting>
                     {
                         new RegistrySetting
@@ -422,7 +421,7 @@ public static class ExplorerCustomizations
                     Name = "Classic Context Menu",
                     Description = "Controls context menu style (classic or modern)",
                     GroupName = "File Explorer Settings",
-                    InputType = SettingInputType.Toggle,
+                    InputType = InputType.Toggle,
                     RegistrySettings = new List<RegistrySetting>
                     {
                         new RegistrySetting

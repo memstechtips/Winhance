@@ -75,7 +75,8 @@ namespace Winhance.Infrastructure.Features.Common.Services
                 {
                     var properties = item.GetType().GetProperties();
                     var nameProperty = properties.FirstOrDefault(p => p.Name == "Name");
-                    var packageNameProperty = properties.FirstOrDefault(p => p.Name == "PackageName");
+                    var winGetPackageIdProperty = properties.FirstOrDefault(p => p.Name == "WinGetPackageId");
+                    var appxPackageNameProperty = properties.FirstOrDefault(p => p.Name == "AppxPackageName");
                     var isSelectedProperty = properties.FirstOrDefault(p => p.Name == "IsSelected");
                     var inputTypeProperty = properties.FirstOrDefault(p => p.Name == "InputType");
                     var registrySettingProperty = properties.FirstOrDefault(p => p.Name == "RegistrySetting");
@@ -84,7 +85,7 @@ namespace Winhance.Infrastructure.Features.Common.Services
                     if (nameProperty != null && isSelectedProperty != null)
                     {
                         var name = nameProperty.GetValue(item)?.ToString();
-                        var packageName = packageNameProperty?.GetValue(item)?.ToString();
+                        var packageName = winGetPackageIdProperty?.GetValue(item)?.ToString() ?? appxPackageNameProperty?.GetValue(item)?.ToString();
                         var isSelected = (bool)(isSelectedProperty.GetValue(item) ?? false);
 
                         // Create the configuration item
@@ -101,7 +102,7 @@ namespace Winhance.Infrastructure.Features.Common.Services
                             var inputType = inputTypeProperty.GetValue(item);
                             if (inputType != null)
                             {
-                                configItem.InputType = (SettingInputType)inputType;
+                                configItem.InputType = (InputType)inputType;
                             }
                         }
 
@@ -117,7 +118,7 @@ namespace Winhance.Infrastructure.Features.Common.Services
                         }
 
                         // Handle Selection input types
-                        if (configItem.InputType == SettingInputType.Selection)
+                        if (configItem.InputType == InputType.Selection)
                         {
                             // For ComboBox, get the selected value
                             var selectedThemeProperty = properties.FirstOrDefault(p => p.Name == "SelectedTheme");
@@ -147,7 +148,7 @@ namespace Winhance.Infrastructure.Features.Common.Services
 
                             // Store the SliderValue for Selection
                             // Note: In this application, Selection controls use SliderValue to store the selected index
-                            if (configItem.InputType == SettingInputType.Selection)
+                            if (configItem.InputType == InputType.Selection)
                             {
                                 var sliderValueProperty = properties.FirstOrDefault(p => p.Name == "SliderValue");
                                 if (sliderValueProperty != null)
@@ -226,7 +227,7 @@ namespace Winhance.Infrastructure.Features.Common.Services
                 _logService.Log(LogLevel.Info, $"Successfully saved {configType} configuration with {configFile.Items.Count} items to {saveFileDialog.FileName}");
 
                 // Log details about Selection items if any
-                var selectionItems = configFile.Items.Where(i => i.InputType == SettingInputType.Selection).ToList();
+                var selectionItems = configFile.Items.Where(i => i.InputType == InputType.Selection).ToList();
                 if (selectionItems.Any())
                 {
                     _logService.Log(LogLevel.Info, $"Saved {selectionItems.Count} Selection items:");
@@ -289,7 +290,7 @@ namespace Winhance.Infrastructure.Features.Common.Services
                 foreach (var item in configFile.Items)
                 {
                     // Handle Selection items
-                    if (item.InputType == SettingInputType.Selection && string.IsNullOrEmpty(item.SelectedValue))
+                    if (item.InputType == InputType.Selection && string.IsNullOrEmpty(item.SelectedValue))
                     {
                         // Try to get the SelectedTheme from CustomProperties
                         if (item.CustomProperties.TryGetValue("SelectedTheme", out var selectedTheme) && selectedTheme != null)
@@ -322,7 +323,7 @@ namespace Winhance.Infrastructure.Features.Common.Services
                 _logService.Log(LogLevel.Info, $"Successfully loaded {configType} configuration with {configFile.Items.Count} items from {openFileDialog.FileName}");
 
                 // Log details about Selection items if any
-                var selectionItems = configFile.Items.Where(i => i.InputType == SettingInputType.Selection).ToList();
+                var selectionItems = configFile.Items.Where(i => i.InputType == InputType.Selection).ToList();
                 if (selectionItems.Any())
                 {
                     _logService.Log(LogLevel.Info, $"Loaded {selectionItems.Count} Selection items:");
@@ -739,12 +740,8 @@ namespace Winhance.Infrastructure.Features.Common.Services
                 var itemType = item.GetType();
                 var properties = itemType.GetProperties();
 
-                // Check for PackageName property
-                var packageNameProperty = properties.FirstOrDefault(p => p.Name == "PackageName");
-                if (packageNameProperty != null)
-                {
-                    configItem.PackageName = packageNameProperty.GetValue(item)?.ToString();
-                }
+                // Check for PackageName property (note: this property doesn't exist in ItemDefinition, removing this check)
+                // The PackageName property was replaced with more specific properties like WinGetPackageId, AppxPackageName, etc.
 
                 // Check for SelectedValue property
                 var selectedValueProperty = properties.FirstOrDefault(p => p.Name == "SelectedValue");

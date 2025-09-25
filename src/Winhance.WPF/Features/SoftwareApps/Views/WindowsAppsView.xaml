@@ -65,7 +65,7 @@
                       Style="{StaticResource SectionHeaderStyle}"/>
         </StackPanel>
 
-        <ItemsControl ItemsSource="{Binding WindowsApps}"
+        <ItemsControl ItemsSource="{Binding WindowsAppsFiltered}"
                       Margin="10,0,10,10">
             <ItemsControl.ItemsPanel>
                 <ItemsPanelTemplate>
@@ -123,7 +123,7 @@
                       Style="{StaticResource SectionHeaderStyle}"/>
         </StackPanel>
 
-        <ItemsControl ItemsSource="{Binding Capabilities}"
+        <ItemsControl ItemsSource="{Binding CapabilitiesFiltered}"
                       Margin="10,0,10,10">
             <ItemsControl.ItemsPanel>
                 <ItemsPanelTemplate>
@@ -181,7 +181,7 @@
                       Style="{StaticResource SectionHeaderStyle}"/>
         </StackPanel>
 
-        <ItemsControl ItemsSource="{Binding OptionalFeatures}"
+        <ItemsControl ItemsSource="{Binding OptionalFeaturesFiltered}"
                       Margin="10,0,10,10">
             <ItemsControl.ItemsPanel>
                 <ItemsPanelTemplate>

@@ -3,7 +3,6 @@ using Microsoft.Win32;
 using Winhance.Core.Features.Common.Constants;
 using Winhance.Core.Features.Common.Enums;
 using Winhance.Core.Features.Common.Models;
-using Winhance.Core.Features.Common.Models.WindowsRegistry;
 
 namespace Winhance.Core.Features.Optimize.Models;
 
@@ -23,7 +22,7 @@ public static class GamingandPerformanceOptimizations
                     Name = "Xbox Game DVR",
                     Description = "Controls Xbox Game DVR functionality",
                     GroupName = "Game Recording",
-                    InputType = SettingInputType.Toggle,
+                    InputType = InputType.Toggle,
                     RegistrySettings = new List<RegistrySetting>
                     {
                         new RegistrySetting
@@ -55,7 +54,7 @@ public static class GamingandPerformanceOptimizations
                     Name = "Game Bar Controller Access",
                     Description = "Allow your controller to open Game Bar",
                     GroupName = "Game Bar",
-                    InputType = SettingInputType.Toggle,
+                    InputType = InputType.Toggle,
                     RegistrySettings = new List<RegistrySetting>
                     {
                         new RegistrySetting
@@ -76,7 +75,7 @@ public static class GamingandPerformanceOptimizations
                     Name = "Game Mode",
                     Description = "Controls Game Mode for optimized gaming performance",
                     GroupName = "Game Mode",
-                    InputType = SettingInputType.Toggle,
+                    InputType = InputType.Toggle,
                     RegistrySettings = new List<RegistrySetting>
                     {
                         new RegistrySetting
@@ -97,7 +96,7 @@ public static class GamingandPerformanceOptimizations
                     Name = "DirectX Optimizations",
                     Description = "Changes DirectX settings for optimal gaming performance",
                     GroupName = "DirectX",
-                    InputType = SettingInputType.Toggle,
+                    InputType = InputType.Toggle,
                     RegistrySettings = new List<RegistrySetting>
                     {
                         new RegistrySetting
@@ -119,7 +118,7 @@ public static class GamingandPerformanceOptimizations
                     Name = "Old Nvidia Sharpening",
                     Description = "Controls Nvidia sharpening for image quality",
                     GroupName = "Nvidia",
-                    InputType = SettingInputType.Toggle,
+                    InputType = InputType.Toggle,
                     RegistrySettings = new List<RegistrySetting>
                     {
                         new RegistrySetting
@@ -141,28 +140,22 @@ public static class GamingandPerformanceOptimizations
                     Description =
                         "Controls the High Precision Event Timer (HPET) for improved system performance",
                     GroupName = "System Performance",
-                    InputType = SettingInputType.Toggle,
+                    InputType = InputType.Toggle,
                     CommandSettings = new List<CommandSetting>
                     {
                         new CommandSetting
                         {
                             Id = "hpet-platform-clock",
-                            Category = "Gaming",
-                            Description = "Controls the platform clock setting for HPET",
                             EnabledCommand = "bcdedit /set useplatformclock true",
                             DisabledCommand = "bcdedit /deletevalue useplatformclock",
                             RequiresElevation = true,
-                            IsPrimary = true,
                         },
                         new CommandSetting
                         {
                             Id = "hpet-dynamic-tick",
-                            Category = "Gaming",
-                            Description = "Controls the dynamic tick setting for HPET",
                             EnabledCommand = "bcdedit /set disabledynamictick no",
                             DisabledCommand = "bcdedit /set disabledynamictick yes",
                             RequiresElevation = true,
-                            IsPrimary = false,
                         },
                     },
                 },
@@ -172,7 +165,7 @@ public static class GamingandPerformanceOptimizations
                     Name = "System Responsiveness for Games",
                     Description = "Controls system responsiveness for multimedia applications",
                     GroupName = "System Performance",
-                    InputType = SettingInputType.Toggle,
+                    InputType = InputType.Toggle,
                     RegistrySettings = new List<RegistrySetting>
                     {
                         new RegistrySetting
@@ -194,7 +187,7 @@ public static class GamingandPerformanceOptimizations
                     Name = "Network Throttling for Gaming",
                     Description = "Controls network throttling for optimal gaming performance",
                     GroupName = "System Performance",
-                    InputType = SettingInputType.Toggle,
+                    InputType = InputType.Toggle,
                     RegistrySettings = new List<RegistrySetting>
                     {
                         new RegistrySetting
@@ -216,7 +209,7 @@ public static class GamingandPerformanceOptimizations
                     Name = "GPU Priority for Gaming",
                     Description = "Controls GPU priority for gaming performance",
                     GroupName = "System Performance",
-                    InputType = SettingInputType.Toggle,
+                    InputType = InputType.Toggle,
                     RegistrySettings = new List<RegistrySetting>
                     {
                         new RegistrySetting
@@ -238,7 +231,7 @@ public static class GamingandPerformanceOptimizations
                     Name = "CPU Priority for Gaming",
                     Description = "Controls CPU priority for gaming performance",
                     GroupName = "System Performance",
-                    InputType = SettingInputType.Toggle,
+                    InputType = InputType.Toggle,
                     RegistrySettings = new List<RegistrySetting>
                     {
                         new RegistrySetting
@@ -260,7 +253,7 @@ public static class GamingandPerformanceOptimizations
                     Name = "High Scheduling Category for Gaming",
                     Description = "Controls scheduling category for games",
                     GroupName = "System Performance",
-                    InputType = SettingInputType.Toggle,
+                    InputType = InputType.Toggle,
                     RegistrySettings = new List<RegistrySetting>
                     {
                         new RegistrySetting
@@ -282,7 +275,7 @@ public static class GamingandPerformanceOptimizations
                     Name = "Hardware-Accelerated GPU Scheduling",
                     Description = "Controls hardware-accelerated GPU scheduling",
                     GroupName = "System Performance",
-                    InputType = SettingInputType.Toggle,
+                    InputType = InputType.Toggle,
                     RegistrySettings = new List<RegistrySetting>
                     {
                         new RegistrySetting
@@ -304,7 +297,7 @@ public static class GamingandPerformanceOptimizations
                     Name = "Win32 Priority Separation",
                     Description = "Controls Win32 priority separation for program performance",
                     GroupName = "System Performance",
-                    InputType = SettingInputType.Toggle,
+                    InputType = InputType.Toggle,
                     RegistrySettings = new List<RegistrySetting>
                     {
                         new RegistrySetting
@@ -326,7 +319,7 @@ public static class GamingandPerformanceOptimizations
                     Name = "Storage Sense",
                     Description = "Controls Storage Sense functionality",
                     GroupName = "System Performance",
-                    InputType = SettingInputType.Toggle,
+                    InputType = InputType.Toggle,
                     RegistrySettings = new List<RegistrySetting>
                     {
                         new RegistrySetting
@@ -348,7 +341,7 @@ public static class GamingandPerformanceOptimizations
                     Name = "UI Animations",
                     Description = "Controls UI animations for improved performance",
                     GroupName = "Visual Effects",
-                    InputType = SettingInputType.Toggle,
+                    InputType = InputType.Toggle,
                     RegistrySettings = new List<RegistrySetting>
                     {
                         new RegistrySetting
@@ -369,7 +362,7 @@ public static class GamingandPerformanceOptimizations
                     Name = "Startup Delay for Apps",
                     Description = "Controls startup delay for applications",
                     GroupName = "Startup",
-                    InputType = SettingInputType.Toggle,
+                    InputType = InputType.Toggle,
                     RegistrySettings = new List<RegistrySetting>
                     {
                         new RegistrySetting
@@ -391,7 +384,7 @@ public static class GamingandPerformanceOptimizations
                     Name = "Optimize Background Services",
                     Description = "Controls background services for better performance",
                     GroupName = "System Services",
-                    InputType = SettingInputType.Toggle,
+                    InputType = InputType.Toggle,
                     RegistrySettings = new List<RegistrySetting>
                     {
                         new RegistrySetting
@@ -412,7 +405,7 @@ public static class GamingandPerformanceOptimizations
                     Name = "Desktop Composition Effects",
                     Description = "Controls desktop composition effects",
                     GroupName = "Visual Effects",
-                    InputType = SettingInputType.Toggle,
+                    InputType = InputType.Toggle,
                     RegistrySettings = new List<RegistrySetting>
                     {
                         new RegistrySetting
@@ -433,7 +426,7 @@ public static class GamingandPerformanceOptimizations
                     Name = "Fast Startup",
                     Description = "Controls fast startup feature",
                     GroupName = "Startup",
-                    InputType = SettingInputType.Toggle,
+                    InputType = InputType.Toggle,
                     RegistrySettings = new List<RegistrySetting>
                     {
                         new RegistrySetting
@@ -455,7 +448,7 @@ public static class GamingandPerformanceOptimizations
                     Name = "Optimize File Explorer Search",
                     Description = "Controls file explorer search indexing",
                     GroupName = "File Explorer",
-                    InputType = SettingInputType.Toggle,
+                    InputType = InputType.Toggle,
                     RegistrySettings = new List<RegistrySetting>
                     {
                         new RegistrySetting
@@ -477,7 +470,7 @@ public static class GamingandPerformanceOptimizations
                     Name = "Prefetch Feature",
                     Description = "Controls Windows prefetch feature",
                     GroupName = "System Performance",
-                    InputType = SettingInputType.Toggle,
+                    InputType = InputType.Toggle,
                     RegistrySettings = new List<RegistrySetting>
                     {
                         new RegistrySetting
@@ -499,7 +492,7 @@ public static class GamingandPerformanceOptimizations
                     Name = "Remote Assistance",
                     Description = "Controls remote assistance feature",
                     GroupName = "System Services",
-                    InputType = SettingInputType.Toggle,
+                    InputType = InputType.Toggle,
                     RegistrySettings = new List<RegistrySetting>
                     {
                         new RegistrySetting
@@ -521,7 +514,7 @@ public static class GamingandPerformanceOptimizations
                     Name = "Superfetch Service",
                     Description = "Controls superfetch/SysMain service",
                     GroupName = "System Performance",
-                    InputType = SettingInputType.Toggle,
+                    InputType = InputType.Toggle,
                     RegistrySettings = new List<RegistrySetting>
                     {
                         new RegistrySetting
@@ -543,7 +536,7 @@ public static class GamingandPerformanceOptimizations
                     Name = "Optimize Visual Effects",
                     Description = "Controls visual effects for best performance",
                     GroupName = "Visual Effects",
-                    InputType = SettingInputType.Toggle,
+                    InputType = InputType.Toggle,
                     RegistrySettings = new List<RegistrySetting>
                     {
                         new RegistrySetting
@@ -565,7 +558,7 @@ public static class GamingandPerformanceOptimizations
                     Name = "Enhance Pointer Precision",
                     Description = "Controls enhanced pointer precision (mouse acceleration)",
                     GroupName = "Mouse Settings",
-                    InputType = SettingInputType.Toggle,
+                    InputType = InputType.Toggle,
                     RegistrySettings = new List<RegistrySetting>
                     {
                         new RegistrySetting
@@ -586,7 +579,7 @@ public static class GamingandPerformanceOptimizations
                     Name = "System Animations",
                     Description = "Controls animations and visual effects",
                     GroupName = "File Explorer Settings",
-                    InputType = SettingInputType.Toggle,
+                    InputType = InputType.Toggle,
                     RegistrySettings = new List<RegistrySetting>
                     {
                         new RegistrySetting
@@ -647,7 +640,7 @@ public static class GamingandPerformanceOptimizations
                     Name = "Menu Show Delay",
                     Description = "Controls menu show delay",
                     GroupName = "File Explorer Settings",
-                    InputType = SettingInputType.Toggle,
+                    InputType = InputType.Toggle,
                     RegistrySettings = new List<RegistrySetting>
                     {
                         new RegistrySetting
@@ -668,7 +661,7 @@ public static class GamingandPerformanceOptimizations
                     Name = "Set Visual Effects",
                     Description = "Sets appearance options to custom",
                     GroupName = "File Explorer Settings",
-                    InputType = SettingInputType.Toggle,
+                    InputType = InputType.Toggle,
                     RegistrySettings = new List<RegistrySetting>
                     {
                         new RegistrySetting
@@ -690,7 +683,7 @@ public static class GamingandPerformanceOptimizations
                     Name = "Taskbar Animations",
                     Description = "Controls taskbar animations",
                     GroupName = "File Explorer Settings",
-                    InputType = SettingInputType.Toggle,
+                    InputType = InputType.Toggle,
                     RegistrySettings = new List<RegistrySetting>
                     {
                         new RegistrySetting
@@ -712,7 +705,7 @@ public static class GamingandPerformanceOptimizations
                     Name = "Let Apps Run in Background",
                     Description = "Controls whether apps can run in the background",
                     GroupName = "Background Apps",
-                    InputType = SettingInputType.Toggle,
+                    InputType = InputType.Toggle,
                     RegistrySettings = new List<RegistrySetting>
                     {
                         new RegistrySetting
@@ -734,7 +727,7 @@ public static class GamingandPerformanceOptimizations
                     Name = "CPU Core Unparking",
                     Description = "Controls CPU core parking for better performance",
                     GroupName = "Performance",
-                    InputType = SettingInputType.Toggle,
+                    InputType = InputType.Toggle,
                     RegistrySettings = new List<RegistrySetting>
                     {
                         new RegistrySetting
@@ -756,7 +749,7 @@ public static class GamingandPerformanceOptimizations
                     Name = "Power Throttling",
                     Description = "Controls power throttling for better performance",
                     GroupName = "Performance",
-                    InputType = SettingInputType.Toggle,
+                    InputType = InputType.Toggle,
                     RegistrySettings = new List<RegistrySetting>
                     {
                         new RegistrySetting
@@ -778,7 +771,7 @@ public static class GamingandPerformanceOptimizations
                     Name = "Alt+Tab Filter",
                     Description = "Sets Alt+Tab to show open windows only",
                     GroupName = "File Explorer Settings",
-                    InputType = SettingInputType.Toggle,
+                    InputType = InputType.Toggle,
                     RegistrySettings = new List<RegistrySetting>
                     {
                         new RegistrySetting

@@ -10,6 +10,7 @@ namespace Winhance.WPF.Features.Common.Controls
     /// </summary>
     public class NumericUpDown : Control
     {
+        private bool _isSettingValue;
         static NumericUpDown()
         {
             DefaultStyleKeyProperty.OverrideMetadata(typeof(NumericUpDown),
@@ -37,7 +38,7 @@ namespace Winhance.WPF.Features.Common.Controls
                 "Maximum",
                 typeof(int),
                 typeof(NumericUpDown),
-                new PropertyMetadata(100, OnMaximumChanged));
+                new PropertyMetadata(int.MaxValue, OnMaximumChanged));
 
         public static readonly DependencyProperty IncrementProperty =
             DependencyProperty.Register(
@@ -141,53 +142,60 @@ namespace Winhance.WPF.Features.Common.Controls
 
         private static void OnValueChanged(DependencyObject d, DependencyPropertyChangedEventArgs e)
         {
-            if (d is NumericUpDown control)
+            if (d is NumericUpDown control && !control._isSettingValue)
             {
-                // Ensure value is within range
                 int newValue = (int)e.NewValue;
                 if (newValue < control.Minimum)
                 {
+                    control._isSettingValue = true;
                     control.Value = control.Minimum;
+                    control._isSettingValue = false;
                 }
                 else if (newValue > control.Maximum)
                 {
+                    control._isSettingValue = true;
                     control.Value = control.Maximum;
+                    control._isSettingValue = false;
                 }
             }
         }
 
         private static void OnMinimumChanged(DependencyObject d, DependencyPropertyChangedEventArgs e)
         {
-            if (d is NumericUpDown control)
+            if (d is NumericUpDown control && !control._isSettingValue)
             {
-                // Ensure minimum is less than or equal to maximum
                 if (control.Minimum > control.Maximum)
                 {
+                    control._isSettingValue = true;
                     control.Maximum = control.Minimum;
+                    control._isSettingValue = false;
                 }
 
-                // Ensure current value is not less than minimum
                 if (control.Value < control.Minimum)
                 {
+                    control._isSettingValue = true;
                     control.Value = control.Minimum;
+                    control._isSettingValue = false;
                 }
             }
         }
 
         private static void OnMaximumChanged(DependencyObject d, DependencyPropertyChangedEventArgs e)
         {
-            if (d is NumericUpDown control)
+            if (d is NumericUpDown control && !control._isSettingValue)
             {
-                // Ensure maximum is greater than or equal to minimum
                 if (control.Maximum < control.Minimum)
                 {
+                    control._isSettingValue = true;
                     control.Minimum = control.Maximum;
+                    control._isSettingValue = false;
                 }
 
-                // Ensure current value is not greater than maximum
                 if (control.Value > control.Maximum)
                 {
+                    control._isSettingValue = true;
                     control.Value = control.Maximum;
+                    control._isSettingValue = false;
                 }
             }
         }

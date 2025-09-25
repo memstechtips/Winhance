@@ -16,6 +16,28 @@ namespace Winhance.WPF.Features.Common.Views
             DataContext = this;
         }
 
+        private static CustomDialog CreateBaseDialog(string title, string headerText, string footerText)
+        {
+            var dialog = new CustomDialog { Title = title };
+            dialog.HeaderText.Text = headerText;
+            dialog.FooterText.Text = footerText;
+            return dialog;
+        }
+
+        private void SetupAppListDisplay(IEnumerable<string> items)
+        {
+            AppListControl.ItemsSource = items;
+            AppListBorder.Visibility = Visibility.Visible;
+            SimpleContentPanel.Visibility = Visibility.Collapsed;
+        }
+
+        private void SetupSimpleMessageDisplay(string message)
+        {
+            MessageContent.Text = message;
+            AppListBorder.Visibility = Visibility.Collapsed;
+            SimpleContentPanel.Visibility = Visibility.Visible;
+        }
+
         private void PrimaryButton_Click(object sender, RoutedEventArgs e)
         {
             DialogResult = true;
@@ -50,15 +72,10 @@ namespace Winhance.WPF.Features.Common.Views
             string footerText
         )
         {
-            var dialog = new CustomDialog { Title = title };
-
-            dialog.HeaderText.Text = headerText;
-            dialog.MessageContent.Text = message;
-            dialog.FooterText.Text = footerText;
-
+            var dialog = CreateBaseDialog(title, headerText, footerText);
+            dialog.SetupSimpleMessageDisplay(message);
             dialog.PrimaryButton.Content = "Yes";
             dialog.SecondaryButton.Content = "No";
-
             return dialog;
         }
 
@@ -69,8 +86,11 @@ namespace Winhance.WPF.Features.Common.Views
             string footerText
         )
         {
-            string message = items != null ? string.Join(Environment.NewLine, items) : string.Empty;
-            return CreateConfirmationDialog(title, headerText, message, footerText);
+            var dialog = CreateBaseDialog(title, headerText, footerText);
+            dialog.SetupAppListDisplay(items);
+            dialog.PrimaryButton.Content = "Yes";
+            dialog.SecondaryButton.Content = "No";
+            return dialog;
         }
 
         public static CustomDialog CreateInformationDialog(
@@ -80,15 +100,10 @@ namespace Winhance.WPF.Features.Common.Views
             string footerText
         )
         {
-            var dialog = new CustomDialog { Title = title };
-
-            dialog.HeaderText.Text = headerText;
-            dialog.MessageContent.Text = message;
-            dialog.FooterText.Text = footerText;
-
+            var dialog = CreateBaseDialog(title, headerText, footerText);
+            dialog.SetupSimpleMessageDisplay(message);
             dialog.PrimaryButton.Content = "OK";
             dialog.SecondaryButton.Visibility = Visibility.Collapsed;
-
             return dialog;
         }
 
@@ -96,12 +111,14 @@ namespace Winhance.WPF.Features.Common.Views
             string title,
             string headerText,
             IEnumerable<string> items,
-            string footerText,
-            bool useMultiColumnLayout = false
+            string footerText
         )
         {
-            string message = items != null ? string.Join(Environment.NewLine, items) : string.Empty;
-            return CreateInformationDialog(title, headerText, message, footerText);
+            var dialog = CreateBaseDialog(title, headerText, footerText);
+            dialog.SetupAppListDisplay(items);
+            dialog.PrimaryButton.Content = "OK";
+            dialog.SecondaryButton.Visibility = Visibility.Collapsed;
+            return dialog;
         }
 
         public static bool? ShowConfirmation(
@@ -155,20 +172,13 @@ namespace Winhance.WPF.Features.Common.Views
             string footerText
         )
         {
-            var dialog = new CustomDialog { Title = title };
-
-            dialog.HeaderText.Text = headerText;
-            dialog.MessageContent.Text = message;
-            dialog.FooterText.Text = footerText;
-
+            var dialog = CreateBaseDialog(title, headerText, footerText);
+            dialog.SetupSimpleMessageDisplay(message);
             dialog.PrimaryButton.Content = "Yes";
             dialog.SecondaryButton.Content = "No";
             dialog.TertiaryButton.Content = "Cancel";
-
-            // Ensure the Cancel button is visible and properly styled
             dialog.TertiaryButton.Visibility = Visibility.Visible;
             dialog.TertiaryButton.IsCancel = true;
-
             return dialog;
         }
 
@@ -179,8 +189,14 @@ namespace Winhance.WPF.Features.Common.Views
             string footerText
         )
         {
-            string message = items != null ? string.Join(Environment.NewLine, items) : string.Empty;
-            return CreateYesNoCancelDialog(title, headerText, message, footerText);
+            var dialog = CreateBaseDialog(title, headerText, footerText);
+            dialog.SetupAppListDisplay(items);
+            dialog.PrimaryButton.Content = "Yes";
+            dialog.SecondaryButton.Content = "No";
+            dialog.TertiaryButton.Content = "Cancel";
+            dialog.TertiaryButton.Visibility = Visibility.Visible;
+            dialog.TertiaryButton.IsCancel = true;
+            return dialog;
         }
 
         public static bool? ShowYesNoCancel(
@@ -256,18 +272,14 @@ namespace Winhance.WPF.Features.Common.Views
             string continueButtonText = "Continue",
             string cancelButtonText = "Cancel")
         {
-            var dialog = new CustomDialog { Title = title };
+            var dialog = CreateBaseDialog(title, title, "");
+            dialog.SetupSimpleMessageDisplay(message);
 
-            dialog.HeaderText.Text = title;
-            dialog.MessageContent.Text = message;
-            dialog.FooterText.Text = "";
-
-            // Configure checkbox if provided
             if (!string.IsNullOrEmpty(checkboxText))
             {
                 dialog.OptionCheckbox.Content = checkboxText;
                 dialog.OptionCheckbox.Visibility = Visibility.Visible;
-                dialog.OptionCheckbox.IsChecked = false; // Default unchecked
+                dialog.OptionCheckbox.IsChecked = false;
             }
             else
             {

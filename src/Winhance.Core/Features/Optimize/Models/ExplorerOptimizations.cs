@@ -3,7 +3,6 @@ using Microsoft.Win32;
 using Winhance.Core.Features.Common.Constants;
 using Winhance.Core.Features.Common.Enums;
 using Winhance.Core.Features.Common.Models;
-using Winhance.Core.Features.Common.Models.WindowsRegistry;
 
 namespace Winhance.Core.Features.Optimize.Models;
 
@@ -23,7 +22,7 @@ public static class ExplorerOptimizations
                     Name = "Long Paths Enabled",
                     Description = "Controls support for long file paths (up to 32,767 characters)",
                     GroupName = "File Explorer Settings",
-                    InputType = SettingInputType.Toggle,
+                    InputType = InputType.Toggle,
                     RegistrySettings = new List<RegistrySetting>
                     {
                         new RegistrySetting
@@ -44,7 +43,7 @@ public static class ExplorerOptimizations
                     Name = "Block AAD Workplace Join",
                     Description = "Controls 'Allow my organization to manage my device' pop-up",
                     GroupName = "File Explorer Settings",
-                    InputType = SettingInputType.Toggle,
+                    InputType = InputType.Toggle,
                     RegistrySettings = new List<RegistrySetting>
                     {
                         new RegistrySetting
@@ -65,7 +64,7 @@ public static class ExplorerOptimizations
                     Name = "Sync Provider Notifications",
                     Description = "Controls sync provider notifications visibility",
                     GroupName = "File Explorer Settings",
-                    InputType = SettingInputType.Toggle,
+                    InputType = InputType.Toggle,
                     RegistrySettings = new List<RegistrySetting>
                     {
                         new RegistrySetting
@@ -86,7 +85,7 @@ public static class ExplorerOptimizations
                     Name = "Tablet Mode",
                     Description = "Controls Tablet Mode",
                     GroupName = "System Interface",
-                    InputType = SettingInputType.Toggle,
+                    InputType = InputType.Toggle,
                     RegistrySettings = new List<RegistrySetting>
                     {
                         new RegistrySetting
@@ -107,7 +106,7 @@ public static class ExplorerOptimizations
                     Name = "Desktop Mode on Sign-in",
                     Description = "Controls whether the system goes to desktop mode on sign-in",
                     GroupName = "System Interface",
-                    InputType = SettingInputType.Toggle,
+                    InputType = InputType.Toggle,
                     RegistrySettings = new List<RegistrySetting>
                     {
                         new RegistrySetting
@@ -128,7 +127,7 @@ public static class ExplorerOptimizations
                     Name = "Voice Typing Button",
                     Description = "Controls voice typing microphone button",
                     GroupName = "Input Settings",
-                    InputType = SettingInputType.Toggle,
+                    InputType = InputType.Toggle,
                     RegistrySettings = new List<RegistrySetting>
                     {
                         new RegistrySetting
@@ -149,7 +148,7 @@ public static class ExplorerOptimizations
                     Name = "Typing Insights",
                     Description = "Controls typing insights and suggestions",
                     GroupName = "Input Settings",
-                    InputType = SettingInputType.Toggle,
+                    InputType = InputType.Toggle,
                     RegistrySettings = new List<RegistrySetting>
                     {
                         new RegistrySetting
@@ -170,7 +169,7 @@ public static class ExplorerOptimizations
                     Name = "Clipboard Suggested Actions",
                     Description = "Controls suggested actions for clipboard content",
                     GroupName = "System Interface",
-                    InputType = SettingInputType.Toggle,
+                    InputType = InputType.Toggle,
                     RegistrySettings = new List<RegistrySetting>
                     {
                         new RegistrySetting
@@ -191,7 +190,7 @@ public static class ExplorerOptimizations
                     Name = "Default Printer Management",
                     Description = "Controls Windows managing default printer",
                     GroupName = "Printer Settings",
-                    InputType = SettingInputType.Toggle,
+                    InputType = InputType.Toggle,
                     RegistrySettings = new List<RegistrySetting>
                     {
                         new RegistrySetting
@@ -212,7 +211,7 @@ public static class ExplorerOptimizations
                     Name = "Snap Assist",
                     Description = "Controls Snap Assist feature",
                     GroupName = "File Explorer Settings",
-                    InputType = SettingInputType.Toggle,
+                    InputType = InputType.Toggle,
                     RegistrySettings = new List<RegistrySetting>
                     {
                         new RegistrySetting
@@ -233,7 +232,7 @@ public static class ExplorerOptimizations
                     Name = "Frequent Folders in Quick Access",
                     Description = "Controls display of frequent folders in Quick Access",
                     GroupName = "File Explorer Settings",
-                    InputType = SettingInputType.Toggle,
+                    InputType = InputType.Toggle,
                     RegistrySettings = new List<RegistrySetting>
                     {
                         new RegistrySetting
@@ -254,7 +253,7 @@ public static class ExplorerOptimizations
                     Name = "Compress Desktop Wallpaper",
                     Description = "Controls compression of desktop wallpaper",
                     GroupName = "Desktop Settings",
-                    InputType = SettingInputType.Toggle,
+                    InputType = InputType.Toggle,
                     RegistrySettings = new List<RegistrySetting>
                     {
                         new RegistrySetting
@@ -275,7 +274,7 @@ public static class ExplorerOptimizations
                     Name = "Office Files in Quick Access",
                     Description = "Controls display of files from Office.com in Quick Access",
                     GroupName = "File Explorer Settings",
-                    InputType = SettingInputType.Toggle,
+                    InputType = InputType.Toggle,
                     RegistrySettings = new List<RegistrySetting>
                     {
                         new RegistrySetting

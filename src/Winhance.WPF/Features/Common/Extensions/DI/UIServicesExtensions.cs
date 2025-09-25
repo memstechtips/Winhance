@@ -7,7 +7,6 @@ using Winhance.WPF.Features.Common.Interfaces;
 using Winhance.WPF.Features.Common.Resources.Theme;
 using Winhance.WPF.Features.Common.Services;
 using Winhance.WPF.Features.Common.Services.Configuration;
-using Winhance.WPF.Features.SoftwareApps.Services;
 
 namespace Winhance.WPF.Features.Common.Extensions.DI
 {
@@ -52,6 +51,8 @@ namespace Winhance.WPF.Features.Common.Extensions.DI
 
             // Window Services (Singleton - Application-wide resources)
             services.AddSingleton<WindowInitializationService>();
+            services.AddSingleton<IWindowManagementService, WindowManagementService>();
+            services.AddSingleton<IFlyoutManagementService, FlyoutManagementService>();
 
             // Notification Service (Singleton - Application-wide notifications)
             services.AddSingleton<IWinhanceNotificationService, WinhanceNotificationService>();
@@ -61,8 +62,6 @@ namespace Winhance.WPF.Features.Common.Extensions.DI
                 provider.GetRequiredService<ILogService>()
             ));
 
-            // Design-time Data Service (Singleton - Development support)
-            services.AddSingleton<IDesignTimeDataService, DesignTimeDataService>();
 
             return services;
         }
@@ -87,11 +86,15 @@ namespace Winhance.WPF.Features.Common.Extensions.DI
             services.AddScoped<ISettingApplicationService>(sp =>
                 new Infrastructure.Features.Common.Services.SettingApplicationService(
                     sp.GetRequiredService<IDomainServiceRouter>(),
+                    sp.GetRequiredService<IWindowsRegistryService>(),
+                    sp.GetRequiredService<IComboBoxResolver>(),
+                    sp.GetRequiredService<ICommandService>(),
                     sp.GetRequiredService<ILogService>(),
-                    sp.GetRequiredService<IRecommendedSettingsService>(),
                     sp.GetRequiredService<IDependencyManager>(),
                     sp.GetRequiredService<IGlobalSettingsRegistry>(),
-                    sp.GetRequiredService<IEventBus>()
+                    sp.GetRequiredService<IEventBus>(),
+                    sp.GetRequiredService<ISystemSettingsDiscoveryService>(),
+                    sp.GetRequiredService<IRecommendedSettingsService>()
                 ));
             services.AddTransient<IPropertyUpdater, PropertyUpdater>();
             // TODO: Fix ambiguous IOptimizeConfigurationApplier reference
@@ -107,9 +110,7 @@ namespace Winhance.WPF.Features.Common.Extensions.DI
         /// <returns>The service collection for method chaining</returns>
         public static IServiceCollection AddDialogServices(this IServiceCollection services)
         {
-            // Dialog Services (Transient - Per-dialog instance)
             services.AddTransient<IDialogService, DialogService>();
-            services.AddSingleton<SoftwareAppsDialogService>();
             services.AddTransient<ISettingsConfirmationService, SettingsConfirmationService>();
 
             return services;

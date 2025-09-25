@@ -1,0 +1,131 @@
+using System.Collections.Generic;
+using Winhance.Core.Features.Common.Constants;
+
+namespace Winhance.Core.Features.SoftwareApps.Models
+{
+    public static partial class ExternalAppDefinitions
+    {
+        public static class Imaging
+        {
+            public static ItemGroup GetImaging()
+            {
+                return new ItemGroup
+                {
+                    Name = "Imaging",
+                    FeatureId = FeatureIds.ExternalApps,
+                    Items = new List<ItemDefinition>
+                    {
+                        new ItemDefinition
+                        {
+                            Id = "external-app-irfanview",
+                            Name = "IrfanView",
+                            Description = "Fast and compact image viewer and converter",
+                            GroupName = "Imaging",
+                            WinGetPackageId = "IrfanSkiljan.IrfanView",
+                            Category = "Imaging"
+                        },
+                        new ItemDefinition
+                        {
+                            Id = "external-app-krita",
+                            Name = "Krita",
+                            Description = "Digital painting and illustration software",
+                            GroupName = "Imaging",
+                            WinGetPackageId = "KDE.Krita",
+                            Category = "Imaging"
+                        },
+                        new ItemDefinition
+                        {
+                            Id = "external-app-blender",
+                            Name = "Blender",
+                            Description = "3D creation suite",
+                            GroupName = "Imaging",
+                            WinGetPackageId = "BlenderFoundation.Blender",
+                            Category = "Imaging"
+                        },
+                        new ItemDefinition
+                        {
+                            Id = "external-app-paint-net",
+                            Name = "Paint.NET",
+                            Description = "Image and photo editing software",
+                            GroupName = "Imaging",
+                            WinGetPackageId = "dotPDN.PaintDotNet",
+                            Category = "Imaging"
+                        },
+                        new ItemDefinition
+                        {
+                            Id = "external-app-gimp",
+                            Name = "GIMP",
+                            Description = "GNU Image Manipulation Program",
+                            GroupName = "Imaging",
+                            WinGetPackageId = "GIMP.GIMP.3",
+                            Category = "Imaging"
+                        },
+                        new ItemDefinition
+                        {
+                            Id = "external-app-xnviewmp",
+                            Name = "XnViewMP",
+                            Description = "Image viewer, browser and converter",
+                            GroupName = "Imaging",
+                            WinGetPackageId = "XnSoft.XnViewMP",
+                            Category = "Imaging"
+                        },
+                        new ItemDefinition
+                        {
+                            Id = "external-app-xnview-classic",
+                            Name = "XnView Classic",
+                            Description = "Image viewer, browser and converter (Classic Version)",
+                            GroupName = "Imaging",
+                            WinGetPackageId = "XnSoft.XnView.Classic",
+                            Category = "Imaging"
+                        },
+                        new ItemDefinition
+                        {
+                            Id = "external-app-inkscape",
+                            Name = "Inkscape",
+                            Description = "Vector graphics editor",
+                            GroupName = "Imaging",
+                            WinGetPackageId = "Inkscape.Inkscape",
+                            Category = "Imaging"
+                        },
+                        new ItemDefinition
+                        {
+                            Id = "external-app-greenshot",
+                            Name = "Greenshot",
+                            Description = "Screenshot tool with annotation features",
+                            GroupName = "Imaging",
+                            WinGetPackageId = "Greenshot.Greenshot",
+                            Category = "Imaging"
+                        },
+                        new ItemDefinition
+                        {
+                            Id = "external-app-sharex",
+                            Name = "ShareX",
+                            Description = "Screen capture, file sharing and productivity tool",
+                            GroupName = "Imaging",
+                            WinGetPackageId = "ShareX.ShareX",
+                            Category = "Imaging"
+                        },
+                        new ItemDefinition
+                        {
+                            Id = "external-app-flameshot",
+                            Name = "Flameshot",
+                            Description = "Powerful yet simple to use screenshot software",
+                            GroupName = "Imaging",
+                            WinGetPackageId = "Flameshot.Flameshot",
+                            Category = "Imaging"
+                        },
+                        new ItemDefinition
+                        {
+                            Id = "external-app-faststone",
+                            Name = "FastStone",
+                            Description = "Image browser, converter and editor",
+                            GroupName = "Imaging",
+                            WinGetPackageId = "FastStone.Viewer",
+                            Category = "Imaging"
+                        }
+                    }
+                };
+            }
+        }
+    }
+}

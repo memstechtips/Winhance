@@ -13,14 +13,14 @@ namespace Winhance.Infrastructure.Features.Common.Services
     /// </summary>
     public class WindowsCompatibilityFilter : IWindowsCompatibilityFilter
     {
-        private readonly ISystemServices _systemServices;
+        private readonly IWindowsVersionService _versionService;
         private readonly ILogService _logService;
 
         public WindowsCompatibilityFilter(
-            ISystemServices systemServices,
+            IWindowsVersionService versionService,
             ILogService logService)
         {
-            _systemServices = systemServices ?? throw new ArgumentNullException(nameof(systemServices));
+            _versionService = versionService ?? throw new ArgumentNullException(nameof(versionService));
             _logService = logService ?? throw new ArgumentNullException(nameof(logService));
         }
 
@@ -33,10 +33,10 @@ namespace Winhance.Infrastructure.Features.Common.Services
         {
             try
             {
-                var isWindows11 = _systemServices.IsWindows11();
-                var buildNumber = _systemServices.GetWindowsBuildNumber();
+                var isWindows11 = _versionService.IsWindows11();
+                var buildNumber = _versionService.GetWindowsBuildNumber();
 
-                _logService.Log(LogLevel.Info,
+                _logService.Log(LogLevel.Debug,
                     $"Filtering settings for Windows {(isWindows11 ? "11" : "10")} build {buildNumber}");
 
                 var compatibleSettings = new List<SettingDefinition>();
@@ -116,13 +116,8 @@ namespace Winhance.Infrastructure.Features.Common.Services
 
                 if (filteredCount > 0)
                 {
-                    _logService.Log(LogLevel.Info,
+                    _logService.Log(LogLevel.Debug,
                         $"Filtered out {filteredCount} incompatible settings. {compatibleSettings.Count} settings remain.");
-                }
-                else
-                {
-                    _logService.Log(LogLevel.Info,
-                        $"All {compatibleSettings.Count} settings are compatible with current Windows version.");
                 }
 
                 return compatibleSettings;

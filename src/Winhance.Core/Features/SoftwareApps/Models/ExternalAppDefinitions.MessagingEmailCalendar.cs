@@ -1,0 +1,104 @@
+using System.Collections.Generic;
+using Winhance.Core.Features.Common.Constants;
+
+namespace Winhance.Core.Features.SoftwareApps.Models
+{
+    public static partial class ExternalAppDefinitions
+    {
+        public static class MessagingEmailCalendar
+        {
+            public static ItemGroup GetMessagingEmailCalendar()
+            {
+                return new ItemGroup
+                {
+                    Name = "Messaging, Email & Calendar",
+                    FeatureId = FeatureIds.ExternalApps,
+                    Items = new List<ItemDefinition>
+                    {
+                        new ItemDefinition
+                        {
+                            Id = "external-app-telegram",
+                            Name = "Telegram",
+                            Description = "Instant messaging and voice calling app",
+                            GroupName = "Messaging, Email & Calendar",
+                            WinGetPackageId = "Telegram.TelegramDesktop",
+                            Category = "Messaging, Email & Calendar"
+                        },
+                        new ItemDefinition
+                        {
+                            Id = "external-app-whatsapp",
+                            Name = "Whatsapp",
+                            Description = "Instant messaging and voice calling app",
+                            GroupName = "Messaging, Email & Calendar",
+                            WinGetPackageId = "9NKSQGP7F2NH",
+                            Category = "Messaging, Email & Calendar"
+                        },
+                        new ItemDefinition
+                        {
+                            Id = "external-app-zoom",
+                            Name = "Zoom",
+                            Description = "Video conferencing and messaging platform",
+                            GroupName = "Messaging, Email & Calendar",
+                            WinGetPackageId = "Zoom.Zoom",
+                            Category = "Messaging, Email & Calendar"
+                        },
+                        new ItemDefinition
+                        {
+                            Id = "external-app-discord",
+                            Name = "Discord",
+                            Description = "Voice, video and text communication service",
+                            GroupName = "Messaging, Email & Calendar",
+                            WinGetPackageId = "Discord.Discord",
+                            Category = "Messaging, Email & Calendar"
+                        },
+                        new ItemDefinition
+                        {
+                            Id = "external-app-pidgin",
+                            Name = "Pidgin",
+                            Description = "Multi-protocol instant messaging client",
+                            GroupName = "Messaging, Email & Calendar",
+                            WinGetPackageId = "Pidgin.Pidgin",
+                            Category = "Messaging, Email & Calendar"
+                        },
+                        new ItemDefinition
+                        {
+                            Id = "external-app-thunderbird",
+                            Name = "Thunderbird",
+                            Description = "Free email application",
+                            GroupName = "Messaging, Email & Calendar",
+                            WinGetPackageId = "Mozilla.Thunderbird",
+                            Category = "Messaging, Email & Calendar"
+                        },
+                        new ItemDefinition
+                        {
+                            Id = "external-app-emclient",
+                            Name = "eMClient",
+                            Description = "Email client with calendar, tasks, and chat",
+                            GroupName = "Messaging, Email & Calendar",
+                            WinGetPackageId = "eMClient.eMClient",
+                            Category = "Messaging, Email & Calendar"
+                        },
+                        new ItemDefinition
+                        {
+                            Id = "external-app-proton-mail",
+                            Name = "Proton Mail",
+                            Description = "Secure email service with end-to-end encryption",
+                            GroupName = "Messaging, Email & Calendar",
+                            WinGetPackageId = "Proton.ProtonMail",
+                            Category = "Messaging, Email & Calendar"
+                        },
+                        new ItemDefinition
+                        {
+                            Id = "external-app-trillian",
+                            Name = "Trillian",
+                            Description = "Instant messaging application",
+                            GroupName = "Messaging, Email & Calendar",
+                            WinGetPackageId = "CeruleanStudios.Trillian",
+                            Category = "Messaging, Email & Calendar"
+                        }
+                    }
+                };
+            }
+        }
+    }
+}

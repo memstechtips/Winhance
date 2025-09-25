@@ -12,23 +12,23 @@ namespace Winhance.Core.Features.Common.Services
         private string _logPath;
         private StreamWriter? _logWriter;
         private readonly object _lockObject = new object();
-        private ISystemServices _systemServices;
+        private IWindowsVersionService _versionService;
 
         public event EventHandler<LogMessageEventArgs>? LogMessageGenerated;
 
         public LogService()
         {
             _logPath = Path.Combine(
-                Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData),
+                Environment.GetFolderPath(Environment.SpecialFolder.CommonApplicationData),
                 "Winhance",
                 "Logs",
                 $"Winhance_Log_{DateTime.Now:yyyyMMdd_HHmmss}.log"
             );
         }
 
-        public void Initialize(ISystemServices systemServices)
+        public void Initialize(IWindowsVersionService versionService)
         {
-            _systemServices = systemServices;
+            _versionService = versionService;
         }
 
         public void Log(LogLevel level, string message, Exception? exception = null)
@@ -90,10 +90,10 @@ namespace Winhance.Core.Features.Common.Services
                 LogInformation($"User: {Environment.UserName}");
                 LogInformation($"Machine: {Environment.MachineName}");
 
-                if (_systemServices != null)
+                if (_versionService != null)
                 {
-                    LogInformation($"OS Version: {_systemServices.GetOsVersionString()}");
-                    LogInformation($"OS Build: {_systemServices.GetOsBuildString()}");
+                    LogInformation($"OS Version: {_versionService.GetOsVersionString()}");
+                    LogInformation($"OS Build: {_versionService.GetOsBuildString()}");
                 }
                 else
                 {

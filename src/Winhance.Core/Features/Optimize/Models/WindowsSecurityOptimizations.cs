@@ -1,9 +1,7 @@
 using Microsoft.Win32;
 using Winhance.Core.Features.Common.Constants;
 using Winhance.Core.Features.Common.Enums;
-
 using Winhance.Core.Features.Common.Models;
-using Winhance.Core.Features.Common.Models.WindowsRegistry;
 
 namespace Winhance.Core.Features.Optimize.Models
 {
@@ -23,7 +21,7 @@ namespace Winhance.Core.Features.Optimize.Models
                         Name = "User Account Control Level",
                         Description = "Controls UAC notification level and secure desktop behavior",
                         GroupName = "Windows Security Settings",
-                        InputType = SettingInputType.Selection,
+                        InputType = InputType.Selection,
                         RegistrySettings = new List<RegistrySetting>
                         {
                             new RegistrySetting
@@ -57,29 +55,29 @@ namespace Winhance.Core.Features.Optimize.Models
                                 "Notify when apps try to make changes (no dim)",
                                 "Never notify",
                             },
-                            [CustomPropertyKeys.ValueMappings] = new Dictionary<int, Dictionary<string, int>>
+                            [CustomPropertyKeys.ValueMappings] = new Dictionary<int, Dictionary<string, int?>>
                             {
-                                [0] = new Dictionary<string, int> // Prompt for credentials
+                                [0] = new Dictionary<string, int?> // Prompt for credentials
                                 {
                                     ["ConsentPromptBehaviorAdmin"] = 1,
                                     ["PromptOnSecureDesktop"] = 1,
                                 },
-                                [1] = new Dictionary<string, int> // Always notify
+                                [1] = new Dictionary<string, int?> // Always notify
                                 {
                                     ["ConsentPromptBehaviorAdmin"] = 2,
                                     ["PromptOnSecureDesktop"] = 1,
                                 },
-                                [2] = new Dictionary<string, int> // Notify changes only
+                                [2] = new Dictionary<string, int?> // Notify changes only
                                 {
                                     ["ConsentPromptBehaviorAdmin"] = 5,
                                     ["PromptOnSecureDesktop"] = 1,
                                 },
-                                [3] = new Dictionary<string, int> // Notify changes no dim
+                                [3] = new Dictionary<string, int?> // Notify changes no dim
                                 {
                                     ["ConsentPromptBehaviorAdmin"] = 5,
                                     ["PromptOnSecureDesktop"] = 0,
                                 },
-                                [4] = new Dictionary<string, int> // Never notify
+                                [4] = new Dictionary<string, int?> // Never notify
                                 {
                                     ["ConsentPromptBehaviorAdmin"] = 0,
                                     ["PromptOnSecureDesktop"] = 0,

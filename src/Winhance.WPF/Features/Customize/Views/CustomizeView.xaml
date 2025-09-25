@@ -9,6 +9,7 @@
              d:DataContext="{d:DesignInstance Type=viewModels:CustomizeViewModel}"
              mc:Ignorable="d">
 
+
     <Grid>
         <!-- Header -->
         <Grid Height="80"
@@ -29,7 +30,7 @@
                                      VerticalAlignment="Center"
                                      Foreground="{DynamicResource PrimaryTextColor}"/>
 
-            <!-- Title and Status -->
+            <!-- Title and Status with Quick Nav inline -->
             <StackPanel Grid.Column="1"
                       VerticalAlignment="Center">
                 <TextBlock Height="35"
@@ -40,13 +41,18 @@
                            Foreground="{DynamicResource PrimaryTextColor}"
                            Text="Customizations"/>
 
-                <TextBlock Height="22"
-                           Margin="0,5,0,0"
-                           VerticalAlignment="Bottom"
-                           FontFamily="Helvetica Neue"
-                           FontSize="14"
-                           Foreground="{DynamicResource SubTextColor}"
-                           Text="{Binding StatusText}"/>
+                <StackPanel Orientation="Horizontal" 
+                            Margin="0,5,0,0">
+                    <TextBlock Height="22"
+                               VerticalAlignment="Center"
+                               FontFamily="Helvetica Neue"
+                               FontSize="14"
+                               Foreground="{DynamicResource SubTextColor}"
+                               Text="{Binding StatusText}"/>
+                    
+                    <!-- Quick Nav -->
+                    <commonControls:QuickNavControl/>
+                </StackPanel>
             </StackPanel>
 
             <!-- Search Box (prioritized) -->
@@ -74,7 +80,8 @@
         <Border Margin="0,85,0,0"
                 Background="{DynamicResource MainContainerBorderBrush}"
                 CornerRadius="10">
-            <commonControls:ResponsiveScrollViewer Style="{StaticResource ModernScrollViewer}">
+            <commonControls:ResponsiveScrollViewer Style="{StaticResource ModernScrollViewer}"
+                                                  commonControls:ResponsiveScrollViewer.ScrollPositionCommand="{Binding UpdateScrollPositionCommand}">
                 <Grid>
                     <Grid.RowDefinitions>
                         <RowDefinition Height="*"/>

@@ -282,15 +282,15 @@
                                         <ContentPresenter Grid.Row="0"
                                                           Content="{Binding CurrentViewModel}"/>
 
-                                        <!-- Progress Indicator -->
-                                        <controls:ProgressIndicator Grid.Row="1"
-                                                                     Margin="0,10,0,0"
-                                                                     IsActive="{Binding IsLoading}"
-                                                                     Progress="{Binding CurrentProgress}"
-                                                                     StatusText="{Binding StatusText}"
-                                                                     IsIndeterminate="{Binding IsIndeterminate}"
-                                                                     ShowCancelButton="{Binding IsLoading}"
-                                                                     CancelCommand="{Binding CancelCommand}"/>
+                                        <!-- Task Progress Control -->
+                                        <controls:TaskProgressControl Grid.Row="1"
+                                                                      Margin="0,10,0,0"
+                                                                      IsVisible="{Binding IsLoading}"
+                                                                      AppName="{Binding AppName}"
+                                                                      LastTerminalLine="{Binding LastTerminalLine}"
+                                                                      CanCancel="{Binding IsLoading}"
+                                                                      IsTaskRunning="{Binding IsLoading}"
+                                                                      CancelCommand="{Binding CancelCommand}"/>
                                 </Grid>
                             </Grid>
                     </Grid>

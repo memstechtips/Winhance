@@ -3,7 +3,6 @@ using Microsoft.Win32;
 using Winhance.Core.Features.Common.Constants;
 using Winhance.Core.Features.Common.Enums;
 using Winhance.Core.Features.Common.Models;
-using Winhance.Core.Features.Common.Models.WindowsRegistry;
 
 namespace Winhance.Core.Features.Optimize.Models;
 
@@ -23,7 +22,7 @@ public static class UpdateOptimizations
                     Name = "Automatic Windows Updates",
                     Description = "Controls automatic Windows updates behavior",
                     GroupName = "Windows Update Settings",
-                    InputType = SettingInputType.Toggle,
+                    InputType = InputType.Toggle,
                     RegistrySettings = new List<RegistrySetting>
                     {
                         new RegistrySetting
@@ -64,7 +63,7 @@ public static class UpdateOptimizations
                     Name = "Delay Feature Updates for 365 Days",
                     Description = "Delays major Windows feature updates for 365 days",
                     GroupName = "Windows Update Policies",
-                    InputType = SettingInputType.Toggle,
+                    InputType = InputType.Toggle,
                     RegistrySettings = new List<RegistrySetting>
                     {
                         new RegistrySetting
@@ -95,7 +94,7 @@ public static class UpdateOptimizations
                     Name = "Delay Security Updates for 7 Days",
                     Description = "Delays Windows security and quality updates for 7 days",
                     GroupName = "Windows Update Policies",
-                    InputType = SettingInputType.Toggle,
+                    InputType = InputType.Toggle,
                     RegistrySettings = new List<RegistrySetting>
                     {
                         new RegistrySetting
@@ -126,7 +125,7 @@ public static class UpdateOptimizations
                     Name = "Delivery Optimization (LAN)",
                     Description = "Controls peer-to-peer update distribution",
                     GroupName = "Delivery Optimization",
-                    InputType = SettingInputType.Toggle,
+                    InputType = InputType.Toggle,
                     RegistrySettings = new List<RegistrySetting>
                     {
                         new RegistrySetting
@@ -147,7 +146,7 @@ public static class UpdateOptimizations
                     Name = "Auto Update Microsoft Store Apps",
                     Description = "Controls automatic updates for Microsoft Store apps",
                     GroupName = "Microsoft Store",
-                    InputType = SettingInputType.Toggle,
+                    InputType = InputType.Toggle,
                     RegistrySettings = new List<RegistrySetting>
                     {
                         new RegistrySetting
@@ -168,7 +167,7 @@ public static class UpdateOptimizations
                     Name = "Automatic Archiving of Unused Apps",
                     Description = "Controls automatic archiving of unused apps",
                     GroupName = "Microsoft Store",
-                    InputType = SettingInputType.Toggle,
+                    InputType = InputType.Toggle,
                     RegistrySettings = new List<RegistrySetting>
                     {
                         new RegistrySetting
@@ -190,7 +189,7 @@ public static class UpdateOptimizations
                     Description =
                         "Prevents automatic restarts after installing updates when users are logged on",
                     GroupName = "Update Behavior",
-                    InputType = SettingInputType.Toggle,
+                    InputType = InputType.Toggle,
                     RegistrySettings = new List<RegistrySetting>
                     {
                         new RegistrySetting
@@ -211,7 +210,7 @@ public static class UpdateOptimizations
                     Name = "Do Not Include Drivers with Updates",
                     Description = "Does not include driver updates with Windows quality updates",
                     GroupName = "Update Content",
-                    InputType = SettingInputType.Toggle,
+                    InputType = InputType.Toggle,
                     RegistrySettings = new List<RegistrySetting>
                     {
                         new RegistrySetting
@@ -232,7 +231,7 @@ public static class UpdateOptimizations
                     Name = "Update Notifications",
                     Description = "Controls the visibility of update notifications",
                     GroupName = "Update Behavior",
-                    InputType = SettingInputType.Toggle,
+                    InputType = InputType.Toggle,
                     RegistrySettings = new List<RegistrySetting>
                     {
                         new RegistrySetting
@@ -254,7 +253,7 @@ public static class UpdateOptimizations
                     Description =
                         "Controls whether updates are downloaded over metered connections",
                     GroupName = "Update Behavior",
-                    InputType = SettingInputType.Toggle,
+                    InputType = InputType.Toggle,
                     RegistrySettings = new List<RegistrySetting>
                     {
                         new RegistrySetting

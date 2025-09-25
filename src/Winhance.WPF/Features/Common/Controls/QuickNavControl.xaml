@@ -1,0 +1,176 @@
+<UserControl x:Class="Winhance.WPF.Features.Common.Controls.QuickNavControl"
+             xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:materialDesign="http://materialdesigninxaml.net/winfx/xaml/themes"
+             xmlns:optimizeViewModels="clr-namespace:Winhance.WPF.Features.Optimize.ViewModels"
+             xmlns:customizeViewModels="clr-namespace:Winhance.WPF.Features.Customize.ViewModels">
+
+    <Border Margin="8,0,0,0"
+            Background="{DynamicResource SubContainerBrush}"
+            CornerRadius="6"
+            Padding="6,2"
+            VerticalAlignment="Center"
+            Visibility="{Binding QuickNavItems.Count, Converter={StaticResource CountToVisibilityConverter}}">
+        <ItemsControl ItemsSource="{Binding QuickNavItems}">
+            <ItemsControl.ItemsPanel>
+                <ItemsPanelTemplate>
+                    <StackPanel Orientation="Horizontal"/>
+                </ItemsPanelTemplate>
+            </ItemsControl.ItemsPanel>
+            <ItemsControl.ItemTemplate>
+                <DataTemplate>
+                    <Button Command="{Binding DataContext.NavigateToFeatureCommand, RelativeSource={RelativeSource AncestorType=UserControl}}"
+                            CommandParameter="{Binding}"
+                            Width="32"
+                            Height="28"
+                            Margin="2"
+                            Padding="2"
+                            Cursor="Hand"
+                            ToolTip="{Binding DisplayName}">
+                        <Button.Style>
+                            <Style TargetType="Button">
+                                <Setter Property="Background" Value="Transparent" />
+                                <Setter Property="BorderThickness" Value="0" />
+                                <Setter Property="Template">
+                                    <Setter.Value>
+                                        <ControlTemplate TargetType="Button">
+                                            <Border x:Name="border"
+                                                    Background="{TemplateBinding Background}"
+                                                    BorderThickness="0"
+                                                    CornerRadius="4">
+                                                <ContentPresenter HorizontalAlignment="Center"
+                                                                VerticalAlignment="Center" />
+                                            </Border>
+                                            <ControlTemplate.Triggers>
+                                                <Trigger Property="IsMouseOver" Value="True">
+                                                    <Setter TargetName="border" Property="Background" Value="{DynamicResource ButtonBorderBrush}" />
+                                                    <Setter Property="Foreground" Value="Black" />
+                                                </Trigger>
+                                                <DataTrigger Binding="{Binding IsSelected}" Value="True">
+                                                    <Setter TargetName="border" Property="Background" Value="{DynamicResource ButtonBorderBrush}" />
+                                                    <Setter Property="Foreground" Value="Black" />
+                                                </DataTrigger>
+                                            </ControlTemplate.Triggers>
+                                        </ControlTemplate>
+                                    </Setter.Value>
+                                </Setter>
+                            </Style>
+                        </Button.Style>
+                        <ContentControl Content="{Binding ViewModel}" Width="24" Height="24">
+                            <ContentControl.Style>
+                                <Style TargetType="ContentControl">
+                                    <Style.Triggers>
+                                        <DataTrigger Binding="{Binding RelativeSource={RelativeSource AncestorType=Button}, Path=IsMouseOver}" Value="True">
+                                            <DataTrigger.Setters>
+                                                <Setter Property="ContentTemplate">
+                                                    <Setter.Value>
+                                                        <DataTemplate>
+                                                            <ContentControl Content="{Binding}">
+                                                                <ContentControl.Resources>
+                                                                    <!-- Optimize ViewModels -->
+                                                                    <DataTemplate DataType="{x:Type optimizeViewModels:PowerOptimizationsViewModel}">
+                                                                        <materialDesign:PackIcon Kind="PowerPlug" Width="24" Height="24" Foreground="{DynamicResource ButtonHoverTextColor}"/>
+                                                                    </DataTemplate>
+                                                                    <DataTemplate DataType="{x:Type optimizeViewModels:PrivacyOptimizationsViewModel}">
+                                                                        <materialDesign:PackIcon Kind="Lock" Width="24" Height="24" Foreground="{DynamicResource ButtonHoverTextColor}"/>
+                                                                    </DataTemplate>
+                                                                    <DataTemplate DataType="{x:Type optimizeViewModels:WindowsSecurityOptimizationsViewModel}">
+                                                                        <materialDesign:PackIcon Kind="Security" Width="24" Height="24" Foreground="{DynamicResource ButtonHoverTextColor}"/>
+                                                                    </DataTemplate>
+                                                                    <DataTemplate DataType="{x:Type optimizeViewModels:GamingandPerformanceOptimizationsViewModel}">
+                                                                        <materialDesign:PackIcon Kind="Controller" Width="24" Height="24" Foreground="{DynamicResource ButtonHoverTextColor}"/>
+                                                                    </DataTemplate>
+                                                                    <DataTemplate DataType="{x:Type optimizeViewModels:ExplorerOptimizationsViewModel}">
+                                                                        <materialDesign:PackIcon Kind="Folder" Width="24" Height="24" Foreground="{DynamicResource ButtonHoverTextColor}"/>
+                                                                    </DataTemplate>
+                                                                    <DataTemplate DataType="{x:Type optimizeViewModels:NotificationOptimizationsViewModel}">
+                                                                        <materialDesign:PackIcon Kind="BellRing" Width="24" Height="24" Foreground="{DynamicResource ButtonHoverTextColor}"/>
+                                                                    </DataTemplate>
+                                                                    <DataTemplate DataType="{x:Type optimizeViewModels:SoundOptimizationsViewModel}">
+                                                                        <materialDesign:PackIcon Kind="VolumeHigh" Width="24" Height="24" Foreground="{DynamicResource ButtonHoverTextColor}"/>
+                                                                    </DataTemplate>
+                                                                    <DataTemplate DataType="{x:Type optimizeViewModels:UpdateOptimizationsViewModel}">
+                                                                        <materialDesign:PackIcon Kind="Update" Width="24" Height="24" Foreground="{DynamicResource ButtonHoverTextColor}"/>
+                                                                    </DataTemplate>
+                                                                    <!-- Customize ViewModels -->
+                                                                    <DataTemplate DataType="{x:Type customizeViewModels:WindowsThemeCustomizationsViewModel}">
+                                                                        <materialDesign:PackIcon Kind="Brush" Width="24" Height="24" Foreground="{DynamicResource ButtonHoverTextColor}"/>
+                                                                    </DataTemplate>
+                                                                    <DataTemplate DataType="{x:Type customizeViewModels:TaskbarCustomizationsViewModel}">
+                                                                        <materialDesign:PackIcon Kind="DockBottom" Width="24" Height="24" Foreground="{DynamicResource ButtonHoverTextColor}"/>
+                                                                    </DataTemplate>
+                                                                    <DataTemplate DataType="{x:Type customizeViewModels:StartMenuCustomizationsViewModel}">
+                                                                        <materialDesign:PackIcon Kind="Menu" Width="24" Height="24" Foreground="{DynamicResource ButtonHoverTextColor}"/>
+                                                                    </DataTemplate>
+                                                                    <DataTemplate DataType="{x:Type customizeViewModels:ExplorerCustomizationsViewModel}">
+                                                                        <materialDesign:PackIcon Kind="Folder" Width="24" Height="24" Foreground="{DynamicResource ButtonHoverTextColor}"/>
+                                                                    </DataTemplate>
+                                                                </ContentControl.Resources>
+                                                            </ContentControl>
+                                                        </DataTemplate>
+                                                    </Setter.Value>
+                                                </Setter>
+                                            </DataTrigger.Setters>
+                                        </DataTrigger>
+                                        <DataTrigger Binding="{Binding IsSelected}" Value="True">
+                                            <DataTrigger.Setters>
+                                                <Setter Property="ContentTemplate">
+                                                    <Setter.Value>
+                                                        <DataTemplate>
+                                                            <ContentControl Content="{Binding}">
+                                                                <ContentControl.Resources>
+                                                                    <!-- Optimize ViewModels -->
+                                                                    <DataTemplate DataType="{x:Type optimizeViewModels:PowerOptimizationsViewModel}">
+                                                                        <materialDesign:PackIcon Kind="PowerPlug" Width="24" Height="24" Foreground="{DynamicResource ButtonHoverTextColor}"/>
+                                                                    </DataTemplate>
+                                                                    <DataTemplate DataType="{x:Type optimizeViewModels:PrivacyOptimizationsViewModel}">
+                                                                        <materialDesign:PackIcon Kind="Lock" Width="24" Height="24" Foreground="{DynamicResource ButtonHoverTextColor}"/>
+                                                                    </DataTemplate>
+                                                                    <DataTemplate DataType="{x:Type optimizeViewModels:WindowsSecurityOptimizationsViewModel}">
+                                                                        <materialDesign:PackIcon Kind="Security" Width="24" Height="24" Foreground="{DynamicResource ButtonHoverTextColor}"/>
+                                                                    </DataTemplate>
+                                                                    <DataTemplate DataType="{x:Type optimizeViewModels:GamingandPerformanceOptimizationsViewModel}">
+                                                                        <materialDesign:PackIcon Kind="Controller" Width="24" Height="24" Foreground="{DynamicResource ButtonHoverTextColor}"/>
+                                                                    </DataTemplate>
+                                                                    <DataTemplate DataType="{x:Type optimizeViewModels:ExplorerOptimizationsViewModel}">
+                                                                        <materialDesign:PackIcon Kind="Folder" Width="24" Height="24" Foreground="{DynamicResource ButtonHoverTextColor}"/>
+                                                                    </DataTemplate>
+                                                                    <DataTemplate DataType="{x:Type optimizeViewModels:NotificationOptimizationsViewModel}">
+                                                                        <materialDesign:PackIcon Kind="BellRing" Width="24" Height="24" Foreground="{DynamicResource ButtonHoverTextColor}"/>
+                                                                    </DataTemplate>
+                                                                    <DataTemplate DataType="{x:Type optimizeViewModels:SoundOptimizationsViewModel}">
+                                                                        <materialDesign:PackIcon Kind="VolumeHigh" Width="24" Height="24" Foreground="{DynamicResource ButtonHoverTextColor}"/>
+                                                                    </DataTemplate>
+                                                                    <DataTemplate DataType="{x:Type optimizeViewModels:UpdateOptimizationsViewModel}">
+                                                                        <materialDesign:PackIcon Kind="Update" Width="24" Height="24" Foreground="{DynamicResource ButtonHoverTextColor}"/>
+                                                                    </DataTemplate>
+                                                                    <!-- Customize ViewModels -->
+                                                                    <DataTemplate DataType="{x:Type customizeViewModels:WindowsThemeCustomizationsViewModel}">
+                                                                        <materialDesign:PackIcon Kind="Brush" Width="24" Height="24" Foreground="{DynamicResource ButtonHoverTextColor}"/>
+                                                                    </DataTemplate>
+                                                                    <DataTemplate DataType="{x:Type customizeViewModels:TaskbarCustomizationsViewModel}">
+                                                                        <materialDesign:PackIcon Kind="DockBottom" Width="24" Height="24" Foreground="{DynamicResource ButtonHoverTextColor}"/>
+                                                                    </DataTemplate>
+                                                                    <DataTemplate DataType="{x:Type customizeViewModels:StartMenuCustomizationsViewModel}">
+                                                                        <materialDesign:PackIcon Kind="Menu" Width="24" Height="24" Foreground="{DynamicResource ButtonHoverTextColor}"/>
+                                                                    </DataTemplate>
+                                                                    <DataTemplate DataType="{x:Type customizeViewModels:ExplorerCustomizationsViewModel}">
+                                                                        <materialDesign:PackIcon Kind="Folder" Width="24" Height="24" Foreground="{DynamicResource ButtonHoverTextColor}"/>
+                                                                    </DataTemplate>
+                                                                </ContentControl.Resources>
+                                                            </ContentControl>
+                                                        </DataTemplate>
+                                                    </Setter.Value>
+                                                </Setter>
+                                            </DataTrigger.Setters>
+                                        </DataTrigger>
+                                    </Style.Triggers>
+                                </Style>
+                            </ContentControl.Style>
+                        </ContentControl>
+                    </Button>
+                </DataTemplate>
+            </ItemsControl.ItemTemplate>
+        </ItemsControl>
+    </Border>
+</UserControl>

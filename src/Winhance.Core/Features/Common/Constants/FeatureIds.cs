@@ -1,6 +1,10 @@
 public static class FeatureIds
 {
-    // TODO: Add SoftwareApps
+    // SoftwareApps Features
+    public const string ExternalApps = "ExternalApps";
+    public const string WindowsApps = "WindowsApps";
+    public const string WindowsCapabilities = "WindowsCapabilities";
+    public const string WindowsOptionalFeatures = "WindowsOptionalFeatures";
 
     // Optimize Features
     public const string GamingPerformance = "GamingPerformance";

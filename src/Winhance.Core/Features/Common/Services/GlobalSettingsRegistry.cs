@@ -32,7 +32,7 @@ namespace Winhance.Core.Features.Common.Services
             _moduleSettings.AddOrUpdate(moduleName, settingsList, (key, oldValue) => settingsList);
 
             _logService.Log(
-                LogLevel.Info,
+                LogLevel.Debug,
                 $"Registered {settingsList.Count} settings for module '{moduleName}'"
             );
         }

@@ -10,7 +10,7 @@ namespace Winhance.WPF.Features.Common.Converters
     {
         public object Convert(object value, Type targetType, object parameter, CultureInfo culture)
         {
-            return value is SettingInputType inputType && inputType == SettingInputType.Toggle
+            return value is InputType inputType && inputType == InputType.Toggle
                 ? Visibility.Visible
                 : Visibility.Collapsed;
         }
@@ -25,7 +25,7 @@ namespace Winhance.WPF.Features.Common.Converters
     {
         public object Convert(object value, Type targetType, object parameter, CultureInfo culture)
         {
-            return value is SettingInputType inputType && inputType == SettingInputType.Selection
+            return value is InputType inputType && inputType == InputType.Selection
                 ? Visibility.Visible
                 : Visibility.Collapsed;
         }
@@ -40,7 +40,7 @@ namespace Winhance.WPF.Features.Common.Converters
     {
         public object Convert(object value, Type targetType, object parameter, CultureInfo culture)
         {
-            return value is SettingInputType inputType && inputType == SettingInputType.NumericRange
+            return value is InputType inputType && inputType == InputType.NumericRange
                 ? Visibility.Visible
                 : Visibility.Collapsed;
         }
@@ -55,7 +55,7 @@ namespace Winhance.WPF.Features.Common.Converters
     {
         public object Convert(object value, Type targetType, object parameter, CultureInfo culture)
         {
-            return value is SettingInputType inputType && inputType == SettingInputType.Action
+            return value is InputType inputType && inputType == InputType.Action
                 ? Visibility.Visible
                 : Visibility.Collapsed;
         }
@@ -70,9 +70,9 @@ namespace Winhance.WPF.Features.Common.Converters
     {
         public object Convert(object[] values, Type targetType, object parameter, CultureInfo culture)
         {
-            if (values.Length == 2 && values[0] is bool isRegistryValueNull && values[1] is SettingInputType inputType)
+            if (values.Length == 2 && values[0] is bool isRegistryValueNull && values[1] is InputType inputType)
             {
-                return isRegistryValueNull && inputType == SettingInputType.Toggle
+                return isRegistryValueNull && inputType == InputType.Toggle
                     ? Visibility.Visible
                     : Visibility.Collapsed;
             }

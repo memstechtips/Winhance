@@ -3,7 +3,6 @@ using Microsoft.Win32;
 using Winhance.Core.Features.Common.Constants;
 using Winhance.Core.Features.Common.Enums;
 using Winhance.Core.Features.Common.Models;
-using Winhance.Core.Features.Common.Models.WindowsRegistry;
 
 namespace Winhance.Core.Features.Customize.Models
 {
@@ -53,8 +52,9 @@ namespace Winhance.Core.Features.Customize.Models
                         Name = "Choose Your Mode",
                         Description = "Choose between Light and Dark mode for Windows and apps",
                         GroupName = "Windows Theme",
-                        InputType = SettingInputType.Selection,
+                        InputType = InputType.Selection,
                         RequiresConfirmation = true,
+                        RequiresDomainServiceContext = true,
                         ConfirmationTitle = "Windows Theme Change",
                         ConfirmationMessage =
                             "You are about to apply {themeMode} to Windows and apps.\n\nDo you want to continue?",
@@ -94,15 +94,15 @@ namespace Winhance.Core.Features.Customize.Models
                             },
                             [CustomPropertyKeys.ValueMappings] = new Dictionary<
                                 int,
-                                Dictionary<string, int>
+                                Dictionary<string, int?>
                             >
                             {
-                                [0] = new Dictionary<string, int> // Light Mode
+                                [0] = new Dictionary<string, int?> // Light Mode
                                 {
                                     ["AppsUseLightTheme"] = 1,
                                     ["SystemUsesLightTheme"] = 1,
                                 },
-                                [1] = new Dictionary<string, int> // Dark Mode
+                                [1] = new Dictionary<string, int?> // Dark Mode
                                 {
                                     ["AppsUseLightTheme"] = 0,
                                     ["SystemUsesLightTheme"] = 0,
@@ -119,7 +119,7 @@ namespace Winhance.Core.Features.Customize.Models
                         Name = "Transparency Effects",
                         Description = "Controls whether windows and surfaces appear translucent",
                         GroupName = "Windows Theme",
-                        InputType = SettingInputType.Toggle,
+                        InputType = InputType.Toggle,
                         RegistrySettings = new List<RegistrySetting>
                         {
                             new RegistrySetting

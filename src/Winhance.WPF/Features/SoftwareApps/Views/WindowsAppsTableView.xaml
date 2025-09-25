@@ -91,13 +91,13 @@
                     </DataGridTemplateColumn>
 
                     <!-- Type Column -->
-                    <DataGridTemplateColumn Header="Type" Width="220" CanUserResize="True" SortMemberPath="ItemType">
+                    <DataGridTemplateColumn Header="Type" Width="220" CanUserResize="True" SortMemberPath="ItemTypeDescription">
                         <DataGridTemplateColumn.HeaderStyle>
                             <Style TargetType="DataGridColumnHeader" BasedOn="{StaticResource ThemedDataGridColumnHeader}" />
                         </DataGridTemplateColumn.HeaderStyle>
                         <DataGridTemplateColumn.CellTemplate>
                             <DataTemplate>
-                                <TextBlock Text="{Binding ItemType}" Margin="5,2" Style="{StaticResource DataGridTextBlockStyle}"/>
+                                <TextBlock Text="{Binding ItemTypeDescription}" Margin="5,2" Style="{StaticResource DataGridTextBlockStyle}"/>
                             </DataTemplate>
                         </DataGridTemplateColumn.CellTemplate>
                     </DataGridTemplateColumn>

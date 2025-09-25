@@ -6,18 +6,8 @@ using Winhance.WPF.Features.Common.Interfaces;
 
 namespace Winhance.WPF.Features.Common.Services
 {
-    /// <summary>
-    /// Service responsible for handling setting confirmation dialogs.
-    /// Follows SRP by handling only confirmation UI logic.
-    /// </summary>
-    public class SettingsConfirmationService : ISettingsConfirmationService
+    public class SettingsConfirmationService(IDialogService dialogService) : ISettingsConfirmationService
     {
-        private readonly IDialogService _dialogService;
-
-        public SettingsConfirmationService(IDialogService dialogService)
-        {
-            _dialogService = dialogService ?? throw new ArgumentNullException(nameof(dialogService));
-        }
 
         public async Task<(bool confirmed, bool checkboxChecked)> HandleConfirmationAsync(
             string settingId,
@@ -45,7 +35,7 @@ namespace Winhance.WPF.Features.Common.Services
                 value
             );
 
-            var (confirmed, checkboxChecked) = await _dialogService.ShowConfirmationWithCheckboxAsync(
+            var (confirmed, checkboxChecked) = await dialogService.ShowConfirmationWithCheckboxAsync(
                 confirmationMessage,
                 string.IsNullOrEmpty(confirmationCheckboxText) ? null : confirmationCheckboxText,
                 setting.ConfirmationTitle ?? "Confirmation"

@@ -52,7 +52,7 @@
     </Style>
 
     <!-- Info Text Style -->
-    <Style x:Key="AppInfoTextStyle" TargetType="TextBlock">
+    <Style x:Key="ItemDefinitionTextStyle" TargetType="TextBlock">
         <Setter Property="FontStyle" Value="Italic"/>
         <Setter Property="Foreground" Value="Gray"/>
         <Setter Property="Margin" Value="5,5,0,0"/>

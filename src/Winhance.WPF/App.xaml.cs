@@ -1,5 +1,7 @@
 using System;
+using System.Diagnostics;
 using System.IO;
+using System.Security.Principal;
 using System.Threading.Tasks;
 using System.Windows;
 using Microsoft.Extensions.DependencyInjection;
@@ -12,6 +14,7 @@ using Winhance.WPF.Features.Common.Services;
 using Winhance.WPF.Features.Common.ViewModels;
 using Winhance.WPF.Features.Common.Views;
 using Winhance.WPF.Features.SoftwareApps.ViewModels;
+using Winhance.Infrastructure.Features.Common.Services;
 
 namespace Winhance.WPF
 {
@@ -31,17 +34,78 @@ namespace Winhance.WPF
 
         public App()
         {
+            // DEBUG: Log constructor call with stack trace
+            var stackTrace = new System.Diagnostics.StackTrace(true);
+            LogStartupError($"App constructor called. Stack trace:\n{stackTrace}");
+            
+            // Check admin privileges FIRST - before ANY initialization (including logging)
+            try
+            {
+                var identity = WindowsIdentity.GetCurrent();
+                var principal = new WindowsPrincipal(identity);
+                
+                LogStartupError($"Admin check - IsAdmin: {principal.IsInRole(WindowsBuiltInRole.Administrator)}");
+                
+                if (!principal.IsInRole(WindowsBuiltInRole.Administrator))
+                {
+                    LogStartupError("Not admin - starting elevated process");
+                    var startInfo = new ProcessStartInfo
+                    {
+                        UseShellExecute = true,
+                        WorkingDirectory = Environment.CurrentDirectory,
+                        FileName = Process.GetCurrentProcess().MainModule?.FileName ?? throw new InvalidOperationException("MainModule is null"),
+                        Verb = "runas"
+                    };
+                    
+                    try
+                    {
+                        LogStartupError("About to start elevated process");
+                        Process.Start(startInfo);
+                        LogStartupError("Elevated process started, calling Environment.Exit(0)");
+                        Environment.Exit(0); // Exit immediately
+                    }
+                    catch (System.ComponentModel.Win32Exception w32Ex) when (w32Ex.NativeErrorCode == 1223)
+                    {
+                        LogStartupError($"User cancelled UAC: {w32Ex.Message}");
+                        Environment.Exit(1); // User cancelled
+                    }
+                    catch (Exception ex)
+                    {
+                        LogStartupError($"Error starting elevated process: {ex.Message}");
+                        Environment.Exit(1); // Other error
+                    }
+                    
+                    LogStartupError("This should never be reached!");
+                    return; // Should never reach here
+                }
+            }
+            catch
+            {
+                // If admin check completely fails, continue (failsafe)
+            }
+
             // Add global unhandled exception handlers
             AppDomain.CurrentDomain.UnhandledException += OnUnhandledException;
             Current.DispatcherUnhandledException += OnDispatcherUnhandledException;
             TaskScheduler.UnobservedTaskException += OnUnobservedTaskException;
 
-            // Create host using the new composition root
-            _host = CompositionRoot
-                .CreateWinhanceHost()
-                .Build();
+            try
+            {
+                LogStartupMessage("Creating host using composition root");
+                
+                // Create host using the new composition root
+                _host = CompositionRoot
+                    .CreateWinhanceHost()
+                    .Build();
 
-            LogStartupMessage("Application constructor completed with new DI architecture");
+                LogStartupMessage("Application constructor completed with new DI architecture");
+            }
+            catch (Exception ex)
+            {
+                LogStartupError("Error creating host in constructor", ex);
+                _host = null; // Ensure it's null if creation failed
+                // Don't throw - let the app continue so we can see the error and shut down gracefully
+            }
         }
 
         protected override async void OnStartup(StartupEventArgs e)
@@ -51,22 +115,27 @@ namespace Winhance.WPF
 
             try
             {
+                // Defensive check - ensure host was created successfully
+                if (_host == null)
+                {
+                    LogStartupError("Host is null - constructor may have failed");
+                    Current.Shutdown();
+                    return;
+                }
+
+                // Start the host and initialize services FIRST
+                LogStartupMessage("Starting host with new DI architecture");
+                await _host.StartAsync();
+                LogStartupMessage("Host started successfully");
+
                 // Initialize LogService after service provider is built
                 await InitializeLoggingService();
-
-                // Ensure administrator privileges
-                await EnsureAdministratorPrivileges();
 
                 // Set application icon
                 SetApplicationIcon();
 
                 // Create and show loading window
                 loadingWindow = await CreateAndShowLoadingWindow();
-
-                // Start the host and initialize services
-                LogStartupMessage("Starting host with new DI architecture");
-                await _host.StartAsync();
-                LogStartupMessage("Host started successfully");
 
                 // Initialize event handlers for domain events
                 await InitializeEventHandlers();
@@ -101,13 +170,20 @@ namespace Winhance.WPF
         {
             try
             {
-                // Dispose of the ThemeManager to clean up event subscriptions
-                var themeManager = _host.Services.GetService<IThemeManager>();
-                themeManager?.Dispose();
-
-                using (_host)
+                if (_host != null)
                 {
-                    await _host.StopAsync();
+                    // Dispose of the ThemeManager to clean up event subscriptions
+                    var themeManager = _host.Services.GetService<IThemeManager>();
+                    themeManager?.Dispose();
+
+                    using (_host)
+                    {
+                        await _host.StopAsync();
+                    }
+                }
+                else
+                {
+                    LogStartupMessage("Host was null during shutdown - constructor likely failed");
                 }
             }
             catch (Exception ex)
@@ -145,41 +221,18 @@ namespace Winhance.WPF
             try
             {
                 var logService = _host.Services.GetService<ILogService>();
-                var systemServices = _host.Services.GetService<ISystemServices>();
+                var versionService = _host.Services.GetService<IWindowsVersionService>();
 
-                if (logService is Winhance.Core.Features.Common.Services.LogService concreteLogService && systemServices != null)
+                if (logService is Winhance.Core.Features.Common.Services.LogService concreteLogService && versionService != null)
                 {
-                    concreteLogService.Initialize(systemServices);
+                    concreteLogService.Initialize(versionService);
                     concreteLogService.StartLog();
-                    LogStartupMessage("LogService initialized with ISystemServices and logging started");
+                    LogStartupMessage("LogService initialized with IWindowsVersionService and logging started");
                 }
             }
             catch (Exception initEx)
             {
                 LogStartupError("Error initializing LogService", initEx);
-            }
-        }
-
-        private async Task EnsureAdministratorPrivileges()
-        {
-            try
-            {
-                LogStartupMessage("Checking for administrator privileges");
-                var systemServices = _host.Services.GetService<ISystemServices>();
-
-                if (systemServices != null)
-                {
-                    bool isAdmin = systemServices.RequireAdministrator();
-                    LogStartupMessage($"Administrator privileges check result: {isAdmin}");
-                }
-                else
-                {
-                    LogStartupMessage("ISystemServices not available for admin check");
-                }
-            }
-            catch (Exception adminEx)
-            {
-                LogStartupError("Error checking administrator privileges", adminEx);
             }
         }
 
@@ -236,17 +289,35 @@ namespace Winhance.WPF
 
             try
             {
-                // Preload WindowsAppsViewModel data
-                LogStartupMessage("Loading WindowsAppsViewModel data");
-                var windowsAppsViewModel = _host.Services.GetRequiredService<WindowsAppsViewModel>();
-                await windowsAppsViewModel.LoadAppsAndCheckInstallationStatusAsync();
-                LogStartupMessage("WindowsApps loaded and installation status checked");
+                // Initialize compatible settings registry first
+                LogStartupMessage("Initializing compatible settings registry");
+                var settingsRegistry = _host.Services.GetRequiredService<ICompatibleSettingsRegistry>();
+                await settingsRegistry.InitializeAsync();
+                LogStartupMessage("Compatible settings registry initialized");
 
-                // Preload SoftwareAppsViewModel data  
-                LogStartupMessage("Initializing SoftwareAppsViewModel");
+                // Get MainViewModel first but don't navigate yet
+                var mainViewModel = _host.Services.GetRequiredService<MainViewModel>();
+
+                // Preload SoftwareAppsViewModel data COMPLETELY
+                LogStartupMessage("Preloading SoftwareAppsViewModel data");
                 var softwareAppsViewModel = _host.Services.GetRequiredService<SoftwareAppsViewModel>();
+
+                // Wait for COMPLETE initialization including installation status checks
                 await softwareAppsViewModel.InitializeCommand.ExecuteAsync(null);
-                LogStartupMessage("SoftwareAppsViewModel initialized");
+
+                // Ensure both child view models are fully loaded
+                while (!softwareAppsViewModel.WindowsAppsViewModel.IsInitialized ||
+                       !softwareAppsViewModel.ExternalAppsViewModel.IsInitialized)
+                {
+                    LogStartupMessage("Waiting for complete initialization...");
+                    await Task.Delay(100);
+                }
+
+                LogStartupMessage("SoftwareAppsViewModel fully preloaded with installation status");
+
+                // NOW navigate to the default view since data is completely ready
+                LogStartupMessage("Navigating to default view (SoftwareApps)");
+                mainViewModel.InitializeApplication();
             }
             finally
             {
@@ -393,7 +464,7 @@ namespace Winhance.WPF
             try
             {
                 string logPath = Path.Combine(
-                    Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData),
+                    Environment.GetFolderPath(Environment.SpecialFolder.CommonApplicationData),
                     "Winhance",
                     "Logs",
                     "WinhanceStartupLog.txt"

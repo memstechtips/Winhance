@@ -4,14 +4,15 @@ using System.Linq;
 using System.Threading;
 using System.Threading.Tasks;
 using Winhance.Core.Features.Common.Models;
-using Winhance.Infrastructure.Features.SoftwareApps.Services.WinGet.Verification;
+using Winhance.Core.Features.SoftwareApps.Verification;
+using Winhance.Infrastructure.Features.SoftwareApps.Services.WinGet.Interfaces;
 
 namespace Winhance.Infrastructure.Features.SoftwareApps.Services.WinGet.Verification.Methods
 {
     /// <summary>
     /// Verifies software installations by checking common installation directories.
     /// </summary>
-    public class FileSystemVerificationMethod : VerificationMethodBase
+    public class FileSystemVerificationMethod : VerificationMethodBase, IVerificationMethod
     {
         private static readonly string[] CommonInstallPaths = new[]
         {

@@ -32,7 +32,19 @@
       "Bash(export:*)",
       "Bash(echo $PATH)",
       "Bash(source:*)",
-      "Bash(claude --version)"
+      "Bash(claude --version)",
+      "Read(/mnt/d/User Files/Desktop/**)",
+      "Read(/mnt/d/User Files/Desktop/**)",
+      "Read(/mnt/d/Projects/Ultimate-Windows-Optimization-Guide-main/6 Windows/**)",
+      "Bash(dotnet clean:*)",
+      "Read(//mnt/c/**)",
+      "Bash(powershell:*)",
+      "Bash(pwsh:*)",
+      "Read(//mnt/d/User Files/Desktop/**)",
+      "Bash(tree:*)",
+      "Bash(git -C /mnt/c/Winhance log --oneline -10)",
+      "Read(///**)",
+      "Bash(awk:*)"
     ],
     "deny": [],
     "defaultMode": "acceptEdits"

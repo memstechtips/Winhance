@@ -3,353 +3,253 @@ using System.ComponentModel;
 using System.Diagnostics;
 using System.IO;
 using System.Runtime.CompilerServices;
+using System.Threading.Tasks;
 using System.Windows;
 using System.Windows.Input;
 using CommunityToolkit.Mvvm.ComponentModel;
 using CommunityToolkit.Mvvm.Input;
+using Winhance.Core.Features.Common.Constants;
 using Winhance.Core.Features.Common.Enums;
 using Winhance.Core.Features.Common.Interfaces;
 using Winhance.Core.Features.Common.Events;
 using Winhance.Core.Features.Common.Models;
 using Winhance.WPF.Features.Common.Views;
 
-namespace Winhance.WPF.Features.Common.ViewModels
+namespace Winhance.WPF.Features.Common.ViewModels;
+
+public class MoreMenuViewModel : ObservableObject
 {
-    /// <summary>
-    /// ViewModel for the More menu functionality
-    /// </summary>
-    public class MoreMenuViewModel : ObservableObject
+    private readonly ILogService _logService;
+    private readonly IVersionService _versionService;
+    private readonly IEventBus _eventBus;
+    private readonly IApplicationCloseService _applicationCloseService;
+    private readonly IDialogService _dialogService;
+
+    private string _versionInfo;
+
+    public MoreMenuViewModel(
+        ILogService logService,
+        IVersionService versionService,
+        IEventBus eventBus,
+        IApplicationCloseService applicationCloseService,
+        IDialogService dialogService)
     {
-        private readonly ILogService _logService;
-        private readonly IVersionService _versionService;
-        private readonly IEventBus _eventBus;
-        private readonly IApplicationCloseService _applicationCloseService;
-        private readonly IDialogService _dialogService;
-        private readonly IScriptPathDetectionService _scriptPathDetectionService;
+        _logService = logService;
+        _versionService = versionService;
+        _eventBus = eventBus;
+        _applicationCloseService = applicationCloseService;
+        _dialogService = dialogService;
 
-        private string _versionInfo;
+        _versionInfo = GetVersionInfo();
 
-        /// <summary>
-        /// Gets or sets the version information text displayed in the menu
-        /// </summary>
-        public string VersionInfo
+        CheckForUpdatesCommand = new RelayCommand(
+            execute: () =>
+            {
+                _logService.LogInformation("CheckForUpdatesCommand executed");
+                CloseFlyout();
+                _ = Task.Run(CheckForUpdatesAsync);
+            },
+            canExecute: () => true
+        );
+
+        OpenLogsCommand = new RelayCommand(
+            execute: () =>
+            {
+                _logService.LogInformation("OpenLogsCommand executed");
+                CloseFlyout();
+                OpenLogs();
+            },
+            canExecute: () => true
+        );
+
+        OpenScriptsCommand = new RelayCommand(
+            execute: () =>
+            {
+                _logService.LogInformation("OpenScriptsCommand executed");
+                CloseFlyout();
+                OpenScripts();
+            },
+            canExecute: () => true
+        );
+
+        CloseApplicationCommand = new RelayCommand(
+            execute: () =>
+            {
+                _logService.LogInformation("CloseApplicationCommand executed");
+                CloseFlyout();
+                CloseApplication();
+            },
+            canExecute: () => true
+        );
+    }
+
+    private string GetVersionInfo()
+    {
+        try
         {
-            get => _versionInfo;
-            set => SetProperty(ref _versionInfo, value);
+            var versionInfo = _versionService.GetCurrentVersion();
+            return $"Winhance {versionInfo.Version}";
         }
-
-        /// <summary>
-        /// Command to check for application updates
-        /// </summary>
-        public ICommand CheckForUpdatesCommand { get; }
-
-        /// <summary>
-        /// Command to open the logs folder
-        /// </summary>
-        public ICommand OpenLogsCommand { get; }
-
-        /// <summary>
-        /// Command to open the scripts folder
-        /// </summary>
-        public ICommand OpenScriptsCommand { get; }
-
-        /// <summary>
-        /// Command to close the application
-        /// </summary>
-        public ICommand CloseApplicationCommand { get; }
-
-        /// <summary>
-        /// Constructor with dependency injection
-        /// </summary>
-        /// <param name="logService">Service for logging</param>
-        /// <param name="versionService">Service for version information and updates</param>
-        /// <param name="messengerService">Service for messaging between components</param>
-        /// <param name="applicationCloseService">Service for closing the application</param>
-        /// <param name="dialogService">Service for showing dialogs</param>
-        /// <param name="scriptPathDetectionService">Service for script path detection</param>
-        public MoreMenuViewModel(
-            ILogService logService,
-            IVersionService versionService,
-            IEventBus eventBus,
-            IApplicationCloseService applicationCloseService,
-            IDialogService dialogService,
-            IScriptPathDetectionService scriptPathDetectionService
-        )
+        catch
         {
-            _logService = logService ?? throw new ArgumentNullException(nameof(logService));
-            _versionService =
-                versionService ?? throw new ArgumentNullException(nameof(versionService));
-            _eventBus =
-                eventBus ?? throw new ArgumentNullException(nameof(eventBus));
-            _applicationCloseService =
-                applicationCloseService
-                ?? throw new ArgumentNullException(nameof(applicationCloseService));
-            _dialogService =
-                dialogService ?? throw new ArgumentNullException(nameof(dialogService));
-            _scriptPathDetectionService =
-                scriptPathDetectionService ?? throw new ArgumentNullException(nameof(scriptPathDetectionService));
+            return "Winhance";
+        }
+    }
 
-            // Initialize version info
-            UpdateVersionInfo();
+    public string VersionInfo
+    {
+        get => _versionInfo;
+        set => SetProperty(ref _versionInfo, value);
+    }
 
-            // Initialize commands with explicit execute and canExecute methods
-            CheckForUpdatesCommand = new RelayCommand(
-                execute: () =>
-                {
-                    _logService.LogInformation("CheckForUpdatesCommand executed");
-                    CloseFlyout();
-                    CheckForUpdatesAsync();
-                },
-                canExecute: () => true
+    public ICommand CheckForUpdatesCommand { get; }
+
+    public ICommand OpenLogsCommand { get; }
+
+    public ICommand OpenScriptsCommand { get; }
+
+    public ICommand CloseApplicationCommand { get; }
+
+
+    private void CloseFlyout()
+    {
+        try
+        {
+            var mainWindow = Application.Current.MainWindow;
+            if (mainWindow?.DataContext is MainViewModel mainViewModel)
+            {
+                mainViewModel.CloseMoreMenuFlyout();
+            }
+        }
+        catch (Exception ex)
+        {
+            _logService.LogError($"Error closing flyout: {ex.Message}", ex);
+        }
+    }
+
+
+    private async Task CheckForUpdatesAsync()
+    {
+        try
+        {
+            _logService.LogInformation("Starting update check");
+
+            var latestVersion = await _versionService.CheckForUpdateAsync();
+            var currentVersion = _versionService.GetCurrentVersion();
+
+            if (latestVersion != null && latestVersion.Version != currentVersion.Version)
+            {
+                string title = "Update Available";
+                string message = "Good News! A New Version of Winhance is available.";
+
+                _logService.LogInformation("Showing update dialog");
+                await UpdateDialog.ShowAsync(
+                    title,
+                    message,
+                    currentVersion,
+                    latestVersion,
+                    async () =>
+                    {
+                        _logService.LogInformation(
+                            "User initiated update download and installation"
+                        );
+                        await _versionService.DownloadAndInstallUpdateAsync();
+                    }
+                );
+            }
+            else
+            {
+                _logService.LogInformation("No updates available");
+                _dialogService.ShowInformationAsync(
+                    "You have the latest version of Winhance.",
+                    "No Updates Available"
+                );
+            }
+        }
+        catch (Exception ex)
+        {
+            _logService.LogError($"Error checking for updates: {ex.Message}", ex);
+
+            _dialogService.ShowErrorAsync(
+                $"An error occurred while checking for updates: {ex.Message}",
+                "Update Check Error"
+            );
+        }
+    }
+
+    private void OpenLogs()
+    {
+        try
+        {
+            string logsFolder = Path.Combine(
+                Environment.GetFolderPath(Environment.SpecialFolder.CommonApplicationData),
+                "Winhance",
+                "Logs"
             );
 
-            OpenLogsCommand = new RelayCommand(
-                execute: () =>
-                {
-                    _logService.LogInformation("OpenLogsCommand executed");
-                    CloseFlyout();
-                    OpenLogs();
-                },
-                canExecute: () => true
-            );
+            if (!Directory.Exists(logsFolder))
+            {
+                Directory.CreateDirectory(logsFolder);
+            }
 
-            OpenScriptsCommand = new RelayCommand(
-                execute: () =>
-                {
-                    _logService.LogInformation("OpenScriptsCommand executed");
-                    CloseFlyout();
-                    OpenScripts();
-                },
-                canExecute: () => true
-            );
+            var psi = new ProcessStartInfo
+            {
+                FileName = "explorer.exe",
+                Arguments = logsFolder,
+                UseShellExecute = true,
+            };
+            Process.Start(psi);
+        }
+        catch (Exception ex)
+        {
+            _logService.LogError($"Error opening logs folder: {ex.Message}", ex);
 
-            CloseApplicationCommand = new RelayCommand(
-                execute: () =>
-                {
-                    _logService.LogInformation("CloseApplicationCommand executed");
-                    CloseFlyout();
-                    CloseApplication();
-                },
-                canExecute: () => true
+            _dialogService.ShowErrorAsync(
+                $"An error occurred while opening the logs folder: {ex.Message}",
+                "Logs Folder Error"
             );
         }
+    }
 
-        /// <summary>
-        /// Closes the flyout overlay by delegating to MainViewModel
-        /// </summary>
-        private void CloseFlyout()
+    private void OpenScripts()
+    {
+        try
         {
-            try
+            string scriptsFolder = ScriptPaths.ScriptsDirectory;
+
+            if (!Directory.Exists(scriptsFolder))
             {
-                // Find the MainWindow and get its DataContext (MainViewModel)
-                var mainWindow = Application.Current.MainWindow;
-                if (mainWindow?.DataContext is MainViewModel mainViewModel)
-                {
-                    mainViewModel.CloseMoreMenuFlyout();
-                }
+                Directory.CreateDirectory(scriptsFolder);
             }
-            catch (Exception ex)
+
+            var psi = new ProcessStartInfo
             {
-                _logService.LogError($"Error closing flyout: {ex.Message}", ex);
-            }
+                FileName = "explorer.exe",
+                Arguments = scriptsFolder,
+                UseShellExecute = true,
+            };
+            Process.Start(psi);
         }
-
-        /// <summary>
-        /// Updates the version information text
-        /// </summary>
-        private void UpdateVersionInfo()
+        catch (Exception ex)
         {
-            try
-            {
-                // Get the current version from the version service
-                VersionInfo versionInfo = _versionService.GetCurrentVersion();
+            _logService.LogError($"Error opening scripts folder: {ex.Message}", ex);
 
-                // Format the version text
-                VersionInfo = $"Winhance {versionInfo.Version}";
-            }
-            catch (Exception ex)
-            {
-                _logService.LogError($"Error updating version info: {ex.Message}", ex);
-
-                // Set a default version text in case of error
-                VersionInfo = "Winhance ";
-            }
+            _dialogService.ShowErrorAsync(
+                $"An error occurred while opening the scripts folder: {ex.Message}",
+                "Scripts Folder Error"
+            );
         }
+    }
 
-        /// <summary>
-        /// Checks for updates and shows appropriate dialog
-        /// </summary>
-        private async void CheckForUpdatesAsync()
+    private async void CloseApplication()
+    {
+        try
         {
-            try
-            {
-                _logService.LogInformation("Checking for updates from MoreMenu");
-
-                // Get the current version
-                VersionInfo currentVersion = _versionService.GetCurrentVersion();
-                _logService.LogInformation($"Current version: {currentVersion.Version}");
-
-                // Check for updates
-                VersionInfo latestVersion = await _versionService.CheckForUpdateAsync();
-                _logService.LogInformation(
-                    $"Latest version: {latestVersion.Version}, Update available: {latestVersion.IsUpdateAvailable}"
-                );
-
-                if (latestVersion.IsUpdateAvailable)
-                {
-                    // Show update dialog
-                    string title = "Update Available";
-                    string message = "Good News! A New Version of Winhance is available.";
-
-                    _logService.LogInformation("Showing update dialog");
-                    // Show the update dialog
-                    await UpdateDialog.ShowAsync(
-                        title,
-                        message,
-                        currentVersion,
-                        latestVersion,
-                        async () =>
-                        {
-                            _logService.LogInformation(
-                                "User initiated update download and installation"
-                            );
-                            await _versionService.DownloadAndInstallUpdateAsync();
-                        }
-                    );
-                }
-                else
-                {
-                    _logService.LogInformation("No updates available");
-                    // Show a message that no update is available
-                    _dialogService.ShowInformationAsync(
-                        "You have the latest version of Winhance.",
-                        "No Updates Available"
-                    );
-                }
-            }
-            catch (Exception ex)
-            {
-                _logService.LogError($"Error checking for updates: {ex.Message}", ex);
-
-                // Show an error message
-                _dialogService.ShowErrorAsync(
-                    $"An error occurred while checking for updates: {ex.Message}",
-                    "Update Check Error"
-                );
-            }
+            await _applicationCloseService.CloseApplicationWithSupportDialogAsync();
         }
-
-        /// <summary>
-        /// Opens the logs folder
-        /// </summary>
-        private void OpenLogs()
+        catch (Exception ex)
         {
-            try
-            {
-                // Get the logs folder path
-                string logsFolder = Path.Combine(
-                    Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData),
-                    "Winhance",
-                    "Logs"
-                );
-
-                // Create the folder if it doesn't exist
-                if (!Directory.Exists(logsFolder))
-                {
-                    Directory.CreateDirectory(logsFolder);
-                }
-
-                // Open the logs folder using ProcessStartInfo with UseShellExecute=true
-                var psi = new ProcessStartInfo
-                {
-                    FileName = "explorer.exe",
-                    Arguments = logsFolder,
-                    UseShellExecute = true,
-                };
-                Process.Start(psi);
-            }
-            catch (Exception ex)
-            {
-                _logService.LogError($"Error opening logs folder: {ex.Message}", ex);
-
-                // Show an error message
-                _dialogService.ShowErrorAsync(
-                    $"An error occurred while opening the logs folder: {ex.Message}",
-                    "Logs Folder Error"
-                );
-            }
-        }
-
-        /// <summary>
-        /// Opens the scripts folder
-        /// </summary>
-        private void OpenScripts()
-        {
-            try
-            {
-                // Get the scripts folder path
-                string scriptsFolder = _scriptPathDetectionService.GetScriptsDirectory();
-
-                // Create the folder if it doesn't exist
-                if (!Directory.Exists(scriptsFolder))
-                {
-                    Directory.CreateDirectory(scriptsFolder);
-                }
-
-                // Open the scripts folder using ProcessStartInfo with UseShellExecute=true
-                var psi = new ProcessStartInfo
-                {
-                    FileName = "explorer.exe",
-                    Arguments = scriptsFolder,
-                    UseShellExecute = true,
-                };
-                Process.Start(psi);
-            }
-            catch (Exception ex)
-            {
-                _logService.LogError($"Error opening scripts folder: {ex.Message}", ex);
-
-                // Show an error message
-                _dialogService.ShowErrorAsync(
-                    $"An error occurred while opening the scripts folder: {ex.Message}",
-                    "Scripts Folder Error"
-                );
-            }
-        }
-
-        /// <summary>
-        /// Closes the application using the same behavior as the normal close button
-        /// </summary>
-        private async void CloseApplication()
-        {
-            try
-            {
-                _logService.LogInformation(
-                    "Closing application from MoreMenu, delegating to ApplicationCloseService"
-                );
-                await _applicationCloseService.CloseApplicationWithSupportDialogAsync();
-            }
-            catch (Exception ex)
-            {
-                _logService.LogError($"Error closing application: {ex.Message}", ex);
-
-                // Fallback to direct application shutdown if everything else fails
-                try
-                {
-                    _logService.LogInformation("Falling back to Application.Current.Shutdown()");
-                    Application.Current.Dispatcher.Invoke(() => Application.Current.Shutdown());
-                }
-                catch (Exception shutdownEx)
-                {
-                    _logService.LogError(
-                        $"Error shutting down application: {shutdownEx.Message}",
-                        shutdownEx
-                    );
-
-                    // Last resort
-                    Environment.Exit(0);
-                }
-            }
+            _logService.LogError($"Error closing application: {ex.Message}", ex);
         }
     }
 }

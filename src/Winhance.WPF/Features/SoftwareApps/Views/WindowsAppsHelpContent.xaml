@@ -41,10 +41,7 @@
                     
                     <Button Grid.Column="1"
                             x:Name="CloseButton"
-                            Style="{StaticResource IconButtonStyle}"
-                            Width="24"
-                            Height="24"
-                            Padding="0"
+                            Style="{StaticResource FlyOutCloseButtonStyle}"
                             ToolTip="Close Help"
                             Command="{Binding CloseHelpCommand}">
                         <materialDesign:PackIcon Kind="Close" Width="16" Height="16"/>
@@ -255,7 +252,7 @@
                 <TextBlock Grid.Column="1"
                            VerticalAlignment="Top"
                            HorizontalAlignment="Left"
-                           Style="{StaticResource AppInfoTextStyle}"
+                           Style="{StaticResource ItemDefinitionTextStyle}"
                            FontSize="13"
                            TextWrapping="Wrap"
                            Margin="0,0,0,0"

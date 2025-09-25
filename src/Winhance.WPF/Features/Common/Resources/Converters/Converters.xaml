@@ -31,4 +31,6 @@
     <converters:StringEqualityConverter x:Key="StringEqualityConverter"/>
     <converters:BooleanToValueConverter x:Key="BooleanToValueConverter"/>
     <converters:BooleanToRotationConverter x:Key="BooleanToRotationConverter"/>
+    <converters:SubSettingMarginConverter x:Key="SubSettingMarginConverter"/>
+    <converters:BooleanToOpacityConverter x:Key="BooleanToOpacityConverter"/>
 </ResourceDictionary>

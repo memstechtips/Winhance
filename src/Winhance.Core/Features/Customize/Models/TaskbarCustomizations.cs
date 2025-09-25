@@ -3,7 +3,6 @@ using Microsoft.Win32;
 using Winhance.Core.Features.Common.Constants;
 using Winhance.Core.Features.Common.Enums;
 using Winhance.Core.Features.Common.Models;
-using Winhance.Core.Features.Common.Models.WindowsRegistry;
 using Winhance.Core.Features.Customize.Interfaces;
 
 namespace Winhance.Core.Features.Customize.Models;
@@ -24,7 +23,7 @@ public static class TaskbarCustomizations
                     Name = "Clean Taskbar",
                     Description = "Removes all pinned items from the Taskbar",
                     GroupName = "Layout",
-                    InputType = SettingInputType.Action,
+                    InputType = InputType.Action,
                     RequiresConfirmation = true,
                     ConfirmationTitle = "Taskbar Cleaning",
                     ConfirmationMessage =
@@ -40,7 +39,7 @@ public static class TaskbarCustomizations
                     Name = "Search in Taskbar",
                     Description = "Controls search box appearance in taskbar",
                     GroupName = "Taskbar Icons",
-                    InputType = SettingInputType.Selection,
+                    InputType = InputType.Selection,
                     IsWindows11Only = true,
                     RegistrySettings = new List<RegistrySetting>
                     {
@@ -66,21 +65,21 @@ public static class TaskbarCustomizations
                             "Search icon and label",
                             "Search box",
                         },
-                        [CustomPropertyKeys.ValueMappings] = new Dictionary<int, Dictionary<string, int>>
+                        [CustomPropertyKeys.ValueMappings] = new Dictionary<int, Dictionary<string, int?>>
                         {
-                            [0] = new Dictionary<string, int> // Hide
+                            [0] = new Dictionary<string, int?> // Hide
                             {
                                 ["SearchboxTaskbarMode"] = 0,
                             },
-                            [1] = new Dictionary<string, int> // Search icon only
+                            [1] = new Dictionary<string, int?> // Search icon only
                             {
                                 ["SearchboxTaskbarMode"] = 1,
                             },
-                            [2] = new Dictionary<string, int> // Search icon and label
+                            [2] = new Dictionary<string, int?> // Search icon and label
                             {
                                 ["SearchboxTaskbarMode"] = 2,
                             },
-                            [3] = new Dictionary<string, int> // Search box
+                            [3] = new Dictionary<string, int?> // Search box
                             {
                                 ["SearchboxTaskbarMode"] = 3,
                             },
@@ -93,7 +92,7 @@ public static class TaskbarCustomizations
                     Name = "Search in Taskbar",
                     Description = "Controls search box appearance in taskbar",
                     GroupName = "Taskbar Icons",
-                    InputType = SettingInputType.Selection,
+                    InputType = InputType.Selection,
                     IsWindows10Only = true,
                     RegistrySettings = new List<RegistrySetting>
                     {
@@ -118,17 +117,17 @@ public static class TaskbarCustomizations
                             "Search icon only",
                             "Search box",
                         },
-                        [CustomPropertyKeys.ValueMappings] = new Dictionary<int, Dictionary<string, int>>
+                        [CustomPropertyKeys.ValueMappings] = new Dictionary<int, Dictionary<string, int?>>
                         {
-                            [0] = new Dictionary<string, int> // Hide
+                            [0] = new Dictionary<string, int?> // Hide
                             {
                                 ["SearchboxTaskbarMode"] = 0,
                             },
-                            [1] = new Dictionary<string, int> // Search icon only
+                            [1] = new Dictionary<string, int?> // Search icon only
                             {
                                 ["SearchboxTaskbarMode"] = 1,
                             },
-                            [2] = new Dictionary<string, int> // Search box
+                            [2] = new Dictionary<string, int?> // Search box
                             {
                                 ["SearchboxTaskbarMode"] = 2,
                             },
@@ -141,7 +140,7 @@ public static class TaskbarCustomizations
                     Name = "Taskbar Alignment",
                     Description = "Controls taskbar icons alignment",
                     GroupName = "Taskbar Behavior",
-                    InputType = SettingInputType.Selection,
+                    InputType = InputType.Selection,
                     IsWindows11Only = true,
                     RegistrySettings = new List<RegistrySetting>
                     {
@@ -161,13 +160,13 @@ public static class TaskbarCustomizations
                     CustomProperties = new Dictionary<string, object>
                     {
                         [CustomPropertyKeys.ComboBoxDisplayNames] = new string[] { "Left", "Center" },
-                        [CustomPropertyKeys.ValueMappings] = new Dictionary<int, Dictionary<string, int>>
+                        [CustomPropertyKeys.ValueMappings] = new Dictionary<int, Dictionary<string, int?>>
                         {
-                            [0] = new Dictionary<string, int> // Left
+                            [0] = new Dictionary<string, int?> // Left
                             {
                                 ["TaskbarAl"] = 0,
                             },
-                            [1] = new Dictionary<string, int> // Center
+                            [1] = new Dictionary<string, int?> // Center
                             {
                                 ["TaskbarAl"] = 1,
                             },
@@ -180,7 +179,7 @@ public static class TaskbarCustomizations
                     Name = "Remove Meet Now Button from System Tray",
                     Description = "Controls Meet Now button visibility in the system tray",
                     GroupName = "Taskbar Icons",
-                    InputType = SettingInputType.Toggle,
+                    InputType = InputType.Toggle,
                     IsWindows10Only = true,
                     RegistrySettings = new List<RegistrySetting>
                     {
@@ -203,7 +202,7 @@ public static class TaskbarCustomizations
                     Description =
                         "Controls whether system tray icons are shown in the taskbar or hidden in the chevron menu",
                     GroupName = "System Tray",
-                    InputType = SettingInputType.Toggle,
+                    InputType = InputType.Toggle,
                     IsWindows10Only = true,
                     RegistrySettings = new List<RegistrySetting>
                     {
@@ -225,7 +224,7 @@ public static class TaskbarCustomizations
                     Name = "Show Task View Button",
                     Description = "Controls Task View button visibility in taskbar",
                     GroupName = "Taskbar Icons",
-                    InputType = SettingInputType.Toggle,
+                    InputType = InputType.Toggle,
                     RegistrySettings = new List<RegistrySetting>
                     {
                         new RegistrySetting
@@ -246,7 +245,7 @@ public static class TaskbarCustomizations
                     Name = "Show Widgets",
                     Description = "Controls Widgets visibility in taskbar",
                     GroupName = "Taskbar Icons",
-                    InputType = SettingInputType.Toggle,
+                    InputType = InputType.Toggle,
                     IsWindows11Only = true,
                     RegistrySettings = new List<RegistrySetting>
                     {
@@ -268,7 +267,7 @@ public static class TaskbarCustomizations
                     Name = "Show News and Interests",
                     Description = "Controls News and Interests visibility in taskbar",
                     GroupName = "Taskbar Icons",
-                    InputType = SettingInputType.Toggle,
+                    InputType = InputType.Toggle,
                     IsWindows10Only = true,
                     RegistrySettings = new List<RegistrySetting>
                     {
@@ -290,7 +289,7 @@ public static class TaskbarCustomizations
                     Name = "Make Taskbar Transparent",
                     Description = "Controls the transparency of the taskbar",
                     GroupName = "Taskbar",
-                    InputType = SettingInputType.Toggle,
+                    InputType = InputType.Toggle,
                     IsWindows10Only = true,
                     Dependencies = new List<SettingDependency>
                     {
@@ -322,7 +321,7 @@ public static class TaskbarCustomizations
                     Name = "Make Taskbar Small",
                     Description = "Controls the size of taskbar icons",
                     GroupName = "Taskbar",
-                    InputType = SettingInputType.Toggle,
+                    InputType = InputType.Toggle,
                     IsWindows10Only = true,
                     RegistrySettings = new List<RegistrySetting>
                     {

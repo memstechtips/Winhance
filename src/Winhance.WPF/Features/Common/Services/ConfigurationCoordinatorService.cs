@@ -1,14 +1,19 @@
 using System;
 using System.Collections.Generic;
 using System.Linq;
+using System.Reflection;
 using System.Threading.Tasks;
+using System.Windows;
 using Microsoft.Extensions.DependencyInjection;
 using Winhance.Core.Features.Common.Enums;
+using Winhance.Core.Features.Common.Events;
+using Winhance.Core.Features.Common.Events.UI;
 using Winhance.Core.Features.Common.Interfaces;
 using Winhance.Core.Features.Common.Models;
 using Winhance.Core.Features.Customize.Interfaces;
 using Winhance.Core.Features.Optimize.Interfaces;
 using Winhance.WPF.Features.Common.Models;
+using Winhance.WPF.Features.Common.Views;
 
 namespace Winhance.WPF.Features.Common.Services
 {
@@ -17,6 +22,10 @@ namespace Winhance.WPF.Features.Common.Services
         private readonly IServiceProvider _serviceProvider;
         private readonly ILogService _logService;
         private readonly ISettingApplicationService _settingApplicationService;
+        private readonly ISystemSettingsDiscoveryService _discoveryService;
+        private readonly IUnifiedConfigurationService _unifiedConfigService;
+        private readonly IDialogService _dialogService;
+        private readonly IEventBus _eventBus;
 
         private readonly IDomainService _startMenuService;
         private readonly IDomainService _taskbarService;
@@ -35,6 +44,10 @@ namespace Winhance.WPF.Features.Common.Services
             IServiceProvider serviceProvider,
             ILogService logService,
             ISettingApplicationService settingApplicationService,
+            ISystemSettingsDiscoveryService discoveryService,
+            IUnifiedConfigurationService unifiedConfigService,
+            IDialogService dialogService,
+            IEventBus eventBus,
             IDomainService startMenuService,
             IDomainService taskbarService,
             IDomainService explorerCustomizationService,
@@ -51,6 +64,10 @@ namespace Winhance.WPF.Features.Common.Services
             _serviceProvider = serviceProvider ?? throw new ArgumentNullException(nameof(serviceProvider));
             _logService = logService ?? throw new ArgumentNullException(nameof(logService));
             _settingApplicationService = settingApplicationService ?? throw new ArgumentNullException(nameof(settingApplicationService));
+            _discoveryService = discoveryService ?? throw new ArgumentNullException(nameof(discoveryService));
+            _unifiedConfigService = unifiedConfigService ?? throw new ArgumentNullException(nameof(unifiedConfigService));
+            _dialogService = dialogService ?? throw new ArgumentNullException(nameof(dialogService));
+            _eventBus = eventBus ?? throw new ArgumentNullException(nameof(eventBus));
             _startMenuService = startMenuService ?? throw new ArgumentNullException(nameof(startMenuService));
             _taskbarService = taskbarService ?? throw new ArgumentNullException(nameof(taskbarService));
             _explorerCustomizationService = explorerCustomizationService ?? throw new ArgumentNullException(nameof(explorerCustomizationService));
@@ -74,10 +91,10 @@ namespace Winhance.WPF.Features.Common.Services
             };
 
             var customizeSettings = new List<ISettingItem>();
-            customizeSettings.AddRange(await _windowsThemeService.GetRawSettingsAsync());
-            customizeSettings.AddRange(await _startMenuService.GetRawSettingsAsync());
-            customizeSettings.AddRange(await _taskbarService.GetRawSettingsAsync());
-            customizeSettings.AddRange(await _explorerCustomizationService.GetRawSettingsAsync());
+            customizeSettings.AddRange(await _windowsThemeService.GetSettingsAsync());
+            customizeSettings.AddRange(await _startMenuService.GetSettingsAsync());
+            customizeSettings.AddRange(await _taskbarService.GetSettingsAsync());
+            customizeSettings.AddRange(await _explorerCustomizationService.GetSettingsAsync());
 
             if (customizeSettings.Any())
             {
@@ -87,14 +104,14 @@ namespace Winhance.WPF.Features.Common.Services
             }
 
             var optimizeSettings = new List<ISettingItem>();
-            optimizeSettings.AddRange(await _gamingPerformanceService.GetRawSettingsAsync());
-            optimizeSettings.AddRange(await _powerService.GetRawSettingsAsync());
-            optimizeSettings.AddRange(await _privacyService.GetRawSettingsAsync());
-            optimizeSettings.AddRange(await _updateService.GetRawSettingsAsync());
-            optimizeSettings.AddRange(await _securityService.GetRawSettingsAsync());
-            optimizeSettings.AddRange(await _explorerOptimizationService.GetRawSettingsAsync());
-            optimizeSettings.AddRange(await _notificationService.GetRawSettingsAsync());
-            optimizeSettings.AddRange(await _soundService.GetRawSettingsAsync());
+            optimizeSettings.AddRange(await _gamingPerformanceService.GetSettingsAsync());
+            optimizeSettings.AddRange(await _powerService.GetSettingsAsync());
+            optimizeSettings.AddRange(await _privacyService.GetSettingsAsync());
+            optimizeSettings.AddRange(await _updateService.GetSettingsAsync());
+            optimizeSettings.AddRange(await _securityService.GetSettingsAsync());
+            optimizeSettings.AddRange(await _explorerOptimizationService.GetSettingsAsync());
+            optimizeSettings.AddRange(await _notificationService.GetSettingsAsync());
+            optimizeSettings.AddRange(await _soundService.GetSettingsAsync());
 
             if (optimizeSettings.Any())
             {
@@ -132,7 +149,11 @@ namespace Winhance.WPF.Features.Common.Services
 
             foreach (var item in items)
             {
-                var state = await _settingApplicationService.GetSettingStateAsync(item.Id);
+                if (item is not SettingDefinition settingDefinition)
+                    continue;
+
+                var results = await _discoveryService.GetSettingStatesAsync(new[] { settingDefinition });
+                var state = results.TryGetValue(item.Id, out var settingState) ? settingState : new SettingStateResult();
 
                 var configItem = new ConfigurationItem
                 {
@@ -185,6 +206,251 @@ namespace Winhance.WPF.Features.Common.Services
             }
 
             return success;
+        }
+
+        public async Task SaveUnifiedConfigAsync()
+        {
+            try
+            {
+                _eventBus.Publish(new LogEvent
+                {
+                    Message = "Using UnifiedConfigurationService to save unified configuration",
+                    Level = LogLevel.Info,
+                });
+
+                var unifiedConfig = await _unifiedConfigService.CreateUnifiedConfigurationAsync();
+                var configService = GetConfigurationService();
+
+                if (configService == null)
+                {
+                    _eventBus.Publish(new LogEvent
+                    {
+                        Message = "ConfigurationService not available",
+                        Level = LogLevel.Error,
+                    });
+                    return;
+                }
+
+                bool saveResult = await _unifiedConfigService.SaveUnifiedConfigurationAsync(unifiedConfig);
+
+                if (saveResult)
+                {
+                    _eventBus.Publish(new LogEvent
+                    {
+                        Message = "Unified configuration saved successfully",
+                        Level = LogLevel.Info,
+                    });
+
+                    var sections = new List<string>();
+                    if (unifiedConfig.WindowsApps.Items.Any()) sections.Add("Windows Apps");
+                    if (unifiedConfig.ExternalApps.Items.Any()) sections.Add("External Apps");
+                    if (unifiedConfig.Customize.Items.Any()) sections.Add("Customizations");
+                    if (unifiedConfig.Optimize.Items.Any()) sections.Add("Optimizations");
+
+                    CustomDialog.ShowInformation(
+                        "Configuration Saved",
+                        "Configuration saved successfully.",
+                        sections,
+                        "You can now import this configuration on another system."
+                    );
+                }
+                else
+                {
+                    _eventBus.Publish(new LogEvent
+                    {
+                        Message = "Save unified configuration canceled by user",
+                        Level = LogLevel.Info,
+                    });
+                }
+            }
+            catch (Exception ex)
+            {
+                _eventBus.Publish(new LogEvent
+                {
+                    Message = $"Error saving unified configuration: {ex.Message}",
+                    Level = LogLevel.Error,
+                    Exception = ex,
+                });
+            }
+        }
+
+        public async Task ImportUnifiedConfigAsync()
+        {
+            try
+            {
+                _eventBus.Publish(new LogEvent
+                {
+                    Message = "Starting unified configuration import process",
+                    Level = LogLevel.Info,
+                });
+
+                var configService = GetConfigurationService();
+                if (configService == null)
+                {
+                    _eventBus.Publish(new LogEvent
+                    {
+                        Message = "ConfigurationService not available",
+                        Level = LogLevel.Error,
+                    });
+                    return;
+                }
+
+                var selectedOption = await _dialogService.ShowConfigImportOptionsDialogAsync();
+                if (selectedOption == null)
+                {
+                    _eventBus.Publish(new LogEvent
+                    {
+                        Message = "User canceled config import options dialog",
+                        Level = LogLevel.Info,
+                    });
+                    return;
+                }
+
+                UnifiedConfigurationFile unifiedConfig = selectedOption switch
+                {
+                    ImportOption.ImportOwn => await _unifiedConfigService.LoadUnifiedConfigurationAsync(),
+                    ImportOption.ImportRecommended => await configService.LoadRecommendedConfigurationAsync(),
+                    _ => null
+                };
+
+                if (unifiedConfig == null)
+                {
+                    _eventBus.Publish(new LogEvent
+                    {
+                        Message = "Import unified configuration canceled by user",
+                        Level = LogLevel.Info,
+                    });
+                    return;
+                }
+
+                var sectionInfo = CreateSectionInfo(unifiedConfig);
+                var result = await _dialogService.ShowUnifiedConfigurationImportDialogAsync(
+                    "Select Configuration Sections",
+                    "Select which sections you want to import from the unified configuration.",
+                    sectionInfo
+                );
+
+                if (result == null)
+                {
+                    _eventBus.Publish(new LogEvent
+                    {
+                        Message = "User canceled unified configuration import",
+                        Level = LogLevel.Info,
+                    });
+                    return;
+                }
+
+                var selectedSections = result.Where(kvp => kvp.Value).Select(kvp => kvp.Key).ToList();
+                if (!selectedSections.Any())
+                {
+                    _eventBus.Publish(new LogEvent
+                    {
+                        Message = "No sections selected for import",
+                        Level = LogLevel.Info,
+                    });
+                    _dialogService.ShowMessage(
+                        "Please select at least one section to import from the unified configuration.",
+                        "No sections selected"
+                    );
+                    return;
+                }
+
+                await _unifiedConfigService.ApplyUnifiedConfigurationAsync(unifiedConfig, selectedSections);
+
+                _eventBus.Publish(new LogEvent
+                {
+                    Message = "Unified configuration imported successfully",
+                    Level = LogLevel.Info,
+                });
+
+                ShowImportSuccessMessage(selectedSections);
+            }
+            catch (Exception ex)
+            {
+                _eventBus.Publish(new LogEvent
+                {
+                    Message = $"Error importing unified configuration: {ex.Message}",
+                    Level = LogLevel.Error,
+                    Exception = ex,
+                });
+
+                _dialogService?.ShowMessage(
+                    $"An error occurred while importing the configuration: {ex.Message}",
+                    "Import Error"
+                );
+            }
+        }
+
+        private IConfigurationService GetConfigurationService()
+        {
+            if (Application.Current is not App appInstance) return null;
+
+            try
+            {
+                var hostField = appInstance.GetType().GetField("_host", BindingFlags.NonPublic | BindingFlags.Instance);
+                var host = hostField?.GetValue(appInstance);
+                if (host == null) return null;
+
+                var servicesProperty = host.GetType().GetProperty("Services");
+                var services = servicesProperty?.GetValue(host);
+                if (services == null) return null;
+
+                var getServiceMethod = services.GetType().GetMethod("GetService", new[] { typeof(Type) });
+                return getServiceMethod?.Invoke(services, new object[] { typeof(IConfigurationService) }) as IConfigurationService;
+            }
+            catch (Exception ex)
+            {
+                _eventBus.Publish(new LogEvent
+                {
+                    Message = $"Error accessing ConfigurationService: {ex.Message}",
+                    Level = LogLevel.Error,
+                    Exception = ex,
+                });
+                return null;
+            }
+        }
+
+        private static Dictionary<string, (bool IsSelected, bool IsAvailable, int ItemCount)> CreateSectionInfo(UnifiedConfigurationFile unifiedConfig)
+        {
+            return new Dictionary<string, (bool IsSelected, bool IsAvailable, int ItemCount)>
+            {
+                { "Software & Apps", (true, unifiedConfig.WindowsApps.Items.Count > 0 || unifiedConfig.ExternalApps.Items.Count > 0, unifiedConfig.WindowsApps.Items.Count + unifiedConfig.ExternalApps.Items.Count) },
+                { "WindowsApps", (true, unifiedConfig.WindowsApps.Items.Count > 0, unifiedConfig.WindowsApps.Items.Count) },
+                { "ExternalApps", (true, unifiedConfig.ExternalApps.Items.Count > 0, unifiedConfig.ExternalApps.Items.Count) },
+                { "Optimize", (true, unifiedConfig.Optimize.Items.Count > 0, unifiedConfig.Optimize.Items.Count) },
+                { "Optimize.GamingAndPerformance", (true, true, 0) },
+                { "Optimize.PowerSettings", (true, true, 0) },
+                { "Optimize.WindowsSecuritySettings", (true, true, 0) },
+                { "Optimize.PrivacySettings", (true, true, 0) },
+                { "Optimize.WindowsUpdates", (true, true, 0) },
+                { "Optimize.Explorer", (true, true, 0) },
+                { "Optimize.Notifications", (true, true, 0) },
+                { "Optimize.Sound", (true, true, 0) },
+                { "Customize", (true, unifiedConfig.Customize.Items.Count > 0, unifiedConfig.Customize.Items.Count) },
+                { "Customize.WindowsTheme", (true, true, 0) },
+                { "Customize.Taskbar", (true, true, 0) },
+                { "Customize.StartMenu", (true, true, 0) },
+                { "Customize.Explorer", (true, true, 0) },
+            };
+        }
+
+        private static void ShowImportSuccessMessage(List<string> selectedSections)
+        {
+            var importedSections = selectedSections.Select(section => section switch
+            {
+                "WindowsApps" => "Windows Apps",
+                "ExternalApps" => "External Apps",
+                "Customize" => "Customizations",
+                "Optimize" => "Optimizations",
+                _ => section
+            }).ToList();
+
+            CustomDialog.ShowInformation(
+                "Configuration Imported",
+                "The unified configuration has been imported successfully.",
+                importedSections,
+                "The selected settings have been applied to your system."
+            );
         }
     }
 }

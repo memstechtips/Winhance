@@ -2,15 +2,8 @@ using System;
 
 namespace Winhance.Core.Features.SoftwareApps.Models;
 
-/// <summary>
-/// Provides the PowerShell script content for removing OneDrive.
-/// </summary>
 public static class OneDriveRemovalScript
 {
-    /// <summary>
-    /// Gets the PowerShell script for removing OneDrive.
-    /// </summary>
-    /// <returns>A string containing the PowerShell script.</returns>
     public static string GetScript()
     {
         return @"
@@ -22,8 +15,20 @@ public static class OneDriveRemovalScript
             + DateTime.Now.ToString("yyyy-MM-dd HH:mm:ss")
             + @"
 
+# Check if script is running as Administrator
+If (!([Security.Principal.WindowsPrincipal][Security.Principal.WindowsIdentity]::GetCurrent()).IsInRole([Security.Principal.WindowsBuiltInRole]""Administrator"")) {
+    Try {
+        Start-Process PowerShell.exe -ArgumentList (""-NoProfile -ExecutionPolicy Bypass -File `""{0}`"" -f $PSCommandPath"") -Verb RunAs""
+        Exit
+    }
+    Catch {
+        Write-Host ""Failed to run as Administrator. Please rerun with elevated privileges.""
+        Exit
+    }
+}
+
 # Setup logging
-$logFolder = ""$env:LOCALAPPDATA\Winhance\Logs""
+$logFolder = ""C:\ProgramData\Winhance\Logs""
 $logFile = ""$logFolder\OneDriveRemovalLog.txt""
 
 # Create log directory if it doesn't exist
@@ -36,11 +41,19 @@ function Write-Log {
     param (
         [string]$Message
     )
-    
+
+    # Check if log file exists and is over 500KB (512000 bytes)
+    if ((Test-Path $logFile) -and (Get-Item $logFile).Length -gt 512000) {
+        Remove-Item $logFile -Force -ErrorAction SilentlyContinue
+        $timestamp = Get-Date -Format ""yyyy-MM-dd HH:mm:ss""
+        ""$timestamp - Log rotated - previous log exceeded 500KB"" | Out-File -FilePath $logFile
+    }
+
     $timestamp = Get-Date -Format ""yyyy-MM-dd HH:mm:ss""
     ""$timestamp - $Message"" | Out-File -FilePath $logFile -Append
 }
 
+Write-Host ""Starting OneDrive removal process. See $logFile for details."" 
 Write-Log ""Starting OneDrive removal process""
 
 try {
@@ -60,7 +73,7 @@ try {
     Write-Log ""Successfully stopped all OneDrive processes""
 }
 catch {
-    Write-Log ""Error stopping OneDrive processes: $($_.Exception.Message)""
+    Write-Log ""Error stopping OneDrive processes: $$($_.Exception.Message)""
 }
 
 # Check and execute uninstall strings from registry
@@ -96,7 +109,7 @@ foreach ($regPath in $registryPaths) {
                     }
                 }
                 catch {
-                    Write-Log ""Error executing uninstaller: $($_.Exception.Message)""
+                    Write-Log ""Error executing uninstaller: $$($_.Exception.Message)""
                 }
             } else {
                 Write-Log ""No uninstall string found in registry key""
@@ -106,7 +119,7 @@ foreach ($regPath in $registryPaths) {
         }
     }
     catch {
-        Write-Log ""Error accessing registry path $regPath: $($_.Exception.Message)""
+        Write-Log ""Error accessing registry path $regPath: $$($_.Exception.Message)""
         continue
     }
 }
@@ -132,7 +145,7 @@ try {
     }
 }
 catch {
-    Write-Log ""Error removing OneDrive AppX packages: $($_.Exception.Message)""
+    Write-Log ""Error removing OneDrive AppX packages: $$($_.Exception.Message)""
 }
 
 # Uninstall OneDrive using setup files
@@ -155,7 +168,7 @@ foreach ($path in $oneDrivePaths) {
         }
     }
     catch {
-        Write-Log ""Error running OneDrive setup uninstaller at $path: $($_.Exception.Message)""
+        Write-Log ""Error running OneDrive setup uninstaller at $path: $$($_.Exception.Message)""
         continue
     }
 }
@@ -179,7 +192,7 @@ try {
                 $taskCount++
             }
             catch {
-                Write-Log ""Error removing scheduled task $($task.TaskName): $($_.Exception.Message)""
+                Write-Log ""Error removing scheduled task $$($task.TaskName): $$($_.Exception.Message)""
             }
         }
         Write-Log ""Removed $taskCount OneDrive scheduled tasks""
@@ -188,7 +201,7 @@ try {
     }
 }
 catch {
-    Write-Log ""Error accessing scheduled tasks: $($_.Exception.Message)""
+    Write-Log ""Error accessing scheduled tasks: $$($_.Exception.Message)""
 }
 
 Write-Log ""Configuring registry settings to disable OneDrive""
@@ -228,7 +241,7 @@ try {
     Write-Log ""Registry configuration completed""
 }
 catch {
-    Write-Log ""Error configuring registry settings: $($_.Exception.Message)""
+    Write-Log ""Error configuring registry settings: $$($_.Exception.Message)""
 }
 
 # Function to handle robust folder removal
@@ -269,7 +282,7 @@ function Remove-OneDriveFolder {
         }
     }
     catch {
-        Write-Log ""Error during direct folder removal: $($_.Exception.Message)""
+        Write-Log ""Error during direct folder removal: $$($_.Exception.Message)""
         try {
             # If direct removal fails, create and execute a cleanup batch file
             Write-Log ""Creating cleanup batch file for delayed removal""
@@ -288,7 +301,7 @@ del /F /Q ""%~f0""
             Write-Log ""Scheduled delayed removal of folder: $folderPath""
         }
         catch {
-            Write-Log ""Failed to create cleanup batch file: $($_.Exception.Message)""
+            Write-Log ""Failed to create cleanup batch file: $$($_.Exception.Message)""
         }
     }
 }
@@ -322,7 +335,7 @@ foreach ($file in $filesToRemove) {
         }
     }
     catch {
-        Write-Log ""Error removing file $file: $($_.Exception.Message)""
+        Write-Log ""Error removing file $file: $$($_.Exception.Message)""
         continue
     }
 }
@@ -345,7 +358,7 @@ foreach ($folder in $foldersToRemove) {
         $foldersProcessed++
     }
     catch {
-        Write-Log ""Error in folder removal process for $folder: $($_.Exception.Message)""
+        Write-Log ""Error in folder removal process for $folder: $$($_.Exception.Message)""
         continue
     }
 }
@@ -379,11 +392,13 @@ del /F /Q ""%~f0""
         }
     }
     catch {
-        Write-Log ""Error creating cleanup batch for $file: $($_.Exception.Message)""
+        Write-Log ""Error creating cleanup batch for $file: $$($_.Exception.Message)""
         continue
-        }
     }
 }
+
+Write-Host ""OneDrive Removal complete. See $logFile for details.""
+
 ";
     }
 }

@@ -4,35 +4,23 @@ using System.Runtime.CompilerServices;
 using System.Threading.Tasks;
 using System.Windows.Input;
 using Winhance.Core.Features.Common.Interfaces;
-using Winhance.WPF.Features.SoftwareApps.Services;
 
 namespace Winhance.WPF.Features.SoftwareApps.ViewModels
 {
-    /// <summary>
-    /// ViewModel for the WindowsAppsHelpContent view
-    /// </summary>
-    public class WindowsAppsHelpContentViewModel : INotifyPropertyChanged, IDisposable
+    public class WindowsAppsHelpContentViewModel(
+        IScheduledTaskService scheduledTaskService,
+        ILogService logService) : INotifyPropertyChanged, IDisposable
     {
-        public WindowsAppsHelpContentViewModel(
-            IScriptPathDetectionService scriptPathDetectionService,
-            IScheduledTaskService scheduledTaskService,
-            ILogService logService)
-        {
-            RemovalStatusContainer = new RemovalStatusContainerViewModel(
-                scriptPathDetectionService,
-                scheduledTaskService,
-                logService);
+        public RemovalStatusContainerViewModel RemovalStatusContainer { get; } = new(
+            scheduledTaskService,
+            logService);
 
-            // Start status checks when Help dialog is shown
+        public ICommand CloseHelpCommand { get; set; } = null!;
+
+        public void Initialize()
+        {
             _ = Task.Run(async () => await RemovalStatusContainer.RefreshAllStatusesAsync());
         }
-
-        public RemovalStatusContainerViewModel RemovalStatusContainer { get; }
-
-        /// <summary>
-        /// Command to close the help flyout
-        /// </summary>
-        public ICommand CloseHelpCommand { get; set; }
 
         public event PropertyChangedEventHandler? PropertyChanged;
 

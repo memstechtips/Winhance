@@ -1,5 +1,4 @@
 using Winhance.Core.Features.Common.Models;
-using Winhance.Core.Features.Common.Models.WindowsRegistry;
 using Winhance.Core.Features.SoftwareApps.Enums;
 
 namespace Winhance.Core.Features.SoftwareApps.Models;

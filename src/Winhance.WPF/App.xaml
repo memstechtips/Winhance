@@ -26,7 +26,7 @@
                 <ResourceDictionary Source="Features/Common/Resources/Styles/TextStyles.xaml"/>
                 <ResourceDictionary Source="Features/Optimize/Resources/Converters/PowerSettingConverters.xaml"/>
                 <ResourceDictionary Source="Features/Common/Resources/Styles/AppItemStyles.xaml"/>
-                <ResourceDictionary Source="Features/Common/Resources/Styles/RegistryTooltipTemplate.xaml"/>
+                <ResourceDictionary Source="Features/Common/Resources/Styles/UnifiedSettingsTooltipTemplate.xaml"/>
                 <ResourceDictionary Source="Features/Common/Resources/Styles/ContainerStyles.xaml"/>
                 <ResourceDictionary Source="Features/Common/Resources/Styles/ScrollBarStyles.xaml"/>
                 <ResourceDictionary Source="Features/Common/Resources/Styles/ProgressIndicatorStyles.xaml"/>

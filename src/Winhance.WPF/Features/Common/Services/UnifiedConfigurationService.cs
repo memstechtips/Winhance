@@ -6,7 +6,6 @@ using System.Windows;
 using Microsoft.Extensions.DependencyInjection;
 using Winhance.Core.Features.Common.Enums;
 using Winhance.Core.Features.Common.Interfaces;
-using Winhance.Core.Features.Common.Interfaces.WindowsRegistry;
 using Winhance.Core.Features.Common.Models;
 using Winhance.WPF.Features.Common.Services.Configuration;
 using Winhance.WPF.Features.Common.Views;
@@ -23,7 +22,6 @@ namespace Winhance.WPF.Features.Common.Services
         private readonly ILogService _logService;
         private readonly IDialogService _dialogService;
         private readonly IWindowsRegistryService _registryService;
-        private readonly ConfigurationCollectorService _collectorService;
         private readonly IConfigurationApplierService _applierService;
         private readonly ConfigurationUIService _uiService;
 
@@ -48,8 +46,6 @@ namespace Winhance.WPF.Features.Common.Services
             _dialogService = dialogService ?? throw new ArgumentNullException(nameof(dialogService));
             _registryService = windowsRegistryService ?? throw new ArgumentNullException(nameof(windowsRegistryService));
 
-            // Initialize helper services
-            _collectorService = new ConfigurationCollectorService(serviceProvider, logService);
             _applierService = serviceProvider.GetRequiredService<IConfigurationApplierService>();
             _uiService = new ConfigurationUIService(logService);
         }
@@ -64,8 +60,8 @@ namespace Winhance.WPF.Features.Common.Services
             {
                 _logService.Log(LogLevel.Info, "Creating unified configuration from all view models");
 
-                // Collect settings from all view models
-                var sectionSettings = await _collectorService.CollectAllSettingsAsync();
+                var collectorService = new ConfigurationCollectorService(_serviceProvider, _logService);
+                var sectionSettings = await collectorService.CollectAllSettingsAsync();
 
                 // Create a list of all available sections - include all sections by default
                 var availableSections = new List<string> { "WindowsApps", "ExternalApps", "Customize", "Optimize" };

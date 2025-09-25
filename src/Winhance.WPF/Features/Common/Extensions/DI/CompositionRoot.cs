@@ -1,7 +1,6 @@
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Hosting;
 using Winhance.Infrastructure.Features.SoftwareApps.Services;
-using Winhance.Infrastructure.Features.SoftwareApps.Services.ScriptGeneration;
 using Winhance.WPF.Features.Common.Services.Configuration;
 
 namespace Winhance.WPF.Features.Common.Extensions.DI
@@ -28,11 +27,7 @@ namespace Winhance.WPF.Features.Common.Extensions.DI
                 services
                     .AddCoreServices() // Core abstractions and interfaces
                     .AddInfrastructureServices() // Infrastructure implementations
-                    .AddcontrolHandlerServices() // Simplified orchestrator services
                     .AddDomainServices() // Domain services following DDD
-                                         // Add existing script generation and bloat removal services
-                    .AddScriptGenerationServices() // From Infrastructure.Features.SoftwareApps.Services.ScriptGeneration
-                    .AddBloatRemovalServices() // From Infrastructure.Features.SoftwareApps.Services
                     .AddConfigurationServices() // From WPF.Features.Common.Services.Configuration
                     .AddUIServices() // UI layer services
                     .AddViewModels() // ViewModels with proper lifetimes

@@ -120,5 +120,21 @@ namespace Winhance.Core.Features.Common.Interfaces
             string continueButtonText = "Continue",
             string cancelButtonText = "Cancel");
 
+        void ShowOperationResult(
+            string operationType,
+            int successCount,
+            int totalCount,
+            IEnumerable<string> successItems,
+            IEnumerable<string> failedItems = null,
+            IEnumerable<string> skippedItems = null,
+            bool hasConnectivityIssues = false,
+            bool isUserCancelled = false);
+
+        Task ShowInformationAsync(
+            string title,
+            string headerText,
+            IEnumerable<string> apps,
+            string footerText);
+
     }
 }

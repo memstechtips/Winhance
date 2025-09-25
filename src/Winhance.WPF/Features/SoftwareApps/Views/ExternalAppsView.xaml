@@ -1,110 +1,120 @@
 <UserControl x:Class="Winhance.WPF.Features.SoftwareApps.Views.ExternalAppsView"
              xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
              xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
-             xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006" 
-             xmlns:d="http://schemas.microsoft.com/expression/blend/2008" 
-             xmlns:local="clr-namespace:Winhance.WPF.Features.SoftwareApps.Views"
+             xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
+             xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
              xmlns:viewModels="clr-namespace:Winhance.WPF.Features.SoftwareApps.ViewModels"
              xmlns:materialDesign="http://materialdesigninxaml.net/winfx/xaml/themes"
              xmlns:controls="clr-namespace:Winhance.WPF.Features.Common.Controls"
-             xmlns:behaviors="clr-namespace:Winhance.WPF.Features.Common.Behaviors"
-             mc:Ignorable="d" 
+             xmlns:views="clr-namespace:Winhance.WPF.Features.SoftwareApps.Views"
+             mc:Ignorable="d"
              d:DataContext="{d:DesignInstance Type=viewModels:ExternalAppsViewModel}">
 
-    <controls:ResponsiveScrollViewer>
-        <StackPanel Margin="10">
-            
-        <!-- External Apps by Category (List View) -->
-        <Grid>
-        
-        <ItemsControl ItemsSource="{Binding Categories}">
-            <ItemsControl.ItemTemplate>
-                <DataTemplate>
-                    <!-- Category Section -->
-                    <StackPanel Margin="0,5,0,5">
-                        <!-- Category Header -->
-                        <Border Background="{DynamicResource ContentSectionBorderBrush}"
-                                CornerRadius="5"
-                                Margin="0,5,0,5"
-                                Effect="{StaticResource ShadowEffect}"
-                                Cursor="Hand"
-                                Tag="{Binding Name}">
-                            <DockPanel VerticalAlignment="Center"
-                                       HorizontalAlignment="Stretch">
-                                <!-- Category Icon (Material Design) -->
-                                <materialDesign:PackIcon Kind="{Binding Name, Converter={StaticResource CategoryToIconConverter}, FallbackValue=Apps}"
-                                                         Width="24"
-                                                         Height="24"
-                                                         Margin="15,0,10,0"
-                                                         Foreground="{DynamicResource PrimaryTextColor}"
-                                                         VerticalAlignment="Center"
-                                                         DockPanel.Dock="Left"/>
+    <Grid>
+        <ContentControl>
+            <ContentControl.Style>
+                <Style TargetType="ContentControl">
+                    <Style.Triggers>
+                        <DataTrigger Binding="{Binding IsTableViewMode}" Value="True">
+                            <Setter Property="Content">
+                                <Setter.Value>
+                                    <views:ExternalAppsTableView/>
+                                </Setter.Value>
+                            </Setter>
+                        </DataTrigger>
+                        <DataTrigger Binding="{Binding IsTableViewMode}" Value="False">
+                            <Setter Property="Content">
+                                <Setter.Value>
+                                    <controls:ResponsiveScrollViewer>
+                                        <StackPanel Margin="10">
 
-                                <!-- Category Name -->
-                                <TextBlock Text="{Binding Name}"
-                                           FontWeight="SemiBold"
-                                           FontSize="14"
-                                           Foreground="{DynamicResource PrimaryTextColor}"
-                                           Margin="0,10,0,10"
-                                           VerticalAlignment="Center"
-                                           DockPanel.Dock="Left"/>
+                                            <ItemsControl ItemsSource="{Binding Categories}">
+                                                <ItemsControl.ItemTemplate>
+                                                    <DataTemplate>
+                                                        <StackPanel Margin="0,5,0,5">
+                                                            <Border Background="{DynamicResource ContentSectionBorderBrush}"
+                                                                    CornerRadius="5"
+                                                                    Margin="0,5,0,5"
+                                                                    Effect="{StaticResource ShadowEffect}"
+                                                                    Cursor="Hand"
+                                                                    Tag="{Binding Name}">
+                                                                <DockPanel VerticalAlignment="Center"
+                                                                           HorizontalAlignment="Stretch">
+                                                                    <materialDesign:PackIcon Kind="{Binding Name, Converter={StaticResource CategoryToIconConverter}, FallbackValue=Apps}"
+                                                                                             Width="24"
+                                                                                             Height="24"
+                                                                                             Margin="15,0,10,0"
+                                                                                             Foreground="{DynamicResource PrimaryTextColor}"
+                                                                                             VerticalAlignment="Center"
+                                                                                             DockPanel.Dock="Left"/>
 
-                                <!-- Arrow Indicator -->
-                                <materialDesign:PackIcon Kind="{Binding IsExpanded, Converter={StaticResource BoolToChevronConverter}, FallbackValue=ChevronDown}"
-                                                         Width="24"
-                                                         Height="24"
-                                                         HorizontalAlignment="Right"
-                                                         VerticalAlignment="Center"
-                                                         Foreground="{DynamicResource PrimaryTextColor}"
-                                                         Margin="0,0,10,0"
-                                                         DockPanel.Dock="Right"/>
-                            </DockPanel>
-                        </Border>
+                                                                    <TextBlock Text="{Binding Name}"
+                                                                               FontWeight="SemiBold"
+                                                                               FontSize="14"
+                                                                               Foreground="{DynamicResource PrimaryTextColor}"
+                                                                               Margin="0,10,0,10"
+                                                                               VerticalAlignment="Center"
+                                                                               DockPanel.Dock="Left"/>
 
-                        <!-- Category Content -->
-                        <Border Background="{DynamicResource ContentSectionBorderBrush}"
-                                CornerRadius="5"
-                                Margin="5,0,5,5"
-                                Effect="{StaticResource LightShadowEffect}"
-                                Visibility="{Binding IsExpanded, Converter={StaticResource BooleanToVisibilityConverter}}">
-                            <StackPanel Margin="0,5,0,5">
-                                <!-- Apps in this category -->
-                                <ItemsControl ItemsSource="{Binding Apps}"
-                                              Margin="10,0,10,10">
-                                    <ItemsControl.ItemsPanel>
-                                        <ItemsPanelTemplate>
-                                            <WrapPanel Orientation="Horizontal" HorizontalAlignment="Left" />
-                                        </ItemsPanelTemplate>
-                                    </ItemsControl.ItemsPanel>
-                                    <ItemsControl.ItemContainerStyle>
-                                        <Style TargetType="ContentPresenter">
-                                            <Setter Property="Width" Value="280" />
-                                            <Setter Property="Margin" Value="0,0,0,0" />
-                                        </Style>
-                                    </ItemsControl.ItemContainerStyle>
-                                    <ItemsControl.ItemTemplate>
-                                        <DataTemplate>
-                                            <CheckBox Style="{StaticResource CustomCheckBox}"
-                                                      Margin="8,5,10,5"
-                                                      IsChecked="{Binding IsSelected}">
-                                                <TextBlock Text="{Binding Name}"
-                                                           Style="{StaticResource AppItemTextStyle}">
-                                                    <TextBlock.ToolTip>
-                                                        <ToolTip Content="{Binding Description}"/>
-                                                    </TextBlock.ToolTip>
-                                                </TextBlock>
-                                            </CheckBox>
-                                        </DataTemplate>
-                                    </ItemsControl.ItemTemplate>
-                                </ItemsControl>
-                            </StackPanel>
-                        </Border>
+                                                                    <materialDesign:PackIcon Kind="{Binding IsExpanded, Converter={StaticResource BoolToChevronConverter}, FallbackValue=ChevronDown}"
+                                                                                             Width="24"
+                                                                                             Height="24"
+                                                                                             HorizontalAlignment="Right"
+                                                                                             VerticalAlignment="Center"
+                                                                                             Foreground="{DynamicResource PrimaryTextColor}"
+                                                                                             Margin="0,0,10,0"
+                                                                                             DockPanel.Dock="Right"/>
+                                                                </DockPanel>
+                                                            </Border>
 
-                    </StackPanel>
-                </DataTemplate>
-            </ItemsControl.ItemTemplate>
-        </ItemsControl>
-        </Grid>
-        </StackPanel>
-    </controls:ResponsiveScrollViewer>
+                                                            <Border Background="{DynamicResource ContentSectionBorderBrush}"
+                                                                    CornerRadius="5"
+                                                                    Margin="5,0,5,5"
+                                                                    Effect="{StaticResource LightShadowEffect}"
+                                                                    Visibility="{Binding IsExpanded, Converter={StaticResource BooleanToVisibilityConverter}}">
+                                                                <StackPanel Margin="0,5,0,5">
+                                                                    <ItemsControl ItemsSource="{Binding Apps}"
+                                                                                  Margin="10,0,10,10">
+                                                                        <ItemsControl.ItemsPanel>
+                                                                            <ItemsPanelTemplate>
+                                                                                <WrapPanel Orientation="Horizontal" HorizontalAlignment="Left" />
+                                                                            </ItemsPanelTemplate>
+                                                                        </ItemsControl.ItemsPanel>
+                                                                        <ItemsControl.ItemContainerStyle>
+                                                                            <Style TargetType="ContentPresenter">
+                                                                                <Setter Property="Width" Value="280" />
+                                                                                <Setter Property="Margin" Value="0,0,0,0" />
+                                                                            </Style>
+                                                                        </ItemsControl.ItemContainerStyle>
+                                                                        <ItemsControl.ItemTemplate>
+                                                                            <DataTemplate>
+                                                                                <CheckBox Style="{StaticResource CustomCheckBox}"
+                                                                                          Margin="8,5,10,5"
+                                                                                          IsChecked="{Binding IsSelected}">
+                                                                                    <TextBlock Text="{Binding Name}"
+                                                                                               Style="{StaticResource AppItemTextStyle}">
+                                                                                        <TextBlock.ToolTip>
+                                                                                            <ToolTip Content="{Binding Description}"/>
+                                                                                        </TextBlock.ToolTip>
+                                                                                    </TextBlock>
+                                                                                </CheckBox>
+                                                                            </DataTemplate>
+                                                                        </ItemsControl.ItemTemplate>
+                                                                    </ItemsControl>
+                                                                </StackPanel>
+                                                            </Border>
+                                                        </StackPanel>
+                                                    </DataTemplate>
+                                                </ItemsControl.ItemTemplate>
+                                            </ItemsControl>
+                                        </StackPanel>
+                                    </controls:ResponsiveScrollViewer>
+                                </Setter.Value>
+                            </Setter>
+                        </DataTrigger>
+                    </Style.Triggers>
+                </Style>
+            </ContentControl.Style>
+        </ContentControl>
+    </Grid>
 </UserControl>

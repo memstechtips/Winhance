@@ -1,22 +1,25 @@
 using System.Collections.ObjectModel;
+using System.Windows;
 using System.Windows.Input;
 using CommunityToolkit.Mvvm.ComponentModel;
 using CommunityToolkit.Mvvm.Input;
 using Winhance.Core.Features.Common.Enums;
 using Winhance.Core.Features.Common.Interfaces;
+using Winhance.Core.Features.Common.Models;
+using Winhance.Core.Features.Common.Services;
 using Winhance.WPF.Features.Common.Interfaces;
 
 namespace Winhance.WPF.Features.Common.ViewModels
 {
-    /// <summary>
-    /// Base class for settings-based feature ViewModels (Customize/Optimize features).
-    /// </summary>
-    public abstract partial class BaseSettingsFeatureViewModel : ObservableObject, IFeatureViewModel
+    public abstract partial class BaseSettingsFeatureViewModel : BaseFeatureViewModel, ISettingsFeatureViewModel
     {
-        protected readonly IDomainServiceRouter _domainServiceRouter;
-        protected readonly ISettingsLoadingService _settingsLoadingService;
-        protected readonly ILogService _logService;
-
+        protected readonly IDomainServiceRouter domainServiceRouter;
+        protected readonly ISettingsLoadingService settingsLoadingService;
+        protected readonly ILogService logService;
+        private bool _isDisposed;
+        private bool _settingsLoaded = false;
+        private readonly object _loadingLock = new object();
+        
         [ObservableProperty]
         private ObservableCollection<SettingItemViewModel> _settings = new();
 
@@ -29,38 +32,32 @@ namespace Winhance.WPF.Features.Common.ViewModels
         [ObservableProperty]
         private string _searchText = string.Empty;
 
-        // IFeatureViewModel implementation
         public bool HasVisibleSettings => Settings.Any(s => s.IsVisible);
         public bool IsVisibleInSearch => HasVisibleSettings;
         public event EventHandler<FeatureVisibilityChangedEventArgs>? VisibilityChanged;
         public int SettingsCount => Settings?.Count ?? 0;
 
-        // Commands
         public ICommand LoadSettingsCommand { get; }
         public ICommand ToggleExpandCommand { get; }
 
-        // Abstract properties that child classes must implement
-        public abstract string ModuleId { get; }
-        public abstract string DisplayName { get; }
-        public abstract string Description { get; }
-        public abstract string Category { get; }
-        public abstract int SortOrder { get; }
-
         protected BaseSettingsFeatureViewModel(
-          IDomainServiceRouter domainServiceRouter,
-          ISettingsLoadingService settingsLoadingService,
-          ILogService logService)
+            IDomainServiceRouter domainServiceRouter,
+            ISettingsLoadingService settingsLoadingService,
+            ILogService logService)
+            : base()
         {
-            _domainServiceRouter = domainServiceRouter ?? throw new ArgumentNullException(nameof(domainServiceRouter));
-            _settingsLoadingService = settingsLoadingService ?? throw new ArgumentNullException(nameof(settingsLoadingService));
-            _logService = logService ?? throw new ArgumentNullException(nameof(logService));
+            this.domainServiceRouter = domainServiceRouter ?? throw new ArgumentNullException(nameof(domainServiceRouter));
+            this.settingsLoadingService = settingsLoadingService ?? throw new ArgumentNullException(nameof(settingsLoadingService));
+            this.logService = logService ?? throw new ArgumentNullException(nameof(logService));
             LoadSettingsCommand = new AsyncRelayCommand(LoadSettingsAsync);
             ToggleExpandCommand = new RelayCommand(() => IsExpanded = !IsExpanded);
         }
 
-        /// <summary>
-        /// Applies search filter to all settings in this feature.
-        /// </summary>
+        public virtual async Task<bool> HandleDomainContextSettingAsync(SettingDefinition setting, object? value, bool additionalContext = false)
+        {
+            return false;
+        }
+
         public void ApplySearchFilter(string searchText)
         {
             SearchText = searchText ?? string.Empty;
@@ -97,24 +94,46 @@ namespace Winhance.WPF.Features.Common.ViewModels
 
         public virtual async Task LoadSettingsAsync()
         {
+            lock (_loadingLock)
+            {
+                if (_settingsLoaded) return;
+                _settingsLoaded = true;
+            }
+
             try
             {
                 IsLoading = true;
 
-                Settings = new ObservableCollection<SettingItemViewModel>(
-                    (await _settingsLoadingService.LoadConfiguredSettingsAsync(
-                        _domainServiceRouter.GetDomainService(ModuleId),
-                        ModuleId,
-                        $"Loading {DisplayName} settings..."
-                    )).Cast<SettingItemViewModel>()
-                );
+                if (Settings?.Any() == true)
+                {
+                    foreach (var setting in Settings.OfType<IDisposable>())
+                    {
+                        setting?.Dispose();
+                    }
+                    Settings.Clear();
+                }
 
-                _logService.Log(LogLevel.Info,
+                var loadedSettings = (await settingsLoadingService.LoadConfiguredSettingsAsync(
+                    domainServiceRouter.GetDomainService(ModuleId),
+                    ModuleId,
+                    $"Loading {DisplayName} settings...",
+                    this
+                )).Cast<SettingItemViewModel>();
+                
+                Settings = new ObservableCollection<SettingItemViewModel>(loadedSettings);
+                
+                UpdateParentChildRelationships();
+
+                logService.Log(LogLevel.Info,
                     $"{GetType().Name}: Successfully loaded {Settings.Count} settings");
             }
             catch (Exception ex)
             {
-                _logService.Log(LogLevel.Error,
+                lock (_loadingLock)
+                {
+                    _settingsLoaded = false;
+                }
+                logService.Log(LogLevel.Error,
                     $"Error loading {DisplayName} settings: {ex.Message}");
                 throw;
             }
@@ -122,6 +141,65 @@ namespace Winhance.WPF.Features.Common.ViewModels
             {
                 IsLoading = false;
             }
+        }
+
+        public virtual void OnNavigatedFrom()
+        {
+            SearchText = string.Empty;
+            VisibilityChanged = null;
+        }
+
+        public virtual void OnNavigatedTo(object? parameter = null)
+        {
+            if (!Settings.Any())
+            {
+                _ = LoadSettingsAsync();
+            }
+        }
+
+        public void Dispose()
+        {
+            Dispose(true);
+            GC.SuppressFinalize(this);
+        }
+
+        protected virtual void Dispose(bool disposing)
+        {
+            if (!_isDisposed && disposing)
+            {
+                if (Settings != null)
+                {
+                    foreach (var setting in Settings.OfType<IDisposable>())
+                    {
+                        setting?.Dispose();
+                    }
+                    Settings.Clear();
+                }
+
+                _settingsLoaded = false;
+                VisibilityChanged = null;
+                _isDisposed = true;
+            }
+        }
+
+        private void UpdateParentChildRelationships()
+        {
+            foreach (var setting in Settings)
+            {
+                if (!string.IsNullOrEmpty(setting.SettingDefinition?.ParentSettingId))
+                {
+                    var parent = Settings.FirstOrDefault(s => s.SettingId == setting.SettingDefinition.ParentSettingId);
+                    if (parent != null)
+                    {
+                        setting.ParentIsEnabled = parent.IsSelected;
+                    }
+                }
+            }
+        }
+
+        ~BaseSettingsFeatureViewModel()
+        {
+            Dispose(false);
         }
     }
 }

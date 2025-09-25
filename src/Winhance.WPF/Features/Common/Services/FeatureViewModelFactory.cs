@@ -4,6 +4,7 @@ using System.Windows.Controls;
 using Microsoft.Extensions.DependencyInjection;
 using Winhance.Core.Features.Common.Services;
 using Winhance.WPF.Features.Common.Interfaces;
+using Winhance.WPF.Features.Common.ViewModels;
 using Winhance.WPF.Features.Customize.ViewModels;
 using Winhance.WPF.Features.Customize.Views;
 using Winhance.WPF.Features.Optimize.ViewModels;
@@ -66,9 +67,13 @@ namespace Winhance.WPF.Features.Common.Services
                 if (viewModel == null || view == null)
                     return null;
 
-                if (viewModel is IFeatureViewModel featureViewModel)
+                if (viewModel is ISettingsFeatureViewModel settingsVm)
                 {
-                    await featureViewModel.LoadSettingsAsync();
+                    await settingsVm.LoadSettingsAsync();
+                }
+                else if (viewModel is IAppFeatureViewModel appVm)
+                {
+                    await appVm.LoadItemsAsync();
                 }
 
                 view.DataContext = viewModel;

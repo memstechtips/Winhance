@@ -19,52 +19,36 @@ namespace Winhance.WPF.Features.Common.Controls
         #region Dependency Properties
 
         /// <summary>
-        /// Gets or sets the progress value (0-100).
+        /// Gets or sets the app name being installed.
         /// </summary>
-        public double Progress
+        public string AppName
         {
-            get { return (double)GetValue(ProgressProperty); }
-            set { SetValue(ProgressProperty, value); }
+            get { return (string)GetValue(AppNameProperty); }
+            set { SetValue(AppNameProperty, value); }
         }
 
         /// <summary>
-        /// Identifies the Progress dependency property.
+        /// Identifies the AppName dependency property.
         /// </summary>
-        public static readonly DependencyProperty ProgressProperty =
-            DependencyProperty.Register(nameof(Progress), typeof(double), typeof(TaskProgressControl),
-                new PropertyMetadata(0.0, OnProgressChanged));
-
-        /// <summary>
-        /// Gets or sets the status text.
-        /// </summary>
-        public string StatusText
-        {
-            get { return (string)GetValue(StatusTextProperty); }
-            set { SetValue(StatusTextProperty, value); }
-        }
-
-        /// <summary>
-        /// Identifies the StatusText dependency property.
-        /// </summary>
-        public static readonly DependencyProperty StatusTextProperty =
-            DependencyProperty.Register(nameof(StatusText), typeof(string), typeof(TaskProgressControl),
+        public static readonly DependencyProperty AppNameProperty =
+            DependencyProperty.Register(nameof(AppName), typeof(string), typeof(TaskProgressControl),
                 new PropertyMetadata(string.Empty));
 
         /// <summary>
-        /// Gets or sets whether the progress is indeterminate.
+        /// Gets or sets the last terminal line.
         /// </summary>
-        public bool IsIndeterminate
+        public string LastTerminalLine
         {
-            get { return (bool)GetValue(IsIndeterminateProperty); }
-            set { SetValue(IsIndeterminateProperty, value); }
+            get { return (string)GetValue(LastTerminalLineProperty); }
+            set { SetValue(LastTerminalLineProperty, value); }
         }
 
         /// <summary>
-        /// Identifies the IsIndeterminate dependency property.
+        /// Identifies the LastTerminalLine dependency property.
         /// </summary>
-        public static readonly DependencyProperty IsIndeterminateProperty =
-            DependencyProperty.Register(nameof(IsIndeterminate), typeof(bool), typeof(TaskProgressControl),
-                new PropertyMetadata(false));
+        public static readonly DependencyProperty LastTerminalLineProperty =
+            DependencyProperty.Register(nameof(LastTerminalLine), typeof(string), typeof(TaskProgressControl),
+                new PropertyMetadata(string.Empty));
 
         /// <summary>
         /// Gets or sets whether the control is visible.
@@ -81,70 +65,6 @@ namespace Winhance.WPF.Features.Common.Controls
         public new static readonly DependencyProperty IsVisibleProperty =
             DependencyProperty.Register(nameof(IsVisible), typeof(bool), typeof(TaskProgressControl),
                 new PropertyMetadata(false));
-
-        /// <summary>
-        /// Gets the progress text (e.g., "50%").
-        /// </summary>
-        public string ProgressText
-        {
-            get { return (string)GetValue(ProgressTextProperty); }
-            private set { SetValue(ProgressTextProperty, value); }
-        }
-
-        /// <summary>
-        /// Identifies the ProgressText dependency property.
-        /// </summary>
-        public static readonly DependencyProperty ProgressTextProperty =
-            DependencyProperty.Register(nameof(ProgressText), typeof(string), typeof(TaskProgressControl),
-                new PropertyMetadata(string.Empty));
-
-        /// <summary>
-        /// Gets or sets whether the details are expanded.
-        /// </summary>
-        public bool AreDetailsExpanded
-        {
-            get { return (bool)GetValue(AreDetailsExpandedProperty); }
-            set { SetValue(AreDetailsExpandedProperty, value); }
-        }
-
-        /// <summary>
-        /// Identifies the AreDetailsExpanded dependency property.
-        /// </summary>
-        public static readonly DependencyProperty AreDetailsExpandedProperty =
-            DependencyProperty.Register(nameof(AreDetailsExpanded), typeof(bool), typeof(TaskProgressControl),
-                new PropertyMetadata(false));
-
-        /// <summary>
-        /// Gets or sets whether there are log messages.
-        /// </summary>
-        public bool HasLogMessages
-        {
-            get { return (bool)GetValue(HasLogMessagesProperty); }
-            private set { SetValue(HasLogMessagesProperty, value); }
-        }
-
-        /// <summary>
-        /// Identifies the HasLogMessages dependency property.
-        /// </summary>
-        public static readonly DependencyProperty HasLogMessagesProperty =
-            DependencyProperty.Register(nameof(HasLogMessages), typeof(bool), typeof(TaskProgressControl),
-                new PropertyMetadata(false));
-
-        /// <summary>
-        /// Gets or sets the log messages.
-        /// </summary>
-        public ObservableCollection<LogMessageViewModel> LogMessages
-        {
-            get { return (ObservableCollection<LogMessageViewModel>)GetValue(LogMessagesProperty); }
-            private set { SetValue(LogMessagesProperty, value); }
-        }
-
-        /// <summary>
-        /// Identifies the LogMessages dependency property.
-        /// </summary>
-        public static readonly DependencyProperty LogMessagesProperty =
-            DependencyProperty.Register(nameof(LogMessages), typeof(ObservableCollection<LogMessageViewModel>),
-                typeof(TaskProgressControl), new PropertyMetadata(null));
 
         /// <summary>
         /// Gets or sets whether the operation can be cancelled.
@@ -201,69 +121,7 @@ namespace Winhance.WPF.Features.Common.Controls
         /// </summary>
         public TaskProgressControl()
         {
-            LogMessages = new ObservableCollection<LogMessageViewModel>();
             InitializeComponent();
-            UpdateProgressText();
-        }
-
-        private static void OnProgressChanged(DependencyObject d, DependencyPropertyChangedEventArgs e)
-        {
-            if (d is TaskProgressControl control)
-            {
-                control.UpdateProgressText();
-            }
-        }
-
-        private void UpdateProgressText()
-        {
-            if (IsIndeterminate)
-            {
-                ProgressText = string.Empty;
-            }
-            else
-            {
-                ProgressText = $"{Progress:F0}%";
-            }
-        }
-
-        /// <summary>
-        /// Adds a log message to the control.
-        /// </summary>
-        /// <param name="message">The message content.</param>
-        /// <param name="level">The log level.</param>
-        public void AddLogMessage(string message, LogLevel level)
-        {
-            if (string.IsNullOrEmpty(message)) return;
-
-            Application.Current.Dispatcher.Invoke(() =>
-            {
-                LogMessages.Add(new LogMessageViewModel
-                {
-                    Message = message,
-                    Level = level,
-                    Timestamp = DateTime.Now
-                });
-
-                HasLogMessages = LogMessages.Count > 0;
-
-                // Auto-expand details on error or warning
-                if (level == LogLevel.Error || level == LogLevel.Warning)
-                {
-                    AreDetailsExpanded = true;
-                }
-            });
-        }
-
-        /// <summary>
-        /// Clears all log messages.
-        /// </summary>
-        public void ClearLogMessages()
-        {
-            Application.Current.Dispatcher.Invoke(() =>
-            {
-                LogMessages.Clear();
-                HasLogMessages = false;
-            });
         }
     }
 }

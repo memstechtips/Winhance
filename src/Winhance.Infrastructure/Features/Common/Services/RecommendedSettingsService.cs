@@ -7,7 +7,6 @@ using Winhance.Core.Features.Common.Events;
 using Winhance.Core.Features.Common.Events.Settings;
 using Winhance.Core.Features.Common.Interfaces;
 using Winhance.Core.Features.Common.Models;
-using Winhance.Core.Features.Customize.Models;
 
 namespace Winhance.Infrastructure.Features.Common.Services
 {
@@ -17,57 +16,32 @@ namespace Winhance.Infrastructure.Features.Common.Services
         public bool IsWindows10 { get; set; }
         public bool IsWindows11 { get; set; }
     }
-    public class RecommendedSettingsService : IRecommendedSettingsService
+    
+    public class RecommendedSettingsService(
+        IDomainServiceRouter domainServiceRouter,
+        IWindowsRegistryService registryService,
+        IComboBoxResolver comboBoxResolver,
+        IWindowsVersionService versionService,
+        ILogService logService,
+        IEventBus eventBus) : IRecommendedSettingsService
     {
-        private readonly IDomainServiceRouter _domainServiceRouter;
-        private readonly ISystemServices _systemServices;
-        private readonly ILogService _logService;
-        private readonly IEventBus _eventBus;
-
         public string DomainName => "RecommendedSettings";
-
-        public RecommendedSettingsService(
-            IDomainServiceRouter DomainServiceRouter,
-            ISystemServices systemServices,
-            ILogService logService,
-            IEventBus eventBus
-        )
-        {
-            _domainServiceRouter =
-                DomainServiceRouter
-                ?? throw new ArgumentNullException(nameof(DomainServiceRouter));
-            _systemServices =
-                systemServices ?? throw new ArgumentNullException(nameof(systemServices));
-            _logService = logService ?? throw new ArgumentNullException(nameof(logService));
-            _eventBus = eventBus ?? throw new ArgumentNullException(nameof(eventBus));
-        }
 
         public async Task ApplyRecommendedSettingsAsync(string settingId)
         {
             try
             {
-                // Get the domain service using the provided setting ID
-                var domainService = _domainServiceRouter.GetDomainService(settingId);
-
-                _logService.Log(
-                    LogLevel.Info,
-                    $"[RecommendedSettings] Starting to apply recommended settings for domain '{domainService.DomainName}'"
-                );
+                var domainService = domainServiceRouter.GetDomainService(settingId);
+                logService.Log(LogLevel.Info, $"[RecommendedSettings] Starting to apply recommended settings for domain '{domainService.DomainName}'");
 
                 var recommendedSettings = await GetRecommendedSettingsAsync(settingId);
                 var settingsList = recommendedSettings.ToList();
 
-                _logService.Log(
-                    LogLevel.Info,
-                    $"[RecommendedSettings] Found {settingsList.Count} recommended settings for domain '{domainService.DomainName}'"
-                );
+                logService.Log(LogLevel.Info, $"[RecommendedSettings] Found {settingsList.Count} recommended settings for domain '{domainService.DomainName}'");
 
                 if (!settingsList.Any())
                 {
-                    _logService.Log(
-                        LogLevel.Info,
-                        $"[RecommendedSettings] No recommended settings found for domain '{domainService.DomainName}'"
-                    );
+                    logService.Log(LogLevel.Info, $"[RecommendedSettings] No recommended settings found for domain '{domainService.DomainName}'");
                     return;
                 }
 
@@ -75,127 +49,83 @@ namespace Winhance.Infrastructure.Features.Common.Services
                 {
                     try
                     {
-                        // Get recommended value from registry settings
                         var recommendedValue = GetRecommendedValueForSetting(setting);
-
-                        _logService.Log(
-                            LogLevel.Debug,
-                            $"[RecommendedSettings] Applying recommended setting '{setting.Id}' with value '{recommendedValue}'"
-                        );
-
-                        // Handle different input types appropriately
-                        if (setting.InputType == SettingInputType.Toggle)
+                        logService.Log(LogLevel.Debug, $"[RecommendedSettings] Applying recommended setting '{setting.Id}' with value '{recommendedValue}'");
+                        if (setting.InputType == InputType.Toggle)
                         {
                             bool enableValue = recommendedValue != null ? Convert.ToBoolean(recommendedValue) : true;
-                            await domainService.ApplySettingAsync(setting.Id, enableValue, recommendedValue);
-                            _eventBus.Publish(new SettingAppliedEvent(setting.Id, enableValue, recommendedValue));
+                            ApplySettingDirectly(setting, enableValue, recommendedValue);
                             await Task.Delay(150);
                         }
-                        else if (setting.InputType == SettingInputType.Selection)
+                        else if (setting.InputType == InputType.Selection)
                         {
                             var recommendedOption = GetRecommendedOptionFromSetting(setting);
-                            _logService.Log(
-                                LogLevel.Debug,
-                                $"[RecommendedSettings] Selection '{setting.Id}': RecommendedOption='{recommendedOption}', RecommendedValue='{recommendedValue}'"
-                            );
+                            logService.Log(LogLevel.Debug, $"[RecommendedSettings] Selection '{setting.Id}': RecommendedOption='{recommendedOption}', RecommendedValue='{recommendedValue}'");
 
                             if (recommendedOption != null)
                             {
                                 var registryValue = GetRegistryValueFromOptionName(setting, recommendedOption);
                                 var comboBoxIndex = GetCorrectSelectionIndex(setting, recommendedOption, registryValue);
-                                await domainService.ApplySettingAsync(setting.Id, true, comboBoxIndex);
-                                _eventBus.Publish(new SettingAppliedEvent(setting.Id, true, comboBoxIndex));
+                                ApplySettingDirectly(setting, true, comboBoxIndex);
                                 await Task.Delay(150);
                             }
                             else
                             {
-                                await domainService.ApplySettingAsync(setting.Id, true, recommendedValue);
-                                _eventBus.Publish(new SettingAppliedEvent(setting.Id, true, recommendedValue));
+                                ApplySettingDirectly(setting, true, recommendedValue);
                                 await Task.Delay(150);
                             }
                         }
                         else
                         {
-                            await domainService.ApplySettingAsync(setting.Id, true, recommendedValue);
-                            _eventBus.Publish(new SettingAppliedEvent(setting.Id, true, recommendedValue));
+                            ApplySettingDirectly(setting, true, recommendedValue);
                             await Task.Delay(150);
                         }
 
-                        _logService.Log(
-                            LogLevel.Debug,
-                            $"[RecommendedSettings] Successfully applied recommended setting '{setting.Id}'"
-                        );
+                        logService.Log(LogLevel.Debug, $"[RecommendedSettings] Successfully applied recommended setting '{setting.Id}'");
                     }
                     catch (Exception ex)
                     {
-                        _logService.Log(
-                            LogLevel.Warning,
-                            $"[RecommendedSettings] Failed to apply recommended setting '{setting.Id}': {ex.Message}"
-                        );
-                        // Continue with other settings even if one fails
+                        logService.Log(LogLevel.Warning, $"[RecommendedSettings] Failed to apply recommended setting '{setting.Id}': {ex.Message}");
                     }
                 }
 
-                _logService.Log(
-                    LogLevel.Info,
-                    $"[RecommendedSettings] Completed applying recommended settings for domain '{domainService.DomainName}'"
-                );
+                logService.Log(LogLevel.Info, $"[RecommendedSettings] Completed applying recommended settings for domain '{domainService.DomainName}'");
             }
             catch (Exception ex)
             {
-                _logService.Log(
-                    LogLevel.Error,
-                    $"[RecommendedSettings] Error applying recommended settings: {ex.Message}"
-                );
+                logService.Log(LogLevel.Error, $"[RecommendedSettings] Error applying recommended settings: {ex.Message}");
                 throw;
             }
         }
 
-        public async Task<IEnumerable<SettingDefinition>> GetRecommendedSettingsAsync(
-            string settingId
-        )
+        public async Task<IEnumerable<SettingDefinition>> GetRecommendedSettingsAsync(string settingId)
         {
             try
             {
-                // Get the domain service using the provided setting ID
-                var domainService = _domainServiceRouter.GetDomainService(settingId);
+                var domainService = domainServiceRouter.GetDomainService(settingId);
+                logService.Log(LogLevel.Debug, $"[RecommendedSettings] Getting recommended settings for domain '{domainService.DomainName}'");
 
-                _logService.Log(
-                    LogLevel.Debug,
-                    $"[RecommendedSettings] Getting recommended settings for domain '{domainService.DomainName}'"
-                );
-
-                // Get all settings for the domain
                 var allSettings = await domainService.GetSettingsAsync();
 
-                // Get current OS version info for compatibility filtering
                 var osInfo = new OSInfo
                 {
-                    BuildNumber = _systemServices.GetWindowsBuildNumber(),
-                    IsWindows10 = !_systemServices.IsWindows11(),
-                    IsWindows11 = _systemServices.IsWindows11()
+                    BuildNumber = versionService.GetWindowsBuildNumber(),
+                    IsWindows10 = !versionService.IsWindows11(),
+                    IsWindows11 = versionService.IsWindows11()
                 };
 
-                // Filter settings that have RecommendedValue and are compatible with current OS
                 var recommendedSettings = allSettings.Where(setting =>
                     HasRecommendedValue(setting) && IsCompatibleWithCurrentOS(setting, osInfo)
                 );
 
                 var settingsList = recommendedSettings.ToList();
-
-                _logService.Log(
-                    LogLevel.Debug,
-                    $"[RecommendedSettings] Found {settingsList.Count} recommended settings for domain '{domainService.DomainName}'"
-                );
+                logService.Log(LogLevel.Debug, $"[RecommendedSettings] Found {settingsList.Count} recommended settings for domain '{domainService.DomainName}'");
 
                 return settingsList;
             }
             catch (Exception ex)
             {
-                _logService.Log(
-                    LogLevel.Error,
-                    $"[RecommendedSettings] Error getting recommended settings: {ex.Message}"
-                );
+                logService.Log(LogLevel.Error, $"[RecommendedSettings] Error getting recommended settings: {ex.Message}");
                 throw;
             }
         }
@@ -259,74 +189,59 @@ namespace Winhance.Infrastructure.Features.Common.Services
             return setting.RegistrySettings?.Any(rs => rs.RecommendedValue != null) == true;
         }
 
-        private static bool IsCompatibleWithCurrentOS(
-            SettingDefinition setting,
-            OSInfo osInfo
-        )
+        private static bool IsCompatibleWithCurrentOS(SettingDefinition setting, OSInfo osInfo)
         {
-            // If it's a SettingDefinition, check OS compatibility
-            if (setting is SettingDefinition customSetting)
-            {
-                // Check Windows version compatibility
-                if (customSetting.IsWindows10Only && !osInfo.IsWindows10)
-                {
-                    return false;
-                }
-
-                if (customSetting.IsWindows11Only && !osInfo.IsWindows11)
-                {
-                    return false;
-                }
-
-                // Check build number range compatibility
-                if (
-                    customSetting.MinimumBuildNumber.HasValue
-                    && osInfo.BuildNumber < customSetting.MinimumBuildNumber.Value
-                )
-                {
-                    return false;
-                }
-
-                if (
-                    customSetting.MaximumBuildNumber.HasValue
-                    && osInfo.BuildNumber > customSetting.MaximumBuildNumber.Value
-                )
-                {
-                    return false;
-                }
-            }
-
+            if (setting.IsWindows10Only && !osInfo.IsWindows10) return false;
+            if (setting.IsWindows11Only && !osInfo.IsWindows11) return false;
+            if (setting.MinimumBuildNumber.HasValue && osInfo.BuildNumber < setting.MinimumBuildNumber.Value) return false;
+            if (setting.MaximumBuildNumber.HasValue && osInfo.BuildNumber > setting.MaximumBuildNumber.Value) return false;
             return true;
         }
 
-        // Required by IDomainService but not used for this service
         public async Task<IEnumerable<SettingDefinition>> GetSettingsAsync()
         {
             return await Task.FromResult(Enumerable.Empty<SettingDefinition>());
         }
 
-        // Required by IDomainService but not used for this service
-        public async Task<IEnumerable<SettingDefinition>> GetRawSettingsAsync()
+        private void ApplySettingDirectly(SettingDefinition setting, bool enable, object? value)
         {
-            return await Task.FromResult(Enumerable.Empty<SettingDefinition>());
-        }
+            if (setting.RegistrySettings?.Count > 0)
+            {
+                if (setting.InputType == InputType.Selection && value is int index)
+                {
+                    var specificValues = comboBoxResolver.ResolveIndexToRawValues(setting, index);
+                    
+                    foreach (var registrySetting in setting.RegistrySettings)
+                    {
+                        if (specificValues.TryGetValue(registrySetting.ValueName, out var specificValue))
+                        {
+                            if (specificValue == null)
+                            {
+                                registryService.ApplySetting(registrySetting, false);
+                            }
+                            else
+                            {
+                                registryService.ApplySetting(registrySetting, true, Convert.ToInt32(specificValue));
+                            }
+                        }
+                        else
+                        {
+                            bool applyValue = comboBoxResolver.GetValueFromIndex(setting, index) != 0;
+                            registryService.ApplySetting(registrySetting, applyValue);
+                        }
+                    }
+                }
+                else if (setting.InputType == InputType.Toggle)
+                {
+                    foreach (var registrySetting in setting.RegistrySettings)
+                    {
+                        registryService.ApplySetting(registrySetting, enable);
+                    }
+                }
 
-        public async Task ApplySettingAsync(string settingId, bool enable, object? value = null)
-        {
-            await Task.CompletedTask;
-            throw new NotSupportedException(
-                "RecommendedSettingsService does not support direct setting application. Use ApplyRecommendedSettingsAsync instead."
-            );
-        }
-
-        public async Task<bool> IsSettingEnabledAsync(string settingId)
-        {
-            return await Task.FromResult(false);
-        }
-
-        public async Task<object?> GetSettingValueAsync(string settingId)
-        {
-            return await Task.FromResult<object?>(null);
+                eventBus.Publish(new SettingAppliedEvent(setting.Id, enable, value));
+                logService.Log(LogLevel.Debug, $"[RecommendedSettings] Published SettingAppliedEvent for '{setting.Id}'");
+            }
         }
     }
 }

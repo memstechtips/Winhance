@@ -3,7 +3,6 @@ using Microsoft.Win32;
 using Winhance.Core.Features.Common.Constants;
 using Winhance.Core.Features.Common.Enums;
 using Winhance.Core.Features.Common.Models;
-using Winhance.Core.Features.Common.Models.WindowsRegistry;
 
 namespace Winhance.Core.Features.Optimize.Models;
 
@@ -23,7 +22,7 @@ public static class SoundOptimizations
                     Name = "Startup Sound During Boot",
                     Description = "Controls the startup sound during boot and for the user",
                     GroupName = "System Sounds",
-                    InputType = SettingInputType.Toggle,
+                    InputType = InputType.Toggle,
                     RegistrySettings = new List<RegistrySetting>
                     {
                         new RegistrySetting
@@ -54,7 +53,7 @@ public static class SoundOptimizations
                     Name = "Sound Ducking Preference",
                     Description = "Controls sound behavior by reducing the volume of other sounds",
                     GroupName = "System Sounds",
-                    InputType = SettingInputType.Toggle,
+                    InputType = InputType.Toggle,
                     RegistrySettings = new List<RegistrySetting>
                     {
                         new RegistrySetting
@@ -75,7 +74,7 @@ public static class SoundOptimizations
                     Name = "Voice Activation for Apps",
                     Description = "Controls voice activation for all apps",
                     GroupName = "System Sounds",
-                    InputType = SettingInputType.Toggle,
+                    InputType = InputType.Toggle,
                     RegistrySettings = new List<RegistrySetting>
                     {
                         new RegistrySetting
@@ -96,7 +95,7 @@ public static class SoundOptimizations
                     Name = "Last Used Voice Activation Setting",
                     Description = "Controls the last used voice activation setting",
                     GroupName = "System Sounds",
-                    InputType = SettingInputType.Toggle,
+                    InputType = InputType.Toggle,
                     RegistrySettings = new List<RegistrySetting>
                     {
                         new RegistrySetting
@@ -117,7 +116,7 @@ public static class SoundOptimizations
                     Name = "Sound Effects and Enhancements",
                     Description = "Controls audio enhancements for playback devices",
                     GroupName = "Audio Enhancements",
-                    InputType = SettingInputType.Toggle,
+                    InputType = InputType.Toggle,
                     RegistrySettings = new List<RegistrySetting>
                     {
                         new RegistrySetting
@@ -138,7 +137,7 @@ public static class SoundOptimizations
                     Name = "Spatial Sound Settings",
                     Description = "Controls Windows Sonic and spatial sound features",
                     GroupName = "Audio Enhancements",
-                    InputType = SettingInputType.Toggle,
+                    InputType = InputType.Toggle,
                     RegistrySettings = new List<RegistrySetting>
                     {
                         new RegistrySetting

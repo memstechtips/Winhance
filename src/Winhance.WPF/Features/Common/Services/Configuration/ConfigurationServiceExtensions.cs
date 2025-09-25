@@ -37,6 +37,9 @@ namespace Winhance.WPF.Features.Common.Services.Configuration
             // Register the unified configuration service with all its dependencies available
             services.AddSingleton<IUnifiedConfigurationService, UnifiedConfigurationService>();
 
+            // Register the configuration coordinator service
+            services.AddSingleton<IConfigurationCoordinatorService, ConfigurationCoordinatorService>();
+
             return services;
         }
     }

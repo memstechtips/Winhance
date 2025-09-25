@@ -1,10 +1,8 @@
 using Microsoft.Extensions.DependencyInjection;
 using Winhance.Core.Features.Common.Events;
 using Winhance.Core.Features.Common.Interfaces;
-using Winhance.Core.Features.Common.Interfaces.WindowsRegistry;
 using Winhance.Infrastructure.Features.Common.Events;
 using Winhance.Infrastructure.Features.Common.Services;
-using Winhance.Infrastructure.Features.Common.WindowsRegistry;
 using Winhance.WPF.Features.Common.Interfaces;
 
 namespace Winhance.WPF.Features.Common.Extensions.DI
@@ -29,6 +27,12 @@ namespace Winhance.WPF.Features.Common.Extensions.DI
             services.AddSingleton<IWindowsRegistryService, WindowsRegistryService>();
 
             services.AddSingleton<ICommandService, CommandService>();
+            services.AddSingleton<IPowerCfgQueryService>(provider =>
+                new PowerCfgQueryService(
+                    provider.GetRequiredService<ICommandService>(),
+                    provider.GetRequiredService<ILogService>()
+                )
+            );
             services.AddSingleton<
                 IDependencyManager,
                 Winhance.Core.Features.Common.Services.DependencyManager
@@ -52,20 +56,17 @@ namespace Winhance.WPF.Features.Common.Extensions.DI
                 )
             );
 
-            // Battery Service (Singleton - System resource)
-            services.AddSingleton<IBatteryService, BatteryService>();
+            // Hardware Detection Service (Singleton - System resource)
+            services.AddSingleton<IHardwareDetectionService, HardwareDetectionService>();
 
-            // Detection Services (Singleton - Expensive initialization)
-            services.AddSingleton<IPowerShellDetectionService, PowerShellDetectionService>();
-            services.AddSingleton<IScriptPathDetectionService, ScriptPathDetectionService>();
 
-            // PowerShell Execution Service will be registered after system services
+            // PowerShell Services (Singleton - System resources)
+            services.AddSingleton<IPowerShellExecutionService, PowerShellExecutionService>();
 
             // Task Progress Service (Singleton - Application-wide progress tracking)
             services.AddSingleton<ITaskProgressService, TaskProgressService>();
 
             // Search Services (Singleton - Can be shared)
-            services.AddSingleton<ISearchService, SearchService>();
             services.AddSingleton<ISearchTextCoordinationService, SearchTextCoordinationService>();
 
             // Configuration Services (Singleton - Application-wide configuration)
@@ -81,8 +82,8 @@ namespace Winhance.WPF.Features.Common.Extensions.DI
                     provider.GetRequiredService<IWindowsRegistryService>(),
                     provider.GetRequiredService<ICommandService>(),
                     provider.GetRequiredService<ILogService>(),
-                    provider.GetRequiredService<IWindowsCompatibilityFilter>(),
-                    provider.GetRequiredService<IComboBoxResolver>()
+                    provider.GetRequiredService<IPowerCfgQueryService>(),
+                    provider.GetRequiredService<IPowerSettingsValidationService>()
                 )
             );
 
@@ -94,7 +95,8 @@ namespace Winhance.WPF.Features.Common.Extensions.DI
             {
                 var navigationService = new FrameNavigationService(
                     provider,
-                    provider.GetRequiredService<IParameterSerializer>()
+                    provider.GetRequiredService<IParameterSerializer>(),
+                    provider.GetRequiredService<ILogService>()
                 );
 
                 // Register view mappings
@@ -107,12 +109,15 @@ namespace Winhance.WPF.Features.Common.Extensions.DI
             // ComboBox Services (Scoped - Per-operation state)
             services.AddScoped<IComboBoxSetupService, ComboBoxSetupService>();
             services.AddScoped<IComboBoxResolver, ComboBoxResolver>();
+            services.AddScoped<IPowerPlanComboBoxService, PowerPlanComboBoxService>();
 
             // RecommendedSettings Service (Singleton - Application-wide recommendation logic)
             services.AddSingleton<IRecommendedSettingsService>(provider =>
                 new Infrastructure.Features.Common.Services.RecommendedSettingsService(
                     provider.GetRequiredService<IDomainServiceRouter>(),
-                    provider.GetRequiredService<ISystemServices>(),
+                    provider.GetRequiredService<IWindowsRegistryService>(),
+                    provider.GetRequiredService<IComboBoxResolver>(),
+                    provider.GetRequiredService<IWindowsVersionService>(),
                     provider.GetRequiredService<ILogService>(),
                     provider.GetRequiredService<IEventBus>()
                 ));
@@ -120,19 +125,27 @@ namespace Winhance.WPF.Features.Common.Extensions.DI
             // Settings Loading Service (Scoped - Per-feature loading operation)
             services.AddScoped<ISettingsLoadingService>(
                 provider => new Winhance.WPF.Features.Common.Services.SettingsLoadingService(
+                    provider.GetRequiredService<ISystemSettingsDiscoveryService>(),
                     provider.GetRequiredService<ISettingApplicationService>(),
-                    provider.GetRequiredService<ITaskProgressService>(),
                     provider.GetRequiredService<IEventBus>(),
                     provider.GetRequiredService<ILogService>(),
                     provider.GetRequiredService<IComboBoxSetupService>(),
                     provider.GetRequiredService<IDomainServiceRouter>(),
                     provider.GetRequiredService<ISettingsConfirmationService>(),
-                    provider.GetRequiredService<IGlobalSettingsRegistry>()
+                    provider.GetRequiredService<IGlobalSettingsRegistry>(),
+                    provider.GetRequiredService<IInitializationService>(),
+                    provider.GetRequiredService<IPowerPlanComboBoxService>(),
+                    provider.GetRequiredService<IComboBoxResolver>()
                 )
             );
 
             // Windows Compatibility Filter (Transient - Stateless)
             services.AddTransient<IWindowsCompatibilityFilter, WindowsCompatibilityFilter>();
+            services.AddTransient<IHardwareCompatibilityFilter, HardwareCompatibilityFilter>();
+            services.AddSingleton<IPowerSettingsValidationService, PowerSettingsValidationService>();
+
+            // Compatible Settings Registry (Singleton - Caches filtering decisions)
+            services.AddSingleton<ICompatibleSettingsRegistry, CompatibleSettingsRegistry>();
 
             return services;
         }
@@ -147,44 +160,17 @@ namespace Winhance.WPF.Features.Common.Extensions.DI
             this IServiceCollection services
         )
         {
-            // System Services
-            services.AddSingleton<ISystemServices>(
-                provider => new Winhance.Infrastructure.Features.Common.Services.WindowsSystemService(
-                    provider.GetRequiredService<IWindowsRegistryService>(),
-                    provider.GetRequiredService<ILogService>(),
-                    provider.GetRequiredService<IInternetConnectivityService>(),
-                    null // Intentionally not passing IDomainService to break circular dependency
-                )
-            );
+            // New focused system services
+            services.AddSingleton<IWindowsVersionService, WindowsVersionService>();
+            services.AddSingleton<IWindowsUIManagementService, WindowsUIManagementService>();
+            services.AddSingleton<IWindowsThemeQueryService, WindowsThemeQueryService>();
 
-            // PowerShell Execution Service (depends on ISystemServices)
-            services.AddSingleton<IPowerShellExecutionService>(
-                provider => new PowerShellExecutionService(
-                    provider.GetRequiredService<ILogService>(),
-                    provider.GetRequiredService<ISystemServices>(),
-                    provider.GetRequiredService<IPowerShellDetectionService>()
-                )
-            );
+            // Setting Application Service (Scoped - Per-operation pipeline)
+            services.AddScoped<ISettingApplicationService, SettingApplicationService>();
 
             return services;
         }
 
-        /// <summary>
-        /// Registers simplified controlHandler services.
-        /// </summary>
-        /// <param name="services">The service collection to configure</param>
-        /// <returns>The service collection for method chaining</returns>
-        public static IServiceCollection AddcontrolHandlerServices(this IServiceCollection services)
-        {
-            // System Setting controlHandler (Scoped - Coordinates registry operations)
-            services.AddScoped<SettingControlHandler>(sp => new SettingControlHandler(
-                sp.GetRequiredService<IWindowsRegistryService>(),
-                sp.GetRequiredService<IComboBoxResolver>(),
-                sp.GetRequiredService<ILogService>()
-            ));
-
-            return services;
-        }
 
         /// <summary>
         /// Registers view mappings for navigation service.

@@ -9,157 +9,146 @@ using Winhance.Core.Features.Common.Events;
 using Winhance.Core.Features.Common.Events.Features;
 using Winhance.Core.Features.Common.Interfaces;
 using Winhance.Core.Features.Common.Models;
-using Winhance.WPF.Features.Common.ViewModels;
 using Winhance.WPF.Features.Common.Interfaces;
+using Winhance.WPF.Features.Common.ViewModels;
 
 namespace Winhance.WPF.Features.Common.Services
 {
-    /// <summary>
-    /// Service for loading and setting up feature settings across ViewModels.
-    /// Centralizes the common loading logic to eliminate duplication.
-    /// Lives in WPF layer as it creates UI objects (SettingItemViewModels).
-    /// </summary>
-    public class SettingsLoadingService : ISettingsLoadingService
+    public class SettingsLoadingService(
+        ISystemSettingsDiscoveryService discoveryService,
+        ISettingApplicationService settingApplicationService,
+        IEventBus eventBus,
+        ILogService logService,
+        IComboBoxSetupService comboBoxSetupService,
+        IDomainServiceRouter domainServiceRouter,
+        ISettingsConfirmationService confirmationService,
+        IGlobalSettingsRegistry globalSettingsRegistry,
+        IInitializationService initializationService,
+        IPowerPlanComboBoxService powerPlanComboBoxService,
+        IComboBoxResolver comboBoxResolver) : ISettingsLoadingService
     {
-        private readonly ISettingApplicationService _settingApplicationService;
-        private readonly ITaskProgressService _progressService;
-        private readonly IEventBus _eventBus;
-        private readonly ILogService _logService;
-        private readonly IComboBoxSetupService _comboBoxSetupService;
-        private readonly IDomainServiceRouter _domainServiceRouter;
-        private readonly ISettingsConfirmationService _confirmationService;
-        private readonly IGlobalSettingsRegistry _globalSettingsRegistry;
 
-        public SettingsLoadingService(
-            ISettingApplicationService settingApplicationService,
-            ITaskProgressService progressService,
-            IEventBus eventBus,
-            ILogService logService,
-            IComboBoxSetupService comboBoxSetupService,
-            IDomainServiceRouter DomainServiceRouter,
-            ISettingsConfirmationService confirmationService,
-            IGlobalSettingsRegistry globalSettingsRegistry)
-        {
-            _settingApplicationService = settingApplicationService ?? throw new ArgumentNullException(nameof(settingApplicationService));
-            _progressService = progressService ?? throw new ArgumentNullException(nameof(progressService));
-            _eventBus = eventBus ?? throw new ArgumentNullException(nameof(eventBus));
-            _logService = logService ?? throw new ArgumentNullException(nameof(logService));
-            _comboBoxSetupService = comboBoxSetupService ?? throw new ArgumentNullException(nameof(comboBoxSetupService));
-            _domainServiceRouter = DomainServiceRouter ?? throw new ArgumentNullException(nameof(DomainServiceRouter));
-            _confirmationService = confirmationService ?? throw new ArgumentNullException(nameof(confirmationService));
-            _globalSettingsRegistry = globalSettingsRegistry ?? throw new ArgumentNullException(nameof(globalSettingsRegistry));
-        }
-
-        /// <summary>
-        /// Loads and configures settings for a feature using the provided domain service.
-        /// Handles progress tracking, exception handling, event publishing, and SettingItemViewModel creation.
-        /// Returns a collection of fully configured SettingItemViewModels ready for binding.
-        /// </summary>
         public async Task<ObservableCollection<object>> LoadConfiguredSettingsAsync<TDomainService>(
             TDomainService domainService,
             string featureModuleId,
-            string progressMessage)
-            where TDomainService : class
+            string progressMessage,
+            ISettingsFeatureViewModel? parentViewModel = null)
+            where TDomainService : class, IDomainService
         {
-            _logService.Log(
-                LogLevel.Info,
-                $"SettingsLoadingService: Starting LoadConfiguredSettingsAsync for {featureModuleId}"
-            );
-
             try
             {
-                _progressService.StartTask(progressMessage);
+                initializationService.StartFeatureInitialization(featureModuleId);
 
-                // Use reflection to call GetSettingsAsync on the domain service
-                var getSettingsMethod = domainService.GetType().GetMethod("GetSettingsAsync");
-                if (getSettingsMethod == null)
-                {
-                    throw new InvalidOperationException($"Domain service {typeof(TDomainService).Name} does not have a GetSettingsAsync method");
-                }
+                var settingDefinitions = await domainService.GetSettingsAsync();
+                var settingsList = settingDefinitions.ToList();
 
-                // Invoke the method and get the task
-                var task = getSettingsMethod.Invoke(domainService, null) as Task;
-                if (task == null)
-                {
-                    throw new InvalidOperationException($"GetSettingsAsync method on {typeof(TDomainService).Name} did not return a Task");
-                }
+                domainServiceRouter.AddSettingMappings(featureModuleId, settingsList.Select(s => s.Id));
+                globalSettingsRegistry.RegisterSettings(featureModuleId, settingsList);
 
-                // Wait for completion and extract result
-                await task;
-                var resultProperty = task.GetType().GetProperty("Result");
-                if (resultProperty == null)
-                {
-                    throw new InvalidOperationException($"GetSettingsAsync method on {typeof(TDomainService).Name} did not return a Task with Result property");
-                }
-
-                var SettingDefinitions = resultProperty.GetValue(task) as IEnumerable<SettingDefinition>;
-                if (SettingDefinitions == null)
-                {
-                    throw new InvalidOperationException($"GetSettingsAsync method on {typeof(TDomainService).Name} did not return IEnumerable<SettingDefinition>");
-                }
-
-                var settingsList = new List<SettingDefinition>(SettingDefinitions);
-
-                // Build mapping synchronously
-                _domainServiceRouter.AddSettingMappings(featureModuleId, settingsList.Select(s => s.Id));
-
-                _globalSettingsRegistry.RegisterSettings(featureModuleId, settingsList);
-                _logService.Log(LogLevel.Debug, $"Registered {settingsList.Count} settings for module '{featureModuleId}'");
-
-                // Create and configure SettingItemViewModels
                 var settingViewModels = new ObservableCollection<object>();
+                
+                logService.Log(LogLevel.Debug, $"Getting batch states for {settingsList.Count} settings in {featureModuleId}");
+                var batchStates = await discoveryService.GetSettingStatesAsync(settingsList);
+                var comboBoxTasks = new Dictionary<string, Task<(SettingItemViewModel viewModel, bool success)>>();
+
+                // Resolve combo box values for Selection type settings
+                foreach (var setting in settingsList.Where(s => s.InputType == InputType.Selection))
+                {
+                    if (batchStates.TryGetValue(setting.Id, out var state) && state.RawValues != null)
+                    {
+                        try
+                        {
+                            var resolvedValue = await comboBoxResolver.ResolveCurrentValueAsync(setting, state.RawValues);
+                            state.CurrentValue = resolvedValue;
+                        }
+                        catch (Exception ex)
+                        {
+                            logService.Log(LogLevel.Warning, $"Failed to resolve combo box value for '{setting.Id}': {ex.Message}");
+                        }
+                    }
+                }
+                
+                var comboBoxSettings = settingsList.Where(s => s.InputType == InputType.Selection);
+                foreach (var setting in comboBoxSettings)
+                {
+                    var viewModel = CreateSettingViewModel(setting, batchStates, parentViewModel);
+                    var currentState = batchStates.TryGetValue(setting.Id, out var state) ? state : new SettingStateResult();
+                    
+                    comboBoxTasks[setting.Id] = Task.Run(async () =>
+                    {
+                        try 
+                        {
+                            await viewModel.SetupComboBoxAsync(setting, currentState.CurrentValue, comboBoxSetupService, logService);
+                            return (viewModel, success: true);
+                        }
+                        catch
+                        {
+                            return (viewModel, success: false);
+                        }
+                    });
+                }
+
+                int comboBoxFailures = 0;
                 foreach (var setting in settingsList)
                 {
-                    // Create SettingItemViewModel for each setting
-                    var settingViewModel = new SettingItemViewModel(_settingApplicationService, _eventBus, _logService, _confirmationService, _domainServiceRouter)
+                    if (setting.InputType == InputType.Selection)
                     {
-                        SettingId = setting.Id,
-                        Name = setting.Name,
-                        Description = setting.Description,
-                        GroupName = setting.GroupName,
-                        InputType = setting.InputType,
-                        Icon = setting.Icon,
-                        RequiresConfirmation = setting.RequiresConfirmation,
-                        ConfirmationTitle = setting.ConfirmationTitle,
-                        ConfirmationMessage = setting.ConfirmationMessage,
-                        ActionCommandName = setting.ActionCommand
-                    };
-
-                    // Get current state from system
-                    var currentState = await _settingApplicationService.GetSettingStateAsync(setting.Id);
-                    settingViewModel.IsSelected = currentState.IsEnabled;
-
-                    // Handle ComboBox setup using centralized service
-                    if (setting.InputType == SettingInputType.Selection)
-                    {
-                        settingViewModel.SetupComboBox(setting, currentState.CurrentValue, _comboBoxSetupService, _logService);
+                        var (viewModel, success) = await comboBoxTasks[setting.Id];
+                        if (!success) comboBoxFailures++;
+                        settingViewModels.Add(viewModel);
                     }
                     else
                     {
-                        // For non-ComboBox controls, set SelectedValue normally
-                        settingViewModel.SelectedValue = currentState.CurrentValue;
+                        var viewModel = CreateSettingViewModel(setting, batchStates, parentViewModel);
+                        settingViewModels.Add(viewModel);
                     }
-
-                    settingViewModels.Add(settingViewModel);
+                }
+                
+                if (comboBoxFailures > 0)
+                {
+                    logService.Log(LogLevel.Warning, $"ComboBox setup failures: {comboBoxFailures}/{comboBoxSettings.Count()} for {featureModuleId}");
                 }
 
-                _logService.Log(
-                    LogLevel.Info,
-                    $"SettingsLoadingService: Loaded and configured {settingViewModels.Count} settings for {featureModuleId}"
-                );
-
-                // Publish FeatureComposedEvent after ViewModels are created
-                _eventBus.Publish(new FeatureComposedEvent(featureModuleId, settingsList));
-
-                _progressService.CompleteTask();
+                eventBus.Publish(new FeatureComposedEvent(featureModuleId, settingsList));
+                initializationService.CompleteFeatureInitialization(featureModuleId);
                 return settingViewModels;
             }
             catch (Exception ex)
             {
-                _progressService.CompleteTask();
-                _logService.Log(LogLevel.Error, $"Error loading configured settings for {featureModuleId}: {ex.Message}");
+                initializationService.CompleteFeatureInitialization(featureModuleId);
+                logService.Log(LogLevel.Error, $"Error loading settings for {featureModuleId}: {ex.Message}");
                 throw;
             }
+        }
+
+        private SettingItemViewModel CreateSettingViewModel(SettingDefinition setting, Dictionary<string, SettingStateResult> batchStates, ISettingsFeatureViewModel? parentViewModel)
+        {
+            var currentState = batchStates.TryGetValue(setting.Id, out var state) ? state : new SettingStateResult();
+            
+            var viewModel = new SettingItemViewModel(settingApplicationService, eventBus, logService, confirmationService, domainServiceRouter, initializationService, comboBoxSetupService, discoveryService)
+            {
+                SettingDefinition = setting,
+                ParentFeatureViewModel = parentViewModel,
+                SettingId = setting.Id,
+                Name = setting.Name,
+                Description = setting.Description,
+                GroupName = setting.GroupName,
+                InputType = setting.InputType,
+                Icon = setting.Icon,
+                RequiresConfirmation = setting.RequiresConfirmation,
+                ConfirmationTitle = setting.ConfirmationTitle,
+                ConfirmationMessage = setting.ConfirmationMessage,
+                ActionCommandName = setting.ActionCommand,
+                IsSelected = currentState.IsEnabled,
+                SelectedValue = currentState.CurrentValue
+            };
+
+            if (setting.InputType == InputType.NumericRange)
+            {
+                viewModel.SetupNumericUpDown(setting, currentState.CurrentValue);
+            }
+
+            return viewModel;
         }
     }
 }

@@ -22,6 +22,13 @@ namespace Winhance.WPF.Features.Common.Controls
                 typeof(ResponsiveScrollViewer),
                 new PropertyMetadata(10.0));
 
+        public static readonly DependencyProperty ScrollPositionCommandProperty =
+            DependencyProperty.RegisterAttached(
+                "ScrollPositionCommand",
+                typeof(ICommand),
+                typeof(ResponsiveScrollViewer),
+                new PropertyMetadata(null));
+
         /// <summary>
         /// Gets the scroll speed multiplier for a ScrollViewer
         /// </summary>
@@ -36,6 +43,16 @@ namespace Winhance.WPF.Features.Common.Controls
         public static void SetScrollSpeedMultiplier(DependencyObject obj, double value)
         {
             obj.SetValue(ScrollSpeedMultiplierProperty, value);
+        }
+
+        public static ICommand GetScrollPositionCommand(DependencyObject obj)
+        {
+            return (ICommand)obj.GetValue(ScrollPositionCommandProperty);
+        }
+
+        public static void SetScrollPositionCommand(DependencyObject obj, ICommand value)
+        {
+            obj.SetValue(ScrollPositionCommandProperty, value);
         }
 
         #endregion
@@ -58,7 +75,16 @@ namespace Winhance.WPF.Features.Common.Controls
         /// </summary>
         public ResponsiveScrollViewer()
         {
-            // No need to register for the event here anymore as we're using a class handler
+            ScrollChanged += OnScrollChanged;
+        }
+
+        private void OnScrollChanged(object sender, ScrollChangedEventArgs e)
+        {
+            var command = GetScrollPositionCommand(this);
+            if (command?.CanExecute(e.VerticalOffset) == true)
+            {
+                command.Execute(e.VerticalOffset);
+            }
         }
 
         /// <summary>

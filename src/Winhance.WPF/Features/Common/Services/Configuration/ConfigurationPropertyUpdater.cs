@@ -5,7 +5,6 @@ using System.Threading.Tasks;
 using Microsoft.Win32;
 using Winhance.Core.Features.Common.Enums;
 using Winhance.Core.Features.Common.Interfaces;
-using Winhance.Core.Features.Common.Interfaces.WindowsRegistry;
 using Winhance.Core.Features.Common.Models;
 using Winhance.WPF.Features.Common.Models;
 
@@ -685,7 +684,7 @@ namespace Winhance.WPF.Features.Common.Services.Configuration
                                         {
                                             inputTypeProperty.SetValue(
                                                 item,
-                                                SettingInputType.NumericRange
+                                                InputType.NumericRange
                                             );
                                             _logService.Log(
                                                 LogLevel.Debug,

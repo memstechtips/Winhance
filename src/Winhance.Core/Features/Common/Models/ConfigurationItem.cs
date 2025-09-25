@@ -27,7 +27,7 @@ namespace Winhance.Core.Features.Common.Models
         /// <summary>
         /// Gets or sets the type of input used for this item.
         /// </summary>
-        public SettingInputType InputType { get; set; } = SettingInputType.Toggle;
+        public InputType InputType { get; set; } = InputType.Toggle;
 
         /// <summary>
         /// Gets or sets the selected value for Selection controls.
@@ -47,7 +47,7 @@ namespace Winhance.Core.Features.Common.Models
         public void EnsureSelectedValueIsSet()
         {
             // Only process Selection controls with null SelectedValue
-            if (InputType == SettingInputType.Selection && string.IsNullOrEmpty(SelectedValue))
+            if (InputType == InputType.Selection && string.IsNullOrEmpty(SelectedValue))
             {
                 // For Power Plan
                 if (Name?.Contains("Power Plan") == true ||

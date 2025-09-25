@@ -1,15 +1,7 @@
 <ResourceDictionary xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
                     xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
                     xmlns:controls="clr-namespace:Winhance.WPF.Features.Common.Controls">
-    <!--
-    ComboBox Styles
     
-    This file defines styles for ComboBox controls used throughout the application.
-    The styles are designed to work with both Light and Dark themes and maintain
-    consistency with the application's design language.
-    -->
-    
-    <!-- ComboBox Item Style -->
     <Style x:Key="ComboBoxItemStyle" TargetType="ComboBoxItem">
         <Setter Property="SnapsToDevicePixels" Value="True"/>
         <Setter Property="Padding" Value="10,8"/>
@@ -44,7 +36,6 @@
         </Setter>
     </Style>
 
-    <!-- ComboBox Toggle Button Style -->
     <Style x:Key="ComboBoxToggleButtonStyle" TargetType="ToggleButton">
         <Setter Property="OverridesDefaultStyle" Value="True"/>
         <Setter Property="IsTabStop" Value="False"/>
@@ -94,7 +85,6 @@
         </Setter>
     </Style>
 
-    <!-- Main ComboBox Style -->
     <Style x:Key="ModernComboBoxStyle" TargetType="ComboBox">
         <Setter Property="SnapsToDevicePixels" Value="True"/>
         <Setter Property="OverridesDefaultStyle" Value="True"/>
@@ -177,7 +167,6 @@
         </Style.Triggers>
     </Style>
 
-    <!-- Default style for all ComboBoxes in the application -->
     <Style TargetType="ComboBox" BasedOn="{StaticResource ModernComboBoxStyle}"/>
     <Style TargetType="ComboBoxItem" BasedOn="{StaticResource ComboBoxItemStyle}"/>
 </ResourceDictionary>

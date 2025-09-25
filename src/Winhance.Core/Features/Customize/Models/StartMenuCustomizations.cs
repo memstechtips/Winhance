@@ -3,7 +3,6 @@ using Microsoft.Win32;
 using Winhance.Core.Features.Common.Constants;
 using Winhance.Core.Features.Common.Enums;
 using Winhance.Core.Features.Common.Models;
-using Winhance.Core.Features.Common.Models.WindowsRegistry;
 using Winhance.Core.Features.Customize.Interfaces;
 
 namespace Winhance.Core.Features.Customize.Models;
@@ -24,16 +23,16 @@ public static class StartMenuCustomizations
                     Name = "Clean Start Menu",
                     Description = "Removes all pinned items and applies clean layout",
                     GroupName = "Layout",
-                    InputType = SettingInputType.Action,
+                    InputType = InputType.Action,
                     IsWindows10Only = true,
                     RequiresConfirmation = true,
                     ConfirmationTitle = "Start Menu Cleaning",
                     ConfirmationMessage =
                         "You are about to clean the Start Menu for all users on this computer.\n\n"
-                        + "This will remove all pinned items and apply recommended settings to disable suggestions, "
-                        + "recommendations, and tracking features.\n\n"
+                        + "This will remove all pinned items and apply the recommended layout.\n\n"
                         + "Do you want to continue?",
-                    ConfirmationCheckboxText = "Also apply recommended Start Menu settings",
+                    ConfirmationCheckboxText = "Also apply recommended Start Menu settings to disable\n"
+                        + "suggestions, recommendations, and tracking features.",
                     ActionCommand = "CleanWindows10StartMenuAsync",
                 },
                 new SettingDefinition
@@ -42,16 +41,16 @@ public static class StartMenuCustomizations
                     Name = "Clean Start Menu",
                     Description = "Removes all pinned items and applies clean layout",
                     GroupName = "Layout",
-                    InputType = SettingInputType.Action,
+                    InputType = InputType.Action,
                     IsWindows11Only = true,
                     RequiresConfirmation = true,
                     ConfirmationTitle = "Start Menu Cleaning",
                     ConfirmationMessage =
-                        "You are about to clean the Start Menu for all users on this computer.\n\n"
-                        + "This will remove all pinned items and apply recommended settings to disable suggestions, "
-                        + "recommendations, and tracking features.\n\n"
+                        "You are about to clean the Start Menu for all users on this computer.\n"
+                        + "This will remove all pinned items and apply the recommended layout.\n\n"
                         + "Do you want to continue?",
-                    ConfirmationCheckboxText = "Also apply recommended Start Menu settings",
+                    ConfirmationCheckboxText = "Also apply recommended Start Menu settings to disable\n"
+                        + "suggestions, recommendations, and tracking features.",
                     ActionCommand = "CleanWindows11StartMenuAsync",
                 },
                 new SettingDefinition
@@ -60,7 +59,7 @@ public static class StartMenuCustomizations
                     Name = "Start Layout",
                     Description = "Controls the layout of the Start Menu",
                     GroupName = "Layout",
-                    InputType = SettingInputType.Selection,
+                    InputType = InputType.Selection,
                     IsWindows11Only = true,
                     Icon = "\uF78C", // Start menu icon
                     MinimumBuildNumber = 22000, // Windows 11 24H2 starts around build 26100
@@ -89,17 +88,17 @@ public static class StartMenuCustomizations
                             "More pins",
                             "More recommendations",
                         },
-                        [CustomPropertyKeys.ValueMappings] = new Dictionary<int, Dictionary<string, int>>
+                        [CustomPropertyKeys.ValueMappings] = new Dictionary<int, Dictionary<string, int?>>
                         {
-                            [0] = new Dictionary<string, int> // Default
+                            [0] = new Dictionary<string, int?> // Default
                             {
                                 ["Start_Layout"] = 0,
                             },
-                            [1] = new Dictionary<string, int> // More pins
+                            [1] = new Dictionary<string, int?> // More pins
                             {
                                 ["Start_Layout"] = 1,
                             },
-                            [2] = new Dictionary<string, int> // More recommendations
+                            [2] = new Dictionary<string, int?> // More recommendations
                             {
                                 ["Start_Layout"] = 2,
                             },
@@ -113,7 +112,7 @@ public static class StartMenuCustomizations
                     Description =
                         "Controls visibility of the recommended section in the Start Menu",
                     GroupName = "Layout",
-                    InputType = SettingInputType.Selection,
+                    InputType = InputType.Selection,
                     IsWindows11Only = true,
                     Icon = "\uF054", // Reviews icon
                     RegistrySettings = new List<RegistrySetting>
@@ -123,59 +122,35 @@ public static class StartMenuCustomizations
                             KeyPath = @"HKEY_LOCAL_MACHINE\SOFTWARE\Policies\Microsoft\Windows\Explorer",
                             ValueName = "HideRecommendedSection",
                             RecommendedValue = 1, // Hide recommended section
-                            EnabledValue = 1, // When "Hide" is selected, set value to 1
-                            DisabledValue = null, // When "Show" is selected, delete the value
-                            DefaultValue = null,
                             ValueType = RegistryValueKind.DWord,
-                            // ComboBox display names and value mappings handled at setting level
-                            CustomProperties = new Dictionary<string, object>
-                            {
-                                ["DefaultOption"] = "Show",
-                                ["RecommendedOption"] = "Hide",
-                            },
+
                         },
                         new RegistrySetting
                         {
                             KeyPath = @"HKEY_LOCAL_MACHINE\SOFTWARE\Microsoft\PolicyManager\current\device\Start",
                             ValueName = "HideRecommendedSection",
                             RecommendedValue = 1, // Hide recommended section
-                            EnabledValue = 1, // When "Hide" is selected, set value to 1
-                            DisabledValue = null, // When "Show" is selected, delete the value
-                            DefaultValue = null,
                             ValueType = RegistryValueKind.DWord,
-                            CustomProperties = new Dictionary<string, object>
-                            {
-                                ["DefaultOption"] = "Show",
-                                ["RecommendedOption"] = "Hide",
-                            },
                         },
                         new RegistrySetting
                         {
                             KeyPath = @"HKEY_LOCAL_MACHINE\SOFTWARE\Microsoft\PolicyManager\current\device\Education",
                             ValueName = "IsEducationEnvironment",
                             RecommendedValue = 1, // Enable education environment
-                            EnabledValue = 1, // When "Hide" is selected, set value to 1
-                            DisabledValue = null, // When "Show" is selected, delete the value (Group Policy)
-                            DefaultValue = null,
                             ValueType = RegistryValueKind.DWord,
-                            CustomProperties = new Dictionary<string, object>
-                            {
-                                ["DefaultOption"] = "Show",
-                                ["RecommendedOption"] = "Hide",
-                            },
                         },
                     },
                     CustomProperties = new Dictionary<string, object>
                     {
                         [CustomPropertyKeys.ComboBoxDisplayNames] = new string[] { "Show", "Hide" },
-                        [CustomPropertyKeys.ValueMappings] = new Dictionary<int, Dictionary<string, int>>
+                        [CustomPropertyKeys.ValueMappings] = new Dictionary<int, Dictionary<string, int?>>
                         {
-                            [0] = new Dictionary<string, int> // Show (delete registry values)
+                            [0] = new Dictionary<string, int?> // Show (delete registry values)
                             {
-                                ["HideRecommendedSection"] = 0, // Delete or set to 0 (Group Policy)
-                                ["IsEducationEnvironment"] = 0, // Delete or set to 0 (Group Policy)
+                                ["HideRecommendedSection"] = null, // Delete
+                                ["IsEducationEnvironment"] = null, // Delete 
                             },
-                            [1] = new Dictionary<string, int> // Hide (set registry values)
+                            [1] = new Dictionary<string, int?> // Hide (set registry values)
                             {
                                 ["HideRecommendedSection"] = 1, // Set to 1
                                 ["IsEducationEnvironment"] = 1, // Set to 1
@@ -189,7 +164,7 @@ public static class StartMenuCustomizations
                     Name = "Show all pins by default",
                     Description = "Controls whether all pins are shown by default in Start Menu",
                     GroupName = "Start Menu Settings",
-                    InputType = SettingInputType.Toggle,
+                    InputType = InputType.Toggle,
                     IsWindows11Only = true,
                     SupportedBuildRanges = new List<(int, int)>
                     {
@@ -216,7 +191,7 @@ public static class StartMenuCustomizations
                     Name = "Show Recently Added Apps",
                     Description = "Controls visibility of recently added apps in Start Menu",
                     GroupName = "Start Menu Settings",
-                    InputType = SettingInputType.Toggle,
+                    InputType = InputType.Toggle,
                     RegistrySettings = new List<RegistrySetting>
                     {
                         new RegistrySetting
@@ -238,7 +213,7 @@ public static class StartMenuCustomizations
                     Name = "Show Most Used Apps",
                     Description = "Controls visibility of most used apps in Start Menu",
                     GroupName = "Start Menu",
-                    InputType = SettingInputType.Toggle,
+                    InputType = InputType.Toggle,
                     IsWindows11Only = true,
                     RegistrySettings = new List<RegistrySetting>
                     {
@@ -261,7 +236,7 @@ public static class StartMenuCustomizations
                     Name = "Show Most Used Apps",
                     Description = "Controls visibility of most used apps in Start Menu",
                     GroupName = "Start Menu",
-                    InputType = SettingInputType.Toggle,
+                    InputType = InputType.Toggle,
                     IsWindows10Only = true,
                     RegistrySettings = new List<RegistrySetting>
                     {
@@ -283,7 +258,7 @@ public static class StartMenuCustomizations
                     Name = "Show suggestions in Start",
                     Description = "Controls visibility of suggestions in Start Menu",
                     GroupName = "Start Menu Settings",
-                    InputType = SettingInputType.Toggle,
+                    InputType = InputType.Toggle,
                     IsWindows10Only = true,
                     RegistrySettings = new List<RegistrySetting>
                     {
@@ -306,7 +281,7 @@ public static class StartMenuCustomizations
                     Description =
                         "Controls visibility of recommended files and recently opened items in Start Menu",
                     GroupName = "Start Menu Settings",
-                    InputType = SettingInputType.Toggle,
+                    InputType = InputType.Toggle,
                     Dependencies = new List<SettingDependency>
                     {
                         new SettingDependency
@@ -338,7 +313,7 @@ public static class StartMenuCustomizations
                     Description =
                         "Controls visibility of recommendations for tips, shortcuts and new apps in the Start Menu",
                     GroupName = "Start Menu Settings",
-                    InputType = SettingInputType.Toggle,
+                    InputType = InputType.Toggle,
                     IsWindows11Only = true,
                     RegistrySettings = new List<RegistrySetting>
                     {
@@ -361,7 +336,7 @@ public static class StartMenuCustomizations
                     Description =
                         "Controls visibility of account-related notifications in Start Menu",
                     GroupName = "Start Menu Settings",
-                    InputType = SettingInputType.Toggle,
+                    InputType = InputType.Toggle,
                     RegistrySettings = new List<RegistrySetting>
                     {
                         new RegistrySetting
@@ -378,34 +353,12 @@ public static class StartMenuCustomizations
                 },
                 new SettingDefinition
                 {
-                    Id = "start-power-lock-option",
-                    Name = "Hide Lock Option",
-                    Description =
-                        "Controls visibility of the Lock option in the Start Menu power flyout",
-                    GroupName = "Start Menu",
-                    InputType = SettingInputType.Toggle,
-                    RegistrySettings = new List<RegistrySetting>
-                    {
-                        new RegistrySetting
-                        {
-                            KeyPath = @"HKEY_LOCAL_MACHINE\Software\Microsoft\Windows\CurrentVersion\Policies\System",
-                            ValueName = "DisableLockWorkstation",
-                            RecommendedValue = null,
-                            EnabledValue = 1, // Hide lock option
-                            DisabledValue = null, // Show lock option
-                            DefaultValue = null,
-                            ValueType = RegistryValueKind.DWord,
-                        },
-                    },
-                },
-                new SettingDefinition
-                {
                     Id = "start-disable-bing-search-results",
                     Name = "Disable Bing Search Results",
                     Description =
                         "Controls whether results from Bing online search are displayed when using Start Menu search",
                     GroupName = "Start Menu Settings",
-                    InputType = SettingInputType.Toggle,
+                    InputType = InputType.Toggle,
                     RegistrySettings = new List<RegistrySetting>
                     {
                         new RegistrySetting

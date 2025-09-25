@@ -15,13 +15,14 @@ namespace Winhance.WPF.Features.Common.Services
     /// <summary>
     /// SOLID-compliant service for collecting configuration settings from various ViewModels.
     /// Follows Single Responsibility Principle by focusing only on configuration collection.
-    /// Uses Dependency Inversion Principle by depending on abstractions (IFeatureViewModel).
+    /// Uses Dependency Inversion Principle by depending on abstractions (ISettingsFeatureViewModel).
     /// Note: Only handles system settings (Customize/Optimize). SoftwareApps have their own configuration system.
     /// </summary>
     public class ConfigurationCollectorService
     {
         private readonly IServiceProvider _serviceProvider;
         private readonly ILogService _logService;
+
 
         public ConfigurationCollectorService(IServiceProvider serviceProvider, ILogService logService)
         {
@@ -152,13 +153,13 @@ namespace Winhance.WPF.Features.Common.Services
         }
 
         /// <summary>
-        /// Generic method to collect settings from any feature ViewModel that implements IFeatureViewModel.
+        /// Generic method to collect settings from any feature ViewModel that implements ISettingsFeatureViewModel.
         /// This method follows SOLID principles by working with the interface abstraction.
         /// </summary>
         /// <param name="featureViewModel">The feature ViewModel to collect settings from.</param>
         /// <param name="sectionName">The name of the section for logging and organization.</param>
         /// <param name="sectionSettings">The dictionary to add settings to.</param>
-        private async Task CollectFeatureSettings(IFeatureViewModel featureViewModel, string sectionName, Dictionary<string, IEnumerable<ISettingItem>> sectionSettings)
+        private async Task CollectFeatureSettings(ISettingsFeatureViewModel featureViewModel, string sectionName, Dictionary<string, IEnumerable<ISettingItem>> sectionSettings)
         {
             try
             {

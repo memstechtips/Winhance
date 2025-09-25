@@ -77,6 +77,8 @@ namespace Winhance.Infrastructure.Features.Common.EventHandlers
                 }
 
                 _eventBus.Publish(new TooltipsBulkLoadedEvent(tooltipDataCollection));
+                
+                _logService.Log(LogLevel.Info, $"Processed tooltip data for {tooltipDataCollection.Count}/{settingsList.Count} settings in {featureComposedEvent.ModuleId}");
             }
             catch (Exception ex)
             {

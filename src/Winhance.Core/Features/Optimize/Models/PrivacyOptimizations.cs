@@ -1,7 +1,6 @@
 using Microsoft.Win32;
 using Winhance.Core.Features.Common.Enums;
 using Winhance.Core.Features.Common.Models;
-using Winhance.Core.Features.Common.Models.WindowsRegistry;
 
 namespace Winhance.Core.Features.Optimize.Models;
 
@@ -22,7 +21,7 @@ public static class PrivacyOptimizations
                     Name = "Activity History",
                     Description = "Controls activity history tracking",
                     GroupName = "Activity History",
-                    InputType = SettingInputType.Toggle,
+                    InputType = InputType.Toggle,
                     RegistrySettings = new List<RegistrySetting>
                     {
                         new RegistrySetting
@@ -45,7 +44,7 @@ public static class PrivacyOptimizations
                     Name = "Personalized Ads",
                     Description = "Controls personalized ads using advertising ID",
                     GroupName = "Advertising",
-                    InputType = SettingInputType.Toggle,
+                    InputType = InputType.Toggle,
                     RegistrySettings = new List<RegistrySetting>
                     {
                         new RegistrySetting
@@ -80,7 +79,7 @@ public static class PrivacyOptimizations
                     Description =
                         "Let websites show me locally relevant content by accessing my language list",
                     GroupName = "General",
-                    InputType = SettingInputType.Toggle,
+                    InputType = InputType.Toggle,
                     RegistrySettings = new List<RegistrySetting>
                     {
                         new RegistrySetting
@@ -103,7 +102,7 @@ public static class PrivacyOptimizations
                     Description =
                         "Let Windows improve Start and search results by tracking app launches",
                     GroupName = "General",
-                    InputType = SettingInputType.Toggle,
+                    InputType = InputType.Toggle,
                     RegistrySettings = new List<RegistrySetting>
                     {
                         new RegistrySetting
@@ -126,7 +125,7 @@ public static class PrivacyOptimizations
                     Name = "Show Suggested Content in Settings",
                     Description = "Controls suggested content in the Settings app",
                     GroupName = "Settings App",
-                    InputType = SettingInputType.Toggle,
+                    InputType = InputType.Toggle,
                     RegistrySettings = new List<RegistrySetting>
                     {
                         new RegistrySetting
@@ -172,7 +171,7 @@ public static class PrivacyOptimizations
                     Description =
                         "Controls notifications in the Settings app and immersive control panel",
                     GroupName = "Settings App",
-                    InputType = SettingInputType.Toggle,
+                    InputType = InputType.Toggle,
                     RegistrySettings = new List<RegistrySetting>
                     {
                         new RegistrySetting
@@ -195,7 +194,7 @@ public static class PrivacyOptimizations
                     Name = "Online Speech Recognition",
                     Description = "Controls online speech recognition",
                     GroupName = "Speech",
-                    InputType = SettingInputType.Toggle,
+                    InputType = InputType.Toggle,
                     RegistrySettings = new List<RegistrySetting>
                     {
                         new RegistrySetting
@@ -230,7 +229,7 @@ public static class PrivacyOptimizations
                     Description =
                         "Controls custom inking and typing dictionary (turning off will clear all words in your custom dictionary)",
                     GroupName = "Inking and Typing",
-                    InputType = SettingInputType.Toggle,
+                    InputType = InputType.Toggle,
                     RegistrySettings = new List<RegistrySetting>
                     {
                         new RegistrySetting
@@ -285,7 +284,7 @@ public static class PrivacyOptimizations
                     Name = "Send Diagnostic Data",
                     Description = "Controls diagnostic data collection level",
                     GroupName = "Diagnostics & Feedback",
-                    InputType = SettingInputType.Toggle,
+                    InputType = InputType.Toggle,
                     RegistrySettings = new List<RegistrySetting>
                     {
                         new RegistrySetting
@@ -341,7 +340,7 @@ public static class PrivacyOptimizations
                     Name = "Improve Inking and Typing",
                     Description = "Controls inking and typing data collection",
                     GroupName = "Diagnostics & Feedback",
-                    InputType = SettingInputType.Toggle,
+                    InputType = InputType.Toggle,
                     Dependencies = new List<SettingDependency>
                     {
                         new SettingDependency
@@ -383,7 +382,7 @@ public static class PrivacyOptimizations
                     Name = "Tailored Experiences",
                     Description = "Controls personalized experiences with diagnostic data",
                     GroupName = "Diagnostics & Feedback",
-                    InputType = SettingInputType.Toggle,
+                    InputType = InputType.Toggle,
                     RegistrySettings = new List<RegistrySetting>
                     {
                         new RegistrySetting
@@ -417,7 +416,7 @@ public static class PrivacyOptimizations
                     Name = "Location Services",
                     Description = "Controls location services",
                     GroupName = "App Permissions",
-                    InputType = SettingInputType.Toggle,
+                    InputType = InputType.Toggle,
                     RegistrySettings = new List<RegistrySetting>
                     {
                         new RegistrySetting
@@ -451,7 +450,7 @@ public static class PrivacyOptimizations
                     Name = "Camera Access",
                     Description = "Controls camera access",
                     GroupName = "App Permissions",
-                    InputType = SettingInputType.Toggle,
+                    InputType = InputType.Toggle,
                     RegistrySettings = new List<RegistrySetting>
                     {
                         new RegistrySetting
@@ -474,7 +473,7 @@ public static class PrivacyOptimizations
                     Name = "Microphone Access",
                     Description = "Controls microphone access",
                     GroupName = "App Permissions",
-                    InputType = SettingInputType.Toggle,
+                    InputType = InputType.Toggle,
                     RegistrySettings = new List<RegistrySetting>
                     {
                         new RegistrySetting
@@ -497,7 +496,7 @@ public static class PrivacyOptimizations
                     Name = "Account Info Access",
                     Description = "Controls account information access",
                     GroupName = "App Permissions",
-                    InputType = SettingInputType.Toggle,
+                    InputType = InputType.Toggle,
                     RegistrySettings = new List<RegistrySetting>
                     {
                         new RegistrySetting
@@ -520,7 +519,7 @@ public static class PrivacyOptimizations
                     Name = "App Diagnostic Access",
                     Description = "Controls app diagnostic access",
                     GroupName = "App Permissions",
-                    InputType = SettingInputType.Toggle,
+                    InputType = InputType.Toggle,
                     RegistrySettings = new List<RegistrySetting>
                     {
                         new RegistrySetting
@@ -543,7 +542,7 @@ public static class PrivacyOptimizations
                     Name = "Cloud Content Search (Microsoft Account)",
                     Description = "Controls cloud content search for Microsoft account",
                     GroupName = "Search",
-                    InputType = SettingInputType.Toggle,
+                    InputType = InputType.Toggle,
                     RegistrySettings = new List<RegistrySetting>
                     {
                         new RegistrySetting
@@ -566,7 +565,7 @@ public static class PrivacyOptimizations
                     Name = "Cloud Content Search (Work/School Acc)",
                     Description = "Controls cloud content search for work or school account",
                     GroupName = "Search",
-                    InputType = SettingInputType.Toggle,
+                    InputType = InputType.Toggle,
                     RegistrySettings = new List<RegistrySetting>
                     {
                         new RegistrySetting
@@ -577,29 +576,6 @@ public static class PrivacyOptimizations
                             RecommendedValue = 0,
                             EnabledValue = 1, // When toggle is ON, cloud search is enabled
                             DisabledValue = 0, // When toggle is OFF, cloud search is disabled
-                            DefaultValue = 1, // Default value when registry key exists but no value is set
-                            ValueType = RegistryValueKind.DWord,
-                        },
-                    },
-                },
-                // Web Search
-                new SettingDefinition
-                {
-                    Id = "privacy-web-search",
-                    Name = "Web Search",
-                    Description = "Controls web search in Start menu and taskbar",
-                    GroupName = "Search",
-                    InputType = SettingInputType.Toggle,
-                    RegistrySettings = new List<RegistrySetting>
-                    {
-                        new RegistrySetting
-                        {
-                            KeyPath =
-                                @"HKEY_CURRENT_USER\Software\Microsoft\Windows\\CurrentVersion\\Search",
-                            ValueName = "BingSearchEnabled",
-                            RecommendedValue = 0,
-                            EnabledValue = 1, // When toggle is ON, web search is enabled
-                            DisabledValue = 0, // When toggle is OFF, web search is disabled
                             DefaultValue = 1, // Default value when registry key exists but no value is set
                             ValueType = RegistryValueKind.DWord,
                         },

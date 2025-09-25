@@ -17,25 +17,25 @@ namespace Winhance.Core.Features.SoftwareApps.Interfaces
         /// Gets all installable applications.
         /// </summary>
         /// <returns>A collection of installable applications.</returns>
-        Task<IEnumerable<AppInfo>> GetInstallableAppsAsync();
+        Task<IEnumerable<ItemDefinition>> GetInstallableAppsAsync();
 
         /// <summary>
         /// Gets all standard (built-in) applications.
         /// </summary>
         /// <returns>A collection of standard applications.</returns>
-        Task<IEnumerable<AppInfo>> GetStandardAppsAsync();
+        Task<IEnumerable<ItemDefinition>> GetStandardAppsAsync();
 
         /// <summary>
         /// Gets all available Windows capabilities.
         /// </summary>
         /// <returns>A collection of Windows capabilities.</returns>
-        Task<IEnumerable<CapabilityInfo>> GetCapabilitiesAsync();
+        Task<IEnumerable<ItemDefinition>> GetCapabilitiesAsync();
 
         /// <summary>
         /// Gets all available Windows optional features.
         /// </summary>
         /// <returns>A collection of Windows optional features.</returns>
-        Task<IEnumerable<FeatureInfo>> GetOptionalFeaturesAsync();
+        Task<IEnumerable<ItemDefinition>> GetOptionalFeaturesAsync();
 
         #endregion
 
@@ -61,19 +61,14 @@ namespace Winhance.Core.Features.SoftwareApps.Interfaces
         /// <returns>True if OneDrive is installed; otherwise, false.</returns>
         Task<bool> IsOneDriveInstalledAsync();
 
-        /// <summary>
-        /// Gets the installation status of an item.
-        /// </summary>
-        /// <param name="item">The item to check.</param>
-        /// <returns>True if the item is installed; otherwise, false.</returns>
-        Task<bool> GetItemInstallStatusAsync(IInstallableItem item);
+        Task<bool> GetItemInstallStatusAsync(ItemDefinition item);
 
         /// <summary>
-        /// Gets the installation status of multiple items by package ID.
+        /// Gets the installation status of multiple items by definition.
         /// </summary>
-        /// <param name="packageIds">The package IDs to check.</param>
-        /// <returns>A dictionary mapping package IDs to installation status.</returns>
-        Task<Dictionary<string, bool>> GetBatchInstallStatusAsync(IEnumerable<string> packageIds);
+        /// <param name="definitions">The item definitions to check.</param>
+        /// <returns>A dictionary mapping package keys to installation status.</returns>
+        Task<Dictionary<string, bool>> GetBatchInstallStatusAsync(IEnumerable<ItemDefinition> definitions);
 
         /// <summary>
         /// Gets detailed installation status of an app.
@@ -82,12 +77,7 @@ namespace Winhance.Core.Features.SoftwareApps.Interfaces
         /// <returns>The detailed installation status.</returns>
         Task<InstallStatus> GetInstallStatusAsync(string appId);
 
-        /// <summary>
-        /// Refreshes the installation status of multiple items.
-        /// </summary>
-        /// <param name="items">The items to refresh.</param>
-        /// <returns>A task representing the asynchronous operation.</returns>
-        Task RefreshInstallationStatusAsync(IEnumerable<IInstallableItem> items);
+        Task RefreshInstallationStatusAsync(IEnumerable<ItemDefinition> items);
 
         /// <summary>
         /// Sets the installation status of an app.

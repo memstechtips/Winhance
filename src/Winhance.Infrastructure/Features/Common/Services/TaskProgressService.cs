@@ -97,8 +97,8 @@ namespace Winhance.Infrastructure.Features.Common.Services
             _isIndeterminate = isIndeterminate;
             _logMessages.Clear();
 
-            _logService.Log(LogLevel.Info, $"Task started: {taskName}"); // Corrected Log call
-            AddLogMessage($"Task started: {taskName}");
+            _logService.Log(LogLevel.Info, $"[TASKPROGRESSSERVICE] Task started: {taskName}"); // Corrected Log call
+            AddLogMessage($"[TASKPROGRESSSERVICE] Task started: {taskName}");
             OnProgressChanged(
                 new TaskProgressDetail
                 {

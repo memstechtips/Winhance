@@ -131,7 +131,7 @@
         <Grid>
 
             <!-- Setting Card Wrapper -->
-            <Border Background="{DynamicResource SettingsItemBackground}" CornerRadius="4" Margin="8,4,8,4" Visibility="{Binding IsVisible, Converter={StaticResource BooleanToVisibilityConverter}}">
+            <Border Background="{DynamicResource SettingsItemBackground}" CornerRadius="4" Visibility="{Binding IsVisible, Converter={StaticResource BooleanToVisibilityConverter}}" Margin="{Binding IsSubSetting, Converter={StaticResource SubSettingMarginConverter}}" Opacity="{Binding EffectiveIsEnabled, Converter={StaticResource BooleanToOpacityConverter}}">
                 <Grid>
                     <Grid.ColumnDefinitions>
                         <ColumnDefinition Width="*"/>
@@ -145,34 +145,34 @@
                     </StackPanel>
 
                     <!-- ComboBox for ComboBox settings (Right-aligned) -->
-                    <ComboBox Grid.Column="1" ItemsSource="{Binding ComboBoxOptions}" SelectedValue="{Binding SelectedValue, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}" DisplayMemberPath="DisplayText" FontWeight="SemiBold" SelectedValuePath="Value" Width="150" Margin="15,10,15,10" HorizontalAlignment="Right" VerticalAlignment="Center" Visibility="{Binding InputType, Converter={StaticResource SelectionInputTypeToVisibilityConverter}}" Panel.ZIndex="10">
+                    <ComboBox Grid.Column="1" ItemsSource="{Binding ComboBoxOptions}" SelectedValue="{Binding SelectedValue, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}" DisplayMemberPath="DisplayText" FontWeight="SemiBold" SelectedValuePath="Value" Width="150" Margin="15,10,15,10" HorizontalAlignment="Right" VerticalAlignment="Center" Visibility="{Binding InputType, Converter={StaticResource SelectionInputTypeToVisibilityConverter}}" Panel.ZIndex="10" IsEnabled="{Binding EffectiveIsEnabled}">
                         <ComboBox.ToolTip>
                             <ToolTip Background="Transparent" BorderThickness="0" Padding="0" HasDropShadow="False">
-                                <ContentPresenter Content="{Binding TooltipData}" ContentTemplate="{StaticResource RegistrySettingTooltipTemplate}"/>
+                                <ContentPresenter Content="{Binding TooltipData}" ContentTemplate="{StaticResource UnifiedSettingTooltipTemplate}"/>
                             </ToolTip>
                         </ComboBox.ToolTip>
                     </ComboBox>
 
                     <!-- Toggle for binary settings -->
-                    <ToggleButton Grid.Column="1" Style="{StaticResource MaterialToggleSwitch}" IsChecked="{Binding IsSelected, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}" Margin="15,10,15,10" HorizontalAlignment="Right" VerticalAlignment="Center" Visibility="{Binding InputType, Converter={StaticResource ToggleInputTypeToVisibilityConverter}}" Content="">
+                    <ToggleButton Grid.Column="1" Style="{StaticResource MaterialToggleSwitch}" IsChecked="{Binding IsSelected, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}" Margin="15,10,15,10" HorizontalAlignment="Right" VerticalAlignment="Center" Visibility="{Binding InputType, Converter={StaticResource ToggleInputTypeToVisibilityConverter}}" Content="" IsEnabled="{Binding EffectiveIsEnabled}">
                         <ToggleButton.ToolTip>
                             <ToolTip Background="Transparent" BorderThickness="0" Padding="0" HasDropShadow="False">
-                                <ContentPresenter Content="{Binding TooltipData}" ContentTemplate="{StaticResource RegistrySettingTooltipTemplate}"/>
+                                <ContentPresenter Content="{Binding TooltipData}" ContentTemplate="{StaticResource UnifiedSettingTooltipTemplate}"/>
                             </ToolTip>
                         </ToggleButton.ToolTip>
                     </ToggleButton>
 
                     <!-- NumericUpDown for NumericRange settings -->
-                    <controls:NumericUpDown Grid.Column="1" Value="{Binding NumericValue, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}" Minimum="{Binding MinValue}" Maximum="{Binding MaxValue}" Margin="15,10,15,10" HorizontalAlignment="Right" VerticalAlignment="Center" Visibility="{Binding InputType, Converter={StaticResource NumericRangeInputTypeToVisibilityConverter}}">
+                    <controls:NumericUpDown Grid.Column="1" Value="{Binding NumericValue, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}" Minimum="{Binding MinValue}" Maximum="{Binding MaxValue}" Units="{Binding Units}" Width="150" Margin="15,10,15,10" HorizontalAlignment="Right" VerticalAlignment="Center" Visibility="{Binding InputType, Converter={StaticResource NumericRangeInputTypeToVisibilityConverter}}" IsEnabled="{Binding EffectiveIsEnabled}">
                         <controls:NumericUpDown.ToolTip>
                             <ToolTip Background="Transparent" BorderThickness="0" Padding="0" HasDropShadow="False">
-                                <ContentPresenter Content="{Binding TooltipData}" ContentTemplate="{StaticResource RegistrySettingTooltipTemplate}"/>
+                                <ContentPresenter Content="{Binding TooltipData}" ContentTemplate="{StaticResource UnifiedSettingTooltipTemplate}"/>
                             </ToolTip>
                         </controls:NumericUpDown.ToolTip>
                     </controls:NumericUpDown>
 
                     <!-- Action Button for ActionButton settings -->
-                    <Button Grid.Column="1" Content="Apply" Style="{StaticResource PrimaryButtonStyle}" Command="{Binding ActionCommand}" Margin="15,10,15,10" HorizontalAlignment="Right" VerticalAlignment="Center" Padding="10,5" Visibility="{Binding InputType, Converter={StaticResource ActionInputTypeToVisibilityConverter}}">
+                    <Button Grid.Column="1" Content="Apply" Style="{StaticResource PrimaryButtonStyle}" Command="{Binding ActionCommand}" Margin="15,10,15,10" HorizontalAlignment="Right" VerticalAlignment="Center" Padding="10,5" Visibility="{Binding InputType, Converter={StaticResource ActionInputTypeToVisibilityConverter}}" IsEnabled="{Binding EffectiveIsEnabled}">
                     </Button>
                 </Grid>
             </Border>

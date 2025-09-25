@@ -12,169 +12,22 @@ using Winhance.Infrastructure.Features.Common.Services;
 
 namespace Winhance.Infrastructure.Features.Optimize.Services
 {
-    /// <summary>
-    /// Service implementation for managing Windows Explorer optimization settings.
-    /// Handles file explorer performance, indexing, search optimization, and system efficiency tweaks.
-    /// Maintains exact same method signatures and behavior for compatibility.
-    /// </summary>
-    public class ExplorerOptimizationService : IDomainService
+    public class ExplorerOptimizationService(
+        ILogService logService) : IDomainService
     {
-        private readonly SettingControlHandler _controlHandler;
-        private readonly ISystemSettingsDiscoveryService _discoveryService;
-        private readonly ILogService _logService;
-
-        /// <summary>
-        /// Gets the domain name for explorer optimizations.
-        /// </summary>
         public string DomainName => FeatureIds.ExplorerOptimization;
 
-        /// <summary>
-        /// Initializes a new instance of the <see cref="ExplorerOptimizationService"/> class.
-        /// </summary>
-        /// <param name="controlHandler">The system setting controlHandler for applying settings.</param>
-        /// <param name="logService">The log service for logging operations.</param>
-        public ExplorerOptimizationService(
-             SettingControlHandler controlHandler,
-            ISystemSettingsDiscoveryService discoveryService,
-            ILogService logService
-        )
-        {
-            _controlHandler = controlHandler ?? throw new ArgumentNullException(nameof(controlHandler));
-            _discoveryService = discoveryService ?? throw new ArgumentNullException(nameof(discoveryService));
-            _logService = logService ?? throw new ArgumentNullException(nameof(logService));
-        }
-
-        /// <summary>
-        /// Gets all Explorer optimization settings with their current system state.
-        /// </summary>
         public async Task<IEnumerable<SettingDefinition>> GetSettingsAsync()
         {
             try
             {
                 var optimizations = ExplorerOptimizations.GetExplorerOptimizations();
-                return await _discoveryService.GetSettingsWithSystemStateAsync(optimizations.Settings, DomainName);
+                return optimizations.Settings;
             }
             catch (Exception ex)
             {
-                _logService.Log(LogLevel.Error, $"Error loading Explorer optimization settings: {ex.Message}");
+                logService.Log(LogLevel.Error, $"Error loading Explorer optimization settings: {ex.Message}");
                 return Enumerable.Empty<SettingDefinition>();
-            }
-        }
-
-        /// <summary>
-        /// Applies a setting.
-        /// </summary>
-        public async Task ApplySettingAsync(string settingId, bool enable, object? value = null)
-        {
-            var settings = await GetRawSettingsAsync();
-            var setting = settings.FirstOrDefault(s => s.Id == settingId);
-            if (setting == null)
-                throw new ArgumentException($"Setting '{settingId}' not found");
-
-            switch (setting.InputType)
-            {
-                case SettingInputType.Toggle:
-                    await _controlHandler.ApplyBinaryToggleAsync(setting, enable);
-                    break;
-                case SettingInputType.Selection when value is int index:
-                    await _controlHandler.ApplyComboBoxIndexAsync(setting, index);
-                    break;
-                case SettingInputType.NumericRange when value != null:
-                    await _controlHandler.ApplyNumericUpDownAsync(setting, value);
-                    break;
-                default:
-                    throw new NotSupportedException($"Input type '{setting.InputType}' not supported");
-            }
-        }
-
-        /// <summary>
-        /// Checks if a setting is enabled.
-        /// </summary>
-        public async Task<bool> IsSettingEnabledAsync(string settingId)
-        {
-            var settings = await GetRawSettingsAsync();
-            return await _controlHandler.GetSettingStatusAsync(settingId, settings);
-        }
-
-        /// <summary>
-        /// Gets the current value of a setting.
-        /// </summary>
-        public async Task<object?> GetSettingValueAsync(string settingId)
-        {
-            var settings = await GetRawSettingsAsync();
-            return await _controlHandler.GetSettingValueAsync(settingId, settings);
-        }
-
-        /// <summary>
-        /// Helper method to get raw settings without system state.
-        /// </summary>
-        public async Task<IEnumerable<SettingDefinition>> GetRawSettingsAsync()
-        {
-            var optimizations = ExplorerOptimizations.GetExplorerOptimizations();
-            return await Task.FromResult(optimizations.Settings);
-        }
-
-        public async Task ExecuteExplorerActionAsync(string actionId)
-        {
-            try
-            {
-                _logService.Log(
-                    LogLevel.Info,
-                    $"Executing Explorer optimization action '{actionId}'"
-                );
-
-                // Handle different explorer optimization actions based on actionId
-                switch (actionId.ToLowerInvariant())
-                {
-                    case "restart-explorer":
-                        // Note: This method now needs ICommandService injected or accessed through controlHandler
-                        _logService.Log(
-                            LogLevel.Warning,
-                            "ExecuteExplorerActionAsync requires command execution capability - consider refactoring to use controlHandler"
-                        );
-                        break;
-
-                    case "clear-thumbnail-cache":
-                        _logService.Log(
-                            LogLevel.Warning,
-                            "ExecuteExplorerActionAsync requires command execution capability - consider refactoring to use controlHandler"
-                        );
-                        break;
-
-                    case "rebuild-search-index":
-                        _logService.Log(
-                            LogLevel.Warning,
-                            "ExecuteExplorerActionAsync requires command execution capability - consider refactoring to use controlHandler"
-                        );
-                        break;
-
-                    case "optimize-indexing":
-                        _logService.Log(
-                            LogLevel.Warning,
-                            "ExecuteExplorerActionAsync requires command execution capability - consider refactoring to use controlHandler"
-                        );
-                        break;
-
-                    default:
-                        _logService.Log(
-                            LogLevel.Warning,
-                            $"Unknown Explorer optimization action: {actionId}"
-                        );
-                        break;
-                }
-
-                _logService.Log(
-                    LogLevel.Info,
-                    $"Explorer optimization action '{actionId}' completed successfully"
-                );
-            }
-            catch (Exception ex)
-            {
-                _logService.Log(
-                    LogLevel.Error,
-                    $"Error executing Explorer optimization action '{actionId}': {ex.Message}"
-                );
-                throw;
             }
         }
     }

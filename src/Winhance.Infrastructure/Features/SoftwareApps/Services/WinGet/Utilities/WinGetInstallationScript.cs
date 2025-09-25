@@ -2,6 +2,7 @@ using System;
 using System.IO;
 using System.IO.Compression;
 using System.Management.Automation;
+using System.Management.Automation.Runspaces;
 using System.Text;
 using System.Threading;
 using System.Threading.Tasks;
@@ -11,14 +12,8 @@ using Winhance.Core.Features.Common.Models;
 
 namespace Winhance.Infrastructure.Features.SoftwareApps.Services.WinGet.Utilities
 {
-    /// <summary>
-    /// Provides functionality to install WinGet when it is not found on the system.
-    /// </summary>
     public static class WinGetInstallationScript
     {
-        /// <summary>
-        /// The PowerShell script used to install WinGet by downloading it directly from GitHub.
-        /// </summary>
         public static readonly string InstallScript =
             @"
 # PowerShell script to install WinGet from GitHub
@@ -68,7 +63,14 @@ try {
             Add-AppxPackage -Path $file.FullName
         }
         catch {
-            Write-Output ""[ERROR] Failed to install WinGet: $($_.Exception.Message)""
+            Write-Output ""[ERROR] Failed to install dependency $($file.Name): $($_.Exception.Message)""
+            Write-Output ""[ERROR] Error Type: $($_.Exception.GetType().Name)""
+            if ($_.Exception.HResult) {
+                Write-Output ""[ERROR] Error Code: 0x$($_.Exception.HResult.ToString('X8'))""
+            }
+            if ($_.Exception.InnerException) {
+                Write-Output ""[ERROR] Inner Error: $($_.Exception.InnerException.Message)""
+            }
             throw $_
         }
     }
@@ -148,11 +150,26 @@ try {
     }
     catch {
         Write-Output ""[ERROR] Failed to install WinGet: $($_.Exception.Message)""
+        Write-Output ""[ERROR] Error Type: $($_.Exception.GetType().Name)""
+        if ($_.Exception.HResult) {
+            Write-Output ""[ERROR] Error Code: 0x$($_.Exception.HResult.ToString('X8'))""
+        }
+        if ($_.Exception.InnerException) {
+            Write-Output ""[ERROR] Inner Error: $($_.Exception.InnerException.Message)""
+        }
         throw $_
     }
 }
 catch {
     Write-Output ""[ERROR] An error occurred during WinGet installation: $($_.Exception.Message)""
+    Write-Output ""[ERROR] Error Type: $($_.Exception.GetType().Name)""
+    if ($_.Exception.HResult) {
+        Write-Output ""[ERROR] Error Code: 0x$($_.Exception.HResult.ToString('X8'))""
+    }
+    if ($_.Exception.InnerException) {
+        Write-Output ""[ERROR] Inner Error: $($_.Exception.InnerException.Message)""
+    }
+    Write-Output ""[ERROR] TROUBLESHOOTING: Ensure you have internet access and are running as Administrator""
     throw $_
 }
 finally {
@@ -213,9 +230,14 @@ finally {
                 );
 
                 // Execute the PowerShell script with elevated privileges
-                // Use the detected PowerShell environment
+                // Create Windows PowerShell 5.1 instance
+                var sessionState = InitialSessionState.CreateDefault();
+                using var runspace = RunspaceFactory.CreateRunspace(sessionState);
+                runspace.Open();
+                
                 using (var powerShell = PowerShell.Create())
                 {
+                    powerShell.Runspace = runspace;
                     // Add the script to execute
                     powerShell.AddScript($". '{scriptPath}'");
 

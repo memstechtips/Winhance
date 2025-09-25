@@ -4,10 +4,9 @@ using Winhance.Core.Features.Common.Models;
 
 namespace Winhance.Core.Features.Common.Interfaces
 {
-    public interface IDomainService : ISharedSettingOperations
+    public interface IDomainService
     {
         Task<IEnumerable<SettingDefinition>> GetSettingsAsync();
-        Task<IEnumerable<SettingDefinition>> GetRawSettingsAsync();
         string DomainName { get; }
     }
 }

@@ -72,8 +72,6 @@ namespace Winhance.Core.Features.Common.Services
             _logService.Log(level, message, exception);
         }
 
-        // Removed the incorrectly ordered Log method to fix the parameter order error
-        // This was causing CS1503 errors with parameter type mismatches
 
         public string GetLogPath()
         {
