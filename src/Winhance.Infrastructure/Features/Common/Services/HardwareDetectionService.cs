@@ -129,8 +129,7 @@ namespace Winhance.Infrastructure.Features.Common.Services
                                 foreach (var chassisType in chassisTypes)
                                 {
                                     int type = Convert.ToInt32(chassisType);
-                                    var reliableLaptopTypes = new[] { 9, 10, 14, 31, 32 };
-                                    if (reliableLaptopTypes.Contains(type))
+                                    if (LaptopChassisTypes.Contains(type))
                                         return true;
                                 }
                             }

@@ -37,7 +37,8 @@ namespace Winhance.WPF.Features.Common.Extensions.DI
                 sp.GetRequiredService<IWindowsVersionService>(),
                 sp.GetRequiredService<IWindowsUIManagementService>(),
                 sp.GetRequiredService<IWindowsRegistryService>(),
-                sp.GetRequiredService<ILogService>()
+                sp.GetRequiredService<ILogService>(),
+                sp.GetRequiredService<ICompatibleSettingsRegistry>()
             ));
             // Register as IDomainService for registry
             services.AddSingleton<IDomainService>(sp => sp.GetRequiredService<WindowsThemeService>());
@@ -60,7 +61,8 @@ namespace Winhance.WPF.Features.Common.Extensions.DI
 
             // Register ExplorerCustomizationService
             services.AddSingleton<ExplorerCustomizationService>(sp => new ExplorerCustomizationService(
-                sp.GetRequiredService<ILogService>()
+                sp.GetRequiredService<ILogService>(),
+                sp.GetRequiredService<ICompatibleSettingsRegistry>()
             ));
             services.AddSingleton<IDomainService>(sp => sp.GetRequiredService<ExplorerCustomizationService>());
 
@@ -77,53 +79,52 @@ namespace Winhance.WPF.Features.Common.Extensions.DI
                 sp.GetRequiredService<ICommandService>(),
                 sp.GetRequiredService<IPowerCfgQueryService>(),
                 sp.GetRequiredService<ICompatibleSettingsRegistry>(),
-                sp.GetRequiredService<IEventBus>()
+                sp.GetRequiredService<IEventBus>(),
+                sp.GetRequiredService<IWindowsRegistryService>(),
+                sp.GetRequiredService<IPowerPlanComboBoxService>()
             ));
             services.AddSingleton<IDomainService>(sp => sp.GetRequiredService<PowerService>());
             // Register as IPowerService for ViewModels that still use direct injection
             services.AddSingleton<IPowerService>(sp => sp.GetRequiredService<PowerService>());
 
-            // Register PrivacyService
-            services.AddSingleton<PrivacyService>(sp => new PrivacyService(
-                sp.GetRequiredService<ILogService>()
+            // Register PrivacyAndSecurityService
+            services.AddSingleton<PrivacyAndSecurityService>(sp => new PrivacyAndSecurityService(
+                sp.GetRequiredService<ILogService>(),
+                sp.GetRequiredService<ICompatibleSettingsRegistry>()
             ));
-            services.AddSingleton<IDomainService>(sp => sp.GetRequiredService<PrivacyService>());
-
-            // Register SecurityService
-            services.AddSingleton<SecurityService>(sp => new SecurityService(
-                sp.GetRequiredService<ILogService>()
-            ));
-            services.AddSingleton<IDomainService>(sp => sp.GetRequiredService<SecurityService>());
+            services.AddSingleton<IDomainService>(sp => sp.GetRequiredService<PrivacyAndSecurityService>());
 
             // Register GamingPerformanceService
             services.AddSingleton<GamingPerformanceService>(sp => new GamingPerformanceService(
-                sp.GetRequiredService<ILogService>()
+                sp.GetRequiredService<ILogService>(),
+                sp.GetRequiredService<ICompatibleSettingsRegistry>()
             ));
             services.AddSingleton<IDomainService>(sp => sp.GetRequiredService<GamingPerformanceService>());
 
             // Register NotificationService
             services.AddSingleton<NotificationService>(sp => new NotificationService(
-                sp.GetRequiredService<ILogService>()
+                sp.GetRequiredService<ILogService>(),
+                sp.GetRequiredService<ICompatibleSettingsRegistry>()
             ));
             services.AddSingleton<IDomainService>(sp => sp.GetRequiredService<NotificationService>());
 
             // Register SoundService
             services.AddSingleton<SoundService>(sp => new SoundService(
-                sp.GetRequiredService<ILogService>()
+                sp.GetRequiredService<ILogService>(),
+                sp.GetRequiredService<ICompatibleSettingsRegistry>()
             ));
             services.AddSingleton<IDomainService>(sp => sp.GetRequiredService<SoundService>());
 
             // Register UpdateService
             services.AddSingleton<UpdateService>(sp => new UpdateService(
-                sp.GetRequiredService<ILogService>()
+                sp.GetRequiredService<ILogService>(),
+                sp.GetRequiredService<IWindowsRegistryService>(),
+                sp.GetRequiredService<ICommandService>(),
+                sp.GetRequiredService<IPowerShellExecutionService>(),
+                sp.GetRequiredService<IServiceProvider>(),
+                sp.GetRequiredService<ICompatibleSettingsRegistry>()
             ));
             services.AddSingleton<IDomainService>(sp => sp.GetRequiredService<UpdateService>());
-
-            // Register ExplorerOptimizationService
-            services.AddSingleton<ExplorerOptimizationService>(sp => new ExplorerOptimizationService(
-                sp.GetRequiredService<ILogService>()
-            ));
-            services.AddSingleton<IDomainService>(sp => sp.GetRequiredService<ExplorerOptimizationService>());
 
             return services;
         }
@@ -141,8 +142,11 @@ namespace Winhance.WPF.Features.Common.Extensions.DI
             // App Services (Scoped - Business logic)
             services.AddScoped<IAppLoadingService, AppLoadingService>();
 
-            // Simplified WinGet Service
+            // WinGet Service
             services.AddSingleton<IWinGetService, WinGetService>();
+
+            // Store Download Service (Fallback for market-restricted apps)
+            services.AddSingleton<IStoreDownloadService, StoreDownloadService>();
 
             // Legacy Capability and Optional Feature Services
             services.AddSingleton<ILegacyCapabilityService>(provider => new LegacyCapabilityService(

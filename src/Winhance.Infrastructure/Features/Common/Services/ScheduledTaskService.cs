@@ -28,7 +28,9 @@ public class ScheduledTaskService(ILogService logService) : IScheduledTaskServic
 
                 EnsureScriptFileExists(script);
 
-                return RegisterTaskInternal(script.Name, script.ActualScriptPath, null, TaskTriggerType.Startup);
+                var triggerType = script.RunOnStartup ? TaskTriggerType.Startup : TaskTriggerType.Logon;
+
+                return RegisterTaskInternal(script.Name, script.ActualScriptPath, null, triggerType);
             }
             catch (Exception ex)
             {
@@ -176,6 +178,11 @@ public class ScheduledTaskService(ILogService logService) : IScheduledTaskServic
             if (existingTask != null)
             {
                 folder.DeleteTask(taskName, 0);
+                logService.LogInformation($"Deleted existing task: {taskName}");
+
+                // Wait 2 seconds for Windows scheduled task cache to reset
+                System.Threading.Thread.Sleep(2000);
+                logService.LogInformation("Waited 2 seconds for task cache reset");
             }
         }
         catch

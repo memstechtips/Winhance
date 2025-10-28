@@ -1,5 +1,4 @@
 using System.Collections.ObjectModel;
-using System.Windows;
 using System.Windows.Input;
 using CommunityToolkit.Mvvm.ComponentModel;
 using CommunityToolkit.Mvvm.Input;
@@ -19,6 +18,7 @@ namespace Winhance.WPF.Features.Common.ViewModels
         private bool _isDisposed;
         private bool _settingsLoaded = false;
         private readonly object _loadingLock = new object();
+        private CancellationTokenSource? _searchDebounceTokenSource;
         
         [ObservableProperty]
         private ObservableCollection<SettingItemViewModel> _settings = new();
@@ -31,6 +31,9 @@ namespace Winhance.WPF.Features.Common.ViewModels
 
         [ObservableProperty]
         private string _searchText = string.Empty;
+
+        [ObservableProperty]
+        private bool _hasBattery = false;
 
         public bool HasVisibleSettings => Settings.Any(s => s.IsVisible);
         public bool IsVisibleInSearch => HasVisibleSettings;
@@ -65,31 +68,42 @@ namespace Winhance.WPF.Features.Common.ViewModels
 
         partial void OnSearchTextChanged(string value)
         {
-            // Check if search matches the feature name itself
-            bool featureMatches = string.IsNullOrWhiteSpace(value) ||
-                                 DisplayName.ToLowerInvariant().Contains(value.ToLowerInvariant());
+            _searchDebounceTokenSource?.Cancel();
+            _searchDebounceTokenSource = new CancellationTokenSource();
+            var token = _searchDebounceTokenSource.Token;
 
-            if (featureMatches)
+            _ = Task.Run(async () =>
             {
-                // Show ALL settings in this feature
-                foreach (var setting in Settings)
+                try
                 {
-                    setting.IsVisible = true;
-                }
-            }
-            else
-            {
-                // Filter individual settings
-                foreach (var setting in Settings)
-                {
-                    setting.UpdateVisibility(value);
-                }
-            }
+                    await Task.Delay(100, token);
 
-            // Notify about visibility changes
-            OnPropertyChanged(nameof(HasVisibleSettings));
-            OnPropertyChanged(nameof(IsVisibleInSearch));
-            VisibilityChanged?.Invoke(this, new FeatureVisibilityChangedEventArgs(ModuleId, IsVisibleInSearch, value));
+                    bool featureMatches = string.IsNullOrWhiteSpace(value) ||
+                                         DisplayName.ToLowerInvariant().Contains(value.ToLowerInvariant());
+
+                    if (featureMatches)
+                    {
+                        foreach (var setting in Settings)
+                        {
+                            setting.IsVisible = true;
+                        }
+                    }
+                    else
+                    {
+                        foreach (var setting in Settings)
+                        {
+                            setting.UpdateVisibility(value);
+                        }
+                    }
+
+                    OnPropertyChanged(nameof(HasVisibleSettings));
+                    OnPropertyChanged(nameof(IsVisibleInSearch));
+                    VisibilityChanged?.Invoke(this, new FeatureVisibilityChangedEventArgs(ModuleId, IsVisibleInSearch, value));
+                }
+                catch (OperationCanceledException)
+                {
+                }
+            });
         }
 
         public virtual async Task LoadSettingsAsync()
@@ -121,7 +135,7 @@ namespace Winhance.WPF.Features.Common.ViewModels
                 )).Cast<SettingItemViewModel>();
                 
                 Settings = new ObservableCollection<SettingItemViewModel>(loadedSettings);
-                
+
                 UpdateParentChildRelationships();
 
                 logService.Log(LogLevel.Info,
@@ -154,6 +168,36 @@ namespace Winhance.WPF.Features.Common.ViewModels
             if (!Settings.Any())
             {
                 _ = LoadSettingsAsync();
+            }
+        }
+
+        public virtual async Task RefreshSettingsAsync()
+        {
+            try
+            {
+                logService.Log(LogLevel.Info, $"Refreshing settings for {DisplayName}");
+
+                lock (_loadingLock)
+                {
+                    _settingsLoaded = false;
+                }
+
+                if (Settings?.Any() == true)
+                {
+                    foreach (var setting in Settings.OfType<IDisposable>())
+                    {
+                        setting?.Dispose();
+                    }
+                    Settings.Clear();
+                }
+
+                await LoadSettingsAsync();
+
+                logService.Log(LogLevel.Info, $"Successfully refreshed {Settings.Count} settings for {DisplayName}");
+            }
+            catch (Exception ex)
+            {
+                logService.Log(LogLevel.Error, $"Error refreshing settings: {ex.Message}");
             }
         }
 
@@ -191,7 +235,14 @@ namespace Winhance.WPF.Features.Common.ViewModels
                     var parent = Settings.FirstOrDefault(s => s.SettingId == setting.SettingDefinition.ParentSettingId);
                     if (parent != null)
                     {
-                        setting.ParentIsEnabled = parent.IsSelected;
+                        bool parentEnabled = parent.InputType switch
+                        {
+                            Core.Features.Common.Enums.InputType.Toggle => parent.IsSelected,
+                            Core.Features.Common.Enums.InputType.Selection => parent.SelectedValue is int index && index != 0,
+                            _ => parent.IsSelected
+                        };
+
+                        setting.ParentIsEnabled = parentEnabled;
                     }
                 }
             }

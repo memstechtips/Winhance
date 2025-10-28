@@ -3,7 +3,7 @@
         xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
         xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
         xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
-        xmlns:materialDesign="http://materialdesigninxaml.net/winfx/xaml/themes"
+        xmlns:iconPacks="http://metro.mahapps.com/winfx/xaml/iconpacks"
         xmlns:converters="clr-namespace:Winhance.WPF.Features.Common.Converters"
         x:Name="DialogWindow"
         Title="Update Available" 
@@ -20,15 +20,24 @@
     <Window.Resources>
         <BooleanToVisibilityConverter x:Key="BooleanToVisibilityConverter"/>
         <converters:InverseBooleanConverter x:Key="InverseBooleanConverter"/>
-        <DropShadowEffect x:Key="DialogShadowEffect" ShadowDepth="5" BlurRadius="10" Color="Black" Opacity="0.5"/>
     </Window.Resources>
     
-    <Border CornerRadius="10"
-            BorderThickness="1"
-            BorderBrush="{DynamicResource ButtonBorderBrush}"
-            Background="{DynamicResource WindowBackground}"
-            Effect="{StaticResource DialogShadowEffect}">
-        <Grid Margin="20">
+    <Grid>
+        <Grid.OpacityMask>
+            <VisualBrush>
+                <VisualBrush.Visual>
+                    <Border Background="Black"
+                            CornerRadius="10"
+                            Width="{Binding ActualWidth, RelativeSource={RelativeSource AncestorType=Grid}}"
+                            Height="{Binding ActualHeight, RelativeSource={RelativeSource AncestorType=Grid}}"/>
+                </VisualBrush.Visual>
+            </VisualBrush>
+        </Grid.OpacityMask>
+
+        <Border CornerRadius="10"
+                BorderBrush="Transparent"
+                Background="{DynamicResource WindowBackground}">
+            <Grid Margin="20">
             <Grid.RowDefinitions>
                 <RowDefinition Height="Auto"/>
                 <RowDefinition Height="Auto"/>
@@ -45,16 +54,16 @@
                 </Grid.ColumnDefinitions>
                 
                 <StackPanel Grid.Column="0" Orientation="Horizontal">
-                    <materialDesign:PackIcon Kind="Update" Width="32" Height="32" VerticalAlignment="Center" Margin="0,0,10,0"/>
+                    <iconPacks:PackIconMaterial Kind="Update" Width="32" Height="32" VerticalAlignment="Center" Margin="0,0,10,0"/>
                     <TextBlock Text="Update Available" FontSize="22" VerticalAlignment="Center" FontWeight="Medium"/>
                 </StackPanel>
                 
-                <Button x:Name="CloseButton" 
+                <Button x:Name="CloseButton"
                         Grid.Column="1"
-                        Style="{StaticResource MaterialDesignIconButton}"
+                        Style="{StaticResource IconButtonStyle}"
                         Click="CloseButton_Click"
                         HorizontalAlignment="Right">
-                    <materialDesign:PackIcon Kind="Close" Width="24" Height="24"/>
+                    <iconPacks:PackIconMaterial Kind="Close" Width="12" Height="12"/>
                 </Button>
             </Grid>
             
@@ -102,10 +111,10 @@
                     <ColumnDefinition Width="Auto"/>
                 </Grid.ColumnDefinitions>
                 
-                <Button x:Name="PrimaryButton" 
+                <Button x:Name="PrimaryButton"
                         Grid.Column="2"
-                        Content="Download and Install" 
-                        Style="{StaticResource MaterialDesignRaisedButton}"
+                        Content="Download and Install"
+                        Style="{StaticResource PrimaryButtonStyle}"
                         Click="PrimaryButton_Click"
                         Margin="8,0,0,0">
                     <Button.IsEnabled>
@@ -116,11 +125,11 @@
                         </Binding>
                     </Button.IsEnabled>
                 </Button>
-                
-                <Button x:Name="SecondaryButton" 
+
+                <Button x:Name="SecondaryButton"
                         Grid.Column="1"
-                        Content="Remind Later" 
-                        Style="{StaticResource MaterialDesignOutlinedButton}"
+                        Content="Remind Later"
+                        Style="{StaticResource PrimaryButtonStyle}"
                         Click="SecondaryButton_Click">
                     <Button.IsEnabled>
                         <Binding Path="IsDownloading">
@@ -131,6 +140,7 @@
                     </Button.IsEnabled>
                 </Button>
             </Grid>
-        </Grid>
-    </Border>
+            </Grid>
+        </Border>
+    </Grid>
 </Window>

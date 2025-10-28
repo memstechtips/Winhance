@@ -6,20 +6,13 @@ using Winhance.Core.Features.Common.Models;
 
 namespace Winhance.Core.Features.Customize.Models
 {
-    /// <summary>
-    /// Model for Windows theme settings.
-    /// </summary>
     public static class WindowsThemeCustomizations
     {
-        // Wallpaper paths
         public static class Wallpaper
         {
-            // Windows 11 wallpaper paths
             public const string Windows11BasePath = @"C:\Windows\Web\Wallpaper\Windows";
             public const string Windows11LightWallpaper = "img0.jpg";
             public const string Windows11DarkWallpaper = "img19.jpg";
-
-            // Windows 10 wallpaper path
             public const string Windows10Wallpaper =
                 @"C:\Windows\Web\4K\Wallpaper\Windows\img0_3840x2160.jpg";
 
@@ -45,19 +38,19 @@ namespace Winhance.Core.Features.Customize.Models
                 FeatureId = FeatureIds.WindowsTheme,
                 Settings = new List<SettingDefinition>
                 {
-                    // Theme Mode Selection (ComboBox)
                     new SettingDefinition
                     {
                         Id = "theme-mode-windows",
-                        Name = "Choose Your Mode",
+                        Name = "Choose your mode",
                         Description = "Choose between Light and Dark mode for Windows and apps",
                         GroupName = "Windows Theme",
                         InputType = InputType.Selection,
+                        Icon = "BrushVariant",
                         RequiresConfirmation = true,
-                        RequiresDomainServiceContext = true,
+                        DialogTitleIcon = "Palette",
                         ConfirmationTitle = "Windows Theme Change",
                         ConfirmationMessage =
-                            "You are about to apply {themeMode} to Windows and apps.\n\nDo you want to continue?",
+                            "You are about to apply {themeMode} to Windows and apps.\nDo you want to continue?",
                         ConfirmationCheckboxText =
                             "Apply default Windows wallpaper for {themeMode}",
                         RegistrySettings = new List<RegistrySetting>
@@ -92,17 +85,14 @@ namespace Winhance.Core.Features.Customize.Models
                                 "Light Mode",
                                 "Dark Mode",
                             },
-                            [CustomPropertyKeys.ValueMappings] = new Dictionary<
-                                int,
-                                Dictionary<string, int?>
-                            >
+                            [CustomPropertyKeys.ValueMappings] = new Dictionary<int, Dictionary<string, object?>>
                             {
-                                [0] = new Dictionary<string, int?> // Light Mode
+                                [0] = new Dictionary<string, object?> // Light Mode
                                 {
                                     ["AppsUseLightTheme"] = 1,
                                     ["SystemUsesLightTheme"] = 1,
                                 },
-                                [1] = new Dictionary<string, int?> // Dark Mode
+                                [1] = new Dictionary<string, object?> // Dark Mode
                                 {
                                     ["AppsUseLightTheme"] = 0,
                                     ["SystemUsesLightTheme"] = 0,
@@ -112,20 +102,19 @@ namespace Winhance.Core.Features.Customize.Models
                             [CustomPropertyKeys.CustomStateDisplayName] = "Custom (User Defined)",
                         },
                     },
-                    // Transparency Effects Toggle
                     new SettingDefinition
                     {
                         Id = "theme-transparency",
-                        Name = "Transparency Effects",
-                        Description = "Controls whether windows and surfaces appear translucent",
+                        Name = "Transparency effects",
+                        Description = "Enable translucent effects for the Start Menu, taskbar, and other Windows interface elements",
                         GroupName = "Windows Theme",
                         InputType = InputType.Toggle,
+                        Icon = "Opacity",
                         RegistrySettings = new List<RegistrySetting>
                         {
                             new RegistrySetting
                             {
-                                KeyPath =
-                                    @"HKEY_CURRENT_USER\Software\Microsoft\Windows\CurrentVersion\Themes\Personalize",
+                                KeyPath = @"HKEY_CURRENT_USER\Software\Microsoft\Windows\CurrentVersion\Themes\Personalize",
                                 ValueName = "EnableTransparency",
                                 RecommendedValue = 1, // Enable transparency recommended
                                 EnabledValue = 1, // When toggle is ON, transparency effects are enabled

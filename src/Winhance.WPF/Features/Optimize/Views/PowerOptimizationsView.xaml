@@ -9,10 +9,7 @@
              Visibility="{Binding HasVisibleSettings, Converter={StaticResource BooleanToVisibilityConverter}}">
 
     <StackPanel>
-        <!-- Collapsible Header -->
         <ContentControl Template="{StaticResource CollapsibleHeaderTemplate}"/>
-        
-        <!-- Content Section -->
-        <ContentControl Template="{StaticResource ContentSectionTemplate}"/>
+        <ContentControl Template="{StaticResource GroupedContentSectionTemplate}"/>
     </StackPanel>
 </UserControl>

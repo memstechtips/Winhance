@@ -140,7 +140,7 @@ namespace Winhance.Infrastructure.Features.Common.Services
                 if (setting == null)
                     return false;
 
-                if (string.IsNullOrEmpty(setting.ValueName))
+                if (setting.ValueName == null)
                 {
                     return KeyExists(setting.KeyPath);
                 }
@@ -155,29 +155,147 @@ namespace Winhance.Infrastructure.Features.Common.Services
                     return setting.AbsenceMeansEnabled;
                 }
 
-                var currentValue = GetValue(setting.KeyPath, setting.ValueName);
-                if (currentValue == null)
-                    return false;
+                if (setting.BitMask.HasValue && setting.BinaryByteIndex.HasValue)
+                {
+                    return IsBitSet(setting.KeyPath, setting.ValueName, setting.BinaryByteIndex.Value, setting.BitMask.Value);
+                }
 
-                var valueToCompare = setting.EnabledValue ?? setting.RecommendedValue;
-                if (CompareValues(currentValue, valueToCompare))
+                if (setting.ModifyByteOnly && setting.BinaryByteIndex.HasValue)
+                {
+                    var currentByte = GetBinaryByte(setting.KeyPath, setting.ValueName, setting.BinaryByteIndex.Value);
+                    if (currentByte == null)
+                        return false;
+
+                    var enabledByte = setting.EnabledValue switch
+                    {
+                        byte b => b,
+                        int i => (byte)i,
+                        _ => (byte)0
+                    };
+
+                    return currentByte.Value == enabledByte;
+                }
+
+                var currentValue = GetValue(setting.KeyPath, setting.ValueName);
+
+                // Check if current value matches EnabledValue (only if EnabledValue is not null)
+                if (setting.EnabledValue != null && CompareValues(currentValue, setting.EnabledValue))
                     return true;
 
-                if (
-                    setting.DisabledValue != null
-                    && CompareValues(currentValue, setting.DisabledValue)
-                )
+                // Check if current value matches DisabledValue (only if DisabledValue is not null)
+                if (setting.DisabledValue != null && CompareValues(currentValue, setting.DisabledValue))
                     return false;
 
-                return false; // Modified state now maps to false
+                // Value doesn't match either EnabledValue or DisabledValue
+                return false;
             }
             catch (Exception)
             {
-                return false; // Error state now maps to false
+                return false;
             }
         }
 
-        public bool ApplySetting(RegistrySetting setting, bool isEnabled, int? specificValue = null)
+        public bool ModifyBinaryByte(string keyPath, string valueName, int byteIndex, byte newValue)
+        {
+            try
+            {
+                var currentValue = GetValue(keyPath, valueName);
+                if (currentValue is not byte[] currentBytes)
+                {
+                    var defaultBinary = new byte[Math.Max(12, byteIndex + 1)];
+                    defaultBinary[byteIndex] = newValue;
+                    return SetValue(keyPath, valueName, defaultBinary, RegistryValueKind.Binary);
+                }
+
+                if (currentBytes.Length <= byteIndex)
+                {
+                    var expandedBytes = new byte[byteIndex + 1];
+                    Array.Copy(currentBytes, expandedBytes, currentBytes.Length);
+                    expandedBytes[byteIndex] = newValue;
+                    return SetValue(keyPath, valueName, expandedBytes, RegistryValueKind.Binary);
+                }
+
+                var modifiedBytes = (byte[])currentBytes.Clone();
+                modifiedBytes[byteIndex] = newValue;
+
+                return SetValue(keyPath, valueName, modifiedBytes, RegistryValueKind.Binary);
+            }
+            catch (Exception ex)
+            {
+                logService.Log(LogLevel.Error, $"[WindowsRegistryService] Error modifying byte at index {byteIndex} in '{keyPath}\\{valueName}': {ex.Message}");
+                return false;
+            }
+        }
+
+        public byte? GetBinaryByte(string keyPath, string valueName, int byteIndex)
+        {
+            try
+            {
+                var currentValue = GetValue(keyPath, valueName);
+                if (currentValue is byte[] currentBytes && currentBytes.Length > byteIndex)
+                {
+                    return currentBytes[byteIndex];
+                }
+                return null;
+            }
+            catch
+            {
+                return null;
+            }
+        }
+
+        public bool ModifyBinaryBit(string keyPath, string valueName, int byteIndex, byte bitMask, bool setBit)
+        {
+            try
+            {
+                var currentValue = GetValue(keyPath, valueName);
+                if (currentValue is not byte[] currentBytes)
+                {
+                    var defaultBinary = new byte[Math.Max(12, byteIndex + 1)];
+                    defaultBinary[byteIndex] = setBit ? bitMask : (byte)0;
+                    return SetValue(keyPath, valueName, defaultBinary, RegistryValueKind.Binary);
+                }
+
+                if (currentBytes.Length <= byteIndex)
+                {
+                    var expandedBytes = new byte[byteIndex + 1];
+                    Array.Copy(currentBytes, expandedBytes, currentBytes.Length);
+                    expandedBytes[byteIndex] = setBit ? bitMask : (byte)0;
+                    return SetValue(keyPath, valueName, expandedBytes, RegistryValueKind.Binary);
+                }
+
+                var modifiedBytes = (byte[])currentBytes.Clone();
+                if (setBit)
+                    modifiedBytes[byteIndex] |= bitMask;
+                else
+                    modifiedBytes[byteIndex] &= (byte)~bitMask;
+
+                return SetValue(keyPath, valueName, modifiedBytes, RegistryValueKind.Binary);
+            }
+            catch (Exception ex)
+            {
+                logService.Log(LogLevel.Error, $"[WindowsRegistryService] Error modifying bit mask 0x{bitMask:X2} at byte index {byteIndex} in '{keyPath}\\{valueName}': {ex.Message}");
+                return false;
+            }
+        }
+
+        public bool IsBitSet(string keyPath, string valueName, int byteIndex, byte bitMask)
+        {
+            try
+            {
+                var currentByte = GetBinaryByte(keyPath, valueName, byteIndex);
+                if (!currentByte.HasValue)
+                    return false;
+
+                return (currentByte.Value & bitMask) == bitMask;
+            }
+            catch
+            {
+                return false;
+            }
+        }
+
+        public bool ApplySetting(RegistrySetting setting, bool isEnabled, object? specificValue = null)
         {
             if (setting == null)
                 return false;
@@ -186,15 +304,53 @@ namespace Winhance.Infrastructure.Features.Common.Services
             {
                 logService.Log(LogLevel.Info, $"[WindowsRegistryService] Applying registry setting - Path: {setting.KeyPath}, Value: {setting.ValueName}, Enabled: {isEnabled}");
 
-                if (string.IsNullOrEmpty(setting.ValueName))
+                if (setting.ValueName == null)
                 {
                     var result = isEnabled ? CreateKey(setting.KeyPath) : DeleteKey(setting.KeyPath);
                     return result;
                 }
 
+                if (setting.BitMask.HasValue && setting.BinaryByteIndex.HasValue)
+                {
+                    if (!CreateKey(setting.KeyPath))
+                        return false;
+
+                    var result = ModifyBinaryBit(setting.KeyPath, setting.ValueName, setting.BinaryByteIndex.Value, setting.BitMask.Value, isEnabled);
+                    logService.Log(LogLevel.Info, $"[WindowsRegistryService] Modified bit mask 0x{setting.BitMask.Value:X2} at byte index {setting.BinaryByteIndex.Value} to {isEnabled} - Success: {result}");
+                    return result;
+                }
+
+                if (setting.ModifyByteOnly && setting.BinaryByteIndex.HasValue)
+                {
+                    var byteValue = specificValue switch
+                    {
+                        byte b => b,
+                        int i => (byte)i,
+                        _ when isEnabled => setting.EnabledValue switch
+                        {
+                            byte b => b,
+                            int i => (byte)i,
+                            _ => (byte)0
+                        },
+                        _ => setting.DisabledValue switch
+                        {
+                            byte b => b,
+                            int i => (byte)i,
+                            _ => (byte)0
+                        }
+                    };
+
+                    if (!CreateKey(setting.KeyPath))
+                        return false;
+
+                    var result = ModifyBinaryByte(setting.KeyPath, setting.ValueName, setting.BinaryByteIndex.Value, byteValue);
+                    logService.Log(LogLevel.Info, $"[WindowsRegistryService] Modified byte at index {setting.BinaryByteIndex.Value} to {byteValue:X2} - Success: {result}");
+                    return result;
+                }
+
                 var oldValue = GetValue(setting.KeyPath, setting.ValueName);
                 var valueToSet = specificValue ?? (isEnabled
-                    ? (setting.EnabledValue ?? setting.RecommendedValue)
+                    ? setting.EnabledValue
                     : setting.DisabledValue);
 
                 logService.Log(LogLevel.Info, $"[WindowsRegistryService] Setting '{setting.KeyPath}\\{setting.ValueName}' - Old: {oldValue}, New: {valueToSet}");
@@ -210,7 +366,7 @@ namespace Winhance.Infrastructure.Features.Common.Services
                     return false;
 
                 var setResult = SetValue(setting.KeyPath, setting.ValueName, valueToSet, setting.ValueType);
-                
+
                 logService.Log(LogLevel.Info, $"[WindowsRegistryService] Set value '{setting.ValueName}' = '{valueToSet}' in '{setting.KeyPath}' - Success: {setResult}");
                 return setResult;
             }
@@ -255,12 +411,12 @@ namespace Winhance.Infrastructure.Features.Common.Services
                     {
                         var (_, subKeyPath) = ParseKeyPath(keyPath);
                         using var subKey = rootKey.OpenSubKey(subKeyPath, false);
-                        
-                        var resultKey = string.IsNullOrEmpty(valueName) 
-                            ? $"{keyPath}\\__KEY_EXISTS__" 
+
+                        var resultKey = valueName == null
+                            ? $"{keyPath}\\__KEY_EXISTS__"
                             : $"{keyPath}\\{valueName}";
-                        
-                        if (string.IsNullOrEmpty(valueName))
+
+                        if (valueName == null)
                         {
                             results[resultKey] = subKey != null;
                         }
@@ -271,8 +427,8 @@ namespace Winhance.Infrastructure.Features.Common.Services
                     }
                     catch
                     {
-                        var resultKey = string.IsNullOrEmpty(valueName) 
-                            ? $"{keyPath}\\__KEY_EXISTS__" 
+                        var resultKey = valueName == null
+                            ? $"{keyPath}\\__KEY_EXISTS__"
                             : $"{keyPath}\\{valueName}";
                         results[resultKey] = null;
                     }

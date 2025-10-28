@@ -11,7 +11,7 @@
                                VerticalAlignment="Stretch" 
                                Width="Auto" 
                                Height="Auto" 
-                               Fill="{DynamicResource ScrollBarThumbBrush}" 
+                               Fill="{DynamicResource ButtonBorderBrush}" 
                                RadiusX="4" 
                                RadiusY="4" 
                                x:Name="Rectangle"/>
@@ -31,7 +31,7 @@
     <!-- ScrollBar -->
     <Style x:Key="ModernScrollBar" TargetType="{x:Type ScrollBar}">
         <Setter Property="Background" Value="Transparent"/>
-        <Setter Property="Foreground" Value="{DynamicResource ScrollBarThumbBrush}"/>
+        <Setter Property="Foreground" Value="{DynamicResource ButtonBorderBrush}"/>
         <Setter Property="Width" Value="6"/>
         <Setter Property="Template">
             <Setter.Value>
@@ -86,9 +86,17 @@
         </Setter>
     </Style>
 
-    <!-- ScrollViewer -->
+    <Style x:Key="ComboBoxDropdownScrollBarStyle" TargetType="ScrollBar" BasedOn="{StaticResource ModernScrollBar}">
+        <Setter Property="Width" Value="6"/>
+        <Setter Property="Background" Value="Transparent"/>
+    </Style>
+
     <Style x:Key="ModernScrollViewer" TargetType="{x:Type ScrollViewer}">
-        <Setter Property="controls:ResponsiveScrollViewer.ScrollSpeedMultiplier" Value="20.0" />
+        <Setter Property="controls:ResponsiveScrollViewer.ScrollSpeedMultiplier" Value="20.0"/>
+        <Setter Property="VerticalScrollBarVisibility" Value="Auto"/>
+        <Setter Property="HorizontalScrollBarVisibility" Value="Disabled"/>
+        <Setter Property="Padding" Value="0"/>
+        <Setter Property="Background" Value="Transparent"/>
         <Setter Property="Template">
             <Setter.Value>
                 <ControlTemplate TargetType="{x:Type ScrollViewer}">
@@ -102,49 +110,49 @@
                             <RowDefinition Height="Auto"/>
                         </Grid.RowDefinitions>
 
-                        <ScrollContentPresenter x:Name="PART_ScrollContentPresenter" 
-                                                Grid.Column="0" 
-                                                Grid.Row="0" 
-                                                Margin="{TemplateBinding Padding}" 
-                                                Content="{TemplateBinding Content}" 
+                        <ScrollContentPresenter x:Name="PART_ScrollContentPresenter"
+                                                Grid.Column="0"
+                                                Grid.Row="0"
+                                                Margin="{TemplateBinding Padding}"
+                                                Content="{TemplateBinding Content}"
                                                 ContentTemplate="{TemplateBinding ContentTemplate}"/>
-                        
-                        <ScrollBar x:Name="PART_VerticalScrollBar" 
-                                   Grid.Column="1" 
-                                   Grid.Row="0" 
-                                   AutomationProperties.AutomationId="VerticalScrollBar" 
-                                   Cursor="Arrow" 
-                                   Maximum="{TemplateBinding ScrollableHeight}" 
-                                   Minimum="0" 
+
+                        <ScrollBar x:Name="PART_VerticalScrollBar"
+                                   Grid.Column="1"
+                                   Grid.Row="0"
+                                   AutomationProperties.AutomationId="VerticalScrollBar"
+                                   Cursor="Arrow"
+                                   Maximum="{TemplateBinding ScrollableHeight}"
+                                   Minimum="0"
                                    Opacity="0.3"
                                    Style="{StaticResource ModernScrollBar}"
-                                   ViewportSize="{TemplateBinding ViewportHeight}" 
-                                   Visibility="{TemplateBinding ComputedVerticalScrollBarVisibility}" 
+                                   ViewportSize="{TemplateBinding ViewportHeight}"
+                                   Visibility="{TemplateBinding ComputedVerticalScrollBarVisibility}"
                                    Value="{Binding VerticalOffset, Mode=OneWay, RelativeSource={RelativeSource TemplatedParent}}"/>
-                                   
-                        <ScrollBar x:Name="PART_HorizontalScrollBar" 
-                                   Grid.Column="0" 
-                                   Grid.Row="1" 
-                                   AutomationProperties.AutomationId="HorizontalScrollBar" 
-                                   Cursor="Arrow" 
-                                   Maximum="{TemplateBinding ScrollableWidth}" 
-                                   Minimum="0" 
+
+                        <ScrollBar x:Name="PART_HorizontalScrollBar"
+                                   Grid.Column="0"
+                                   Grid.Row="1"
+                                   AutomationProperties.AutomationId="HorizontalScrollBar"
+                                   Cursor="Arrow"
+                                   Maximum="{TemplateBinding ScrollableWidth}"
+                                   Minimum="0"
                                    Opacity="0.3"
                                    Orientation="Horizontal"
                                    Style="{StaticResource ModernScrollBar}"
-                                   ViewportSize="{TemplateBinding ViewportWidth}" 
-                                   Visibility="{TemplateBinding ComputedHorizontalScrollBarVisibility}" 
+                                   ViewportSize="{TemplateBinding ViewportWidth}"
+                                   Visibility="{TemplateBinding ComputedHorizontalScrollBarVisibility}"
                                    Value="{Binding HorizontalOffset, Mode=OneWay, RelativeSource={RelativeSource TemplatedParent}}"/>
                     </Grid>
-                    
+
                     <ControlTemplate.Triggers>
                         <EventTrigger RoutedEvent="MouseEnter">
                             <BeginStoryboard>
                                 <Storyboard>
-                                    <DoubleAnimation Storyboard.TargetName="PART_VerticalScrollBar" 
+                                    <DoubleAnimation Storyboard.TargetName="PART_VerticalScrollBar"
                                                      Storyboard.TargetProperty="Opacity"
                                                      To="0.8" Duration="0:0:0.2"/>
-                                    <DoubleAnimation Storyboard.TargetName="PART_HorizontalScrollBar" 
+                                    <DoubleAnimation Storyboard.TargetName="PART_HorizontalScrollBar"
                                                      Storyboard.TargetProperty="Opacity"
                                                      To="0.8" Duration="0:0:0.2"/>
                                 </Storyboard>
@@ -153,10 +161,10 @@
                         <EventTrigger RoutedEvent="MouseLeave">
                             <BeginStoryboard>
                                 <Storyboard>
-                                    <DoubleAnimation Storyboard.TargetName="PART_VerticalScrollBar" 
+                                    <DoubleAnimation Storyboard.TargetName="PART_VerticalScrollBar"
                                                      Storyboard.TargetProperty="Opacity"
                                                      To="0.3" Duration="0:0:0.2"/>
-                                    <DoubleAnimation Storyboard.TargetName="PART_HorizontalScrollBar" 
+                                    <DoubleAnimation Storyboard.TargetName="PART_HorizontalScrollBar"
                                                      Storyboard.TargetProperty="Opacity"
                                                      To="0.3" Duration="0:0:0.2"/>
                                 </Storyboard>
@@ -167,4 +175,6 @@
             </Setter.Value>
         </Setter>
     </Style>
+
+    <Style TargetType="{x:Type ScrollBar}" BasedOn="{StaticResource ModernScrollBar}"/>
 </ResourceDictionary>

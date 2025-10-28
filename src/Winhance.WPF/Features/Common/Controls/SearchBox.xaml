@@ -4,7 +4,7 @@
              xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
              xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006" 
              xmlns:d="http://schemas.microsoft.com/expression/blend/2008" 
-             xmlns:materialDesign="http://materialdesigninxaml.net/winfx/xaml/themes"
+             xmlns:iconPacks="http://metro.mahapps.com/winfx/xaml/iconpacks"
              mc:Ignorable="d" 
              d:DesignHeight="36" d:DesignWidth="200">
     <Grid>
@@ -15,37 +15,69 @@
         </Grid.ColumnDefinitions>
         
         <!-- Search Icon -->
-        <materialDesign:PackIcon Grid.Column="0" 
-                                 Kind="Magnify" 
+        <iconPacks:PackIconMaterial Grid.Column="0" 
+                                 Kind="Magnify"
+                                 Height="16"
+                                 Width="16" 
                                  Style="{StaticResource MaterialIconStyle}"
                                  Margin="5,0,5,0"
                                  VerticalAlignment="Center"/>
         
-        <!-- Search TextBox -->
-        <TextBox Grid.Column="1"
-                 x:Name="SearchTextBox"
-                 materialDesign:HintAssist.Hint="Type here to search..."
-                 Text="{Binding SearchText, RelativeSource={RelativeSource AncestorType=UserControl}, UpdateSourceTrigger=PropertyChanged}"
-                 Foreground="{DynamicResource PrimaryTextColor}"
-                 Background="Transparent"
-                 BorderBrush="{DynamicResource ButtonBorderBrush}"
-                 CaretBrush="{DynamicResource PrimaryTextColor}"
-                 VerticalAlignment="Center"
-                 Height="30"
-                 Padding="5,0,2,0"
-                 Style="{StaticResource RoundedTextBoxStyle}"/>
+        <!-- Search TextBox with Placeholder -->
+        <Grid Grid.Column="1">
+            <TextBlock Text="Type here to search..."
+                       Foreground="{DynamicResource SecondaryTextColor}"
+                       VerticalAlignment="Center"
+                       Margin="10,0,2,0"
+                       IsHitTestVisible="False">
+                <TextBlock.Style>
+                    <Style TargetType="TextBlock">
+                        <Setter Property="Visibility" Value="Collapsed"/>
+                        <Style.Triggers>
+                            <MultiDataTrigger>
+                                <MultiDataTrigger.Conditions>
+                                    <Condition Binding="{Binding ElementName=SearchTextBox, Path=IsFocused}" Value="False"/>
+                                    <Condition Binding="{Binding ElementName=SearchTextBox, Path=Text.Length}" Value="0"/>
+                                </MultiDataTrigger.Conditions>
+                                <Setter Property="Visibility" Value="Visible"/>
+                            </MultiDataTrigger>
+                        </Style.Triggers>
+                    </Style>
+                </TextBlock.Style>
+            </TextBlock>
+            <TextBox x:Name="SearchTextBox"
+                     Text="{Binding SearchText, RelativeSource={RelativeSource AncestorType=UserControl}, UpdateSourceTrigger=PropertyChanged}"
+                     Foreground="{DynamicResource PrimaryTextColor}"
+                     Background="Transparent"
+                     BorderBrush="{DynamicResource ButtonBorderBrush}"
+                     CaretBrush="{DynamicResource PrimaryTextColor}"
+                     VerticalAlignment="Center"
+                     Height="30"
+                     Padding="5,0,2,0"
+                     LostFocus="SearchTextBox_LostFocus"
+                     Style="{StaticResource RoundedTextBoxStyle}"/>
+        </Grid>
         
-        <!-- Clear Button (only visible when there's text) -->
+        <!-- Clear Button (visible when focused) -->
         <Button Grid.Column="2"
-                Style="{StaticResource SearchClearButtonStyle}"
                 Width="24" Height="24"
                 Padding="0"
                 Margin="2,0,2,0"
-                Visibility="{Binding HasText, RelativeSource={RelativeSource AncestorType=UserControl}, Converter={StaticResource BooleanToVisibilityConverter}}"
+                Focusable="False"
                 Click="ClearButton_Click">
-            <materialDesign:PackIcon Kind="Close" 
-                                     Width="16" 
-                                     Height="16" 
+            <Button.Style>
+                <Style TargetType="Button" BasedOn="{StaticResource SearchClearButtonStyle}">
+                    <Setter Property="Visibility" Value="Collapsed"/>
+                    <Style.Triggers>
+                        <DataTrigger Binding="{Binding ElementName=SearchTextBox, Path=IsFocused}" Value="True">
+                            <Setter Property="Visibility" Value="Visible"/>
+                        </DataTrigger>
+                    </Style.Triggers>
+                </Style>
+            </Button.Style>
+            <iconPacks:PackIconMaterial Kind="Close"
+                                     Width="12"
+                                     Height="12"
                                      Foreground="{DynamicResource SecondaryTextColor}"/>
         </Button>
     </Grid>

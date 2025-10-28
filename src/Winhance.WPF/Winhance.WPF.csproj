@@ -27,11 +27,14 @@
     <ApplicationManifest Include="App.manifest" />
   </ItemGroup>
   <ItemGroup>
-    <Resource Include="Resources\Fonts\MaterialSymbolsOutlined.ttf" />
     <Resource Include="Resources\AppIcons\winhance-rocket.ico" />
     <Resource Include="Resources\AppIcons\winhance-rocket-white-transparent-bg.ico" />
     <Resource Include="Resources\AppIcons\winhance-rocket-black-transparent-bg.ico" />
     <Resource Include="Resources\AppIcons\LICENSE.txt" />
+  </ItemGroup>
+  <ItemGroup>
+    <EmbeddedResource Include="Resources\Configs\Winhance_Recommended_Config.winhance" />
+    <EmbeddedResource Include="Resources\AdvancedTools\autounattend-template.xml" />
   </ItemGroup>
   <ItemGroup>
     <ProjectReference Include="..\Winhance.Core\Winhance.Core.csproj" />
@@ -39,7 +42,9 @@
   </ItemGroup>
   <ItemGroup>
     <PackageReference Include="CommunityToolkit.Mvvm" Version="8.4.0" />
-    <PackageReference Include="MaterialDesignThemes" Version="5.2.1" />
+    <PackageReference Include="MahApps.Metro.IconPacks.Material" Version="6.1.0" />
+    <PackageReference Include="MahApps.Metro.IconPacks.MaterialDesign" Version="6.1.0" />
+    <PackageReference Include="MahApps.Metro.IconPacks.Lucide" Version="6.1.0" />
     <PackageReference Include="Microsoft.Extensions.DependencyInjection" Version="8.0.0" />
     <PackageReference Include="Microsoft.Extensions.Hosting" Version="8.0.0" />
     <PackageReference Include="Microsoft.Win32.Registry" Version="5.0.0" />

@@ -33,6 +33,8 @@ namespace Winhance.WPF.Features.SoftwareApps.ViewModels
         IInternetConnectivityService connectivityService)
         : BaseAppFeatureViewModel<AppItemViewModel>(progressService, logService, eventBus, dialogService, connectivityService)
     {
+        private System.Threading.Timer? _refreshTimer;
+        private CancellationTokenSource? _refreshCts;
         public override string ModuleId => FeatureIds.ExternalApps;
         public override string DisplayName => "External Apps";
 
@@ -49,8 +51,37 @@ namespace Winhance.WPF.Features.SoftwareApps.ViewModels
                         InitializeCollectionView();
                         UpdateAllItemsCollection();
                     }
-                    OnPropertyChanged(nameof(Categories));
+                    else
+                    {
+                        CleanupTableView();
+                        OnPropertyChanged(nameof(Categories));
+                    }
                 }
+            }
+        }
+
+        public override void OnNavigatedFrom()
+        {
+            CleanupTableView();
+            base.OnNavigatedFrom();
+        }
+
+        public void CleanupTableView()
+        {
+            if (!IsTableViewMode) return;
+
+            _refreshTimer?.Dispose();
+            _refreshTimer = null;
+
+            _refreshCts?.Cancel();
+            _refreshCts?.Dispose();
+            _refreshCts = null;
+
+            if (_allItemsView != null)
+            {
+                _allItemsView.Filter = null;
+                CleanupCollectionHandlers();
+                _allItemsView = null;
             }
         }
 
@@ -110,16 +141,33 @@ namespace Winhance.WPF.Features.SoftwareApps.ViewModels
 
         public void UpdateAllItemsCollection()
         {
-            if (_allItemsView != null)
+            if (!IsTableViewMode || _allItemsView == null) return;
+
+            _refreshCts?.Cancel();
+            _refreshCts?.Dispose();
+            _refreshCts = new CancellationTokenSource();
+
+            var token = _refreshCts.Token;
+
+            Task.Delay(150, token).ContinueWith(_ =>
             {
-                _allItemsView.Refresh();
-            }
+                if (!token.IsCancellationRequested && IsTableViewMode)
+                {
+                    Application.Current?.Dispatcher.Invoke(() =>
+                    {
+                        if (_allItemsView != null && IsTableViewMode && !token.IsCancellationRequested)
+                        {
+                            _allItemsView.Refresh();
+                        }
+                    });
+                }
+            }, TaskScheduler.Default);
         }
 
 
 
         [RelayCommand]
-        public async Task InstallApps()
+        public async Task InstallApps(bool skipConfirmation = false)
         {
             var selectedApps = GetSelectedItems();
             if (!selectedApps.Any())
@@ -129,12 +177,21 @@ namespace Winhance.WPF.Features.SoftwareApps.ViewModels
             }
 
             if (!await CheckConnectivityAsync()) return;
-            if (!await ShowConfirmationAsync("install", selectedApps)) return;
+            if (!skipConfirmation && !await ShowConfirmationAsync("install", selectedApps))
+                return;
 
-            await ExecuteWithProgressAsync(
-                progressService => ExecuteInstallOperation(selectedApps.ToList(), progressService.CreateDetailedProgress()),
-                "Installing External Apps"
-            );
+            try
+            {
+                await ExecuteWithProgressAsync(
+                    progressService => ExecuteInstallOperation(selectedApps.ToList(), progressService.CreateDetailedProgress(), skipResultDialog: skipConfirmation),
+                    "Installing External Apps"
+                );
+            }
+            catch (OperationCanceledException)
+            {
+                CurrentCancellationReason = CancellationReason.UserCancelled;
+                // No dialog needed - user knows they cancelled and task progress control disappears
+            }
         }
 
 
@@ -238,9 +295,20 @@ namespace Winhance.WPF.Features.SoftwareApps.ViewModels
             return true;
         }
 
+        private bool _collectionHandlersSetup = false;
+
         private void SetupCollectionChangeHandlers()
         {
+            if (_collectionHandlersSetup) return;
             Items.CollectionChanged += OnCollectionChanged;
+            _collectionHandlersSetup = true;
+        }
+
+        private void CleanupCollectionHandlers()
+        {
+            if (!_collectionHandlersSetup) return;
+            Items.CollectionChanged -= OnCollectionChanged;
+            _collectionHandlersSetup = false;
         }
 
         private void OnCollectionChanged(object sender, System.Collections.Specialized.NotifyCollectionChangedEventArgs e)
@@ -276,12 +344,18 @@ namespace Winhance.WPF.Features.SoftwareApps.ViewModels
 
         protected override void ApplySearch()
         {
-            if (_allItemsView != null)
+            if (IsTableViewMode)
             {
-                _allItemsView.Refresh();
+                if (_allItemsView != null)
+                {
+                    _allItemsView.Refresh();
+                }
+                UpdateAllItemsCollection();
             }
-            UpdateAllItemsCollection();
-            OnPropertyChanged(nameof(Categories));
+            else
+            {
+                OnPropertyChanged(nameof(Categories));
+            }
         }
 
         private IEnumerable<AppItemViewModel> GetFilteredItems()
@@ -301,7 +375,7 @@ namespace Winhance.WPF.Features.SoftwareApps.ViewModels
             return await ShowConfirmItemsDialogAsync(operationType, itemNames, items.Count()) == true;
         }
 
-        private async Task<int> ExecuteInstallOperation(List<AppItemViewModel> selectedApps, IProgress<TaskProgressDetail> progress, CancellationToken cancellationToken = default)
+        private async Task<int> ExecuteInstallOperation(List<AppItemViewModel> selectedApps, IProgress<TaskProgressDetail> progress, CancellationToken cancellationToken = default, bool skipResultDialog = false)
         {
             var results = new OperationResultAggregator();
 
@@ -311,9 +385,19 @@ namespace Winhance.WPF.Features.SoftwareApps.ViewModels
 
                 try
                 {
-                    var result = await appOperationService.InstallAppAsync(app.Definition, progress);
+                    var result = await appOperationService.InstallAppAsync(app.Definition, progress, shouldRemoveFromBloatScript: false);
+                    if (result.IsCancelled)
+                    {
+                        CurrentCancellationReason = CancellationReason.UserCancelled;
+                        break;
+                    }
                     results.Add(app.Name, result.Success && result.Result, result.ErrorMessage);
                     if (result.Success && result.Result) app.IsInstalled = true;
+                }
+                catch (OperationCanceledException)
+                {
+                    CurrentCancellationReason = CancellationReason.UserCancelled;
+                    break;
                 }
                 catch (Exception ex)
                 {
@@ -321,8 +405,9 @@ namespace Winhance.WPF.Features.SoftwareApps.ViewModels
                 }
             }
 
-            ShowOperationResultDialog("Install", results.SuccessCount, results.TotalCount,
-                results.SuccessItems, results.FailedItems);
+            if (!skipResultDialog)
+                await ShowOperationResultDialogAsync("Install", results.SuccessCount, results.TotalCount,
+                    results.SuccessItems, results.FailedItems);
 
             return results.SuccessCount;
         }
@@ -334,15 +419,48 @@ namespace Winhance.WPF.Features.SoftwareApps.ViewModels
         }
 
 
+        private bool _isUpdatingSelection = false;
+
         private void Item_PropertyChanged(object? sender, PropertyChangedEventArgs e)
         {
             if (e.PropertyName == nameof(AppItemViewModel.IsSelected))
             {
-                InvalidateHasSelectedItemsCache();
-                OnPropertyChanged(nameof(HasSelectedItems));
-                OnPropertyChanged(nameof(IsAllSelected));
-                SelectedItemsChanged?.Invoke(this, EventArgs.Empty);
+                if (_isUpdatingSelection) return;
+
+                try
+                {
+                    _isUpdatingSelection = true;
+                    InvalidateHasSelectedItemsCache();
+                    OnPropertyChanged(nameof(HasSelectedItems));
+                    OnPropertyChanged(nameof(IsAllSelected));
+                    SelectedItemsChanged?.Invoke(this, EventArgs.Empty);
+                }
+                finally
+                {
+                    _isUpdatingSelection = false;
+                }
             }
+        }
+
+        private void UnsubscribeFromItemPropertyChangedEvents()
+        {
+            foreach (var item in Items)
+            {
+                item.PropertyChanged -= Item_PropertyChanged;
+            }
+        }
+
+        protected override void Dispose(bool disposing)
+        {
+            if (disposing)
+            {
+                _refreshTimer?.Dispose();
+                _refreshCts?.Cancel();
+                _refreshCts?.Dispose();
+                CleanupCollectionHandlers();
+                UnsubscribeFromItemPropertyChangedEvents();
+            }
+            base.Dispose(disposing);
         }
     }
 }

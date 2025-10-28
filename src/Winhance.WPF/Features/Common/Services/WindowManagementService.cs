@@ -95,7 +95,7 @@ namespace Winhance.WPF.Features.Common.Services
             try
             {
                 logService?.LogInformation("Close window command executed");
-                await applicationCloseService.CloseApplicationWithSupportDialogAsync();
+                await applicationCloseService.CheckOperationsAndCloseAsync();
                 logService?.LogInformation("Application close service completed");
             }
             catch (Exception ex)

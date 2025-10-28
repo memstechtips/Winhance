@@ -9,10 +9,7 @@ using Winhance.Core.Features.Common.Models;
 
 namespace Winhance.WPF.Features.Common.Services
 {
-    /// <summary>
-    /// Service for managing user preferences
-    /// </summary>
-    public class UserPreferencesService
+    public class UserPreferencesService : IUserPreferencesService
     {
         private const string PreferencesFileName = "UserPreferences.json";
         private readonly ILogService _logService;

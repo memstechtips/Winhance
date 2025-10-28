@@ -5,7 +5,7 @@
              xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
              xmlns:viewModels="clr-namespace:Winhance.WPF.Features.Optimize.ViewModels"
              xmlns:commonControls="clr-namespace:Winhance.WPF.Features.Common.Controls"
-             xmlns:materialDesign="http://materialdesigninxaml.net/winfx/xaml/themes"
+             xmlns:iconPacks="http://metro.mahapps.com/winfx/xaml/iconpacks"
              d:DataContext="{d:DesignInstance Type=viewModels:OptimizeViewModel}"
              mc:Ignorable="d">
 
@@ -22,13 +22,13 @@
             </Grid.ColumnDefinitions>
 
             <!-- Icon -->
-            <TextBlock Grid.Column="0"
-                       Text="&#xEB9B;"
-                       FontFamily="{StaticResource MaterialSymbolsFont}"
-                       FontSize="60"
-                       Margin="10,0,10,0"
-                       VerticalAlignment="Center"
-                       Foreground="{DynamicResource PrimaryTextColor}"/>
+            <iconPacks:PackIconMaterial Grid.Column="0"
+                                     Kind="RocketLaunch"
+                                     Width="60"
+                                     Height="60"
+                                     Margin="10,0,10,0"
+                                     VerticalAlignment="Center"
+                                     Foreground="{DynamicResource PrimaryTextColor}"/>
 
             <!-- Title and Status with Quick Nav inline -->
             <StackPanel Grid.Column="1"

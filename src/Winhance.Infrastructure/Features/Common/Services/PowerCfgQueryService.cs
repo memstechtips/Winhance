@@ -11,9 +11,6 @@ public class PowerCfgQueryService(ICommandService commandService, ILogService lo
     private List<PowerPlan>? _cachedPlans;
     private DateTime _cacheTime;
     private readonly TimeSpan _cacheTimeout = TimeSpan.FromSeconds(2);
-    private Dictionary<string, int?>? _cachedCompatibleSettings;
-    private DateTime _compatibleSettingsCacheTime;
-    private readonly TimeSpan _compatibleSettingsCacheTimeout = TimeSpan.FromSeconds(1);
 
     public async Task<List<PowerPlan>> GetAvailablePowerPlansAsync()
     {
@@ -57,7 +54,6 @@ public class PowerCfgQueryService(ICommandService commandService, ILogService lo
     public void InvalidateCache()
     {
         _cachedPlans = null;
-        _cachedCompatibleSettings = null;
     }
 
     public async Task<PowerPlan> GetActivePowerPlanAsync()
@@ -136,7 +132,29 @@ public class PowerCfgQueryService(ICommandService commandService, ILogService lo
         }
     }
 
-    public async Task<Dictionary<string, int?>> GetAllPowerSettingsAsync(string powerPlanGuid = "SCHEME_CURRENT")
+    public async Task<(int? acValue, int? dcValue)> GetPowerSettingACDCValuesAsync(PowerCfgSetting powerCfgSetting)
+    {
+        try
+        {
+            var command = $"powercfg /query SCHEME_CURRENT {powerCfgSetting.SubgroupGuid} {powerCfgSetting.SettingGuid}";
+            var result = await commandService.ExecuteCommandAsync(command);
+
+            if (!result.Success || string.IsNullOrEmpty(result.Output))
+                return (null, null);
+
+            var acValue = OutputParser.PowerCfg.ParsePowerSettingValue(result.Output, "Current AC Power Setting Index:");
+            var dcValue = OutputParser.PowerCfg.ParsePowerSettingValue(result.Output, "Current DC Power Setting Index:");
+
+            return (acValue, dcValue);
+        }
+        catch (Exception ex)
+        {
+            logService.Log(LogLevel.Error, $"Error getting power setting AC/DC values: {ex.Message}");
+            return (null, null);
+        }
+    }
+
+    public async Task<Dictionary<string, (int? acValue, int? dcValue)>> GetAllPowerSettingsACDCAsync(string powerPlanGuid = "SCHEME_CURRENT")
     {
         try
         {
@@ -144,83 +162,24 @@ public class PowerCfgQueryService(ICommandService commandService, ILogService lo
             var result = await commandService.ExecuteCommandAsync(command);
 
             if (!result.Success || string.IsNullOrEmpty(result.Output))
-                return new Dictionary<string, int?>();
+                return new Dictionary<string, (int?, int?)>();
 
             var bulkResults = OutputParser.PowerCfg.ParseBulkPowerSettingsOutput(result.Output);
-            return OutputParser.PowerCfg.FlattenPowerSettings(bulkResults);
-        }
-        catch (Exception ex)
-        {
-            logService.Log(LogLevel.Error, $"Error in GetAllPowerSettingsAsync: {ex.Message}");
-            return new Dictionary<string, int?>();
-        }
-    }
 
-    public async Task<(Dictionary<string, int?> powerSettings, List<PowerPlan> powerPlans)> GetBulkPowerDataAsync()
-    {
-        var batchCommand = @"echo === POWER_PLANS_START === && powercfg /list && echo === POWER_PLANS_END === && echo === POWER_SETTINGS_START === && powercfg /query SCHEME_CURRENT && echo === POWER_SETTINGS_END ===";
-
-        var result = await commandService.ExecuteCommandAsync(batchCommand);
-
-        if (!result.Success || string.IsNullOrEmpty(result.Output))
-        {
-            return (new Dictionary<string, int?>(), new List<PowerPlan>());
-        }
-
-        try
-        {
-            var (powerPlans, powerSettings) = OutputParser.PowerCfg.ParseDelimitedPowerOutput(result.Output);
-            return (powerSettings, powerPlans);
-        }
-        catch (Exception ex)
-        {
-            logService.Log(LogLevel.Error, $"Error parsing bulk power output: {ex.Message}");
-            return (new Dictionary<string, int?>(), new List<PowerPlan>());
-        }
-    }
-
-    public async Task<Dictionary<string, int?>> GetCompatiblePowerSettingsStateAsync(IEnumerable<SettingDefinition> compatibleSettings)
-    {
-        if (_cachedCompatibleSettings != null && DateTime.UtcNow - _compatibleSettingsCacheTime < _compatibleSettingsCacheTimeout)
-        {
-            return _cachedCompatibleSettings;
-        }
-
-        var results = new Dictionary<string, int?>();
-        var powerSettings = compatibleSettings.Where(s => s.PowerCfgSettings?.Any() == true);
-
-        if (!powerSettings.Any())
-            return results;
-
-        try
-        {
-            var command = @"powercfg /query SCHEME_CURRENT | findstr /C:""Power Setting GUID:"" /C:""Current AC Power Setting Index:"" /C:""Current DC Power Setting Index:""";
-            var result = await commandService.ExecuteCommandAsync(command);
-
-            if (!result.Success || string.IsNullOrEmpty(result.Output))
-                return results;
-
-            var parsedSettings = OutputParser.PowerCfg.ParseFilteredPowerSettingsOutput(result.Output);
-
-            foreach (var setting in powerSettings)
+            var acDcResults = new Dictionary<string, (int? acValue, int? dcValue)>();
+            foreach (var (settingGuid, values) in bulkResults)
             {
-                var powerCfgSetting = setting.PowerCfgSettings[0];
-                var key = powerCfgSetting.SettingGuid;
-                if (parsedSettings.TryGetValue(key, out var value))
-                {
-                    results[key] = value;
-                }
+                var ac = values.TryGetValue("AC", out var acVal) ? acVal : null;
+                var dc = values.TryGetValue("DC", out var dcVal) ? dcVal : null;
+                acDcResults[settingGuid] = (ac, dc);
             }
 
-            _cachedCompatibleSettings = results;
-            _compatibleSettingsCacheTime = DateTime.UtcNow;
-
-            return results;
+            return acDcResults;
         }
         catch (Exception ex)
         {
-            logService.Log(LogLevel.Error, $"Error in GetCompatiblePowerSettingsAsync: {ex.Message}");
-            return results;
+            logService.Log(LogLevel.Error, $"Error in GetAllPowerSettingsACDCAsync: {ex.Message}");
+            return new Dictionary<string, (int?, int?)>();
         }
     }
 

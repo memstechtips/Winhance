@@ -25,6 +25,8 @@ namespace Winhance.WPF.Features.Common.ViewModels
         private readonly IInitializationService _initializationService;
         private readonly IComboBoxSetupService _comboBoxSetupService;
         private readonly ISystemSettingsDiscoveryService _discoveryService;
+        private readonly IUserPreferencesService _userPreferencesService;
+        private readonly IDialogService _dialogService;
         private ISubscriptionToken? _tooltipUpdatedSubscription;
         private ISubscriptionToken? _tooltipsBulkLoadedSubscription;
         private ISubscriptionToken? _featureComposedSubscription;
@@ -33,6 +35,10 @@ namespace Winhance.WPF.Features.Common.ViewModels
         private CancellationTokenSource? _debounceTokenSource;
         private bool _isApplyingNumericValue;
         private bool _isRefreshingComboBox = false;
+        private object? _lastConfirmedSelectedValue;
+        private object? _lastConfirmedACValue;
+        private object? _lastConfirmedDCValue;
+        private bool _hasChangedThisSession = false;
 
         public ISettingsFeatureViewModel? ParentFeatureViewModel { get; set; }
         public SettingDefinition? SettingDefinition { get; set; }
@@ -67,6 +73,9 @@ namespace Winhance.WPF.Features.Common.ViewModels
         private string _status = string.Empty;
 
         [ObservableProperty]
+        private string? _warningText;
+
+        [ObservableProperty]
         private InputType _inputType;
 
         [ObservableProperty]
@@ -85,6 +94,9 @@ namespace Winhance.WPF.Features.Common.ViewModels
         [ObservableProperty]
         private ObservableCollection<Winhance.Core.Features.Common.Interfaces.ComboBoxOption> _comboBoxOptions =
             new();
+
+        [ObservableProperty]
+        private Winhance.Core.Features.Common.Interfaces.ComboBoxOption? _selectedComboBoxItem;
 
         [ObservableProperty]
         private int _numericValue;
@@ -150,6 +162,9 @@ namespace Winhance.WPF.Features.Common.ViewModels
         private string? _icon;
 
         [ObservableProperty]
+        private string? _iconPack = "Material";
+
+        [ObservableProperty]
         private bool _requiresConfirmation;
 
         [ObservableProperty]
@@ -164,13 +179,104 @@ namespace Winhance.WPF.Features.Common.ViewModels
         [ObservableProperty]
         private SettingTooltipData? _tooltipData;
 
+        [ObservableProperty]
+        private object? _aCValue;
+
+        partial void OnACValueChanged(object? value)
+        {
+            if (IsApplying || _isInitializing)
+                return;
+
+            _ = Task.Run(async () => await HandleACValueChangedAsync(value));
+        }
+
+        [ObservableProperty]
+        private object? _dCValue;
+
+        partial void OnDCValueChanged(object? value)
+        {
+            if (IsApplying || _isInitializing)
+                return;
+
+            _ = Task.Run(async () => await HandleDCValueChangedAsync(value));
+        }
+
+        [ObservableProperty]
+        private int _aCNumericValue;
+
+        partial void OnACNumericValueChanged(int value)
+        {
+            if (IsApplying || _isInitializing)
+                return;
+
+            if (_initializationService.IsGloballyInitializing)
+            {
+                _logService.Log(LogLevel.Error, $"ACNumericValue change blocked during global initialization: {SettingId}");
+                return;
+            }
+
+            _debounceTokenSource?.Cancel();
+            _debounceTokenSource = new CancellationTokenSource();
+
+            _ = Task.Run(async () =>
+            {
+                try
+                {
+                    await Task.Delay(500, _debounceTokenSource.Token);
+                    await HandleACNumericValueChangedAsync(value);
+                }
+                catch (OperationCanceledException)
+                {
+                }
+            });
+        }
+
+        [ObservableProperty]
+        private int _dCNumericValue;
+
+        partial void OnDCNumericValueChanged(int value)
+        {
+            if (IsApplying || _isInitializing)
+                return;
+
+            if (_initializationService.IsGloballyInitializing)
+            {
+                _logService.Log(LogLevel.Error, $"DCNumericValue change blocked during global initialization: {SettingId}");
+                return;
+            }
+
+            _debounceTokenSource?.Cancel();
+            _debounceTokenSource = new CancellationTokenSource();
+
+            _ = Task.Run(async () =>
+            {
+                try
+                {
+                    await Task.Delay(500, _debounceTokenSource.Token);
+                    await HandleDCNumericValueChangedAsync(value);
+                }
+                catch (OperationCanceledException)
+                {
+                }
+            });
+        }
+
         public bool IsSubSetting => !string.IsNullOrEmpty(SettingDefinition?.ParentSettingId);
+
+        public bool SupportsSeparateACDC => SettingDefinition?.PowerCfgSettings?.Any(p =>
+            p.PowerModeSupport == PowerModeSupport.Separate) == true;
+
+        public bool RequiresAdvancedUnlock => SettingDefinition?.RequiresAdvancedUnlock == true;
+
+        [ObservableProperty]
+        private bool _isLocked;
 
         public IAsyncRelayCommand ToggleCommand { get; }
         public IAsyncRelayCommand<object> ValueChangedCommand { get; }
         public IAsyncRelayCommand ActionCommand { get; }
+        public IAsyncRelayCommand UnlockCommand { get; }
 
-        public void SetupNumericUpDown(SettingDefinition setting, object? currentValue)
+        public void SetupNumericUpDown(SettingDefinition setting, object? currentValue, Dictionary<string, object?>? rawValues = null)
         {
             if (setting.InputType != InputType.NumericRange)
                 return;
@@ -184,11 +290,22 @@ namespace Winhance.WPF.Features.Common.ViewModels
                 Units = setting.CustomProperties.TryGetValue("Units", out var units) ? (string)units : "";
             }
 
-            if (currentValue is int intValue)
+            if (SupportsSeparateACDC && rawValues != null)
             {
-                // Convert system value to display value if needed
+                if (rawValues.TryGetValue("ACValue", out var acVal) && acVal is int acIntValue)
+                {
+                    ACNumericValue = ConvertSystemValueToDisplayValue(setting, acIntValue);
+                }
+
+                if (rawValues.TryGetValue("DCValue", out var dcVal) && dcVal is int dcIntValue)
+                {
+                    DCNumericValue = ConvertSystemValueToDisplayValue(setting, dcIntValue);
+                }
+            }
+            else if (currentValue is int intValue)
+            {
                 var displayValue = ConvertSystemValueToDisplayValue(setting, intValue);
-                
+
                 if (MaxValue != int.MaxValue && displayValue > MaxValue)
                 {
                     _logService.Log(LogLevel.Warning, $"Converted value {displayValue} exceeds MaxValue {MaxValue} for {setting.Id} - leaving empty");
@@ -207,11 +324,12 @@ namespace Winhance.WPF.Features.Common.ViewModels
             SettingDefinition setting,
             object? currentValue,
             IComboBoxSetupService comboBoxSetupService,
-            ILogService logService
+            ILogService logService,
+            Dictionary<string, object?>? rawValues = null
         )
         {
             _logService.Log(LogLevel.Info, $"[SettingItemViewModel] SetupComboBox called for '{SettingId}' with currentValue: {currentValue}");
-            
+
             if (setting.InputType != InputType.Selection)
             {
                 _logService.Log(LogLevel.Info, $"[SettingItemViewModel] Setting '{SettingId}' is not Selection type, skipping combobox setup");
@@ -220,11 +338,11 @@ namespace Winhance.WPF.Features.Common.ViewModels
 
             _logService.Log(LogLevel.Info, $"[SettingItemViewModel] Calling ComboBoxSetupService for '{SettingId}' - currentValue will be resolved to index");
             var comboBoxSetupResult = await comboBoxSetupService.SetupComboBoxOptionsAsync(setting, currentValue);
-            
+
             if (comboBoxSetupResult.Success)
             {
                 _logService.Log(LogLevel.Info, $"[SettingItemViewModel] ComboBox setup successful for '{SettingId}', adding {comboBoxSetupResult.Options.Count} options");
-                
+
                 Application.Current.Dispatcher.Invoke(() =>
                 {
                     foreach (var option in comboBoxSetupResult.Options)
@@ -240,7 +358,25 @@ namespace Winhance.WPF.Features.Common.ViewModels
 
                 _logService.Log(LogLevel.Info, $"[SettingItemViewModel] Setting SelectedValue to resolved index: {comboBoxSetupResult.SelectedValue} for '{SettingId}'");
                 SelectedValue = comboBoxSetupResult.SelectedValue;
+                _lastConfirmedSelectedValue = comboBoxSetupResult.SelectedValue;
+                UpdateWarningText(comboBoxSetupResult.SelectedValue);
 
+                if (SupportsSeparateACDC && rawValues != null)
+                {
+                    if (rawValues.TryGetValue("ACValue", out var acVal))
+                    {
+                        var acIndex = comboBoxSetupService.ResolveIndexFromRawValues(setting, new Dictionary<string, object?> { ["PowerCfgValue"] = acVal });
+                        ACValue = acIndex;
+                        _lastConfirmedACValue = acIndex;
+                    }
+
+                    if (rawValues.TryGetValue("DCValue", out var dcVal))
+                    {
+                        var dcIndex = comboBoxSetupService.ResolveIndexFromRawValues(setting, new Dictionary<string, object?> { ["PowerCfgValue"] = dcVal });
+                        DCValue = dcIndex;
+                        _lastConfirmedDCValue = dcIndex;
+                    }
+                }
             }
             else
             {
@@ -260,7 +396,9 @@ namespace Winhance.WPF.Features.Common.ViewModels
             IDomainServiceRouter domainServiceRouter,
             IInitializationService initializationService,
             IComboBoxSetupService comboBoxSetupService,
-            ISystemSettingsDiscoveryService discoveryService
+            ISystemSettingsDiscoveryService discoveryService,
+            IUserPreferencesService userPreferencesService,
+            IDialogService dialogService
         )
         {
             _settingApplicationService =
@@ -272,10 +410,13 @@ namespace Winhance.WPF.Features.Common.ViewModels
             _initializationService = initializationService ?? throw new ArgumentNullException(nameof(initializationService));
             _comboBoxSetupService = comboBoxSetupService ?? throw new ArgumentNullException(nameof(comboBoxSetupService));
             _discoveryService = discoveryService ?? throw new ArgumentNullException(nameof(discoveryService));
+            _userPreferencesService = userPreferencesService ?? throw new ArgumentNullException(nameof(userPreferencesService));
+            _dialogService = dialogService ?? throw new ArgumentNullException(nameof(dialogService));
 
             ToggleCommand = new AsyncRelayCommand(HandleToggleAsync);
             ValueChangedCommand = new AsyncRelayCommand<object>(HandleValueChangedAsync);
             ActionCommand = new AsyncRelayCommand(HandleActionAsync);
+            UnlockCommand = new AsyncRelayCommand(HandleUnlockAsync);
 
             _tooltipUpdatedSubscription = _eventBus.Subscribe<TooltipUpdatedEvent>(
                 HandleTooltipUpdated
@@ -311,6 +452,8 @@ namespace Winhance.WPF.Features.Common.ViewModels
 
                 await _settingApplicationService.ApplySettingAsync(SettingId, IsSelected, SelectedValue, checkboxResult);
 
+                _hasChangedThisSession = true;
+                ShowRestartWarningIfNeeded();
                 Status = "Applied";
                 UpdateChildSettings();
             }
@@ -375,59 +518,55 @@ namespace Winhance.WPF.Features.Common.ViewModels
         private async Task HandleValueChangedAsync(object? value)
         {
             _logService.Log(LogLevel.Info, $"[SettingItemViewModel] HandleValueChangedAsync called for '{SettingId}' with value: {value}");
-            
+
             if (IsApplying || _isRefreshingComboBox)
                 return;
 
-            var previousValue = SelectedValue;
+            var previousValue = _lastConfirmedSelectedValue;
             var setting = await GetSettingDefinition();
-            IsApplying = true;
-            Status = "Applying...";
 
             try
             {
                 var (canProceed, checkboxResult) = await HandleConfirmationIfNeeded(SelectedValue);
                 if (!canProceed)
                 {
-                    SelectedValue = previousValue;
-                    Status = string.Empty;
-                    IsApplying = false;
+                    Application.Current.Dispatcher.Invoke(() =>
+                    {
+                        _isInitializing = true;
+                        SelectedValue = previousValue;
+                        _isInitializing = false;
+                    });
                     return;
                 }
 
-                if (ParentFeatureViewModel != null && setting != null && setting.RequiresDomainServiceContext)
-                {
-                    _logService.Log(LogLevel.Info, $"[SettingItemViewModel] Delegating '{SettingId}' to parent ViewModel for complete handling");
-                    
-                    var success = await ParentFeatureViewModel.HandleDomainContextSettingAsync(setting, SelectedValue, checkboxResult);
-                    if (success)
-                    {
-                        Status = "Applied";
-                        return;
-                    }
-                    else
-                    {
-                        throw new InvalidOperationException($"Parent ViewModel failed to handle setting '{SettingId}'");
-                    }
-                }
+                UpdateWarningText(value);
+                IsApplying = true;
+                Status = "Applying...";
 
-                _logService.Log(LogLevel.Info, $"[SettingItemViewModel] Executing operation for '{SettingId}' via SettingApplicationService");
                 bool enableFlag = InputType == InputType.Selection ? true : IsSelected;
-                
+
                 await _settingApplicationService.ApplySettingAsync(SettingId, enableFlag, SelectedValue, checkboxResult);
+                _hasChangedThisSession = true;
+                ShowRestartWarningIfNeeded();
                 Status = "Applied";
+                _lastConfirmedSelectedValue = value;
                 UpdateChildSettings();
             }
             catch (Exception ex)
             {
                 _logService.Log(LogLevel.Error, $"[SettingItemViewModel] Exception applying setting '{SettingId}': {ex.Message}");
                 Status = "Error";
-                SelectedValue = previousValue;
+                Application.Current.Dispatcher.Invoke(() =>
+                {
+                    _isInitializing = true;
+                    SelectedValue = previousValue;
+                    _isInitializing = false;
+                });
             }
             finally
             {
                 IsApplying = false;
-                _ = Task.Run(async () => 
+                _ = Task.Run(async () =>
                 {
                     await Task.Delay(3000);
                     Application.Current.Dispatcher.Invoke(() => Status = string.Empty);
@@ -480,7 +619,7 @@ namespace Winhance.WPF.Features.Common.ViewModels
             try
             {
                 _logService.Log(LogLevel.Info, $"[SettingItemViewModel] RefreshStateAsync called for '{SettingId}', current SelectedValue: {SelectedValue}");
-                
+
                 var setting = await GetSettingDefinition();
 
                 var results = await _discoveryService.GetSettingStatesAsync(new[] { setting });
@@ -490,13 +629,23 @@ namespace Winhance.WPF.Features.Common.ViewModels
                     await Application.Current.Dispatcher.InvokeAsync(() =>
                     {
                         _isInitializing = true;
+
+                        var previousIsSelected = IsSelected;
                         IsSelected = result.IsEnabled;
-                        
+
                         if (InputType == InputType.Selection)
                         {
                             var resolvedIndex = _comboBoxSetupService.ResolveIndexFromRawValues(setting, result.RawValues ?? new Dictionary<string, object?>());
                             _logService.Log(LogLevel.Info, $"[SettingItemViewModel] RefreshStateAsync for '{SettingId}' - resolved index: {resolvedIndex}, current SelectedValue: {SelectedValue}, changing SelectedValue to: {resolvedIndex}");
+
+                            var previousSelectedValue = SelectedValue;
                             SelectedValue = resolvedIndex;
+                            _lastConfirmedSelectedValue = resolvedIndex;
+
+                            if (previousSelectedValue != SelectedValue)
+                            {
+                                UpdateChildSettings();
+                            }
                         }
                         else
                         {
@@ -510,6 +659,11 @@ namespace Winhance.WPF.Features.Common.ViewModels
                         }
 
                         _isInitializing = false;
+
+                        if (InputType == InputType.Toggle && previousIsSelected != IsSelected)
+                        {
+                            UpdateChildSettings();
+                        }
                     });
                 }
             }
@@ -587,16 +741,6 @@ namespace Winhance.WPF.Features.Common.ViewModels
         {
             if (evt.SettingId == SettingId)
             {
-                _logService.Log(LogLevel.Info, $"[SettingItemViewModel] HandleSettingApplied called for '{SettingId}'");
-                
-                var setting = await GetSettingDefinition();
-                if (setting?.RequiresDomainServiceContext == true)
-                {
-                    _logService.Log(LogLevel.Info, $"[SettingItemViewModel] Skipping RefreshStateAsync for domain-handled setting '{SettingId}' - domain service manages its own UI updates");
-                    return;
-                }
-                
-                _logService.Log(LogLevel.Info, $"[SettingItemViewModel] Triggering RefreshStateAsync for regular setting '{SettingId}'");
                 await RefreshStateAsync();
             }
         }
@@ -637,20 +781,301 @@ namespace Winhance.WPF.Features.Common.ViewModels
         private void UpdateChildSettings()
         {
             if (ParentFeatureViewModel?.Settings == null) return;
-            
+
             var children = ParentFeatureViewModel.Settings
                 .Where(s => s.SettingDefinition?.ParentSettingId == SettingId);
-                
+
             bool parentEnabled = InputType switch
             {
                 InputType.Toggle => IsSelected,
                 InputType.Selection => SelectedValue is int index && index != 0,
                 _ => IsSelected
             };
-                
+
             foreach (var child in children)
             {
                 child.ParentIsEnabled = parentEnabled;
+            }
+        }
+
+        private void UpdateWarningText(object? value)
+        {
+            if (SettingDefinition == null || value is not int selectedIndex)
+            {
+                WarningText = null;
+                return;
+            }
+
+            if (SettingDefinition.CustomProperties?.TryGetValue(CustomPropertyKeys.OptionWarnings, out var warnings) == true &&
+                warnings is Dictionary<int, string> warningDict &&
+                warningDict.TryGetValue(selectedIndex, out var warning))
+            {
+                WarningText = warning;
+            }
+            else
+            {
+                WarningText = null;
+            }
+        }
+
+        private void ShowRestartWarningIfNeeded()
+        {
+            if (!_hasChangedThisSession)
+                return;
+
+            if (SettingDefinition?.CustomProperties?.TryGetValue(
+                CustomPropertyKeys.RequiresRestartMessage, out var message) == true &&
+                message is string messageText)
+            {
+                WarningText = messageText;
+            }
+        }
+
+        private async Task HandleACValueChangedAsync(object? value)
+        {
+            if (IsApplying) return;
+
+            var previousValue = _lastConfirmedACValue;
+            var setting = await GetSettingDefinition();
+            IsApplying = true;
+            Status = "Applying...";
+
+            try
+            {
+                var (canProceed, checkboxResult) = await HandleConfirmationIfNeeded(value);
+                if (!canProceed)
+                {
+                    Application.Current.Dispatcher.Invoke(() =>
+                    {
+                        _isInitializing = true;
+                        ACValue = previousValue;
+                        _isInitializing = false;
+                    });
+                    Status = string.Empty;
+                    IsApplying = false;
+                    return;
+                }
+
+                var combinedValue = new Dictionary<string, object?>
+                {
+                    ["ACValue"] = value,
+                    ["DCValue"] = DCValue
+                };
+
+                await _settingApplicationService.ApplySettingAsync(SettingId, true, combinedValue, checkboxResult);
+                Status = "Applied";
+                _lastConfirmedACValue = value;
+                UpdateChildSettings();
+            }
+            catch (Exception ex)
+            {
+                Status = "Error";
+                Application.Current.Dispatcher.Invoke(() =>
+                {
+                    _isInitializing = true;
+                    ACValue = previousValue;
+                    _isInitializing = false;
+                });
+                _logService.Log(LogLevel.Error, $"Exception applying AC value for setting {SettingId}: {ex.Message}");
+            }
+            finally
+            {
+                IsApplying = false;
+                _ = Task.Run(async () =>
+                {
+                    await Task.Delay(3000);
+                    Application.Current.Dispatcher.Invoke(() => Status = string.Empty);
+                });
+            }
+        }
+
+        private async Task HandleDCValueChangedAsync(object? value)
+        {
+            if (IsApplying) return;
+
+            var previousValue = _lastConfirmedDCValue;
+            var setting = await GetSettingDefinition();
+            IsApplying = true;
+            Status = "Applying...";
+
+            try
+            {
+                var (canProceed, checkboxResult) = await HandleConfirmationIfNeeded(value);
+                if (!canProceed)
+                {
+                    Application.Current.Dispatcher.Invoke(() =>
+                    {
+                        _isInitializing = true;
+                        DCValue = previousValue;
+                        _isInitializing = false;
+                    });
+                    Status = string.Empty;
+                    IsApplying = false;
+                    return;
+                }
+
+                var combinedValue = new Dictionary<string, object?>
+                {
+                    ["ACValue"] = ACValue,
+                    ["DCValue"] = value
+                };
+
+                await _settingApplicationService.ApplySettingAsync(SettingId, true, combinedValue, checkboxResult);
+                Status = "Applied";
+                _lastConfirmedDCValue = value;
+                UpdateChildSettings();
+            }
+            catch (Exception ex)
+            {
+                Status = "Error";
+                Application.Current.Dispatcher.Invoke(() =>
+                {
+                    _isInitializing = true;
+                    DCValue = previousValue;
+                    _isInitializing = false;
+                });
+                _logService.Log(LogLevel.Error, $"Exception applying DC value for setting {SettingId}: {ex.Message}");
+            }
+            finally
+            {
+                IsApplying = false;
+                _ = Task.Run(async () =>
+                {
+                    await Task.Delay(3000);
+                    Application.Current.Dispatcher.Invoke(() => Status = string.Empty);
+                });
+            }
+        }
+
+        private async Task HandleACNumericValueChangedAsync(int displayValue)
+        {
+            if (IsApplying) return;
+
+            _isApplyingNumericValue = true;
+            var previousValue = ACNumericValue;
+            IsApplying = true;
+            Status = "Applying...";
+
+            try
+            {
+                var systemValue = ConvertDisplayValueToSystemValue(displayValue);
+
+                var combinedValue = new Dictionary<string, object?>
+                {
+                    ["ACValue"] = systemValue,
+                    ["DCValue"] = ConvertDisplayValueToSystemValue(DCNumericValue)
+                };
+
+                await _settingApplicationService.ApplySettingAsync(SettingId, IsSelected, combinedValue);
+
+                await Task.Delay(100);
+                Status = "Applied";
+                UpdateChildSettings();
+            }
+            catch (Exception ex)
+            {
+                Status = "Error";
+                ACNumericValue = previousValue;
+                _logService.Log(LogLevel.Error, $"Exception applying AC numeric setting {SettingId}: {ex.Message}");
+            }
+            finally
+            {
+                IsApplying = false;
+                _isApplyingNumericValue = false;
+                _ = Task.Run(async () =>
+                {
+                    await Task.Delay(3000);
+                    Application.Current.Dispatcher.Invoke(() => Status = string.Empty);
+                });
+            }
+        }
+
+        private async Task HandleDCNumericValueChangedAsync(int displayValue)
+        {
+            if (IsApplying) return;
+
+            _isApplyingNumericValue = true;
+            var previousValue = DCNumericValue;
+            IsApplying = true;
+            Status = "Applying...";
+
+            try
+            {
+                var systemValue = ConvertDisplayValueToSystemValue(displayValue);
+
+                var combinedValue = new Dictionary<string, object?>
+                {
+                    ["ACValue"] = ConvertDisplayValueToSystemValue(ACNumericValue),
+                    ["DCValue"] = systemValue
+                };
+
+                await _settingApplicationService.ApplySettingAsync(SettingId, IsSelected, combinedValue);
+
+                await Task.Delay(100);
+                Status = "Applied";
+                UpdateChildSettings();
+            }
+            catch (Exception ex)
+            {
+                Status = "Error";
+                DCNumericValue = previousValue;
+                _logService.Log(LogLevel.Error, $"Exception applying DC numeric setting {SettingId}: {ex.Message}");
+            }
+            finally
+            {
+                IsApplying = false;
+                _isApplyingNumericValue = false;
+                _ = Task.Run(async () =>
+                {
+                    await Task.Delay(3000);
+                    Application.Current.Dispatcher.Invoke(() => Status = string.Empty);
+                });
+            }
+        }
+
+        private async Task HandleUnlockAsync()
+        {
+            if (!IsLocked) return;
+
+            var message = "⚠️ Advanced Power Setting Warning\n\n" +
+                          "This setting is not normally exposed in Windows Power Options and requires registry modifications to access.\n\n" +
+                          "Modifying it incorrectly may cause:\n" +
+                          "• System instability or unexpected behavior\n" +
+                          "• Performance degradation\n" +
+                          "• Thermal management problems\n" +
+                          "• Settings may not work on all CPU types (modern HWP vs legacy)\n\n" +
+                          "Only change this if you understand processor power management.\n\n" +
+                          "Are you sure you want to modify this setting?";
+
+            var (confirmed, dontShowAgain) = await _dialogService.ShowConfirmationWithCheckboxAsync(
+                message,
+                "Don't show this warning again for advanced power settings",
+                "Advanced Setting Warning",
+                "Unlock",
+                "Cancel",
+                "AlertCircle"
+            );
+
+            if (confirmed)
+            {
+                IsLocked = false;
+
+                if (dontShowAgain)
+                {
+                    await _userPreferencesService.SetPreferenceAsync("AdvancedPowerSettingsUnlocked", true);
+                    _logService.Log(LogLevel.Info, "User permanently unlocked advanced power settings");
+
+                    if (ParentFeatureViewModel != null)
+                    {
+                        foreach (var setting in ParentFeatureViewModel.Settings)
+                        {
+                            if (setting.RequiresAdvancedUnlock && setting != this)
+                            {
+                                setting.IsLocked = false;
+                            }
+                        }
+                    }
+                }
             }
         }
 

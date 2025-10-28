@@ -1,10 +1,11 @@
 <UserControl x:Class="Winhance.WPF.Features.Common.Controls.MoreMenuFlyout"
              xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
              xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
-             xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006" 
-             xmlns:d="http://schemas.microsoft.com/expression/blend/2008" 
+             xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
+             xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
              xmlns:viewModels="clr-namespace:Winhance.WPF.Features.Common.ViewModels"
-             mc:Ignorable="d" 
+             xmlns:iconPacks="http://metro.mahapps.com/winfx/xaml/iconpacks"
+             mc:Ignorable="d"
              d:DataContext="{d:DesignInstance Type=viewModels:MoreMenuViewModel}">
     
     <UserControl.Resources>
@@ -72,7 +73,7 @@
                     Height="40"
                     Margin="0,1">
                 <StackPanel Orientation="Horizontal">
-                    <TextBlock Text="&#xE88E;" FontFamily="{DynamicResource MaterialSymbolsFont}" VerticalAlignment="Center" Margin="0,0,12,0" FontSize="18"/>
+                    <iconPacks:PackIconMaterial Kind="Information" Width="14" Height="14" VerticalAlignment="Center" Margin="0,0,12,0"/>
                     <TextBlock Text="{Binding VersionInfo}" Style="{DynamicResource VersionInfoTextStyle}"/>
                 </StackPanel>
             </Button>
@@ -86,7 +87,7 @@
                     Height="40"
                     Margin="0,1">
                 <StackPanel Orientation="Horizontal">
-                    <TextBlock Text="&#xE881;" FontFamily="{DynamicResource MaterialSymbolsFont}" VerticalAlignment="Center" Margin="0,0,12,0" FontSize="18"/>
+                    <iconPacks:PackIconMaterial Kind="Download" Width="14" Height="14" VerticalAlignment="Center" Margin="0,0,12,0"/>
                     <TextBlock Text="Check for Updates" VerticalAlignment="Center" FontSize="14"/>
                 </StackPanel>
             </Button>
@@ -103,7 +104,7 @@
                     Height="40"
                     Margin="0,1">
                 <StackPanel Orientation="Horizontal">
-                    <TextBlock Text="&#xE46E;" FontFamily="{DynamicResource MaterialSymbolsFont}" VerticalAlignment="Center" Margin="0,0,12,0" FontSize="18"/>
+                    <iconPacks:PackIconMaterial Kind="FolderOpen" Width="14" Height="14" VerticalAlignment="Center" Margin="0,0,12,0"/>
                     <TextBlock Text="Winhance Logs" VerticalAlignment="Center" FontSize="14"/>
                 </StackPanel>
             </Button>
@@ -117,7 +118,7 @@
                     Height="40"
                     Margin="0,1">
                 <StackPanel Orientation="Horizontal">
-                    <TextBlock Text="&#xF3C8;" FontFamily="{DynamicResource MaterialSymbolsFont}" VerticalAlignment="Center" Margin="0,0,12,0" FontSize="18"/>
+                    <iconPacks:PackIconMaterial Kind="Script" Width="14" Height="14" VerticalAlignment="Center" Margin="0,0,12,0"/>
                     <TextBlock Text="Winhance Scripts" VerticalAlignment="Center" FontSize="14"/>
                 </StackPanel>
             </Button>
@@ -134,7 +135,7 @@
                     Height="40"
                     Margin="0,1">
                 <StackPanel Orientation="Horizontal">
-                    <TextBlock Text="&#xE5CD;" FontFamily="{DynamicResource MaterialSymbolsFont}" VerticalAlignment="Center" Margin="0,0,12,0" FontSize="18"/>
+                    <iconPacks:PackIconMaterial Kind="Close" Width="12" Height="12" VerticalAlignment="Center" Margin="0,0,12,0"/>
                     <TextBlock Text="Close Winhance" VerticalAlignment="Center" FontSize="14"/>
                 </StackPanel>
             </Button>

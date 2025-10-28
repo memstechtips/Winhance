@@ -24,15 +24,24 @@
         <BitmapImage x:Key="BlackIcon" UriSource="pack://application:,,,/Resources/AppIcons/winhance-rocket-black-transparent-bg.ico" />
     </Window.Resources>
     
-    <Border CornerRadius="10"
-            BorderThickness="1"
-            BorderBrush="{DynamicResource ButtonBorderBrush}"
-            Background="{DynamicResource WindowBackground}">
-        <Border.Effect>
-            <DropShadowEffect ShadowDepth="5" BlurRadius="10" Color="Black" Opacity="0.5"/>
-        </Border.Effect>
-        
-        <Grid Margin="20">
+    <Grid>
+        <Grid.OpacityMask>
+            <VisualBrush>
+                <VisualBrush.Visual>
+                    <Border Background="Black"
+                            CornerRadius="10"
+                            Width="{Binding ActualWidth, RelativeSource={RelativeSource AncestorType=Grid}}"
+                            Height="{Binding ActualHeight, RelativeSource={RelativeSource AncestorType=Grid}}"/>
+                </VisualBrush.Visual>
+            </VisualBrush>
+        </Grid.OpacityMask>
+
+        <Border CornerRadius="10"
+                BorderThickness="0"
+                BorderBrush="Transparent"
+                Background="{DynamicResource WindowBackground}">
+
+            <Grid Margin="20">
             <Grid.RowDefinitions>
                 <RowDefinition Height="Auto"/>
                 <RowDefinition Height="Auto"/>
@@ -143,6 +152,7 @@
                         Style="{StaticResource DialogButtonStyle}"
                         Click="PrimaryButton_Click"/>
             </StackPanel>
-        </Grid>
-    </Border>
+            </Grid>
+        </Border>
+    </Grid>
 </Window>

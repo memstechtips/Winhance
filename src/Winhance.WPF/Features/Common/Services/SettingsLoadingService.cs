@@ -25,7 +25,9 @@ namespace Winhance.WPF.Features.Common.Services
         IGlobalSettingsRegistry globalSettingsRegistry,
         IInitializationService initializationService,
         IPowerPlanComboBoxService powerPlanComboBoxService,
-        IComboBoxResolver comboBoxResolver) : ISettingsLoadingService
+        IComboBoxResolver comboBoxResolver,
+        IUserPreferencesService userPreferencesService,
+        IDialogService dialogService) : ISettingsLoadingService
     {
 
         public async Task<ObservableCollection<object>> LoadConfiguredSettingsAsync<TDomainService>(
@@ -71,14 +73,14 @@ namespace Winhance.WPF.Features.Common.Services
                 var comboBoxSettings = settingsList.Where(s => s.InputType == InputType.Selection);
                 foreach (var setting in comboBoxSettings)
                 {
-                    var viewModel = CreateSettingViewModel(setting, batchStates, parentViewModel);
+                    var viewModel = await CreateSettingViewModelAsync(setting, batchStates, parentViewModel);
                     var currentState = batchStates.TryGetValue(setting.Id, out var state) ? state : new SettingStateResult();
-                    
+
                     comboBoxTasks[setting.Id] = Task.Run(async () =>
                     {
-                        try 
+                        try
                         {
-                            await viewModel.SetupComboBoxAsync(setting, currentState.CurrentValue, comboBoxSetupService, logService);
+                            await viewModel.SetupComboBoxAsync(setting, currentState.CurrentValue, comboBoxSetupService, logService, currentState.RawValues);
                             return (viewModel, success: true);
                         }
                         catch
@@ -99,7 +101,7 @@ namespace Winhance.WPF.Features.Common.Services
                     }
                     else
                     {
-                        var viewModel = CreateSettingViewModel(setting, batchStates, parentViewModel);
+                        var viewModel = await CreateSettingViewModelAsync(setting, batchStates, parentViewModel);
                         settingViewModels.Add(viewModel);
                     }
                 }
@@ -121,11 +123,11 @@ namespace Winhance.WPF.Features.Common.Services
             }
         }
 
-        private SettingItemViewModel CreateSettingViewModel(SettingDefinition setting, Dictionary<string, SettingStateResult> batchStates, ISettingsFeatureViewModel? parentViewModel)
+        private async Task<SettingItemViewModel> CreateSettingViewModelAsync(SettingDefinition setting, Dictionary<string, SettingStateResult> batchStates, ISettingsFeatureViewModel? parentViewModel)
         {
             var currentState = batchStates.TryGetValue(setting.Id, out var state) ? state : new SettingStateResult();
-            
-            var viewModel = new SettingItemViewModel(settingApplicationService, eventBus, logService, confirmationService, domainServiceRouter, initializationService, comboBoxSetupService, discoveryService)
+
+            var viewModel = new SettingItemViewModel(settingApplicationService, eventBus, logService, confirmationService, domainServiceRouter, initializationService, comboBoxSetupService, discoveryService, userPreferencesService, dialogService)
             {
                 SettingDefinition = setting,
                 ParentFeatureViewModel = parentViewModel,
@@ -135,6 +137,7 @@ namespace Winhance.WPF.Features.Common.Services
                 GroupName = setting.GroupName,
                 InputType = setting.InputType,
                 Icon = setting.Icon,
+                IconPack = setting.IconPack ?? "Material",
                 RequiresConfirmation = setting.RequiresConfirmation,
                 ConfirmationTitle = setting.ConfirmationTitle,
                 ConfirmationMessage = setting.ConfirmationMessage,
@@ -143,9 +146,22 @@ namespace Winhance.WPF.Features.Common.Services
                 SelectedValue = currentState.CurrentValue
             };
 
+            if (setting.RequiresAdvancedUnlock)
+            {
+                var unlocked = await userPreferencesService.GetPreferenceAsync<bool>("AdvancedPowerSettingsUnlocked", false);
+                viewModel.IsLocked = !unlocked;
+            }
+
             if (setting.InputType == InputType.NumericRange)
             {
-                viewModel.SetupNumericUpDown(setting, currentState.CurrentValue);
+                viewModel.SetupNumericUpDown(setting, currentState.CurrentValue, currentState.RawValues);
+            }
+
+            if (setting.CustomProperties?.TryGetValue(
+                Core.Features.Common.Constants.CustomPropertyKeys.VersionCompatibilityMessage, out var compatMessage) == true &&
+                compatMessage is string messageText)
+            {
+                viewModel.WarningText = messageText;
             }
 
             return viewModel;

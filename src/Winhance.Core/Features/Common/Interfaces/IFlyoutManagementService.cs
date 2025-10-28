@@ -4,5 +4,7 @@ namespace Winhance.Core.Features.Common.Interfaces
     {
         void ShowMoreMenuFlyout();
         void CloseMoreMenuFlyout();
+        void ShowAdvancedToolsFlyout();
+        void CloseAdvancedToolsFlyout();
     }
 }

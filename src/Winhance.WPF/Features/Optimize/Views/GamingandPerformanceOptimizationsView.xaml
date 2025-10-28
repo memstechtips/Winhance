@@ -13,6 +13,6 @@
         <ContentControl Template="{StaticResource CollapsibleHeaderTemplate}"/>
         
         <!-- Content Section -->
-        <ContentControl Template="{StaticResource ContentSectionTemplate}"/>
+        <ContentControl Template="{StaticResource GroupedContentSectionTemplate}"/>
     </StackPanel>
 </UserControl>

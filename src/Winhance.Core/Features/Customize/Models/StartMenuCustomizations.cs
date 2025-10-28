@@ -24,12 +24,13 @@ public static class StartMenuCustomizations
                     Description = "Removes all pinned items and applies clean layout",
                     GroupName = "Layout",
                     InputType = InputType.Action,
+                    Icon = "Broom",
                     IsWindows10Only = true,
                     RequiresConfirmation = true,
+                    DialogTitleIcon = "Broom",
                     ConfirmationTitle = "Start Menu Cleaning",
                     ConfirmationMessage =
-                        "You are about to clean the Start Menu for all users on this computer.\n\n"
-                        + "This will remove all pinned items and apply the recommended layout.\n\n"
+                        "You are about to clean the Start Menu for all users on this computer. This will remove all pinned items and apply the recommended layout.\n\n"
                         + "Do you want to continue?",
                     ConfirmationCheckboxText = "Also apply recommended Start Menu settings to disable\n"
                         + "suggestions, recommendations, and tracking features.",
@@ -42,12 +43,13 @@ public static class StartMenuCustomizations
                     Description = "Removes all pinned items and applies clean layout",
                     GroupName = "Layout",
                     InputType = InputType.Action,
+                    Icon = "Broom",
                     IsWindows11Only = true,
                     RequiresConfirmation = true,
+                    DialogTitleIcon = "Broom",
                     ConfirmationTitle = "Start Menu Cleaning",
                     ConfirmationMessage =
-                        "You are about to clean the Start Menu for all users on this computer.\n"
-                        + "This will remove all pinned items and apply the recommended layout.\n\n"
+                        "You are about to clean the Start Menu for all users on this computer. This will remove all pinned items and apply the recommended layout.\n\n"
                         + "Do you want to continue?",
                     ConfirmationCheckboxText = "Also apply recommended Start Menu settings to disable\n"
                         + "suggestions, recommendations, and tracking features.",
@@ -56,12 +58,13 @@ public static class StartMenuCustomizations
                 new SettingDefinition
                 {
                     Id = "start-menu-layout",
-                    Name = "Start Layout",
-                    Description = "Controls the layout of the Start Menu",
+                    Name = "Start layout",
+                    Description = "Choose whether the Start Menu shows more pinned apps, more recommendations, or a balanced default layout",
                     GroupName = "Layout",
                     InputType = InputType.Selection,
                     IsWindows11Only = true,
-                    Icon = "\uF78C", // Start menu icon
+                    IconPack = "Lucide",
+                    Icon = "LayoutPanelLeft",
                     MinimumBuildNumber = 22000, // Windows 11 24H2 starts around build 26100
                     MaximumBuildNumber = 26120, // Removed in build 26120.4250, so max 26120
                     RegistrySettings = new List<RegistrySetting>
@@ -88,17 +91,17 @@ public static class StartMenuCustomizations
                             "More pins",
                             "More recommendations",
                         },
-                        [CustomPropertyKeys.ValueMappings] = new Dictionary<int, Dictionary<string, int?>>
+                        [CustomPropertyKeys.ValueMappings] = new Dictionary<int, Dictionary<string, object?>>
                         {
-                            [0] = new Dictionary<string, int?> // Default
+                            [0] = new Dictionary<string, object?> // Default
                             {
                                 ["Start_Layout"] = 0,
                             },
-                            [1] = new Dictionary<string, int?> // More pins
+                            [1] = new Dictionary<string, object?> // More pins
                             {
                                 ["Start_Layout"] = 1,
                             },
-                            [2] = new Dictionary<string, int?> // More recommendations
+                            [2] = new Dictionary<string, object?> // More recommendations
                             {
                                 ["Start_Layout"] = 2,
                             },
@@ -108,49 +111,56 @@ public static class StartMenuCustomizations
                 new SettingDefinition
                 {
                     Id = "start-recommended-section",
-                    Name = "Recommended Section",
+                    Name = "Recommended section",
                     Description =
-                        "Controls visibility of the recommended section in the Start Menu",
+                        "Show or hide the lower section that displays recently opened files and suggested apps",
                     GroupName = "Layout",
                     InputType = InputType.Selection,
                     IsWindows11Only = true,
-                    Icon = "\uF054", // Reviews icon
+                    Icon = "TableStar",
+                    RestartProcess = "StartMenuExperienceHost",
                     RegistrySettings = new List<RegistrySetting>
                     {
                         new RegistrySetting
                         {
+                            KeyPath = @"HKEY_CURRENT_USER\SOFTWARE\Policies\Microsoft\Windows\Explorer",
+                            ValueName = "HideRecommendedSection",
+                            RecommendedValue = 1,
+                            ValueType = RegistryValueKind.DWord,
+                        },
+                        new RegistrySetting
+                        {
                             KeyPath = @"HKEY_LOCAL_MACHINE\SOFTWARE\Policies\Microsoft\Windows\Explorer",
                             ValueName = "HideRecommendedSection",
-                            RecommendedValue = 1, // Hide recommended section
+                            RecommendedValue = 1,
                             ValueType = RegistryValueKind.DWord,
-
                         },
                         new RegistrySetting
                         {
                             KeyPath = @"HKEY_LOCAL_MACHINE\SOFTWARE\Microsoft\PolicyManager\current\device\Start",
                             ValueName = "HideRecommendedSection",
-                            RecommendedValue = 1, // Hide recommended section
+                            RecommendedValue = 1,
                             ValueType = RegistryValueKind.DWord,
                         },
                         new RegistrySetting
                         {
                             KeyPath = @"HKEY_LOCAL_MACHINE\SOFTWARE\Microsoft\PolicyManager\current\device\Education",
                             ValueName = "IsEducationEnvironment",
-                            RecommendedValue = 1, // Enable education environment
+                            RecommendedValue = 1,
                             ValueType = RegistryValueKind.DWord,
                         },
                     },
                     CustomProperties = new Dictionary<string, object>
                     {
                         [CustomPropertyKeys.ComboBoxDisplayNames] = new string[] { "Show", "Hide" },
-                        [CustomPropertyKeys.ValueMappings] = new Dictionary<int, Dictionary<string, int?>>
+                        [CustomPropertyKeys.ValueMappings] = new Dictionary<int, Dictionary<string, object?>>
                         {
-                            [0] = new Dictionary<string, int?> // Show (delete registry values)
+                            [0] = new Dictionary<string, object?> // Show (delete registry values)
                             {
                                 ["HideRecommendedSection"] = null, // Delete
                                 ["IsEducationEnvironment"] = null, // Delete 
                             },
-                            [1] = new Dictionary<string, int?> // Hide (set registry values)
+                            [1] = new Dictionary<string, object?> // Hide (set registry values)
                             {
                                 ["HideRecommendedSection"] = 1, // Set to 1
                                 ["IsEducationEnvironment"] = 1, // Set to 1
@@ -162,9 +172,11 @@ public static class StartMenuCustomizations
                 {
                     Id = "start-show-all-pins-by-default",
                     Name = "Show all pins by default",
-                    Description = "Controls whether all pins are shown by default in Start Menu",
+                    Description = "Automatically expand to show all pinned apps instead of requiring you to click 'All apps'",
                     GroupName = "Start Menu Settings",
                     InputType = InputType.Toggle,
+                    IconPack = "Lucide",
+                    Icon = "Pin",
                     IsWindows11Only = true,
                     SupportedBuildRanges = new List<(int, int)>
                     {
@@ -188,10 +200,11 @@ public static class StartMenuCustomizations
                 new SettingDefinition
                 {
                     Id = "start-show-recently-added-apps",
-                    Name = "Show Recently Added Apps",
-                    Description = "Controls visibility of recently added apps in Start Menu",
+                    Name = "Show recently added apps",
+                    Description = "Display a list of recently installed applications at the top of the All Apps list",
                     GroupName = "Start Menu Settings",
                     InputType = InputType.Toggle,
+                    Icon = "StarBoxMultipleOutline",
                     RegistrySettings = new List<RegistrySetting>
                     {
                         new RegistrySetting
@@ -203,17 +216,19 @@ public static class StartMenuCustomizations
                             DisabledValue = 0, // When toggle is OFF, recently added apps are hidden
                             DefaultValue = 1,
                             ValueType = RegistryValueKind.DWord,
+                            AbsenceMeansEnabled = true,
                         },
                     },
                 },
-                // Windows 11 - Show Most Used Apps (uses ShowFrequentList)
                 new SettingDefinition
                 {
                     Id = "start-show-frequent-list",
-                    Name = "Show Most Used Apps",
-                    Description = "Controls visibility of most used apps in Start Menu",
+                    Name = "Show most used apps",
+                    Description = "Display your frequently launched applications at the top of the All Apps list for quick access",
                     GroupName = "Start Menu",
                     InputType = InputType.Toggle,
+                    IconPack = "Lucide",
+                    Icon = "Boxes",
                     IsWindows11Only = true,
                     RegistrySettings = new List<RegistrySetting>
                     {
@@ -229,14 +244,15 @@ public static class StartMenuCustomizations
                         },
                     },
                 },
-                // Windows 10 - Show Most Used Apps (uses Start_TrackProgs)
                 new SettingDefinition
                 {
                     Id = "start-track-progs",
-                    Name = "Show Most Used Apps",
-                    Description = "Controls visibility of most used apps in Start Menu",
+                    Name = "Show most used apps",
+                    Description = "Display your frequently launched applications at the top of the All Apps list for quick access",
                     GroupName = "Start Menu",
                     InputType = InputType.Toggle,
+                    IconPack = "Lucide",
+                    Icon = "Boxes",
                     IsWindows10Only = true,
                     RegistrySettings = new List<RegistrySetting>
                     {
@@ -256,10 +272,22 @@ public static class StartMenuCustomizations
                 {
                     Id = "start-show-suggestions",
                     Name = "Show suggestions in Start",
-                    Description = "Controls visibility of suggestions in Start Menu",
+                    Description = "Display app suggestions and promotional content from the Microsoft Store in the Start Menu",
                     GroupName = "Start Menu Settings",
                     InputType = InputType.Toggle,
+                    Icon = "LightbulbOnOutline",
                     IsWindows10Only = true,
+                    Dependencies = new List<SettingDependency>
+                    {
+                        new SettingDependency
+                        {
+                            DependencyType = SettingDependencyType.RequiresValueBeforeAnyChange,
+                            DependentSettingId = "start-show-suggestions",
+                            RequiredSettingId = "privacy-ads-promotional-master",
+                            RequiredModule = "PrivacyOptimizations",
+                            RequiredValue = "Custom",
+                        },
+                    },
                     RegistrySettings = new List<RegistrySetting>
                     {
                         new RegistrySetting
@@ -277,11 +305,11 @@ public static class StartMenuCustomizations
                 new SettingDefinition
                 {
                     Id = "start-show-recommended-files",
-                    Name = "Show Recommended Files and Recently Opened Items",
-                    Description =
-                        "Controls visibility of recommended files and recently opened items in Start Menu",
+                    Name = "Show recommended files and recently opened items",
+                    Description = "Display your recently opened documents and files in the Start Menu's Recommended section for quick access",
                     GroupName = "Start Menu Settings",
                     InputType = InputType.Toggle,
+                    Icon = "FileStarFourPointsOutline",
                     Dependencies = new List<SettingDependency>
                     {
                         new SettingDependency
@@ -303,6 +331,7 @@ public static class StartMenuCustomizations
                             DisabledValue = 0, // When toggle is OFF, recommended files are hidden
                             DefaultValue = 1,
                             ValueType = RegistryValueKind.DWord,
+                            AbsenceMeansEnabled = true,
                         },
                     },
                 },
@@ -310,10 +339,10 @@ public static class StartMenuCustomizations
                 {
                     Id = "start-menu-recommendations",
                     Name = "Show recommendations for tips, shortcuts, new apps, and more",
-                    Description =
-                        "Controls visibility of recommendations for tips, shortcuts and new apps in the Start Menu",
+                    Description = "Display personalized suggestions from Windows for tips, app shortcuts, and Microsoft Store apps in the Recommended section",
                     GroupName = "Start Menu Settings",
                     InputType = InputType.Toggle,
+                    Icon = "CreationOutline",
                     IsWindows11Only = true,
                     RegistrySettings = new List<RegistrySetting>
                     {
@@ -326,17 +355,18 @@ public static class StartMenuCustomizations
                             DisabledValue = 0,
                             DefaultValue = 1,
                             ValueType = RegistryValueKind.DWord,
+                            AbsenceMeansEnabled = true,
                         },
                     },
                 },
                 new SettingDefinition
                 {
                     Id = "start-show-account-notifications",
-                    Name = "Show Account-related Notifications",
-                    Description =
-                        "Controls visibility of account-related notifications in Start Menu",
+                    Name = "Show account-related notifications",
+                    Description = "Display notifications about Microsoft account sign-in, sync status, and account-related suggestions",
                     GroupName = "Start Menu Settings",
                     InputType = InputType.Toggle,
+                    Icon = "BellRingOutline",
                     RegistrySettings = new List<RegistrySetting>
                     {
                         new RegistrySetting
@@ -348,26 +378,37 @@ public static class StartMenuCustomizations
                             DisabledValue = 0, // When toggle is OFF, account notifications are hidden
                             DefaultValue = 1,
                             ValueType = RegistryValueKind.DWord,
+                            AbsenceMeansEnabled = true,
                         },
                     },
                 },
                 new SettingDefinition
                 {
                     Id = "start-disable-bing-search-results",
-                    Name = "Disable Bing Search Results",
-                    Description =
-                        "Controls whether results from Bing online search are displayed when using Start Menu search",
+                    Name = "Disable Bing search results",
+                    Description = "Prevent web results from Bing from appearing when searching in the Start Menu, showing only local files and apps",
                     GroupName = "Start Menu Settings",
                     InputType = InputType.Toggle,
+                    Icon = "MicrosoftBing",
                     RegistrySettings = new List<RegistrySetting>
                     {
+                        new RegistrySetting
+                        {
+                            KeyPath = @"HKEY_CURRENT_USER\Software\Policies\Microsoft\Windows\Explorer",
+                            ValueName = "DisableSearchBoxSuggestions",
+                            RecommendedValue = 1,
+                            EnabledValue = 1,
+                            DisabledValue = null,
+                            DefaultValue = null,
+                            ValueType = RegistryValueKind.DWord,
+                        },
                         new RegistrySetting
                         {
                             KeyPath = @"HKEY_LOCAL_MACHINE\Software\Policies\Microsoft\Windows\Explorer",
                             ValueName = "DisableSearchBoxSuggestions",
                             RecommendedValue = 1,
-                            EnabledValue = 1, // When toggle is ON, Bing search results are not displayed when using Start Menu search
-                            DisabledValue = null, // When toggle is OFF, Bing search results are displayed when using Start Menu search
+                            EnabledValue = 1,
+                            DisabledValue = null,
                             DefaultValue = null,
                             ValueType = RegistryValueKind.DWord,
                         },

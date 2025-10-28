@@ -1,5 +1,6 @@
 using System.Collections.ObjectModel;
 using CommunityToolkit.Mvvm.ComponentModel;
+using Winhance.WPF.Features.SoftwareApps.Models;
 
 namespace Winhance.WPF.Features.SoftwareApps.ViewModels;
 
@@ -7,6 +8,9 @@ public partial class ExternalAppsCategoryViewModel(string name, ObservableCollec
 {
     [ObservableProperty]
     private string _name = name;
+
+    [ObservableProperty]
+    private string _icon = ExternalAppCategoryIcons.GetIcon(name);
 
     [ObservableProperty]
     private ObservableCollection<AppItemViewModel> _apps = apps;

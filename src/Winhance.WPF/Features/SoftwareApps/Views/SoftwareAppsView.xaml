@@ -6,7 +6,7 @@
              xmlns:viewModels="clr-namespace:Winhance.WPF.Features.SoftwareApps.ViewModels"
              xmlns:views="clr-namespace:Winhance.WPF.Features.SoftwareApps.Views"
              xmlns:commonControls="clr-namespace:Winhance.WPF.Features.Common.Controls"
-             xmlns:materialDesign="http://materialdesigninxaml.net/winfx/xaml/themes"
+             xmlns:iconPacks="http://metro.mahapps.com/winfx/xaml/iconpacks"
              d:DataContext="{d:DesignInstance Type=viewModels:SoftwareAppsViewModel}"
              mc:Ignorable="d">
 
@@ -46,13 +46,13 @@
             </Grid.ColumnDefinitions>
 
             <!-- Icon -->
-            <TextBlock Grid.Column="0"
-                       Text="&#xF720;"
-                       FontFamily="{StaticResource MaterialSymbolsFont}"
-                       FontSize="60"
-                       Margin="10,0,10,0"
-                       VerticalAlignment="Center"
-                       Foreground="{DynamicResource PrimaryTextColor}"/>
+            <iconPacks:PackIconMaterial Grid.Column="0"
+                                     Kind="PackageVariant"
+                                     Width="60"
+                                     Height="60"
+                                     Margin="10,0,10,0"
+                                     VerticalAlignment="Center"
+                                     Foreground="{DynamicResource PrimaryTextColor}"/>
 
             <!-- Title and Status with Quick Nav -->
             <StackPanel Grid.Column="1"
@@ -96,6 +96,7 @@
                 </Grid.ColumnDefinitions>
 
                 <!-- View Mode Toggle Container -->
+                <!-- Commented out for future implementation
                 <StackPanel Grid.Row="0"
                         Grid.Column="0"
                         Grid.ColumnSpan="2"
@@ -109,7 +110,7 @@
                     <Border Width="110"
                             Height="35"
                             VerticalAlignment="Center"
-                            Background="{DynamicResource MaterialDesignPaper}"
+                            Background="{DynamicResource MainContainerBorderBrush}"
                             BorderBrush="{DynamicResource BorderBrush}"
                             BorderThickness="1"
                             CornerRadius="4">
@@ -119,7 +120,6 @@
                                 <ColumnDefinition Width="*"/>
                             </Grid.ColumnDefinitions>
 
-                            <!-- List View Option -->
                             <Button Grid.Column="0"
                                     Command="{Binding ToggleViewModeCommand}"
                                     CommandParameter="False"
@@ -135,12 +135,11 @@
                                         </Style.Triggers>
                                     </Style>
                                 </Button.Style>
-                                <materialDesign:PackIcon Kind="ViewList"
+                                <iconPacks:PackIconMaterial Kind="ViewList"
                                         Width="20"
                                         Height="20"/>
                             </Button>
 
-                            <!-- Table View Option -->
                             <Button Grid.Column="1"
                                     Command="{Binding ToggleViewModeCommand}"
                                     CommandParameter="True"
@@ -156,21 +155,22 @@
                                         </Style.Triggers>
                                     </Style>
                                 </Button.Style>
-                                <materialDesign:PackIcon Kind="ViewModule"
+                                <iconPacks:PackIconMaterial Kind="ViewModule"
                                         Width="20"
                                         Height="20"/>
                             </Button>
                         </Grid>
                     </Border>
                 </StackPanel>
+                -->
 
                 <!-- Action Buttons on the left -->
-                <UniformGrid Grid.Row="1"
+                <StackPanel Grid.Row="1"
                         Grid.Column="0"
-                        Rows="1"
+                        Orientation="Horizontal"
                         HorizontalAlignment="Left"
                         VerticalAlignment="Center"
-                        Margin="0,0,10,0">
+                        Margin="0,0,0,0">
                     <!-- Install Selected Items Button -->
                     <Button Style="{StaticResource InstallAppsButtonStyle}"
                             Content="Install Selected Items"
@@ -180,31 +180,35 @@
                             Command="{Binding InstallSelectedItemsCommand}"
                             IsEnabled="{Binding CanInstallItems}"/>
 
+                    <!-- Separator -->
+                    <Border Width="1"
+                            Height="28"
+                            Background="#505050"
+                            VerticalAlignment="Center"
+                            Margin="0,0,5,0"/>
+
                     <!-- Remove Selected Items Button (or Clear Selection for External Apps) -->
                     <Button Style="{StaticResource RemoveAppsButtonStyle}"
                             Content="{Binding RemoveButtonText}"
                             Width="180"
                             Height="35"
-                            Margin="0,0,0,1"
+                            Margin="0,0,5,1"
                             Command="{Binding RemoveSelectedItemsCommand}"
                             IsEnabled="{Binding CanRemoveItems}"/>
-                </UniformGrid>
 
-                <!-- Search Box and Help Button on the right -->
-                <Grid Grid.Row="1"
-                        Grid.Column="1">
-                    <Grid.ColumnDefinitions>
-                        <ColumnDefinition Width="Auto"/>
-                        <ColumnDefinition Width="Auto"/>
-                    </Grid.ColumnDefinitions>
+                    <!-- Separator -->
+                    <Border Width="1"
+                            Height="28"
+                            Background="#505050"
+                            VerticalAlignment="Center"
+                            Margin="0,0,10,0"/>
 
                     <!-- Help Button -->
-                    <Button Grid.Column="0"
-                            x:Name="HelpButton"
+                    <Button x:Name="HelpButton"
                             Content="Help"
                             Width="60"
                             Height="35"
-                            Margin="0,0,10,1"
+                            Margin="0,0,0,1"
                             Command="{Binding ShowHelpCommand}"
                             VerticalAlignment="Center"
                             Loaded="HelpButton_Loaded">
@@ -225,13 +229,13 @@
                     </Button>
 
                     <!-- Search Box -->
-                    <commonControls:SearchBox Grid.Column="1"
+                    <commonControls:SearchBox
                             Width="200"
                             HorizontalAlignment="Right"
                             VerticalAlignment="Center"
                             SearchText="{Binding SearchText, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}"
                             Margin="0,0,0,1"/>
-                </Grid>
+                </StackPanel>
             </Grid>
         </Grid>
 
@@ -322,7 +326,7 @@
                                         </Border>
                                         <DockPanel VerticalAlignment="Center"
                                                 HorizontalAlignment="Center">
-                                            <materialDesign:PackIcon Kind="MicrosoftWindows"
+                                            <iconPacks:PackIconMaterial Kind="MicrosoftWindows"
                                                     Width="24"
                                                     Height="24"
                                                     Margin="10,0,5,0"
@@ -416,12 +420,12 @@
                                         </Border>
                                         <DockPanel VerticalAlignment="Center"
                                                 HorizontalAlignment="Center">
-                                            <TextBlock Text="&#xF5F4;"
-                                                    FontFamily="{StaticResource MaterialSymbolsFont}"
-                                                    FontSize="24"
-                                                    Margin="10,0,5,0"
-                                                    VerticalAlignment="Center"
-                                                    Foreground="{DynamicResource PrimaryTextColor}"/>
+                                            <iconPacks:PackIconMaterial Kind="PackageDown"
+                                                                     Width="24"
+                                                                     Height="24"
+                                                                     Margin="10,0,5,0"
+                                                                     VerticalAlignment="Center"
+                                                                     Foreground="{DynamicResource PrimaryTextColor}"/>
                                             <TextBlock Text="External Software"
                                                     Style="{StaticResource AppSectionHeaderTextStyle}"
                                                     Margin="0,0,10,0"/>
@@ -543,23 +547,33 @@
             </Grid>
         </Border>
 
-        <!-- Help Flyout Overlay -->
+        <!-- Help Flyout Popup - renders at window level, above all overlays -->
+        <Popup x:Name="HelpFlyoutPopup"
+               IsOpen="{Binding IsHelpFlyoutVisible}"
+               PlacementTarget="{Binding ElementName=HelpFlyoutOverlay}"
+               Placement="Relative"
+               AllowsTransparency="True"
+               StaysOpen="False"
+               Closed="HelpFlyoutPopup_Closed">
+            <Popup.HorizontalOffset>
+                <Binding Path="HelpFlyoutLeft"/>
+            </Popup.HorizontalOffset>
+            <Popup.VerticalOffset>
+                <Binding Path="HelpFlyoutTop"/>
+            </Popup.VerticalOffset>
+
+            <!-- The flyout help content -->
+            <ContentControl x:Name="HelpFlyoutContent"
+                           Content="{Binding CurrentHelpContent}"/>
+        </Popup>
+
+        <!-- Invisible overlay for click detection -->
         <Grid x:Name="HelpFlyoutOverlay"
-              Background="#80000000"
+              Background="Transparent"
               Visibility="{Binding IsHelpFlyoutVisible, Converter={StaticResource BooleanToVisibilityConverter}}"
               MouseLeftButtonDown="HelpFlyoutOverlay_MouseLeftButtonDown"
               KeyDown="HelpFlyoutOverlay_KeyDown"
-              Focusable="True">
-
-            <!-- The flyout help content positioned relative to help button -->
-            <ContentControl x:Name="HelpFlyoutContent"
-                           Content="{Binding CurrentHelpContent}"
-                           HorizontalAlignment="Left"
-                           VerticalAlignment="Top">
-                <ContentControl.RenderTransform>
-                    <TranslateTransform X="{Binding HelpFlyoutLeft}" Y="{Binding HelpFlyoutTop}"/>
-                </ContentControl.RenderTransform>
-            </ContentControl>
-        </Grid>
+              Focusable="True"
+              Panel.ZIndex="1001"/>
     </Grid>
 </UserControl>

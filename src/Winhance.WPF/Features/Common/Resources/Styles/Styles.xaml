@@ -4,6 +4,7 @@
         <ResourceDictionary Source="/Winhance.WPF;component/Resources/Styles/AppItemStyles.xaml"/>
         <ResourceDictionary Source="/Winhance.WPF;component/Resources/Styles/ButtonStyles.xaml"/>
         <ResourceDictionary Source="/Winhance.WPF;component/Resources/Styles/CheckBoxStyles.xaml"/>
+        <ResourceDictionary Source="/Winhance.WPF;component/Resources/Styles/RadioButtonStyles.xaml"/>
         <ResourceDictionary Source="/Winhance.WPF;component/Resources/Styles/ContainerStyles.xaml"/>
         <ResourceDictionary Source="/Winhance.WPF;component/Resources/Styles/FeatureTemplates.xaml"/>
         <ResourceDictionary Source="/Winhance.WPF;component/Resources/Styles/DialogStyles.xaml"/>

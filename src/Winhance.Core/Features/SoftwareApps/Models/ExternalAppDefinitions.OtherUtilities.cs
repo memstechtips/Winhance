@@ -1,6 +1,3 @@
-using System.Collections.Generic;
-using Winhance.Core.Features.Common.Constants;
-
 namespace Winhance.Core.Features.SoftwareApps.Models
 {
     public static partial class ExternalAppDefinitions

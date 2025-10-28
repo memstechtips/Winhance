@@ -61,6 +61,29 @@ public partial class AppItemViewModel : ObservableObject, ISelectable
     public string Version => Definition.Version;
     public bool CanBeReinstalled => Definition.CanBeReinstalled;
 
+    public string ItemTypeDescription
+    {
+        get
+        {
+            if (!string.IsNullOrEmpty(Definition.CapabilityName))
+                return "Legacy Capability";
+
+            if (!string.IsNullOrEmpty(Definition.OptionalFeatureName))
+                return "Optional Feature";
+
+            if (!string.IsNullOrEmpty(Definition.AppxPackageName))
+                return "AppX Package";
+
+            return string.Empty;
+        }
+    }
+
+    public string PackageName => Definition.AppxPackageName
+        ?? Definition.WinGetPackageId
+        ?? Definition.CapabilityName
+        ?? Definition.OptionalFeatureName
+        ?? string.Empty;
+
     public IAsyncRelayCommand InstallCommand { get; }
     public IAsyncRelayCommand UninstallCommand { get; }
 
@@ -86,9 +109,20 @@ public partial class AppItemViewModel : ObservableObject, ISelectable
             }
             else
             {
-                Definition.LastOperationError = result.ErrorMessage;
-                Status = "Install Failed";
+                if (result.ErrorMessage?.Contains("cancelled", StringComparison.OrdinalIgnoreCase) == true)
+                {
+                    Status = "Installation Cancelled";
+                }
+                else
+                {
+                    Definition.LastOperationError = result.ErrorMessage;
+                    Status = "Install Failed";
+                }
             }
+        }
+        catch (OperationCanceledException)
+        {
+            Status = "Installation Cancelled";
         }
         catch (Exception ex)
         {
@@ -126,9 +160,20 @@ public partial class AppItemViewModel : ObservableObject, ISelectable
             }
             else
             {
-                Definition.LastOperationError = result.ErrorMessage;
-                Status = "Uninstall Failed";
+                if (result.ErrorMessage?.Contains("cancelled", StringComparison.OrdinalIgnoreCase) == true)
+                {
+                    Status = "Uninstall Cancelled";
+                }
+                else
+                {
+                    Definition.LastOperationError = result.ErrorMessage;
+                    Status = "Uninstall Failed";
+                }
             }
+        }
+        catch (OperationCanceledException)
+        {
+            Status = "Uninstall Cancelled";
         }
         catch (Exception ex)
         {

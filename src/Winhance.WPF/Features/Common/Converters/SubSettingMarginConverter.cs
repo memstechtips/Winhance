@@ -11,10 +11,10 @@ namespace Winhance.WPF.Features.Common.Converters
         {
             if (value is bool isSubSetting && isSubSetting)
             {
-                return new Thickness(50, 4, 8, 4);
+                return new Thickness(50, 3, 8, 3);
             }
             
-            return new Thickness(8, 4, 8, 4);
+            return new Thickness(8, 3, 8, 3);
         }
 
         public object ConvertBack(object value, Type targetType, object parameter, CultureInfo culture)

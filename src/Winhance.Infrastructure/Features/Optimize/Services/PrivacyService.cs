@@ -12,7 +12,9 @@ using Winhance.Infrastructure.Features.Common.Services;
 
 namespace Winhance.Infrastructure.Features.Optimize.Services;
 
-public class PrivacyService(ILogService logService) : IDomainService
+public class PrivacyAndSecurityService(
+    ILogService logService,
+    ICompatibleSettingsRegistry compatibleSettingsRegistry) : IDomainService
 {
     public string DomainName => FeatureIds.Privacy;
 
@@ -20,12 +22,11 @@ public class PrivacyService(ILogService logService) : IDomainService
     {
         try
         {
-            var optimizations = PrivacyOptimizations.GetPrivacyOptimizations();
-            return optimizations.Settings;
+            return compatibleSettingsRegistry.GetFilteredSettings(FeatureIds.Privacy);
         }
         catch (Exception ex)
         {
-            logService.Log(LogLevel.Error, $"Error loading Privacy settings: {ex.Message}");
+            logService.Log(LogLevel.Error, $"Error loading Privacy & Security settings: {ex.Message}");
             return Enumerable.Empty<SettingDefinition>();
         }
     }

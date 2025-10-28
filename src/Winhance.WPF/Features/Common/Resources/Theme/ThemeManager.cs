@@ -1,14 +1,12 @@
 using System;
 using System.Collections.Generic;
 using System.Linq;
-using System.Reflection;
 using System.Windows;
 using System.Windows.Controls;
 using System.Windows.Controls.Primitives;
 using System.Windows.Media;
 using CommunityToolkit.Mvvm.ComponentModel;
 using Winhance.Core.Features.Common.Interfaces;
-using Winhance.WPF.Features.Common.Views;
 using Winhance.WPF.Properties;
 
 namespace Winhance.WPF.Features.Common.Resources.Theme
@@ -63,6 +61,7 @@ namespace Winhance.WPF.Features.Common.Resources.Theme
             { "SliderTrackColor", Color.FromRgb(64, 64, 64) },
             { "BackgroundColor", Color.FromRgb(32, 32, 32) },
             { "ContentSectionBackgroundColor", Color.FromRgb(31, 32, 34) },
+            { "ElevatedBackgroundColor", Color.FromRgb(60, 60, 60) },
             { "ScrollBarThumbColor", Color.FromRgb(255, 222, 0) },
             { "ScrollBarThumbHoverColor", Color.FromRgb(255, 233, 76) },
             { "ScrollBarThumbPressedColor", Color.FromRgb(255, 240, 102) },
@@ -82,11 +81,11 @@ namespace Winhance.WPF.Features.Common.Resources.Theme
             { "ControlBorderColor", Color.FromRgb(66, 66, 66) },
             { "ToggleKnobColor", Color.FromRgb(255, 255, 255) },
             { "ToggleKnobCheckedColor", Color.FromRgb(66, 66, 66) },
-            { "ContentSectionBorderColor", Color.FromRgb(246, 248, 252) },
+            { "ContentSectionBorderColor", Color.FromRgb(234, 236, 242) },
             { "MainContainerBorderColor", Color.FromRgb(255, 255, 255) },
             { "SettingsItemBackgroundColor", Color.FromRgb(255, 255, 255) },
             { "PrimaryButtonForegroundColor", Color.FromRgb(32, 33, 36) },
-            { "AccentColor", Color.FromRgb(66, 66, 66) },
+            { "AccentColor", Color.FromRgb(0, 120, 212) },
             { "ButtonHoverTextColor", Color.FromRgb(255, 255, 255) },
             { "ButtonDisabledForegroundColor", Color.FromRgb(204, 204, 204) },
             { "ButtonDisabledBorderColor", Color.FromRgb(238, 238, 238) },
@@ -94,7 +93,8 @@ namespace Winhance.WPF.Features.Common.Resources.Theme
             { "NavigationButtonForegroundColor", Color.FromRgb(32, 33, 36) },
             { "SliderTrackColor", Color.FromRgb(204, 204, 204) },
             { "BackgroundColor", Color.FromRgb(246, 248, 252) },
-            { "ContentSectionBackgroundColor", Color.FromRgb(240, 240, 240) },
+            { "ContentSectionBackgroundColor", Color.FromRgb(234, 236, 242) },
+            { "ElevatedBackgroundColor", Color.FromRgb(224, 224, 224) },
             { "ScrollBarThumbColor", Color.FromRgb(66, 66, 66) },
             { "ScrollBarThumbHoverColor", Color.FromRgb(102, 102, 102) },
             { "ScrollBarThumbPressedColor", Color.FromRgb(34, 34, 34) },
@@ -147,6 +147,10 @@ namespace Winhance.WPF.Features.Common.Resources.Theme
                     (
                         "ContentSectionBackground",
                         new SolidColorBrush(themeColors["ContentSectionBackgroundColor"])
+                    ),
+                    (
+                        "ElevatedBackground",
+                        new SolidColorBrush(themeColors["ElevatedBackgroundColor"])
                     ),
                     (
                         "ContentSectionBorderBrush",
@@ -385,40 +389,9 @@ namespace Winhance.WPF.Features.Common.Resources.Theme
             }
         }
 
-        // Helper method to find a child element by name
-        private static System.Windows.Controls.Button? FindChildByName(
-            DependencyObject parent,
-            string name
-        )
+        private static System.Windows.Controls.Button? FindChildByName(DependencyObject parent, string name)
         {
-            if (parent == null)
-                return null;
-
-            // Check if the current element is the one we're looking for
-            if (
-                parent is FrameworkElement element
-                && element.Name == name
-                && element is System.Windows.Controls.Button button
-            )
-            {
-                return button;
-            }
-
-            // Get the number of children
-            int childCount = VisualTreeHelper.GetChildrenCount(parent);
-
-            // Recursively search through all children
-            for (int i = 0; i < childCount; i++)
-            {
-                var child = VisualTreeHelper.GetChild(parent, i);
-                var result = FindChildByName(child, name);
-                if (result != null)
-                {
-                    return result;
-                }
-            }
-
-            return null;
+            return Winhance.WPF.Features.Common.Utilities.VisualTreeHelpers.FindChildByName<System.Windows.Controls.Button>(parent, name);
         }
 
         // Helper method to update a button's background based on whether it's selected
@@ -473,60 +446,21 @@ namespace Winhance.WPF.Features.Common.Resources.Theme
             }
         }
 
-        // Method to notify windows about theme changes
         private void NotifyWindowsOfThemeChange()
         {
             try
             {
-                // Notify all open windows about theme changes
                 foreach (Window window in Application.Current.Windows)
                 {
-                    // Check if the window is a MainWindow or LoadingWindow
-                    if (window is MainWindow mainWindow)
+                    if (window is Winhance.WPF.Features.Common.Interfaces.IThemeAwareWindow themeAware)
                     {
-                        // Call the UpdateThemeIcon method using reflection
-                        try
-                        {
-                            var method = mainWindow.GetType().GetMethod("UpdateThemeIcon", BindingFlags.Instance | BindingFlags.NonPublic);
-                            if (method != null)
-                            {
-                                // Use the dispatcher to ensure UI updates happen on the UI thread
-                                mainWindow.Dispatcher.Invoke(() =>
-                                {
-                                    method.Invoke(mainWindow, null);
-                                });
-                            }
-                        }
-                        catch (Exception ex)
-                        {
-                            // Silently handle exceptions to avoid crashes
-                        }
-                    }
-                    else if (window is LoadingWindow loadingWindow)
-                    {
-                        // Call the UpdateThemeIcon method using reflection
-                        try
-                        {
-                            var method = loadingWindow.GetType().GetMethod("UpdateThemeIcon", BindingFlags.Instance | BindingFlags.NonPublic);
-                            if (method != null)
-                            {
-                                // Use the dispatcher to ensure UI updates happen on the UI thread
-                                loadingWindow.Dispatcher.Invoke(() =>
-                                {
-                                    method.Invoke(loadingWindow, null);
-                                });
-                            }
-                        }
-                        catch (Exception ex)
-                        {
-                            // Silently handle exceptions to avoid crashes
-                        }
+                        window.Dispatcher.Invoke(() => themeAware.OnThemeChanged(IsDarkTheme));
                     }
                 }
             }
-            catch (Exception ex)
+            catch
             {
-                // Silently handle exceptions to avoid crashes
+                // Silently handle exceptions
             }
         }
 

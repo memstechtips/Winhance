@@ -95,9 +95,14 @@ namespace Winhance.WPF.Features.Common.Views
                 IsThemeDark = true;
             }
 
-            // Set up a handler to listen for theme changes
+            // Set up a handler to listen for theme changes and show dialog overlay
             this.Loaded += (sender, e) =>
             {
+                if (Application.Current.MainWindow?.DataContext is ViewModels.MainViewModel mainViewModel)
+                {
+                    mainViewModel.IsDialogOverlayVisible = true;
+                }
+
                 // Listen for resource dictionary changes that might affect the theme
                 if (Application.Current.Resources is System.Windows.ResourceDictionary resourceDictionary)
                 {
@@ -121,6 +126,14 @@ namespace Winhance.WPF.Features.Common.Views
                         // Add the handler to the event
                         eventInfo.AddEventHandler(resourceDictionary, resourceChangedHandler);
                     }
+                }
+            };
+
+            Closed += (s, e) =>
+            {
+                if (Application.Current.MainWindow?.DataContext is ViewModels.MainViewModel mainViewModel)
+                {
+                    mainViewModel.IsDialogOverlayVisible = false;
                 }
             };
 

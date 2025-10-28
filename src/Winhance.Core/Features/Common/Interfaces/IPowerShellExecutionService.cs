@@ -21,5 +21,16 @@ namespace Winhance.Core.Features.Common.Interfaces
             string arguments = "",
             IProgress<TaskProgressDetail>? progress = null,
             CancellationToken cancellationToken = default);
+
+        Task<string> ExecuteScriptFileWithProgressAsync(
+            string scriptPath,
+            string arguments = "",
+            IProgress<TaskProgressDetail>? progress = null,
+            CancellationToken cancellationToken = default);
+
+        Task<string> ExecuteScriptFromContentAsync(
+            string scriptContent,
+            IProgress<TaskProgressDetail>? progress = null,
+            CancellationToken cancellationToken = default);
     }
 }

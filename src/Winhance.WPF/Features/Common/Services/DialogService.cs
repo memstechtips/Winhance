@@ -34,15 +34,40 @@ namespace Winhance.WPF.Features.Common.Services
             }
             else
             {
-                return Task.FromResult(
-                    MessageBox.Show(
-                        message,
-                        title,
-                        MessageBoxButton.YesNo,
-                        MessageBoxImage.Question
-                    ) == MessageBoxResult.Yes
-                );
+                var result = CustomDialog.ShowConfirmation(title, title, message, "");
+                return Task.FromResult(result ?? false);
             }
+        }
+
+        public Task<bool> ShowAppOperationConfirmationAsync(
+            string operationType,
+            IEnumerable<string> itemNames,
+            int count)
+        {
+            bool isInstall = operationType.Equals("install", StringComparison.OrdinalIgnoreCase);
+            bool isRemove = operationType.Equals("remove", StringComparison.OrdinalIgnoreCase);
+
+            string title = isInstall ? "Confirm Installation" :
+                          isRemove ? "Confirm Removal" :
+                          $"Confirm {operationType}";
+
+            string titleBarIcon = isInstall ? "Download" :
+                                 isRemove ? "Delete" :
+                                 "Information";
+
+            string contextMessage = isInstall ? "These items will be installed.\nDo you want to continue?" :
+                                   isRemove ? "These items will be removed.\nDo you want to continue?" :
+                                   $"These items will be {operationType.ToLower()}ed.\nDo you want to continue?";
+
+            var dialog = CustomDialog.CreateAppOperationConfirmationDialog(
+                title,
+                contextMessage,
+                itemNames,
+                DialogType.Question,
+                titleBarIcon);
+
+            var result = dialog.ShowDialog();
+            return Task.FromResult(result ?? false);
         }
 
         public Task ShowErrorAsync(string message, string title = "Error", string buttonText = "OK")
@@ -158,13 +183,14 @@ namespace Winhance.WPF.Features.Common.Services
 
             if (result == true)
             {
-                return dialog.GetResult();
+                var (sectionResults, _) = dialog.GetResult();
+                return sectionResults;
             }
 
             return null;
         }
 
-        public async Task<Dictionary<string, bool>> ShowUnifiedConfigurationImportDialogAsync(
+        public async Task<(Dictionary<string, bool> sections, ImportOptions options)?> ShowUnifiedConfigurationImportDialogAsync(
             string title,
             string description,
             Dictionary<string, (bool IsSelected, bool IsAvailable, int ItemCount)> sections
@@ -252,7 +278,8 @@ namespace Winhance.WPF.Features.Common.Services
             string? checkboxText = null,
             string title = "Confirmation",
             string continueButtonText = "Continue",
-            string cancelButtonText = "Cancel")
+            string cancelButtonText = "Cancel",
+            string? titleBarIcon = null)
         {
             try
             {
@@ -263,7 +290,8 @@ namespace Winhance.WPF.Features.Common.Services
                         message,
                         checkboxText,
                         continueButtonText,
-                        cancelButtonText
+                        cancelButtonText,
+                        titleBarIcon
                     );
                 });
 
@@ -288,7 +316,8 @@ namespace Winhance.WPF.Features.Common.Services
                     confirmationRequest.CheckboxText,
                     confirmationRequest.Title,
                     continueButtonText,
-                    cancelButtonText
+                    cancelButtonText,
+                    null
                 );
 
                 return new ConfirmationResponse

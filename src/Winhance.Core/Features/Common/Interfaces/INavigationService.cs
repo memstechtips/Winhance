@@ -8,9 +8,11 @@ namespace Winhance.Core.Features.Common.Interfaces
         bool NavigateTo(string viewName, object parameter);
         bool NavigateBack();
         Task<bool> PreloadAndNavigateToAsync(string viewName);
-        
+        Task NavigateToAsync(string viewName);
+        Task NavigateToAsync(string viewName, object parameter);
+
         string CurrentView { get; }
-        
+
         event EventHandler<NavigationEventArgs>? Navigated;
         event EventHandler<NavigationEventArgs>? Navigating;
         event EventHandler<NavigationEventArgs>? NavigationFailed;

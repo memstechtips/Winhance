@@ -1,8 +1,10 @@
 using System;
 using System.Collections.Generic;
+using System.IO;
 using System.Linq;
 using System.Threading;
 using System.Threading.Tasks;
+using Winhance.Core.Features.Common.Constants;
 using Winhance.Core.Features.Common.Enums;
 using Winhance.Core.Features.Common.Events;
 using Winhance.Core.Features.Common.Interfaces;
@@ -20,14 +22,29 @@ public class AppOperationService(
     ILogService logService,
     IEventBus eventBus,
     IWindowsAppsService windowsAppsService,
-    IBloatRemovalService bloatRemovalService) : IAppOperationService
+    IBloatRemovalService bloatRemovalService,
+    IScheduledTaskService scheduledTaskService,
+    ITaskProgressService taskProgressService) : IAppOperationService
 {
-    public async Task<OperationResult<bool>> InstallAppAsync(ItemDefinition app, IProgress<TaskProgressDetail>? progress = null)
+    private CancellationToken GetCurrentCancellationToken()
+    {
+        return taskProgressService?.CurrentTaskCancellationSource?.Token ?? CancellationToken.None;
+    }
+    public async Task<OperationResult<bool>> InstallAppAsync(ItemDefinition app, IProgress<TaskProgressDetail>? progress = null, bool shouldRemoveFromBloatScript = true)
     {
         try
         {
-            await bloatRemovalService.RemoveItemsFromScriptAsync(new List<ItemDefinition> { app });
+            if (shouldRemoveFromBloatScript)
+            {
+                await bloatRemovalService.RemoveItemsFromScriptAsync(new List<ItemDefinition> { app });
+                await CleanupDedicatedRemovalArtifactsAsync(app);
+            }
             return await InstallSingleAppAsync(app, progress);
+        }
+        catch (OperationCanceledException)
+        {
+            logService.Log(LogLevel.Info, $"Installation of '{app?.Id}' was cancelled");
+            return OperationResult<bool>.Cancelled("Operation was cancelled");
         }
         catch (Exception ex)
         {
@@ -38,6 +55,8 @@ public class AppOperationService(
 
     private async Task<OperationResult<bool>> InstallSingleAppAsync(ItemDefinition app, IProgress<TaskProgressDetail>? progress = null)
     {
+        var cancellationToken = GetCurrentCancellationToken();
+
         try
         {
             if (!string.IsNullOrEmpty(app?.CapabilityName))
@@ -66,16 +85,39 @@ public class AppOperationService(
 
             if (!string.IsNullOrEmpty(app?.WinGetPackageId))
             {
-                var success = await winGetService.InstallPackageAsync(app.WinGetPackageId, app.Name, CancellationToken.None);
-                if (success)
+                // Check if this is a Windows Store app (has AppxPackageName) or External app
+                bool isWindowsStoreApp = !string.IsNullOrEmpty(app.AppxPackageName);
+
+                if (isWindowsStoreApp)
                 {
-                    eventBus.Publish(new AppInstalledEvent(app.Id));
-                    logService.Log(LogLevel.Success, $"Successfully installed app '{app.Id}'");
+                    // Use WindowsAppsService which has fallback logic for market-restricted Microsoft Store apps
+                    var result = await windowsAppsService.InstallAppAsync(app, progress);
+                    if (result.Success)
+                    {
+                        eventBus.Publish(new AppInstalledEvent(app.Id));
+                        logService.Log(LogLevel.Success, $"Successfully installed app '{app.Id}'");
+                    }
+                    return result;
                 }
-                return success ? OperationResult<bool>.Succeeded(true) : OperationResult<bool>.Failed("Installation failed");
+                else
+                {
+                    // External apps - use WinGet directly without fallback
+                    var success = await winGetService.InstallPackageAsync(app.WinGetPackageId, app.Name, cancellationToken);
+                    if (success)
+                    {
+                        eventBus.Publish(new AppInstalledEvent(app.Id));
+                        logService.Log(LogLevel.Success, $"Successfully installed app '{app.Id}'");
+                    }
+                    return success ? OperationResult<bool>.Succeeded(true) : OperationResult<bool>.Failed("Installation failed");
+                }
             }
 
             return OperationResult<bool>.Failed($"App '{app?.Id}' not supported for installation");
+        }
+        catch (OperationCanceledException)
+        {
+            logService.Log(LogLevel.Info, $"Installation of '{app?.Id}' was cancelled");
+            return OperationResult<bool>.Cancelled("Operation was cancelled");
         }
         catch (Exception ex)
         {
@@ -86,13 +128,14 @@ public class AppOperationService(
 
     public async Task<OperationResult<bool>> UninstallAppAsync(string appId, IProgress<TaskProgressDetail>? progress = null)
     {
+        var cancellationToken = GetCurrentCancellationToken();
+        
         try
         {
             var app = await windowsAppsService.GetAppByIdAsync(appId);
             if (app == null)
                 return OperationResult<bool>.Failed("App not found");
 
-            // Route to appropriate service based on app type (like InstallAppAsync does)
             if (!string.IsNullOrEmpty(app.CapabilityName))
             {
                 var success = await capabilityService.DisableCapabilityAsync(app.CapabilityName, app.Name);
@@ -115,10 +158,9 @@ public class AppOperationService(
                 return success ? OperationResult<bool>.Succeeded(true) : OperationResult<bool>.Failed("Feature removal failed");
             }
 
-            // For AppX packages, use bloatRemovalService
             if (!string.IsNullOrEmpty(app.AppxPackageName))
             {
-                var success = await bloatRemovalService.RemoveAppsAsync(new[] { app }.ToList(), progress);
+                var success = await bloatRemovalService.RemoveAppsAsync(new[] { app }.ToList(), progress, cancellationToken);
                 if (success)
                 {
                     eventBus.Publish(new AppRemovedEvent(appId));
@@ -129,6 +171,11 @@ public class AppOperationService(
 
             return OperationResult<bool>.Failed($"App '{appId}' not supported for removal");
         }
+        catch (OperationCanceledException)
+        {
+            logService.Log(LogLevel.Info, $"Removal of '{appId}' was cancelled");
+            return OperationResult<bool>.Cancelled("Operation was cancelled");
+        }
         catch (Exception ex)
         {
             logService.LogError($"Failed to remove app '{appId}': {ex.Message}");
@@ -136,14 +183,22 @@ public class AppOperationService(
         }
     }
 
-    public async Task<OperationResult<int>> InstallAppsAsync(List<ItemDefinition> apps, IProgress<TaskProgressDetail>? progress = null)
+    public async Task<OperationResult<int>> InstallAppsAsync(List<ItemDefinition> apps, IProgress<TaskProgressDetail>? progress = null, bool shouldRemoveFromBloatScript = true)
     {
         try
         {
             if (apps == null || !apps.Any())
                 return OperationResult<int>.Failed("No apps provided");
 
-            await bloatRemovalService.RemoveItemsFromScriptAsync(apps);
+            if (shouldRemoveFromBloatScript)
+            {
+                await bloatRemovalService.RemoveItemsFromScriptAsync(apps);
+
+                foreach (var app in apps)
+                {
+                    await CleanupDedicatedRemovalArtifactsAsync(app);
+                }
+            }
 
             int successCount = 0;
             foreach (var app in apps)
@@ -154,6 +209,11 @@ public class AppOperationService(
 
             return OperationResult<int>.Succeeded(successCount);
         }
+        catch (OperationCanceledException)
+        {
+            logService.Log(LogLevel.Info, "Bulk installation was cancelled");
+            return OperationResult<int>.Cancelled("Operation was cancelled");
+        }
         catch (Exception ex)
         {
             logService.LogError($"Failed to install apps: {ex.Message}");
@@ -163,12 +223,14 @@ public class AppOperationService(
 
     public async Task<OperationResult<int>> UninstallAppsAsync(List<ItemDefinition> apps, IProgress<TaskProgressDetail>? progress = null)
     {
+        var cancellationToken = GetCurrentCancellationToken();
+        
         try
         {
             if (apps == null || !apps.Any())
                 return OperationResult<int>.Failed("No apps provided");
 
-            var success = await bloatRemovalService.RemoveAppsAsync(apps, progress);
+            var success = await bloatRemovalService.RemoveAppsAsync(apps, progress, cancellationToken);
 
             if (success)
             {
@@ -182,11 +244,45 @@ public class AppOperationService(
 
             return OperationResult<int>.Failed("Bulk removal failed");
         }
+        catch (OperationCanceledException)
+        {
+            logService.Log(LogLevel.Info, "Bulk removal was cancelled");
+            return OperationResult<int>.Cancelled("Operation was cancelled");
+        }
         catch (Exception ex)
         {
             logService.LogError($"Failed to remove apps: {ex.Message}");
             return OperationResult<int>.Failed(ex.Message);
         }
+    }
+
+    private async Task CleanupDedicatedRemovalArtifactsAsync(ItemDefinition app)
+    {
+        if (app.Id == "windows-app-edge" || app.Id == "windows-app-onedrive")
+        {
+            var scriptName = CreateScriptName(app.Id);
+            var scriptPath = Path.Combine(ScriptPaths.ScriptsDirectory, scriptName);
+            var taskName = scriptName.Replace(".ps1", "");
+
+            if (File.Exists(scriptPath))
+            {
+                File.Delete(scriptPath);
+                logService.LogInformation($"Deleted obsolete script: {scriptPath}");
+            }
+
+            await scheduledTaskService.UnregisterScheduledTaskAsync(taskName);
+            logService.LogInformation($"Cleaned up artifacts for reinstalled app: {app.Id}");
+        }
+    }
+
+    private static string CreateScriptName(string appId)
+    {
+        return appId switch
+        {
+            "windows-app-edge" => "EdgeRemoval.ps1",
+            "windows-app-onedrive" => "OneDriveRemoval.ps1",
+            _ => throw new NotSupportedException($"No dedicated script defined for {appId}")
+        };
     }
 }
 

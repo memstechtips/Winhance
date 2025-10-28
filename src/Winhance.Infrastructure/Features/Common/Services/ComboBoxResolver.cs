@@ -58,11 +58,11 @@ namespace Winhance.Infrastructure.Features.Common.Services
                 return index;
             }
 
-            var mappings = (Dictionary<int, Dictionary<string, int?>>)mappingsObj;
+            var mappings = (Dictionary<int, Dictionary<string, object?>>)mappingsObj;
             if (mappings.TryGetValue(index, out var valueDict))
             {
                 var firstValue = valueDict.Values.FirstOrDefault();
-                return firstValue ?? index;
+                return firstValue is int intVal ? intVal : (firstValue != null ? Convert.ToInt32(firstValue) : index);
             }
 
             return index;
@@ -77,12 +77,34 @@ namespace Winhance.Infrastructure.Features.Common.Services
                 return 0;
             }
 
-            var mappings = (Dictionary<int, Dictionary<string, int?>>)mappingsObj;
-            var currentValues = new Dictionary<string, int?>();
-            foreach (var rawValue in rawValues)
+            if (rawValues.TryGetValue("CurrentPolicyIndex", out var policyIndex))
             {
-                var intValue = rawValue.Value != null ? Convert.ToInt32(rawValue.Value) : (int?)null;
-                currentValues[rawValue.Key] = intValue;
+                return policyIndex is int index ? index : 0;
+            }
+
+            var mappings = (Dictionary<int, Dictionary<string, object?>>)mappingsObj;
+            var currentValues = new Dictionary<string, object?>();
+
+            if (setting.PowerCfgSettings?.Count > 0 && rawValues.TryGetValue("PowerCfgValue", out var powerCfgValue))
+            {
+                currentValues["PowerCfgValue"] = powerCfgValue != null ? Convert.ToInt32(powerCfgValue) : null;
+            }
+
+            foreach (var registrySetting in setting.RegistrySettings)
+            {
+                var key = registrySetting.ValueName ?? "KeyExists";
+                if (rawValues.TryGetValue(key, out var rawValue) && rawValue != null)
+                {
+                    currentValues[key] = rawValue;
+                }
+                else if (registrySetting.DefaultValue != null)
+                {
+                    currentValues[key] = registrySetting.DefaultValue;
+                }
+                else
+                {
+                    currentValues[key] = null;
+                }
             }
 
             foreach (var mapping in mappings)
@@ -97,8 +119,8 @@ namespace Winhance.Infrastructure.Features.Common.Services
                     {
                         currentValue = null;
                     }
-                    
-                    if (!Equals(currentValue, expectedValue.Value))
+
+                    if (!ValuesAreEqual(currentValue, expectedValue.Value))
                     {
                         allMatch = false;
                         break;
@@ -129,7 +151,7 @@ namespace Winhance.Infrastructure.Features.Common.Services
                 return result;
             }
 
-            var mappings = (Dictionary<int, Dictionary<string, int?>>)mappingsObj;
+            var mappings = (Dictionary<int, Dictionary<string, object?>>)mappingsObj;
             if (mappings.TryGetValue(index, out var expectedValues))
             {
                 foreach (var expectedValue in expectedValues)
@@ -155,6 +177,34 @@ namespace Winhance.Infrastructure.Features.Common.Services
                 }
             }
             return 0;
+        }
+
+        private static bool ValuesAreEqual(object? value1, object? value2)
+        {
+            if (value1 == null && value2 == null) return true;
+            if (value1 == null || value2 == null) return false;
+
+            if (value1 is byte[] bytes1 && value2 is byte[] bytes2)
+            {
+                return bytes1.SequenceEqual(bytes2);
+            }
+
+            if (value1 is byte b1 && value2 is byte b2)
+            {
+                return b1 == b2;
+            }
+
+            if (value1 is byte b1Int && value2 is int i2)
+            {
+                return b1Int == i2;
+            }
+
+            if (value1 is int i1 && value2 is byte b2Int)
+            {
+                return i1 == b2Int;
+            }
+
+            return value1.Equals(value2);
         }
     }
 }

@@ -6,5 +6,6 @@ namespace Winhance.Core.Features.Common.Interfaces
     {
         IDomainService GetDomainService(string featureIdOrSettingId);
         void AddSettingMappings(string featureId, IEnumerable<string> settingIds);
+        void ClearAllSettingsCaches();
     }
 }

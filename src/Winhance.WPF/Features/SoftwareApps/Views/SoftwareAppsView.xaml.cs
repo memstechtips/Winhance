@@ -38,6 +38,14 @@ namespace Winhance.WPF.Features.SoftwareApps.Views
             }
         }
 
+        private void HelpFlyoutPopup_Closed(object sender, System.EventArgs e)
+        {
+            if (DataContext is SoftwareAppsViewModel viewModel)
+            {
+                viewModel.HideHelpFlyoutCommand.Execute(null);
+            }
+        }
+
         private void SoftwareAppsView_DataContextChanged(object sender, DependencyPropertyChangedEventArgs e)
         {
             if (e.OldValue is SoftwareAppsViewModel oldViewModel)

@@ -1,9 +1,3 @@
-using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Threading.Tasks;
-using Microsoft.Win32;
-using Winhance.Core.Features.Common.Constants;
 using Winhance.Core.Features.Common.Enums;
 using Winhance.Core.Features.Common.Interfaces;
 using Winhance.Core.Features.Common.Models;
@@ -18,16 +12,26 @@ namespace Winhance.Infrastructure.Features.Customize.Services
         IWindowsVersionService versionService,
         IWindowsUIManagementService uiManagementService,
         IWindowsRegistryService registryService,
-        ILogService logService) : IDomainService
+        ILogService logService,
+        ICompatibleSettingsRegistry compatibleSettingsRegistry) : IDomainService
     {
         public string DomainName => FeatureIds.WindowsTheme;
+
+        public async Task<bool> TryApplySpecialSettingAsync(SettingDefinition setting, object value, bool additionalContext = false)
+        {
+            if (setting.Id == "theme-mode-windows" && value is int index)
+            {
+                await ApplyThemeModeWindowsAsync(setting, index, additionalContext);
+                return true;
+            }
+            return false;
+        }
 
         public async Task<IEnumerable<SettingDefinition>> GetSettingsAsync()
         {
             try
             {
-                var group = WindowsThemeCustomizations.GetWindowsThemeCustomizations();
-                return group.Settings;
+                return compatibleSettingsRegistry.GetFilteredSettings(FeatureIds.WindowsTheme);
             }
             catch (Exception ex)
             {
@@ -36,59 +40,41 @@ namespace Winhance.Infrastructure.Features.Customize.Services
             }
         }
 
-        public async Task ApplySettingWithContextAsync(string settingId, bool enable, object? value, SettingOperationContext context)
+        public async Task ApplyThemeModeWindowsAsync(SettingDefinition setting, object value, bool applyWallpaper = false)
         {
-            logService.Log(LogLevel.Info, $"[WindowsThemeService] ApplySettingWithContextAsync called - Enable: {enable}, ApplyWallpaper: {context.ApplyWallpaper}");
-            
-            var settings = await GetSettingsAsync();
-            var setting = settings.FirstOrDefault(s => s.Id == settingId);
-            if (setting == null)
-                throw new ArgumentException($"Setting '{settingId}' not found");
+            if (value is not int selectionIndex)
+                throw new ArgumentException("Expected integer selection index for theme mode");
 
-            ApplyRegistryChanges(setting, context.RegistryValues);
+            logService.Log(LogLevel.Info, $"[WindowsThemeService] Applying theme mode - Index: {selectionIndex}, ApplyWallpaper: {applyWallpaper}");
 
-            if (enable && context.ApplyWallpaper)
+            if (setting.RegistrySettings?.Count > 0)
             {
-                logService.Log(LogLevel.Info, $"[WindowsThemeService] Applying wallpaper for theme change");
-                await ApplyWallpaperForTheme(value);
+                logService.Log(LogLevel.Info, $"[WindowsThemeService] Applying {setting.RegistrySettings.Count} registry settings");
+
+                foreach (var registrySetting in setting.RegistrySettings)
+                {
+                    int themeValue = selectionIndex == 1 ? 0 : 1;
+                    registryService.ApplySetting(registrySetting, true, themeValue);
+                }
+            }
+
+            if (applyWallpaper)
+            {
+                logService.Log(LogLevel.Info, $"[WindowsThemeService] Applying wallpaper for theme mode");
+                await ApplyWallpaperForTheme(selectionIndex);
             }
 
             logService.Log(LogLevel.Info, $"[WindowsThemeService] Refreshing Windows UI");
             await RefreshWindowsUI();
+
+            logService.Log(LogLevel.Info, $"[WindowsThemeService] Successfully applied theme mode");
         }
 
-        private void ApplyRegistryChanges(SettingDefinition setting, Dictionary<string, int?>? resolvedValues)
-        {
-            if (setting.RegistrySettings?.Count > 0)
-            {
-                logService.Log(LogLevel.Info, $"[WindowsThemeService] Applying {setting.RegistrySettings.Count} registry settings for '{setting.Id}'");
-
-                foreach (var registrySetting in setting.RegistrySettings)
-                {
-                    if (resolvedValues?.TryGetValue(registrySetting.ValueName, out var specificValue) == true)
-                    {
-                        if (specificValue == null)
-                        {
-                            registryService.ApplySetting(registrySetting, false);
-                        }
-                        else
-                        {
-                            registryService.ApplySetting(registrySetting, true, specificValue.Value);
-                        }
-                    }
-                    else
-                    {
-                        registryService.ApplySetting(registrySetting, true);
-                    }
-                }
-            }
-        }
-
-        private async Task ApplyWallpaperForTheme(object? value)
+        private async Task ApplyWallpaperForTheme(int selectionIndex)
         {
             try
             {
-                var isDarkMode = value is int comboBoxIndex ? comboBoxIndex == 1 : false;
+                var isDarkMode = selectionIndex == 1;
                 var isWindows11 = versionService.IsWindows11();
                 var wallpaperPath = WindowsThemeCustomizations.Wallpaper.GetDefaultWallpaperPath(isWindows11, isDarkMode);
 
@@ -108,7 +94,8 @@ namespace Winhance.Infrastructure.Features.Customize.Services
         {
             try
             {
-                await uiManagementService.RefreshWindowsGUI();
+                bool shouldKillExplorer = !uiManagementService.IsConfigImportMode;
+                await uiManagementService.RefreshWindowsGUI(killExplorer: shouldKillExplorer);
             }
             catch (Exception ex)
             {

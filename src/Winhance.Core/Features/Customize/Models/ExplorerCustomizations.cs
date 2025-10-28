@@ -1,4 +1,3 @@
-using System.Collections.Generic;
 using Microsoft.Win32;
 using Winhance.Core.Features.Common.Constants;
 using Winhance.Core.Features.Common.Enums;
@@ -18,11 +17,917 @@ public static class ExplorerCustomizations
             {
                 new SettingDefinition
                 {
-                    Id = "explorer-customization-3d-objects",
-                    Name = "3D Objects in This PC",
-                    Description = "Controls 3D Objects folder visibility in This PC",
-                    GroupName = "File Explorer Settings",
+                    Id = "explorer-customization-context-menu",
+                    Name = "Use Classic Context Menu",
+                    Description = "Use the Windows 10-style right-click menu with all options visible instead of the simplified Windows 11 menu",
                     InputType = InputType.Toggle,
+                    IconPack = "Lucide",
+                    Icon = "SquareMenu",
+                    IsWindows11Only = true,
+                    RestartProcess = "Explorer",
+                    RegistrySettings = new List<RegistrySetting>
+                    {
+                        new RegistrySetting
+                        {
+                            KeyPath = @"HKEY_CURRENT_USER\Software\Classes\CLSID\{86ca1aa0-34aa-4e8b-a509-50c905bae2a2}\InprocServer32",
+                            ValueName = "",
+                            RecommendedValue = "",
+                            EnabledValue = "", // When toggle is ON, classic context menu is used (value is deleted)
+                            DisabledValue = null, // When toggle is OFF, modern context menu is used (empty value is set)
+                            DefaultValue = "",
+                            ValueType = RegistryValueKind.String,
+                        },
+                    },
+                },
+                new SettingDefinition
+                {
+                    Id = "explorer-take-ownership",
+                    Name = "Add 'Take Ownership' to Context Menu",
+                    Description = "Adds a right-click option to take ownership of files, folders, and drives with automatic permission elevation",
+                    InputType = InputType.Toggle,
+                    Icon = "Security",
+                    RegistrySettings = new List<RegistrySetting>
+                    {
+                        new RegistrySetting
+                        {
+                            KeyPath = @"HKEY_CLASSES_ROOT\*\shell\TakeOwnership",
+                            ValueName = null,
+                            EnabledValue = null,
+                            DisabledValue = null,
+                            DefaultValue = null,
+                            ValueType = RegistryValueKind.None,
+                        }
+                    },
+                    RegContents = new List<RegContentSetting>
+                    {
+                        new RegContentSetting
+                        {
+                            EnabledContent = @"Windows Registry Editor Version 5.00
+
+[-HKEY_CLASSES_ROOT\*\shell\TakeOwnership]
+[-HKEY_CLASSES_ROOT\*\shell\runas]
+
+[HKEY_CLASSES_ROOT\*\shell\TakeOwnership]
+@=""Take Ownership""
+""Extended""=-
+""HasLUAShield""=""""
+""NoWorkingDirectory""=""""
+""NeverDefault""=""""
+
+[HKEY_CLASSES_ROOT\*\shell\TakeOwnership\command]
+@=""powershell -windowstyle hidden -command \""Start-Process cmd -ArgumentList '/c takeown /f \\\\\\""%1\\\\\\"" && icacls \\\\\\""%1\\\\\\"" /grant *S-1-3-4:F /t /c /l & pause' -Verb runAs\""""
+""IsolatedCommand""=""powershell -windowstyle hidden -command \""Start-Process cmd -ArgumentList '/c takeown /f \\\\\\""%1\\\\\\"" && icacls \\\\\\""%1\\\\\\"" /grant *S-1-3-4:F /t /c /l & pause' -Verb runAs\""""
+
+[HKEY_CLASSES_ROOT\Directory\shell\TakeOwnership]
+@=""Take Ownership""
+""AppliesTo""=""NOT (System.ItemPathDisplay:=\""C:\\Users\"" OR System.ItemPathDisplay:=\""C:\\ProgramData\"" OR System.ItemPathDisplay:=\""C:\\Windows\"" OR System.ItemPathDisplay:=\""C:\\Windows\\System32\"" OR System.ItemPathDisplay:=\""C:\\Program Files\"" OR System.ItemPathDisplay:=\""C:\\Program Files (x86)\"")""
+""Extended""=-
+""HasLUAShield""=""""
+""NoWorkingDirectory""=""""
+""Position""=""middle""
+
+[HKEY_CLASSES_ROOT\Directory\shell\TakeOwnership\command]
+@=""powershell -windowstyle hidden -command \""$Y = ($null | choice).Substring(1,1); Start-Process cmd -ArgumentList ('/c takeown /f \\\\\\""%1\\\\\\"" /r /d ' + $Y + ' && icacls \\\\\\""%1\\\\\\"" /grant *S-1-3-4:F /t /c /l /q & pause') -Verb runAs\""""
+""IsolatedCommand""=""powershell -windowstyle hidden -command \""$Y = ($null | choice).Substring(1,1); Start-Process cmd -ArgumentList ('/c takeown /f \\\\\\""%1\\\\\\"" /r /d ' + $Y + ' && icacls \\\\\\""%1\\\\\\"" /grant *S-1-3-4:F /t /c /l /q & pause') -Verb runAs\""""
+
+[HKEY_CLASSES_ROOT\Drive\shell\runas]
+@=""Take Ownership""
+""Extended""=-
+""HasLUAShield""=""""
+""NoWorkingDirectory""=""""
+""Position""=""middle""
+""AppliesTo""=""NOT (System.ItemPathDisplay:=\""C:\\\"")""
+
+[HKEY_CLASSES_ROOT\Drive\shell\runas\command]
+@=""cmd.exe /c takeown /f \""%1\\\"" /r /d y && icacls \""%1\\\"" /grant *S-1-3-4:F /t /c & Pause""
+""IsolatedCommand""=""cmd.exe /c takeown /f \""%1\\\"" /r /d y && icacls \""%1\\\"" /grant *S-1-3-4:F /t /c & Pause""
+",
+                            DisabledContent = @"Windows Registry Editor Version 5.00
+
+[-HKEY_CLASSES_ROOT\*\shell\TakeOwnership]
+[-HKEY_CLASSES_ROOT\*\shell\runas]
+[-HKEY_CLASSES_ROOT\Directory\shell\TakeOwnership]
+[-HKEY_CLASSES_ROOT\Drive\shell\runas]
+",
+                            RequiresElevation = true
+                        }
+                    }
+                },
+                new SettingDefinition
+                {
+                    Id = "devices-dynamic-lighting-ambient",
+                    Name = "Use Dynamic Lighting on my devices",
+                    Description = "Allow Windows Dynamic Lighting to control ambient RGB effects on compatible devices",
+                    GroupName = "Devices and Peripherals",
+                    InputType = InputType.Toggle,
+                    Icon = "TelevisionAmbientLight",
+                    IsWindows11Only = true,
+                    RegistrySettings = new List<RegistrySetting>
+                    {
+                        new RegistrySetting
+                        {
+                            KeyPath = @"HKEY_CURRENT_USER\Software\Microsoft\Lighting",
+                            ValueName = "AmbientLightingEnabled",
+                            RecommendedValue = 0,
+                            EnabledValue = 1,
+                            DisabledValue = 0,
+                            DefaultValue = 1,
+                            ValueType = RegistryValueKind.DWord,
+                        },
+                    },
+                },
+                new SettingDefinition
+                {
+                    Id = "devices-dynamic-lighting-foreground-app",
+                    Name = "Compatible apps in the foreground always control lighting",
+                    Description = "Allow compatible apps to control device lighting effects",
+                    GroupName = "Devices and Peripherals",
+                    InputType = InputType.Toggle,
+                    Icon = "StringLightsOff",
+                    IsWindows11Only = true,
+                    RegistrySettings = new List<RegistrySetting>
+                    {
+                        new RegistrySetting
+                        {
+                            KeyPath = @"HKEY_CURRENT_USER\Software\Microsoft\Lighting",
+                            ValueName = "ControlledByForegroundApp",
+                            RecommendedValue = 0,
+                            EnabledValue = 1,
+                            DisabledValue = 0,
+                            DefaultValue = 1,
+                            ValueType = RegistryValueKind.DWord,
+                        },
+                    },
+                },
+                new SettingDefinition
+                {
+                    Id = "devices-default-printer-management",
+                    Name = "Disable Automatic Default Printer Management",
+                    Description = "Prevents Windows from automatically changing your default printer based on location or last used printer",
+                    GroupName = "Devices and Peripherals",
+                    InputType = InputType.Toggle,
+                    Icon = "PrinterOff",
+                    RegistrySettings = new List<RegistrySetting>
+                    {
+                        new RegistrySetting
+                        {
+                            KeyPath = @"HKEY_CURRENT_USER\Software\Microsoft\Windows NT\CurrentVersion\Windows",
+                            ValueName = "LegacyDefaultPrinterMode",
+                            RecommendedValue = 1,
+                            EnabledValue = 1,
+                            DisabledValue = 0,
+                            DefaultValue = 0,
+                            ValueType = RegistryValueKind.DWord,
+                        },
+                    },
+                },
+                new SettingDefinition
+                {
+                    Id = "explorer-customization-launch-to",
+                    Name = "Open File Explorer to",
+                    Description = "Choose what happens when File Explorer is opened",
+                    GroupName = "General",
+                    InputType = InputType.Selection,
+                    IconPack = "Lucide",
+                    Icon = "FolderOpen",
+                    RegistrySettings = new List<RegistrySetting>
+                    {
+                        new RegistrySetting
+                        {
+                            KeyPath = @"HKEY_CURRENT_USER\Software\Microsoft\Windows\CurrentVersion\Explorer\Advanced",
+                            ValueName = "LaunchTo",
+                            RecommendedValue = 1,
+                            DefaultValue = 2,
+                            ValueType = RegistryValueKind.DWord,
+                            CustomProperties = new Dictionary<string, object>
+                            {
+                                ["DefaultOption"] = "Home",
+                            },
+                        },
+                    },
+                    CustomProperties = new Dictionary<string, object>
+                    {
+                        [CustomPropertyKeys.ComboBoxDisplayNames] = new string[]
+                        {
+                            "Home",
+                            "This PC",
+                        },
+                        [CustomPropertyKeys.ValueMappings] = new Dictionary<int, Dictionary<string, object?>>
+                        {
+                            [0] = new Dictionary<string, object?>
+                            {
+                                ["LaunchTo"] = 2,
+                            },
+                            [1] = new Dictionary<string, object?>
+                            {
+                                ["LaunchTo"] = 1,
+                            },
+                        },
+                    },
+                },
+                new SettingDefinition
+                {
+                    Id = "explorer-customization-browse-folders",
+                    Name = "Browse folders",
+                    Description = "Choose whether each folder opens in the same window or in its own window",
+                    GroupName = "General",
+                    InputType = InputType.Selection,
+                    IconPack = "Lucide",
+                    Icon = "Folders",
+                    RestartProcess = "Explorer",
+                    RegistrySettings = new List<RegistrySetting>
+                    {
+                        new RegistrySetting
+                        {
+                            KeyPath = @"HKEY_CURRENT_USER\Software\Microsoft\Windows\CurrentVersion\Explorer\CabinetState",
+                            ValueName = "Settings",
+                            RecommendedValue = (byte)0x2A,
+                            DefaultValue = (byte)0x2A,
+                            ValueType = RegistryValueKind.Binary,
+                            ModifyByteOnly = true,
+                            BinaryByteIndex = 4,
+                        },
+                    },
+                    CustomProperties = new Dictionary<string, object>
+                    {
+                        [CustomPropertyKeys.ComboBoxDisplayNames] = new string[]
+                        {
+                            "Open each folder in the same window",
+                            "Open each folder in its own window",
+                        },
+                        [CustomPropertyKeys.ValueMappings] = new Dictionary<int, Dictionary<string, object?>>
+                        {
+                            [0] = new Dictionary<string, object?>
+                            {
+                                ["Settings"] = (byte)0x0A,
+                            },
+                            [1] = new Dictionary<string, object?>
+                            {
+                                ["Settings"] = (byte)0x2A,
+                            },
+                        },
+                    },
+                },
+                new SettingDefinition
+                {
+                    Id = "explorer-customization-click-items",
+                    Name = "Click items as follows",
+                    Description = "Choose whether to open files and folders with a single click (like web links) or double-click (traditional)",
+                    GroupName = "General",
+                    InputType = InputType.Selection,
+                    IconPack = "Lucide",
+                    Icon = "MousePointerClick",
+                    RestartProcess = "Explorer",
+                    RegistrySettings = new List<RegistrySetting>
+                    {
+                        new RegistrySetting
+                        {
+                            KeyPath = @"HKEY_CURRENT_USER\Software\Microsoft\Windows\CurrentVersion\Explorer",
+                            ValueName = "ShellState",
+                            ValueType = RegistryValueKind.Binary,
+                            ModifyByteOnly = true,
+                            BinaryByteIndex = 4,
+                            RecommendedValue = (byte)0x3E,
+                            DefaultValue = (byte)0x3E,
+                        },
+                        new RegistrySetting
+                        {
+                            KeyPath = @"HKEY_CURRENT_USER\Software\Microsoft\Windows\CurrentVersion\Explorer",
+                            ValueName = "IconUnderline",
+                            ValueType = RegistryValueKind.DWord,
+                            RecommendedValue = 3,
+                            DefaultValue = 3,
+                        },
+                    },
+                    CustomProperties = new Dictionary<string, object>
+                    {
+                        [CustomPropertyKeys.ComboBoxDisplayNames] = new string[]
+                        {
+                            "Double-click to open an item (single-click to select)",
+                            "Single-click to open (underline icon titles consistent with browser)",
+                            "Single-click to open (underline icon titles only when pointing)",
+                        },
+                        [CustomPropertyKeys.ValueMappings] = new Dictionary<int, Dictionary<string, object?>>
+                        {
+                            [0] = new Dictionary<string, object?>
+                            {
+                                ["ShellState"] = (byte)0x3E,
+                                ["IconUnderline"] = 3,
+                            },
+                            [1] = new Dictionary<string, object?>
+                            {
+                                ["ShellState"] = (byte)0x1E,
+                                ["IconUnderline"] = 3,
+                            },
+                            [2] = new Dictionary<string, object?>
+                            {
+                                ["ShellState"] = (byte)0x1E,
+                                ["IconUnderline"] = 2,
+                            },
+                        },
+                    },
+                },
+                new SettingDefinition
+                {
+                    Id = "explorer-customization-show-recent-files",
+                    Name = "Show recently used files",
+                    Description = "Displays recently accessed files and recommendations in Quick Access",
+                    GroupName = "General",
+                    InputType = InputType.Toggle,
+                    IconPack = "Lucide",
+                    Icon = "FileClock",
+                    RegistrySettings = new List<RegistrySetting>
+                    {
+                        new RegistrySetting
+                        {
+                            KeyPath = @"HKEY_CURRENT_USER\Software\Microsoft\Windows\CurrentVersion\Explorer",
+                            ValueName = "ShowRecent",
+                            RecommendedValue = 0,
+                            EnabledValue = 1,
+                            DisabledValue = 0,
+                            DefaultValue = 1,
+                            ValueType = RegistryValueKind.DWord,
+                        },
+                        new RegistrySetting
+                        {
+                            KeyPath = @"HKEY_CURRENT_USER\Software\Microsoft\Windows\CurrentVersion\Explorer",
+                            ValueName = "ShowRecommendations",
+                            RecommendedValue = 0,
+                            EnabledValue = 1,
+                            DisabledValue = 0,
+                            DefaultValue = 1,
+                            ValueType = RegistryValueKind.DWord,
+                        },
+                    },
+                },
+                new SettingDefinition
+                {
+                    Id = "explorer-customization-show-frequent-folders",
+                    Name = "Show frequently used folders",
+                    Description = "Displays your most accessed folders in Quick Access section",
+                    GroupName = "General",
+                    InputType = InputType.Toggle,
+                    Icon = "FolderClockOutline",
+                    RegistrySettings = new List<RegistrySetting>
+                    {
+                        new RegistrySetting
+                        {
+                            KeyPath = @"HKEY_CURRENT_USER\Software\Microsoft\Windows\CurrentVersion\Explorer",
+                            ValueName = "ShowFrequent",
+                            RecommendedValue = 0,
+                            EnabledValue = 1,
+                            DisabledValue = 0,
+                            DefaultValue = 1,
+                            ValueType = RegistryValueKind.DWord,
+                        },
+                    },
+                },
+                new SettingDefinition
+                {
+                    Id = "explorer-customization-show-office-files",
+                    Name = "Show files from Office.com",
+                    Description = "Displays cloud files from your Office.com account in Quick Access",
+                    GroupName = "General",
+                    InputType = InputType.Toggle,
+                    Icon = "FileCloud",
+                    IsWindows11Only = true,
+                    RegistrySettings = new List<RegistrySetting>
+                    {
+                        new RegistrySetting
+                        {
+                            KeyPath = @"HKEY_CURRENT_USER\Software\Microsoft\Windows\CurrentVersion\Explorer",
+                            ValueName = "ShowCloudFilesInQuickAccess",
+                            RecommendedValue = 0,
+                            EnabledValue = 1,
+                            DisabledValue = 0,
+                            DefaultValue = 1,
+                            ValueType = RegistryValueKind.DWord,
+                        },
+                    },
+                },
+                new SettingDefinition
+                {
+                    Id = "explorer-customization-show-thumbnails",
+                    Name = "Always show icons, never thumbnails",
+                    Description = "Displays generic file icons instead of image/document previews",
+                    GroupName = "Files and Folders",
+                    InputType = InputType.Toggle,
+                    Icon = "ImageOff",
+                    RegistrySettings = new List<RegistrySetting>
+                    {
+                        new RegistrySetting
+                        {
+                            KeyPath = @"HKEY_CURRENT_USER\Software\Microsoft\Windows\CurrentVersion\Explorer\Advanced",
+                            ValueName = "IconsOnly",
+                            RecommendedValue = 0,
+                            EnabledValue = 0,
+                            DisabledValue = 1,
+                            DefaultValue = 1,
+                            ValueType = RegistryValueKind.DWord,
+                        },
+                    },
+                },
+                new SettingDefinition
+                {
+                    Id = "explorer-customization-show-menus",
+                    Name = "Always show menus",
+                    Description = "Shows the Menu bar (File, Edit etc.) on all windows that support it",
+                    GroupName = "Files and Folders",
+                    InputType = InputType.Toggle,
+                    IconPack = "Lucide",
+                    Icon = "AppWindowMac",
+                    IsWindows10Only = true,
+                    RegistrySettings = new List<RegistrySetting>
+                    {
+                        new RegistrySetting
+                        {
+                            KeyPath = @"HKEY_CURRENT_USER\Software\Microsoft\Windows\CurrentVersion\Explorer\Advanced",
+                            ValueName = "AlwaysShowMenus",
+                            RecommendedValue = 0,
+                            EnabledValue = 1,
+                            DisabledValue = 0,
+                            DefaultValue = 0,
+                            ValueType = RegistryValueKind.DWord,
+                        },
+                    },
+                },
+                new SettingDefinition
+                {
+                    Id = "explorer-customization-item-space",
+                    Name = "Decrease space between items (compact view)",
+                    Description = "Reduces vertical spacing between files and folders for denser view",
+                    GroupName = "Files and Folders",
+                    InputType = InputType.Toggle,
+                    Icon = "ViewCompact",
+                    RegistrySettings = new List<RegistrySetting>
+                    {
+                        new RegistrySetting
+                        {
+                            KeyPath = @"HKEY_CURRENT_USER\Software\Microsoft\Windows\CurrentVersion\Explorer\Advanced",
+                            ValueName = "UseCompactMode",
+                            RecommendedValue = 0,
+                            EnabledValue = 1,
+                            DisabledValue = 0,
+                            DefaultValue = 0,
+                            ValueType = RegistryValueKind.DWord,
+                        },
+                    },
+                },
+                new SettingDefinition
+                {
+                    Id = "explorer-customization-icon-thumbnails",
+                    Name = "Display file icon on thumbnails",
+                    Description = "Shows file type icon overlay on bottom-right corner of thumbnail previews",
+                    GroupName = "Files and Folders",
+                    InputType = InputType.Toggle,
+                    IconPack = "MaterialDesign",
+                    Icon = "TypeSpecimenRound",
+                    RegistrySettings = new List<RegistrySetting>
+                    {
+                        new RegistrySetting
+                        {
+                            KeyPath = @"HKEY_CURRENT_USER\Software\Microsoft\Windows\CurrentVersion\Explorer\Advanced",
+                            ValueName = "ShowTypeOverlay",
+                            RecommendedValue = 0,
+                            EnabledValue = 1,
+                            DisabledValue = 0,
+                            DefaultValue = 0,
+                            ValueType = RegistryValueKind.DWord,
+                        },
+                    },
+                },
+                new SettingDefinition
+                {
+                    Id = "explorer-customization-folder-tips",
+                    Name = "Display file size information in folder tips",
+                    Description = "Shows total size and file count when hovering over folders",
+                    GroupName = "Files and Folders",
+                    InputType = InputType.Toggle,
+                    IconPack = "Lucide",
+                    Icon = "FileDigit",
+                    RegistrySettings = new List<RegistrySetting>
+                    {
+                        new RegistrySetting
+                        {
+                            KeyPath = @"HKEY_CURRENT_USER\Software\Microsoft\Windows\CurrentVersion\Explorer\Advanced",
+                            ValueName = "FolderContentsInfoTip",
+                            RecommendedValue = 0,
+                            EnabledValue = 1,
+                            DisabledValue = 0,
+                            DefaultValue = 1,
+                            ValueType = RegistryValueKind.DWord,
+                        },
+                    },
+                },
+                new SettingDefinition
+                {
+                    Id = "explorer-customization-full-path",
+                    Name = "Display the full path in the title bar",
+                    Description = "Shows complete directory path in window title instead of folder name only",
+                    GroupName = "Files and Folders",
+                    InputType = InputType.Toggle,
+                    IconPack = "Lucide",
+                    Icon = "PanelTop",
+                    RegistrySettings = new List<RegistrySetting>
+                    {
+                        new RegistrySetting
+                        {
+                            KeyPath = @"HKEY_CURRENT_USER\Software\Microsoft\Windows\CurrentVersion\Explorer\CabinetState",
+                            ValueName = "FullPath",
+                            RecommendedValue = 1,
+                            EnabledValue = 1,
+                            DisabledValue = 0,
+                            DefaultValue = 1,
+                            ValueType = RegistryValueKind.DWord,
+                        },
+                    },
+                },
+                new SettingDefinition
+                {
+                    Id = "explorer-customization-show-hidden-files",
+                    Name = "Show hidden files, folders & drives",
+                    Description = "Displays items with the hidden attribute set",
+                    GroupName = "Files and Folders",
+                    InputType = InputType.Toggle,
+                    Icon = "FileEyeOutline",
+                    RegistrySettings = new List<RegistrySetting>
+                    {
+                        new RegistrySetting
+                        {
+                            KeyPath = @"HKEY_CURRENT_USER\Software\Microsoft\Windows\CurrentVersion\Explorer\Advanced",
+                            ValueName = "Hidden",
+                            RecommendedValue = 1,
+                            EnabledValue = 1,
+                            DisabledValue = 0,
+                            DefaultValue = 0,
+                            ValueType = RegistryValueKind.DWord,
+                        },
+                    },
+                },
+                new SettingDefinition
+                {
+                    Id = "explorer-customization-hide-empty-drives",
+                    Name = "Hide empty drives",
+                    Description = "Hides drives with no media inserted like empty card readers or optical drives",
+                    GroupName = "Files and Folders",
+                    InputType = InputType.Toggle,
+                    Icon = "HarddiskRemove",
+                    RegistrySettings = new List<RegistrySetting>
+                    {
+                        new RegistrySetting
+                        {
+                            KeyPath = @"HKEY_CURRENT_USER\Software\Microsoft\Windows\CurrentVersion\Explorer\Advanced",
+                            ValueName = "HideDrivesWithNoMedia",
+                            RecommendedValue = 1,
+                            EnabledValue = 1,
+                            DisabledValue = 0,
+                            DefaultValue = 0,
+                            ValueType = RegistryValueKind.DWord,
+                        },
+                    },
+                },
+                new SettingDefinition
+                {
+                    Id = "explorer-customization-show-file-ext",
+                    Name = "Show file extensions",
+                    Description = "Displays file type extensions (like .txt, .pdf) after file names",
+                    GroupName = "Files and Folders",
+                    InputType = InputType.Toggle,
+                    IconPack = "Lucide",
+                    Icon = "FileType2",
+                    RegistrySettings = new List<RegistrySetting>
+                    {
+                        new RegistrySetting
+                        {
+                            KeyPath = @"HKEY_CURRENT_USER\Software\Microsoft\Windows\CurrentVersion\Explorer\Advanced",
+                            ValueName = "HideFileExt",
+                            RecommendedValue = 0,
+                            EnabledValue = 0,
+                            DisabledValue = 1,
+                            DefaultValue = 1,
+                            ValueType = RegistryValueKind.DWord,
+                        },
+                    },
+                },
+                new SettingDefinition
+                {
+                    Id = "explorer-customization-hide-merge-conflicts",
+                    Name = "Hide folder merge conflicts",
+                    Description = "Automatically merges folders with same name without confirmation dialog",
+                    GroupName = "Files and Folders",
+                    InputType = InputType.Toggle,
+                    Icon = "FolderAlert",
+                    RegistrySettings = new List<RegistrySetting>
+                    {
+                        new RegistrySetting
+                        {
+                            KeyPath = @"HKEY_CURRENT_USER\Software\Microsoft\Windows\CurrentVersion\Explorer\Advanced",
+                            ValueName = "HideMergeConflicts",
+                            RecommendedValue = 0,
+                            EnabledValue = 1,
+                            DisabledValue = 0,
+                            DefaultValue = 0,
+                            ValueType = RegistryValueKind.DWord,
+                        },
+                    },
+                },
+                new SettingDefinition
+                {
+                    Id = "explorer-customization-hide-protected-files",
+                    Name = "Show protected operating system files",
+                    Description = "Displays system files marked with the SuperHidden attribute",
+                    GroupName = "Files and Folders",
+                    InputType = InputType.Toggle,
+                    Icon = "FileHidden",
+                    RegistrySettings = new List<RegistrySetting>
+                    {
+                        new RegistrySetting
+                        {
+                            KeyPath = @"HKEY_CURRENT_USER\Software\Microsoft\Windows\CurrentVersion\Explorer\Advanced",
+                            ValueName = "ShowSuperHidden",
+                            RecommendedValue = 1,
+                            EnabledValue = 1,
+                            DisabledValue = 0,
+                            DefaultValue = 0,
+                            ValueType = RegistryValueKind.DWord,
+                        },
+                    },
+                },
+                new SettingDefinition
+                {
+                    Id = "explorer-customization-separate-process",
+                    Name = "Launch folder windows in a separate process",
+                    Description = "Runs each Explorer window in its own process to prevent crashes affecting all windows",
+                    GroupName = "Files and Folders",
+                    InputType = InputType.Toggle,
+                    Icon = "WindowRestore",
+                    RegistrySettings = new List<RegistrySetting>
+                    {
+                        new RegistrySetting
+                        {
+                            KeyPath = @"HKEY_CURRENT_USER\Software\Microsoft\Windows\CurrentVersion\Explorer\Advanced",
+                            ValueName = "SeparateProcess",
+                            RecommendedValue = 1,
+                            EnabledValue = 1,
+                            DisabledValue = 0,
+                            DefaultValue = 0,
+                            ValueType = RegistryValueKind.DWord,
+                        },
+                    },
+                },
+                new SettingDefinition
+                {
+                    Id = "explorer-customization-persist-browsers",
+                    Name = "Restore previous folder windows at logon",
+                    Description = "Reopens Explorer windows that were open when you last shut down or logged off",
+                    GroupName = "Files and Folders",
+                    InputType = InputType.Toggle,
+                    IconPack = "Lucide",
+                    Icon = "AppWindow",
+                    RegistrySettings = new List<RegistrySetting>
+                    {
+                        new RegistrySetting
+                        {
+                            KeyPath = @"HKEY_CURRENT_USER\Software\Microsoft\Windows\CurrentVersion\Explorer\Advanced",
+                            ValueName = "PersistBrowsers",
+                            RecommendedValue = 0,
+                            EnabledValue = 1,
+                            DisabledValue = 0,
+                            DefaultValue = 0,
+                            ValueType = RegistryValueKind.DWord,
+                        },
+                    },
+                },
+                new SettingDefinition
+                {
+                    Id = "explorer-customization-show-drive-letters",
+                    Name = "Show drive letters",
+                    Description = "Displays drive letters (C:, D:) before drive names in This PC",
+                    GroupName = "Files and Folders",
+                    InputType = InputType.Toggle,
+                    Icon = "AlphaC",
+                    RegistrySettings = new List<RegistrySetting>
+                    {
+                        new RegistrySetting
+                        {
+                            KeyPath = @"HKEY_CURRENT_USER\Software\Microsoft\Windows\CurrentVersion\Explorer\Advanced",
+                            ValueName = "ShowDriveLettersFirst",
+                            RecommendedValue = 4,
+                            EnabledValue = 4,
+                            DisabledValue = 2,
+                            DefaultValue = 4,
+                            ValueType = RegistryValueKind.DWord,
+                        },
+                    },
+                },
+                new SettingDefinition
+                {
+                    Id = "explorer-customization-compressed-color",
+                    Name = "Show encrypted or compressed NTFS files in color",
+                    Description = "Displays encrypted files in green and compressed files in blue",
+                    GroupName = "Files and Folders",
+                    InputType = InputType.Toggle,
+                    IconPack = "Lucide",
+                    Icon = "FileLock2",
+                    RegistrySettings = new List<RegistrySetting>
+                    {
+                        new RegistrySetting
+                        {
+                            KeyPath = @"HKEY_CURRENT_USER\Software\Microsoft\Windows\CurrentVersion\Explorer\Advanced",
+                            ValueName = "ShowCompColor",
+                            RecommendedValue = 1,
+                            EnabledValue = 1,
+                            DisabledValue = 0,
+                            DefaultValue = 1,
+                            ValueType = RegistryValueKind.DWord,
+                        },
+                    },
+                },
+                new SettingDefinition
+                {
+                    Id = "explorer-customization-popup-descriptions",
+                    Name = "Show pop-up description for folder and desktop items",
+                    Description = "Displays tooltip with item details when hovering over files and folders",
+                    GroupName = "Files and Folders",
+                    InputType = InputType.Toggle,
+                    Icon = "TooltipText",
+                    RegistrySettings = new List<RegistrySetting>
+                    {
+                        new RegistrySetting
+                        {
+                            KeyPath = @"HKEY_CURRENT_USER\Software\Microsoft\Windows\CurrentVersion\Explorer\Advanced",
+                            ValueName = "ShowInfoTip",
+                            RecommendedValue = 0,
+                            EnabledValue = 1,
+                            DisabledValue = 0,
+                            DefaultValue = 1,
+                            ValueType = RegistryValueKind.DWord,
+                        },
+                    },
+                },
+                new SettingDefinition
+                {
+                    Id = "explorer-customization-preview-handlers",
+                    Name = "Show preview handlers in preview pane",
+                    Description = "Enables file content preview when selecting files in Explorer",
+                    GroupName = "Files and Folders",
+                    InputType = InputType.Toggle,
+                    Icon = "TableEye",
+                    RegistrySettings = new List<RegistrySetting>
+                    {
+                        new RegistrySetting
+                        {
+                            KeyPath = @"HKEY_CURRENT_USER\Software\Microsoft\Windows\CurrentVersion\Explorer\Advanced",
+                            ValueName = "ShowPreviewHandlers",
+                            RecommendedValue = 0,
+                            EnabledValue = 1,
+                            DisabledValue = 0,
+                            DefaultValue = 1,
+                            ValueType = RegistryValueKind.DWord,
+                        },
+                    },
+                },
+                new SettingDefinition
+                {
+                    Id = "explorer-customization-status-bar",
+                    Name = "Show status bar",
+                    Description = "Displays bar at bottom showing item count and selected file sizes",
+                    GroupName = "Files and Folders",
+                    InputType = InputType.Toggle,
+                    Icon = "DockBottom",
+                    RegistrySettings = new List<RegistrySetting>
+                    {
+                        new RegistrySetting
+                        {
+                            KeyPath = @"HKEY_CURRENT_USER\Software\Microsoft\Windows\CurrentVersion\Explorer\Advanced",
+                            ValueName = "ShowStatusBar",
+                            RecommendedValue = 0,
+                            EnabledValue = 1,
+                            DisabledValue = 0,
+                            DefaultValue = 1,
+                            ValueType = RegistryValueKind.DWord,
+                        },
+                    },
+                },
+                new SettingDefinition
+                {
+                    Id = "explorer-customization-disable-sync-provider-notifications",
+                    Name = "Show sync provider notifications",
+                    Description = "Displays cloud sync status notifications from OneDrive and other sync providers",
+                    GroupName = "Files and Folders",
+                    Icon = "CloudSync",
+                    InputType = InputType.Toggle,
+                    RegistrySettings = new List<RegistrySetting>
+                    {
+                        new RegistrySetting
+                        {
+                            KeyPath = @"HKEY_CURRENT_USER\Software\Microsoft\Windows\CurrentVersion\Explorer\Advanced",
+                            ValueName = "ShowSyncProviderNotifications",
+                            RecommendedValue = 0,
+                            EnabledValue = 1,
+                            DisabledValue = 0,
+                            DefaultValue = 1,
+                            ValueType = RegistryValueKind.DWord,
+                        },
+                    },
+                },
+                new SettingDefinition
+                {
+                    Id = "explorer-customization-checkbox-select",
+                    Name = "Use check boxes to select items",
+                    Description = "Adds checkboxes next to items for easier multi-selection",
+                    GroupName = "Files and Folders",
+                    InputType = InputType.Toggle,
+                    Icon = "CheckboxMarked",
+                    RegistrySettings = new List<RegistrySetting>
+                    {
+                        new RegistrySetting
+                        {
+                            KeyPath = @"HKEY_CURRENT_USER\Software\Microsoft\Windows\CurrentVersion\Explorer\Advanced",
+                            ValueName = "AutoCheckSelect",
+                            RecommendedValue = 0,
+                            EnabledValue = 1,
+                            DisabledValue = 0,
+                            DefaultValue = 0,
+                            ValueType = RegistryValueKind.DWord,
+                        },
+                    },
+                },
+                new SettingDefinition
+                {
+                    Id = "explorer-customization-sharing-wizard",
+                    Name = "Use sharing wizard",
+                    Description = "Shows simplified sharing dialog instead of advanced security permissions",
+                    GroupName = "Files and Folders",
+                    InputType = InputType.Toggle,
+                    IconPack = "Lucide",
+                    Icon = "Share",
+                    RegistrySettings = new List<RegistrySetting>
+                    {
+                        new RegistrySetting
+                        {
+                            KeyPath = @"HKEY_CURRENT_USER\Software\Microsoft\Windows\CurrentVersion\Explorer\Advanced",
+                            ValueName = "SharingWizardOn",
+                            RecommendedValue = 0,
+                            EnabledValue = 1,
+                            DisabledValue = 0,
+                            DefaultValue = 1,
+                            ValueType = RegistryValueKind.DWord,
+                        },
+                    },
+                },
+                new SettingDefinition
+                {
+                    Id = "explorer-customization-typing-behavior",
+                    Name = "When typing into list view",
+                    Description = "Chooses whether typing selects matching items or searches automatically",
+                    GroupName = "Files and Folders",
+                    InputType = InputType.Selection,
+                    Icon = "KeyboardOutline",
+                    RegistrySettings = new List<RegistrySetting>
+                    {
+                        new RegistrySetting
+                        {
+                            KeyPath = @"HKEY_CURRENT_USER\Software\Microsoft\Windows\CurrentVersion\Explorer\Advanced",
+                            ValueName = "TypeAhead",
+                            RecommendedValue = 0,
+                            DefaultValue = 0,
+                            ValueType = RegistryValueKind.DWord,
+                            CustomProperties = new Dictionary<string, object>
+                            {
+                                ["DefaultOption"] = "Select the typed item in the view",
+                            },
+                        },
+                    },
+                    CustomProperties = new Dictionary<string, object>
+                    {
+                        [CustomPropertyKeys.ComboBoxDisplayNames] = new string[]
+                        {
+                            "Select the typed item in the view",
+                            "Automatically type into the Search Box",
+                        },
+                        [CustomPropertyKeys.ValueMappings] = new Dictionary<int, Dictionary<string, object?>>
+                        {
+                            [0] = new Dictionary<string, object?>
+                            {
+                                ["TypeAhead"] = 0,
+                            },
+                            [1] = new Dictionary<string, object?>
+                            {
+                                ["TypeAhead"] = 1,
+                            },
+                        },
+                    },
+                },
+                new SettingDefinition
+                {
+                    Id = "explorer-customization-3d-objects",
+                    Name = "Show 3D Objects",
+                    Description = "Display the 3D Objects folder alongside Documents, Pictures, and other default folders",
+                    GroupName = "Navigation Pane",
+                    InputType = InputType.Toggle,
+                    Icon = "Printer3d",
+                    IsWindows10Only = true,
                     RegistrySettings = new List<RegistrySetting>
                     {
                         new RegistrySetting
@@ -35,15 +940,27 @@ public static class ExplorerCustomizations
                             DefaultValue = null,
                             ValueType = RegistryValueKind.None,
                         },
+                        new RegistrySetting
+                        {
+                            KeyPath = @"HKEY_LOCAL_MACHINE\SOFTWARE\WOW6432Node\Microsoft\Windows\CurrentVersion\Explorer\MyComputer\NameSpace\{0DB7E03F-FC29-4DC6-9020-FF41B59E513A}",
+                            ValueName = null,
+                            RecommendedValue = null,
+                            EnabledValue = null, // When toggle is ON, 3D Objects folder is shown (key exists)
+                            DisabledValue = null, // When toggle is OFF, 3D Objects folder is hidden (key removed)
+                            DefaultValue = null,
+                            ValueType = RegistryValueKind.None,
+                        },
                     },
                 },
                 new SettingDefinition
                 {
                     Id = "explorer-customization-home-folder",
-                    Name = "Home Folder in Navigation Pane",
-                    Description = "Controls Home Folder visibility in Navigation Pane",
-                    GroupName = "File Explorer Settings",
+                    Name = "Show Home Folder",
+                    Description = "Display the Home folder in the navigation pane as a shortcut to your user profile folder",
+                    GroupName = "Navigation Pane",
                     InputType = InputType.Toggle,
+                    Icon = "Home",
+                    IsWindows11Only = true,
                     RegistrySettings = new List<RegistrySetting>
                     {
                         new RegistrySetting
@@ -60,347 +977,13 @@ public static class ExplorerCustomizations
                 },
                 new SettingDefinition
                 {
-                    Id = "explorer-customization-launch-to",
-                    Name = "Launch Explorer to This PC",
-                    Description = "Makes File Explorer open This PC instead of Quick Access",
-                    GroupName = "File Explorer Settings",
-                    InputType = InputType.Toggle,
-                    RegistrySettings = new List<RegistrySetting>
-                    {
-                        new RegistrySetting
-                        {
-                            KeyPath = @"HKEY_CURRENT_USER\Software\Microsoft\Windows\CurrentVersion\Explorer\Advanced",
-                            ValueName = "LaunchTo",
-                            RecommendedValue = 1,
-                            EnabledValue = 1, // When toggle is ON, File Explorer opens to 'This PC'
-                            DisabledValue = 2, // When toggle is OFF, File Explorer opens to 'Quick access'
-                            DefaultValue = 2,
-                            ValueType = RegistryValueKind.DWord,
-                        },
-                    },
-                },
-                new SettingDefinition
-                {
-                    Id = "explorer-customization-show-file-ext",
-                    Name = "Show File Extensions",
-                    Description = "Controls visibility of file name extensions",
-                    GroupName = "File Explorer Settings",
-                    InputType = InputType.Toggle,
-                    RegistrySettings = new List<RegistrySetting>
-                    {
-                        new RegistrySetting
-                        {
-                            KeyPath = @"HKEY_CURRENT_USER\Software\Microsoft\Windows\CurrentVersion\Explorer\Advanced",
-                            ValueName = "HideFileExt",
-                            RecommendedValue = 0,
-                            EnabledValue = 0, // When toggle is ON, file extensions are shown
-                            DisabledValue = 1, // When toggle is OFF, file extensions are hidden
-                            DefaultValue = 1,
-                            ValueType = RegistryValueKind.DWord,
-                        },
-                    },
-                },
-                new SettingDefinition
-                {
-                    Id = "explorer-customization-show-hidden-files",
-                    Name = "Show Hidden Files, Folders & Drives",
-                    Description = "Controls visibility of hidden files and folders",
-                    GroupName = "File Explorer Settings",
-                    InputType = InputType.Toggle,
-                    RegistrySettings = new List<RegistrySetting>
-                    {
-                        new RegistrySetting
-                        {
-                            KeyPath = @"HKEY_CURRENT_USER\Software\Microsoft\Windows\CurrentVersion\Explorer\Advanced",
-                            ValueName = "Hidden",
-                            RecommendedValue = 1,
-                            EnabledValue = 1, // When toggle is ON, hidden files are shown
-                            DisabledValue = 0, // When toggle is OFF, hidden files are hidden
-                            DefaultValue = 0,
-                            ValueType = RegistryValueKind.DWord,
-                        },
-                    },
-                },
-                new SettingDefinition
-                {
-                    Id = "explorer-customization-hide-protected-files",
-                    Name = "Hide Protected Operating System Files",
-                    Description = "Controls visibility of protected operating system files",
-                    GroupName = "File Explorer Settings",
-                    InputType = InputType.Toggle,
-                    RegistrySettings = new List<RegistrySetting>
-                    {
-                        new RegistrySetting
-                        {
-                            KeyPath = @"HKEY_CURRENT_USER\Software\Microsoft\Windows\CurrentVersion\Explorer\Advanced",
-                            ValueName = "ShowSuperHidden",
-                            RecommendedValue = 1,
-                            EnabledValue = 0, // When toggle is ON, protected operating system files are hidden
-                            DisabledValue = 1, // When toggle is OFF, protected operating system files are shown
-                            DefaultValue = 1,
-                            ValueType = RegistryValueKind.DWord,
-                        },
-                    },
-                },
-                new SettingDefinition
-                {
-                    Id = "explorer-customization-folder-tips",
-                    Name = "Folder Tips",
-                    Description = "Controls file size information in folder tips",
-                    GroupName = "File Explorer Settings",
-                    InputType = InputType.Toggle,
-                    RegistrySettings = new List<RegistrySetting>
-                    {
-                        new RegistrySetting
-                        {
-                            KeyPath = @"HKEY_CURRENT_USER\Software\Microsoft\Windows\CurrentVersion\Explorer\Advanced",
-                            ValueName = "FolderContentsInfoTip",
-                            RecommendedValue = 0,
-                            EnabledValue = 1, // When toggle is ON, folder tips are enabled
-                            DisabledValue = 0, // When toggle is OFF, folder tips are disabled
-                            DefaultValue = 1,
-                            ValueType = RegistryValueKind.DWord,
-                        },
-                    },
-                },
-                new SettingDefinition
-                {
-                    Id = "explorer-customization-popup-descriptions",
-                    Name = "Pop-up Descriptions",
-                    Description = "Controls pop-up descriptions for folder and desktop items",
-                    GroupName = "File Explorer Settings",
-                    InputType = InputType.Toggle,
-                    RegistrySettings = new List<RegistrySetting>
-                    {
-                        new RegistrySetting
-                        {
-                            KeyPath = @"HKEY_CURRENT_USER\Software\Microsoft\Windows\CurrentVersion\Explorer\Advanced",
-                            ValueName = "ShowInfoTip",
-                            RecommendedValue = 0,
-                            EnabledValue = 1, // When toggle is ON, pop-up descriptions are shown
-                            DisabledValue = 0, // When toggle is OFF, pop-up descriptions are hidden
-                            DefaultValue = 1,
-                            ValueType = RegistryValueKind.DWord,
-                        },
-                    },
-                },
-                new SettingDefinition
-                {
-                    Id = "explorer-customization-preview-handlers",
-                    Name = "Preview Handlers",
-                    Description = "Controls preview handlers in preview pane",
-                    GroupName = "File Explorer Settings",
-                    InputType = InputType.Toggle,
-                    RegistrySettings = new List<RegistrySetting>
-                    {
-                        new RegistrySetting
-                        {
-                            KeyPath = @"HKEY_CURRENT_USER\Software\Microsoft\Windows\CurrentVersion\Explorer\Advanced",
-                            ValueName = "ShowPreviewHandlers",
-                            RecommendedValue = 0,
-                            EnabledValue = 1, // When toggle is ON, preview handlers are enabled
-                            DisabledValue = 0, // When toggle is OFF, preview handlers are disabled
-                            DefaultValue = 1,
-                            ValueType = RegistryValueKind.DWord,
-                        },
-                    },
-                },
-                new SettingDefinition
-                {
-                    Id = "explorer-customization-status-bar",
-                    Name = "Status Bar",
-                    Description = "Controls status bar visibility in File Explorer",
-                    GroupName = "File Explorer Settings",
-                    InputType = InputType.Toggle,
-                    RegistrySettings = new List<RegistrySetting>
-                    {
-                        new RegistrySetting
-                        {
-                            KeyPath = @"HKEY_CURRENT_USER\Software\Microsoft\Windows\CurrentVersion\Explorer\Advanced",
-                            ValueName = "ShowStatusBar",
-                            RecommendedValue = 0,
-                            EnabledValue = 1, // When toggle is ON, status bar is shown
-                            DisabledValue = 0, // When toggle is OFF, status bar is hidden
-                            DefaultValue = 1,
-                            ValueType = RegistryValueKind.DWord,
-                        },
-                    },
-                },
-                new SettingDefinition
-                {
-                    Id = "explorer-customization-show-thumbnails",
-                    Name = "Show Thumbnails",
-                    Description = "Controls whether to show thumbnails or icons",
-                    GroupName = "File Explorer Settings",
-                    InputType = InputType.Toggle,
-                    RegistrySettings = new List<RegistrySetting>
-                    {
-                        new RegistrySetting
-                        {
-                            KeyPath = @"HKEY_CURRENT_USER\Software\Microsoft\Windows\CurrentVersion\Explorer\Advanced",
-                            ValueName = "IconsOnly",
-                            RecommendedValue = 0,
-                            EnabledValue = 0, // When toggle is ON, thumbnails are shown
-                            DisabledValue = 1, // When toggle is OFF, icons are shown
-                            DefaultValue = 1,
-                            ValueType = RegistryValueKind.DWord,
-                        },
-                    },
-                },
-                new SettingDefinition
-                {
-                    Id = "explorer-customization-translucent-selection",
-                    Name = "Translucent Selection",
-                    Description = "Controls translucent selection rectangle",
-                    GroupName = "File Explorer Settings",
-                    InputType = InputType.Toggle,
-                    RegistrySettings = new List<RegistrySetting>
-                    {
-                        new RegistrySetting
-                        {
-                            KeyPath = @"HKEY_CURRENT_USER\Software\Microsoft\Windows\CurrentVersion\Explorer\Advanced",
-                            ValueName = "ListviewAlphaSelect",
-                            RecommendedValue = 0,
-                            EnabledValue = 1, // When toggle is ON, translucent selection is enabled
-                            DisabledValue = 0, // When toggle is OFF, translucent selection is disabled
-                            DefaultValue = 1,
-                            ValueType = RegistryValueKind.DWord,
-                        },
-                    },
-                },
-                new SettingDefinition
-                {
-                    Id = "explorer-customization-drop-shadows",
-                    Name = "Drop Shadows",
-                    Description = "Controls drop shadows for icon labels",
-                    GroupName = "File Explorer Settings",
-                    InputType = InputType.Toggle,
-                    RegistrySettings = new List<RegistrySetting>
-                    {
-                        new RegistrySetting
-                        {
-                            KeyPath = @"HKEY_CURRENT_USER\Software\Microsoft\Windows\CurrentVersion\Explorer\Advanced",
-                            ValueName = "ListviewShadow",
-                            RecommendedValue = 0,
-                            EnabledValue = 1, // When toggle is ON, drop shadows are enabled
-                            DisabledValue = 0, // When toggle is OFF, drop shadows are disabled
-                            DefaultValue = 1,
-                            ValueType = RegistryValueKind.DWord,
-                        },
-                    },
-                },
-                new SettingDefinition
-                {
-                    Id = "explorer-customization-full-path",
-                    Name = "Full Path in Title Bar",
-                    Description = "Controls full path display in the title bar",
-                    GroupName = "File Explorer Settings",
-                    InputType = InputType.Toggle,
-                    RegistrySettings = new List<RegistrySetting>
-                    {
-                        new RegistrySetting
-                        {
-                            KeyPath = @"HKEY_CURRENT_USER\Software\Microsoft\Windows\CurrentVersion\Explorer\CabinetState",
-                            ValueName = "FullPath",
-                            RecommendedValue = 1,
-                            EnabledValue = 1, // When toggle is ON, full path is shown
-                            DisabledValue = 0, // When toggle is OFF, full path is hidden
-                            DefaultValue = 1,
-                            ValueType = RegistryValueKind.DWord,
-                        },
-                    },
-                },
-                new SettingDefinition
-                {
-                    Id = "explorer-customization-font-smoothing",
-                    Name = "Font Smoothing",
-                    Description = "Controls smooth edges of screen fonts",
-                    GroupName = "File Explorer Settings",
-                    InputType = InputType.Toggle,
-                    RegistrySettings = new List<RegistrySetting>
-                    {
-                        new RegistrySetting
-                        {
-                            KeyPath = @"HKEY_CURRENT_USER\Control Panel\Desktop",
-                            ValueName = "FontSmoothing",
-                            RecommendedValue = "2",
-                            EnabledValue = "2", // When toggle is ON, font smoothing is enabled
-                            DisabledValue = "0", // When toggle is OFF, font smoothing is disabled
-                            DefaultValue = "0",
-                            ValueType = RegistryValueKind.String,
-                        },
-                    },
-                },
-                new SettingDefinition
-                {
-                    Id = "explorer-customization-dpi-scaling",
-                    Name = "DPI Scaling (100%)",
-                    Description = "Controls DPI scaling setting",
-                    GroupName = "File Explorer Settings",
-                    InputType = InputType.Toggle,
-                    RegistrySettings = new List<RegistrySetting>
-                    {
-                        new RegistrySetting
-                        {
-                            KeyPath = @"HKEY_CURRENT_USER\Control Panel\Desktop",
-                            ValueName = "LogPixels",
-                            RecommendedValue = 96,
-                            EnabledValue = 96, // When toggle is ON, DPI scaling is set to 100%
-                            DisabledValue = 120, // When toggle is OFF, DPI scaling is set to 125%
-                            DefaultValue = 120,
-                            ValueType = RegistryValueKind.DWord,
-                        },
-                    },
-                },
-                new SettingDefinition
-                {
-                    Id = "explorer-customization-per-process-dpi",
-                    Name = "Per-Process DPI",
-                    Description = "Controls per-process system DPI",
-                    GroupName = "File Explorer Settings",
-                    InputType = InputType.Toggle,
-                    RegistrySettings = new List<RegistrySetting>
-                    {
-                        new RegistrySetting
-                        {
-                            KeyPath = @"HKEY_CURRENT_USER\Control Panel\Desktop",
-                            ValueName = "EnablePerProcessSystemDPI",
-                            RecommendedValue = 0,
-                            EnabledValue = 1, // When toggle is ON, per-process DPI is enabled
-                            DisabledValue = 0, // When toggle is OFF, per-process DPI is disabled
-                            DefaultValue = 0,
-                            ValueType = RegistryValueKind.DWord,
-                        },
-                    },
-                },
-                new SettingDefinition
-                {
-                    Id = "explorer-customization-lock-screen",
-                    Name = "Lock Screen",
-                    Description = "Controls lock screen visibility",
-                    GroupName = "File Explorer Settings",
-                    InputType = InputType.Toggle,
-                    RegistrySettings = new List<RegistrySetting>
-                    {
-                        new RegistrySetting
-                        {
-                            KeyPath = @"HKEY_LOCAL_MACHINE\SOFTWARE\Policies\Microsoft\Windows\Personalization",
-                            ValueName = "NoLockScreen",
-                            RecommendedValue = 0,
-                            EnabledValue = 0,
-                            DisabledValue = 1,
-                            DefaultValue = 0,
-                            ValueType = RegistryValueKind.DWord,
-                        },
-                    },
-                },
-                new SettingDefinition
-                {
                     Id = "explorer-customization-gallery",
-                    Name = "Gallery in Navigation Pane",
-                    Description = "Controls gallery visibility in navigation pane",
-                    GroupName = "File Explorer Settings",
+                    Name = "Show Gallery",
+                    Description = "Display the Gallery folder in the navigation pane for quick access to all your photos and videos",
+                    GroupName = "Navigation Pane",
                     InputType = InputType.Toggle,
+                    Icon = "ImageMultiple",
+                    IsWindows11Only = true,
                     RegistrySettings = new List<RegistrySetting>
                     {
                         new RegistrySetting
@@ -408,8 +991,8 @@ public static class ExplorerCustomizations
                             KeyPath = @"HKEY_LOCAL_MACHINE\Software\Microsoft\Windows\CurrentVersion\Explorer\Desktop\NameSpace\{e88865ea-0e1c-4e20-9aa6-edcd0212c87c}",
                             ValueName = null,
                             RecommendedValue = null,
-                            EnabledValue = null, // When toggle is ON, gallery is shown (key exists)
-                            DisabledValue = null, // When toggle is OFF, gallery is hidden (key removed)
+                            EnabledValue = null,
+                            DisabledValue = null,
                             DefaultValue = null,
                             ValueType = RegistryValueKind.None,
                         },
@@ -417,22 +1000,113 @@ public static class ExplorerCustomizations
                 },
                 new SettingDefinition
                 {
-                    Id = "explorer-customization-context-menu",
-                    Name = "Classic Context Menu",
-                    Description = "Controls context menu style (classic or modern)",
-                    GroupName = "File Explorer Settings",
+                    Id = "explorer-customization-show-availability-status",
+                    Name = "Always show availibity status",
+                    Description = "Shows cloud sync status icons for OneDrive files in navigation pane",
+                    GroupName = "Navigation Pane",
                     InputType = InputType.Toggle,
+                    IconPack = "MaterialDesign",
+                    Icon = "CloudSyncOutline",
                     RegistrySettings = new List<RegistrySetting>
                     {
                         new RegistrySetting
                         {
-                            KeyPath = @"HKEY_CURRENT_USER\Software\Classes\CLSID\{86ca1aa0-34aa-4e8b-a509-50c905bae2a2}\InprocServer32",
-                            ValueName = "",
-                            RecommendedValue = "",
-                            EnabledValue = "", // When toggle is ON, classic context menu is used (value is deleted)
-                            DisabledValue = "", // When toggle is OFF, modern context menu is used (empty value is set)
-                            DefaultValue = "",
-                            ValueType = RegistryValueKind.String,
+                            KeyPath = @"HKEY_CURRENT_USER\Software\Microsoft\Windows\CurrentVersion\Explorer\Advanced",
+                            ValueName = "NavPaneShowAllCloudStates",
+                            RecommendedValue = 1,
+                            EnabledValue = 1,
+                            DisabledValue = 0,
+                            DefaultValue = 0,
+                            ValueType = RegistryValueKind.DWord,
+                        },
+                    },
+                },
+                new SettingDefinition
+                {
+                    Id = "explorer-customization-nav-expand-current",
+                    Name = "Expand to open folder",
+                    Description = "Automatically expands navigation tree to highlight current folder location",
+                    GroupName = "Navigation Pane",
+                    InputType = InputType.Toggle,
+                    IconPack = "Lucide",
+                    Icon = "FolderTree",
+                    RegistrySettings = new List<RegistrySetting>
+                    {
+                        new RegistrySetting
+                        {
+                            KeyPath = @"HKEY_CURRENT_USER\Software\Microsoft\Windows\CurrentVersion\Explorer\Advanced",
+                            ValueName = "NavPaneExpandToCurrentFolder",
+                            RecommendedValue = 1,
+                            EnabledValue = 1,
+                            DisabledValue = 0,
+                            DefaultValue = 1,
+                            ValueType = RegistryValueKind.DWord,
+                        },
+                    },
+                },
+                new SettingDefinition
+                {
+                    Id = "explorer-customization-nav-show-all-folders",
+                    Name = "Show all folders",
+                    Description = "Shows all folders in the navigation pane",
+                    GroupName = "Navigation Pane",
+                    InputType = InputType.Toggle,
+                    Icon = "FolderMultiple",
+                    RegistrySettings = new List<RegistrySetting>
+                    {
+                        new RegistrySetting
+                        {
+                            KeyPath = @"HKEY_CURRENT_USER\Software\Microsoft\Windows\CurrentVersion\Explorer\Advanced",
+                            ValueName = "NavPaneShowAllFolders",
+                            RecommendedValue = 1,
+                            EnabledValue = 1,
+                            DisabledValue = 0,
+                            DefaultValue = 0,
+                            ValueType = RegistryValueKind.DWord,
+                        },
+                    },
+                },
+                new SettingDefinition
+                {
+                    Id = "explorer-customization-nav-show-libraries",
+                    Name = "Show libraries",
+                    Description = "Displays Libraries container grouping Documents, Music, Pictures, and Videos",
+                    GroupName = "Navigation Pane",
+                    InputType = InputType.Toggle,
+                    Icon = "FolderTable",
+                    RegistrySettings = new List<RegistrySetting>
+                    {
+                        new RegistrySetting
+                        {
+                            KeyPath = @"HKEY_CURRENT_USER\Software\Classes\CLSID\{031E4825-7B94-4dc3-B131-E946B44C8DD5}",
+                            ValueName = "System.IsPinnedToNameSpaceTree",
+                            RecommendedValue = 1,
+                            EnabledValue = 1,
+                            DisabledValue = 0,
+                            DefaultValue = 0,
+                            ValueType = RegistryValueKind.DWord,
+                        },
+                    },
+                },
+                new SettingDefinition
+                {
+                    Id = "explorer-long-file-paths",
+                    Name = "Enable Long File Paths",
+                    Description = "Enables support for file paths with up to 32,767 characters instead of the traditional 260-character limit",
+                    GroupName = "Files and Folders",
+                    InputType = InputType.Toggle,
+                    Icon = "ScriptTextOutline",
+                    RegistrySettings = new List<RegistrySetting>
+                    {
+                        new RegistrySetting
+                        {
+                            KeyPath = @"HKEY_LOCAL_MACHINE\SYSTEM\CurrentControlSet\Control\FileSystem",
+                            ValueName = "LongPathsEnabled",
+                            RecommendedValue = 1,
+                            EnabledValue = 1,
+                            DisabledValue = 0,
+                            DefaultValue = 0,
+                            ValueType = RegistryValueKind.DWord,
                         },
                     },
                 },

@@ -78,7 +78,7 @@ namespace Winhance.Infrastructure.Features.Common.Services
             }
 
             var displayNames = setting.CustomProperties[CustomPropertyKeys.ComboBoxDisplayNames] as string[];
-            var valueMappings = setting.CustomProperties[CustomPropertyKeys.ValueMappings] as Dictionary<int, Dictionary<string, int?>>;
+            var valueMappings = setting.CustomProperties[CustomPropertyKeys.ValueMappings] as Dictionary<int, Dictionary<string, object?>>;
 
             if (displayNames == null || valueMappings == null)
             {
@@ -99,24 +99,29 @@ namespace Winhance.Infrastructure.Features.Common.Services
 
             var supportsCustomState = setting.CustomProperties?.TryGetValue(CustomPropertyKeys.SupportsCustomState, out var supports) == true && (bool)supports;
             var isCustomState = currentIndex == ComboBoxResolver.CUSTOM_STATE_INDEX;
-            
+
             string[] finalDisplayNames = displayNames;
-            
+
             if (supportsCustomState && isCustomState)
             {
-                var customDisplayName = setting.CustomProperties?.TryGetValue(CustomPropertyKeys.CustomStateDisplayName, out var customName) == true && customName is string customStr 
-                    ? customStr 
+                var customDisplayName = setting.CustomProperties?.TryGetValue(CustomPropertyKeys.CustomStateDisplayName, out var customName) == true && customName is string customStr
+                    ? customStr
                     : "Custom (User Defined)";
-                    
+
                 finalDisplayNames = displayNames.Append(customDisplayName).ToArray();
             }
+
+            string[]? optionTooltips = setting.CustomProperties?.TryGetValue(CustomPropertyKeys.OptionTooltips, out var tooltips) == true
+                ? tooltips as string[]
+                : null;
 
             for (int i = 0; i < finalDisplayNames.Length; i++)
             {
                 result.Options.Add(new ComboBoxOption
                 {
                     DisplayText = finalDisplayNames[i],
-                    Value = i < displayNames.Length ? i : ComboBoxResolver.CUSTOM_STATE_INDEX
+                    Value = i < displayNames.Length ? i : ComboBoxResolver.CUSTOM_STATE_INDEX,
+                    Description = optionTooltips != null && i < optionTooltips.Length ? optionTooltips[i] : null
                 });
             }
 
@@ -135,19 +140,24 @@ namespace Winhance.Infrastructure.Features.Common.Services
                 
                 if (supportsCustomState && isCustomState)
                 {
-                    var customDisplayName = setting.CustomProperties?.TryGetValue(CustomPropertyKeys.CustomStateDisplayName, out var customName) == true && customName is string customStr 
-                        ? customStr 
+                    var customDisplayName = setting.CustomProperties?.TryGetValue(CustomPropertyKeys.CustomStateDisplayName, out var customName) == true && customName is string customStr
+                        ? customStr
                         : "Custom (User Defined)";
-                        
+
                     finalDisplayNames = displayNames.Append(customDisplayName).ToArray();
                 }
+
+                string[]? optionTooltips = setting.CustomProperties?.TryGetValue(CustomPropertyKeys.OptionTooltips, out var tooltips) == true
+                    ? tooltips as string[]
+                    : null;
 
                 for (int i = 0; i < finalDisplayNames.Length; i++)
                 {
                     result.Options.Add(new ComboBoxOption
                     {
                         DisplayText = finalDisplayNames[i],
-                        Value = i < displayNames.Length ? i : ComboBoxResolver.CUSTOM_STATE_INDEX
+                        Value = i < displayNames.Length ? i : ComboBoxResolver.CUSTOM_STATE_INDEX,
+                        Description = optionTooltips != null && i < optionTooltips.Length ? optionTooltips[i] : null
                     });
                 }
 
@@ -166,24 +176,29 @@ namespace Winhance.Infrastructure.Features.Common.Services
             {
                 var supportsCustomState = setting.CustomProperties?.TryGetValue(CustomPropertyKeys.SupportsCustomState, out var supports) == true && (bool)supports;
                 var isCustomState = currentIndex == ComboBoxResolver.CUSTOM_STATE_INDEX;
-                
+
                 string[] finalDisplayNames = displayNames;
-                
+
                 if (supportsCustomState && isCustomState)
                 {
-                    var customDisplayName = setting.CustomProperties?.TryGetValue(CustomPropertyKeys.CustomStateDisplayName, out var customName) == true && customName is string customStr 
-                        ? customStr 
+                    var customDisplayName = setting.CustomProperties?.TryGetValue(CustomPropertyKeys.CustomStateDisplayName, out var customName) == true && customName is string customStr
+                        ? customStr
                         : "Custom (User Defined)";
-                        
+
                     finalDisplayNames = displayNames.Append(customDisplayName).ToArray();
                 }
+
+                string[]? optionTooltips = setting.CustomProperties?.TryGetValue(CustomPropertyKeys.OptionTooltips, out var tooltips) == true
+                    ? tooltips as string[]
+                    : null;
 
                 for (int i = 0; i < finalDisplayNames.Length; i++)
                 {
                     result.Options.Add(new ComboBoxOption
                     {
                         DisplayText = finalDisplayNames[i],
-                        Value = i < displayNames.Length ? i : ComboBoxResolver.CUSTOM_STATE_INDEX
+                        Value = i < displayNames.Length ? i : ComboBoxResolver.CUSTOM_STATE_INDEX,
+                        Description = optionTooltips != null && i < optionTooltips.Length ? optionTooltips[i] : null
                     });
                 }
 

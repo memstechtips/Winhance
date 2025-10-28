@@ -1,6 +1,6 @@
 <ResourceDictionary xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
     xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
-    xmlns:materialDesign="http://materialdesigninxaml.net/winfx/xaml/themes"
+    xmlns:iconPacks="http://metro.mahapps.com/winfx/xaml/iconpacks"
     xmlns:converters="clr-namespace:Winhance.WPF.Features.Common.Converters">
 
     <!-- Base style for GridView column headers that works with both themes -->
@@ -203,19 +203,22 @@
         <Setter Property="Foreground" Value="{DynamicResource PrimaryTextColor}" />
         <Setter Property="FontSize" Value="16" />
         <Setter Property="Background" Value="Transparent" />
+        <Setter Property="TextElement.Foreground" Value="{DynamicResource PrimaryTextColor}" />
         <Style.Triggers>
             <Trigger Property="IsSelected" Value="True">
                 <Setter Property="Background" Value="{DynamicResource PrimaryHueLightBrush}" />
                 <Setter Property="Foreground" Value="{DynamicResource PrimaryHueLightForegroundBrush}" />
+                <Setter Property="TextElement.Foreground" Value="{DynamicResource PrimaryHueLightForegroundBrush}" />
             </Trigger>
             <Trigger Property="IsMouseOver" Value="True">
                 <Setter Property="Background" Value="{DynamicResource ButtonHoverBackground}"/>
                 <Setter Property="Foreground" Value="{DynamicResource ButtonHoverTextColor}"/>
+                <Setter Property="TextElement.Foreground" Value="{DynamicResource ButtonHoverTextColor}"/>
             </Trigger>
         </Style.Triggers>
     </Style>
 
-    <!-- Simplified DataGrid cell style -->
+    <!-- Simplified DataGrid cell style - foreground inherited from row via TextElement -->
     <Style x:Key="ThemedDataGridCell" TargetType="{x:Type DataGridCell}">
         <Setter Property="Background" Value="Transparent" />
         <Setter Property="BorderBrush" Value="Transparent" />
@@ -294,13 +297,8 @@
         </Setter>
     </Style>
 
-    <!-- TextBlock style for DataGrid cells that maintains hover color -->
+    <!-- TextBlock style for DataGrid cells - foreground is inherited via TextElement from DataGridCell -->
     <Style x:Key="DataGridTextBlockStyle" TargetType="{x:Type TextBlock}">
-        <Setter Property="Foreground" Value="{DynamicResource PrimaryTextColor}" />
-        <Style.Triggers>
-            <DataTrigger Binding="{Binding IsMouseOver, RelativeSource={RelativeSource AncestorType={x:Type DataGridRow}}}" Value="True">
-                <Setter Property="Foreground" Value="{DynamicResource ButtonHoverTextColor}" />
-            </DataTrigger>
-        </Style.Triggers>
+        <!-- No explicit Foreground setter - inherits from TextElement.Foreground set on ContentPresenter in ThemedDataGridCell -->
     </Style>
 </ResourceDictionary>

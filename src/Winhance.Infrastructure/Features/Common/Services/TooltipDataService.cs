@@ -1,8 +1,4 @@
-using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Threading.Tasks;
-using Winhance.Core.Features.Common.Enums;
+using Winhance.Core.Features.Common.Constants;
 using Winhance.Core.Features.Common.Interfaces;
 using Winhance.Core.Features.Common.Models;
 
@@ -75,6 +71,13 @@ namespace Winhance.Infrastructure.Features.Common.Services
 
         private async Task<SettingTooltipData?> GetTooltipDataForSettingAsync(SettingDefinition setting)
         {
+            if (setting.CustomProperties?.TryGetValue(CustomPropertyKeys.DisableTooltip, out var disableTooltipObj) == true
+                && disableTooltipObj is bool disableTooltip
+                && disableTooltip)
+            {
+                return null;
+            }
+
             bool hasRegistrySettings = setting.RegistrySettings?.Any() == true;
             bool hasCommandSettings = setting.CommandSettings?.Any() == true;
             bool hasPowerCfgSettings = setting.PowerCfgSettings?.Any() == true;

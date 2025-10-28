@@ -17,5 +17,22 @@ namespace Winhance.Core.Features.Common.Constants
 
         // Power Plan properties
         public const string PowerPlanOptions = "PowerPlanOptions";
+
+        // Tooltip properties
+        public const string DisableTooltip = "DisableTooltip";
+
+        // Option-specific properties
+        public const string OptionWarnings = "OptionWarnings";
+        public const string OptionTooltips = "OptionTooltips";
+        public const string OptionConfirmations = "OptionConfirmations";
+
+        // Preset properties
+        public const string SettingPresets = "SettingPresets";
+
+        // Session-based properties
+        public const string RequiresRestartMessage = "RequiresRestartMessage";
+
+        // Version compatibility
+        public const string VersionCompatibilityMessage = "VersionCompatibilityMessage";
     }
 }

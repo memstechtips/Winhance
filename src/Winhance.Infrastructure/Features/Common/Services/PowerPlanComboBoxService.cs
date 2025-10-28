@@ -241,5 +241,46 @@ namespace Winhance.Infrastructure.Features.Common.Services
                 return 0;
             }
         }
+
+        public async Task<PowerPlanResolutionResult> ResolvePowerPlanByIndexAsync(int index)
+        {
+            try
+            {
+                logService.Log(LogLevel.Info, $"[PowerPlanComboBoxService] Resolving power plan index {index} to GUID");
+
+                var options = await GetPowerPlanOptionsAsync();
+
+                if (index < 0 || index >= options.Count)
+                {
+                    var errorMsg = $"Invalid power plan index: {index} (available: 0-{options.Count - 1})";
+                    logService.Log(LogLevel.Error, $"[PowerPlanComboBoxService] {errorMsg}");
+                    return new PowerPlanResolutionResult { Success = false, ErrorMessage = errorMsg };
+                }
+
+                var selectedOption = options[index];
+                var powerPlanGuid = selectedOption.SystemPlan?.Guid ?? selectedOption.PredefinedPlan?.Guid;
+
+                if (string.IsNullOrEmpty(powerPlanGuid))
+                {
+                    var errorMsg = $"Could not resolve GUID for power plan at index {index}";
+                    logService.Log(LogLevel.Error, $"[PowerPlanComboBoxService] {errorMsg}");
+                    return new PowerPlanResolutionResult { Success = false, ErrorMessage = errorMsg };
+                }
+
+                logService.Log(LogLevel.Info, $"[PowerPlanComboBoxService] Resolved index {index} to: {selectedOption.DisplayName} ({powerPlanGuid})");
+
+                return new PowerPlanResolutionResult
+                {
+                    Success = true,
+                    Guid = powerPlanGuid,
+                    DisplayName = selectedOption.DisplayName
+                };
+            }
+            catch (Exception ex)
+            {
+                logService.Log(LogLevel.Error, $"[PowerPlanComboBoxService] Error resolving power plan index {index}: {ex.Message}");
+                return new PowerPlanResolutionResult { Success = false, ErrorMessage = ex.Message };
+            }
+        }
     }
 }

@@ -14,7 +14,8 @@ using Winhance.Infrastructure.Features.Common.Services;
 namespace Winhance.Infrastructure.Features.Optimize.Services
 {
     public class GamingPerformanceService(
-        ILogService logService) : IDomainService
+        ILogService logService,
+        ICompatibleSettingsRegistry compatibleSettingsRegistry) : IDomainService
     {
         public string DomainName => FeatureIds.GamingPerformance;
 
@@ -22,8 +23,7 @@ namespace Winhance.Infrastructure.Features.Optimize.Services
         {
             try
             {
-                var optimizations = GamingandPerformanceOptimizations.GetGamingandPerformanceOptimizations();
-                return optimizations.Settings;
+                return compatibleSettingsRegistry.GetFilteredSettings(FeatureIds.GamingPerformance);
             }
             catch (Exception ex)
             {

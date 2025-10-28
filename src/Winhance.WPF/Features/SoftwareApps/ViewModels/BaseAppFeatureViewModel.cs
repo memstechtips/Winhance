@@ -153,7 +153,7 @@ public abstract partial class BaseAppFeatureViewModel<T>(
         );
     }
 
-    protected void ShowOperationResultDialog(
+    protected async Task ShowOperationResultDialogAsync(
         string operationType,
         int successCount,
         int totalCount,
@@ -166,14 +166,6 @@ public abstract partial class BaseAppFeatureViewModel<T>(
 
         if (isUserCancelled)
         {
-            string title = "Installation Aborted by User";
-            string headerText = "Installation aborted by user";
-            string message = "The installation process was cancelled by the user.";
-            string footerText = successCount > 0
-                ? $"Some items were successfully {GetPastTense(operationType)} before cancellation."
-                : $"No items were {GetPastTense(operationType)} before cancellation.";
-
-            Winhance.WPF.Features.Common.Views.CustomDialog.ShowInformation(title, headerText, message, footerText);
             CurrentCancellationReason = CancellationReason.None;
             return;
         }
@@ -281,9 +273,7 @@ public abstract partial class BaseAppFeatureViewModel<T>(
 
     protected async Task<bool?> ShowConfirmItemsDialogAsync(string operation, IEnumerable<string> itemNames, int count)
     {
-        string message = $"Are you sure you want to {operation.ToLower()} the following {count} items?\n\n{string.Join("\n", itemNames)}";
-
-        return await dialogService.ShowConfirmationAsync(message, $"Confirm {operation}", "Yes", "No");
+        return await dialogService.ShowAppOperationConfirmationAsync(operation, itemNames, count);
     }
 
 

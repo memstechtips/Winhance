@@ -40,5 +40,15 @@ namespace Winhance.Infrastructure.Features.Common.Services
 
             throw new ArgumentException($"No domain service found for '{featureIdOrSettingId}'");
         }
+
+        public void ClearAllSettingsCaches()
+        {
+            logService.Log(Core.Features.Common.Enums.LogLevel.Info, "Clearing all domain service settings caches");
+
+            foreach (var service in _serviceMap.Values)
+            {
+                service.ClearSettingsCache();
+            }
+        }
     }
 }

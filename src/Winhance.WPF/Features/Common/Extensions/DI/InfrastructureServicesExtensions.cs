@@ -1,4 +1,5 @@
 using Microsoft.Extensions.DependencyInjection;
+using Microsoft.Extensions.DependencyInjection.Extensions;
 using Winhance.Core.Features.Common.Events;
 using Winhance.Core.Features.Common.Interfaces;
 using Winhance.Infrastructure.Features.Common.Events;
@@ -45,6 +46,7 @@ namespace Winhance.WPF.Features.Common.Extensions.DI
                 ISettingsRegistry,
                 Winhance.Core.Features.Common.Services.SettingsRegistry
             >();
+            services.AddSingleton<IGlobalSettingsPreloader, GlobalSettingsPreloader>();
 
             // Event Bus (Singleton - Application-wide communication)
             services.AddSingleton<IEventBus, EventBus>();
@@ -63,6 +65,12 @@ namespace Winhance.WPF.Features.Common.Extensions.DI
             // PowerShell Services (Singleton - System resources)
             services.AddSingleton<IPowerShellExecutionService, PowerShellExecutionService>();
 
+            // System Backup Service (Singleton - System protection)
+            services.AddSingleton<ISystemBackupService, SystemBackupService>();
+
+            // Script Migration Service (Singleton - One-time migration)
+            services.AddSingleton<IScriptMigrationService, ScriptMigrationService>();
+
             // Task Progress Service (Singleton - Application-wide progress tracking)
             services.AddSingleton<ITaskProgressService, TaskProgressService>();
 
@@ -70,8 +78,8 @@ namespace Winhance.WPF.Features.Common.Extensions.DI
             services.AddSingleton<ISearchTextCoordinationService, SearchTextCoordinationService>();
 
             // Configuration Services (Singleton - Application-wide configuration)
-            services.AddSingleton<IConfigurationService, ConfigurationService>();
             services.AddSingleton<IVersionService, VersionService>();
+            services.AddSingleton<ConfigurationApplicationBridgeService>();
 
             // Tooltip Services (Singleton - Application-wide tooltip management)
             services.AddSingleton<ITooltipDataService, TooltipDataService>();
@@ -83,7 +91,8 @@ namespace Winhance.WPF.Features.Common.Extensions.DI
                     provider.GetRequiredService<ICommandService>(),
                     provider.GetRequiredService<ILogService>(),
                     provider.GetRequiredService<IPowerCfgQueryService>(),
-                    provider.GetRequiredService<IPowerSettingsValidationService>()
+                    provider.GetRequiredService<IPowerSettingsValidationService>(),
+                    provider.GetRequiredService<IDomainServiceRouter>()
                 )
             );
 
@@ -106,7 +115,7 @@ namespace Winhance.WPF.Features.Common.Extensions.DI
             services.AddSingleton<IParameterSerializer, JsonParameterSerializer>();
 
 
-            // ComboBox Services (Scoped - Per-operation state)
+            // ComboBox Services
             services.AddScoped<IComboBoxSetupService, ComboBoxSetupService>();
             services.AddScoped<IComboBoxResolver, ComboBoxResolver>();
             services.AddScoped<IPowerPlanComboBoxService, PowerPlanComboBoxService>();
@@ -135,7 +144,9 @@ namespace Winhance.WPF.Features.Common.Extensions.DI
                     provider.GetRequiredService<IGlobalSettingsRegistry>(),
                     provider.GetRequiredService<IInitializationService>(),
                     provider.GetRequiredService<IPowerPlanComboBoxService>(),
-                    provider.GetRequiredService<IComboBoxResolver>()
+                    provider.GetRequiredService<IComboBoxResolver>(),
+                    provider.GetRequiredService<IUserPreferencesService>(),
+                    provider.GetRequiredService<IDialogService>()
                 )
             );
 
@@ -146,6 +157,14 @@ namespace Winhance.WPF.Features.Common.Extensions.DI
 
             // Compatible Settings Registry (Singleton - Caches filtering decisions)
             services.AddSingleton<ICompatibleSettingsRegistry, CompatibleSettingsRegistry>();
+
+            // HttpClient for external API calls
+            services.TryAddSingleton<System.Net.Http.HttpClient>();
+
+            // Advanced Tools Services
+            services.AddSingleton<Winhance.Core.Features.AdvancedTools.Interfaces.IWimUtilService,
+                Winhance.Infrastructure.Features.AdvancedTools.Services.WimUtilService>();
+            services.AddSingleton<Winhance.Infrastructure.Features.AdvancedTools.Services.AutounattendScriptBuilder>();
 
             return services;
         }
@@ -209,6 +228,13 @@ namespace Winhance.WPF.Features.Common.Extensions.DI
                 "Customize",
                 typeof(Winhance.WPF.Features.Customize.Views.CustomizeView),
                 typeof(Winhance.WPF.Features.Customize.ViewModels.CustomizeViewModel)
+            );
+
+            // Advanced Tools view mapping
+            navigationService.RegisterViewMapping(
+                "WimUtil",
+                typeof(Winhance.WPF.Features.AdvancedTools.Views.WimUtilView),
+                typeof(Winhance.WPF.Features.AdvancedTools.ViewModels.WimUtilViewModel)
             );
         }
     }

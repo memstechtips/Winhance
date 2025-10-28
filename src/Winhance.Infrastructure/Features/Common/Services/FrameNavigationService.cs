@@ -104,11 +104,25 @@ namespace Winhance.Infrastructure.Features.Common.Services
         {
             _logService?.Log(LogLevel.Info, $"[FrameNavigationService] PreloadAndNavigateToAsync called for: {route}");
 
+            if (_currentRoute == route)
+            {
+                _logService?.Log(LogLevel.Info, $"[FrameNavigationService] Already on route: {route}, skipping navigation");
+                return true; // Return true because we're already where we need to be
+            }
+
             if (!_viewMappings.TryGetValue(route, out var mapping))
             {
                 _logService?.Log(LogLevel.Info, $"[FrameNavigationService] No view mapping found for route: {route}");
                 return false;
             }
+
+            var navigatingArgs = new Winhance.Core.Features.Common.Interfaces.NavigationEventArgs(
+                _currentRoute,
+                route,
+                null,
+                false
+            );
+            Navigating?.Invoke(this, navigatingArgs);
 
             try
             {
@@ -184,6 +198,28 @@ namespace Winhance.Infrastructure.Features.Common.Services
                 NavigationFailed?.Invoke(this, args);
                 return false;
             }
+        }
+
+        public async Task NavigateToAsync(string viewName)
+        {
+            await Application.Current.Dispatcher.InvokeAsync(async () =>
+            {
+                await PreloadAndNavigateToAsync(viewName);
+            }, System.Windows.Threading.DispatcherPriority.Loaded);
+
+            await Application.Current.Dispatcher.InvokeAsync(() => { },
+                System.Windows.Threading.DispatcherPriority.Loaded);
+        }
+
+        public async Task NavigateToAsync(string viewName, object parameter)
+        {
+            await Application.Current.Dispatcher.InvokeAsync(async () =>
+            {
+                await PreloadAndNavigateToAsync(viewName);
+            }, System.Windows.Threading.DispatcherPriority.Loaded);
+
+            await Application.Current.Dispatcher.InvokeAsync(() => { },
+                System.Windows.Threading.DispatcherPriority.Loaded);
         }
 
         public bool NavigateBack()

@@ -18,10 +18,13 @@ namespace Winhance.Infrastructure.Features.Common.Services
         private readonly IHardwareCompatibilityFilter _hardwareFilter;
         private readonly IPowerSettingsValidationService _powerValidation;
         private readonly ILogService _logService;
-        
+
         private bool _isInitialized;
         private readonly SemaphoreSlim _initializationLock = new SemaphoreSlim(1, 1);
         private readonly Dictionary<string, IEnumerable<SettingDefinition>> _preFilteredSettings = new();
+        private readonly Dictionary<string, IEnumerable<SettingDefinition>> _rawSettings = new();
+        private readonly Dictionary<string, IEnumerable<SettingDefinition>> _windowsFilterBypassedSettings = new();
+        private bool _filterEnabled = true;
 
         public bool IsInitialized => _isInitialized;
 
@@ -61,12 +64,36 @@ namespace Winhance.Infrastructure.Features.Common.Services
 
         public IEnumerable<SettingDefinition> GetFilteredSettings(string featureId)
         {
-            if (!_isInitialized) 
+            if (!_isInitialized)
                 throw new InvalidOperationException("Registry not initialized");
 
-            return _preFilteredSettings.TryGetValue(featureId, out var settings) 
-                ? settings 
-                : Enumerable.Empty<SettingDefinition>();
+            _logService.Log(LogLevel.Debug, $"GetFilteredSettings for {featureId}: Filter enabled = {_filterEnabled}");
+
+            if (_filterEnabled)
+            {
+                return _preFilteredSettings.TryGetValue(featureId, out var settings)
+                    ? settings
+                    : Enumerable.Empty<SettingDefinition>();
+            }
+            else
+            {
+                return _windowsFilterBypassedSettings.TryGetValue(featureId, out var settings)
+                    ? settings
+                    : Enumerable.Empty<SettingDefinition>();
+            }
+        }
+
+        public void SetFilterEnabled(bool enabled)
+        {
+            _filterEnabled = enabled;
+        }
+
+        public IReadOnlyDictionary<string, IEnumerable<SettingDefinition>> GetAllFilteredSettings()
+        {
+            if (!_isInitialized)
+                throw new InvalidOperationException("Registry not initialized. Call InitializeAsync first.");
+
+            return _filterEnabled ? _preFilteredSettings : _windowsFilterBypassedSettings;
         }
 
         private async Task PreFilterAllFeatureSettingsAsync()
@@ -82,42 +109,52 @@ namespace Winhance.Infrastructure.Features.Common.Services
                 {
                     _logService.Log(LogLevel.Info, $"Loading raw settings for {featureId}");
                     var rawSettings = provider();
+                    _rawSettings[featureId] = rawSettings.ToList();
                     _logService.Log(LogLevel.Info, $"Loaded {rawSettings.Count()} raw settings for {featureId}");
-                    
-                    // Apply Windows compatibility filtering to all features during startup
+
                     var filteredSettings = _windowsFilter.FilterSettingsByWindowsVersion(rawSettings);
 
-                    // Apply hardware filtering to Power feature
-                    if (featureId == "Power")
+                    if (featureId == FeatureIds.Power)
                     {
                         filteredSettings = await _hardwareFilter.FilterSettingsByHardwareAsync(filteredSettings);
                         filteredSettings = await _powerValidation.FilterSettingsByExistenceAsync(filteredSettings);
                     }
-                    
+
                     _preFilteredSettings[featureId] = filteredSettings;
-                    
+
+                    var bypassedSettings = rawSettings;
+                    if (featureId == FeatureIds.Power)
+                    {
+                        bypassedSettings = await _hardwareFilter.FilterSettingsByHardwareAsync(bypassedSettings);
+                        bypassedSettings = await _powerValidation.FilterSettingsByExistenceAsync(bypassedSettings);
+                    }
+                    var decorated = _windowsFilter.FilterSettingsByWindowsVersion(bypassedSettings, applyFilter: false);
+                    _windowsFilterBypassedSettings[featureId] = decorated;
+
                     _logService.Log(LogLevel.Info, $"Registered {filteredSettings.Count()} settings for {featureId}");
                 }
                 catch (Exception ex)
                 {
-                    _logService.Log(LogLevel.Error, 
+                    _logService.Log(LogLevel.Error,
                         $"Error loading settings for {featureId}: {ex.Message}");
                     _preFilteredSettings[featureId] = Enumerable.Empty<SettingDefinition>();
+                    _rawSettings[featureId] = Enumerable.Empty<SettingDefinition>();
+                    _windowsFilterBypassedSettings[featureId] = Enumerable.Empty<SettingDefinition>();
                 }
             }
-            
+
             _logService.Log(LogLevel.Info, "Pre-filtering completed");
         }
 
         private Dictionary<string, Func<IEnumerable<SettingDefinition>>> GetKnownFeatureProviders()
         {
             var providers = new Dictionary<string, Func<IEnumerable<SettingDefinition>>>();
-            
+
             try
             {
                 var settingClasses = AppDomain.CurrentDomain.GetAssemblies()
                     .Where(assembly => !assembly.IsDynamic && assembly.GetName().Name?.Contains("Winhance") == true)
-                    .SelectMany(assembly => 
+                    .SelectMany(assembly =>
                     {
                         try
                         {
@@ -129,7 +166,7 @@ namespace Winhance.Infrastructure.Features.Common.Services
                         }
                     })
                     .Where(type => type != null && type.IsClass && (
-                        type.Name.EndsWith("Customizations") || 
+                        type.Name.EndsWith("Customizations") ||
                         type.Name.EndsWith("Optimizations")))
                     .ToList();
 
@@ -138,30 +175,27 @@ namespace Winhance.Infrastructure.Features.Common.Services
                     try
                     {
                         var method = settingClass.GetMethods(BindingFlags.Static | BindingFlags.Public)
-                            .FirstOrDefault(m => 
+                            .FirstOrDefault(m =>
                                 m.GetParameters().Length == 0 &&
                                 m.ReturnType.GetProperty("Settings") != null &&
                                 IsSettingDefinitionEnumerable(m.ReturnType.GetProperty("Settings").PropertyType));
 
                         if (method != null)
                         {
-                            var featureId = ExtractFeatureId(settingClass.Name);
-                            
-                            if (IsValidFeatureId(featureId))
-                            {
-                                providers[featureId] = () => {
-                                    try
-                                    {
-                                        var result = method.Invoke(null, null);
-                                        var settingsProperty = result.GetType().GetProperty("Settings");
-                                        return (IEnumerable<SettingDefinition>)settingsProperty.GetValue(result);
-                                    }
-                                    catch
-                                    {
-                                        return Enumerable.Empty<SettingDefinition>();
-                                    }
-                                };
-                            }
+                            var featureId = GetFeatureIdFromMethod(method);
+
+                            providers[featureId] = () => {
+                                try
+                                {
+                                    var result = method.Invoke(null, null);
+                                    var settingsProperty = result.GetType().GetProperty("Settings");
+                                    return (IEnumerable<SettingDefinition>)settingsProperty.GetValue(result);
+                                }
+                                catch
+                                {
+                                    return Enumerable.Empty<SettingDefinition>();
+                                }
+                            };
                         }
                     }
                     catch
@@ -174,7 +208,7 @@ namespace Winhance.Infrastructure.Features.Common.Services
             {
                 // Return empty providers if discovery fails
             }
-            
+
             return providers;
         }
 
@@ -186,19 +220,18 @@ namespace Winhance.Infrastructure.Features.Common.Services
                      i.GetGenericArguments()[0] == typeof(SettingDefinition));
         }
 
-        private string ExtractFeatureId(string className)
+        private string GetFeatureIdFromMethod(MethodInfo method)
         {
-            return className.Replace("Customizations", "").Replace("Optimizations", "");
-        }
-
-        private bool IsValidFeatureId(string featureId)
-        {
-            var featureIdsType = typeof(FeatureIds);
-            var fields = featureIdsType.GetFields(BindingFlags.Public | BindingFlags.Static);
-            
-            return fields.Any(field => 
-                field.FieldType == typeof(string) && 
-                field.GetValue(null)?.ToString() == featureId);
+            try
+            {
+                var result = method.Invoke(null, null);
+                var featureIdProperty = result.GetType().GetProperty("FeatureId");
+                return (string)featureIdProperty.GetValue(result);
+            }
+            catch
+            {
+                return "Unknown";
+            }
         }
 
 

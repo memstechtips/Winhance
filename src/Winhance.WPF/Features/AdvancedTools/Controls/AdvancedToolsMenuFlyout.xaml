@@ -1,0 +1,96 @@
+<UserControl x:Class="Winhance.WPF.Features.AdvancedTools.Controls.AdvancedToolsMenuFlyout"
+             xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
+             xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
+             xmlns:viewModels="clr-namespace:Winhance.WPF.Features.AdvancedTools.ViewModels"
+             xmlns:iconPacks="http://metro.mahapps.com/winfx/xaml/iconpacks"
+             mc:Ignorable="d"
+             d:DataContext="{d:DesignInstance Type=viewModels:AdvancedToolsMenuViewModel}">
+
+    <UserControl.Resources>
+        <ResourceDictionary>
+            <ResourceDictionary.MergedDictionaries>
+                <ResourceDictionary Source="/Features/Common/Resources/Styles/MenuStyles.xaml"/>
+            </ResourceDictionary.MergedDictionaries>
+
+            <!-- Custom Menu Button Style for proper left alignment -->
+            <Style x:Key="MenuButtonStyle" TargetType="Button">
+                <Setter Property="Background" Value="Transparent" />
+                <Setter Property="BorderThickness" Value="0" />
+                <Setter Property="Cursor" Value="Hand" />
+                <Setter Property="Foreground" Value="{DynamicResource PrimaryTextColor}" />
+                <Setter Property="HorizontalAlignment" Value="Stretch" />
+                <Setter Property="HorizontalContentAlignment" Value="Left" />
+                <Setter Property="Template">
+                    <Setter.Value>
+                        <ControlTemplate TargetType="Button">
+                            <Border x:Name="border"
+                                    Background="{TemplateBinding Background}"
+                                    BorderBrush="{TemplateBinding BorderBrush}"
+                                    BorderThickness="{TemplateBinding BorderThickness}"
+                                    CornerRadius="4">
+                                <ContentPresenter HorizontalAlignment="{TemplateBinding HorizontalContentAlignment}"
+                                                  VerticalAlignment="Center"
+                                                  Margin="{TemplateBinding Padding}" />
+                            </Border>
+                            <ControlTemplate.Triggers>
+                                <Trigger Property="IsMouseOver" Value="True">
+                                    <Setter TargetName="border" Property="Background" Value="{DynamicResource ButtonBorderBrush}" />
+                                    <Setter Property="Foreground" Value="{DynamicResource ButtonHoverTextColor}" />
+                                </Trigger>
+                                <Trigger Property="IsPressed" Value="True">
+                                    <Setter TargetName="border" Property="Background" Value="{DynamicResource ButtonBorderBrush}" />
+                                    <Setter TargetName="border" Property="Opacity" Value="0.8" />
+                                </Trigger>
+                                <Trigger Property="IsEnabled" Value="False">
+                                    <Setter Property="Opacity" Value="0.6" />
+                                </Trigger>
+                            </ControlTemplate.Triggers>
+                        </ControlTemplate>
+                    </Setter.Value>
+                </Setter>
+            </Style>
+        </ResourceDictionary>
+    </UserControl.Resources>
+
+    <!-- Flyout Menu Content -->
+    <Border Background="{DynamicResource WindowBackground}"
+            BorderBrush="#505050"
+            BorderThickness="1"
+            CornerRadius="4"
+            Padding="8"
+            MinWidth="200"
+            MaxWidth="300"
+            Effect="{StaticResource LightShadowEffect}">
+        <StackPanel>
+            <!-- WIMUtil -->
+            <Button Command="{Binding NavigateToWimUtilCommand}"
+                    Style="{StaticResource MenuButtonStyle}"
+                    HorizontalAlignment="Stretch"
+                    HorizontalContentAlignment="Left"
+                    Padding="8,8"
+                    Height="40"
+                    Margin="0,1">
+                <StackPanel Orientation="Horizontal">
+                    <iconPacks:PackIconMaterial Kind="DiscPlayer" Width="14" Height="14" VerticalAlignment="Center" Margin="0,0,12,0"/>
+                    <TextBlock Text="WIMUtil" VerticalAlignment="Center" FontSize="14"/>
+                </StackPanel>
+            </Button>
+
+            <!-- Create Unattended XML -->
+            <Button Command="{Binding NavigateToXmlGeneratorCommand}"
+                    Style="{StaticResource MenuButtonStyle}"
+                    HorizontalAlignment="Stretch"
+                    HorizontalContentAlignment="Left"
+                    Padding="8,8"
+                    Height="40"
+                    Margin="0,1">
+                <StackPanel Orientation="Horizontal">
+                    <iconPacks:PackIconMaterial Kind="FileXmlBox" Width="14" Height="14" VerticalAlignment="Center" Margin="0,0,12,0"/>
+                    <TextBlock Text="Create Autounattend XML" VerticalAlignment="Center" FontSize="14"/>
+                </StackPanel>
+            </Button>
+        </StackPanel>
+    </Border>
+</UserControl>

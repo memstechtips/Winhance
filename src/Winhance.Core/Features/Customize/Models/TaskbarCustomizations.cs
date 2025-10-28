@@ -1,9 +1,7 @@
-using System.Collections.Generic;
 using Microsoft.Win32;
 using Winhance.Core.Features.Common.Constants;
 using Winhance.Core.Features.Common.Enums;
 using Winhance.Core.Features.Common.Models;
-using Winhance.Core.Features.Customize.Interfaces;
 
 namespace Winhance.Core.Features.Customize.Models;
 
@@ -24,7 +22,9 @@ public static class TaskbarCustomizations
                     Description = "Removes all pinned items from the Taskbar",
                     GroupName = "Layout",
                     InputType = InputType.Action,
+                    Icon = "Broom",
                     RequiresConfirmation = true,
+                    DialogTitleIcon = "Broom",
                     ConfirmationTitle = "Taskbar Cleaning",
                     ConfirmationMessage =
                         "You are about to clean the Taskbar for the current user.\n\n"
@@ -37,9 +37,10 @@ public static class TaskbarCustomizations
                 {
                     Id = "taskbar-search-box-11",
                     Name = "Search in Taskbar",
-                    Description = "Controls search box appearance in taskbar",
+                    Description = "Choose how the Windows search appears on your taskbar: hidden, icon only, icon with label, or full search box",
                     GroupName = "Taskbar Icons",
                     InputType = InputType.Selection,
+                    Icon = "Magnify",
                     IsWindows11Only = true,
                     RegistrySettings = new List<RegistrySetting>
                     {
@@ -65,21 +66,21 @@ public static class TaskbarCustomizations
                             "Search icon and label",
                             "Search box",
                         },
-                        [CustomPropertyKeys.ValueMappings] = new Dictionary<int, Dictionary<string, int?>>
+                        [CustomPropertyKeys.ValueMappings] = new Dictionary<int, Dictionary<string, object?>>
                         {
-                            [0] = new Dictionary<string, int?> // Hide
+                            [0] = new Dictionary<string, object?> // Hide
                             {
                                 ["SearchboxTaskbarMode"] = 0,
                             },
-                            [1] = new Dictionary<string, int?> // Search icon only
+                            [1] = new Dictionary<string, object?> // Search icon only
                             {
                                 ["SearchboxTaskbarMode"] = 1,
                             },
-                            [2] = new Dictionary<string, int?> // Search icon and label
+                            [2] = new Dictionary<string, object?> // Search icon and label
                             {
                                 ["SearchboxTaskbarMode"] = 2,
                             },
-                            [3] = new Dictionary<string, int?> // Search box
+                            [3] = new Dictionary<string, object?> // Search box
                             {
                                 ["SearchboxTaskbarMode"] = 3,
                             },
@@ -89,10 +90,11 @@ public static class TaskbarCustomizations
                 new SettingDefinition
                 {
                     Id = "taskbar-search-box-10",
-                    Name = "Search in Taskbar",
-                    Description = "Controls search box appearance in taskbar",
+                    Name = "Search in taskbar",
+                    Description = "Choose how the Windows search appears on your taskbar: hidden, icon only, or full search box",
                     GroupName = "Taskbar Icons",
                     InputType = InputType.Selection,
+                    Icon = "Magnify",
                     IsWindows10Only = true,
                     RegistrySettings = new List<RegistrySetting>
                     {
@@ -117,17 +119,17 @@ public static class TaskbarCustomizations
                             "Search icon only",
                             "Search box",
                         },
-                        [CustomPropertyKeys.ValueMappings] = new Dictionary<int, Dictionary<string, int?>>
+                        [CustomPropertyKeys.ValueMappings] = new Dictionary<int, Dictionary<string, object?>>
                         {
-                            [0] = new Dictionary<string, int?> // Hide
+                            [0] = new Dictionary<string, object?> // Hide
                             {
                                 ["SearchboxTaskbarMode"] = 0,
                             },
-                            [1] = new Dictionary<string, int?> // Search icon only
+                            [1] = new Dictionary<string, object?> // Search icon only
                             {
                                 ["SearchboxTaskbarMode"] = 1,
                             },
-                            [2] = new Dictionary<string, int?> // Search box
+                            [2] = new Dictionary<string, object?> // Search box
                             {
                                 ["SearchboxTaskbarMode"] = 2,
                             },
@@ -137,10 +139,11 @@ public static class TaskbarCustomizations
                 new SettingDefinition
                 {
                     Id = "taskbar-alignment",
-                    Name = "Taskbar Alignment",
-                    Description = "Controls taskbar icons alignment",
+                    Name = "Taskbar alignment",
+                    Description = "Align taskbar icons to the left (classic Windows style) or center (Windows 11 default)",
                     GroupName = "Taskbar Behavior",
                     InputType = InputType.Selection,
+                    Icon = "FileTableBoxOutline",
                     IsWindows11Only = true,
                     RegistrySettings = new List<RegistrySetting>
                     {
@@ -151,22 +154,18 @@ public static class TaskbarCustomizations
                             RecommendedValue = 0, // Left alignment
                             DefaultValue = 1, // Center alignment
                             ValueType = RegistryValueKind.DWord,
-                            CustomProperties = new Dictionary<string, object>
-                            {
-                                ["DefaultOption"] = "Center",
-                            },
                         },
                     },
                     CustomProperties = new Dictionary<string, object>
                     {
                         [CustomPropertyKeys.ComboBoxDisplayNames] = new string[] { "Left", "Center" },
-                        [CustomPropertyKeys.ValueMappings] = new Dictionary<int, Dictionary<string, int?>>
+                        [CustomPropertyKeys.ValueMappings] = new Dictionary<int, Dictionary<string, object?>>
                         {
-                            [0] = new Dictionary<string, int?> // Left
+                            [0] = new Dictionary<string, object?> // Left
                             {
                                 ["TaskbarAl"] = 0,
                             },
-                            [1] = new Dictionary<string, int?> // Center
+                            [1] = new Dictionary<string, object?> // Center
                             {
                                 ["TaskbarAl"] = 1,
                             },
@@ -176,20 +175,42 @@ public static class TaskbarCustomizations
                 new SettingDefinition
                 {
                     Id = "taskbar-meet-now",
-                    Name = "Remove Meet Now Button from System Tray",
+                    Name = "Remove 'Meet Now' button from system tray",
                     Description = "Controls Meet Now button visibility in the system tray",
                     GroupName = "Taskbar Icons",
                     InputType = InputType.Toggle,
+                    IconPack = "Lucide",
+                    Icon = "Video",
                     IsWindows10Only = true,
                     RegistrySettings = new List<RegistrySetting>
                     {
                         new RegistrySetting
                         {
+                            KeyPath = @"HKEY_CURRENT_USER\Software\Policies\Microsoft\Windows\Explorer",
+                            ValueName = "HideSCAMeetNow",
+                            RecommendedValue = 1,
+                            EnabledValue = 1,
+                            DisabledValue = null,
+                            ValueType = RegistryValueKind.DWord,
+                            DefaultValue = null,
+                        },
+                        new RegistrySetting
+                        {
+                            KeyPath = @"HKEY_CURRENT_USER\Software\Microsoft\Windows\CurrentVersion\Policies\Explorer",
+                            ValueName = "HideSCAMeetNow",
+                            RecommendedValue = 1,
+                            EnabledValue = 1,
+                            DisabledValue = null,
+                            ValueType = RegistryValueKind.DWord,
+                            DefaultValue = null,
+                        },
+                        new RegistrySetting
+                        {
                             KeyPath = @"HKEY_LOCAL_MACHINE\Software\Microsoft\Windows\CurrentVersion\Policies\Explorer",
                             ValueName = "HideSCAMeetNow",
                             RecommendedValue = 1,
-                            EnabledValue = 1, // When toggle is ON, Meet Now button is hidden
-                            DisabledValue = null, // When toggle is OFF, Meet Now button is shown
+                            EnabledValue = 1,
+                            DisabledValue = null,
                             ValueType = RegistryValueKind.DWord,
                             DefaultValue = null,
                         },
@@ -198,11 +219,11 @@ public static class TaskbarCustomizations
                 new SettingDefinition
                 {
                     Id = "taskbar-system-tray-icons",
-                    Name = "Always Show All System Tray Icons",
-                    Description =
-                        "Controls whether system tray icons are shown in the taskbar or hidden in the chevron menu",
+                    Name = "Always show all system tray icons",
+                    Description = "Show all system tray icons directly on the taskbar instead of hiding them in the overflow menu (up arrow)",
                     GroupName = "System Tray",
                     InputType = InputType.Toggle,
+                    Icon = "TrayFull",
                     IsWindows10Only = true,
                     RegistrySettings = new List<RegistrySetting>
                     {
@@ -221,10 +242,11 @@ public static class TaskbarCustomizations
                 new SettingDefinition
                 {
                     Id = "taskbar-task-view",
-                    Name = "Show Task View Button",
-                    Description = "Controls Task View button visibility in taskbar",
+                    Name = "Show Task View button",
+                    Description = "Show the Task View button for managing virtual desktops and viewing all open windows at once",
                     GroupName = "Taskbar Icons",
                     InputType = InputType.Toggle,
+                    Icon = "DockWindow",
                     RegistrySettings = new List<RegistrySetting>
                     {
                         new RegistrySetting
@@ -236,6 +258,7 @@ public static class TaskbarCustomizations
                             DisabledValue = 0, // When toggle is OFF, Task View button is hidden
                             DefaultValue = 1, // Default value when registry key exists but no value is set
                             ValueType = RegistryValueKind.DWord,
+                            AbsenceMeansEnabled = true,
                         },
                     },
                 },
@@ -243,21 +266,35 @@ public static class TaskbarCustomizations
                 {
                     Id = "taskbar-widgets",
                     Name = "Show Widgets",
-                    Description = "Controls Widgets visibility in taskbar",
+                    Description = "Show the Widgets button that displays personalized news, weather, calendar, and other information",
                     GroupName = "Taskbar Icons",
                     InputType = InputType.Toggle,
+                    IconPack = "MaterialDesign",
+                    Icon = "WidgetsRound",
                     IsWindows11Only = true,
                     RegistrySettings = new List<RegistrySetting>
                     {
                         new RegistrySetting
                         {
+                            KeyPath = @"HKEY_CURRENT_USER\Software\Policies\Microsoft\Dsh",
+                            ValueName = "AllowNewsAndInterests",
+                            RecommendedValue = 0,
+                            EnabledValue = 1,
+                            DisabledValue = 0,
+                            DefaultValue = null,
+                            ValueType = RegistryValueKind.DWord,
+                            AbsenceMeansEnabled = true,
+                        },
+                        new RegistrySetting
+                        {
                             KeyPath = @"HKEY_LOCAL_MACHINE\Software\Policies\Microsoft\Dsh",
                             ValueName = "AllowNewsAndInterests",
                             RecommendedValue = 0,
-                            EnabledValue = 1, // When toggle is ON, Widgets button is shown
-                            DisabledValue = 0, // When toggle is OFF, Widgets button is hidden
+                            EnabledValue = 1,
+                            DisabledValue = 0,
                             DefaultValue = null,
                             ValueType = RegistryValueKind.DWord,
+                            AbsenceMeansEnabled = true,
                         },
                     },
                 },
@@ -265,20 +302,31 @@ public static class TaskbarCustomizations
                 {
                     Id = "taskbar-news-and-interests",
                     Name = "Show News and Interests",
-                    Description = "Controls News and Interests visibility in taskbar",
+                    Description = "Show the News and Interests widget that displays headlines, weather, stocks, and other personalized content",
                     GroupName = "Taskbar Icons",
                     InputType = InputType.Toggle,
+                    Icon = "Newspaper",
                     IsWindows10Only = true,
                     RegistrySettings = new List<RegistrySetting>
                     {
                         new RegistrySetting
                         {
+                            KeyPath = @"HKEY_CURRENT_USER\Software\Policies\Microsoft\Windows\Windows Feeds",
+                            ValueName = "EnableFeeds",
+                            RecommendedValue = 0,
+                            EnabledValue = 1,
+                            DisabledValue = null,
+                            DefaultValue = 1,
+                            ValueType = RegistryValueKind.DWord,
+                        },
+                        new RegistrySetting
+                        {
                             KeyPath = @"HKEY_LOCAL_MACHINE\Software\Policies\Microsoft\Windows\Windows Feeds",
                             ValueName = "EnableFeeds",
                             RecommendedValue = 0,
-                            EnabledValue = 1, // When toggle is ON, News and Interests is shown
-                            DisabledValue = null, // When toggle is OFF, News and Interests is hidden
-                            DefaultValue = 1, // Default value when registry key exists but no value is set
+                            EnabledValue = 1,
+                            DisabledValue = null,
+                            DefaultValue = 1,
                             ValueType = RegistryValueKind.DWord,
                         },
                     },
@@ -286,10 +334,11 @@ public static class TaskbarCustomizations
                 new SettingDefinition
                 {
                     Id = "taskbar-transparent",
-                    Name = "Make Taskbar Transparent",
+                    Name = "Make taskbar transparent",
                     Description = "Controls the transparency of the taskbar",
                     GroupName = "Taskbar",
                     InputType = InputType.Toggle,
+                    Icon = "Opacity",
                     IsWindows10Only = true,
                     Dependencies = new List<SettingDependency>
                     {
@@ -318,10 +367,11 @@ public static class TaskbarCustomizations
                 new SettingDefinition
                 {
                     Id = "taskbar-small",
-                    Name = "Make Taskbar Small",
-                    Description = "Controls the size of taskbar icons",
+                    Name = "Make taskbar small",
+                    Description = "Reduce the height of the taskbar by using smaller icons, giving you more screen space",
                     GroupName = "Taskbar",
                     InputType = InputType.Toggle,
+                    Icon = "SizeXxs",
                     IsWindows10Only = true,
                     RegistrySettings = new List<RegistrySetting>
                     {
@@ -330,9 +380,32 @@ public static class TaskbarCustomizations
                             KeyPath = @"HKEY_CURRENT_USER\Software\Microsoft\Windows\CurrentVersion\Explorer\Advanced",
                             ValueName = "TaskbarSmallIcons",
                             RecommendedValue = 1,
-                            EnabledValue = 1, // Small icons
-                            DisabledValue = 0, // Normal icons
-                            DefaultValue = 0, // Default is normal icons
+                            EnabledValue = 1,
+                            DisabledValue = 0,
+                            DefaultValue = 0,
+                            ValueType = RegistryValueKind.DWord,
+                        },
+                    },
+                },
+                new SettingDefinition
+                {
+                    Id = "taskbar-end-task",
+                    Name = "Enable 'End Task' in Taskbar",
+                    Description = "Adds an 'End Task' option when right-clicking applications on the taskbar for quick termination",
+                    GroupName = "Taskbar Behavior",
+                    InputType = InputType.Toggle,
+                    Icon = "ApplicationCog",
+                    IsWindows11Only = true,
+                    RegistrySettings = new List<RegistrySetting>
+                    {
+                        new RegistrySetting
+                        {
+                            KeyPath = @"HKEY_CURRENT_USER\Software\Microsoft\Windows\CurrentVersion\Explorer\Advanced",
+                            ValueName = "TaskbarEndTask",
+                            RecommendedValue = 1,
+                            EnabledValue = 1,
+                            DisabledValue = 0,
+                            DefaultValue = 0,
                             ValueType = RegistryValueKind.DWord,
                         },
                     },

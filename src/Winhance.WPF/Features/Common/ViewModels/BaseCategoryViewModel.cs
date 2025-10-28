@@ -16,6 +16,7 @@ namespace Winhance.WPF.Features.Common.ViewModels
     public abstract partial class BaseCategoryViewModel : BaseContainerViewModel, IInitializableViewModel, IPreloadableViewModel
     {
         private bool _isDisposed;
+        private bool _isFeaturesCached;
 
         public ObservableCollection<Control> FeatureViews { get; } = new();
         public ObservableCollection<QuickNavItem> QuickNavItems { get; } = new();
@@ -56,12 +57,15 @@ namespace Winhance.WPF.Features.Common.ViewModels
 
         public virtual async Task PreloadFeaturesAsync()
         {
-            if (FeatureViews.Any())
+            if (_isFeaturesCached && FeatureViews.Any())
                 return;
 
             var features = FeatureRegistry.GetFeaturesForCategory(CategoryName);
             if (features == null || !features.Any())
                 return;
+
+            if (FeatureViews.Any())
+                FeatureViews.Clear();
 
             var featureTasks = features
                 .OrderBy(f => f.SortOrder)
@@ -82,6 +86,7 @@ namespace Winhance.WPF.Features.Common.ViewModels
                 FeatureViews.Add(result.View);
             }
 
+            _isFeaturesCached = true;
             PopulateQuickNavItems();
         }
 
@@ -238,6 +243,17 @@ namespace Winhance.WPF.Features.Common.ViewModels
 
         public void OnNavigatedFrom() { }
 
+        public async Task RefreshAllFeaturesAsync()
+        {
+            foreach (var view in FeatureViews)
+            {
+                if (view.DataContext is ISettingsFeatureViewModel settingsVm)
+                {
+                    await settingsVm.RefreshSettingsAsync();
+                }
+            }
+        }
+
         public override void Dispose()
         {
             Dispose(true);
@@ -248,6 +264,7 @@ namespace Winhance.WPF.Features.Common.ViewModels
         {
             if (!_isDisposed && disposing)
             {
+                _isFeaturesCached = false;
                 foreach (var view in FeatureViews)
                 {
                     if (view.DataContext is IDisposable disposableVm)
@@ -255,7 +272,6 @@ namespace Winhance.WPF.Features.Common.ViewModels
                     if (view is IDisposable disposableView)
                         disposableView.Dispose();
                 }
-                // FeatureViews.Clear();
                 _isDisposed = true;
             }
 

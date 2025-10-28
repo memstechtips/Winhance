@@ -2,7 +2,9 @@ using System;
 using System.ComponentModel;
 using System.Diagnostics;
 using System.IO;
+using System.Linq;
 using System.Runtime.CompilerServices;
+using System.Runtime.InteropServices;
 using System.Threading.Tasks;
 using System.Windows;
 using System.Windows.Input;
@@ -19,6 +21,17 @@ namespace Winhance.WPF.Features.Common.ViewModels;
 
 public class MoreMenuViewModel : ObservableObject
 {
+    [DllImport("user32.dll")]
+    private static extern bool SetForegroundWindow(IntPtr hWnd);
+
+    [DllImport("user32.dll")]
+    private static extern bool IsIconic(IntPtr hWnd);
+
+    [DllImport("user32.dll")]
+    private static extern bool ShowWindow(IntPtr hWnd, int nCmdShow);
+
+    private const int SW_RESTORE = 9;
+
     private readonly ILogService _logService;
     private readonly IVersionService _versionService;
     private readonly IEventBus _eventBus;
@@ -192,13 +205,7 @@ public class MoreMenuViewModel : ObservableObject
                 Directory.CreateDirectory(logsFolder);
             }
 
-            var psi = new ProcessStartInfo
-            {
-                FileName = "explorer.exe",
-                Arguments = logsFolder,
-                UseShellExecute = true,
-            };
-            Process.Start(psi);
+            OpenFolderOrBringToForeground(logsFolder);
         }
         catch (Exception ex)
         {
@@ -222,13 +229,7 @@ public class MoreMenuViewModel : ObservableObject
                 Directory.CreateDirectory(scriptsFolder);
             }
 
-            var psi = new ProcessStartInfo
-            {
-                FileName = "explorer.exe",
-                Arguments = scriptsFolder,
-                UseShellExecute = true,
-            };
-            Process.Start(psi);
+            OpenFolderOrBringToForeground(scriptsFolder);
         }
         catch (Exception ex)
         {
@@ -245,11 +246,64 @@ public class MoreMenuViewModel : ObservableObject
     {
         try
         {
-            await _applicationCloseService.CloseApplicationWithSupportDialogAsync();
+            await _applicationCloseService.CheckOperationsAndCloseAsync();
         }
         catch (Exception ex)
         {
             _logService.LogError($"Error closing application: {ex.Message}", ex);
         }
+    }
+
+    private void OpenFolderOrBringToForeground(string folderPath)
+    {
+        string normalizedPath = Path.GetFullPath(folderPath).TrimEnd(Path.DirectorySeparatorChar, Path.AltDirectorySeparatorChar).ToLowerInvariant();
+
+        try
+        {
+            Type shellType = Type.GetTypeFromProgID("Shell.Application");
+            dynamic shell = Activator.CreateInstance(shellType);
+            dynamic windows = shell.Windows();
+
+            foreach (dynamic window in windows)
+            {
+                try
+                {
+                    string locationUrl = window.LocationURL;
+                    if (string.IsNullOrEmpty(locationUrl))
+                        continue;
+
+                    Uri uri = new Uri(locationUrl);
+                    string windowPath = Path.GetFullPath(uri.LocalPath).TrimEnd(Path.DirectorySeparatorChar, Path.AltDirectorySeparatorChar).ToLowerInvariant();
+
+                    if (windowPath == normalizedPath)
+                    {
+                        IntPtr handle = new IntPtr(window.HWND);
+
+                        if (IsIconic(handle))
+                        {
+                            ShowWindow(handle, SW_RESTORE);
+                        }
+
+                        SetForegroundWindow(handle);
+                        return;
+                    }
+                }
+                catch
+                {
+                }
+            }
+        }
+        catch (Exception ex)
+        {
+            _logService.LogWarning($"Error checking windows: {ex.Message}");
+        }
+
+        var psi = new ProcessStartInfo
+        {
+            FileName = "explorer.exe",
+            Arguments = folderPath,
+            UseShellExecute = true,
+        };
+        Process.Start(psi);
     }
 }

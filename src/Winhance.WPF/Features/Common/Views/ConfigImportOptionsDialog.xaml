@@ -5,31 +5,31 @@
         xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
         xmlns:local="clr-namespace:Winhance.WPF.Features.Common.Views"
         xmlns:controls="clr-namespace:Winhance.WPF.Features.Common.Controls"
-        xmlns:materialDesign="http://materialdesigninxaml.net/winfx/xaml/themes"
+        xmlns:converters="clr-namespace:Winhance.WPF.Features.Common.Converters"
+        xmlns:iconPacks="http://metro.mahapps.com/winfx/xaml/iconpacks"
         mc:Ignorable="d"
-        Title="Import Configuration"
+        Title="Import Config"
         Height="450"
         Width="700"
         WindowStartupLocation="CenterOwner"
         ResizeMode="NoResize"
         ShowInTaskbar="False"
-        Background="{DynamicResource WindowBackground}"
+        Background="Transparent"
         Foreground="{DynamicResource PrimaryTextColor}"
-        Topmost="True"
         WindowStyle="None"
-        BorderThickness="0"
         AllowsTransparency="True">
-    
+
     <Window.Resources>
         <BooleanToVisibilityConverter x:Key="BooleanToVisibilityConverter" />
-        
-        <!-- Style for option buttons with hover effect -->
+        <converters:BooleanToThemeIconConverter x:Key="BooleanToThemeIconConverter" />
+
         <Style x:Key="OptionButtonStyle" TargetType="Border">
             <Setter Property="BorderBrush" Value="{DynamicResource ButtonBorderBrush}" />
             <Setter Property="BorderThickness" Value="1" />
             <Setter Property="Background" Value="{DynamicResource ContentSectionBorderBrush}" />
             <Setter Property="CornerRadius" Value="8" />
             <Setter Property="Cursor" Value="Hand" />
+            <Setter Property="Effect" Value="{StaticResource LightShadowEffect}" />
             <Style.Triggers>
                 <Trigger Property="IsMouseOver" Value="True">
                     <Setter Property="Background" Value="{DynamicResource MainContainerBorderBrush}" />
@@ -37,8 +37,7 @@
                 </Trigger>
             </Style.Triggers>
         </Style>
-        
-        <!-- Cancel button style with red hover effect -->
+
         <Style x:Key="CancelButtonStyle" TargetType="Button" BasedOn="{StaticResource DialogButtonStyle}">
             <Setter Property="Template">
                 <Setter.Value>
@@ -66,83 +65,66 @@
             </Setter>
         </Style>
     </Window.Resources>
-    
-    <!-- Main Content -->
-    <Border BorderThickness="1"
-            BorderBrush="{DynamicResource ButtonBorderBrush}"
-            CornerRadius="8">
-        <Grid>
-            <Grid.RowDefinitions>
-                <RowDefinition Height="Auto"/>
-                <RowDefinition Height="*"/>
-            </Grid.RowDefinitions>
-            
-            <!-- Custom Title Bar -->
-            <Border Grid.Row="0"
-                    Background="{DynamicResource ContentSectionBorderBrush}"
-                    BorderBrush="{DynamicResource ButtonBorderBrush}"
-                    BorderThickness="0,0,0,1"
-                    CornerRadius="8,8,0,0"
-                    MouseLeftButtonDown="Border_MouseLeftButtonDown">
-                <Grid Height="32">
+
+    <Grid>
+        <Grid.OpacityMask>
+            <VisualBrush>
+                <VisualBrush.Visual>
+                    <Border Background="Black"
+                            CornerRadius="10"
+                            Width="{Binding ActualWidth, RelativeSource={RelativeSource AncestorType=Grid}}"
+                            Height="{Binding ActualHeight, RelativeSource={RelativeSource AncestorType=Grid}}"/>
+                </VisualBrush.Visual>
+            </VisualBrush>
+        </Grid.OpacityMask>
+
+        <Border CornerRadius="10"
+                BorderBrush="Transparent"
+                Background="{DynamicResource WindowBackground}">
+            <Grid>
+                <Grid.RowDefinitions>
+                    <RowDefinition Height="Auto"/>
+                    <RowDefinition Height="*"/>
+                </Grid.RowDefinitions>
+
+                <!-- Header with Title and Close Button -->
+                <Grid Grid.Row="0">
                     <Grid.ColumnDefinitions>
                         <ColumnDefinition Width="*"/>
                         <ColumnDefinition Width="Auto"/>
                     </Grid.ColumnDefinitions>
-                    
-                    <TextBlock Text="Import Configuration"
-                               VerticalAlignment="Center"
-                               Margin="15,0,0,0"
-                               FontWeight="SemiBold"
-                               Foreground="{DynamicResource PrimaryTextColor}"/>
-                    
+
                     <Button Grid.Column="1"
                             Style="{StaticResource WindowCloseButton}"
                             Click="CloseButton_Click"
-                            Margin="0,0,5,0"
-                            VerticalAlignment="Center">
-                            <materialDesign:PackIcon Kind="Close"
-                                                     Width="18"
-                                                     Height="18"/>
+                            Width="32"
+                            Height="32"
+                            Margin="0,0,0,0"
+                            HorizontalAlignment="Right"
+                            VerticalAlignment="Top">
+                        <iconPacks:PackIconMaterial Kind="Close"
+                                                     Width="12"
+                                                     Height="12"/>
                     </Button>
                 </Grid>
-            </Border>
             
             <!-- Dialog Content -->
             <Grid Grid.Row="1" Margin="20">
                 <Grid.RowDefinitions>
-                    <RowDefinition Height="Auto"/>
                     <RowDefinition Height="*"/>
                     <RowDefinition Height="Auto"/>
                 </Grid.RowDefinitions>
-        
-                <!-- Header -->
-                <DockPanel Grid.Row="0" Margin="0,0,0,15" Style="{StaticResource DialogHeaderStyle}">
-                    <materialDesign:PackIcon Kind="FileImport"
-                                            Width="32"
-                                            Height="32"
-                                            Margin="0,0,10,0"
-                                            VerticalAlignment="Top"
-                                            Foreground="{DynamicResource PrimaryTextColor}"
-                                            DockPanel.Dock="Left"/>
-                    <StackPanel>
-                        <TextBlock Text="Select an option to start the configuration import process."
-                                   FontSize="20"
-                                   FontWeight="SemiBold"
-                                   Margin="0,0,0,8"
-                                   Foreground="{DynamicResource PrimaryTextColor}"/>
-                    </StackPanel>
-                </DockPanel>
-        
+
                 <!-- Options -->
-                <Grid Grid.Row="1">
+                <Grid Grid.Row="0">
                     <Grid.ColumnDefinitions>
                         <ColumnDefinition Width="*"/>
                         <ColumnDefinition Width="*"/>
                     </Grid.ColumnDefinitions>
                     
                     <!-- Import My Own Config Option -->
-                    <Border Grid.Column="0" 
+                    <Border Grid.Column="0"
+                            BorderBrush="Transparent" 
                             Margin="10,0,10,0"
                             Style="{StaticResource OptionButtonStyle}"
                             MouseLeftButtonDown="ImportOwnConfig_Click">
@@ -152,7 +134,7 @@
                                 <RowDefinition Height="*"/>
                             </Grid.RowDefinitions>
                             
-                            <materialDesign:PackIcon Kind="FolderOpen"
+                            <iconPacks:PackIconMaterial Kind="FolderOpen"
                                                    Grid.Row="0"
                                                    Width="125"
                                                    Height="125"
@@ -177,7 +159,8 @@
                     </Border>
                     
                     <!-- Import Recommended Config Option -->
-                    <Border Grid.Column="1" 
+                    <Border Grid.Column="1"
+                            BorderBrush="Transparent"
                             Margin="10,0,10,0"
                             Style="{StaticResource OptionButtonStyle}"
                             MouseLeftButtonDown="ImportRecommendedConfig_Click">
@@ -186,22 +169,25 @@
                                 <RowDefinition Height="Auto"/>
                                 <RowDefinition Height="*"/>
                             </Grid.RowDefinitions>
-                            
-                            <materialDesign:PackIcon Kind="CloudDownload"
-                                                   Grid.Row="0"
-                                                   Width="125"
-                                                   Height="125"
-                                                   Margin="0,20,0,5"
-                                                   HorizontalAlignment="Center"
-                                                   Foreground="{DynamicResource PrimaryTextColor}"/>
-                            
+
+                            <Image Grid.Row="0"
+                                   Width="130"
+                                   Height="130"
+                                   Margin="0,20,0,5"
+                                   HorizontalAlignment="Center"
+                                   Source="{Binding Source={x:Static Application.Current},
+                                                    Path=Resources[IsDarkTheme],
+                                                    Converter={StaticResource BooleanToThemeIconConverter},
+                                                    ConverterParameter='pack://application:,,,/Resources/AppIcons/winhance-rocket-white-transparent-bg.ico|pack://application:,,,/Resources/AppIcons/winhance-rocket-black-transparent-bg.ico'}"
+                                   RenderOptions.BitmapScalingMode="HighQuality"/>
+
                             <StackPanel Grid.Row="1" VerticalAlignment="Center" HorizontalAlignment="Center">
                                 <TextBlock Text="Import recommended config"
                                            FontWeight="SemiBold"
                                            FontSize="18"
                                            TextAlignment="Center"
                                            Foreground="{DynamicResource PrimaryTextColor}"/>
-                                <TextBlock Text="Download and import the recommended configuration"
+                                <TextBlock Text="Load Winhance's recommended config file"
                                            FontSize="14"
                                            Margin="0,8,0,0"
                                            TextWrapping="Wrap"
@@ -213,7 +199,7 @@
                 </Grid>
         
                 <!-- Buttons -->
-                <StackPanel Grid.Row="2"
+                <StackPanel Grid.Row="1"
                             Orientation="Horizontal"
                             HorizontalAlignment="Right"
                             Margin="0,15,0,0">
@@ -224,4 +210,5 @@
             </Grid>
         </Grid>
     </Border>
+    </Grid>
 </Window>

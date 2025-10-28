@@ -6,7 +6,6 @@ using Winhance.Infrastructure.Features.UI.Services;
 using Winhance.WPF.Features.Common.Interfaces;
 using Winhance.WPF.Features.Common.Resources.Theme;
 using Winhance.WPF.Features.Common.Services;
-using Winhance.WPF.Features.Common.Services.Configuration;
 
 namespace Winhance.WPF.Features.Common.Extensions.DI
 {
@@ -27,7 +26,6 @@ namespace Winhance.WPF.Features.Common.Extensions.DI
             return services
                 .AddUIInfrastructureServices()
                 .AddUICoordinationServices()
-                .AddConfigurationServices()
                 .AddDialogServices()
                 .CompleteSystemServicesRegistration();
         }
@@ -57,10 +55,16 @@ namespace Winhance.WPF.Features.Common.Extensions.DI
             // Notification Service (Singleton - Application-wide notifications)
             services.AddSingleton<IWinhanceNotificationService, WinhanceNotificationService>();
 
+            // Startup Notification Service (Singleton - First-run notifications)
+            services.AddSingleton<IStartupNotificationService, StartupNotificationService>();
+
             // User Preferences Service (Singleton - Application-wide settings)
             services.AddSingleton<UserPreferencesService>(provider => new UserPreferencesService(
                 provider.GetRequiredService<ILogService>()
             ));
+            services.AddSingleton<IUserPreferencesService>(provider =>
+                provider.GetRequiredService<UserPreferencesService>()
+            );
 
 
             return services;
@@ -76,11 +80,15 @@ namespace Winhance.WPF.Features.Common.Extensions.DI
             // Settings Confirmation Service (Transient - Per-operation)
             services.AddTransient<ISettingsConfirmationService, SettingsConfirmationService>();
 
+            // Configuration Service (Singleton - Application-wide configuration)
+            services.AddSingleton<IConfigurationService, ConfigurationService>();
+
+            // Advanced Tools Services
+            services.AddSingleton<Winhance.Core.Features.AdvancedTools.Interfaces.IAutounattendXmlGeneratorService,
+                Winhance.WPF.Features.AdvancedTools.Services.AutounattendXmlGeneratorService>();
 
             // Event Handlers (Singleton - Event subscribers should be long-lived)
             services.AddSingleton<Infrastructure.Features.Common.EventHandlers.TooltipRefreshEventHandler>();
-
-            // Removed duplicate SettingTooltipDataService - using ITooltipDataService instead
 
             // Application Layer Services
             services.AddScoped<ISettingApplicationService>(sp =>
@@ -94,11 +102,14 @@ namespace Winhance.WPF.Features.Common.Extensions.DI
                     sp.GetRequiredService<IGlobalSettingsRegistry>(),
                     sp.GetRequiredService<IEventBus>(),
                     sp.GetRequiredService<ISystemSettingsDiscoveryService>(),
-                    sp.GetRequiredService<IRecommendedSettingsService>()
+                    sp.GetRequiredService<IRecommendedSettingsService>(),
+                    sp.GetRequiredService<IWindowsUIManagementService>(),
+                    sp.GetRequiredService<IPowerCfgQueryService>(),
+                    sp.GetRequiredService<IHardwareDetectionService>(),
+                    sp.GetRequiredService<IPowerShellExecutionService>(),
+                    sp.GetRequiredService<IWindowsCompatibilityFilter>()
+
                 ));
-            services.AddTransient<IPropertyUpdater, PropertyUpdater>();
-            // TODO: Fix ambiguous IOptimizeConfigurationApplier reference
-            // services.AddTransient<IOptimizeConfigurationApplier, OptimizeConfigurationApplier>();
 
             return services;
         }

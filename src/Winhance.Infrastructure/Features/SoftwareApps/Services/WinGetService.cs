@@ -1,7 +1,5 @@
 using System;
 using System.Diagnostics;
-using System.IO;
-using System.Linq;
 using System.Text;
 using System.Threading;
 using System.Threading.Tasks;
@@ -14,10 +12,9 @@ namespace Winhance.Infrastructure.Features.SoftwareApps.Services
 {
     public class WinGetService(
         ITaskProgressService taskProgressService,
+        IPowerShellExecutionService powerShellExecutionService,
         ILogService logService = null) : IWinGetService
     {
-        private static string _cachedWinGetPath;
-        private const string WinGetExe = "winget.exe";
 
         public async Task<bool> InstallPackageAsync(string packageId, string displayName = null, CancellationToken cancellationToken = default)
         {
@@ -26,101 +23,107 @@ namespace Winhance.Infrastructure.Features.SoftwareApps.Services
 
             displayName ??= packageId;
 
-            if (!await EnsureWinGetInstalledAsync(cancellationToken))
+            // Phase 1: Check WinGet availability (10%)
+            taskProgressService?.UpdateProgress(10, $"Checking prerequisites for {displayName}...");
+            if (!await IsWinGetInstalledAsync(cancellationToken))
             {
-                taskProgressService?.UpdateProgress(0, $"Failed to install WinGet. Cannot install {displayName}.");
-                return false;
-            }
-
-            var progress = new Progress<WinGetProgress>(p =>
-            {
-                taskProgressService?.UpdateDetailedProgress(new TaskProgressDetail
+                taskProgressService?.UpdateProgress(20, $"Installing WinGet package manager...");
+                if (!await InstallWinGetAsync(cancellationToken))
                 {
-                    StatusText = p.Status,
-                    TerminalOutput = p.Details,
-                    IsActive = p.IsActive,
-                    IsIndeterminate = true
-                });
-            });
+                    taskProgressService?.UpdateProgress(0, $"Failed to install WinGet. Cannot install {displayName}.");
+                    return false;
+                }
+            }
 
             try
             {
-                var result = await InstallPackageInternalAsync(packageId, displayName, progress, cancellationToken);
+                // Phase 2: Start installation process (30%)
+                taskProgressService?.UpdateProgress(30, $"Starting installation of {displayName}...");
+                var args = $"install --id {EscapeArgument(packageId)} --accept-package-agreements --accept-source-agreements --disable-interactivity --silent --force";
+                var result = await ExecuteProcessAsync("winget", args, displayName, cancellationToken, $"Installing {displayName}");
 
-                if (result.Success)
+                if (result.ExitCode == 0)
                 {
-                    await Task.Delay(2000, cancellationToken);
-                    var isInstalled = await IsPackageInstalledAsync(packageId, cancellationToken);
-                    if (isInstalled)
-                    {
-                        taskProgressService?.UpdateProgress(100, $"Successfully installed {displayName}");
-                        return true;
-                    }
-
-                    taskProgressService?.UpdateProgress(100, $"Installation reported success but verification failed for {displayName}");
-                    return true; // Trust WinGet's exit code
+                    taskProgressService?.UpdateProgress(100, $"Successfully installed {displayName}");
+                    return true;
                 }
 
-                taskProgressService?.UpdateProgress(0, $"Failed to install {displayName}: {result.Message}");
+                var errorMessage = GetErrorContextMessage(packageId, result.ExitCode, result.Output);
+                taskProgressService?.UpdateProgress(0, errorMessage);
                 return false;
+            }
+            catch (OperationCanceledException ex)
+            {
+                taskProgressService?.UpdateProgress(0, $"Installation of {displayName} was cancelled");
+                throw;
             }
             catch (Exception ex)
             {
                 logService?.LogError($"Error installing {packageId}: {ex.Message}");
-                taskProgressService?.UpdateProgress(0, $"Error installing {displayName}: {ex.Message}");
+
+                // Check if the exception is network-related
+                var errorMessage = IsNetworkRelatedError(ex.Message)
+                    ? $"Network error while installing {displayName}. Please check your internet connection and try again."
+                    : $"Error installing {displayName}: {ex.Message}";
+
+                taskProgressService?.UpdateProgress(0, errorMessage);
                 return false;
             }
         }
 
-        public async Task<bool> EnsureWinGetInstalledAsync(CancellationToken cancellationToken = default)
+        public async Task<bool> InstallWinGetAsync(CancellationToken cancellationToken = default)
         {
-            if (IsWinGetInstalled())
+            if (await IsWinGetInstalledAsync(cancellationToken))
                 return true;
 
-            var progress = new Progress<TaskProgressDetail>(p =>
-            {
-                taskProgressService?.UpdateDetailedProgress(p);
-            });
+            var progress = new Progress<TaskProgressDetail>(p => taskProgressService?.UpdateDetailedProgress(p));
 
             try
             {
-                taskProgressService?.UpdateProgress(0, "WinGet not found. Installing WinGet...");
-                var result = await InstallWinGetIfNeededAsync(progress, cancellationToken);
-
-                if (result)
+                taskProgressService?.UpdateProgress(0, "Installing WinGet...");
+                var result = await WinGetInstallationScript.InstallWinGetAsync(powerShellExecutionService, progress, logService, cancellationToken);
+                
+                if (result.Success)
                 {
-                    taskProgressService?.UpdateProgress(100, "WinGet installed successfully");
-                    return true;
+                    // Wait and verify installation
+                    await Task.Delay(3000, cancellationToken);
+                    
+                    if (await IsWinGetInstalledAsync(cancellationToken))
+                    {
+                        taskProgressService?.UpdateProgress(100, "WinGet installed successfully");
+                        return true;
+                    }
+                    
+                    // One retry after additional delay
+                    await Task.Delay(3000, cancellationToken);
+                    if (await IsWinGetInstalledAsync(cancellationToken))
+                    {
+                        taskProgressService?.UpdateProgress(100, "WinGet installed successfully");
+                        return true;
+                    }
                 }
-
+                
                 taskProgressService?.UpdateProgress(0, "Failed to install WinGet");
                 return false;
             }
             catch (Exception ex)
             {
-                logService?.LogError($"Failed to ensure WinGet is installed: {ex.Message}");
+                logService?.LogError($"Failed to install WinGet: {ex.Message}");
                 taskProgressService?.UpdateProgress(0, $"Error installing WinGet: {ex.Message}");
                 return false;
             }
         }
 
-        public async Task<bool> IsWinGetInstalledAsync()
-        {
-            return await Task.FromResult(IsWinGetInstalled());
-        }
 
         public async Task<bool> IsPackageInstalledAsync(string packageId, CancellationToken cancellationToken = default)
         {
-            if (string.IsNullOrWhiteSpace(packageId))
-                return false;
-
-            if (!IsWinGetInstalled())
+            if (string.IsNullOrWhiteSpace(packageId) || !await IsWinGetInstalledAsync(cancellationToken))
                 return false;
 
             try
             {
-                var result = await ExecuteCommandAsync("list", $"--id {packageId} --exact", cancellationToken);
-                return result.Success;
+                var result = await ExecuteProcessAsync("winget", $"list --id {packageId} --exact", packageId, cancellationToken, $"Checking if {packageId} is installed");
+                return result.ExitCode == 0;
             }
             catch (Exception ex)
             {
@@ -129,117 +132,7 @@ namespace Winhance.Infrastructure.Features.SoftwareApps.Services
             }
         }
 
-        private async Task<WinGetOperationResult> InstallPackageInternalAsync(string packageId, string displayName, IProgress<WinGetProgress> progress, CancellationToken cancellationToken)
-        {
-            var wingetPath = FindWinGetPath();
-            if (string.IsNullOrEmpty(wingetPath))
-            {
-                return new WinGetOperationResult
-                {
-                    Success = false,
-                    Message = "WinGet not found",
-                    PackageId = packageId
-                };
-            }
-
-            var args = $"install --id {EscapeArgument(packageId)} --accept-package-agreements --accept-source-agreements --disable-interactivity --silent --force";
-
-            try
-            {
-                var result = await ExecuteProcessWithProgressAsync(wingetPath, args, displayName, progress, cancellationToken);
-
-                return new WinGetOperationResult
-                {
-                    Success = result.ExitCode == 0,
-                    Message = result.ExitCode == 0 ? $"Successfully installed {displayName ?? packageId}" : $"Installation failed with exit code {result.ExitCode}",
-                    PackageId = packageId
-                };
-            }
-            catch (Exception ex)
-            {
-                logService?.LogError($"Package installation failed: {ex.Message}");
-                return new WinGetOperationResult
-                {
-                    Success = false,
-                    Message = ex.Message,
-                    PackageId = packageId
-                };
-            }
-        }
-
-        private async Task<WinGetOperationResult> ExecuteCommandAsync(string command, string args, CancellationToken cancellationToken)
-        {
-            var wingetPath = FindWinGetPath();
-            if (string.IsNullOrEmpty(wingetPath))
-            {
-                return new WinGetOperationResult
-                {
-                    Success = false,
-                    Message = "WinGet not found"
-                };
-            }
-
-            try
-            {
-                var result = await ExecuteProcessAsync(wingetPath, $"{command} {args}", cancellationToken);
-
-                return new WinGetOperationResult
-                {
-                    Success = result.ExitCode == 0,
-                    Message = result.ExitCode == 0 ? $"Successfully executed {command}" : $"Command failed with exit code {result.ExitCode}"
-                };
-            }
-            catch (Exception ex)
-            {
-                logService?.LogError($"WinGet command execution failed: {ex.Message}");
-                return new WinGetOperationResult
-                {
-                    Success = false,
-                    Message = ex.Message
-                };
-            }
-        }
-
-        private async Task<(int ExitCode, string Output)> ExecuteProcessAsync(string fileName, string arguments, CancellationToken cancellationToken)
-        {
-            var startInfo = new ProcessStartInfo
-            {
-                FileName = fileName,
-                Arguments = arguments,
-                UseShellExecute = false,
-                RedirectStandardOutput = true,
-                RedirectStandardError = true,
-                CreateNoWindow = true
-            };
-
-            using var process = new Process { StartInfo = startInfo };
-            var outputBuilder = new StringBuilder();
-
-            process.OutputDataReceived += (_, e) =>
-            {
-                if (e.Data != null)
-                    outputBuilder.AppendLine(e.Data);
-            };
-
-            process.Start();
-            process.BeginOutputReadLine();
-
-            await Task.Run(() =>
-            {
-                while (!process.WaitForExit(100))
-                {
-                    if (cancellationToken.IsCancellationRequested)
-                    {
-                        try { process.Kill(); } catch { }
-                        cancellationToken.ThrowIfCancellationRequested();
-                    }
-                }
-            }, cancellationToken);
-
-            return (process.ExitCode, outputBuilder.ToString());
-        }
-
-        private async Task<(int ExitCode, string Output)> ExecuteProcessWithProgressAsync(string fileName, string arguments, string displayName, IProgress<WinGetProgress> progress, CancellationToken cancellationToken)
+        private async Task<(int ExitCode, string Output)> ExecuteProcessAsync(string fileName, string arguments, string displayName, CancellationToken cancellationToken, string operationContext = null)
         {
             var startInfo = new ProcessStartInfo
             {
@@ -255,7 +148,19 @@ namespace Winhance.Infrastructure.Features.SoftwareApps.Services
             var outputBuilder = new StringBuilder();
             var outputParser = new WinGetOutputParser(displayName);
 
-            progress?.Report(new WinGetProgress { Status = $"Installing {displayName}...", IsActive = true });
+            var progress = new Progress<WinGetProgress>(p =>
+            {
+                taskProgressService?.UpdateDetailedProgress(new TaskProgressDetail
+                {
+                    StatusText = p.Status,
+                    TerminalOutput = p.Details,
+                    IsActive = p.IsActive,
+                    IsIndeterminate = true
+                });
+            });
+
+            var initialStatus = GetInitialStatusMessage(arguments, displayName, operationContext);
+            ((IProgress<WinGetProgress>)progress).Report(new WinGetProgress { Status = initialStatus, IsActive = true });
 
             process.OutputDataReceived += (_, e) =>
             {
@@ -265,13 +170,19 @@ namespace Winhance.Infrastructure.Features.SoftwareApps.Services
                     var installProgress = outputParser.ParseOutputLine(e.Data);
                     if (installProgress != null)
                     {
-                        progress?.Report(new WinGetProgress
+                        ((IProgress<WinGetProgress>)progress).Report(new WinGetProgress
                         {
                             Status = installProgress.Status,
                             Details = installProgress.LastLine,
                             IsActive = installProgress.IsActive,
                             IsCancelled = installProgress.IsCancelled
                         });
+
+                        // If we detect a network error during parsing, log it for better error reporting
+                        if (installProgress.IsConnectivityIssue)
+                        {
+                            logService?.LogWarning($"Network connectivity issue detected during {displayName} operation: {installProgress.LastLine}");
+                        }
                     }
                 }
             };
@@ -285,7 +196,7 @@ namespace Winhance.Infrastructure.Features.SoftwareApps.Services
                 {
                     if (cancellationToken.IsCancellationRequested)
                     {
-                        progress?.Report(new WinGetProgress { Status = "Cancelling...", IsCancelled = true });
+                        ((IProgress<WinGetProgress>)progress).Report(new WinGetProgress { Status = "Cancelling...", IsCancelled = true });
                         try { process.Kill(); } catch { }
                         cancellationToken.ThrowIfCancellationRequested();
                     }
@@ -294,10 +205,75 @@ namespace Winhance.Infrastructure.Features.SoftwareApps.Services
 
             if (process.ExitCode == 0)
             {
-                progress?.Report(new WinGetProgress { Status = "Installation completed", IsActive = false });
+                ((IProgress<WinGetProgress>)progress).Report(new WinGetProgress { Status = "Completed", IsActive = false });
             }
 
             return (process.ExitCode, outputBuilder.ToString());
+        }
+
+        private string GetInitialStatusMessage(string arguments, string displayName, string operationContext)
+        {
+            if (!string.IsNullOrEmpty(operationContext))
+                return operationContext;
+
+            // Determine operation type from arguments
+            if (arguments.Contains("install"))
+                return $"Preparing to install {displayName}...";
+            if (arguments.Contains("uninstall"))
+                return $"Preparing to uninstall {displayName}...";
+            if (arguments.Contains("--version"))
+                return displayName ?? "Checking version...";
+            if (arguments.Contains("list"))
+                return $"Checking installation status of {displayName}...";
+
+            // Fallback to generic message
+            return $"Processing {displayName ?? "operation"}...";
+        }
+
+        private string GetErrorContextMessage(string packageId, int exitCode, string output = null)
+        {
+            // Check for network-related errors first
+            if (!string.IsNullOrEmpty(output) && IsNetworkRelatedError(output))
+            {
+                return $"Network error while installing {packageId}. Please check your internet connection and try again.";
+            }
+
+            return exitCode switch
+            {
+                -1978335189 => $"Package '{packageId}' not found in repositories. Please verify the package ID is correct.",
+                -1978335135 => $"Another installation is already in progress. Please wait for it to complete before installing {packageId}.",
+                -1978335148 => $"Installation cancelled by user for package '{packageId}'.",
+                -1978335153 => $"Package '{packageId}' requires administrator privileges. Please run as administrator.",
+                -1978335154 => $"Insufficient disk space to install '{packageId}'. Please free up space and try again.",
+                -1978335092 => $"Package '{packageId}' is already installed with the same or newer version.",
+                -1978335212 => $"Installation source is not available for package '{packageId}'. The package may have been removed from the repository.",
+                unchecked((int)0x80070005) => $"Access denied while installing '{packageId}'. Please run as administrator.",
+                unchecked((int)0x80072EE2) => $"Network timeout while downloading '{packageId}'. Please check your internet connection and try again.",
+                unchecked((int)0x80072EFD) => $"Could not connect to package repository while installing '{packageId}'. Please check your internet connection.",
+                _ => $"Installation failed for '{packageId}' with exit code {exitCode}. Please check the logs for more details."
+            };
+        }
+
+        private bool IsNetworkRelatedError(string output)
+        {
+            if (string.IsNullOrEmpty(output))
+                return false;
+
+            var lowerOutput = output.ToLowerInvariant();
+            return lowerOutput.Contains("network") ||
+                   lowerOutput.Contains("timeout") ||
+                   lowerOutput.Contains("connection") ||
+                   lowerOutput.Contains("dns") ||
+                   lowerOutput.Contains("resolve") ||
+                   lowerOutput.Contains("unreachable") ||
+                   lowerOutput.Contains("offline") ||
+                   lowerOutput.Contains("proxy") ||
+                   lowerOutput.Contains("certificate") ||
+                   lowerOutput.Contains("ssl") ||
+                   lowerOutput.Contains("tls") ||
+                   lowerOutput.Contains("download failed") ||
+                   lowerOutput.Contains("no internet") ||
+                   lowerOutput.Contains("connectivity");
         }
 
         private string EscapeArgument(string arg)
@@ -312,80 +288,19 @@ namespace Winhance.Infrastructure.Features.SoftwareApps.Services
             return arg;
         }
 
-        private string FindWinGetPath()
+        public async Task<bool> IsWinGetInstalledAsync(CancellationToken cancellationToken = default)
         {
-            if (_cachedWinGetPath != null)
-                return _cachedWinGetPath;
-
-            if (IsWinGetInPath())
-            {
-                _cachedWinGetPath = WinGetExe;
-                return _cachedWinGetPath;
-            }
-
-            var possiblePaths = new[]
-            {
-                Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData), @"Microsoft\WindowsApps\winget.exe"),
-                @"C:\Program Files\WindowsApps\Microsoft.DesktopAppInstaller_*\winget.exe"
-            };
-
-            foreach (var pathPattern in possiblePaths)
-            {
-                if (pathPattern.Contains("*"))
-                {
-                    var directory = Path.GetDirectoryName(pathPattern);
-                    if (Directory.Exists(directory))
-                    {
-                        var matchingFiles = Directory.GetFiles(directory, Path.GetFileName(pathPattern), SearchOption.AllDirectories);
-                        if (matchingFiles.Length > 0)
-                        {
-                            _cachedWinGetPath = matchingFiles[0];
-                            return _cachedWinGetPath;
-                        }
-                    }
-                }
-                else if (File.Exists(pathPattern))
-                {
-                    _cachedWinGetPath = pathPattern;
-                    return _cachedWinGetPath;
-                }
-            }
-
-            return null;
-        }
-
-        private async Task<bool> InstallWinGetIfNeededAsync(IProgress<TaskProgressDetail> progress, CancellationToken cancellationToken = default)
-        {
-            if (IsWinGetInstalled())
-                return true;
-
             try
             {
-                var result = await WinGetInstallationScript.InstallWinGetAsync(progress, logService, cancellationToken);
-                if (result.Success)
-                {
-                    _cachedWinGetPath = null; // Clear cache to force re-detection
-                    return IsWinGetInstalled();
-                }
-                return false;
+                var result = await ExecuteProcessAsync("winget", "--version", "Checking WinGet availability", cancellationToken);
+                return result.ExitCode == 0;
             }
-            catch (Exception ex)
+            catch
             {
-                logService?.LogError($"Failed to install WinGet: {ex.Message}");
                 return false;
             }
         }
 
-        private bool IsWinGetInstalled()
-        {
-            return FindWinGetPath() != null;
-        }
 
-        private bool IsWinGetInPath()
-        {
-            var pathEnv = Environment.GetEnvironmentVariable("PATH") ?? string.Empty;
-            return pathEnv.Split(Path.PathSeparator)
-                .Any(p => !string.IsNullOrEmpty(p) && File.Exists(Path.Combine(p, WinGetExe)));
-        }
     }
 }

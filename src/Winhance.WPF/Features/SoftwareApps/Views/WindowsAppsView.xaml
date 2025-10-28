@@ -4,7 +4,7 @@
              xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
              xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
              xmlns:viewModels="clr-namespace:Winhance.WPF.Features.SoftwareApps.ViewModels"
-             xmlns:materialDesign="http://materialdesigninxaml.net/winfx/xaml/themes"
+             xmlns:iconPacks="http://metro.mahapps.com/winfx/xaml/iconpacks"
              xmlns:local="clr-namespace:Winhance.WPF.Features.Common.Controls"
              xmlns:controls="clr-namespace:Winhance.WPF.Features.Common.Controls"
              xmlns:behaviors="clr-namespace:Winhance.WPF.Features.Common.Behaviors"
@@ -13,23 +13,12 @@
              mc:Ignorable="d">
 
     <Grid>
-        
-        <!-- Content Control to switch between views -->
-        <ContentControl>
-            <ContentControl.Style>
-                <Style TargetType="ContentControl">
-                    <Style.Triggers>
-                        <DataTrigger Binding="{Binding IsTableViewMode}" Value="True">
-                            <Setter Property="Content">
-                                <Setter.Value>
-                                    <views:WindowsAppsTableView/>
-                                </Setter.Value>
-                            </Setter>
-                        </DataTrigger>
-                        <DataTrigger Binding="{Binding IsTableViewMode}" Value="False">
-                            <Setter Property="Content">
-                                <Setter.Value>
-                                    <controls:ResponsiveScrollViewer>
+
+        <views:WindowsAppsTableView
+            Visibility="{Binding IsTableViewMode, Converter={StaticResource BooleanToVisibilityConverter}}"/>
+
+        <controls:ResponsiveScrollViewer
+            Visibility="{Binding IsTableViewMode, Converter={StaticResource InverseBooleanToVisibilityConverter}}">
                                         <StackPanel Margin="10">
 
         <!-- Checkboxes in a horizontal layout -->
@@ -60,12 +49,14 @@
         </StackPanel>
 
         <!-- Windows Apps (Appx Packages) Section -->
-        <StackPanel Orientation="Horizontal" Margin="0,5,0,5">
+        <StackPanel Orientation="Horizontal" Margin="0,5,0,5"
+                    Visibility="{Binding HasWindowsApps, Converter={StaticResource BooleanToVisibilityConverter}}">
             <TextBlock Text="Windows Apps"
                       Style="{StaticResource SectionHeaderStyle}"/>
         </StackPanel>
 
         <ItemsControl ItemsSource="{Binding WindowsAppsFiltered}"
+                      Visibility="{Binding HasWindowsApps, Converter={StaticResource BooleanToVisibilityConverter}}"
                       Margin="10,0,10,10">
             <ItemsControl.ItemsPanel>
                 <ItemsPanelTemplate>
@@ -74,7 +65,7 @@
             </ItemsControl.ItemsPanel>
             <ItemsControl.ItemContainerStyle>
                 <Style TargetType="ContentPresenter">
-                    <Setter Property="Width" Value="280" />
+                    <Setter Property="Width" Value="260" />
                     <Setter Property="Margin" Value="0,0,0,0" />
                 </Style>
             </ItemsControl.ItemContainerStyle>
@@ -92,14 +83,14 @@
                             </Ellipse>
 
                             <!-- Reinstallability indicator -->
-                            <materialDesign:PackIcon
+                            <iconPacks:PackIconMaterial
                                 Style="{StaticResource ReinstallabilityIndicatorStyle}"
                                 Kind="{Binding CanBeReinstalled, Converter={StaticResource BooleanToReinstallableIconConverter}}"
-                                Foreground="{Binding CanBeReinstalled, Converter={StaticResource InstalledStatusToColorConverter}}">
-                                <materialDesign:PackIcon.ToolTip>
+                                Foreground="{Binding CanBeReinstalled, Converter={StaticResource BooleanToReinstallableColorConverter}}">
+                                <iconPacks:PackIconMaterial.ToolTip>
                                     <ToolTip Content="{Binding CanBeReinstalled, Converter={StaticResource BooleanToReinstallableTextConverter}}"/>
-                                </materialDesign:PackIcon.ToolTip>
-                            </materialDesign:PackIcon>
+                                </iconPacks:PackIconMaterial.ToolTip>
+                            </iconPacks:PackIconMaterial>
 
                             <TextBlock Text="{Binding Name}"
                                        Style="{StaticResource AppItemTextStyle}">
@@ -115,15 +106,18 @@
         </ItemsControl>
 
         <!-- Separator -->
-        <Separator Style="{StaticResource SectionSeparatorStyle}"/>
+        <Separator Style="{StaticResource SectionSeparatorStyle}"
+                   Visibility="{Binding HasWindowsApps, Converter={StaticResource BooleanToVisibilityConverter}}"/>
 
         <!-- Capabilities Section -->
-        <StackPanel Orientation="Horizontal" Margin="0,5,0,5">
+        <StackPanel Orientation="Horizontal" Margin="0,5,0,5"
+                    Visibility="{Binding HasCapabilities, Converter={StaticResource BooleanToVisibilityConverter}}">
             <TextBlock Text="Windows Capabilities"
                       Style="{StaticResource SectionHeaderStyle}"/>
         </StackPanel>
 
         <ItemsControl ItemsSource="{Binding CapabilitiesFiltered}"
+                      Visibility="{Binding HasCapabilities, Converter={StaticResource BooleanToVisibilityConverter}}"
                       Margin="10,0,10,10">
             <ItemsControl.ItemsPanel>
                 <ItemsPanelTemplate>
@@ -132,7 +126,7 @@
             </ItemsControl.ItemsPanel>
             <ItemsControl.ItemContainerStyle>
                 <Style TargetType="ContentPresenter">
-                    <Setter Property="Width" Value="280" />
+                    <Setter Property="Width" Value="260" />
                     <Setter Property="Margin" Value="0,0,0,0" />
                 </Style>
             </ItemsControl.ItemContainerStyle>
@@ -150,14 +144,14 @@
                             </Ellipse>
 
                             <!-- Reinstallability indicator -->
-                            <materialDesign:PackIcon
+                            <iconPacks:PackIconMaterial
                                 Style="{StaticResource ReinstallabilityIndicatorStyle}"
                                 Kind="{Binding CanBeReinstalled, Converter={StaticResource BooleanToReinstallableIconConverter}}"
-                                Foreground="{Binding CanBeReinstalled, Converter={StaticResource InstalledStatusToColorConverter}}">
-                                <materialDesign:PackIcon.ToolTip>
+                                Foreground="{Binding CanBeReinstalled, Converter={StaticResource BooleanToReinstallableColorConverter}}">
+                                <iconPacks:PackIconMaterial.ToolTip>
                                     <ToolTip Content="{Binding CanBeReinstalled, Converter={StaticResource BooleanToReinstallableTextConverter}}"/>
-                                </materialDesign:PackIcon.ToolTip>
-                            </materialDesign:PackIcon>
+                                </iconPacks:PackIconMaterial.ToolTip>
+                            </iconPacks:PackIconMaterial>
 
                             <TextBlock Text="{Binding Name}"
                                        Style="{StaticResource AppItemTextStyle}">
@@ -173,15 +167,18 @@
         </ItemsControl>
 
         <!-- Separator -->
-        <Separator Style="{StaticResource SectionSeparatorStyle}"/>
+        <Separator Style="{StaticResource SectionSeparatorStyle}"
+                   Visibility="{Binding HasCapabilities, Converter={StaticResource BooleanToVisibilityConverter}}"/>
 
         <!-- Optional Features Section -->
-        <StackPanel Orientation="Horizontal" Margin="0,5,0,5">
+        <StackPanel Orientation="Horizontal" Margin="0,5,0,5"
+                    Visibility="{Binding HasOptionalFeatures, Converter={StaticResource BooleanToVisibilityConverter}}">
             <TextBlock Text="Windows Optional Features"
                       Style="{StaticResource SectionHeaderStyle}"/>
         </StackPanel>
 
         <ItemsControl ItemsSource="{Binding OptionalFeaturesFiltered}"
+                      Visibility="{Binding HasOptionalFeatures, Converter={StaticResource BooleanToVisibilityConverter}}"
                       Margin="10,0,10,10">
             <ItemsControl.ItemsPanel>
                 <ItemsPanelTemplate>
@@ -190,7 +187,7 @@
             </ItemsControl.ItemsPanel>
             <ItemsControl.ItemContainerStyle>
                 <Style TargetType="ContentPresenter">
-                    <Setter Property="Width" Value="280" />
+                    <Setter Property="Width" Value="260" />
                     <Setter Property="Margin" Value="0,0,0,0" />
                 </Style>
             </ItemsControl.ItemContainerStyle>
@@ -208,14 +205,14 @@
                             </Ellipse>
 
                             <!-- Reinstallability indicator -->
-                            <materialDesign:PackIcon
+                            <iconPacks:PackIconMaterial
                                 Style="{StaticResource ReinstallabilityIndicatorStyle}"
                                 Kind="{Binding CanBeReinstalled, Converter={StaticResource BooleanToReinstallableIconConverter}}"
-                                Foreground="{Binding CanBeReinstalled, Converter={StaticResource InstalledStatusToColorConverter}}">
-                                <materialDesign:PackIcon.ToolTip>
+                                Foreground="{Binding CanBeReinstalled, Converter={StaticResource BooleanToReinstallableColorConverter}}">
+                                <iconPacks:PackIconMaterial.ToolTip>
                                     <ToolTip Content="{Binding CanBeReinstalled, Converter={StaticResource BooleanToReinstallableTextConverter}}"/>
-                                </materialDesign:PackIcon.ToolTip>
-                            </materialDesign:PackIcon>
+                                </iconPacks:PackIconMaterial.ToolTip>
+                            </iconPacks:PackIconMaterial>
 
                             <TextBlock Text="{Binding Name}"
                                        Style="{StaticResource AppItemTextStyle}">
@@ -230,14 +227,7 @@
             </ItemsControl.ItemTemplate>
         </ItemsControl>
 
-                                        </StackPanel>
-                                    </controls:ResponsiveScrollViewer>
-                                </Setter.Value>
-                            </Setter>
-                        </DataTrigger>
-                    </Style.Triggers>
-                </Style>
-            </ContentControl.Style>
-        </ContentControl>
+        </StackPanel>
+        </controls:ResponsiveScrollViewer>
     </Grid>
 </UserControl>

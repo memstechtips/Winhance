@@ -51,9 +51,18 @@ namespace Winhance.Infrastructure.Features.Common.Services
                     {
                         var recommendedValue = GetRecommendedValueForSetting(setting);
                         logService.Log(LogLevel.Debug, $"[RecommendedSettings] Applying recommended setting '{setting.Id}' with value '{recommendedValue}'");
+
                         if (setting.InputType == InputType.Toggle)
                         {
-                            bool enableValue = recommendedValue != null ? Convert.ToBoolean(recommendedValue) : true;
+                            var registrySetting = setting.RegistrySettings?.FirstOrDefault(rs => rs.RecommendedValue != null);
+                            bool enableValue = false;
+
+                            if (registrySetting != null && recommendedValue != null)
+                            {
+                                enableValue = recommendedValue.Equals(registrySetting.EnabledValue);
+                                logService.Log(LogLevel.Debug, $"[RecommendedSettings] Toggle '{setting.Id}': RecommendedValue={recommendedValue}, EnabledValue={registrySetting.EnabledValue}, DisabledValue={registrySetting.DisabledValue}, Enable={enableValue}");
+                            }
+
                             ApplySettingDirectly(setting, enableValue, recommendedValue);
                             await Task.Delay(150);
                         }

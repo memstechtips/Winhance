@@ -4,7 +4,7 @@
     xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
     xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
     xmlns:viewModels="clr-namespace:Winhance.WPF.Features.SoftwareApps.ViewModels"
-    xmlns:materialDesign="http://materialdesigninxaml.net/winfx/xaml/themes"
+    xmlns:iconPacks="http://metro.mahapps.com/winfx/xaml/iconpacks"
     xmlns:local="clr-namespace:Winhance.WPF.Features.Common.Controls"
     xmlns:controls="clr-namespace:Winhance.WPF.Features.Common.Controls"
     xmlns:behaviors="clr-namespace:Winhance.WPF.Features.Common.Behaviors" 
@@ -16,13 +16,13 @@
         <StackPanel Margin="10">
 
             <!-- Combined Table View for All Items -->
-            <DataGrid x:Name="AppsDataGrid" 
-                      ItemsSource="{Binding AllItemsView}" 
+            <DataGrid x:Name="AppsDataGrid"
+                      ItemsSource="{Binding AllItemsView}"
                       Style="{StaticResource ThemedDataGrid}"
                       Margin="10,0,10,10"
                       Width="Auto"
-                      HorizontalAlignment="Stretch" 
-                      HorizontalContentAlignment="Stretch" 
+                      HorizontalAlignment="Stretch"
+                      HorizontalContentAlignment="Stretch"
                       ScrollViewer.HorizontalScrollBarVisibility="Disabled"
                       ScrollViewer.VerticalScrollBarVisibility="Auto"
                       ScrollViewer.CanContentScroll="True"
@@ -81,11 +81,14 @@
                         </DataGridTemplateColumn.HeaderStyle>
                         <DataGridTemplateColumn.CellTemplate>
                             <DataTemplate>
-                                <TextBlock Text="{Binding Name}" FontSize="18" Margin="5,2" Style="{StaticResource DataGridTextBlockStyle}">
-                                    <TextBlock.ToolTip>
-                                        <ToolTip Content="{Binding Description}"/>
-                                    </TextBlock.ToolTip>
-                                </TextBlock>
+                                <TextBlock Text="{Binding Name}"
+                                          FontSize="18"
+                                          Margin="5,2"
+                                          Style="{StaticResource DataGridTextBlockStyle}"
+                                          ToolTip="{Binding Description}"
+                                          ToolTipService.InitialShowDelay="1000"
+                                          ToolTipService.BetweenShowDelay="1000"
+                                          ToolTipService.ShowDuration="5000" />
                             </DataTemplate>
                         </DataGridTemplateColumn.CellTemplate>
                     </DataGridTemplateColumn>

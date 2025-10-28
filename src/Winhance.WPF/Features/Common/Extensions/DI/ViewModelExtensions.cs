@@ -1,4 +1,5 @@
 using Microsoft.Extensions.DependencyInjection;
+using Winhance.WPF.Features.AdvancedTools.ViewModels;
 using Winhance.WPF.Features.Common.ViewModels;
 using Winhance.WPF.Features.Customize.ViewModels;
 using Winhance.WPF.Features.Optimize.ViewModels;
@@ -14,7 +15,8 @@ namespace Winhance.WPF.Features.Common.Extensions.DI
                 .AddMainViewModels()
                 .AddOptimizationViewModels()
                 .AddCustomizationViewModels()
-                .AddSoftwareAppViewModels();
+                .AddSoftwareAppViewModels()
+                .AddAdvancedToolsViewModels();
         }
 
         public static IServiceCollection AddMainViewModels(this IServiceCollection services)
@@ -30,13 +32,11 @@ namespace Winhance.WPF.Features.Common.Extensions.DI
         {
             services.AddTransient<OptimizeViewModel>();
             services.AddSingleton<PowerOptimizationsViewModel>();
-            services.AddSingleton<PrivacyOptimizationsViewModel>();
-            services.AddSingleton<WindowsSecurityOptimizationsViewModel>();
+            services.AddSingleton<PrivacyAndSecurityOptimizationsViewModel>();
             services.AddSingleton<GamingandPerformanceOptimizationsViewModel>();
             services.AddSingleton<NotificationOptimizationsViewModel>();
             services.AddSingleton<SoundOptimizationsViewModel>();
             services.AddSingleton<UpdateOptimizationsViewModel>();
-            services.AddSingleton<ExplorerOptimizationsViewModel>();
             return services;
         }
 
@@ -59,6 +59,13 @@ namespace Winhance.WPF.Features.Common.Extensions.DI
             services.AddTransient<RemovalStatusViewModel>();
             services.AddTransient<ExternalAppsHelpViewModel>();
             services.AddTransient<WindowsAppsHelpContentViewModel>();
+            return services;
+        }
+
+        public static IServiceCollection AddAdvancedToolsViewModels(this IServiceCollection services)
+        {
+            services.AddSingleton<AdvancedToolsMenuViewModel>();
+            services.AddSingleton<WimUtilViewModel>();
             return services;
         }
 

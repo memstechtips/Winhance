@@ -38,6 +38,7 @@
     <Color x:Key="DarkSliderTrackColor">#404040</Color>
     <Color x:Key="DarkBackgroundColor">#202020</Color>
     <Color x:Key="DarkContentSectionBackgroundColor">#1F2022</Color>
+    <Color x:Key="DarkElevatedBackgroundColor">#3C3C3C</Color>
     <!-- Dark Theme ScrollBar Colors -->
     <Color x:Key="DarkScrollBarThumbColor">#FFDE00</Color>
     <Color x:Key="DarkScrollBarThumbHoverColor">#FFE94C</Color>
@@ -48,26 +49,27 @@
     <Color x:Key="LightSecondaryTextColor">#666666</Color>
     <Color x:Key="LightTertiaryTextColor">#999999</Color>
     <Color x:Key="LightHelpIconColor">#202124</Color>
-    <Color x:Key="LightTooltipBackgroundColor">#FFFFFF</Color>
+    <Color x:Key="LightTooltipBackgroundColor">#FBFBFB</Color>
     <Color x:Key="LightTooltipForegroundColor">#202124</Color>
     <Color x:Key="LightTooltipBorderColor">#424242</Color>
     <Color x:Key="LightControlForegroundColor">#202124</Color>
     <Color x:Key="LightControlFillColor">#424242</Color>
     <Color x:Key="LightControlBorderColor">#424242</Color>
-    <Color x:Key="LightToggleKnobColor">#FFFFFF</Color>
+    <Color x:Key="LightToggleKnobColor">#FBFBFB</Color>
     <Color x:Key="LightToggleKnobCheckedColor">#424242</Color>
-    <Color x:Key="LightContentSectionBorderColor">#F6F8FC</Color>
-    <Color x:Key="LightMainContainerBorderColor">#FFFFFF</Color>
+    <Color x:Key="LightContentSectionBorderColor">#F3F3F3</Color>
+    <Color x:Key="LightMainContainerBorderColor">#FBFBFB</Color>
     <Color x:Key="LightPrimaryButtonForegroundColor">#202124</Color>
     <Color x:Key="LightAccentColor">#424242</Color>
-    <Color x:Key="LightButtonHoverTextColor">#FFFFFF</Color>
+    <Color x:Key="LightButtonHoverTextColor">#FBFBFB</Color>
     <Color x:Key="LightButtonDisabledForegroundColor">#CCCCCC</Color>
     <Color x:Key="LightButtonDisabledBorderColor">#EEEEEE</Color>
-    <Color x:Key="LightNavigationButtonBackgroundColor">#FFFFFF</Color>
+    <Color x:Key="LightNavigationButtonBackgroundColor">#FBFBFB</Color>
     <Color x:Key="LightNavigationButtonForegroundColor">#202124</Color>
     <Color x:Key="LightSliderTrackColor">#CCCCCC</Color>
-    <Color x:Key="LightBackgroundColor">#F6F8FC</Color>
+    <Color x:Key="LightBackgroundColor">#F3F3F3</Color>
     <Color x:Key="LightContentSectionBackgroundColor">#F0F0F0</Color>
+    <Color x:Key="LightElevatedBackgroundColor">#E0E0E0</Color>
     <!-- Light Theme ScrollBar Colors -->
     <Color x:Key="LightScrollBarThumbColor">#424242</Color>
     <Color x:Key="LightScrollBarThumbHoverColor">#666666</Color>
@@ -159,6 +161,8 @@
     <!-- Window Content Sections -->
     <SolidColorBrush x:Key="ContentSectionBackground"
             Color="{DynamicResource DarkContentSectionBackgroundColor}"/>
+    <SolidColorBrush x:Key="ElevatedBackground"
+            Color="{DynamicResource DarkElevatedBackgroundColor}"/>
 
     <!-- Effects -->
     <DropShadowEffect x:Key="ShadowEffect"
@@ -171,4 +175,11 @@
                       BlurRadius="10"
                       Color="Black"
                       Opacity="0.5"/>
+
+    <DropShadowEffect x:Key="UltraLightShadowEffect"
+                      ShadowDepth="2"
+                      BlurRadius="5"
+                      Color="Black"
+                      Opacity="0.5"
+                      Direction="270"/>
 </ResourceDictionary>

@@ -10,8 +10,7 @@ public interface IPowerCfgQueryService
     Task<PowerPlan?> GetPowerPlanByGuidAsync(string guid);
     Task<int> GetPowerPlanIndexAsync(string guid, List<string> options);
     Task<int?> GetPowerSettingValueAsync(PowerCfgSetting powerCfgSetting);
-    Task<Dictionary<string, int?>> GetAllPowerSettingsAsync(string powerPlanGuid = "SCHEME_CURRENT");
-    Task<(Dictionary<string, int?> powerSettings, List<PowerPlan> powerPlans)> GetBulkPowerDataAsync();
-    Task<Dictionary<string, int?>> GetCompatiblePowerSettingsStateAsync(IEnumerable<SettingDefinition> compatibleSettings);
+    Task<(int? acValue, int? dcValue)> GetPowerSettingACDCValuesAsync(PowerCfgSetting powerCfgSetting);
+    Task<Dictionary<string, (int? acValue, int? dcValue)>> GetAllPowerSettingsACDCAsync(string powerPlanGuid = "SCHEME_CURRENT");
     void InvalidateCache();
 }

@@ -5,7 +5,7 @@
              xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
              xmlns:viewModels="clr-namespace:Winhance.WPF.Features.Customize.ViewModels"
              xmlns:commonControls="clr-namespace:Winhance.WPF.Features.Common.Controls"
-             xmlns:materialDesign="http://materialdesigninxaml.net/winfx/xaml/themes"
+             xmlns:iconPacks="http://metro.mahapps.com/winfx/xaml/iconpacks"
              d:DataContext="{d:DesignInstance Type=viewModels:CustomizeViewModel}"
              mc:Ignorable="d">
 
@@ -22,7 +22,7 @@
             </Grid.ColumnDefinitions>
             
             <!-- Icon -->
-            <materialDesign:PackIcon Grid.Column="0"
+            <iconPacks:PackIconMaterial Grid.Column="0"
                                      Kind="Palette"
                                      Width="60"
                                      Height="60"

@@ -1,7 +1,6 @@
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Hosting;
 using Winhance.Infrastructure.Features.SoftwareApps.Services;
-using Winhance.WPF.Features.Common.Services.Configuration;
 
 namespace Winhance.WPF.Features.Common.Extensions.DI
 {
@@ -28,8 +27,7 @@ namespace Winhance.WPF.Features.Common.Extensions.DI
                     .AddCoreServices() // Core abstractions and interfaces
                     .AddInfrastructureServices() // Infrastructure implementations
                     .AddDomainServices() // Domain services following DDD
-                    .AddConfigurationServices() // From WPF.Features.Common.Services.Configuration
-                    .AddUIServices() // UI layer services
+                    .AddUIServices() // UI layer services (includes ConfigurationService)
                     .AddViewModels() // ViewModels with proper lifetimes
                     .AddViews(); // View registrations
 

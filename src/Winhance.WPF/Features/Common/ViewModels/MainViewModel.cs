@@ -18,6 +18,7 @@ using Winhance.Core.Features.Common.Events.UI;
 using Winhance.Core.Features.Common.Interfaces;
 using Winhance.Core.Features.Common.Models;
 using Winhance.WPF.Features.Common.Controls;
+using Winhance.WPF.Features.Common.Interfaces;
 using Winhance.WPF.Features.Common.Models;
 using Winhance.WPF.Features.Common.Resources.Theme;
 using Winhance.WPF.Features.Common.Utilities;
@@ -32,8 +33,12 @@ namespace Winhance.WPF.Features.Common.ViewModels
         private readonly IEventBus _eventBus;
         private readonly ITaskProgressService _taskProgressService;
         private readonly IWindowManagementService _windowManagement;
-        private readonly IConfigurationCoordinatorService _configurationCoordinator;
+        private readonly IConfigurationService _configurationService;
         private readonly IFlyoutManagementService _flyoutManagement;
+        private readonly IUserPreferencesService _preferencesService;
+        private readonly ICompatibleSettingsRegistry _compatibleSettingsRegistry;
+        private readonly IDomainServiceRouter _domainServiceRouter;
+        private readonly IDialogService _dialogService;
 
 
 
@@ -59,16 +64,28 @@ namespace Winhance.WPF.Features.Common.ViewModels
         private bool _isLoading;
 
         [ObservableProperty]
+        private string _loadingRoute = string.Empty;
+
+        [ObservableProperty]
         private string _appName = string.Empty;
 
         [ObservableProperty]
         private string _lastTerminalLine = string.Empty;
 
+        [ObservableProperty]
+        private bool _isDialogOverlayVisible;
+
+        [ObservableProperty]
+        private bool _isWindowsVersionFilterEnabled = true;
+
         public MoreMenuViewModel MoreMenuViewModel { get; }
+        public Winhance.WPF.Features.AdvancedTools.ViewModels.AdvancedToolsMenuViewModel AdvancedToolsMenuViewModel { get; }
         public ICommand SaveUnifiedConfigCommand { get; }
         public ICommand ImportUnifiedConfigCommand { get; }
         public ICommand OpenDonateCommand { get; }
         public ICommand MoreCommand { get; }
+        public ICommand AdvancedToolsCommand { get; }
+        public ICommand ToggleWindowsVersionFilterCommand { get; }
         public ICommand CancelCommand => new RelayCommand(() => _taskProgressService.CancelCurrentTask());
 
 
@@ -78,37 +95,63 @@ namespace Winhance.WPF.Features.Common.ViewModels
             IEventBus eventBus,
             ITaskProgressService taskProgressService,
             IWindowManagementService windowManagement,
-            IConfigurationCoordinatorService configurationCoordinator,
+            IConfigurationService configurationService,
             IFlyoutManagementService flyoutManagement,
-            MoreMenuViewModel moreMenuViewModel
+            IUserPreferencesService preferencesService,
+            ICompatibleSettingsRegistry compatibleSettingsRegistry,
+            IDomainServiceRouter domainServiceRouter,
+            IDialogService dialogService,
+            MoreMenuViewModel moreMenuViewModel,
+            Winhance.WPF.Features.AdvancedTools.ViewModels.AdvancedToolsMenuViewModel advancedToolsMenuViewModel
         )
         {
             _navigationService = navigationService;
             _eventBus = eventBus;
             _taskProgressService = taskProgressService;
             _windowManagement = windowManagement;
-            _configurationCoordinator = configurationCoordinator;
+            _configurationService = configurationService;
             _flyoutManagement = flyoutManagement;
+            _preferencesService = preferencesService;
+            _compatibleSettingsRegistry = compatibleSettingsRegistry;
+            _domainServiceRouter = domainServiceRouter;
+            _dialogService = dialogService;
             MoreMenuViewModel = moreMenuViewModel;
+            AdvancedToolsMenuViewModel = advancedToolsMenuViewModel;
 
-            SaveUnifiedConfigCommand = new AsyncRelayCommand(async () => await _configurationCoordinator.SaveUnifiedConfigAsync());
-            ImportUnifiedConfigCommand = new AsyncRelayCommand(async () => await _configurationCoordinator.ImportUnifiedConfigAsync());
+            SaveUnifiedConfigCommand = new AsyncRelayCommand(async () => await _configurationService.ExportConfigurationAsync());
+            ImportUnifiedConfigCommand = new AsyncRelayCommand(async () => await _configurationService.ImportConfigurationAsync());
             OpenDonateCommand = new RelayCommand(OpenDonate);
             MoreCommand = new RelayCommand(HandleMoreButtonClick);
+            AdvancedToolsCommand = new RelayCommand(HandleAdvancedToolsButtonClick);
+            ToggleWindowsVersionFilterCommand = new AsyncRelayCommand(ToggleWindowsVersionFilterAsync);
 
             _navigationService.Navigated += NavigationService_Navigated;
+            _navigationService.Navigating += NavigationService_Navigating;
             _taskProgressService.ProgressUpdated += OnProgressUpdated;
+
+            _ = LoadFilterPreferenceAsync();
         }
 
         private void OnProgressUpdated(object sender, TaskProgressDetail detail)
         {
             IsLoading = _taskProgressService.IsTaskRunning;
-            AppName = detail.StatusText ?? string.Empty;
+
+            if (string.IsNullOrEmpty(detail.TerminalOutput) && !string.IsNullOrEmpty(detail.StatusText))
+            {
+                AppName = detail.StatusText;
+            }
+
             LastTerminalLine = detail.TerminalOutput ?? string.Empty;
+        }
+
+        private void NavigationService_Navigating(object sender, NavigationEventArgs e)
+        {
+            LoadingRoute = e.Route;
         }
 
         private void NavigationService_Navigated(object sender, NavigationEventArgs e)
         {
+            LoadingRoute = string.Empty;
             CurrentViewName = e.Route;
             SelectedNavigationItem = e.Route;
 
@@ -219,6 +262,30 @@ namespace Winhance.WPF.Features.Common.ViewModels
             }
         }
 
+        public async Task InitializeApplicationAsync()
+        {
+            try
+            {
+                await _navigationService.NavigateToAsync("SoftwareApps");
+            }
+            catch (Exception ex)
+            {
+                try
+                {
+                    await _navigationService.NavigateToAsync("About");
+                }
+                catch (Exception fallbackEx)
+                {
+                    _eventBus.Publish(new LogEvent
+                    {
+                        Message = $"Failed to navigate to default views: {ex.Message}, Fallback: {fallbackEx.Message}",
+                        Level = LogLevel.Error,
+                        Exception = ex,
+                    });
+                }
+            }
+        }
+
         public void HandleMoreButtonClick()
         {
             SelectedNavigationItem = "More";
@@ -229,6 +296,18 @@ namespace Winhance.WPF.Features.Common.ViewModels
         public void CloseMoreMenuFlyout()
         {
             _flyoutManagement.CloseMoreMenuFlyout();
+            SelectedNavigationItem = CurrentViewName;
+        }
+
+        public void HandleAdvancedToolsButtonClick()
+        {
+            SelectedNavigationItem = "AdvancedTools";
+            _flyoutManagement.ShowAdvancedToolsFlyout();
+        }
+
+        public void CloseAdvancedToolsFlyout()
+        {
+            _flyoutManagement.CloseAdvancedToolsFlyout();
             SelectedNavigationItem = CurrentViewName;
         }
 
@@ -254,6 +333,72 @@ namespace Winhance.WPF.Features.Common.ViewModels
         public string GetDefaultIconPath() => _windowManagement.GetDefaultIconPath();
 
         public void RequestThemeIconUpdate() => _windowManagement.RequestThemeIconUpdate();
+
+        private async Task LoadFilterPreferenceAsync()
+        {
+            IsWindowsVersionFilterEnabled = await _preferencesService.GetPreferenceAsync(
+                Core.Features.Common.Constants.UserPreferenceKeys.EnableWindowsVersionFilter,
+                defaultValue: true);
+
+            _compatibleSettingsRegistry.SetFilterEnabled(IsWindowsVersionFilterEnabled);
+        }
+
+        private async Task ToggleWindowsVersionFilterAsync()
+        {
+            var dontShowAgain = await _preferencesService.GetPreferenceAsync(
+                Core.Features.Common.Constants.UserPreferenceKeys.DontShowFilterExplanation,
+                defaultValue: false);
+
+            if (!dontShowAgain)
+            {
+                var (confirmed, dontShow) = await _dialogService.ShowConfirmationWithCheckboxAsync(
+                    "This filter controls which settings are visible in Winhance and included in export operations:\n\n" +
+                    "• Filter ON (Default):\n" +
+                    "  - Shows only settings compatible with your Windows version\n" +
+                    "  - Exports settings for your Windows version only\n\n" +
+                    "• Filter OFF:\n" +
+                    "  - Shows ALL settings (Windows 10 + 11)\n" +
+                    "  - Exports cross-version settings (for both Windows 10 + 11)\n\n" +
+                    "Use this when creating Winhance config or autounattend.xml files that need to work across different Windows versions or if you need to toggle a setting that is related to the other Windows version.\n\n" +
+                    "Do you want to toggle the filter?",
+                    checkboxText: "Don't show this message again",
+                    title: "Windows Version Filter",
+                    continueButtonText: "Toggle Filter",
+                    cancelButtonText: "Cancel",
+                    titleBarIcon: "Filter");
+
+                if (dontShow)
+                {
+                    await _preferencesService.SetPreferenceAsync(
+                        Core.Features.Common.Constants.UserPreferenceKeys.DontShowFilterExplanation,
+                        true);
+                }
+
+                if (!confirmed)
+                {
+                    return;
+                }
+            }
+
+            IsWindowsVersionFilterEnabled = !IsWindowsVersionFilterEnabled;
+
+            await _preferencesService.SetPreferenceAsync(
+                Core.Features.Common.Constants.UserPreferenceKeys.EnableWindowsVersionFilter,
+                IsWindowsVersionFilterEnabled);
+
+            _compatibleSettingsRegistry.SetFilterEnabled(IsWindowsVersionFilterEnabled);
+
+            _domainServiceRouter.ClearAllSettingsCaches();
+
+            if (CurrentViewModel is BaseCategoryViewModel categoryViewModel)
+            {
+                await categoryViewModel.RefreshAllFeaturesAsync();
+            }
+            else if (CurrentViewModel is ISettingsFeatureViewModel settingsViewModel)
+            {
+                await settingsViewModel.RefreshSettingsAsync();
+            }
+        }
 
     }
 }

@@ -40,29 +40,33 @@
                 <ItemsControl ItemsSource="{Binding IndividualRegistryValues}">
                     <ItemsControl.ItemTemplate>
                         <DataTemplate>
-                            <Border BorderBrush="{DynamicResource TooltipBorderBrush}" BorderThickness="1" Padding="8" Margin="0,2" CornerRadius="3" Background="{DynamicResource SettingsItemBackground}">
+                            <Border BorderBrush="{DynamicResource TooltipBorderBrush}" BorderThickness="1" Padding="4" CornerRadius="3" Background="{DynamicResource SettingsItemBackground}">
                                 <StackPanel>
-                                    <TextBlock FontWeight="SemiBold" Margin="0,0,0,3" Foreground="{DynamicResource PrimaryTextColor}">
+                                    <TextBlock FontSize="10" FontWeight="SemiBold" Foreground="{DynamicResource PrimaryTextColor}">
                                         <Run Text="Registry Path: "/>
                                         <Run Text="{Binding Key.KeyPath, Mode=OneWay, TargetNullValue='null'}"/>
                                     </TextBlock>
-                                    <TextBlock FontWeight="SemiBold" Margin="0,0,0,3" Foreground="{DynamicResource PrimaryTextColor}">
+                                    <TextBlock FontSize="10" FontWeight="SemiBold" Foreground="{DynamicResource PrimaryTextColor}">
                                         <Run Text="Value Name: "/>
                                         <Run Text="{Binding Key.ValueName, Mode=OneWay, TargetNullValue='(no name)'}"/>
                                     </TextBlock>
-                                    <TextBlock FontWeight="SemiBold" Margin="0,0,0,3" Foreground="{DynamicResource PrimaryTextColor}">
+                                    <TextBlock FontSize="10" FontWeight="SemiBold" Foreground="{DynamicResource PrimaryTextColor}">
+                                        <Run Text="Value Type: "/>
+                                        <Run Text="{Binding Key.ValueType, Mode=OneWay, TargetNullValue='(type unknown)'}"/>
+                                    </TextBlock>
+                                    <TextBlock FontSize="10" FontWeight="SemiBold" Foreground="{DynamicResource PrimaryTextColor}">
                                         <Run Text="Current Value: "/>
                                         <Run Text="{Binding Value, Mode=OneWay, TargetNullValue='(not set)'}"/>
                                     </TextBlock>
-                                    <TextBlock FontWeight="SemiBold" Margin="0,0,0,3" Foreground="{DynamicResource PrimaryTextColor}">
+                                    <TextBlock FontSize="10" FontWeight="SemiBold" Foreground="{DynamicResource PrimaryTextColor}">
                                         <Run Text="Recommended: "/>
                                         <Run Text="{Binding Key.RecommendedValue, Mode=OneWay, TargetNullValue='null'}"/>
                                     </TextBlock>
-                                    <TextBlock FontWeight="SemiBold" Margin="0,0,0,3" Foreground="{DynamicResource PrimaryTextColor}" Visibility="{Binding Key.EnabledValue, Converter={StaticResource InverseNullToVisibilityConverter}}">
+                                    <TextBlock FontSize="10" FontWeight="SemiBold" Foreground="{DynamicResource PrimaryTextColor}" Visibility="{Binding Key.EnabledValue, Converter={StaticResource InverseNullToVisibilityConverter}}">
                                         <Run Text="Enabled: "/>
                                         <Run Text="{Binding Key.EnabledValue, Mode=OneWay, TargetNullValue='null'}"/>
                                     </TextBlock>
-                                    <TextBlock FontWeight="SemiBold" Margin="0,0,0,3" Foreground="{DynamicResource PrimaryTextColor}" Visibility="{Binding Key.DisabledValue, Converter={StaticResource InverseNullToVisibilityConverter}}">
+                                    <TextBlock FontSize="10" FontWeight="SemiBold" Foreground="{DynamicResource PrimaryTextColor}" Visibility="{Binding Key.DisabledValue, Converter={StaticResource InverseNullToVisibilityConverter}}">
                                         <Run Text="Disabled: "/>
                                         <Run Text="{Binding Key.DisabledValue, Mode=OneWay, TargetNullValue='null'}"/>
                                     </TextBlock>
@@ -83,21 +87,17 @@
                     <DataTemplate>
                         <Border BorderBrush="{DynamicResource TooltipBorderBrush}" BorderThickness="1" Padding="8" Margin="0,2" CornerRadius="3" Background="{DynamicResource SettingsItemBackground}">
                             <StackPanel>
-                                <TextBlock FontWeight="SemiBold" Margin="0,0,0,3" Foreground="{DynamicResource PrimaryTextColor}">
+                                <TextBlock FontSize="10" FontWeight="SemiBold" Foreground="{DynamicResource PrimaryTextColor}">
                                     <Run Text="Command ID: "/>
                                     <Run Text="{Binding Id, Mode=OneWay, TargetNullValue='(no id)'}"/>
                                 </TextBlock>
-                                <TextBlock FontWeight="SemiBold" Margin="0,0,0,3" Foreground="{DynamicResource PrimaryTextColor}">
+                                <TextBlock FontSize="10" FontWeight="SemiBold" Foreground="{DynamicResource PrimaryTextColor}">
                                     <Run Text="Enabled Command: "/>
                                     <Run Text="{Binding EnabledCommand, Mode=OneWay, TargetNullValue='(not set)'}"/>
                                 </TextBlock>
-                                <TextBlock FontWeight="SemiBold" Margin="0,0,0,3" Foreground="{DynamicResource PrimaryTextColor}">
+                                <TextBlock FontSize="10" FontWeight="SemiBold" Foreground="{DynamicResource PrimaryTextColor}">
                                     <Run Text="Disabled Command: "/>
                                     <Run Text="{Binding DisabledCommand, Mode=OneWay, TargetNullValue='(not set)'}"/>
-                                </TextBlock>
-                                <TextBlock FontWeight="SemiBold" Margin="0,0,0,3" Foreground="{DynamicResource SecondaryTextColor}" FontSize="11">
-                                    <Run Text="Requires Elevation: "/>
-                                    <Run Text="{Binding RequiresElevation, Mode=OneWay}"/>
                                 </TextBlock>
                             </StackPanel>
                         </Border>
@@ -115,19 +115,19 @@
                     <DataTemplate>
                         <Border BorderBrush="{DynamicResource TooltipBorderBrush}" BorderThickness="1" Padding="8" Margin="0,2" CornerRadius="3" Background="{DynamicResource SettingsItemBackground}">
                             <StackPanel>
-                                <TextBlock FontWeight="SemiBold" Margin="0,0,0,3" Foreground="{DynamicResource PrimaryTextColor}" Visibility="{Binding SubgroupGUIDAlias, Converter={StaticResource InverseNullToVisibilityConverter}}">
+                                <TextBlock FontSize="10" FontWeight="SemiBold" Foreground="{DynamicResource PrimaryTextColor}" Visibility="{Binding SubgroupGUIDAlias, Converter={StaticResource InverseNullToVisibilityConverter}}">
                                     <Run Text="Subgroup GUID Alias: "/>
                                     <Run Text="{Binding SubgroupGUIDAlias, Mode=OneWay}"/>
                                 </TextBlock>
-                                <TextBlock FontWeight="SemiBold" Margin="0,0,0,3" Foreground="{DynamicResource PrimaryTextColor}" Visibility="{Binding SettingGUIDAlias, Converter={StaticResource InverseNullToVisibilityConverter}}">
+                                <TextBlock FontSize="10" FontWeight="SemiBold" Foreground="{DynamicResource PrimaryTextColor}" Visibility="{Binding SettingGUIDAlias, Converter={StaticResource InverseNullToVisibilityConverter}}">
                                     <Run Text="Setting GUID Alias: "/>
                                     <Run Text="{Binding SettingGUIDAlias, Mode=OneWay}"/>
                                 </TextBlock>
-                                <TextBlock FontWeight="SemiBold" Margin="0,0,0,3" Foreground="{DynamicResource PrimaryTextColor}">
+                                <TextBlock FontSize="10" FontWeight="SemiBold" Foreground="{DynamicResource PrimaryTextColor}">
                                     <Run Text="Subgroup GUID: "/>
                                     <Run Text="{Binding SubgroupGuid, Mode=OneWay, TargetNullValue='(not set)'}"/>
                                 </TextBlock>
-                                <TextBlock FontWeight="SemiBold" Margin="0,0,0,3" Foreground="{DynamicResource PrimaryTextColor}">
+                                <TextBlock FontSize="10" FontWeight="SemiBold" Foreground="{DynamicResource PrimaryTextColor}">
                                     <Run Text="Setting GUID: "/>
                                     <Run Text="{Binding SettingGuid, Mode=OneWay, TargetNullValue='(not set)'}"/>
                                 </TextBlock>
@@ -140,7 +140,7 @@
     </DataTemplate>
 
     <!-- Unified Settings Tooltip Template -->
-    <DataTemplate x:Key="UnifiedSettingTooltipTemplate">
+    <DataTemplate x:Key="UnifiedSettingsTooltipTemplate">
         <StackPanel>
             <ContentPresenter Content="{Binding}" ContentTemplate="{StaticResource RegistrySettingsSection}"/>
             

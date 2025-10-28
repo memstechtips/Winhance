@@ -1,7 +1,7 @@
 using System;
 using System.Globalization;
 using System.Windows.Data;
-using MaterialDesignThemes.Wpf;
+using MahApps.Metro.IconPacks;
 
 namespace Winhance.WPF.Features.Common.Converters
 {
@@ -11,17 +11,17 @@ namespace Winhance.WPF.Features.Common.Converters
         {
             if (value is bool isExpanded)
             {
-                return isExpanded ? PackIconKind.ChevronUp : PackIconKind.ChevronDown;
+                return isExpanded ? PackIconMaterialKind.ChevronUp : PackIconMaterialKind.ChevronDown;
             }
 
-            return PackIconKind.ChevronDown;
+            return PackIconMaterialKind.ChevronDown;
         }
 
         public object ConvertBack(object value, Type targetType, object parameter, CultureInfo culture)
         {
-            if (value is PackIconKind kind)
+            if (value is PackIconMaterialKind kind)
             {
-                return kind == PackIconKind.ChevronUp;
+                return kind == PackIconMaterialKind.ChevronUp;
             }
 
             return false;

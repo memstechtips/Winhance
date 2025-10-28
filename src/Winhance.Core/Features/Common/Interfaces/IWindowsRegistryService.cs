@@ -16,7 +16,7 @@ namespace Winhance.Core.Features.Common.Interfaces
 
         bool IsSettingApplied(RegistrySetting setting);
 
-        bool ApplySetting(RegistrySetting setting, bool enable, int? specificValue = null);
+        bool ApplySetting(RegistrySetting setting, bool enable, object? specificValue = null);
 
         Dictionary<string, object?> GetBatchValues(IEnumerable<(string keyPath, string valueName)> queries);
     }

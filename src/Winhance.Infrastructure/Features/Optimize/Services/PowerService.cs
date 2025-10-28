@@ -20,12 +20,71 @@ namespace Winhance.Infrastructure.Features.Optimize.Services
         ICommandService commandService,
         IPowerCfgQueryService powerCfgQueryService,
         ICompatibleSettingsRegistry compatibleSettingsRegistry,
-        IEventBus eventBus) : IPowerService
+        IEventBus eventBus,
+        IWindowsRegistryService registryService,
+        IPowerPlanComboBoxService powerPlanComboBoxService) : IPowerService
     {
         private IEnumerable<SettingDefinition>? _cachedSettings;
         private readonly object _cacheLock = new object();
 
         public string DomainName => FeatureIds.Power;
+
+        public async Task<bool> TryApplySpecialSettingAsync(SettingDefinition setting, object value, bool additionalContext = false)
+        {
+            if (setting.Id == "power-plan-selection")
+            {
+                logService.Log(LogLevel.Info, "[PowerService] Applying power-plan-selection");
+
+                if (value is Dictionary<string, object> planDict)
+                {
+                    var guid = planDict["Guid"].ToString();
+                    var name = planDict["Name"].ToString();
+
+                    logService.Log(LogLevel.Info, $"[PowerService] Config import: applying power plan {name} ({guid})");
+                    await ApplyPowerPlanByGuidAsync(setting, guid, name);
+                    return true;
+                }
+
+                if (value is int index)
+                {
+                    logService.Log(LogLevel.Info, $"[PowerService] UI selection: applying power plan at index {index}");
+
+                    var resolution = await powerPlanComboBoxService.ResolvePowerPlanByIndexAsync(index);
+                    if (!resolution.Success)
+                    {
+                        logService.Log(LogLevel.Error, $"[PowerService] Failed to resolve power plan index: {resolution.ErrorMessage}");
+                        return false;
+                    }
+
+                    await ApplyPowerPlanSelectionAsync(setting, resolution.Guid, index, resolution.DisplayName);
+                    return true;
+                }
+
+                logService.Log(LogLevel.Error, $"[PowerService] Invalid power plan value type: {value?.GetType().Name}");
+                return false;
+            }
+
+            return false;
+        }
+
+        public async Task<Dictionary<string, Dictionary<string, object?>>> DiscoverSpecialSettingsAsync(IEnumerable<SettingDefinition> settings)
+        {
+            var results = new Dictionary<string, Dictionary<string, object?>>();
+
+            var powerPlanSetting = settings.FirstOrDefault(s => s.Id == "power-plan-selection");
+            if (powerPlanSetting != null)
+            {
+                var activePlan = await GetActivePowerPlanAsync();
+                var rawValues = new Dictionary<string, object?>
+                {
+                    ["ActivePowerPlan"] = activePlan?.Name,
+                    ["ActivePowerPlanGuid"] = activePlan?.Guid
+                };
+                results["power-plan-selection"] = rawValues;
+            }
+
+            return results;
+        }
 
         public async Task<IEnumerable<SettingDefinition>> GetSettingsAsync()
         {
@@ -120,7 +179,6 @@ namespace Winhance.Infrastructure.Features.Optimize.Services
                 if (result.Success)
                 {
                     powerCfgQueryService.InvalidateCache();
-                    ClearSettingsCache();
                     return true;
                 }
                 
@@ -151,72 +209,185 @@ namespace Winhance.Infrastructure.Features.Optimize.Services
             }
         }
 
-        public async Task ApplySettingWithContextAsync(string settingId, bool enable, object? value, SettingOperationContext context)
+        private async Task ApplyPowerPlanSelectionAsync(SettingDefinition setting, string powerPlanGuid, int planIndex, string planName)
         {
-            logService.Log(LogLevel.Info, $"[PowerService] Applying setting with context - Enable: {enable}");
-            
-            if (value is string powerPlanGuid)
+            logService.Log(LogLevel.Info, $"[PowerService] Applying power plan: {planName} ({powerPlanGuid})");
+
+            if (string.IsNullOrEmpty(powerPlanGuid))
             {
-                var previousPlan = await GetActivePowerPlanAsync();
-                
-                // Check if plan exists on system first
-                var availablePlans = await powerCfgQueryService.GetAvailablePowerPlansAsync();
-                var planExists = availablePlans.Any(p => string.Equals(p.Guid, powerPlanGuid, StringComparison.OrdinalIgnoreCase));
-                
-                bool success = false;
-                
-                if (!planExists)
+                throw new ArgumentException("Power plan GUID cannot be null or empty");
+            }
+
+            var previousPlan = await GetActivePowerPlanAsync();
+
+            var systemPlans = await powerCfgQueryService.GetAvailablePowerPlansAsync();
+            var planExists = systemPlans.Any(p => string.Equals(p.Guid, powerPlanGuid, StringComparison.OrdinalIgnoreCase));
+
+            bool success = false;
+
+            if (!planExists)
+            {
+                var predefinedPlan = PowerPlanDefinitions.BuiltInPowerPlans
+                    .FirstOrDefault(p => string.Equals(p.Guid, powerPlanGuid, StringComparison.OrdinalIgnoreCase));
+
+                if (predefinedPlan != null)
                 {
-                    // Try to import the missing predefined plan
-                    var predefinedPlan = PowerPlanDefinitions.BuiltInPowerPlans
-                        .FirstOrDefault(p => string.Equals(p.Guid, powerPlanGuid, StringComparison.OrdinalIgnoreCase));
-                        
-                    if (predefinedPlan != null)
+                    logService.Log(LogLevel.Info, $"[PowerService] Plan '{predefinedPlan.Name}' not found, attempting import");
+                    var importResult = await ImportPowerPlanAsync(predefinedPlan);
+
+                    if (importResult.Success)
                     {
-                        logService.Log(LogLevel.Info, $"Power plan '{predefinedPlan.Name}' not found on system, attempting import");
-                        var importResult = await ImportPowerPlanAsync(predefinedPlan);
-                        
-                        if (importResult.Success)
+                        logService.Log(LogLevel.Info, $"[PowerService] Successfully imported '{predefinedPlan.Name}', activating");
+                        await Task.Delay(200);
+
+                        var activateCommand = await commandService.ExecuteCommandAsync($"powercfg /setactive {importResult.ImportedGuid}");
+                        success = activateCommand.Success;
+
+                        if (success)
                         {
-                            // Use the actual imported GUID (might differ from predefined GUID)
-                            success = await SetActivePowerPlanAsync(importResult.ImportedGuid);
-                            powerPlanGuid = importResult.ImportedGuid; // Update for event
+                            powerCfgQueryService.InvalidateCache();
+                            ClearSettingsCache();
+                            logService.Log(LogLevel.Info, $"[PowerService] Successfully activated imported plan");
                         }
                         else
                         {
-                            logService.Log(LogLevel.Error, $"Failed to import power plan: {importResult.ErrorMessage}");
-                            return;
+                            logService.Log(LogLevel.Warning, $"[PowerService] First activation failed, retrying...");
+                            await Task.Delay(500);
+                            activateCommand = await commandService.ExecuteCommandAsync($"powercfg /setactive {importResult.ImportedGuid}");
+                            success = activateCommand.Success;
+
+                            if (success)
+                            {
+                                powerCfgQueryService.InvalidateCache();
+                                ClearSettingsCache();
+                                logService.Log(LogLevel.Info, $"[PowerService] Successfully activated on retry");
+                            }
+                            else
+                            {
+                                logService.Log(LogLevel.Error, $"[PowerService] Failed to activate after import: {activateCommand.Error}");
+                            }
                         }
+
+                        powerPlanGuid = importResult.ImportedGuid;
                     }
                     else
                     {
-                        logService.Log(LogLevel.Error, $"Unknown power plan GUID: {powerPlanGuid}");
-                        return;
+                        logService.Log(LogLevel.Error, $"[PowerService] Failed to import plan: {importResult.ErrorMessage}");
+                        throw new InvalidOperationException($"Failed to import power plan: {importResult.ErrorMessage}");
                     }
                 }
                 else
                 {
-                    // Plan exists, activate normally
-                    success = await SetActivePowerPlanAsync(powerPlanGuid);
-                }
-                
-                if (success)
-                {
-                    var planIndex = context.AdditionalParameters.TryGetValue("PlanIndex", out var indexObj) ? (int)indexObj : -1;
-                    var planName = context.AdditionalParameters.TryGetValue("PlanName", out var nameObj) ? (string)nameObj : "Unknown Plan";
-                    
-                    eventBus.Publish(new PowerPlanChangedEvent
-                    {
-                        PreviousPlanGuid = previousPlan?.Guid ?? string.Empty,
-                        NewPlanGuid = powerPlanGuid,
-                        NewPlanName = planName,
-                        NewPlanIndex = planIndex
-                    });
+                    logService.Log(LogLevel.Error, $"[PowerService] Unknown power plan GUID: {powerPlanGuid}");
+                    throw new InvalidOperationException($"Unknown power plan GUID: {powerPlanGuid}");
                 }
             }
             else
             {
-                throw new ArgumentException($"Expected power plan GUID but got {value?.GetType()}");
+                success = await SetActivePowerPlanAsync(powerPlanGuid);
+            }
+
+            if (success)
+            {
+                logService.Log(LogLevel.Info, $"[PowerService] Publishing PowerPlanChangedEvent");
+
+                eventBus.Publish(new PowerPlanChangedEvent
+                {
+                    PreviousPlanGuid = previousPlan?.Guid ?? string.Empty,
+                    NewPlanGuid = powerPlanGuid,
+                    NewPlanName = planName,
+                    NewPlanIndex = planIndex
+                });
+
+                logService.Log(LogLevel.Info, $"[PowerService] Successfully applied power plan");
+            }
+        }
+
+        private async Task ApplyPowerPlanByGuidAsync(SettingDefinition setting, string powerPlanGuid, string planName)
+        {
+            logService.Log(LogLevel.Info, $"[PowerService] Applying power plan by GUID: {planName} ({powerPlanGuid})");
+
+            if (string.IsNullOrEmpty(powerPlanGuid))
+            {
+                throw new ArgumentException("Power plan GUID cannot be null or empty");
+            }
+
+            var previousPlan = await GetActivePowerPlanAsync();
+            var systemPlans = await powerCfgQueryService.GetAvailablePowerPlansAsync();
+            var planExists = systemPlans.Any(p => string.Equals(p.Guid, powerPlanGuid, StringComparison.OrdinalIgnoreCase));
+
+            bool success = false;
+
+            if (!planExists)
+            {
+                logService.Log(LogLevel.Warning, $"[PowerService] Plan '{planName}' ({powerPlanGuid}) not found on system");
+
+                var predefinedPlan = PowerPlanDefinitions.BuiltInPowerPlans
+                    .FirstOrDefault(p => string.Equals(p.Guid, powerPlanGuid, StringComparison.OrdinalIgnoreCase));
+
+                if (predefinedPlan != null)
+                {
+                    logService.Log(LogLevel.Info, $"[PowerService] Importing predefined plan '{predefinedPlan.Name}'");
+                    var importResult = await ImportPowerPlanAsync(predefinedPlan);
+
+                    if (importResult.Success)
+                    {
+                        logService.Log(LogLevel.Info, "[PowerService] Successfully imported, now activating");
+                        await Task.Delay(200);
+
+                        success = await SetActivePowerPlanAsync(importResult.ImportedGuid);
+                        powerPlanGuid = importResult.ImportedGuid;
+                    }
+                    else
+                    {
+                        logService.Log(LogLevel.Error, $"[PowerService] Failed to import plan: {importResult.ErrorMessage}");
+                        throw new InvalidOperationException($"Failed to import power plan: {importResult.ErrorMessage}");
+                    }
+                }
+                else
+                {
+                    logService.Log(LogLevel.Info, $"[PowerService] Custom power plan '{planName}' - creating by duplicating Balanced");
+
+                    var balancedGuid = "381b4222-f694-41f0-9685-ff5bb260df2e";
+                    var duplicateCmd = $"powercfg /duplicatescheme {balancedGuid} {powerPlanGuid}";
+                    var result = await commandService.ExecuteCommandAsync(duplicateCmd);
+
+                    if (result.Success)
+                    {
+                        await commandService.ExecuteCommandAsync($"powercfg /changename {powerPlanGuid} \"{planName}\"");
+
+                        powerCfgQueryService.InvalidateCache();
+                        logService.Log(LogLevel.Info, $"[PowerService] Successfully created custom plan '{planName}' with GUID {powerPlanGuid}");
+
+                        success = await SetActivePowerPlanAsync(powerPlanGuid);
+                    }
+                    else
+                    {
+                        logService.Log(LogLevel.Error, $"[PowerService] Failed to create custom plan: {result.Error}");
+                        throw new InvalidOperationException($"Failed to create custom power plan '{planName}': {result.Error}");
+                    }
+                }
+            }
+            else
+            {
+                success = await SetActivePowerPlanAsync(powerPlanGuid);
+            }
+
+            if (success)
+            {
+                var options = await powerPlanComboBoxService.GetPowerPlanOptionsAsync();
+                var planIndex = options.FindIndex(o =>
+                    string.Equals(o.SystemPlan?.Guid, powerPlanGuid, StringComparison.OrdinalIgnoreCase));
+
+                eventBus.Publish(new PowerPlanChangedEvent
+                {
+                    PreviousPlanGuid = previousPlan?.Guid ?? string.Empty,
+                    NewPlanGuid = powerPlanGuid,
+                    NewPlanName = planName,
+                    NewPlanIndex = planIndex >= 0 ? planIndex : 0
+                });
+
+                logService.Log(LogLevel.Info, $"[PowerService] Successfully applied power plan '{planName}'");
             }
         }
 
@@ -224,14 +395,26 @@ namespace Winhance.Infrastructure.Features.Optimize.Services
         {
             try
             {
-                // Ensure settings are loaded
                 await GetSettingsAsync();
-                
+
                 var powerSettings = _cachedSettings?.Where(s => s.PowerCfgSettings?.Any() == true) ?? Enumerable.Empty<SettingDefinition>();
                 if (!powerSettings.Any())
                     return new Dictionary<string, int?>();
 
-                return await powerCfgQueryService.GetCompatiblePowerSettingsStateAsync(powerSettings);
+                var allSettings = await powerCfgQueryService.GetAllPowerSettingsACDCAsync("SCHEME_CURRENT");
+
+                var results = new Dictionary<string, int?>();
+                foreach (var setting in powerSettings)
+                {
+                    var powerCfgSetting = setting.PowerCfgSettings[0];
+                    var key = powerCfgSetting.SettingGuid;
+                    if (allSettings.TryGetValue(key, out var value))
+                    {
+                        results[key] = value.acValue;
+                    }
+                }
+
+                return results;
             }
             catch (Exception ex)
             {
@@ -244,6 +427,11 @@ namespace Winhance.Infrastructure.Features.Optimize.Services
         {
             try
             {
+                if (predefinedPlan.Name == "Winhance Power Plan")
+                {
+                    return await CreateWinhancePowerPlanAsync(predefinedPlan);
+                }
+
                 if (predefinedPlan.Name == "Ultimate Performance")
                 {
                     var systemPlans = await powerCfgQueryService.GetAvailablePowerPlansAsync();
@@ -264,6 +452,7 @@ namespace Winhance.Infrastructure.Features.Optimize.Services
 
                     if (result.Success)
                     {
+                        powerCfgQueryService.InvalidateCache();
                         var actualGuid = await FindNewlyCreatedPlanGuidAsync(predefinedPlan.Name, existingPlanNames);
                         if (!string.IsNullOrEmpty(actualGuid))
                         {
@@ -276,22 +465,35 @@ namespace Winhance.Infrastructure.Features.Optimize.Services
                 }
                 else
                 {
-                    // Get existing plans before duplication for non-Ultimate Performance plans too
                     var systemPlans = await powerCfgQueryService.GetAvailablePowerPlansAsync();
+                    var existingPlan = systemPlans.FirstOrDefault(p =>
+                        string.Equals(p.Guid, predefinedPlan.Guid, StringComparison.OrdinalIgnoreCase));
+
+                    if (existingPlan != null)
+                    {
+                        logService.Log(LogLevel.Info, $"Power plan '{predefinedPlan.Name}' already exists with GUID: {existingPlan.Guid}");
+                        return new PowerPlanImportResult(true, existingPlan.Guid);
+                    }
+
                     var existingPlanNames = new HashSet<string>(
                         systemPlans.Select(p => CleanPlanName(p.Name)),
                         StringComparer.OrdinalIgnoreCase);
 
-                    var directResult = await commandService.ExecuteCommandAsync($"powercfg /duplicatescheme {predefinedPlan.Guid}");
-                    if (directResult.Success)
+                    logService.Log(LogLevel.Info, $"Attempting to duplicate power plan '{predefinedPlan.Name}' using GUID {predefinedPlan.Guid}");
+                    var duplicateResult = await commandService.ExecuteCommandAsync($"powercfg /duplicatescheme {predefinedPlan.Guid}");
+
+                    if (duplicateResult.Success)
                     {
+                        powerCfgQueryService.InvalidateCache();
                         var actualGuid = await FindNewlyCreatedPlanGuidAsync(predefinedPlan.Name, existingPlanNames);
                         if (!string.IsNullOrEmpty(actualGuid))
                         {
+                            logService.Log(LogLevel.Info, $"Successfully duplicated power plan '{predefinedPlan.Name}' with GUID: {actualGuid}");
                             return new PowerPlanImportResult(true, actualGuid);
                         }
                     }
 
+                    logService.Log(LogLevel.Warning, $"Duplicate scheme failed for '{predefinedPlan.Name}', falling back to backup/restore method");
                     return await SimpleBackupRestore(predefinedPlan);
                 }
             }
@@ -316,7 +518,12 @@ namespace Winhance.Infrastructure.Features.Optimize.Services
                 await Task.Delay(1000);
                 await RestoreCustomPlansAsync(backupDir);
 
-                Directory.Delete(backupDir, true);
+                powerCfgQueryService.InvalidateCache();
+
+                if (Directory.Exists(backupDir))
+                {
+                    Directory.Delete(backupDir, true);
+                }
 
                 var plans = await powerCfgQueryService.GetAvailablePowerPlansAsync();
                 var targetGuid = plans.FirstOrDefault(p =>
@@ -361,8 +568,6 @@ namespace Winhance.Infrastructure.Features.Optimize.Services
                 await commandService.ExecuteCommandAsync($"powercfg /import \"{file}\"");
                 await Task.Delay(200);
             }
-
-            Directory.Delete(backupFolder, true);
         }
 
         private List<PowerPlan> IdentifyCustomPlans(List<PowerPlan> allPlans)
@@ -441,6 +646,207 @@ namespace Winhance.Infrastructure.Features.Optimize.Services
         private string CleanPlanName(string name)
         {
             return name?.Trim() ?? string.Empty;
+        }
+
+        private async Task<PowerPlanImportResult> CreateWinhancePowerPlanAsync(PredefinedPowerPlan predefinedPlan)
+        {
+            var ultimatePerformancePlan = PowerPlanDefinitions.BuiltInPowerPlans
+                .FirstOrDefault(p => p.Name == "Ultimate Performance");
+
+            if (ultimatePerformancePlan == null)
+            {
+                return new PowerPlanImportResult(false, "", "Ultimate Performance plan not found");
+            }
+
+            try
+            {
+                var systemPlans = await powerCfgQueryService.GetAvailablePowerPlansAsync();
+                var existingPlan = systemPlans.FirstOrDefault(p =>
+                    string.Equals(p.Guid, predefinedPlan.Guid, StringComparison.OrdinalIgnoreCase));
+
+                if (existingPlan != null)
+                {
+                    logService.Log(LogLevel.Info, $"Winhance Power Plan already exists with GUID: {existingPlan.Guid}");
+                    return new PowerPlanImportResult(true, existingPlan.Guid);
+                }
+
+                logService.Log(LogLevel.Info, "Creating Winhance Power Plan from Ultimate Performance");
+                var duplicateResult = await commandService.ExecuteCommandAsync(
+                    $"powercfg /duplicatescheme {ultimatePerformancePlan.Guid} {predefinedPlan.Guid}");
+
+                if (!duplicateResult.Success)
+                {
+                    logService.Log(LogLevel.Error, $"Failed to duplicate plan: {duplicateResult.Error}");
+                    return new PowerPlanImportResult(false, "", duplicateResult.Error ?? "Failed to create plan");
+                }
+
+                await commandService.ExecuteCommandAsync(
+                    $"powercfg /changename {predefinedPlan.Guid} \"{predefinedPlan.Name}\" \"{predefinedPlan.Description}\"");
+
+                await ApplyRecommendedSettingsToPlanAsync(predefinedPlan.Guid);
+
+                powerCfgQueryService.InvalidateCache();
+
+                logService.Log(LogLevel.Info, $"Successfully created Winhance Power Plan: {predefinedPlan.Guid}");
+                return new PowerPlanImportResult(true, predefinedPlan.Guid);
+            }
+            catch (Exception ex)
+            {
+                logService.Log(LogLevel.Error, $"Error creating Winhance Power Plan: {ex.Message}");
+                return new PowerPlanImportResult(false, "", ex.Message);
+            }
+        }
+
+        private async Task ApplyRecommendedSettingsToPlanAsync(string planGuid)
+        {
+            logService.Log(LogLevel.Info, $"Applying recommended settings to plan: {planGuid}");
+
+            try
+            {
+                var allSettings = await GetSettingsAsync();
+                int appliedCount = 0;
+                int registrySettingsCount = 0;
+
+                foreach (var setting in allSettings)
+                {
+                    try
+                    {
+                        var powerCfgWithRecommended = setting.PowerCfgSettings?.FirstOrDefault(ps =>
+                            ps.RecommendedValueAC.HasValue || ps.RecommendedValueDC.HasValue);
+
+                        if (powerCfgWithRecommended != null)
+                        {
+                            var acValue = powerCfgWithRecommended.RecommendedValueAC ?? powerCfgWithRecommended.RecommendedValueDC ?? 0;
+                            var dcValue = powerCfgWithRecommended.RecommendedValueDC ?? powerCfgWithRecommended.RecommendedValueAC ?? 0;
+
+                            logService.Log(LogLevel.Debug, $"Applying {setting.Id} - AC: {acValue}, DC: {dcValue}");
+
+                            await commandService.ExecuteCommandAsync(
+                                $"powercfg /setacvalueindex {planGuid} {powerCfgWithRecommended.SubgroupGuid} {powerCfgWithRecommended.SettingGuid} {acValue}");
+                            await commandService.ExecuteCommandAsync(
+                                $"powercfg /setdcvalueindex {planGuid} {powerCfgWithRecommended.SubgroupGuid} {powerCfgWithRecommended.SettingGuid} {dcValue}");
+
+                            appliedCount++;
+                            continue;
+                        }
+
+                        if (setting.InputType == InputType.Selection &&
+                            setting.CustomProperties?.TryGetValue("RecommendedOptionAC", out var recommendedOptionACObj) == true &&
+                            setting.PowerCfgSettings?.Any() == true)
+                        {
+                            var recommendedOptionAC = recommendedOptionACObj.ToString();
+                            var recommendedOptionDC = setting.CustomProperties.TryGetValue("RecommendedOptionDC", out var recommendedOptionDCObj)
+                                ? recommendedOptionDCObj.ToString()
+                                : recommendedOptionAC;
+
+                            var displayNames = setting.CustomProperties.TryGetValue(CustomPropertyKeys.ComboBoxDisplayNames, out var displayNamesObj) &&
+                                              displayNamesObj is string[] names ? names : null;
+
+                            if (displayNames != null)
+                            {
+                                var indexAC = Array.IndexOf(displayNames, recommendedOptionAC);
+                                var indexDC = Array.IndexOf(displayNames, recommendedOptionDC);
+
+                                var valueMappings = setting.CustomProperties.TryGetValue(CustomPropertyKeys.ValueMappings, out var mappingsObj) &&
+                                                   mappingsObj is Dictionary<int, Dictionary<string, int?>> mappings ? mappings : null;
+
+                                if (valueMappings != null)
+                                {
+                                    int? acValue = null, dcValue = null;
+
+                                    if (indexAC >= 0 && valueMappings.TryGetValue(indexAC, out var valueDictAC))
+                                        acValue = valueDictAC.TryGetValue("PowerCfgValue", out var powerCfgValueAC) ? powerCfgValueAC : null;
+
+                                    if (indexDC >= 0 && valueMappings.TryGetValue(indexDC, out var valueDictDC))
+                                        dcValue = valueDictDC.TryGetValue("PowerCfgValue", out var powerCfgValueDC) ? powerCfgValueDC : null;
+
+                                    if (acValue.HasValue && dcValue.HasValue)
+                                    {
+                                        var powerCfgSetting = setting.PowerCfgSettings[0];
+
+                                        logService.Log(LogLevel.Debug, $"Applying {setting.Id} - AC: {recommendedOptionAC} ({acValue}), DC: {recommendedOptionDC} ({dcValue})");
+
+                                        await commandService.ExecuteCommandAsync(
+                                            $"powercfg /setacvalueindex {planGuid} {powerCfgSetting.SubgroupGuid} {powerCfgSetting.SettingGuid} {acValue}");
+                                        await commandService.ExecuteCommandAsync(
+                                            $"powercfg /setdcvalueindex {planGuid} {powerCfgSetting.SubgroupGuid} {powerCfgSetting.SettingGuid} {dcValue}");
+
+                                        appliedCount++;
+                                    }
+                                }
+                            }
+                        }
+                    }
+                    catch (Exception ex)
+                    {
+                        logService.Log(LogLevel.Warning, $"Failed to apply recommended setting '{setting.Id}': {ex.Message}");
+                    }
+                }
+
+                foreach (var setting in allSettings)
+                {
+                    if (setting.RegistrySettings?.Any() == true)
+                    {
+                        foreach (var regSetting in setting.RegistrySettings)
+                        {
+                            if (regSetting.RecommendedValue != null)
+                            {
+                                try
+                                {
+                                    var success = registryService.SetValue(
+                                        regSetting.KeyPath,
+                                        regSetting.ValueName ?? string.Empty,
+                                        regSetting.RecommendedValue,
+                                        regSetting.ValueType);
+
+                                    if (success)
+                                    {
+                                        registrySettingsCount++;
+                                        logService.Log(LogLevel.Debug, $"Applied registry setting: {setting.Id} = {regSetting.RecommendedValue}");
+                                    }
+                                }
+                                catch (Exception ex)
+                                {
+                                    logService.Log(LogLevel.Warning, $"Failed to apply registry setting '{setting.Id}': {ex.Message}");
+                                }
+                            }
+                        }
+                    }
+
+                    if (setting.CommandSettings?.Any() == true)
+                    {
+                        foreach (var cmdSetting in setting.CommandSettings)
+                        {
+                            if (cmdSetting.RecommendedState.HasValue)
+                            {
+                                try
+                                {
+                                    var command = cmdSetting.RecommendedState.Value
+                                        ? cmdSetting.EnabledCommand
+                                        : cmdSetting.DisabledCommand;
+
+                                    var result = await commandService.ExecuteCommandAsync(command);
+                                    if (result.Success)
+                                    {
+                                        registrySettingsCount++;
+                                        logService.Log(LogLevel.Debug, $"Applied command setting: {setting.Id} = {cmdSetting.RecommendedState.Value}");
+                                    }
+                                }
+                                catch (Exception ex)
+                                {
+                                    logService.Log(LogLevel.Warning, $"Failed to apply command setting '{setting.Id}': {ex.Message}");
+                                }
+                            }
+                        }
+                    }
+                }
+
+                logService.Log(LogLevel.Info, $"Applied {appliedCount} power settings and {registrySettingsCount} registry settings to Winhance Power Plan");
+            }
+            catch (Exception ex)
+            {
+                logService.Log(LogLevel.Error, $"Error applying recommended settings: {ex.Message}");
+            }
         }
 
     }

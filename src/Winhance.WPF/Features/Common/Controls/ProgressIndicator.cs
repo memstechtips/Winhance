@@ -76,8 +76,6 @@ namespace Winhance.WPF.Features.Common.Controls
                     {
                         progressService.CancelCurrentTask();
 
-                        // Show a message to the user that the task was cancelled
-                        System.Windows.MessageBox.Show("Installation cancelled by user.", "Cancelled", System.Windows.MessageBoxButton.OK, System.Windows.MessageBoxImage.Information);
                     }
                 }
             }

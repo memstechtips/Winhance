@@ -8,6 +8,7 @@ using CommunityToolkit.Mvvm.Input;
 using Winhance.Core.Features.Common.Enums;
 using Winhance.Core.Features.Common.Interfaces;
 using Winhance.WPF.Features.Common.ViewModels;
+using Winhance.Core.Features.Common.Models;
 
 namespace Winhance.WPF.Features.Common.Views
 {
@@ -19,13 +20,6 @@ namespace Winhance.WPF.Features.Common.Views
         private readonly UnifiedConfigurationDialogViewModel _viewModel;
         private readonly ILogService _logService;
 
-        /// <summary>
-        /// Initializes a new instance of the <see cref="UnifiedConfigurationDialog"/> class.
-        /// </summary>
-        /// <param name="title">The title of the dialog.</param>
-        /// <param name="description">The description of the dialog.</param>
-        /// <param name="sections">The dictionary of section names, their availability, and item counts.</param>
-        /// <param name="isSaveDialog">Whether this is a save dialog (true) or an import dialog (false).</param>
         public UnifiedConfigurationDialog(
             string title,
             string description,
@@ -37,12 +31,10 @@ namespace Winhance.WPF.Features.Common.Views
             {
                 InitializeComponent();
 
-                // Try to get the log service from the application using reflection
                 try
                 {
                     if (Application.Current is App appInstance)
                     {
-                        // Use reflection to access the _host.Services property
                         var hostField = appInstance
                             .GetType()
                             .GetField(
@@ -74,7 +66,6 @@ namespace Winhance.WPF.Features.Common.Views
                 }
                 catch (Exception ex)
                 {
-                    // Continue without logging
                 }
 
                 LogInfo(
@@ -82,7 +73,6 @@ namespace Winhance.WPF.Features.Common.Views
                 );
                 LogInfo($"Sections: {string.Join(", ", sections.Keys)}");
 
-                // Create the view model
                 _viewModel = new UnifiedConfigurationDialogViewModel(
                     title,
                     description,
@@ -90,21 +80,30 @@ namespace Winhance.WPF.Features.Common.Views
                     isSaveDialog
                 );
 
-                // Set the data context
                 DataContext = _viewModel;
-
-                // Set the window title
                 this.Title = title;
-
-                // Ensure the dialog is shown as a modal dialog
                 this.WindowStartupLocation = WindowStartupLocation.CenterOwner;
                 this.ResizeMode = ResizeMode.NoResize;
                 this.ShowInTaskbar = false;
 
-                // Handle the OK and Cancel commands directly
+                this.Loaded += (s, e) =>
+                {
+                    if (Application.Current.MainWindow?.DataContext is MainViewModel mainViewModel)
+                    {
+                        mainViewModel.IsDialogOverlayVisible = true;
+                    }
+                };
+
+                this.Closed += (s, e) =>
+                {
+                    if (Application.Current.MainWindow?.DataContext is MainViewModel mainViewModel)
+                    {
+                        mainViewModel.IsDialogOverlayVisible = false;
+                    }
+                };
+
                 _viewModel.OkCommand = new RelayCommand(() =>
                 {
-                    // Validate that at least one section is selected (including subsections)
                     bool hasSelectedSection = _viewModel.Sections.Any(s =>
                         s.IsSelected
                         || (s.HasSubSections && s.SubSections.Any(sub => sub.IsSelected))
@@ -139,7 +138,6 @@ namespace Winhance.WPF.Features.Common.Views
             {
                 LogError($"Error initializing dialog: {ex.Message}");
 
-                // Show error message
                 MessageBox.Show(
                     $"Error initializing dialog: {ex.Message}",
                     "Error",
@@ -147,33 +145,25 @@ namespace Winhance.WPF.Features.Common.Views
                     MessageBoxImage.Error
                 );
 
-                // Set dialog result to false
                 DialogResult = false;
             }
         }
 
-        /// <summary>
-        /// Gets the result of the dialog as a dictionary of section names and their selection state.
-        /// </summary>
-        /// <returns>A dictionary of section names and their selection state.</returns>
-        public Dictionary<string, bool> GetResult()
+        public (Dictionary<string, bool> sections, ImportOptions options) GetResult()
         {
             try
             {
-                var result = _viewModel.GetResult();
-
-                // Log the selected sections for debugging
-                var selectedSections = result.Where(r => r.Value).Select(r => r.Key).ToList();
+                var (sections, options) = _viewModel.GetResult();
+                var selectedSections = sections.Where(r => r.Value).Select(r => r.Key).ToList();
                 LogInfo(
-                    $"GetResult called, returning {result.Count} sections, selected: {string.Join(", ", selectedSections)}"
+                    $"GetResult called, returning {sections.Count} sections, selected: {string.Join(", ", selectedSections)}"
                 );
-
-                return result;
+                return (sections, options);
             }
             catch (Exception ex)
             {
                 LogError($"Error getting result: {ex.Message}");
-                return new Dictionary<string, bool>();
+                return (new Dictionary<string, bool>(), new ImportOptions());
             }
         }
 
@@ -187,9 +177,6 @@ namespace Winhance.WPF.Features.Common.Views
             _logService?.Log(LogLevel.Error, $"UnifiedConfigurationDialog: {message}");
         }
 
-        /// <summary>
-        /// Handles the mouse left button down event on the title bar to enable window dragging.
-        /// </summary>
         private void Border_MouseLeftButtonDown(object sender, MouseButtonEventArgs e)
         {
             if (e.ChangedButton == MouseButton.Left)
@@ -198,9 +185,6 @@ namespace Winhance.WPF.Features.Common.Views
             }
         }
 
-        /// <summary>
-        /// Handles the close button click event.
-        /// </summary>
         private void CloseButton_Click(object sender, RoutedEventArgs e)
         {
             LogInfo("Close button clicked");

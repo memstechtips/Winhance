@@ -4,16 +4,12 @@
              xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
              xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
              xmlns:viewModels="clr-namespace:Winhance.WPF.Features.Customize.ViewModels"
-             xmlns:materialDesign="http://materialdesigninxaml.net/winfx/xaml/themes"
              d:DataContext="{d:DesignInstance Type=viewModels:ExplorerCustomizationsViewModel}"
              mc:Ignorable="d"
              Visibility="{Binding HasVisibleSettings, Converter={StaticResource BooleanToVisibilityConverter}}">
 
     <StackPanel>
-        <!-- Collapsible Header -->
         <ContentControl Template="{StaticResource CollapsibleHeaderTemplate}"/>
-        
-        <!-- Content Section -->
-        <ContentControl Template="{StaticResource ContentSectionTemplate}"/>
+        <ContentControl Template="{StaticResource GroupedContentSectionTemplate}"/>
     </StackPanel>
 </UserControl>

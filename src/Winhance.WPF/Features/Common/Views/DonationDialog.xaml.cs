@@ -20,6 +20,22 @@ namespace Winhance.WPF.Features.Common.Views
         {
             InitializeComponent();
             DataContext = this;
+
+            Loaded += (s, e) =>
+            {
+                if (Application.Current.MainWindow?.DataContext is ViewModels.MainViewModel mainViewModel)
+                {
+                    mainViewModel.IsDialogOverlayVisible = true;
+                }
+            };
+
+            Closed += (s, e) =>
+            {
+                if (Application.Current.MainWindow?.DataContext is ViewModels.MainViewModel mainViewModel)
+                {
+                    mainViewModel.IsDialogOverlayVisible = false;
+                }
+            };
         }
 
         private void PrimaryButton_Click(object sender, RoutedEventArgs e)

@@ -1,8 +1,10 @@
+using System;
+using System.Linq;
+using System.Threading.Tasks;
 using System.Windows;
 using Winhance.Core.Features.Common.Constants;
 using Winhance.Core.Features.Common.Enums;
 using Winhance.Core.Features.Common.Events;
-using Winhance.Core.Features.Common.Events.Settings;
 using Winhance.Core.Features.Common.Interfaces;
 using Winhance.Core.Features.Common.Models;
 using Winhance.Core.Features.Optimize.Models;
@@ -12,15 +14,16 @@ using Winhance.WPF.Features.Common.ViewModels;
 namespace Winhance.WPF.Features.Optimize.ViewModels
 {
     public partial class PowerOptimizationsViewModel(
-      IDomainServiceRouter domainServiceRouter,
-      ISettingsLoadingService settingsLoadingService,
-      ILogService logService,
-      IEventBus eventBus,
-      IPowerPlanComboBoxService powerPlanComboBoxService,
-      IComboBoxResolver comboBoxResolver)
-      : BaseSettingsFeatureViewModel(domainServiceRouter, settingsLoadingService, logService)
+        IDomainServiceRouter domainServiceRouter,
+        ISettingsLoadingService settingsLoadingService,
+        ILogService logService,
+        IEventBus eventBus,
+        IPowerPlanComboBoxService powerPlanComboBoxService,
+        IComboBoxResolver comboBoxResolver,
+        IHardwareDetectionService hardwareDetectionService,
+        IPowerCfgQueryService powerCfgQueryService)
+        : BaseSettingsFeatureViewModel(domainServiceRouter, settingsLoadingService, logService)
     {
-        private readonly IEventBus _eventBus = eventBus;
         private ISubscriptionToken? _powerPlanChangedSubscription;
 
         public override string ModuleId => FeatureIds.Power;
@@ -30,76 +33,18 @@ namespace Winhance.WPF.Features.Optimize.ViewModels
         {
             await base.LoadSettingsAsync();
 
+            HasBattery = await hardwareDetectionService.HasBatteryAsync();
+
             _powerPlanChangedSubscription?.Dispose();
-            _powerPlanChangedSubscription = _eventBus.Subscribe<PowerPlanChangedEvent>(HandlePowerPlanChanged);
-        }
-
-        public override async Task<bool> HandleDomainContextSettingAsync(SettingDefinition setting, object? value, bool additionalContext = false)
-        {
-            try
-            {
-                logService.Log(LogLevel.Info, $"[PowerOptimizationsViewModel] Handling domain context setting '{setting.Id}'");
-
-                if (setting.InputType == InputType.Selection && setting.CustomProperties?.ContainsKey("LoadDynamicOptions") == true)
-                {
-                    var options = await powerPlanComboBoxService.GetPowerPlanOptionsAsync();
-                    if (value is not int index || index < 0 || index >= options.Count)
-                    {
-                        logService.Log(LogLevel.Error, $"Invalid index {value} for setting '{setting.Id}'");
-                        return false;
-                    }
-
-                    var powerPlanGuid = options[index].SystemPlan?.Guid ?? options[index].PredefinedPlan?.Guid;
-                    if (string.IsNullOrEmpty(powerPlanGuid))
-                    {
-                        logService.Log(LogLevel.Error, $"No GUID found for power plan at index {index}");
-                        return false;
-                    }
-
-                    var powerService = domainServiceRouter.GetDomainService(ModuleId);
-                    if (powerService == null)
-                    {
-                        logService.Log(LogLevel.Error, $"PowerService not available for '{setting.Id}'");
-                        return false;
-                    }
-
-                    var context = new SettingOperationContext
-                    {
-                        SettingId = setting.Id,
-                        Enable = true,
-                        Value = powerPlanGuid,
-                        AdditionalParameters = new Dictionary<string, object>
-                        {
-                            ["PlanIndex"] = index,
-                            ["PlanName"] = options[index].DisplayName
-                        }
-                    };
-
-                    dynamic service = powerService;
-                    await service.ApplySettingWithContextAsync(setting.Id, true, powerPlanGuid, context);
-
-                    logService.Log(LogLevel.Info, $"[PowerOptimizationsViewModel] Successfully applied power plan: {powerPlanGuid}");
-                    return true;
-                }
-
-                logService.Log(LogLevel.Warning, $"[PowerOptimizationsViewModel] Unknown domain context setting type: '{setting.Id}'");
-                return false;
-            }
-            catch (Exception ex)
-            {
-                logService.Log(LogLevel.Error, $"[PowerOptimizationsViewModel] Error handling setting '{setting.Id}': {ex.Message}");
-                return false;
-            }
+            _powerPlanChangedSubscription = eventBus.Subscribe<PowerPlanChangedEvent>(HandlePowerPlanChanged);
         }
 
         private async void HandlePowerPlanChanged(PowerPlanChangedEvent evt)
         {
             try
             {
-                logService.Log(LogLevel.Info, $"[PowerOptimizationsViewModel] HandlePowerPlanChanged called - NewPlanGuid: {evt.NewPlanGuid}, NewPlanName: '{evt.NewPlanName}', NewPlanIndex: {evt.NewPlanIndex}");
                 await Task.Delay(200);
                 await RefreshPowerSettingsBatch();
-
             }
             catch (Exception ex)
             {
@@ -114,43 +59,104 @@ namespace Winhance.WPF.Features.Optimize.ViewModels
                 var powerService = domainServiceRouter.GetDomainService(ModuleId);
                 if (powerService == null) return;
 
-                var refreshedValues = await ((dynamic)powerService).RefreshCompatiblePowerSettingsAsync();
+                var powerPlanSetting = Settings.FirstOrDefault(s =>
+                    s.SettingDefinition?.CustomProperties?.ContainsKey("LoadDynamicOptions") == true);
+                var settingsToUpdate = Settings.Where(s =>
+                    s.SettingDefinition?.PowerCfgSettings?.Any() == true &&
+                    s.SettingDefinition?.CustomProperties?.ContainsKey("LoadDynamicOptions") != true).ToList();
 
-                var settingsToUpdate = Settings.Where(s => s.SettingDefinition?.PowerCfgSettings?.Any() == true);
+                if (!settingsToUpdate.Any() && powerPlanSetting == null) return;
+
+                var allPowerSettingsACDC = await powerCfgQueryService.GetAllPowerSettingsACDCAsync("SCHEME_CURRENT");
 
                 foreach (var setting in settingsToUpdate)
                 {
-                    var settingGuid = setting.SettingDefinition.PowerCfgSettings[0].SettingGuid;
-                    if (refreshedValues.TryGetValue(settingGuid, out int? newValue))
+                    var powerCfgSetting = setting.SettingDefinition.PowerCfgSettings[0];
+                    var settingKey = powerCfgSetting.SettingGuid;
+
+                    if (!allPowerSettingsACDC.TryGetValue(settingKey, out var values)) continue;
+
+                    var (acValue, dcValue) = values;
+
+                    if (powerCfgSetting.PowerModeSupport == PowerModeSupport.Separate)
                     {
-                        await Application.Current.Dispatcher.InvokeAsync(async () =>
+                        if (setting.InputType == InputType.NumericRange)
                         {
-                            setting._isInitializing = true;
-
-                            if (setting.InputType == InputType.NumericRange && newValue.HasValue)
+                            if (acValue.HasValue)
                             {
-                                var displayValue = ConvertSystemValueToDisplayValue(setting.SettingDefinition, newValue.Value);
-                                setting.NumericValue = displayValue;
-                                setting.SelectedValue = newValue.Value;
+                                var acDisplayValue = ConvertSystemValueToDisplayValue(setting.SettingDefinition, acValue.Value);
+                                await UpdateSettingAsync(setting, () =>
+                                {
+                                    setting.ACNumericValue = acDisplayValue;
+                                    if (!HasBattery) setting.NumericValue = acDisplayValue;
+                                });
                             }
-                            else if (setting.InputType == InputType.Selection && newValue.HasValue)
+                            if (dcValue.HasValue)
                             {
-                                var rawValues = new Dictionary<string, object?> { ["PowerCfgValue"] = newValue.Value };
-                                var resolvedIndex = await comboBoxResolver.ResolveCurrentValueAsync(setting.SettingDefinition, rawValues);
-                                setting.SelectedValue = resolvedIndex;
+                                var dcDisplayValue = ConvertSystemValueToDisplayValue(setting.SettingDefinition, dcValue.Value);
+                                await UpdateSettingAsync(setting, () => setting.DCNumericValue = dcDisplayValue);
                             }
-
-                            setting._isInitializing = false;
-                        });
+                        }
+                        else if (setting.InputType == InputType.Selection)
+                        {
+                            if (acValue.HasValue)
+                            {
+                                var acRawValues = new Dictionary<string, object?> { ["PowerCfgValue"] = acValue.Value };
+                                var acResolvedIndex = await comboBoxResolver.ResolveCurrentValueAsync(setting.SettingDefinition, acRawValues);
+                                await UpdateSettingAsync(setting, () =>
+                                {
+                                    setting.ACValue = acResolvedIndex;
+                                    if (!HasBattery) setting.SelectedValue = acResolvedIndex;
+                                });
+                            }
+                            if (dcValue.HasValue)
+                            {
+                                var dcRawValues = new Dictionary<string, object?> { ["PowerCfgValue"] = dcValue.Value };
+                                var dcResolvedIndex = await comboBoxResolver.ResolveCurrentValueAsync(setting.SettingDefinition, dcRawValues);
+                                await UpdateSettingAsync(setting, () => setting.DCValue = dcResolvedIndex);
+                            }
+                        }
+                    }
+                    else if (powerCfgSetting.PowerModeSupport == PowerModeSupport.Both)
+                    {
+                        if (setting.InputType == InputType.Toggle)
+                        {
+                            var isSelected = acValue.HasValue && acValue.Value != 0;
+                            await UpdateSettingAsync(setting, () => setting.IsSelected = isSelected);
+                        }
+                        else if (setting.InputType == InputType.Selection && acValue.HasValue)
+                        {
+                            var rawValues = new Dictionary<string, object?> { ["PowerCfgValue"] = acValue.Value };
+                            var resolvedIndex = await comboBoxResolver.ResolveCurrentValueAsync(setting.SettingDefinition, rawValues);
+                            await UpdateSettingAsync(setting, () => setting.SelectedValue = resolvedIndex);
+                        }
+                        else if (setting.InputType == InputType.NumericRange && acValue.HasValue)
+                        {
+                            var displayValue = ConvertSystemValueToDisplayValue(setting.SettingDefinition, acValue.Value);
+                            await UpdateSettingAsync(setting, () => setting.NumericValue = displayValue);
+                        }
                     }
                 }
 
-                logService.Log(LogLevel.Info, $"Bulk refreshed {refreshedValues.Count} power settings");
+                if (powerPlanSetting != null)
+                {
+                    await RefreshPowerPlanComboBox(powerPlanSetting);
+                }
             }
             catch (Exception ex)
             {
-                logService.Log(LogLevel.Error, $"Error in bulk power settings refresh: {ex.Message}");
+                logService.Log(LogLevel.Error, $"Error in power settings refresh: {ex.Message}");
             }
+        }
+
+        private async Task UpdateSettingAsync(SettingItemViewModel setting, Action updateAction)
+        {
+            await Application.Current.Dispatcher.InvokeAsync(() =>
+            {
+                setting._isInitializing = true;
+                updateAction();
+                setting._isInitializing = false;
+            });
         }
 
         private int ConvertSystemValueToDisplayValue(SettingDefinition setting, int systemValue)
@@ -174,7 +180,23 @@ namespace Winhance.WPF.Features.Optimize.ViewModels
             try
             {
                 var options = await powerPlanComboBoxService.GetPowerPlanOptionsAsync();
-                var currentIndex = await GetCurrentPowerPlanIndex(options);
+
+                var powerService = domainServiceRouter.GetDomainService(ModuleId) as Winhance.Core.Features.Optimize.Interfaces.IPowerService;
+                var activePlan = await powerService?.GetActivePowerPlanAsync();
+
+                int currentIndex = 0;
+                if (activePlan != null)
+                {
+                    for (int i = 0; i < options.Count; i++)
+                    {
+                        if (options[i].ExistsOnSystem && options[i].SystemPlan != null &&
+                            string.Equals(options[i].SystemPlan.Guid, activePlan.Guid, StringComparison.OrdinalIgnoreCase))
+                        {
+                            currentIndex = i;
+                            break;
+                        }
+                    }
+                }
 
                 await Application.Current.Dispatcher.InvokeAsync(() =>
                 {
@@ -213,35 +235,6 @@ namespace Winhance.WPF.Features.Optimize.ViewModels
             catch (Exception ex)
             {
                 logService.Log(LogLevel.Error, $"Failed to refresh power plan combo box: {ex.Message}");
-            }
-        }
-
-        private async Task<int> GetCurrentPowerPlanIndex(List<PowerPlanComboBoxOption> options)
-        {
-            try
-            {
-                var powerService = domainServiceRouter.GetDomainService(ModuleId) as Winhance.Core.Features.Optimize.Interfaces.IPowerService;
-                if (powerService == null) return 0;
-
-                var activePlan = await powerService.GetActivePowerPlanAsync();
-                if (activePlan == null) return 0;
-
-                for (int i = 0; i < options.Count; i++)
-                {
-                    if (options[i].ExistsOnSystem && options[i].SystemPlan != null)
-                    {
-                        if (string.Equals(options[i].SystemPlan.Guid, activePlan.Guid, StringComparison.OrdinalIgnoreCase))
-                        {
-                            return i;
-                        }
-                    }
-                }
-
-                return 0;
-            }
-            catch
-            {
-                return 0;
             }
         }
 

@@ -5,9 +5,6 @@ using System.Windows.Interop;
 
 namespace Winhance.WPF.Features.Common.Services
 {
-    /// <summary>
-    /// Service responsible for applying visual effects to windows
-    /// </summary>
     public class WindowEffectsService
     {
         [DllImport("user32.dll")]
@@ -72,10 +69,6 @@ namespace Winhance.WPF.Features.Common.Services
             WCA_ACCENT_POLICY = 19,
         }
 
-        /// <summary>
-        /// Enables blur effect on the specified window
-        /// </summary>
-        /// <param name="window">The window to apply blur effect to</param>
         public void EnableBlur(Window window)
         {
             try
@@ -100,30 +93,21 @@ namespace Winhance.WPF.Features.Common.Services
                 SetWindowCompositionAttribute(windowHelper.Handle, ref data);
                 Marshal.FreeHGlobal(accentPtr);
             }
-            catch (Exception)
+            catch
             {
-                // Silently fail if blur effect cannot be applied
+                // Silently fail
             }
         }
 
-        /// <summary>
-        /// Gets the current screen work area for the specified window
-        /// </summary>
-        /// <param name="window">The window to get screen work area for</param>
-        /// <returns>The work area rectangle</returns>
         public RECT GetCurrentScreenWorkArea(Window window)
         {
             var windowHelper = new WindowInteropHelper(window);
-            var monitor = MonitorFromWindow(windowHelper.Handle, 2); // MONITOR_DEFAULTTONEAREST
-
+            var monitor = MonitorFromWindow(windowHelper.Handle, 2);
             var monitorInfo = new MONITORINFO { Size = Marshal.SizeOf(typeof(MONITORINFO)) };
 
             if (GetMonitorInfo(monitor, ref monitorInfo))
-            {
                 return monitorInfo.WorkArea;
-            }
 
-            // Fallback to primary screen
             return new RECT
             {
                 Left = 0,
@@ -133,10 +117,6 @@ namespace Winhance.WPF.Features.Common.Services
             };
         }
 
-        /// <summary>
-        /// Sets dynamic window size based on screen dimensions
-        /// </summary>
-        /// <param name="window">The window to resize</param>
         public void SetDynamicWindowSize(Window window)
         {
             var workArea = GetCurrentScreenWorkArea(window);
@@ -155,7 +135,7 @@ namespace Winhance.WPF.Features.Common.Services
             }
             catch
             {
-                // Use default DPI scaling if unable to get actual values
+                // Use default DPI
             }
 
             double screenWidth = workArea.Right - workArea.Left;

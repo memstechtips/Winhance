@@ -1,4 +1,3 @@
-using System.Collections.Generic;
 using Microsoft.Win32;
 using Winhance.Core.Features.Common.Constants;
 using Winhance.Core.Features.Common.Enums;
@@ -18,209 +17,487 @@ public static class UpdateOptimizations
             {
                 new SettingDefinition
                 {
-                    Id = "updates-auto-update",
-                    Name = "Automatic Windows Updates",
-                    Description = "Controls automatic Windows updates behavior",
-                    GroupName = "Windows Update Settings",
-                    InputType = InputType.Toggle,
+                    Id = "updates-policy-mode",
+                    Name = "Windows Update Policy",
+                    Description = "Control how Windows updates are installed on your system",
+                    GroupName = "Update Policy",
+                    Icon = "BookSync",
+                    InputType = InputType.Selection,
                     RegistrySettings = new List<RegistrySetting>
                     {
                         new RegistrySetting
                         {
+                            KeyPath = @"HKEY_CURRENT_USER\SOFTWARE\Policies\Microsoft\Windows\WindowsUpdate\AU",
+                            ValueName = "NoAutoUpdate",
+                            DefaultValue = null,
+                            ValueType = RegistryValueKind.DWord,
+                        },
+                        new RegistrySetting
+                        {
                             KeyPath = @"HKEY_LOCAL_MACHINE\SOFTWARE\Policies\Microsoft\Windows\WindowsUpdate\AU",
                             ValueName = "NoAutoUpdate",
-                            RecommendedValue = 1,
-                            EnabledValue = 0, // When toggle is ON, automatic updates are enabled
-                            DisabledValue = 1, // When toggle is OFF, automatic updates are disabled
-                            DefaultValue = 0, // Default value when registry key exists but no value is set
+                            DefaultValue = null,
+                            ValueType = RegistryValueKind.DWord,
+                        },
+                        new RegistrySetting
+                        {
+                            KeyPath = @"HKEY_CURRENT_USER\SOFTWARE\Policies\Microsoft\Windows\WindowsUpdate\AU",
+                            ValueName = "AUOptions",
+                            DefaultValue = null,
                             ValueType = RegistryValueKind.DWord,
                         },
                         new RegistrySetting
                         {
                             KeyPath = @"HKEY_LOCAL_MACHINE\SOFTWARE\Policies\Microsoft\Windows\WindowsUpdate\AU",
                             ValueName = "AUOptions",
-                            RecommendedValue = 2,
-                            EnabledValue = 4, // When toggle is ON, auto download and schedule install (4)
-                            DisabledValue = 2, // When toggle is OFF, notify before download (2)
-                            DefaultValue = 2, // Default value when registry key exists but no value is set
+                            DefaultValue = null,
+                            ValueType = RegistryValueKind.DWord,
+                        },
+                        new RegistrySetting
+                        {
+                            KeyPath = @"HKEY_LOCAL_MACHINE\SOFTWARE\Microsoft\WindowsUpdate\UX\Settings",
+                            ValueName = "BranchReadinessLevel",
+                            DefaultValue = null,
+                            ValueType = RegistryValueKind.DWord,
+                        },
+                        new RegistrySetting
+                        {
+                            KeyPath = @"HKEY_LOCAL_MACHINE\SOFTWARE\Microsoft\WindowsUpdate\UX\Settings",
+                            ValueName = "DeferFeatureUpdates",
+                            DefaultValue = null,
+                            ValueType = RegistryValueKind.DWord,
+                        },
+                        new RegistrySetting
+                        {
+                            KeyPath = @"HKEY_LOCAL_MACHINE\SOFTWARE\Microsoft\WindowsUpdate\UX\Settings",
+                            ValueName = "DeferFeatureUpdatesPeriodInDays",
+                            DefaultValue = null,
+                            ValueType = RegistryValueKind.DWord,
+                        },
+                        new RegistrySetting
+                        {
+                            KeyPath = @"HKEY_LOCAL_MACHINE\SOFTWARE\Microsoft\WindowsUpdate\UX\Settings",
+                            ValueName = "DeferQualityUpdates",
+                            DefaultValue = null,
+                            ValueType = RegistryValueKind.DWord,
+                        },
+                        new RegistrySetting
+                        {
+                            KeyPath = @"HKEY_LOCAL_MACHINE\SOFTWARE\Microsoft\WindowsUpdate\UX\Settings",
+                            ValueName = "DeferQualityUpdatesPeriodInDays",
+                            DefaultValue = null,
+                            ValueType = RegistryValueKind.DWord,
+                        },
+                        new RegistrySetting
+                        {
+                            KeyPath = @"HKEY_LOCAL_MACHINE\SOFTWARE\Microsoft\WindowsUpdate\UX\Settings",
+                            ValueName = "PauseFeatureUpdatesStartTime",
+                            DefaultValue = null,
+                            ValueType = RegistryValueKind.String,
+                        },
+                        new RegistrySetting
+                        {
+                            KeyPath = @"HKEY_LOCAL_MACHINE\SOFTWARE\Microsoft\WindowsUpdate\UX\Settings",
+                            ValueName = "PauseFeatureUpdatesEndTime",
+                            DefaultValue = null,
+                            ValueType = RegistryValueKind.String,
+                        },
+                        new RegistrySetting
+                        {
+                            KeyPath = @"HKEY_LOCAL_MACHINE\SOFTWARE\Microsoft\WindowsUpdate\UX\Settings",
+                            ValueName = "PauseQualityUpdatesStartTime",
+                            DefaultValue = null,
+                            ValueType = RegistryValueKind.String,
+                        },
+                        new RegistrySetting
+                        {
+                            KeyPath = @"HKEY_LOCAL_MACHINE\SOFTWARE\Microsoft\WindowsUpdate\UX\Settings",
+                            ValueName = "PauseQualityUpdatesEndTime",
+                            DefaultValue = null,
+                            ValueType = RegistryValueKind.String,
+                        },
+                        new RegistrySetting
+                        {
+                            KeyPath = @"HKEY_LOCAL_MACHINE\SOFTWARE\Microsoft\WindowsUpdate\UX\Settings",
+                            ValueName = "PauseUpdatesStartTime",
+                            DefaultValue = null,
+                            ValueType = RegistryValueKind.String,
+                        },
+                        new RegistrySetting
+                        {
+                            KeyPath = @"HKEY_LOCAL_MACHINE\SOFTWARE\Microsoft\WindowsUpdate\UX\Settings",
+                            ValueName = "PauseUpdatesExpiryTime",
+                            DefaultValue = null,
+                            ValueType = RegistryValueKind.String,
+                        },
+                        new RegistrySetting
+                        {
+                            KeyPath = @"HKEY_LOCAL_MACHINE\SOFTWARE\Microsoft\WindowsUpdate\UX\Settings",
+                            ValueName = "PausedQualityDate",
+                            DefaultValue = null,
+                            ValueType = RegistryValueKind.String,
+                        },
+                        new RegistrySetting
+                        {
+                            KeyPath = @"HKEY_LOCAL_MACHINE\SOFTWARE\Microsoft\WindowsUpdate\UX\Settings",
+                            ValueName = "PausedFeatureDate",
+                            DefaultValue = null,
+                            ValueType = RegistryValueKind.String,
+                        },
+                        new RegistrySetting
+                        {
+                            KeyPath = @"HKEY_LOCAL_MACHINE\SOFTWARE\Microsoft\WindowsUpdate\UX\Settings",
+                            ValueName = "FlightSettingsMaxPauseDays",
+                            DefaultValue = null,
+                            ValueType = RegistryValueKind.DWord,
+                        },
+                        new RegistrySetting
+                        {
+                            KeyPath = @"HKEY_CURRENT_USER\SOFTWARE\Policies\Microsoft\Windows\WindowsUpdate\AU",
+                            ValueName = "NoAUShutdownOption",
+                            DefaultValue = null,
+                            ValueType = RegistryValueKind.DWord,
+                        },
+                        new RegistrySetting
+                        {
+                            KeyPath = @"HKEY_LOCAL_MACHINE\SOFTWARE\Policies\Microsoft\Windows\WindowsUpdate\AU",
+                            ValueName = "NoAUShutdownOption",
+                            DefaultValue = null,
+                            ValueType = RegistryValueKind.DWord,
+                        },
+                        new RegistrySetting
+                        {
+                            KeyPath = @"HKEY_CURRENT_USER\SOFTWARE\Policies\Microsoft\Windows\WindowsUpdate\AU",
+                            ValueName = "AlwaysAutoRebootAtScheduledTime",
+                            DefaultValue = null,
+                            ValueType = RegistryValueKind.DWord,
+                        },
+                        new RegistrySetting
+                        {
+                            KeyPath = @"HKEY_LOCAL_MACHINE\SOFTWARE\Policies\Microsoft\Windows\WindowsUpdate\AU",
+                            ValueName = "AlwaysAutoRebootAtScheduledTime",
+                            DefaultValue = null,
+                            ValueType = RegistryValueKind.DWord,
+                        },
+                        new RegistrySetting
+                        {
+                            KeyPath = @"HKEY_CURRENT_USER\SOFTWARE\Policies\Microsoft\Windows\WindowsUpdate\AU",
+                            ValueName = "AutoInstallMinorUpdates",
+                            DefaultValue = null,
                             ValueType = RegistryValueKind.DWord,
                         },
                         new RegistrySetting
                         {
                             KeyPath = @"HKEY_LOCAL_MACHINE\SOFTWARE\Policies\Microsoft\Windows\WindowsUpdate\AU",
                             ValueName = "AutoInstallMinorUpdates",
-                            RecommendedValue = 0,
-                            EnabledValue = 1, // When toggle is ON, minor updates are installed automatically
-                            DisabledValue = 0, // When toggle is OFF, minor updates are not installed automatically
-                            DefaultValue = 0, // Default value when registry key exists but no value is set
+                            DefaultValue = null,
+                            ValueType = RegistryValueKind.DWord,
+                        },
+                        new RegistrySetting
+                        {
+                            KeyPath = @"HKEY_CURRENT_USER\SOFTWARE\Policies\Microsoft\Windows\WindowsUpdate\AU",
+                            ValueName = "UseWUServer",
+                            DefaultValue = null,
+                            ValueType = RegistryValueKind.DWord,
+                        },
+                        new RegistrySetting
+                        {
+                            KeyPath = @"HKEY_LOCAL_MACHINE\SOFTWARE\Policies\Microsoft\Windows\WindowsUpdate\AU",
+                            ValueName = "UseWUServer",
+                            DefaultValue = null,
+                            ValueType = RegistryValueKind.DWord,
+                        },
+                        new RegistrySetting
+                        {
+                            KeyPath = @"HKEY_LOCAL_MACHINE\SOFTWARE\Microsoft\WindowsUpdate\UX\Settings",
+                            ValueName = "PausedFeatureStatus",
+                            DefaultValue = null,
+                            ValueType = RegistryValueKind.DWord,
+                        },
+                        new RegistrySetting
+                        {
+                            KeyPath = @"HKEY_LOCAL_MACHINE\SOFTWARE\Microsoft\WindowsUpdate\UX\Settings",
+                            ValueName = "PausedQualityStatus",
+                            DefaultValue = null,
                             ValueType = RegistryValueKind.DWord,
                         },
                     },
-                },
-                new SettingDefinition
-                {
-                    Id = "updates-defer-feature-updates",
-                    Name = "Delay Feature Updates for 365 Days",
-                    Description = "Delays major Windows feature updates for 365 days",
-                    GroupName = "Windows Update Policies",
-                    InputType = InputType.Toggle,
-                    RegistrySettings = new List<RegistrySetting>
+                    CustomProperties = new Dictionary<string, object>
                     {
-                        new RegistrySetting
+                        [CustomPropertyKeys.DisableTooltip] = true,
+                        [CustomPropertyKeys.ComboBoxDisplayNames] = new string[]
                         {
-                            KeyPath = @"HKEY_LOCAL_MACHINE\SOFTWARE\Policies\Microsoft\Windows\WindowsUpdate",
-                            ValueName = "DeferFeatureUpdates",
-                            RecommendedValue = 1,
-                            EnabledValue = 1, // When toggle is ON, feature updates are deferred
-                            DisabledValue = 0, // When toggle is OFF, feature updates are not deferred
-                            DefaultValue = 0, // Default value when registry key exists but no value is set
-                            ValueType = RegistryValueKind.DWord,
+                            "Normal (Windows Default)",
+                            "Security Updates Only (Recommended)",
+                            "Paused for a long time (Unpause in Settings)",
+                            "Disabled (NOT Recommended, Security Risk)",
                         },
-                        new RegistrySetting
+                        [CustomPropertyKeys.OptionWarnings] = new Dictionary<int, string>
                         {
-                            KeyPath = @"HKEY_LOCAL_MACHINE\SOFTWARE\Policies\Microsoft\Windows\WindowsUpdate",
-                            ValueName = "DeferFeatureUpdatesPeriodInDays",
-                            RecommendedValue = 365,
-                            EnabledValue = 365, // When toggle is ON, feature updates are deferred for 365 days
-                            DisabledValue = 0, // When toggle is OFF, feature updates are not deferred
-                            DefaultValue = 0, // Default value when registry key exists but no value is set
-                            ValueType = RegistryValueKind.DWord,
+                            [2] = "⚠️ WARNING: Pausing updates for a long time leaves your system vulnerable to security threats. Use at your own risk.",
+                            [3] = "⚠️ WARNING: Disabling updates leaves your system vulnerable to security threats. Use at your own risk."
                         },
-                    },
-                },
-                new SettingDefinition
-                {
-                    Id = "updates-defer-quality-updates",
-                    Name = "Delay Security Updates for 7 Days",
-                    Description = "Delays Windows security and quality updates for 7 days",
-                    GroupName = "Windows Update Policies",
-                    InputType = InputType.Toggle,
-                    RegistrySettings = new List<RegistrySetting>
-                    {
-                        new RegistrySetting
+                        [CustomPropertyKeys.OptionTooltips] = new string[]
                         {
-                            KeyPath = @"HKEY_LOCAL_MACHINE\SOFTWARE\Policies\Microsoft\Windows\WindowsUpdate",
-                            ValueName = "DeferQualityUpdates",
-                            RecommendedValue = 1,
-                            EnabledValue = 1, // When toggle is ON, quality updates are deferred
-                            DisabledValue = 0, // When toggle is OFF, quality updates are not deferred
-                            DefaultValue = 0, // Default value when registry key exists but no value is set
-                            ValueType = RegistryValueKind.DWord,
+                            "Windows default behavior - automatic updates enabled",
+                            "Only install critical security updates, defer feature updates by 1 year",
+                            "Pause all updates until 2051 - manually unpause in Windows Settings when needed",
+                            "Completely disable Windows Update services and block all updates - NOT RECOMMENDED"
                         },
-                        new RegistrySetting
+                        [CustomPropertyKeys.ValueMappings] = new Dictionary<int, Dictionary<string, object?>>
                         {
-                            KeyPath = @"HKEY_LOCAL_MACHINE\SOFTWARE\Policies\Microsoft\Windows\WindowsUpdate",
-                            ValueName = "DeferQualityUpdatesPeriodInDays",
-                            RecommendedValue = 7,
-                            EnabledValue = 7, // When toggle is ON, quality updates are deferred for 7 days
-                            DisabledValue = 0, // When toggle is OFF, quality updates are not deferred
-                            DefaultValue = 0, // Default value when registry key exists but no value is set
-                            ValueType = RegistryValueKind.DWord,
+                            [0] = new Dictionary<string, object?> // Normal
+                            {
+                                ["NoAutoUpdate"] = null,
+                                ["AUOptions"] = null,
+                                ["BranchReadinessLevel"] = null,
+                                ["DeferFeatureUpdates"] = null,
+                                ["DeferFeatureUpdatesPeriodInDays"] = null,
+                                ["DeferQualityUpdates"] = null,
+                                ["DeferQualityUpdatesPeriodInDays"] = null,
+                                ["PauseFeatureUpdatesStartTime"] = null,
+                                ["PauseFeatureUpdatesEndTime"] = null,
+                                ["PauseQualityUpdatesStartTime"] = null,
+                                ["PauseQualityUpdatesEndTime"] = null,
+                                ["PauseUpdatesStartTime"] = null,
+                                ["PauseUpdatesExpiryTime"] = null,
+                                ["PausedQualityDate"] = null,
+                                ["PausedFeatureDate"] = null,
+                                ["FlightSettingsMaxPauseDays"] = null,
+                                ["NoAUShutdownOption"] = null,
+                                ["AlwaysAutoRebootAtScheduledTime"] = null,
+                                ["AutoInstallMinorUpdates"] = null,
+                                ["UseWUServer"] = null,
+                                ["PausedFeatureStatus"] = null,
+                                ["PausedQualityStatus"] = null,
+                            },
+                            [1] = new Dictionary<string, object?> // Security Only
+                            {
+                                ["NoAutoUpdate"] = null,
+                                ["AUOptions"] = 2,
+                                ["BranchReadinessLevel"] = 20,
+                                ["DeferFeatureUpdates"] = 1,
+                                ["DeferFeatureUpdatesPeriodInDays"] = 365,
+                                ["DeferQualityUpdates"] = 1,
+                                ["DeferQualityUpdatesPeriodInDays"] = 7,
+                                ["PauseFeatureUpdatesStartTime"] = null,
+                                ["PauseFeatureUpdatesEndTime"] = null,
+                                ["PauseQualityUpdatesStartTime"] = null,
+                                ["PauseQualityUpdatesEndTime"] = null,
+                                ["PauseUpdatesStartTime"] = null,
+                                ["PauseUpdatesExpiryTime"] = null,
+                                ["PausedQualityDate"] = null,
+                                ["PausedFeatureDate"] = null,
+                                ["FlightSettingsMaxPauseDays"] = null,
+                                ["NoAUShutdownOption"] = null,
+                                ["AlwaysAutoRebootAtScheduledTime"] = null,
+                                ["AutoInstallMinorUpdates"] = null,
+                                ["UseWUServer"] = null,
+                                ["PausedFeatureStatus"] = null,
+                                ["PausedQualityStatus"] = null,
+                            },
+                            [2] = new Dictionary<string, object?> // Paused
+                            {
+                                ["NoAutoUpdate"] = 1,
+                                ["AUOptions"] = 1,
+                                ["BranchReadinessLevel"] = null,
+                                ["DeferFeatureUpdates"] = null,
+                                ["DeferFeatureUpdatesPeriodInDays"] = null,
+                                ["DeferQualityUpdates"] = null,
+                                ["DeferQualityUpdatesPeriodInDays"] = null,
+                                ["PauseFeatureUpdatesStartTime"] = "2025-01-01T00:00:00Z",
+                                ["PauseFeatureUpdatesEndTime"] = "2051-12-31T00:00:00Z",
+                                ["PauseQualityUpdatesStartTime"] = "2025-01-01T00:00:00Z",
+                                ["PauseQualityUpdatesEndTime"] = "2051-12-31T00:00:00Z",
+                                ["PauseUpdatesStartTime"] = "2025-01-01T00:00:00Z",
+                                ["PauseUpdatesExpiryTime"] = "2051-12-31T00:00:00Z",
+                                ["PausedQualityDate"] = "2025-01-01T00:00:00Z",
+                                ["PausedFeatureDate"] = "2025-01-01T00:00:00Z",
+                                ["FlightSettingsMaxPauseDays"] = 10023,
+                                ["NoAUShutdownOption"] = 1,
+                                ["AlwaysAutoRebootAtScheduledTime"] = 0,
+                                ["AutoInstallMinorUpdates"] = 0,
+                                ["UseWUServer"] = 0,
+                                ["PausedFeatureStatus"] = 1,
+                                ["PausedQualityStatus"] = 1,
+                            },
+                            [3] = new Dictionary<string, object?> // Disabled
+                            {
+                                ["NoAutoUpdate"] = 1,
+                                ["AUOptions"] = 1,
+                                ["BranchReadinessLevel"] = null,
+                                ["DeferFeatureUpdates"] = null,
+                                ["DeferFeatureUpdatesPeriodInDays"] = null,
+                                ["DeferQualityUpdates"] = null,
+                                ["DeferQualityUpdatesPeriodInDays"] = null,
+                                ["PauseFeatureUpdatesStartTime"] = null,
+                                ["PauseFeatureUpdatesEndTime"] = null,
+                                ["PauseQualityUpdatesStartTime"] = null,
+                                ["PauseQualityUpdatesEndTime"] = null,
+                                ["PauseUpdatesStartTime"] = null,
+                                ["PauseUpdatesExpiryTime"] = null,
+                                ["PausedQualityDate"] = null,
+                                ["PausedFeatureDate"] = null,
+                                ["FlightSettingsMaxPauseDays"] = null,
+                                ["NoAUShutdownOption"] = null,
+                                ["AlwaysAutoRebootAtScheduledTime"] = null,
+                                ["AutoInstallMinorUpdates"] = null,
+                                ["UseWUServer"] = 0,
+                                ["PausedFeatureStatus"] = null,
+                                ["PausedQualityStatus"] = null,
+                            },
                         },
                     },
                 },
                 new SettingDefinition
                 {
                     Id = "updates-delivery-optimization",
-                    Name = "Delivery Optimization (LAN)",
-                    Description = "Controls peer-to-peer update distribution",
-                    GroupName = "Delivery Optimization",
-                    InputType = InputType.Toggle,
+                    Name = "Delivery Optimization",
+                    Description = "Share downloaded updates with other PCs on your network or the internet to reduce bandwidth usage",
+                    GroupName = "Delivery & Store",
+                    Icon = "ShareVariant",
+                    InputType = InputType.Selection,
                     RegistrySettings = new List<RegistrySetting>
                     {
+                        new RegistrySetting
+                        {
+                            KeyPath = @"HKEY_CURRENT_USER\SOFTWARE\Policies\Microsoft\Windows\DeliveryOptimization",
+                            ValueName = "DODownloadMode",
+                            RecommendedValue = 99,
+                            DefaultValue = null,
+                            ValueType = RegistryValueKind.DWord,
+                        },
                         new RegistrySetting
                         {
                             KeyPath = @"HKEY_LOCAL_MACHINE\SOFTWARE\Policies\Microsoft\Windows\DeliveryOptimization",
                             ValueName = "DODownloadMode",
+                            RecommendedValue = 99,
+                            DefaultValue = null,
+                            ValueType = RegistryValueKind.DWord,
+                        },
+                    },
+                    CustomProperties = new Dictionary<string, object>
+                    {
+                        [CustomPropertyKeys.ComboBoxDisplayNames] = new string[]
+                        {
+                            "Windows Default",
+                            "Devices on LAN Only",
+                            "Devices on LAN and Internet",
+                            "Disabled",
+                        },
+                        [CustomPropertyKeys.ValueMappings] = new Dictionary<int, Dictionary<string, object?>>
+                        {
+                            [0] = new Dictionary<string, object?>
+                            {
+                                ["DODownloadMode"] = null,
+                            },
+                            [1] = new Dictionary<string, object?>
+                            {
+                                ["DODownloadMode"] = 1,
+                            },
+                            [2] = new Dictionary<string, object?>
+                            {
+                                ["DODownloadMode"] = 3,
+                            },
+                            [3] = new Dictionary<string, object?>
+                            {
+                                ["DODownloadMode"] = 99,
+                            },
+                        },
+                    },
+                },
+                new SettingDefinition
+                {
+                    Id = "updates-latest-updates",
+                    Name = "Get the latest updates as soon as they're available",
+                    Description = "Be among the first to get the latest non-security updates, fixes, and improvements as they roll out",
+                    GroupName = "Update Behavior",
+                    Icon = "BullhornVariant",
+                    InputType = InputType.Toggle,
+                    RegistrySettings = new List<RegistrySetting>
+                    {
+                        new RegistrySetting
+                        {
+                            KeyPath = @"HKEY_LOCAL_MACHINE\SOFTWARE\Microsoft\WindowsUpdate\UX\Settings",
+                            ValueName = "IsContinuousInnovationOptedIn",
                             RecommendedValue = 0,
-                            EnabledValue = 1, // When toggle is ON, peer-to-peer update distribution is enabled (LAN only)
-                            DisabledValue = 0, // When toggle is OFF, peer-to-peer update distribution is disabled
-                            DefaultValue = 1, // Default value when registry key exists but no value is set
+                            DefaultValue = null,
                             ValueType = RegistryValueKind.DWord,
                         },
                     },
                 },
                 new SettingDefinition
                 {
-                    Id = "updates-store-auto-download",
-                    Name = "Auto Update Microsoft Store Apps",
-                    Description = "Controls automatic updates for Microsoft Store apps",
-                    GroupName = "Microsoft Store",
+                    Id = "updates-other-products",
+                    Name = "Receive updates for other Microsoft products",
+                    Description = "Get Microsoft Office and other updates together with Windows updates",
+                    GroupName = "Update Behavior",
+                    Icon = "ArchiveSync",
                     InputType = InputType.Toggle,
                     RegistrySettings = new List<RegistrySetting>
                     {
                         new RegistrySetting
                         {
-                            KeyPath = @"HKEY_LOCAL_MACHINE\SOFTWARE\Policies\Microsoft\WindowsStore",
-                            ValueName = "AutoDownload",
-                            RecommendedValue = 2,
-                            EnabledValue = 4, // When toggle is ON, automatic updates for Microsoft Store apps are enabled
-                            DisabledValue = 2, // When toggle is OFF, automatic updates for Microsoft Store apps are disabled
-                            DefaultValue = 2, // Default value when registry key exists but no value is set
+                            KeyPath = @"HKEY_LOCAL_MACHINE\Software\Microsoft\WindowsUpdate\UX\Settings",
+                            ValueName = "AllowMUUpdateService",
+                            RecommendedValue = 0,
+                            EnabledValue = 1,
+                            DisabledValue = 0,
+                            DefaultValue = 0,
                             ValueType = RegistryValueKind.DWord,
                         },
                     },
                 },
                 new SettingDefinition
                 {
-                    Id = "updates-app-archiving",
-                    Name = "Automatic Archiving of Unused Apps",
-                    Description = "Controls automatic archiving of unused apps",
-                    GroupName = "Microsoft Store",
+                    Id = "updates-restart-asap",
+                    Name = "Get me up to date",
+                    Description = "Restart as soon as possible (even during active hours) to finish updating",
+                    GroupName = "Update Behavior",
+                    Icon = "Restart",
                     InputType = InputType.Toggle,
                     RegistrySettings = new List<RegistrySetting>
                     {
                         new RegistrySetting
                         {
-                            KeyPath = @"HKEY_LOCAL_MACHINE\SOFTWARE\Policies\Microsoft\Windows\Appx",
-                            ValueName = "AllowAutomaticAppArchiving",
+                            KeyPath = @"HKEY_LOCAL_MACHINE\Software\Microsoft\WindowsUpdate\UX\Settings",
+                            ValueName = "IsExpedited",
                             RecommendedValue = 0,
-                            EnabledValue = 1, // When toggle is ON, automatic archiving of unused apps is enabled
-                            DisabledValue = 0, // When toggle is OFF, automatic archiving of unused apps is disabled
-                            DefaultValue = 0, // Default value when registry key exists but no value is set
+                            EnabledValue = 1,
+                            DisabledValue = 0,
+                            DefaultValue = 0,
                             ValueType = RegistryValueKind.DWord,
                         },
                     },
-                },
+                },         
                 new SettingDefinition
                 {
                     Id = "updates-restart-options",
                     Name = "Prevent Automatic Restarts",
-                    Description =
-                        "Prevents automatic restarts after installing updates when users are logged on",
+                    Description = "Prevents automatic restarts after installing updates when users are logged on",
                     GroupName = "Update Behavior",
+                    Icon = "RestartOff",
                     InputType = InputType.Toggle,
                     RegistrySettings = new List<RegistrySetting>
                     {
+                        new RegistrySetting
+                        {
+                            KeyPath = @"HKEY_CURRENT_USER\SOFTWARE\Policies\Microsoft\Windows\WindowsUpdate\AU",
+                            ValueName = "NoAutoRebootWithLoggedOnUsers",
+                            RecommendedValue = 1,
+                            EnabledValue = 1,
+                            DisabledValue = 0,
+                            DefaultValue = 0,
+                            ValueType = RegistryValueKind.DWord,
+                        },
                         new RegistrySetting
                         {
                             KeyPath = @"HKEY_LOCAL_MACHINE\SOFTWARE\Policies\Microsoft\Windows\WindowsUpdate\AU",
                             ValueName = "NoAutoRebootWithLoggedOnUsers",
                             RecommendedValue = 1,
-                            EnabledValue = 0, // When toggle is ON, automatic restarts are prevented
-                            DisabledValue = 1, // When toggle is OFF, automatic restarts are allowed
-                            DefaultValue = 0, // Default value when registry key exists but no value is set
-                            ValueType = RegistryValueKind.DWord,
-                        },
-                    },
-                },
-                new SettingDefinition
-                {
-                    Id = "updates-driver-controls",
-                    Name = "Do Not Include Drivers with Updates",
-                    Description = "Does not include driver updates with Windows quality updates",
-                    GroupName = "Update Content",
-                    InputType = InputType.Toggle,
-                    RegistrySettings = new List<RegistrySetting>
-                    {
-                        new RegistrySetting
-                        {
-                            KeyPath = @"HKEY_LOCAL_MACHINE\SOFTWARE\Policies\Microsoft\Windows\WindowsUpdate",
-                            ValueName = "ExcludeWUDriversInQualityUpdate",
-                            RecommendedValue = 1,
-                            EnabledValue = 0, // When toggle is ON, driver updates are included
-                            DisabledValue = 1, // When toggle is OFF, driver updates are excluded
-                            DefaultValue = 0, // Default value when registry key exists but no value is set
+                            EnabledValue = 1,
+                            DisabledValue = 0,
+                            DefaultValue = 0,
                             ValueType = RegistryValueKind.DWord,
                         },
                     },
@@ -229,19 +506,52 @@ public static class UpdateOptimizations
                 {
                     Id = "updates-notification-level",
                     Name = "Update Notifications",
-                    Description = "Controls the visibility of update notifications",
+                    Description = "Show or hide notifications about available updates and update progress",
                     GroupName = "Update Behavior",
+                    Icon = "BellPlus",
                     InputType = InputType.Toggle,
                     RegistrySettings = new List<RegistrySetting>
                     {
                         new RegistrySetting
                         {
+                            KeyPath = @"HKEY_CURRENT_USER\SOFTWARE\Policies\Microsoft\Windows\WindowsUpdate",
+                            ValueName = "SetUpdateNotificationLevel",
+                            RecommendedValue = 1,
+                            EnabledValue = 2,
+                            DisabledValue = 1,
+                            DefaultValue = 2,
+                            ValueType = RegistryValueKind.DWord,
+                        },
+                        new RegistrySetting
+                        {
                             KeyPath = @"HKEY_LOCAL_MACHINE\SOFTWARE\Policies\Microsoft\Windows\WindowsUpdate",
                             ValueName = "SetUpdateNotificationLevel",
                             RecommendedValue = 1,
-                            EnabledValue = 2, // When toggle is ON, show all notifications (2 = default)
-                            DisabledValue = 1, // When toggle is OFF, show only restart required notifications (1 = reduced)
-                            DefaultValue = 2, // Default value when registry key exists but no value is set
+                            EnabledValue = 2,
+                            DisabledValue = 1,
+                            DefaultValue = 2,
+                            ValueType = RegistryValueKind.DWord,
+                        },
+                    },
+                },
+                new SettingDefinition
+                {
+                    Id = "updates-restart-notification",
+                    Name = "Notify me when a restart is required to finish updating",
+                    Description = "Show notification when your device requires a restart to finish updating",
+                    GroupName = "Update Behavior",
+                    Icon = "RestartAlert",
+                    InputType = InputType.Toggle,
+                    RegistrySettings = new List<RegistrySetting>
+                    {
+                        new RegistrySetting
+                        {
+                            KeyPath = @"HKEY_LOCAL_MACHINE\Software\Microsoft\WindowsUpdate\UX\Settings",
+                            ValueName = "RestartNotificationsAllowed2",
+                            RecommendedValue = 0,
+                            EnabledValue = 1,
+                            DisabledValue = 0,
+                            DefaultValue = 0,
                             ValueType = RegistryValueKind.DWord,
                         },
                     },
@@ -249,21 +559,86 @@ public static class UpdateOptimizations
                 new SettingDefinition
                 {
                     Id = "updates-metered-connection",
-                    Name = "Updates on Metered Connections",
-                    Description =
-                        "Controls whether updates are downloaded over metered connections",
+                    Name = "Download updates over metered connections",
+                    Description = "Allow Windows to download updates when using mobile hotspots or data-limited connections",
                     GroupName = "Update Behavior",
+                    Icon = "Connection",
                     InputType = InputType.Toggle,
                     RegistrySettings = new List<RegistrySetting>
                     {
                         new RegistrySetting
                         {
-                            KeyPath = @"HKEY_CURRENT_USER\SOFTWARE\Microsoft\WindowsUpdate\UX\Settings",
+                            KeyPath = @"HKEY_LOCAL_MACHINE\SOFTWARE\Microsoft\WindowsUpdate\UX\Settings",
                             ValueName = "AllowAutoWindowsUpdateDownloadOverMeteredNetwork",
                             RecommendedValue = 0,
-                            EnabledValue = 1, // When toggle is ON, updates are downloaded over metered connections
-                            DisabledValue = 0, // When toggle is OFF, updates are not downloaded over metered connections
-                            DefaultValue = 0, // Default value when registry key exists but no value is set
+                            EnabledValue = 1,
+                            DisabledValue = 0,
+                            DefaultValue = 0,
+                            ValueType = RegistryValueKind.DWord,
+                        },
+                    },
+                },
+                new SettingDefinition
+                {
+                    Id = "updates-driver-controls",
+                    Name = "Do Not Include Drivers with Updates",
+                    Description = "Prevent Windows from automatically downloading and installing hardware driver updates",
+                    GroupName = "Update Content",
+                    Icon = "PackageVariantClosedMinus",
+                    InputType = InputType.Toggle,
+                    RegistrySettings = new List<RegistrySetting>
+                    {
+                        new RegistrySetting
+                        {
+                            KeyPath = @"HKEY_CURRENT_USER\SOFTWARE\Policies\Microsoft\Windows\WindowsUpdate",
+                            ValueName = "ExcludeWUDriversInQualityUpdate",
+                            RecommendedValue = 1,
+                            EnabledValue = 1,
+                            DisabledValue = 0,
+                            DefaultValue = 0,
+                            ValueType = RegistryValueKind.DWord,
+                        },
+                        new RegistrySetting
+                        {
+                            KeyPath = @"HKEY_LOCAL_MACHINE\SOFTWARE\Policies\Microsoft\Windows\WindowsUpdate",
+                            ValueName = "ExcludeWUDriversInQualityUpdate",
+                            RecommendedValue = 1,
+                            EnabledValue = 1,
+                            DisabledValue = 0,
+                            DefaultValue = 0,
+                            ValueType = RegistryValueKind.DWord,
+                        },
+                    },
+                },
+                new SettingDefinition
+                {
+                    Id = "updates-store-auto-download",
+                    Name = "Auto Update Microsoft Store Apps",
+                    Description = "Automatically download and install updates for apps from the Microsoft Store",
+                    GroupName = "Delivery & Store",
+                    IconPack = "Lucide",
+                    Icon = "Store",
+                    InputType = InputType.Toggle,
+                    RegistrySettings = new List<RegistrySetting>
+                    {
+                        new RegistrySetting
+                        {
+                            KeyPath = @"HKEY_CURRENT_USER\SOFTWARE\Policies\Microsoft\WindowsStore",
+                            ValueName = "AutoDownload",
+                            RecommendedValue = 2,
+                            EnabledValue = 4,
+                            DisabledValue = 2,
+                            DefaultValue = 2,
+                            ValueType = RegistryValueKind.DWord,
+                        },
+                        new RegistrySetting
+                        {
+                            KeyPath = @"HKEY_LOCAL_MACHINE\SOFTWARE\Policies\Microsoft\WindowsStore",
+                            ValueName = "AutoDownload",
+                            RecommendedValue = 2,
+                            EnabledValue = 4,
+                            DisabledValue = 2,
+                            DefaultValue = 2,
                             ValueType = RegistryValueKind.DWord,
                         },
                     },

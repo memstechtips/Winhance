@@ -14,6 +14,7 @@ namespace Winhance.WPF.Features.Common.Interfaces
         int SettingsCount { get; }
         ICommand LoadSettingsCommand { get; }
         Task LoadSettingsAsync();
+        Task RefreshSettingsAsync();
         Task<bool> HandleDomainContextSettingAsync(SettingDefinition setting, object? value, bool additionalContext = false);
     }
 

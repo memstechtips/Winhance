@@ -1,6 +1,6 @@
 <ResourceDictionary xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
                     xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
-                    xmlns:materialDesign="http://materialdesigninxaml.net/winfx/xaml/themes">
+                    xmlns:iconPacks="http://metro.mahapps.com/winfx/xaml/iconpacks">
     
     <!-- Rounded TextBox Style for Search -->
     <Style x:Key="RoundedTextBoxStyle" TargetType="TextBox">
@@ -20,19 +20,11 @@
                             BorderThickness="{TemplateBinding BorderThickness}"
                             CornerRadius="5"
                             SnapsToDevicePixels="True">
-                        <Grid>
-                            <ScrollViewer x:Name="PART_ContentHost" 
-                                          Focusable="False" 
-                                          HorizontalScrollBarVisibility="Hidden" 
-                                          VerticalScrollBarVisibility="Hidden"
-                                          Margin="{TemplateBinding Padding}"/>
-                            <TextBlock x:Name="HintText"
-                                       Text="{Binding Path=(materialDesign:HintAssist.Hint), RelativeSource={RelativeSource TemplatedParent}}"
-                                       Foreground="{DynamicResource SecondaryTextColor}"
-                                       Margin="{TemplateBinding Padding}"
-                                       VerticalAlignment="{TemplateBinding VerticalContentAlignment}"
-                                       Visibility="Collapsed"/>
-                        </Grid>
+                        <ScrollViewer x:Name="PART_ContentHost"
+                                      Focusable="False"
+                                      HorizontalScrollBarVisibility="Hidden"
+                                      VerticalScrollBarVisibility="Hidden"
+                                      Margin="{TemplateBinding Padding}"/>
                     </Border>
                     <ControlTemplate.Triggers>
                         <Trigger Property="IsEnabled" Value="False">
@@ -45,13 +37,6 @@
                             <Setter TargetName="border" Property="BorderBrush" Value="{DynamicResource PrimaryTextColor}"/>
                             <Setter TargetName="border" Property="BorderThickness" Value="2"/>
                         </Trigger>
-                        <MultiTrigger>
-                            <MultiTrigger.Conditions>
-                                <Condition Property="Text" Value=""/>
-                                <Condition Property="IsFocused" Value="False"/>
-                            </MultiTrigger.Conditions>
-                            <Setter TargetName="HintText" Property="Visibility" Value="Visible"/>
-                        </MultiTrigger>
                     </ControlTemplate.Triggers>
                 </ControlTemplate>
             </Setter.Value>
@@ -59,7 +44,7 @@
     </Style>
     
     <!-- Material Design Icon Style -->
-    <Style x:Key="MaterialIconStyle" TargetType="materialDesign:PackIcon">
+    <Style x:Key="MaterialIconStyle" TargetType="iconPacks:PackIconMaterial">
         <Setter Property="Width" Value="20"/>
         <Setter Property="Height" Value="20"/>
         <Setter Property="VerticalAlignment" Value="Center"/>

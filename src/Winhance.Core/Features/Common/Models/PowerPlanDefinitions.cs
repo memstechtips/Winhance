@@ -15,4 +15,12 @@ namespace Winhance.Core.Features.Common.Models
     }
 
     public record PowerPlanImportResult(bool Success, string ImportedGuid, string ErrorMessage = "");
+
+    public class PowerPlanResolutionResult
+    {
+        public bool Success { get; set; }
+        public string Guid { get; set; } = string.Empty;
+        public string DisplayName { get; set; } = string.Empty;
+        public string ErrorMessage { get; set; } = string.Empty;
+    }
 }

@@ -1,12 +1,16 @@
 using System;
 using System.Diagnostics;
 using System.IO;
+using System.Runtime.InteropServices;
 using System.Security.Principal;
+using System.Threading;
 using System.Threading.Tasks;
 using System.Windows;
+using System.Windows.Interop;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Hosting;
 using Winhance.WPF.Features.Common.Extensions.DI;
+using Winhance.Core.Features.Common.Enums;
 using Winhance.Core.Features.Common.Interfaces;
 using Winhance.Core.Features.Common.Models;
 using Winhance.WPF.Features.Common.Resources.Theme;
@@ -26,6 +30,10 @@ namespace Winhance.WPF
     public partial class App : Application
     {
         private readonly IHost _host;
+        private BackupResult? _backupResult;
+        private ScriptMigrationResult? _migrationResult;
+        private Mutex? _singleInstanceMutex;
+        private const string MutexName = "Winhance_SingleInstance_Mutex_{B8F3E4D1-9A7C-4F2E-8D6B-1C3A5E7F9B2D}";
 
         /// <summary>
         /// Gets the current service provider for dependency injection.
@@ -37,18 +45,46 @@ namespace Winhance.WPF
             // DEBUG: Log constructor call with stack trace
             var stackTrace = new System.Diagnostics.StackTrace(true);
             LogStartupError($"App constructor called. Stack trace:\n{stackTrace}");
-            
-            // Check admin privileges FIRST - before ANY initialization (including logging)
+
+            // Check for single instance FIRST
+            try
+            {
+                _singleInstanceMutex = new Mutex(true, MutexName, out bool createdNew);
+
+                if (!createdNew)
+                {
+                    LogStartupError("Another instance of Winhance is already running");
+                    // Try to activate the existing instance
+                    ActivateExistingInstance();
+                    Environment.Exit(0);
+                    return;
+                }
+
+                LogStartupError("Single instance check passed - this is the first instance");
+            }
+            catch (Exception ex)
+            {
+                LogStartupError($"Error during single instance check: {ex.Message}");
+                // Continue anyway if mutex check fails
+            }
+
+            // Check admin privileges AFTER single instance check
             try
             {
                 var identity = WindowsIdentity.GetCurrent();
                 var principal = new WindowsPrincipal(identity);
-                
+
                 LogStartupError($"Admin check - IsAdmin: {principal.IsInRole(WindowsBuiltInRole.Administrator)}");
-                
+
                 if (!principal.IsInRole(WindowsBuiltInRole.Administrator))
                 {
                     LogStartupError("Not admin - starting elevated process");
+
+                    // Release mutex before relaunching
+                    _singleInstanceMutex?.ReleaseMutex();
+                    _singleInstanceMutex?.Dispose();
+                    _singleInstanceMutex = null;
+
                     var startInfo = new ProcessStartInfo
                     {
                         UseShellExecute = true,
@@ -56,7 +92,7 @@ namespace Winhance.WPF
                         FileName = Process.GetCurrentProcess().MainModule?.FileName ?? throw new InvalidOperationException("MainModule is null"),
                         Verb = "runas"
                     };
-                    
+
                     try
                     {
                         LogStartupError("About to start elevated process");
@@ -74,7 +110,7 @@ namespace Winhance.WPF
                         LogStartupError($"Error starting elevated process: {ex.Message}");
                         Environment.Exit(1); // Other error
                     }
-                    
+
                     LogStartupError("This should never be reached!");
                     return; // Should never reach here
                 }
@@ -151,6 +187,11 @@ namespace Winhance.WPF
                 CloseLoadingWindow(loadingWindow);
                 loadingWindow = null;
 
+                // Show startup notifications
+                var startupNotifications = _host.Services.GetRequiredService<IStartupNotificationService>();
+                await startupNotifications.ShowBackupNotificationAsync(_backupResult);
+                startupNotifications.ShowMigrationNotification(_migrationResult);
+
                 // Check for updates
                 await CheckForUpdatesAsync(mainWindow);
 
@@ -185,6 +226,21 @@ namespace Winhance.WPF
                 {
                     LogStartupMessage("Host was null during shutdown - constructor likely failed");
                 }
+
+                // Release the single instance mutex
+                if (_singleInstanceMutex != null)
+                {
+                    try
+                    {
+                        _singleInstanceMutex.ReleaseMutex();
+                        _singleInstanceMutex.Dispose();
+                        LogStartupMessage("Single instance mutex released");
+                    }
+                    catch (Exception mutexEx)
+                    {
+                        LogStartupError("Error releasing mutex", mutexEx);
+                    }
+                }
             }
             catch (Exception ex)
             {
@@ -195,6 +251,64 @@ namespace Winhance.WPF
                 base.OnExit(e);
             }
         }
+
+        #region Windows API Interop for Window Activation
+
+        [DllImport("user32.dll")]
+        private static extern bool SetForegroundWindow(IntPtr hWnd);
+
+        [DllImport("user32.dll")]
+        private static extern bool ShowWindow(IntPtr hWnd, int nCmdShow);
+
+        [DllImport("user32.dll")]
+        private static extern bool IsIconic(IntPtr hWnd);
+
+        private const int SW_RESTORE = 9;
+
+        /// <summary>
+        /// Activates an existing instance of Winhance by finding its window and bringing it to the foreground.
+        /// </summary>
+        private void ActivateExistingInstance()
+        {
+            try
+            {
+                var currentProcess = Process.GetCurrentProcess();
+                var processes = Process.GetProcessesByName(currentProcess.ProcessName);
+
+                foreach (var process in processes)
+                {
+                    // Skip the current process
+                    if (process.Id == currentProcess.Id)
+                        continue;
+
+                    // Check if the process has a main window
+                    if (process.MainWindowHandle != IntPtr.Zero)
+                    {
+                        IntPtr handle = process.MainWindowHandle;
+
+                        // If the window is minimized, restore it
+                        if (IsIconic(handle))
+                        {
+                            ShowWindow(handle, SW_RESTORE);
+                        }
+
+                        // Bring the window to the foreground
+                        SetForegroundWindow(handle);
+
+                        LogStartupError($"Activated existing Winhance window (PID: {process.Id})");
+                        return;
+                    }
+                }
+
+                LogStartupError("Could not find existing Winhance window to activate");
+            }
+            catch (Exception ex)
+            {
+                LogStartupError($"Error activating existing instance: {ex.Message}");
+            }
+        }
+
+        #endregion
 
         #region Private Methods
 
@@ -282,46 +396,67 @@ namespace Winhance.WPF
 
         private async Task PreloadApplicationData(LoadingWindow? loadingWindow)
         {
-            var taskProgressService = _host.Services.GetRequiredService<ITaskProgressService>();
-            var progressHandler = CreateProgressHandler(loadingWindow);
-
-            taskProgressService.ProgressChanged += progressHandler;
-
             try
             {
-                // Initialize compatible settings registry first
                 LogStartupMessage("Initializing compatible settings registry");
                 var settingsRegistry = _host.Services.GetRequiredService<ICompatibleSettingsRegistry>();
                 await settingsRegistry.InitializeAsync();
                 LogStartupMessage("Compatible settings registry initialized");
 
-                // Get MainViewModel first but don't navigate yet
+                LogStartupMessage("Preloading global settings registry");
+                var settingsPreloader = _host.Services.GetRequiredService<IGlobalSettingsPreloader>();
+                await settingsPreloader.PreloadAllSettingsAsync();
+                LogStartupMessage("Global settings registry preloaded");
+
+                LogStartupMessage("Checking system backup preferences");
+                var prefsService = _host.Services.GetRequiredService<IUserPreferencesService>();
+                var skipBackup = await prefsService.GetPreferenceAsync("SkipSystemBackup", false);
+
+                if (!skipBackup)
+                {
+                    LogStartupMessage("Creating initial system backups");
+                    var backupService = _host.Services.GetRequiredService<ISystemBackupService>();
+                    _backupResult = await backupService.EnsureInitialBackupsAsync();
+                    LogStartupMessage($"Backup operation completed. Success: {_backupResult.Success}");
+                }
+                else
+                {
+                    LogStartupMessage("System backup skipped - user has disabled this feature");
+                }
+
+                LogStartupMessage("Checking for legacy script paths");
+                var migrationService = _host.Services.GetRequiredService<IScriptMigrationService>();
+                _migrationResult = await migrationService.MigrateFromOldPathsAsync();
+
+                if (_migrationResult.MigrationPerformed)
+                {
+                    LogStartupMessage("Script migration completed");
+                }
+                else
+                {
+                    LogStartupMessage("No script migration needed");
+                }
+
                 var mainViewModel = _host.Services.GetRequiredService<MainViewModel>();
 
-                // Preload SoftwareAppsViewModel data COMPLETELY
                 LogStartupMessage("Preloading SoftwareAppsViewModel data");
                 var softwareAppsViewModel = _host.Services.GetRequiredService<SoftwareAppsViewModel>();
 
-                // Wait for COMPLETE initialization including installation status checks
                 await softwareAppsViewModel.InitializeCommand.ExecuteAsync(null);
 
-                // Ensure both child view models are fully loaded
-                while (!softwareAppsViewModel.WindowsAppsViewModel.IsInitialized ||
-                       !softwareAppsViewModel.ExternalAppsViewModel.IsInitialized)
-                {
-                    LogStartupMessage("Waiting for complete initialization...");
-                    await Task.Delay(100);
-                }
+                LogStartupMessage("Waiting for complete initialization...");
+                await softwareAppsViewModel.WaitForInitializationAsync();
 
                 LogStartupMessage("SoftwareAppsViewModel fully preloaded with installation status");
 
-                // NOW navigate to the default view since data is completely ready
                 LogStartupMessage("Navigating to default view (SoftwareApps)");
-                mainViewModel.InitializeApplication();
+                await mainViewModel.InitializeApplicationAsync();
+                LogStartupMessage("Navigation completed and UI ready");
             }
-            finally
+            catch (Exception ex)
             {
-                taskProgressService.ProgressChanged -= progressHandler;
+                LogStartupError("Error preloading application data", ex);
+                throw;
             }
         }
 
@@ -392,30 +527,6 @@ namespace Winhance.WPF
             LogStartupMessage(installNow
                 ? "User chose to download and install the update"
                 : "User chose to be reminded later");
-        }
-
-        private static EventHandler<TaskProgressEventArgs> CreateProgressHandler(LoadingWindow? loadingWindow)
-        {
-            return (sender, args) =>
-            {
-                if (loadingWindow?.DataContext is LoadingWindowViewModel vm)
-                {
-                    vm.Progress = args.Progress * 100;
-                    vm.StatusMessage = args.StatusText;
-                    vm.IsIndeterminate = args.IsIndeterminate;
-                    vm.ShowProgressText = !args.IsIndeterminate && args.IsTaskRunning;
-
-                    // Update detail message based on current operation
-                    vm.DetailMessage = args.StatusText switch
-                    {
-                        var text when text.Contains("Loading installable apps") => "Discovering available applications...",
-                        var text when text.Contains("Loading removable apps") => "Identifying Windows applications...",
-                        var text when text.Contains("Checking installation status") => "Verifying which applications are installed...",
-                        var text when text.Contains("Organizing apps") => "Sorting applications for display...",
-                        _ => vm.DetailMessage
-                    };
-                }
-            };
         }
 
         #endregion

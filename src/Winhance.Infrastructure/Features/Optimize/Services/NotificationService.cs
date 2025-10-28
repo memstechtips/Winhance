@@ -13,7 +13,8 @@ using Winhance.Infrastructure.Features.Common.Services;
 namespace Winhance.Infrastructure.Features.Optimize.Services
 {
     public class NotificationService(
-        ILogService logService) : IDomainService
+        ILogService logService,
+        ICompatibleSettingsRegistry compatibleSettingsRegistry) : IDomainService
     {
         public string DomainName => FeatureIds.Notification;
 
@@ -21,8 +22,7 @@ namespace Winhance.Infrastructure.Features.Optimize.Services
         {
             try
             {
-                var optimizations = NotificationOptimizations.GetNotificationOptimizations();
-                return optimizations.Settings;
+                return compatibleSettingsRegistry.GetFilteredSettings(FeatureIds.Notification);
             }
             catch (Exception ex)
             {

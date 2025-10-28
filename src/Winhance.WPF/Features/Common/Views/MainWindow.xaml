@@ -7,10 +7,13 @@
         xmlns:softwareAppsViewModels="clr-namespace:Winhance.WPF.Features.SoftwareApps.ViewModels"
         xmlns:optimizeViewModels="clr-namespace:Winhance.WPF.Features.Optimize.ViewModels"
         xmlns:customizeViewModels="clr-namespace:Winhance.WPF.Features.Customize.ViewModels"
+        xmlns:advancedToolsViewModels="clr-namespace:Winhance.WPF.Features.AdvancedTools.ViewModels"
         xmlns:softwareAppsViews="clr-namespace:Winhance.WPF.Features.SoftwareApps.Views"
         xmlns:optimizeViews="clr-namespace:Winhance.WPF.Features.Optimize.Views"
         xmlns:customizeViews="clr-namespace:Winhance.WPF.Features.Customize.Views"
-        xmlns:materialDesign="http://materialdesigninxaml.net/winfx/xaml/themes"
+        xmlns:advancedToolsViews="clr-namespace:Winhance.WPF.Features.AdvancedTools.Views"
+        xmlns:advancedToolsControls="clr-namespace:Winhance.WPF.Features.AdvancedTools.Controls"
+        xmlns:iconPacks="http://metro.mahapps.com/winfx/xaml/iconpacks"
         xmlns:utilities="clr-namespace:Winhance.WPF.Features.Common.Utilities"
         Title="Winhance"
         Background="Transparent"
@@ -18,7 +21,7 @@
         ResizeMode="CanResize"
         SnapsToDevicePixels="True"
         UseLayoutRounding="True"
-        Icon="{DynamicResource DefaultAppIcon}">
+        Icon="pack://application:,,,/Resources/AppIcons/winhance-rocket.ico">
 
         <Window.Resources>
                 <!-- DataTemplates for views -->
@@ -40,13 +43,18 @@
                 <DataTemplate DataType="{x:Type customizeViewModels:CustomizeViewModel}">
                         <customizeViews:CustomizeView/>
                 </DataTemplate>
+
+                <!-- Advanced Tools -->
+                <DataTemplate DataType="{x:Type advancedToolsViewModels:WimUtilViewModel}">
+                        <advancedToolsViews:WimUtilView/>
+                </DataTemplate>
         </Window.Resources>
 
         <!-- Using ViewModel commands for window control -->
 
         <WindowChrome.WindowChrome>
                 <WindowChrome
-                        CaptionHeight="32"
+                        CaptionHeight="28"
                         ResizeBorderThickness="8"
                         GlassFrameThickness="-1"
                         CornerRadius="10"
@@ -65,7 +73,7 @@
                     <!-- Main Content Grid -->
                     <Grid>
                             <Grid.RowDefinitions>
-                                    <RowDefinition Height="32"/>
+                                    <RowDefinition Height="28"/>
                                     <RowDefinition Height="*"/>
                             </Grid.RowDefinitions>
 
@@ -102,6 +110,15 @@
                                         </TextBlock>
                                 </DockPanel>
 
+                                <!-- Testing Warning -->
+                                <TextBlock Grid.Column="1"
+                                           Text="THIS BUILD IS FOR TESTING PURPOSES"
+                                           FontSize="16"
+                                           FontWeight="Bold"
+                                           Foreground="Red"
+                                           HorizontalAlignment="Center"
+                                           VerticalAlignment="Center"/>
+
                                 <!-- Window Controls -->
                                 <StackPanel Grid.Column="2"
                                             Orientation="Horizontal"
@@ -109,29 +126,46 @@
                                             VerticalAlignment="Top">
 
                                         <!-- Save Config Button -->
-                                        <Button Width="32"
-                                                Height="32"
+                                        <Button Width="28"
+                                                Height="28"
                                                 Margin="0,0,0,0"
                                                 Command="{Binding SaveUnifiedConfigCommand}"
                                                 ToolTip="Save Configuration"
                                                 Style="{StaticResource WindowControlButton}"
                                                 WindowChrome.IsHitTestVisibleInChrome="True">
-                                            <materialDesign:PackIcon Kind="ContentSave"
-                                                                     Width="18"
-                                                                     Height="18"/>
+                                            <iconPacks:PackIconMaterial Kind="ContentSave"
+                                                                     Width="14"
+                                                                     Height="14"/>
                                         </Button>
 
                                         <!-- Import Config Button -->
-                                        <Button Width="32"
-                                                Height="32"
+                                        <Button Width="28"
+                                                Height="28"
                                                 Margin="0,0,0,0"
                                                 Command="{Binding ImportUnifiedConfigCommand}"
-                                                ToolTip="Import Configuration"
+                                                ToolTip="Import Config"
                                                 Style="{StaticResource WindowControlButton}"
                                                 WindowChrome.IsHitTestVisibleInChrome="True">
-                                            <materialDesign:PackIcon Kind="FolderOpen"
-                                                                     Width="18"
-                                                                     Height="18"/>
+                                            <iconPacks:PackIconMaterial Kind="FolderOpen"
+                                                                     Width="16"
+                                                                     Height="16"/>
+                                        </Button>
+
+                                        <!-- Windows Version Filter Button -->
+                                        <Button Width="28"
+                                                Height="28"
+                                                Margin="0,0,0,0"
+                                                Command="{Binding ToggleWindowsVersionFilterCommand}"
+                                                Style="{StaticResource WindowControlButton}"
+                                                WindowChrome.IsHitTestVisibleInChrome="True">
+                                            <Button.ToolTip>
+                                                <TextBlock>
+                                                    <Run Text="{Binding IsWindowsVersionFilterEnabled, Converter={StaticResource BooleanToFilterTooltipConverter}}"/>
+                                                </TextBlock>
+                                            </Button.ToolTip>
+                                            <iconPacks:PackIconMaterial Width="16"
+                                                                     Height="16"
+                                                                     Kind="{Binding IsWindowsVersionFilterEnabled, Converter={StaticResource BooleanToFilterIconConverter}}"/>
                                         </Button>
 
                                         <!-- Theme Toggle Button -->
@@ -140,24 +174,23 @@
                                                 Style="{StaticResource WindowControlButton}"
                                                 WindowChrome.IsHitTestVisibleInChrome="True"
                                                 Margin="0,0,0,0">
-                                                <!-- Symbol = Routine -->
-                                                <TextBlock Text="&#xE20C;"
-                                                           FontFamily="{StaticResource MaterialSymbolsFont}"
-                                                           FontSize="18"/>
+                                            <iconPacks:PackIconMaterial Kind="ThemeLightDark"
+                                                                     Width="16"
+                                                                     Height="16"/>
                                         </Button>
 
                                         <!-- Donation Button -->
-                                        <Button Width="32"
-                                                Height="32"
+                                        <Button Width="28"
+                                                Height="28"
                                                 Margin="0,0,0,0"
                                                 Command="{Binding OpenDonateCommand}"
                                                 ToolTip="Donate to Support Development"
                                                 Style="{StaticResource WindowControlButton}"
                                                 WindowChrome.IsHitTestVisibleInChrome="True">
-                                            <!-- Symbol = Credit Card Heart -->
-                                                <TextBlock Text="&#xF52C;"
-                                                           FontFamily="{StaticResource MaterialSymbolsFont}"
-                                                           FontSize="18"/>
+                                            <iconPacks:PackIconMaterial Kind="Heart"
+                                                                     Width="16"
+                                                                     Height="16"
+                                                                     Foreground="Red"/>
                                         </Button>
 
                                         <!-- Use commands with direct event handlers as fallback -->
@@ -166,26 +199,26 @@
                                                 WindowChrome.IsHitTestVisibleInChrome="True"
                                                 Margin="0,0,0,0"
                                                 Command="{Binding MinimizeWindowCommand}">
-                                                <materialDesign:PackIcon Kind="WindowMinimize"
-                                                                         Width="18"
-                                                                         Height="18"/>
+                                                <iconPacks:PackIconMaterial Kind="WindowMinimize"
+                                                                         Width="12"
+                                                                         Height="12"/>
                                         </Button>
                                         <Button x:Name="MaximizeRestoreButton"
                                                 Style="{StaticResource WindowControlButton}"
                                                 WindowChrome.IsHitTestVisibleInChrome="True"
                                                 Margin="0,0,0,0"
                                                 Command="{Binding MaximizeRestoreWindowCommand}">
-                                                <materialDesign:PackIcon Kind="{Binding MaximizeButtonContent, Converter={StaticResource StringToMaximizeIconConverter}, FallbackValue=WindowMaximize}"
-                                                                         Width="18"
-                                                                         Height="18"/>
+                                                <iconPacks:PackIconMaterial Kind="{Binding MaximizeButtonContent, Converter={StaticResource StringToMaximizeIconConverter}, FallbackValue=WindowMaximize}"
+                                                                         Width="12"
+                                                                         Height="12"/>
                                         </Button>
                                         <Button x:Name="CloseButton"
                                                 Style="{StaticResource WindowCloseButton}"
                                                 WindowChrome.IsHitTestVisibleInChrome="True"
                                                 Command="{Binding CloseWindowCommand}">
-                                                <materialDesign:PackIcon Kind="Close"
-                                                                         Width="18"
-                                                                         Height="18"/>
+                                                <iconPacks:PackIconMaterial Kind="Close"
+                                                                         Width="12"
+                                                                         Height="12"/>
                                         </Button>
                                 </StackPanel>
                         </Grid>
@@ -216,12 +249,12 @@
                                                         CommandParameter="SoftwareApps"
                                                         Content="Software &amp; Apps"
                                                         Margin="0,0,0,10"
-                                                        utilities:NavigationButtonProperties.IsSelected="{Binding SelectedNavigationItem, Converter={StaticResource StringEqualityConverter}, ConverterParameter=SoftwareApps}">
+                                                        utilities:NavigationButtonProperties.IsSelected="{Binding SelectedNavigationItem, Converter={StaticResource StringEqualityConverter}, ConverterParameter=SoftwareApps}"
+                                                        utilities:NavigationButtonProperties.IsLoading="{Binding LoadingRoute, Converter={StaticResource StringEqualityConverter}, ConverterParameter=SoftwareApps}">
                                                         <Button.Tag>
-                                                                <!-- Symbol = Deployed Code -->
-                                                                <TextBlock Text="&#xF720;"
-                                                                           FontFamily="{StaticResource MaterialSymbolsFont}"
-                                                                           FontSize="24"/>
+                                                                <iconPacks:PackIconMaterial Kind="PackageVariant"
+                                                                                         Width="22"
+                                                                                         Height="22"/>
                                                         </Button.Tag>
                                                 </Button>
                                                 <Button x:Name="OptimizeButton"
@@ -230,11 +263,12 @@
                                                         CommandParameter="Optimize"
                                                         Content="Optimize"
                                                         Margin="0,0,0,10"
-                                                        utilities:NavigationButtonProperties.IsSelected="{Binding SelectedNavigationItem, Converter={StaticResource StringEqualityConverter}, ConverterParameter=Optimize}">
+                                                        utilities:NavigationButtonProperties.IsSelected="{Binding SelectedNavigationItem, Converter={StaticResource StringEqualityConverter}, ConverterParameter=Optimize}"
+                                                        utilities:NavigationButtonProperties.IsLoading="{Binding LoadingRoute, Converter={StaticResource StringEqualityConverter}, ConverterParameter=Optimize}">
                                                         <Button.Tag>
-                                                                <TextBlock Text="&#xEB9B;"
-                                                                           FontFamily="{StaticResource MaterialSymbolsFont}"
-                                                                           FontSize="24"/>
+                                                                <iconPacks:PackIconMaterial Kind="RocketLaunch"
+                                                                                         Width="22"
+                                                                                         Height="22"/>
                                                         </Button.Tag>
                                                 </Button>
                                                 <Button x:Name="CustomizeButton"
@@ -243,17 +277,30 @@
                                                         CommandParameter="Customize"
                                                         Content="Customize"
                                                         Margin="0,0,0,10"
-                                                        utilities:NavigationButtonProperties.IsSelected="{Binding SelectedNavigationItem, Converter={StaticResource StringEqualityConverter}, ConverterParameter=Customize}">
+                                                        utilities:NavigationButtonProperties.IsSelected="{Binding SelectedNavigationItem, Converter={StaticResource StringEqualityConverter}, ConverterParameter=Customize}"
+                                                        utilities:NavigationButtonProperties.IsLoading="{Binding LoadingRoute, Converter={StaticResource StringEqualityConverter}, ConverterParameter=Customize}">
                                                         <Button.Tag>
-                                                                <materialDesign:PackIcon Kind="Palette"
-                                                                                         Width="24"
-                                                                                         Height="24"/>
+                                                                <iconPacks:PackIconMaterial Kind="Palette"
+                                                                                         Width="22"
+                                                                                         Height="22"/>
                                                         </Button.Tag>
                                                 </Button>
                                         </StackPanel>
                                         
-                                        <!-- Bottom Navigation Button -->
+                                        <!-- Bottom Navigation Buttons (Extra space in Advanced Tools is intentional) -->
                                         <StackPanel Grid.Row="2">
+                                                <Button x:Name="AdvancedToolsButton"
+                                                        Style="{StaticResource NavigationButton}"
+                                                        Command="{Binding AdvancedToolsCommand}"
+                                                        Content="Advanced  Tools" 
+                                                        Margin="0,0,0,10"
+                                                        utilities:NavigationButtonProperties.IsSelected="{Binding SelectedNavigationItem, Converter={StaticResource StringEqualityConverter}, ConverterParameter=AdvancedTools}">
+                                                        <Button.Tag>
+                                                                <iconPacks:PackIconMaterial Kind="Tools"
+                                                                                         Width="22"
+                                                                                         Height="22"/>
+                                                        </Button.Tag>
+                                                </Button>
                                                 <Button x:Name="MoreButton"
                                                         Style="{StaticResource NavigationButton}"
                                                         Content="More"
@@ -262,9 +309,9 @@
                                                         Command="{Binding MoreCommand}"
                                                         utilities:NavigationButtonProperties.IsSelected="{Binding SelectedNavigationItem, Converter={StaticResource StringEqualityConverter}, ConverterParameter=More}">
                                                         <Button.Tag>
-                                                                <materialDesign:PackIcon Kind="MoreHoriz"
-                                                                                          Width="24"
-                                                                                          Height="24"/>
+                                                                <iconPacks:PackIconMaterial Kind="DotsHorizontal"
+                                                                                          Width="22"
+                                                                                          Height="22"/>
                                                         </Button.Tag>
                                                 </Button>
                                         </StackPanel>
@@ -295,15 +342,33 @@
                             </Grid>
                     </Grid>
                     
+                    <!-- Dialog/Flyout Overlay - semi-transparent black overlay when dialogs or flyouts are shown -->
+                    <Grid x:Name="DialogOverlay"
+                          Background="#80000000"
+                          Visibility="{Binding IsDialogOverlayVisible, Converter={StaticResource BooleanToVisibilityConverter}}"
+                          Panel.ZIndex="998"
+                          IsHitTestVisible="False"/>
+
+                    <!-- Config Import Progress Overlay (DEPRECATED - kept for backwards compatibility but hidden) -->
+                    <Border Visibility="Collapsed"
+                            Background="#CC000000"
+                            Panel.ZIndex="999">
+                        <StackPanel VerticalAlignment="Center" HorizontalAlignment="Center">
+                            <TextBlock Text="Loading..."
+                                       Foreground="White"
+                                       FontSize="16"/>
+                        </StackPanel>
+                    </Border>
+
                     <!-- MoreMenu Flyout Overlay - positioned at root level to cover entire window -->
-                    <Grid x:Name="MoreMenuOverlay" 
-                          Background="Transparent" 
+                    <Grid x:Name="MoreMenuOverlay"
+                          Background="Transparent"
                           Visibility="Collapsed"
                           Panel.ZIndex="1000"
                           Focusable="True"
                           MouseLeftButtonDown="MoreMenuOverlay_MouseLeftButtonDown"
                           KeyDown="MoreMenuOverlay_KeyDown">
-                        
+
                         <!-- The flyout menu content positioned appropriately -->
                         <controls:MoreMenuFlyout x:Name="MoreMenuFlyoutContent"
                                                  DataContext="{Binding MoreMenuViewModel}"
@@ -311,6 +376,31 @@
                                                  VerticalAlignment="Top"
                                                  Margin="0"/>
                     </Grid>
+
+                    <!-- AdvancedTools Flyout Overlay - positioned at root level to cover entire window -->
+                    <Grid x:Name="AdvancedToolsOverlay"
+                          Background="Transparent"
+                          Visibility="Collapsed"
+                          Panel.ZIndex="1000"
+                          Focusable="True"
+                          MouseLeftButtonDown="AdvancedToolsOverlay_MouseLeftButtonDown"
+                          KeyDown="AdvancedToolsOverlay_KeyDown">
+
+                        <!-- The flyout menu content positioned appropriately -->
+                        <advancedToolsControls:AdvancedToolsMenuFlyout x:Name="AdvancedToolsFlyoutContent"
+                                                         DataContext="{Binding AdvancedToolsMenuViewModel}"
+                                                         HorizontalAlignment="Left"
+                                                         VerticalAlignment="Top"
+                                                         Margin="0"/>
+                    </Grid>
+
+                    <!-- Help Flyout Container - positioned at root level above overlay -->
+                    <Grid x:Name="HelpFlyoutContainer"
+                          Background="Transparent"
+                          Visibility="Collapsed"
+                          Panel.ZIndex="1001"
+                          Focusable="True"
+                          IsHitTestVisible="True"/>
                 </Grid>
         </Border>
 </Window>

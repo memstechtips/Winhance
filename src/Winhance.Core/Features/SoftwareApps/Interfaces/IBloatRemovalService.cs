@@ -20,6 +20,6 @@ public interface IBloatRemovalService
         CancellationToken cancellationToken = default);
 
     Task<bool> RemoveItemsFromScriptAsync(List<ItemDefinition> itemsToRemove);
-    Task<bool> ExecuteRemovalScriptAsync(string scriptPath);
+    Task<bool> ExecuteRemovalScriptAsync(string scriptPath, IProgress<TaskProgressDetail>? progress = null, CancellationToken cancellationToken = default);
     Task<bool> RegisterStartupTaskAsync(string scriptPath);
 }

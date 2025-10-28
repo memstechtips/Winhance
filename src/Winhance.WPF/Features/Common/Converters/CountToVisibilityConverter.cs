@@ -5,10 +5,6 @@ using System.Windows.Data;
 
 namespace Winhance.WPF.Features.Common.Converters
 {
-    /// <summary>
-    /// Converts an integer count to a Visibility value.
-    /// Returns Visible if the count is greater than 0, otherwise returns Collapsed.
-    /// </summary>
     public class CountToVisibilityConverter : IValueConverter
     {
         public object Convert(object value, Type targetType, object parameter, CultureInfo culture)

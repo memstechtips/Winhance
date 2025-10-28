@@ -117,9 +117,9 @@ namespace Winhance.Core.Features.SoftwareApps.Models
                         Description = "Microsoft's virtual assistant",
                         GroupName = "System Utilities",
                         AppxPackageName = "Microsoft.549981C3F5F10",
-                        WinGetPackageId = "9NFFX4SZZ23L",
+                        WinGetPackageId = "9NFFX4SZZ23L", // Package is deprecated
                         Category = "System Utilities",
-                        CanBeReinstalled = true
+                        CanBeReinstalled = false
                     },
                     new ItemDefinition
                     {
@@ -152,7 +152,7 @@ namespace Winhance.Core.Features.SoftwareApps.Models
                         Description = "Development environment for Windows",
                         GroupName = "Development",
                         AppxPackageName = "Microsoft.Windows.DevHome",
-                        WinGetPackageId = "9WZDNCRFHVN5",
+                        WinGetPackageId = "9N8MHTPHNGVV", // not available in your market
                         Category = "Development",
                         CanBeReinstalled = true
                     },
@@ -187,9 +187,9 @@ namespace Winhance.Core.Features.SoftwareApps.Models
                         Description = "Video calling and messaging app",
                         GroupName = "Communication",
                         AppxPackageName = "Microsoft.SkypeApp",
-                        WinGetPackageId = "9WZDNCRFJ364",
+                        WinGetPackageId = "9WZDNCRFJ364", // Skype is retired
                         Category = "Communication",
-                        CanBeReinstalled = true
+                        CanBeReinstalled = false
                     },
                     new ItemDefinition
                     {
@@ -222,7 +222,7 @@ namespace Winhance.Core.Features.SoftwareApps.Models
                         Description = "Microsoft Maps app",
                         GroupName = "System Tools",
                         AppxPackageName = "Microsoft.WindowsMaps",
-                        WinGetPackageId = "9WZDNCRDTBVB",
+                        WinGetPackageId = "9WZDNCRDTBVB", // unavailable in your market
                         Category = "System Tools",
                         CanBeReinstalled = true
                     },
@@ -314,7 +314,7 @@ namespace Winhance.Core.Features.SoftwareApps.Models
                         Description = "Contact management app",
                         GroupName = "Social",
                         AppxPackageName = "Microsoft.People",
-                        WinGetPackageId = "9NBLGGH10PG8",
+                        WinGetPackageId = "9NBLGGH10PG8", // unavailable in your market
                         Category = "Social",
                         CanBeReinstalled = true
                     },
@@ -353,7 +353,7 @@ namespace Winhance.Core.Features.SoftwareApps.Models
                         Description = "Microsoft Solitaire Collection games",
                         GroupName = "Games",
                         AppxPackageName = "Microsoft.MicrosoftSolitaireCollection",
-                        WinGetPackageId = "9WZDNCRFHWD2",
+                        WinGetPackageId = "9WZDNCRFHWD2", // https://apps.microsoft.com/detail/9wzdncrfhwd2?hl=en-US&gl=ZA
                         Category = "Games",
                         CanBeReinstalled = true
                     },
@@ -374,7 +374,16 @@ namespace Winhance.Core.Features.SoftwareApps.Models
                             {
                                 KeyPath = @"HKEY_CURRENT_USER\Software\Microsoft\Windows\CurrentVersion\GameDVR",
                                 ValueName = "AppCaptureEnabled",
-                                RecommendedValue = 0,
+                                EnabledValue = null,
+                                DisabledValue = 0,
+                                ValueType = RegistryValueKind.DWord,
+                            },
+                            new RegistrySetting
+                            {
+                                KeyPath = @"HKEY_CURRENT_USER\System\GameConfigStore",
+                                ValueName = "GameDVR_Enabled",
+                                EnabledValue = null,
+                                DisabledValue = 0,
                                 ValueType = RegistryValueKind.DWord,
                             }
                         }
@@ -397,9 +406,28 @@ namespace Winhance.Core.Features.SoftwareApps.Models
                         Description = "Extension component for Xbox Game Bar providing additional functionality",
                         GroupName = "Games",
                         AppxPackageName = "Microsoft.XboxGameOverlay",
-                        WinGetPackageId = "9NBLGGH537C2",
+                        WinGetPackageId = "9NBLGGH537C2", // unavailable in market
                         Category = "Games",
-                        CanBeReinstalled = true
+                        CanBeReinstalled = true,
+                        RegistrySettings = new List<RegistrySetting>
+                        {
+                            new RegistrySetting
+                            {
+                                KeyPath = @"HKEY_CURRENT_USER\Software\Microsoft\Windows\CurrentVersion\GameDVR",
+                                ValueName = "AppCaptureEnabled",
+                                EnabledValue = null,
+                                DisabledValue = 0,
+                                ValueType = RegistryValueKind.DWord,
+                            },
+                            new RegistrySetting
+                            {
+                                KeyPath = @"HKEY_CURRENT_USER\System\GameConfigStore",
+                                ValueName = "GameDVR_Enabled",
+                                EnabledValue = null,
+                                DisabledValue = 0,
+                                ValueType = RegistryValueKind.DWord,
+                            }
+                        }
                     },
                     new ItemDefinition
                     {
@@ -421,7 +449,26 @@ namespace Winhance.Core.Features.SoftwareApps.Models
                         AppxPackageName = "Microsoft.XboxGamingOverlay",
                         WinGetPackageId = "9NZKPSTSNW4P",
                         Category = "Games",
-                        CanBeReinstalled = true
+                        CanBeReinstalled = true,
+                        RegistrySettings = new List<RegistrySetting>
+                        {
+                            new RegistrySetting
+                            {
+                                KeyPath = @"HKEY_CURRENT_USER\Software\Microsoft\Windows\CurrentVersion\GameDVR",
+                                ValueName = "AppCaptureEnabled",
+                                EnabledValue = null,
+                                DisabledValue = 0,
+                                ValueType = RegistryValueKind.DWord,
+                            },
+                            new RegistrySetting
+                            {
+                                KeyPath = @"HKEY_CURRENT_USER\System\GameConfigStore",
+                                ValueName = "GameDVR_Enabled",
+                                EnabledValue = null,
+                                DisabledValue = 0,
+                                ValueType = RegistryValueKind.DWord,
+                            }
+                        }
                     },
 
                     // Windows Store
@@ -497,7 +544,7 @@ namespace Winhance.Core.Features.SoftwareApps.Models
                     new ItemDefinition
                     {
                         Id = "windows-app-todo",
-                        Name = "To Do",
+                        Name = "To Do: Lists, Tasks & Reminders",
                         Description = "Task management app",
                         GroupName = "Productivity",
                         AppxPackageName = "Microsoft.Todos",

@@ -3,7 +3,7 @@
              xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
              xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006" 
              xmlns:d="http://schemas.microsoft.com/expression/blend/2008" 
-             xmlns:materialDesign="http://materialdesigninxaml.net/winfx/xaml/themes"
+             xmlns:iconPacks="http://metro.mahapps.com/winfx/xaml/iconpacks"
              mc:Ignorable="d">
     
     <!-- Flyout Help Content -->
@@ -42,7 +42,7 @@
                             Style="{StaticResource FlyOutCloseButtonStyle}"
                             ToolTip="Close Help"
                             Command="{Binding CloseHelpCommand}">
-                        <materialDesign:PackIcon Kind="Close" Width="16" Height="16"/>
+                        <iconPacks:PackIconMaterial Kind="Close" Width="12" Height="12"/>
                     </Button>
                 </Grid>
             
@@ -58,11 +58,9 @@
                            VerticalAlignment="Center"
                            HorizontalAlignment="Left"
                            Margin="0,10,0,10"
-                           Style="{StaticResource ItemDefinitionTextStyle}"
                            FontSize="13"
                            TextWrapping="Wrap"
-                           MaxHeight="80"
-                           Text="Check the boxes next to the applications you want to install. Click 'Install Selected Items' to install them all at once.&#x0a;Use the Search Box to find settings quickly. The Save and Import Config buttons in the main window help you manage your preferred selections."/>
+                           Text="Select the item(s) you want to install and click on the 'Install Selected Items' button to start the installation.&#x0a;&#x0a;Use the Search Box to find items quickly.&#x0a;The Save and Import Config buttons in the main window help you manage your preferred selections.&#x0a;&#x0a;Tip: Install UniGetUI from the 'Other Utilities' group if you require a Software Manager as Winhance only provides external app installations, not updates and management."/>
                 </Grid>
             </Grid>
         </ScrollViewer>

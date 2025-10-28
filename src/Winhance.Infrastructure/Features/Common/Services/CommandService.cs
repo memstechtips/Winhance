@@ -115,7 +115,10 @@ public class CommandService(ILogService logService) : ICommandService
         {
             if (setting.EnabledCommand.Contains("bcdedit"))
                 return await IsBcdeditSettingEnabledAsync(setting);
-                
+
+            if (setting.EnabledCommand.Contains("schtasks"))
+                return await IsSchedTaskEnabledAsync(setting);
+
             return false;
         }
         catch
@@ -182,6 +185,46 @@ public class CommandService(ILogService logService) : ICommandService
             return false;
         }
         return false;
+    }
+
+    private async Task<bool> IsSchedTaskEnabledAsync(CommandSetting setting)
+    {
+        var taskName = ExtractTaskNameFromCommand(setting.EnabledCommand);
+        if (string.IsNullOrEmpty(taskName))
+            return false;
+
+        var queryCommand = $"schtasks /Query /TN \"{taskName}\" /FO LIST";
+        var (success, output, _) = await ExecuteCommandAsync(queryCommand);
+
+        if (!success || string.IsNullOrEmpty(output))
+            return false;
+
+        var lines = output.Split(new[] { '\r', '\n' }, StringSplitOptions.RemoveEmptyEntries);
+        var statusLine = lines.FirstOrDefault(l => l.Trim().StartsWith("Status:", StringComparison.OrdinalIgnoreCase));
+
+        if (statusLine == null)
+            return false;
+
+        var status = statusLine.Split(':')[1].Trim();
+        return status.Equals("Ready", StringComparison.OrdinalIgnoreCase);
+    }
+
+    private string ExtractTaskNameFromCommand(string command)
+    {
+        var tnIndex = command.IndexOf("/TN", StringComparison.OrdinalIgnoreCase);
+        if (tnIndex == -1)
+            return string.Empty;
+
+        var afterTN = command.Substring(tnIndex + 3).Trim();
+        var startQuote = afterTN.IndexOf('"');
+        if (startQuote == -1)
+            return string.Empty;
+
+        var endQuote = afterTN.IndexOf('"', startQuote + 1);
+        if (endQuote == -1)
+            return string.Empty;
+
+        return afterTN.Substring(startQuote + 1, endQuote - startQuote - 1);
     }
 
     private string ExtractBcdeditSettingName(string command)

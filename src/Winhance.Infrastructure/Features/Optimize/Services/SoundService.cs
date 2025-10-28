@@ -13,7 +13,8 @@ using Winhance.Infrastructure.Features.Common.Services;
 namespace Winhance.Infrastructure.Features.Optimize.Services
 {
     public class SoundService(
-        ILogService logService) : IDomainService
+        ILogService logService,
+        ICompatibleSettingsRegistry compatibleSettingsRegistry) : IDomainService
     {
         public string DomainName => FeatureIds.Sound;
 
@@ -21,8 +22,7 @@ namespace Winhance.Infrastructure.Features.Optimize.Services
         {
             try
             {
-                var optimizations = SoundOptimizations.GetSoundOptimizations();
-                return optimizations.Settings;
+                return compatibleSettingsRegistry.GetFilteredSettings(FeatureIds.Sound);
             }
             catch (Exception ex)
             {

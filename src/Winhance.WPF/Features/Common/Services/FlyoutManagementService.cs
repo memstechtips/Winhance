@@ -80,5 +80,80 @@ namespace Winhance.WPF.Features.Common.Services
                 logService?.LogError($"Error closing MoreMenu flyout: {ex.Message}", ex);
             }
         }
+
+        public void ShowAdvancedToolsFlyout()
+        {
+            try
+            {
+                var mainWindow = Application.Current.MainWindow;
+                if (mainWindow != null)
+                {
+                    logService?.LogInformation("MainWindow found, showing AdvancedTools flyout overlay");
+
+                    var overlay = mainWindow.FindName("AdvancedToolsOverlay") as FrameworkElement;
+                    var flyoutContent = mainWindow.FindName("AdvancedToolsFlyoutContent") as FrameworkElement;
+                    var advancedButton = mainWindow.FindName("AdvancedToolsButton") as FrameworkElement;
+
+                    logService?.LogInformation($"Elements found - Overlay: {overlay != null}, FlyoutContent: {flyoutContent != null}, AdvancedButton: {advancedButton != null}");
+
+                    if (overlay != null && flyoutContent != null && advancedButton != null)
+                    {
+                        var buttonPosition = advancedButton.TransformToAncestor(mainWindow).Transform(new Point(0, 0));
+
+                        logService?.LogInformation($"Button position: X={buttonPosition.X}, Y={buttonPosition.Y}, Button size: {advancedButton.ActualWidth}x{advancedButton.ActualHeight}");
+
+                        var flyoutMargin = new Thickness(
+                            buttonPosition.X + advancedButton.ActualWidth + 5,
+                            buttonPosition.Y - 10,
+                            0,
+                            0
+                        );
+
+                        logService?.LogInformation($"Setting flyout margin: Left={flyoutMargin.Left}, Top={flyoutMargin.Top}");
+
+                        flyoutContent.Margin = flyoutMargin;
+                        overlay.Visibility = Visibility.Visible;
+
+                        logService?.LogInformation($"Overlay visibility set to: {overlay.Visibility}");
+
+                        overlay.Focus();
+                        logService?.LogInformation("AdvancedTools flyout shown successfully");
+                    }
+                    else
+                    {
+                        logService?.LogWarning($"Could not find required flyout elements - Overlay: {overlay != null}, FlyoutContent: {flyoutContent != null}, AdvancedButton: {advancedButton != null}");
+                    }
+                }
+                else
+                {
+                    logService?.LogWarning("MainWindow is null, cannot show flyout");
+                }
+            }
+            catch (Exception ex)
+            {
+                logService?.LogError($"Error showing AdvancedTools flyout: {ex.Message}", ex);
+            }
+        }
+
+        public void CloseAdvancedToolsFlyout()
+        {
+            try
+            {
+                var mainWindow = Application.Current.MainWindow;
+                if (mainWindow != null)
+                {
+                    var overlay = mainWindow.FindName("AdvancedToolsOverlay") as FrameworkElement;
+                    if (overlay != null)
+                    {
+                        overlay.Visibility = Visibility.Collapsed;
+                        logService?.LogInformation("AdvancedTools flyout closed");
+                    }
+                }
+            }
+            catch (Exception ex)
+            {
+                logService?.LogError($"Error closing AdvancedTools flyout: {ex.Message}", ex);
+            }
+        }
     }
 }

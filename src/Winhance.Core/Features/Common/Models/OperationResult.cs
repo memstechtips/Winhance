@@ -6,6 +6,7 @@ namespace Winhance.Core.Features.Common.Models
     public class OperationResult<T>
     {
         public bool Success { get; set; }
+        public bool IsCancelled { get; set; }
         public T? Result { get; set; }
         public string? ErrorMessage { get; set; }
         public Exception? Exception { get; set; }
@@ -116,11 +117,22 @@ namespace Winhance.Core.Features.Common.Models
                 ConfirmationRequest = confirmationRequest
             };
         }
+
+        public static OperationResult<T> Cancelled(string message = "Operation was cancelled")
+        {
+            return new OperationResult<T>
+            {
+                Success = false,
+                IsCancelled = true,
+                ErrorMessage = message
+            };
+        }
     }
 
     public class OperationResult
     {
         public bool Success { get; set; }
+        public bool IsCancelled { get; set; }
         public string? ErrorMessage { get; set; }
         public Exception? Exception { get; set; }
         public Dictionary<string, string>? ErrorDetails { get; set; }
@@ -208,6 +220,16 @@ namespace Winhance.Core.Features.Common.Models
             {
                 RequiresConfirmation = true,
                 ConfirmationRequest = confirmationRequest
+            };
+        }
+
+        public static OperationResult Cancelled(string message = "Operation was cancelled")
+        {
+            return new OperationResult
+            {
+                Success = false,
+                IsCancelled = true,
+                ErrorMessage = message
             };
         }
     }

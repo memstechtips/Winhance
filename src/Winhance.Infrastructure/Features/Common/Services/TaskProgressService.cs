@@ -247,9 +247,6 @@ namespace Winhance.Infrastructure.Features.Common.Services
             {
                 _cancellationSource.Cancel();
                 AddLogMessage("Task cancelled by user");
-
-                // Don't dispose here, as the task might still be using it
-                // It will be disposed in CompleteTask or when a new task starts
             }
         }
 

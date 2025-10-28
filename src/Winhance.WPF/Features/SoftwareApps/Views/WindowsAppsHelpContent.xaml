@@ -3,7 +3,7 @@
              xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
              xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006" 
              xmlns:d="http://schemas.microsoft.com/expression/blend/2008" 
-             xmlns:materialDesign="http://materialdesigninxaml.net/winfx/xaml/themes"
+             xmlns:iconPacks="http://metro.mahapps.com/winfx/xaml/iconpacks"
              mc:Ignorable="d">
     
     <!-- Flyout Help Content -->
@@ -44,7 +44,7 @@
                             Style="{StaticResource FlyOutCloseButtonStyle}"
                             ToolTip="Close Help"
                             Command="{Binding CloseHelpCommand}">
-                        <materialDesign:PackIcon Kind="Close" Width="16" Height="16"/>
+                        <iconPacks:PackIconMaterial Kind="Close" Width="12" Height="12"/>
                     </Button>
                 </Grid>
             
@@ -82,7 +82,7 @@
 
                         <!-- Reinstallability Status -->
                         <StackPanel Orientation="Horizontal" Margin="0,0,15,0">
-                            <materialDesign:PackIcon Kind="Sync"
+                            <iconPacks:PackIconMaterial Kind="Sync"
                                                      Width="16"
                                                      Height="16"
                                                      Foreground="#00A5FF"
@@ -95,7 +95,7 @@
                         </StackPanel>
 
                         <StackPanel Orientation="Horizontal">
-                            <materialDesign:PackIcon Kind="SyncOff"
+                            <iconPacks:PackIconMaterial Kind="SyncOff"
                                                      Width="16"
                                                      Height="16"
                                                      Foreground="#FF2800"
@@ -113,7 +113,7 @@
                                 Margin="0,0,0,10">
                         <!-- Winhance Removal Status -->
                         <StackPanel Orientation="Horizontal">
-                            <materialDesign:PackIcon Kind="DeleteForever"
+                            <iconPacks:PackIconMaterial Kind="DeleteForever"
                                                      Width="18"
                                                      Height="18"
                                                      Foreground="#00A5FF"
@@ -166,7 +166,7 @@
                                             
                                             <Grid Width="16" Height="16">
                                                 <!-- Loading Spinner -->
-                                                <materialDesign:PackIcon Kind="Loading"
+                                                <iconPacks:PackIconLucide Kind="LoaderCircle"
                                                                          Width="12"
                                                                          Height="12"
                                                                          Foreground="{DynamicResource PrimaryTextColor}"
@@ -175,10 +175,10 @@
                                                                          HorizontalAlignment="Center"
                                                                          Margin="0,4,0,0"
                                                                          Visibility="{Binding IsLoading, Converter={StaticResource BooleanToVisibilityConverter}}">
-                                                    <materialDesign:PackIcon.RenderTransform>
+                                                    <iconPacks:PackIconLucide.RenderTransform>
                                                         <RotateTransform/>
-                                                    </materialDesign:PackIcon.RenderTransform>
-                                                    <materialDesign:PackIcon.Triggers>
+                                                    </iconPacks:PackIconLucide.RenderTransform>
+                                                    <iconPacks:PackIconLucide.Triggers>
                                                         <EventTrigger RoutedEvent="Loaded">
                                                             <BeginStoryboard>
                                                                 <Storyboard RepeatBehavior="Forever">
@@ -187,17 +187,17 @@
                                                                 </Storyboard>
                                                             </BeginStoryboard>
                                                         </EventTrigger>
-                                                    </materialDesign:PackIcon.Triggers>
-                                                </materialDesign:PackIcon>
+                                                    </iconPacks:PackIconLucide.Triggers>
+                                                </iconPacks:PackIconLucide>
                                                 
                                                 <!-- Status Icon -->
-                                                <materialDesign:PackIcon Kind="{Binding IconKind}"
-                                                                         Width="20"
-                                                                         Height="20"
+                                                <iconPacks:PackIconMaterial Kind="{Binding IconKind}"
+                                                                         Width="16"
+                                                                         Height="16"
                                                                          VerticalAlignment="Center"
                                                                          HorizontalAlignment="Center">
-                                                    <materialDesign:PackIcon.Style>
-                                                        <Style TargetType="materialDesign:PackIcon">
+                                                    <iconPacks:PackIconMaterial.Style>
+                                                        <Style TargetType="iconPacks:PackIconMaterial">
                                                             <!-- Default (inactive) state - greyed out -->
                                                             <Setter Property="Foreground" Value="#808080"/>
                                                             <Setter Property="Opacity" Value="0.5"/>
@@ -229,8 +229,8 @@
                                                                 </MultiDataTrigger>
                                                             </Style.Triggers>
                                                         </Style>
-                                                    </materialDesign:PackIcon.Style>
-                                                </materialDesign:PackIcon> 
+                                                    </iconPacks:PackIconMaterial.Style>
+                                                </iconPacks:PackIconMaterial> 
                                             </Grid>
                                         </Button>
                                     </DataTemplate>
@@ -252,11 +252,10 @@
                 <TextBlock Grid.Column="1"
                            VerticalAlignment="Top"
                            HorizontalAlignment="Left"
-                           Style="{StaticResource ItemDefinitionTextStyle}"
                            FontSize="13"
                            TextWrapping="Wrap"
                            Margin="0,0,0,0"
-                           Text="Click on an active Winhance removal status icon above to delete the script and task associated with it.&#x0a;&#x0a;Check all the items you don't want on your PC (even not installed items). Windows might try to add them back later, but Winhance will keep removing them for you.&#x0a;&#x0a;Use the Search Box to find settings quickly. The Save and Import Config buttons in the main window help you manage your preferred selections."/>
+                           Text="Click on an active Winhance removal status icon above to delete the script and task associated with it.&#x0a;&#x0a;App Removals:&#x0a;Select the item(s) you don't want on your PC (even not installed items) and remove them. Windows might try to add them back later, but Winhance will keep removing them for you if the scripts and scheduled tasks are active.&#x0a;&#x0a;App Installations:&#x0a;Select the item(s) you want to install and click on the 'Install Selected Items' button to start the installation.&#x0a;(Note: Only some apps can be reinstalled, see the indicator next to each item)&#x0a;&#x0a;Use the Search Box to find items quickly.&#x0a;The Save and Import Config buttons in the main window help you manage your preferred selections."/>
                 </Grid>
             </Grid>
         </ScrollViewer>

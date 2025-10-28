@@ -1,7 +1,10 @@
 using System;
 using System.Collections.Generic;
+using System.Diagnostics;
+using System.IO;
 using System.Linq;
 using System.Threading.Tasks;
+using Microsoft.Win32;
 using Winhance.Core.Features.Common.Constants;
 using Winhance.Core.Features.Common.Enums;
 using Winhance.Core.Features.Common.Interfaces;
@@ -13,26 +16,39 @@ using Winhance.Infrastructure.Features.Common.Services;
 namespace Winhance.Infrastructure.Features.Customize.Services
 {
     public class ExplorerCustomizationService(
-        ILogService logService) : IDomainService
+        ILogService logService,
+        ICompatibleSettingsRegistry compatibleSettingsRegistry) : IDomainService
+        
     {
+        private IEnumerable<SettingDefinition>? _cachedSettings;
+        private readonly object _cacheLock = new object();
+
         public string DomainName => FeatureIds.ExplorerCustomization;
 
         public async Task<IEnumerable<SettingDefinition>> GetSettingsAsync()
         {
-            try
-            {
-                logService.Log(LogLevel.Info, "Loading Explorer customization settings");
+            // Return cached settings if available
+            if (_cachedSettings != null)
+                return _cachedSettings;
 
-                var group = ExplorerCustomizations.GetExplorerCustomizations();
-                return group.Settings;
-            }
-            catch (Exception ex)
+            lock (_cacheLock)
             {
-                logService.Log(
-                    LogLevel.Error,
-                    $"Error loading Explorer customization settings: {ex.Message}"
-                );
-                return Enumerable.Empty<SettingDefinition>();
+                // Double-check locking pattern
+                if (_cachedSettings != null)
+                    return _cachedSettings;
+
+                try
+                {
+                    logService.Log(LogLevel.Info, "Loading Explorer Customizations settings");
+
+                    _cachedSettings = compatibleSettingsRegistry.GetFilteredSettings(FeatureIds.ExplorerCustomization);
+                    return _cachedSettings;
+                }
+                catch (Exception ex)
+                {
+                    logService.Log(LogLevel.Error, $"Error loading Explorer Customizations settings: {ex.Message}");
+                    return Enumerable.Empty<SettingDefinition>();
+                }
             }
         }
 

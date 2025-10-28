@@ -1,4 +1,3 @@
-using System.Collections.Generic;
 using Microsoft.Win32;
 using Winhance.Core.Features.Common.Constants;
 using Winhance.Core.Features.Common.Enums;
@@ -20,8 +19,9 @@ public static class SoundOptimizations
                 {
                     Id = "sound-startup",
                     Name = "Startup Sound During Boot",
-                    Description = "Controls the startup sound during boot and for the user",
+                    Description = "Play the Windows startup sound when your computer boots up",
                     GroupName = "System Sounds",
+                    Icon = "MonitorSpeaker",
                     InputType = InputType.Toggle,
                     RegistrySettings = new List<RegistrySetting>
                     {
@@ -51,19 +51,70 @@ public static class SoundOptimizations
                 {
                     Id = "sound-communication-ducking",
                     Name = "Sound Ducking Preference",
-                    Description = "Controls sound behavior by reducing the volume of other sounds",
+                    Description = "Automatically lower volume of media and apps when Windows detects communication activity",
                     GroupName = "System Sounds",
-                    InputType = InputType.Toggle,
+                    Icon = "VolumeMedium",
+                    InputType = InputType.Selection,
                     RegistrySettings = new List<RegistrySetting>
                     {
                         new RegistrySetting
                         {
                             KeyPath = @"HKEY_CURRENT_USER\Software\Microsoft\Multimedia\Audio",
                             ValueName = "UserDuckingPreference",
-                            RecommendedValue = 3, // For backward compatibility
-                            EnabledValue = 1, // When toggle is ON, sound ducking is enabled (1 = reduce other sounds by 80%)
-                            DisabledValue = 3, // When toggle is OFF, sound ducking is disabled (3 = do nothing)
-                            DefaultValue = 3, // Default value when registry key exists but no value is set
+                            RecommendedValue = 3, // Do Nothing
+                            DefaultValue = 1, // Default value when registry key exists but no value is set
+                            ValueType = RegistryValueKind.DWord,
+                        },
+                    },
+                    CustomProperties = new Dictionary<string, object>
+                    {
+                        [CustomPropertyKeys.ComboBoxDisplayNames] = new string[]
+                        {
+                            "Mute all other sounds",
+                            "Reduce the volume of other sounds by 80%",
+                            "Reduce the volume of other sounds by 50%",
+                            "Do nothing",
+                        },
+                        [CustomPropertyKeys.ValueMappings] = new Dictionary<int, Dictionary<string, object?>>
+                        {
+                            [0] = new Dictionary<string, object?>
+                            {
+                                ["UserDuckingPreference"] = 0,
+                            },
+                            [1] = new Dictionary<string, object?>
+                            {
+                                ["UserDuckingPreference"] = 1,
+                            },
+                            [2] = new Dictionary<string, object?>
+                            {
+                                ["UserDuckingPreference"] = 2,
+                            },
+                            [3] = new Dictionary<string, object?>
+                            {
+                                ["UserDuckingPreference"] = 3,
+                            },
+                        },
+                    },
+                },
+                new SettingDefinition
+                {
+                    Id = "sound-narrator-audio-ducking",
+                    Name = "Narrator Audio Ducking",
+                    Description = "Allow Narrator to automatically lower the volume of other applications when it speaks",
+                    GroupName = "System Sounds",
+                    IconPack = "MaterialDesign",
+                    Icon = "VolumeOffRound",
+                    InputType = InputType.Toggle,
+                    RegistrySettings = new List<RegistrySetting>
+                    {
+                        new RegistrySetting
+                        {
+                            KeyPath = @"HKEY_CURRENT_USER\Software\Microsoft\Narrator\NoRoam",
+                            ValueName = "DuckAudio",
+                            RecommendedValue = 0,
+                            EnabledValue = 1,
+                            DisabledValue = 0,
+                            DefaultValue = 1,
                             ValueType = RegistryValueKind.DWord,
                         },
                     },
@@ -72,8 +123,9 @@ public static class SoundOptimizations
                 {
                     Id = "sound-voice-activation",
                     Name = "Voice Activation for Apps",
-                    Description = "Controls voice activation for all apps",
+                    Description = "Allow apps to listen and respond to voice commands like \"Hey Cortana\"",
                     GroupName = "System Sounds",
+                    Icon = "AccountTieVoice",
                     InputType = InputType.Toggle,
                     RegistrySettings = new List<RegistrySetting>
                     {
@@ -81,10 +133,10 @@ public static class SoundOptimizations
                         {
                             KeyPath = @"HKEY_LOCAL_MACHINE\Software\Microsoft\Windows\CurrentVersion\SpeechOneCore\Settings",
                             ValueName = "AgentActivationEnabled",
-                            RecommendedValue = 0, // For backward compatibility
-                            EnabledValue = 1, // When toggle is ON, voice activation is enabled
-                            DisabledValue = 0, // When toggle is OFF, voice activation is disabled
-                            DefaultValue = 0, // Default value when registry key exists but no value is set
+                            RecommendedValue = 0,
+                            EnabledValue = 1,
+                            DisabledValue = 0,
+                            DefaultValue = 0,
                             ValueType = RegistryValueKind.DWord,
                         },
                     },
@@ -93,8 +145,9 @@ public static class SoundOptimizations
                 {
                     Id = "sound-voice-activation-last-used",
                     Name = "Last Used Voice Activation Setting",
-                    Description = "Controls the last used voice activation setting",
+                    Description = "Remember and apply the most recently used voice activation configuration",
                     GroupName = "System Sounds",
+                    Icon = "MicrophoneMessage",
                     InputType = InputType.Toggle,
                     RegistrySettings = new List<RegistrySetting>
                     {
@@ -112,42 +165,46 @@ public static class SoundOptimizations
                 },
                 new SettingDefinition
                 {
-                    Id = "sound-effects-enhancements",
-                    Name = "Sound Effects and Enhancements",
-                    Description = "Controls audio enhancements for playback devices",
-                    GroupName = "Audio Enhancements",
+                    Id = "sound-accessibility-activation",
+                    Name = "Accessibility Activation Sounds",
+                    Description = "Play sounds when accessibility features like StickyKeys or FilterKeys are activated",
+                    GroupName = "System Sounds",
+                    IconPack = "MaterialDesign",
+                    Icon = "KeyboardRound",
                     InputType = InputType.Toggle,
                     RegistrySettings = new List<RegistrySetting>
                     {
                         new RegistrySetting
                         {
-                            KeyPath = @"HKEY_CURRENT_USER\Software\Microsoft\Multimedia\Audio\DeviceFx",
-                            ValueName = "EnableDeviceEffects",
-                            RecommendedValue = 0, // For backward compatibility
-                            EnabledValue = 1, // When toggle is ON, audio enhancements are enabled
-                            DisabledValue = 0, // When toggle is OFF, audio enhancements are disabled
-                            DefaultValue = 1, // Default value when registry key exists but no value is set
+                            KeyPath = @"HKEY_CURRENT_USER\Control Panel\Accessibility",
+                            ValueName = "Sound on Activation",
+                            RecommendedValue = 0,
+                            EnabledValue = 1,
+                            DisabledValue = 0,
+                            DefaultValue = 1,
                             ValueType = RegistryValueKind.DWord,
                         },
                     },
                 },
                 new SettingDefinition
                 {
-                    Id = "sound-spatial-audio",
-                    Name = "Spatial Sound Settings",
-                    Description = "Controls Windows Sonic and spatial sound features",
-                    GroupName = "Audio Enhancements",
+                    Id = "sound-accessibility-warnings",
+                    Name = "Accessibility Warning Sounds",
+                    Description = "Play warning sounds when attempting to activate accessibility features or when accessibility-related events occur",
+                    GroupName = "System Sounds",
+                    IconPack = "Lucide",
+                    Icon = "BellElectric",
                     InputType = InputType.Toggle,
                     RegistrySettings = new List<RegistrySetting>
                     {
                         new RegistrySetting
                         {
-                            KeyPath = @"HKEY_CURRENT_USER\Software\Microsoft\Windows\CurrentVersion\Audio",
-                            ValueName = "EnableSpatialSound",
-                            RecommendedValue = 0, // For backward compatibility
-                            EnabledValue = 1, // When toggle is ON, spatial sound is enabled
-                            DisabledValue = 0, // When toggle is OFF, spatial sound is disabled
-                            DefaultValue = 1, // Default value when registry key exists but no value is set
+                            KeyPath = @"HKEY_CURRENT_USER\Control Panel\Accessibility",
+                            ValueName = "Warning Sounds",
+                            RecommendedValue = 0,
+                            EnabledValue = 1,
+                            DisabledValue = 0,
+                            DefaultValue = 1,
                             ValueType = RegistryValueKind.DWord,
                         },
                     },

@@ -20,7 +20,7 @@ namespace Winhance.WPF.Features.SoftwareApps.ViewModels
 {
     public partial class SoftwareAppsViewModel : BaseContainerViewModel
     {
-        protected override string DefaultStatusText => "Manage Windows Apps, Capabilities & Features and Install External Software";
+        protected override string DefaultStatusText => "Manage Windows Packages and Install External Software";
 
         public override string ModuleId => "SoftwareApps";
         public override string DisplayName => "Software & Apps";
@@ -146,6 +146,33 @@ namespace Winhance.WPF.Features.SoftwareApps.ViewModels
             {
                 StatusText = $"Error initializing: {ex.Message}";
             }
+        }
+
+        public async Task WaitForInitializationAsync()
+        {
+            var tcs = new TaskCompletionSource<bool>();
+
+            void CheckComplete()
+            {
+                if (WindowsAppsViewModel.IsInitialized && ExternalAppsViewModel.IsInitialized)
+                    tcs.TrySetResult(true);
+            }
+
+            WindowsAppsViewModel.PropertyChanged += (s, e) =>
+            {
+                if (e.PropertyName == nameof(WindowsAppsViewModel.IsInitialized))
+                    CheckComplete();
+            };
+
+            ExternalAppsViewModel.PropertyChanged += (s, e) =>
+            {
+                if (e.PropertyName == nameof(ExternalAppsViewModel.IsInitialized))
+                    CheckComplete();
+            };
+
+            CheckComplete();
+
+            await tcs.Task;
         }
 
         [RelayCommand]
@@ -360,7 +387,7 @@ namespace Winhance.WPF.Features.SoftwareApps.ViewModels
 
                 var viewModel = new WindowsAppsHelpContentViewModel(scheduledTaskService, logService);
                 viewModel.CloseHelpCommand = HideHelpFlyoutCommand;
-                viewModel.Initialize(); // Add this missing call!
+                viewModel.Initialize();
                 var helpContent = new WindowsAppsHelpContent(viewModel);
                 CurrentHelpContent = helpContent;
             }
@@ -376,6 +403,11 @@ namespace Winhance.WPF.Features.SoftwareApps.ViewModels
             IsHelpFlyoutVisible = true;
             IsHelpButtonActive = true;
             ShouldFocusHelpOverlay = !ShouldFocusHelpOverlay;
+
+            if (Application.Current.MainWindow?.DataContext is MainViewModel mainViewModel)
+            {
+                mainViewModel.IsDialogOverlayVisible = true;
+            }
         }
 
         private void CalculateHelpFlyoutPosition()
@@ -429,13 +461,66 @@ namespace Winhance.WPF.Features.SoftwareApps.ViewModels
             IsHelpFlyoutVisible = false;
             IsHelpButtonActive = false;
 
-            if (CurrentHelpContent is UserControl helpControl &&
-                helpControl.DataContext is IDisposable disposableViewModel)
+            if (Application.Current.MainWindow?.DataContext is MainViewModel mainViewModel)
             {
-                disposableViewModel.Dispose();
+                // Only turn off overlay if no CustomDialog windows are currently open.
+                // If a dialog is open, let the dialog's Closed event handle turning off the overlay.
+                // This prevents the overlay from being removed when the help flyout auto-closes
+                // due to a dialog being shown from within the flyout (StaysOpen="False" behavior).
+                var hasOpenDialogs = Application.Current.Windows
+                    .OfType<CustomDialog>()
+                    .Any();
+
+                if (!hasOpenDialogs)
+                {
+                    mainViewModel.IsDialogOverlayVisible = false;
+                }
+            }
+
+            var helpControl = CurrentHelpContent as UserControl;
+            var disposableViewModel = helpControl?.DataContext as IDisposable;
+
+            if (helpControl is WindowsAppsHelpContent windowsHelp)
+            {
+                StopHelpContentAnimations(windowsHelp);
+            }
+
+            if (helpControl != null)
+            {
+                helpControl.DataContext = null;
             }
 
             CurrentHelpContent = null;
+
+            disposableViewModel?.Dispose();
+
+            System.Threading.Tasks.Task.Run(() =>
+            {
+                System.Threading.Thread.Sleep(100);
+                GC.Collect(0, GCCollectionMode.Optimized);
+            });
+        }
+
+        private static void StopHelpContentAnimations(DependencyObject parent)
+        {
+            if (parent == null) return;
+
+            if (parent is UIElement element)
+            {
+                element.BeginAnimation(UIElement.OpacityProperty, null);
+            }
+
+            if (parent is FrameworkElement frameworkElement && frameworkElement.RenderTransform is System.Windows.Media.RotateTransform rotateTransform)
+            {
+                rotateTransform.BeginAnimation(System.Windows.Media.RotateTransform.AngleProperty, null);
+            }
+
+            int childCount = System.Windows.Media.VisualTreeHelper.GetChildrenCount(parent);
+            for (int i = 0; i < childCount; i++)
+            {
+                var child = System.Windows.Media.VisualTreeHelper.GetChild(parent, i);
+                StopHelpContentAnimations(child);
+            }
         }
 
         private static T FindAncestorOfType<T>(DependencyObject element) where T : DependencyObject

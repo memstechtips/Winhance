@@ -51,18 +51,13 @@ namespace Winhance.WPF.Features.Common.Extensions.DI
         /// <returns>The service collection for method chaining</returns>
         public static IServiceCollection AddOptimizationViews(this IServiceCollection services)
         {
-            // Main Optimization View (Transient)
             services.AddTransient<OptimizeView>();
-
-            // Feature-specific Views (Transient)
             services.AddTransient<PowerOptimizationsView>();
-            services.AddTransient<PrivacyOptimizationsView>();
-            services.AddTransient<WindowsSecurityOptimizationsView>();
+            services.AddTransient<PrivacyAndSecurityOptimizationsView>();
             services.AddTransient<GamingandPerformanceOptimizationsView>();
             services.AddTransient<NotificationOptimizationsView>();
             services.AddTransient<SoundOptimizationsView>();
             services.AddTransient<UpdateOptimizationsView>();
-            services.AddTransient<ExplorerOptimizationsView>();
 
             return services;
         }

@@ -18,7 +18,7 @@ public class PowerSettingsValidationService(
         var settingsList = settings.ToList();
         var originalCount = settingsList.Count;
 
-        var bulkPowerValues = await powerCfgQueryService.GetAllPowerSettingsAsync("SCHEME_CURRENT");
+        var bulkPowerValues = await powerCfgQueryService.GetAllPowerSettingsACDCAsync("SCHEME_CURRENT");
 
         if (!bulkPowerValues.Any())
         {
@@ -41,24 +41,24 @@ public class PowerSettingsValidationService(
             foreach (var powerCfgSetting in setting.PowerCfgSettings)
             {
                 var settingKey = powerCfgSetting.SettingGuid;
-                
+
                 if (bulkPowerValues.ContainsKey(settingKey))
                 {
                     hasValidPowerCfgSetting = true;
                     break;
                 }
-                
+
                 if (powerCfgSetting.EnablementRegistrySetting != null)
                 {
                     logService.Log(LogLevel.Info, $"Attempting to enable hidden power setting: {settingKey}");
-                    
+
                     if (registryService.ApplySetting(powerCfgSetting.EnablementRegistrySetting, true))
                     {
                         logService.Log(LogLevel.Info, $"Successfully enabled hidden power setting: {settingKey}");
-                        
+
                         await Task.Delay(100);
-                        var updatedPowerValues = await powerCfgQueryService.GetAllPowerSettingsAsync("SCHEME_CURRENT");
-                        
+                        var updatedPowerValues = await powerCfgQueryService.GetAllPowerSettingsACDCAsync("SCHEME_CURRENT");
+
                         if (updatedPowerValues.ContainsKey(settingKey))
                         {
                             hasValidPowerCfgSetting = true;

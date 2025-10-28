@@ -37,6 +37,8 @@ namespace Winhance.WPF.Features.SoftwareApps.ViewModels
         IDialogService dialogService)
         : BaseAppFeatureViewModel<AppItemViewModel>(progressService, logService, eventBus, dialogService, connectivityService)
     {
+        private System.Threading.Timer? _refreshTimer;
+        private CancellationTokenSource? _refreshCts;
         private const string PowerShellOperationMessage =
             "PowerShell is now handling this operation.\n\n" +
             "You can see the real-time progress in the PowerShell window that just opened. " +
@@ -74,6 +76,10 @@ namespace Winhance.WPF.Features.SoftwareApps.ViewModels
 
         public IEnumerable<AppItemViewModel> OptionalFeaturesFiltered =>
             GetSortedFilteredItems(item => !string.IsNullOrEmpty(item.Definition.OptionalFeatureName));
+
+        public bool HasWindowsApps => WindowsAppsFiltered.Any();
+        public bool HasCapabilities => CapabilitiesFiltered.Any();
+        public bool HasOptionalFeatures => OptionalFeaturesFiltered.Any();
 
         private IEnumerable<AppItemViewModel> GetSortedFilteredItems(Func<AppItemViewModel, bool> typeFilter)
         {
@@ -155,7 +161,36 @@ namespace Winhance.WPF.Features.SoftwareApps.ViewModels
             {
                 InitializeCollectionView();
             }
+            else
+            {
+                CleanupTableView();
+            }
             UpdateAllItemsCollection();
+        }
+
+        public override void OnNavigatedFrom()
+        {
+            CleanupTableView();
+            base.OnNavigatedFrom();
+        }
+
+        public void CleanupTableView()
+        {
+            if (!IsTableViewMode) return;
+
+            _refreshTimer?.Dispose();
+            _refreshTimer = null;
+
+            _refreshCts?.Cancel();
+            _refreshCts?.Dispose();
+            _refreshCts = null;
+
+            if (_allItemsView != null)
+            {
+                _allItemsView.Filter = null;
+                CleanupCollectionHandlers();
+                _allItemsView = null;
+            }
         }
 
         [RelayCommand]
@@ -166,14 +201,28 @@ namespace Winhance.WPF.Features.SoftwareApps.ViewModels
 
         public void UpdateAllItemsCollection()
         {
-            if (_allItemsView != null)
-            {
-                _allItemsView.Refresh();
-            }
+            if (!IsTableViewMode || _allItemsView == null) return;
 
-            OnPropertyChanged(nameof(WindowsAppsFiltered));
-            OnPropertyChanged(nameof(CapabilitiesFiltered));
-            OnPropertyChanged(nameof(OptionalFeaturesFiltered));
+            _refreshCts?.Cancel();
+            _refreshCts?.Dispose();
+            _refreshCts = new CancellationTokenSource();
+
+            var token = _refreshCts.Token;
+
+            Task.Delay(150, token).ContinueWith(_ =>
+            {
+                if (!token.IsCancellationRequested && IsTableViewMode)
+                {
+                    Application.Current?.Dispatcher.Invoke(() =>
+                    {
+                        if (_allItemsView != null && IsTableViewMode && !token.IsCancellationRequested)
+                        {
+                            _allItemsView.Refresh();
+                            // No need to notify filtered properties - table view binds to AllItemsView directly
+                        }
+                    });
+                }
+            }, TaskScheduler.Default);
         }
 
 
@@ -228,9 +277,13 @@ namespace Winhance.WPF.Features.SoftwareApps.ViewModels
                     }
                 }
 
-                OnPropertyChanged(nameof(WindowsAppsFiltered));
-                OnPropertyChanged(nameof(CapabilitiesFiltered));
-                OnPropertyChanged(nameof(OptionalFeaturesFiltered));
+                // Only notify filtered properties in grid view mode (table view uses AllItemsView)
+                if (!IsTableViewMode)
+                {
+                    OnPropertyChanged(nameof(WindowsAppsFiltered));
+                    OnPropertyChanged(nameof(CapabilitiesFiltered));
+                    OnPropertyChanged(nameof(OptionalFeaturesFiltered));
+                }
 
                 StatusText = $"Installation status checked for {Items.Count} items";
             }
@@ -258,14 +311,22 @@ namespace Winhance.WPF.Features.SoftwareApps.ViewModels
             if (!await CheckConnectivityAsync()) return;
             if (!await ShowConfirmationAsync("install", selectedItems.AllItems)) return;
 
-            await ExecuteWithProgressAsync(
-                progressService => ExecuteInstallOperation(selectedItems, progressService.CreateDetailedProgress()),
-                "Installing Windows Apps"
-            );
+            try
+            {
+                await ExecuteWithProgressAsync(
+                    progressService => ExecuteInstallOperation(selectedItems, progressService.CreateDetailedProgress()),
+                    "Installing Windows Apps"
+                );
+            }
+            catch (OperationCanceledException)
+            {
+                CurrentCancellationReason = CancellationReason.UserCancelled;
+                // No dialog needed - user knows they cancelled and task progress control disappears
+            }
         }
 
         [RelayCommand]
-        public async Task RemoveApps()
+        public async Task RemoveApps(bool skipConfirmation = false)
         {
             var selectedItems = GetSelectedItemsForOperation();
             if (!selectedItems.HasItems)
@@ -274,12 +335,21 @@ namespace Winhance.WPF.Features.SoftwareApps.ViewModels
                 return;
             }
 
-            if (!await ShowConfirmationAsync("remove", selectedItems.AllItems)) return;
+            if (!skipConfirmation && !await ShowConfirmationAsync("remove", selectedItems.AllItems))
+                return;
 
-            await ExecuteWithProgressAsync(
-                progressService => ExecuteRemoveOperation(selectedItems, progressService.CreateDetailedProgress()),
-                "Removing Windows Apps"
-            );
+            try
+            {
+                await ExecuteWithProgressAsync(
+                    progressService => ExecuteRemoveOperation(selectedItems, progressService.CreateDetailedProgress(), skipResultDialog: skipConfirmation),
+                    "Removing Windows Apps"
+                );
+            }
+            catch (OperationCanceledException)
+            {
+                CurrentCancellationReason = CancellationReason.UserCancelled;
+                // No dialog needed - user knows they cancelled and task progress control disappears
+            }
         }
 
         [RelayCommand]
@@ -297,45 +367,64 @@ namespace Winhance.WPF.Features.SoftwareApps.ViewModels
             {
                 var progress = progressService.CreateDetailedProgress();
                 var result = await appOperationService.InstallAppAsync(
-                    app.Definition, progress);
+                    app.Definition, progress, shouldRemoveFromBloatScript: true);
 
                 if (result.Success)
                 {
                     app.IsInstalled = true;
                     StatusText = $"Successfully installed {app.Name}";
 
-                    // Trigger UI refresh immediately after operation completes
                     RefreshUIAfterOperation();
 
-                    // Check if this is a PowerShell operation (capability or optional feature)
                     bool isPowerShellOperation = !string.IsNullOrEmpty(app.Definition.CapabilityName) ||
                                                !string.IsNullOrEmpty(app.Definition.OptionalFeatureName);
 
                     if (isPowerShellOperation)
                     {
-                        // Show PowerShell information dialog for capabilities and features
                         await dialogService.ShowInformationAsync(PowerShellOperationMessage, "PowerShell Operation");
                     }
                     else
                     {
-                        // Show standard success dialog for regular WinGet apps
-                        ShowOperationResultDialog("Install", 1, 1, new[] { app.Name }, Array.Empty<string>());
+                        await ShowOperationResultDialogAsync("Install", 1, 1, new[] { app.Name }, Array.Empty<string>());
                     }
+                }
+                else if (result.IsCancelled)
+                {
+                    CurrentCancellationReason = CancellationReason.UserCancelled;
+                    StatusText = $"Installation of {app.Name} was cancelled";
+                    // No dialog needed - user knows they cancelled and task progress control disappears
                 }
                 else
                 {
                     StatusText = result.ErrorMessage ?? $"Failed to install {app.Name}";
                     RefreshUIAfterOperation();
-                    ShowOperationResultDialog("Install", 0, 1, Array.Empty<string>(),
+                    await ShowOperationResultDialogAsync("Install", 0, 1, Array.Empty<string>(),
                         new[] { $"{app.Name}: {result.ErrorMessage}" });
                 }
             }
+            catch (OperationCanceledException)
+            {
+                CurrentCancellationReason = CancellationReason.UserCancelled;
+                StatusText = $"Installation of {app.Name} was cancelled";
+                RefreshUIAfterOperation();
+                // No dialog needed - user knows they cancelled and task progress control disappears
+            }
             catch (Exception ex)
             {
-                StatusText = $"Error installing {app.Name}: {ex.Message}";
-                RefreshUIAfterOperation();
-                ShowOperationResultDialog("Install", 0, 1, Array.Empty<string>(),
-                    new[] { $"{app.Name}: {ex.Message}" });
+                // Don't show dialog for cancellation exceptions
+                if (ex is OperationCanceledException)
+                {
+                    CurrentCancellationReason = CancellationReason.UserCancelled;
+                    StatusText = $"Installation of {app.Name} was cancelled";
+                    RefreshUIAfterOperation();
+                }
+                else
+                {
+                    StatusText = $"Error installing {app.Name}: {ex.Message}";
+                    RefreshUIAfterOperation();
+                    await ShowOperationResultDialogAsync("Install", 0, 1, Array.Empty<string>(),
+                        new[] { $"{app.Name}: {ex.Message}" });
+                }
             }
             finally
             {
@@ -355,22 +444,46 @@ namespace Winhance.WPF.Features.SoftwareApps.ViewModels
 
             try
             {
-                bool success = await ExecuteSingleRemovalOperation(app);
-                StatusText = success ? $"Successfully removed {app.Name}" : $"Failed to remove {app.Name}";
+                var result = await ExecuteSingleRemovalOperation(app);
 
-                // Trigger UI refresh immediately after operation completes
+                if (result.IsCancelled)
+                {
+                    CurrentCancellationReason = CancellationReason.UserCancelled;
+                    StatusText = $"Removal of {app.Name} was cancelled";
+                    RefreshUIAfterOperation();
+                    // No dialog needed - user knows they cancelled and task progress control disappears
+                }
+                else
+                {
+                    StatusText = result.Success ? $"Successfully removed {app.Name}" : $"Failed to remove {app.Name}";
+                    RefreshUIAfterOperation();
+                    await ShowOperationResultDialogAsync("Remove", result.Success ? 1 : 0, 1,
+                        result.Success ? new[] { app.Name } : Array.Empty<string>(),
+                        result.Success ? Array.Empty<string>() : new[] { app.Name });
+                }
+            }
+            catch (OperationCanceledException)
+            {
+                CurrentCancellationReason = CancellationReason.UserCancelled;
+                StatusText = $"Removal of {app.Name} was cancelled";
                 RefreshUIAfterOperation();
-
-                ShowOperationResultDialog("Remove", success ? 1 : 0, 1,
-                    success ? new[] { app.Name } : Array.Empty<string>(),
-                    success ? Array.Empty<string>() : new[] { app.Name });
+                // No dialog needed - user knows they cancelled and task progress control disappears
             }
             catch (Exception ex)
             {
-                StatusText = $"Error removing {app.Name}: {ex.Message}";
-                RefreshUIAfterOperation();
-                ShowOperationResultDialog("Remove", 0, 1, Array.Empty<string>(),
-                    new[] { $"{app.Name}: {ex.Message}" });
+                // Don't show dialog for cancellation exceptions
+                if (ex is OperationCanceledException)
+                {
+                    CurrentCancellationReason = CancellationReason.UserCancelled;
+                    StatusText = $"Removal of {app.Name} was cancelled";
+                    RefreshUIAfterOperation();
+                }
+                else
+                {
+                    StatusText = $"Error removing {app.Name}: {ex.Message}";
+                    RefreshUIAfterOperation();
+                    await ShowOperationResultDialogAsync("Remove", 0, 1, Array.Empty<string>(), new[] { $"{app.Name}: {ex.Message}" });
+                }
             }
             finally
             {
@@ -462,9 +575,20 @@ namespace Winhance.WPF.Features.SoftwareApps.ViewModels
             return true;
         }
 
+        private bool _collectionHandlersSetup = false;
+
         private void SetupCollectionChangeHandlers()
         {
+            if (_collectionHandlersSetup) return;
             Items.CollectionChanged += OnCollectionChanged;
+            _collectionHandlersSetup = true;
+        }
+
+        private void CleanupCollectionHandlers()
+        {
+            if (!_collectionHandlersSetup) return;
+            Items.CollectionChanged -= OnCollectionChanged;
+            _collectionHandlersSetup = false;
         }
 
         private void OnCollectionChanged(object sender, NotifyCollectionChangedEventArgs e)
@@ -514,7 +638,20 @@ namespace Winhance.WPF.Features.SoftwareApps.ViewModels
             {
                 _allItemsView.Refresh();
             }
-            UpdateAllItemsCollection();
+
+            if (IsTableViewMode)
+            {
+                UpdateAllItemsCollection();
+            }
+            else
+            {
+                OnPropertyChanged(nameof(WindowsAppsFiltered));
+                OnPropertyChanged(nameof(CapabilitiesFiltered));
+                OnPropertyChanged(nameof(OptionalFeaturesFiltered));
+                OnPropertyChanged(nameof(HasWindowsApps));
+                OnPropertyChanged(nameof(HasCapabilities));
+                OnPropertyChanged(nameof(HasOptionalFeatures));
+            }
         }
 
         private IEnumerable<AppItemViewModel> FilterItems(IEnumerable<AppItemViewModel> items)
@@ -580,6 +717,15 @@ namespace Winhance.WPF.Features.SoftwareApps.ViewModels
             return await ShowConfirmItemsDialogAsync(operationType, itemNames, items.Count()) == true;
         }
 
+        public async Task<bool> ShowRemovalSummaryAndConfirm()
+        {
+            var selectedItems = GetSelectedItemsForOperation();
+            if (!selectedItems.HasItems)
+                return false;
+
+            return await ShowConfirmationAsync("remove", selectedItems.AllItems);
+        }
+
         private async Task<int> ExecuteInstallOperation(SelectedItemsCollection selectedItems, IProgress<TaskProgressDetail> progress, CancellationToken cancellationToken = default)
         {
             int totalSuccessCount = 0;
@@ -631,18 +777,27 @@ namespace Winhance.WPF.Features.SoftwareApps.ViewModels
                     appResults.Add(app.Name, app.IsInstalled, "");
                 }
 
-                ShowOperationResultDialog("Install", appResults.SuccessCount, selectedItems.Apps.Count,
+                await ShowOperationResultDialogAsync("Install", appResults.SuccessCount, selectedItems.Apps.Count,
                     appResults.SuccessItems, appResults.FailedItems);
             }
 
             return totalSuccessCount;
         }
 
-        private async Task<int> ExecuteRemoveOperation(SelectedItemsCollection selectedItems, IProgress<TaskProgressDetail> progress, CancellationToken cancellationToken = default)
+        private async Task<int> ExecuteRemoveOperation(SelectedItemsCollection selectedItems, IProgress<TaskProgressDetail> progress, CancellationToken cancellationToken = default, bool skipResultDialog = false)
         {
             var allDefinitions = selectedItems.AllItems.Select(item => item.Definition).ToList();
 
             var result = await appOperationService.UninstallAppsAsync(allDefinitions, progress);
+
+            if (result.IsCancelled)
+            {
+                CurrentCancellationReason = CancellationReason.UserCancelled;
+                RefreshUIAfterOperation();
+                if (!skipResultDialog)
+                    await ShowOperationResultDialogAsync("Remove", 0, selectedItems.TotalCount, new List<string>(), selectedItems.AllNames.ToList());
+                return 0;
+            }
 
             if (result.Success)
             {
@@ -651,7 +806,6 @@ namespace Winhance.WPF.Features.SoftwareApps.ViewModels
                     item.IsInstalled = false;
                 }
 
-                // Trigger UI refresh immediately after operation completes
                 RefreshUIAfterOperation();
 
                 var successCount = result.Result;
@@ -659,14 +813,15 @@ namespace Winhance.WPF.Features.SoftwareApps.ViewModels
                 var succeededItems = selectedItems.AllNames.Take(successCount).ToList();
                 var failedItems = selectedItems.AllNames.Skip(successCount).ToList();
 
-                ShowOperationResultDialog("Remove", successCount, totalCount, succeededItems, failedItems);
+                if (!skipResultDialog)
+                    await ShowOperationResultDialogAsync("Remove", successCount, totalCount, succeededItems, failedItems);
                 return successCount;
             }
 
-            // Trigger UI refresh even if operation failed
             RefreshUIAfterOperation();
 
-            ShowOperationResultDialog("Remove", 0, selectedItems.TotalCount, new List<string>(), selectedItems.AllNames.ToList());
+            if (!skipResultDialog)
+                await ShowOperationResultDialogAsync("Remove", 0, selectedItems.TotalCount, new List<string>(), selectedItems.AllNames.ToList());
             return 0;
         }
 
@@ -678,9 +833,19 @@ namespace Winhance.WPF.Features.SoftwareApps.ViewModels
 
                 try
                 {
-                    var result = await appOperationService.InstallAppAsync(app.Definition, progress);
+                    var result = await appOperationService.InstallAppAsync(app.Definition, progress, shouldRemoveFromBloatScript: true);
+                    if (result.IsCancelled)
+                    {
+                        CurrentCancellationReason = CancellationReason.UserCancelled;
+                        break;
+                    }
                     results.Add(app.Name, result.Success && result.Result, result.ErrorMessage);
                     if (result.Success && result.Result) app.IsInstalled = true;
+                }
+                catch (OperationCanceledException)
+                {
+                    CurrentCancellationReason = CancellationReason.UserCancelled;
+                    break;
                 }
                 catch (Exception ex)
                 {
@@ -697,9 +862,19 @@ namespace Winhance.WPF.Features.SoftwareApps.ViewModels
 
                 try
                 {
-                    var result = await appOperationService.InstallAppAsync(capability.Definition, progress);
+                    var result = await appOperationService.InstallAppAsync(capability.Definition, progress, shouldRemoveFromBloatScript: true);
+                    if (result.IsCancelled)
+                    {
+                        CurrentCancellationReason = CancellationReason.UserCancelled;
+                        break;
+                    }
                     results.Add(capability.Name, result.Success && result.Result, result.ErrorMessage);
                     if (result.Success && result.Result) capability.IsInstalled = true;
+                }
+                catch (OperationCanceledException)
+                {
+                    CurrentCancellationReason = CancellationReason.UserCancelled;
+                    break;
                 }
                 catch (Exception ex)
                 {
@@ -716,9 +891,19 @@ namespace Winhance.WPF.Features.SoftwareApps.ViewModels
 
                 try
                 {
-                    var result = await appOperationService.InstallAppAsync(feature.Definition, progress);
+                    var result = await appOperationService.InstallAppAsync(feature.Definition, progress, shouldRemoveFromBloatScript: true);
+                    if (result.IsCancelled)
+                    {
+                        CurrentCancellationReason = CancellationReason.UserCancelled;
+                        break;
+                    }
                     results.Add(feature.Name, result.Success && result.Result, result.ErrorMessage);
                     if (result.Success && result.Result) feature.IsInstalled = true;
+                }
+                catch (OperationCanceledException)
+                {
+                    CurrentCancellationReason = CancellationReason.UserCancelled;
+                    break;
                 }
                 catch (Exception ex)
                 {
@@ -727,11 +912,11 @@ namespace Winhance.WPF.Features.SoftwareApps.ViewModels
             }
         }
 
-        private async Task<bool> ExecuteSingleRemovalOperation(AppItemViewModel app)
+        private async Task<OperationResult<bool>> ExecuteSingleRemovalOperation(AppItemViewModel app)
         {
             var result = await appOperationService.UninstallAppAsync(app.Definition.Id);
             if (result.Success) app.Definition.IsInstalled = false;
-            return result.Success;
+            return result;
         }
 
         private static string GetKeyForApp(AppItemViewModel app)
@@ -743,9 +928,13 @@ namespace Winhance.WPF.Features.SoftwareApps.ViewModels
         {
             Items.ToList().ForEach(app => app.IsSelected = value);
 
-            OnPropertyChanged(nameof(WindowsAppsFiltered));
-            OnPropertyChanged(nameof(CapabilitiesFiltered));
-            OnPropertyChanged(nameof(OptionalFeaturesFiltered));
+            // Only notify filtered properties in grid view mode (table view handles this automatically)
+            if (!IsTableViewMode)
+            {
+                OnPropertyChanged(nameof(WindowsAppsFiltered));
+                OnPropertyChanged(nameof(CapabilitiesFiltered));
+                OnPropertyChanged(nameof(OptionalFeaturesFiltered));
+            }
         }
 
         private void UpdateSpecializedCheckboxStates(bool value)
@@ -760,18 +949,26 @@ namespace Winhance.WPF.Features.SoftwareApps.ViewModels
         {
             Items.Where(a => a.IsInstalled).ToList().ForEach(app => app.IsSelected = value);
 
-            OnPropertyChanged(nameof(WindowsAppsFiltered));
-            OnPropertyChanged(nameof(CapabilitiesFiltered));
-            OnPropertyChanged(nameof(OptionalFeaturesFiltered));
+            // Only notify filtered properties in grid view mode (table view handles this automatically)
+            if (!IsTableViewMode)
+            {
+                OnPropertyChanged(nameof(WindowsAppsFiltered));
+                OnPropertyChanged(nameof(CapabilitiesFiltered));
+                OnPropertyChanged(nameof(OptionalFeaturesFiltered));
+            }
         }
 
         private void SetNotInstalledItemsSelection(bool value)
         {
             Items.Where(a => !a.IsInstalled).ToList().ForEach(app => app.IsSelected = value);
 
-            OnPropertyChanged(nameof(WindowsAppsFiltered));
-            OnPropertyChanged(nameof(CapabilitiesFiltered));
-            OnPropertyChanged(nameof(OptionalFeaturesFiltered));
+            // Only notify filtered properties in grid view mode (table view handles this automatically)
+            if (!IsTableViewMode)
+            {
+                OnPropertyChanged(nameof(WindowsAppsFiltered));
+                OnPropertyChanged(nameof(CapabilitiesFiltered));
+                OnPropertyChanged(nameof(OptionalFeaturesFiltered));
+            }
         }
 
         private void UpdateIsAllSelectedState()
@@ -808,17 +1005,25 @@ namespace Winhance.WPF.Features.SoftwareApps.ViewModels
             }
         }
 
+        private bool _isUpdatingSelection = false;
+
         private void Item_PropertyChanged(object? sender, PropertyChangedEventArgs e)
         {
             if (e.PropertyName == nameof(AppItemViewModel.IsSelected))
             {
-                UpdateIsAllSelectedState();
-                InvalidateHasSelectedItemsCache();
-                OnPropertyChanged(nameof(HasSelectedItems));
+                if (_isUpdatingSelection) return;
 
-                OnPropertyChanged(nameof(WindowsAppsFiltered));
-                OnPropertyChanged(nameof(CapabilitiesFiltered));
-                OnPropertyChanged(nameof(OptionalFeaturesFiltered));
+                try
+                {
+                    _isUpdatingSelection = true;
+                    UpdateIsAllSelectedState();
+                    InvalidateHasSelectedItemsCache();
+                    OnPropertyChanged(nameof(HasSelectedItems));
+                }
+                finally
+                {
+                    _isUpdatingSelection = false;
+                }
             }
         }
 
@@ -860,5 +1065,18 @@ namespace Winhance.WPF.Features.SoftwareApps.ViewModels
         }
 
         public bool IsSearchActive => !string.IsNullOrWhiteSpace(SearchText);
+
+        protected override void Dispose(bool disposing)
+        {
+            if (disposing)
+            {
+                _refreshTimer?.Dispose();
+                _refreshCts?.Cancel();
+                _refreshCts?.Dispose();
+                CleanupCollectionHandlers();
+                UnsubscribeFromItemPropertyChangedEvents();
+            }
+            base.Dispose(disposing);
+        }
     }
 }
