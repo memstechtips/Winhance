@@ -1,7 +1,7 @@
 using System;
 using System.Globalization;
 using System.Windows.Data;
-using MaterialDesignThemes.Wpf;
+using MahApps.Metro.IconPacks;
 
 namespace Winhance.WPF.Features.Common.Converters
 {
@@ -14,32 +14,32 @@ namespace Winhance.WPF.Features.Common.Converters
                 switch (iconName)
                 {
                     case "WindowMaximize":
-                        return PackIconKind.WindowMaximize;
+                        return PackIconMaterialKind.WindowMaximize;
                     case "WindowRestore":
-                        return PackIconKind.WindowRestore;
+                        return PackIconMaterialKind.WindowRestore;
                     default:
-                        return PackIconKind.WindowMaximize;
+                        return PackIconMaterialKind.WindowMaximize;
                 }
             }
-            
-            return PackIconKind.WindowMaximize;
+
+            return PackIconMaterialKind.WindowMaximize;
         }
 
         public object ConvertBack(object value, Type targetType, object parameter, CultureInfo culture)
         {
-            if (value is PackIconKind kind)
+            if (value is PackIconMaterialKind kind)
             {
                 switch (kind)
                 {
-                    case PackIconKind.WindowMaximize:
+                    case PackIconMaterialKind.WindowMaximize:
                         return "WindowMaximize";
-                    case PackIconKind.WindowRestore:
+                    case PackIconMaterialKind.WindowRestore:
                         return "WindowRestore";
                     default:
                         return "WindowMaximize";
                 }
             }
-            
+
             return "WindowMaximize";
         }
     }

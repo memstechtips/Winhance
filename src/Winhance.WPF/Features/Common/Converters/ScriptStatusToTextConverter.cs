@@ -21,14 +21,14 @@ namespace Winhance.WPF.Features.Common.Converters
         {
             if (value is bool isActive)
             {
-                return isActive 
-                    ? "Winhance Removing Apps" 
+                return isActive
+                    ? "Winhance Removing Apps"
                     : "No Active Removals";
             }
-            
+
             return "Unknown Status";
         }
-        
+
         /// <summary>
         /// Converts a descriptive text back to a boolean value.
         /// </summary>

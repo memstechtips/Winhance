@@ -11,7 +11,7 @@ namespace Winhance.WPF.Features.Common.Utilities
     {
         private static readonly object _lockObject = new object();
         private const string LOG_FOLDER = "DiagnosticLogs";
-        
+
         // Logging is disabled as CloseButtonDiagnostics.txt is no longer used
         private static readonly bool _loggingEnabled = false;
 
@@ -25,7 +25,7 @@ namespace Winhance.WPF.Features.Common.Utilities
             // Early return if logging is disabled
             if (!_loggingEnabled)
                 return;
-                
+
             try
             {
                 string logPath = GetLogFilePath();

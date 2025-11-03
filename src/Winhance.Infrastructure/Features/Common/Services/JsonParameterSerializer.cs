@@ -21,9 +21,9 @@ namespace Winhance.Infrastructure.Features.Common.Services
         public string Serialize(object parameter)
         {
             if (parameter == null) return null;
-            
+
             var json = JsonSerializer.Serialize(parameter, _options);
-            
+
             if (UseCompression && json.Length > 1024) // Compress if over 1KB
             {
                 var bytes = Encoding.UTF8.GetBytes(json);
@@ -34,7 +34,7 @@ namespace Winhance.Infrastructure.Features.Common.Services
                 }
                 return Convert.ToBase64String(output.ToArray());
             }
-            
+
             return json;
         }
 
@@ -88,7 +88,7 @@ namespace Winhance.Infrastructure.Features.Common.Services
                     var json = Encoding.UTF8.GetString(output.ToArray());
                     return JsonSerializer.Deserialize<T>(json, _options);
                 }
-                
+
                 return JsonSerializer.Deserialize<T>(serialized, _options);
             }
             catch (JsonException ex)
@@ -107,8 +107,8 @@ namespace Winhance.Infrastructure.Features.Common.Services
             try
             {
                 // Simple check - compressed data is base64 and starts with H4sI (GZip magic number)
-                return input.Length > 4 && 
-                       input.StartsWith("H4sI") && 
+                return input.Length > 4 &&
+                       input.StartsWith("H4sI") &&
                        input.Length % 4 == 0;
             }
             catch

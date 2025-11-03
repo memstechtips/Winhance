@@ -1,5 +1,4 @@
 using System;
-using System.Diagnostics;
 using System.Globalization;
 using System.Windows.Data;
 using System.Windows.Media.Imaging;
@@ -19,16 +18,10 @@ namespace Winhance.WPF.Features.Common.Converters
             if (value is bool boolValue)
             {
                 isDarkTheme = boolValue;
-                Debug.WriteLine($"BooleanToThemeIconConverter: isDarkTheme = {isDarkTheme} (from bool)");
             }
             else if (value is string stringValue)
             {
                 isDarkTheme = stringValue.Equals("Dark", StringComparison.OrdinalIgnoreCase);
-                Debug.WriteLine($"BooleanToThemeIconConverter: isDarkTheme = {isDarkTheme} (from string '{stringValue}')");
-            }
-            else
-            {
-                Debug.WriteLine($"BooleanToThemeIconConverter: value is {(value == null ? "null" : value.GetType().Name)}");
             }
 
             // Parameter should be in format "darkIconPath|lightIconPath"
@@ -41,7 +34,6 @@ namespace Winhance.WPF.Features.Common.Converters
                     string lightIconPath = iconPaths[1];
 
                     string selectedPath = isDarkTheme ? darkIconPath : lightIconPath;
-                    Debug.WriteLine($"BooleanToThemeIconConverter: Selected path = {selectedPath}");
 
                     // If the target type is BitmapImage, create and return it
                     if (targetType == typeof(BitmapImage))
@@ -55,7 +47,6 @@ namespace Winhance.WPF.Features.Common.Converters
             }
 
             // Default fallback icon path
-            Debug.WriteLine("BooleanToThemeIconConverter: Using fallback icon path");
             return "/Resources/AppIcons/winhance-rocket.ico";
         }
 

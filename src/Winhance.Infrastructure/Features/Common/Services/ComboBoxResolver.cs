@@ -1,0 +1,210 @@
+using System;
+using System.Collections.Generic;
+using System.Linq;
+using System.Threading.Tasks;
+using Winhance.Core.Features.Common.Constants;
+using Winhance.Core.Features.Common.Enums;
+using Winhance.Core.Features.Common.Interfaces;
+using Winhance.Core.Features.Common.Models;
+
+namespace Winhance.Infrastructure.Features.Common.Services
+{
+    public class ComboBoxResolver(
+        ISystemSettingsDiscoveryService discoveryService,
+        ILogService logService) : IComboBoxResolver
+    {
+        public const int CUSTOM_STATE_INDEX = -1;
+
+        public async Task<object?> ResolveCurrentValueAsync(SettingDefinition setting, Dictionary<string, object?>? existingRawValues = null)
+        {
+            var rawValues = await GetRawValues(setting, existingRawValues);
+            
+            if (setting.InputType == InputType.Selection && setting.CustomProperties?.ContainsKey(CustomPropertyKeys.ValueMappings) == true)
+            {
+                return ResolveRawValuesToIndex(setting, rawValues);
+            }
+            else if (setting.RegistrySettings?.Count > 0)
+            {
+                return rawValues.Values.FirstOrDefault();
+            }
+            else if (setting.CommandSettings?.Count > 0)
+            {
+                return rawValues.TryGetValue("CommandEnabled", out var commandEnabled) ? commandEnabled : null;
+            }
+
+            return null;
+        }
+
+        private async Task<Dictionary<string, object?>> GetRawValues(SettingDefinition setting, Dictionary<string, object?>? existingRawValues)
+        {
+            if (existingRawValues != null)
+            {
+                return existingRawValues;
+            }
+
+            var rawValues = await discoveryService.GetRawSettingsValuesAsync(new[] { setting });
+            return rawValues.TryGetValue(setting.Id, out var values) ? values : new Dictionary<string, object?>();
+        }
+
+        public int GetValueFromIndex(SettingDefinition setting, int index)
+        {
+            if (index == CUSTOM_STATE_INDEX)
+            {
+                return 0;
+            }
+
+            if (!setting.CustomProperties.TryGetValue(CustomPropertyKeys.ValueMappings, out var mappingsObj))
+            {
+                return index;
+            }
+
+            var mappings = (Dictionary<int, Dictionary<string, object?>>)mappingsObj;
+            if (mappings.TryGetValue(index, out var valueDict))
+            {
+                var firstValue = valueDict.Values.FirstOrDefault();
+                return firstValue is int intVal ? intVal : (firstValue != null ? Convert.ToInt32(firstValue) : index);
+            }
+
+            return index;
+        }
+
+
+
+        public int ResolveRawValuesToIndex(SettingDefinition setting, Dictionary<string, object?> rawValues)
+        {
+            if (!setting.CustomProperties.TryGetValue(CustomPropertyKeys.ValueMappings, out var mappingsObj))
+            {
+                return 0;
+            }
+
+            if (rawValues.TryGetValue("CurrentPolicyIndex", out var policyIndex))
+            {
+                return policyIndex is int index ? index : 0;
+            }
+
+            var mappings = (Dictionary<int, Dictionary<string, object?>>)mappingsObj;
+            var currentValues = new Dictionary<string, object?>();
+
+            if (setting.PowerCfgSettings?.Count > 0 && rawValues.TryGetValue("PowerCfgValue", out var powerCfgValue))
+            {
+                currentValues["PowerCfgValue"] = powerCfgValue != null ? Convert.ToInt32(powerCfgValue) : null;
+            }
+
+            foreach (var registrySetting in setting.RegistrySettings)
+            {
+                var key = registrySetting.ValueName ?? "KeyExists";
+                if (rawValues.TryGetValue(key, out var rawValue) && rawValue != null)
+                {
+                    currentValues[key] = rawValue;
+                }
+                else if (registrySetting.DefaultValue != null)
+                {
+                    currentValues[key] = registrySetting.DefaultValue;
+                }
+                else
+                {
+                    currentValues[key] = null;
+                }
+            }
+
+            foreach (var mapping in mappings)
+            {
+                var index = mapping.Key;
+                var expectedValues = mapping.Value;
+
+                bool allMatch = true;
+                foreach (var expectedValue in expectedValues)
+                {
+                    if (!currentValues.TryGetValue(expectedValue.Key, out var currentValue))
+                    {
+                        currentValue = null;
+                    }
+
+                    if (!ValuesAreEqual(currentValue, expectedValue.Value))
+                    {
+                        allMatch = false;
+                        break;
+                    }
+                }
+
+                if (allMatch && expectedValues.Count > 0)
+                {
+                    return index;
+                }
+            }
+
+            var supportsCustomState = setting.CustomProperties?.TryGetValue(CustomPropertyKeys.SupportsCustomState, out var supports) == true && (bool)supports;
+            if (supportsCustomState)
+            {
+                return CUSTOM_STATE_INDEX;
+            }
+
+            return 0;
+        }
+
+        public Dictionary<string, object?> ResolveIndexToRawValues(SettingDefinition setting, int index)
+        {
+            var result = new Dictionary<string, object?>();
+
+            if (!setting.CustomProperties.TryGetValue(CustomPropertyKeys.ValueMappings, out var mappingsObj))
+            {
+                return result;
+            }
+
+            var mappings = (Dictionary<int, Dictionary<string, object?>>)mappingsObj;
+            if (mappings.TryGetValue(index, out var expectedValues))
+            {
+                foreach (var expectedValue in expectedValues)
+                {
+                    result[expectedValue.Key] = expectedValue.Value;
+                }
+            }
+
+            return result;
+        }
+
+        public int GetIndexFromDisplayName(SettingDefinition setting, string displayName)
+        {
+            if (setting.CustomProperties?.TryGetValue(CustomPropertyKeys.ComboBoxDisplayNames, out var displayNamesObj) == true &&
+                displayNamesObj is string[] displayNames)
+            {
+                for (int i = 0; i < displayNames.Length; i++)
+                {
+                    if (string.Equals(displayNames[i], displayName, StringComparison.OrdinalIgnoreCase))
+                    {
+                        return i;
+                    }
+                }
+            }
+            return 0;
+        }
+
+        private static bool ValuesAreEqual(object? value1, object? value2)
+        {
+            if (value1 == null && value2 == null) return true;
+            if (value1 == null || value2 == null) return false;
+
+            if (value1 is byte[] bytes1 && value2 is byte[] bytes2)
+            {
+                return bytes1.SequenceEqual(bytes2);
+            }
+
+            if (value1 is byte b1 && value2 is byte b2)
+            {
+                return b1 == b2;
+            }
+
+            if (value1 is byte b1Int && value2 is int i2)
+            {
+                return b1Int == i2;
+            }
+
+            if (value1 is int i1 && value2 is byte b2Int)
+            {
+                return i1 == b2Int;
+            }
+
+            return value1.Equals(value2);
+        }
+    }
+}

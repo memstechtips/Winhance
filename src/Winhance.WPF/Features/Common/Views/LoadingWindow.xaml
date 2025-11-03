@@ -10,7 +10,7 @@
     WindowStartupLocation="CenterScreen"
     ResizeMode="NoResize"
     ShowInTaskbar="True"
-    Icon="{DynamicResource DefaultAppIcon}">
+    Icon="pack://application:,,,/Resources/AppIcons/winhance-rocket.ico">
 
     <WindowChrome.WindowChrome>
         <WindowChrome

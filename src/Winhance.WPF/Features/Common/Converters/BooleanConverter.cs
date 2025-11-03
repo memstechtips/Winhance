@@ -16,7 +16,7 @@ namespace Winhance.WPF.Features.Common.Converters
             {
                 return boolValue ? parameter : null;
             }
-            
+
             return null;
         }
 

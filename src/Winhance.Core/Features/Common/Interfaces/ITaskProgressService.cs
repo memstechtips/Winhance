@@ -88,7 +88,7 @@ namespace Winhance.Core.Features.Common.Interfaces
         /// Event raised when progress is updated.
         /// </summary>
         event EventHandler<TaskProgressDetail>? ProgressUpdated;
-        
+
         /// <summary>
         /// Event raised when progress is updated (legacy compatibility).
         /// </summary>

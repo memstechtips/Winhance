@@ -4,28 +4,35 @@
              xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
              xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
              xmlns:viewModels="clr-namespace:Winhance.WPF.Features.Customize.ViewModels"
-             xmlns:materialDesign="http://materialdesigninxaml.net/winfx/xaml/themes"
-             xmlns:controls="clr-namespace:Winhance.WPF.Features.Common.Controls"
              xmlns:commonControls="clr-namespace:Winhance.WPF.Features.Common.Controls"
-             xmlns:customize="clr-namespace:Winhance.WPF.Features.Customize.Views"
-             xmlns:optimize="clr-namespace:Winhance.WPF.Features.Optimize.Views"
-             xmlns:behaviors="clr-namespace:Winhance.WPF.Features.Common.Behaviors"
+             xmlns:iconPacks="http://metro.mahapps.com/winfx/xaml/iconpacks"
              d:DataContext="{d:DesignInstance Type=viewModels:CustomizeViewModel}"
              mc:Ignorable="d">
 
+
     <Grid>
         <!-- Header -->
-        <DockPanel Height="70"
-                   VerticalAlignment="Top">
-            <materialDesign:PackIcon Kind="Palette"
+        <Grid Height="80"
+              VerticalAlignment="Top"
+              ClipToBounds="False">
+            <Grid.ColumnDefinitions>
+                <ColumnDefinition Width="Auto"/> <!-- Icon -->
+                <ColumnDefinition Width="*"/> <!-- Title and Status -->
+                <ColumnDefinition Width="Auto"/> <!-- Search Box -->
+            </Grid.ColumnDefinitions>
+            
+            <!-- Icon -->
+            <iconPacks:PackIconMaterial Grid.Column="0"
+                                     Kind="Palette"
                                      Width="60"
                                      Height="60"
                                      Margin="10,0,10,0"
-                                     DockPanel.Dock="Left"
                                      VerticalAlignment="Center"
                                      Foreground="{DynamicResource PrimaryTextColor}"/>
 
-            <StackPanel VerticalAlignment="Center">
+            <!-- Title and Status with Quick Nav inline -->
+            <StackPanel Grid.Column="1"
+                      VerticalAlignment="Center">
                 <TextBlock Height="35"
                            VerticalAlignment="Top"
                            FontFamily="Helvetica Neue"
@@ -34,339 +41,71 @@
                            Foreground="{DynamicResource PrimaryTextColor}"
                            Text="Customizations"/>
 
-                <TextBlock Height="22"
-                           Margin="0,5,0,0"
-                           VerticalAlignment="Bottom"
-                           FontFamily="Helvetica Neue"
-                           FontSize="14"
-                           Foreground="{DynamicResource SubTextColor}"
-                           Text="{Binding StatusText}"/>
+                <StackPanel Orientation="Horizontal" 
+                            Margin="0,5,0,0">
+                    <TextBlock Height="22"
+                               VerticalAlignment="Center"
+                               FontFamily="Helvetica Neue"
+                               FontSize="14"
+                               Foreground="{DynamicResource SubTextColor}"
+                               Text="{Binding StatusText}"/>
+                    
+                    <!-- Quick Nav -->
+                    <commonControls:QuickNavControl/>
+                </StackPanel>
             </StackPanel>
-        </DockPanel>
+
+            <!-- Search Box (prioritized) -->
+            <Grid Grid.Column="2"
+                  HorizontalAlignment="Right"
+                  VerticalAlignment="Bottom"
+                  Margin="10,0,10,3"
+                  Panel.ZIndex="100"
+                  MinWidth="200">
+                <Grid.ColumnDefinitions>
+                    <ColumnDefinition Width="Auto"/>
+                </Grid.ColumnDefinitions>
+                
+                <!-- Search Box -->
+                <commonControls:SearchBox Grid.Column="0"
+                                         Width="200"
+                                         HorizontalAlignment="Right"
+                                         VerticalAlignment="Center"
+                                         SearchText="{Binding SearchText, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}"
+                                         Margin="0,0,0,1"/>
+            </Grid>
+        </Grid>
 
         <!-- Main Content -->
-        <Border Margin="0,80,0,0"
+        <Border Margin="0,85,0,0"
                 Background="{DynamicResource MainContainerBorderBrush}"
                 CornerRadius="10">
-            <controls:ResponsiveScrollViewer Style="{StaticResource ModernScrollViewer}">
+            <commonControls:ResponsiveScrollViewer Style="{StaticResource ModernScrollViewer}"
+                                                  commonControls:ResponsiveScrollViewer.ScrollPositionCommand="{Binding UpdateScrollPositionCommand}">
                 <Grid>
                     <Grid.RowDefinitions>
                         <RowDefinition Height="*"/>
                         <RowDefinition Height="Auto"/>
                     </Grid.RowDefinitions>
-                    
-                    <StackPanel Grid.Row="0" Margin="10">
-                        <!-- Info Section with Search Box and Config Buttons -->
-                        <Border Background="{DynamicResource ContentSectionBorderBrush}"
-                                BorderBrush="{DynamicResource ButtonBorderBrush}"
-                                BorderThickness="1"
-                                CornerRadius="5"
-                                Margin="0,5,0,10"
-                                Padding="10,5"
-                                HorizontalAlignment="Stretch"
-                                Width="Auto"
-                                Height="80">
-                        <Grid>
-                            <Grid.RowDefinitions>
-                                <RowDefinition Height="Auto"/>
-                                <RowDefinition Height="Auto"/>
-                            </Grid.RowDefinitions>
 
-                            <!-- Row 0: Status indicators -->
-                            <Grid Grid.Row="0" Margin="0,5,0,0">
-                                <Grid.ColumnDefinitions>
-                                    <ColumnDefinition Width="*"/>
-                                </Grid.ColumnDefinitions>
-
-                                <!-- Status Indicators -->
-                                <StackPanel Orientation="Horizontal"
-                                            VerticalAlignment="Center">
-                                    <!-- Registry Value Status -->
-                                    <StackPanel Orientation="Horizontal">
-                                        <TextBlock Text="&#xEA76;"
-                                                 FontFamily="{StaticResource MaterialSymbolsFont}"
-                                                 FontSize="18"
-                                                 Foreground="#FF2800"
-                                                 Margin="5,0,5,0"
-                                                 VerticalAlignment="Center"/>
-                                        <TextBlock Text="Registry Value Missing, Windows is using Defaults. Toggle Setting to Set Explicitly"
-                                                   Foreground="{DynamicResource PrimaryTextColor}"
-                                                   FontSize="13"
-                                                   VerticalAlignment="Center"/>
-                                    </StackPanel>
-                                </StackPanel>
-                            </Grid>
-
-                            <!-- Row 1: Info text (left) + Search box (middle) + Config buttons (right) -->
-                            <Grid Grid.Row="1" Margin="0,0,0,5">
-                                <Grid.ColumnDefinitions>
-                                    <ColumnDefinition Width="*"/>
-                                    <ColumnDefinition Width="Auto"/>
-                                </Grid.ColumnDefinitions>
-
-                                <!-- Search Box (prioritized) -->
-                                <StackPanel Grid.Column="1"
-                                            HorizontalAlignment="Right"
-                                            VerticalAlignment="Center"
-                                            Margin="10,0,10,0"
-                                            Panel.ZIndex="10">
-                                    <commonControls:SearchBox Width="200"
-                                                     SearchText="{Binding SearchText, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}"/>
-                                </StackPanel>
-
-                                <!-- Info Text (lower priority) -->
-                                <Grid Grid.Column="0">
-                                    <Grid.ColumnDefinitions>
-                                        <ColumnDefinition Width="Auto"/>
-                                        <ColumnDefinition Width="*"/>
-                                    </Grid.ColumnDefinitions>
-
-                                    <!-- Info Icon -->
-                                    <materialDesign:PackIcon Grid.Column="0"
-                                                           Kind="Information"
-                                                           Width="24"
-                                                           Height="32"
-                                                           Margin="0,0,5,-5"
-                                                           Foreground="Gray"
-                                                           VerticalAlignment="Center"/>
-
-                                    <!-- Info Text -->
-                                    <TextBlock Grid.Column="1"
-                                               VerticalAlignment="Center"
-                                               HorizontalAlignment="Left"
-                                               Style="{StaticResource AppInfoTextStyle}"
-                                               FontSize="12"
-                                               TextWrapping="Wrap"
-                                               MaxHeight="40"
-                                               Margin="0,0,0,-5"
-                                               Text="Some Settings Require a Restart to Fully Apply Changes. Use the Search Box to find settings quickly. The Save and Import Config buttons in the main window help you manage your preferred selections."/>
-                                </Grid>
-                            </Grid>
-                        </Grid>
-                    </Border>
-                    <!-- Windows Theme Section -->
-                    <StackPanel Visibility="{Binding WindowsThemeSettings.HasVisibleSettings, Converter={StaticResource BooleanToVisibilityConverter}}">
-                        <Border Background="{DynamicResource ContentSectionBorderBrush}"
-                                CornerRadius="5"
-                                Margin="0,5,0,5"
-                                Effect="{StaticResource ShadowEffect}"
-                                Cursor="Hand"
-                                MouseLeftButtonDown="HeaderBorder_MouseLeftButtonDown"
-                                Tag="3">
-                            <DockPanel VerticalAlignment="Center"
-                                       HorizontalAlignment="Stretch">
-                                <!-- Category Icon -->
-                                <TextBlock Text="&#xE3AE;"
-                                           FontFamily="{StaticResource MaterialSymbolsFont}"
-                                           FontSize="24"
-                                           Margin="15,10,5,10"
-                                           Foreground="{DynamicResource PrimaryTextColor}"
-                                           VerticalAlignment="Center"
-                                           DockPanel.Dock="Left"/>
-                                <!-- Category Name -->
-                                <TextBlock Text="Windows Theme"
-                                           FontSize="14"
-                                           FontWeight="SemiBold"
-                                           Margin="5,10,0,10"
-                                           Foreground="{DynamicResource PrimaryTextColor}"
-                                           VerticalAlignment="Center"
-                                           DockPanel.Dock="Left"/>
-                                <!-- Hidden Button to handle the toggle command -->
-                                <Button x:Name="WindowsThemeToggleButton"
-                                        Command="{Binding ToggleCategoryCommand}"
-                                        CommandParameter="{Binding CustomizationItems[3]}"
-                                        Opacity="0"
-                                        Width="0"
-                                        Height="0"/>
-                                <materialDesign:PackIcon x:Name="WindowsThemeHeaderIcon"
-                                                         Kind="ChevronDown"
-                                                         Width="24"
-                                                         Height="24"
-                                                         HorizontalAlignment="Right"
-                                                         VerticalAlignment="Center"
-                                                         Foreground="{DynamicResource PrimaryTextColor}"
-                                                         Margin="0,0,10,0"
-                                                         DockPanel.Dock="Right"/>
-                            </DockPanel>
-                        </Border>
-                        <Border x:Name="WindowsThemeContent"
-                                Background="{DynamicResource ContentSectionBorderBrush}"
-                                CornerRadius="5"
-                                Margin="5,0,5,5"
-                                Effect="{StaticResource LightShadowEffect}">
-                            <customize:WindowsThemeCustomizationsView DataContext="{Binding WindowsThemeSettings}"/>
-                        </Border>
+                    <StackPanel Grid.Row="0"
+                            Margin="10">
+                        
+                        <!-- Dynamically created feature Views with proper DI -->
+                        <ItemsControl ItemsSource="{Binding FeatureViews}">
+                            <ItemsControl.ItemTemplate>
+                                <DataTemplate>
+                                    <ContentPresenter Content="{Binding}"/>
+                                </DataTemplate>
+                            </ItemsControl.ItemTemplate>
+                        </ItemsControl>
+                        
                     </StackPanel>
 
-                    <!-- Taskbar Section -->
-                    <StackPanel Visibility="{Binding TaskbarSettings.HasVisibleSettings, Converter={StaticResource BooleanToVisibilityConverter}}">
-                        <Border Background="{DynamicResource ContentSectionBorderBrush}"
-                                CornerRadius="5"
-                                Margin="0,5,0,5"
-                                Effect="{StaticResource ShadowEffect}"
-                                Cursor="Hand"
-                                MouseLeftButtonDown="HeaderBorder_MouseLeftButtonDown"
-                                Tag="0">
-                            <DockPanel VerticalAlignment="Center"
-                                       HorizontalAlignment="Stretch">
-                                <!-- Category Icon -->
-                                <TextBlock Text="&#xF7E6;"
-                                           FontFamily="{StaticResource MaterialSymbolsFont}"
-                                           FontSize="24"
-                                           Margin="15,10,5,10"
-                                           Foreground="{DynamicResource PrimaryTextColor}"
-                                           VerticalAlignment="Center"
-                                           DockPanel.Dock="Left"/>
-                                <!-- Category Name -->
-                                <TextBlock Text="Taskbar"
-                                           FontSize="14"
-                                           FontWeight="SemiBold"
-                                           Margin="5,10,0,10"
-                                           Foreground="{DynamicResource PrimaryTextColor}"
-                                           VerticalAlignment="Center"
-                                           DockPanel.Dock="Left"/>
-                                <!-- Hidden Button to handle the toggle command -->
-                                <Button x:Name="TaskbarToggleButton"
-                                        Command="{Binding ToggleCategoryCommand}"
-                                        CommandParameter="{Binding CustomizationItems[0]}"
-                                        Opacity="0"
-                                        Width="0"
-                                        Height="0"/>
-                                <materialDesign:PackIcon x:Name="TaskbarHeaderIcon"
-                                                         Kind="ChevronDown"
-                                                         Width="24"
-                                                         Height="24"
-                                                         HorizontalAlignment="Right"
-                                                         VerticalAlignment="Center"
-                                                         Foreground="{DynamicResource PrimaryTextColor}"
-                                                         Margin="0,0,10,0"
-                                                         DockPanel.Dock="Right"/>
-                            </DockPanel>
-                        </Border>
-                        <Border x:Name="TaskbarContent"
-                                Background="{DynamicResource ContentSectionBorderBrush}"
-                                CornerRadius="5"
-                                Margin="5,0,5,5"
-                                Effect="{StaticResource LightShadowEffect}">
-                            <customize:TaskbarCustomizationsView DataContext="{Binding TaskbarSettings}"/>
-                        </Border>
-                    </StackPanel>
-
-                    <!-- Start Menu Section -->
-                    <StackPanel Visibility="{Binding StartMenuSettings.HasVisibleSettings, Converter={StaticResource BooleanToVisibilityConverter}}">
-                        <Border Background="{DynamicResource ContentSectionBorderBrush}"
-                                CornerRadius="5"
-                                Margin="0,5,0,5"
-                                Effect="{StaticResource ShadowEffect}"
-                                Cursor="Hand"
-                                MouseLeftButtonDown="HeaderBorder_MouseLeftButtonDown"
-                                Tag="1">
-                            <DockPanel VerticalAlignment="Center"
-                                       HorizontalAlignment="Stretch">
-                                <!-- Category Icon -->
-                                <TextBlock Text="&#xE5D2;"
-                                           FontFamily="{StaticResource MaterialSymbolsFont}"
-                                           FontSize="24"
-                                           Margin="15,10,5,10"
-                                           Foreground="{DynamicResource PrimaryTextColor}"
-                                           VerticalAlignment="Center"
-                                           DockPanel.Dock="Left"/>
-                                <!-- Category Name -->
-                                <TextBlock Text="Start Menu"
-                                           FontSize="14"
-                                           FontWeight="SemiBold"
-                                           Margin="5,10,0,10"
-                                           Foreground="{DynamicResource PrimaryTextColor}"
-                                           VerticalAlignment="Center"
-                                           DockPanel.Dock="Left"/>
-                                <!-- Hidden Button to handle the toggle command -->
-                                <Button x:Name="StartMenuToggleButton"
-                                        Command="{Binding ToggleCategoryCommand}"
-                                        CommandParameter="{Binding CustomizationItems[1]}"
-                                        Opacity="0"
-                                        Width="0"
-                                        Height="0"/>
-                                <materialDesign:PackIcon x:Name="StartMenuHeaderIcon"
-                                                         Kind="ChevronDown"
-                                                         Width="24"
-                                                         Height="24"
-                                                         HorizontalAlignment="Right"
-                                                         VerticalAlignment="Center"
-                                                         Foreground="{DynamicResource PrimaryTextColor}"
-                                                         Margin="0,0,10,0"
-                                                         DockPanel.Dock="Right"/>
-                            </DockPanel>
-                        </Border>
-                        <Border x:Name="StartMenuContent"
-                                Background="{DynamicResource ContentSectionBorderBrush}"
-                                CornerRadius="5"
-                                Margin="5,0,5,5"
-                                Effect="{StaticResource LightShadowEffect}">
-                            <customize:StartMenuCustomizationsView DataContext="{Binding StartMenuSettings}"/>
-                        </Border>
-                    </StackPanel>
-
-                    <!-- Explorer Section -->
-                    <StackPanel Visibility="{Binding ExplorerSettings.HasVisibleSettings, Converter={StaticResource BooleanToVisibilityConverter}}">
-                        <Border Background="{DynamicResource ContentSectionBorderBrush}"
-                                CornerRadius="5"
-                                Margin="0,5,0,5"
-                                Effect="{StaticResource ShadowEffect}"
-                                Cursor="Hand"
-                                MouseLeftButtonDown="HeaderBorder_MouseLeftButtonDown"
-                                Tag="2">
-                            <DockPanel VerticalAlignment="Center"
-                                       HorizontalAlignment="Stretch">
-                                <!-- Category Icon -->
-                                <TextBlock Text="&#xE2C7;"
-                                           FontFamily="{StaticResource MaterialSymbolsFont}"
-                                           FontSize="24"
-                                           Margin="15,10,5,10"
-                                           Foreground="{DynamicResource PrimaryTextColor}"
-                                           VerticalAlignment="Center"
-                                           DockPanel.Dock="Left"/>
-                                <!-- Category Name -->
-                                <TextBlock Text="Explorer"
-                                           FontSize="14"
-                                           FontWeight="SemiBold"
-                                           Margin="5,10,0,10"
-                                           Foreground="{DynamicResource PrimaryTextColor}"
-                                           VerticalAlignment="Center"
-                                           DockPanel.Dock="Left"/>
-                                <!-- Hidden Button to handle the toggle command -->
-                                <Button x:Name="ExplorerToggleButton"
-                                        Command="{Binding ToggleCategoryCommand}"
-                                        CommandParameter="{Binding CustomizationItems[2]}"
-                                        Opacity="0"
-                                        Width="0"
-                                        Height="0"/>
-                                <materialDesign:PackIcon x:Name="ExplorerHeaderIcon"
-                                                         Kind="ChevronDown"
-                                                         Width="24"
-                                                         Height="24"
-                                                         HorizontalAlignment="Right"
-                                                         VerticalAlignment="Center"
-                                                         Foreground="{DynamicResource PrimaryTextColor}"
-                                                         Margin="0,0,10,0"
-                                                         DockPanel.Dock="Right"/>
-                            </DockPanel>
-                        </Border>
-                        <Border x:Name="ExplorerContent"
-                                Background="{DynamicResource ContentSectionBorderBrush}"
-                                CornerRadius="5"
-                                Margin="5,0,5,5"
-                                Effect="{StaticResource LightShadowEffect}">
-                            <customize:ExplorerCustomizationsView DataContext="{Binding ExplorerSettings}"/>
-                        </Border>
-                    </StackPanel>
-
-
-                    </StackPanel>
-                    
                     <!-- No Search Results Message -->
                     <TextBlock Grid.Row="1"
-                               HorizontalAlignment="Center" 
-                               VerticalAlignment="Center" 
+                               HorizontalAlignment="Center"
+                               VerticalAlignment="Center"
                                Margin="0,50,0,20"
                                TextAlignment="Center"
                                TextWrapping="Wrap"
@@ -375,7 +114,7 @@
                                Text="No settings found matching your search. Try different keywords."
                                Visibility="{Binding HasSearchResults, Converter={StaticResource InverseBooleanToVisibilityConverter}}"/>
                 </Grid>
-            </controls:ResponsiveScrollViewer>
+            </commonControls:ResponsiveScrollViewer>
         </Border>
     </Grid>
 </UserControl>

@@ -16,7 +16,7 @@ namespace Winhance.WPF.Converters
                     ? SystemCommands.RestoreWindowCommand
                     : SystemCommands.MaximizeWindowCommand;
             }
-            
+
             return SystemCommands.MaximizeWindowCommand;
         }
 

@@ -12,17 +12,17 @@ namespace Winhance.Core.Features.Common.Models
         /// Gets the message content.
         /// </summary>
         public string Message { get; }
-        
+
         /// <summary>
         /// Gets the log level.
         /// </summary>
         public LogLevel Level { get; }
-        
+
         /// <summary>
         /// Gets the timestamp when the message was created.
         /// </summary>
         public DateTime Timestamp { get; }
-        
+
         /// <summary>
         /// Gets the exception associated with the log message, if any.
         /// </summary>
@@ -40,7 +40,7 @@ namespace Winhance.Core.Features.Common.Models
             Timestamp = DateTime.Now;
             Exception = null;
         }
-        
+
         /// <summary>
         /// Initializes a new instance of the <see cref="LogMessageEventArgs"/> class.
         /// </summary>

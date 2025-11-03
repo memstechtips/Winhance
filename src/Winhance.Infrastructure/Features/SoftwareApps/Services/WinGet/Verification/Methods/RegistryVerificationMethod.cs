@@ -5,7 +5,8 @@ using System.Threading;
 using System.Threading.Tasks;
 using Microsoft.Win32;
 using Winhance.Core.Features.Common.Models;
-using Winhance.Core.Features.Common.Verification;
+using Winhance.Core.Features.SoftwareApps.Verification;
+using Winhance.Infrastructure.Features.SoftwareApps.Services.WinGet.Interfaces;
 
 namespace Winhance.Infrastructure.Features.SoftwareApps.Services.WinGet.Verification.Methods
 {
@@ -13,7 +14,7 @@ namespace Winhance.Infrastructure.Features.SoftwareApps.Services.WinGet.Verifica
     /// Verifies if a package is installed by checking the Windows Registry.
     /// This checks both 64-bit and 32-bit registry views.
     /// </summary>
-    public class RegistryVerificationMethod : VerificationMethodBase
+    public class RegistryVerificationMethod : VerificationMethodBase, IVerificationMethod
     {
         private const string UninstallKeyPath =
             @"SOFTWARE\Microsoft\Windows\CurrentVersion\Uninstall";

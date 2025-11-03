@@ -1,20 +1,10 @@
 using System;
-using System.Collections.Generic;
-using System.Diagnostics;
-using System.IO;
-using System.Reflection;
-using System.Runtime.InteropServices;
-using System.Threading.Tasks;
+using System.ComponentModel;
 using System.Windows;
 using System.Windows.Controls;
 using System.Windows.Input;
-using System.Windows.Interop;
-using System.Windows.Media;
-using System.Windows.Media.Imaging;
-using Winhance.Core.Features.Common.Enums;
 using Winhance.Core.Features.Common.Interfaces;
-using Winhance.Core.Features.Common.Messaging;
-using Winhance.Core.Features.Common.Models;
+using Winhance.WPF.Features.Common.Interfaces;
 using Winhance.WPF.Features.Common.Resources.Theme;
 using Winhance.WPF.Features.Common.Services;
 using Winhance.WPF.Features.Common.Utilities;
@@ -22,914 +12,87 @@ using Winhance.WPF.Features.Common.ViewModels;
 
 namespace Winhance.WPF.Features.Common.Views
 {
-    public partial class MainWindow : Window
+    public partial class MainWindow : Window, IThemeAwareWindow
     {
-        private readonly Winhance.Core.Features.Common.Interfaces.INavigationService _navigationService =
-            null!;
-        private WindowSizeManager _windowSizeManager;
-        private readonly UserPreferencesService _userPreferencesService;
+        private WindowIconService _windowIconService;
         private readonly IApplicationCloseService _applicationCloseService;
 
-        private void LogDebug(string message, Exception? ex = null)
+        public MainWindow(IApplicationCloseService applicationCloseService)
         {
-            string fullMessage = message + (ex != null ? $" - Exception: {ex.Message}" : "");
+            InitializeComponent();
+            _applicationCloseService = applicationCloseService;
 
-            // Use proper logging service for application logging
-            _messengerService?.Send(
-                new LogMessage
-                {
-                    Message = fullMessage,
-                    Level = ex != null ? LogLevel.Error : LogLevel.Debug,
-                    Exception = ex,
-                }
-            );
-
-            // Also log to diagnostic file for troubleshooting
-            FileLogger.Log("MainWindow", fullMessage);
-
-            // If there's an exception, log the stack trace as well
-            if (ex != null)
-            {
-                FileLogger.Log("MainWindow", $"Stack trace: {ex.StackTrace}");
-            }
-
-            // Also log to WinhanceStartupLog.txt for debugging the white screen issue
-            LogToStartupLog(fullMessage);
-            if (ex != null)
-            {
-                LogToStartupLog($"Stack trace: {ex.StackTrace}");
-            }
+            this.PreviewMouseWheel += MainWindow_PreviewMouseWheel;
+            Loaded += (s, e) => UpdateThemeIcon();
+            this.Closing += MainWindow_Closing;
         }
 
-        /// <summary>
-        /// Logs a message directly to the WinhanceStartupLog.txt file
-        /// </summary>
-        private void LogToStartupLog(string message)
+        private async void MainWindow_Closing(object sender, CancelEventArgs e)
         {
-#if DEBUG
-            try
-            {
-                string logsDir = Path.Combine(
-                    Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData),
-                    "Winhance",
-                    "Logs"
-                );
-                string logFile = Path.Combine(logsDir, "WinhanceStartupLog.txt");
-
-                // Ensure the logs directory exists
-                if (!Directory.Exists(logsDir))
-                {
-                    Directory.CreateDirectory(logsDir);
-                }
-
-                // Format the log message with timestamp
-                string formattedMessage =
-                    $"[{DateTime.Now:yyyy/MM/dd HH:mm:ss}] [MainWindow] {message}";
-
-                // Append to the log file
-                using (StreamWriter writer = File.AppendText(logFile))
-                {
-                    writer.WriteLine(formattedMessage);
-                }
-            }
-            catch
-            {
-                // Ignore errors in logging to avoid cascading issues
-            }
-#endif
+            e.Cancel = true;
+            await _applicationCloseService.CheckOperationsAndCloseAsync();
         }
 
-        public MainWindow()
+        public void OnThemeChanged(bool isDarkTheme)
         {
-            LogDebug("Default constructor called - THIS SHOULD NOT HAPPEN");
-            try
-            {
-                // Don't worry about this error, it is initialized at runtime.
-                InitializeComponent();
-                LogDebug("Default constructor completed initialization");
-
-                // Direct event handlers for window control buttons
-                this.MinimizeButton.Click += (s, e) => this.WindowState = WindowState.Minimized;
-                this.MaximizeRestoreButton.Click += (s, e) =>
-                {
-                    this.WindowState =
-                        (this.WindowState == WindowState.Maximized)
-                            ? WindowState.Normal
-                            : WindowState.Maximized;
-                };
-                this.CloseButton.Click += CloseButton_Click;
-            }
-            catch (Exception ex)
-            {
-                LogDebug("Error in default constructor", ex);
-                throw;
-            }
+            UpdateThemeIcon();
         }
 
-        // No need to define InitializeComponent here, it's generated by the WPF build system
-
-        public MainWindow(
-            IThemeManager themeManager,
-            IServiceProvider serviceProvider,
-            IMessengerService messengerService,
-            Winhance.Core.Features.Common.Interfaces.INavigationService navigationService,
-            IVersionService versionService,
-            UserPreferencesService userPreferencesService,
-            IApplicationCloseService applicationCloseService
-        )
-        {
-            try
-            {
-                // Use FileLogger directly to ensure we capture everything
-                FileLogger.Log("MainWindow", "MainWindow constructor starting");
-                FileLogger.Log(
-                    "MainWindow",
-                    $"Parameters: themeManager={themeManager != null}, serviceProvider={serviceProvider != null}, messengerService={messengerService != null}, navigationService={navigationService != null}, versionService={versionService != null}, userPreferencesService={userPreferencesService != null}"
-                );
-
-                // Verify dependencies
-                if (themeManager == null)
-                    throw new ArgumentNullException(nameof(themeManager));
-                if (serviceProvider == null)
-                    throw new ArgumentNullException(nameof(serviceProvider));
-                if (messengerService == null)
-                    throw new ArgumentNullException(nameof(messengerService));
-                if (navigationService == null)
-                    throw new ArgumentNullException(nameof(navigationService));
-                if (versionService == null)
-                    throw new ArgumentNullException(nameof(versionService));
-                if (userPreferencesService == null)
-                    throw new ArgumentNullException(nameof(userPreferencesService));
-                FileLogger.Log("MainWindow", "Dependencies verified");
-
-                // Let the build system initialize the component
-                try
-                {
-                    LogToStartupLog("Starting InitializeComponent");
-
-                    // We'll use a try-catch block around each part of the InitializeComponent process
-                    try
-                    {
-                        LogToStartupLog("Calling InitializeComponent()");
-                        InitializeComponent();
-                        LogToStartupLog("InitializeComponent() completed successfully");
-                    }
-                    catch (Exception initEx)
-                    {
-                        LogToStartupLog($"ERROR in InitializeComponent(): {initEx.Message}");
-                        LogToStartupLog($"Stack trace: {initEx.StackTrace}");
-                        throw; // Re-throw to be caught by the outer try-catch
-                    }
-
-                    LogToStartupLog("InitializeComponent completed");
-
-                    // Direct event handlers for window control buttons
-                    try
-                    {
-                        LogToStartupLog("Setting up window control button event handlers");
-
-                        LogToStartupLog($"MinimizeButton exists: {this.MinimizeButton != null}");
-                        this.MinimizeButton.Click += (s, e) =>
-                            this.WindowState = WindowState.Minimized;
-
-                        LogToStartupLog(
-                            $"MaximizeRestoreButton exists: {this.MaximizeRestoreButton != null}"
-                        );
-                        this.MaximizeRestoreButton.Click += (s, e) =>
-                        {
-                            this.WindowState =
-                                (this.WindowState == WindowState.Maximized)
-                                    ? WindowState.Normal
-                                    : WindowState.Maximized;
-
-                            // Update button content when window state changes
-                            if (DataContext is MainViewModel viewModel)
-                            {
-                                viewModel.MaximizeButtonContent =
-                                    (this.WindowState == WindowState.Maximized)
-                                        ? "WindowRestore"
-                                        : "WindowMaximize";
-                            }
-                        };
-
-                        LogToStartupLog($"CloseButton exists: {this.CloseButton != null}");
-                        this.CloseButton.Click += CloseButton_Click;
-
-                        LogToStartupLog($"MoreButton exists: {this.MoreButton != null}");
-                        LogToStartupLog($"MoreMenuControl exists: {this.MoreMenuControl != null}");
-                        this.MoreButton.Click += MoreButton_Click;
-
-                        LogToStartupLog(
-                            "Successfully set up all window control button event handlers"
-                        );
-                    }
-                    catch (Exception buttonEx)
-                    {
-                        LogToStartupLog(
-                            $"ERROR setting up button event handlers: {buttonEx.Message}"
-                        );
-                        LogToStartupLog($"Stack trace: {buttonEx.StackTrace}");
-                    }
-                }
-                catch (Exception ex)
-                {
-                    LogDebug("Error in InitializeComponent", ex);
-                    // This is not ideal, but we'll continue since the constructor errors will be handled
-                }
-
-                LogDebug("Setting fields");
-                _themeManager = themeManager;
-                _serviceProvider = serviceProvider;
-                _messengerService = messengerService;
-                _navigationService = navigationService;
-                _versionService =
-                    versionService ?? throw new ArgumentNullException(nameof(versionService));
-
-                // Create the window size manager
-                try
-                {
-                    var logService =
-                        _serviceProvider.GetService(typeof(ILogService)) as ILogService;
-
-                    if (userPreferencesService != null && logService != null)
-                    {
-                        _windowSizeManager = new WindowSizeManager(
-                            this,
-                            userPreferencesService,
-                            logService
-                        );
-                        LogDebug("WindowSizeManager created successfully");
-                    }
-                    else
-                    {
-                        LogDebug("Could not create WindowSizeManager: services not available");
-                    }
-                }
-                catch (Exception ex)
-                {
-                    LogDebug($"Error creating WindowSizeManager: {ex.Message}", ex);
-                }
-                _userPreferencesService =
-                    userPreferencesService
-                    ?? throw new ArgumentNullException(nameof(userPreferencesService));
-                _applicationCloseService =
-                    applicationCloseService
-                    ?? throw new ArgumentNullException(nameof(applicationCloseService));
-                LogDebug("Fields set");
-
-                // Hook up events for ContentPresenter-based navigation
-                if (
-                    _navigationService
-                    is Winhance.Core.Features.Common.Interfaces.INavigationService navService
-                )
-                {
-                    LogDebug("Setting up navigation service for ContentPresenter-based navigation");
-
-                    // Add PreviewMouseWheel event handler for better scrolling
-                    this.PreviewMouseWheel += MainWindow_PreviewMouseWheel;
-
-                    // We'll navigate once the window is fully loaded
-                    this.Loaded += (sender, e) =>
-                    {
-                        LogDebug("Window loaded, navigating to default view");
-
-                        // Apply the theme to ensure all toggle switches are properly initialized
-                        try
-                        {
-                            LogDebug("Applying theme to initialize toggle switches");
-                            if (_themeManager != null)
-                            {
-                                // Apply the theme which will update all toggle switches
-                                _themeManager.ApplyTheme();
-                                LogDebug("Successfully initialized toggle switches");
-
-                                // Update the app icon based on the theme
-                                UpdateThemeIcon();
-                            }
-                        }
-                        catch (Exception ex)
-                        {
-                            LogDebug($"Error initializing toggle switches: {ex.Message}", ex);
-                        }
-
-                        if (DataContext is MainViewModel mainViewModel)
-                        {
-                            try
-                            {
-                                // Navigate to SoftwareApps view by default
-                                LogDebug("Navigating to SoftwareApps view");
-                                _navigationService.NavigateTo("SoftwareApps");
-
-                                // Verify that navigation succeeded
-                                if (mainViewModel.CurrentViewModel == null)
-                                {
-                                    LogDebug(
-                                        "WARNING: Navigation succeeded but CurrentViewModel is null"
-                                    );
-                                }
-                                else
-                                {
-                                    LogDebug(
-                                        $"Navigation succeeded, CurrentViewModel is {mainViewModel.CurrentViewModel.GetType().Name}"
-                                    );
-                                }
-                            }
-                            catch (Exception ex)
-                            {
-                                LogDebug(
-                                    $"Error navigating to SoftwareApps view: {ex.Message}",
-                                    ex
-                                );
-
-                                // Try to recover by navigating to another view
-                                try
-                                {
-                                    LogDebug("Attempting to navigate to About view as fallback");
-                                    _navigationService.NavigateTo("About");
-                                }
-                                catch (Exception fallbackEx)
-                                {
-                                    LogDebug(
-                                        $"Error navigating to fallback view: {fallbackEx.Message}",
-                                        fallbackEx
-                                    );
-                                }
-                            }
-                        }
-                        else
-                        {
-                            LogDebug(
-                                $"DataContext is not MainViewModel, it is {DataContext?.GetType().Name ?? "null"}"
-                            );
-                        }
-                    };
-
-                    // Add StateChanged event to update Maximize/Restore button content only
-                    this.StateChanged += (sender, e) =>
-                    {
-                        if (DataContext is MainViewModel viewModel)
-                        {
-                            viewModel.MaximizeButtonContent =
-                                (this.WindowState == WindowState.Maximized)
-                                    ? "WindowRestore"
-                                    : "WindowMaximize";
-                        }
-                    };
-
-                    // We no longer save window position/size to preferences
-                }
-                else
-                {
-                    LogDebug(
-                        $"_navigationService is not INavigationService, it is {_navigationService?.GetType().Name ?? "null"}"
-                    );
-                }
-
-                // Register for window state messages
-                LogDebug("Registering for window state messages");
-                _messengerService.Register<WindowStateMessage>(this, HandleWindowStateMessage);
-                LogDebug("Registered for window state messages");
-
-                // Add Closing event handler to log the closing process
-                this.Closing += MainWindow_Closing;
-
-                // Clean up when window is closed
-                this.Closed += (sender, e) =>
-                {
-                    LogDebug("Window closed, unregistering from messenger service");
-                    _messengerService.Unregister(this);
-                };
-
-                LogDebug($"DataContext is {(DataContext == null ? "null" : "not null")}");
-            }
-            catch (Exception ex)
-            {
-                LogDebug("Error in parameterized constructor", ex);
-                throw;
-            }
-        }
-
-        private async void CloseButton_Click(object sender, RoutedEventArgs e)
-        {
-            try
-            {
-                LogDebug("CloseButton_Click called, delegating to ApplicationCloseService");
-                await _applicationCloseService.CloseApplicationWithSupportDialogAsync();
-            }
-            catch (Exception ex)
-            {
-                LogDebug($"Error in CloseButton_Click: {ex.Message}", ex);
-
-                // Fallback to direct close if there's an error
-                try
-                {
-                    this.Close();
-                }
-                catch
-                {
-                    // Last resort
-                    Application.Current.Shutdown();
-                }
-            }
-        }
-
-        private void MainWindow_Closing(object sender, System.ComponentModel.CancelEventArgs e)
-        {
-            try
-            {
-                // Check if the DataContext is MainViewModel
-                if (DataContext is MainViewModel viewModel)
-                {
-                    LogDebug("DataContext is MainViewModel");
-
-                    // Log any relevant properties or state from the ViewModel
-                    LogDebug($"CurrentViewName: {viewModel.CurrentViewName}");
-                    LogDebug(
-                        $"CurrentViewModel type: {viewModel.CurrentViewModel?.GetType().FullName ?? "null"}"
-                    );
-                }
-                else
-                {
-                    LogDebug(
-                        $"DataContext is not MainViewModel, it is {DataContext?.GetType().Name ?? "null"}"
-                    );
-                }
-
-                // Log active windows
-                LogDebug("Active windows:");
-                foreach (Window window in Application.Current.Windows)
-                {
-                    LogDebug(
-                        $"Window: {window.GetType().FullName}, IsVisible: {window.IsVisible}, WindowState: {window.WindowState}"
-                    );
-                }
-            }
-            catch (Exception ex)
-            {
-                LogDebug($"Error in MainWindow_Closing: {ex.Message}", ex);
-            }
-        }
-
-        private readonly IMessengerService _messengerService = null!;
-        private readonly IVersionService _versionService = null!;
-
-        #region More Button Event Handlers
-
-        /// <summary>
-        /// Event handler for the More button click
-        /// Shows the context menu when the More button is clicked
-        /// </summary>
-        private void MoreButton_Click(object sender, RoutedEventArgs e)
-        {
-            // Log to the startup log file
-            LogToStartupLog("More button clicked");
-
-            try
-            {
-                // Show the context menu using the MoreMenu control
-                LogToStartupLog($"MoreMenuControl exists: {MoreMenuControl != null}");
-                LogToStartupLog($"MoreButton exists: {MoreButton != null}");
-
-                if (MoreMenuControl != null)
-                {
-                    LogToStartupLog("About to call MoreMenuControl.ShowMenu()");
-
-                    try
-                    {
-                        // Show the menu with the More button as the placement target
-                        MoreMenuControl.ShowMenu(MoreButton);
-                        LogToStartupLog("MoreMenuControl.ShowMenu() called successfully");
-                    }
-                    catch (Exception menuEx)
-                    {
-                        LogToStartupLog($"ERROR in MoreMenuControl.ShowMenu(): {menuEx.Message}");
-                        LogToStartupLog($"Stack trace: {menuEx.StackTrace}");
-                    }
-                }
-                else
-                {
-                    LogToStartupLog("MoreMenuControl is null, cannot show menu");
-                }
-            }
-            catch (Exception ex)
-            {
-                LogToStartupLog($"Error in MoreButton_Click: {ex.Message}");
-                LogToStartupLog($"Stack trace: {ex.StackTrace}");
-            }
-        }
-
-        // Context menu event handlers have been moved to MoreMenuViewModel
-
-        #endregion
-
-        private void HandleWindowStateMessage(WindowStateMessage message)
-        {
-            LogDebug($"Received window state message: {message.Action}");
-
-            try
-            {
-                switch (message.Action)
-                {
-                    case WindowStateMessage.WindowStateAction.Minimize:
-                        LogDebug("Processing minimize action");
-                        WindowState = WindowState.Minimized;
-                        break;
-
-                    case WindowStateMessage.WindowStateAction.Maximize:
-                        LogDebug("Processing maximize action");
-                        WindowState = WindowState.Maximized;
-                        break;
-
-                    case WindowStateMessage.WindowStateAction.Restore:
-                        LogDebug("Processing restore action");
-                        WindowState = WindowState.Normal;
-                        break;
-
-                    case WindowStateMessage.WindowStateAction.Close:
-                        LogDebug("Processing close action");
-                        Close();
-                        break;
-
-                    default:
-                        LogDebug($"Unknown window state action: {message.Action}");
-                        break;
-                }
-            }
-            catch (Exception ex)
-            {
-                LogDebug($"Error handling window state message: {ex.Message}", ex);
-            }
-        }
-
-        private readonly IServiceProvider _serviceProvider = null!;
-        private readonly IThemeManager _themeManager = null!;
-
-        protected override void OnSourceInitialized(EventArgs e)
-        {
-            LogDebug("OnSourceInitialized starting");
-            try
-            {
-                base.OnSourceInitialized(e);
-                LogDebug("Base OnSourceInitialized called");
-
-                var helper = new WindowInteropHelper(this);
-                if (helper.Handle == IntPtr.Zero)
-                {
-                    throw new InvalidOperationException("Window handle not available");
-                }
-                LogDebug("Window handle verified");
-
-                // Initialize the window size manager to set size and center the window
-                if (_windowSizeManager != null)
-                {
-                    _windowSizeManager.Initialize();
-                    LogDebug("WindowSizeManager initialized");
-                }
-                else
-                {
-                    // Fallback if window size manager is not available
-                    SetDynamicWindowSize();
-                    LogDebug("Used fallback dynamic window sizing");
-                }
-
-                EnableBlur();
-                LogDebug("Blur enabled successfully");
-            }
-            catch (Exception ex)
-            {
-                LogDebug("Error in OnSourceInitialized", ex);
-                // Don't throw - blur is not critical
-            }
-        }
-
-        /// <summary>
-        /// Sets the window size dynamically based on the screen resolution
-        /// </summary>
-        private void SetDynamicWindowSize()
-        {
-            try
-            {
-                LogDebug("Setting dynamic window size");
-
-                // Get the current screen's working area (excludes taskbar)
-                var workArea = GetCurrentScreenWorkArea();
-
-                // Get DPI scaling factor for the current screen
-                double dpiScaleX = 1.0;
-                double dpiScaleY = 1.0;
-
-                try
-                {
-                    var presentationSource = PresentationSource.FromVisual(this);
-                    if (presentationSource?.CompositionTarget != null)
-                    {
-                        dpiScaleX = presentationSource.CompositionTarget.TransformToDevice.M11;
-                        dpiScaleY = presentationSource.CompositionTarget.TransformToDevice.M22;
-                        LogDebug($"DPI scale factors: X={dpiScaleX}, Y={dpiScaleY}");
-                    }
-                }
-                catch (Exception ex)
-                {
-                    LogDebug($"Error getting DPI scale: {ex.Message}", ex);
-                }
-
-                // Calculate available screen space
-                double screenWidth = workArea.Width / dpiScaleX;
-                double screenHeight = workArea.Height / dpiScaleY;
-                double screenLeft = workArea.X / dpiScaleX;
-                double screenTop = workArea.Y / dpiScaleY;
-
-                // Calculate window size (75% of screen size with minimum/maximum constraints)
-                double windowWidth = Math.Min(1600, screenWidth * 0.75);
-                double windowHeight = Math.Min(900, screenHeight * 0.75);
-
-                // Ensure minimum size for usability
-                windowWidth = Math.Max(windowWidth, 1024);
-                windowHeight = Math.Max(windowHeight, 700);
-
-                // Set the window size
-                this.Width = windowWidth;
-                this.Height = windowHeight;
-
-                // Center the window on screen
-                this.Left = screenLeft + (screenWidth - windowWidth) / 2;
-                this.Top = screenTop + (screenHeight - windowHeight) / 2;
-
-                LogDebug(
-                    $"Screen resolution: {screenWidth}x{screenHeight}, Window size set to: {windowWidth}x{windowHeight}"
-                );
-                LogDebug($"Window centered at: Left={this.Left}, Top={this.Top}");
-            }
-            catch (Exception ex)
-            {
-                LogDebug($"Error setting dynamic window size: {ex.Message}", ex);
-            }
-        }
-
-        /// <summary>
-        /// Gets the working area of the screen that contains the window
-        /// </summary>
-        private Rect GetCurrentScreenWorkArea()
-        {
-            try
-            {
-                // Get the window handle
-                var windowHandle = new WindowInteropHelper(this).Handle;
-                if (windowHandle != IntPtr.Zero)
-                {
-                    // Get the monitor info for the monitor containing the window
-                    var monitorInfo = new MONITORINFO();
-                    monitorInfo.cbSize = Marshal.SizeOf(typeof(MONITORINFO));
-
-                    if (
-                        GetMonitorInfo(
-                            MonitorFromWindow(windowHandle, MONITOR_DEFAULTTONEAREST),
-                            ref monitorInfo
-                        )
-                    )
-                    {
-                        // Convert the working area to a WPF Rect
-                        return new Rect(
-                            monitorInfo.rcWork.left,
-                            monitorInfo.rcWork.top,
-                            monitorInfo.rcWork.right - monitorInfo.rcWork.left,
-                            monitorInfo.rcWork.bottom - monitorInfo.rcWork.top
-                        );
-                    }
-                }
-            }
-            catch (Exception ex)
-            {
-                LogDebug($"Error getting current screen: {ex.Message}", ex);
-            }
-
-            // Fallback to primary screen working area
-            return SystemParameters.WorkArea;
-        }
-
-        [DllImport("user32.dll")]
-        private static extern IntPtr MonitorFromWindow(IntPtr hwnd, uint dwFlags);
-
-        [DllImport("user32.dll")]
-        private static extern bool GetMonitorInfo(IntPtr hMonitor, ref MONITORINFO lpmi);
-
-        private const uint MONITOR_DEFAULTTONEAREST = 2;
-
-        [StructLayout(LayoutKind.Sequential)]
-        private struct RECT
-        {
-            public int left;
-            public int top;
-            public int right;
-            public int bottom;
-        }
-
-        [StructLayout(LayoutKind.Sequential)]
-        private struct MONITORINFO
-        {
-            public int cbSize;
-            public RECT rcMonitor;
-            public RECT rcWork;
-            public uint dwFlags;
-        }
-
-        private void EnableBlur()
-        {
-            LogDebug("EnableBlur starting");
-            var windowHelper = new WindowInteropHelper(this);
-            var accent = new AccentPolicy { AccentState = AccentState.ACCENT_ENABLE_BLURBEHIND };
-            var accentStructSize = Marshal.SizeOf(accent);
-
-            var accentPtr = IntPtr.Zero;
-            try
-            {
-                accentPtr = Marshal.AllocHGlobal(accentStructSize);
-                Marshal.StructureToPtr(accent, accentPtr, false);
-
-                var data = new WindowCompositionAttributeData
-                {
-                    Attribute = WindowCompositionAttribute.WCA_ACCENT_POLICY,
-                    SizeOfData = accentStructSize,
-                    Data = accentPtr,
-                };
-
-                int result = SetWindowCompositionAttribute(windowHelper.Handle, ref data);
-                if (result == 0)
-                {
-                    throw new InvalidOperationException("SetWindowCompositionAttribute failed");
-                }
-                LogDebug("Blur effect applied successfully");
-            }
-            catch (Exception ex)
-            {
-                LogDebug("Error enabling blur", ex);
-                throw;
-            }
-            finally
-            {
-                if (accentPtr != IntPtr.Zero)
-                {
-                    Marshal.FreeHGlobal(accentPtr);
-                }
-            }
-        }
-
-        [DllImport("user32.dll")]
-        internal static extern int SetWindowCompositionAttribute(
-            IntPtr hwnd,
-            ref WindowCompositionAttributeData data
-        );
-
-        [StructLayout(LayoutKind.Sequential)]
-        internal struct AccentPolicy
-        {
-            public AccentState AccentState;
-            public int AccentFlags;
-            public int GradientColor;
-            public int AnimationId;
-        }
-
-        [StructLayout(LayoutKind.Sequential)]
-        internal struct WindowCompositionAttributeData
-        {
-            public WindowCompositionAttribute Attribute;
-            public IntPtr Data;
-            public int SizeOfData;
-        }
-
-        internal enum AccentState
-        {
-            ACCENT_DISABLED = 0,
-            ACCENT_ENABLE_GRADIENT = 1,
-            ACCENT_ENABLE_TRANSPARENTGRADIENT = 2,
-            ACCENT_ENABLE_BLURBEHIND = 3,
-            ACCENT_ENABLE_ACRYLICBLURBEHIND = 4,
-            ACCENT_INVALID_STATE = 5,
-        }
-
-        internal enum WindowCompositionAttribute
-        {
-            WCA_ACCENT_POLICY = 19,
-        }
-
-        // Window control is now handled through ViewModel commands and messaging
-
-        /// <summary>
-        /// Updates the window and image icons based on the current theme
-        /// </summary>
-        private void UpdateThemeIcon()
-        {
-            if (_themeManager == null)
-            {
-                LogDebug("Cannot update theme icon: ThemeManager is null");
-                return;
-            }
-
-            try
-            {
-                LogDebug(
-                    $"Updating theme icon. Current theme: {(_themeManager.IsDarkTheme ? "Dark" : "Light")}"
-                );
-
-                // Get the appropriate icon based on the theme
-                string iconPath = _themeManager.IsDarkTheme
-                    ? "pack://application:,,,/Resources/AppIcons/winhance-rocket-white-transparent-bg.ico"
-                    : "pack://application:,,,/Resources/AppIcons/winhance-rocket-black-transparent-bg.ico";
-
-                LogDebug($"Selected icon path: {iconPath}");
-
-                // Create a BitmapImage from the icon path
-                var iconImage = new BitmapImage(new Uri(iconPath, UriKind.Absolute));
-                iconImage.Freeze(); // Freeze for better performance and thread safety
-
-                // Set the window icon
-                this.Icon = iconImage;
-                LogDebug("Window icon updated");
-
-                // Set the image control source
-                if (AppIconImage != null)
-                {
-                    AppIconImage.Source = iconImage;
-                    LogDebug("AppIconImage source updated");
-                }
-                else
-                {
-                    LogDebug("AppIconImage is null, cannot update source");
-                }
-            }
-            catch (Exception ex)
-            {
-                LogDebug("Error updating theme icon", ex);
-
-                // If there's an error, fall back to the default icon
-                try
-                {
-                    var defaultIcon = new BitmapImage(
-                        new Uri(
-                            "pack://application:,,,/Resources/AppIcons/winhance-rocket.ico",
-                            UriKind.Absolute
-                        )
-                    );
-                    this.Icon = defaultIcon;
-                    if (AppIconImage != null)
-                    {
-                        AppIconImage.Source = defaultIcon;
-                    }
-                }
-                catch (Exception fallbackEx)
-                {
-                    LogDebug("Error setting fallback icon", fallbackEx);
-                }
-            }
-        }
-
-        /// <summary>
-        /// Handles mouse wheel events at the window level and redirects them to the ScrollViewer
-        /// </summary>
         private void MainWindow_PreviewMouseWheel(object sender, MouseWheelEventArgs e)
         {
-            // Find the ScrollViewer in the visual tree
-            var scrollViewer = FindVisualChild<ScrollViewer>(this);
+            var scrollViewer = VisualTreeHelpers.FindVisualChild<ScrollViewer>(this);
             if (scrollViewer != null)
             {
-                // Redirect the mouse wheel event to the ScrollViewer
                 if (e.Delta < 0)
-                {
                     scrollViewer.LineDown();
-                }
                 else
-                {
                     scrollViewer.LineUp();
-                }
 
-                // Mark the event as handled to prevent it from bubbling up
                 e.Handled = true;
             }
         }
 
-        /// <summary>
-        /// Finds a visual child of the specified type in the visual tree
-        /// </summary>
-        private static T FindVisualChild<T>(DependencyObject obj)
-            where T : DependencyObject
+        private void MoreMenuOverlay_MouseLeftButtonDown(object sender, MouseButtonEventArgs e)
         {
-            for (int i = 0; i < VisualTreeHelper.GetChildrenCount(obj); i++)
+            if (DataContext is MainViewModel mainViewModel)
+                mainViewModel.CloseMoreMenuFlyout();
+        }
+
+        private void MoreMenuOverlay_KeyDown(object sender, KeyEventArgs e)
+        {
+            if (e.Key == Key.Escape && DataContext is MainViewModel mainViewModel)
             {
-                DependencyObject child = VisualTreeHelper.GetChild(obj, i);
+                mainViewModel.CloseMoreMenuFlyout();
+                e.Handled = true;
+            }
+        }
 
-                if (child != null && child is T)
-                {
-                    return (T)child;
-                }
+        private void AdvancedToolsOverlay_MouseLeftButtonDown(object sender, MouseButtonEventArgs e)
+        {
+            if (DataContext is MainViewModel mainViewModel)
+                mainViewModel.CloseAdvancedToolsFlyout();
+        }
 
-                T childOfChild = FindVisualChild<T>(child);
-                if (childOfChild != null)
-                {
-                    return childOfChild;
-                }
+        private void AdvancedToolsOverlay_KeyDown(object sender, KeyEventArgs e)
+        {
+            if (e.Key == Key.Escape && DataContext is MainViewModel mainViewModel)
+            {
+                mainViewModel.CloseAdvancedToolsFlyout();
+                e.Handled = true;
+            }
+        }
+
+        private void UpdateThemeIcon()
+        {
+            if (_windowIconService == null)
+            {
+                var app = Application.Current as App;
+                var themeManager = app?.ServiceProvider.GetService(typeof(IThemeManager)) as IThemeManager;
+                if (themeManager != null)
+                    _windowIconService = new WindowIconService(themeManager);
             }
 
-            return null;
+            _windowIconService?.UpdateTitleBarIcon(AppIconImage);
         }
     }
 }

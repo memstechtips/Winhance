@@ -17,7 +17,7 @@ namespace Winhance.Core.Models.Exceptions
         public AppLoadingErrorCode ErrorCode { get; }
         public Exception? OriginalException { get; }
 
-        public AppLoadingException(AppLoadingErrorCode errorCode, string message, 
+        public AppLoadingException(AppLoadingErrorCode errorCode, string message,
             Exception? originalException = null)
             : base(message, originalException)
         {

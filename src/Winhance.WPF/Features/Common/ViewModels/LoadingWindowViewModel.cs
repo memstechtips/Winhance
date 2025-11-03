@@ -73,7 +73,7 @@ namespace Winhance.WPF.Features.Common.ViewModels
         public LoadingWindowViewModel(ITaskProgressService progressService)
         {
             _progressService = progressService ?? throw new ArgumentNullException(nameof(progressService));
-            
+
             // Subscribe to progress events
             _progressService.ProgressUpdated += ProgressService_ProgressUpdated;
         }
@@ -83,16 +83,16 @@ namespace Winhance.WPF.Features.Common.ViewModels
             // Update UI properties based on progress events
             IsIndeterminate = detail.IsIndeterminate;
             Progress = detail.Progress ?? 0;
-            
+
             // Update progress text with percentage and status
             ProgressText = detail.IsIndeterminate ? string.Empty : $"{detail.Progress:F0}% - {detail.StatusText}";
             ShowProgressText = !detail.IsIndeterminate && _progressService.IsTaskRunning;
-            
+
             // Update status message with the current operation
             if (!string.IsNullOrEmpty(detail.StatusText))
             {
                 StatusMessage = detail.StatusText;
-                
+
                 // Update detail message based on the current operation
                 if (detail.StatusText.Contains("Loading installable apps"))
                 {

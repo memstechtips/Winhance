@@ -19,7 +19,7 @@ namespace Winhance.WPF.Features.Common.Converters
                 // Up arrow for expanded, down arrow for collapsed
                 return isExpanded ? "\uE70E" : "\uE70D";
             }
-            
+
             // Default to down arrow if value is not a boolean
             return "\uE70D";
         }

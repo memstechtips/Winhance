@@ -1,37 +1,49 @@
 <ResourceDictionary xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
                     xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
                     xmlns:converters="clr-namespace:Winhance.WPF.Features.Common.Converters"
-                    xmlns:oldConverters="clr-namespace:Winhance.WPF.Converters">
+                    xmlns:oldConverters="clr-namespace:Winhance.WPF.Converters"
+                    xmlns:iconPacks="http://metro.mahapps.com/winfx/xaml/iconpacks">
     <converters:BoolToArrowConverter x:Key="BoolToArrowConverter"/>
-    <converters:CategoryToIconConverter x:Key="CategoryToIconConverter"/>
     <oldConverters:BooleanToVisibilityConverter x:Key="BooleanToVisibilityConverter"/>
     <oldConverters:BooleanToGridSpanConverter x:Key="BooleanToGridSpanConverter"/>
     <converters:InverseBooleanToVisibilityConverter x:Key="InverseBooleanToVisibilityConverter"/>
+    <converters:InverseBooleanConverter x:Key="InverseBooleanConverter"/>
     <oldConverters:InstalledStatusToColorConverter x:Key="InstalledStatusToColorConverter"/>
     <oldConverters:InstalledStatusToTextConverter x:Key="InstalledStatusToTextConverter"/>
     <x:Static x:Key="ViewNameToBackgroundConverter" Member="converters:ViewNameToBackgroundConverter.Instance"/>
-    <converters:StatusToColorConverter x:Key="StatusToColorConverter"/>
-    <converters:StatusToTextConverter x:Key="StatusToTextConverter"/>
     <oldConverters:NullToVisibilityConverter x:Key="NullToVisibilityConverter"/>
     <converters:CountToVisibilityConverter x:Key="CountToVisibilityConverter"/>
     <converters:InverseCountToVisibilityConverter x:Key="InverseCountToVisibilityConverter"/>
-    <converters:RemoveActionToVisibilityConverter x:Key="RemoveActionToVisibilityConverter"/>
-    <converters:AppliedStatusToVisibilityConverter x:Key="AppliedStatusToVisibilityConverter"/>
-    <converters:RegistryValueStatusConverter x:Key="RegistryValueStatusConverter"/>
-    <converters:RegistryValueStatusToColorConverter x:Key="RegistryValueStatusToColorConverter"/>
-    <converters:RegistryValueStatusToIconConverter x:Key="RegistryValueStatusToIconConverter"/>
+    <converters:InverseNullToVisibilityConverter x:Key="InverseNullToVisibilityConverter"/>
     <oldConverters:WindowStateToCommandConverter x:Key="WindowStateToCommandConverter"/>
     <oldConverters:BooleanToReinstallableIconConverter x:Key="BooleanToReinstallableIconConverter"/>
+    <oldConverters:BooleanToReinstallableColorConverter x:Key="BooleanToReinstallableColorConverter"/>
     <oldConverters:BooleanToReinstallableTextConverter x:Key="BooleanToReinstallableTextConverter"/>
     <converters:ScriptStatusToColorConverter x:Key="ScriptStatusToColorConverter"/>
     <converters:ScriptStatusToTextConverter x:Key="ScriptStatusToTextConverter"/>
     <converters:StringToMaximizeIconConverter x:Key="StringToMaximizeIconConverter"/>
     <converters:BoolToChevronConverter x:Key="BoolToChevronConverter"/>
-    <converters:IconNameToSymbolConverter x:Key="IconNameToSymbolConverter"/>
     <converters:BooleanToThemeConverter x:Key="BooleanToThemeConverter"/>
     <converters:BooleanToThemeIconConverter x:Key="BooleanToThemeIconConverter"/>
     <converters:BooleanConverter x:Key="BooleanConverter"/>
-    <converters:RegistryHiveToFullNameConverter x:Key="RegistryHiveToFullNameConverter"/>
+
     <converters:IsPrimaryToVisibilityConverter x:Key="IsPrimaryToVisibilityConverter"/>
     <converters:EnumToVisibilityConverter x:Key="EnumToVisibilityConverter"/>
+    <converters:StringEqualityConverter x:Key="StringEqualityConverter"/>
+    <converters:BooleanToValueConverter x:Key="BooleanToValueConverter"/>
+    <converters:BooleanToRotationConverter x:Key="BooleanToRotationConverter"/>
+    <converters:SubSettingMarginConverter x:Key="SubSettingMarginConverter"/>
+    <converters:BooleanToOpacityConverter x:Key="BooleanToOpacityConverter"/>
+
+    <converters:PowerModeVisibilityConverter x:Key="PowerModeVisibilityConverter"/>
+    <converters:IconPackConverter x:Key="IconPackConverter"/>
+    <converters:IntToVisibilityConverter x:Key="IntToVisibilityConverter"/>
+    <converters:BooleanToFilterTooltipConverter x:Key="BooleanToFilterTooltipConverter"/>
+    <converters:BooleanToFilterIconConverter x:Key="BooleanToFilterIconConverter"/>
+    <converters:CoalesceConverter x:Key="CoalesceConverter"/>
+
+    <converters:PowerPlanStatusToColorConverter x:Key="PowerPlanStatusToColorConverter"/>
+    <converters:PowerPlanStatusToTextConverter x:Key="PowerPlanStatusToTextConverter"/>
+    <converters:PowerPlanDeleteVisibilityConverter x:Key="PowerPlanDeleteVisibilityConverter"/>
+    <converters:WidthToColumnsConverter x:Key="WidthToColumnsConverter"/>
 </ResourceDictionary>

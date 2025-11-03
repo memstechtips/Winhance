@@ -11,8 +11,8 @@
 
     <Style x:Key="DialogAppListBorderStyle" TargetType="Border">
         <Setter Property="Background" Value="{DynamicResource ContentSectionBorderBrush}"/>
-        <Setter Property="BorderBrush" Value="{DynamicResource ButtonBorderBrush}"/>
-        <Setter Property="BorderThickness" Value="1"/>
+        <Setter Property="BorderBrush" Value="Transparent"/>
+        <Setter Property="BorderThickness" Value="0"/>
         <Setter Property="CornerRadius" Value="5"/>
         <Setter Property="Padding" Value="10"/>
         <Setter Property="Effect" Value="{StaticResource LightShadowEffect}"/>

@@ -25,8 +25,7 @@
                 <ControlTemplate TargetType="{x:Type controls:ProgressIndicator}">
                     <Grid x:Name="MainGrid" Visibility="{TemplateBinding IsActive, Converter={StaticResource BooleanToVisibilityConverter}}">
                         <Border Background="{DynamicResource ContentSectionBorderBrush}"
-                                BorderBrush="{DynamicResource ButtonBorderBrush}"
-                                BorderThickness="1"
+                                BorderBrush="Transparent"
                                 CornerRadius="5"
                                 Padding="10,5">
                             <Grid>

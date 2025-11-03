@@ -2,12 +2,12 @@ using System;
 
 namespace Winhance.Core.Models.Exceptions
 {
-    public class InstallationException : Exception 
+    public class InstallationException : Exception
     {
         public bool IsRecoverable { get; }
         public string ItemName { get; }
-        
-        public InstallationException(string itemName, string message, 
+
+        public InstallationException(string itemName, string message,
             bool isRecoverable = false, Exception? inner = null)
             : base(message, inner)
         {
@@ -35,14 +35,14 @@ namespace Winhance.Core.Models.Exceptions
 
     public class ItemOperationException : InstallationException
     {
-        public ItemOperationException(string itemName, string operation, string message, 
+        public ItemOperationException(string itemName, string operation, string message,
             bool isRecoverable = false, Exception? inner = null)
             : base(itemName, $"{operation} failed for {itemName}: {message}", isRecoverable, inner) { }
     }
 
     public class RemovalException : ItemOperationException
     {
-        public RemovalException(string itemName, string message, 
+        public RemovalException(string itemName, string message,
             bool isRecoverable = false, Exception? inner = null)
             : base(itemName, "removal", message, isRecoverable, inner) { }
     }
@@ -53,8 +53,8 @@ namespace Winhance.Core.Models.Exceptions
         public string OperationType { get; }
 
         public BatchOperationException(string operationType, int failedCount, int totalCount)
-            : base("multiple items", 
-                  $"{operationType} failed for {failedCount} of {totalCount} items", 
+            : base("multiple items",
+                  $"{operationType} failed for {failedCount} of {totalCount} items",
                   true)
         {
             OperationType = operationType;

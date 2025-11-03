@@ -1,0 +1,107 @@
+using System;
+using System.Globalization;
+using System.Windows.Data;
+using MahApps.Metro.IconPacks;
+
+namespace Winhance.WPF.Features.Common.Converters
+{
+    public class CategoryToIconConverter : IValueConverter
+    {
+        public static CategoryToIconConverter Instance { get; } = new CategoryToIconConverter();
+
+        public object Convert(object value, Type targetType, object parameter, CultureInfo culture)
+        {
+            if (value is string categoryName)
+            {
+                // Convert category name to lowercase for case-insensitive comparison
+                string category = categoryName.ToLowerInvariant();
+
+                // Map category names to appropriate Material Design icons
+                return category switch
+                {
+                    // Browser related categories
+                    var c when c.Contains("browser") => PackIconMaterialKind.Web,
+
+                    // Compression related categories
+                    var c when c.Contains("compression") => PackIconMaterialKind.ZipBox,
+                    var c when c.Contains("zip") => PackIconMaterialKind.ZipBox,
+                    var c when c.Contains("archive") => PackIconMaterialKind.Archive,
+
+                    // Customization related categories
+                    var c when c.Contains("customization") => PackIconMaterialKind.Palette,
+                    var c when c.Contains("utilities") => PackIconMaterialKind.Tools,
+                    var c when c.Contains("shell") => PackIconMaterialKind.Console,
+
+                    // Development related categories
+                    var c when c.Contains("development") => PackIconMaterialKind.CodeBraces,
+                    var c when c.Contains("programming") => PackIconMaterialKind.CodeBraces,
+                    var c when c.Contains("code") => PackIconMaterialKind.CodeBraces,
+
+                    // Document related categories
+                    var c when c.Contains("document") => PackIconMaterialKind.FileDocument,
+                    var c when c.Contains("pdf") => PackIconMaterialKind.File,
+                    var c when c.Contains("office") => PackIconMaterialKind.FileDocument,
+                    var c when c.Contains("viewer") => PackIconMaterialKind.FileDocument,
+
+                    // Media related categories
+                    var c when c.Contains("media") => PackIconMaterialKind.Play,
+                    var c when c.Contains("video") => PackIconMaterialKind.Video,
+                    var c when c.Contains("audio") => PackIconMaterialKind.Music,
+                    var c when c.Contains("player") => PackIconMaterialKind.Play,
+                    var c when c.Contains("multimedia") => PackIconMaterialKind.Play,
+
+                    // Communication related categories
+                    var c when c.Contains("communication") => PackIconMaterialKind.Message,
+                    var c when c.Contains("chat") => PackIconMaterialKind.Chat,
+                    var c when c.Contains("email") => PackIconMaterialKind.Email,
+                    var c when c.Contains("messaging") => PackIconMaterialKind.Message,
+                    var c when c.Contains("calendar") => PackIconMaterialKind.Calendar,
+
+                    // Security related categories
+                    var c when c.Contains("security") => PackIconMaterialKind.Shield,
+                    var c when c.Contains("antivirus") => PackIconMaterialKind.ShieldOutline,
+                    var c when c.Contains("firewall") => PackIconMaterialKind.Fire,
+                    var c when c.Contains("privacy") => PackIconMaterialKind.Lock,
+
+                    // File & Disk Management
+                    var c when c.Contains("file") => PackIconMaterialKind.Folder,
+                    var c when c.Contains("disk") => PackIconMaterialKind.Database,
+
+                    // Gaming
+                    var c when c.Contains("gaming") => PackIconMaterialKind.GamepadVariant,
+                    var c when c.Contains("game") => PackIconMaterialKind.GamepadVariant,
+
+                    // Imaging
+                    var c when c.Contains("imaging") => PackIconMaterialKind.Image,
+                    var c when c.Contains("image") => PackIconMaterialKind.Image,
+
+                    // Online Storage
+                    var c when c.Contains("storage") => PackIconMaterialKind.Cloud,
+                    var c when c.Contains("cloud") => PackIconMaterialKind.Cloud,
+
+                    // Remote Access
+                    var c when c.Contains("remote") => PackIconMaterialKind.Remote,
+                    var c when c.Contains("access") => PackIconMaterialKind.Remote,
+
+                    // Optical Disc Utilities
+                    var c when c.Contains("optical") => PackIconMaterialKind.Album,
+                    var c when c.Contains("disc") => PackIconMaterialKind.Album,
+                    var c when c.Contains("dvd") => PackIconMaterialKind.Album,
+                    var c when c.Contains("cd") => PackIconMaterialKind.Album,
+
+                    // Default icon for unknown categories
+                    _ => PackIconMaterialKind.Apps
+                };
+            }
+
+            // Default to Apps icon if value is not a string
+            return PackIconMaterialKind.Apps;
+        }
+
+        public object ConvertBack(object value, Type targetType, object parameter, CultureInfo culture)
+        {
+            // This converter doesn't support converting back
+            throw new NotImplementedException();
+        }
+    }
+}

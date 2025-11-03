@@ -1,233 +1,146 @@
 using System;
 using System.Collections.Generic;
 using System.Linq;
+using System.Threading.Tasks;
 using Winhance.Core.Features.Common.Enums;
 using Winhance.Core.Features.Common.Interfaces;
 using Winhance.Core.Features.Common.Models;
 
 namespace Winhance.Core.Features.Common.Services
 {
-    /// <summary>
-    /// Manages dependencies between settings, ensuring that dependent settings are properly handled
-    /// when their required settings change state.
-    /// </summary>
     public class DependencyManager : IDependencyManager
     {
         private readonly ILogService _logService;
-        
-        public DependencyManager(ILogService logService)
+        private readonly IGlobalSettingsRegistry _globalSettingsRegistry;
+
+        public DependencyManager(ILogService logService, IGlobalSettingsRegistry globalSettingsRegistry)
         {
-            _logService = logService ?? throw new ArgumentNullException(nameof(logService));
+            _logService = logService;
+            _globalSettingsRegistry = globalSettingsRegistry;
         }
-        
-        /// <summary>
-        /// Handles the enabling of a setting by automatically enabling any required settings.
-        /// </summary>
-        /// <param name="settingId">The ID of the setting that is being enabled.</param>
-        /// <param name="allSettings">All available settings that might be required by the enabled setting.</param>
-        /// <returns>True if all required settings were enabled successfully; otherwise, false.</returns>
-        public bool HandleSettingEnabled(string settingId, IEnumerable<ISettingItem> allSettings)
+
+        public async Task<bool> HandleSettingEnabledAsync(string settingId, IEnumerable<ISettingItem> allSettings, ISettingApplicationService settingApplicationService, ISystemSettingsDiscoveryService discoveryService)
         {
-            if (string.IsNullOrEmpty(settingId))
-            {
-                _logService.Log(LogLevel.Warning, "Cannot handle dependencies for null or empty setting ID");
-                return false;
-            }
-            
-            var setting = allSettings.FirstOrDefault(s => s.Id == settingId);
-            if (setting == null)
-            {
-                _logService.Log(LogLevel.Warning, $"Setting with ID '{settingId}' not found");
-                return false;
-            }
-            
-            if (setting.Dependencies == null || !setting.Dependencies.Any())
-            {
-                return true; // No dependencies, so nothing to enable
-            }
-            
-            // Get unsatisfied dependencies
-            var unsatisfiedDependencies = GetUnsatisfiedDependencies(settingId, allSettings);
-            
-            // Enable all dependencies
-            return EnableDependencies(unsatisfiedDependencies);
-        }
-        
-        /// <summary>
-        /// Gets a list of unsatisfied dependencies for a setting.
-        /// </summary>
-        /// <param name="settingId">The ID of the setting to check.</param>
-        /// <param name="allSettings">All available settings that might be dependencies.</param>
-        /// <returns>A list of settings that are required by the specified setting but are not enabled.</returns>
-        public List<ISettingItem> GetUnsatisfiedDependencies(string settingId, IEnumerable<ISettingItem> allSettings)
-        {
-            var unsatisfiedDependencies = new List<ISettingItem>();
-            
-            if (string.IsNullOrEmpty(settingId))
-            {
-                _logService.Log(LogLevel.Warning, "Cannot get dependencies for null or empty setting ID");
-                return unsatisfiedDependencies;
-            }
-            
-            var setting = allSettings.FirstOrDefault(s => s.Id == settingId);
-            if (setting == null)
-            {
-                _logService.Log(LogLevel.Warning, $"Setting with ID '{settingId}' not found");
-                return unsatisfiedDependencies;
-            }
-            
-            if (setting.Dependencies == null || !setting.Dependencies.Any())
-            {
-                return unsatisfiedDependencies; // No dependencies
-            }
-            
-            // Find all settings that this setting depends on
+            var setting = FindSetting(settingId, allSettings);
+            if (setting?.Dependencies == null || !setting.Dependencies.Any())
+                return true;
+
+            bool allSucceeded = true;
             foreach (var dependency in setting.Dependencies)
             {
-                if (dependency.DependencyType == SettingDependencyType.RequiresEnabled)
+                var requiredSetting = FindSetting(dependency.RequiredSettingId, allSettings);
+                if (requiredSetting == null)
                 {
-                    var requiredSetting = allSettings.FirstOrDefault(s => s.Id == dependency.RequiredSettingId);
-                    if (requiredSetting != null && !requiredSetting.IsSelected)
-                    {
-                        unsatisfiedDependencies.Add(requiredSetting);
-                    }
-                }
-            }
-            
-            return unsatisfiedDependencies;
-        }
-        
-        /// <summary>
-        /// Enables all dependencies in the provided list.
-        /// </summary>
-        /// <param name="dependencies">The dependencies to enable.</param>
-        /// <returns>True if all dependencies were enabled successfully; otherwise, false.</returns>
-        public bool EnableDependencies(IEnumerable<ISettingItem> dependencies)
-        {
-            bool allSucceeded = true;
-            
-            foreach (var dependency in dependencies)
-            {
-                _logService.Log(LogLevel.Info, $"Automatically enabling dependency: {dependency.Name}");
-                
-                // Enable the dependency
-                dependency.IsUpdatingFromCode = true;
-                try
-                {
-                    dependency.IsSelected = true;
-                }
-                finally
-                {
-                    dependency.IsUpdatingFromCode = false;
-                }
-                
-                // Apply the setting
-                dependency.ApplySettingCommand?.Execute(null);
-                
-                // Check if the setting was successfully enabled
-                if (!dependency.IsSelected)
-                {
-                    _logService.Log(LogLevel.Warning, $"Failed to enable required setting '{dependency.Name}'");
+                    _logService.Log(LogLevel.Error, $"Required dependency '{dependency.RequiredSettingId}' not found for '{settingId}'");
                     allSucceeded = false;
+                    continue;
+                }
+
+                if (!await IsDependencySatisfiedAsync(dependency, discoveryService))
+                {
+                    await ApplyDependencyAsync(dependency, requiredSetting, settingApplicationService);
                 }
             }
-            
+
             return allSucceeded;
         }
-        
-        /// <summary>
-        /// Determines if a setting can be enabled based on its dependencies.
-        /// </summary>
-        /// <param name="settingId">The ID of the setting to check.</param>
-        /// <param name="allSettings">All available settings that might be dependencies.</param>
-        /// <returns>True if the setting can be enabled; otherwise, false.</returns>
-        public bool CanEnableSetting(string settingId, IEnumerable<ISettingItem> allSettings)
+
+        public async Task HandleSettingDisabledAsync(string settingId, IEnumerable<ISettingItem> allSettings, ISettingApplicationService settingApplicationService, ISystemSettingsDiscoveryService discoveryService)
         {
-            if (string.IsNullOrEmpty(settingId))
-            {
-                _logService.Log(LogLevel.Warning, "Cannot check dependencies for null or empty setting ID");
-                return false;
-            }
-            
-            var setting = allSettings.FirstOrDefault(s => s.Id == settingId);
-            if (setting == null)
-            {
-                _logService.Log(LogLevel.Warning, $"Setting with ID '{settingId}' not found");
-                return false;
-            }
-            
-            if (setting.Dependencies == null || !setting.Dependencies.Any())
-            {
-                return true; // No dependencies, so it can be enabled
-            }
-            
-            foreach (var dependency in setting.Dependencies)
-            {
-                if (dependency.DependencyType == SettingDependencyType.RequiresEnabled)
-                {
-                    var requiredSetting = allSettings.FirstOrDefault(s => s.Id == dependency.RequiredSettingId);
-                    if (requiredSetting != null && !requiredSetting.IsSelected)
-                    {
-                        _logService.Log(LogLevel.Warning, $"Cannot enable '{setting.Name}' because '{requiredSetting.Name}' is disabled");
-                        return false;
-                    }
-                }
-                else if (dependency.DependencyType == SettingDependencyType.RequiresDisabled)
-                {
-                    var requiredSetting = allSettings.FirstOrDefault(s => s.Id == dependency.RequiredSettingId);
-                    if (requiredSetting != null && requiredSetting.IsSelected)
-                    {
-                        _logService.Log(LogLevel.Warning, $"Cannot enable '{setting.Name}' because '{requiredSetting.Name}' is enabled");
-                        return false;
-                    }
-                }
-            }
-            
-            return true;
-        }
-        
-        /// <summary>
-        /// Handles the disabling of a setting by automatically disabling any dependent settings.
-        /// </summary>
-        /// <param name="settingId">The ID of the setting that was disabled.</param>
-        /// <param name="allSettings">All available settings that might depend on the disabled setting.</param>
-        public void HandleSettingDisabled(string settingId, IEnumerable<ISettingItem> allSettings)
-        {
-            if (string.IsNullOrEmpty(settingId))
-            {
-                _logService.Log(LogLevel.Warning, "Cannot handle dependencies for null or empty setting ID");
-                return;
-            }
-            
-            // Find all settings that depend on this setting
-            var dependentSettings = allSettings.Where(s => 
-                s.Dependencies != null && 
-                s.Dependencies.Any(d => d.RequiredSettingId == settingId && 
-                                      d.DependencyType == SettingDependencyType.RequiresEnabled));
-            
+            var dependentSettings = allSettings.Where(s =>
+                s.Dependencies?.Any(d =>
+                    d.RequiredSettingId == settingId &&
+                    (d.DependencyType == SettingDependencyType.RequiresEnabled ||
+                     d.DependencyType == SettingDependencyType.RequiresSpecificValue)) == true);
+
             foreach (var dependentSetting in dependentSettings)
             {
-                if (dependentSetting.IsSelected)
+                var currentState = await GetSettingStateAsync(dependentSetting.Id, discoveryService);
+                if (currentState.Success && currentState.IsEnabled)
                 {
-                    _logService.Log(LogLevel.Info, $"Automatically disabling '{dependentSetting.Name}' as '{settingId}' was disabled");
-                    
-                    // Disable the dependent setting
-                    dependentSetting.IsUpdatingFromCode = true;
-                    try
-                    {
-                        dependentSetting.IsSelected = false;
-                    }
-                    finally
-                    {
-                        dependentSetting.IsUpdatingFromCode = false;
-                    }
-                    
-                    // Apply the change
-                    dependentSetting.ApplySettingCommand?.Execute(null);
-                    
-                    // Recursively handle any settings that depend on this one
-                    HandleSettingDisabled(dependentSetting.Id, allSettings);
+                    await settingApplicationService.ApplySettingAsync(dependentSetting.Id, false);
+                    await HandleSettingDisabledAsync(dependentSetting.Id, allSettings, settingApplicationService, discoveryService);
                 }
+            }
+        }
+
+        public async Task HandleSettingValueChangedAsync(string settingId, IEnumerable<ISettingItem> allSettings, ISettingApplicationService settingApplicationService, ISystemSettingsDiscoveryService discoveryService)
+        {
+            var dependentSettings = allSettings.Where(s =>
+                s.Dependencies?.Any(d =>
+                    d.RequiredSettingId == settingId &&
+                    d.DependencyType == SettingDependencyType.RequiresSpecificValue) == true);
+
+            foreach (var dependentSetting in dependentSettings)
+            {
+                var currentState = await GetSettingStateAsync(dependentSetting.Id, discoveryService);
+                if (!currentState.Success || !currentState.IsEnabled)
+                    continue;
+
+                var dependency = dependentSetting.Dependencies.First(d =>
+                    d.RequiredSettingId == settingId &&
+                    d.DependencyType == SettingDependencyType.RequiresSpecificValue);
+
+                if (!await IsDependencySatisfiedAsync(dependency, discoveryService))
+                {
+                    await settingApplicationService.ApplySettingAsync(dependentSetting.Id, false);
+                    await HandleSettingDisabledAsync(dependentSetting.Id, allSettings, settingApplicationService, discoveryService);
+                }
+            }
+        }
+
+        private ISettingItem? FindSetting(string settingId, IEnumerable<ISettingItem> allSettings)
+        {
+            return allSettings.FirstOrDefault(s => s.Id == settingId) ??
+                   _globalSettingsRegistry.GetSetting(settingId);
+        }
+
+        private async Task<SettingStateResult> GetSettingStateAsync(string settingId, ISystemSettingsDiscoveryService discoveryService)
+        {
+            var setting = _globalSettingsRegistry.GetSetting(settingId);
+            if (setting == null)
+                return new SettingStateResult { Success = false, ErrorMessage = $"Setting '{settingId}' not found" };
+
+            if (setting is not SettingDefinition settingDefinition)
+                return new SettingStateResult { Success = false, ErrorMessage = $"Setting '{settingId}' is not a SettingDefinition" };
+
+            var results = await discoveryService.GetSettingStatesAsync(new[] { settingDefinition });
+            return results.TryGetValue(settingId, out var result) ? result : new SettingStateResult { Success = false };
+        }
+
+        private async Task<bool> IsDependencySatisfiedAsync(SettingDependency dependency, ISystemSettingsDiscoveryService discoveryService)
+        {
+            var currentState = await GetSettingStateAsync(dependency.RequiredSettingId, discoveryService);
+            if (!currentState.Success)
+                return false;
+
+            return dependency.DependencyType switch
+            {
+                SettingDependencyType.RequiresEnabled => currentState.IsEnabled,
+                SettingDependencyType.RequiresDisabled => !currentState.IsEnabled,
+                SettingDependencyType.RequiresSpecificValue => !string.IsNullOrEmpty(dependency.RequiredValue) &&
+                    string.Equals(currentState.CurrentValue?.ToString(), dependency.RequiredValue, StringComparison.OrdinalIgnoreCase),
+                _ => false,
+            };
+        }
+
+        private async Task ApplyDependencyAsync(SettingDependency dependency, ISettingItem requiredSetting, ISettingApplicationService settingApplicationService)
+        {
+            if (dependency.DependencyType == SettingDependencyType.RequiresSpecificValue)
+            {
+                if (requiredSetting.InputType == InputType.Selection && !string.IsNullOrEmpty(dependency.RequiredValue))
+                {
+                    await settingApplicationService.ApplySettingAsync(dependency.RequiredSettingId, true, dependency.RequiredValue);
+                }
+                else
+                {
+                    await settingApplicationService.ApplySettingAsync(dependency.RequiredSettingId, true);
+                }
+            }
+            else
+            {
+                bool enableValue = dependency.DependencyType == SettingDependencyType.RequiresEnabled;
+                await settingApplicationService.ApplySettingAsync(dependency.RequiredSettingId, enableValue);
             }
         }
     }

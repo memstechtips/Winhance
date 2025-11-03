@@ -15,14 +15,14 @@ namespace Winhance.WPF.Features.Common.Controls
         {
             DefaultStyleKeyProperty.OverrideMetadata(typeof(ProgressIndicator), new FrameworkPropertyMetadata(typeof(ProgressIndicator)));
         }
-        
+
         /// <summary>
         /// When overridden in a derived class, is invoked whenever application code or internal processes call <see cref="M:System.Windows.FrameworkElement.ApplyTemplate" />.
         /// </summary>
         public override void OnApplyTemplate()
         {
             base.OnApplyTemplate();
-            
+
             // Find the cancel button in the template and hook up the event handler
             if (GetTemplateChild("PART_CancelButton") is Button cancelButton)
             {
@@ -30,25 +30,20 @@ namespace Winhance.WPF.Features.Common.Controls
                 cancelButton.Click += CancelButton_Click;
             }
         }
-        
+
         private void CancelButton_Click(object sender, RoutedEventArgs e)
         {
-            // Log the button click for debugging
-            System.Diagnostics.Debug.WriteLine("Cancel button clicked");
-            
             // First try to execute the command if it exists
             if (CancelCommand != null && CancelCommand.CanExecute(null))
             {
-                System.Diagnostics.Debug.WriteLine("Executing cancel command");
                 CancelCommand.Execute(null);
                 return;
             }
-            
+
             // If command execution fails, use a more direct approach
-            System.Diagnostics.Debug.WriteLine("Command execution failed, trying direct approach");
             CancelCurrentTaskDirectly();
         }
-        
+
         /// <summary>
         /// Directly cancels the current task by finding the TaskProgressService instance.
         /// </summary>
@@ -60,46 +55,33 @@ namespace Winhance.WPF.Features.Common.Controls
                 var mainWindow = System.Windows.Application.Current.MainWindow;
                 if (mainWindow == null)
                 {
-                    System.Diagnostics.Debug.WriteLine("Main window not found");
                     return;
                 }
-                
+
                 // Get the DataContext of the main window (should be the MainViewModel)
                 var mainViewModel = mainWindow.DataContext;
                 if (mainViewModel == null)
                 {
-                    System.Diagnostics.Debug.WriteLine("Main window DataContext is null");
                     return;
                 }
-                
+
                 // Use reflection to get the _progressService field
                 var type = mainViewModel.GetType();
                 var field = type.GetField("_progressService", System.Reflection.BindingFlags.NonPublic | System.Reflection.BindingFlags.Instance);
-                
+
                 if (field != null)
                 {
                     var progressService = field.GetValue(mainViewModel) as Winhance.Core.Features.Common.Interfaces.ITaskProgressService;
                     if (progressService != null)
                     {
-                        System.Diagnostics.Debug.WriteLine("Found progress service, cancelling task");
                         progressService.CancelCurrentTask();
-                        
-                        // Show a message to the user that the task was cancelled
-                        System.Windows.MessageBox.Show("Installation cancelled by user.", "Cancelled", System.Windows.MessageBoxButton.OK, System.Windows.MessageBoxImage.Information);
+
                     }
-                    else
-                    {
-                        System.Diagnostics.Debug.WriteLine("Progress service is null");
-                    }
-                }
-                else
-                {
-                    System.Diagnostics.Debug.WriteLine("_progressService field not found");
                 }
             }
             catch (Exception ex)
             {
-                System.Diagnostics.Debug.WriteLine($"Error in CancelCurrentTaskDirectly: {ex.Message}");
+                // Silently handle exceptions to avoid crashes
             }
         }
 
@@ -118,7 +100,7 @@ namespace Winhance.WPF.Features.Common.Controls
         /// Identifies the Progress dependency property.
         /// </summary>
         public static readonly DependencyProperty ProgressProperty =
-            DependencyProperty.Register(nameof(Progress), typeof(double), typeof(ProgressIndicator), 
+            DependencyProperty.Register(nameof(Progress), typeof(double), typeof(ProgressIndicator),
                 new PropertyMetadata(0.0, OnProgressChanged));
 
         /// <summary>
@@ -134,7 +116,7 @@ namespace Winhance.WPF.Features.Common.Controls
         /// Identifies the StatusText dependency property.
         /// </summary>
         public static readonly DependencyProperty StatusTextProperty =
-            DependencyProperty.Register(nameof(StatusText), typeof(string), typeof(ProgressIndicator), 
+            DependencyProperty.Register(nameof(StatusText), typeof(string), typeof(ProgressIndicator),
                 new PropertyMetadata(string.Empty));
 
         /// <summary>
@@ -150,7 +132,7 @@ namespace Winhance.WPF.Features.Common.Controls
         /// Identifies the IsIndeterminate dependency property.
         /// </summary>
         public static readonly DependencyProperty IsIndeterminateProperty =
-            DependencyProperty.Register(nameof(IsIndeterminate), typeof(bool), typeof(ProgressIndicator), 
+            DependencyProperty.Register(nameof(IsIndeterminate), typeof(bool), typeof(ProgressIndicator),
                 new PropertyMetadata(false));
 
         /// <summary>
@@ -166,7 +148,7 @@ namespace Winhance.WPF.Features.Common.Controls
         /// Identifies the IsActive dependency property.
         /// </summary>
         public static readonly DependencyProperty IsActiveProperty =
-            DependencyProperty.Register(nameof(IsActive), typeof(bool), typeof(ProgressIndicator), 
+            DependencyProperty.Register(nameof(IsActive), typeof(bool), typeof(ProgressIndicator),
                 new PropertyMetadata(false));
 
         /// <summary>
@@ -182,9 +164,9 @@ namespace Winhance.WPF.Features.Common.Controls
         /// Identifies the ProgressText dependency property.
         /// </summary>
         public static readonly DependencyProperty ProgressTextProperty =
-            DependencyProperty.Register(nameof(ProgressText), typeof(string), typeof(ProgressIndicator), 
+            DependencyProperty.Register(nameof(ProgressText), typeof(string), typeof(ProgressIndicator),
                 new PropertyMetadata(string.Empty));
-                
+
         /// <summary>
         /// Gets or sets the command to execute when the cancel button is clicked.
         /// </summary>
@@ -198,9 +180,9 @@ namespace Winhance.WPF.Features.Common.Controls
         /// Identifies the CancelCommand dependency property.
         /// </summary>
         public static readonly DependencyProperty CancelCommandProperty =
-            DependencyProperty.Register(nameof(CancelCommand), typeof(ICommand), typeof(ProgressIndicator), 
+            DependencyProperty.Register(nameof(CancelCommand), typeof(ICommand), typeof(ProgressIndicator),
                 new PropertyMetadata(null));
-                
+
         /// <summary>
         /// Gets or sets whether to show the cancel button instead of progress text.
         /// </summary>
@@ -214,7 +196,7 @@ namespace Winhance.WPF.Features.Common.Controls
         /// Identifies the ShowCancelButton dependency property.
         /// </summary>
         public static readonly DependencyProperty ShowCancelButtonProperty =
-            DependencyProperty.Register(nameof(ShowCancelButton), typeof(bool), typeof(ProgressIndicator), 
+            DependencyProperty.Register(nameof(ShowCancelButton), typeof(bool), typeof(ProgressIndicator),
                 new PropertyMetadata(false));
 
         #endregion

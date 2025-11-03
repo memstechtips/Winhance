@@ -17,12 +17,16 @@
 #
 # # Sign with a certificate matching a subject name
 # .\build-and-package.ps1 -SignApplication -CertificateSubject "Your Company Name"
+#
+# # Create a beta version
+# .\build-and-package.ps1 -Beta
 param (
     [string]$Version = (Get-Date -Format "yy.MM.dd"),
     [string]$OutputDir = "$PSScriptRoot\..\installer-output",
     [string]$CertificateSubject = "",
     [string]$CertificateThumbprint = "",
-    [switch]$SignApplication = $false
+    [switch]$SignApplication = $false,
+    [switch]$Beta = $false
 )
 
 $ErrorActionPreference = "Stop"
@@ -159,8 +163,12 @@ function Set-FileSignature {
 
 $publishOutputPath = "$solutionDir\src\Winhance.WPF\bin\Release\net9.0-windows"
 $innoSetupScript = "$scriptRoot\Winhance.Installer.iss"
-$dotNetRuntimePath = "$scriptRoot\prerequisites\windowsdesktop-runtime-9.0.4-win-x64.exe"
+$dotNetRuntimePath = "$scriptRoot\prerequisites\windowsdesktop-runtime-9.0.10-win-x64.exe"
 $tempInnoScript = "$env:TEMP\Winhance.Installer.temp.iss"
+
+# Declare certificate variable at script scope so it's accessible throughout
+$certificate = $null
+$shouldSign = $false
 
 # Ensure output directory exists
 if (-not (Test-Path $OutputDir)) {
@@ -169,16 +177,29 @@ if (-not (Test-Path $OutputDir)) {
 
 Write-Host "Building Winhance v$Version..." -ForegroundColor Cyan
 
+# Modify version if Beta flag is set
+if ($Beta) {
+    # For NuGet compatibility, use proper SemVer format with prerelease tag
+    $displayVersion = "$Version-beta"
+    $nugetVersion = "$Version-beta"
+    Write-Host "Building beta version: v$displayVersion" -ForegroundColor Cyan
+}
+else {
+    $displayVersion = $Version
+    $nugetVersion = $Version
+}
+
 # Update version in csproj file
 Write-Host "Updating version in project file..." -ForegroundColor Green
 $csprojPath = "$solutionDir\src\Winhance.WPF\Winhance.WPF.csproj"
 $csprojContent = Get-Content -Path $csprojPath -Raw
 
 # Update version properties in csproj
-$csprojContent = $csprojContent -replace '<Version>.*?</Version>', "<Version>$Version</Version>"
+# AssemblyVersion and FileVersion must be numeric only (no -beta suffix)
+$csprojContent = $csprojContent -replace '<Version>.*?</Version>', "<Version>$nugetVersion</Version>"
 $csprojContent = $csprojContent -replace '<FileVersion>.*?</FileVersion>', "<FileVersion>$Version</FileVersion>"
 $csprojContent = $csprojContent -replace '<AssemblyVersion>.*?</AssemblyVersion>', "<AssemblyVersion>$Version</AssemblyVersion>"
-$csprojContent = $csprojContent -replace '<InformationalVersion>.*?</InformationalVersion>', "<InformationalVersion>v$Version</InformationalVersion>"
+$csprojContent = $csprojContent -replace '<InformationalVersion>.*?</InformationalVersion>', "<InformationalVersion>v$displayVersion</InformationalVersion>"
 
 # Write updated csproj content
 Set-Content -Path $csprojPath -Value $csprojContent
@@ -213,15 +234,19 @@ $mainExecutable = "$publishOutputPath\Winhance.exe"
 # Check if signing is requested
 if ($SignApplication -or (Read-Host "Do you want to sign the application? (y/n)").ToLower() -eq 'y') {
     $certificate = Get-SigningCertificate -Subject $CertificateSubject -Thumbprint $CertificateThumbprint
-    
+
     if ($certificate) {
         Write-Host "Selected certificate: $($certificate.Subject)" -ForegroundColor Green
         Write-Host "Thumbprint: $($certificate.Thumbprint)" -ForegroundColor Green
-        
+
         # Sign the main executable
         $signResult = Set-FileSignature -FilePath $mainExecutable -Certificate $certificate
-        
-        if (-not $signResult) {
+
+        if ($signResult) {
+            $shouldSign = $true
+            Write-Host "Application executable signed successfully." -ForegroundColor Green
+        }
+        else {
             Write-Host "Warning: Failed to sign the application. Continuing with unsigned application..." -ForegroundColor Yellow
         }
     }
@@ -238,9 +263,9 @@ Write-Host "Preparing InnoSetup script..." -ForegroundColor Green
 $innoContent = Get-Content -Path $innoSetupScript -Raw
 
 # Update version
-$innoContent = $innoContent -replace '#define MyAppVersion ".*"', "#define MyAppVersion `"$Version`""
+$innoContent = $innoContent -replace '#define MyAppVersion ".*"', "#define MyAppVersion `"$displayVersion`""
 # Update AppVerName to include version in the installer header
-$innoContent = $innoContent -replace 'AppVerName=Winhance', "AppVerName=Winhance v$Version"
+$innoContent = $innoContent -replace 'AppVerName=Winhance', "AppVerName=Winhance v$displayVersion"
 
 # Update paths
 $publishPath = $publishOutputPath.Replace("\", "\\")
@@ -278,19 +303,38 @@ if ($LASTEXITCODE -ne 0) {
 # Clean up
 Remove-Item $tempInnoScript -Force
 
-# Sign the installer if requested and if we have a certificate
+# Sign the installer if the executable was signed
 $installerPath = "$OutputDir\Winhance.Installer.exe"
-if ($SignApplication -and (Test-Path $installerPath) -and (Get-Variable -Name certificate -ErrorAction SilentlyContinue)) {
+if ($shouldSign -and $certificate -and (Test-Path $installerPath)) {
     Write-Host "Signing the installer..." -ForegroundColor Cyan
-    $null = Set-FileSignature -FilePath $installerPath -Certificate $certificate
-    
-    if ($LASTEXITCODE -ne 0) {
-        Write-Host "Warning: Failed to sign the installer." -ForegroundColor Yellow
-    }
-    else {
+    $installerSignResult = Set-FileSignature -FilePath $installerPath -Certificate $certificate
+
+    if ($installerSignResult) {
         Write-Host "Installer successfully signed." -ForegroundColor Green
     }
+    else {
+        Write-Host "Warning: Failed to sign the installer." -ForegroundColor Yellow
+    }
+}
+elseif (-not $shouldSign) {
+    Write-Host "Skipping installer signing (executable was not signed)." -ForegroundColor Yellow
 }
 
 Write-Host "Build and packaging completed successfully!" -ForegroundColor Cyan
 Write-Host "Installer created at: $installerPath" -ForegroundColor Green
+
+# Display signing status summary
+if ($shouldSign) {
+    Write-Host "`nSigning Summary:" -ForegroundColor Cyan
+    Write-Host "  Certificate: $($certificate.Subject)" -ForegroundColor Green
+    Write-Host "  Executable: Signed" -ForegroundColor Green
+    if ($installerSignResult) {
+        Write-Host "  Installer: Signed" -ForegroundColor Green
+    }
+    else {
+        Write-Host "  Installer: Failed to sign" -ForegroundColor Red
+    }
+}
+else {
+    Write-Host "`nSigning Summary: No files were signed" -ForegroundColor Yellow
+}

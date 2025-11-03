@@ -1,486 +1,421 @@
-using System;
 using System.Collections.Generic;
-using System.IO;
 using Microsoft.Win32;
+using Winhance.Core.Features.Common.Constants;
 using Winhance.Core.Features.Common.Enums;
-using Winhance.Core.Features.Common.Interfaces;
 using Winhance.Core.Features.Common.Models;
-using Winhance.Core.Features.Common.Services;
-using Winhance.Core.Features.Customize.Enums;
+using Winhance.Core.Features.Customize.Interfaces;
 
 namespace Winhance.Core.Features.Customize.Models;
 
 public static class StartMenuCustomizations
 {
-    private const string Win10StartLayoutPath = @"C:\Windows\StartMenuLayout.xml";
-    private const string Win11StartBinPath =
-        @"AppData\Local\Packages\Microsoft.Windows.StartMenuExperienceHost_cw5n1h2txyewy\LocalState\start2.bin";
-
-    public static CustomizationGroup GetStartMenuCustomizations()
+    public static SettingGroup GetStartMenuCustomizations()
     {
-        return new CustomizationGroup
+        return new SettingGroup
         {
             Name = "Start Menu",
-            Category = CustomizationCategory.StartMenu,
-            Settings = new List<CustomizationSetting>
+            FeatureId = FeatureIds.StartMenu,
+            Settings = new List<SettingDefinition>
             {
-                new CustomizationSetting
+                new SettingDefinition
                 {
-                    Id = "show-recently-added-apps",
-                    Name = "Show Recently Added Apps",
-                    Description = "Controls visibility of recently added apps in Start Menu",
-                    Category = CustomizationCategory.StartMenu,
-                    GroupName = "Start Menu Settings",
-                    IsEnabled = true,
-                    ControlType = ControlType.BinaryToggle,
-                    RegistrySettings = new List<RegistrySetting>
-                    {
-                        new RegistrySetting
-                        {
-                            Category = "Explorer",
-                            Hive = RegistryHive.CurrentUser,
-                            SubKey = "Software\\Policies\\Microsoft\\Windows\\Explorer",
-                            Name = "HideRecentlyAddedApps",
-                            RecommendedValue = 0,
-                            EnabledValue = 0, // When toggle is ON, recently added apps are shown
-                            DisabledValue = 1, // When toggle is OFF, recently added apps are hidden
-                            ValueType = RegistryValueKind.DWord,
-                            DefaultValue = 0, // Default value when registry key exists but no value is set
-                            Description =
-                                "Controls visibility of recently added apps in Start Menu",
-                            IsPrimary = true,
-                            AbsenceMeansEnabled = false,
-                        },
-                        new RegistrySetting
-                        {
-                            Category = "Explorer",
-                            Hive = RegistryHive.LocalMachine,
-                            SubKey = "SOFTWARE\\Policies\\Microsoft\\Windows\\Explorer",
-                            Name = "HideRecentlyAddedApps",
-                            RecommendedValue = 0,
-                            EnabledValue = 0, // When toggle is ON, recently added apps are shown
-                            DisabledValue = 1, // When toggle is OFF, recently added apps are hidden
-                            ValueType = RegistryValueKind.DWord,
-                            DefaultValue = 0, // Default value when registry key exists but no value is set
-                            Description =
-                                "Controls visibility of recently added apps in Start Menu",
-                            IsPrimary = false,
-                            AbsenceMeansEnabled = false,
-                        },
-                    },
+                    Id = "start-menu-clean-10",
+                    Name = "Clean Start Menu",
+                    Description = "Removes all pinned items and applies clean layout",
+                    GroupName = "Layout",
+                    InputType = InputType.Action,
+                    Icon = "Broom",
+                    IsWindows10Only = true,
+                    RequiresConfirmation = true,
+                    DialogTitleIcon = "Broom",
+                    ConfirmationTitle = "Start Menu Cleaning",
+                    ConfirmationMessage =
+                        "You are about to clean the Start Menu for all users on this computer. This will remove all pinned items and apply the recommended layout.\n\n"
+                        + "Do you want to continue?",
+                    ConfirmationCheckboxText = "Also apply recommended Start Menu settings to disable\n"
+                        + "suggestions, recommendations, and tracking features.",
+                    ActionCommand = "CleanWindows10StartMenuAsync",
                 },
-                new CustomizationSetting
+                new SettingDefinition
+                {
+                    Id = "start-menu-clean-11",
+                    Name = "Clean Start Menu",
+                    Description = "Removes all pinned items and applies clean layout",
+                    GroupName = "Layout",
+                    InputType = InputType.Action,
+                    Icon = "Broom",
+                    IsWindows11Only = true,
+                    RequiresConfirmation = true,
+                    DialogTitleIcon = "Broom",
+                    ConfirmationTitle = "Start Menu Cleaning",
+                    ConfirmationMessage =
+                        "You are about to clean the Start Menu for all users on this computer. This will remove all pinned items and apply the recommended layout.\n\n"
+                        + "Do you want to continue?",
+                    ConfirmationCheckboxText = "Also apply recommended Start Menu settings to disable\n"
+                        + "suggestions, recommendations, and tracking features.",
+                    ActionCommand = "CleanWindows11StartMenuAsync",
+                },
+                new SettingDefinition
                 {
                     Id = "start-menu-layout",
-                    Name = "Set 'More Pins' Layout",
-                    Description = "Controls Start Menu layout configuration",
-                    Category = CustomizationCategory.StartMenu,
+                    Name = "Start layout",
+                    Description = "Choose whether the Start Menu shows more pinned apps, more recommendations, or a balanced default layout",
                     GroupName = "Layout",
-                    IsEnabled = true,
-                    ControlType = ControlType.BinaryToggle,
+                    InputType = InputType.Selection,
+                    IsWindows11Only = true,
+                    IconPack = "Lucide",
+                    Icon = "LayoutPanelLeft",
+                    MinimumBuildNumber = 22000, // Windows 11 24H2 starts around build 26100
+                    MaximumBuildNumber = 26120, // Removed in build 26120.4250, so max 26120
                     RegistrySettings = new List<RegistrySetting>
                     {
                         new RegistrySetting
                         {
-                            Category = "StartMenu",
-                            Hive = RegistryHive.CurrentUser,
-                            SubKey =
-                                "Software\\Microsoft\\Windows\\CurrentVersion\\Explorer\\Advanced",
-                            Name = "Start_Layout",
-                            RecommendedValue = 1, // For backward compatibility
-                            EnabledValue = 1, // When toggle is ON, more pins layout is used
-                            DisabledValue = 0, // When toggle is OFF, default layout is used
+                            KeyPath = @"HKEY_CURRENT_USER\Software\Microsoft\Windows\CurrentVersion\Explorer\Advanced",
+                            ValueName = "Start_Layout",
+                            RecommendedValue = 1, // More Pins
+                            DefaultValue = 0, // Windows default is default layout
                             ValueType = RegistryValueKind.DWord,
-                            DefaultValue = 0, // For backward compatibility
-                            Description = "Controls Start Menu layout configuration",
-                            IsPrimary = true,
-                            AbsenceMeansEnabled = false,
+                            CustomProperties = new Dictionary<string, object>
+                            {
+                                ["DefaultOption"] = "Default",
+                                ["RecommendedOption"] = "More pins",
+                            },
+                        },
+                    },
+                    CustomProperties = new Dictionary<string, object>
+                    {
+                        [CustomPropertyKeys.ComboBoxDisplayNames] = new string[]
+                        {
+                            "Default",
+                            "More pins",
+                            "More recommendations",
+                        },
+                        [CustomPropertyKeys.ValueMappings] = new Dictionary<int, Dictionary<string, object?>>
+                        {
+                            [0] = new Dictionary<string, object?> // Default
+                            {
+                                ["Start_Layout"] = 0,
+                            },
+                            [1] = new Dictionary<string, object?> // More pins
+                            {
+                                ["Start_Layout"] = 1,
+                            },
+                            [2] = new Dictionary<string, object?> // More recommendations
+                            {
+                                ["Start_Layout"] = 2,
+                            },
                         },
                     },
                 },
-                new CustomizationSetting
+                new SettingDefinition
                 {
-                    Id = "start-menu-recommendations",
-                    Name = "Show Recommended Tips, Shortcuts etc.",
-                    Description = "Controls recommendations for tips and shortcuts",
-                    Category = CustomizationCategory.StartMenu,
-                    GroupName = "Start Menu Settings",
-                    IsEnabled = false,
-                    ControlType = ControlType.BinaryToggle,
+                    Id = "start-recommended-section",
+                    Name = "Recommended section",
+                    Description =
+                        "Show or hide the lower section that displays recently opened files and suggested apps",
+                    GroupName = "Layout",
+                    InputType = InputType.Selection,
+                    IsWindows11Only = true,
+                    Icon = "TableStar",
+                    RestartProcess = "StartMenuExperienceHost",
                     RegistrySettings = new List<RegistrySetting>
                     {
                         new RegistrySetting
                         {
-                            Category = "Explorer",
-                            Hive = RegistryHive.CurrentUser,
-                            SubKey =
-                                "Software\\Microsoft\\Windows\\CurrentVersion\\Explorer\\Advanced",
-                            Name = "Start_IrisRecommendations",
+                            KeyPath = @"HKEY_CURRENT_USER\SOFTWARE\Policies\Microsoft\Windows\Explorer",
+                            ValueName = "HideRecommendedSection",
                             RecommendedValue = 1,
-                            EnabledValue = 1,
-                            DisabledValue = 0,
                             ValueType = RegistryValueKind.DWord,
-                            DefaultValue = 1, // Default value when registry key exists but no value is set
-                            Description = "Controls recommendations for tips and shortcuts",
-                            IsPrimary = true,
+                        },
+                        new RegistrySetting
+                        {
+                            KeyPath = @"HKEY_LOCAL_MACHINE\SOFTWARE\Policies\Microsoft\Windows\Explorer",
+                            ValueName = "HideRecommendedSection",
+                            RecommendedValue = 1,
+                            ValueType = RegistryValueKind.DWord,
+                        },
+                        new RegistrySetting
+                        {
+                            KeyPath = @"HKEY_LOCAL_MACHINE\SOFTWARE\Microsoft\PolicyManager\current\device\Start",
+                            ValueName = "HideRecommendedSection",
+                            RecommendedValue = 1,
+                            ValueType = RegistryValueKind.DWord,
+                        },
+                        new RegistrySetting
+                        {
+                            KeyPath = @"HKEY_LOCAL_MACHINE\SOFTWARE\Microsoft\PolicyManager\current\device\Education",
+                            ValueName = "IsEducationEnvironment",
+                            RecommendedValue = 1,
+                            ValueType = RegistryValueKind.DWord,
+                        },
+                    },
+                    CustomProperties = new Dictionary<string, object>
+                    {
+                        [CustomPropertyKeys.ComboBoxDisplayNames] = new string[] { "Show", "Hide" },
+                        [CustomPropertyKeys.ValueMappings] = new Dictionary<int, Dictionary<string, object?>>
+                        {
+                            [0] = new Dictionary<string, object?> // Show (delete registry values)
+                            {
+                                ["HideRecommendedSection"] = null, // Delete
+                                ["IsEducationEnvironment"] = null, // Delete 
+                            },
+                            [1] = new Dictionary<string, object?> // Hide (set registry values)
+                            {
+                                ["HideRecommendedSection"] = 1, // Set to 1
+                                ["IsEducationEnvironment"] = 1, // Set to 1
+                            },
+                        },
+                    },
+                },
+                new SettingDefinition
+                {
+                    Id = "start-show-all-pins-by-default",
+                    Name = "Show all pins by default",
+                    Description = "Automatically expand to show all pinned apps instead of requiring you to click 'All apps'",
+                    GroupName = "Start Menu Settings",
+                    InputType = InputType.Toggle,
+                    IconPack = "Lucide",
+                    Icon = "Pin",
+                    IsWindows11Only = true,
+                    SupportedBuildRanges = new List<(int, int)>
+                    {
+                        (26120, int.MaxValue), // Windows 11 24H2 build 26120.4250 and later
+                        (26200, int.MaxValue), // Windows 11 25H2 build 26200.5670 and later
+                    },
+                    RegistrySettings = new List<RegistrySetting>
+                    {
+                        new RegistrySetting
+                        {
+                            KeyPath = @"HKEY_CURRENT_USER\Software\Microsoft\Windows\CurrentVersion\Start",
+                            ValueName = "ShowAllPinsList",
+                            RecommendedValue = 1,
+                            EnabledValue = 1, // When toggle is ON, all pins are shown
+                            DisabledValue = 0, // When toggle is OFF, all pins are not shown
+                            DefaultValue = 1,
+                            ValueType = RegistryValueKind.DWord,
+                        },
+                    },
+                },
+                new SettingDefinition
+                {
+                    Id = "start-show-recently-added-apps",
+                    Name = "Show recently added apps",
+                    Description = "Display a list of recently installed applications at the top of the All Apps list",
+                    GroupName = "Start Menu Settings",
+                    InputType = InputType.Toggle,
+                    Icon = "StarBoxMultipleOutline",
+                    RegistrySettings = new List<RegistrySetting>
+                    {
+                        new RegistrySetting
+                        {
+                            KeyPath = @"HKEY_CURRENT_USER\Software\Microsoft\Windows\CurrentVersion\Start",
+                            ValueName = "ShowRecentList",
+                            RecommendedValue = 0,
+                            EnabledValue = 1, // When toggle is ON, recently added apps are shown
+                            DisabledValue = 0, // When toggle is OFF, recently added apps are hidden
+                            DefaultValue = 1,
+                            ValueType = RegistryValueKind.DWord,
                             AbsenceMeansEnabled = true,
                         },
                     },
                 },
-                new CustomizationSetting
+                new SettingDefinition
                 {
-                    Id = "taskbar-clear-mfu",
-                    Name = "Show Most Used Apps",
-                    Description = "Controls frequently used programs list visibility",
-                    Category = CustomizationCategory.StartMenu,
+                    Id = "start-show-frequent-list",
+                    Name = "Show most used apps",
+                    Description = "Display your frequently launched applications at the top of the All Apps list for quick access",
                     GroupName = "Start Menu",
-                    IsEnabled = true,
-                    ControlType = ControlType.BinaryToggle,
+                    InputType = InputType.Toggle,
+                    IconPack = "Lucide",
+                    Icon = "Boxes",
+                    IsWindows11Only = true,
                     RegistrySettings = new List<RegistrySetting>
                     {
                         new RegistrySetting
                         {
-                            Category = "StartMenu",
-                            Hive = RegistryHive.CurrentUser,
-                            SubKey = "Software\\Microsoft\\Windows\\CurrentVersion\\Start",
-                            Name = "ShowFrequentList",
-                            RecommendedValue = 1,
+                            KeyPath = @"HKEY_CURRENT_USER\Software\Microsoft\Windows\CurrentVersion\Start",
+                            ValueName = "ShowFrequentList",
+                            RecommendedValue = 0,
                             EnabledValue = 1, // When toggle is ON, frequently used programs list is shown
                             DisabledValue = 0, // When toggle is OFF, frequently used programs list is hidden
+                            DefaultValue = 1,
                             ValueType = RegistryValueKind.DWord,
-                            DefaultValue = 1, // Default value when registry key exists but no value is set
-                            Description = "Controls frequently used programs list visibility",
-                            IsPrimary = true,
-                            AbsenceMeansEnabled = true,
                         },
                     },
                 },
-                new CustomizationSetting
+                new SettingDefinition
                 {
-                    Id = "power-lock-option",
-                    Name = "Lock Option",
-                    Description = "Controls whether the lock option is shown in the Start menu",
-                    Category = CustomizationCategory.StartMenu,
+                    Id = "start-track-progs",
+                    Name = "Show most used apps",
+                    Description = "Display your frequently launched applications at the top of the All Apps list for quick access",
                     GroupName = "Start Menu",
-                    IsEnabled = false,
-                    ControlType = ControlType.BinaryToggle,
+                    InputType = InputType.Toggle,
+                    IconPack = "Lucide",
+                    Icon = "Boxes",
+                    IsWindows10Only = true,
                     RegistrySettings = new List<RegistrySetting>
                     {
                         new RegistrySetting
                         {
-                            Category = "Power",
-                            Hive = RegistryHive.CurrentUser,
-                            SubKey =
-                                "Software\\Microsoft\\Windows\\CurrentVersion\\Explorer\\FlyoutMenuSettings",
-                            Name = "ShowLockOption",
-                            RecommendedValue = 1,
-                            EnabledValue = 1, // Show lock option
-                            DisabledValue = 0, // Hide lock option
+                            KeyPath = @"HKEY_CURRENT_USER\Software\Microsoft\Windows\CurrentVersion\Explorer\Advanced",
+                            ValueName = "Start_TrackProgs",
+                            RecommendedValue = 0,
+                            EnabledValue = 1, // When toggle is ON, frequently used programs list is shown
+                            DisabledValue = 0, // When toggle is OFF, frequently used programs list is hidden
+                            DefaultValue = 1,
                             ValueType = RegistryValueKind.DWord,
-                            DefaultValue = 1, // Default value when registry key exists but no value is set
-                            Description =
-                                "Controls whether the lock option is shown in the Start menu",
-                            IsPrimary = true,
-                            AbsenceMeansEnabled = true,
                         },
                     },
                 },
-                new CustomizationSetting
+                new SettingDefinition
                 {
-                    Id = "show-recommended-files",
-                    Name = "Show Recommended Files",
-                    Description = "Controls visibility of recommended files in Start Menu",
-                    Category = CustomizationCategory.StartMenu,
+                    Id = "start-show-suggestions",
+                    Name = "Show suggestions in Start",
+                    Description = "Display app suggestions and promotional content from the Microsoft Store in the Start Menu",
                     GroupName = "Start Menu Settings",
-                    IsEnabled = true,
-                    ControlType = ControlType.BinaryToggle,
+                    InputType = InputType.Toggle,
+                    Icon = "LightbulbOnOutline",
+                    IsWindows10Only = true,
+                    Dependencies = new List<SettingDependency>
+                    {
+                        new SettingDependency
+                        {
+                            DependencyType = SettingDependencyType.RequiresValueBeforeAnyChange,
+                            DependentSettingId = "start-show-suggestions",
+                            RequiredSettingId = "privacy-ads-promotional-master",
+                            RequiredModule = "PrivacyOptimizations",
+                            RequiredValue = "Custom",
+                        },
+                    },
                     RegistrySettings = new List<RegistrySetting>
                     {
                         new RegistrySetting
                         {
-                            Category = "Explorer",
-                            Hive = RegistryHive.CurrentUser,
-                            SubKey =
-                                "Software\\Microsoft\\Windows\\CurrentVersion\\Explorer\\Advanced",
-                            Name = "Start_TrackDocs",
-                            RecommendedValue = 1,
+                            KeyPath = @"HKEY_CURRENT_USER\Software\Microsoft\Windows\CurrentVersion\ContentDeliveryManager",
+                            ValueName = "SubscribedContent-338388Enabled",
+                            RecommendedValue = 0,
+                            EnabledValue = 1, // When toggle is ON, suggestions are shown
+                            DisabledValue = 0, // When toggle is OFF, suggestions are hidden
+                            DefaultValue = 1,
+                            ValueType = RegistryValueKind.DWord,
+                        },
+                    },
+                },
+                new SettingDefinition
+                {
+                    Id = "start-show-recommended-files",
+                    Name = "Show recommended files and recently opened items",
+                    Description = "Display your recently opened documents and files in the Start Menu's Recommended section for quick access",
+                    GroupName = "Start Menu Settings",
+                    InputType = InputType.Toggle,
+                    Icon = "FileStarFourPointsOutline",
+                    Dependencies = new List<SettingDependency>
+                    {
+                        new SettingDependency
+                        {
+                            DependencyType = SettingDependencyType.RequiresSpecificValue,
+                            DependentSettingId = "start-show-recommended-files",
+                            RequiredSettingId = "start-recommended-section",
+                            RequiredValue = "Show",
+                        },
+                    },
+                    RegistrySettings = new List<RegistrySetting>
+                    {
+                        new RegistrySetting
+                        {
+                            KeyPath = @"HKEY_CURRENT_USER\Software\Microsoft\Windows\CurrentVersion\Explorer\Advanced",
+                            ValueName = "Start_TrackDocs",
+                            RecommendedValue = 0,
                             EnabledValue = 1, // When toggle is ON, recommended files are shown
                             DisabledValue = 0, // When toggle is OFF, recommended files are hidden
+                            DefaultValue = 1,
                             ValueType = RegistryValueKind.DWord,
-                            DefaultValue = 1, // Default value when registry key exists but no value is set
-                            Description = "Controls visibility of recommended files in Start Menu",
-                            IsPrimary = true,
                             AbsenceMeansEnabled = true,
+                        },
+                    },
+                },
+                new SettingDefinition
+                {
+                    Id = "start-menu-recommendations",
+                    Name = "Show recommendations for tips, shortcuts, new apps, and more",
+                    Description = "Display personalized suggestions from Windows for tips, app shortcuts, and Microsoft Store apps in the Recommended section",
+                    GroupName = "Start Menu Settings",
+                    InputType = InputType.Toggle,
+                    Icon = "CreationOutline",
+                    IsWindows11Only = true,
+                    RegistrySettings = new List<RegistrySetting>
+                    {
+                        new RegistrySetting
+                        {
+                            KeyPath = @"HKEY_CURRENT_USER\Software\Microsoft\Windows\CurrentVersion\Explorer\Advanced",
+                            ValueName = "Start_IrisRecommendations",
+                            RecommendedValue = 0,
+                            EnabledValue = 1,
+                            DisabledValue = 0,
+                            DefaultValue = 1,
+                            ValueType = RegistryValueKind.DWord,
+                            AbsenceMeansEnabled = true,
+                        },
+                    },
+                },
+                new SettingDefinition
+                {
+                    Id = "start-show-account-notifications",
+                    Name = "Show account-related notifications",
+                    Description = "Display notifications about Microsoft account sign-in, sync status, and account-related suggestions",
+                    GroupName = "Start Menu Settings",
+                    InputType = InputType.Toggle,
+                    Icon = "BellRingOutline",
+                    IsWindows11Only = true,
+                    RegistrySettings = new List<RegistrySetting>
+                    {
+                        new RegistrySetting
+                        {
+                            KeyPath = @"HKEY_CURRENT_USER\Software\Microsoft\Windows\CurrentVersion\Explorer\Advanced",
+                            ValueName = "Start_AccountNotifications",
+                            RecommendedValue = 0,
+                            EnabledValue = 1, // When toggle is ON, account notifications are shown
+                            DisabledValue = 0, // When toggle is OFF, account notifications are hidden
+                            DefaultValue = 1,
+                            ValueType = RegistryValueKind.DWord,
+                            AbsenceMeansEnabled = true,
+                        },
+                    },
+                },
+                new SettingDefinition
+                {
+                    Id = "start-disable-bing-search-results",
+                    Name = "Disable Bing search results",
+                    Description = "Prevent web results from Bing from appearing when searching in the Start Menu, showing only local files and apps",
+                    GroupName = "Start Menu Settings",
+                    InputType = InputType.Toggle,
+                    Icon = "MicrosoftBing",
+                    RegistrySettings = new List<RegistrySetting>
+                    {
+                        new RegistrySetting
+                        {
+                            KeyPath = @"HKEY_CURRENT_USER\Software\Policies\Microsoft\Windows\Explorer",
+                            ValueName = "DisableSearchBoxSuggestions",
+                            RecommendedValue = 1,
+                            EnabledValue = 1,
+                            DisabledValue = null,
+                            DefaultValue = null,
+                            ValueType = RegistryValueKind.DWord,
+                        },
+                        new RegistrySetting
+                        {
+                            KeyPath = @"HKEY_LOCAL_MACHINE\Software\Policies\Microsoft\Windows\Explorer",
+                            ValueName = "DisableSearchBoxSuggestions",
+                            RecommendedValue = 1,
+                            EnabledValue = 1,
+                            DisabledValue = null,
+                            DefaultValue = null,
+                            ValueType = RegistryValueKind.DWord,
                         },
                     },
                 },
             },
         };
-    }
-
-    public static void ApplyStartMenuLayout(bool isWindows11, ISystemServices windowsService)
-    {
-        if (isWindows11)
-        {
-            ApplyWindows11Layout();
-        }
-        else
-        {
-            ApplyWindows10Layout(windowsService);
-        }
-    }
-
-    private static void ApplyWindows10Layout(ISystemServices windowsService)
-    {
-        // Delete existing layout file
-        if (File.Exists(Win10StartLayoutPath))
-        {
-            File.Delete(Win10StartLayoutPath);
-        }
-
-        // Create new layout file
-        File.WriteAllText(Win10StartLayoutPath, StartMenuLayouts.Windows10Layout);
-
-        // Use the improved RefreshWindowsGUI method to restart Explorer and apply changes
-        // This will ensure Explorer is restarted properly with retry logic and fallback
-        var result = windowsService.RefreshWindowsGUI(true).GetAwaiter().GetResult();
-        if (!result)
-        {
-            throw new Exception("Failed to refresh Windows GUI after applying Start Menu layout");
-        }
-    }
-
-    private static void ApplyWindows11Layout()
-    {
-        string userProfile = Environment.GetFolderPath(Environment.SpecialFolder.UserProfile);
-        string start2BinPath = Path.Combine(userProfile, Win11StartBinPath);
-        string tempPath = Path.GetTempPath();
-
-        // Delete existing start2.bin if it exists
-        if (File.Exists(start2BinPath))
-        {
-            File.Delete(start2BinPath);
-        }
-
-        // Create temp file with cert content
-        string tempTxtPath = Path.Combine(tempPath, "start2.txt");
-        string tempBinPath = Path.Combine(tempPath, "start2.bin");
-
-        try
-        {
-            // Write certificate content to temp file
-            File.WriteAllText(tempTxtPath, StartMenuLayouts.Windows11StartBinCertificate);
-
-            // Use certutil to decode the certificate
-            using (var process = new System.Diagnostics.Process())
-            {
-                process.StartInfo = new System.Diagnostics.ProcessStartInfo
-                {
-                    FileName = "certutil.exe",
-                    Arguments = $"-decode \"{tempTxtPath}\" \"{tempBinPath}\"",
-                    UseShellExecute = false,
-                    RedirectStandardOutput = true,
-                    CreateNoWindow = true,
-                };
-
-                process.Start();
-                process.WaitForExit();
-            }
-
-            // Ensure directory exists
-            Directory.CreateDirectory(Path.GetDirectoryName(start2BinPath)!);
-
-            // Copy the decoded binary to the Start Menu location
-            File.Copy(tempBinPath, start2BinPath, true);
-        }
-        finally
-        {
-            // Clean up temp files
-            if (File.Exists(tempTxtPath))
-                File.Delete(tempTxtPath);
-            if (File.Exists(tempBinPath))
-                File.Delete(tempBinPath);
-        }
-    }
-
-    /// <summary>
-    /// Cleans the Start Menu for Windows 10 or Windows 11.
-    /// </summary>
-    /// <param name="isWindows11">Whether the system is Windows 11.</param>
-    /// <param name="windowsService">The system services.</param>
-    public static void CleanStartMenu(bool isWindows11, ISystemServices windowsService)
-    {
-        if (isWindows11)
-        {
-            CleanWindows11StartMenu();
-        }
-        else
-        {
-            CleanWindows10StartMenu(windowsService);
-        }
-    }
-
-    /// <summary>
-    /// Cleans the Windows 11 Start Menu by replacing the start2.bin file.
-    /// </summary>
-    private static void CleanWindows11StartMenu()
-    {
-        // This is essentially the same as ApplyWindows11Layout since we're replacing the start2.bin file
-        string userProfile = Environment.GetFolderPath(Environment.SpecialFolder.UserProfile);
-        string start2BinPath = Path.Combine(userProfile, Win11StartBinPath);
-        string tempPath = Path.GetTempPath();
-
-        // Delete existing start2.bin if it exists
-        if (File.Exists(start2BinPath))
-        {
-            File.Delete(start2BinPath);
-        }
-
-        // Create temp file with cert content
-        string tempTxtPath = Path.Combine(tempPath, "start2.txt");
-        string tempBinPath = Path.Combine(tempPath, "start2.bin");
-
-        try
-        {
-            // Write certificate content to temp file
-            File.WriteAllText(tempTxtPath, StartMenuLayouts.Windows11StartBinCertificate);
-
-            // Use certutil to decode the certificate
-            using (var process = new System.Diagnostics.Process())
-            {
-                process.StartInfo = new System.Diagnostics.ProcessStartInfo
-                {
-                    FileName = "certutil.exe",
-                    Arguments = $"-decode \"{tempTxtPath}\" \"{tempBinPath}\"",
-                    UseShellExecute = false,
-                    RedirectStandardOutput = true,
-                    CreateNoWindow = true,
-                };
-
-                process.Start();
-                process.WaitForExit();
-            }
-
-            // Ensure directory exists
-            Directory.CreateDirectory(Path.GetDirectoryName(start2BinPath)!);
-
-            // Copy the decoded binary to the Start Menu location
-            File.Copy(tempBinPath, start2BinPath, true);
-        }
-        finally
-        {
-            // Clean up temp files
-            if (File.Exists(tempTxtPath))
-                File.Delete(tempTxtPath);
-            if (File.Exists(tempBinPath))
-                File.Delete(tempBinPath);
-        }
-    }
-
-    /// <summary>
-    /// Cleans the Windows 10 Start Menu by creating and then removing a StartMenuLayout.xml file.
-    /// </summary>
-    /// <param name="windowsService">The system services.</param>
-    private static void CleanWindows10StartMenu(ISystemServices windowsService)
-    {
-        try
-        {
-            // Delete existing layout file if it exists
-            if (File.Exists(Win10StartLayoutPath))
-            {
-                File.Delete(Win10StartLayoutPath);
-            }
-
-            // Create new layout file with clean layout
-            File.WriteAllText(Win10StartLayoutPath, StartMenuLayouts.Windows10Layout);
-
-            // Set registry values to lock the Start Menu layout
-            using (
-                var key = Registry.LocalMachine.CreateSubKey(
-                    @"SOFTWARE\Policies\Microsoft\Windows\Explorer"
-                )
-            )
-            {
-                if (key != null)
-                {
-                    key.SetValue("LockedStartLayout", 1, RegistryValueKind.DWord);
-                    key.SetValue("StartLayoutFile", Win10StartLayoutPath, RegistryValueKind.String);
-                }
-            }
-
-            using (
-                var key = Registry.CurrentUser.CreateSubKey(
-                    @"SOFTWARE\Policies\Microsoft\Windows\Explorer"
-                )
-            )
-            {
-                if (key != null)
-                {
-                    key.SetValue("LockedStartLayout", 1, RegistryValueKind.DWord);
-                    key.SetValue("StartLayoutFile", Win10StartLayoutPath, RegistryValueKind.String);
-                }
-            }
-
-            // Use the improved RefreshWindowsGUI method to restart Explorer and apply changes
-            // This will ensure Explorer is restarted properly with retry logic and fallback
-            var result = windowsService.RefreshWindowsGUI(true).GetAwaiter().GetResult();
-            if (!result)
-            {
-                throw new Exception(
-                    "Failed to refresh Windows GUI after applying Start Menu layout"
-                );
-            }
-
-            // Wait for changes to take effect
-            System.Threading.Thread.Sleep(3000);
-
-            // Disable the locked Start Menu layout
-            using (
-                var key = Registry.LocalMachine.CreateSubKey(
-                    @"SOFTWARE\Policies\Microsoft\Windows\Explorer"
-                )
-            )
-            {
-                if (key != null)
-                {
-                    key.SetValue("LockedStartLayout", 0, RegistryValueKind.DWord);
-                }
-            }
-
-            using (
-                var key = Registry.CurrentUser.CreateSubKey(
-                    @"SOFTWARE\Policies\Microsoft\Windows\Explorer"
-                )
-            )
-            {
-                if (key != null)
-                {
-                    key.SetValue("LockedStartLayout", 0, RegistryValueKind.DWord);
-                }
-            }
-
-            // Use the improved RefreshWindowsGUI method again to apply the final changes
-            result = windowsService.RefreshWindowsGUI(true).GetAwaiter().GetResult();
-            if (!result)
-            {
-                throw new Exception(
-                    "Failed to refresh Windows GUI after unlocking Start Menu layout"
-                );
-            }
-
-            // Delete the layout file
-            if (File.Exists(Win10StartLayoutPath))
-            {
-                File.Delete(Win10StartLayoutPath);
-            }
-        }
-        catch (Exception ex)
-        {
-            // Log the exception or handle it as needed
-            System.Diagnostics.Debug.WriteLine(
-                $"Error cleaning Windows 10 Start Menu: {ex.Message}"
-            );
-            throw new Exception($"Error cleaning Windows 10 Start Menu: {ex.Message}", ex);
-        }
     }
 }

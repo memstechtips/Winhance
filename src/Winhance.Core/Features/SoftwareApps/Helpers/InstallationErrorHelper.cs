@@ -17,34 +17,34 @@ namespace Winhance.Core.Features.SoftwareApps.Helpers
         {
             return errorType switch
             {
-                InstallationErrorType.NetworkError => 
+                InstallationErrorType.NetworkError =>
                     "Network connection error. Please check your internet connection and try again.",
-                
-                InstallationErrorType.PermissionError => 
+
+                InstallationErrorType.PermissionError =>
                     "Permission denied. Please run the application with administrator privileges.",
-                
-                InstallationErrorType.PackageNotFoundError => 
+
+                InstallationErrorType.PackageNotFoundError =>
                     "Package not found. The requested package may not be available in the repositories.",
-                
-                InstallationErrorType.WinGetNotInstalledError => 
+
+                InstallationErrorType.WinGetNotInstalledError =>
                     "WinGet is not installed and could not be installed automatically.",
-                
-                InstallationErrorType.AlreadyInstalledError => 
+
+                InstallationErrorType.AlreadyInstalledError =>
                     "The package is already installed.",
-                
-                InstallationErrorType.CancelledByUserError => 
+
+                InstallationErrorType.CancelledByUserError =>
                     "The installation was cancelled by the user.",
-                
-                InstallationErrorType.SystemStateError => 
+
+                InstallationErrorType.SystemStateError =>
                     "The system is in a state that prevents installation. Please restart your computer and try again.",
-                
-                InstallationErrorType.PackageCorruptedError => 
+
+                InstallationErrorType.PackageCorruptedError =>
                     "The package is corrupted or invalid. Please try reinstalling or contact the package maintainer.",
-                
-                InstallationErrorType.DependencyResolutionError => 
+
+                InstallationErrorType.DependencyResolutionError =>
                     "The package dependencies could not be resolved. Some required components may be missing.",
-                
-                InstallationErrorType.UnknownError or _ => 
+
+                InstallationErrorType.UnknownError or _ =>
                     "An unknown error occurred during installation. Please check the logs for more details."
             };
         }
@@ -61,73 +61,73 @@ namespace Winhance.Core.Features.SoftwareApps.Helpers
 
             exceptionMessage = exceptionMessage.ToLowerInvariant();
 
-            if (exceptionMessage.Contains("network") || 
-                exceptionMessage.Contains("connection") || 
+            if (exceptionMessage.Contains("network") ||
+                exceptionMessage.Contains("connection") ||
                 exceptionMessage.Contains("internet") ||
                 exceptionMessage.Contains("timeout") ||
                 exceptionMessage.Contains("unreachable"))
             {
                 return InstallationErrorType.NetworkError;
             }
-            
-            if (exceptionMessage.Contains("permission") || 
-                exceptionMessage.Contains("access") || 
+
+            if (exceptionMessage.Contains("permission") ||
+                exceptionMessage.Contains("access") ||
                 exceptionMessage.Contains("denied") ||
                 exceptionMessage.Contains("administrator") ||
                 exceptionMessage.Contains("elevation"))
             {
                 return InstallationErrorType.PermissionError;
             }
-            
-            if (exceptionMessage.Contains("not found") || 
+
+            if (exceptionMessage.Contains("not found") ||
                 exceptionMessage.Contains("no package") ||
                 exceptionMessage.Contains("no such package") ||
                 exceptionMessage.Contains("could not find"))
             {
                 return InstallationErrorType.PackageNotFoundError;
             }
-            
-            if (exceptionMessage.Contains("winget") && 
-                (exceptionMessage.Contains("not installed") || 
+
+            if (exceptionMessage.Contains("winget") &&
+                (exceptionMessage.Contains("not installed") ||
                  exceptionMessage.Contains("could not be installed")))
             {
                 return InstallationErrorType.WinGetNotInstalledError;
             }
-            
+
             if (exceptionMessage.Contains("already installed") ||
                 exceptionMessage.Contains("is installed"))
             {
                 return InstallationErrorType.AlreadyInstalledError;
             }
-            
-            if (exceptionMessage.Contains("cancelled") || 
+
+            if (exceptionMessage.Contains("cancelled") ||
                 exceptionMessage.Contains("canceled") ||
                 exceptionMessage.Contains("aborted"))
             {
                 return InstallationErrorType.CancelledByUserError;
             }
-            
-            if (exceptionMessage.Contains("system state") || 
+
+            if (exceptionMessage.Contains("system state") ||
                 exceptionMessage.Contains("restart") ||
                 exceptionMessage.Contains("reboot"))
             {
                 return InstallationErrorType.SystemStateError;
             }
-            
-            if (exceptionMessage.Contains("corrupt") || 
+
+            if (exceptionMessage.Contains("corrupt") ||
                 exceptionMessage.Contains("invalid") ||
                 exceptionMessage.Contains("damaged"))
             {
                 return InstallationErrorType.PackageCorruptedError;
             }
-            
-            if (exceptionMessage.Contains("dependency") || 
+
+            if (exceptionMessage.Contains("dependency") ||
                 exceptionMessage.Contains("dependencies") ||
                 exceptionMessage.Contains("requires"))
             {
                 return InstallationErrorType.DependencyResolutionError;
             }
-            
+
             return InstallationErrorType.UnknownError;
         }
     }

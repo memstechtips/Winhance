@@ -15,11 +15,11 @@ namespace Winhance.WPF.Features.Common.Converters
         // Default track colors
         private static readonly Color DarkTrackColor = Color.FromRgb(68, 68, 68);
         private static readonly Color LightTrackColor = Color.FromRgb(204, 204, 204);
-        
+
         // Checked track colors
         private static readonly Color DarkCheckedTrackColor = Color.FromRgb(85, 85, 85);
         private static readonly Color LightCheckedTrackColor = Color.FromRgb(66, 66, 66);
-        
+
         // Knob colors
         private static readonly Color DefaultKnobColor = Color.FromRgb(255, 255, 255); // White for unchecked
         private static readonly Color DarkCheckedKnobColor = Color.FromRgb(255, 222, 0); // Yellow for dark theme checked
@@ -29,7 +29,7 @@ namespace Winhance.WPF.Features.Common.Converters
         {
             bool isDarkTheme = false;
             bool isChecked = false;
-            
+
             // Handle different input types for theme
             if (value is bool boolValue)
             {
@@ -39,19 +39,19 @@ namespace Winhance.WPF.Features.Common.Converters
             {
                 isDarkTheme = stringValue.Equals("Dark", StringComparison.OrdinalIgnoreCase);
             }
-            
+
             // Extract checked state from parameter if provided
             if (parameter is string paramString)
             {
                 string[] parts = paramString.Split(':');
                 string elementType = parts[0];
-                
+
                 // Check if we have checked state information
                 if (parts.Length > 1)
                 {
                     isChecked = parts[1].Equals("Checked", StringComparison.OrdinalIgnoreCase);
                 }
-                
+
                 if (targetType == typeof(Brush) || targetType == typeof(SolidColorBrush))
                 {
                     if (elementType.Equals("Track", StringComparison.OrdinalIgnoreCase))
@@ -80,20 +80,20 @@ namespace Winhance.WPF.Features.Common.Converters
                     }
                 }
             }
-            
+
             // Default behavior - return theme string
             return isDarkTheme ? "Dark" : "Light";
         }
-        
+
         // Implementation for IMultiValueConverter
         public object Convert(object[] values, Type targetType, object parameter, CultureInfo culture)
         {
             if (values.Length < 2)
                 return Binding.DoNothing;
-                
+
             bool isDarkTheme = false;
             bool isChecked = false;
-            
+
             // First value is the theme
             if (values[0] is bool themeBool)
             {
@@ -103,16 +103,16 @@ namespace Winhance.WPF.Features.Common.Converters
             {
                 isDarkTheme = themeString.Equals("Dark", StringComparison.OrdinalIgnoreCase);
             }
-            
+
             // Second value is the checked state
             if (values[1] is bool checkedBool)
             {
                 isChecked = checkedBool;
             }
-            
+
             // Determine which element we're styling based on parameter
             string elementType = parameter as string ?? "Track";
-            
+
             if (targetType == typeof(Brush) || targetType == typeof(SolidColorBrush))
             {
                 if (elementType.Equals("Track", StringComparison.OrdinalIgnoreCase))
@@ -140,7 +140,7 @@ namespace Winhance.WPF.Features.Common.Converters
                     }
                 }
             }
-            
+
             return Binding.DoNothing;
         }
 
@@ -150,10 +150,10 @@ namespace Winhance.WPF.Features.Common.Converters
             {
                 return themeString.Equals("Dark", StringComparison.OrdinalIgnoreCase);
             }
-            
+
             return false; // Default to Light theme (false) if value is not a string
         }
-        
+
         public object[] ConvertBack(object value, Type[] targetTypes, object parameter, CultureInfo culture)
         {
             // We don't need to implement this for our use case

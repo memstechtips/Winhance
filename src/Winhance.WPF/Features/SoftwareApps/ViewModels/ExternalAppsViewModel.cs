@@ -1,190 +1,278 @@
 using System;
 using System.Collections.Generic;
 using System.Collections.ObjectModel;
+using System.ComponentModel;
 using System.Linq;
+using System.Threading;
 using System.Threading.Tasks;
 using System.Windows;
+using System.Windows.Data;
 using CommunityToolkit.Mvvm.ComponentModel;
 using CommunityToolkit.Mvvm.Input;
+using Microsoft.Extensions.DependencyInjection;
+using Winhance.Core.Features.Common.Constants;
 using Winhance.Core.Features.Common.Enums;
 using Winhance.Core.Features.Common.Interfaces;
 using Winhance.Core.Features.Common.Models;
+using Winhance.Core.Features.Common.Events;
 using Winhance.Core.Features.SoftwareApps.Interfaces;
 using Winhance.Core.Features.SoftwareApps.Models;
-using Winhance.Core.Features.UI.Interfaces;
 using Winhance.WPF.Features.Common.ViewModels;
-using Winhance.WPF.Features.Common.Views;
 using Winhance.WPF.Features.SoftwareApps.Models;
-using ToastType = Winhance.Core.Features.UI.Interfaces.ToastType;
 
 namespace Winhance.WPF.Features.SoftwareApps.ViewModels
 {
-    public partial class ExternalAppsViewModel : BaseInstallationViewModel<ExternalApp>
+    public partial class ExternalAppsViewModel(
+        ITaskProgressService progressService,
+        ILogService logService,
+        IEventBus eventBus,
+        IExternalAppsService externalAppsService,
+        IAppOperationService appOperationService,
+        IConfigurationService configurationService,
+        IDialogService dialogService,
+        IInternetConnectivityService connectivityService)
+        : BaseAppFeatureViewModel<AppItemViewModel>(progressService, logService, eventBus, dialogService, connectivityService)
     {
-        [ObservableProperty]
-        private bool _isInitialized = false;
+        private System.Threading.Timer? _refreshTimer;
+        private CancellationTokenSource? _refreshCts;
+        public override string ModuleId => FeatureIds.ExternalApps;
+        public override string DisplayName => "External Apps";
 
-        private readonly IAppInstallationService _appInstallationService;
-        private readonly IAppService _appDiscoveryService;
-        private readonly IConfigurationService _configurationService;
-
-        [ObservableProperty]
-        private string _statusText = "Ready";
-
-        // ObservableCollection to store category view models
-        private ObservableCollection<ExternalAppsCategoryViewModel> _categories = new();
-
-        // Public property to expose the categories
-        public ObservableCollection<ExternalAppsCategoryViewModel> Categories => _categories;
-
-        public ExternalAppsViewModel(
-            ITaskProgressService progressService,
-            ISearchService searchService,
-            IPackageManager packageManager,
-            IAppInstallationService appInstallationService,
-            IAppService appDiscoveryService,
-            IConfigurationService configurationService,
-            Services.SoftwareAppsDialogService dialogService,
-            IInternetConnectivityService connectivityService,
-            IAppInstallationCoordinatorService appInstallationCoordinatorService
-        )
-            : base(
-                progressService,
-                searchService,
-                packageManager,
-                appInstallationService,
-                appInstallationCoordinatorService,
-                connectivityService,
-                dialogService
-            )
+        public new bool IsTableViewMode
         {
-            _appInstallationService = appInstallationService;
-            _appDiscoveryService = appDiscoveryService;
-            _configurationService = configurationService;
-        }
-
-        // SaveConfig and ImportConfig methods removed as part of unified configuration cleanup
-
-        /// <summary>
-        /// Applies the current search text to filter items.
-        /// </summary>
-        protected override void ApplySearch()
-        {
-            if (Items == null || Items.Count == 0)
-                return;
-
-            // Filter items based on search text
-            var filteredItems = FilterItems(Items);
-
-            // Clear all categories
-            foreach (var category in Categories)
+            get => base.IsTableViewMode;
+            set
             {
-                category.Apps.Clear();
-            }
-
-            // Group filtered items by category
-            var appsByCategory = new Dictionary<string, List<ExternalApp>>();
-
-            foreach (var app in filteredItems)
-            {
-                string category = app.Category;
-                if (string.IsNullOrEmpty(category))
+                if (base.IsTableViewMode != value)
                 {
-                    category = "Other";
-                }
-
-                if (!appsByCategory.ContainsKey(category))
-                {
-                    appsByCategory[category] = new List<ExternalApp>();
-                }
-
-                appsByCategory[category].Add(app);
-            }
-
-            // Update categories with filtered items
-            foreach (var category in Categories)
-            {
-                if (appsByCategory.TryGetValue(category.Name, out var apps))
-                {
-                    // Sort apps alphabetically within the category
-                    var sortedApps = apps.OrderBy(a => a.Name);
-
-                    foreach (var app in sortedApps)
+                    base.IsTableViewMode = value;
+                    if (value)
                     {
-                        category.Apps.Add(app);
+                        InitializeCollectionView();
+                        UpdateAllItemsCollection();
+                    }
+                    else
+                    {
+                        CleanupTableView();
+                        OnPropertyChanged(nameof(Categories));
                     }
                 }
             }
+        }
 
-            // Hide empty categories if search is active
-            if (IsSearchActive)
+        public override void OnNavigatedFrom()
+        {
+            CleanupTableView();
+            base.OnNavigatedFrom();
+        }
+
+        public void CleanupTableView()
+        {
+            if (!IsTableViewMode) return;
+
+            _refreshTimer?.Dispose();
+            _refreshTimer = null;
+
+            _refreshCts?.Cancel();
+            _refreshCts?.Dispose();
+            _refreshCts = null;
+
+            if (_allItemsView != null)
             {
-                foreach (var category in Categories)
+                _allItemsView.Filter = null;
+                CleanupCollectionHandlers();
+                _allItemsView = null;
+            }
+        }
+
+        private bool _isAllSelected = false;
+
+        private ICollectionView _allItemsView;
+
+        public event EventHandler SelectedItemsChanged;
+
+        public ICollectionView AllItemsView
+        {
+            get
+            {
+                if (_allItemsView == null)
                 {
-                    category.IsExpanded = category.Apps.Count > 0;
+                    InitializeCollectionView();
                 }
+                return _allItemsView;
+            }
+        }
+
+        public ObservableCollection<ExternalAppsCategoryViewModel> Categories
+        {
+            get
+            {
+                if (!IsTableViewMode)
+                {
+                    var filteredItems = GetFilteredItems();
+                    var categories = new ObservableCollection<ExternalAppsCategoryViewModel>();
+
+                    var appsByCategory = filteredItems.GroupBy(app => app.Category).OrderBy(group => group.Key);
+
+                    foreach (var group in appsByCategory)
+                    {
+                        var categoryApps = new ObservableCollection<AppItemViewModel>(group);
+                        var categoryViewModel = new ExternalAppsCategoryViewModel(group.Key, categoryApps);
+                        categories.Add(categoryViewModel);
+                    }
+
+                    return categories;
+                }
+                return new ObservableCollection<ExternalAppsCategoryViewModel>();
+            }
+        }
+
+        public bool IsAllSelected
+        {
+            get => _isAllSelected;
+            set
+            {
+                if (SetProperty(ref _isAllSelected, value))
+                {
+                    SetAllItemsSelection(value);
+                    UpdateSpecializedCheckboxStates(value);
+                }
+            }
+        }
+
+        private bool _isAllSelectedInstalled;
+        public bool IsAllSelectedInstalled
+        {
+            get => _isAllSelectedInstalled;
+            set
+            {
+                if (SetProperty(ref _isAllSelectedInstalled, value))
+                {
+                    SetInstalledItemsSelection(value);
+                    UpdateIsAllSelectedState();
+                }
+            }
+        }
+
+        private bool _isAllSelectedNotInstalled;
+        public bool IsAllSelectedNotInstalled
+        {
+            get => _isAllSelectedNotInstalled;
+            set
+            {
+                if (SetProperty(ref _isAllSelectedNotInstalled, value))
+                {
+                    SetNotInstalledItemsSelection(value);
+                    UpdateIsAllSelectedState();
+                }
+            }
+        }
+
+        public void UpdateAllItemsCollection()
+        {
+            if (!IsTableViewMode || _allItemsView == null) return;
+
+            _refreshCts?.Cancel();
+            _refreshCts?.Dispose();
+            _refreshCts = new CancellationTokenSource();
+
+            var token = _refreshCts.Token;
+
+            Task.Delay(150, token).ContinueWith(_ =>
+            {
+                if (!token.IsCancellationRequested && IsTableViewMode)
+                {
+                    Application.Current?.Dispatcher.Invoke(() =>
+                    {
+                        if (_allItemsView != null && IsTableViewMode && !token.IsCancellationRequested)
+                        {
+                            _allItemsView.Refresh();
+                        }
+                    });
+                }
+            }, TaskScheduler.Default);
+        }
+
+
+
+        [RelayCommand]
+        public async Task InstallApps(bool skipConfirmation = false)
+        {
+            var selectedApps = GetSelectedItems();
+            if (!selectedApps.Any())
+            {
+                await ShowNoItemsSelectedDialogAsync("installation");
+                return;
+            }
+
+            if (!await CheckConnectivityAsync()) return;
+            if (!skipConfirmation && !await ShowConfirmationAsync("install", selectedApps))
+                return;
+
+            try
+            {
+                await ExecuteWithProgressAsync(
+                    progressService => ExecuteInstallOperation(selectedApps.ToList(), progressService.CreateDetailedProgress(), skipResultDialog: skipConfirmation),
+                    "Installing External Apps"
+                );
+            }
+            catch (OperationCanceledException)
+            {
+                CurrentCancellationReason = CancellationReason.UserCancelled;
+            }
+        }
+
+        [RelayCommand]
+        public async Task RemoveApps(bool skipConfirmation = false)
+        {
+            var selectedItems = GetSelectedItemsForOperation();
+            if (!selectedItems.HasItems)
+            {
+                await ShowNoItemsSelectedDialogAsync("removal");
+                return;
+            }
+
+            if (!skipConfirmation && !await ShowConfirmationAsync("uninstall", selectedItems.AllItems))
+                return;
+
+            try
+            {
+                await ExecuteWithProgressAsync(
+                    progressService => ExecuteRemoveOperation(selectedItems, progressService.CreateDetailedProgress(), skipResultDialog: skipConfirmation),
+                    "Uninstalling External Apps"
+                );
+            }
+            catch (OperationCanceledException)
+            {
+                CurrentCancellationReason = CancellationReason.UserCancelled;
             }
         }
 
         public override async Task LoadItemsAsync()
         {
-            if (_packageManager == null)
-                return;
-
             IsLoading = true;
-            StatusText = "Loading external apps...";
 
             try
             {
                 Items.Clear();
-                _categories.Clear();
 
-                var apps = await _packageManager.GetInstallableAppsAsync();
+                var itemGroup = ExternalAppDefinitions.GetExternalApps();
 
-                // Group apps by category
-                var appsByCategory = new Dictionary<string, List<ExternalApp>>();
-
-                foreach (var app in apps)
+                foreach (var itemDef in itemGroup.Items)
                 {
-                    var externalApp = ExternalApp.FromAppInfo(app);
-                    Items.Add(externalApp);
-
-                    // Group by category
-                    string category = app.Category;
-                    if (string.IsNullOrEmpty(category))
-                    {
-                        category = "Other";
-                    }
-
-                    if (!appsByCategory.ContainsKey(category))
-                    {
-                        appsByCategory[category] = new List<ExternalApp>();
-                    }
-
-                    appsByCategory[category].Add(externalApp);
-                }
-
-                // Sort categories alphabetically
-                var sortedCategories = appsByCategory.Keys.OrderBy(c => c).ToList();
-
-                // Create category view models with sorted apps
-                foreach (var categoryName in sortedCategories)
-                {
-                    // Sort apps alphabetically within the category
-                    var sortedApps = appsByCategory[categoryName].OrderBy(a => a.Name).ToList();
-
-                    // Create observable collection for the category
-                    var appsCollection = new ObservableCollection<ExternalApp>(sortedApps);
-
-                    // Create and add the category view model
-                    _categories.Add(
-                        new ExternalAppsCategoryViewModel(categoryName, appsCollection)
-                    );
+                    var viewModel = new AppItemViewModel(
+                        itemDef,
+                        appOperationService,
+                        dialogService,
+                        logService);
+                    Items.Add(viewModel);
+                    viewModel.PropertyChanged += Item_PropertyChanged;
                 }
 
                 StatusText = $"Loaded {Items.Count} external apps";
+                OnPropertyChanged(nameof(Categories));
             }
-            catch (System.Exception ex)
+            catch (Exception ex)
             {
                 StatusText = $"Error loading external apps: {ex.Message}";
             }
@@ -192,34 +280,74 @@ namespace Winhance.WPF.Features.SoftwareApps.ViewModels
             {
                 IsLoading = false;
             }
+
+            await Task.CompletedTask;
         }
 
         public override async Task CheckInstallationStatusAsync()
         {
-            if (_appDiscoveryService == null)
+            await CheckInstallationStatusAsync(showLoadingOverlay: true);
+        }
+
+        public async Task CheckInstallationStatusAsync(bool showLoadingOverlay)
+        {
+            if (Items == null || !Items.Any())
                 return;
 
-            IsLoading = true;
-            StatusText = "Checking installation status...";
+            if (showLoadingOverlay)
+            {
+                IsLoading = true;
+                StatusText = "Checking installation status...";
+            }
 
             try
             {
-                var statusResults = await _appDiscoveryService.GetBatchInstallStatusAsync(
-                    Items.Select(a => a.PackageName)
-                );
+                var appsWithWinGetId = Items
+                    .Where(item => !string.IsNullOrEmpty(item.Definition.WinGetPackageId))
+                    .ToList();
 
-                foreach (var app in Items)
+                var appsWithoutWinGetId = Items
+                    .Where(item => string.IsNullOrEmpty(item.Definition.WinGetPackageId))
+                    .ToList();
+
+                int checkedCount = 0;
+
+                if (appsWithWinGetId.Any())
                 {
-                    if (statusResults.TryGetValue(app.PackageName, out bool isInstalled))
+                    var packageIds = appsWithWinGetId.Select(item => item.Definition.WinGetPackageId).ToList();
+                    var statusResults = await externalAppsService.CheckBatchInstalledAsync(packageIds).ConfigureAwait(false);
+
+                    foreach (var item in appsWithWinGetId)
                     {
-                        app.IsInstalled = isInstalled;
+                        if (statusResults.TryGetValue(item.Definition.WinGetPackageId, out bool isInstalled))
+                        {
+                            item.IsInstalled = isInstalled;
+                            checkedCount++;
+                        }
                     }
                 }
-                StatusText = "Installation status check complete";
+
+                if (appsWithoutWinGetId.Any())
+                {
+                    var displayNames = appsWithoutWinGetId.Select(item => item.Definition.Name).ToList();
+                    var statusResults = await externalAppsService.CheckInstalledByDisplayNameAsync(displayNames).ConfigureAwait(false);
+
+                    foreach (var item in appsWithoutWinGetId)
+                    {
+                        if (statusResults.TryGetValue(item.Definition.Name, out bool isInstalled))
+                        {
+                            item.IsInstalled = isInstalled;
+                            checkedCount++;
+                        }
+                    }
+                }
+
+                StatusText = $"Status checked for {checkedCount} apps";
             }
-            catch (System.Exception ex)
+            catch (Exception ex)
             {
-                StatusText = $"Error checking installation status: {ex.Message}";
+                StatusText = $"Error checking status: {ex.Message}";
+                logService.LogError("Error checking installation status", ex);
             }
             finally
             {
@@ -228,656 +356,30 @@ namespace Winhance.WPF.Features.SoftwareApps.ViewModels
         }
 
         [RelayCommand]
-        public async Task InstallApp(ExternalApp app)
+        public async Task RefreshInstallationStatus()
         {
-            if (app == null || _appInstallationService == null)
-                return;
-
-            // Check for internet connectivity before starting installation
-            bool isInternetConnected =
-                await _packageManager.SystemServices.IsInternetConnectedAsync(true);
-            if (!isInternetConnected)
+            if (!IsInitialized)
             {
-                StatusText = "No internet connection available. Installation cannot proceed.";
-
-                // Show dialog informing the user about the connectivity issue
-                await ShowNoInternetConnectionDialogAsync();
+                StatusText = "Please wait for initial load to complete";
                 return;
             }
 
             IsLoading = true;
-            StatusText = $"Installing {app.Name}...";
-
-            // Setup cancellation for the installation process
-            using var cts = new System.Threading.CancellationTokenSource();
-            var cancellationToken = cts.Token;
-
-            // Start a background task to periodically check internet connectivity during installation
-            var connectivityCheckTask = StartPeriodicConnectivityCheck(app.Name, cts);
+            StatusText = "Refreshing installation status...";
 
             try
             {
-                var progress = _progressService.CreateDetailedProgress();
-
-                try
-                {
-                    var operationResult = await _appInstallationService.InstallAppAsync(
-                        app.ToAppInfo(),
-                        progress,
-                        cancellationToken
-                    );
-
-                    // Cancel the connectivity check task as installation is complete
-                    cts.Cancel();
-
-                    // Wait for the connectivity check task to complete
-                    try
-                    {
-                        await connectivityCheckTask;
-                    }
-                    catch (OperationCanceledException)
-                    { /* Expected when we cancel */
-                    }
-
-                    if (operationResult.Success)
-                    {
-                        app.IsInstalled = true;
-                        StatusText = $"Successfully installed {app.Name}";
-
-                        // Show success dialog
-                        _dialogService.ShowInformationAsync(
-                            "Installation Complete",
-                            $"{app.Name} was successfully installed.",
-                            new[] { app.Name },
-                            "The application has been installed successfully."
-                        );
-                    }
-                    else
-                    {
-                        string errorMessage =
-                            operationResult.ErrorMessage
-                            ?? $"Failed to install {app.Name}. Please try again.";
-                        StatusText = errorMessage;
-
-                        // Store the error message for later reference
-                        app.LastOperationError = errorMessage;
-
-                        // Show error dialog
-                        _dialogService.ShowInformationAsync(
-                            "Installation Failed",
-                            $"Failed to install {app.Name}.",
-                            new[] { $"{app.Name}: {errorMessage}" },
-                            "There was an error during installation. Please try again later."
-                        );
-                    }
-                }
-                catch (OperationCanceledException)
-                {
-                    // Set cancellation reason to UserCancelled
-                    CurrentCancellationReason = CancellationReason.UserCancelled;
-                    
-                    // Cancel the connectivity check task
-                    cts.Cancel();
-
-                    // Wait for the connectivity check task to complete
-                    try
-                    {
-                        await connectivityCheckTask;
-                    }
-                    catch (OperationCanceledException)
-                    { /* Expected when we cancel */
-                    }
-                    
-                    // For single app installations, use the ShowCancellationDialogAsync method directly
-                    // which will use CustomDialog with a simpler message
-                    await ShowCancellationDialogAsync(true, false); // User-initiated cancellation
-                    
-                    // Reset cancellation reason after showing dialog
-                    CurrentCancellationReason = CancellationReason.None;
-                    
-                    StatusText = $"Installation of {app.Name} was cancelled";
-                }
-                catch (System.Exception ex)
-                {
-                    // Cancel the connectivity check task
-                    cts.Cancel();
-
-                    // Wait for the connectivity check task to complete
-                    try
-                    {
-                        await connectivityCheckTask;
-                    }
-                    catch (OperationCanceledException)
-                    { /* Expected when we cancel */
-                    }
-
-                    // Check if the exception is related to internet connectivity
-                    bool isConnectivityIssue =
-                        ex.Message.Contains("internet", StringComparison.OrdinalIgnoreCase)
-                        || ex.Message.Contains("connection", StringComparison.OrdinalIgnoreCase)
-                        || ex.Message.Contains("network", StringComparison.OrdinalIgnoreCase)
-                        || ex.Message.Contains("pipeline has been stopped", StringComparison.OrdinalIgnoreCase);
-
-                    if (isConnectivityIssue && CurrentCancellationReason == CancellationReason.None)
-                    {
-                        // Use the centralized cancellation handling for connectivity issues
-                        await HandleCancellationAsync(true); // Connectivity-related cancellation
-                    }
-                    
-                    string errorMessage = isConnectivityIssue
-                        ? "Internet connection lost during installation. Please check your network connection and try again."
-                        : ex.Message;
-
-                    // Store the error message for later reference
-                    app.LastOperationError = errorMessage;
-
-                    StatusText = $"Error installing {app.Name}: {errorMessage}";
-
-                    // Only show error dialog if it's not a connectivity issue (which is already handled by HandleCancellationAsync)
-                    if (!isConnectivityIssue)
-                    {
-                        _dialogService.ShowInformationAsync(
-                            "Installation Failed",
-                            $"Failed to install {app.Name}.",
-                        new[] { $"{app.Name}: {errorMessage}" },
-                        "There was an error during installation. Please try again later."
-                    );
-                    }
-                }
+                await CheckInstallationStatusAsync();
+                StatusText = $"Installation status refreshed for {Items.Count} items";
             }
-            catch (System.Exception ex)
+            catch (Exception ex)
             {
-                // This is a fallback catch-all to ensure the application doesn't crash
-                // Cancel the connectivity check task
-                cts.Cancel();
-
-                // Wait for the connectivity check task to complete
-                try
-                {
-                    await connectivityCheckTask;
-                }
-                catch (OperationCanceledException)
-                { /* Expected when we cancel */
-                }
-
-                // Store the error message for later reference
-                app.LastOperationError = ex.Message;
-
-                StatusText = $"Error installing {app.Name}: {ex.Message}";
-
-                // Show error dialog
-                _dialogService.ShowInformationAsync(
-                    "Installation Failed",
-                    $"Failed to install {app.Name}.",
-                    new[] { $"{app.Name}: {ex.Message}" },
-                    "There was an error during installation. Please try again later."
-                );
+                StatusText = $"Error refreshing status: {ex.Message}";
+                logService.LogError("Error refreshing installation status", ex);
             }
             finally
             {
                 IsLoading = false;
-            }
-        }
-
-        /// <summary>
-        /// Starts a periodic check for internet connectivity during installation.
-        /// </summary>
-        /// <param name="appName">The name of the app being installed</param>
-        /// <param name="cts">Cancellation token source to cancel the task</param>
-        /// <returns>A task that completes when the installation is done or cancelled</returns>
-        private async Task StartPeriodicConnectivityCheck(
-            string appName,
-            System.Threading.CancellationTokenSource cts
-        )
-        {
-            try
-            {
-                // Check connectivity every 5 seconds during installation
-                while (!cts.Token.IsCancellationRequested)
-                {
-                    await Task.Delay(5000, cts.Token); // 5 seconds delay between checks
-
-                    if (cts.Token.IsCancellationRequested)
-                        break;
-
-                    bool isConnected =
-                        await _packageManager.SystemServices.IsInternetConnectedAsync(
-                            false,
-                            cts.Token
-                        );
-
-                    if (!isConnected)
-                    {
-                        // Only set connectivity loss if no other cancellation reason is set
-                        if (CurrentCancellationReason == CancellationReason.None)
-                        {
-                            // Update status to inform user about connectivity issue
-                            StatusText =
-                                $"Error: Internet connection lost while installing {appName}. Installation stopped.";
-
-                            // Show a non-blocking toast notification
-                            if (_packageManager.NotificationService != null)
-                            {
-                                _packageManager.NotificationService.ShowToast(
-                                    "Internet Connection Lost",
-                                    "Internet connection has been lost during installation. Installation has been stopped.",
-                                    ToastType.Error
-                                );
-                            }
-
-                            // Use the centralized cancellation handling instead of showing dialog directly
-                            await HandleCancellationAsync(true); // Connectivity-related cancellation
-                        }
-                        
-                        // Cancel the installation process
-                        cts.Cancel();
-                        break;
-                    }
-                }
-            }
-            catch (OperationCanceledException)
-            {
-                // Task was cancelled, which is expected when installation completes or is stopped
-            }
-            catch (Exception ex)
-            {
-                // Log any unexpected errors but don't disrupt the installation process
-                System.Diagnostics.Debug.WriteLine($"Error in connectivity check: {ex.Message}");
-            }
-        }
-
-        [RelayCommand]
-        public void ClearSelectedItems()
-        {
-            // Clear all selected items
-            foreach (var app in Items)
-            {
-                app.IsSelected = false;
-            }
-
-            // Update the UI for all categories
-            foreach (var category in Categories)
-            {
-                foreach (var app in category.Apps)
-                {
-                    app.IsSelected = false;
-                }
-            }
-
-            StatusText = "All selections cleared";
-        }
-
-        [RelayCommand]
-        public async Task InstallApps()
-        {
-            if (_appInstallationService == null)
-                return;
-
-            // Get all selected apps regardless of installation status
-            var selectedApps = Items.Where(a => a.IsSelected).ToList();
-
-            if (!selectedApps.Any())
-            {
-                StatusText = "No apps selected for installation";
-                await ShowNoItemsSelectedDialogAsync("installation");
-                return;
-            }
-
-            // Check for internet connectivity before starting batch installation
-            bool isInternetConnected =
-                await _packageManager.SystemServices.IsInternetConnectedAsync(true);
-            if (!isInternetConnected)
-            {
-                StatusText = "No internet connection available. Installation cannot proceed.";
-
-                // Show dialog informing the user about the connectivity issue
-                await ShowNoInternetConnectionDialogAsync();
-                return;
-            }
-
-            // Show confirmation dialog
-            bool? dialogResult = await ShowConfirmItemsDialogAsync(
-                "install",
-                selectedApps.Select(a => a.Name),
-                selectedApps.Count
-            );
-
-            // If user didn't confirm, exit
-            if (dialogResult != true)
-            {
-                return;
-            }
-
-            // Setup cancellation for the installation process
-            using var cts = new System.Threading.CancellationTokenSource();
-
-            // Start a background task to periodically check internet connectivity during installation
-            var connectivityCheckTask = StartBatchConnectivityCheck(cts);
-
-            // Use the ExecuteWithProgressAsync method from BaseViewModel to handle progress reporting
-            await ExecuteWithProgressAsync(
-                async (progress, cancellationToken) =>
-                {
-                    int successCount = 0;
-                    int currentItem = 0;
-                    int totalSelected = selectedApps.Count;
-
-                    foreach (var app in selectedApps)
-                    {
-                        if (cancellationToken.IsCancellationRequested)
-                        {
-                            await HandleCancellationAsync(false); // User-initiated cancellation
-                            cts.Cancel(); // Ensure all tasks are cancelled
-                            return successCount; // Exit the method immediately
-                        }
-
-                        try
-                        {
-                            var operationResult = await _appInstallationService.InstallAppAsync(
-                                app.ToAppInfo(),
-                                progress,
-                                cancellationToken
-                            );
-
-                            if (operationResult.Success)
-                            {
-                                app.IsInstalled = true;
-                                successCount++;
-
-                                progress.Report(
-                                    new TaskProgressDetail
-                                    {
-                                        Progress = (currentItem * 100.0) / totalSelected,
-                                        StatusText = $"Successfully installed {app.Name}",
-                                        DetailedMessage = $"Successfully installed app: {app.Name}",
-                                        LogLevel = LogLevel.Success,
-                                        AdditionalInfo = new Dictionary<string, string>
-                                        {
-                                            { "AppName", app.Name },
-                                            { "PackageName", app.PackageName },
-                                            { "OperationType", "Install" },
-                                            { "OperationStatus", "Success" },
-                                            { "ItemNumber", currentItem.ToString() },
-                                            { "TotalItems", totalSelected.ToString() },
-                                        },
-                                    }
-                                );
-                            }
-                            else
-                            {
-                                string errorMessage =
-                                    operationResult.ErrorMessage ?? $"Failed to install {app.Name}";
-
-                                // Store the error message for later reference
-                                app.LastOperationError = errorMessage;
-
-                                progress.Report(
-                                    new TaskProgressDetail
-                                    {
-                                        Progress = (currentItem * 100.0) / totalSelected,
-                                        StatusText = $"Error installing {app.Name}",
-                                        DetailedMessage = errorMessage,
-                                        LogLevel = LogLevel.Error,
-                                        AdditionalInfo = new Dictionary<string, string>
-                                        {
-                                            { "AppName", app.Name },
-                                            { "PackageName", app.PackageName },
-                                            { "OperationType", "Install" },
-                                            { "OperationStatus", "Error" },
-                                            { "ErrorMessage", errorMessage },
-                                            { "ItemNumber", currentItem.ToString() },
-                                            { "TotalItems", totalSelected.ToString() },
-                                        },
-                                    }
-                                );
-                            }
-                        }
-                        catch (OperationCanceledException)
-                        {
-                            progress.Report(
-                                new TaskProgressDetail
-                                {
-                                    Progress = (currentItem * 100.0) / totalSelected,
-                                    StatusText = $"Installation of {app.Name} was cancelled",
-                                    DetailedMessage =
-                                        $"The installation of {app.Name} was cancelled.",
-                                    LogLevel = LogLevel.Warning,
-                                    AdditionalInfo = new Dictionary<string, string>
-                                    {
-                                        { "AppName", app.Name },
-                                        { "PackageName", app.PackageName },
-                                        { "OperationType", "Install" },
-                                        { "OperationStatus", "Cancelled" },
-                                        { "ItemNumber", currentItem.ToString() },
-                                        { "TotalItems", totalSelected.ToString() },
-                                    },
-                                }
-                            );
-
-                            // Use the centralized cancellation handling
-                            await HandleCancellationAsync(false); // User-initiated cancellation
-                            cts.Cancel();
-                            return successCount; // Exit the method immediately
-                        }
-                        catch (System.Exception ex)
-                        {
-                            // Check if the exception is related to internet connectivity
-                            bool isConnectivityIssue =
-                                ex.Message.Contains("internet", StringComparison.OrdinalIgnoreCase) ||
-                                ex.Message.Contains("connection", StringComparison.OrdinalIgnoreCase) ||
-                                ex.Message.Contains("network", StringComparison.OrdinalIgnoreCase) ||
-                                ex.Message.Contains("pipeline has been stopped", StringComparison.OrdinalIgnoreCase);
-
-                            if (isConnectivityIssue && CurrentCancellationReason == CancellationReason.None)
-                            {
-                                // Set the cancellation reason to connectivity issue
-                                await HandleCancellationAsync(true); // Connectivity-related cancellation
-                            }
-                            
-                            progress.Report(
-                                new TaskProgressDetail
-                                {
-                                    Progress = (currentItem * 100.0) / totalSelected,
-                                    StatusText = $"Error installing {app.Name}",
-                                    DetailedMessage = $"Error installing {app.Name}: {ex.Message}",
-                                    LogLevel = LogLevel.Error,
-                                    AdditionalInfo = new Dictionary<string, string>
-                                    {
-                                        { "AppName", app.Name },
-                                        { "PackageName", app.PackageName },
-                                        { "OperationType", "Install" },
-                                        { "OperationStatus", "Error" },
-                                        { "ErrorMessage", ex.Message },
-                                        { "ErrorType", ex.GetType().Name },
-                                        { "ItemNumber", currentItem.ToString() },
-                                        { "TotalItems", totalSelected.ToString() },
-                                        { "IsConnectivityIssue", isConnectivityIssue.ToString() },
-                                    },
-                                }
-                            );
-                        }
-                    }
-
-                    // Cancel the connectivity check task as installation is complete
-                    cts.Cancel();
-
-                    // Wait for the connectivity check task to complete
-                    try
-                    {
-                        await connectivityCheckTask;
-                    }
-                    catch (OperationCanceledException)
-                    { /* Expected when we cancel */
-                    }
-
-                    // Only proceed with normal completion reporting if not cancelled
-                    // Final report
-                    // Check if any failures were due to internet connectivity issues
-                    bool hasInternetIssues = selectedApps.Any(a =>
-                        !a.IsInstalled
-                        && (
-                            a.LastOperationError?.Contains("Internet connection") == true
-                            || a.LastOperationError?.Contains("No internet") == true
-                        )
-                    );
-
-                    string statusText =
-                        successCount == totalSelected
-                            ? $"Successfully installed {successCount} of {totalSelected} apps"
-                        : hasInternetIssues ? $"Installation incomplete: Internet connection issues"
-                        : $"Installation incomplete: {successCount} of {totalSelected} apps installed";
-
-                    string detailedMessage =
-                        successCount == totalSelected
-                            ? $"Task completed: {successCount} of {totalSelected} apps installed successfully"
-                        : hasInternetIssues
-                            ? $"Task not completed: {successCount} of {totalSelected} apps installed. Installation failed due to internet connection issues"
-                        : $"Task completed: {successCount} of {totalSelected} apps installed successfully";
-
-                    progress.Report(
-                        new TaskProgressDetail
-                        {
-                            Progress = 100,
-                            StatusText = statusText,
-                            DetailedMessage = detailedMessage,
-                            LogLevel =
-                                successCount == totalSelected ? LogLevel.Success : LogLevel.Warning,
-                            AdditionalInfo = new Dictionary<string, string>
-                            {
-                                { "OperationType", "Install" },
-                                {
-                                    "OperationStatus",
-                                    successCount == totalSelected ? "Complete" : "PartialSuccess"
-                                },
-                                { "SuccessCount", successCount.ToString() },
-                                { "TotalItems", totalSelected.ToString() },
-                                { "SuccessRate", $"{(successCount * 100.0 / totalSelected):F1}%" },
-                                { "CompletionTime", DateTime.Now.ToString("yyyy-MM-dd HH:mm:ss") },
-                            },
-                        }
-                    );
-
-                    // For normal completion (not cancelled), collect success and failure information
-                    var successItems = new List<string>();
-                    var failedItems = new List<string>();
-
-                    // Add successful items to the list
-                    foreach (var app in selectedApps.Where(a => a.IsInstalled))
-                    {
-                        successItems.Add(app.Name);
-                    }
-
-                    // Add failed items to the list
-                    foreach (var app in selectedApps.Where(a => !a.IsInstalled))
-                    {
-                        failedItems.Add(app.Name);
-                    }
-
-                    // Check if any failures are due to internet connectivity issues
-                    bool hasConnectivityIssues = hasInternetIssues;
-                    bool isFailure = successCount < totalSelected;
-                    
-                    // Important: Check if the operation was cancelled by the user
-                    // This ensures we show the correct dialog even if the cancellation happened in a different part of the code
-                    if (failedItems != null && failedItems.Any(item => item.Contains("cancelled by user", StringComparison.OrdinalIgnoreCase)))
-                    {
-                        // Set the cancellation reason to UserCancelled if it's not already set
-                        if (CurrentCancellationReason == CancellationReason.None)
-                        {
-                            CurrentCancellationReason = CancellationReason.UserCancelled;
-                        }
-                    }
-                    
-                    // Show result dialog using the base class method which handles cancellation scenarios properly
-                    ShowOperationResultDialog(
-                        "Install",
-                        successCount,
-                        totalSelected,
-                        successItems,
-                        failedItems,
-                        null // no skipped items
-                    );
-
-                    return successCount;
-                },
-                $"Installing {selectedApps.Count} apps",
-                false
-            );
-        }
-
-        /// <summary>
-        /// Starts a periodic check for internet connectivity during batch installation.
-        /// </summary>
-        /// <param name="cts">Cancellation token source to cancel the task</param>
-        /// <returns>A task that completes when the installation is done or cancelled</returns>
-        private async Task StartBatchConnectivityCheck(System.Threading.CancellationTokenSource cts)
-        {
-            try
-            {
-                // Check connectivity every 15 seconds during batch installation (reduced frequency)
-                while (!cts.Token.IsCancellationRequested)
-                {
-                    await Task.Delay(15000, cts.Token); // 15 seconds delay between checks (increased from 5)
-
-                    // If cancellation was already requested (e.g., by the user), don't proceed with connectivity check
-                    if (cts.Token.IsCancellationRequested)
-                    {
-                        // Important: Do NOT set cancellation reason here, as it might overwrite UserCancelled
-                        break;
-                    }
-
-                    // Check if user cancellation has already been set
-                    if (CurrentCancellationReason == CancellationReason.UserCancelled)
-                    {
-                        // User already cancelled, don't change the reason
-                        break;
-                    }
-
-                    bool isConnected =
-                        await _packageManager.SystemServices.IsInternetConnectedAsync(
-                            false,
-                            cts.Token
-                        );
-
-                    if (!isConnected)
-                    {
-                        // Only set connectivity loss if no other cancellation reason is set
-                        if (CurrentCancellationReason == CancellationReason.None)
-                        {
-                            // Update status to inform user about connectivity issue
-                            StatusText =
-                                "Error: Internet connection lost during installation. Installation stopped.";
-
-                            // Show a non-blocking toast notification
-                            if (_packageManager.NotificationService != null)
-                            {
-                                _packageManager.NotificationService.ShowToast(
-                                    "Internet Connection Lost",
-                                    "Internet connection has been lost during installation. Installation has been stopped.",
-                                    ToastType.Error
-                                );
-                            }
-
-                            // Use the centralized cancellation handling
-                            await HandleCancellationAsync(true); // Connectivity-related cancellation
-                        }
-                        
-                        cts.Cancel();
-                        return; // Exit the method immediately
-                    }
-                }
-            }
-            catch (OperationCanceledException)
-            {
-                // Task was cancelled, which is expected when installation completes or is stopped
-                // Do NOT set cancellation reason here, as it might have been set by the main task
-            }
-            catch (Exception ex)
-            {
-                // Log any unexpected errors but don't disrupt the installation process
-                System.Diagnostics.Debug.WriteLine(
-                    $"Error in batch connectivity check: {ex.Message}"
-                );
             }
         }
 
@@ -885,84 +387,389 @@ namespace Winhance.WPF.Features.SoftwareApps.ViewModels
         {
             if (IsInitialized)
             {
-                System.Diagnostics.Debug.WriteLine(
-                    "ExternalAppsViewModel already initialized, skipping LoadAppsAndCheckInstallationStatusAsync"
-                );
+                logService.LogInformation("[ExternalAppsViewModel] Already initialized, skipping");
                 return;
             }
 
-            System.Diagnostics.Debug.WriteLine(
-                "Starting ExternalAppsViewModel LoadAppsAndCheckInstallationStatusAsync"
-            );
-            await LoadItemsAsync();
-            await CheckInstallationStatusAsync();
-
-            // Mark as initialized after loading is complete
+            logService.LogInformation("[ExternalAppsViewModel] LoadItemsAsync starting");
+            await LoadItemsAsync().ConfigureAwait(false);
+            logService.LogInformation("[ExternalAppsViewModel] LoadItemsAsync completed");
+            
+            logService.LogInformation("[ExternalAppsViewModel] CheckInstallationStatusAsync starting");
+            await CheckInstallationStatusAsync().ConfigureAwait(false);
+            logService.LogInformation("[ExternalAppsViewModel] CheckInstallationStatusAsync completed");
+            
+            IsAllSelected = false;
             IsInitialized = true;
-            System.Diagnostics.Debug.WriteLine(
-                "Completed ExternalAppsViewModel LoadAppsAndCheckInstallationStatusAsync"
-            );
+            logService.LogInformation("[ExternalAppsViewModel] LoadAppsAndCheckInstallationStatusAsync fully completed");
         }
 
         public override async void OnNavigatedTo(object parameter)
         {
             try
             {
-                // Only load data if not already initialized
                 if (!IsInitialized)
                 {
+                    CurrentSortProperty = "Name";
+                    SortDirection = ListSortDirection.Ascending;
                     await LoadAppsAndCheckInstallationStatusAsync();
                 }
+                else
+                {
+                    await CheckInstallationStatusAsync();
+                }
             }
-            catch (System.Exception ex)
+            catch (Exception ex)
             {
-                // Handle any exceptions
                 StatusText = $"Error loading apps: {ex.Message}";
                 IsLoading = false;
             }
         }
 
-        #region BaseInstallationViewModel Abstract Method Implementations
-
-        /// <summary>
-        /// Gets the name of an external app.
-        /// </summary>
-        /// <param name="app">The external app.</param>
-        /// <returns>The name of the app.</returns>
-        protected override string GetAppName(ExternalApp app)
+        protected override string[] GetSearchableFields(AppItemViewModel item)
         {
-            return app.Name;
+            return new[] { item.Name, item.Description, item.Category };
         }
 
-        /// <summary>
-        /// Converts an external app to an AppInfo object.
-        /// </summary>
-        /// <param name="app">The external app to convert.</param>
-        /// <returns>The AppInfo object.</returns>
-        protected override AppInfo ToAppInfo(ExternalApp app)
+        protected override string GetItemName(AppItemViewModel item)
         {
-            return app.ToAppInfo();
+            return item.Name;
         }
 
-        /// <summary>
-        /// Gets the selected external apps.
-        /// </summary>
-        /// <returns>The selected external apps.</returns>
-        protected override IEnumerable<ExternalApp> GetSelectedApps()
+
+        private void InitializeCollectionView()
+        {
+            if (_allItemsView != null) return;
+
+            _allItemsView = CollectionViewSource.GetDefaultView(Items);
+            _allItemsView.Filter = FilterPredicate;
+            OnPropertyChanged(nameof(AllItemsView));
+            ApplySorting();
+            SetupCollectionChangeHandlers();
+        }
+
+        private bool FilterPredicate(object obj)
+        {
+            if (obj is AppItemViewModel app)
+            {
+                return MatchesSearchTerm(SearchText, app);
+            }
+            return true;
+        }
+
+        private bool _collectionHandlersSetup = false;
+
+        private void SetupCollectionChangeHandlers()
+        {
+            if (_collectionHandlersSetup) return;
+            Items.CollectionChanged += OnCollectionChanged;
+            _collectionHandlersSetup = true;
+        }
+
+        private void CleanupCollectionHandlers()
+        {
+            if (!_collectionHandlersSetup) return;
+            Items.CollectionChanged -= OnCollectionChanged;
+            _collectionHandlersSetup = false;
+        }
+
+        private void OnCollectionChanged(object sender, System.Collections.Specialized.NotifyCollectionChangedEventArgs e)
+        {
+            if (IsTableViewMode) UpdateAllItemsCollection();
+        }
+
+        private void ApplySorting()
+        {
+            if (_allItemsView?.SortDescriptions == null || string.IsNullOrEmpty(CurrentSortProperty)) return;
+
+            _allItemsView.SortDescriptions.Clear();
+            _allItemsView.SortDescriptions.Add(new SortDescription(CurrentSortProperty, SortDirection));
+
+            if (CurrentSortProperty != "Name")
+            {
+                _allItemsView.SortDescriptions.Add(new SortDescription("Name", ListSortDirection.Ascending));
+            }
+        }
+
+        protected override void OnOptimizedSelectionChanged()
+        {
+            InvalidateHasSelectedItemsCache();
+            OnPropertyChanged(nameof(HasSelectedItems));
+            OnPropertyChanged(nameof(IsAllSelected));
+            SelectedItemsChanged?.Invoke(this, EventArgs.Empty);
+        }
+
+        protected override void ApplyOptimizedSorting()
+        {
+            ApplySorting();
+        }
+
+        protected override void ApplySearch()
+        {
+            if (IsTableViewMode)
+            {
+                if (_allItemsView != null)
+                {
+                    _allItemsView.Refresh();
+                }
+                UpdateAllItemsCollection();
+            }
+            else
+            {
+                OnPropertyChanged(nameof(Categories));
+            }
+        }
+
+        private IEnumerable<AppItemViewModel> GetFilteredItems()
+        {
+            return FilterItems(Items);
+        }
+
+        private IEnumerable<AppItemViewModel> GetSelectedItems()
         {
             return Items.Where(a => a.IsSelected);
         }
 
-        /// <summary>
-        /// Sets the installation status of an external app.
-        /// </summary>
-        /// <param name="app">The external app.</param>
-        /// <param name="isInstalled">Whether the app is installed.</param>
-        protected override void SetInstallationStatus(ExternalApp app, bool isInstalled)
+        private SelectedItemsCollection GetSelectedItemsForOperation()
         {
-            app.IsInstalled = isInstalled;
+            var selectedItems = Items.Where(a => a.IsSelected).ToList();
+            return new SelectedItemsCollection
+            {
+                Apps = selectedItems
+            };
         }
 
-        #endregion
+        private async Task RefreshUIAfterOperation()
+        {
+            await CheckInstallationStatusAsync(showLoadingOverlay: false);
+            ClearAllSelections();
+            UpdateAllItemsCollection();
+        }
+
+        private void ClearAllSelections()
+        {
+            foreach (var item in Items)
+            {
+                item.IsSelected = false;
+            }
+
+            _isAllSelected = false;
+            _isAllSelectedInstalled = false;
+            _isAllSelectedNotInstalled = false;
+
+            OnPropertyChanged(nameof(IsAllSelected));
+            OnPropertyChanged(nameof(IsAllSelectedInstalled));
+            OnPropertyChanged(nameof(IsAllSelectedNotInstalled));
+        }
+
+
+        private async Task<bool> ShowConfirmationAsync(string operationType, IEnumerable<AppItemViewModel> items)
+        {
+            var itemNames = items.Select(a => a.Name);
+            return await ShowConfirmItemsDialogAsync(operationType, itemNames, items.Count()) == true;
+        }
+
+        private async Task<int> ExecuteInstallOperation(List<AppItemViewModel> selectedApps, IProgress<TaskProgressDetail> progress, CancellationToken cancellationToken = default, bool skipResultDialog = false)
+        {
+            var results = new OperationResultAggregator();
+            bool wasCancelled = false;
+
+            foreach (var app in selectedApps)
+            {
+                if (cancellationToken.IsCancellationRequested) break;
+
+                try
+                {
+                    var result = await appOperationService.InstallAppAsync(app.Definition, progress, shouldRemoveFromBloatScript: false);
+                    if (result.IsCancelled)
+                    {
+                        CurrentCancellationReason = CancellationReason.UserCancelled;
+                        wasCancelled = true;
+                        break;
+                    }
+                    results.Add(app.Name, result.Success && result.Result, result.ErrorMessage);
+                    if (result.Success && result.Result) app.IsInstalled = true;
+                }
+                catch (OperationCanceledException)
+                {
+                    CurrentCancellationReason = CancellationReason.UserCancelled;
+                    wasCancelled = true;
+                    break;
+                }
+                catch (Exception ex)
+                {
+                    results.Add(app.Name, false, ex.Message);
+                }
+            }
+
+            await CheckInstallationStatusAsync(showLoadingOverlay: false);
+
+            if (!skipResultDialog && !wasCancelled)
+                await ShowOperationResultDialogAsync("Install", results.SuccessCount, results.TotalCount,
+                    results.SuccessItems, results.FailedItems);
+
+            return results.SuccessCount;
+        }
+
+        private async Task<int> ExecuteRemoveOperation(SelectedItemsCollection selectedItems, IProgress<TaskProgressDetail> progress, CancellationToken cancellationToken = default, bool skipResultDialog = false)
+        {
+            var allDefinitions = selectedItems.AllItems.Select(item => item.Definition).ToList();
+
+            var result = await appOperationService.UninstallExternalAppsAsync(allDefinitions, progress);
+
+            if (result.IsCancelled)
+            {
+                CurrentCancellationReason = CancellationReason.UserCancelled;
+                ClearAllSelections();
+                UpdateAllItemsCollection();
+                if (!skipResultDialog)
+                    await ShowOperationResultDialogAsync("Uninstall", 0, selectedItems.TotalCount, new List<string>(), selectedItems.AllNames.ToList());
+                return 0;
+            }
+
+            if (result.Success)
+            {
+                foreach (var item in selectedItems.AllItems)
+                {
+                    item.IsInstalled = false;
+                }
+
+                ClearAllSelections();
+                UpdateAllItemsCollection();
+
+                var successCount = result.Result;
+                var totalCount = selectedItems.TotalCount;
+                var succeededItems = selectedItems.AllNames.Take(successCount).ToList();
+                var failedItems = selectedItems.AllNames.Skip(successCount).ToList();
+
+                if (!skipResultDialog)
+                    await ShowOperationResultDialogAsync("Uninstall", successCount, totalCount, succeededItems, failedItems);
+
+                return successCount;
+            }
+
+            ClearAllSelections();
+            UpdateAllItemsCollection();
+
+            if (!skipResultDialog)
+                await ShowOperationResultDialogAsync("Uninstall", 0, selectedItems.TotalCount, new List<string>(), selectedItems.AllNames.ToList());
+
+            return 0;
+        }
+
+        private void SetAllItemsSelection(bool value)
+        {
+            foreach (var item in Items)
+                item.IsSelected = value;
+        }
+
+        private void UpdateSpecializedCheckboxStates(bool value)
+        {
+            _isAllSelectedInstalled = value;
+            _isAllSelectedNotInstalled = value;
+            OnPropertyChanged(nameof(IsAllSelectedInstalled));
+            OnPropertyChanged(nameof(IsAllSelectedNotInstalled));
+        }
+
+        private void SetInstalledItemsSelection(bool value)
+        {
+            foreach (var item in Items.Where(a => a.IsInstalled))
+                item.IsSelected = value;
+
+            if (!IsTableViewMode)
+            {
+                OnPropertyChanged(nameof(Categories));
+            }
+        }
+
+        private void SetNotInstalledItemsSelection(bool value)
+        {
+            foreach (var item in Items.Where(a => !a.IsInstalled))
+                item.IsSelected = value;
+
+            if (!IsTableViewMode)
+            {
+                OnPropertyChanged(nameof(Categories));
+            }
+        }
+
+        private void UpdateIsAllSelectedState()
+        {
+            bool allItemsSelected = Items.All(app => app.IsSelected);
+
+            if (_isAllSelected != allItemsSelected)
+            {
+                _isAllSelected = allItemsSelected;
+                OnPropertyChanged(nameof(IsAllSelected));
+            }
+
+            UpdateSpecializedCheckboxStates();
+        }
+
+        private void UpdateSpecializedCheckboxStates()
+        {
+            var installedItems = Items.Where(a => a.IsInstalled);
+            var notInstalledItems = Items.Where(a => !a.IsInstalled);
+
+            bool allInstalledSelected = installedItems.Any() && installedItems.All(a => a.IsSelected);
+            bool allNotInstalledSelected = notInstalledItems.Any() && notInstalledItems.All(a => a.IsSelected);
+
+            if (_isAllSelectedInstalled != allInstalledSelected)
+            {
+                _isAllSelectedInstalled = allInstalledSelected;
+                OnPropertyChanged(nameof(IsAllSelectedInstalled));
+            }
+
+            if (_isAllSelectedNotInstalled != allNotInstalledSelected)
+            {
+                _isAllSelectedNotInstalled = allNotInstalledSelected;
+                OnPropertyChanged(nameof(IsAllSelectedNotInstalled));
+            }
+        }
+
+        private bool _isUpdatingSelection = false;
+
+        private void Item_PropertyChanged(object? sender, PropertyChangedEventArgs e)
+        {
+            if (e.PropertyName == nameof(AppItemViewModel.IsSelected))
+            {
+                if (_isUpdatingSelection) return;
+
+                try
+                {
+                    _isUpdatingSelection = true;
+                    InvalidateHasSelectedItemsCache();
+                    OnPropertyChanged(nameof(HasSelectedItems));
+                    OnPropertyChanged(nameof(IsAllSelected));
+                    UpdateSpecializedCheckboxStates();
+                    SelectedItemsChanged?.Invoke(this, EventArgs.Empty);
+                }
+                finally
+                {
+                    _isUpdatingSelection = false;
+                }
+            }
+        }
+
+        private void UnsubscribeFromItemPropertyChangedEvents()
+        {
+            foreach (var item in Items)
+            {
+                item.PropertyChanged -= Item_PropertyChanged;
+            }
+        }
+
+        protected override void Dispose(bool disposing)
+        {
+            if (disposing)
+            {
+                _refreshTimer?.Dispose();
+                _refreshCts?.Cancel();
+                _refreshCts?.Dispose();
+                CleanupCollectionHandlers();
+                UnsubscribeFromItemPropertyChangedEvents();
+            }
+            base.Dispose(disposing);
+        }
     }
 }

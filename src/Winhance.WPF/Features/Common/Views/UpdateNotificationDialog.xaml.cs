@@ -13,13 +13,29 @@ namespace Winhance.WPF.Features.Common.Views
         // Default text content for the update dialog
         private static readonly string DefaultTitle = "Update Available";
         private static readonly string DefaultUpdateMessage = "A new version of Winhance is available.";
-        
+
         public UpdateNotificationDialog(UpdateNotificationViewModel viewModel)
         {
             InitializeComponent();
             DataContext = viewModel;
+
+            Loaded += (s, e) =>
+            {
+                if (Application.Current.MainWindow?.DataContext is ViewModels.MainViewModel mainViewModel)
+                {
+                    mainViewModel.IsDialogOverlayVisible = true;
+                }
+            };
+
+            Closed += (s, e) =>
+            {
+                if (Application.Current.MainWindow?.DataContext is ViewModels.MainViewModel mainViewModel)
+                {
+                    mainViewModel.IsDialogOverlayVisible = false;
+                }
+            };
         }
-        
+
         private void PrimaryButton_Click(object sender, RoutedEventArgs e)
         {
             // Download and install
@@ -39,14 +55,14 @@ namespace Winhance.WPF.Features.Common.Views
             DialogResult = false;
             Close();
         }
-        
+
         private void CloseButton_Click(object sender, RoutedEventArgs e)
         {
             // Close without action
             DialogResult = false;
             Close();
         }
-        
+
         /// <summary>
         /// Creates and shows an update notification dialog with the specified parameters.
         /// This method ensures the dialog is properly modal and blocks the main window.
@@ -74,7 +90,7 @@ namespace Winhance.WPF.Features.Common.Views
 
                 // Set the update message
                 dialog.UpdateMessageText.Text = string.IsNullOrEmpty(updateMessage) ? DefaultUpdateMessage : updateMessage;
-                
+
                 // Set button content
                 dialog.PrimaryButton.Content = "Download and Install";
                 dialog.SecondaryButton.Content = "Remind Later";
@@ -103,10 +119,10 @@ namespace Winhance.WPF.Features.Common.Views
                 dialog.Visibility = Visibility.Visible;
                 dialog.Activate();
                 dialog.Focus();
-                
+
                 // Show the dialog and wait for it to complete
                 dialog.ShowDialog();
-                
+
                 // Return the dialog
                 return dialog;
             }
@@ -114,7 +130,7 @@ namespace Winhance.WPF.Features.Common.Views
             {
                 // Show error message
                 MessageBox.Show($"Error showing update dialog: {ex.Message}", "Error", MessageBoxButton.OK, MessageBoxImage.Error);
-                
+
                 // Create a dummy dialog with error result
                 var errorDialog = new UpdateNotificationDialog(viewModel);
                 errorDialog.DialogResult = false;

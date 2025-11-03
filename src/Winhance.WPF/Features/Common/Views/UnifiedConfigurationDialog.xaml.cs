@@ -8,6 +8,7 @@ using CommunityToolkit.Mvvm.Input;
 using Winhance.Core.Features.Common.Enums;
 using Winhance.Core.Features.Common.Interfaces;
 using Winhance.WPF.Features.Common.ViewModels;
+using Winhance.Core.Features.Common.Models;
 
 namespace Winhance.WPF.Features.Common.Views
 {
@@ -19,30 +20,28 @@ namespace Winhance.WPF.Features.Common.Views
         private readonly UnifiedConfigurationDialogViewModel _viewModel;
         private readonly ILogService _logService;
 
-        /// <summary>
-        /// Initializes a new instance of the <see cref="UnifiedConfigurationDialog"/> class.
-        /// </summary>
-        /// <param name="title">The title of the dialog.</param>
-        /// <param name="description">The description of the dialog.</param>
-        /// <param name="sections">The dictionary of section names, their availability, and item counts.</param>
-        /// <param name="isSaveDialog">Whether this is a save dialog (true) or an import dialog (false).</param>
         public UnifiedConfigurationDialog(
             string title,
             string description,
             Dictionary<string, (bool IsSelected, bool IsAvailable, int ItemCount)> sections,
-            bool isSaveDialog)
+            bool isSaveDialog
+        )
         {
             try
             {
                 InitializeComponent();
 
-                // Try to get the log service from the application using reflection
                 try
                 {
                     if (Application.Current is App appInstance)
                     {
-                        // Use reflection to access the _host.Services property
-                        var hostField = appInstance.GetType().GetField("_host", System.Reflection.BindingFlags.NonPublic | System.Reflection.BindingFlags.Instance);
+                        var hostField = appInstance
+                            .GetType()
+                            .GetField(
+                                "_host",
+                                System.Reflection.BindingFlags.NonPublic
+                                    | System.Reflection.BindingFlags.Instance
+                            );
                         if (hostField != null)
                         {
                             var host = hostField.GetValue(appInstance);
@@ -50,10 +49,16 @@ namespace Winhance.WPF.Features.Common.Views
                             if (servicesProperty != null)
                             {
                                 var services = servicesProperty.GetValue(host);
-                                var getServiceMethod = services.GetType().GetMethod("GetService", new[] { typeof(Type) });
+                                var getServiceMethod = services
+                                    .GetType()
+                                    .GetMethod("GetService", new[] { typeof(Type) });
                                 if (getServiceMethod != null)
                                 {
-                                    _logService = getServiceMethod.Invoke(services, new object[] { typeof(ILogService) }) as ILogService;
+                                    _logService =
+                                        getServiceMethod.Invoke(
+                                            services,
+                                            new object[] { typeof(ILogService) }
+                                        ) as ILogService;
                                 }
                             }
                         }
@@ -61,32 +66,50 @@ namespace Winhance.WPF.Features.Common.Views
                 }
                 catch (Exception ex)
                 {
-                    Debug.WriteLine($"Error getting log service: {ex.Message}");
-                    // Continue without logging
                 }
-                
-                LogInfo($"Creating {(isSaveDialog ? "save" : "import")} dialog with title: {title}");
+
+                LogInfo(
+                    $"Creating {(isSaveDialog ? "save" : "import")} dialog with title: {title}"
+                );
                 LogInfo($"Sections: {string.Join(", ", sections.Keys)}");
 
-                // Create the view model
-                _viewModel = new UnifiedConfigurationDialogViewModel(title, description, sections, isSaveDialog);
-                
-                // Set the data context
-                DataContext = _viewModel;
+                _viewModel = new UnifiedConfigurationDialogViewModel(
+                    title,
+                    description,
+                    sections,
+                    isSaveDialog
+                );
 
-                // Set the window title
+                DataContext = _viewModel;
                 this.Title = title;
-                
-                // Ensure the dialog is shown as a modal dialog
                 this.WindowStartupLocation = WindowStartupLocation.CenterOwner;
                 this.ResizeMode = ResizeMode.NoResize;
                 this.ShowInTaskbar = false;
-                
-                // Handle the OK and Cancel commands directly
+
+                this.Loaded += (s, e) =>
+                {
+                    if (Application.Current.MainWindow?.DataContext is MainViewModel mainViewModel)
+                    {
+                        mainViewModel.IsDialogOverlayVisible = true;
+                    }
+                };
+
+                this.Closed += (s, e) =>
+                {
+                    if (Application.Current.MainWindow?.DataContext is MainViewModel mainViewModel)
+                    {
+                        mainViewModel.IsDialogOverlayVisible = false;
+                    }
+                };
+
                 _viewModel.OkCommand = new RelayCommand(() =>
                 {
-                    // Validate that at least one section is selected
-                    if (_viewModel.Sections.Any(s => s.IsSelected))
+                    bool hasSelectedSection = _viewModel.Sections.Any(s =>
+                        s.IsSelected
+                        || (s.HasSubSections && s.SubSections.Any(sub => sub.IsSelected))
+                    );
+
+                    if (hasSelectedSection)
                     {
                         LogInfo("OK button clicked, at least one section selected");
                         this.DialogResult = true;
@@ -98,65 +121,62 @@ namespace Winhance.WPF.Features.Common.Views
                             "Please select at least one section to continue.",
                             "No Sections Selected",
                             MessageBoxButton.OK,
-                            MessageBoxImage.Warning);
+                            MessageBoxImage.Warning
+                        );
                     }
                 });
-                
+
                 _viewModel.CancelCommand = new RelayCommand(() =>
                 {
                     LogInfo("Cancel button clicked");
                     this.DialogResult = false;
                 });
-                
+
                 LogInfo("Dialog initialization completed");
             }
             catch (Exception ex)
             {
                 LogError($"Error initializing dialog: {ex.Message}");
-                Debug.WriteLine($"Error initializing dialog: {ex}");
-                
-                // Show error message
-                MessageBox.Show($"Error initializing dialog: {ex.Message}", "Error", MessageBoxButton.OK, MessageBoxImage.Error);
-                
-                // Set dialog result to false
+
+                MessageBox.Show(
+                    $"Error initializing dialog: {ex.Message}",
+                    "Error",
+                    MessageBoxButton.OK,
+                    MessageBoxImage.Error
+                );
+
                 DialogResult = false;
             }
         }
 
-        /// <summary>
-        /// Gets the result of the dialog as a dictionary of section names and their selection state.
-        /// </summary>
-        /// <returns>A dictionary of section names and their selection state.</returns>
-        public Dictionary<string, bool> GetResult()
+        public (Dictionary<string, bool> sections, ImportOptions options) GetResult()
         {
             try
             {
-                var result = _viewModel.GetResult();
-                LogInfo($"GetResult called, returning {result.Count} sections");
-                return result;
+                var (sections, options) = _viewModel.GetResult();
+                var selectedSections = sections.Where(r => r.Value).Select(r => r.Key).ToList();
+                LogInfo(
+                    $"GetResult called, returning {sections.Count} sections, selected: {string.Join(", ", selectedSections)}"
+                );
+                return (sections, options);
             }
             catch (Exception ex)
             {
                 LogError($"Error getting result: {ex.Message}");
-                return new Dictionary<string, bool>();
+                return (new Dictionary<string, bool>(), new ImportOptions());
             }
         }
-        
+
         private void LogInfo(string message)
         {
             _logService?.Log(LogLevel.Info, $"UnifiedConfigurationDialog: {message}");
-            Debug.WriteLine($"UnifiedConfigurationDialog: {message}");
         }
-        
+
         private void LogError(string message)
         {
             _logService?.Log(LogLevel.Error, $"UnifiedConfigurationDialog: {message}");
-            Debug.WriteLine($"UnifiedConfigurationDialog ERROR: {message}");
         }
-        
-        /// <summary>
-        /// Handles the mouse left button down event on the title bar to enable window dragging.
-        /// </summary>
+
         private void Border_MouseLeftButtonDown(object sender, MouseButtonEventArgs e)
         {
             if (e.ChangedButton == MouseButton.Left)
@@ -164,10 +184,7 @@ namespace Winhance.WPF.Features.Common.Views
                 this.DragMove();
             }
         }
-        
-        /// <summary>
-        /// Handles the close button click event.
-        /// </summary>
+
         private void CloseButton_Click(object sender, RoutedEventArgs e)
         {
             LogInfo("Close button clicked");

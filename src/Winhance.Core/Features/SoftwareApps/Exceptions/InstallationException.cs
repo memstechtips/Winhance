@@ -12,7 +12,7 @@ namespace Winhance.Core.Features.SoftwareApps.Exceptions
         /// Gets the type of installation error.
         /// </summary>
         public InstallationErrorType ErrorType { get; }
-        
+
         /// <summary>
         /// Initializes a new instance of the <see cref="InstallationException"/> class.
         /// </summary>
@@ -40,7 +40,7 @@ namespace Winhance.Core.Features.SoftwareApps.Exceptions
         {
             ErrorType = InstallationErrorType.UnknownError;
         }
-        
+
         /// <summary>
         /// Initializes a new instance of the <see cref="InstallationException"/> class with a specified error message,
         /// error type, and a reference to the inner exception that is the cause of this exception.
@@ -69,7 +69,7 @@ namespace Winhance.Core.Features.SoftwareApps.Exceptions
             IsCritical = isCritical;
             ErrorType = InstallationErrorType.UnknownError;
         }
-        
+
         /// <summary>
         /// Initializes a new instance of the <see cref="InstallationException"/> class with a specified item name, error message,
         /// a flag indicating whether the error is critical, the error type, and a reference to the inner exception that is the cause of this exception.

@@ -12,10 +12,10 @@
     <!-- Force icon refresh -->
     <Win32Resource></Win32Resource>
     <!-- Version information -->
-    <Version>25.05.22</Version>
-    <FileVersion>25.05.22</FileVersion>
-    <AssemblyVersion>25.05.22</AssemblyVersion>
-    <InformationalVersion>v25.05.22</InformationalVersion>
+    <Version>25.11.03</Version>
+    <FileVersion>25.11.03</FileVersion>
+    <AssemblyVersion>25.11.03</AssemblyVersion>
+    <InformationalVersion>v25.11.03</InformationalVersion>
   </PropertyGroup>
   <!-- Theme files are now included by default -->
   <ItemGroup>
@@ -27,11 +27,14 @@
     <ApplicationManifest Include="App.manifest" />
   </ItemGroup>
   <ItemGroup>
-    <Resource Include="Resources\Fonts\MaterialSymbolsOutlined.ttf" />
     <Resource Include="Resources\AppIcons\winhance-rocket.ico" />
     <Resource Include="Resources\AppIcons\winhance-rocket-white-transparent-bg.ico" />
     <Resource Include="Resources\AppIcons\winhance-rocket-black-transparent-bg.ico" />
     <Resource Include="Resources\AppIcons\LICENSE.txt" />
+  </ItemGroup>
+  <ItemGroup>
+    <EmbeddedResource Include="Resources\Configs\Winhance_Recommended_Config.winhance" />
+    <EmbeddedResource Include="Resources\AdvancedTools\autounattend-template.xml" />
   </ItemGroup>
   <ItemGroup>
     <ProjectReference Include="..\Winhance.Core\Winhance.Core.csproj" />
@@ -39,7 +42,9 @@
   </ItemGroup>
   <ItemGroup>
     <PackageReference Include="CommunityToolkit.Mvvm" Version="8.4.0" />
-    <PackageReference Include="MaterialDesignThemes" Version="5.2.1" />
+    <PackageReference Include="MahApps.Metro.IconPacks.Material" Version="6.1.0" />
+    <PackageReference Include="MahApps.Metro.IconPacks.MaterialDesign" Version="6.1.0" />
+    <PackageReference Include="MahApps.Metro.IconPacks.Lucide" Version="6.1.0" />
     <PackageReference Include="Microsoft.Extensions.DependencyInjection" Version="8.0.0" />
     <PackageReference Include="Microsoft.Extensions.Hosting" Version="8.0.0" />
     <PackageReference Include="Microsoft.Win32.Registry" Version="5.0.0" />
@@ -47,10 +52,29 @@
     <PackageReference Include="System.DirectoryServices.Protocols" Version="8.0.0" />
     <PackageReference Include="System.Formats.Asn1" Version="8.0.1" />
     <PackageReference Include="System.IO.Packaging" Version="8.0.1" />
-    <PackageReference Include="Microsoft.Windows.Compatibility" Version="8.0.0" />
+    <PackageReference Include="Microsoft.Windows.Compatibility" Version="8.0.10" />
     <PackageReference Include="System.Text.Json" Version="9.0.2" />
   </ItemGroup>
 </Project>
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
 
 

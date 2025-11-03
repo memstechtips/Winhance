@@ -23,17 +23,34 @@
                     <Grid>
                         <Grid.ColumnDefinitions>
                             <ColumnDefinition Width="Auto"/>
+                            <ColumnDefinition Width="Auto"/>
                             <ColumnDefinition Width="*"/>
                         </Grid.ColumnDefinitions>
 
+                        <!-- On/Off Text Label -->
+                        <TextBlock x:Name="StateLabel"
+                                   Grid.Column="0"
+                                   Text="Off"
+                                   Foreground="{DynamicResource ControlForeground}"
+                                   VerticalAlignment="Center"
+                                   HorizontalAlignment="Center"
+                                   Margin="0,0,10,2"
+                                   FontSize="12"
+                                   FontWeight="Medium"/>
+
                         <!-- Toggle Switch Track (using Border with no border) -->
                         <Border x:Name="SwitchTrack"
+                                Grid.Column="1"
                                 Width="40" Height="20"
                                 CornerRadius="10"
                                 BorderThickness="0"
                                 Background="#FFE53935"
-                                VerticalAlignment="Center">
-                            
+                                VerticalAlignment="Center"
+                                RenderTransformOrigin="0.5,0.5">
+                            <Border.RenderTransform>
+                                <ScaleTransform x:Name="ScaleTransform" ScaleX="1" ScaleY="1"/>
+                            </Border.RenderTransform>
+
                             <!-- Knob with icon container -->
                             <Grid x:Name="KnobContainer" 
                                   HorizontalAlignment="Left"
@@ -72,7 +89,7 @@
                         </Border>
 
                         <!-- Content -->
-                        <ContentPresenter Grid.Column="1"
+                        <ContentPresenter Grid.Column="2"
                                           Margin="10,0,0,0"
                                           VerticalAlignment="Center"
                                           HorizontalAlignment="Left"/>
@@ -84,11 +101,56 @@
                             <Setter TargetName="SwitchTrack" Property="Background" Value="#FF4CAF50"/> <!-- Green when checked -->
                             <Setter TargetName="CheckIcon" Property="Visibility" Value="Visible"/>
                             <Setter TargetName="XIcon" Property="Visibility" Value="Collapsed"/>
+                            <Setter TargetName="StateLabel" Property="Text" Value="On"/>
                         </Trigger>
 
                         <!-- Common hover state -->
                         <Trigger Property="IsMouseOver" Value="True">
                             <Setter TargetName="SwitchTrack" Property="Opacity" Value="0.8"/>
+                            <Trigger.EnterActions>
+                                <BeginStoryboard>
+                                    <Storyboard>
+                                        <DoubleAnimation Storyboard.TargetName="ScaleTransform"
+                                                       Storyboard.TargetProperty="ScaleX"
+                                                       To="1.03"
+                                                       Duration="0:0:0.1">
+                                            <DoubleAnimation.EasingFunction>
+                                                <CubicEase EasingMode="EaseOut"/>
+                                            </DoubleAnimation.EasingFunction>
+                                        </DoubleAnimation>
+                                        <DoubleAnimation Storyboard.TargetName="ScaleTransform"
+                                                       Storyboard.TargetProperty="ScaleY"
+                                                       To="1.03"
+                                                       Duration="0:0:0.1">
+                                            <DoubleAnimation.EasingFunction>
+                                                <CubicEase EasingMode="EaseOut"/>
+                                            </DoubleAnimation.EasingFunction>
+                                        </DoubleAnimation>
+                                    </Storyboard>
+                                </BeginStoryboard>
+                            </Trigger.EnterActions>
+                            <Trigger.ExitActions>
+                                <BeginStoryboard>
+                                    <Storyboard>
+                                        <DoubleAnimation Storyboard.TargetName="ScaleTransform"
+                                                       Storyboard.TargetProperty="ScaleX"
+                                                       To="1"
+                                                       Duration="0:0:0.1">
+                                            <DoubleAnimation.EasingFunction>
+                                                <CubicEase EasingMode="EaseOut"/>
+                                            </DoubleAnimation.EasingFunction>
+                                        </DoubleAnimation>
+                                        <DoubleAnimation Storyboard.TargetName="ScaleTransform"
+                                                       Storyboard.TargetProperty="ScaleY"
+                                                       To="1"
+                                                       Duration="0:0:0.1">
+                                            <DoubleAnimation.EasingFunction>
+                                                <CubicEase EasingMode="EaseOut"/>
+                                            </DoubleAnimation.EasingFunction>
+                                        </DoubleAnimation>
+                                    </Storyboard>
+                                </BeginStoryboard>
+                            </Trigger.ExitActions>
                         </Trigger>
                         
                         <!-- Disabled state -->

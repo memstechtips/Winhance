@@ -85,75 +85,13 @@ Note: ✅ Completed items are commited to the source code files, but the changes
 ⌛ Add a Winhance Winget package to make Winhance installable via WinGet. Issue #159  
 🔜 Add Winhance to the Microsoft Store.  
 
-### Main Window
 
-#### Config Import
-🔜 Improve Config Import to have checkboxes for sub sections in each category 
-🔜 Add a Invert Select option #168
-
-
-### Software & Apps Screen
-
-🔜 Add detection of installed apps and update notifications for those apps     
-🔜 Add an option to enable and Activate Windows Photo Viewer. Issue #135  
-⌛ Refactor app removal implementation to increase speed of app removals.  
-⌛ Fix incorrect (failure) dialog being shown when a single app installation is cancelled.  
-
-#### Windows Apps & Features
-🔜 Add Icons next to the "Winhance Removal Status" that when clicked, deletes the scripts and scheduled tasks that are present when Winhance was previously run (ie. BloatRemoval.ps1, EdgeRemoval.ps1 and OneDriveRemoval.ps1)  
-🔜 Rework EdgeRemoval script so it doesn't uninstall WebView. Also, update WebView installation  
+#### Windows Apps & Features 
 🔜 Fix "We can't open this 'microsoft-edge' link" due to edge removal and no default browser found. Issue #38  
-⌛ Features/apps still auto-removed even after I select and (re)install them from Winhance #175
+
 
 #### External Software
-🔜 For app installations, give users the option to choose a location to install the application. Issue #160  
-🔜 Add a "website" icon next to each app in external software that will take the user to the specific app's webpage so users can get more info about the app before installing it. Issue #152  
-🔜 Status Feature for External Software: Similar to Windows software, add a status feature for external applications to indicate whether they are installed. If installed, show if updates are available (updates indicator for windows softwares as well). Issue #142  
-🔜 Indicator for App Purchases: Include an indicator for apps to show if they are completely free, partially free/paid, and completely paid. Issue #142  
-🔜 Add ability to select the programs that users currently have installed on their computers to the external apps section and that they can be added to the config file. Issue #165 
-🔜 Add some Software #170   
-🔜 Add Meld to Development Apps #149  
-
-
-### Optimize Screen
-
-#### Power Management
-🔜 Improve the power section to detect all power plans on the pc and add indicators next to each power plan in the dropdown menu showing what currently exists  
-🔜 Improve the power section to have toggles that toggle the powercfg commands on the currently applied power plan (currently, importing the Ultimate Performance powerplan just automatically applies all "recommended" powercfg commands but there is no control over it) This will also fix #84  
-
-#### Gaming & Performance
-🔜 Review the "Mouse" related settings and why Enhance mouse precision won't work anymore due to mouse related tweaks in the gaming section. Issue #13  
-🔜 Consider adding preset options in optimizations tab like "Minimal, recommended and extreme optimizations" (This can also be done with preset config files if developed and shared.)  
-
-#### Explorer Improvements 
-🔜 Toggle to remove the "open in terminal" option from right click context menu. Issue #162  
-🔜 Add toggles to remove "-Shortcut" Text, Disable Always Ask Before Opening. Issue #135   
-
-### Customize Screen
-
-#### Taskbar
-🔜 Fix News & Interests/Widgets/Weather icon not being removed from the Taskbar due to being a protected registry key.
-
-#### Explorer
-⌛ FR: enable end task to taskbar right click menu in win 11 #177  
-⌛ Disable translucent selection rectangle not working in windows 11 file explorer #173  
-
-
-### Other General Requests, Features & Issues
-🔜 Debloat ink handwriting main store. Issue #65  
-🔜 Add old F8 Menu to startup screen  
-🔜 Can't type in Start Menu search bar. (This is due to tweaks included in the first version of Winhance, need to investigate). Issue #25  
-🔜 Add translations for different languages (not currently a top priority). Issue #51  
-⌛ Posting Template & Wiki. Issue #91  
-  - Posting Template Implemented. Wiki will be created in the future.
-🔜 Disable windows search indexing tool. Issue #74 
-🔜 Add the Commandline Run option #172  
-🔜 Add an Option to change the Mousepointer Size and Color #171
-
-
-
-#### UI Improvements
-🔜 Update tooltips to be more descriptive about what a toggle does  
+🔜 For app installations, give users the option to choose a location to install the application. Issue #160
 
 
 ## Feedback and Community

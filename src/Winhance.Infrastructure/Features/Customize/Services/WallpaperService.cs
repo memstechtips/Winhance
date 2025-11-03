@@ -35,7 +35,7 @@ namespace Winhance.Infrastructure.Features.Customize.Services
         /// <inheritdoc/>
         public string GetDefaultWallpaperPath(bool isWindows11, bool isDarkMode)
         {
-            return WindowsThemeSettings.Wallpaper.GetDefaultWallpaperPath(isWindows11, isDarkMode);
+            return WindowsThemeCustomizations.Wallpaper.GetDefaultWallpaperPath(isWindows11, isDarkMode);
         }
 
         /// <inheritdoc/>

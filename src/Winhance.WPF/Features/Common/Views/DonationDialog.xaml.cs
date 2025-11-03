@@ -20,6 +20,22 @@ namespace Winhance.WPF.Features.Common.Views
         {
             InitializeComponent();
             DataContext = this;
+
+            Loaded += (s, e) =>
+            {
+                if (Application.Current.MainWindow?.DataContext is ViewModels.MainViewModel mainViewModel)
+                {
+                    mainViewModel.IsDialogOverlayVisible = true;
+                }
+            };
+
+            Closed += (s, e) =>
+            {
+                if (Application.Current.MainWindow?.DataContext is ViewModels.MainViewModel mainViewModel)
+                {
+                    mainViewModel.IsDialogOverlayVisible = false;
+                }
+            };
         }
 
         private void PrimaryButton_Click(object sender, RoutedEventArgs e)
@@ -33,7 +49,7 @@ namespace Winhance.WPF.Features.Common.Views
             DialogResult = false;
             Close();
         }
-        
+
         private void TertiaryButton_Click(object sender, RoutedEventArgs e)
         {
             // Explicitly set DialogResult to null for Cancel
@@ -66,7 +82,7 @@ namespace Winhance.WPF.Features.Common.Views
                 // Set the support message and footer text
                 dialog.SupportMessageText.Text = supportMessage ?? DefaultSupportMessage;
                 dialog.FooterText.Text = footerText ?? DefaultFooterText;
-                
+
                 // Set button content
                 dialog.PrimaryButton.Content = "Yes";
                 dialog.SecondaryButton.Content = "No";
@@ -95,10 +111,10 @@ namespace Winhance.WPF.Features.Common.Views
                 dialog.Visibility = Visibility.Visible;
                 dialog.Activate();
                 dialog.Focus();
-                
+
                 // Show the dialog and wait for it to complete
                 dialog.ShowDialog();
-                
+
                 // Return the dialog
                 return dialog;
             }
@@ -106,7 +122,7 @@ namespace Winhance.WPF.Features.Common.Views
             {
                 // Show error message
                 MessageBox.Show($"Error showing donation dialog: {ex.Message}", "Error", MessageBoxButton.OK, MessageBoxImage.Error);
-                
+
                 // Create a dummy dialog with error result
                 var errorDialog = new DonationDialog();
                 errorDialog.DialogResult = false;

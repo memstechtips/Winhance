@@ -97,8 +97,8 @@ namespace Winhance.Infrastructure.Features.Common.Services
             _isIndeterminate = isIndeterminate;
             _logMessages.Clear();
 
-            _logService.Log(LogLevel.Info, $"Task started: {taskName}"); // Corrected Log call
-            AddLogMessage($"Task started: {taskName}");
+            _logService.Log(LogLevel.Info, $"[TASKPROGRESSSERVICE] Task started: {taskName}"); // Corrected Log call
+            AddLogMessage($"[TASKPROGRESSSERVICE] Task started: {taskName}");
             OnProgressChanged(
                 new TaskProgressDetail
                 {
@@ -120,7 +120,6 @@ namespace Winhance.Infrastructure.Features.Common.Services
         {
             if (!_isTaskRunning)
             {
-                Debug.WriteLine("Warning: Attempting to update progress when no task is running.");
                 return;
             }
 
@@ -164,9 +163,6 @@ namespace Winhance.Infrastructure.Features.Common.Services
         {
             if (!_isTaskRunning)
             {
-                Debug.WriteLine(
-                    "Warning: Attempting to update detailed progress when no task is running."
-                );
                 return;
             }
 
@@ -204,7 +200,6 @@ namespace Winhance.Infrastructure.Features.Common.Services
         {
             if (!_isTaskRunning)
             {
-                Debug.WriteLine("Warning: Attempting to complete a task when no task is running.");
                 return;
             }
 
@@ -252,9 +247,6 @@ namespace Winhance.Infrastructure.Features.Common.Services
             {
                 _cancellationSource.Cancel();
                 AddLogMessage("Task cancelled by user");
-
-                // Don't dispose here, as the task might still be using it
-                // It will be disposed in CompleteTask or when a new task starts
             }
         }
 

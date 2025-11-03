@@ -206,7 +206,7 @@ namespace Winhance.WPF.Features.Common.Behaviors
                     MaxWidth = maxWidth,
                     HorizontalAlignment = HorizontalAlignment.Left
                 };
-                
+
                 // Add resources to the WrapPanel
                 var wrapPanelStyle = new Style(typeof(ContentPresenter));
                 wrapPanelStyle.Setters.Add(new Setter(FrameworkElement.MarginProperty, new Thickness(0, 5, 10, 5)));
@@ -218,21 +218,21 @@ namespace Winhance.WPF.Features.Common.Behaviors
                 template.VisualTree.SetValue(WrapPanel.OrientationProperty, Orientation.Horizontal);
                 template.VisualTree.SetValue(WrapPanel.MaxWidthProperty, maxWidth);
                 template.VisualTree.SetValue(WrapPanel.HorizontalAlignmentProperty, HorizontalAlignment.Left);
-                
+
                 // Add resources to the template
                 var resourceDictionary = new ResourceDictionary();
                 var contentPresenterStyle = new Style(typeof(ContentPresenter));
                 contentPresenterStyle.Setters.Add(new Setter(FrameworkElement.MarginProperty, new Thickness(0, 5, 10, 5)));
                 resourceDictionary.Add(typeof(ContentPresenter), contentPresenterStyle);
                 template.Resources = resourceDictionary;
-                
+
                 // Set item spacing through the ItemContainerStyle
                 var style = new Style(typeof(ContentPresenter));
                 style.Setters.Add(new Setter(FrameworkElement.MarginProperty, new Thickness(0, 5, 10, 5)));
                 style.Setters.Add(new Setter(FrameworkElement.WidthProperty, 250.0));
                 style.Setters.Add(new Setter(FrameworkElement.MinWidthProperty, 250.0));
                 style.Setters.Add(new Setter(FrameworkElement.MaxWidthProperty, 250.0));
-                
+
                 if (itemsControl.ItemContainerStyle == null)
                 {
                     itemsControl.ItemContainerStyle = style;

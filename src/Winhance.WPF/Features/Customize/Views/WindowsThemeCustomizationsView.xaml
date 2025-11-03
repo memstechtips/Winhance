@@ -3,106 +3,17 @@
              xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
              xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
              xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
-             xmlns:viewmodels="clr-namespace:Winhance.WPF.Features.Customize.ViewModels"
-             xmlns:materialDesign="http://materialdesigninxaml.net/winfx/xaml/themes"
-             xmlns:local="clr-namespace:Winhance.WPF.Features.Customize.Views"
-             xmlns:controls="clr-namespace:Winhance.WPF.Features.Common.Controls"
-             xmlns:behaviors="clr-namespace:Winhance.WPF.Features.Common.Behaviors"
-             xmlns:enums="clr-namespace:Winhance.Core.Features.Common.Enums;assembly=Winhance.Core"
-             d:DataContext="{d:DesignInstance Type=viewmodels:WindowsThemeCustomizationsViewModel}"
-             mc:Ignorable="d">
+             xmlns:viewModels="clr-namespace:Winhance.WPF.Features.Customize.ViewModels"
+             xmlns:iconPacks="http://metro.mahapps.com/winfx/xaml/iconpacks"
+             d:DataContext="{d:DesignInstance Type=viewModels:WindowsThemeCustomizationsViewModel}"
+             mc:Ignorable="d"
+             Visibility="{Binding HasVisibleSettings, Converter={StaticResource BooleanToVisibilityConverter}}">
 
-    <StackPanel Margin="0,10,0,10">
-        <!-- Theme Mode Selection -->
-        <Grid Margin="10,0,10,10" 
-              Visibility="{Binding HasThemeOptions, Converter={StaticResource BooleanToVisibilityConverter}}">
-            <Grid.ColumnDefinitions>
-                <ColumnDefinition Width="*"/>
-                <ColumnDefinition Width="Auto"/>
-            </Grid.ColumnDefinitions>
-            
-            <!-- Left: Description -->
-            <TextBlock Grid.Column="0"
-                       Text="Choose Your Mode"
-                       Foreground="{DynamicResource PrimaryTextColor}"
-                       FontSize="14"
-                       Margin="15,5,0,5"
-                       VerticalAlignment="Center"/>
-            
-            <!-- Right: ComboBox -->
-            <ComboBox Grid.Column="1"
-                      Width="100"
-                      Margin="0,5,15,5"
-                      HorizontalAlignment="Right"
-                      VerticalAlignment="Center"
-                      ItemsSource="{Binding ThemeOptions}"
-                      SelectedItem="{Binding SelectedTheme, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}"/>
-        </Grid>
+    <StackPanel>
+        <!-- Collapsible Header -->
+        <ContentControl Template="{StaticResource CollapsibleHeaderTemplate}"/>
         
-        <!-- Container for Setting Labels & Toggles -->
-        <ItemsControl x:Name="WindowsThemeSettingsItemsControl"
-                      ItemsSource="{Binding Settings}">
-            <ItemsControl.ItemsPanel>
-                <ItemsPanelTemplate>
-                    <WrapPanel Orientation="Horizontal" HorizontalAlignment="Left"/>
-                </ItemsPanelTemplate>
-            </ItemsControl.ItemsPanel>
-            <ItemsControl.ItemContainerStyle>
-                <Style BasedOn="{StaticResource ResponsiveItemContainerStyle}" TargetType="FrameworkElement">
-                    <Setter Property="Grid.ColumnSpan"
-                            Value="{Binding IsGroupHeader, Converter={StaticResource BooleanToGridSpanConverter}}"/>
-                    <Setter Property="Width" Value="0"/>
-                    <Setter Property="Margin" Value="0,0,0,0"/>
-                </Style>
-            </ItemsControl.ItemContainerStyle>
-            <ItemsControl.ItemTemplate>
-                <DataTemplate>
-                    <Grid>
-                        <!-- Group header template -->
-                        <TextBlock Text="{Binding Name}"
-                                   Foreground="{DynamicResource PrimaryTextColor}"
-                                   FontWeight="SemiBold"
-                                   Margin="25,15,0,5"
-                                   Visibility="{Binding IsGroupHeader, Converter={StaticResource BooleanToVisibilityConverter}}"/>
-
-                        <!-- Regular setting template -->
-                        <StackPanel Orientation="Horizontal"
-                                    Visibility="{Binding IsGroupHeader, Converter={StaticResource InverseBooleanToVisibilityConverter}}">
-                            
-                            <!-- Toggle Button for Binary Toggle control type -->
-                            <ToggleButton Style="{StaticResource MaterialToggleSwitch}"
-                                          IsChecked="{Binding IsSelected, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}"
-                                          Margin="15,5,0,5"
-                                          HorizontalAlignment="Left"
-                                          VerticalAlignment="Center"
-                                          Content=""
-                                          Visibility="{Binding ControlType, Converter={StaticResource EnumToVisibilityConverter}, ConverterParameter={x:Static enums:ControlType.BinaryToggle}}">
-                                <ToggleButton.ToolTip>
-                                    <ToolTip>
-                                        <ContentPresenter Content="{Binding}"
-                                                ContentTemplate="{StaticResource RegistrySettingTooltipTemplate}"/>
-                                    </ToolTip>
-                                </ToggleButton.ToolTip>
-                            </ToggleButton>
-                            
-                            <!-- Label for Binary Toggle control type -->
-                            <TextBlock Text="{Binding FullName}"
-                                       Foreground="{DynamicResource PrimaryTextColor}"
-                                       Margin="0,5,0,5"
-                                       FontSize="14"
-                                       VerticalAlignment="Center"
-                                       Visibility="{Binding ControlType, Converter={StaticResource EnumToVisibilityConverter}, ConverterParameter={x:Static enums:ControlType.BinaryToggle}}">
-                                <TextBlock.ToolTip>
-                                    <ToolTip>
-                                        <ContentPresenter Content="{Binding}"
-                                                ContentTemplate="{StaticResource RegistrySettingTooltipTemplate}"/>
-                                    </ToolTip>
-                                </TextBlock.ToolTip>
-                            </TextBlock>
-                        </StackPanel>
-                    </Grid>
-                </DataTemplate>
-            </ItemsControl.ItemTemplate>
-        </ItemsControl>
+        <!-- Content Section -->
+        <ContentControl Template="{StaticResource ContentSectionTemplate}"/>
     </StackPanel>
 </UserControl>

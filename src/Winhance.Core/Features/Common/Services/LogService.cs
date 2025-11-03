@@ -12,17 +12,23 @@ namespace Winhance.Core.Features.Common.Services
         private string _logPath;
         private StreamWriter? _logWriter;
         private readonly object _lockObject = new object();
-        
+        private IWindowsVersionService _versionService;
+
         public event EventHandler<LogMessageEventArgs>? LogMessageGenerated;
 
         public LogService()
         {
             _logPath = Path.Combine(
-                Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData),
+                Environment.GetFolderPath(Environment.SpecialFolder.CommonApplicationData),
                 "Winhance",
                 "Logs",
                 $"Winhance_Log_{DateTime.Now:yyyyMMdd_HHmmss}.log"
             );
+        }
+
+        public void Initialize(IWindowsVersionService versionService)
+        {
+            _versionService = versionService;
         }
 
         public void Log(LogLevel level, string message, Exception? exception = null)
@@ -45,11 +51,11 @@ namespace Winhance.Core.Features.Common.Services
                     LogInformation(message);
                     break;
             }
-            
+
             // Raise event for subscribers
             LogMessageGenerated?.Invoke(this, new LogMessageEventArgs(level, message, exception));
         }
-        
+
         // This method should be removed, but it might still be used in some places
         // Redirecting to the standard method with correct parameter order
         public void Log(string message, LogLevel level)
@@ -83,13 +89,21 @@ namespace Winhance.Core.Features.Common.Services
                 LogInformation($"Timestamp: {DateTime.Now}");
                 LogInformation($"User: {Environment.UserName}");
                 LogInformation($"Machine: {Environment.MachineName}");
-                LogInformation($"OS Version: {Environment.OSVersion}");
+
+                if (_versionService != null)
+                {
+                    LogInformation($"OS Version: {_versionService.GetOsVersionString()}");
+                    LogInformation($"OS Build: {_versionService.GetOsBuildString()}");
+                }
+                else
+                {
+                    LogInformation($"OS Version: {Environment.OSVersion}");
+                }
                 LogInformation("===========================");
             }
             catch (Exception ex)
             {
-                // Fallback logging if file write fails
-                Console.Error.WriteLine($"Failed to start log: {ex.Message}");
+                // Fallback if file write fails
             }
         }
 
@@ -105,7 +119,7 @@ namespace Winhance.Core.Features.Common.Services
                 }
                 catch (Exception ex)
                 {
-                    Console.Error.WriteLine($"Error stopping log: {ex.Message}");
+                    // Error stopping log
                 }
             }
         }
@@ -149,12 +163,10 @@ namespace Winhance.Core.Features.Common.Services
                     // Write to file if log writer is available
                     _logWriter?.WriteLine(logEntry);
 
-                    // Also write to console for immediate visibility
-                    Console.WriteLine(logEntry);
                 }
                 catch (Exception ex)
                 {
-                    Console.Error.WriteLine($"Logging failed: {ex.Message}");
+                    // Logging failed
                 }
             }
         }

@@ -1,207 +1,167 @@
 <UserControl x:Class="Winhance.WPF.Features.SoftwareApps.Views.ExternalAppsView"
              xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
              xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
-             xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
              xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
+             xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
              xmlns:viewModels="clr-namespace:Winhance.WPF.Features.SoftwareApps.ViewModels"
-             xmlns:materialDesign="http://materialdesigninxaml.net/winfx/xaml/themes"
-             xmlns:local="clr-namespace:Winhance.WPF.Features.Common.Controls"
+             xmlns:iconPacks="http://metro.mahapps.com/winfx/xaml/iconpacks"
              xmlns:controls="clr-namespace:Winhance.WPF.Features.Common.Controls"
-             xmlns:behaviors="clr-namespace:Winhance.WPF.Features.Common.Behaviors"
-             d:DataContext="{d:DesignInstance Type=viewModels:ExternalAppsViewModel}"
-             mc:Ignorable="d">
+             xmlns:views="clr-namespace:Winhance.WPF.Features.SoftwareApps.Views"
+             mc:Ignorable="d"
+             d:DataContext="{d:DesignInstance Type=viewModels:ExternalAppsViewModel}">
 
-    <controls:ResponsiveScrollViewer>
-        <StackPanel Margin="10">
-        <!-- Buttons on the right -->
-        <DockPanel LastChildFill="True"
-                   Margin="0,20,10,10">
-            <!-- Install and Clear Buttons -->
-            <StackPanel DockPanel.Dock="Right"
-                        Orientation="Vertical"
-                        VerticalAlignment="Center"
-                        Margin="10,0,0,0">
-                <Button Style="{StaticResource InstallAppsButtonStyle}"
-                        Content="Install Selected Items"
-                        Width="180"
-                        Height="35"
-                        Margin="0,0,0,10"
-                        Command="{Binding InstallAppsCommand}"/>
-                <Button Style="{StaticResource RemoveAppsButtonStyle}"
-                        Content="Clear Selection"
-                        Width="180"
-                        Height="35"
-                        Command="{Binding ClearSelectedItemsCommand}"/>
-            </StackPanel>
+    <Grid>
 
-            <!-- Info Text and Search -->
-            <Border Background="{DynamicResource ContentSectionBorderBrush}"
-                    BorderBrush="{DynamicResource ButtonBorderBrush}"
-                    BorderThickness="1"
-                    CornerRadius="5"
-                    Margin="0,0,0,0"
-                    Padding="10,5"
-                    HorizontalAlignment="Stretch"
-                    Width="Auto"
-                    Height="80">
-                <Grid>
-                    <Grid.RowDefinitions>
-                        <RowDefinition Height="Auto"/>
-                        <RowDefinition Height="Auto"/>
-                    </Grid.RowDefinitions>
+        <views:ExternalAppsTableView
+            Visibility="{Binding IsTableViewMode, Converter={StaticResource BooleanToVisibilityConverter}}"/>
 
-                    <!-- Row 0: Empty space to match WindowsAppsView status indicators -->
-                    <Grid Grid.Row="0" Margin="0,5,0,0">
-                        <Grid.ColumnDefinitions>
-                            <ColumnDefinition Width="*"/>
-                        </Grid.ColumnDefinitions>
-                        
-                        <!-- Empty container to maintain consistent spacing -->
-                        <StackPanel Orientation="Horizontal"
-                                    VerticalAlignment="Center"
-                                    Height="24">
-                            <!-- This empty container takes up the same space as status indicators in WindowsAppsView -->
-                        </StackPanel>
-                    </Grid>
+        <controls:ResponsiveScrollViewer
+            Visibility="{Binding IsTableViewMode, Converter={StaticResource InverseBooleanToVisibilityConverter}}">
+                                        <StackPanel Margin="10">
 
-                    <!-- Row 1: Info text (left) + Search box (right) -->
-                    <Grid Grid.Row="1" Margin="0,0,0,5">
-                        <Grid.ColumnDefinitions>
-                            <ColumnDefinition Width="*"/>
-                            <ColumnDefinition Width="Auto"/>
-                        </Grid.ColumnDefinitions>
+                                            <!-- Selection Checkboxes -->
+                                            <StackPanel Orientation="Horizontal" Margin="15,10,0,10">
+                                                <CheckBox Style="{StaticResource CustomCheckBox}"
+                                                          Content="Select All"
+                                                          FontSize="16"
+                                                          FontWeight="Bold"
+                                                          IsChecked="{Binding IsAllSelected}"
+                                                          Margin="0,0,20,0"/>
 
-                        <!-- Search Box (prioritized) -->
-                        <StackPanel Grid.Column="1"
-                                    HorizontalAlignment="Right"
-                                    VerticalAlignment="Center"
-                                    Margin="10,0,10,0"
-                                    Panel.ZIndex="10">
-                            <local:SearchBox Width="200"
-                                             SearchText="{Binding SearchText, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}"/>
-                        </StackPanel>
+                                                <CheckBox Style="{StaticResource CustomCheckBox}"
+                                                          Content="Select All Installed"
+                                                          FontSize="16"
+                                                          FontWeight="Bold"
+                                                          IsChecked="{Binding IsAllSelectedInstalled}"
+                                                          Margin="0,0,20,0"/>
 
-                        <!-- Info Text (lower priority) -->
-                        <Grid Grid.Column="0">
-                            <Grid.ColumnDefinitions>
-                                <ColumnDefinition Width="Auto"/>
-                                <ColumnDefinition Width="*"/>
-                            </Grid.ColumnDefinitions>
+                                                <CheckBox Style="{StaticResource CustomCheckBox}"
+                                                          Content="Select All Not Installed"
+                                                          FontSize="16"
+                                                          FontWeight="Bold"
+                                                          IsChecked="{Binding IsAllSelectedNotInstalled}"
+                                                          Margin="0,0,0,0"/>
+                                            </StackPanel>
 
-                            <!-- Info Icon -->
-                            <materialDesign:PackIcon Grid.Column="0"
-                                                     Kind="Information"
-                                                     Width="24"
-                                                     Height="32"
-                                                     Margin="0,0,5,-5"
-                                                     Foreground="Gray"
-                                                     VerticalAlignment="Center"/>
+                                            <ItemsControl ItemsSource="{Binding Categories}">
+                                                <ItemsControl.ItemTemplate>
+                                                    <DataTemplate>
+                                                        <StackPanel Margin="0,5,0,5">
+                                                            <Border Background="{DynamicResource ContentSectionBorderBrush}"
+                                                                    CornerRadius="5"
+                                                                    Margin="0,5,0,5"
+                                                                    Effect="{StaticResource ShadowEffect}"
+                                                                    Cursor="Hand"
+                                                                    Tag="{Binding Name}">
+                                                                <DockPanel VerticalAlignment="Center"
+                                                                           HorizontalAlignment="Stretch">
+                                                                    <iconPacks:PackIconMaterial Kind="{Binding Icon, FallbackValue=Apps}"
+                                                                                             Width="24"
+                                                                                             Height="24"
+                                                                                             Margin="15,0,10,0"
+                                                                                             Foreground="{DynamicResource PrimaryTextColor}"
+                                                                                             VerticalAlignment="Center"
+                                                                                             DockPanel.Dock="Left"/>
 
-                            <!-- Info Text -->
-                            <TextBlock Grid.Column="1"
-                                       VerticalAlignment="Center"
-                                       HorizontalAlignment="Left"
-                                       Margin="0,0,0,-5"
-                                       Style="{StaticResource AppInfoTextStyle}"
-                                       FontSize="12"
-                                       TextWrapping="Wrap"
-                                       MaxHeight="40"
-                                       Text="Check the boxes next to the applications you want to install. Click 'Install Selected Items' to install them all at once.&#x0a;Use the Search Box to find settings quickly. The Save and Import Config buttons in the main window help you manage your preferred selections."/>
-                        </Grid>
+                                                                    <TextBlock Text="{Binding Name}"
+                                                                               FontWeight="SemiBold"
+                                                                               FontSize="14"
+                                                                               Foreground="{DynamicResource PrimaryTextColor}"
+                                                                               Margin="0,10,0,10"
+                                                                               VerticalAlignment="Center"
+                                                                               DockPanel.Dock="Left"/>
 
-                    </Grid>
-                </Grid>
-            </Border>
-        </DockPanel>
+                                                                    <iconPacks:PackIconMaterial Kind="{Binding IsExpanded, Converter={StaticResource BoolToChevronConverter}, FallbackValue=ChevronDown}"
+                                                                                             Width="12"
+                                                                                             Height="12"
+                                                                                             HorizontalAlignment="Right"
+                                                                                             VerticalAlignment="Center"
+                                                                                             Foreground="{DynamicResource PrimaryTextColor}"
+                                                                                             Margin="0,0,10,0"
+                                                                                             DockPanel.Dock="Right"/>
+                                                                </DockPanel>
+                                                            </Border>
 
-        <!-- External Apps by Category -->
-        <ItemsControl ItemsSource="{Binding Categories}">
-            <ItemsControl.ItemTemplate>
-                <DataTemplate>
-                    <!-- Category Section -->
-                    <StackPanel Margin="0,5,0,5">
-                        <!-- Category Header -->
-                        <Border Background="{DynamicResource ContentSectionBorderBrush}"
-                                CornerRadius="5"
-                                Margin="0,5,0,5"
-                                Effect="{StaticResource ShadowEffect}"
-                                Cursor="Hand"
-                                Tag="{Binding Name}">
-                            <DockPanel VerticalAlignment="Center"
-                                       HorizontalAlignment="Stretch">
-                                <!-- Category Icon (Material Design) -->
-                                <materialDesign:PackIcon Kind="{Binding Name, Converter={StaticResource CategoryToIconConverter}, FallbackValue=Apps}"
-                                                         Width="24"
-                                                         Height="24"
-                                                         Margin="15,0,10,0"
-                                                         Foreground="{DynamicResource PrimaryTextColor}"
-                                                         VerticalAlignment="Center"
-                                                         DockPanel.Dock="Left"/>
-
-                                <!-- Category Name -->
-                                <TextBlock Text="{Binding Name}"
-                                           FontWeight="SemiBold"
-                                           FontSize="14"
-                                           Foreground="{DynamicResource PrimaryTextColor}"
-                                           Margin="0,10,0,10"
-                                           VerticalAlignment="Center"
-                                           DockPanel.Dock="Left"/>
-
-                                <!-- Arrow Indicator -->
-                                <materialDesign:PackIcon Kind="{Binding IsExpanded, Converter={StaticResource BoolToChevronConverter}, FallbackValue=ChevronDown}"
-                                                         Width="24"
-                                                         Height="24"
-                                                         HorizontalAlignment="Right"
-                                                         VerticalAlignment="Center"
-                                                         Foreground="{DynamicResource PrimaryTextColor}"
-                                                         Margin="0,0,10,0"
-                                                         DockPanel.Dock="Right"/>
-                            </DockPanel>
-                        </Border>
-
-                        <!-- Category Content -->
-                        <Border Background="{DynamicResource ContentSectionBorderBrush}"
-                                CornerRadius="5"
-                                Margin="5,0,5,5"
-                                Effect="{StaticResource LightShadowEffect}"
-                                Visibility="{Binding IsExpanded, Converter={StaticResource BooleanToVisibilityConverter}}">
-                            <StackPanel Margin="0,5,0,5">
-                                <!-- Apps in this category -->
-                                <ItemsControl ItemsSource="{Binding Apps}"
-                                              Margin="10,0,10,10">
-                                    <ItemsControl.ItemsPanel>
-                                        <ItemsPanelTemplate>
-                                            <WrapPanel Orientation="Horizontal" HorizontalAlignment="Left" />
-                                        </ItemsPanelTemplate>
-                                    </ItemsControl.ItemsPanel>
-                                    <ItemsControl.ItemContainerStyle>
-                                        <Style TargetType="ContentPresenter">
-                                            <Setter Property="Width" Value="280" />
-                                            <Setter Property="Margin" Value="0,0,0,0" />
-                                        </Style>
-                                    </ItemsControl.ItemContainerStyle>
-                                    <ItemsControl.ItemTemplate>
-                                        <DataTemplate>
-                                            <CheckBox Style="{StaticResource CustomCheckBox}"
-                                                      Margin="8,5,10,5"
-                                                      IsChecked="{Binding IsSelected}">
-                                                <TextBlock Text="{Binding Name}"
-                                                           Style="{StaticResource AppItemTextStyle}">
-                                                    <TextBlock.ToolTip>
-                                                        <ToolTip Content="{Binding Description}"/>
-                                                    </TextBlock.ToolTip>
-                                                </TextBlock>
-                                            </CheckBox>
-                                        </DataTemplate>
-                                    </ItemsControl.ItemTemplate>
-                                </ItemsControl>
-                            </StackPanel>
-                        </Border>
-
-                    </StackPanel>
-                </DataTemplate>
-            </ItemsControl.ItemTemplate>
-        </ItemsControl>
+                                                            <Border Background="{DynamicResource ContentSectionBorderBrush}"
+                                                                    CornerRadius="5"
+                                                                    Margin="5,0,5,5"
+                                                                    Effect="{StaticResource LightShadowEffect}"
+                                                                    Visibility="{Binding IsExpanded, Converter={StaticResource BooleanToVisibilityConverter}}">
+                                                                <StackPanel Margin="0,5,0,5">
+                                                                    <ItemsControl ItemsSource="{Binding Apps}"
+                                                                                  Margin="10,0,10,10">
+                                                                        <ItemsControl.ItemsPanel>
+                                                                            <ItemsPanelTemplate>
+                                                                                <UniformGrid Columns="{Binding ActualWidth, RelativeSource={RelativeSource AncestorType=ItemsControl}, Converter={StaticResource WidthToColumnsConverter}}" />
+                                                                            </ItemsPanelTemplate>
+                                                                        </ItemsControl.ItemsPanel>
+                                                                        <ItemsControl.ItemTemplate>
+                                                                            <DataTemplate>
+                                                                                <CheckBox Style="{StaticResource CustomCheckBox}"
+                                                                                          Margin="8,5,10,5"
+                                                                                          IsChecked="{Binding IsSelected}">
+                                                                                    <StackPanel Orientation="Horizontal">
+                                                                                        <Ellipse Style="{StaticResource AppStatusIndicatorStyle}"
+                                                                                                 Fill="{Binding IsInstalled, Converter={StaticResource InstalledStatusToColorConverter}}">
+                                                                                            <Ellipse.ToolTip>
+                                                                                                <ToolTip Content="{Binding IsInstalled, Converter={StaticResource InstalledStatusToTextConverter}}"/>
+                                                                                            </Ellipse.ToolTip>
+                                                                                        </Ellipse>
+                                                                                        <TextBlock Text="{Binding Name}"
+                                                                                                   Style="{StaticResource AppItemTextStyle}"
+                                                                                                   VerticalAlignment="Center">
+                                                                                            <TextBlock.ToolTip>
+                                                                                                <ToolTip Content="{Binding Description}"/>
+                                                                                            </TextBlock.ToolTip>
+                                                                                        </TextBlock>
+                                                                                        <Button Cursor="Hand"
+                                                                                                Command="{Binding OpenWebsiteCommand}"
+                                                                                                ToolTip="Visit website for more information"
+                                                                                                Margin="4,0,0,0"
+                                                                                                Padding="2"
+                                                                                                VerticalAlignment="Center"
+                                                                                                Visibility="{Binding WebsiteUrl, Converter={StaticResource InverseNullToVisibilityConverter}}">
+                                                                                            <Button.Style>
+                                                                                                <Style TargetType="Button">
+                                                                                                    <Setter Property="Background" Value="Transparent"/>
+                                                                                                    <Setter Property="BorderThickness" Value="0"/>
+                                                                                                    <Setter Property="Template">
+                                                                                                        <Setter.Value>
+                                                                                                            <ControlTemplate TargetType="Button">
+                                                                                                                <Border Background="{TemplateBinding Background}"
+                                                                                                                        BorderThickness="0"
+                                                                                                                        CornerRadius="4"
+                                                                                                                        Padding="{TemplateBinding Padding}">
+                                                                                                                    <ContentPresenter HorizontalAlignment="Center"
+                                                                                                                                    VerticalAlignment="Center"/>
+                                                                                                                </Border>
+                                                                                                            </ControlTemplate>
+                                                                                                        </Setter.Value>
+                                                                                                    </Setter>
+                                                                                                    <Style.Triggers>
+                                                                                                        <Trigger Property="IsMouseOver" Value="True">
+                                                                                                            <Setter Property="Background" Value="{DynamicResource MainContainerBorderBrush}"/>
+                                                                                                        </Trigger>
+                                                                                                    </Style.Triggers>
+                                                                                                </Style>
+                                                                                            </Button.Style>
+                                                                                            <iconPacks:PackIconLucide Kind="SquareArrowOutUpRight"
+                                                                                                                      Width="14"
+                                                                                                                      Height="14"
+                                                                                                                      Foreground="{DynamicResource PrimaryTextColor}"/>
+                                                                                        </Button>
+                                                                                    </StackPanel>
+                                                                                </CheckBox>
+                                                                            </DataTemplate>
+                                                                        </ItemsControl.ItemTemplate>
+                                                                    </ItemsControl>
+                                                                </StackPanel>
+                                                            </Border>
+                                                        </StackPanel>
+                                                    </DataTemplate>
+                                                </ItemsControl.ItemTemplate>
+                                            </ItemsControl>
         </StackPanel>
-    </controls:ResponsiveScrollViewer>
+        </controls:ResponsiveScrollViewer>
+    </Grid>
 </UserControl>

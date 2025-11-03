@@ -9,13 +9,13 @@ namespace Winhance.Core.Features.Common.Interfaces
         /// Gets the current application version
         /// </summary>
         VersionInfo GetCurrentVersion();
-        
+
         /// <summary>
         /// Checks if an update is available
         /// </summary>
         /// <returns>A task that resolves to true if an update is available, false otherwise</returns>
         Task<VersionInfo> CheckForUpdateAsync();
-        
+
         /// <summary>
         /// Downloads and launches the installer for the latest version
         /// </summary>

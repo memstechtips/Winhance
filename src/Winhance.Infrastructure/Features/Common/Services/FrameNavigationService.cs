@@ -12,12 +12,10 @@ using CommunityToolkit.Mvvm.Input;
 using Microsoft.Extensions.DependencyInjection;
 using Winhance.Core.Features.Common.Interfaces;
 using Winhance.Core.Features.Common.Models;
+using Winhance.Core.Features.Common.Enums;
 
 namespace Winhance.Infrastructure.Features.Common.Services
 {
-    /// <summary>
-    /// Service for navigating between views in the application using ContentPresenter-based navigation.
-    /// </summary>
     public class FrameNavigationService
         : Winhance.Core.Features.Common.Interfaces.INavigationService
     {
@@ -28,84 +26,34 @@ namespace Winhance.Infrastructure.Features.Common.Services
             new();
         private readonly IServiceProvider _serviceProvider;
         private readonly IParameterSerializer _parameterSerializer;
-        private readonly SemaphoreSlim _navigationLock = new(1, 1);
-        private readonly ConcurrentQueue<(
-            Type ViewType,
-            Type ViewModelType,
-            object Parameter,
-            TaskCompletionSource<bool> CompletionSource
-        )> _navigationQueue = new();
+        private readonly ILogService _logService;
         private object _currentParameter;
         private string _currentRoute;
         private const int MaxHistorySize = 50;
-        private CancellationTokenSource _currentNavigationCts;
         private ICommand _navigateCommand;
 
-        /// <summary>
-        /// Gets the command for navigation.
-        /// </summary>
         public ICommand NavigateCommand =>
             _navigateCommand ??= new RelayCommand<string>(route => NavigateTo(route));
-
-        /// <summary>
-        /// Initializes a new instance of the <see cref="FrameNavigationService"/> class.
-        /// </summary>
-        /// <param name="serviceProvider">The service provider.</param>
-        /// <param name="parameterSerializer">The parameter serializer.</param>
         public FrameNavigationService(
             IServiceProvider serviceProvider,
-            IParameterSerializer parameterSerializer
-        )
+            IParameterSerializer parameterSerializer,
+            ILogService logService)
         {
             _serviceProvider = serviceProvider;
-            _parameterSerializer =
-                parameterSerializer ?? throw new ArgumentNullException(nameof(parameterSerializer));
+            _parameterSerializer = parameterSerializer ?? throw new ArgumentNullException(nameof(parameterSerializer));
+            _logService = logService ?? throw new ArgumentNullException(nameof(logService));
         }
 
-        /// <summary>
-        /// Determines whether navigation back is possible.
-        /// </summary>
         public bool CanGoBack => _backStack.Count > 1;
-
-        /// <summary>
-        /// Gets a list of navigation history.
-        /// </summary>
         public IReadOnlyList<string> NavigationHistory => _navigationHistory.AsReadOnly();
-
-        /// <summary>
-        /// Gets the current view name.
-        /// </summary>
         public string CurrentView => _currentRoute;
-
-        /// <summary>
-        /// Event raised when navigation occurs.
-        /// </summary>
+        
         public event EventHandler<Winhance.Core.Features.Common.Interfaces.NavigationEventArgs> Navigated;
-
-        /// <summary>
-        /// Event raised before navigation occurs.
-        /// </summary>
         public event EventHandler<Winhance.Core.Features.Common.Interfaces.NavigationEventArgs> Navigating;
-
-        /// <summary>
-        /// Event raised when navigation fails.
-        /// </summary>
         public event EventHandler<Winhance.Core.Features.Common.Interfaces.NavigationEventArgs> NavigationFailed;
 
-        /// <summary>
-        /// Initializes the navigation service.
-        /// </summary>
-        public void Initialize()
-        {
-            // No initialization needed for ContentPresenter-based navigation
-        }
+        public void Initialize() { }
 
-        /// <summary>
-        /// Registers a view mapping.
-        /// </summary>
-        /// <param name="route">The route.</param>
-        /// <param name="viewType">The view type.</param>
-        /// <param name="viewModelType">The view model type.</param>
         public void RegisterViewMapping(string route, Type viewType, Type viewModelType)
         {
             if (string.IsNullOrWhiteSpace(route))
@@ -114,30 +62,33 @@ namespace Winhance.Infrastructure.Features.Common.Services
             _viewMappings[route] = (viewType, viewModelType);
         }
 
-        /// <summary>
-        /// Checks if navigation to a route is possible.
-        /// </summary>
-        /// <param name="route">The route to check.</param>
-        /// <returns>True if navigation is possible; otherwise, false.</returns>
         public bool CanNavigateTo(string route) => _viewMappings.ContainsKey(route);
 
-        /// <summary>
-        /// Navigates to a view by route.
-        /// </summary>
-        /// <param name="viewName">The route to navigate to.</param>
-        /// <returns>True if navigation was successful; otherwise, false.</returns>
         public bool NavigateTo(string viewName)
         {
             try
             {
-                NavigateToAsync(viewName).GetAwaiter().GetResult();
+                Application.Current.Dispatcher.InvokeAsync(async () =>
+                {
+                    try
+                    {
+                        await PreloadAndNavigateToAsync(viewName);
+                    }
+                    catch (Exception ex)
+                    {
+                        var args = new Winhance.Core.Features.Common.Interfaces.NavigationEventArgs(
+                            CurrentView,
+                            viewName,
+                            null,
+                            false
+                        );
+                        NavigationFailed?.Invoke(this, args);
+                    }
+                });
                 return true;
             }
             catch (Exception ex)
             {
-                // Log the error
-                System.Diagnostics.Debug.WriteLine($"Navigation error: {ex.Message}");
-
                 var args = new Winhance.Core.Features.Common.Interfaces.NavigationEventArgs(
                     CurrentView,
                     viewName,
@@ -149,24 +100,95 @@ namespace Winhance.Infrastructure.Features.Common.Services
             }
         }
 
-        /// <summary>
-        /// Navigates to a view by route with a parameter.
-        /// </summary>
-        /// <param name="viewName">The route to navigate to.</param>
-        /// <param name="parameter">The navigation parameter.</param>
-        /// <returns>True if navigation was successful; otherwise, false.</returns>
-        public bool NavigateTo(string viewName, object parameter)
+        public async Task<bool> PreloadAndNavigateToAsync(string route)
         {
+            _logService?.Log(LogLevel.Info, $"[FrameNavigationService] PreloadAndNavigateToAsync called for: {route}");
+
+            if (_currentRoute == route)
+            {
+                _logService?.Log(LogLevel.Info, $"[FrameNavigationService] Already on route: {route}, skipping navigation");
+                return true; // Return true because we're already where we need to be
+            }
+
+            if (!_viewMappings.TryGetValue(route, out var mapping))
+            {
+                _logService?.Log(LogLevel.Info, $"[FrameNavigationService] No view mapping found for route: {route}");
+                return false;
+            }
+
+            var navigatingArgs = new Winhance.Core.Features.Common.Interfaces.NavigationEventArgs(
+                _currentRoute,
+                route,
+                null,
+                false
+            );
+            Navigating?.Invoke(this, navigatingArgs);
+
             try
             {
-                NavigateToAsync(viewName, parameter).GetAwaiter().GetResult();
+                _logService?.Log(LogLevel.Info, $"[FrameNavigationService] Creating ViewModel of type: {mapping.ViewModelType.Name}");
+                var viewModel = _serviceProvider.GetRequiredService(mapping.ViewModelType);
+                _logService?.Log(LogLevel.Info, $"[FrameNavigationService] ViewModel created successfully: {viewModel.GetType().Name}");
+                
+                if (viewModel is IInitializableViewModel initializable)
+                {
+                    initializable.Initialize();
+                }
+
+                if (viewModel is IPreloadableViewModel preloadable)
+                {
+                    _logService?.Log(LogLevel.Info, $"[FrameNavigationService] Starting PreloadFeaturesAsync for: {viewModel.GetType().Name}");
+                    await preloadable.PreloadFeaturesAsync();
+                    _logService?.Log(LogLevel.Info, $"[FrameNavigationService] PreloadFeaturesAsync completed for: {viewModel.GetType().Name}");
+                }
+                else
+                {
+                    _logService?.Log(LogLevel.Info, $"[FrameNavigationService] ViewModel does not implement IPreloadableViewModel: {viewModel.GetType().Name}");
+                }
+                
+                if (viewModel is IFeatureViewModel vm)
+                {
+                    _logService?.Log(LogLevel.Info, $"[FrameNavigationService] Calling OnNavigatedTo for: {viewModel.GetType().Name}");
+                    vm.OnNavigatedTo(null);
+                }
+
+                _logService?.Log(LogLevel.Info, $"[FrameNavigationService] Starting NavigateInternalAsync with ViewModel");
+                await NavigateInternalAsync(mapping.ViewType, mapping.ViewModelType, null, viewModel, CancellationToken.None);
+                _logService?.Log(LogLevel.Info, $"[FrameNavigationService] NavigateInternalAsync completed successfully");
                 return true;
             }
             catch (Exception ex)
             {
-                // Log the error
-                System.Diagnostics.Debug.WriteLine($"Navigation error: {ex.Message}");
+                _logService?.Log(LogLevel.Error, $"[FrameNavigationService] PreloadAndNavigateToAsync failed: {ex.Message}");
+                return false;
+            }
+        }
 
+        public bool NavigateTo(string viewName, object parameter)
+        {
+            try
+            {
+                Application.Current.Dispatcher.InvokeAsync(async () =>
+                {
+                    try
+                    {
+                        await PreloadAndNavigateToAsync(viewName);
+                    }
+                    catch (Exception ex)
+                    {
+                        var args = new Winhance.Core.Features.Common.Interfaces.NavigationEventArgs(
+                            CurrentView,
+                            viewName,
+                            parameter,
+                            false
+                        );
+                        NavigationFailed?.Invoke(this, args);
+                    }
+                });
+                return true;
+            }
+            catch (Exception ex)
+            {
                 var args = new Winhance.Core.Features.Common.Interfaces.NavigationEventArgs(
                     CurrentView,
                     viewName,
@@ -178,10 +200,28 @@ namespace Winhance.Infrastructure.Features.Common.Services
             }
         }
 
-        /// <summary>
-        /// Navigates back to the previous view.
-        /// </summary>
-        /// <returns>True if navigation was successful; otherwise, false.</returns>
+        public async Task NavigateToAsync(string viewName)
+        {
+            await Application.Current.Dispatcher.InvokeAsync(async () =>
+            {
+                await PreloadAndNavigateToAsync(viewName);
+            }, System.Windows.Threading.DispatcherPriority.Loaded);
+
+            await Application.Current.Dispatcher.InvokeAsync(() => { },
+                System.Windows.Threading.DispatcherPriority.Loaded);
+        }
+
+        public async Task NavigateToAsync(string viewName, object parameter)
+        {
+            await Application.Current.Dispatcher.InvokeAsync(async () =>
+            {
+                await PreloadAndNavigateToAsync(viewName);
+            }, System.Windows.Threading.DispatcherPriority.Loaded);
+
+            await Application.Current.Dispatcher.InvokeAsync(() => { },
+                System.Windows.Threading.DispatcherPriority.Loaded);
+        }
+
         public bool NavigateBack()
         {
             try
@@ -191,93 +231,44 @@ namespace Winhance.Infrastructure.Features.Common.Services
             }
             catch (Exception ex)
             {
-                // Log the error
-                System.Diagnostics.Debug.WriteLine($"Navigation back error: {ex.Message}");
                 return false;
             }
         }
 
-        /// <summary>
-        /// Navigates to a view model type.
-        /// </summary>
-        /// <typeparam name="TViewModel">The view model type.</typeparam>
-        /// <param name="parameter">The navigation parameter.</param>
-        /// <returns>A task representing the asynchronous operation.</returns>
-        public async Task NavigateToAsync<TViewModel>(object parameter = null)
-            where TViewModel : class => await NavigateToAsync(typeof(TViewModel), parameter);
 
-        /// <summary>
-        /// Navigates to a view model type.
-        /// </summary>
-        /// <param name="viewModelType">The view model type.</param>
-        /// <param name="parameter">The navigation parameter.</param>
-        /// <returns>A task representing the asynchronous operation.</returns>
-        public async Task NavigateToAsync(Type viewModelType, object parameter = null)
-        {
-            var viewType = GetViewTypeForViewModel(viewModelType);
-            var tcs = new TaskCompletionSource<bool>();
-            _navigationQueue.Enqueue((viewType, viewModelType, parameter, tcs));
-
-            await ProcessNavigationQueueAsync();
-            await tcs.Task;
-        }
-
-        /// <summary>
-        /// Navigates to a route.
-        /// </summary>
-        /// <param name="route">The route to navigate to.</param>
-        /// <param name="parameter">The navigation parameter.</param>
-        /// <returns>A task representing the asynchronous operation.</returns>
-        public async Task NavigateToAsync(string route, object parameter = null)
-        {
-            if (!_viewMappings.TryGetValue(route, out var mapping))
-                throw new InvalidOperationException($"No view mapping found for route: {route}");
-
-            await NavigateInternalAsync(mapping.ViewType, mapping.ViewModelType, parameter);
-        }
-
-        private async Task ProcessNavigationQueueAsync()
-        {
-            if (!await _navigationLock.WaitAsync(TimeSpan.FromMilliseconds(100)))
-                return;
-
-            try
-            {
-                while (_navigationQueue.TryDequeue(out var navigationRequest))
-                {
-                    _currentNavigationCts?.Cancel();
-                    _currentNavigationCts = new CancellationTokenSource(TimeSpan.FromSeconds(30));
-
-                    try
-                    {
-                        await NavigateInternalAsync(
-                            navigationRequest.ViewType,
-                            navigationRequest.ViewModelType,
-                            navigationRequest.Parameter,
-                            _currentNavigationCts.Token
-                        );
-                        navigationRequest.CompletionSource.SetResult(true);
-                    }
-                    catch (Exception ex)
-                    {
-                        navigationRequest.CompletionSource.SetException(ex);
-                    }
-                }
-            }
-            finally
-            {
-                _navigationLock.Release();
-            }
-        }
 
         private async Task NavigateInternalAsync(
             Type viewType,
             Type viewModelType,
             object parameter,
+            object preloadedViewModel = null,
             CancellationToken cancellationToken = default
         )
         {
+            _logService?.Log(LogLevel.Info, $"[NavigateInternalAsync] Starting navigation to {viewModelType.Name}, preloadedViewModel: {preloadedViewModel != null}");
+
             cancellationToken.ThrowIfCancellationRequested();
+
+            if (_currentViewModel != null)
+            {
+                _logService?.Log(LogLevel.Info, $"[NavigateInternalAsync] Disposing current ViewModel: {_currentViewModel.GetType().Name}");
+                try 
+                {
+                    if (_currentViewModel is IFeatureViewModel currentVm)
+                    {
+                        currentVm.OnNavigatedFrom();
+                    }
+                    
+                    if (_currentViewModel is IDisposable disposable)
+                    {
+                        disposable.Dispose();
+                    }
+                }
+                catch (Exception ex)
+                {
+                    _logService?.Log(LogLevel.Warning, $"[NavigateInternalAsync] Error disposing current ViewModel: {ex.Message}");
+                }
+            }
 
             // Find the route for this view/viewmodel for event args
             string route = null;
@@ -308,27 +299,38 @@ namespace Winhance.Infrastructure.Features.Common.Services
 
             _currentParameter = parameter;
 
-            // Get the view model from the service provider - we don't need the view when using ContentPresenter
             object viewModel;
 
-            try
+            if (preloadedViewModel != null)
             {
-                viewModel = _serviceProvider.GetRequiredService(viewModelType);
-                if (viewModel == null)
-                {
-                    throw new InvalidOperationException(
-                        $"Failed to create view model of type {viewModelType.FullName}. The service provider returned null."
-                    );
-                }
+                _logService?.Log(LogLevel.Info, $"[NavigateInternalAsync] Using preloaded ViewModel: {preloadedViewModel.GetType().Name}");
+                viewModel = preloadedViewModel;
             }
-            catch (Exception ex)
+            else
             {
-                throw new InvalidOperationException($"Error creating view model: {ex.Message}", ex);
+                _logService?.Log(LogLevel.Info, $"[NavigateInternalAsync] Creating new ViewModel of type: {viewModelType.Name}");
+                try
+                {
+                    viewModel = _serviceProvider.GetRequiredService(viewModelType);
+                    if (viewModel == null)
+                    {
+                        throw new InvalidOperationException(
+                            $"Failed to create view model of type {viewModelType.FullName}. The service provider returned null."
+                        );
+                    }
+                    _logService?.Log(LogLevel.Info, $"[NavigateInternalAsync] Successfully created ViewModel: {viewModel.GetType().Name}");
+                }
+                catch (Exception ex)
+                {
+                    _logService?.Log(LogLevel.Error, $"[NavigateInternalAsync] Error creating ViewModel: {ex.Message}");
+                    throw new InvalidOperationException($"Error creating view model: {ex.Message}", ex);
+                }
             }
 
             // Update the current route and view model
             _currentRoute = route;
             _currentViewModel = viewModel;
+            _logService?.Log(LogLevel.Info, $"[NavigateInternalAsync] Updated current route to: {route}, ViewModel: {viewModel.GetType().Name}");
 
             // Update the navigation stacks
             while (_backStack.Count >= MaxHistorySize)
@@ -342,8 +344,8 @@ namespace Winhance.Infrastructure.Features.Common.Services
             }
             _backStack.Push(viewModelType);
 
-            // Call OnNavigatedTo on the view model if it implements IViewModel
-            if (viewModel is IViewModel vm)
+            // Call OnNavigatedTo on the view model if it implements IFeatureViewModel
+            if (viewModel is IFeatureViewModel vm)
             {
                 vm.OnNavigatedTo(parameter);
             }
@@ -355,6 +357,7 @@ namespace Winhance.Infrastructure.Features.Common.Services
             }
 
             // Raise the Navigated event which will update the UI
+            _logService?.Log(LogLevel.Info, $"[NavigateInternalAsync] Raising Navigated event. SourceView: {sourceView}, TargetView: {targetView}");
             var navigatedArgs = new Winhance.Core.Features.Common.Interfaces.NavigationEventArgs(
                 sourceView,
                 targetView,
@@ -362,87 +365,43 @@ namespace Winhance.Infrastructure.Features.Common.Services
                 false
             );
             Navigated?.Invoke(this, navigatedArgs);
+            _logService?.Log(LogLevel.Info, $"[NavigateInternalAsync] Navigated event raised for: {targetView}");
+            _logService?.Log(LogLevel.Info, $"[NavigateInternalAsync] Navigation completed successfully to: {targetView}");
         }
 
-        /// <summary>
-        /// Navigates back to the previous view.
-        /// </summary>
-        /// <returns>A task representing the asynchronous operation.</returns>
         public async Task GoBackAsync()
         {
             if (!CanGoBack)
                 return;
 
-            var tcs = new TaskCompletionSource<bool>();
-            _navigationQueue.Enqueue((null, null, null, tcs));
-
-            await ProcessNavigationQueueAsync();
-            await tcs.Task;
-
-            var currentViewModelType = _backStack.Peek();
-
             var currentType = _backStack.Pop();
             _forwardStack.Push((currentType, _currentParameter));
             var previousViewModelType = _backStack.Peek();
-            var previousParameter =
-                _backStack.Count > 1 ? _backStack.ElementAt(_backStack.Count - 2) : null;
-            await NavigateToAsync(previousViewModelType, previousParameter);
+            
+            var route = GetRouteForViewModelType(previousViewModelType);
+            await PreloadAndNavigateToAsync(route);
         }
 
-        /// <summary>
-        /// Navigates forward to the next view.
-        /// </summary>
-        /// <returns>A task representing the asynchronous operation.</returns>
         public async Task GoForwardAsync()
         {
             if (_forwardStack.Count == 0)
                 return;
 
-            var tcs = new TaskCompletionSource<bool>();
-            _navigationQueue.Enqueue((null, null, null, tcs));
-
-            await ProcessNavigationQueueAsync();
-            await tcs.Task;
-
             var (nextType, nextParameter) = _forwardStack.Pop();
-
             _backStack.Push(nextType);
-            await NavigateToAsync(nextType, nextParameter);
+            
+            var route = GetRouteForViewModelType(nextType);
+            await PreloadAndNavigateToAsync(route);
         }
 
-        /// <summary>
-        /// Clears the navigation history.
-        /// </summary>
-        /// <returns>A task representing the asynchronous operation.</returns>
         public async Task ClearHistoryAsync()
         {
-            await _navigationLock.WaitAsync();
-            try
-            {
-                _backStack.Clear();
-                _forwardStack.Clear();
-                _navigationHistory.Clear();
-            }
-            finally
-            {
-                _navigationLock.Release();
-            }
+            _backStack.Clear();
+            _forwardStack.Clear();
+            _navigationHistory.Clear();
         }
 
-        /// <summary>
-        /// Cancels the current navigation.
-        /// </summary>
-        public void CancelCurrentNavigation()
-        {
-            _currentNavigationCts?.Cancel();
-        }
-
-        // We track the current view model directly now instead of getting it from the Frame
         private object _currentViewModel;
-
-        /// <summary>
-        /// Gets the current view model.
-        /// </summary>
         public object CurrentViewModel => _currentViewModel;
 
         private Type GetViewTypeForViewModel(Type viewModelType)
@@ -494,6 +453,20 @@ namespace Winhance.Infrastructure.Features.Common.Services
             }
             throw new InvalidOperationException(
                 $"No route found for view type: {viewType.FullName}"
+            );
+        }
+
+        private string GetRouteForViewModelType(Type viewModelType)
+        {
+            foreach (var mapping in _viewMappings)
+            {
+                if (mapping.Value.ViewModelType == viewModelType)
+                {
+                    return mapping.Key;
+                }
+            }
+            throw new InvalidOperationException(
+                $"No route found for view model type: {viewModelType.FullName}"
             );
         }
     }

@@ -4,14 +4,15 @@ using System.Linq;
 using System.Threading;
 using System.Threading.Tasks;
 using Winhance.Core.Features.Common.Models;
-using Winhance.Infrastructure.Features.SoftwareApps.Services.WinGet.Verification;
+using Winhance.Core.Features.SoftwareApps.Verification;
+using Winhance.Infrastructure.Features.SoftwareApps.Services.WinGet.Interfaces;
 
 namespace Winhance.Infrastructure.Features.SoftwareApps.Services.WinGet.Verification.Methods
 {
     /// <summary>
     /// Verifies software installations by checking common installation directories.
     /// </summary>
-    public class FileSystemVerificationMethod : VerificationMethodBase
+    public class FileSystemVerificationMethod : VerificationMethodBase, IVerificationMethod
     {
         private static readonly string[] CommonInstallPaths = new[]
         {
@@ -49,13 +50,13 @@ namespace Winhance.Infrastructure.Features.SoftwareApps.Services.WinGet.Verifica
                         {
                             var pathEnv = Environment.GetEnvironmentVariable("PATH") ?? string.Empty;
                             var paths = pathEnv.Split(Path.PathSeparator);
-                            
+
 
                             foreach (var path in paths)
                             {
                                 if (string.IsNullOrEmpty(path))
                                     continue;
-                                    
+
 
                                 var exePath = Path.Combine(path, $"{packageId}.exe");
                                 if (File.Exists(exePath))
@@ -120,7 +121,7 @@ namespace Winhance.Infrastructure.Features.SoftwareApps.Services.WinGet.Verifica
                                         },
                                     };
                                 }
-                                
+
 
                                 // Check for Microsoft Store apps in Packages directory
                                 if (basePath.Contains("LocalApplicationData"))
@@ -139,7 +140,7 @@ namespace Winhance.Infrastructure.Features.SoftwareApps.Services.WinGet.Verifica
                                                     ?.IndexOf(packageId, StringComparison.OrdinalIgnoreCase) >= 0
                                             )
                                             .ToList();
-                                            
+
 
                                         foreach (var dir in storeAppDirs)
                                         {

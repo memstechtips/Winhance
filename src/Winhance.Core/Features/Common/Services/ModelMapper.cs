@@ -68,17 +68,17 @@ namespace Winhance.Core.Features.Common.Services
             {
                 if (destinationProperties.TryGetValue(sourceProperty.Name, out var destinationProperty))
                 {
-                    if (destinationProperty.CanWrite && 
-                        (destinationProperty.PropertyType == sourceProperty.PropertyType || 
+                    if (destinationProperty.CanWrite &&
+                        (destinationProperty.PropertyType == sourceProperty.PropertyType ||
                          IsAssignableOrConvertible(sourceProperty.PropertyType, destinationProperty.PropertyType)))
                     {
                         var value = sourceProperty.GetValue(source);
-                        
+
                         if (value != null && sourceProperty.PropertyType != destinationProperty.PropertyType)
                         {
                             value = Convert.ChangeType(value, destinationProperty.PropertyType);
                         }
-                        
+
                         destinationProperty.SetValue(destination, value);
                     }
                 }
@@ -87,7 +87,7 @@ namespace Winhance.Core.Features.Common.Services
 
         private static bool IsAssignableOrConvertible(Type sourceType, Type destinationType)
         {
-            return destinationType.IsAssignableFrom(sourceType) || 
+            return destinationType.IsAssignableFrom(sourceType) ||
                    (sourceType.IsPrimitive && destinationType.IsPrimitive) ||
                    (sourceType == typeof(string) && destinationType.IsPrimitive) ||
                    (destinationType == typeof(string) && sourceType.IsPrimitive);
