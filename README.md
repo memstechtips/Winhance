@@ -1,12 +1,15 @@
 # Winhance - Windows Enhancement Utility 🚀
 
-**Winhance** is a C# application designed to optimize and customize your Windows experience. From software management to system optimizations and customization, Winhance provides functions to enhance Windows 10 and 11 systems.
+**Winhance** is a C# application designed to debloat, optimize and customize your Windows experience. From software management to system optimizations and customization, Winhance provides everything you need to enhance Windows 10 and 11 systems.
 
 **Winhance** features most of the same enhancements as [UnattendedWinstall](https://github.com/memstechtips/UnattendedWinstall) without needing to do a clean install of Windows.
 
+<img width="1920" height="1080" alt="Winhance-UI" src="https://github.com/user-attachments/assets/6adedef9-6587-4f29-9bb2-d907965b7a03" />
+
+
 ## Requirements 💻
 - Windows 10/11
-  - *Tested on Windows 10 x64 22H2 and Windows 11 24H2*
+  - *Tested on Windows 10 x64 22H2 and Windows 11 23H2, 24H2 and 25H2*
 
 ## Installation 📥
 
@@ -14,17 +17,12 @@ Download from [winhance.net](https://winhance.net) or the [Releases](https://git
 
 The `Winhance.Installer.exe` includes an Installable and Portable version during setup.
 
-## 🔐 Winhance v25.05.22 Security Info
+## 🔐 Winhance v25.11.03 Security Info
 
 **Important:** Please verify your download using the information below. Any file with different values for this particular version is not from the official source.
 
 - **Winhance.Installer.exe**
-  - Size: 131223680 bytes : 125 MiB  
-  - SHA256: 5f20b7be5741ce37a8663041ae8228c28e45b32f7ca260036c34c38e436e634c  
-
-- **Winhance.exe**
-  - Size: 165248 bytes : 161 KiB  
-  - SHA256: 58e1fc0707f25e71738388817b397cdb98aa8037b0c275424b6f56c74bc56b05  
+  - SHA256: 3bd6e1721068fd8ed7bc92cf39c09f1c586c2624f16217d47063ef8e9c788b3d 
 
 > [!NOTE]
 > This tool is currently in development. Any issues can be reported using the Issues tab.<br>
@@ -43,56 +41,38 @@ It really does make a big difference, and is very much appreciated. Thanks<br>
   - Searchable interface with explanatory legend
   - Organized sections for Windows Apps, Legacy Capabilities, and Optional Features
   - One-click removal and installation of selected items
+  - Control scripts and scheduled tasks via Windows Apps Help menu
 - **External Apps Section**
   - Install various useful applications via WinGet
   - Categories include Browsers, Multimedia utilities, Document viewers, and more
 
 ### Optimize 🚀
-- Searchable interface with status indicators
-- Toggle switches for each setting for better control
+- Searchable interface with quick nav control
+- Toggle switches and selection controls for each setting
 - Set UAC Notification Level
 - Privacy Settings
 - Gaming and Performance Optimizations
 - Windows Updates
-- Explorer Optimizations
 - Power Settings with Power Plan selection
 - Sound Settings
 - Notification Preferences
 
 ### Customize 🎨
-- Searchable interface with status indicators
-- Toggle switches for each setting for better control
-- Windows Theme selector (Dark/Light Mode) via dropdown
+- Searchable interface with quick nav control
+- Toggle switches and selection controls for each setting
+- Windows Theme selector (Dark/Light Mode)
 - Taskbar Customization
 - Start Menu Customization
 - Explorer Customizations
+
+### Advanced Tools 🛠️
+- Create Custom Windows ISO's with WIMUtil (Windows Installation Media Utility) including adding drivers from current OS
+- Create autounattend.xml files based on your Winhance selections
 
 ### Other Settings 
 - Manage Your Winhance (and Windows) Settings with Wihance Configuration Files:
    - Save settings currently applied in Winhance to a config file for easy importing on a new system or after a fresh Windows install.
 - Toggle Winhance's theme (Light/Dark Mode)
-
-## 🗺️ ROADMAP/TODO
-The items below are planned changes and features for future releases.
-
-🔜 = Coming Soon
-⌛ = In Progress
-✅ = Completed
-
-Note: ✅ Completed items are commited to the source code files, but the changes will not be visible in the application until the next release or update is released to the application.
-
-### Winhance Installation
-⌛ Add a Winhance Winget package to make Winhance installable via WinGet. Issue #159  
-🔜 Add Winhance to the Microsoft Store.  
-
-
-#### Windows Apps & Features 
-🔜 Fix "We can't open this 'microsoft-edge' link" due to edge removal and no default browser found. Issue #38  
-
-
-#### External Software
-🔜 For app installations, give users the option to choose a location to install the application. Issue #160
-
 
 ## Feedback and Community
 
