@@ -255,6 +255,7 @@
                            FontSize="13"
                            TextWrapping="Wrap"
                            Margin="0,0,0,0"
+                           Foreground="{DynamicResource PrimaryTextColor}"
                            Text="Click on an active Winhance removal status icon above to delete the script and task associated with it.&#x0a;&#x0a;App Removals:&#x0a;Select the item(s) you don't want on your PC (even not installed items) and remove them. Windows might try to add them back later, but Winhance will keep removing them for you if the scripts and scheduled tasks are active.&#x0a;&#x0a;App Installations:&#x0a;Select the item(s) you want to install and click on the 'Install Selected Items' button to start the installation.&#x0a;(Note: Only some apps can be reinstalled, see the indicator next to each item)&#x0a;&#x0a;Use the Search Box to find items quickly.&#x0a;The Save and Import Config buttons in the main window help you manage your preferred selections."/>
                 </Grid>
             </Grid>

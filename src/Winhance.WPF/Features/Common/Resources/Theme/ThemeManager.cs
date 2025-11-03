@@ -1,9 +1,6 @@
 using System;
 using System.Collections.Generic;
-using System.Linq;
 using System.Windows;
-using System.Windows.Controls;
-using System.Windows.Controls.Primitives;
 using System.Windows.Media;
 using CommunityToolkit.Mvvm.ComponentModel;
 using Winhance.Core.Features.Common.Interfaces;
@@ -24,16 +21,14 @@ namespace Winhance.WPF.Features.Common.Resources.Theme
                 {
                     _isDarkTheme = value;
                     OnPropertyChanged(nameof(IsDarkTheme));
-
-                    // Update the application resource
                     Application.Current.Resources["IsDarkTheme"] = _isDarkTheme;
                 }
             }
         }
 
         private readonly INavigationService _navigationService;
+        private readonly IWindowsThemeQueryService _windowsThemeQueryService;
 
-        // Dictionary with default color values for each theme
         private static readonly Dictionary<string, Color> DarkThemeColors = new()
         {
             { "PrimaryTextColor", Color.FromRgb(255, 255, 255) },
@@ -100,30 +95,20 @@ namespace Winhance.WPF.Features.Common.Resources.Theme
             { "ScrollBarThumbPressedColor", Color.FromRgb(34, 34, 34) },
         };
 
-        public ThemeManager(INavigationService navigationService)
+        public ThemeManager(INavigationService navigationService, IWindowsThemeQueryService windowsThemeQueryService)
         {
             _navigationService = navigationService ?? throw new ArgumentNullException(nameof(navigationService));
-
-            // Subscribe to navigation events to update toggle switches when navigating between views
-            _navigationService.Navigated += NavigationService_Navigated;
+            _windowsThemeQueryService = windowsThemeQueryService ?? throw new ArgumentNullException(nameof(windowsThemeQueryService));
 
             LoadThemePreference();
             ApplyTheme();
-        }
-
-        private void NavigationService_Navigated(object sender, NavigationEventArgs e)
-        {
-            // We no longer need to update toggle switches on navigation
-            // as they will automatically pick up the correct theme from the application resources
         }
 
         public void ToggleTheme()
         {
             IsDarkTheme = !IsDarkTheme;
             ApplyTheme();
-
-            // Ensure the window icons are updated when toggling the theme
-            NotifyWindowsOfThemeChange();
+            SaveThemePreference();
         }
 
         public void ApplyTheme()
@@ -132,10 +117,6 @@ namespace Winhance.WPF.Features.Common.Resources.Theme
             {
                 var themeColors = IsDarkTheme ? DarkThemeColors : LightThemeColors;
 
-                // We no longer need to explicitly update toggle switches
-                // as they will automatically pick up the theme from application resources
-
-                // Create brushes for all UI elements
                 var brushes = new List<(string key, SolidColorBrush brush)>
                 {
                     ("WindowBackground", new SolidColorBrush(themeColors["BackgroundColor"])),
@@ -144,206 +125,77 @@ namespace Winhance.WPF.Features.Common.Resources.Theme
                     ("TertiaryTextColor", new SolidColorBrush(themeColors["TertiaryTextColor"])),
                     ("SubTextColor", new SolidColorBrush(themeColors["SecondaryTextColor"])),
                     ("HelpIconForeground", new SolidColorBrush(themeColors["HelpIconColor"])),
-                    (
-                        "ContentSectionBackground",
-                        new SolidColorBrush(themeColors["ContentSectionBackgroundColor"])
-                    ),
-                    (
-                        "ElevatedBackground",
-                        new SolidColorBrush(themeColors["ElevatedBackgroundColor"])
-                    ),
-                    (
-                        "ContentSectionBorderBrush",
-                        new SolidColorBrush(themeColors["ContentSectionBorderColor"])
-                    ),
-                    (
-                        "MainContainerBorderBrush",
-                        new SolidColorBrush(themeColors["MainContainerBorderColor"])
-                    ),
-                    (
-                        "SettingsItemBackground",
-                        new SolidColorBrush(themeColors["SettingsItemBackgroundColor"])
-                    ),
-                    (
-                        "NavigationButtonBackground",
-                        new SolidColorBrush(themeColors["NavigationButtonBackgroundColor"])
-                    ),
-                    (
-                        "NavigationButtonForeground",
-                        new SolidColorBrush(themeColors["NavigationButtonForegroundColor"])
-                    ),
+                    ("ContentSectionBackground", new SolidColorBrush(themeColors["ContentSectionBackgroundColor"])),
+                    ("ElevatedBackground", new SolidColorBrush(themeColors["ElevatedBackgroundColor"])),
+                    ("ContentSectionBorderBrush", new SolidColorBrush(themeColors["ContentSectionBorderColor"])),
+                    ("MainContainerBorderBrush", new SolidColorBrush(themeColors["MainContainerBorderColor"])),
+                    ("SettingsItemBackground", new SolidColorBrush(themeColors["SettingsItemBackgroundColor"])),
+                    ("NavigationButtonBackground", new SolidColorBrush(themeColors["NavigationButtonBackgroundColor"])),
+                    ("NavigationButtonForeground", new SolidColorBrush(themeColors["NavigationButtonForegroundColor"])),
                     ("ButtonBorderBrush", new SolidColorBrush(themeColors["AccentColor"])),
                     ("ButtonHoverBackground", new SolidColorBrush(themeColors["AccentColor"])),
-                    (
-                        "ButtonHoverTextColor",
-                        new SolidColorBrush(themeColors["ButtonHoverTextColor"])
-                    ),
-                    (
-                        "PrimaryButtonForeground",
-                        new SolidColorBrush(themeColors["PrimaryButtonForegroundColor"])
-                    ),
-                    (
-                        "ButtonDisabledForeground",
-                        new SolidColorBrush(themeColors["ButtonDisabledForegroundColor"])
-                    ),
-                    (
-                        "ButtonDisabledBorderBrush",
-                        new SolidColorBrush(themeColors["ButtonDisabledBorderColor"])
-                    ),
-                    (
-                        "ButtonDisabledHoverBackground",
-                        new SolidColorBrush(themeColors["ButtonDisabledBorderColor"])
-                    ),
-                    (
-                        "ButtonDisabledHoverForeground",
-                        new SolidColorBrush(themeColors["ButtonDisabledForegroundColor"])
-                    ),
-                    (
-                        "TooltipBackground",
-                        new SolidColorBrush(themeColors["TooltipBackgroundColor"])
-                    ),
-                    (
-                        "TooltipForeground",
-                        new SolidColorBrush(themeColors["TooltipForegroundColor"])
-                    ),
+                    ("ButtonHoverTextColor", new SolidColorBrush(themeColors["ButtonHoverTextColor"])),
+                    ("PrimaryButtonForeground", new SolidColorBrush(themeColors["PrimaryButtonForegroundColor"])),
+                    ("ButtonDisabledForeground", new SolidColorBrush(themeColors["ButtonDisabledForegroundColor"])),
+                    ("ButtonDisabledBorderBrush", new SolidColorBrush(themeColors["ButtonDisabledBorderColor"])),
+                    ("ButtonDisabledHoverBackground", new SolidColorBrush(themeColors["ButtonDisabledBorderColor"])),
+                    ("ButtonDisabledHoverForeground", new SolidColorBrush(themeColors["ButtonDisabledForegroundColor"])),
+                    ("TooltipBackground", new SolidColorBrush(themeColors["TooltipBackgroundColor"])),
+                    ("TooltipForeground", new SolidColorBrush(themeColors["TooltipForegroundColor"])),
                     ("TooltipBorderBrush", new SolidColorBrush(themeColors["TooltipBorderColor"])),
-                    (
-                        "ControlForeground",
-                        new SolidColorBrush(themeColors["ControlForegroundColor"])
-                    ),
+                    ("ControlForeground", new SolidColorBrush(themeColors["ControlForegroundColor"])),
                     ("ControlFillColor", new SolidColorBrush(themeColors["ControlFillColor"])),
-                    (
-                        "ControlBorderBrush",
-                        new SolidColorBrush(themeColors["ControlBorderColor"])
-                    ),
-                    (
-                        "ToggleKnobBrush",
-                        new SolidColorBrush(themeColors["ToggleKnobColor"])
-                    ),
-                    (
-                        "ToggleKnobCheckedBrush",
-                        new SolidColorBrush(themeColors["ToggleKnobCheckedColor"])
-                    ),
+                    ("ControlBorderBrush", new SolidColorBrush(themeColors["ControlBorderColor"])),
+                    ("ToggleKnobBrush", new SolidColorBrush(themeColors["ToggleKnobColor"])),
+                    ("ToggleKnobCheckedBrush", new SolidColorBrush(themeColors["ToggleKnobCheckedColor"])),
                     ("SliderTrackBackground", new SolidColorBrush(themeColors["SliderTrackColor"])),
-                    // Special handling for slider thumb in light mode to make them more visible
-                    (
-                        "SliderAccentColor",
-                        new SolidColorBrush(
-                            IsDarkTheme ? themeColors["AccentColor"] : Color.FromRgb(240, 240, 240)
-                        )
-                    ),
+                    ("SliderAccentColor", new SolidColorBrush(IsDarkTheme ? themeColors["AccentColor"] : Color.FromRgb(240, 240, 240))),
                     ("TickBarForeground", new SolidColorBrush(themeColors["PrimaryTextColor"])),
-                    (
-                        "ScrollBarThumbBrush",
-                        new SolidColorBrush(themeColors["ScrollBarThumbColor"])
-                    ),
-                    (
-                        "ScrollBarThumbHoverBrush",
-                        new SolidColorBrush(themeColors["ScrollBarThumbHoverColor"])
-                    ),
-                    (
-                        "ScrollBarThumbPressedBrush",
-                        new SolidColorBrush(themeColors["ScrollBarThumbPressedColor"])
-                    ),
+                    ("ScrollBarThumbBrush", new SolidColorBrush(themeColors["ScrollBarThumbColor"])),
+                    ("ScrollBarThumbHoverBrush", new SolidColorBrush(themeColors["ScrollBarThumbHoverColor"])),
+                    ("ScrollBarThumbPressedBrush", new SolidColorBrush(themeColors["ScrollBarThumbPressedColor"])),
                 };
+
+                foreach (var (key, brush) in brushes)
+                {
+                    brush.Freeze();
+                }
 
                 var resources = Application.Current.Resources;
 
-                // Update all brushes in the application resources
-                foreach (var (key, brush) in brushes)
+                resources.BeginInit();
+                try
                 {
-                    // Freeze for better performance
-                    brush.Freeze();
-
-                    // Update in main resources dictionary
-                    resources[key] = brush;
-                }
-
-                // Notify the ViewNameToBackgroundConverter that the theme has changed
-                Winhance.WPF.Features.Common.Converters.ViewNameToBackgroundConverter.Instance.NotifyThemeChanged();
-
-                // Attempt to force a visual refresh of the main window
-                var mainWindow = Application.Current.MainWindow;
-                if (mainWindow != null)
-                {
-                    // Force a layout update
-                    mainWindow.InvalidateVisual();
-
-                    // Directly update the navigation buttons and toggle switches
-                    Application.Current.Dispatcher.Invoke(() =>
+                    foreach (var (key, brush) in brushes)
                     {
-                        try
-                        {
-                            // Find the navigation buttons by name
-                            var softwareAppsButton = FindChildByName(
-                                mainWindow,
-                                "SoftwareAppsButton"
-                            );
-                            var optimizeButton = FindChildByName(mainWindow, "OptimizeButton");
-                            var customizeButton = FindChildByName(mainWindow, "CustomizeButton");
-                            var aboutButton = FindChildByName(mainWindow, "AboutButton");
-
-                            // Get the current view name from the main view model
-                            string currentViewName = string.Empty;
-                            if (mainWindow.DataContext != null)
-                            {
-                                var mainViewModel = mainWindow.DataContext as dynamic;
-                                currentViewName = mainViewModel.CurrentViewName;
-                            }
-
-                            // Update each button's background if not null
-                            if (softwareAppsButton != null)
-                                UpdateButtonBackground(
-                                    softwareAppsButton,
-                                    "SoftwareApps",
-                                    currentViewName
-                                );
-                            if (optimizeButton != null)
-                                UpdateButtonBackground(optimizeButton, "Optimize", currentViewName);
-                            if (customizeButton != null)
-                                UpdateButtonBackground(
-                                    customizeButton,
-                                    "Customize",
-                                    currentViewName
-                                );
-                            if (aboutButton != null)
-                                UpdateButtonBackground(aboutButton, "About", currentViewName);
-
-                            // We no longer need to explicitly update toggle switches
-                            // as they will automatically pick up the theme from application resources
-
-                            // Force a more thorough refresh of the UI
-                            mainWindow.UpdateLayout();
-
-                            // Update theme-dependent icons
-                            NotifyWindowsOfThemeChange();
-                        }
-                        catch (Exception ex)
-                        {
-                            // Silently handle exceptions to avoid crashes
-                        }
-                    });
+                        resources[key] = brush;
+                    }
                 }
+                finally
+                {
+                    resources.EndInit();
+                }
+
+                Application.Current.Dispatcher.BeginInvoke(() =>
+                {
+                    NotifyWindowsOfThemeChange();
+                }, System.Windows.Threading.DispatcherPriority.Background);
             }
             catch (Exception ex)
             {
-                // Silently handle exceptions to avoid crashes
             }
-
-            // Save theme preference
-            SaveThemePreference();
         }
 
         private void SaveThemePreference()
         {
             try
             {
+                Settings.Default.ThemeSetByUser = true;
                 Settings.Default.IsDarkTheme = IsDarkTheme;
                 Settings.Default.Save();
             }
-            catch (Exception ex)
+            catch
             {
-                // Silently handle exceptions to avoid crashes
             }
         }
 
@@ -351,28 +203,23 @@ namespace Winhance.WPF.Features.Common.Resources.Theme
         {
             try
             {
-                IsDarkTheme = Settings.Default.IsDarkTheme;
+                if (!Settings.Default.ThemeSetByUser)
+                {
+                    IsDarkTheme = _windowsThemeQueryService.IsDarkModeEnabled();
+                }
+                else
+                {
+                    IsDarkTheme = Settings.Default.IsDarkTheme;
+                }
             }
-            catch (Exception ex)
+            catch
             {
-                // Keep default value if loading fails
+                IsDarkTheme = true;
             }
         }
 
-        // Clean up event subscriptions
         public void Dispose()
         {
-            try
-            {
-                if (_navigationService != null)
-                {
-                    _navigationService.Navigated -= NavigationService_Navigated;
-                }
-            }
-            catch (Exception ex)
-            {
-                // Silently handle exceptions to avoid crashes
-            }
         }
 
         public void ResetThemePreference()
@@ -383,66 +230,8 @@ namespace Winhance.WPF.Features.Common.Resources.Theme
                 LoadThemePreference();
                 ApplyTheme();
             }
-            catch (Exception ex)
+            catch
             {
-                // Silently handle exceptions to avoid crashes
-            }
-        }
-
-        private static System.Windows.Controls.Button? FindChildByName(DependencyObject parent, string name)
-        {
-            return Winhance.WPF.Features.Common.Utilities.VisualTreeHelpers.FindChildByName<System.Windows.Controls.Button>(parent, name);
-        }
-
-        // Helper method to update a button's background based on whether it's selected
-        private void UpdateButtonBackground(
-            System.Windows.Controls.Button button,
-            string buttonViewName,
-            string currentViewName
-        )
-        {
-            if (button == null)
-                return;
-
-            var themeColors = IsDarkTheme ? DarkThemeColors : LightThemeColors;
-
-            // Determine if this button is for the currently selected view
-            bool isSelected = string.Equals(
-                buttonViewName,
-                currentViewName,
-                StringComparison.OrdinalIgnoreCase
-            );
-
-            // Set the appropriate background color
-            if (isSelected)
-            {
-                button.Background = new SolidColorBrush(themeColors["MainContainerBorderColor"]);
-            }
-            else
-            {
-                button.Background = new SolidColorBrush(
-                    themeColors["NavigationButtonBackgroundColor"]
-                );
-            }
-
-            // Update the foreground color for the button's content
-            button.Foreground = new SolidColorBrush(themeColors["NavigationButtonForegroundColor"]);
-        }
-
-        // Method to update all toggle switches in all open windows
-        private void UpdateAllToggleSwitches()
-        {
-            try
-            {
-                // Update toggle switches in all open windows
-                foreach (Window window in Application.Current.Windows)
-                {
-                    UpdateToggleSwitches(window);
-                }
-            }
-            catch (Exception ex)
-            {
-                // Silently handle exceptions to avoid crashes
             }
         }
 
@@ -460,54 +249,6 @@ namespace Winhance.WPF.Features.Common.Resources.Theme
             }
             catch
             {
-                // Silently handle exceptions
-            }
-        }
-
-        // Helper method to update all toggle switches in the visual tree
-        private void UpdateToggleSwitches(DependencyObject parent)
-        {
-            if (parent == null)
-                return;
-
-            // Check if the current element is a ToggleButton
-            if (parent is ToggleButton toggleButton)
-            {
-                try
-                {
-                    // Always set the Tag property for all toggle buttons
-                    toggleButton.Tag = IsDarkTheme ? "Dark" : "Light";
-
-                    // Force a visual refresh for all toggle buttons
-                    toggleButton.InvalidateVisual();
-
-                    // Force a more thorough refresh
-                    if (toggleButton.Parent is FrameworkElement parentElement)
-                    {
-                        parentElement.InvalidateVisual();
-                        parentElement.UpdateLayout();
-                    }
-
-                    // Ensure the toggle button is enabled and clickable if it should be
-                    if (!toggleButton.IsEnabled && toggleButton.IsEnabled != false)
-                    {
-                        toggleButton.IsEnabled = true;
-                    }
-                }
-                catch (Exception ex)
-                {
-                    // Silently handle exceptions to avoid crashes
-                }
-            }
-
-            // Get the number of children
-            int childCount = VisualTreeHelper.GetChildrenCount(parent);
-
-            // Recursively search through all children
-            for (int i = 0; i < childCount; i++)
-            {
-                var child = VisualTreeHelper.GetChild(parent, i);
-                UpdateToggleSwitches(child);
             }
         }
     }

@@ -27,24 +27,12 @@ namespace Winhance.WPF.Features.Common.Converters
 
         public event PropertyChangedEventHandler? PropertyChanged;
 
-        // This method will be called when the theme changes
         public void NotifyThemeChanged()
         {
-            // Force a refresh of all bindings that use this converter
-            Application.Current.Dispatcher.Invoke(() =>
+            Application.Current.Dispatcher.BeginInvoke(() =>
             {
-                // Notify all properties to force binding refresh
                 PropertyChanged?.Invoke(this, new PropertyChangedEventArgs(string.Empty));
-
-                // Also notify specific properties to ensure all binding scenarios are covered
-                PropertyChanged?.Invoke(this, new PropertyChangedEventArgs("ThemeChanged"));
-
-                // Force WPF to update all bindings
-                if (Application.Current.MainWindow != null)
-                {
-                    Application.Current.MainWindow.UpdateLayout();
-                }
-            }, DispatcherPriority.Render);
+            }, DispatcherPriority.Background);
         }
 
         public object Convert(object value, Type targetType, object parameter, CultureInfo culture)

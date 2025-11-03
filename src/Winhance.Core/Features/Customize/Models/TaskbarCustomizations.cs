@@ -36,7 +36,7 @@ public static class TaskbarCustomizations
                 new SettingDefinition
                 {
                     Id = "taskbar-search-box-11",
-                    Name = "Search in Taskbar",
+                    Name = "Search in taskbar",
                     Description = "Choose how the Windows search appears on your taskbar: hidden, icon only, icon with label, or full search box",
                     GroupName = "Taskbar Icons",
                     InputType = InputType.Selection,
@@ -96,6 +96,7 @@ public static class TaskbarCustomizations
                     InputType = InputType.Selection,
                     Icon = "Magnify",
                     IsWindows10Only = true,
+                    RestartProcess = "Explorer",
                     RegistrySettings = new List<RegistrySetting>
                     {
                         new RegistrySetting
@@ -182,6 +183,7 @@ public static class TaskbarCustomizations
                     IconPack = "Lucide",
                     Icon = "Video",
                     IsWindows10Only = true,
+                    RestartProcess = "Explorer",
                     RegistrySettings = new List<RegistrySetting>
                     {
                         new RegistrySetting
@@ -225,6 +227,7 @@ public static class TaskbarCustomizations
                     InputType = InputType.Toggle,
                     Icon = "TrayFull",
                     IsWindows10Only = true,
+                    RestartProcess = "Explorer",
                     RegistrySettings = new List<RegistrySetting>
                     {
                         new RegistrySetting
@@ -247,6 +250,7 @@ public static class TaskbarCustomizations
                     GroupName = "Taskbar Icons",
                     InputType = InputType.Toggle,
                     Icon = "DockWindow",
+                    RestartProcess = "Explorer",
                     RegistrySettings = new List<RegistrySetting>
                     {
                         new RegistrySetting
@@ -272,6 +276,7 @@ public static class TaskbarCustomizations
                     IconPack = "MaterialDesign",
                     Icon = "WidgetsRound",
                     IsWindows11Only = true,
+                    RestartProcess = "Explorer",
                     RegistrySettings = new List<RegistrySetting>
                     {
                         new RegistrySetting
@@ -307,6 +312,7 @@ public static class TaskbarCustomizations
                     InputType = InputType.Toggle,
                     Icon = "Newspaper",
                     IsWindows10Only = true,
+                    RestartProcess = "Explorer",
                     RegistrySettings = new List<RegistrySetting>
                     {
                         new RegistrySetting
@@ -318,6 +324,7 @@ public static class TaskbarCustomizations
                             DisabledValue = null,
                             DefaultValue = 1,
                             ValueType = RegistryValueKind.DWord,
+                            AbsenceMeansEnabled = true,
                         },
                         new RegistrySetting
                         {
@@ -328,6 +335,7 @@ public static class TaskbarCustomizations
                             DisabledValue = null,
                             DefaultValue = 1,
                             ValueType = RegistryValueKind.DWord,
+                            AbsenceMeansEnabled = true,
                         },
                     },
                 },
@@ -340,6 +348,7 @@ public static class TaskbarCustomizations
                     InputType = InputType.Toggle,
                     Icon = "Opacity",
                     IsWindows10Only = true,
+                    RestartProcess = "Explorer",
                     Dependencies = new List<SettingDependency>
                     {
                         new SettingDependency
@@ -373,6 +382,7 @@ public static class TaskbarCustomizations
                     InputType = InputType.Toggle,
                     Icon = "SizeXxs",
                     IsWindows10Only = true,
+                    RestartProcess = "Explorer",
                     RegistrySettings = new List<RegistrySetting>
                     {
                         new RegistrySetting
@@ -400,7 +410,7 @@ public static class TaskbarCustomizations
                     {
                         new RegistrySetting
                         {
-                            KeyPath = @"HKEY_CURRENT_USER\Software\Microsoft\Windows\CurrentVersion\Explorer\Advanced",
+                            KeyPath = @"HKEY_CURRENT_USER\Software\Microsoft\Windows\CurrentVersion\Explorer\Advanced\TaskbarDeveloperSettings",
                             ValueName = "TaskbarEndTask",
                             RecommendedValue = 1,
                             EnabledValue = 1,

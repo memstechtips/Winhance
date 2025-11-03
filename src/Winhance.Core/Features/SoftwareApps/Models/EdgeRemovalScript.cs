@@ -29,6 +29,7 @@ public static class EdgeRemovalScript
       Credits:
       - Legacy Edge removal based on work by ishad0w: https://gist.github.com/ishad0w/d25ca52eb04dbefba8087a344a69c79c
       - Chromium Edge removal based on work by FR33THY: https://github.com/FR33THYFR33THY/Ultimate-Windows-Optimization-Guide/blob/main/6%20Windows/14%20Edge.ps1
+      - Edge protocol redirect based on OpenWebSearch by AveYo: https://github.com/AveYo/fox/blob/main/OpenWebSearch.cmd
 #>
 
 # Check if script is running as Administrator
@@ -210,6 +211,129 @@ function Remove-EdgeShortcuts {
     Write-Log ""Removed $removedCount Edge shortcut(s)""
 }
 
+function Install-EdgeProtocolRedirect {
+    Write-Log ""Checking if Edge protocol redirect is needed""
+
+    $ifeoCheck = ""HKLM:\SOFTWARE\Microsoft\Windows NT\CurrentVersion\Image File Execution Options\ie_to_edge_stub.exe\0""
+    if (Test-Path $ifeoCheck) {
+        $debugger = (Get-ItemProperty -Path $ifeoCheck -Name ""Debugger"" -ErrorAction SilentlyContinue).Debugger
+        if ($debugger -like ""*OpenWebSearch*"") {
+            Write-Log ""Edge protocol redirect already installed""
+            return
+        }
+    }
+
+    Write-Log ""Installing Edge protocol redirect using OpenWebSearch""
+    $scriptsDir = ""C:\ProgramData\Winhance\OpenWebSearch""
+    New-Item -ItemType Directory -Path $scriptsDir -Force -ErrorAction SilentlyContinue | Out-Null
+
+    $stubTargetPath = ""$scriptsDir\ie_to_edge_stub.exe""
+    if (!(Test-Path $stubTargetPath)) {
+        Write-Log ""Warning: ie_to_edge_stub.exe not found at $stubTargetPath (should have been copied before Edge removal)""
+        return
+    }
+
+    $openWebSearchContent = @""
+@title OpenWebSearch 2023 & echo off
+for /f %%E in ('""prompt `$E`$S& for %%e in (1) do rem""') do echo;%%E[2t 2>nul
+
+call :reg_var ""HKCU\SOFTWARE\Microsoft\Windows\Shell\Associations\UrlAssociations\https\UserChoice"" ProgID ProgID
+if /i ""%ProgID%"" equ ""MSEdgeHTM"" exit /b
+
+call :reg_var ""HKCR\%ProgID%\shell\open\command"" """" Browser
+set Choice=& for %%. in (%Browser%) do if not defined Choice set ""Choice=%%~.""
+
+call :reg_var ""HKCR\MSEdgeMHT\shell\open\command"" """" FallBack
+set ""Edge="" & for %%. in (%FallBack%) do if not defined Edge set ""Edge=%%~.""
+set ""URI="" & set ""URL="" & set ""NOOP="" & set ""PassTrough=%Edge:msedge=edge%""
+
+set ""CLI=%CMDCMDLINE:""=````%""
+if defined CLI set ""CLI=%CLI:*ie_to_edge_stub.exe```` =%""
+if defined CLI set ""CLI=%CLI:*ie_to_edge_stub.exe =%""
+if defined CLI set ""CLI=%CLI:*msedge.exe```` =%""
+if defined CLI set ""CLI=%CLI:*msedge.exe =%""
+set ""FIX=%CLI:~-1%""
+if defined CLI if ""%FIX%""=="" "" set ""CLI=%CLI:~0,-1%""
+if defined CLI set ""RED=%CLI:microsoft-edge=%""
+if defined CLI set ""URL=%CLI:http=%""
+if defined CLI set ""ARG=%CLI:````=""%""
+
+if ""%CLI%"" equ ""%RED%"" (set NOOP=1) else if ""%CLI%"" equ ""%URL%"" (set NOOP=1)
+if defined NOOP if not exist ""%PassTrough%"" echo;@mklink /h ""%PassTrough%"" ""%Edge%"" >""%Temp%\OpenWebSearchRepair.cmd""
+if defined NOOP if not exist ""%PassTrough%"" schtasks /run /tn OpenWebSearchRepair 2>nul >nul
+if defined NOOP if not exist ""%PassTrough%"" timeout /t 3 >nul
+if defined NOOP if exist ""%PassTrough%"" start """" ""%PassTrough%"" %ARG%
+if defined NOOP exit /b
+
+set ""URL=%CLI:*microsoft-edge=%""
+set ""URL=http%URL:*http=%""
+set ""FIX=%URL:~-2%""
+if defined URL if ""%FIX%""==""````"" set ""URL=%URL:~0,-2%""
+call :dec_url
+start """" ""%Choice%"" ""%URL%""
+exit
+
+:reg_var
+set {var}=& set {reg}=reg query ""%~1"" /v %2 /z /se "","" /f /e& if %2=="""" set {reg}=reg query ""%~1"" /ve /z /se "","" /f /e
+for /f ""skip=2 tokens=* delims="" %%V in ('%{reg}% %4 %5 %6 %7 %8 %9 2^>nul') do if not defined {var} set ""{var}=%%V""
+if not defined {var} (set {reg}=& set ""%~3=""& exit /b) else if %2=="""" set ""{var}=%{var}:*)    =%""
+if not defined {var} (set {reg}=& set ""%~3=""& exit /b) else set {reg}=& set ""%~3=%{var}:*)    =%""& set {var}=& exit /b
+
+:dec_url
+set "".=%URL:!=}%"" & setlocal enabledelayedexpansion
+set "".=!.:%%={!"" &set "".=!.:{3A=:!"" &set "".=!.:{2F=/!"" &set "".=!.:{3F=?!"" &set "".=!.:{23=#!"" &set "".=!.:{5B=[!"" &set "".=!.:{5D=]!""
+set "".=!.:{40=@!""&set "".=!.:{21=}!"" &set "".=!.:{24=`$!"" &set "".=!.:{26=&!"" &set "".=!.:{27='!"" &set "".=!.:{28=(!"" &set "".=!.:{29=)!""
+set "".=!.:{2A=*!""&set "".=!.:{2B=+!"" &set "".=!.:{2C=,!"" &set "".=!.:{3B=;!"" &set "".=!.:{3D==!"" &set "".=!.:{25=%%!""&set "".=!.:{20= !""
+set "".=!.:{=%%!"" & endlocal& set ""URL=%.:}=!%"" & exit /b
+""@
+
+    $openWebSearchPath = ""$scriptsDir\OpenWebSearch.cmd""
+    $openWebSearchContent | Out-File -FilePath $openWebSearchPath -Encoding ASCII -Force
+    Write-Log ""Created OpenWebSearch.cmd at $openWebSearchPath""
+
+    $msedgePath = ""${env:ProgramFiles(x86)}\Microsoft\Edge\Application\msedge.exe""
+    $edgePath = ""${env:ProgramFiles(x86)}\Microsoft\Edge\Application\edge.exe""
+    if ((Test-Path $msedgePath) -and !(Test-Path $edgePath)) {
+        cmd /c mklink /h ""$edgePath"" ""$msedgePath"" 2>&1 | Out-Null
+        Write-Log ""Created edge.exe hardlink at $edgePath""
+    }
+
+    $buildNumber = [Environment]::OSVersion.Version.Build
+    $conhostFlags = if ($buildNumber -gt 25179) { ""--width 1 --height 1"" } else { ""--headless"" }
+    $conhostDebugger = ""$env:SystemRoot\system32\conhost.exe $conhostFlags $scriptsDir\OpenWebSearch.cmd""
+
+    Write-Log ""Configuring registry entries for Edge protocol redirect""
+    reg.exe add ""HKCR\microsoft-edge"" /f /ve /d ""URL:microsoft-edge"" 2>&1 | Out-Null
+    reg.exe add ""HKCR\microsoft-edge"" /f /v ""URL Protocol"" /d `""`"" 2>&1 | Out-Null
+    reg.exe add ""HKCR\microsoft-edge"" /f /v ""NoOpenWith"" /d `""`"" 2>&1 | Out-Null
+    reg.exe add ""HKCR\microsoft-edge\shell\open\command"" /f /ve /d ""$stubTargetPath %1"" 2>&1 | Out-Null
+    reg.exe add ""HKCR\MSEdgeHTM"" /f /v ""NoOpenWith"" /d `""`"" 2>&1 | Out-Null
+    reg.exe add ""HKCR\MSEdgeHTM\shell\open\command"" /f /ve /d ""$stubTargetPath %1"" 2>&1 | Out-Null
+    reg.exe add ""HKLM\SOFTWARE\Microsoft\Windows NT\CurrentVersion\Image File Execution Options\ie_to_edge_stub.exe"" /f /v UseFilter /d 1 /t reg_dword 2>&1 | Out-Null
+    reg.exe add ""HKLM\SOFTWARE\Microsoft\Windows NT\CurrentVersion\Image File Execution Options\ie_to_edge_stub.exe\0"" /f /v FilterFullPath /d ""$stubTargetPath"" 2>&1 | Out-Null
+    reg.exe add ""HKLM\SOFTWARE\Microsoft\Windows NT\CurrentVersion\Image File Execution Options\ie_to_edge_stub.exe\0"" /f /v Debugger /d ""$conhostDebugger"" 2>&1 | Out-Null
+    reg.exe add ""HKLM\SOFTWARE\Microsoft\Windows NT\CurrentVersion\Image File Execution Options\msedge.exe"" /f /v UseFilter /d 1 /t reg_dword 2>&1 | Out-Null
+    reg.exe add ""HKLM\SOFTWARE\Microsoft\Windows NT\CurrentVersion\Image File Execution Options\msedge.exe\0"" /f /v FilterFullPath /d ""$msedgePath"" 2>&1 | Out-Null
+    reg.exe add ""HKLM\SOFTWARE\Microsoft\Windows NT\CurrentVersion\Image File Execution Options\msedge.exe\0"" /f /v Debugger /d ""$conhostDebugger"" 2>&1 | Out-Null
+    Write-Log ""Registry configuration completed""
+
+    $repairScriptPath = ""$scriptsDir\OpenWebSearchRepair.cmd""
+    $repairScriptContent = ""@echo off`r`nmklink /h """"$edgePath"""" """"$msedgePath""""""
+    $repairScriptContent | Out-File -FilePath $repairScriptPath -Encoding ASCII -Force
+    Write-Log ""Created repair script at $repairScriptPath""
+
+    Write-Log ""Creating OpenWebSearchRepair scheduled task""
+    try {
+        $taskAction = New-ScheduledTaskAction -Execute $repairScriptPath
+        $taskTrigger = New-ScheduledTaskTrigger -Once -At (Get-Date).Date
+        $taskSettings = New-ScheduledTaskSettingsSet -AllowStartIfOnBatteries -DontStopIfGoingOnBatteries
+        Register-ScheduledTask -TaskName 'OpenWebSearchRepair' -Action $taskAction -Trigger $taskTrigger -Settings $taskSettings -RunLevel Highest -Force | Out-Null
+        Write-Log ""OpenWebSearchRepair scheduled task created""
+    } catch {
+        Write-Log ""Failed to create OpenWebSearchRepair scheduled task: $($_.Exception.Message)""
+    }
+}
+
 # Function to remove Chromium Edge and EdgeUpdate
 function Remove-ChromiumEdge {
     # Remove Chromium Edge
@@ -348,6 +472,37 @@ if (-not $legacyInstalled -and -not $chromiumInstalled) {
 }
 
 $removedSomething = $false
+$stubPath = $null
+
+if ($chromiumInstalled) {
+    Write-Log ""Chromium Edge detected. Finding ie_to_edge_stub.exe before removal.""
+
+    $stubLocations = @(""$env:ProgramData\ie_to_edge_stub.exe"", ""$env:Public\ie_to_edge_stub.exe"")
+    foreach ($loc in $stubLocations) {
+        if (Test-Path $loc) {
+            $stubPath = $loc
+            Write-Log ""Found stub at: $loc""
+            break
+        }
+    }
+
+    if (!$stubPath) {
+        $stubSearch = Get-ChildItem ""${env:ProgramFiles(x86)}\Microsoft\Edge"" -Filter ""ie_to_edge_stub.exe"" -Recurse -ErrorAction SilentlyContinue | Select-Object -First 1
+        if ($stubSearch) {
+            $stubPath = $stubSearch.FullName
+            Write-Log ""Found stub at: $stubPath""
+        } else {
+            Write-Log ""ie_to_edge_stub.exe not found in any location""
+        }
+    }
+
+    if ($stubPath) {
+        $scriptsDir = ""C:\ProgramData\Winhance\OpenWebSearch""
+        New-Item -ItemType Directory -Path $scriptsDir -Force -ErrorAction SilentlyContinue | Out-Null
+        Copy-Item $stubPath ""$scriptsDir\ie_to_edge_stub.exe"" -Force -ErrorAction SilentlyContinue
+        Write-Log ""Copied ie_to_edge_stub.exe to $scriptsDir before Edge removal""
+    }
+}
 
 if ($legacyInstalled) {
     Write-Log ""Legacy Edge detected. Proceeding with removal.""
@@ -378,6 +533,7 @@ if ($removedSomething) {
     }
 
     Remove-EdgeShortcuts
+    Install-EdgeProtocolRedirect
 }
 
 # Always check for and delete Edge scheduled tasks

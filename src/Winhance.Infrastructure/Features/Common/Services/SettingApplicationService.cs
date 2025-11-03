@@ -51,6 +51,12 @@ namespace Winhance.Infrastructure.Features.Common.Services
 
             if (!string.IsNullOrEmpty(commandString))
             {
+                if (setting.RequiresConfirmation && !checkboxResult)
+                {
+                    logService.Log(LogLevel.Info, $"[SettingApplicationService] Skipping action command for '{settingId}' - checkbox not selected");
+                    return;
+                }
+
                 await ExecuteActionCommand(domainService, commandString, applyRecommended, settingId);
                 return;
             }
@@ -480,46 +486,53 @@ namespace Winhance.Infrastructure.Features.Common.Services
 
         private async Task ExecutePowerCfgSettings(List<PowerCfgSetting> powerCfgSettings, object valueToApply, bool hasBattery = true)
         {
+            var commands = new List<string>();
+
             foreach (var powerCfgSetting in powerCfgSettings)
             {
                 switch (powerCfgSetting.PowerModeSupport)
                 {
                     case PowerModeSupport.Both:
                         var singleValue = ExtractSingleValue(valueToApply);
-                        await commandService.ExecuteCommandAsync($"powercfg /setacvalueindex SCHEME_CURRENT {powerCfgSetting.SubgroupGuid} {powerCfgSetting.SettingGuid} {singleValue}");
+                        commands.Add($"powercfg /setacvalueindex SCHEME_CURRENT {powerCfgSetting.SubgroupGuid} {powerCfgSetting.SettingGuid} {singleValue}");
 
                         if (hasBattery)
                         {
-                            await commandService.ExecuteCommandAsync($"powercfg /setdcvalueindex SCHEME_CURRENT {powerCfgSetting.SubgroupGuid} {powerCfgSetting.SettingGuid} {singleValue}");
+                            commands.Add($"powercfg /setdcvalueindex SCHEME_CURRENT {powerCfgSetting.SubgroupGuid} {powerCfgSetting.SettingGuid} {singleValue}");
                         }
                         break;
 
                     case PowerModeSupport.Separate:
                         var (acValue, dcValue) = ExtractACDCValues(valueToApply);
-                        await commandService.ExecuteCommandAsync($"powercfg /setacvalueindex SCHEME_CURRENT {powerCfgSetting.SubgroupGuid} {powerCfgSetting.SettingGuid} {acValue}");
+                        commands.Add($"powercfg /setacvalueindex SCHEME_CURRENT {powerCfgSetting.SubgroupGuid} {powerCfgSetting.SettingGuid} {acValue}");
 
                         if (hasBattery)
                         {
-                            await commandService.ExecuteCommandAsync($"powercfg /setdcvalueindex SCHEME_CURRENT {powerCfgSetting.SubgroupGuid} {powerCfgSetting.SettingGuid} {dcValue}");
+                            commands.Add($"powercfg /setdcvalueindex SCHEME_CURRENT {powerCfgSetting.SubgroupGuid} {powerCfgSetting.SettingGuid} {dcValue}");
                         }
                         break;
 
                     case PowerModeSupport.ACOnly:
                         var acOnlyValue = ExtractSingleValue(valueToApply);
-                        await commandService.ExecuteCommandAsync($"powercfg /setacvalueindex SCHEME_CURRENT {powerCfgSetting.SubgroupGuid} {powerCfgSetting.SettingGuid} {acOnlyValue}");
+                        commands.Add($"powercfg /setacvalueindex SCHEME_CURRENT {powerCfgSetting.SubgroupGuid} {powerCfgSetting.SettingGuid} {acOnlyValue}");
                         break;
 
                     case PowerModeSupport.DCOnly:
                         if (hasBattery)
                         {
                             var dcOnlyValue = ExtractSingleValue(valueToApply);
-                            await commandService.ExecuteCommandAsync($"powercfg /setdcvalueindex SCHEME_CURRENT {powerCfgSetting.SubgroupGuid} {powerCfgSetting.SettingGuid} {dcOnlyValue}");
+                            commands.Add($"powercfg /setdcvalueindex SCHEME_CURRENT {powerCfgSetting.SubgroupGuid} {powerCfgSetting.SettingGuid} {dcOnlyValue}");
                         }
                         break;
                 }
             }
 
-            await commandService.ExecuteCommandAsync("powercfg /setactive SCHEME_CURRENT");
+            commands.Add("powercfg /setactive SCHEME_CURRENT");
+
+            var batchScript = string.Join(" && ", commands);
+            await commandService.ExecuteCommandAsync(batchScript);
+
+            logService.Log(LogLevel.Info, $"[SettingApplicationService] Executed {commands.Count} powercfg commands in batch");
         }
 
         private int ExtractSingleValue(object value)
@@ -809,7 +822,27 @@ namespace Winhance.Infrastructure.Features.Common.Services
 
             if (childSettingDefinitions.Count != compatiblePresetEntries.Count)
             {
-                return false;
+                logService.Log(LogLevel.Info,
+                    $"[PostChange] Child count mismatch - Expected: {compatiblePresetEntries.Count}, Found in allSettings: {childSettingDefinitions.Count}");
+                logService.Log(LogLevel.Info,
+                    $"[PostChange] This is likely because child settings span multiple domains. Fetching from global registry instead.");
+
+                childSettingDefinitions.Clear();
+                foreach (var childId in compatiblePresetEntries.Keys)
+                {
+                    var childSetting = globalSettingsRegistry.GetSetting(childId) as SettingDefinition;
+                    if (childSetting != null)
+                    {
+                        childSettingDefinitions.Add(childSetting);
+                    }
+                }
+
+                if (childSettingDefinitions.Count != compatiblePresetEntries.Count)
+                {
+                    logService.Log(LogLevel.Warning,
+                        $"[PostChange] Still mismatched after global registry lookup - Expected: {compatiblePresetEntries.Count}, Found: {childSettingDefinitions.Count}");
+                    return false;
+                }
             }
 
             var states = await discoveryService.GetSettingStatesAsync(childSettingDefinitions);
@@ -825,8 +858,13 @@ namespace Winhance.Infrastructure.Features.Common.Services
 
                 if (state.IsEnabled != expectedValue)
                 {
+                    logService.Log(LogLevel.Info,
+                        $"[PostChange] Child '{childId}' mismatch - Expected: {expectedValue}, Actual: {state.IsEnabled}");
                     return false;
                 }
+
+                logService.Log(LogLevel.Debug,
+                    $"[PostChange] Child '{childId}' matches - Value: {state.IsEnabled}");
             }
 
             return true;

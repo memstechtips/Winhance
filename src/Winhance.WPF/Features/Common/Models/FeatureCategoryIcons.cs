@@ -10,31 +10,20 @@ namespace Winhance.WPF.Features.Common.Models
             ["Optimization Settings"] = "RocketLaunch",
             ["Customization Settings"] = "Palette",
 
-            ["WindowsApps"] = "MicrosoftWindows",
             ["Windows Apps"] = "MicrosoftWindows",
-            ["ExternalApps"] = "ApplicationCog",
-            ["External Apps"] = "ApplicationCog",
+            ["External Apps"] = "PackageDown",
 
-            ["GamingPerformance"] = "Controller",
-            ["Gaming and Performance"] = "Controller",
-            ["PowerSettings"] = "Power",
-            ["Power Settings"] = "Power",
-            ["WindowsSecurity"] = "Security",
-            ["Windows Security Settings"] = "Security",
-            ["PrivacySettings"] = "Lock",
-            ["Privacy Settings"] = "Lock",
-            ["WindowsUpdates"] = "Update",
-            ["Windows Updates"] = "Update",
-            ["Explorer"] = "Folder",
+            ["Gaming & Performance"] = "Controller",
+            ["Power"] = "Power",
+            ["Privacy & Security"] = "Lock",
+            ["Windows Update"] = "Sync",
             ["Notifications"] = "BellRing",
             ["Sound"] = "VolumeHigh",
 
-            ["WindowsTheme"] = "Brush",
             ["Windows Theme"] = "Brush",
             ["Taskbar"] = "DockBottom",
-            ["StartMenu"] = "FileTableBoxOutline",
             ["Start Menu"] = "FileTableBoxOutline",
-            ["Customize_Explorer"] = "Folder"
+            ["Explorer"] = "Folder"
         };
 
         public static string GetIcon(string sectionNameOrKey) =>

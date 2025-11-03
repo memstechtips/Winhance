@@ -1,7 +1,8 @@
 <ResourceDictionary xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
                     xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
                     xmlns:converters="clr-namespace:Winhance.WPF.Features.Common.Converters"
-                    xmlns:oldConverters="clr-namespace:Winhance.WPF.Converters">
+                    xmlns:oldConverters="clr-namespace:Winhance.WPF.Converters"
+                    xmlns:iconPacks="http://metro.mahapps.com/winfx/xaml/iconpacks">
     <converters:BoolToArrowConverter x:Key="BoolToArrowConverter"/>
     <oldConverters:BooleanToVisibilityConverter x:Key="BooleanToVisibilityConverter"/>
     <oldConverters:BooleanToGridSpanConverter x:Key="BooleanToGridSpanConverter"/>
@@ -39,4 +40,10 @@
     <converters:IntToVisibilityConverter x:Key="IntToVisibilityConverter"/>
     <converters:BooleanToFilterTooltipConverter x:Key="BooleanToFilterTooltipConverter"/>
     <converters:BooleanToFilterIconConverter x:Key="BooleanToFilterIconConverter"/>
+    <converters:CoalesceConverter x:Key="CoalesceConverter"/>
+
+    <converters:PowerPlanStatusToColorConverter x:Key="PowerPlanStatusToColorConverter"/>
+    <converters:PowerPlanStatusToTextConverter x:Key="PowerPlanStatusToTextConverter"/>
+    <converters:PowerPlanDeleteVisibilityConverter x:Key="PowerPlanDeleteVisibilityConverter"/>
+    <converters:WidthToColumnsConverter x:Key="WidthToColumnsConverter"/>
 </ResourceDictionary>

@@ -163,8 +163,12 @@ function Set-FileSignature {
 
 $publishOutputPath = "$solutionDir\src\Winhance.WPF\bin\Release\net9.0-windows"
 $innoSetupScript = "$scriptRoot\Winhance.Installer.iss"
-$dotNetRuntimePath = "$scriptRoot\prerequisites\windowsdesktop-runtime-9.0.4-win-x64.exe"
+$dotNetRuntimePath = "$scriptRoot\prerequisites\windowsdesktop-runtime-9.0.10-win-x64.exe"
 $tempInnoScript = "$env:TEMP\Winhance.Installer.temp.iss"
+
+# Declare certificate variable at script scope so it's accessible throughout
+$certificate = $null
+$shouldSign = $false
 
 # Ensure output directory exists
 if (-not (Test-Path $OutputDir)) {
@@ -230,15 +234,19 @@ $mainExecutable = "$publishOutputPath\Winhance.exe"
 # Check if signing is requested
 if ($SignApplication -or (Read-Host "Do you want to sign the application? (y/n)").ToLower() -eq 'y') {
     $certificate = Get-SigningCertificate -Subject $CertificateSubject -Thumbprint $CertificateThumbprint
-    
+
     if ($certificate) {
         Write-Host "Selected certificate: $($certificate.Subject)" -ForegroundColor Green
         Write-Host "Thumbprint: $($certificate.Thumbprint)" -ForegroundColor Green
-        
+
         # Sign the main executable
         $signResult = Set-FileSignature -FilePath $mainExecutable -Certificate $certificate
-        
-        if (-not $signResult) {
+
+        if ($signResult) {
+            $shouldSign = $true
+            Write-Host "Application executable signed successfully." -ForegroundColor Green
+        }
+        else {
             Write-Host "Warning: Failed to sign the application. Continuing with unsigned application..." -ForegroundColor Yellow
         }
     }
@@ -295,19 +303,38 @@ if ($LASTEXITCODE -ne 0) {
 # Clean up
 Remove-Item $tempInnoScript -Force
 
-# Sign the installer if requested and if we have a certificate
+# Sign the installer if the executable was signed
 $installerPath = "$OutputDir\Winhance.Installer.exe"
-if ($SignApplication -and (Test-Path $installerPath) -and (Get-Variable -Name certificate -ErrorAction SilentlyContinue)) {
+if ($shouldSign -and $certificate -and (Test-Path $installerPath)) {
     Write-Host "Signing the installer..." -ForegroundColor Cyan
-    $null = Set-FileSignature -FilePath $installerPath -Certificate $certificate
-    
-    if ($LASTEXITCODE -ne 0) {
-        Write-Host "Warning: Failed to sign the installer." -ForegroundColor Yellow
-    }
-    else {
+    $installerSignResult = Set-FileSignature -FilePath $installerPath -Certificate $certificate
+
+    if ($installerSignResult) {
         Write-Host "Installer successfully signed." -ForegroundColor Green
     }
+    else {
+        Write-Host "Warning: Failed to sign the installer." -ForegroundColor Yellow
+    }
+}
+elseif (-not $shouldSign) {
+    Write-Host "Skipping installer signing (executable was not signed)." -ForegroundColor Yellow
 }
 
 Write-Host "Build and packaging completed successfully!" -ForegroundColor Cyan
 Write-Host "Installer created at: $installerPath" -ForegroundColor Green
+
+# Display signing status summary
+if ($shouldSign) {
+    Write-Host "`nSigning Summary:" -ForegroundColor Cyan
+    Write-Host "  Certificate: $($certificate.Subject)" -ForegroundColor Green
+    Write-Host "  Executable: Signed" -ForegroundColor Green
+    if ($installerSignResult) {
+        Write-Host "  Installer: Signed" -ForegroundColor Green
+    }
+    else {
+        Write-Host "  Installer: Failed to sign" -ForegroundColor Red
+    }
+}
+else {
+    Write-Host "`nSigning Summary: No files were signed" -ForegroundColor Yellow
+}

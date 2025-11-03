@@ -41,6 +41,8 @@ public abstract partial class BaseAppFeatureViewModel<T>(
 
     public ObservableCollection<T> Items { get; } = new();
 
+    public bool IsTaskRunning => progressService.IsTaskRunning;
+
     protected CancellationReason CurrentCancellationReason { get; set; } = CancellationReason.None;
 
     public override abstract string ModuleId { get; }
@@ -170,6 +172,15 @@ public abstract partial class BaseAppFeatureViewModel<T>(
             return;
         }
 
+        int failedCount = failedItems?.Count() ?? 0;
+        int skippedCount = skippedItems?.Count() ?? 0;
+        bool hasErrors = failedCount > 0 || skippedCount > 0 || isConnectivityIssue;
+
+        if (!hasErrors)
+        {
+            return;
+        }
+
         dialogService.ShowOperationResult(
             operationType,
             successCount,
@@ -293,6 +304,7 @@ public abstract partial class BaseAppFeatureViewModel<T>(
         try
         {
             progressService.StartTask(taskName, isIndeterminate);
+            OnPropertyChanged(nameof(IsTaskRunning));
             await operation(progressService);
         }
         catch (Exception ex)
@@ -306,6 +318,7 @@ public abstract partial class BaseAppFeatureViewModel<T>(
             {
                 progressService.CompleteTask();
             }
+            OnPropertyChanged(nameof(IsTaskRunning));
         }
     }
 
@@ -317,6 +330,7 @@ public abstract partial class BaseAppFeatureViewModel<T>(
         try
         {
             progressService.StartTask(taskName, isIndeterminate);
+            OnPropertyChanged(nameof(IsTaskRunning));
             return await operation(progressService);
         }
         catch (Exception ex)
@@ -330,6 +344,7 @@ public abstract partial class BaseAppFeatureViewModel<T>(
             {
                 progressService.CompleteTask();
             }
+            OnPropertyChanged(nameof(IsTaskRunning));
         }
     }
 

@@ -1,5 +1,6 @@
 using System;
 using System.Diagnostics;
+using System.IO;
 using System.Text;
 using System.Threading;
 using System.Threading.Tasks;
@@ -13,8 +14,123 @@ namespace Winhance.Infrastructure.Features.SoftwareApps.Services
     public class WinGetService(
         ITaskProgressService taskProgressService,
         IPowerShellExecutionService powerShellExecutionService,
-        ILogService logService = null) : IWinGetService
+        ILogService logService) : IWinGetService
     {
+        private string _wingetExePath = null;
+
+        private async Task<string> GetWinGetFromAppXAsync(CancellationToken cancellationToken = default)
+        {
+            try
+            {
+                string script = @"
+                    $package = Get-AppxPackage -Name Microsoft.DesktopAppInstaller
+                    if ($package) {
+                        $installLocation = $package.InstallLocation
+                        $wingetPath = Join-Path $installLocation 'winget.exe'
+                        if (Test-Path $wingetPath) {
+                            Write-Output $wingetPath
+                        }
+                    }
+                ";
+
+                var output = await powerShellExecutionService.ExecuteScriptAsync(script, null, cancellationToken);
+
+                if (!string.IsNullOrWhiteSpace(output))
+                {
+                    string path = output.Trim();
+                    if (File.Exists(path))
+                        return path;
+                }
+
+                return null;
+            }
+            catch (Exception ex)
+            {
+                logService?.LogError($"Error getting WinGet path from AppX: {ex.Message}");
+                return null;
+            }
+        }
+
+        private async Task<string> ResolveWinGetPathAsync(CancellationToken cancellationToken = default)
+        {
+            try
+            {
+                var result = await ExecuteProcessAsync("winget", "--version", "Checking WinGet", cancellationToken);
+                if (result.ExitCode == 0)
+                {
+                    logService?.LogInformation("WinGet is available in PATH");
+                    return "winget";
+                }
+            }
+            catch
+            {
+            }
+
+            logService?.LogWarning("WinGet not in PATH, searching AppX location...");
+
+            string directPath = await GetWinGetFromAppXAsync(cancellationToken);
+            if (!string.IsNullOrEmpty(directPath))
+            {
+                var testResult = await ExecuteProcessAsync(directPath, "--version", "Testing WinGet", cancellationToken);
+                if (testResult.ExitCode == 0)
+                {
+                    logService?.LogInformation($"Found working WinGet at: {directPath}");
+                    return directPath;
+                }
+            }
+
+            logService?.LogError("Could not find working WinGet executable");
+            return null;
+        }
+
+        private async Task<bool> IsWinGetAppXInstalledAsync(CancellationToken cancellationToken = default)
+        {
+            try
+            {
+                string script = "Get-AppxPackage -Name Microsoft.DesktopAppInstaller | Select-Object -ExpandProperty Status";
+
+                var output = await powerShellExecutionService.ExecuteScriptAsync(script, null, cancellationToken);
+
+                if (!string.IsNullOrWhiteSpace(output))
+                {
+                    string status = output.Trim();
+                    logService?.LogInformation($"WinGet AppX status: {status}");
+                    return status.Equals("Ok", StringComparison.OrdinalIgnoreCase);
+                }
+
+                return false;
+            }
+            catch (Exception ex)
+            {
+                logService?.LogError($"Error checking WinGet AppX: {ex.Message}");
+                return false;
+            }
+        }
+
+        private async Task InitializeWinGetSourcesAsync(CancellationToken cancellationToken = default)
+        {
+            try
+            {
+                string wingetPath = _wingetExePath ?? "winget";
+                logService?.LogInformation("Triggering WinGet source initialization...");
+
+                var result = await ExecuteProcessAsync(wingetPath, "source list", "Initializing WinGet", cancellationToken);
+
+                if (result.ExitCode != 0)
+                {
+                    logService?.LogWarning($"WinGet source list returned exit code {result.ExitCode}, attempting reset");
+                    await ExecuteProcessAsync(wingetPath, "source reset --force", "Resetting WinGet sources", cancellationToken);
+                }
+                else
+                {
+                    logService?.LogInformation("WinGet sources initialized successfully");
+                }
+            }
+            catch (Exception ex)
+            {
+                logService?.LogWarning($"Failed to initialize WinGet sources: {ex.Message}");
+            }
+        }
 
         public async Task<bool> InstallPackageAsync(string packageId, string displayName = null, CancellationToken cancellationToken = default)
         {
@@ -23,7 +139,6 @@ namespace Winhance.Infrastructure.Features.SoftwareApps.Services
 
             displayName ??= packageId;
 
-            // Phase 1: Check WinGet availability (10%)
             taskProgressService?.UpdateProgress(10, $"Checking prerequisites for {displayName}...");
             if (!await IsWinGetInstalledAsync(cancellationToken))
             {
@@ -37,15 +152,55 @@ namespace Winhance.Infrastructure.Features.SoftwareApps.Services
 
             try
             {
-                // Phase 2: Start installation process (30%)
                 taskProgressService?.UpdateProgress(30, $"Starting installation of {displayName}...");
+
+                string wingetPath = _wingetExePath ?? "winget";
                 var args = $"install --id {EscapeArgument(packageId)} --accept-package-agreements --accept-source-agreements --disable-interactivity --silent --force";
-                var result = await ExecuteProcessAsync("winget", args, displayName, cancellationToken, $"Installing {displayName}");
+                var result = await ExecuteProcessAsync(wingetPath, args, displayName, cancellationToken, $"Installing {displayName}");
 
                 if (result.ExitCode == 0)
                 {
                     taskProgressService?.UpdateProgress(100, $"Successfully installed {displayName}");
                     return true;
+                }
+
+                if (result.ExitCode == -1978335230)
+                {
+                    logService?.LogWarning("WinGet sources corrupted, reinstalling WinGet...");
+                    taskProgressService?.UpdateProgress(40, "Repairing WinGet installation...");
+
+                    _wingetExePath = null;
+
+                    var progress = new Progress<TaskProgressDetail>(p => taskProgressService?.UpdateDetailedProgress(p));
+                    var installResult = await WinGetInstallationScript.InstallWinGetAsync(powerShellExecutionService, progress, logService, cancellationToken);
+
+                    if (!installResult.Success)
+                    {
+                        taskProgressService?.UpdateProgress(0, $"Failed to repair WinGet. Cannot install {displayName}.");
+                        return false;
+                    }
+
+                    await Task.Delay(2000, cancellationToken);
+
+                    _wingetExePath = await ResolveWinGetPathAsync(cancellationToken);
+
+                    if (string.IsNullOrEmpty(_wingetExePath))
+                    {
+                        taskProgressService?.UpdateProgress(0, $"Failed to locate WinGet after repair. Cannot install {displayName}.");
+                        return false;
+                    }
+
+                    await InitializeWinGetSourcesAsync(cancellationToken);
+
+                    taskProgressService?.UpdateProgress(60, $"Retrying installation of {displayName}...");
+                    wingetPath = _wingetExePath;
+                    result = await ExecuteProcessAsync(wingetPath, args, displayName, cancellationToken, $"Installing {displayName}");
+
+                    if (result.ExitCode == 0)
+                    {
+                        taskProgressService?.UpdateProgress(100, $"Successfully installed {displayName}");
+                        return true;
+                    }
                 }
 
                 var errorMessage = GetErrorContextMessage(packageId, result.ExitCode, result.Output);
@@ -61,12 +216,56 @@ namespace Winhance.Infrastructure.Features.SoftwareApps.Services
             {
                 logService?.LogError($"Error installing {packageId}: {ex.Message}");
 
-                // Check if the exception is network-related
                 var errorMessage = IsNetworkRelatedError(ex.Message)
                     ? $"Network error while installing {displayName}. Please check your internet connection and try again."
                     : $"Error installing {displayName}: {ex.Message}";
 
                 taskProgressService?.UpdateProgress(0, errorMessage);
+                return false;
+            }
+        }
+
+        public async Task<bool> UninstallPackageAsync(string packageId, string displayName = null, CancellationToken cancellationToken = default)
+        {
+            if (string.IsNullOrWhiteSpace(packageId))
+                throw new ArgumentException("Package ID cannot be null or empty", nameof(packageId));
+
+            displayName ??= packageId;
+
+            taskProgressService?.UpdateProgress(10, $"Checking prerequisites for uninstalling {displayName}...");
+            if (!await IsWinGetInstalledAsync(cancellationToken))
+            {
+                taskProgressService?.UpdateProgress(0, "WinGet is not installed. Cannot uninstall package.");
+                return false;
+            }
+
+            try
+            {
+                taskProgressService?.UpdateProgress(30, $"Starting uninstallation of {displayName}...");
+
+                string wingetPath = _wingetExePath ?? "winget";
+                var args = $"uninstall --id {EscapeArgument(packageId)} --silent --force";
+                var result = await ExecuteProcessAsync(wingetPath, args, displayName, cancellationToken, $"Uninstalling {displayName}");
+
+                if (result.ExitCode == 0)
+                {
+                    taskProgressService?.UpdateProgress(100, $"Successfully uninstalled {displayName}");
+                    return true;
+                }
+
+                var errorMessage = GetUninstallErrorMessage(packageId, result.ExitCode, result.Output);
+                taskProgressService?.UpdateProgress(0, errorMessage);
+                return false;
+            }
+            catch (OperationCanceledException)
+            {
+                taskProgressService?.UpdateProgress(0, $"Uninstallation of {displayName} was cancelled");
+                throw;
+            }
+            catch (Exception ex)
+            {
+                logService?.LogError($"Error uninstalling {packageId}: {ex.Message}");
+                taskProgressService?.UpdateProgress(0, $"Error uninstalling {displayName}: {ex.Message}");
                 return false;
             }
         }
@@ -82,29 +281,39 @@ namespace Winhance.Infrastructure.Features.SoftwareApps.Services
             {
                 taskProgressService?.UpdateProgress(0, "Installing WinGet...");
                 var result = await WinGetInstallationScript.InstallWinGetAsync(powerShellExecutionService, progress, logService, cancellationToken);
-                
-                if (result.Success)
+
+                if (!result.Success)
                 {
-                    // Wait and verify installation
-                    await Task.Delay(3000, cancellationToken);
-                    
-                    if (await IsWinGetInstalledAsync(cancellationToken))
-                    {
-                        taskProgressService?.UpdateProgress(100, "WinGet installed successfully");
-                        return true;
-                    }
-                    
-                    // One retry after additional delay
-                    await Task.Delay(3000, cancellationToken);
-                    if (await IsWinGetInstalledAsync(cancellationToken))
-                    {
-                        taskProgressService?.UpdateProgress(100, "WinGet installed successfully");
-                        return true;
-                    }
+                    taskProgressService?.UpdateProgress(0, "Failed to install WinGet");
+                    return false;
                 }
-                
-                taskProgressService?.UpdateProgress(0, "Failed to install WinGet");
-                return false;
+
+                _wingetExePath = null;
+
+                await Task.Delay(2000, cancellationToken);
+
+                taskProgressService?.UpdateProgress(50, "Verifying WinGet installation...");
+
+                if (!await IsWinGetAppXInstalledAsync(cancellationToken))
+                {
+                    logService?.LogError("WinGet AppX package not found after installation");
+                    taskProgressService?.UpdateProgress(0, "WinGet installation verification failed");
+                    return false;
+                }
+
+                _wingetExePath = await ResolveWinGetPathAsync(cancellationToken);
+
+                if (string.IsNullOrEmpty(_wingetExePath))
+                {
+                    taskProgressService?.UpdateProgress(0, "WinGet installed but not accessible. Please restart the application.");
+                    return false;
+                }
+
+                taskProgressService?.UpdateProgress(75, "Initializing WinGet sources...");
+                await InitializeWinGetSourcesAsync(cancellationToken);
+
+                taskProgressService?.UpdateProgress(100, "WinGet installed successfully");
+                return true;
             }
             catch (Exception ex)
             {
@@ -122,7 +331,8 @@ namespace Winhance.Infrastructure.Features.SoftwareApps.Services
 
             try
             {
-                var result = await ExecuteProcessAsync("winget", $"list --id {packageId} --exact", packageId, cancellationToken, $"Checking if {packageId} is installed");
+                string wingetPath = _wingetExePath ?? "winget";
+                var result = await ExecuteProcessAsync(wingetPath, $"list --id {packageId} --exact", packageId, cancellationToken, $"Checking if {packageId} is installed");
                 return result.ExitCode == 0;
             }
             catch (Exception ex)
@@ -178,7 +388,6 @@ namespace Winhance.Infrastructure.Features.SoftwareApps.Services
                             IsCancelled = installProgress.IsCancelled
                         });
 
-                        // If we detect a network error during parsing, log it for better error reporting
                         if (installProgress.IsConnectivityIssue)
                         {
                             logService?.LogWarning($"Network connectivity issue detected during {displayName} operation: {installProgress.LastLine}");
@@ -216,7 +425,6 @@ namespace Winhance.Infrastructure.Features.SoftwareApps.Services
             if (!string.IsNullOrEmpty(operationContext))
                 return operationContext;
 
-            // Determine operation type from arguments
             if (arguments.Contains("install"))
                 return $"Preparing to install {displayName}...";
             if (arguments.Contains("uninstall"))
@@ -226,13 +434,11 @@ namespace Winhance.Infrastructure.Features.SoftwareApps.Services
             if (arguments.Contains("list"))
                 return $"Checking installation status of {displayName}...";
 
-            // Fallback to generic message
             return $"Processing {displayName ?? "operation"}...";
         }
 
         private string GetErrorContextMessage(string packageId, int exitCode, string output = null)
         {
-            // Check for network-related errors first
             if (!string.IsNullOrEmpty(output) && IsNetworkRelatedError(output))
             {
                 return $"Network error while installing {packageId}. Please check your internet connection and try again.";
@@ -251,6 +457,18 @@ namespace Winhance.Infrastructure.Features.SoftwareApps.Services
                 unchecked((int)0x80072EE2) => $"Network timeout while downloading '{packageId}'. Please check your internet connection and try again.",
                 unchecked((int)0x80072EFD) => $"Could not connect to package repository while installing '{packageId}'. Please check your internet connection.",
                 _ => $"Installation failed for '{packageId}' with exit code {exitCode}. Please check the logs for more details."
+            };
+        }
+
+        private string GetUninstallErrorMessage(string packageId, int exitCode, string output = null)
+        {
+            return exitCode switch
+            {
+                -1978335189 => $"Package '{packageId}' not found or not installed.",
+                -1978335148 => $"Uninstallation cancelled by user for package '{packageId}'.",
+                -1978335153 => $"Package '{packageId}' requires administrator privileges to uninstall. Please run as administrator.",
+                unchecked((int)0x80070005) => $"Access denied while uninstalling '{packageId}'. Please run as administrator.",
+                _ => $"Uninstallation failed for '{packageId}' with exit code {exitCode}. The app may require manual uninstallation."
             };
         }
 
@@ -301,6 +519,26 @@ namespace Winhance.Infrastructure.Features.SoftwareApps.Services
             }
         }
 
+        public async Task<bool> EnsureWinGetReadyAsync(CancellationToken cancellationToken = default)
+        {
+            try
+            {
+                logService?.LogInformation("Checking WinGet availability...");
+                bool isInstalled = await IsWinGetInstalledAsync(cancellationToken);
+
+                if (!isInstalled)
+                {
+                    logService?.LogInformation("WinGet is not installed - will use WMI/Registry for app detection");
+                }
+
+                return isInstalled;
+            }
+            catch (Exception ex)
+            {
+                logService?.LogError($"Error checking WinGet availability: {ex.Message}");
+                return false;
+            }
+        }
 
     }
 }

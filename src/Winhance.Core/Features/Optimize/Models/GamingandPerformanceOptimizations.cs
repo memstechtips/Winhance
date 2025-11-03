@@ -33,6 +33,7 @@ public static class GamingandPerformanceOptimizations
                             DisabledValue = 0, // When toggle is OFF, Game Mode is disabled
                             DefaultValue = 1, // Default value when registry key exists but no value is set
                             ValueType = RegistryValueKind.DWord,
+                            AbsenceMeansEnabled = true,
                         },
                     },
                 },
@@ -96,6 +97,7 @@ public static class GamingandPerformanceOptimizations
                             DisabledValue = 0,
                             DefaultValue = 1,
                             ValueType = RegistryValueKind.DWord,
+                            AbsenceMeansEnabled = true,
                         },
                         new RegistrySetting
                         {
@@ -106,6 +108,7 @@ public static class GamingandPerformanceOptimizations
                             DisabledValue = 0,
                             DefaultValue = 1,
                             ValueType = RegistryValueKind.DWord,
+                            AbsenceMeansEnabled = true,
                         },
                     },
                 },
@@ -152,6 +155,7 @@ public static class GamingandPerformanceOptimizations
                             DisabledValue = 0,
                             DefaultValue = 1,
                             ValueType = RegistryValueKind.DWord,
+                            AbsenceMeansEnabled = true,
                         },
                         new RegistrySetting
                         {
@@ -162,6 +166,7 @@ public static class GamingandPerformanceOptimizations
                             DisabledValue = 0,
                             DefaultValue = 1,
                             ValueType = RegistryValueKind.DWord,
+                            AbsenceMeansEnabled = true,
                         },
                     },
                 },
@@ -183,6 +188,30 @@ public static class GamingandPerformanceOptimizations
                             DisabledValue = 0, // When toggle is OFF, search is limited to indexed locations
                             DefaultValue = 0, // Default value when registry key exists but no value is set
                             ValueType = RegistryValueKind.DWord,
+                        },
+                    },
+                },
+                new SettingDefinition
+                {
+                    Id = "gaming-performance-wallpaper-compression",
+                    Name = "Allow Desktop Wallpaper Compression",
+                    Description = "Allow Windows to compress wallpapers to save disk space and improve performance. Only affects images in JPEG format.",
+                    InputType = InputType.Toggle,
+                    IconPack = "Lucide",
+                    Icon = "Wallpaper",
+                    RestartProcess = "Explorer",
+                    RegistrySettings = new List<RegistrySetting>
+                    {
+                        new RegistrySetting
+                        {
+                            KeyPath = @"HKEY_CURRENT_USER\Control Panel\Desktop",
+                            ValueName = "JPEGImportQuality",
+                            RecommendedValue = 100,
+                            EnabledValue = 0,
+                            DisabledValue = 100,
+                            DefaultValue = 0,
+                            ValueType = RegistryValueKind.DWord,
+                            AbsenceMeansEnabled = true,
                         },
                     },
                 },
@@ -211,7 +240,7 @@ public static class GamingandPerformanceOptimizations
                 {
                     Id = "gaming-explorer-alt-tab-filter",
                     Name = "Alt+Tab Filter",
-                    Description = "Show only traditional open windows in Alt+Tab instead of including Microsoft Edge tabs and other Windows 11 suggestions",
+                    Description = "Show only traditional open windows in Alt+Tab instead of including Microsoft Edge tabs and other Windows suggestions",
                     Icon = "ViewGrid",
                     InputType = InputType.Toggle,
                     RegistrySettings = new List<RegistrySetting>
@@ -335,55 +364,6 @@ public static class GamingandPerformanceOptimizations
                         },
                     },
                 },
-                new SettingDefinition
-                {
-                    Id = "gaming-hpet",
-                    Name = "HPET (High Precision Event Timer)",
-                    Description = "Force Windows to use the High Precision Event Timer. Most modern systems perform better with HPET disabled (using TSC instead), but test both settings for your specific hardware",
-                    GroupName = "Processor",
-                    Icon = "TimerCog",
-                    InputType = InputType.Toggle,
-                    CustomProperties = new Dictionary<string, object>
-                    {
-                        [CustomPropertyKeys.RequiresRestartMessage] = "⚠️ System restart required for changes to take effect"
-                    },
-                    RegistrySettings = new List<RegistrySetting>
-                    {
-                        new RegistrySetting
-                        {
-                            KeyPath = @"HKEY_LOCAL_MACHINE\SYSTEM\CurrentControlSet\Control\TimeProviders\TscSyncPolicy",
-                            ValueName = "Enabled",
-                            RecommendedValue = 1,
-                            EnabledValue = 0,
-                            DisabledValue = 1,
-                            DefaultValue = 1,
-                            ValueType = RegistryValueKind.DWord,
-                        },
-                    },
-                },
-                new SettingDefinition
-                {
-                    Id = "gaming-power-cpu-unpark",
-                    Name = "CPU Core Unparking",
-                    Description = "Keep all CPU cores active instead of putting idle cores to sleep for maximum performance",
-                    GroupName = "Processor",
-                    Icon = "Cpu64Bit",
-                    InputType = InputType.Toggle,
-                    RegistrySettings = new List<RegistrySetting>
-                    {
-                        new RegistrySetting
-                        {
-                            KeyPath =
-                                @"HKEY_LOCAL_MACHINE\SYSTEM\ControlSet001\Control\Power\PowerSettings\54533251-82be-4824-96c1-47b60b740d00\0cc5b647-c1df-4637-891a-dec35c318583",
-                            ValueName = "ValueMax",
-                            RecommendedValue = 0,
-                            EnabledValue = 0, // Unpark CPU cores (from Recommended)
-                            DisabledValue = 1, // Allow CPU core parking (from Default)
-                            DefaultValue = 1, // Default value when registry key exists but no value is set
-                            ValueType = RegistryValueKind.DWord,
-                        },
-                    },
-                },
                 // Graphics Group
                 new SettingDefinition
                 {
@@ -430,6 +410,7 @@ public static class GamingandPerformanceOptimizations
                             DisabledValue = 1,
                             DefaultValue = 1,
                             ValueType = RegistryValueKind.DWord,
+                            AbsenceMeansEnabled = true,
                         },
                     },
                 },
@@ -452,6 +433,7 @@ public static class GamingandPerformanceOptimizations
                             DisabledValue = "",
                             DefaultValue = "",
                             ValueType = RegistryValueKind.String,
+                            AbsenceMeansEnabled = true,
                         },
                     },
                 },
@@ -540,6 +522,7 @@ public static class GamingandPerformanceOptimizations
                             DisabledValue = 0, // When toggle is OFF, desktop composition is disabled
                             DefaultValue = 1, // Default value when registry key exists but no value is set
                             ValueType = RegistryValueKind.DWord,
+                            AbsenceMeansEnabled = true,
                         },
                     },
                 },
@@ -547,7 +530,7 @@ public static class GamingandPerformanceOptimizations
                 new SettingDefinition
                 {
                     Id = "gaming-network-throttling",
-                    Name = "Network Throttling for Gaming",
+                    Name = "Disable Network Throttling for Gaming",
                     Description = "Disable network packet throttling to reduce latency and improve online gaming responsiveness",
                     GroupName = "Network",
                     Icon = "NetworkOffOutline",
@@ -569,7 +552,7 @@ public static class GamingandPerformanceOptimizations
                 new SettingDefinition
                 {
                     Id = "gaming-nagle-algorithm",
-                    Name = "Nagle's Algorithm",
+                    Name = "Enable Nagle's Algorithm",
                     Description = "Batch small network packets together before sending to improve efficiency. Disabling reduces latency for real-time online gaming but may slightly increase bandwidth usage",
                     GroupName = "Network",
                     Icon = "Wan",
@@ -650,6 +633,7 @@ public static class GamingandPerformanceOptimizations
                             DisabledValue = 0, // When toggle is OFF, controller access is disabled
                             DefaultValue = 1, // Default value when registry key exists but no value is set
                             ValueType = RegistryValueKind.DWord,
+                            AbsenceMeansEnabled = true,
                         },
                     },
                 },
@@ -672,6 +656,7 @@ public static class GamingandPerformanceOptimizations
                             DisabledValue = 0,
                             DefaultValue = 1,
                             ValueType = RegistryValueKind.DWord,
+                            AbsenceMeansEnabled = true,
                         },
                     },
                 },
@@ -1212,8 +1197,8 @@ public static class GamingandPerformanceOptimizations
                         [CustomPropertyKeys.RequiresRestartMessage] = "⚠️ Restart required for changes to take effect",
                         [CustomPropertyKeys.ComboBoxDisplayNames] = new string[]
                         {
-                            "Disabled",
-                            "Manual (Recommended)",
+                            "Disabled (Recommended)",
+                            "Manual",
                             "Automatic",
                         },
                         [CustomPropertyKeys.ValueMappings] = new Dictionary<int, Dictionary<string, object?>>
@@ -1247,8 +1232,8 @@ public static class GamingandPerformanceOptimizations
                         [CustomPropertyKeys.RequiresRestartMessage] = "⚠️ Restart required for changes to take effect",
                         [CustomPropertyKeys.ComboBoxDisplayNames] = new string[]
                         {
-                            "Disabled",
-                            "Manual (Recommended)",
+                            "Disabled (Recommended)",
+                            "Manual",
                             "Automatic",
                         },
                         [CustomPropertyKeys.ValueMappings] = new Dictionary<int, Dictionary<string, object?>>
@@ -1370,41 +1355,6 @@ public static class GamingandPerformanceOptimizations
                             KeyPath = @"HKEY_LOCAL_MACHINE\SYSTEM\CurrentControlSet\Services\SmsRouter",
                             ValueName = "Start",
                             RecommendedValue = 4,
-                            ValueType = RegistryValueKind.DWord,
-                        },
-                    },
-                },
-                new SettingDefinition
-                {
-                    Id = "gaming-data-usage-service",
-                    Name = "Data Usage Service",
-                    Description = "Tracks network data usage, data limits, and metered networks. Set to Manual to keep monitoring available when needed",
-                    GroupName = "System Services",
-                    Icon = "ChartLine",
-                    InputType = InputType.Selection,
-                    CustomProperties = new Dictionary<string, object>
-                    {
-                        [CustomPropertyKeys.RequiresRestartMessage] = "⚠️ Restart required for changes to take effect",
-                        [CustomPropertyKeys.ComboBoxDisplayNames] = new string[]
-                        {
-                            "Disabled",
-                            "Manual (Recommended)",
-                            "Automatic",
-                        },
-                        [CustomPropertyKeys.ValueMappings] = new Dictionary<int, Dictionary<string, object?>>
-                        {
-                            [0] = new Dictionary<string, object?> { ["Start"] = 4 },
-                            [1] = new Dictionary<string, object?> { ["Start"] = 3 },
-                            [2] = new Dictionary<string, object?> { ["Start"] = 2 },
-                        },
-                    },
-                    RegistrySettings = new List<RegistrySetting>
-                    {
-                        new RegistrySetting
-                        {
-                            KeyPath = @"HKEY_LOCAL_MACHINE\SYSTEM\CurrentControlSet\Services\DusmSvc",
-                            ValueName = "Start",
-                            RecommendedValue = 3,
                             ValueType = RegistryValueKind.DWord,
                         },
                     },
@@ -1689,6 +1639,290 @@ public static class GamingandPerformanceOptimizations
                         },
                     },
                 },
+                new SettingDefinition
+                {
+                    Id = "gaming-bits-service",
+                    Name = "Background Intelligent Transfer Service (BITS)",
+                    Description = "Transfers Windows Updates and downloads in the background. Setting to Manual allows updates to work while preventing constant background activity during gaming",
+                    GroupName = "System Services",
+                    Icon = "CloudDownload",
+                    InputType = InputType.Selection,
+                    CustomProperties = new Dictionary<string, object>
+                    {
+                        [CustomPropertyKeys.RequiresRestartMessage] = "⚠️ Restart required for changes to take effect",
+                        [CustomPropertyKeys.ComboBoxDisplayNames] = new string[]
+                        {
+                            "Disabled",
+                            "Manual (Recommended)",
+                            "Automatic",
+                        },
+                        [CustomPropertyKeys.ValueMappings] = new Dictionary<int, Dictionary<string, object?>>
+                        {
+                            [0] = new Dictionary<string, object?> { ["Start"] = 4 },
+                            [1] = new Dictionary<string, object?> { ["Start"] = 3 },
+                            [2] = new Dictionary<string, object?> { ["Start"] = 2 },
+                        },
+                    },
+                    RegistrySettings = new List<RegistrySetting>
+                    {
+                        new RegistrySetting
+                        {
+                            KeyPath = @"HKEY_LOCAL_MACHINE\SYSTEM\CurrentControlSet\Services\BITS",
+                            ValueName = "Start",
+                            RecommendedValue = 3,
+                            ValueType = RegistryValueKind.DWord,
+                        },
+                    },
+                },
+                new SettingDefinition
+                {
+                    Id = "gaming-xbox-auth-manager",
+                    Name = "Xbox Live Auth Manager",
+                    Description = "Provides authentication and authorization services for Xbox Live. Safe to disable if you don't use Xbox Game Pass, Microsoft Store games, or Xbox features",
+                    GroupName = "System Services",
+                    Icon = "MicrosoftXbox",
+                    InputType = InputType.Selection,
+                    CustomProperties = new Dictionary<string, object>
+                    {
+                        [CustomPropertyKeys.RequiresRestartMessage] = "⚠️ Restart required for changes to take effect",
+                        [CustomPropertyKeys.ComboBoxDisplayNames] = new string[]
+                        {
+                            "Disabled",
+                            "Manual (Recommended)",
+                            "Automatic",
+                        },
+                        [CustomPropertyKeys.ValueMappings] = new Dictionary<int, Dictionary<string, object?>>
+                        {
+                            [0] = new Dictionary<string, object?> { ["Start"] = 4 },
+                            [1] = new Dictionary<string, object?> { ["Start"] = 3 },
+                            [2] = new Dictionary<string, object?> { ["Start"] = 2 },
+                        },
+                        [CustomPropertyKeys.OptionWarnings] = new Dictionary<int, string>
+                        {
+                            [0] = "⚠️ Disabling will prevent Xbox Game Pass and Microsoft Store games from working",
+                        },
+                    },
+                    RegistrySettings = new List<RegistrySetting>
+                    {
+                        new RegistrySetting
+                        {
+                            KeyPath = @"HKEY_LOCAL_MACHINE\SYSTEM\CurrentControlSet\Services\XblAuthManager",
+                            ValueName = "Start",
+                            RecommendedValue = 3,
+                            ValueType = RegistryValueKind.DWord,
+                        },
+                    },
+                },
+                new SettingDefinition
+                {
+                    Id = "gaming-xbox-game-save",
+                    Name = "Xbox Live Game Save",
+                    Description = "Syncs game saves to Xbox Live cloud. Only needed for Xbox Game Pass and Microsoft Store games with cloud save features",
+                    GroupName = "System Services",
+                    Icon = "CloudUploadOutline",
+                    InputType = InputType.Selection,
+                    CustomProperties = new Dictionary<string, object>
+                    {
+                        [CustomPropertyKeys.RequiresRestartMessage] = "⚠️ Restart required for changes to take effect",
+                        [CustomPropertyKeys.ComboBoxDisplayNames] = new string[]
+                        {
+                            "Disabled",
+                            "Manual (Recommended)",
+                            "Automatic",
+                        },
+                        [CustomPropertyKeys.ValueMappings] = new Dictionary<int, Dictionary<string, object?>>
+                        {
+                            [0] = new Dictionary<string, object?> { ["Start"] = 4 },
+                            [1] = new Dictionary<string, object?> { ["Start"] = 3 },
+                            [2] = new Dictionary<string, object?> { ["Start"] = 2 },
+                        },
+                    },
+                    RegistrySettings = new List<RegistrySetting>
+                    {
+                        new RegistrySetting
+                        {
+                            KeyPath = @"HKEY_LOCAL_MACHINE\SYSTEM\CurrentControlSet\Services\XblGameSave",
+                            ValueName = "Start",
+                            RecommendedValue = 3,
+                            ValueType = RegistryValueKind.DWord,
+                        },
+                    },
+                },
+                new SettingDefinition
+                {
+                    Id = "gaming-xbox-networking",
+                    Name = "Xbox Live Networking Service",
+                    Description = "Supports Xbox Live multiplayer networking. Required for Xbox multiplayer gaming but not needed for Steam/Epic/other gaming platforms",
+                    GroupName = "System Services",
+                    Icon = "NetworkOutline",
+                    InputType = InputType.Selection,
+                    CustomProperties = new Dictionary<string, object>
+                    {
+                        [CustomPropertyKeys.RequiresRestartMessage] = "⚠️ Restart required for changes to take effect",
+                        [CustomPropertyKeys.ComboBoxDisplayNames] = new string[]
+                        {
+                            "Disabled",
+                            "Manual (Recommended)",
+                            "Automatic",
+                        },
+                        [CustomPropertyKeys.ValueMappings] = new Dictionary<int, Dictionary<string, object?>>
+                        {
+                            [0] = new Dictionary<string, object?> { ["Start"] = 4 },
+                            [1] = new Dictionary<string, object?> { ["Start"] = 3 },
+                            [2] = new Dictionary<string, object?> { ["Start"] = 2 },
+                        },
+                    },
+                    RegistrySettings = new List<RegistrySetting>
+                    {
+                        new RegistrySetting
+                        {
+                            KeyPath = @"HKEY_LOCAL_MACHINE\SYSTEM\CurrentControlSet\Services\XboxNetApiSvc",
+                            ValueName = "Start",
+                            RecommendedValue = 3,
+                            ValueType = RegistryValueKind.DWord,
+                        },
+                    },
+                },
+                new SettingDefinition
+                {
+                    Id = "gaming-biometric-service",
+                    Name = "Windows Biometric Service",
+                    Description = "Enables fingerprint and facial recognition login via Windows Hello. Safe to disable on desktop systems without biometric hardware",
+                    GroupName = "System Services",
+                    Icon = "Fingerprint",
+                    InputType = InputType.Selection,
+                    CustomProperties = new Dictionary<string, object>
+                    {
+                        [CustomPropertyKeys.RequiresRestartMessage] = "⚠️ Restart required for changes to take effect",
+                        [CustomPropertyKeys.ComboBoxDisplayNames] = new string[]
+                        {
+                            "Disabled",
+                            "Manual (Recommended)",
+                            "Automatic",
+                        },
+                        [CustomPropertyKeys.ValueMappings] = new Dictionary<int, Dictionary<string, object?>>
+                        {
+                            [0] = new Dictionary<string, object?> { ["Start"] = 4 },
+                            [1] = new Dictionary<string, object?> { ["Start"] = 3 },
+                            [2] = new Dictionary<string, object?> { ["Start"] = 2 },
+                        },
+                    },
+                    RegistrySettings = new List<RegistrySetting>
+                    {
+                        new RegistrySetting
+                        {
+                            KeyPath = @"HKEY_LOCAL_MACHINE\SYSTEM\CurrentControlSet\Services\WbioSrvc",
+                            ValueName = "Start",
+                            RecommendedValue = 3,
+                            ValueType = RegistryValueKind.DWord,
+                        },
+                    },
+                },
+                new SettingDefinition
+                {
+                    Id = "gaming-touch-keyboard-service",
+                    Name = "Touch Keyboard and Handwriting Panel Service",
+                    Description = "Enables touch keyboard and pen input functionality. Safe to disable on desktop systems without touchscreen or stylus",
+                    GroupName = "System Services",
+                    Icon = "KeyboardOutline",
+                    InputType = InputType.Selection,
+                    CustomProperties = new Dictionary<string, object>
+                    {
+                        [CustomPropertyKeys.RequiresRestartMessage] = "⚠️ Restart required for changes to take effect",
+                        [CustomPropertyKeys.ComboBoxDisplayNames] = new string[]
+                        {
+                            "Disabled",
+                            "Manual (Recommended)",
+                            "Automatic",
+                        },
+                        [CustomPropertyKeys.ValueMappings] = new Dictionary<int, Dictionary<string, object?>>
+                        {
+                            [0] = new Dictionary<string, object?> { ["Start"] = 4 },
+                            [1] = new Dictionary<string, object?> { ["Start"] = 3 },
+                            [2] = new Dictionary<string, object?> { ["Start"] = 2 },
+                        },
+                    },
+                    RegistrySettings = new List<RegistrySetting>
+                    {
+                        new RegistrySetting
+                        {
+                            KeyPath = @"HKEY_LOCAL_MACHINE\SYSTEM\CurrentControlSet\Services\TabletInputService",
+                            ValueName = "Start",
+                            RecommendedValue = 3,
+                            ValueType = RegistryValueKind.DWord,
+                        },
+                    },
+                },
+                new SettingDefinition
+                {
+                    Id = "gaming-sensor-monitoring-service",
+                    Name = "Sensor Monitoring Service",
+                    Description = "Monitors various sensors like ambient light and orientation. Safe to disable on desktop systems without sensor hardware",
+                    GroupName = "System Services",
+                    Icon = "Radar",
+                    InputType = InputType.Selection,
+                    CustomProperties = new Dictionary<string, object>
+                    {
+                        [CustomPropertyKeys.RequiresRestartMessage] = "⚠️ Restart required for changes to take effect",
+                        [CustomPropertyKeys.ComboBoxDisplayNames] = new string[]
+                        {
+                            "Disabled",
+                            "Manual (Recommended)",
+                            "Automatic",
+                        },
+                        [CustomPropertyKeys.ValueMappings] = new Dictionary<int, Dictionary<string, object?>>
+                        {
+                            [0] = new Dictionary<string, object?> { ["Start"] = 4 },
+                            [1] = new Dictionary<string, object?> { ["Start"] = 3 },
+                            [2] = new Dictionary<string, object?> { ["Start"] = 2 },
+                        },
+                    },
+                    RegistrySettings = new List<RegistrySetting>
+                    {
+                        new RegistrySetting
+                        {
+                            KeyPath = @"HKEY_LOCAL_MACHINE\SYSTEM\CurrentControlSet\Services\SensrSvc",
+                            ValueName = "Start",
+                            RecommendedValue = 3,
+                            ValueType = RegistryValueKind.DWord,
+                        },
+                    },
+                },
+                new SettingDefinition
+                {
+                    Id = "gaming-sensor-data-service",
+                    Name = "Sensor Data Service",
+                    Description = "Delivers data from a variety of sensors to applications. Safe to disable on desktop systems without sensor hardware",
+                    GroupName = "System Services",
+                    Icon = "ChartBox",
+                    InputType = InputType.Selection,
+                    CustomProperties = new Dictionary<string, object>
+                    {
+                        [CustomPropertyKeys.RequiresRestartMessage] = "⚠️ Restart required for changes to take effect",
+                        [CustomPropertyKeys.ComboBoxDisplayNames] = new string[]
+                        {
+                            "Disabled",
+                            "Manual (Recommended)",
+                            "Automatic",
+                        },
+                        [CustomPropertyKeys.ValueMappings] = new Dictionary<int, Dictionary<string, object?>>
+                        {
+                            [0] = new Dictionary<string, object?> { ["Start"] = 4 },
+                            [1] = new Dictionary<string, object?> { ["Start"] = 3 },
+                            [2] = new Dictionary<string, object?> { ["Start"] = 2 },
+                        },
+                    },
+                    RegistrySettings = new List<RegistrySetting>
+                    {
+                        new RegistrySetting
+                        {
+                            KeyPath = @"HKEY_LOCAL_MACHINE\SYSTEM\CurrentControlSet\Services\SensorDataService",
+                            ValueName = "Start",
+                            RecommendedValue = 3,
+                            ValueType = RegistryValueKind.DWord,
+                        },
+                    },
+                },
                 // Scheduled Tasks - Telemetry & Privacy
                 new SettingDefinition
                 {
@@ -1870,26 +2104,6 @@ public static class GamingandPerformanceOptimizations
                         }
                     }
                 },
-                new SettingDefinition
-                {
-                    Id = "gaming-task-cloud-experience",
-                    Name = "Cloud Experience Host Task",
-                    Description = "Creates cloud experience objects and collects related telemetry. Disable to reduce cloud integration telemetry",
-                    GroupName = "Scheduled Tasks",
-                    Icon = "CloudSync",
-                    InputType = InputType.Toggle,
-                    CommandSettings = new List<CommandSetting>
-                    {
-                        new CommandSetting
-                        {
-                            Id = "CloudExperienceTask",
-                            EnabledCommand = "schtasks /Change /TN \"\\Microsoft\\Windows\\CloudExperienceHost\\CreateObjectTask\" /Enable",
-                            DisabledCommand = "schtasks /Change /TN \"\\Microsoft\\Windows\\CloudExperienceHost\\CreateObjectTask\" /Disable",
-                            RequiresElevation = true,
-                            RecommendedState = false
-                        }
-                    }
-                },
                 // Scheduled Tasks - Application Experience
                 new SettingDefinition
                 {
@@ -1978,7 +2192,7 @@ public static class GamingandPerformanceOptimizations
                     Name = "AutoChk Proxy Task",
                     Description = "Performs disk checking operations and collects diagnostic data. Consider keeping enabled for disk health monitoring",
                     GroupName = "Scheduled Tasks",
-                    Icon = "HarddiskCheck",
+                    Icon = "HarddiskPlus",
                     InputType = InputType.Toggle,
                     CommandSettings = new List<CommandSetting>
                     {
@@ -2787,8 +3001,8 @@ public static class GamingandPerformanceOptimizations
                 new SettingDefinition
                 {
                     Id = "gaming-narrator-hotkey",
-                    Name = "Narrator Win+Enter Hotkey",
-                    Description = "Enable the Win+Enter keyboard shortcut to quickly launch Windows Narrator screen reader",
+                    Name = "Narrator Win+Ctrl+Enter Hotkey",
+                    Description = "Enable the Win+Ctrl+Enter keyboard shortcut to quickly launch Windows Narrator screen reader",
                     GroupName = "Accessibility",
                     Icon = "AccountVoice",
                     InputType = InputType.Toggle,
@@ -2803,6 +3017,7 @@ public static class GamingandPerformanceOptimizations
                             DisabledValue = 0,
                             DefaultValue = 1,
                             ValueType = RegistryValueKind.DWord,
+                            AbsenceMeansEnabled = true,
                         },
                     },
                 },

@@ -274,6 +274,46 @@
         </Setter>
     </Style>
 
+    <!-- Refresh Button Style -->
+    <Style x:Key="RefreshButtonStyle" TargetType="Button" BasedOn="{StaticResource PrimaryButtonStyle}">
+        <Setter Property="FontSize" Value="14" />
+        <Setter Property="FontWeight" Value="Normal" />
+        <Setter Property="Template">
+            <Setter.Value>
+                <ControlTemplate TargetType="Button">
+                    <Border Background="{TemplateBinding Background}"
+                            BorderBrush="{TemplateBinding BorderBrush}"
+                            BorderThickness="0"
+                            CornerRadius="5">
+                        <StackPanel Orientation="Horizontal"
+                                    HorizontalAlignment="Center"
+                                    VerticalAlignment="Center">
+                            <iconPacks:PackIconMaterial Kind="Refresh"
+                                                    Margin="5,0,5,0"
+                                                    VerticalAlignment="Center"
+                                                    Foreground="{TemplateBinding Foreground}"/>
+                            <TextBlock Text="{TemplateBinding Content}"
+                                      VerticalAlignment="Center"
+                                      Foreground="{TemplateBinding Foreground}"/>
+                        </StackPanel>
+                    </Border>
+                    <ControlTemplate.Triggers>
+                        <Trigger Property="IsMouseOver" Value="True">
+                            <Setter Property="Background" Value="{DynamicResource ButtonBorderBrush}" />
+                            <Setter Property="Foreground" Value="{DynamicResource ButtonHoverTextColor}" />
+                            <Setter Property="BorderBrush" Value="{DynamicResource ButtonBorderBrush}" />
+                        </Trigger>
+                        <Trigger Property="IsEnabled" Value="False">
+                            <Setter Property="Background" Value="Transparent" />
+                            <Setter Property="Foreground" Value="{DynamicResource ButtonDisabledForeground}" />
+                            <Setter Property="BorderBrush" Value="{DynamicResource ButtonDisabledBorderBrush}" />
+                        </Trigger>
+                    </ControlTemplate.Triggers>
+                </ControlTemplate>
+            </Setter.Value>
+        </Setter>
+    </Style>
+
     <!-- Help Button Style -->
     <Style x:Key="HelpButtonStyle" TargetType="Button" BasedOn="{StaticResource PrimaryButtonStyle}">
         <Setter Property="FontSize" Value="14" />

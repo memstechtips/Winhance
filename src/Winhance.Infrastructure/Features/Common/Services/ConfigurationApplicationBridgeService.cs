@@ -35,94 +35,35 @@ public class ConfigurationApplicationBridgeService
 
         _logService.Log(LogLevel.Info, $"Applying {section.Items.Count} settings from {sectionName} section");
 
+        var waves = BuildDependencyWaves(section.Items);
+        _logService.Log(LogLevel.Info, $"Organized {section.Items.Count} settings into {waves.Count} parallel wave(s)");
+
         int appliedCount = 0;
         int skippedOsCount = 0;
         int failCount = 0;
 
-        foreach (var item in section.Items)
+        foreach (var wave in waves)
         {
-            try
+            var tasks = wave.Select(tuple => ApplySettingItemAsync(tuple.item, tuple.setting, confirmationHandler));
+            var results = await Task.WhenAll(tasks);
+
+            foreach (var result in results)
             {
-                if (string.IsNullOrEmpty(item.Id))
+                switch (result.status)
                 {
-                    _logService.Log(LogLevel.Warning, $"Skipping item '{item.Name}' - no ID");
-                    failCount++;
-                    continue;
-                }
-
-                var allSettings = _compatibleSettingsRegistry.GetAllFilteredSettings();
-                SettingDefinition setting = null;
-
-                foreach (var featureSettings in allSettings.Values)
-                {
-                    setting = featureSettings.FirstOrDefault(s => s.Id == item.Id);
-                    if (setting != null) break;
-                }
-
-                if (setting == null)
-                {
-                    _logService.Log(LogLevel.Debug,
-                        $"Setting '{item.Id}' skipped (not compatible with this Windows version)");
-                    skippedOsCount++;
-                    continue;
-                }
-
-                bool checkboxResult = false;
-                if (setting.RequiresConfirmation && confirmationHandler != null)
-                {
-                    var value = setting.InputType == InputType.Selection
-                        ? (object)ResolveSelectionValue(setting, item)
-                        : (object)(item.IsSelected ?? false);
-
-                    var (confirmed, checkbox) = await confirmationHandler(item.Id, value, setting);
-
-                    if (!confirmed)
-                    {
-                        _logService.Log(LogLevel.Info, $"User skipped setting '{item.Id}' during config import");
+                    case ApplyStatus.Applied:
                         appliedCount++;
-                        continue;
-                    }
-
-                    checkboxResult = checkbox;
+                        break;
+                    case ApplyStatus.SkippedOsIncompatible:
+                        skippedOsCount++;
+                        break;
+                    case ApplyStatus.Failed:
+                        failCount++;
+                        break;
                 }
-
-                object valueToApply = null;
-
-                if (setting.InputType == InputType.Selection)
-                {
-                    valueToApply = ResolveSelectionValue(setting, item);
-                }
-                else if (setting.InputType == InputType.NumericRange)
-                {
-                    valueToApply = ResolveNumericRangeValue(item);
-                }
-
-                if (setting.InputType == InputType.Action && !string.IsNullOrEmpty(setting.ActionCommand))
-                {
-                    await _settingApplicationService.ApplySettingAsync(
-                        item.Id,
-                        false,
-                        null,
-                        checkboxResult,
-                        setting.ActionCommand);
-                }
-                else
-                {
-                    await _settingApplicationService.ApplySettingAsync(
-                        item.Id,
-                        item.IsSelected ?? false,
-                        valueToApply,
-                        checkboxResult);
-                }
-
-                appliedCount++;
-                _logService.Log(LogLevel.Debug, $"Applied setting: {item.Name}");
             }
-            catch (Exception ex)
-            {
-                _logService.Log(LogLevel.Error, $"Failed to apply setting '{item.Name}': {ex.Message}");
-                failCount++;
-            }
+
+            _logService.Log(LogLevel.Debug, $"Wave completed: {results.Count(r => r.status == ApplyStatus.Applied)}/{wave.Count} applied");
         }
 
         if (skippedOsCount > 0)
@@ -199,4 +140,156 @@ public class ConfigurationApplicationBridgeService
         return null;
     }
 
+    private enum ApplyStatus
+    {
+        Applied,
+        SkippedOsIncompatible,
+        Failed
+    }
+
+    private List<List<(ConfigurationItem item, SettingDefinition setting)>> BuildDependencyWaves(List<ConfigurationItem> items)
+    {
+        var waves = new List<List<(ConfigurationItem, SettingDefinition)>>();
+        var processedIds = new HashSet<string>();
+        var remainingItems = new List<(ConfigurationItem item, SettingDefinition setting)>();
+
+        var allSettings = _compatibleSettingsRegistry.GetAllFilteredSettings();
+
+        foreach (var item in items)
+        {
+            if (string.IsNullOrEmpty(item.Id))
+                continue;
+
+            var setting = FindSettingById(item.Id, allSettings);
+            if (setting != null)
+            {
+                remainingItems.Add((item, setting));
+            }
+        }
+
+        while (remainingItems.Any())
+        {
+            var currentWave = new List<(ConfigurationItem, SettingDefinition)>();
+
+            foreach (var (item, setting) in remainingItems.ToList())
+            {
+                var dependencies = setting.Dependencies?
+                    .Where(d => d.DependencyType != SettingDependencyType.RequiresValueBeforeAnyChange)
+                    .Select(d => d.RequiredSettingId)
+                    .ToList() ?? new List<string>();
+
+                bool canProcess = dependencies.All(depId => processedIds.Contains(depId));
+
+                if (canProcess)
+                {
+                    currentWave.Add((item, setting));
+                    processedIds.Add(item.Id);
+                    remainingItems.Remove((item, setting));
+                }
+            }
+
+            if (!currentWave.Any() && remainingItems.Any())
+            {
+                _logService.Log(LogLevel.Warning, "Circular dependency detected, processing remaining items anyway");
+                currentWave.AddRange(remainingItems);
+                remainingItems.Clear();
+            }
+
+            if (currentWave.Any())
+            {
+                waves.Add(currentWave);
+            }
+        }
+
+        return waves;
+    }
+
+    private async Task<(ApplyStatus status, string itemName)> ApplySettingItemAsync(
+        ConfigurationItem item,
+        SettingDefinition setting,
+        Func<string, object?, SettingDefinition, Task<(bool confirmed, bool checkboxResult)>>? confirmationHandler)
+    {
+        try
+        {
+            if (string.IsNullOrEmpty(item.Id))
+            {
+                _logService.Log(LogLevel.Warning, $"Skipping item '{item.Name}' - no ID");
+                return (ApplyStatus.Failed, item.Name);
+            }
+
+            if (setting == null)
+            {
+                _logService.Log(LogLevel.Debug, $"Setting '{item.Id}' skipped (not compatible with this Windows version)");
+                return (ApplyStatus.SkippedOsIncompatible, item.Name);
+            }
+
+            bool checkboxResult = false;
+            if (setting.RequiresConfirmation && confirmationHandler != null)
+            {
+                var value = setting.InputType == InputType.Selection
+                    ? (object)ResolveSelectionValue(setting, item)
+                    : (object)(item.IsSelected ?? false);
+
+                var (confirmed, checkbox) = await confirmationHandler(item.Id, value, setting);
+
+                if (!confirmed)
+                {
+                    _logService.Log(LogLevel.Info, $"User skipped setting '{item.Id}' during config import");
+                    return (ApplyStatus.Applied, item.Name);
+                }
+
+                checkboxResult = checkbox;
+            }
+
+            object valueToApply = null;
+
+            if (setting.InputType == InputType.Selection)
+            {
+                valueToApply = ResolveSelectionValue(setting, item);
+            }
+            else if (setting.InputType == InputType.NumericRange)
+            {
+                valueToApply = ResolveNumericRangeValue(item);
+            }
+
+            if (setting.InputType == InputType.Action && !string.IsNullOrEmpty(setting.ActionCommand))
+            {
+                await _settingApplicationService.ApplySettingAsync(
+                    item.Id,
+                    false,
+                    null,
+                    checkboxResult,
+                    setting.ActionCommand,
+                    skipValuePrerequisites: true);
+            }
+            else
+            {
+                await _settingApplicationService.ApplySettingAsync(
+                    item.Id,
+                    item.IsSelected ?? false,
+                    valueToApply,
+                    checkboxResult,
+                    skipValuePrerequisites: true);
+            }
+
+            _logService.Log(LogLevel.Debug, $"Applied setting: {item.Name}");
+            return (ApplyStatus.Applied, item.Name);
+        }
+        catch (Exception ex)
+        {
+            _logService.Log(LogLevel.Error, $"Failed to apply setting '{item.Name}': {ex.Message}");
+            return (ApplyStatus.Failed, item.Name);
+        }
+    }
+
+    private SettingDefinition FindSettingById(string id, IReadOnlyDictionary<string, IEnumerable<SettingDefinition>> allSettings)
+    {
+        foreach (var featureSettings in allSettings.Values)
+        {
+            var setting = featureSettings.FirstOrDefault(s => s.Id == id);
+            if (setting != null)
+                return setting;
+        }
+        return null;
+    }
 }

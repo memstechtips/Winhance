@@ -11,7 +11,7 @@ namespace Winhance.WPF.Features.Optimize.ViewModels
       : BaseSettingsFeatureViewModel(domainServiceRouter, settingsLoadingService, logService)
     {
         public override string ModuleId => FeatureIds.GamingPerformance;
-        public override string DisplayName => "Gaming and Performance";
+        public override string DisplayName => "Gaming & Performance";
         
     }
 }

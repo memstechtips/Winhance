@@ -411,8 +411,9 @@ namespace Winhance.WPF
                 LogStartupMessage("Checking system backup preferences");
                 var prefsService = _host.Services.GetRequiredService<IUserPreferencesService>();
                 var skipBackup = await prefsService.GetPreferenceAsync("SkipSystemBackup", false);
+                var registryBackupCompleted = await prefsService.GetPreferenceAsync("RegistryBackupCompleted", false);
 
-                if (!skipBackup)
+                if (!skipBackup || !registryBackupCompleted)
                 {
                     LogStartupMessage("Creating initial system backups");
                     var backupService = _host.Services.GetRequiredService<ISystemBackupService>();
@@ -421,7 +422,7 @@ namespace Winhance.WPF
                 }
                 else
                 {
-                    LogStartupMessage("System backup skipped - user has disabled this feature");
+                    LogStartupMessage("System backup skipped - user has disabled this feature and registry backup is complete");
                 }
 
                 LogStartupMessage("Checking for legacy script paths");
@@ -443,9 +444,6 @@ namespace Winhance.WPF
                 var softwareAppsViewModel = _host.Services.GetRequiredService<SoftwareAppsViewModel>();
 
                 await softwareAppsViewModel.InitializeCommand.ExecuteAsync(null);
-
-                LogStartupMessage("Waiting for complete initialization...");
-                await softwareAppsViewModel.WaitForInitializationAsync();
 
                 LogStartupMessage("SoftwareAppsViewModel fully preloaded with installation status");
 
@@ -586,8 +584,7 @@ namespace Winhance.WPF
             }
             catch
             {
-                // If we can't log to file, show a message box as fallback
-                MessageBox.Show(fullMessage, "Startup Message", MessageBoxButton.OK, MessageBoxImage.Information);
+                // Silently fail if logging is not possible
             }
         }
 

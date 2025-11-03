@@ -365,6 +365,7 @@ namespace Winhance.Infrastructure.Features.Common.Services
                 false
             );
             Navigated?.Invoke(this, navigatedArgs);
+            _logService?.Log(LogLevel.Info, $"[NavigateInternalAsync] Navigated event raised for: {targetView}");
             _logService?.Log(LogLevel.Info, $"[NavigateInternalAsync] Navigation completed successfully to: {targetView}");
         }
 

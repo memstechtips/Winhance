@@ -10,8 +10,8 @@ namespace Winhance.WPF.Features.Optimize.ViewModels
       ILogService logService)
       : BaseSettingsFeatureViewModel(domainServiceRouter, settingsLoadingService, logService)
     {
-        public override string ModuleId => FeatureIds.Notification;
-        public override string DisplayName => "Notification";
+        public override string ModuleId => FeatureIds.Notifications;
+        public override string DisplayName => "Notifications";
 
     }
 }

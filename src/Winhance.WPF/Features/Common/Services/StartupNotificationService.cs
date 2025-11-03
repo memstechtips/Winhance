@@ -34,32 +34,60 @@ namespace Winhance.WPF.Features.Common.Services
                 return;
             }
 
-            if (!result.RestorePointCreated)
+            if (!result.RestorePointCreated && !result.RegistryBackupCreated)
                 return;
 
             try
             {
-                var messageText = "Winhance has created a System Restore Point to protect your system.\n\n";
+                var messageText = "Winhance has protected your system with backups.\n\n";
 
                 if (result.SystemRestoreWasDisabled)
                 {
-                    messageText += "System Restore was disabled and has been enabled automatically.\n\n";
+                    messageText += "System Restore was disabled and is now enabled.\n\n";
                 }
 
-                messageText += "What was created:\n";
-                messageText += "• System Restore Point: 'Winhance Initial Restore Point'\n\n";
-                messageText += "How to restore:\n";
-                messageText += "• Open 'Create a restore point' in Windows Settings\n";
-                messageText += "• Click 'System Restore' button\n";
-                messageText += "• Select the Winhance restore point\n\n";
-                messageText += "Important Note:\n";
-                messageText += "System Restore will restore system settings and registry changes, but will NOT restore apps that were removed. You can reinstall most apps using the Microsoft Store or Winhance itself.";
+                messageText += "Created:\n";
+
+                if (result.RegistryBackupCreated)
+                {
+                    messageText += $"• Registry backups ({result.RegistryBackupPaths.Count} hives) at:\n";
+                    messageText += "  C:\\ProgramData\\Winhance\\Backups\n";
+                }
+
+                if (result.RestorePointCreated)
+                {
+                    messageText += "• System Restore Point: 'Winhance Initial Restore Point'\n";
+                }
+
+                messageText += "\n";
+
+                if (result.RestorePointCreated && result.RegistryBackupCreated)
+                {
+                    messageText += "To restore:\n";
+                    messageText += "• System: Open 'Create a restore point' in Settings > System Restore\n";
+                    messageText += "• Registry: Double-click .reg files in the backup folder\n\n";
+                }
+                else if (result.RestorePointCreated)
+                {
+                    messageText += "To restore: Search 'restore point' in Windows Settings\n\n";
+                }
+                else if (result.RegistryBackupCreated)
+                {
+                    messageText += "To restore: Double-click .reg files in the backup folder\n\n";
+                }
+
+                messageText += "Note: System Restore won't restore removed apps.\n";
+                messageText += "Registry backups are one-time and require admin rights.";
+
+                var checkboxText = result.RestorePointCreated
+                    ? "Don't create restore points in the future"
+                    : "Don't show this again";
 
                 var checkboxChecked = CustomDialog.ShowInformationWithCheckbox(
                     "System Protection Enabled",
                     "Winhance Backup",
                     messageText,
-                    "Don't do this again",
+                    checkboxText,
                     "OK",
                     DialogType.Information,
                     titleBarIcon: "Shield"

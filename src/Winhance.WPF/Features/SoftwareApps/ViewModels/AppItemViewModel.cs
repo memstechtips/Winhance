@@ -25,6 +25,7 @@ public partial class AppItemViewModel : ObservableObject, ISelectable
 
         InstallCommand = new AsyncRelayCommand(InstallAsync, () => !IsInstalling && !Definition.IsInstalled);
         UninstallCommand = new AsyncRelayCommand(UninstallAsync, () => !IsUninstalling && Definition.IsInstalled);
+        OpenWebsiteCommand = new RelayCommand(OpenWebsite, () => !string.IsNullOrEmpty(Definition.WebsiteUrl));
     }
 
     public ItemDefinition Definition => _definition;
@@ -54,7 +55,16 @@ public partial class AppItemViewModel : ObservableObject, ISelectable
             if (Definition.IsInstalled != value)
             {
                 Definition.IsInstalled = value;
-                OnPropertyChanged();
+                
+                // Ensure PropertyChanged is raised on the UI thread
+                if (System.Windows.Application.Current?.Dispatcher?.CheckAccess() == true)
+                {
+                    OnPropertyChanged();
+                }
+                else
+                {
+                    System.Windows.Application.Current?.Dispatcher?.BeginInvoke(() => OnPropertyChanged());
+                }
             }
         }
     }
@@ -84,8 +94,11 @@ public partial class AppItemViewModel : ObservableObject, ISelectable
         ?? Definition.OptionalFeatureName
         ?? string.Empty;
 
+    public string? WebsiteUrl => Definition.WebsiteUrl;
+
     public IAsyncRelayCommand InstallCommand { get; }
     public IAsyncRelayCommand UninstallCommand { get; }
+    public IRelayCommand OpenWebsiteCommand { get; }
 
     private async Task InstallAsync()
     {
@@ -195,5 +208,26 @@ public partial class AppItemViewModel : ObservableObject, ISelectable
         {
             Status = detail.StatusText ?? Status;
         });
+    }
+
+    private void OpenWebsite()
+    {
+        if (string.IsNullOrEmpty(Definition.WebsiteUrl))
+            return;
+
+        try
+        {
+            var psi = new System.Diagnostics.ProcessStartInfo
+            {
+                FileName = Definition.WebsiteUrl,
+                UseShellExecute = true
+            };
+            System.Diagnostics.Process.Start(psi);
+            _logService.LogInformation($"Opened website for {Name}: {Definition.WebsiteUrl}");
+        }
+        catch (Exception ex)
+        {
+            _logService.LogError($"Failed to open website for {Name}: {ex.Message}", ex);
+        }
     }
 }

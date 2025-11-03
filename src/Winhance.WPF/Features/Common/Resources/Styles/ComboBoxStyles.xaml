@@ -212,7 +212,7 @@
                         </ToggleButton>
                         <ContentPresenter x:Name="ContentPresenter"
                                           IsHitTestVisible="False"
-                                          Margin="10,0,30,0"
+                                          Margin="10,0,20,0"
                                           HorizontalAlignment="Left"
                                           VerticalAlignment="Center"
                                           Content="{TemplateBinding SelectionBoxItem}"
@@ -260,7 +260,15 @@
         </Setter>
         <Style.Triggers>
             <DataTrigger Binding="{Binding TooltipData}" Value="{x:Null}">
-                <Setter Property="ToolTip" Value="{Binding SelectedComboBoxItem.Description}"/>
+                <Setter Property="ToolTip">
+                    <Setter.Value>
+                        <MultiBinding Converter="{StaticResource CoalesceConverter}">
+                            <Binding Path="NonPowerSelectedItem.Description"/>
+                            <Binding Path="PowerPlanSelectedItem.Description"/>
+                            <Binding Path="PowerSettingSelectedItem.Description"/>
+                        </MultiBinding>
+                    </Setter.Value>
+                </Setter>
             </DataTrigger>
         </Style.Triggers>
     </Style>

@@ -13,7 +13,7 @@ public static class NotificationOptimizations
         return new SettingGroup
         {
             Name = "Notifications",
-            FeatureId = FeatureIds.Notification,
+            FeatureId = FeatureIds.Notifications,
             Settings = new List<SettingDefinition>
             {
                 new SettingDefinition
@@ -58,6 +58,7 @@ public static class NotificationOptimizations
                             DisabledValue = 0,
                             DefaultValue = 1,
                             ValueType = RegistryValueKind.DWord,
+                            AbsenceMeansEnabled = true,
                         },
                     },
                 },
@@ -91,6 +92,7 @@ public static class NotificationOptimizations
                             DisabledValue = 0,
                             DefaultValue = 1,
                             ValueType = RegistryValueKind.DWord,
+                            AbsenceMeansEnabled = true,
                         },
                         new RegistrySetting
                         {
@@ -101,6 +103,7 @@ public static class NotificationOptimizations
                             DisabledValue = 0,
                             DefaultValue = 1,
                             ValueType = RegistryValueKind.DWord,
+                            AbsenceMeansEnabled = true,
                         },
                     },
                 },
@@ -133,6 +136,7 @@ public static class NotificationOptimizations
                             DisabledValue = 0,
                             DefaultValue = 1,
                             ValueType = RegistryValueKind.DWord,
+                            AbsenceMeansEnabled = true,
                         },
                     },
                 },
@@ -155,7 +159,6 @@ public static class NotificationOptimizations
                             DisabledValue = 0,
                             DefaultValue = 1,
                             ValueType = RegistryValueKind.DWord,
-                            AbsenceMeansEnabled = true,
                         },
                     },
                 },
@@ -189,6 +192,7 @@ public static class NotificationOptimizations
                             DisabledValue = 0,
                             DefaultValue = 1,
                             ValueType = RegistryValueKind.DWord,
+                            AbsenceMeansEnabled = true,
                         },
                     },
                 },
@@ -212,6 +216,7 @@ public static class NotificationOptimizations
                             DisabledValue = 0,
                             DefaultValue = 1,
                             ValueType = RegistryValueKind.DWord,
+                            AbsenceMeansEnabled = true,
                         },
                     },
                 },
@@ -302,6 +307,7 @@ public static class NotificationOptimizations
                             DisabledValue = 0,
                             DefaultValue = 1,
                             ValueType = RegistryValueKind.DWord,
+                            AbsenceMeansEnabled = true,
                         },
                     },
                 },
@@ -324,6 +330,7 @@ public static class NotificationOptimizations
                             DisabledValue = 0,
                             DefaultValue = 1,
                             ValueType = RegistryValueKind.DWord,
+                            AbsenceMeansEnabled = true,
                         },
                     },
                 },
@@ -368,6 +375,7 @@ public static class NotificationOptimizations
                             DisabledValue = 0,
                             DefaultValue = 1,
                             ValueType = RegistryValueKind.DWord,
+                            AbsenceMeansEnabled = true,
                         },
                     },
                 },
@@ -391,6 +399,7 @@ public static class NotificationOptimizations
                             DisabledValue = 1,
                             DefaultValue = 0,
                             ValueType = RegistryValueKind.DWord,
+                            AbsenceMeansEnabled = true,
                         },
                         new RegistrySetting
                         {
@@ -401,6 +410,7 @@ public static class NotificationOptimizations
                             DisabledValue = 1,
                             DefaultValue = 0,
                             ValueType = RegistryValueKind.DWord,
+                            AbsenceMeansEnabled = true,
                         },
                         new RegistrySetting
                         {
@@ -411,6 +421,7 @@ public static class NotificationOptimizations
                             DisabledValue = 1,
                             DefaultValue = 0,
                             ValueType = RegistryValueKind.DWord,
+                            AbsenceMeansEnabled = true,
                         },
                         new RegistrySetting
                         {
@@ -421,6 +432,7 @@ public static class NotificationOptimizations
                             DisabledValue = 1,
                             DefaultValue = 0,
                             ValueType = RegistryValueKind.DWord,
+                            AbsenceMeansEnabled = true,
                         },
                         new RegistrySetting
                         {
@@ -431,6 +443,7 @@ public static class NotificationOptimizations
                             DisabledValue = 1,
                             DefaultValue = 0,
                             ValueType = RegistryValueKind.DWord,
+                            AbsenceMeansEnabled = true,
                         },
                     },
                 },
@@ -453,6 +466,7 @@ public static class NotificationOptimizations
                             DisabledValue = 0,
                             DefaultValue = 1,
                             ValueType = RegistryValueKind.DWord,
+                            AbsenceMeansEnabled = true,
                         },
                     },
                 },

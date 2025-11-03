@@ -26,7 +26,9 @@ namespace Winhance.Infrastructure.Features.Common.Services
                     result.Options.Add(new ComboBoxOption
                     {
                         DisplayText = option.DisplayName,
-                        Value = option.Index
+                        Value = option.Index,
+                        Description = option.ExistsOnSystem ? "Installed on system" : "Not installed",
+                        Tag = option
                     });
                 }
 

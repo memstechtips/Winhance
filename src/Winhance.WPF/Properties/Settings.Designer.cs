@@ -30,5 +30,20 @@ namespace Winhance.WPF.Properties
                 this["IsDarkTheme"] = value;
             }
         }
+
+        [global::System.Configuration.UserScopedSettingAttribute()]
+        [global::System.Diagnostics.DebuggerNonUserCodeAttribute()]
+        [global::System.Configuration.DefaultSettingValueAttribute("False")]
+        public bool ThemeSetByUser
+        {
+            get
+            {
+                return ((bool)(this["ThemeSetByUser"]));
+            }
+            set
+            {
+                this["ThemeSetByUser"] = value;
+            }
+        }
     }
 }

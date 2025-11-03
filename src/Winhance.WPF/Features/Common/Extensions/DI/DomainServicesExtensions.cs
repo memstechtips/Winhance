@@ -145,8 +145,14 @@ namespace Winhance.WPF.Features.Common.Extensions.DI
             // WinGet Service
             services.AddSingleton<IWinGetService, WinGetService>();
 
+            // App Uninstall Service
+            services.AddScoped<IAppUninstallService, AppUninstallService>();
+
             // Store Download Service (Fallback for market-restricted apps)
             services.AddSingleton<IStoreDownloadService, StoreDownloadService>();
+
+            // Direct Download Service (For non-WinGet apps)
+            services.AddSingleton<IDirectDownloadService, DirectDownloadService>();
 
             // Legacy Capability and Optional Feature Services
             services.AddSingleton<ILegacyCapabilityService>(provider => new LegacyCapabilityService(

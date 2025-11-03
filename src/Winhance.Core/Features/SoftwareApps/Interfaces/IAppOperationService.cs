@@ -11,4 +11,6 @@ public interface IAppOperationService
     Task<OperationResult<int>> InstallAppsAsync(List<ItemDefinition> apps, IProgress<TaskProgressDetail>? progress = null, bool shouldRemoveFromBloatScript = true);
     Task<OperationResult<bool>> UninstallAppAsync(string appId, IProgress<TaskProgressDetail>? progress = null);
     Task<OperationResult<int>> UninstallAppsAsync(List<ItemDefinition> apps, IProgress<TaskProgressDetail>? progress = null);
+    Task<OperationResult<bool>> UninstallExternalAppAsync(string packageId, string displayName, IProgress<TaskProgressDetail>? progress = null);
+    Task<OperationResult<int>> UninstallExternalAppsAsync(List<ItemDefinition> apps, IProgress<TaskProgressDetail>? progress = null);
 }

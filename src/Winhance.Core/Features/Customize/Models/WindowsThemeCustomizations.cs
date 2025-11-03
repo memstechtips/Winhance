@@ -99,7 +99,7 @@ namespace Winhance.Core.Features.Customize.Models
                                 },
                             },
                             [CustomPropertyKeys.SupportsCustomState] = true,
-                            [CustomPropertyKeys.CustomStateDisplayName] = "Custom (User Defined)",
+                            [CustomPropertyKeys.CustomStateDisplayName] = "Custom",
                         },
                     },
                     new SettingDefinition

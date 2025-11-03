@@ -6,7 +6,7 @@
 #define MyAppPublisher "Marco du Plessis"
 #define MyAppURL "https://www.winhance.net/"
 #define MyAppExeName "Winhance.exe"
-#define DotNetRuntimeVersion "9.0.4"
+#define DotNetRuntimeVersion "9.0.10"
 #define DotNetRuntimeInstallerName "windowsdesktop-runtime-" + DotNetRuntimeVersion + "-win-x64.exe"
 #define MyAppAssocName MyAppName + " File"
 #define MyAppAssocExt ".winhance"

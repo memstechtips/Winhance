@@ -22,7 +22,8 @@ namespace Winhance.Core.Features.SoftwareApps.Models
                             Description = "Python programming language",
                             GroupName = "Development Apps",
                             WinGetPackageId = "Python.Python.3.13",
-                            Category = "Development Apps"
+                            Category = "Development Apps",
+                            WebsiteUrl = "https://www.python.org/"
                         },
                         new ItemDefinition
                         {
@@ -31,7 +32,8 @@ namespace Winhance.Core.Features.SoftwareApps.Models
                             Description = "Free source code editor and Notepad replacement",
                             GroupName = "Development Apps",
                             WinGetPackageId = "Notepad++.Notepad++",
-                            Category = "Development Apps"
+                            Category = "Development Apps",
+                            WebsiteUrl = "https://notepad-plus-plus.org/"
                         },
                         new ItemDefinition
                         {
@@ -40,7 +42,8 @@ namespace Winhance.Core.Features.SoftwareApps.Models
                             Description = "Free SFTP, SCP, Amazon S3, WebDAV, and FTP client",
                             GroupName = "Development Apps",
                             WinGetPackageId = "WinSCP.WinSCP",
-                            Category = "Development Apps"
+                            Category = "Development Apps",
+                            WebsiteUrl = "https://winscp.net/"
                         },
                         new ItemDefinition
                         {
@@ -49,7 +52,8 @@ namespace Winhance.Core.Features.SoftwareApps.Models
                             Description = "Free SSH and telnet client",
                             GroupName = "Development Apps",
                             WinGetPackageId = "PuTTY.PuTTY",
-                            Category = "Development Apps"
+                            Category = "Development Apps",
+                            WebsiteUrl = "https://www.putty.org/"
                         },
                         new ItemDefinition
                         {
@@ -58,7 +62,8 @@ namespace Winhance.Core.Features.SoftwareApps.Models
                             Description = "Open source differencing and merging tool",
                             GroupName = "Development Apps",
                             WinGetPackageId = "WinMerge.WinMerge",
-                            Category = "Development Apps"
+                            Category = "Development Apps",
+                            WebsiteUrl = "https://winmerge.org/"
                         },
                         new ItemDefinition
                         {
@@ -67,7 +72,8 @@ namespace Winhance.Core.Features.SoftwareApps.Models
                             Description = "Java IDE and development platform",
                             GroupName = "Development Apps",
                             WinGetPackageId = "EclipseFoundation.EclipseIDEforJavaDevelopers",
-                            Category = "Development Apps"
+                            Category = "Development Apps",
+                            WebsiteUrl = "https://www.eclipse.org/"
                         },
                         new ItemDefinition
                         {
@@ -76,7 +82,8 @@ namespace Winhance.Core.Features.SoftwareApps.Models
                             Description = "Code editor with support for development operations",
                             GroupName = "Development Apps",
                             WinGetPackageId = "Microsoft.VisualStudioCode",
-                            Category = "Development Apps"
+                            Category = "Development Apps",
+                            WebsiteUrl = "https://code.visualstudio.com/"
                         },
                         new ItemDefinition
                         {
@@ -85,7 +92,8 @@ namespace Winhance.Core.Features.SoftwareApps.Models
                             Description = "Distributed version control system",
                             GroupName = "Development Apps",
                             WinGetPackageId = "Git.Git",
-                            Category = "Development Apps"
+                            Category = "Development Apps",
+                            WebsiteUrl = "https://git-scm.com/"
                         },
                         new ItemDefinition
                         {
@@ -94,7 +102,18 @@ namespace Winhance.Core.Features.SoftwareApps.Models
                             Description = "GitHub desktop client",
                             GroupName = "Development Apps",
                             WinGetPackageId = "GitHub.GitHubDesktop",
-                            Category = "Development Apps"
+                            Category = "Development Apps",
+                            WebsiteUrl = "https://desktop.github.com/"
+                        },
+                        new ItemDefinition
+                        {
+                            Id = "external-app-meld",
+                            Name = "Meld",
+                            Description = "Visual diff and merge tool",
+                            GroupName = "Development Apps",
+                            WinGetPackageId = "Meld.Meld",
+                            Category = "Development Apps",
+                            WebsiteUrl = "https://meldmerge.org/"
                         }
                     }
                 };

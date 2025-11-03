@@ -238,14 +238,13 @@ namespace Winhance.WPF.Features.SoftwareApps.ViewModels
                 Items.Clear();
                 UnsubscribeFromItemPropertyChangedEvents();
 
-                var allItems = await windowsAppsService.GetAppsAsync();
+                var allItems = await windowsAppsService.GetAppsAsync().ConfigureAwait(false);
                 var apps = allItems.Where(x => !string.IsNullOrEmpty(x.AppxPackageName) || !string.IsNullOrEmpty(x.WinGetPackageId));
                 var capabilities = allItems.Where(x => !string.IsNullOrEmpty(x.CapabilityName));
                 var features = allItems.Where(x => !string.IsNullOrEmpty(x.OptionalFeatureName));
 
                 LoadAppsIntoItems(apps, capabilities, features);
                 StatusText = $"Loaded {Items.Count} total items";
-                UpdateAllItemsCollection();
             }
             catch (Exception ex)
             {
@@ -260,32 +259,43 @@ namespace Winhance.WPF.Features.SoftwareApps.ViewModels
 
         public override async Task CheckInstallationStatusAsync()
         {
+            await CheckInstallationStatusAsync(showLoadingOverlay: true);
+        }
+
+        public async Task CheckInstallationStatusAsync(bool showLoadingOverlay)
+        {
             if (appStatusDiscoveryService == null) return;
 
-            IsLoading = true;
+            if (showLoadingOverlay)
+            {
+                IsLoading = true;
+                StatusText = "Checking installation status...";
+            }
 
             try
             {
                 var definitions = Items.Select(item => item.Definition).ToList();
-                var statusResults = await appStatusDiscoveryService.GetInstallationStatusBatchAsync(definitions);
+                var statusResults = await appStatusDiscoveryService.GetInstallationStatusBatchAsync(definitions).ConfigureAwait(false);
 
                 foreach (var item in Items)
                 {
                     if (statusResults.TryGetValue(item.Definition.Id, out bool isInstalled))
                     {
-                        item.Definition.IsInstalled = isInstalled;
+                        item.IsInstalled = isInstalled;
                     }
                 }
 
-                // Only notify filtered properties in grid view mode (table view uses AllItemsView)
+                if (showLoadingOverlay)
+                {
+                    StatusText = $"Installation status checked for {Items.Count} items";
+                }
+
                 if (!IsTableViewMode)
                 {
                     OnPropertyChanged(nameof(WindowsAppsFiltered));
                     OnPropertyChanged(nameof(CapabilitiesFiltered));
                     OnPropertyChanged(nameof(OptionalFeaturesFiltered));
                 }
-
-                StatusText = $"Installation status checked for {Items.Count} items";
             }
             catch (Exception ex)
             {
@@ -294,7 +304,10 @@ namespace Winhance.WPF.Features.SoftwareApps.ViewModels
             }
             finally
             {
-                IsLoading = false;
+                if (showLoadingOverlay)
+                {
+                    IsLoading = false;
+                }
             }
         }
 
@@ -322,6 +335,34 @@ namespace Winhance.WPF.Features.SoftwareApps.ViewModels
             {
                 CurrentCancellationReason = CancellationReason.UserCancelled;
                 // No dialog needed - user knows they cancelled and task progress control disappears
+            }
+        }
+
+        [RelayCommand]
+        public async Task RefreshInstallationStatus()
+        {
+            if (!IsInitialized)
+            {
+                StatusText = "Please wait for initial load to complete";
+                return;
+            }
+
+            IsLoading = true;
+            StatusText = "Refreshing installation status...";
+
+            try
+            {
+                await CheckInstallationStatusAsync();
+                StatusText = $"Installation status refreshed for {Items.Count} items";
+            }
+            catch (Exception ex)
+            {
+                StatusText = $"Error refreshing status: {ex.Message}";
+                logService.LogError("Error refreshing installation status", ex);
+            }
+            finally
+            {
+                IsLoading = false;
             }
         }
 
@@ -493,18 +534,30 @@ namespace Winhance.WPF.Features.SoftwareApps.ViewModels
 
         public async Task LoadAppsAndCheckInstallationStatusAsync()
         {
-            if (IsInitialized) return;
+            if (IsInitialized)
+            {
+                logService.LogInformation("[WindowsAppsViewModel] Already initialized, skipping");
+                return;
+            }
 
-            await LoadItemsAsync();
-            await CheckInstallationStatusAsync();
+            logService.LogInformation("[WindowsAppsViewModel] LoadItemsAsync starting");
+            await LoadItemsAsync().ConfigureAwait(false);
+            logService.LogInformation("[WindowsAppsViewModel] LoadItemsAsync completed");
+            
+            logService.LogInformation("[WindowsAppsViewModel] CheckInstallationStatusAsync starting");
+            await CheckInstallationStatusAsync().ConfigureAwait(false);
+            logService.LogInformation("[WindowsAppsViewModel] CheckInstallationStatusAsync completed");
+            
             IsAllSelected = false;
             IsInitialized = true;
+            logService.LogInformation("[WindowsAppsViewModel] Calling RefreshScriptStatus");
             RefreshScriptStatus();
+            logService.LogInformation("[WindowsAppsViewModel] LoadAppsAndCheckInstallationStatusAsync fully completed");
         }
 
         private async void RefreshUIAfterOperation()
         {
-            await CheckInstallationStatusAsync();
+            await CheckInstallationStatusAsync(showLoadingOverlay: false);
             ClearAllSelections();
             UpdateAllItemsCollection();
         }
@@ -535,6 +588,10 @@ namespace Winhance.WPF.Features.SoftwareApps.ViewModels
                     CurrentSortProperty = "IsInstalled";
                     SortDirection = ListSortDirection.Descending;
                     await LoadAppsAndCheckInstallationStatusAsync();
+                }
+                else
+                {
+                    await CheckInstallationStatusAsync();
                 }
             }
             catch (Exception ex)
@@ -915,7 +972,7 @@ namespace Winhance.WPF.Features.SoftwareApps.ViewModels
         private async Task<OperationResult<bool>> ExecuteSingleRemovalOperation(AppItemViewModel app)
         {
             var result = await appOperationService.UninstallAppAsync(app.Definition.Id);
-            if (result.Success) app.Definition.IsInstalled = false;
+            if (result.Success) app.IsInstalled = false;
             return result;
         }
 
@@ -989,8 +1046,8 @@ namespace Winhance.WPF.Features.SoftwareApps.ViewModels
             var installedItems = Items.Where(a => a.IsInstalled);
             var notInstalledItems = Items.Where(a => !a.IsInstalled);
 
-            bool allInstalledSelected = !installedItems.Any() || installedItems.All(a => a.IsSelected);
-            bool allNotInstalledSelected = !notInstalledItems.Any() || notInstalledItems.All(a => a.IsSelected);
+            bool allInstalledSelected = installedItems.Any() && installedItems.All(a => a.IsSelected);
+            bool allNotInstalledSelected = notInstalledItems.Any() && notInstalledItems.All(a => a.IsSelected);
 
             if (_isAllSelectedInstalled != allInstalledSelected)
             {

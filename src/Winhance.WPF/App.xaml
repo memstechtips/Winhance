@@ -7,6 +7,7 @@
             <ResourceDictionary.MergedDictionaries>
                 <ResourceDictionary Source="Features/Common/Resources/Theme/ColorDictionary.xaml"/>
                 <ResourceDictionary Source="Features/Common/Resources/Converters/Converters.xaml"/>
+                <ResourceDictionary Source="Features/Common/Resources/Styles/StatusIndicatorStyles.xaml"/>
                 <ResourceDictionary Source="Features/Common/Resources/Styles/ButtonStyles.xaml"/>
                 <ResourceDictionary Source="Features/Common/Resources/Styles/CheckBoxStyles.xaml"/>
                 <ResourceDictionary Source="Features/Common/Resources/Styles/RadioButtonStyles.xaml"/>
@@ -19,6 +20,7 @@
                 <ResourceDictionary Source="Features/Common/Resources/Styles/TextStyles.xaml"/>
                 <ResourceDictionary Source="Features/Optimize/Resources/Converters/PowerSettingConverters.xaml"/>
                 <ResourceDictionary Source="Features/Common/Resources/Styles/AppItemStyles.xaml"/>
+                <ResourceDictionary Source="Features/Optimize/Resources/Styles/PowerPlanStyles.xaml"/>
                 <ResourceDictionary Source="Features/Common/Resources/Styles/ContainerStyles.xaml"/>
                 <ResourceDictionary Source="Features/Common/Resources/Styles/ProgressIndicatorStyles.xaml"/>
                 <ResourceDictionary Source="Features/Common/Resources/Styles/DialogStyles.xaml"/>

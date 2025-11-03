@@ -17,5 +17,6 @@ namespace Winhance.Core.Features.Common.Interfaces
         public bool Success { get; set; }
         public string? ErrorMessage { get; set; }
         public Dictionary<string, object?>? RawValues { get; set; }
+        public bool IsRegistryValueNotSet { get; set; }
     }
 }

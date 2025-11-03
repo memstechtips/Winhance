@@ -8,7 +8,7 @@ public static class FeatureIds
     public const string WindowsOptionalFeatures = "WindowsOptionalFeatures";
 
     public const string GamingPerformance = "GamingPerformance";
-    public const string Notification = "Notification";
+    public const string Notifications = "Notifications";
     public const string Power = "Power";
     public const string Privacy = "Privacy";
     public const string Sound = "Sound";
@@ -27,7 +27,7 @@ public static class FeatureIds
         GamingPerformance,
         Sound,
         Update,
-        Notification
+        Notifications
     };
 
     public static readonly HashSet<string> CustomizeFeatures = new()
@@ -42,10 +42,10 @@ public static class FeatureIds
     {
         [Power] = "Power",
         [Privacy] = "Privacy & Security",
-        [GamingPerformance] = "Gaming and Performance",
+        [GamingPerformance] = "Gaming & Performance",
         [Sound] = "Sound",
         [Update] = "Windows Update",
-        [Notification] = "Notifications",
+        [Notifications] = "Notifications",
         [WindowsTheme] = "Windows Theme",
         [Taskbar] = "Taskbar",
         [StartMenu] = "Start Menu",

@@ -203,7 +203,7 @@ namespace Winhance.Core.Features.Optimize.Models
                         },
                         CustomProperties = new Dictionary<string, object>(Templates.Slideshow)
                         {
-                            ["RecommendedOptionAC"] = "Paused",
+                            ["RecommendedOptionAC"] = "Available",
                             ["RecommendedOptionDC"] = "Paused"
                         }
                     },
@@ -1102,7 +1102,6 @@ namespace Winhance.Core.Features.Optimize.Models
                                 DisabledValue = 0,
                                 DefaultValue = 0,
                                 ValueType = RegistryValueKind.DWord,
-                                AbsenceMeansEnabled = true,
                             },
                         },
                     },

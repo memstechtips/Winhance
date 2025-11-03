@@ -17,9 +17,32 @@ public static class ExplorerCustomizations
             {
                 new SettingDefinition
                 {
+                    Id = "explorer-customization-shortcut-suffix",
+                    Name = "Remove '- Shortcut' suffix from new shortcuts",
+                    Description = "Prevents Windows from appending '- Shortcut' text to newly created shortcut file names",
+                    InputType = InputType.Toggle,
+                    Icon = "LinkVariant",
+                    RestartProcess = "Explorer",
+                    RegistrySettings = new List<RegistrySetting>
+                    {
+                        new RegistrySetting
+                        {
+                            KeyPath = @"HKEY_CURRENT_USER\SOFTWARE\Microsoft\Windows\CurrentVersion\Explorer",
+                            ValueName = "link",
+                            RecommendedValue = new byte[] { 0x00, 0x00, 0x00, 0x00 },
+                            EnabledValue = new byte[] { 0x00, 0x00, 0x00, 0x00 },
+                            DisabledValue = null,
+                            DefaultValue = null,
+                            ValueType = RegistryValueKind.Binary,
+                        },
+                    },
+                },
+                new SettingDefinition
+                {
                     Id = "explorer-customization-context-menu",
                     Name = "Use Classic Context Menu",
                     Description = "Use the Windows 10-style right-click menu with all options visible instead of the simplified Windows 11 menu",
+                    GroupName = "Context Menu",
                     InputType = InputType.Toggle,
                     IconPack = "Lucide",
                     Icon = "SquareMenu",
@@ -32,8 +55,8 @@ public static class ExplorerCustomizations
                             KeyPath = @"HKEY_CURRENT_USER\Software\Classes\CLSID\{86ca1aa0-34aa-4e8b-a509-50c905bae2a2}\InprocServer32",
                             ValueName = "",
                             RecommendedValue = "",
-                            EnabledValue = "", // When toggle is ON, classic context menu is used (value is deleted)
-                            DisabledValue = null, // When toggle is OFF, modern context menu is used (empty value is set)
+                            EnabledValue = "",
+                            DisabledValue = null,
                             DefaultValue = "",
                             ValueType = RegistryValueKind.String,
                         },
@@ -44,6 +67,7 @@ public static class ExplorerCustomizations
                     Id = "explorer-take-ownership",
                     Name = "Add 'Take Ownership' to Context Menu",
                     Description = "Adds a right-click option to take ownership of files, folders, and drives with automatic permission elevation",
+                    GroupName = "Context Menu",
                     InputType = InputType.Toggle,
                     Icon = "Security",
                     RegistrySettings = new List<RegistrySetting>
@@ -115,6 +139,78 @@ public static class ExplorerCustomizations
                 },
                 new SettingDefinition
                 {
+                    Id = "explorer-context-menu-toggle-extensions",
+                    Name = "Add 'Show/Hide Extensions' to Context Menu",
+                    Description = "Adds a right-click menu option to quickly toggle file extension visibility in File Explorer (only visible on the Classic Context Menu or Show More Options Menu in Windows 11)",
+                    GroupName = "Context Menu",
+                    InputType = InputType.Toggle,
+                    IconPack = "Lucide",
+                    Icon = "FileType2",
+                    RegistrySettings = new List<RegistrySetting>
+                    {
+                        new RegistrySetting
+                        {
+                            KeyPath = @"HKEY_CLASSES_ROOT\AllFilesystemObjects\shell\Windows.ShowFileExtensions",
+                            ValueName = null,
+                            EnabledValue = null,
+                            DisabledValue = null,
+                            DefaultValue = null,
+                            ValueType = RegistryValueKind.None,
+                        }
+                    },
+                    RegContents = new List<RegContentSetting>
+                    {
+                        new RegContentSetting
+                        {
+                            EnabledContent = @"Windows Registry Editor Version 5.00
+
+[HKEY_CLASSES_ROOT\AllFilesystemObjects\shell\Windows.ShowFileExtensions]
+""CommandStateSync""=""""
+""Description""=""@shell32.dll,-37571""
+""ExplorerCommandHandler""=""{4ac6c205-2853-4bf5-b47c-919a42a48a16}""
+""MUIVerb""=""@shell32.dll,-37570""
+
+[HKEY_CLASSES_ROOT\Directory\Background\shell\Windows.ShowFileExtensions]
+""CommandStateSync""=""""
+""Description""=""@shell32.dll,-37571""
+""ExplorerCommandHandler""=""{4ac6c205-2853-4bf5-b47c-919a42a48a16}""
+""MUIVerb""=""@shell32.dll,-37570""
+",
+                            DisabledContent = @"Windows Registry Editor Version 5.00
+
+[-HKEY_CLASSES_ROOT\AllFilesystemObjects\shell\Windows.ShowFileExtensions]
+[-HKEY_CLASSES_ROOT\Directory\Background\shell\Windows.ShowFileExtensions]
+",
+                            RequiresElevation = true
+                        }
+                    }
+                },
+                new SettingDefinition
+                {
+                    Id = "explorer-context-menu-windows-terminal",
+                    Name = "Show 'Open in Windows Terminal' in Context Menu",
+                    Description = "Displays the Windows Terminal option when right-clicking folders and backgrounds in File Explorer",
+                    GroupName = "Context Menu",
+                    InputType = InputType.Toggle,
+                    Icon = "Console",
+                    IsWindows11Only = true,
+                    RegistrySettings = new List<RegistrySetting>
+                    {
+                        new RegistrySetting
+                        {
+                            KeyPath = @"HKEY_LOCAL_MACHINE\SOFTWARE\Microsoft\Windows\CurrentVersion\Shell Extensions\Blocked",
+                            ValueName = "{9F156763-7844-4DC4-B2B1-901F640F5155}",
+                            RecommendedValue = null,
+                            EnabledValue = null,
+                            DisabledValue = "",
+                            DefaultValue = null,
+                            ValueType = RegistryValueKind.String,
+                            AbsenceMeansEnabled = true,
+                        },
+                    },
+                },
+                new SettingDefinition
+                {
                     Id = "devices-dynamic-lighting-ambient",
                     Name = "Use Dynamic Lighting on my devices",
                     Description = "Allow Windows Dynamic Lighting to control ambient RGB effects on compatible devices",
@@ -156,6 +252,7 @@ public static class ExplorerCustomizations
                             DisabledValue = 0,
                             DefaultValue = 1,
                             ValueType = RegistryValueKind.DWord,
+                            AbsenceMeansEnabled = true,
                         },
                     },
                 },
@@ -347,6 +444,7 @@ public static class ExplorerCustomizations
                             DisabledValue = 0,
                             DefaultValue = 1,
                             ValueType = RegistryValueKind.DWord,
+                            AbsenceMeansEnabled = true,
                         },
                         new RegistrySetting
                         {
@@ -357,6 +455,7 @@ public static class ExplorerCustomizations
                             DisabledValue = 0,
                             DefaultValue = 1,
                             ValueType = RegistryValueKind.DWord,
+                            AbsenceMeansEnabled = true,
                         },
                     },
                 },
@@ -379,6 +478,7 @@ public static class ExplorerCustomizations
                             DisabledValue = 0,
                             DefaultValue = 1,
                             ValueType = RegistryValueKind.DWord,
+                            AbsenceMeansEnabled = true,
                         },
                     },
                 },
@@ -402,6 +502,7 @@ public static class ExplorerCustomizations
                             DisabledValue = 0,
                             DefaultValue = 1,
                             ValueType = RegistryValueKind.DWord,
+                            AbsenceMeansEnabled = true,
                         },
                     },
                 },
@@ -420,9 +521,9 @@ public static class ExplorerCustomizations
                             KeyPath = @"HKEY_CURRENT_USER\Software\Microsoft\Windows\CurrentVersion\Explorer\Advanced",
                             ValueName = "IconsOnly",
                             RecommendedValue = 0,
-                            EnabledValue = 0,
-                            DisabledValue = 1,
-                            DefaultValue = 1,
+                            EnabledValue = 1,
+                            DisabledValue = 0,
+                            DefaultValue = 0,
                             ValueType = RegistryValueKind.DWord,
                         },
                     },
@@ -459,6 +560,7 @@ public static class ExplorerCustomizations
                     GroupName = "Files and Folders",
                     InputType = InputType.Toggle,
                     Icon = "ViewCompact",
+                    IsWindows11Only = true,
                     RegistrySettings = new List<RegistrySetting>
                     {
                         new RegistrySetting
@@ -516,6 +618,7 @@ public static class ExplorerCustomizations
                             DisabledValue = 0,
                             DefaultValue = 1,
                             ValueType = RegistryValueKind.DWord,
+                            AbsenceMeansEnabled = true,
                         },
                     },
                 },
@@ -583,6 +686,7 @@ public static class ExplorerCustomizations
                             DisabledValue = 0,
                             DefaultValue = 0,
                             ValueType = RegistryValueKind.DWord,
+                            AbsenceMeansEnabled = true,
                         },
                     },
                 },
@@ -611,6 +715,152 @@ public static class ExplorerCustomizations
                 },
                 new SettingDefinition
                 {
+                    Id = "explorer-enable-photo-viewer",
+                    Name = "Enable Windows Photo Viewer",
+                    Description = "Restore the legacy Windows Photo Viewer and set it as the default program for common image file formats",
+                    GroupName = "File Associations",
+                    InputType = InputType.Toggle,
+                    Icon = "ImageOutline",
+                    RegistrySettings = new List<RegistrySetting>
+                    {
+                        new RegistrySetting
+                        {
+                            KeyPath = @"HKEY_CURRENT_USER\SOFTWARE\Classes\.jpg",
+                            ValueName = null,
+                            EnabledValue = "PhotoViewer.FileAssoc.Tiff",
+                            DisabledValue = null,
+                            DefaultValue = null,
+                            ValueType = RegistryValueKind.String,
+                        }
+                    },
+                    RegContents = new List<RegContentSetting>
+                    {
+                        new RegContentSetting
+                        {
+                            EnabledContent = @"Windows Registry Editor Version 5.00
+
+[HKEY_CURRENT_USER\SOFTWARE\Classes\.bmp]
+@=""PhotoViewer.FileAssoc.Tiff""
+
+[HKEY_CURRENT_USER\SOFTWARE\Classes\.cr2]
+@=""PhotoViewer.FileAssoc.Tiff""
+
+[HKEY_CURRENT_USER\SOFTWARE\Classes\.dib]
+@=""PhotoViewer.FileAssoc.Tiff""
+
+[HKEY_CURRENT_USER\SOFTWARE\Classes\.gif]
+@=""PhotoViewer.FileAssoc.Tiff""
+
+[HKEY_CURRENT_USER\SOFTWARE\Classes\.ico]
+@=""PhotoViewer.FileAssoc.Tiff""
+
+[HKEY_CURRENT_USER\SOFTWARE\Classes\.jfif]
+@=""PhotoViewer.FileAssoc.Tiff""
+
+[HKEY_CURRENT_USER\SOFTWARE\Classes\.jpe]
+@=""PhotoViewer.FileAssoc.Tiff""
+
+[HKEY_CURRENT_USER\SOFTWARE\Classes\.jpeg]
+@=""PhotoViewer.FileAssoc.Tiff""
+
+[HKEY_CURRENT_USER\SOFTWARE\Classes\.jpg]
+@=""PhotoViewer.FileAssoc.Tiff""
+
+[HKEY_CURRENT_USER\SOFTWARE\Classes\.jxr]
+@=""PhotoViewer.FileAssoc.Tiff""
+
+[HKEY_CURRENT_USER\SOFTWARE\Classes\.png]
+@=""PhotoViewer.FileAssoc.Tiff""
+
+[HKEY_CURRENT_USER\SOFTWARE\Classes\.tif]
+@=""PhotoViewer.FileAssoc.Tiff""
+
+[HKEY_CURRENT_USER\SOFTWARE\Classes\.tiff]
+@=""PhotoViewer.FileAssoc.Tiff""
+
+[HKEY_CURRENT_USER\SOFTWARE\Classes\.wdp]
+@=""PhotoViewer.FileAssoc.Tiff""
+
+[HKEY_CURRENT_USER\SOFTWARE\Microsoft\Windows\CurrentVersion\Explorer\FileExts\.bmp\OpenWithProgids]
+""PhotoViewer.FileAssoc.Tiff""=hex(0):
+
+[HKEY_CURRENT_USER\SOFTWARE\Microsoft\Windows\CurrentVersion\Explorer\FileExts\.cr2\OpenWithProgids]
+""PhotoViewer.FileAssoc.Tiff""=hex(0):
+
+[HKEY_CURRENT_USER\SOFTWARE\Microsoft\Windows\CurrentVersion\Explorer\FileExts\.dib\OpenWithProgids]
+""PhotoViewer.FileAssoc.Tiff""=hex(0):
+
+[HKEY_CURRENT_USER\SOFTWARE\Microsoft\Windows\CurrentVersion\Explorer\FileExts\.gif\OpenWithProgids]
+""PhotoViewer.FileAssoc.Tiff""=hex(0):
+
+[HKEY_CURRENT_USER\SOFTWARE\Microsoft\Windows\CurrentVersion\Explorer\FileExts\.ico\OpenWithProgids]
+""PhotoViewer.FileAssoc.Tiff""=hex(0):
+
+[HKEY_CURRENT_USER\SOFTWARE\Microsoft\Windows\CurrentVersion\Explorer\FileExts\.jfif\OpenWithProgids]
+""PhotoViewer.FileAssoc.Tiff""=hex(0):
+
+[HKEY_CURRENT_USER\SOFTWARE\Microsoft\Windows\CurrentVersion\Explorer\FileExts\.jpe\OpenWithProgids]
+""PhotoViewer.FileAssoc.Tiff""=hex(0):
+
+[HKEY_CURRENT_USER\SOFTWARE\Microsoft\Windows\CurrentVersion\Explorer\FileExts\.jpeg\OpenWithProgids]
+""PhotoViewer.FileAssoc.Tiff""=hex(0):
+
+[HKEY_CURRENT_USER\SOFTWARE\Microsoft\Windows\CurrentVersion\Explorer\FileExts\.jpg\OpenWithProgids]
+""PhotoViewer.FileAssoc.Tiff""=hex(0):
+
+[HKEY_CURRENT_USER\SOFTWARE\Microsoft\Windows\CurrentVersion\Explorer\FileExts\.jxr\OpenWithProgids]
+""PhotoViewer.FileAssoc.Tiff""=hex(0):
+
+[HKEY_CURRENT_USER\SOFTWARE\Microsoft\Windows\CurrentVersion\Explorer\FileExts\.png\OpenWithProgids]
+""PhotoViewer.FileAssoc.Tiff""=hex(0):
+
+[HKEY_CURRENT_USER\SOFTWARE\Microsoft\Windows\CurrentVersion\Explorer\FileExts\.tif\OpenWithProgids]
+""PhotoViewer.FileAssoc.Tiff""=hex(0):
+
+[HKEY_CURRENT_USER\SOFTWARE\Microsoft\Windows\CurrentVersion\Explorer\FileExts\.tiff\OpenWithProgids]
+""PhotoViewer.FileAssoc.Tiff""=hex(0):
+
+[HKEY_CURRENT_USER\SOFTWARE\Microsoft\Windows\CurrentVersion\Explorer\FileExts\.wdp\OpenWithProgids]
+""PhotoViewer.FileAssoc.Tiff""=hex(0):
+",
+                            DisabledContent = @"Windows Registry Editor Version 5.00
+
+[-HKEY_CURRENT_USER\SOFTWARE\Classes\.bmp]
+[-HKEY_CURRENT_USER\SOFTWARE\Classes\.cr2]
+[-HKEY_CURRENT_USER\SOFTWARE\Classes\.dib]
+[-HKEY_CURRENT_USER\SOFTWARE\Classes\.gif]
+[-HKEY_CURRENT_USER\SOFTWARE\Classes\.ico]
+[-HKEY_CURRENT_USER\SOFTWARE\Classes\.jfif]
+[-HKEY_CURRENT_USER\SOFTWARE\Classes\.jpe]
+[-HKEY_CURRENT_USER\SOFTWARE\Classes\.jpeg]
+[-HKEY_CURRENT_USER\SOFTWARE\Classes\.jpg]
+[-HKEY_CURRENT_USER\SOFTWARE\Classes\.jxr]
+[-HKEY_CURRENT_USER\SOFTWARE\Classes\.png]
+[-HKEY_CURRENT_USER\SOFTWARE\Classes\.tif]
+[-HKEY_CURRENT_USER\SOFTWARE\Classes\.tiff]
+[-HKEY_CURRENT_USER\SOFTWARE\Classes\.wdp]
+
+[-HKEY_CURRENT_USER\SOFTWARE\Microsoft\Windows\CurrentVersion\Explorer\FileExts\.bmp\OpenWithProgids]
+[-HKEY_CURRENT_USER\SOFTWARE\Microsoft\Windows\CurrentVersion\Explorer\FileExts\.cr2\OpenWithProgids]
+[-HKEY_CURRENT_USER\SOFTWARE\Microsoft\Windows\CurrentVersion\Explorer\FileExts\.dib\OpenWithProgids]
+[-HKEY_CURRENT_USER\SOFTWARE\Microsoft\Windows\CurrentVersion\Explorer\FileExts\.gif\OpenWithProgids]
+[-HKEY_CURRENT_USER\SOFTWARE\Microsoft\Windows\CurrentVersion\Explorer\FileExts\.ico\OpenWithProgids]
+[-HKEY_CURRENT_USER\SOFTWARE\Microsoft\Windows\CurrentVersion\Explorer\FileExts\.jfif\OpenWithProgids]
+[-HKEY_CURRENT_USER\SOFTWARE\Microsoft\Windows\CurrentVersion\Explorer\FileExts\.jpe\OpenWithProgids]
+[-HKEY_CURRENT_USER\SOFTWARE\Microsoft\Windows\CurrentVersion\Explorer\FileExts\.jpeg\OpenWithProgids]
+[-HKEY_CURRENT_USER\SOFTWARE\Microsoft\Windows\CurrentVersion\Explorer\FileExts\.jpg\OpenWithProgids]
+[-HKEY_CURRENT_USER\SOFTWARE\Microsoft\Windows\CurrentVersion\Explorer\FileExts\.jxr\OpenWithProgids]
+[-HKEY_CURRENT_USER\SOFTWARE\Microsoft\Windows\CurrentVersion\Explorer\FileExts\.png\OpenWithProgids]
+[-HKEY_CURRENT_USER\SOFTWARE\Microsoft\Windows\CurrentVersion\Explorer\FileExts\.tif\OpenWithProgids]
+[-HKEY_CURRENT_USER\SOFTWARE\Microsoft\Windows\CurrentVersion\Explorer\FileExts\.tiff\OpenWithProgids]
+[-HKEY_CURRENT_USER\SOFTWARE\Microsoft\Windows\CurrentVersion\Explorer\FileExts\.wdp\OpenWithProgids]
+",
+                            RequiresElevation = false
+                        }
+                    }
+                },
+                new SettingDefinition
+                {
                     Id = "explorer-customization-hide-merge-conflicts",
                     Name = "Hide folder merge conflicts",
                     Description = "Automatically merges folders with same name without confirmation dialog",
@@ -628,6 +878,7 @@ public static class ExplorerCustomizations
                             DisabledValue = 0,
                             DefaultValue = 0,
                             ValueType = RegistryValueKind.DWord,
+                            AbsenceMeansEnabled = true,
                         },
                     },
                 },
@@ -717,6 +968,7 @@ public static class ExplorerCustomizations
                             DisabledValue = 2,
                             DefaultValue = 4,
                             ValueType = RegistryValueKind.DWord,
+                            AbsenceMeansEnabled = true,
                         },
                     },
                 },
@@ -734,7 +986,7 @@ public static class ExplorerCustomizations
                         new RegistrySetting
                         {
                             KeyPath = @"HKEY_CURRENT_USER\Software\Microsoft\Windows\CurrentVersion\Explorer\Advanced",
-                            ValueName = "ShowCompColor",
+                            ValueName = "ShowEncryptCompressedColor",
                             RecommendedValue = 1,
                             EnabledValue = 1,
                             DisabledValue = 0,
@@ -784,6 +1036,7 @@ public static class ExplorerCustomizations
                             DisabledValue = 0,
                             DefaultValue = 1,
                             ValueType = RegistryValueKind.DWord,
+                            AbsenceMeansEnabled = true,
                         },
                     },
                 },
@@ -828,6 +1081,7 @@ public static class ExplorerCustomizations
                             DisabledValue = 0,
                             DefaultValue = 1,
                             ValueType = RegistryValueKind.DWord,
+                            AbsenceMeansEnabled = true,
                         },
                     },
                 },
@@ -873,6 +1127,7 @@ public static class ExplorerCustomizations
                             DisabledValue = 0,
                             DefaultValue = 1,
                             ValueType = RegistryValueKind.DWord,
+                            AbsenceMeansEnabled = true,
                         },
                     },
                 },

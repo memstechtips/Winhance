@@ -62,14 +62,24 @@
                         UseAeroCaptionButtons="False"/>
         </WindowChrome.WindowChrome>
 
-        <Border Background="{DynamicResource WindowBackground}"
-                BorderThickness="0"
-                CornerRadius="10"
-                Margin="0"
-                Padding="0"
-                ClipToBounds="True">
-                <!-- Root Grid to contain both main content and overlay -->
-                <Grid>
+        <Grid>
+                <Grid.OpacityMask>
+                        <VisualBrush>
+                                <VisualBrush.Visual>
+                                        <Border Background="Black"
+                                                CornerRadius="10"
+                                                Width="{Binding ActualWidth, RelativeSource={RelativeSource AncestorType=Grid}}"
+                                                Height="{Binding ActualHeight, RelativeSource={RelativeSource AncestorType=Grid}}"/>
+                                </VisualBrush.Visual>
+                        </VisualBrush>
+                </Grid.OpacityMask>
+
+                <Border Background="{DynamicResource WindowBackground}"
+                        BorderThickness="0"
+                        CornerRadius="10"
+                        Margin="0"
+                        Padding="0">
+                        <Grid>
                     <!-- Main Content Grid -->
                     <Grid>
                             <Grid.RowDefinitions>
@@ -110,14 +120,14 @@
                                         </TextBlock>
                                 </DockPanel>
 
-                                <!-- Testing Warning -->
+                                <!-- Testing Warning 
                                 <TextBlock Grid.Column="1"
                                            Text="THIS BUILD IS FOR TESTING PURPOSES"
                                            FontSize="16"
                                            FontWeight="Bold"
                                            Foreground="Red"
                                            HorizontalAlignment="Center"
-                                           VerticalAlignment="Center"/>
+                                           VerticalAlignment="Center"/> -->
 
                                 <!-- Window Controls -->
                                 <StackPanel Grid.Column="2"
@@ -401,6 +411,7 @@
                           Panel.ZIndex="1001"
                           Focusable="True"
                           IsHitTestVisible="True"/>
-                </Grid>
-        </Border>
+                        </Grid>
+                </Border>
+        </Grid>
 </Window>

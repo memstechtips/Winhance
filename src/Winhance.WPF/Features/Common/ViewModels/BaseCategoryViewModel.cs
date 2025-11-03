@@ -152,7 +152,6 @@ namespace Winhance.WPF.Features.Common.ViewModels
             navItem.IsSelected = true;
             SelectedNavItem = navItem;
 
-            // Find the ScrollViewer and scroll to precise position
             var scrollViewer = navItem.TargetView.FindVisualParent<ScrollViewer>();
             if (scrollViewer != null)
             {
@@ -162,7 +161,6 @@ namespace Winhance.WPF.Features.Common.ViewModels
             }
             else
             {
-                // Fallback to original behavior
                 navItem.TargetView.BringIntoView();
             }
         }
@@ -176,16 +174,41 @@ namespace Winhance.WPF.Features.Common.ViewModels
         {
             if (!QuickNavItems.Any()) return;
 
-            // Keep current selection if header is still reasonably visible
+            var scrollViewer = QuickNavItems.First().TargetView?.FindVisualParent<ScrollViewer>();
+            if (scrollViewer != null)
+            {
+                if (scrollViewer.VerticalOffset <= 5)
+                {
+                    var firstItem = QuickNavItems.First();
+                    if (firstItem != SelectedNavItem)
+                    {
+                        foreach (var item in QuickNavItems) item.IsSelected = false;
+                        firstItem.IsSelected = true;
+                        SelectedNavItem = firstItem;
+                    }
+                    return;
+                }
+
+                if (scrollViewer.VerticalOffset >= scrollViewer.ScrollableHeight - 5)
+                {
+                    var lastItem = QuickNavItems.Last();
+                    if (lastItem != SelectedNavItem)
+                    {
+                        foreach (var item in QuickNavItems) item.IsSelected = false;
+                        lastItem.IsSelected = true;
+                        SelectedNavItem = lastItem;
+                    }
+                    return;
+                }
+            }
+
             if (SelectedNavItem != null)
             {
                 var currentPos = GetItemScrollPosition(SelectedNavItem);
-                // Stay sticky: allow header slightly above viewport but not too far below
                 if (currentPos.HasValue && currentPos >= -30 && currentPos <= 200)
                     return;
             }
 
-            // Find header closest to ideal position (top of viewport)
             var bestItem = QuickNavItems
                 .Where(item => item.TargetView != null)
                 .Select(item => new
@@ -194,9 +217,9 @@ namespace Winhance.WPF.Features.Common.ViewModels
                     Position = GetItemScrollPosition(item) ?? double.MaxValue,
                     ContentOverlap = CalculateContentOverlap(item)
                 })
-                .Where(x => x.Position >= -2000 && x.Position <= 400) // Wider search for large sections
-                .OrderByDescending(x => x.ContentOverlap) // Pick section with most visible content
-                .ThenBy(x => Math.Abs(x.Position)) // Tie-breaker: closest header
+                .Where(x => x.Position >= -2000 && x.Position <= 400)
+                .OrderByDescending(x => x.ContentOverlap)
+                .ThenBy(x => Math.Abs(x.Position))
                 .FirstOrDefault()?.Item;
 
             if (bestItem != null && bestItem != SelectedNavItem)
@@ -223,18 +246,16 @@ namespace Winhance.WPF.Features.Common.ViewModels
         {
             var headerPos = GetItemScrollPosition(item) ?? double.MaxValue;
             if (headerPos == double.MaxValue) return 0;
-            
-            // Estimate content area: from header to 500px below (or next header)
+
             var contentStart = headerPos;
-            var contentEnd = headerPos + 500; // Rough estimate of section height
-            
-            // Calculate overlap with viewport [0, viewportHeight - assume 600px]
+            var contentEnd = headerPos + 500;
+
             var viewportStart = 0;
             var viewportEnd = 600;
-            
+
             var overlapStart = Math.Max(contentStart, viewportStart);
             var overlapEnd = Math.Min(contentEnd, viewportEnd);
-            
+
             return Math.Max(0, overlapEnd - overlapStart);
         }
 

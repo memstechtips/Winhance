@@ -27,7 +27,8 @@ namespace Winhance.WPF.Features.Common.Services
         IPowerPlanComboBoxService powerPlanComboBoxService,
         IComboBoxResolver comboBoxResolver,
         IUserPreferencesService userPreferencesService,
-        IDialogService dialogService) : ISettingsLoadingService
+        IDialogService dialogService,
+        ICompatibleSettingsRegistry compatibleSettingsRegistry) : ISettingsLoadingService
     {
 
         public async Task<ObservableCollection<object>> LoadConfiguredSettingsAsync<TDomainService>(
@@ -39,6 +40,7 @@ namespace Winhance.WPF.Features.Common.Services
         {
             try
             {
+                logService.Log(LogLevel.Info, $"[SettingsLoadingService] Starting to load settings for '{featureModuleId}'");
                 initializationService.StartFeatureInitialization(featureModuleId);
 
                 var settingDefinitions = await domainService.GetSettingsAsync();
@@ -112,7 +114,9 @@ namespace Winhance.WPF.Features.Common.Services
                 }
 
                 eventBus.Publish(new FeatureComposedEvent(featureModuleId, settingsList));
+                logService.Log(LogLevel.Info, $"[SettingsLoadingService] Finished loading {settingViewModels.Count} settings for '{featureModuleId}' - About to complete initialization");
                 initializationService.CompleteFeatureInitialization(featureModuleId);
+                logService.Log(LogLevel.Info, $"[SettingsLoadingService] Initialization completed for '{featureModuleId}'");
                 return settingViewModels;
             }
             catch (Exception ex)
@@ -127,7 +131,7 @@ namespace Winhance.WPF.Features.Common.Services
         {
             var currentState = batchStates.TryGetValue(setting.Id, out var state) ? state : new SettingStateResult();
 
-            var viewModel = new SettingItemViewModel(settingApplicationService, eventBus, logService, confirmationService, domainServiceRouter, initializationService, comboBoxSetupService, discoveryService, userPreferencesService, dialogService)
+            var viewModel = new SettingItemViewModel(settingApplicationService, eventBus, logService, confirmationService, domainServiceRouter, initializationService, comboBoxSetupService, discoveryService, userPreferencesService, dialogService, compatibleSettingsRegistry)
             {
                 SettingDefinition = setting,
                 ParentFeatureViewModel = parentViewModel,
@@ -142,9 +146,13 @@ namespace Winhance.WPF.Features.Common.Services
                 ConfirmationTitle = setting.ConfirmationTitle,
                 ConfirmationMessage = setting.ConfirmationMessage,
                 ActionCommandName = setting.ActionCommand,
-                IsSelected = currentState.IsEnabled,
-                SelectedValue = currentState.CurrentValue
+                IsSelected = currentState.IsEnabled
             };
+
+            if (setting.InputType != InputType.Selection)
+            {
+                viewModel.SelectedValue = currentState.CurrentValue;
+            }
 
             if (setting.RequiresAdvancedUnlock)
             {
@@ -156,6 +164,10 @@ namespace Winhance.WPF.Features.Common.Services
             {
                 viewModel.SetupNumericUpDown(setting, currentState.CurrentValue, currentState.RawValues);
             }
+            else if (setting.InputType == InputType.Toggle)
+            {
+                viewModel.CompleteInitialization();
+            }
 
             if (setting.CustomProperties?.TryGetValue(
                 Core.Features.Common.Constants.CustomPropertyKeys.VersionCompatibilityMessage, out var compatMessage) == true &&
@@ -163,6 +175,8 @@ namespace Winhance.WPF.Features.Common.Services
             {
                 viewModel.WarningText = messageText;
             }
+
+            viewModel.IsRegistryValueNotSet = currentState.IsRegistryValueNotSet;
 
             return viewModel;
         }

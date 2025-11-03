@@ -22,7 +22,8 @@ namespace Winhance.Core.Features.SoftwareApps.Models
                             Description = "Fast Open-Source Remote Access and Support Software",
                             GroupName = "Remote Access",
                             WinGetPackageId = "RustDesk.RustDesk",
-                            Category = "Remote Access"
+                            Category = "Remote Access",
+                            WebsiteUrl = "https://rustdesk.com/"
                         },
                         new ItemDefinition
                         {
@@ -31,7 +32,8 @@ namespace Winhance.Core.Features.SoftwareApps.Models
                             Description = "Open-source KVM software for sharing mouse and keyboard between computers",
                             GroupName = "Remote Access",
                             WinGetPackageId = "input-leap.input-leap",
-                            Category = "Remote Access"
+                            Category = "Remote Access",
+                            WebsiteUrl = "https://github.com/input-leap/input-leap"
                         },
                         new ItemDefinition
                         {
@@ -40,7 +42,8 @@ namespace Winhance.Core.Features.SoftwareApps.Models
                             Description = "Remote desktop software for remote access and support",
                             GroupName = "Remote Access",
                             WinGetPackageId = "AnyDesk.AnyDesk",
-                            Category = "Remote Access"
+                            Category = "Remote Access",
+                            WebsiteUrl = "https://anydesk.com/"
                         },
                         new ItemDefinition
                         {
@@ -49,7 +52,8 @@ namespace Winhance.Core.Features.SoftwareApps.Models
                             Description = "Remote control, desktop sharing, online meetings, web conferencing and file transfer",
                             GroupName = "Remote Access",
                             WinGetPackageId = "TeamViewer.TeamViewer",
-                            Category = "Remote Access"
+                            Category = "Remote Access",
+                            WebsiteUrl = "https://www.teamviewer.com/"
                         },
                         new ItemDefinition
                         {
@@ -58,7 +62,8 @@ namespace Winhance.Core.Features.SoftwareApps.Models
                             Description = "Remote access software",
                             GroupName = "Remote Access",
                             WinGetPackageId = "RealVNC.VNCServer",
-                            Category = "Remote Access"
+                            Category = "Remote Access",
+                            WebsiteUrl = "https://www.realvnc.com/"
                         },
                         new ItemDefinition
                         {
@@ -67,16 +72,18 @@ namespace Winhance.Core.Features.SoftwareApps.Models
                             Description = "Remote access software",
                             GroupName = "Remote Access",
                             WinGetPackageId = "RealVNC.VNCViewer",
-                            Category = "Remote Access"
+                            Category = "Remote Access",
+                            WebsiteUrl = "https://www.realvnc.com/"
                         },
                         new ItemDefinition
                         {
                             Id = "external-app-chrome-remote-desktop",
-                            Name = "Chrome Remote Desktop Host",
+                            Name = "Chrome Remote Desktop",
                             Description = "Remote access to your computer through Chrome browser",
                             GroupName = "Remote Access",
                             WinGetPackageId = "Google.ChromeRemoteDesktopHost",
-                            Category = "Remote Access"
+                            Category = "Remote Access",
+                            WebsiteUrl = "https://remotedesktop.google.com/"
                         }
                     }
                 };

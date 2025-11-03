@@ -11,6 +11,35 @@ namespace Winhance.Infrastructure.Features.Common.Services
         private readonly IWindowsRegistryService _registryService = windowsRegistryService ?? throw new ArgumentNullException(nameof(windowsRegistryService));
         private readonly ILogService _logService = logService ?? throw new ArgumentNullException(nameof(logService));
 
+        private static string FormatRegistryValue(object? value, RegistrySetting? registrySetting)
+        {
+            if (value == null)
+                return "(not set)";
+
+            if (value is byte[] bytes && registrySetting != null)
+            {
+                if (bytes.Length == 0)
+                    return "(empty)";
+
+                if (registrySetting.BinaryByteIndex.HasValue && bytes.Length > registrySetting.BinaryByteIndex.Value)
+                {
+                    var targetByte = bytes[registrySetting.BinaryByteIndex.Value];
+
+                    if (registrySetting.BitMask.HasValue)
+                    {
+                        var isSet = (targetByte & registrySetting.BitMask.Value) != 0;
+                        return isSet ? "1" : "0";
+                    }
+
+                    return targetByte.ToString();
+                }
+
+                return string.Join(" ", bytes);
+            }
+
+            return value.ToString() ?? "(not set)";
+        }
+
         public async Task<Dictionary<string, SettingTooltipData>> GetTooltipDataAsync(IEnumerable<SettingDefinition> settings)
         {
             var tooltipData = new Dictionary<string, SettingTooltipData>();
@@ -97,7 +126,7 @@ namespace Winhance.Infrastructure.Features.Common.Services
                 if (hasRegistrySettings)
                 {
                     var registrySettings = setting.RegistrySettings.ToList();
-                    var individualValues = new Dictionary<RegistrySetting, object?>();
+                    var individualValues = new Dictionary<RegistrySetting, string?>();
                     var primaryRegistrySetting = registrySettings.First();
                     string primaryDisplayValue = "(not set)";
 
@@ -106,11 +135,12 @@ namespace Winhance.Infrastructure.Features.Common.Services
                         try
                         {
                             var currentValue = _registryService.GetValue(registrySetting.KeyPath, registrySetting.ValueName);
-                            individualValues[registrySetting] = currentValue;
+                            var formattedValue = FormatRegistryValue(currentValue, registrySetting);
+                            individualValues[registrySetting] = formattedValue;
 
                             if (registrySetting == primaryRegistrySetting)
                             {
-                                primaryDisplayValue = currentValue?.ToString() ?? "(not set)";
+                                primaryDisplayValue = formattedValue;
                             }
                         }
                         catch

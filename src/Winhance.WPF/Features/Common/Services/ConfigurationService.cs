@@ -152,31 +152,8 @@ namespace Winhance.WPF.Features.Common.Services
 
                 if (incompatibleSettings.Any())
                 {
-                    var settingsPreview = string.Join("\n", incompatibleSettings.Take(5).Select(s => $"  • {s}"));
-                    if (incompatibleSettings.Count > 5)
-                    {
-                        settingsPreview += $"\n  ... and {incompatibleSettings.Count - 5} more";
-                    }
-
-                    var dialogResult = await _dialogService.ShowConfirmationAsync(
-                        "This configuration contains settings for a different Windows version.\n\n" +
-                        $"Found {incompatibleSettings.Count} settings that don't match your system:\n\n" +
-                        settingsPreview + "\n\n" +
-                        "Do you want to apply only compatible settings (Recommended),\n" +
-                        "or apply all settings (May have no effect or cause issues)?",
-                        "Cross-Version Configuration Detected",
-                        okButtonText: "Compatible Only",
-                        cancelButtonText: "Apply All");
-
-                    if (dialogResult)
-                    {
-                        config = FilterConfigForCurrentSystem(config);
-                        _logService.Log(LogLevel.Info, $"Filtered {incompatibleSettings.Count} incompatible settings from config");
-                    }
-                    else
-                    {
-                        _logService.Log(LogLevel.Info, "User chose to apply all settings including incompatible ones");
-                    }
+                    config = FilterConfigForCurrentSystem(config);
+                    _logService.Log(LogLevel.Info, $"Silently filtered {incompatibleSettings.Count} incompatible settings from config");
                 }
 
                 var selectionResult = await ShowSectionSelectionDialogAsync(config);
@@ -418,14 +395,20 @@ namespace Winhance.WPF.Features.Common.Services
                 config.ExternalApps.Items = externalAppsVM.Items
                     .Where(item => item.IsSelected)
                     .Select(item =>
-                        new ConfigurationItem
+                    {
+                        var configItem = new ConfigurationItem
                         {
                             Id = item.Id,
                             Name = item.Name,
-                            AppxPackageName = item.PackageName,
                             IsSelected = true,
                             InputType = InputType.Toggle
-                        }).ToList();
+                        };
+
+                        if (!string.IsNullOrEmpty(item.Definition.WinGetPackageId))
+                            configItem.WinGetPackageId = item.Definition.WinGetPackageId;
+
+                        return configItem;
+                    }).ToList();
 
                 _logService.Log(LogLevel.Info, $"Exported {config.ExternalApps.Items.Count} checked External Apps");
             }
@@ -502,7 +485,7 @@ namespace Winhance.WPF.Features.Common.Services
                     "Winhance has moved to a more robust configuration format to provide better functionality and reliability.\n\n" +
                     "What should you do?\n" +
                     "• Configure Winhance with your preferred settings manually\n" +
-                    "• Export a new configuration file (More > Export Configuration)\n" +
+                    "• Export a new configuration file\n" +
                     "• This new file will work with current and future versions of Winhance\n\n" +
                     "We apologize for the inconvenience. Going forward, configuration files will remain compatible across versions.",
                     ""
@@ -540,19 +523,17 @@ namespace Winhance.WPF.Features.Common.Services
         private AppItemViewModel FindMatchingWindowsApp(IEnumerable<AppItemViewModel> vmItems, ConfigurationItem configItem)
         {
             return vmItems.FirstOrDefault(i =>
-                i.Id == configItem.Id ||
                 (!string.IsNullOrEmpty(configItem.AppxPackageName) && i.Definition?.AppxPackageName == configItem.AppxPackageName) ||
                 (!string.IsNullOrEmpty(configItem.CapabilityName) && i.Definition?.CapabilityName == configItem.CapabilityName) ||
                 (!string.IsNullOrEmpty(configItem.OptionalFeatureName) && i.Definition?.OptionalFeatureName == configItem.OptionalFeatureName) ||
-                i.Name == configItem.Name);
+                i.Id == configItem.Id);
         }
 
         private AppItemViewModel FindMatchingExternalApp(IEnumerable<AppItemViewModel> vmItems, ConfigurationItem configItem)
         {
             return vmItems.FirstOrDefault(i =>
-                i.Id == configItem.Id ||
-                (!string.IsNullOrEmpty(configItem.AppxPackageName) && i.PackageName == configItem.AppxPackageName) ||
-                i.Name == configItem.Name);
+                (!string.IsNullOrEmpty(configItem.WinGetPackageId) && i.Definition?.WinGetPackageId == configItem.WinGetPackageId) ||
+                i.Id == configItem.Id);
         }
 
         private async Task SelectWindowsAppsFromConfigAsync(ConfigSection windowsAppsSection)
@@ -679,7 +660,7 @@ namespace Winhance.WPF.Features.Common.Services
             if (selectedSections.Contains("Optimize"))
             {
                 overlayWindow?.UpdateProgress("Applying Optimizations...");
-                var success = await ApplyFeatureGroupWithOptionsAsync(config.Optimize, "Optimize", options, overlayWindow);
+                var success = await ApplyFeatureGroupWithOptionsAsync(config.Optimize, "Optimize", options, selectedSections, overlayWindow);
                 _logService.Log(LogLevel.Info, $"  Optimize: {(success ? "Success" : "Failed")}");
             }
 
@@ -699,7 +680,7 @@ namespace Winhance.WPF.Features.Common.Services
                 });
 
                 overlayWindow?.UpdateProgress("Applying Customizations...");
-                var success = await ApplyFeatureGroupWithOptionsAsync(config.Customize, "Customize", options, overlayWindow);
+                var success = await ApplyFeatureGroupWithOptionsAsync(config.Customize, "Customize", options, selectedSections, overlayWindow);
                 _logService.Log(LogLevel.Info, $"  Customize: {(success ? "Success" : "Failed")}");
             }
 
@@ -714,6 +695,7 @@ namespace Winhance.WPF.Features.Common.Services
             FeatureGroupSection featureGroup,
             string groupName,
             ImportOptions options,
+            List<string> selectedSections,
             ConfigImportOverlayWindow overlayWindow = null)
         {
             if (featureGroup?.Features == null || !featureGroup.Features.Any())
@@ -728,6 +710,13 @@ namespace Winhance.WPF.Features.Common.Services
             {
                 var featureName = feature.Key;
                 var section = feature.Value;
+
+                var featureKey = $"{groupName}_{featureName}";
+                if (!selectedSections.Contains(featureKey))
+                {
+                    _logService.Log(LogLevel.Info, $"Skipping {featureName} - not selected by user");
+                    continue;
+                }
 
                 overlayWindow?.UpdateProgress($"Applying {FeatureIds.GetDisplayName(featureName)} Settings...");
 

@@ -423,6 +423,7 @@ public static class UpdateOptimizations
                             RecommendedValue = 0,
                             DefaultValue = null,
                             ValueType = RegistryValueKind.DWord,
+                            AbsenceMeansEnabled = true,
                         },
                     },
                 },
@@ -630,6 +631,7 @@ public static class UpdateOptimizations
                             DisabledValue = 2,
                             DefaultValue = 2,
                             ValueType = RegistryValueKind.DWord,
+                            AbsenceMeansEnabled = true,
                         },
                         new RegistrySetting
                         {
@@ -640,6 +642,7 @@ public static class UpdateOptimizations
                             DisabledValue = 2,
                             DefaultValue = 2,
                             ValueType = RegistryValueKind.DWord,
+                            AbsenceMeansEnabled = true,
                         },
                     },
                 },

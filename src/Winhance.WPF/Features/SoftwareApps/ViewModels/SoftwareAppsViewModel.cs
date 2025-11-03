@@ -78,6 +78,17 @@ namespace Winhance.WPF.Features.SoftwareApps.ViewModels
         [ObservableProperty]
         private FrameworkElement _helpButtonElement = null;
 
+        public bool IsRefreshingContent
+        {
+            get
+            {
+                if (IsWindowsAppsTabSelected)
+                    return WindowsAppsViewModel?.IsLoading ?? false;
+                else
+                    return ExternalAppsViewModel?.IsLoading ?? false;
+            }
+        }
+
         public SoftwareAppsViewModel(
             IServiceProvider serviceProvider,
             ISearchTextCoordinationService searchTextCoordinationService)
@@ -90,9 +101,35 @@ namespace Winhance.WPF.Features.SoftwareApps.ViewModels
                 ? WindowsAppsViewModel.IsTableViewMode
                 : ExternalAppsViewModel.IsTableViewMode;
 
+            RemoveButtonText = IsWindowsAppsTabSelected ? "Remove Selected Items" : "Uninstall Selected Items";
+
             this.PropertyChanged += SoftwareAppsViewModel_PropertyChanged;
             WindowsAppsViewModel.PropertyChanged += ChildViewModel_PropertyChanged;
             ExternalAppsViewModel.PropertyChanged += ChildViewModel_PropertyChanged;
+
+            WindowsAppsViewModel.PropertyChanged += (s, e) =>
+            {
+                if (e.PropertyName == nameof(WindowsAppsViewModel.IsLoading))
+                {
+                    OnPropertyChanged(nameof(IsRefreshingContent));
+                }
+                else if (e.PropertyName == nameof(WindowsAppsViewModel.IsTaskRunning))
+                {
+                    UpdateButtonStates();
+                }
+            };
+
+            ExternalAppsViewModel.PropertyChanged += (s, e) =>
+            {
+                if (e.PropertyName == nameof(ExternalAppsViewModel.IsLoading))
+                {
+                    OnPropertyChanged(nameof(IsRefreshingContent));
+                }
+                else if (e.PropertyName == nameof(ExternalAppsViewModel.IsTaskRunning))
+                {
+                    UpdateButtonStates();
+                }
+            };
 
             UpdateButtonStates();
             Initialize();
@@ -122,11 +159,20 @@ namespace Winhance.WPF.Features.SoftwareApps.ViewModels
         [RelayCommand]
         public async Task InitializeAsync()
         {
+            var logService = serviceProvider.GetRequiredService<ILogService>();
             try
             {
+                logService.LogInformation("[SoftwareAppsViewModel] InitializeAsync started");
+                
                 if (!WindowsAppsViewModel.IsInitialized)
                 {
-                    await WindowsAppsViewModel.LoadAppsAndCheckInstallationStatusAsync();
+                    logService.LogInformation("[SoftwareAppsViewModel] Loading WindowsAppsViewModel");
+                    await WindowsAppsViewModel.LoadAppsAndCheckInstallationStatusAsync().ConfigureAwait(false);
+                    logService.LogInformation("[SoftwareAppsViewModel] WindowsAppsViewModel loaded");
+                }
+                else
+                {
+                    logService.LogInformation("[SoftwareAppsViewModel] WindowsAppsViewModel already initialized");
                 }
 
                 WindowsAppsViewModel.SelectedItemsChanged -= ChildViewModel_SelectedItemsChanged;
@@ -134,46 +180,29 @@ namespace Winhance.WPF.Features.SoftwareApps.ViewModels
 
                 if (!ExternalAppsViewModel.IsInitialized)
                 {
-                    await ExternalAppsViewModel.LoadAppsAndCheckInstallationStatusAsync();
+                    logService.LogInformation("[SoftwareAppsViewModel] Loading ExternalAppsViewModel");
+                    await ExternalAppsViewModel.LoadAppsAndCheckInstallationStatusAsync().ConfigureAwait(false);
+                    logService.LogInformation("[SoftwareAppsViewModel] ExternalAppsViewModel loaded");
+                }
+                else
+                {
+                    logService.LogInformation("[SoftwareAppsViewModel] ExternalAppsViewModel already initialized");
                 }
 
                 ExternalAppsViewModel.SelectedItemsChanged -= ChildViewModel_SelectedItemsChanged;
                 ExternalAppsViewModel.SelectedItemsChanged += ChildViewModel_SelectedItemsChanged;
 
                 StatusText = DefaultStatusText;
+                logService.LogInformation("[SoftwareAppsViewModel] InitializeAsync completed");
             }
             catch (Exception ex)
             {
+                logService.LogError($"[SoftwareAppsViewModel] Error in InitializeAsync: {ex.Message}", ex);
                 StatusText = $"Error initializing: {ex.Message}";
+                throw;
             }
         }
 
-        public async Task WaitForInitializationAsync()
-        {
-            var tcs = new TaskCompletionSource<bool>();
-
-            void CheckComplete()
-            {
-                if (WindowsAppsViewModel.IsInitialized && ExternalAppsViewModel.IsInitialized)
-                    tcs.TrySetResult(true);
-            }
-
-            WindowsAppsViewModel.PropertyChanged += (s, e) =>
-            {
-                if (e.PropertyName == nameof(WindowsAppsViewModel.IsInitialized))
-                    CheckComplete();
-            };
-
-            ExternalAppsViewModel.PropertyChanged += (s, e) =>
-            {
-                if (e.PropertyName == nameof(ExternalAppsViewModel.IsInitialized))
-                    CheckComplete();
-            };
-
-            CheckComplete();
-
-            await tcs.Task;
-        }
 
         [RelayCommand]
         private void ToggleViewMode(object parameter)
@@ -237,7 +266,7 @@ namespace Winhance.WPF.Features.SoftwareApps.ViewModels
             WindowsAppsContentVisibility = isWindowsAppsTab ? Visibility.Visible : Visibility.Collapsed;
             ExternalAppsContentVisibility = isWindowsAppsTab ? Visibility.Collapsed : Visibility.Visible;
 
-            RemoveButtonText = isWindowsAppsTab ? "Remove Selected Items" : "Clear Selection";
+            RemoveButtonText = isWindowsAppsTab ? "Remove Selected Items" : "Uninstall Selected Items";
 
             RouteSearchTextToActiveViewModel();
 
@@ -304,19 +333,22 @@ namespace Winhance.WPF.Features.SoftwareApps.ViewModels
                 bool oldCanInstallItems = CanInstallItems;
                 bool oldCanRemoveItems = CanRemoveItems;
 
+                bool isAnyTaskRunning = (WindowsAppsViewModel?.IsTaskRunning ?? false) ||
+                                        (ExternalAppsViewModel?.IsTaskRunning ?? false);
+
                 if (IsWindowsAppsTabSelected)
                 {
                     var hasSelected = WindowsAppsViewModel.HasSelectedItems;
-                    CanInstallItems = hasSelected;
-                    CanRemoveItems = hasSelected;
+                    CanInstallItems = hasSelected && !isAnyTaskRunning;
+                    CanRemoveItems = hasSelected && !isAnyTaskRunning;
                     RemoveButtonText = "Remove Selected Items";
                 }
                 else if (IsExternalAppsTabSelected)
                 {
                     var hasSelected = ExternalAppsViewModel.HasSelectedItems;
-                    CanInstallItems = hasSelected;
-                    CanRemoveItems = hasSelected;
-                    RemoveButtonText = "Clear Selection";
+                    CanInstallItems = hasSelected && !isAnyTaskRunning;
+                    CanRemoveItems = hasSelected && !isAnyTaskRunning;
+                    RemoveButtonText = "Uninstall Selected Items";
                 }
                 else
                 {
@@ -369,13 +401,26 @@ namespace Winhance.WPF.Features.SoftwareApps.ViewModels
             }
             else
             {
-                ExternalAppsViewModel.ClearSelectedItems();
+                await ExternalAppsViewModel.RemoveApps();
             }
 
             UpdateButtonStates();
         }
 
         private bool CanRemoveSelectedItems() => CanRemoveItems;
+
+        [RelayCommand]
+        private async Task RefreshInstallationStatus()
+        {
+            if (IsWindowsAppsTabSelected)
+            {
+                await WindowsAppsViewModel.RefreshInstallationStatusCommand.ExecuteAsync(null);
+            }
+            else
+            {
+                await ExternalAppsViewModel.RefreshInstallationStatusCommand.ExecuteAsync(null);
+            }
+        }
 
         [RelayCommand]
         private void ShowHelp()

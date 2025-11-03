@@ -269,6 +269,7 @@ public static class PrivacyAndSecurityOptimizations
                             ValueName = "AdsPromotionalContentMode",
                             ValueType = RegistryValueKind.DWord,
                             DefaultValue = 2,
+                            RecommendedValue = 1,
                             IsPrimary = true,
                         },
                     },
@@ -338,6 +339,18 @@ public static class PrivacyAndSecurityOptimizations
                                 ["start-show-suggestions"] = false,
                             },
                         },
+                        [CustomPropertyKeys.CrossGroupChildSettings] = new Dictionary<string, string>
+                        {
+                            ["privacy-rotating-lock-screen"] = "Spotlight",
+                            ["privacy-lock-screen-overlay"] = "Fun Facts & Tips",
+                            ["privacy-lock-screen-slideshow"] = "Slideshow",
+                            ["privacy-settings-content"] = "Suggested Content",
+                            ["privacy-timeline-suggestions"] = "Timeline Suggestions",
+                            ["notifications-welcome-experience"] = "Welcome Experience",
+                            ["notifications-tips-suggestions"] = "Tips & Suggestions",
+                            ["notifications-system-pane-suggestions"] = "Notification Center Suggestions",
+                            ["start-show-suggestions"] = "Start Suggestions",
+                        },
                     },
                 },
                 new SettingDefinition
@@ -401,6 +414,7 @@ public static class PrivacyAndSecurityOptimizations
                             DisabledValue = 0,
                             DefaultValue = 1,
                             ValueType = RegistryValueKind.DWord,
+                            AbsenceMeansEnabled = true,
                         },
                     },
                 },
@@ -563,6 +577,7 @@ public static class PrivacyAndSecurityOptimizations
                             DisabledValue = 0,
                             DefaultValue = 1,
                             ValueType = RegistryValueKind.DWord,
+                            AbsenceMeansEnabled = true,
                         },
                     },
                 },
@@ -598,7 +613,7 @@ public static class PrivacyAndSecurityOptimizations
                         },
                     },
                 },
-new SettingDefinition
+                new SettingDefinition
                 {
                     Id = "privacy-lock-screen",
                     Name = "Lock Screen",
@@ -718,6 +733,7 @@ new SettingDefinition
                             DisabledValue = 0,
                             DefaultValue = 0,
                             ValueType = RegistryValueKind.DWord,
+                            AbsenceMeansEnabled = true,
                         },
                     },
                 },
@@ -784,6 +800,7 @@ new SettingDefinition
                             DisabledValue = 1, // When toggle is OFF, language list access is disabled
                             DefaultValue = 0, // Default value when registry key exists but no value is set
                             ValueType = RegistryValueKind.DWord,
+                            AbsenceMeansEnabled = true,
                         },
                     },
                 },
@@ -806,6 +823,7 @@ new SettingDefinition
                             DisabledValue = 0, // When toggle is OFF, app launch tracking is disabled
                             DefaultValue = 1, // Default value when registry key exists but no value is set
                             ValueType = RegistryValueKind.DWord,
+                            AbsenceMeansEnabled = true,
                         },
                     },
                 },
@@ -838,6 +856,7 @@ new SettingDefinition
                             DisabledValue = 0,
                             DefaultValue = 1,
                             ValueType = RegistryValueKind.DWord,
+                            AbsenceMeansEnabled = true,
                         },
                         new RegistrySetting
                         {
@@ -848,6 +867,7 @@ new SettingDefinition
                             DisabledValue = 0,
                             DefaultValue = 1,
                             ValueType = RegistryValueKind.DWord,
+                            AbsenceMeansEnabled = true,
                         },
                         new RegistrySetting
                         {
@@ -858,10 +878,11 @@ new SettingDefinition
                             DisabledValue = 0,
                             DefaultValue = 1,
                             ValueType = RegistryValueKind.DWord,
+                            AbsenceMeansEnabled = true,
                         },
                     },
                 },
-// Settings App Notifications
+                // Settings App Notifications
                 new SettingDefinition
                 {
                     Id = "privacy-settings-notifications",
@@ -881,6 +902,7 @@ new SettingDefinition
                             DisabledValue = 0, // When toggle is OFF, account notifications are disabled
                             DefaultValue = 1, // Default value when registry key exists but no value is set
                             ValueType = RegistryValueKind.DWord,
+                            AbsenceMeansEnabled = true,
                         },
                     },
                 },
@@ -945,6 +967,7 @@ new SettingDefinition
                             DisabledValue = 0,
                             DefaultValue = 1,
                             ValueType = RegistryValueKind.DWord,
+                            AbsenceMeansEnabled = true,
                         },
                     },
                 },
@@ -967,6 +990,7 @@ new SettingDefinition
                             DisabledValue = 0,
                             DefaultValue = 1,
                             ValueType = RegistryValueKind.DWord,
+                            AbsenceMeansEnabled = true,
                         },
                     },
                 },
@@ -1246,6 +1270,7 @@ new SettingDefinition
                             DisabledValue = 0,
                             DefaultValue = 1,
                             ValueType = RegistryValueKind.DWord,
+                            AbsenceMeansEnabled = true,
                         },
                         new RegistrySetting
                         {
@@ -1256,6 +1281,7 @@ new SettingDefinition
                             DisabledValue = 0,
                             DefaultValue = 1,
                             ValueType = RegistryValueKind.DWord,
+                            AbsenceMeansEnabled = true,
                         },
                     },
                 },
@@ -1289,6 +1315,7 @@ new SettingDefinition
                             DisabledValue = 0,
                             DefaultValue = 1,
                             ValueType = RegistryValueKind.DWord,
+                            AbsenceMeansEnabled = true,
                         },
                     },
                 },
@@ -1311,6 +1338,7 @@ new SettingDefinition
                             DisabledValue = 0, // When toggle is OFF, history is disabled
                             DefaultValue = 1, // Default value when registry key exists but no value is set
                             ValueType = RegistryValueKind.DWord,
+                            AbsenceMeansEnabled = true,
                         },
                     },
                 },
@@ -1334,6 +1362,7 @@ new SettingDefinition
                             DisabledValue = 0, // When toggle is OFF, search highlights is disabled
                             DefaultValue = 1,
                             ValueType = RegistryValueKind.DWord,
+                            AbsenceMeansEnabled = true,
                         },
                     },
                 },
@@ -1356,6 +1385,7 @@ new SettingDefinition
                             DisabledValue = 0, // When toggle is OFF, cloud search is disabled
                             DefaultValue = 1, // Default value when registry key exists but no value is set
                             ValueType = RegistryValueKind.DWord,
+                            AbsenceMeansEnabled = true,
                         },
                     },
                 },
@@ -1378,6 +1408,7 @@ new SettingDefinition
                             DisabledValue = 0,
                             DefaultValue = 1,
                             ValueType = RegistryValueKind.DWord,
+                            AbsenceMeansEnabled = true,
                         },
                     },
                 },

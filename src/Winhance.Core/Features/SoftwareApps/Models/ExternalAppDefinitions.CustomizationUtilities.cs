@@ -15,12 +15,86 @@ namespace Winhance.Core.Features.SoftwareApps.Models
                     FeatureId = FeatureIds.ExternalApps,
                     Items = new List<ItemDefinition>
                     {
-                        // TODO: Add customization utilities from the original catalog
-                        // This is a placeholder - can be expanded with apps like:
-                        // - PowerToys
-                        // - Rainmeter
-                        // - TranslucentTB
-                        // - etc.
+                        new ItemDefinition
+                        {
+                            Id = "external-app-nilesoft-shell",
+                            Name = "Nilesoft Shell",
+                            Description = "Windows context menu customization tool",
+                            GroupName = "Customization Utilities",
+                            WinGetPackageId = "Nilesoft.Shell",
+                            Category = "Customization Utilities",
+                            WebsiteUrl = "https://nilesoft.org/"
+                        },
+                        new ItemDefinition
+                        {
+                            Id = "external-app-startallback",
+                            Name = "StartAllBack",
+                            Description = "Windows 11 Start menu and taskbar customization",
+                            GroupName = "Customization Utilities",
+                            WinGetPackageId = "StartIsBack.StartAllBack",
+                            Category = "Customization Utilities",
+                            WebsiteUrl = "https://www.startallback.com/"
+                        },
+                        new ItemDefinition
+                        {
+                            Id = "external-app-open-shell",
+                            Name = "Open-Shell",
+                            Description = "Classic style Start Menu for Windows",
+                            GroupName = "Customization Utilities",
+                            WinGetPackageId = "Open-Shell.Open-Shell-Menu",
+                            Category = "Customization Utilities",
+                            WebsiteUrl = "https://open-shell.github.io/Open-Shell-Menu/"
+                        },
+                        new ItemDefinition
+                        {
+                            Id = "external-app-windhawk",
+                            Name = "Windhawk",
+                            Description = "Customization platform for Windows",
+                            GroupName = "Customization Utilities",
+                            WinGetPackageId = "RamenSoftware.Windhawk",
+                            Category = "Customization Utilities",
+                            WebsiteUrl = "https://windhawk.net/"
+                        },
+                        new ItemDefinition
+                        {
+                            Id = "external-app-lively-wallpaper",
+                            Name = "Lively Wallpaper",
+                            Description = "Free and open-source animated desktop wallpaper application",
+                            GroupName = "Customization Utilities",
+                            WinGetPackageId = "rocksdanister.LivelyWallpaper",
+                            Category = "Customization Utilities",
+                            WebsiteUrl = "https://www.rocksdanister.com/lively/"
+                        },
+                        new ItemDefinition
+                        {
+                            Id = "external-app-sucrose-wallpaper",
+                            Name = "Sucrose Wallpaper Engine",
+                            Description = "Free and open-source animated desktop wallpaper application",
+                            GroupName = "Customization Utilities",
+                            WinGetPackageId = "Taiizor.SucroseWallpaperEngine",
+                            Category = "Customization Utilities",
+                            WebsiteUrl = "https://github.com/Taiizor/Sucrose"
+                        },
+                        new ItemDefinition
+                        {
+                            Id = "external-app-rainmeter",
+                            Name = "Rainmeter",
+                            Description = "Desktop customization tool for Windows",
+                            GroupName = "Customization Utilities",
+                            WinGetPackageId = "Rainmeter.Rainmeter",
+                            Category = "Customization Utilities",
+                            WebsiteUrl = "https://www.rainmeter.net/"
+                        },
+                        new ItemDefinition
+                        {
+                            Id = "external-app-explorerpatcher",
+                            Name = "ExplorerPatcher",
+                            Description = "Utility that enhances the Windows Explorer experience",
+                            GroupName = "Customization Utilities",
+                            WinGetPackageId = "valinet.ExplorerPatcher",
+                            Category = "Customization Utilities",
+                            WebsiteUrl = "https://github.com/valinet/ExplorerPatcher"
+                        }
                     }
                 };
             }

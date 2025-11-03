@@ -19,6 +19,30 @@
             Visibility="{Binding IsTableViewMode, Converter={StaticResource InverseBooleanToVisibilityConverter}}">
                                         <StackPanel Margin="10">
 
+                                            <!-- Selection Checkboxes -->
+                                            <StackPanel Orientation="Horizontal" Margin="15,10,0,10">
+                                                <CheckBox Style="{StaticResource CustomCheckBox}"
+                                                          Content="Select All"
+                                                          FontSize="16"
+                                                          FontWeight="Bold"
+                                                          IsChecked="{Binding IsAllSelected}"
+                                                          Margin="0,0,20,0"/>
+
+                                                <CheckBox Style="{StaticResource CustomCheckBox}"
+                                                          Content="Select All Installed"
+                                                          FontSize="16"
+                                                          FontWeight="Bold"
+                                                          IsChecked="{Binding IsAllSelectedInstalled}"
+                                                          Margin="0,0,20,0"/>
+
+                                                <CheckBox Style="{StaticResource CustomCheckBox}"
+                                                          Content="Select All Not Installed"
+                                                          FontSize="16"
+                                                          FontWeight="Bold"
+                                                          IsChecked="{Binding IsAllSelectedNotInstalled}"
+                                                          Margin="0,0,0,0"/>
+                                            </StackPanel>
+
                                             <ItemsControl ItemsSource="{Binding Categories}">
                                                 <ItemsControl.ItemTemplate>
                                                     <DataTemplate>
@@ -48,8 +72,8 @@
                                                                                DockPanel.Dock="Left"/>
 
                                                                     <iconPacks:PackIconMaterial Kind="{Binding IsExpanded, Converter={StaticResource BoolToChevronConverter}, FallbackValue=ChevronDown}"
-                                                                                             Width="24"
-                                                                                             Height="24"
+                                                                                             Width="12"
+                                                                                             Height="12"
                                                                                              HorizontalAlignment="Right"
                                                                                              VerticalAlignment="Center"
                                                                                              Foreground="{DynamicResource PrimaryTextColor}"
@@ -68,26 +92,65 @@
                                                                                   Margin="10,0,10,10">
                                                                         <ItemsControl.ItemsPanel>
                                                                             <ItemsPanelTemplate>
-                                                                                <WrapPanel Orientation="Horizontal" HorizontalAlignment="Left" />
+                                                                                <UniformGrid Columns="{Binding ActualWidth, RelativeSource={RelativeSource AncestorType=ItemsControl}, Converter={StaticResource WidthToColumnsConverter}}" />
                                                                             </ItemsPanelTemplate>
                                                                         </ItemsControl.ItemsPanel>
-                                                                        <ItemsControl.ItemContainerStyle>
-                                                                            <Style TargetType="ContentPresenter">
-                                                                                <Setter Property="Width" Value="260" />
-                                                                                <Setter Property="Margin" Value="0,0,0,0" />
-                                                                            </Style>
-                                                                        </ItemsControl.ItemContainerStyle>
                                                                         <ItemsControl.ItemTemplate>
                                                                             <DataTemplate>
                                                                                 <CheckBox Style="{StaticResource CustomCheckBox}"
                                                                                           Margin="8,5,10,5"
                                                                                           IsChecked="{Binding IsSelected}">
-                                                                                    <TextBlock Text="{Binding Name}"
-                                                                                               Style="{StaticResource AppItemTextStyle}">
-                                                                                        <TextBlock.ToolTip>
-                                                                                            <ToolTip Content="{Binding Description}"/>
-                                                                                        </TextBlock.ToolTip>
-                                                                                    </TextBlock>
+                                                                                    <StackPanel Orientation="Horizontal">
+                                                                                        <Ellipse Style="{StaticResource AppStatusIndicatorStyle}"
+                                                                                                 Fill="{Binding IsInstalled, Converter={StaticResource InstalledStatusToColorConverter}}">
+                                                                                            <Ellipse.ToolTip>
+                                                                                                <ToolTip Content="{Binding IsInstalled, Converter={StaticResource InstalledStatusToTextConverter}}"/>
+                                                                                            </Ellipse.ToolTip>
+                                                                                        </Ellipse>
+                                                                                        <TextBlock Text="{Binding Name}"
+                                                                                                   Style="{StaticResource AppItemTextStyle}"
+                                                                                                   VerticalAlignment="Center">
+                                                                                            <TextBlock.ToolTip>
+                                                                                                <ToolTip Content="{Binding Description}"/>
+                                                                                            </TextBlock.ToolTip>
+                                                                                        </TextBlock>
+                                                                                        <Button Cursor="Hand"
+                                                                                                Command="{Binding OpenWebsiteCommand}"
+                                                                                                ToolTip="Visit website for more information"
+                                                                                                Margin="4,0,0,0"
+                                                                                                Padding="2"
+                                                                                                VerticalAlignment="Center"
+                                                                                                Visibility="{Binding WebsiteUrl, Converter={StaticResource InverseNullToVisibilityConverter}}">
+                                                                                            <Button.Style>
+                                                                                                <Style TargetType="Button">
+                                                                                                    <Setter Property="Background" Value="Transparent"/>
+                                                                                                    <Setter Property="BorderThickness" Value="0"/>
+                                                                                                    <Setter Property="Template">
+                                                                                                        <Setter.Value>
+                                                                                                            <ControlTemplate TargetType="Button">
+                                                                                                                <Border Background="{TemplateBinding Background}"
+                                                                                                                        BorderThickness="0"
+                                                                                                                        CornerRadius="4"
+                                                                                                                        Padding="{TemplateBinding Padding}">
+                                                                                                                    <ContentPresenter HorizontalAlignment="Center"
+                                                                                                                                    VerticalAlignment="Center"/>
+                                                                                                                </Border>
+                                                                                                            </ControlTemplate>
+                                                                                                        </Setter.Value>
+                                                                                                    </Setter>
+                                                                                                    <Style.Triggers>
+                                                                                                        <Trigger Property="IsMouseOver" Value="True">
+                                                                                                            <Setter Property="Background" Value="{DynamicResource MainContainerBorderBrush}"/>
+                                                                                                        </Trigger>
+                                                                                                    </Style.Triggers>
+                                                                                                </Style>
+                                                                                            </Button.Style>
+                                                                                            <iconPacks:PackIconLucide Kind="SquareArrowOutUpRight"
+                                                                                                                      Width="14"
+                                                                                                                      Height="14"
+                                                                                                                      Foreground="{DynamicResource PrimaryTextColor}"/>
+                                                                                        </Button>
+                                                                                    </StackPanel>
                                                                                 </CheckBox>
                                                                             </DataTemplate>
                                                                         </ItemsControl.ItemTemplate>

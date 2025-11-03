@@ -49,13 +49,13 @@ public class AutounattendScriptBuilder
         sb.AppendLine("if (-not $UserCustomizations) {");
         sb.AppendLine();
 
-        // 2a. App removals and scheduled tasks (inside the block)
+        AppendScriptsDirectorySetup(sb, "    ");
+
         if (config.WindowsApps.Items.Any())
         {
             await AppendBloatRemovalScriptAsync(sb, config.WindowsApps.Items, "    ");
         }
 
-        // 2a-ii. Winhance installer script and desktop shortcut (always included)
         AppendWinhanceInstallerScriptContent(sb, "    ");
 
         // 2b. Power settings
@@ -196,12 +196,11 @@ public class AutounattendScriptBuilder
         sb.AppendLine("        } catch { }");
         sb.AppendLine("    }");
         sb.AppendLine();
-        sb.AppendLine("    Write-Log \"Restarting Windows Explorer to apply visual changes...\" \"INFO\"");
-        sb.AppendLine("    try {");
-        sb.AppendLine("        Stop-Process -Name explorer -Force -ErrorAction SilentlyContinue");
-        sb.AppendLine("        Write-Log \"Windows Explorer restarted successfully\" \"SUCCESS\"");
-        sb.AppendLine("    } catch {");
-        sb.AppendLine("        Write-Log \"Failed to restart Explorer: $($_.Exception.Message)\" \"WARNING\"");
+        sb.AppendLine("    if (-not $alreadyApplied) {");
+        sb.AppendLine("        Write-Log \"Rebooting system to apply user customizations...\" \"INFO\"");
+        sb.AppendLine("        shutdown.exe /r /t 0");
+        sb.AppendLine("    } else {");
+        sb.AppendLine("        Write-Log \"No restart needed - customizations were already applied\" \"INFO\"");
         sb.AppendLine("    }");
         sb.AppendLine("}");
         sb.AppendLine();
@@ -602,8 +601,22 @@ public class AutounattendScriptBuilder
         sb.AppendLine($"{indent}    $wallpaperPath = 'C:\\Windows\\Web\\4K\\Wallpaper\\Windows\\img0_3840x2160.jpg'");
         sb.AppendLine($"{indent}}}");
         sb.AppendLine();
-        sb.AppendLine($"{indent}if ($wallpaperPath) {{");
-        sb.AppendLine($"{indent}    Set-Wallpaper -Path $wallpaperPath -Description 'Set theme-based wallpaper'");
+        sb.AppendLine($"{indent}if (-not (Test-Path $wallpaperPath)) {{");
+        sb.AppendLine($"{indent}    Write-Log \"Wallpaper file not found: $wallpaperPath\" \"WARNING\"");
+        sb.AppendLine($"{indent}}} else {{");
+        sb.AppendLine($"{indent}    try {{");
+        sb.AppendLine($"{indent}        $desktopKey = 'HKCU:\\Control Panel\\Desktop'");
+        sb.AppendLine($"{indent}        Set-ItemProperty -Path $desktopKey -Name Wallpaper -Value $wallpaperPath -Type String -Force");
+        sb.AppendLine($"{indent}        Set-ItemProperty -Path $desktopKey -Name WallpaperStyle -Value '10' -Type String -Force");
+        sb.AppendLine($"{indent}        Set-ItemProperty -Path $desktopKey -Name TileWallpaper -Value '0' -Type String -Force");
+        sb.AppendLine();
+        sb.AppendLine($"{indent}        Remove-ItemProperty -Path $desktopKey -Name 'TranscodedImageCache' -ErrorAction SilentlyContinue");
+        sb.AppendLine($"{indent}        Remove-ItemProperty -Path $desktopKey -Name 'TranscodedImageCache_000' -ErrorAction SilentlyContinue");
+        sb.AppendLine();
+        sb.AppendLine($"{indent}        Write-Log \"Wallpaper configured: $wallpaperPath\" \"SUCCESS\"");
+        sb.AppendLine($"{indent}    }} catch {{");
+        sb.AppendLine($"{indent}        Write-Log \"Failed to set wallpaper: $($_.Exception.Message)\" \"ERROR\"");
+        sb.AppendLine($"{indent}    }}");
         sb.AppendLine($"{indent}}}");
         sb.AppendLine();
     }
@@ -777,7 +790,7 @@ public class AutounattendScriptBuilder
         sb.AppendLine($"{indent}            Write-Log \"$($task.Desc)\" \"SUCCESS\"");
         sb.AppendLine($"{indent}            $processedCount++");
         sb.AppendLine($"{indent}        }} else {{");
-        sb.AppendLine($"{indent}            Write-Log \"Task command returned exit code $LASTEXITCODE: $($task.Desc)\" \"WARNING\"");
+        sb.AppendLine($"{indent}            Write-Log \"Task command failed for: $($task.Desc)\" \"WARNING\"");
         sb.AppendLine($"{indent}        }}");
         sb.AppendLine($"{indent}    }} catch {{");
         sb.AppendLine($"{indent}        Write-Log \"Failed to process task: $($task.Desc) - $($_.Exception.Message)\" \"ERROR\"");
@@ -1152,50 +1165,19 @@ function Set-BinaryByte {
         Write-Log ""Failed to modify binary byte $Path\$Name : $($_.Exception.Message)"" ""ERROR""
     }
 }
-
-function Set-Wallpaper {
-    param(
-        [string]$Path,
-        [string]$Description
-    )
-
-    try {
-        if (-not (Test-Path $Path)) {
-            Write-Log ""Wallpaper file not found: $Path"" ""WARNING""
-            return $false
-        }
-
-        $signature = @'
-[DllImport(""user32.dll"", CharSet = CharSet.Auto, SetLastError = true)]
-public static extern int SystemParametersInfo(int uAction, int uParam, string lpvParam, int fuWinIni);
-'@
-
-        try {
-            $type = Add-Type -MemberDefinition $signature -Name WallpaperUtil -Namespace Win32 -PassThru -ErrorAction SilentlyContinue
-        } catch {
-            $type = [Win32.WallpaperUtil]
-        }
-
-        $SPI_SETDESKWALLPAPER = 0x0014
-        $SPIF_UPDATEINIFILE = 0x01
-        $SPIF_SENDCHANGE = 0x02
-
-        $result = [Win32.WallpaperUtil]::SystemParametersInfo($SPI_SETDESKWALLPAPER, 0, $Path, ($SPIF_UPDATEINIFILE -bor $SPIF_SENDCHANGE))
-
-        if ($result -ne 0) {
-            Write-Log ""$Description | Wallpaper set to $Path"" ""SUCCESS""
-            return $true
-        } else {
-            Write-Log ""Failed to set wallpaper: $Path"" ""ERROR""
-            return $false
-        }
-    }
-    catch {
-        Write-Log ""Error setting wallpaper: $($_.Exception.Message)"" ""ERROR""
-        return $false
-    }
-}
 ");
+    }
+
+    private void AppendScriptsDirectorySetup(StringBuilder sb, string indent = "")
+    {
+        sb.AppendLine($"{indent}$scriptsDir = \"C:\\ProgramData\\Winhance\\Scripts\"");
+        sb.AppendLine($"{indent}if (!(Test-Path $scriptsDir)) {{");
+        sb.AppendLine($"{indent}    New-Item -ItemType Directory -Path $scriptsDir -Force | Out-Null");
+        sb.AppendLine($"{indent}    Write-Log \"Created scripts directory: $scriptsDir\" \"SUCCESS\"");
+        sb.AppendLine($"{indent}}} else {{");
+        sb.AppendLine($"{indent}    Write-Log \"Scripts directory already exists: $scriptsDir\" \"INFO\"");
+        sb.AppendLine($"{indent}}}");
+        sb.AppendLine();
     }
 
     private async Task AppendBloatRemovalScriptAsync(StringBuilder sb, List<ConfigurationItem> selectedApps, string indent = "")
@@ -1249,17 +1231,9 @@ public static extern int SystemParametersInfo(int uAction, int uParam, string lp
             }
         }
 
-        sb.AppendLine();
         sb.AppendLine($"{indent}# ============================================================================");
         sb.AppendLine($"{indent}# WINDOWS APPS REMOVAL");
         sb.AppendLine($"{indent}# ============================================================================");
-        sb.AppendLine();
-
-        // Create scripts directory
-        sb.AppendLine($"{indent}$scriptsDir = \"C:\\ProgramData\\Winhance\\Scripts\"");
-        sb.AppendLine($"{indent}if (!(Test-Path $scriptsDir)) {{");
-        sb.AppendLine($"{indent}    New-Item -ItemType Directory -Path $scriptsDir -Force | Out-Null");
-        sb.AppendLine($"{indent}}}");
         sb.AppendLine();
 
         // Embed BloatRemoval.ps1 if there are regular apps to remove
@@ -1461,7 +1435,7 @@ try {
         sb.AppendLine();
         sb.AppendLine($"{indent}# Create desktop shortcut for Winhance installer");
         sb.AppendLine($"{indent}try {{");
-        sb.AppendLine($"{indent}    $targetFile = \"C:\\ProgramData\\Winhance\\Scripts\\WinhanceInstall.ps1\"");
+        sb.AppendLine($"{indent}    $targetFile = Join-Path $scriptsDir \"WinhanceInstall.ps1\"");
         sb.AppendLine($"{indent}    $shortcutPath = \"C:\\Users\\Default\\Desktop\\Install Winhance.lnk\"");
         sb.AppendLine($"{indent}    $WshShell = New-Object -ComObject WScript.Shell");
         sb.AppendLine($"{indent}    $shortcut = $WshShell.CreateShortcut($shortcutPath)");

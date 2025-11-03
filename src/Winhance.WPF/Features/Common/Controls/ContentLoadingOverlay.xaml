@@ -1,0 +1,47 @@
+<UserControl x:Class="Winhance.WPF.Features.Common.Controls.ContentLoadingOverlay"
+             xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:converters="clr-namespace:Winhance.WPF.Features.Common.Converters"
+             x:Name="Root">
+
+    <UserControl.Resources>
+        <converters:BooleanToThemeIconConverter x:Key="BooleanToThemeIconConverter"/>
+    </UserControl.Resources>
+
+    <Grid Background="{DynamicResource WindowBackground}"
+          Visibility="{Binding IsVisible, RelativeSource={RelativeSource AncestorType=UserControl}, Converter={StaticResource BooleanToVisibilityConverter}}">
+        <StackPanel VerticalAlignment="Center"
+                    HorizontalAlignment="Center">
+            <StackPanel Orientation="Horizontal"
+                        HorizontalAlignment="Center"
+                        Margin="0,0,0,20">
+                <Image Width="45"
+                       Height="45"
+                       Margin="0,0,8,0"
+                       VerticalAlignment="Center"
+                       RenderOptions.BitmapScalingMode="HighQuality"
+                       Source="{Binding IsThemeDark, RelativeSource={RelativeSource AncestorType=UserControl}, Converter={StaticResource BooleanToThemeIconConverter}, ConverterParameter='pack://application:,,,/Resources/AppIcons/winhance-rocket-white-transparent-bg.ico|pack://application:,,,/Resources/AppIcons/winhance-rocket-black-transparent-bg.ico'}"/>
+                <TextBlock FontFamily="Helvetica Neue"
+                           FontSize="45"
+                           FontWeight="Light"
+                           Foreground="{DynamicResource PrimaryTextColor}"
+                           Text="Winhance"/>
+            </StackPanel>
+
+            <TextBlock Text="{Binding StatusMessage, RelativeSource={RelativeSource AncestorType=UserControl}}"
+                       FontSize="16"
+                       FontWeight="Normal"
+                       Foreground="{DynamicResource PrimaryTextColor}"
+                       HorizontalAlignment="Center"
+                       Margin="0,0,0,20"/>
+
+            <ProgressBar IsIndeterminate="True"
+                         Width="280"
+                         Height="8"
+                         Background="Transparent"
+                         BorderBrush="Transparent"
+                         BorderThickness="0"
+                         Foreground="{DynamicResource ButtonBorderBrush}"/>
+        </StackPanel>
+    </Grid>
+</UserControl>

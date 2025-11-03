@@ -81,14 +81,31 @@
                         </DataGridTemplateColumn.HeaderStyle>
                         <DataGridTemplateColumn.CellTemplate>
                             <DataTemplate>
-                                <TextBlock Text="{Binding Name}"
-                                          FontSize="18"
-                                          Margin="5,2"
-                                          Style="{StaticResource DataGridTextBlockStyle}"
-                                          ToolTip="{Binding Description}"
-                                          ToolTipService.InitialShowDelay="1000"
-                                          ToolTipService.BetweenShowDelay="1000"
-                                          ToolTipService.ShowDuration="5000" />
+                                <StackPanel Orientation="Horizontal">
+                                    <TextBlock Text="{Binding Name}"
+                                              FontSize="18"
+                                              Margin="5,2"
+                                              Style="{StaticResource DataGridTextBlockStyle}"
+                                              ToolTip="{Binding Description}"
+                                              ToolTipService.InitialShowDelay="1000"
+                                              ToolTipService.BetweenShowDelay="1000"
+                                              ToolTipService.ShowDuration="5000"
+                                              VerticalAlignment="Center" />
+                                    <Button Background="Transparent"
+                                            BorderThickness="0"
+                                            Cursor="Hand"
+                                            Command="{Binding OpenWebsiteCommand}"
+                                            ToolTip="Visit website"
+                                            Margin="6,0,0,0"
+                                            Padding="2"
+                                            VerticalAlignment="Center"
+                                            Visibility="{Binding WebsiteUrl, Converter={StaticResource InverseNullToVisibilityConverter}}">
+                                        <iconPacks:PackIconLucide Kind="SquareArrowOutUpRight"
+                                                                  Width="16"
+                                                                  Height="16"
+                                                                  Foreground="{DynamicResource AccentColor}"/>
+                                    </Button>
+                                </StackPanel>
                             </DataTemplate>
                         </DataGridTemplateColumn.CellTemplate>
                     </DataGridTemplateColumn>
@@ -113,6 +130,26 @@
                         <DataGridTemplateColumn.CellTemplate>
                             <DataTemplate>
                                 <TextBlock Text="{Binding Category}" Margin="5,2" Style="{StaticResource DataGridTextBlockStyle}"/>
+                            </DataTemplate>
+                        </DataGridTemplateColumn.CellTemplate>
+                    </DataGridTemplateColumn>
+
+                    <!-- Status Column -->
+                    <DataGridTemplateColumn Header="Status" Width="160" CanUserResize="True" SortMemberPath="IsInstalled">
+                        <DataGridTemplateColumn.HeaderStyle>
+                            <Style TargetType="DataGridColumnHeader" BasedOn="{StaticResource ThemedDataGridColumnHeader}" />
+                        </DataGridTemplateColumn.HeaderStyle>
+                        <DataGridTemplateColumn.CellTemplate>
+                            <DataTemplate>
+                                <StackPanel Orientation="Horizontal" Margin="5,2">
+                                    <Ellipse Style="{StaticResource AppStatusIndicatorStyle}"
+                                             Fill="{Binding IsInstalled, Converter={StaticResource InstalledStatusToColorConverter}}">
+                                        <Ellipse.ToolTip>
+                                            <ToolTip Content="{Binding IsInstalled, Converter={StaticResource InstalledStatusToTextConverter}}"/>
+                                        </Ellipse.ToolTip>
+                                    </Ellipse>
+                                    <TextBlock Text="{Binding IsInstalled, Converter={StaticResource InstalledStatusToTextConverter}}" Margin="5,0,0,0" Style="{StaticResource DataGridTextBlockStyle}" />
+                                </StackPanel>
                             </DataTemplate>
                         </DataGridTemplateColumn.CellTemplate>
                     </DataGridTemplateColumn>

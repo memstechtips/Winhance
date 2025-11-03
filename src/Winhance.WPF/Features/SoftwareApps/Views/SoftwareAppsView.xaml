@@ -201,6 +201,25 @@
                             Height="28"
                             Background="#505050"
                             VerticalAlignment="Center"
+                            Margin="0,0,5,0"/>
+
+                    <!-- Refresh Button -->
+                    <Button Style="{StaticResource RefreshButtonStyle}"
+                            Content="Refresh"
+                            Width="90"
+                            Height="35"
+                            Margin="0,0,5,1"
+                            Command="{Binding RefreshInstallationStatusCommand}">
+                        <Button.ToolTip>
+                            <TextBlock Text="Refresh installation status"/>
+                        </Button.ToolTip>
+                    </Button>
+
+                    <!-- Separator -->
+                    <Border Width="1"
+                            Height="28"
+                            Background="#505050"
+                            VerticalAlignment="Center"
                             Margin="0,0,10,0"/>
 
                     <!-- Help Button -->
@@ -327,14 +346,14 @@
                                         <DockPanel VerticalAlignment="Center"
                                                 HorizontalAlignment="Center">
                                             <iconPacks:PackIconMaterial Kind="MicrosoftWindows"
-                                                    Width="24"
-                                                    Height="24"
-                                                    Margin="10,0,5,0"
+                                                    Width="20"
+                                                    Height="20"
+                                                    Margin="5,0,0,0"
                                                     VerticalAlignment="Center"
                                                     Foreground="{DynamicResource PrimaryTextColor}"/>
                                             <TextBlock Text="Windows Apps &amp; Features"
                                                     Style="{StaticResource AppSectionHeaderTextStyle}"
-                                                    Margin="0,0,10,0"/>
+                                                    Margin="0,0,5,0"/>
                                         </DockPanel>
                                     </Grid>
                                     <Border.InputBindings>
@@ -421,14 +440,14 @@
                                         <DockPanel VerticalAlignment="Center"
                                                 HorizontalAlignment="Center">
                                             <iconPacks:PackIconMaterial Kind="PackageDown"
-                                                                     Width="24"
-                                                                     Height="24"
-                                                                     Margin="10,0,5,0"
+                                                                     Width="20"
+                                                                     Height="20"
+                                                                     Margin="5,0,0,0"
                                                                      VerticalAlignment="Center"
                                                                      Foreground="{DynamicResource PrimaryTextColor}"/>
                                             <TextBlock Text="External Software"
                                                     Style="{StaticResource AppSectionHeaderTextStyle}"
-                                                    Margin="0,0,10,0"/>
+                                                    Margin="0,0,5,0"/>
                                         </DockPanel>
                                     </Grid>
                                     <Border.InputBindings>
@@ -544,6 +563,13 @@
                         </Grid>
                     </commonControls:ResponsiveScrollViewer>
                 </Border>
+
+                <!-- Loading Overlay -->
+                <commonControls:ContentLoadingOverlay
+                    Panel.ZIndex="200"
+                    Margin="0,85,0,0"
+                    IsVisible="{Binding IsRefreshingContent}"
+                    StatusMessage="Refreshing installation status..."/>
             </Grid>
         </Border>
 

@@ -367,6 +367,7 @@ public static class StartMenuCustomizations
                     GroupName = "Start Menu Settings",
                     InputType = InputType.Toggle,
                     Icon = "BellRingOutline",
+                    IsWindows11Only = true,
                     RegistrySettings = new List<RegistrySetting>
                     {
                         new RegistrySetting

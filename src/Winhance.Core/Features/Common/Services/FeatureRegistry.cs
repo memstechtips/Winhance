@@ -15,12 +15,13 @@ namespace Winhance.Core.Features.Common.Services
             },
             ["Optimize"] = new FeatureInfo[]
             {
-                new("Power", "Power", "PowerOptimizationsViewModel", 1),
-                new("Privacy", "Privacy & Security", "PrivacyAndSecurityOptimizationsViewModel", 2),
+                new("Privacy", "Privacy & Security", "PrivacyAndSecurityOptimizationsViewModel", 1),
+                new("Power", "Power", "PowerOptimizationsViewModel", 2),
                 new("GamingPerformance", "Gaming & Performance", "GamingandPerformanceOptimizationsViewModel", 3),
-                new("Notification", "Notifications", "NotificationOptimizationsViewModel", 4),
-                new("Sound", "Sound", "SoundOptimizationsViewModel", 5),
-                new("Update", "Windows Update", "UpdateOptimizationsViewModel", 6),
+                new("Update", "Windows Update", "UpdateOptimizationsViewModel", 4),
+                new("Notifications", "Notifications", "NotificationOptimizationsViewModel", 5),
+                new("Sound", "Sound", "SoundOptimizationsViewModel", 6),
+
             },
             ["SoftwareApps"] = new FeatureInfo[]
             {

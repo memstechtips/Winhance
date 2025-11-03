@@ -17,6 +17,7 @@ public record ItemDefinition : BaseDefinition
     public bool RequiresReboot { get; init; }
     public Func<string>? RemovalScript { get; init; }
     public string[]? SubPackages { get; init; }
+    public string? WebsiteUrl { get; init; }
     public bool IsInstalled { get; set; }
     public bool IsSelected { get; set; }
     public string Version { get; set; } = string.Empty;

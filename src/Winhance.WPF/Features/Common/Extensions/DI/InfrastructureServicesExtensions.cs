@@ -146,7 +146,8 @@ namespace Winhance.WPF.Features.Common.Extensions.DI
                     provider.GetRequiredService<IPowerPlanComboBoxService>(),
                     provider.GetRequiredService<IComboBoxResolver>(),
                     provider.GetRequiredService<IUserPreferencesService>(),
-                    provider.GetRequiredService<IDialogService>()
+                    provider.GetRequiredService<IDialogService>(),
+                    provider.GetRequiredService<ICompatibleSettingsRegistry>()
                 )
             );
 

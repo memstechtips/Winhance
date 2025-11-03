@@ -19,6 +19,9 @@ namespace Winhance.Core.Features.Common.Models
         public string AppxPackageName { get; set; }
 
         [JsonProperty(NullValueHandling = NullValueHandling.Ignore)]
+        public string WinGetPackageId { get; set; }
+
+        [JsonProperty(NullValueHandling = NullValueHandling.Ignore)]
         public string CapabilityName { get; set; }
 
         [JsonProperty(NullValueHandling = NullValueHandling.Ignore)]

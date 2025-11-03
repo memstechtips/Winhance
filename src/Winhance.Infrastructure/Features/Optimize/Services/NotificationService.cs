@@ -16,17 +16,17 @@ namespace Winhance.Infrastructure.Features.Optimize.Services
         ILogService logService,
         ICompatibleSettingsRegistry compatibleSettingsRegistry) : IDomainService
     {
-        public string DomainName => FeatureIds.Notification;
+        public string DomainName => FeatureIds.Notifications;
 
         public async Task<IEnumerable<SettingDefinition>> GetSettingsAsync()
         {
             try
             {
-                return compatibleSettingsRegistry.GetFilteredSettings(FeatureIds.Notification);
+                return compatibleSettingsRegistry.GetFilteredSettings(FeatureIds.Notifications);
             }
             catch (Exception ex)
             {
-                logService.Log(LogLevel.Error, $"Error loading Notification settings: {ex.Message}");
+                logService.Log(LogLevel.Error, $"Error loading Notifications settings: {ex.Message}");
                 return Enumerable.Empty<SettingDefinition>();
             }
         }

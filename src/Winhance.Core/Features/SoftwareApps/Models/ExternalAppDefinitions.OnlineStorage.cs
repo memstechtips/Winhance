@@ -22,7 +22,8 @@ namespace Winhance.Core.Features.SoftwareApps.Models
                             Description = "Cloud storage and file synchronization service",
                             GroupName = "Online Storage",
                             WinGetPackageId = "Google.GoogleDrive",
-                            Category = "Online Storage"
+                            Category = "Online Storage",
+                            WebsiteUrl = "https://www.google.com/drive/"
                         },
                         new ItemDefinition
                         {
@@ -31,7 +32,8 @@ namespace Winhance.Core.Features.SoftwareApps.Models
                             Description = "File hosting service that offers cloud storage, file synchronization, personal cloud",
                             GroupName = "Online Storage",
                             WinGetPackageId = "Dropbox.Dropbox",
-                            Category = "Online Storage"
+                            Category = "Online Storage",
+                            WebsiteUrl = "https://www.dropbox.com/"
                         },
                         new ItemDefinition
                         {
@@ -40,7 +42,8 @@ namespace Winhance.Core.Features.SoftwareApps.Models
                             Description = "Automatically access and share your photos, videos, and files in any folder",
                             GroupName = "Online Storage",
                             WinGetPackageId = "IPVanish.SugarSync",
-                            Category = "Online Storage"
+                            Category = "Online Storage",
+                            WebsiteUrl = "https://www.sugarsync.com/"
                         },
                         new ItemDefinition
                         {
@@ -49,7 +52,8 @@ namespace Winhance.Core.Features.SoftwareApps.Models
                             Description = "Access, share and protect your files, calendars, contacts, communication & more at home and in your organization",
                             GroupName = "Online Storage",
                             WinGetPackageId = "Nextcloud.NextcloudDesktop",
-                            Category = "Online Storage"
+                            Category = "Online Storage",
+                            WebsiteUrl = "https://nextcloud.com/"
                         },
                         new ItemDefinition
                         {
@@ -58,7 +62,8 @@ namespace Winhance.Core.Features.SoftwareApps.Models
                             Description = "Secure cloud storage with end-to-end encryption",
                             GroupName = "Online Storage",
                             WinGetPackageId = "Proton.ProtonDrive",
-                            Category = "Online Storage"
+                            Category = "Online Storage",
+                            WebsiteUrl = "https://proton.me/drive"
                         }
                     }
                 };

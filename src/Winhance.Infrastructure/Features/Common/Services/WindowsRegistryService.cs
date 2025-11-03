@@ -133,6 +133,25 @@ namespace Winhance.Infrastructure.Features.Common.Services
             }
         }
 
+        public bool RegistryValueExists(RegistrySetting setting)
+        {
+            try
+            {
+                if (setting?.ValueName == null)
+                    return KeyExists(setting?.KeyPath ?? "");
+
+                if (!KeyExists(setting.KeyPath))
+                    return false;
+
+                return ValueExists(setting.KeyPath, setting.ValueName);
+            }
+            catch (Exception ex)
+            {
+                logService.Log(LogLevel.Error, $"Error checking registry value existence for {setting?.KeyPath}\\{setting?.ValueName}: {ex.Message}");
+                return false;
+            }
+        }
+
         public bool IsSettingApplied(RegistrySetting setting)
         {
             try
@@ -140,7 +159,11 @@ namespace Winhance.Infrastructure.Features.Common.Services
                 if (setting == null)
                     return false;
 
-                if (setting.ValueName == null)
+                // For settings that check the (Default) value with ValueName = null,
+                // we need to check if both EnabledValue and DisabledValue are null.
+                // If both are null, we're just checking key existence.
+                // If either has a value, we need to read and compare the default value.
+                if (setting.ValueName == null && setting.EnabledValue == null && setting.DisabledValue == null)
                 {
                     return KeyExists(setting.KeyPath);
                 }

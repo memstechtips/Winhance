@@ -209,6 +209,40 @@ namespace Winhance.Infrastructure.Features.Optimize.Services
             }
         }
 
+        public async Task<bool> DeletePowerPlanAsync(string powerPlanGuid)
+        {
+            try
+            {
+                logService.Log(LogLevel.Info, $"Attempting to delete power plan: {powerPlanGuid}");
+
+                var activePlan = await GetActivePowerPlanAsync();
+                if (activePlan != null && string.Equals(activePlan.Guid, powerPlanGuid, StringComparison.OrdinalIgnoreCase))
+                {
+                    logService.Log(LogLevel.Warning, "Cannot delete active power plan");
+                    return false;
+                }
+
+                var result = await commandService.ExecuteCommandAsync($"powercfg /delete {powerPlanGuid}");
+
+                if (result.Success)
+                {
+                    powerCfgQueryService.InvalidateCache();
+                    logService.Log(LogLevel.Info, $"Successfully deleted power plan: {powerPlanGuid}");
+                    return true;
+                }
+                else
+                {
+                    logService.Log(LogLevel.Error, $"Failed to delete power plan: {powerPlanGuid}. Error: {result.Error}");
+                    return false;
+                }
+            }
+            catch (Exception ex)
+            {
+                logService.Log(LogLevel.Error, $"Error deleting power plan: {ex.Message}");
+                return false;
+            }
+        }
+
         private async Task ApplyPowerPlanSelectionAsync(SettingDefinition setting, string powerPlanGuid, int planIndex, string planName)
         {
             logService.Log(LogLevel.Info, $"[PowerService] Applying power plan: {planName} ({powerPlanGuid})");

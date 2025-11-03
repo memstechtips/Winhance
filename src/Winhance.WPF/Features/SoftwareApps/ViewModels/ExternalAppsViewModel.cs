@@ -135,6 +135,35 @@ namespace Winhance.WPF.Features.SoftwareApps.ViewModels
                 if (SetProperty(ref _isAllSelected, value))
                 {
                     SetAllItemsSelection(value);
+                    UpdateSpecializedCheckboxStates(value);
+                }
+            }
+        }
+
+        private bool _isAllSelectedInstalled;
+        public bool IsAllSelectedInstalled
+        {
+            get => _isAllSelectedInstalled;
+            set
+            {
+                if (SetProperty(ref _isAllSelectedInstalled, value))
+                {
+                    SetInstalledItemsSelection(value);
+                    UpdateIsAllSelectedState();
+                }
+            }
+        }
+
+        private bool _isAllSelectedNotInstalled;
+        public bool IsAllSelectedNotInstalled
+        {
+            get => _isAllSelectedNotInstalled;
+            set
+            {
+                if (SetProperty(ref _isAllSelectedNotInstalled, value))
+                {
+                    SetNotInstalledItemsSelection(value);
+                    UpdateIsAllSelectedState();
                 }
             }
         }
@@ -190,10 +219,34 @@ namespace Winhance.WPF.Features.SoftwareApps.ViewModels
             catch (OperationCanceledException)
             {
                 CurrentCancellationReason = CancellationReason.UserCancelled;
-                // No dialog needed - user knows they cancelled and task progress control disappears
             }
         }
 
+        [RelayCommand]
+        public async Task RemoveApps(bool skipConfirmation = false)
+        {
+            var selectedItems = GetSelectedItemsForOperation();
+            if (!selectedItems.HasItems)
+            {
+                await ShowNoItemsSelectedDialogAsync("removal");
+                return;
+            }
+
+            if (!skipConfirmation && !await ShowConfirmationAsync("uninstall", selectedItems.AllItems))
+                return;
+
+            try
+            {
+                await ExecuteWithProgressAsync(
+                    progressService => ExecuteRemoveOperation(selectedItems, progressService.CreateDetailedProgress(), skipResultDialog: skipConfirmation),
+                    "Uninstalling External Apps"
+                );
+            }
+            catch (OperationCanceledException)
+            {
+                CurrentCancellationReason = CancellationReason.UserCancelled;
+            }
+        }
 
         public override async Task LoadItemsAsync()
         {
@@ -217,7 +270,6 @@ namespace Winhance.WPF.Features.SoftwareApps.ViewModels
                 }
 
                 StatusText = $"Loaded {Items.Count} external apps";
-                UpdateAllItemsCollection();
                 OnPropertyChanged(nameof(Categories));
             }
             catch (Exception ex)
@@ -234,16 +286,122 @@ namespace Winhance.WPF.Features.SoftwareApps.ViewModels
 
         public override async Task CheckInstallationStatusAsync()
         {
-            await Task.CompletedTask;
+            await CheckInstallationStatusAsync(showLoadingOverlay: true);
+        }
+
+        public async Task CheckInstallationStatusAsync(bool showLoadingOverlay)
+        {
+            if (Items == null || !Items.Any())
+                return;
+
+            if (showLoadingOverlay)
+            {
+                IsLoading = true;
+                StatusText = "Checking installation status...";
+            }
+
+            try
+            {
+                var appsWithWinGetId = Items
+                    .Where(item => !string.IsNullOrEmpty(item.Definition.WinGetPackageId))
+                    .ToList();
+
+                var appsWithoutWinGetId = Items
+                    .Where(item => string.IsNullOrEmpty(item.Definition.WinGetPackageId))
+                    .ToList();
+
+                int checkedCount = 0;
+
+                if (appsWithWinGetId.Any())
+                {
+                    var packageIds = appsWithWinGetId.Select(item => item.Definition.WinGetPackageId).ToList();
+                    var statusResults = await externalAppsService.CheckBatchInstalledAsync(packageIds).ConfigureAwait(false);
+
+                    foreach (var item in appsWithWinGetId)
+                    {
+                        if (statusResults.TryGetValue(item.Definition.WinGetPackageId, out bool isInstalled))
+                        {
+                            item.IsInstalled = isInstalled;
+                            checkedCount++;
+                        }
+                    }
+                }
+
+                if (appsWithoutWinGetId.Any())
+                {
+                    var displayNames = appsWithoutWinGetId.Select(item => item.Definition.Name).ToList();
+                    var statusResults = await externalAppsService.CheckInstalledByDisplayNameAsync(displayNames).ConfigureAwait(false);
+
+                    foreach (var item in appsWithoutWinGetId)
+                    {
+                        if (statusResults.TryGetValue(item.Definition.Name, out bool isInstalled))
+                        {
+                            item.IsInstalled = isInstalled;
+                            checkedCount++;
+                        }
+                    }
+                }
+
+                StatusText = $"Status checked for {checkedCount} apps";
+            }
+            catch (Exception ex)
+            {
+                StatusText = $"Error checking status: {ex.Message}";
+                logService.LogError("Error checking installation status", ex);
+            }
+            finally
+            {
+                IsLoading = false;
+            }
+        }
+
+        [RelayCommand]
+        public async Task RefreshInstallationStatus()
+        {
+            if (!IsInitialized)
+            {
+                StatusText = "Please wait for initial load to complete";
+                return;
+            }
+
+            IsLoading = true;
+            StatusText = "Refreshing installation status...";
+
+            try
+            {
+                await CheckInstallationStatusAsync();
+                StatusText = $"Installation status refreshed for {Items.Count} items";
+            }
+            catch (Exception ex)
+            {
+                StatusText = $"Error refreshing status: {ex.Message}";
+                logService.LogError("Error refreshing installation status", ex);
+            }
+            finally
+            {
+                IsLoading = false;
+            }
         }
 
         public async Task LoadAppsAndCheckInstallationStatusAsync()
         {
-            if (IsInitialized) return;
+            if (IsInitialized)
+            {
+                logService.LogInformation("[ExternalAppsViewModel] Already initialized, skipping");
+                return;
+            }
 
-            await LoadItemsAsync();
+            logService.LogInformation("[ExternalAppsViewModel] LoadItemsAsync starting");
+            await LoadItemsAsync().ConfigureAwait(false);
+            logService.LogInformation("[ExternalAppsViewModel] LoadItemsAsync completed");
+            
+            logService.LogInformation("[ExternalAppsViewModel] CheckInstallationStatusAsync starting");
+            await CheckInstallationStatusAsync().ConfigureAwait(false);
+            logService.LogInformation("[ExternalAppsViewModel] CheckInstallationStatusAsync completed");
+            
             IsAllSelected = false;
             IsInitialized = true;
+            logService.LogInformation("[ExternalAppsViewModel] LoadAppsAndCheckInstallationStatusAsync fully completed");
         }
 
         public override async void OnNavigatedTo(object parameter)
@@ -255,6 +413,10 @@ namespace Winhance.WPF.Features.SoftwareApps.ViewModels
                     CurrentSortProperty = "Name";
                     SortDirection = ListSortDirection.Ascending;
                     await LoadAppsAndCheckInstallationStatusAsync();
+                }
+                else
+                {
+                    await CheckInstallationStatusAsync();
                 }
             }
             catch (Exception ex)
@@ -368,6 +530,38 @@ namespace Winhance.WPF.Features.SoftwareApps.ViewModels
             return Items.Where(a => a.IsSelected);
         }
 
+        private SelectedItemsCollection GetSelectedItemsForOperation()
+        {
+            var selectedItems = Items.Where(a => a.IsSelected).ToList();
+            return new SelectedItemsCollection
+            {
+                Apps = selectedItems
+            };
+        }
+
+        private async Task RefreshUIAfterOperation()
+        {
+            await CheckInstallationStatusAsync(showLoadingOverlay: false);
+            ClearAllSelections();
+            UpdateAllItemsCollection();
+        }
+
+        private void ClearAllSelections()
+        {
+            foreach (var item in Items)
+            {
+                item.IsSelected = false;
+            }
+
+            _isAllSelected = false;
+            _isAllSelectedInstalled = false;
+            _isAllSelectedNotInstalled = false;
+
+            OnPropertyChanged(nameof(IsAllSelected));
+            OnPropertyChanged(nameof(IsAllSelectedInstalled));
+            OnPropertyChanged(nameof(IsAllSelectedNotInstalled));
+        }
+
 
         private async Task<bool> ShowConfirmationAsync(string operationType, IEnumerable<AppItemViewModel> items)
         {
@@ -378,6 +572,7 @@ namespace Winhance.WPF.Features.SoftwareApps.ViewModels
         private async Task<int> ExecuteInstallOperation(List<AppItemViewModel> selectedApps, IProgress<TaskProgressDetail> progress, CancellationToken cancellationToken = default, bool skipResultDialog = false)
         {
             var results = new OperationResultAggregator();
+            bool wasCancelled = false;
 
             foreach (var app in selectedApps)
             {
@@ -389,6 +584,7 @@ namespace Winhance.WPF.Features.SoftwareApps.ViewModels
                     if (result.IsCancelled)
                     {
                         CurrentCancellationReason = CancellationReason.UserCancelled;
+                        wasCancelled = true;
                         break;
                     }
                     results.Add(app.Name, result.Success && result.Result, result.ErrorMessage);
@@ -397,6 +593,7 @@ namespace Winhance.WPF.Features.SoftwareApps.ViewModels
                 catch (OperationCanceledException)
                 {
                     CurrentCancellationReason = CancellationReason.UserCancelled;
+                    wasCancelled = true;
                     break;
                 }
                 catch (Exception ex)
@@ -405,11 +602,59 @@ namespace Winhance.WPF.Features.SoftwareApps.ViewModels
                 }
             }
 
-            if (!skipResultDialog)
+            await CheckInstallationStatusAsync(showLoadingOverlay: false);
+
+            if (!skipResultDialog && !wasCancelled)
                 await ShowOperationResultDialogAsync("Install", results.SuccessCount, results.TotalCount,
                     results.SuccessItems, results.FailedItems);
 
             return results.SuccessCount;
+        }
+
+        private async Task<int> ExecuteRemoveOperation(SelectedItemsCollection selectedItems, IProgress<TaskProgressDetail> progress, CancellationToken cancellationToken = default, bool skipResultDialog = false)
+        {
+            var allDefinitions = selectedItems.AllItems.Select(item => item.Definition).ToList();
+
+            var result = await appOperationService.UninstallExternalAppsAsync(allDefinitions, progress);
+
+            if (result.IsCancelled)
+            {
+                CurrentCancellationReason = CancellationReason.UserCancelled;
+                ClearAllSelections();
+                UpdateAllItemsCollection();
+                if (!skipResultDialog)
+                    await ShowOperationResultDialogAsync("Uninstall", 0, selectedItems.TotalCount, new List<string>(), selectedItems.AllNames.ToList());
+                return 0;
+            }
+
+            if (result.Success)
+            {
+                foreach (var item in selectedItems.AllItems)
+                {
+                    item.IsInstalled = false;
+                }
+
+                ClearAllSelections();
+                UpdateAllItemsCollection();
+
+                var successCount = result.Result;
+                var totalCount = selectedItems.TotalCount;
+                var succeededItems = selectedItems.AllNames.Take(successCount).ToList();
+                var failedItems = selectedItems.AllNames.Skip(successCount).ToList();
+
+                if (!skipResultDialog)
+                    await ShowOperationResultDialogAsync("Uninstall", successCount, totalCount, succeededItems, failedItems);
+
+                return successCount;
+            }
+
+            ClearAllSelections();
+            UpdateAllItemsCollection();
+
+            if (!skipResultDialog)
+                await ShowOperationResultDialogAsync("Uninstall", 0, selectedItems.TotalCount, new List<string>(), selectedItems.AllNames.ToList());
+
+            return 0;
         }
 
         private void SetAllItemsSelection(bool value)
@@ -418,6 +663,69 @@ namespace Winhance.WPF.Features.SoftwareApps.ViewModels
                 item.IsSelected = value;
         }
 
+        private void UpdateSpecializedCheckboxStates(bool value)
+        {
+            _isAllSelectedInstalled = value;
+            _isAllSelectedNotInstalled = value;
+            OnPropertyChanged(nameof(IsAllSelectedInstalled));
+            OnPropertyChanged(nameof(IsAllSelectedNotInstalled));
+        }
+
+        private void SetInstalledItemsSelection(bool value)
+        {
+            foreach (var item in Items.Where(a => a.IsInstalled))
+                item.IsSelected = value;
+
+            if (!IsTableViewMode)
+            {
+                OnPropertyChanged(nameof(Categories));
+            }
+        }
+
+        private void SetNotInstalledItemsSelection(bool value)
+        {
+            foreach (var item in Items.Where(a => !a.IsInstalled))
+                item.IsSelected = value;
+
+            if (!IsTableViewMode)
+            {
+                OnPropertyChanged(nameof(Categories));
+            }
+        }
+
+        private void UpdateIsAllSelectedState()
+        {
+            bool allItemsSelected = Items.All(app => app.IsSelected);
+
+            if (_isAllSelected != allItemsSelected)
+            {
+                _isAllSelected = allItemsSelected;
+                OnPropertyChanged(nameof(IsAllSelected));
+            }
+
+            UpdateSpecializedCheckboxStates();
+        }
+
+        private void UpdateSpecializedCheckboxStates()
+        {
+            var installedItems = Items.Where(a => a.IsInstalled);
+            var notInstalledItems = Items.Where(a => !a.IsInstalled);
+
+            bool allInstalledSelected = installedItems.Any() && installedItems.All(a => a.IsSelected);
+            bool allNotInstalledSelected = notInstalledItems.Any() && notInstalledItems.All(a => a.IsSelected);
+
+            if (_isAllSelectedInstalled != allInstalledSelected)
+            {
+                _isAllSelectedInstalled = allInstalledSelected;
+                OnPropertyChanged(nameof(IsAllSelectedInstalled));
+            }
+
+            if (_isAllSelectedNotInstalled != allNotInstalledSelected)
+            {
+                _isAllSelectedNotInstalled = allNotInstalledSelected;
+                OnPropertyChanged(nameof(IsAllSelectedNotInstalled));
+            }
+        }
 
         private bool _isUpdatingSelection = false;
 
@@ -433,6 +741,7 @@ namespace Winhance.WPF.Features.SoftwareApps.ViewModels
                     InvalidateHasSelectedItemsCache();
                     OnPropertyChanged(nameof(HasSelectedItems));
                     OnPropertyChanged(nameof(IsAllSelected));
+                    UpdateSpecializedCheckboxStates();
                     SelectedItemsChanged?.Invoke(this, EventArgs.Empty);
                 }
                 finally

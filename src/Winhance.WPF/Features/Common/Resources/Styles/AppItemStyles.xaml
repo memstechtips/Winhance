@@ -18,20 +18,7 @@
     </Style>
 
     <!-- App Item Status Indicator Style -->
-    <Style x:Key="AppStatusIndicatorStyle" TargetType="Ellipse">
-        <Setter Property="Width" Value="10"/>
-        <Setter Property="Height" Value="10"/>
-        <Setter Property="Margin" Value="0,0,3,0"/>
-        <Setter Property="Effect">
-            <Setter.Value>
-                <DropShadowEffect ShadowDepth="1"
-                                Direction="315"
-                                Color="Black"
-                                Opacity="0.6"
-                                BlurRadius="3"/>
-            </Setter.Value>
-        </Setter>
-    </Style>
+    <Style x:Key="AppStatusIndicatorStyle" TargetType="Ellipse" BasedOn="{StaticResource StatusIndicatorStyle}"/>
 
     <!-- App Item Text Style -->
     <Style x:Key="AppItemTextStyle" TargetType="TextBlock">

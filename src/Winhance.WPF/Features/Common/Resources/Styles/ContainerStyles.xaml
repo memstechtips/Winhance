@@ -179,6 +179,12 @@
                                           Foreground="#8B4513"
                                           TextWrapping="Wrap"/>
                             </Border>
+
+                            <!-- Registry Not Set Indicator -->
+                            <Border Background="#D32F2F" CornerRadius="3" Padding="4,2" Margin="0,4,0,0" HorizontalAlignment="Left"
+                                    Visibility="{Binding ShowRegistryStateIndicator, Converter={StaticResource BooleanToVisibilityConverter}}">
+                                <TextBlock Text="⚠" FontSize="14" Foreground="White" VerticalAlignment="Center"/>
+                            </Border>
                         </StackPanel>
                     </StackPanel>
 
@@ -187,7 +193,7 @@
                               Grid.Column="1"
                               ItemsSource="{Binding ComboBoxOptions}"
                               SelectedValue="{Binding SelectedValue, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}"
-                              SelectedItem="{Binding SelectedComboBoxItem, Mode=OneWayToSource}"
+                              SelectedItem="{Binding NonPowerSelectedItem, Mode=OneWayToSource}"
                               DisplayMemberPath="DisplayText"
                               SelectedValuePath="Value"
                               Width="175"
@@ -207,12 +213,45 @@
                         </ComboBox.Visibility>
                     </ComboBox>
 
+                    <!-- Power Plan Selection ComboBox (Special Case) -->
+                    <ComboBox Grid.Column="1"
+                              ItemsSource="{Binding ComboBoxOptions}"
+                              SelectedItem="{Binding PowerPlanSelectedItem, Mode=OneWayToSource}"
+                              SelectedValue="{Binding SelectedValue, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}"
+                              SelectedValuePath="Value"
+                              ItemTemplate="{StaticResource PowerPlanComboBoxItemTemplate}"
+                              Width="175"
+                              Margin="15,10,15,10"
+                              FontWeight="SemiBold"
+                              HorizontalAlignment="Right"
+                              VerticalAlignment="Center"
+                              Panel.ZIndex="10"
+                              IsEnabled="{Binding EffectiveIsEnabled}">
+                        <ComboBox.ItemContainerStyle>
+                            <Style TargetType="ComboBoxItem" BasedOn="{StaticResource ComboBoxItemStyle}">
+                                <Setter Property="HorizontalContentAlignment" Value="Stretch"/>
+                                <Setter Property="Padding" Value="10,8"/>
+                                <Setter Property="ToolTip" Value="{x:Null}"/>
+                            </Style>
+                        </ComboBox.ItemContainerStyle>
+                        <ComboBox.Style>
+                            <Style TargetType="ComboBox" BasedOn="{StaticResource ModernComboBoxStyle}">
+                                <Setter Property="Visibility" Value="Collapsed"/>
+                                <Style.Triggers>
+                                    <DataTrigger Binding="{Binding SettingDefinition.Id}" Value="power-plan-selection">
+                                        <Setter Property="Visibility" Value="Visible"/>
+                                    </DataTrigger>
+                                </Style.Triggers>
+                            </Style>
+                        </ComboBox.Style>
+                    </ComboBox>
+
                     <!-- Single AC ComboBox for power settings without battery -->
                     <ComboBox Style="{StaticResource ModernComboBoxStyle}"
                               Grid.Column="1"
                               ItemsSource="{Binding ComboBoxOptions}"
                               SelectedValue="{Binding ACValue, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}"
-                              SelectedItem="{Binding SelectedComboBoxItem, Mode=OneWayToSource}"
+                              SelectedItem="{Binding PowerSettingSelectedItem, Mode=OneWayToSource}"
                               DisplayMemberPath="DisplayText"
                               SelectedValuePath="Value"
                               Width="175"

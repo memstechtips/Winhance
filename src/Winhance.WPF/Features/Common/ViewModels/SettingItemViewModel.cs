@@ -10,6 +10,7 @@ using Winhance.Core.Features.Common.Events.UI;
 using Winhance.Core.Features.Common.Interfaces;
 using Winhance.Core.Features.Common.Models;
 using Winhance.Core.Features.Common.Utils;
+using Winhance.Infrastructure.Features.Common.Services;
 using Winhance.WPF.Features.Common.Interfaces;
 using System.Windows;
 
@@ -27,11 +28,11 @@ namespace Winhance.WPF.Features.Common.ViewModels
         private readonly ISystemSettingsDiscoveryService _discoveryService;
         private readonly IUserPreferencesService _userPreferencesService;
         private readonly IDialogService _dialogService;
+        private readonly ICompatibleSettingsRegistry _compatibleSettingsRegistry;
         private ISubscriptionToken? _tooltipUpdatedSubscription;
         private ISubscriptionToken? _tooltipsBulkLoadedSubscription;
-        private ISubscriptionToken? _featureComposedSubscription;
         private ISubscriptionToken? _settingAppliedSubscription;
-        public bool _isInitializing = true;
+        private bool _isInitializing = true;
         private CancellationTokenSource? _debounceTokenSource;
         private bool _isApplyingNumericValue;
         private bool _isRefreshingComboBox = false;
@@ -96,7 +97,13 @@ namespace Winhance.WPF.Features.Common.ViewModels
             new();
 
         [ObservableProperty]
-        private Winhance.Core.Features.Common.Interfaces.ComboBoxOption? _selectedComboBoxItem;
+        private Winhance.Core.Features.Common.Interfaces.ComboBoxOption? _nonPowerSelectedItem;
+
+        [ObservableProperty]
+        private Winhance.Core.Features.Common.Interfaces.ComboBoxOption? _powerPlanSelectedItem;
+
+        [ObservableProperty]
+        private Winhance.Core.Features.Common.Interfaces.ComboBoxOption? _powerSettingSelectedItem;
 
         [ObservableProperty]
         private int _numericValue;
@@ -271,6 +278,14 @@ namespace Winhance.WPF.Features.Common.ViewModels
         [ObservableProperty]
         private bool _isLocked;
 
+        [ObservableProperty]
+        private bool _isRegistryValueNotSet;
+
+        public bool ShowRegistryStateIndicator =>
+            DebugFlags.ShowRegistryStateDebugging &&
+            IsRegistryValueNotSet &&
+            SettingDefinition?.RegistrySettings?.Count > 0;
+
         public IAsyncRelayCommand ToggleCommand { get; }
         public IAsyncRelayCommand<object> ValueChangedCommand { get; }
         public IAsyncRelayCommand ActionCommand { get; }
@@ -319,6 +334,10 @@ namespace Winhance.WPF.Features.Common.ViewModels
             _isInitializing = false;
         }
 
+        public void CompleteInitialization()
+        {
+            _isInitializing = false;
+        }
 
         public async Task SetupComboBoxAsync(
             SettingDefinition setting,
@@ -328,60 +347,74 @@ namespace Winhance.WPF.Features.Common.ViewModels
             Dictionary<string, object?>? rawValues = null
         )
         {
-            _logService.Log(LogLevel.Info, $"[SettingItemViewModel] SetupComboBox called for '{SettingId}' with currentValue: {currentValue}");
-
             if (setting.InputType != InputType.Selection)
             {
-                _logService.Log(LogLevel.Info, $"[SettingItemViewModel] Setting '{SettingId}' is not Selection type, skipping combobox setup");
                 return;
             }
 
-            _logService.Log(LogLevel.Info, $"[SettingItemViewModel] Calling ComboBoxSetupService for '{SettingId}' - currentValue will be resolved to index");
-            var comboBoxSetupResult = await comboBoxSetupService.SetupComboBoxOptionsAsync(setting, currentValue);
-
-            if (comboBoxSetupResult.Success)
+            try
             {
-                _logService.Log(LogLevel.Info, $"[SettingItemViewModel] ComboBox setup successful for '{SettingId}', adding {comboBoxSetupResult.Options.Count} options");
+                var comboBoxSetupResult = await comboBoxSetupService.SetupComboBoxOptionsAsync(setting, currentValue);
 
-                Application.Current.Dispatcher.Invoke(() =>
+                if (comboBoxSetupResult.Success)
                 {
-                    foreach (var option in comboBoxSetupResult.Options)
+                    Application.Current.Dispatcher.Invoke(() =>
                     {
-                        ComboBoxOptions.Add(new Winhance.Core.Features.Common.Interfaces.ComboBoxOption
+                        foreach (var option in comboBoxSetupResult.Options)
                         {
-                            DisplayText = option.DisplayText,
-                            Value = option.Value,
-                            Description = option.Description,
-                        });
-                    }
-                });
+                            ComboBoxOptions.Add(new Winhance.Core.Features.Common.Interfaces.ComboBoxOption
+                            {
+                                DisplayText = option.DisplayText,
+                                Value = option.Value,
+                                Description = option.Description,
+                                Tag = option.Tag
+                            });
+                        }
 
-                _logService.Log(LogLevel.Info, $"[SettingItemViewModel] Setting SelectedValue to resolved index: {comboBoxSetupResult.SelectedValue} for '{SettingId}'");
-                SelectedValue = comboBoxSetupResult.SelectedValue;
-                _lastConfirmedSelectedValue = comboBoxSetupResult.SelectedValue;
-                UpdateWarningText(comboBoxSetupResult.SelectedValue);
+                        SelectedValue = comboBoxSetupResult.SelectedValue;
+                        _lastConfirmedSelectedValue = comboBoxSetupResult.SelectedValue;
 
-                if (SupportsSeparateACDC && rawValues != null)
+                        UpdateWarningText(comboBoxSetupResult.SelectedValue);
+
+                        if (SupportsSeparateACDC && rawValues != null)
+                        {
+                            if (rawValues.TryGetValue("ACValue", out var acVal))
+                            {
+                                var acIndex = comboBoxSetupService.ResolveIndexFromRawValues(setting, new Dictionary<string, object?> { ["PowerCfgValue"] = acVal });
+                                ACValue = acIndex;
+                                _lastConfirmedACValue = acIndex;
+                            }
+
+                            if (rawValues.TryGetValue("DCValue", out var dcVal))
+                            {
+                                var dcIndex = comboBoxSetupService.ResolveIndexFromRawValues(setting, new Dictionary<string, object?> { ["PowerCfgValue"] = dcVal });
+                                DCValue = dcIndex;
+                                _lastConfirmedDCValue = dcIndex;
+                            }
+                        }
+
+                        _isInitializing = false;
+                    });
+                }
+                else
                 {
-                    if (rawValues.TryGetValue("ACValue", out var acVal))
-                    {
-                        var acIndex = comboBoxSetupService.ResolveIndexFromRawValues(setting, new Dictionary<string, object?> { ["PowerCfgValue"] = acVal });
-                        ACValue = acIndex;
-                        _lastConfirmedACValue = acIndex;
-                    }
+                    _logService.Log(LogLevel.Warning, $"[SettingItemViewModel] ComboBox setup failed for '{SettingId}': {comboBoxSetupResult.ErrorMessage}");
 
-                    if (rawValues.TryGetValue("DCValue", out var dcVal))
+                    Application.Current.Dispatcher.Invoke(() =>
                     {
-                        var dcIndex = comboBoxSetupService.ResolveIndexFromRawValues(setting, new Dictionary<string, object?> { ["PowerCfgValue"] = dcVal });
-                        DCValue = dcIndex;
-                        _lastConfirmedDCValue = dcIndex;
-                    }
+                        SelectedValue = 0;
+                        _isInitializing = false;
+                    });
                 }
             }
-            else
+            catch (Exception ex)
             {
-                _logService.Log(LogLevel.Warning, $"[SettingItemViewModel] ComboBox setup failed for '{SettingId}': {comboBoxSetupResult.ErrorMessage}");
-                SelectedValue = 0;
+                _logService.Log(LogLevel.Error, $"[SettingItemViewModel] Exception in SetupComboBoxAsync for '{SettingId}': {ex.Message}");
+                Application.Current.Dispatcher.Invoke(() =>
+                {
+                    _isInitializing = false;
+                });
+                throw;
             }
         }
 
@@ -398,7 +431,8 @@ namespace Winhance.WPF.Features.Common.ViewModels
             IComboBoxSetupService comboBoxSetupService,
             ISystemSettingsDiscoveryService discoveryService,
             IUserPreferencesService userPreferencesService,
-            IDialogService dialogService
+            IDialogService dialogService,
+            ICompatibleSettingsRegistry compatibleSettingsRegistry
         )
         {
             _settingApplicationService =
@@ -412,6 +446,7 @@ namespace Winhance.WPF.Features.Common.ViewModels
             _discoveryService = discoveryService ?? throw new ArgumentNullException(nameof(discoveryService));
             _userPreferencesService = userPreferencesService ?? throw new ArgumentNullException(nameof(userPreferencesService));
             _dialogService = dialogService ?? throw new ArgumentNullException(nameof(dialogService));
+            _compatibleSettingsRegistry = compatibleSettingsRegistry ?? throw new ArgumentNullException(nameof(compatibleSettingsRegistry));
 
             ToggleCommand = new AsyncRelayCommand(HandleToggleAsync);
             ValueChangedCommand = new AsyncRelayCommand<object>(HandleValueChangedAsync);
@@ -423,9 +458,6 @@ namespace Winhance.WPF.Features.Common.ViewModels
             );
             _tooltipsBulkLoadedSubscription = _eventBus.Subscribe<TooltipsBulkLoadedEvent>(
                 HandleTooltipsBulkLoaded
-            );
-            _featureComposedSubscription = _eventBus.Subscribe<FeatureComposedEvent>(
-                HandleFeatureComposed
             );
             _settingAppliedSubscription = _eventBus.Subscribe<SettingAppliedEvent>(
                 HandleSettingApplied
@@ -451,6 +483,7 @@ namespace Winhance.WPF.Features.Common.ViewModels
                 }
 
                 await _settingApplicationService.ApplySettingAsync(SettingId, IsSelected, SelectedValue, checkboxResult);
+                _logService.Log(LogLevel.Info, $"Applied toggle setting '{SettingId}': {IsSelected}");
 
                 _hasChangedThisSession = true;
                 ShowRestartWarningIfNeeded();
@@ -517,17 +550,28 @@ namespace Winhance.WPF.Features.Common.ViewModels
 
         private async Task HandleValueChangedAsync(object? value)
         {
-            _logService.Log(LogLevel.Info, $"[SettingItemViewModel] HandleValueChangedAsync called for '{SettingId}' with value: {value}");
+            if (_isInitializing || _initializationService.IsGloballyInitializing)
+            {
+                return;
+            }
+
+            var actualValue = ExtractActualValue(value);
 
             if (IsApplying || _isRefreshingComboBox)
                 return;
 
             var previousValue = _lastConfirmedSelectedValue;
+
+            if (Equals(actualValue, previousValue))
+            {
+                return;
+            }
+
             var setting = await GetSettingDefinition();
 
             try
             {
-                var (canProceed, checkboxResult) = await HandleConfirmationIfNeeded(SelectedValue);
+                var (canProceed, checkboxResult) = await HandleConfirmationIfNeeded(actualValue);
                 if (!canProceed)
                 {
                     Application.Current.Dispatcher.Invoke(() =>
@@ -539,17 +583,17 @@ namespace Winhance.WPF.Features.Common.ViewModels
                     return;
                 }
 
-                UpdateWarningText(value);
+                UpdateWarningText(actualValue);
                 IsApplying = true;
                 Status = "Applying...";
 
                 bool enableFlag = InputType == InputType.Selection ? true : IsSelected;
 
-                await _settingApplicationService.ApplySettingAsync(SettingId, enableFlag, SelectedValue, checkboxResult);
+                await _settingApplicationService.ApplySettingAsync(SettingId, enableFlag, actualValue, checkboxResult);
                 _hasChangedThisSession = true;
                 ShowRestartWarningIfNeeded();
                 Status = "Applied";
-                _lastConfirmedSelectedValue = value;
+                _lastConfirmedSelectedValue = actualValue;
                 UpdateChildSettings();
             }
             catch (Exception ex)
@@ -571,6 +615,30 @@ namespace Winhance.WPF.Features.Common.ViewModels
                     await Task.Delay(3000);
                     Application.Current.Dispatcher.Invoke(() => Status = string.Empty);
                 });
+            }
+        }
+
+        private object? ExtractActualValue(object? value)
+        {
+            if (value is Winhance.Core.Features.Common.Interfaces.ComboBoxOption comboBoxOption)
+            {
+                return comboBoxOption.Value;
+            }
+
+            return value;
+        }
+
+        public void UpdatePropertySilently(Action updateAction)
+        {
+            var wasInitializing = _isInitializing;
+            try
+            {
+                _isInitializing = true;
+                updateAction();
+            }
+            finally
+            {
+                _isInitializing = wasInitializing;
             }
         }
 
@@ -618,8 +686,6 @@ namespace Winhance.WPF.Features.Common.ViewModels
 
             try
             {
-                _logService.Log(LogLevel.Info, $"[SettingItemViewModel] RefreshStateAsync called for '{SettingId}', current SelectedValue: {SelectedValue}");
-
                 var setting = await GetSettingDefinition();
 
                 var results = await _discoveryService.GetSettingStatesAsync(new[] { setting });
@@ -636,7 +702,6 @@ namespace Winhance.WPF.Features.Common.ViewModels
                         if (InputType == InputType.Selection)
                         {
                             var resolvedIndex = _comboBoxSetupService.ResolveIndexFromRawValues(setting, result.RawValues ?? new Dictionary<string, object?>());
-                            _logService.Log(LogLevel.Info, $"[SettingItemViewModel] RefreshStateAsync for '{SettingId}' - resolved index: {resolvedIndex}, current SelectedValue: {SelectedValue}, changing SelectedValue to: {resolvedIndex}");
 
                             var previousSelectedValue = SelectedValue;
                             SelectedValue = resolvedIndex;
@@ -689,13 +754,6 @@ namespace Winhance.WPF.Features.Common.ViewModels
             }
         }
 
-        private void HandleFeatureComposed(FeatureComposedEvent evt)
-        {
-            if (evt.Settings.Any(s => s.Id == SettingId))
-            {
-                _isInitializing = false;
-            }
-        }
 
         public bool MatchesSearch(string searchText)
         {
@@ -798,7 +856,7 @@ namespace Winhance.WPF.Features.Common.ViewModels
             }
         }
 
-        private void UpdateWarningText(object? value)
+        private async void UpdateWarningText(object? value)
         {
             if (SettingDefinition == null || value is not int selectedIndex)
             {
@@ -812,10 +870,144 @@ namespace Winhance.WPF.Features.Common.ViewModels
             {
                 WarningText = warning;
             }
+            else if (SettingDefinition.CustomProperties?.TryGetValue(CustomPropertyKeys.VersionCompatibilityMessage, out var compatMessage) == true &&
+                compatMessage is string messageText)
+            {
+                WarningText = messageText;
+            }
             else
             {
-                WarningText = null;
+                await UpdateCrossGroupInfoMessageAsync();
             }
+        }
+
+        private async Task UpdateCrossGroupInfoMessageAsync()
+        {
+            if (SettingDefinition?.CustomProperties?.ContainsKey(CustomPropertyKeys.CrossGroupChildSettings) != true)
+            {
+                WarningText = null;
+                return;
+            }
+
+            if (SelectedValue is not int selectedIndex)
+            {
+                WarningText = null;
+                return;
+            }
+
+            var displayNames = SettingDefinition.CustomProperties.TryGetValue(CustomPropertyKeys.ComboBoxDisplayNames, out var names)
+                ? names as string[]
+                : null;
+
+            if (displayNames == null)
+            {
+                WarningText = null;
+                return;
+            }
+
+            var customOptionIndex = displayNames.Length - 1;
+            bool isCustomState = selectedIndex == customOptionIndex || selectedIndex == ComboBoxResolver.CUSTOM_STATE_INDEX;
+
+            if (!isCustomState)
+            {
+                WarningText = null;
+                return;
+            }
+
+            var crossGroupSettings = SettingDefinition.CustomProperties[CustomPropertyKeys.CrossGroupChildSettings] as Dictionary<string, string>;
+            if (crossGroupSettings == null || !crossGroupSettings.Any())
+            {
+                WarningText = null;
+                return;
+            }
+
+            try
+            {
+                var childSettingsList = new List<SettingDefinition>();
+
+                foreach (var settingId in crossGroupSettings.Keys)
+                {
+                    try
+                    {
+                        var domainService = _domainServiceRouter.GetDomainService(settingId);
+                        var filteredSettings = _compatibleSettingsRegistry.GetFilteredSettings(domainService.DomainName);
+                        var childSetting = filteredSettings.FirstOrDefault(s => s.Id == settingId);
+
+                        if (childSetting != null)
+                        {
+                            childSettingsList.Add(childSetting);
+                        }
+                    }
+                    catch
+                    {
+                        continue;
+                    }
+                }
+
+                if (!childSettingsList.Any())
+                {
+                    WarningText = null;
+                    return;
+                }
+
+                var states = await _discoveryService.GetSettingStatesAsync(childSettingsList);
+                var groupedSettings = new Dictionary<string, List<string>>();
+
+                foreach (var (settingId, shortName) in crossGroupSettings)
+                {
+                    if (states.TryGetValue(settingId, out var state) && state.Success)
+                    {
+                        var childSetting = childSettingsList.FirstOrDefault(s => s.Id == settingId);
+                        if (childSetting != null)
+                        {
+                            var featureName = GetFeatureName(settingId);
+                            var groupKey = $"{featureName} ({childSetting.GroupName})";
+
+                            if (!groupedSettings.ContainsKey(groupKey))
+                            {
+                                groupedSettings[groupKey] = new List<string>();
+                            }
+
+                            groupedSettings[groupKey].Add(shortName);
+                        }
+                    }
+                }
+
+                if (groupedSettings.Any())
+                {
+                    var lines = groupedSettings.Select(kvp => $"• {kvp.Key}: {string.Join(", ", kvp.Value)}");
+                    var message = "This setting also controls:\n" + string.Join("\n", lines);
+
+                    Application.Current.Dispatcher.Invoke(() => WarningText = message);
+                }
+                else
+                {
+                    Application.Current.Dispatcher.Invoke(() => WarningText = null);
+                }
+            }
+            catch (Exception ex)
+            {
+                _logService.Log(LogLevel.Error, $"Error updating cross-group info message for {SettingId}: {ex.Message}");
+                Application.Current.Dispatcher.Invoke(() => WarningText = null);
+            }
+        }
+
+        private string GetFeatureName(string settingId)
+        {
+            if (settingId.StartsWith("privacy-"))
+                return "Privacy";
+            if (settingId.StartsWith("notifications-"))
+                return "Notifications";
+            if (settingId.StartsWith("start-"))
+                return "Start Menu";
+            if (settingId.StartsWith("customize-"))
+                return "Customization";
+            if (settingId.StartsWith("gaming-"))
+                return "Gaming";
+            if (settingId.StartsWith("power-"))
+                return "Power";
+
+            return "Settings";
         }
 
         private void ShowRestartWarningIfNeeded()
@@ -833,9 +1025,16 @@ namespace Winhance.WPF.Features.Common.ViewModels
 
         private async Task HandleACValueChangedAsync(object? value)
         {
-            if (IsApplying) return;
+            if (IsApplying || _initializationService.IsGloballyInitializing)
+                return;
 
             var previousValue = _lastConfirmedACValue;
+
+            if (Equals(value, previousValue))
+            {
+                return;
+            }
+
             var setting = await GetSettingDefinition();
             IsApplying = true;
             Status = "Applying...";
@@ -891,9 +1090,16 @@ namespace Winhance.WPF.Features.Common.ViewModels
 
         private async Task HandleDCValueChangedAsync(object? value)
         {
-            if (IsApplying) return;
+            if (IsApplying || _initializationService.IsGloballyInitializing)
+                return;
 
             var previousValue = _lastConfirmedDCValue;
+
+            if (Equals(value, previousValue))
+            {
+                return;
+            }
+
             var setting = await GetSettingDefinition();
             IsApplying = true;
             Status = "Applying...";
@@ -1085,7 +1291,6 @@ namespace Winhance.WPF.Features.Common.ViewModels
             _debounceTokenSource?.Dispose();
             _tooltipUpdatedSubscription?.Dispose();
             _tooltipsBulkLoadedSubscription?.Dispose();
-            _featureComposedSubscription?.Dispose();
             _settingAppliedSubscription?.Dispose();
         }
     }

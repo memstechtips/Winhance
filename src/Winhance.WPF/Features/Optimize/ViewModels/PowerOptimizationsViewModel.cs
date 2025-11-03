@@ -1,7 +1,9 @@
 using System;
+using System.Collections.Generic;
 using System.Linq;
 using System.Threading.Tasks;
 using System.Windows;
+using CommunityToolkit.Mvvm.Input;
 using Winhance.Core.Features.Common.Constants;
 using Winhance.Core.Features.Common.Enums;
 using Winhance.Core.Features.Common.Events;
@@ -10,6 +12,8 @@ using Winhance.Core.Features.Common.Models;
 using Winhance.Core.Features.Optimize.Models;
 using Winhance.WPF.Features.Common.Interfaces;
 using Winhance.WPF.Features.Common.ViewModels;
+using Winhance.WPF.Features.Common.Views;
+using ICommand = System.Windows.Input.ICommand;
 
 namespace Winhance.WPF.Features.Optimize.ViewModels
 {
@@ -25,6 +29,8 @@ namespace Winhance.WPF.Features.Optimize.ViewModels
         : BaseSettingsFeatureViewModel(domainServiceRouter, settingsLoadingService, logService)
     {
         private ISubscriptionToken? _powerPlanChangedSubscription;
+
+        public ICommand DeletePowerPlanCommand => new RelayCommand<PowerPlanComboBoxOption>(async plan => await DeletePowerPlan(plan));
 
         public override string ModuleId => FeatureIds.Power;
         public override string DisplayName => "Power";
@@ -153,9 +159,7 @@ namespace Winhance.WPF.Features.Optimize.ViewModels
         {
             await Application.Current.Dispatcher.InvokeAsync(() =>
             {
-                setting._isInitializing = true;
-                updateAction();
-                setting._isInitializing = false;
+                setting.UpdatePropertySilently(updateAction);
             });
         }
 
@@ -200,18 +204,7 @@ namespace Winhance.WPF.Features.Optimize.ViewModels
 
                 await Application.Current.Dispatcher.InvokeAsync(() =>
                 {
-                    powerPlanSetting._isInitializing = true;
-
-                    var currentSelectedValue = powerPlanSetting.SelectedValue;
-
-                    if (powerPlanSetting.ComboBoxOptions.Count == options.Count)
-                    {
-                        for (int i = 0; i < options.Count; i++)
-                        {
-                            powerPlanSetting.ComboBoxOptions[i].DisplayText = options[i].DisplayName;
-                        }
-                    }
-                    else
+                    powerPlanSetting.UpdatePropertySilently(() =>
                     {
                         powerPlanSetting.ComboBoxOptions.Clear();
                         for (int i = 0; i < options.Count; i++)
@@ -219,22 +212,102 @@ namespace Winhance.WPF.Features.Optimize.ViewModels
                             powerPlanSetting.ComboBoxOptions.Add(new Winhance.Core.Features.Common.Interfaces.ComboBoxOption
                             {
                                 DisplayText = options[i].DisplayName,
-                                Value = i
+                                Value = options[i].Index,
+                                Description = options[i].ExistsOnSystem ? "Installed on system" : "Not installed",
+                                Tag = options[i]
                             });
                         }
-                    }
+                    });
 
-                    if (!Equals(currentSelectedValue, currentIndex))
-                    {
-                        powerPlanSetting.SelectedValue = currentIndex;
-                    }
-
-                    powerPlanSetting._isInitializing = false;
+                    powerPlanSetting.SelectedValue = currentIndex;
                 });
             }
             catch (Exception ex)
             {
                 logService.Log(LogLevel.Error, $"Failed to refresh power plan combo box: {ex.Message}");
+            }
+        }
+
+        private async Task DeletePowerPlan(PowerPlanComboBoxOption planToDelete)
+        {
+            try
+            {
+                if (planToDelete == null) return;
+
+                if (planToDelete.IsActive)
+                {
+                    await Application.Current.Dispatcher.InvokeAsync(() =>
+                    {
+                        CustomDialog.ShowInformation("Cannot Delete Active Plan",
+                            "Cannot Delete Active Plan",
+                            "You cannot delete the currently active power plan. Please switch to a different plan first.",
+                            "");
+                    });
+                    return;
+                }
+
+                if (!planToDelete.ExistsOnSystem || planToDelete.SystemPlan == null)
+                {
+                    await Application.Current.Dispatcher.InvokeAsync(() =>
+                    {
+                        CustomDialog.ShowInformation("Cannot Delete Plan",
+                            "Cannot Delete Plan",
+                            "This plan does not exist on the system and cannot be deleted.",
+                            "");
+                    });
+                    return;
+                }
+
+                bool? confirmed = await Application.Current.Dispatcher.InvokeAsync(() =>
+                {
+                    return CustomDialog.ShowConfirmation(
+                        "Confirm Delete",
+                        "Delete Power Plan",
+                        $"Are you sure you want to delete the following power plan?\n\n{planToDelete.DisplayName}",
+                        "");
+                });
+
+                if (confirmed != true) return;
+
+                var powerService = domainServiceRouter.GetDomainService(ModuleId) as Winhance.Core.Features.Optimize.Interfaces.IPowerService;
+                if (powerService == null) return;
+
+                var success = await powerService.DeletePowerPlanAsync(planToDelete.SystemPlan.Guid);
+
+                if (success)
+                {
+                    var powerPlanSetting = Settings.FirstOrDefault(s =>
+                        s.SettingDefinition?.CustomProperties?.ContainsKey("LoadDynamicOptions") == true);
+
+                    if (powerPlanSetting != null)
+                    {
+                        await RefreshPowerPlanComboBox(powerPlanSetting);
+                    }
+
+                    logService.Log(LogLevel.Info, $"Successfully deleted power plan: {planToDelete.DisplayName}");
+                }
+                else
+                {
+                    await Application.Current.Dispatcher.InvokeAsync(() =>
+                    {
+                        CustomDialog.ShowInformation("Delete Failed",
+                            "Delete Failed",
+                            $"Failed to delete power plan '{planToDelete.DisplayName}'. Check the logs for more details.",
+                            "");
+                    });
+                    logService.Log(LogLevel.Error, $"Failed to delete power plan: {planToDelete.DisplayName}");
+                }
+            }
+            catch (Exception ex)
+            {
+                logService.Log(LogLevel.Error, $"Error deleting power plan: {ex.Message}");
+                await Application.Current.Dispatcher.InvokeAsync(() =>
+                {
+                    CustomDialog.ShowInformation("Error",
+                        "Error",
+                        $"An error occurred while deleting the power plan: {ex.Message}",
+                        "");
+                });
             }
         }
 

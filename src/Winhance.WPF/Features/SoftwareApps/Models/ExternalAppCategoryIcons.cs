@@ -9,7 +9,7 @@ namespace Winhance.WPF.Features.SoftwareApps.Models
             ["Browsers"] = "Web",
             ["Compression"] = "ZipBox",
             ["Customization Utilities"] = "Palette",
-            ["Development"] = "CodeBraces",
+            ["Development Apps"] = "CodeTags",
             ["Document Viewers"] = "FileDocument",
             ["File & Disk Management"] = "Folder",
             ["Gaming"] = "GamepadVariant",
@@ -20,7 +20,8 @@ namespace Winhance.WPF.Features.SoftwareApps.Models
             ["Online Storage"] = "Cloud",
             ["Optical Disc Tools"] = "Disc",
             ["Other Utilities"] = "Tools",
-            ["Remote Access"] = "Remote"
+            ["Remote Access"] = "Remote",
+            ["Runtimes & Dependencies"] = "CodeTagsCheck"
         };
 
         public static string GetIcon(string categoryName) =>

@@ -34,6 +34,7 @@ public static class SoundOptimizations
                             DisabledValue = 1, // When toggle is OFF, startup sound is disabled
                             DefaultValue = 0, // Default value when registry key exists but no value is set
                             ValueType = RegistryValueKind.DWord,
+                            AbsenceMeansEnabled = true,
                         },
                         new RegistrySetting
                         {
@@ -44,6 +45,7 @@ public static class SoundOptimizations
                             DisabledValue = 1, // When toggle is OFF, user startup sound is disabled
                             DefaultValue = 0, // Default value when registry key exists but no value is set
                             ValueType = RegistryValueKind.DWord,
+                            AbsenceMeansEnabled = true,
                         },
                     },
                 },
@@ -116,6 +118,7 @@ public static class SoundOptimizations
                             DisabledValue = 0,
                             DefaultValue = 1,
                             ValueType = RegistryValueKind.DWord,
+                            AbsenceMeansEnabled = true,
                         },
                     },
                 },
@@ -138,6 +141,7 @@ public static class SoundOptimizations
                             DisabledValue = 0,
                             DefaultValue = 0,
                             ValueType = RegistryValueKind.DWord,
+                            AbsenceMeansEnabled = true,
                         },
                     },
                 },
@@ -160,6 +164,7 @@ public static class SoundOptimizations
                             DisabledValue = 0, // When toggle is OFF, last used voice activation is disabled
                             DefaultValue = 0, // Default value when registry key exists but no value is set
                             ValueType = RegistryValueKind.DWord,
+                            AbsenceMeansEnabled = true,
                         },
                     },
                 },
@@ -183,6 +188,7 @@ public static class SoundOptimizations
                             DisabledValue = 0,
                             DefaultValue = 1,
                             ValueType = RegistryValueKind.DWord,
+                            AbsenceMeansEnabled = true,
                         },
                     },
                 },
@@ -206,6 +212,7 @@ public static class SoundOptimizations
                             DisabledValue = 0,
                             DefaultValue = 1,
                             ValueType = RegistryValueKind.DWord,
+                            AbsenceMeansEnabled = true,
                         },
                     },
                 },
