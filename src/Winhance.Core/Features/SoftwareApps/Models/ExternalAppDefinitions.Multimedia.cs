@@ -204,6 +204,16 @@ namespace Winhance.Core.Features.SoftwareApps.Models
                             WinGetPackageId = "9P1XD8ZQJ7JD",
                             Category = "Multimedia (Audio & Video)",
                             WebsiteUrl = "https://www.freac.org/"
+                        },
+                        new ItemDefinition
+                        {
+                            Id = "external-app-smplayer",
+                            Name = "SMPlayer",
+                            Description = "Media Player with built-in codecs that can play virtually all video and audio formats",
+                            GroupName = "Multimedia (Audio & Video)",
+                            WinGetPackageId = "SMPlayer.SMPlayer",
+                            Category = "Multimedia (Audio & Video)",
+                            WebsiteUrl = "https://www.smplayer.info/"
                         }
                     }
                 };
