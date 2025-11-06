@@ -6,6 +6,7 @@ using Winhance.Core.Features.Common.Constants;
 using Winhance.Core.Features.Common.Enums;
 using Winhance.Core.Features.Common.Interfaces;
 using Winhance.Core.Features.Common.Models;
+using Winhance.Core.Features.Optimize.Interfaces;
 using Winhance.Core.Features.SoftwareApps.Models;
 using Winhance.Core.Features.SoftwareApps.Utilities;
 
@@ -60,7 +61,9 @@ public class AutounattendScriptBuilder
 
         // 2b. Power settings
         var powerPlanSetting = FindPowerPlanSetting(config, allSettings);
-        var powerSettings = ExtractPowerSettings(config, allSettings);
+        var powerCfgQueryService = _serviceProvider.GetRequiredService<IPowerCfgQueryService>();
+        var activePowerPlan = await powerCfgQueryService.GetActivePowerPlanAsync();
+        var powerSettings = await ExtractPowerSettingsAsync(activePowerPlan.Guid, allSettings);
         if (powerPlanSetting != null || powerSettings.Any())
         {
             AppendPowerSettingsSection(sb, powerPlanSetting, powerSettings, "    ");
@@ -222,49 +225,53 @@ public class AutounattendScriptBuilder
             item.Id == "power-plan-selection" && !string.IsNullOrEmpty(item.PowerPlanGuid));
     }
 
-    private List<PowerSettingData> ExtractPowerSettings(
-        UnifiedConfigurationFile config,
+    private async Task<List<PowerSettingData>> ExtractPowerSettingsAsync(
+        string activePowerPlanGuid,
         IReadOnlyDictionary<string, IEnumerable<SettingDefinition>> allSettings)
     {
         var powerSettings = new List<PowerSettingData>();
 
-        if (!config.Optimize.Features.TryGetValue(FeatureIds.Power, out var powerSection))
-            return powerSettings;
-
         if (!allSettings.TryGetValue(FeatureIds.Power, out var settingDefinitions))
             return powerSettings;
 
-        foreach (var configItem in powerSection.Items)
+        var hardwareService = _serviceProvider.GetRequiredService<IHardwareDetectionService>();
+        var powerCfgQueryService = _serviceProvider.GetRequiredService<IPowerCfgQueryService>();
+
+        bool hasBattery = await hardwareService.HasBatteryAsync();
+
+        var bulkQueryResults = await powerCfgQueryService.GetAllPowerSettingsACDCAsync(activePowerPlanGuid);
+
+        foreach (var settingDef in settingDefinitions)
         {
-            if (configItem.Id == "power-plan-selection")
+            if (settingDef.Id == "power-plan-selection" || settingDef.PowerCfgSettings?.Any() != true)
                 continue;
 
-            var settingDef = settingDefinitions.FirstOrDefault(s => s.Id == configItem.Id);
-            if (settingDef == null || settingDef.PowerCfgSettings?.Any() != true)
+            if (settingDef.RequiresBattery && !hasBattery)
                 continue;
 
-            if (configItem.InputType == InputType.Selection && configItem.SelectedIndex.HasValue)
+            if (settingDef.RequiresBrightnessSupport)
+                continue;
+
+            foreach (var powerCfgSetting in settingDef.PowerCfgSettings)
             {
-                var resolvedValues = _comboBoxResolver.ResolveIndexToRawValues(settingDef, configItem.SelectedIndex.Value);
-                if (resolvedValues.TryGetValue("PowerCfgValue", out var powerCfgValue))
-                {
-                    int value = Convert.ToInt32(powerCfgValue);
+                if (!bulkQueryResults.TryGetValue(powerCfgSetting.SettingGuid, out var values))
+                    continue;
 
-                    foreach (var powerCfgSetting in settingDef.PowerCfgSettings)
-                    {
-                        powerSettings.Add(new PowerSettingData
-                        {
-                            SubgroupGuid = powerCfgSetting.SubgroupGuid,
-                            SettingGuid = powerCfgSetting.SettingGuid,
-                            AcValue = value,
-                            DcValue = value,
-                            Description = settingDef.Description
-                        });
-                    }
-                }
+                if (!values.acValue.HasValue || !values.dcValue.HasValue)
+                    continue;
+
+                powerSettings.Add(new PowerSettingData
+                {
+                    SubgroupGuid = powerCfgSetting.SubgroupGuid,
+                    SettingGuid = powerCfgSetting.SettingGuid,
+                    AcValue = values.acValue.Value,
+                    DcValue = values.dcValue.Value,
+                    Description = settingDef.Description
+                });
             }
         }
 
+        _logService.Log(LogLevel.Info, $"Extracted {powerSettings.Count} power settings from current system state");
         return powerSettings;
     }
 
@@ -295,70 +302,40 @@ public class AutounattendScriptBuilder
     {
         var planGuid = powerPlanSetting.PowerPlanGuid;
         var planName = powerPlanSetting.PowerPlanName;
-        bool isWinhancePlan = planGuid == "57696e68-616e-6365-506f-776572000000";
 
         sb.AppendLine($"{indent}Write-Log \"Creating power plan: {planName}...\" \"INFO\"");
         sb.AppendLine();
-
-        if (isWinhancePlan)
-        {
-            sb.AppendLine($"{indent}$UltimatePerfGuid = \"e9a42b02-d5df-448d-aa00-03f14749eb61\"");
-            sb.AppendLine($"{indent}$WinhancePlanGuid = \"{planGuid}\"");
-            sb.AppendLine();
-            sb.AppendLine($"{indent}$existingPlans = powercfg /list");
-            sb.AppendLine($"{indent}if (-not ($existingPlans -match $UltimatePerfGuid)) {{");
-            sb.AppendLine($"{indent}    Write-Log \"Importing Ultimate Performance...\" \"INFO\"");
-            sb.AppendLine($"{indent}    powercfg /duplicatescheme $UltimatePerfGuid 2>&1 | Out-Null");
-            sb.AppendLine($"{indent}}}");
-            sb.AppendLine();
-            sb.AppendLine($"{indent}$result = powercfg /duplicatescheme $UltimatePerfGuid $WinhancePlanGuid 2>&1");
-            sb.AppendLine($"{indent}if ($LASTEXITCODE -ne 0) {{");
-            sb.AppendLine($"{indent}    Write-Log \"Failed to create Winhance Power Plan: $result\" \"ERROR\"");
-            sb.AppendLine($"{indent}    $planCreated = $false");
-            sb.AppendLine($"{indent}}} else {{");
-            sb.AppendLine($"{indent}    Write-Log \"Winhance Power Plan created successfully\" \"SUCCESS\"");
-            sb.AppendLine($"{indent}    powercfg /changename $WinhancePlanGuid \"{planName}\" \"Ultimate Performance with Winhance-optimized settings for maximum performance.\" | Out-Null");
-            sb.AppendLine($"{indent}    $planCreated = $true");
-            sb.AppendLine($"{indent}}}");
-            sb.AppendLine();
-
-            AppendHiddenSettingsEnable(sb, indent);
-        }
-        else
-        {
-            sb.AppendLine($"{indent}$customPlanGuid = \"{planGuid}\"");
-            sb.AppendLine($"{indent}$planCreated = $false");
-            sb.AppendLine();
-            sb.AppendLine($"{indent}$sourceSchemes = @(");
-            sb.AppendLine($"{indent}    @{{ Name = \"Balanced\"; Guid = \"381b4222-f694-41f0-9685-ff5bb260df2e\" }},");
-            sb.AppendLine($"{indent}    @{{ Name = \"High Performance\"; Guid = \"8c5e7fda-e8bf-4a96-9a85-a6e23a8c635c\" }},");
-            sb.AppendLine($"{indent}    @{{ Name = \"Ultimate Performance\"; Guid = \"e9a42b02-d5df-448d-aa00-03f14749eb61\" }}");
-            sb.AppendLine($"{indent})");
-            sb.AppendLine();
-            sb.AppendLine($"{indent}foreach ($scheme in $sourceSchemes) {{");
-            sb.AppendLine($"{indent}    Write-Log \"Attempting to duplicate from $($scheme.Name)...\" \"INFO\"");
-            sb.AppendLine($"{indent}    $result = powercfg /duplicatescheme $($scheme.Guid) $customPlanGuid 2>&1");
-            sb.AppendLine($"{indent}    if ($LASTEXITCODE -eq 0) {{");
-            sb.AppendLine($"{indent}        Write-Log \"Successfully duplicated from $($scheme.Name)\" \"SUCCESS\"");
-            sb.AppendLine($"{indent}        powercfg /changename $customPlanGuid \"{planName}\" | Out-Null");
-            sb.AppendLine($"{indent}        $planCreated = $true");
-            sb.AppendLine($"{indent}        break");
-            sb.AppendLine($"{indent}    }}");
-            sb.AppendLine($"{indent}}}");
-            sb.AppendLine();
-            sb.AppendLine($"{indent}if (-not $planCreated) {{");
-            sb.AppendLine($"{indent}    Write-Log \"Failed to create custom power plan\" \"ERROR\"");
-            sb.AppendLine($"{indent}}}");
-            sb.AppendLine();
-        }
-
+        sb.AppendLine($"{indent}$customPlanGuid = \"{planGuid}\"");
+        sb.AppendLine($"{indent}$planCreated = $false");
+        sb.AppendLine();
+        sb.AppendLine($"{indent}$sourceSchemes = @(");
+        sb.AppendLine($"{indent}    @{{ Name = \"Ultimate Performance\"; Guid = \"e9a42b02-d5df-448d-aa00-03f14749eb61\" }}");
+        sb.AppendLine($"{indent}    @{{ Name = \"Balanced\"; Guid = \"381b4222-f694-41f0-9685-ff5bb260df2e\" }},");
+        sb.AppendLine($"{indent}    @{{ Name = \"High Performance\"; Guid = \"8c5e7fda-e8bf-4a96-9a85-a6e23a8c635c\" }},");
+        sb.AppendLine($"{indent})");
+        sb.AppendLine();
+        sb.AppendLine($"{indent}foreach ($scheme in $sourceSchemes) {{");
+        sb.AppendLine($"{indent}    Write-Log \"Attempting to duplicate from $($scheme.Name)...\" \"INFO\"");
+        sb.AppendLine($"{indent}    $result = powercfg /duplicatescheme $($scheme.Guid) $customPlanGuid 2>&1");
+        sb.AppendLine($"{indent}    if ($LASTEXITCODE -eq 0) {{");
+        sb.AppendLine($"{indent}        Write-Log \"Successfully duplicated from $($scheme.Name)\" \"SUCCESS\"");
+        sb.AppendLine($"{indent}        powercfg /changename $customPlanGuid \"{planName}\" | Out-Null");
+        sb.AppendLine($"{indent}        $planCreated = $true");
+        sb.AppendLine($"{indent}        break");
+        sb.AppendLine($"{indent}    }}");
+        sb.AppendLine($"{indent}}}");
+        sb.AppendLine();
+        sb.AppendLine($"{indent}if (-not $planCreated) {{");
+        sb.AppendLine($"{indent}    Write-Log \"Failed to create custom power plan\" \"ERROR\"");
+        sb.AppendLine($"{indent}}}");
+        sb.AppendLine();
         sb.AppendLine($"{indent}Write-Log \"Disabling hibernation...\" \"INFO\"");
         sb.AppendLine($"{indent}powercfg /hibernate off 2>$null");
         sb.AppendLine($"{indent}Write-Log \"Hibernation disabled\" \"SUCCESS\"");
         sb.AppendLine();
     }
 
-    private void AppendHiddenSettingsEnable(StringBuilder sb, string indent)
+    private void AppendPowerSettingsApplication(StringBuilder sb, List<PowerSettingData> powerSettings, string? powerPlanGuid, string indent)
     {
         sb.AppendLine($"{indent}Write-Log \"Enabling hidden power settings...\" \"INFO\"");
         sb.AppendLine($"{indent}$PowerSettingsBasePath = \"HKLM:\\SYSTEM\\CurrentControlSet\\Control\\Power\\PowerSettings\"");
@@ -392,10 +369,6 @@ public class AutounattendScriptBuilder
         sb.AppendLine($"{indent}}}");
         sb.AppendLine($"{indent}Write-Log \"Enabled $enabledCount hidden power settings\" \"SUCCESS\"");
         sb.AppendLine();
-    }
-
-    private void AppendPowerSettingsApplication(StringBuilder sb, List<PowerSettingData> powerSettings, string? powerPlanGuid, string indent)
-    {
         sb.AppendLine($"{indent}Write-Log \"Applying power settings...\" \"INFO\"");
         sb.AppendLine();
         sb.AppendLine($"{indent}$settings = @(");
