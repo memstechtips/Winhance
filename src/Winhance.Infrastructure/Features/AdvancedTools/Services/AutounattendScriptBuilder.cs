@@ -309,9 +309,9 @@ public class AutounattendScriptBuilder
         sb.AppendLine($"{indent}$planCreated = $false");
         sb.AppendLine();
         sb.AppendLine($"{indent}$sourceSchemes = @(");
-        sb.AppendLine($"{indent}    @{{ Name = \"Ultimate Performance\"; Guid = \"e9a42b02-d5df-448d-aa00-03f14749eb61\" }}");
+        sb.AppendLine($"{indent}    @{{ Name = \"Ultimate Performance\"; Guid = \"e9a42b02-d5df-448d-aa00-03f14749eb61\" }},");
         sb.AppendLine($"{indent}    @{{ Name = \"Balanced\"; Guid = \"381b4222-f694-41f0-9685-ff5bb260df2e\" }},");
-        sb.AppendLine($"{indent}    @{{ Name = \"High Performance\"; Guid = \"8c5e7fda-e8bf-4a96-9a85-a6e23a8c635c\" }},");
+        sb.AppendLine($"{indent}    @{{ Name = \"High Performance\"; Guid = \"8c5e7fda-e8bf-4a96-9a85-a6e23a8c635c\" }}");
         sb.AppendLine($"{indent})");
         sb.AppendLine();
         sb.AppendLine($"{indent}foreach ($scheme in $sourceSchemes) {{");

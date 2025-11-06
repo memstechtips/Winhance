@@ -95,6 +95,13 @@ namespace Winhance.Infrastructure.Features.Customize.Services
             try
             {
                 bool shouldKillExplorer = !uiManagementService.IsConfigImportMode;
+
+                if (uiManagementService.IsConfigImportMode && !uiManagementService.IsProcessRunning("explorer"))
+                {
+                    logService.Log(LogLevel.Info, "[WindowsThemeService] Skipping Windows UI refresh - explorer not running");
+                    return;
+                }
+
                 await uiManagementService.RefreshWindowsGUI(killExplorer: shouldKillExplorer);
             }
             catch (Exception ex)
