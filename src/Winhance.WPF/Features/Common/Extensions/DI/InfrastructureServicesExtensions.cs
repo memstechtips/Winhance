@@ -8,19 +8,8 @@ using Winhance.WPF.Features.Common.Interfaces;
 
 namespace Winhance.WPF.Features.Common.Extensions.DI
 {
-    /// <summary>
-    /// Extension methods for registering infrastructure services.
-    /// This layer contains concrete implementations of core abstractions
-    /// and system-level services.
-    /// </summary>
     public static class InfrastructureServicesExtensions
     {
-        /// <summary>
-        /// Registers infrastructure services for the Winhance application.
-        /// These are concrete implementations of core interfaces and system services.
-        /// </summary>
-        /// <param name="services">The service collection to configure</param>
-        /// <returns>The service collection for method chaining</returns>
         public static IServiceCollection AddInfrastructureServices(this IServiceCollection services)
         {
             // Core Infrastructure Services (Singleton - Cross-cutting concerns)
@@ -105,7 +94,8 @@ namespace Winhance.WPF.Features.Common.Extensions.DI
                 var navigationService = new FrameNavigationService(
                     provider,
                     provider.GetRequiredService<IParameterSerializer>(),
-                    provider.GetRequiredService<ILogService>()
+                    provider.GetRequiredService<ILogService>(),
+                    provider.GetRequiredService<IViewPoolService>()
                 );
 
                 // Register view mappings
@@ -151,6 +141,8 @@ namespace Winhance.WPF.Features.Common.Extensions.DI
                 )
             );
 
+            services.AddScoped<IFilterUpdateService, Winhance.WPF.Features.Common.Services.FilterUpdateService>();
+
             // Windows Compatibility Filter (Transient - Stateless)
             services.AddTransient<IWindowsCompatibilityFilter, WindowsCompatibilityFilter>();
             services.AddTransient<IHardwareCompatibilityFilter, HardwareCompatibilityFilter>();
@@ -170,12 +162,6 @@ namespace Winhance.WPF.Features.Common.Extensions.DI
             return services;
         }
 
-        /// <summary>
-        /// Completes system services registration after UI services are available.
-        /// This method handles services with UI layer dependencies.
-        /// </summary>
-        /// <param name="services">The service collection to configure</param>
-        /// <returns>The service collection for method chaining</returns>
         public static IServiceCollection CompleteSystemServicesRegistration(
             this IServiceCollection services
         )
@@ -191,11 +177,6 @@ namespace Winhance.WPF.Features.Common.Extensions.DI
             return services;
         }
 
-
-        /// <summary>
-        /// Registers view mappings for navigation service.
-        /// </summary>
-        /// <param name="navigationService">The navigation service to configure</param>
         private static void RegisterViewMappings(FrameNavigationService navigationService)
         {
             // Software Apps view mappings

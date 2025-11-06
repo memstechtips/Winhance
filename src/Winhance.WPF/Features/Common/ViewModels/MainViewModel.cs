@@ -11,7 +11,6 @@ using System.Windows.Interop;
 using System.Windows.Media;
 using CommunityToolkit.Mvvm.ComponentModel;
 using CommunityToolkit.Mvvm.Input;
-using Microsoft.Extensions.DependencyInjection;
 using Winhance.Core.Features.Common.Enums;
 using Winhance.Core.Features.Common.Events;
 using Winhance.Core.Features.Common.Events.UI;
@@ -37,15 +36,26 @@ namespace Winhance.WPF.Features.Common.ViewModels
         private readonly IFlyoutManagementService _flyoutManagement;
         private readonly IUserPreferencesService _preferencesService;
         private readonly ICompatibleSettingsRegistry _compatibleSettingsRegistry;
-        private readonly IDomainServiceRouter _domainServiceRouter;
         private readonly IDialogService _dialogService;
-
-
+        private readonly IFilterUpdateService _filterUpdateService;
+        private readonly HashSet<BaseCategoryViewModel> _loadedCategoryViewModels = new();
 
         public INavigationService NavigationService => _navigationService;
 
         [ObservableProperty]
         private object _currentViewModel;
+
+        public object CurrentViewInstance
+        {
+            get
+            {
+                if (_navigationService is Infrastructure.Features.Common.Services.FrameNavigationService frameNav)
+                {
+                    return frameNav.CurrentViewInstance;
+                }
+                return null;
+            }
+        }
 
         private string _currentViewName = string.Empty;
         public string CurrentViewName
@@ -99,8 +109,8 @@ namespace Winhance.WPF.Features.Common.ViewModels
             IFlyoutManagementService flyoutManagement,
             IUserPreferencesService preferencesService,
             ICompatibleSettingsRegistry compatibleSettingsRegistry,
-            IDomainServiceRouter domainServiceRouter,
             IDialogService dialogService,
+            IFilterUpdateService filterUpdateService,
             MoreMenuViewModel moreMenuViewModel,
             Winhance.WPF.Features.AdvancedTools.ViewModels.AdvancedToolsMenuViewModel advancedToolsMenuViewModel
         )
@@ -113,8 +123,8 @@ namespace Winhance.WPF.Features.Common.ViewModels
             _flyoutManagement = flyoutManagement;
             _preferencesService = preferencesService;
             _compatibleSettingsRegistry = compatibleSettingsRegistry;
-            _domainServiceRouter = domainServiceRouter;
             _dialogService = dialogService;
+            _filterUpdateService = filterUpdateService;
             MoreMenuViewModel = moreMenuViewModel;
             AdvancedToolsMenuViewModel = advancedToolsMenuViewModel;
 
@@ -154,6 +164,7 @@ namespace Winhance.WPF.Features.Common.ViewModels
             LoadingRoute = string.Empty;
             CurrentViewName = e.Route;
             SelectedNavigationItem = e.Route;
+            OnPropertyChanged(nameof(CurrentViewInstance));
 
             if (e.Parameter != null && e.Parameter is IFeatureViewModel)
             {
@@ -179,6 +190,11 @@ namespace Winhance.WPF.Features.Common.ViewModels
                         }
                     );
                 }
+            }
+
+            if (CurrentViewModel is BaseCategoryViewModel categoryViewModel)
+            {
+                _loadedCategoryViewModels.Add(categoryViewModel);
             }
         }
 
@@ -388,15 +404,20 @@ namespace Winhance.WPF.Features.Common.ViewModels
 
             _compatibleSettingsRegistry.SetFilterEnabled(IsWindowsVersionFilterEnabled);
 
-            _domainServiceRouter.ClearAllSettingsCaches();
-
-            if (CurrentViewModel is BaseCategoryViewModel categoryViewModel)
+            foreach (var categoryViewModel in _loadedCategoryViewModels)
             {
-                await categoryViewModel.RefreshAllFeaturesAsync();
+                foreach (var view in categoryViewModel.FeatureViews)
+                {
+                    if (view.DataContext is ISettingsFeatureViewModel settingsVm)
+                    {
+                        await _filterUpdateService.UpdateFeatureSettingsAsync(settingsVm);
+                    }
+                }
             }
-            else if (CurrentViewModel is ISettingsFeatureViewModel settingsViewModel)
+
+            if (CurrentViewModel is ISettingsFeatureViewModel settingsViewModel)
             {
-                await settingsViewModel.RefreshSettingsAsync();
+                await _filterUpdateService.UpdateFeatureSettingsAsync(settingsViewModel);
             }
         }
 

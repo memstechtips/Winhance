@@ -27,6 +27,7 @@ namespace Winhance.Infrastructure.Features.Common.Services
         private readonly IServiceProvider _serviceProvider;
         private readonly IParameterSerializer _parameterSerializer;
         private readonly ILogService _logService;
+        private readonly IViewPoolService _viewPoolService;
         private object _currentParameter;
         private string _currentRoute;
         private const int MaxHistorySize = 50;
@@ -37,11 +38,13 @@ namespace Winhance.Infrastructure.Features.Common.Services
         public FrameNavigationService(
             IServiceProvider serviceProvider,
             IParameterSerializer parameterSerializer,
-            ILogService logService)
+            ILogService logService,
+            IViewPoolService viewPoolService)
         {
             _serviceProvider = serviceProvider;
             _parameterSerializer = parameterSerializer ?? throw new ArgumentNullException(nameof(parameterSerializer));
             _logService = logService ?? throw new ArgumentNullException(nameof(logService));
+            _viewPoolService = viewPoolService ?? throw new ArgumentNullException(nameof(viewPoolService));
         }
 
         public bool CanGoBack => _backStack.Count > 1;
@@ -251,22 +254,28 @@ namespace Winhance.Infrastructure.Features.Common.Services
 
             if (_currentViewModel != null)
             {
-                _logService?.Log(LogLevel.Info, $"[NavigateInternalAsync] Disposing current ViewModel: {_currentViewModel.GetType().Name}");
-                try 
+                var currentVmType = _currentViewModel.GetType().Name;
+                var currentVmHash = _currentViewModel.GetHashCode();
+
+                _logService?.Log(LogLevel.Info, $"[NavigateInternalAsync] Navigating away from ViewModel: {currentVmType}");
+
+                try
                 {
+                    if (_currentViewInstance != null)
+                    {
+                        var currentViewType = _currentViewInstance.GetType();
+                        _viewPoolService.ReturnView(currentViewType, _currentViewInstance, clearDataContext: false);
+                        _currentViewInstance = null;
+                    }
+
                     if (_currentViewModel is IFeatureViewModel currentVm)
                     {
                         currentVm.OnNavigatedFrom();
                     }
-                    
-                    if (_currentViewModel is IDisposable disposable)
-                    {
-                        disposable.Dispose();
-                    }
                 }
                 catch (Exception ex)
                 {
-                    _logService?.Log(LogLevel.Warning, $"[NavigateInternalAsync] Error disposing current ViewModel: {ex.Message}");
+                    _logService?.Log(LogLevel.Warning, $"[NavigateInternalAsync] Error during navigation cleanup: {ex.Message}");
                 }
             }
 
@@ -325,6 +334,15 @@ namespace Winhance.Infrastructure.Features.Common.Services
                     _logService?.Log(LogLevel.Error, $"[NavigateInternalAsync] Error creating ViewModel: {ex.Message}");
                     throw new InvalidOperationException($"Error creating view model: {ex.Message}", ex);
                 }
+            }
+
+            // Get or create view from pool
+            var view = _viewPoolService.GetOrCreateView(viewType, _serviceProvider);
+            _currentViewInstance = view;
+
+            if (view is FrameworkElement element)
+            {
+                element.DataContext = viewModel;
             }
 
             // Update the current route and view model
@@ -403,6 +421,9 @@ namespace Winhance.Infrastructure.Features.Common.Services
 
         private object _currentViewModel;
         public object CurrentViewModel => _currentViewModel;
+
+        private object _currentViewInstance;
+        public object CurrentViewInstance => _currentViewInstance;
 
         private Type GetViewTypeForViewModel(Type viewModelType)
         {

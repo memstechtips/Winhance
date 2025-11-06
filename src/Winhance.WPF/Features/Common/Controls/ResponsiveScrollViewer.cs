@@ -6,6 +6,8 @@ namespace Winhance.WPF.Features.Common.Controls
 {
     public class ResponsiveScrollViewer : ScrollViewer
     {
+        private bool _isScrollChangedSubscribed = false;
+
         public static readonly DependencyProperty ScrollSpeedMultiplierProperty =
             DependencyProperty.RegisterAttached(
                 "ScrollSpeedMultiplier",
@@ -51,7 +53,26 @@ namespace Winhance.WPF.Features.Common.Controls
 
         public ResponsiveScrollViewer()
         {
-            ScrollChanged += OnScrollChanged;
+            Loaded += OnLoaded;
+            Unloaded += OnUnloaded;
+        }
+
+        private void OnLoaded(object sender, RoutedEventArgs e)
+        {
+            if (!_isScrollChangedSubscribed)
+            {
+                ScrollChanged += OnScrollChanged;
+                _isScrollChangedSubscribed = true;
+            }
+        }
+
+        private void OnUnloaded(object sender, RoutedEventArgs e)
+        {
+            if (_isScrollChangedSubscribed)
+            {
+                ScrollChanged -= OnScrollChanged;
+                _isScrollChangedSubscribed = false;
+            }
         }
 
         private void OnScrollChanged(object sender, ScrollChangedEventArgs e)

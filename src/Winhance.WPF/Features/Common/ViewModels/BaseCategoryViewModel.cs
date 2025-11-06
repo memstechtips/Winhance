@@ -17,6 +17,7 @@ namespace Winhance.WPF.Features.Common.ViewModels
     {
         private bool _isDisposed;
         private bool _isFeaturesCached;
+        protected readonly IViewPoolService viewPoolService;
 
         public ObservableCollection<Control> FeatureViews { get; } = new();
         public ObservableCollection<QuickNavItem> QuickNavItems { get; } = new();
@@ -41,9 +42,11 @@ namespace Winhance.WPF.Features.Common.ViewModels
 
         protected BaseCategoryViewModel(
             IServiceProvider serviceProvider,
-            ISearchTextCoordinationService searchTextCoordinationService)
+            ISearchTextCoordinationService searchTextCoordinationService,
+            IViewPoolService viewPoolService)
             : base(serviceProvider, searchTextCoordinationService)
         {
+            this.viewPoolService = viewPoolService;
             NavigateToFeatureCommand = new RelayCommand<QuickNavItem>(NavigateToFeature);
             UpdateScrollPositionCommand = new RelayCommand<double>(UpdateScrollPosition);
             InitializeCommand = new RelayCommand(Initialize);
@@ -57,15 +60,22 @@ namespace Winhance.WPF.Features.Common.ViewModels
 
         public virtual async Task PreloadFeaturesAsync()
         {
+
             if (_isFeaturesCached && FeatureViews.Any())
+            {
                 return;
+            }
 
             var features = FeatureRegistry.GetFeaturesForCategory(CategoryName);
             if (features == null || !features.Any())
+            {
                 return;
+            }
 
             if (FeatureViews.Any())
+            {
                 FeatureViews.Clear();
+            }
 
             var featureTasks = features
                 .OrderBy(f => f.SortOrder)
@@ -73,7 +83,8 @@ namespace Winhance.WPF.Features.Common.ViewModels
                 {
                     var composedView = await FeatureViewModelFactory.CreateFeatureAsync(
                         feature,
-                        serviceProvider
+                        serviceProvider,
+                        viewPoolService
                     );
                     return new { Feature = feature, View = composedView };
                 });
@@ -285,14 +296,29 @@ namespace Winhance.WPF.Features.Common.ViewModels
         {
             if (!_isDisposed && disposing)
             {
+
+                searchTextCoordinationService.SearchTextChanged -= OnSearchTextChanged;
+
                 _isFeaturesCached = false;
-                foreach (var view in FeatureViews)
+                int disposedCount = 0;
+                foreach (var view in FeatureViews.ToList())
                 {
                     if (view.DataContext is IDisposable disposableVm)
+                    {
+                        var vmType = disposableVm.GetType().Name;
+                        var vmHash = disposableVm.GetHashCode();
                         disposableVm.Dispose();
-                    if (view is IDisposable disposableView)
-                        disposableView.Dispose();
+                        disposedCount++;
+                    }
+
+                    var viewType = view.GetType();
+                    viewPoolService.ReturnView(viewType, view, clearDataContext: true);
                 }
+
+
+                FeatureViews.Clear();
+                QuickNavItems.Clear();
+
                 _isDisposed = true;
             }
 

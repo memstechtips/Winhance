@@ -3,6 +3,7 @@ using Winhance.WPF.Features.Common.Views;
 using Winhance.WPF.Features.Customize.Views;
 using Winhance.WPF.Features.Optimize.Views;
 using Winhance.WPF.Features.SoftwareApps.Views;
+using Winhance.WPF.Features.AdvancedTools.Views;
 
 namespace Winhance.WPF.Features.Common.Extensions.DI
 {
@@ -25,6 +26,7 @@ namespace Winhance.WPF.Features.Common.Extensions.DI
                 .AddOptimizationViews()
                 .AddCustomizationViews()
                 .AddSoftwareAppViews()
+                .AddAdvancedToolsViews()
                 .AddDialogViews();
         }
 
@@ -101,6 +103,17 @@ namespace Winhance.WPF.Features.Common.Extensions.DI
             services.AddTransient<WindowsAppsHelpContent>();
             services.AddTransient<ExternalAppsHelpContent>();
 
+            return services;
+        }
+
+        /// <summary>
+        /// Registers advanced tools Views.
+        /// </summary>
+        /// <param name="services">The service collection to configure</param>
+        /// <returns>The service collection for method chaining</returns>
+        public static IServiceCollection AddAdvancedToolsViews(this IServiceCollection services)
+        {
+            services.AddTransient<WimUtilView>();
             return services;
         }
 
