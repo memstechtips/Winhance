@@ -1092,20 +1092,20 @@ catch {{
         {
             try
             {
-                progress?.Report(new TaskProgressDetail
-                {
-                    StatusText = "Adding drivers to image...",
-                    TerminalOutput = driverSourcePath ?? "Extracting from current system"
-                });
-
-                var tempDriverPath = Path.Combine(Path.GetTempPath(), $"WinhanceDrivers_{Guid.NewGuid()}");
-                Directory.CreateDirectory(tempDriverPath);
-
-                string script;
+                string sourceDirectory;
 
                 if (string.IsNullOrEmpty(driverSourcePath))
                 {
-                    script = $@"
+                    progress?.Report(new TaskProgressDetail
+                    {
+                        StatusText = "Exporting drivers from system...",
+                        TerminalOutput = "This may take several minutes"
+                    });
+
+                    var tempDriverPath = Path.Combine(Path.GetTempPath(), $"WinhanceDrivers_{Guid.NewGuid()}");
+                    Directory.CreateDirectory(tempDriverPath);
+
+                    string script = $@"
 $ErrorActionPreference = 'Stop'
 $destPath = '{tempDriverPath.Replace("'", "''")}'
 
@@ -1125,39 +1125,35 @@ catch {{
     exit 1
 }}
 ";
+
+                    try
+                    {
+                        await _powerShellService.ExecuteScriptAsync(script, progress, cancellationToken);
+                        sourceDirectory = tempDriverPath;
+                    }
+                    catch (Exception ex)
+                    {
+                        try { Directory.Delete(tempDriverPath, recursive: true); } catch { }
+                        _logService.LogError($"Failed to export system drivers: {ex.Message}", ex);
+                        return false;
+                    }
                 }
                 else
                 {
-                    script = $@"
-$ErrorActionPreference = 'Stop'
-$sourcePath = '{driverSourcePath.Replace("'", "''")}'
-$destPath = '{tempDriverPath.Replace("'", "''")}'
+                    progress?.Report(new TaskProgressDetail
+                    {
+                        StatusText = "Validating driver files...",
+                        TerminalOutput = driverSourcePath
+                    });
 
-try {{
-    Write-Host ""Copying drivers from: $sourcePath""
-    Write-Host ""To: $destPath""
+                    if (!Directory.Exists(driverSourcePath))
+                    {
+                        _logService.LogError($"Driver source path does not exist: {driverSourcePath}");
+                        return false;
+                    }
 
-    if (-not (Test-Path $sourcePath)) {{
-        throw ""Driver source path not found: $sourcePath""
-    }}
-
-    Copy-Item -Path ""$sourcePath\*"" -Destination $destPath -Recurse -Force
-    Write-Host 'Drivers copied successfully'
-
-    exit 0
-}}
-catch {{
-    Write-Host ""Error: $($_.Exception.Message)"" -ForegroundColor Red
-    exit 1
-}}
-";
+                    sourceDirectory = driverSourcePath;
                 }
-
-                await _powerShellService.ExecuteScriptAsync(
-                    script,
-                    progress,
-                    cancellationToken
-                );
 
                 progress?.Report(new TaskProgressDetail
                 {
@@ -1168,35 +1164,43 @@ catch {{
                 var winpeDriverPath = Path.Combine(workingDirectory, "sources", "$WinpeDriver$");
                 var oemDriverPath = Path.Combine(workingDirectory, "sources", "$OEM$", "$$", "Drivers");
 
-                Directory.CreateDirectory(winpeDriverPath);
-                Directory.CreateDirectory(oemDriverPath);
+                _logService.LogInformation($"Searching for drivers in: {sourceDirectory}");
 
-                _logService.LogInformation("Categorizing and copying drivers...");
-                await Task.Run(() => DriverCategorizer.CategorizeAndCopyDrivers(
-                    tempDriverPath,
+                int copiedCount = await Task.Run(() => DriverCategorizer.CategorizeAndCopyDrivers(
+                    sourceDirectory,
                     winpeDriverPath,
                     oemDriverPath,
-                    _logService
+                    _logService,
+                    workingDirectory
                 ), cancellationToken);
 
-                try
+                if (string.IsNullOrEmpty(driverSourcePath))
                 {
-                    Directory.Delete(tempDriverPath, recursive: true);
+                    try
+                    {
+                        Directory.Delete(sourceDirectory, recursive: true);
+                    }
+                    catch (Exception ex)
+                    {
+                        _logService.LogWarning($"Could not delete temp directory: {ex.Message}");
+                    }
                 }
-                catch (Exception ex)
+
+                if (copiedCount == 0)
                 {
-                    _logService.LogWarning($"Could not delete temp directory: {ex.Message}");
+                    _logService.LogWarning($"No drivers were found or copied from: {sourceDirectory}");
+                    return false;
                 }
 
                 progress?.Report(new TaskProgressDetail
                 {
-                    StatusText = "Creating automatic driver installation script...",
+                    StatusText = "Creating driver installation script...",
                     TerminalOutput = "Setting up SetupComplete.cmd"
                 });
 
                 CreateSetupCompleteScript(workingDirectory);
 
-                _logService.LogInformation($"Drivers categorized - WinPE: {winpeDriverPath}, OEM: {oemDriverPath}");
+                _logService.LogInformation($"Successfully added {copiedCount} driver(s) - WinPE: {winpeDriverPath}, OEM: {oemDriverPath}");
                 return true;
             }
             catch (Exception ex)

@@ -1000,17 +1000,30 @@ namespace Winhance.WPF.Features.AdvancedTools.ViewModels
                     UpdateStepStates();
 
                     _logService.LogInformation("System drivers extracted and added successfully");
+
+                    var successDialog = CustomDialog.CreateInformationDialog(
+                        "Drivers Extracted Successfully",
+                        "System drivers have been extracted and added to the installation media. They will be automatically installed during Windows setup.",
+                        "",
+                        DialogType.Success,
+                        "CheckCircle"
+                    );
+                    successDialog.ShowDialog();
                 }
                 else
                 {
                     ExtractSystemDriversCard.HasFailed = true;
 
                     var errorDialog = CustomDialog.CreateInformationDialog(
-                        "Driver Extraction Failed",
-                        "Failed to extract drivers from your system. Please check the logs for details.",
+                        "No Drivers Found",
+                        "No third-party drivers were found on your current system, or the extraction failed.\n\n" +
+                        "This can happen if:\n" +
+                        "• Your system only uses built-in Windows drivers\n" +
+                        "• The drivers are not exportable\n" +
+                        "• Insufficient permissions to export drivers",
                         "",
-                        DialogType.Error,
-                        "CloseCircle"
+                        DialogType.Warning,
+                        "Alert"
                     );
                     errorDialog.ShowDialog();
                 }
@@ -1105,17 +1118,30 @@ namespace Winhance.WPF.Features.AdvancedTools.ViewModels
                     UpdateStepStates();
 
                     _logService.LogInformation($"Custom drivers added from: {selectedPath}");
+
+                    var successDialog = CustomDialog.CreateInformationDialog(
+                        "Drivers Added Successfully",
+                        "Driver files have been added to the installation media and will be automatically installed during Windows setup.",
+                        "",
+                        DialogType.Success,
+                        "CheckCircle"
+                    );
+                    successDialog.ShowDialog();
                 }
                 else
                 {
                     SelectCustomDriversCard.HasFailed = true;
 
                     var errorDialog = CustomDialog.CreateInformationDialog(
-                        "Driver Addition Failed",
-                        "Failed to add drivers to the installation media. Please check the logs for details.",
+                        "No Drivers Found",
+                        $"No driver files (.inf) were found in the selected directory:\n\n{selectedPath}\n\n" +
+                        "Please ensure:\n" +
+                        "• The directory contains driver files with .inf extensions\n" +
+                        "• You have selected the correct folder\n" +
+                        "• The drivers are compatible with your Windows version",
                         "",
-                        DialogType.Error,
-                        "CloseCircle"
+                        DialogType.Warning,
+                        "Alert"
                     );
                     errorDialog.ShowDialog();
                 }
