@@ -83,6 +83,16 @@ namespace Winhance.Core.Features.SoftwareApps.Models
                                 { "DownloadUrl", "https://pub.teleguard.com/teleguard-desktop-latest.exe" },
                                 { "RequiresDirectDownload", true }
                             }
+                        },
+                        new ItemDefinition
+                        {
+                            Id = "external-app-shutup10",
+                            Name = "O&O ShutUp10++",
+                            Description = "Free antispy tool for Windows 10 and 11",
+                            GroupName = "Privacy & Security",
+                            WinGetPackageId = "OO-Software.ShutUp10",
+                            Category = "Privacy & Security",
+                            WebsiteUrl = "https://www.oo-software.com/en/shutup10"
                         }
                     }
                 };
