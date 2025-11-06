@@ -64,16 +64,6 @@ namespace Winhance.Core.Features.SoftwareApps.Models
                         },
                         new ItemDefinition
                         {
-                            Id = "external-app-iobit-unlocker",
-                            Name = "IObit Unlocker",
-                            Description = "File unlocking and deleting utility",
-                            GroupName = "Other Utilities",
-                            WinGetPackageId = "IObit.IObitUnlocker",
-                            Category = "Other Utilities",
-                            WebsiteUrl = "https://www.iobit.com/en/iobit-unlocker.php"
-                        },
-                        new ItemDefinition
-                        {
                             Id = "external-app-openaudible",
                             Name = "OpenAudible",
                             Description = "Audiobook manager and converter for Audible files",
