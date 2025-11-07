@@ -8,6 +8,8 @@ namespace Winhance.Core.Features.Common.Interfaces
         Task InitializeAsync();
         IEnumerable<SettingDefinition> GetFilteredSettings(string featureId);
         IReadOnlyDictionary<string, IEnumerable<SettingDefinition>> GetAllFilteredSettings();
+        IEnumerable<SettingDefinition> GetBypassedSettings(string featureId);
+        IReadOnlyDictionary<string, IEnumerable<SettingDefinition>> GetAllBypassedSettings();
         void SetFilterEnabled(bool enabled);
         bool IsInitialized { get; }
     }

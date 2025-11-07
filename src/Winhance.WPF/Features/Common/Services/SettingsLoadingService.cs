@@ -22,7 +22,6 @@ namespace Winhance.WPF.Features.Common.Services
         IComboBoxSetupService comboBoxSetupService,
         IDomainServiceRouter domainServiceRouter,
         ISettingsConfirmationService confirmationService,
-        IGlobalSettingsRegistry globalSettingsRegistry,
         IInitializationService initializationService,
         IPowerPlanComboBoxService powerPlanComboBoxService,
         IComboBoxResolver comboBoxResolver,
@@ -45,9 +44,6 @@ namespace Winhance.WPF.Features.Common.Services
 
                 var settingDefinitions = compatibleSettingsRegistry.GetFilteredSettings(featureModuleId);
                 var settingsList = settingDefinitions.ToList();
-
-                domainServiceRouter.AddSettingMappings(featureModuleId, settingsList.Select(s => s.Id));
-                globalSettingsRegistry.RegisterSettings(featureModuleId, settingsList);
 
                 var settingViewModels = new ObservableCollection<object>();
                 

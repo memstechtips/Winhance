@@ -103,49 +103,62 @@ namespace Winhance.Infrastructure.Features.Common.Services
                 {
                     var rawValues = new Dictionary<string, object?>();
 
-                    foreach (var registrySetting in setting.RegistrySettings)
+                    var settingsByValueName = setting.RegistrySettings
+                        .GroupBy(rs => rs.ValueName ?? "KeyExists")
+                        .ToList();
+
+                    foreach (var group in settingsByValueName)
                     {
-                        var resultKey = registrySetting.ValueName == null
-                            ? $"{registrySetting.KeyPath}\\__KEY_EXISTS__"
-                            : $"{registrySetting.KeyPath}\\{registrySetting.ValueName}";
+                        var valueKey = group.Key;
+                        object? finalValue = null;
+                        bool foundValue = false;
 
-                        var valueKey = registrySetting.ValueName == null ? "KeyExists" : registrySetting.ValueName;
+                        var prioritizedSettings = group.OrderByDescending(rs =>
+                            rs.KeyPath.StartsWith("HKEY_LOCAL_MACHINE", StringComparison.OrdinalIgnoreCase));
 
-                        if (batchedRegistryValues.TryGetValue(resultKey, out var value))
+                        foreach (var registrySetting in prioritizedSettings)
                         {
-                            if (registrySetting.BitMask.HasValue && registrySetting.BinaryByteIndex.HasValue && value is byte[] binaryValue)
+                            var resultKey = registrySetting.ValueName == null
+                                ? $"{registrySetting.KeyPath}\\__KEY_EXISTS__"
+                                : $"{registrySetting.KeyPath}\\{registrySetting.ValueName}";
+
+                            if (batchedRegistryValues.TryGetValue(resultKey, out var value))
                             {
-                                if (binaryValue.Length > registrySetting.BinaryByteIndex.Value)
+                                if (registrySetting.BitMask.HasValue && registrySetting.BinaryByteIndex.HasValue && value is byte[] binaryValue)
                                 {
-                                    var byteValue = binaryValue[registrySetting.BinaryByteIndex.Value];
-                                    var isBitSet = (byteValue & registrySetting.BitMask.Value) == registrySetting.BitMask.Value;
-                                    rawValues[valueKey] = isBitSet;
+                                    if (binaryValue.Length > registrySetting.BinaryByteIndex.Value)
+                                    {
+                                        var byteValue = binaryValue[registrySetting.BinaryByteIndex.Value];
+                                        var isBitSet = (byteValue & registrySetting.BitMask.Value) == registrySetting.BitMask.Value;
+                                        value = isBitSet;
+                                    }
+                                    else
+                                    {
+                                        value = null;
+                                    }
                                 }
-                                else
+                                else if (registrySetting.ModifyByteOnly && registrySetting.BinaryByteIndex.HasValue && value is byte[] modifyByteValue)
                                 {
-                                    rawValues[valueKey] = null;
+                                    if (modifyByteValue.Length > registrySetting.BinaryByteIndex.Value)
+                                    {
+                                        value = modifyByteValue[registrySetting.BinaryByteIndex.Value];
+                                    }
+                                    else
+                                    {
+                                        value = null;
+                                    }
                                 }
-                            }
-                            else if (registrySetting.ModifyByteOnly && registrySetting.BinaryByteIndex.HasValue && value is byte[] modifyByteValue)
-                            {
-                                if (modifyByteValue.Length > registrySetting.BinaryByteIndex.Value)
+
+                                if (value != null || !foundValue)
                                 {
-                                    rawValues[valueKey] = modifyByteValue[registrySetting.BinaryByteIndex.Value];
+                                    finalValue = value;
+                                    foundValue = true;
+                                    if (value != null) break;
                                 }
-                                else
-                                {
-                                    rawValues[valueKey] = null;
-                                }
-                            }
-                            else
-                            {
-                                rawValues[valueKey] = value;
                             }
                         }
-                        else
-                        {
-                            rawValues[valueKey] = null;
-                        }
+
+                        rawValues[valueKey] = finalValue;
                     }
 
                     results[setting.Id] = rawValues;
