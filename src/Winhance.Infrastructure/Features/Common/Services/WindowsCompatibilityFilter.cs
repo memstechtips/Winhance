@@ -12,6 +12,7 @@ namespace Winhance.Infrastructure.Features.Common.Services
     {
         private readonly IWindowsVersionService _versionService;
         private readonly ILogService _logService;
+        private readonly HashSet<string> _loggedCompatibilityMessages = new();
 
         public WindowsCompatibilityFilter(
             IWindowsVersionService versionService,
@@ -178,7 +179,12 @@ namespace Winhance.Infrastructure.Features.Common.Services
 
                 if (compatibilityMessage != null)
                 {
-                    _logService.Log(LogLevel.Debug, $"Adding compatibility message to {setting.Name}: {compatibilityMessage}");
+                    var logKey = $"{setting.Name}:{compatibilityMessage}";
+                    if (!_loggedCompatibilityMessages.Contains(logKey))
+                    {
+                        _logService.Log(LogLevel.Info, $"Adding compatibility message to {setting.Name}: {compatibilityMessage}");
+                        _loggedCompatibilityMessages.Add(logKey);
+                    }
 
                     var updatedProperties = new Dictionary<string, object>(setting.CustomProperties)
                     {

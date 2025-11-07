@@ -200,7 +200,8 @@ public class ConfigurationApplicationBridgeService
 
             if (!currentWave.Any() && remainingItems.Any())
             {
-                _logService.Log(LogLevel.Warning, "Circular dependency detected, processing remaining items anyway");
+                var circularSettingIds = string.Join(", ", remainingItems.Select(x => x.setting.Id));
+                _logService.Log(LogLevel.Warning, $"Circular dependency detected in settings: {circularSettingIds}. Processing anyway.");
                 currentWave.AddRange(remainingItems);
                 remainingItems.Clear();
             }
