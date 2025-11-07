@@ -57,9 +57,32 @@ namespace Winhance.WPF.Features.Common.Services
 
                     if (toAdd.Any())
                     {
-                        var newViewModels = await PrepareNewSettingsAsync(toAdd, feature);
-                        InsertNewSettings(feature, newViewModels, newDefinitions);
-                        _eventBus.Publish(new FeatureComposedEvent(feature.ModuleId, toAdd));
+                        try
+                        {
+                            var newViewModels = await PrepareNewSettingsAsync(toAdd, feature);
+                            InsertNewSettings(feature, newViewModels, newDefinitions);
+                            _eventBus.Publish(new FeatureComposedEvent(feature.ModuleId, toAdd));
+
+                            _logService.Log(LogLevel.Info,
+                                $"Successfully added {newViewModels.Count} new settings to {feature.ModuleId}");
+                        }
+                        catch (Exception prepareEx)
+                        {
+                            _logService.Log(LogLevel.Warning,
+                                $"Failed to add settings incrementally for {feature.ModuleId}, attempting full refresh: {prepareEx.Message}");
+
+                            try
+                            {
+                                await feature.RefreshSettingsAsync();
+                                _logService.Log(LogLevel.Info, $"Successfully refreshed {feature.ModuleId} after incremental add failed");
+                            }
+                            catch (Exception refreshEx)
+                            {
+                                _logService.Log(LogLevel.Error,
+                                    $"Failed to refresh {feature.ModuleId} after incremental add failed: {refreshEx.Message}");
+                                throw;
+                            }
+                        }
                     }
                 }, System.Windows.Threading.DispatcherPriority.Normal);
 

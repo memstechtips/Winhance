@@ -138,8 +138,6 @@ namespace Winhance.WPF.Features.Common.ViewModels
             _navigationService.Navigated += NavigationService_Navigated;
             _navigationService.Navigating += NavigationService_Navigating;
             _taskProgressService.ProgressUpdated += OnProgressUpdated;
-
-            _ = LoadFilterPreferenceAsync();
         }
 
         private void OnProgressUpdated(object sender, TaskProgressDetail detail)
@@ -282,6 +280,7 @@ namespace Winhance.WPF.Features.Common.ViewModels
         {
             try
             {
+                await LoadFilterPreferenceAsync();
                 await _navigationService.NavigateToAsync("SoftwareApps");
             }
             catch (Exception ex)
