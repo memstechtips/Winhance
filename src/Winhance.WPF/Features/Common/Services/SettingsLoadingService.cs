@@ -22,7 +22,6 @@ namespace Winhance.WPF.Features.Common.Services
         IComboBoxSetupService comboBoxSetupService,
         IDomainServiceRouter domainServiceRouter,
         ISettingsConfirmationService confirmationService,
-        IGlobalSettingsRegistry globalSettingsRegistry,
         IInitializationService initializationService,
         IPowerPlanComboBoxService powerPlanComboBoxService,
         IComboBoxResolver comboBoxResolver,
@@ -43,11 +42,8 @@ namespace Winhance.WPF.Features.Common.Services
                 logService.Log(LogLevel.Info, $"[SettingsLoadingService] Starting to load settings for '{featureModuleId}'");
                 initializationService.StartFeatureInitialization(featureModuleId);
 
-                var settingDefinitions = await domainService.GetSettingsAsync();
+                var settingDefinitions = compatibleSettingsRegistry.GetFilteredSettings(featureModuleId);
                 var settingsList = settingDefinitions.ToList();
-
-                domainServiceRouter.AddSettingMappings(featureModuleId, settingsList.Select(s => s.Id));
-                globalSettingsRegistry.RegisterSettings(featureModuleId, settingsList);
 
                 var settingViewModels = new ObservableCollection<object>();
                 
@@ -127,7 +123,7 @@ namespace Winhance.WPF.Features.Common.Services
             }
         }
 
-        private async Task<SettingItemViewModel> CreateSettingViewModelAsync(SettingDefinition setting, Dictionary<string, SettingStateResult> batchStates, ISettingsFeatureViewModel? parentViewModel)
+        public async Task<SettingItemViewModel> CreateSettingViewModelAsync(SettingDefinition setting, Dictionary<string, SettingStateResult> batchStates, ISettingsFeatureViewModel? parentViewModel)
         {
             var currentState = batchStates.TryGetValue(setting.Id, out var state) ? state : new SettingStateResult();
 

@@ -305,17 +305,65 @@ namespace Winhance.WPF.Features.Common.Services
                         }
                         else
                         {
-                            item.SelectedIndex = selectedIndex;
+                            bool hasAcDcPowerSettings = false;
+
+                            if (setting.PowerCfgSettings?.Any() == true &&
+                                setting.PowerCfgSettings[0].PowerModeSupport == PowerModeSupport.Separate &&
+                                state?.RawValues != null)
+                            {
+                                var acValue = state.RawValues.TryGetValue("ACValue", out var acVal) ? acVal : null;
+                                var dcValue = state.RawValues.TryGetValue("DCValue", out var dcVal) ? dcVal : null;
+
+                                if (acValue != null || dcValue != null)
+                                {
+                                    var acIndex = ResolveValueToIndex(setting, acValue);
+                                    var dcIndex = ResolveValueToIndex(setting, dcValue);
+
+                                    item.PowerSettings = new Dictionary<string, object>
+                                    {
+                                        ["ACIndex"] = acIndex,
+                                        ["DCIndex"] = dcIndex
+                                    };
+                                    hasAcDcPowerSettings = true;
+                                }
+                            }
+
+                            if (!hasAcDcPowerSettings)
+                            {
+                                item.SelectedIndex = selectedIndex;
+                            }
+
                             item.CustomStateValues = customStateValues;
                         }
                     }
-
-                    if (setting.InputType == InputType.Selection &&
-                        setting.PowerCfgSettings?.Any() == true &&
-                        setting.PowerCfgSettings[0].PowerModeSupport == PowerModeSupport.Separate &&
-                        state?.CurrentValue is Dictionary<string, object> powerDict)
+                    else if (setting.InputType == InputType.NumericRange)
                     {
-                        item.PowerSettings = powerDict;
+                        if (state?.CurrentValue != null)
+                        {
+                            if (setting.PowerCfgSettings?.Any() == true &&
+                                setting.PowerCfgSettings[0].PowerModeSupport == PowerModeSupport.Separate &&
+                                state.RawValues != null)
+                            {
+                                var acValue = state.RawValues.TryGetValue("ACValue", out var acVal) ? acVal : null;
+                                var dcValue = state.RawValues.TryGetValue("DCValue", out var dcVal) ? dcVal : null;
+
+                                if (acValue != null || dcValue != null)
+                                {
+                                    item.PowerSettings = new Dictionary<string, object>
+                                    {
+                                        ["ACValue"] = acValue,
+                                        ["DCValue"] = dcValue
+                                    };
+                                }
+                            }
+                            else
+                            {
+                                item.PowerSettings = new Dictionary<string, object>
+                                {
+                                    ["Value"] = state.CurrentValue
+                                };
+                            }
+                        }
                     }
 
                     return item;
@@ -452,6 +500,29 @@ namespace Winhance.WPF.Features.Common.Services
             }
 
             return (index, null, null, null);
+        }
+
+        private int ResolveValueToIndex(SettingDefinition setting, object? value)
+        {
+            if (value == null) return 0;
+
+            var intValue = Convert.ToInt32(value);
+
+            if (!setting.CustomProperties.TryGetValue(CustomPropertyKeys.ValueMappings, out var mappingsObj))
+                return 0;
+
+            var mappings = (Dictionary<int, Dictionary<string, object?>>)mappingsObj;
+
+            foreach (var mapping in mappings)
+            {
+                if (mapping.Value.TryGetValue("PowerCfgValue", out var expectedValue) &&
+                    expectedValue != null && Convert.ToInt32(expectedValue) == intValue)
+                {
+                    return mapping.Key;
+                }
+            }
+
+            return 0;
         }
 
         private async Task<UnifiedConfigurationFile> LoadAndValidateConfigurationFromFileAsync()

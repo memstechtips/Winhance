@@ -105,15 +105,17 @@ namespace Winhance.Infrastructure.Features.Common.Services
                 const uint WM_SETTINGCHANGE = 0x001A;
                 const uint WM_THEMECHANGE = 0x031A;
 
-                [DllImport("user32.dll", CharSet = CharSet.Auto)]
-                static extern IntPtr SendMessage(IntPtr hWnd, uint Msg, IntPtr wParam, IntPtr lParam);
-
                 [DllImport("user32.dll", CharSet = CharSet.Auto, SetLastError = true)]
                 static extern IntPtr SendMessageTimeout(IntPtr hWnd, uint Msg, IntPtr wParam, IntPtr lParam,
                     uint fuFlags, uint uTimeout, out IntPtr lpdwResult);
 
-                SendMessage((IntPtr)HWND_BROADCAST, WM_SYSCOLORCHANGE, IntPtr.Zero, IntPtr.Zero);
-                SendMessage((IntPtr)HWND_BROADCAST, WM_THEMECHANGE, IntPtr.Zero, IntPtr.Zero);
+                const uint SMTO_ABORTIFHUNG = 0x0002;
+
+                IntPtr result;
+                SendMessageTimeout((IntPtr)HWND_BROADCAST, WM_SYSCOLORCHANGE, IntPtr.Zero, IntPtr.Zero,
+                    SMTO_ABORTIFHUNG, 1000, out result);
+                SendMessageTimeout((IntPtr)HWND_BROADCAST, WM_THEMECHANGE, IntPtr.Zero, IntPtr.Zero,
+                    SMTO_ABORTIFHUNG, 1000, out result);
 
                 if (killExplorer)
                 {
@@ -164,11 +166,11 @@ namespace Winhance.Infrastructure.Features.Common.Services
 
                 try
                 {
-                    IntPtr result;
                     SendMessageTimeout((IntPtr)HWND_BROADCAST, WM_SETTINGCHANGE, IntPtr.Zero, themeChangedPtr,
-                        0x0000, 1000, out result);
+                        SMTO_ABORTIFHUNG, 1000, out result);
 
-                    SendMessage((IntPtr)HWND_BROADCAST, WM_SETTINGCHANGE, IntPtr.Zero, IntPtr.Zero);
+                    SendMessageTimeout((IntPtr)HWND_BROADCAST, WM_SETTINGCHANGE, IntPtr.Zero, IntPtr.Zero,
+                        SMTO_ABORTIFHUNG, 1000, out result);
                 }
                 finally
                 {

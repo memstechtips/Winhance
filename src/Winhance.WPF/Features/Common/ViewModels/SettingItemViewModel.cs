@@ -34,6 +34,7 @@ namespace Winhance.WPF.Features.Common.ViewModels
         private ISubscriptionToken? _settingAppliedSubscription;
         private bool _isInitializing = true;
         private CancellationTokenSource? _debounceTokenSource;
+        private CancellationTokenSource? _disposalCancellationTokenSource;
         private bool _isApplyingNumericValue;
         private bool _isRefreshingComboBox = false;
         private object? _lastConfirmedSelectedValue;
@@ -61,10 +62,18 @@ namespace Winhance.WPF.Features.Common.ViewModels
 
         partial void OnIsSelectedChanged(bool value)
         {
-            if (IsApplying || _isInitializing)
-                return;
 
-            _ = Task.Run(async () => await HandleToggleAsync());
+            if (IsApplying)
+            {
+                return;
+            }
+
+            if (_isInitializing)
+            {
+                return;
+            }
+
+            _ = Task.Run(async () => await HandleToggleAsync(), _disposalCancellationTokenSource?.Token ?? CancellationToken.None);
         }
 
         [ObservableProperty]
@@ -84,12 +93,18 @@ namespace Winhance.WPF.Features.Common.ViewModels
 
         partial void OnSelectedValueChanged(object? value)
         {
-            if (IsApplying || _isInitializing)
+
+            if (IsApplying)
             {
                 return;
             }
 
-            _ = Task.Run(async () => await HandleValueChangedAsync(value));
+            if (_isInitializing)
+            {
+                return;
+            }
+
+            _ = Task.Run(async () => await HandleValueChangedAsync(value), _disposalCancellationTokenSource?.Token ?? CancellationToken.None);
         }
 
         [ObservableProperty]
@@ -110,8 +125,16 @@ namespace Winhance.WPF.Features.Common.ViewModels
 
         partial void OnNumericValueChanged(int value)
         {
-            if (IsApplying || _isInitializing)
+
+            if (IsApplying)
+            {
                 return;
+            }
+
+            if (_isInitializing)
+            {
+                return;
+            }
 
             if (_initializationService.IsGloballyInitializing)
             {
@@ -191,10 +214,18 @@ namespace Winhance.WPF.Features.Common.ViewModels
 
         partial void OnACValueChanged(object? value)
         {
-            if (IsApplying || _isInitializing)
-                return;
 
-            _ = Task.Run(async () => await HandleACValueChangedAsync(value));
+            if (IsApplying)
+            {
+                return;
+            }
+
+            if (_isInitializing)
+            {
+                return;
+            }
+
+            _ = Task.Run(async () => await HandleACValueChangedAsync(value), _disposalCancellationTokenSource?.Token ?? CancellationToken.None);
         }
 
         [ObservableProperty]
@@ -202,10 +233,18 @@ namespace Winhance.WPF.Features.Common.ViewModels
 
         partial void OnDCValueChanged(object? value)
         {
-            if (IsApplying || _isInitializing)
-                return;
 
-            _ = Task.Run(async () => await HandleDCValueChangedAsync(value));
+            if (IsApplying)
+            {
+                return;
+            }
+
+            if (_isInitializing)
+            {
+                return;
+            }
+
+            _ = Task.Run(async () => await HandleDCValueChangedAsync(value), _disposalCancellationTokenSource?.Token ?? CancellationToken.None);
         }
 
         [ObservableProperty]
@@ -213,8 +252,16 @@ namespace Winhance.WPF.Features.Common.ViewModels
 
         partial void OnACNumericValueChanged(int value)
         {
-            if (IsApplying || _isInitializing)
+
+            if (IsApplying)
+            {
                 return;
+            }
+
+            if (_isInitializing)
+            {
+                return;
+            }
 
             if (_initializationService.IsGloballyInitializing)
             {
@@ -243,8 +290,16 @@ namespace Winhance.WPF.Features.Common.ViewModels
 
         partial void OnDCNumericValueChanged(int value)
         {
-            if (IsApplying || _isInitializing)
+
+            if (IsApplying)
+            {
                 return;
+            }
+
+            if (_isInitializing)
+            {
+                return;
+            }
 
             if (_initializationService.IsGloballyInitializing)
             {
@@ -352,6 +407,7 @@ namespace Winhance.WPF.Features.Common.ViewModels
                 return;
             }
 
+
             try
             {
                 var comboBoxSetupResult = await comboBoxSetupService.SetupComboBoxOptionsAsync(setting, currentValue);
@@ -448,6 +504,8 @@ namespace Winhance.WPF.Features.Common.ViewModels
             _dialogService = dialogService ?? throw new ArgumentNullException(nameof(dialogService));
             _compatibleSettingsRegistry = compatibleSettingsRegistry ?? throw new ArgumentNullException(nameof(compatibleSettingsRegistry));
 
+            _disposalCancellationTokenSource = new CancellationTokenSource();
+
             ToggleCommand = new AsyncRelayCommand(HandleToggleAsync);
             ValueChangedCommand = new AsyncRelayCommand<object>(HandleValueChangedAsync);
             ActionCommand = new AsyncRelayCommand(HandleActionAsync);
@@ -499,11 +557,18 @@ namespace Winhance.WPF.Features.Common.ViewModels
             finally
             {
                 IsApplying = false;
-                _ = Task.Run(async () => 
+                _ = Task.Run(async () =>
                 {
-                    await Task.Delay(3000);
-                    Application.Current.Dispatcher.Invoke(() => Status = string.Empty);
-                });
+                    try
+                    {
+                        await Task.Delay(3000, _disposalCancellationTokenSource?.Token ?? CancellationToken.None);
+                        if (!(_disposalCancellationTokenSource?.Token.IsCancellationRequested ?? false))
+                        {
+                            Application.Current.Dispatcher.Invoke(() => Status = string.Empty);
+                        }
+                    }
+                    catch (OperationCanceledException) { }
+                }, _disposalCancellationTokenSource?.Token ?? CancellationToken.None);
             }
         }
 
@@ -540,11 +605,18 @@ namespace Winhance.WPF.Features.Common.ViewModels
             {
                 IsApplying = false;
                 _isApplyingNumericValue = false;
-                _ = Task.Run(async () => 
+                _ = Task.Run(async () =>
                 {
-                    await Task.Delay(3000);
-                    Application.Current.Dispatcher.Invoke(() => Status = string.Empty);
-                });
+                    try
+                    {
+                        await Task.Delay(3000, _disposalCancellationTokenSource?.Token ?? CancellationToken.None);
+                        if (!(_disposalCancellationTokenSource?.Token.IsCancellationRequested ?? false))
+                        {
+                            Application.Current.Dispatcher.Invoke(() => Status = string.Empty);
+                        }
+                    }
+                    catch (OperationCanceledException) { }
+                }, _disposalCancellationTokenSource?.Token ?? CancellationToken.None);
             }
         }
 
@@ -612,9 +684,16 @@ namespace Winhance.WPF.Features.Common.ViewModels
                 IsApplying = false;
                 _ = Task.Run(async () =>
                 {
-                    await Task.Delay(3000);
-                    Application.Current.Dispatcher.Invoke(() => Status = string.Empty);
-                });
+                    try
+                    {
+                        await Task.Delay(3000, _disposalCancellationTokenSource?.Token ?? CancellationToken.None);
+                        if (!(_disposalCancellationTokenSource?.Token.IsCancellationRequested ?? false))
+                        {
+                            Application.Current.Dispatcher.Invoke(() => Status = string.Empty);
+                        }
+                    }
+                    catch (OperationCanceledException) { }
+                }, _disposalCancellationTokenSource?.Token ?? CancellationToken.None);
             }
         }
 
@@ -671,11 +750,18 @@ namespace Winhance.WPF.Features.Common.ViewModels
             finally
             {
                 IsApplying = false;
-                _ = Task.Run(async () => 
+                _ = Task.Run(async () =>
                 {
-                    await Task.Delay(3000);
-                    Application.Current.Dispatcher.Invoke(() => Status = string.Empty);
-                });
+                    try
+                    {
+                        await Task.Delay(3000, _disposalCancellationTokenSource?.Token ?? CancellationToken.None);
+                        if (!(_disposalCancellationTokenSource?.Token.IsCancellationRequested ?? false))
+                        {
+                            Application.Current.Dispatcher.Invoke(() => Status = string.Empty);
+                        }
+                    }
+                    catch (OperationCanceledException) { }
+                }, _disposalCancellationTokenSource?.Token ?? CancellationToken.None);
             }
         }
 
@@ -1082,9 +1168,16 @@ namespace Winhance.WPF.Features.Common.ViewModels
                 IsApplying = false;
                 _ = Task.Run(async () =>
                 {
-                    await Task.Delay(3000);
-                    Application.Current.Dispatcher.Invoke(() => Status = string.Empty);
-                });
+                    try
+                    {
+                        await Task.Delay(3000, _disposalCancellationTokenSource?.Token ?? CancellationToken.None);
+                        if (!(_disposalCancellationTokenSource?.Token.IsCancellationRequested ?? false))
+                        {
+                            Application.Current.Dispatcher.Invoke(() => Status = string.Empty);
+                        }
+                    }
+                    catch (OperationCanceledException) { }
+                }, _disposalCancellationTokenSource?.Token ?? CancellationToken.None);
             }
         }
 
@@ -1147,9 +1240,16 @@ namespace Winhance.WPF.Features.Common.ViewModels
                 IsApplying = false;
                 _ = Task.Run(async () =>
                 {
-                    await Task.Delay(3000);
-                    Application.Current.Dispatcher.Invoke(() => Status = string.Empty);
-                });
+                    try
+                    {
+                        await Task.Delay(3000, _disposalCancellationTokenSource?.Token ?? CancellationToken.None);
+                        if (!(_disposalCancellationTokenSource?.Token.IsCancellationRequested ?? false))
+                        {
+                            Application.Current.Dispatcher.Invoke(() => Status = string.Empty);
+                        }
+                    }
+                    catch (OperationCanceledException) { }
+                }, _disposalCancellationTokenSource?.Token ?? CancellationToken.None);
             }
         }
 
@@ -1190,9 +1290,16 @@ namespace Winhance.WPF.Features.Common.ViewModels
                 _isApplyingNumericValue = false;
                 _ = Task.Run(async () =>
                 {
-                    await Task.Delay(3000);
-                    Application.Current.Dispatcher.Invoke(() => Status = string.Empty);
-                });
+                    try
+                    {
+                        await Task.Delay(3000, _disposalCancellationTokenSource?.Token ?? CancellationToken.None);
+                        if (!(_disposalCancellationTokenSource?.Token.IsCancellationRequested ?? false))
+                        {
+                            Application.Current.Dispatcher.Invoke(() => Status = string.Empty);
+                        }
+                    }
+                    catch (OperationCanceledException) { }
+                }, _disposalCancellationTokenSource?.Token ?? CancellationToken.None);
             }
         }
 
@@ -1233,9 +1340,16 @@ namespace Winhance.WPF.Features.Common.ViewModels
                 _isApplyingNumericValue = false;
                 _ = Task.Run(async () =>
                 {
-                    await Task.Delay(3000);
-                    Application.Current.Dispatcher.Invoke(() => Status = string.Empty);
-                });
+                    try
+                    {
+                        await Task.Delay(3000, _disposalCancellationTokenSource?.Token ?? CancellationToken.None);
+                        if (!(_disposalCancellationTokenSource?.Token.IsCancellationRequested ?? false))
+                        {
+                            Application.Current.Dispatcher.Invoke(() => Status = string.Empty);
+                        }
+                    }
+                    catch (OperationCanceledException) { }
+                }, _disposalCancellationTokenSource?.Token ?? CancellationToken.None);
             }
         }
 
@@ -1287,6 +1401,8 @@ namespace Winhance.WPF.Features.Common.ViewModels
 
         public void Dispose()
         {
+            _disposalCancellationTokenSource?.Cancel();
+            _disposalCancellationTokenSource?.Dispose();
             _debounceTokenSource?.Cancel();
             _debounceTokenSource?.Dispose();
             _tooltipUpdatedSubscription?.Dispose();

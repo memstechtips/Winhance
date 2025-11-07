@@ -337,7 +337,8 @@
 
                                         <!-- Content Presenter for ViewModel-based navigation -->
                                         <ContentPresenter Grid.Row="0"
-                                                          Content="{Binding CurrentViewModel}"/>
+                                                          x:Name="MainContentPresenter"
+                                                          Content="{Binding CurrentViewInstance}"/>
 
                                         <!-- Task Progress Control -->
                                         <controls:TaskProgressControl Grid.Row="1"

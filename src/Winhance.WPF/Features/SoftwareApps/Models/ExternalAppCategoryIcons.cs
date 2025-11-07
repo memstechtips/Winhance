@@ -17,7 +17,7 @@ namespace Winhance.WPF.Features.SoftwareApps.Models
             ["Messaging, Email & Calendar"] = "Message",
             ["Privacy & Security"] = "Shield",
             ["Multimedia (Audio & Video)"] = "Play",
-            ["Online Storage"] = "Cloud",
+            ["Online Storage & Backup"] = "Cloud",
             ["Optical Disc Tools"] = "Disc",
             ["Other Utilities"] = "Tools",
             ["Remote Access"] = "Remote",

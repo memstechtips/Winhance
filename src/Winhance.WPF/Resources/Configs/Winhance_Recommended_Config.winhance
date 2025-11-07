@@ -1,6 +1,6 @@
 {
   "Version": "2.0",
-  "CreatedAt": "2025-11-03T15:40:35.0158273Z",
+  "CreatedAt": "2025-11-06T15:10:32.0149713Z",
   "WindowsApps": {
     "IsIncluded": true,
     "Items": [
@@ -549,12 +549,6 @@
             "InputType": 0
           },
           {
-            "Id": "explorer-customization-show-menus",
-            "Name": "Always show menus",
-            "IsSelected": false,
-            "InputType": 0
-          },
-          {
             "Id": "explorer-customization-item-space",
             "Name": "Decrease space between items (compact view)",
             "IsSelected": false,
@@ -681,12 +675,6 @@
             "SelectedIndex": 0
           },
           {
-            "Id": "explorer-customization-3d-objects",
-            "Name": "Show 3D Objects",
-            "IsSelected": false,
-            "InputType": 0
-          },
-          {
             "Id": "explorer-customization-home-folder",
             "Name": "Show Home Folder",
             "IsSelected": false,
@@ -734,11 +722,6 @@
         "IsIncluded": true,
         "Items": [
           {
-            "Id": "start-menu-clean-10",
-            "Name": "Clean Start Menu",
-            "InputType": 3
-          },
-          {
             "Id": "start-menu-clean-11",
             "Name": "Clean Start Menu",
             "InputType": 3
@@ -756,12 +739,6 @@
             "SelectedIndex": 1
           },
           {
-            "Id": "start-show-all-pins-by-default",
-            "Name": "Show all pins by default",
-            "IsSelected": true,
-            "InputType": 0
-          },
-          {
             "Id": "start-show-recently-added-apps",
             "Name": "Show recently added apps",
             "IsSelected": false,
@@ -770,18 +747,6 @@
           {
             "Id": "start-show-frequent-list",
             "Name": "Show most used apps",
-            "IsSelected": false,
-            "InputType": 0
-          },
-          {
-            "Id": "start-track-progs",
-            "Name": "Show most used apps",
-            "IsSelected": false,
-            "InputType": 0
-          },
-          {
-            "Id": "start-show-suggestions",
-            "Name": "Show suggestions in Start",
             "IsSelected": false,
             "InputType": 0
           },
@@ -826,28 +791,10 @@
             "SelectedIndex": 0
           },
           {
-            "Id": "taskbar-search-box-10",
-            "Name": "Search in taskbar",
-            "InputType": 1,
-            "SelectedIndex": 0
-          },
-          {
             "Id": "taskbar-alignment",
             "Name": "Taskbar alignment",
             "InputType": 1,
             "SelectedIndex": 0
-          },
-          {
-            "Id": "taskbar-meet-now",
-            "Name": "Remove 'Meet Now' button from system tray",
-            "IsSelected": true,
-            "InputType": 0
-          },
-          {
-            "Id": "taskbar-system-tray-icons",
-            "Name": "Always show all system tray icons",
-            "IsSelected": true,
-            "InputType": 0
           },
           {
             "Id": "taskbar-task-view",
@@ -859,24 +806,6 @@
             "Id": "taskbar-widgets",
             "Name": "Show Widgets",
             "IsSelected": false,
-            "InputType": 0
-          },
-          {
-            "Id": "taskbar-news-and-interests",
-            "Name": "Show News and Interests",
-            "IsSelected": true,
-            "InputType": 0
-          },
-          {
-            "Id": "taskbar-transparent",
-            "Name": "Make taskbar transparent",
-            "IsSelected": false,
-            "InputType": 0
-          },
-          {
-            "Id": "taskbar-small",
-            "Name": "Make taskbar small",
-            "IsSelected": true,
             "InputType": 0
           },
           {
@@ -1635,36 +1564,55 @@
             "Id": "power-display-timeout",
             "Name": "Turn off the display",
             "InputType": 1,
-            "SelectedIndex": 0
+            "PowerSettings": {
+              "ACIndex": 0,
+              "DCIndex": 4
+            }
           },
           {
             "Id": "power-harddisk-timeout",
             "Name": "Turn off hard disk after",
-            "InputType": 2
+            "InputType": 2,
+            "PowerSettings": {
+              "ACValue": 0,
+              "DCValue": 600
+            }
           },
           {
             "Id": "desktop-slideshow",
             "Name": "Desktop Background Slide Show",
             "InputType": 1,
-            "SelectedIndex": 0
+            "PowerSettings": {
+              "ACIndex": 0,
+              "DCIndex": 1
+            }
           },
           {
             "Id": "wireless-power-mode",
             "Name": "Power Saving Mode",
             "InputType": 1,
-            "SelectedIndex": 0
+            "PowerSettings": {
+              "ACIndex": 0,
+              "DCIndex": 2
+            }
           },
           {
             "Id": "power-sleep-timeout",
             "Name": "Put the computer to sleep",
             "InputType": 1,
-            "SelectedIndex": 0
+            "PowerSettings": {
+              "ACIndex": 0,
+              "DCIndex": 6
+            }
           },
           {
             "Id": "power-wake-timers",
             "Name": "Allow wake timers",
             "InputType": 1,
-            "SelectedIndex": 0
+            "PowerSettings": {
+              "ACIndex": 0,
+              "DCIndex": 0
+            }
           },
           {
             "Id": "power-hibernation-enable",
@@ -1676,7 +1624,10 @@
             "Id": "power-hibernate-timeout",
             "Name": "Hibernate after",
             "InputType": 1,
-            "SelectedIndex": 0
+            "PowerSettings": {
+              "ACIndex": 0,
+              "DCIndex": 0
+            }
           },
           {
             "Id": "power-hybrid-sleep",
@@ -1699,96 +1650,155 @@
           {
             "Id": "usb-hub-selective-suspend-timeout",
             "Name": "USB Hub Selective Suspend Timeout",
-            "InputType": 2
+            "InputType": 2,
+            "PowerSettings": {
+              "ACValue": 0,
+              "DCValue": 1000
+            }
           },
           {
             "Id": "usb-selective-suspend",
             "Name": "USB selective suspend setting",
             "InputType": 1,
-            "SelectedIndex": 0
+            "PowerSettings": {
+              "ACIndex": 0,
+              "DCIndex": 0
+            }
           },
           {
             "Id": "usb3-link-power-management",
             "Name": "USB 3 Link Power Management",
             "InputType": 1,
-            "SelectedIndex": 0
+            "PowerSettings": {
+              "ACIndex": 0,
+              "DCIndex": 2
+            }
           },
           {
             "Id": "power-button-action",
             "Name": "Power button action",
             "InputType": 1,
-            "SelectedIndex": 0
+            "PowerSettings": {
+              "ACIndex": 0,
+              "DCIndex": 0
+            }
           },
           {
             "Id": "sleep-button-action",
             "Name": "Sleep button action",
             "InputType": 1,
-            "SelectedIndex": 0
+            "PowerSettings": {
+              "ACIndex": 0,
+              "DCIndex": 0
+            }
           },
           {
             "Id": "pci-link-state-power-management",
             "Name": "Link State Power Management",
             "InputType": 1,
-            "SelectedIndex": 0
+            "PowerSettings": {
+              "ACIndex": 0,
+              "DCIndex": 2
+            }
           },
           {
             "Id": "processor-min-state",
             "Name": "Minimum processor state",
-            "InputType": 2
+            "InputType": 2,
+            "PowerSettings": {
+              "ACValue": 100,
+              "DCValue": 5
+            }
           },
           {
             "Id": "processor-max-state",
             "Name": "Maximum processor state",
-            "InputType": 2
+            "InputType": 2,
+            "PowerSettings": {
+              "ACValue": 100,
+              "DCValue": 100
+            }
           },
           {
             "Id": "system-cooling-policy",
             "Name": "System cooling policy",
             "InputType": 1,
-            "SelectedIndex": 1
+            "PowerSettings": {
+              "ACIndex": 1,
+              "DCIndex": 1
+            }
           },
           {
             "Id": "processor-performance-boost-mode",
             "Name": "Processor performance boost mode",
             "InputType": 1,
-            "SelectedIndex": 2
+            "PowerSettings": {
+              "ACIndex": 2,
+              "DCIndex": 1
+            }
           },
           {
             "Id": "processor-performance-increase-policy",
             "Name": "Processor Performance Increase Policy",
             "InputType": 1,
-            "SelectedIndex": 2
+            "PowerSettings": {
+              "ACIndex": 2,
+              "DCIndex": 0
+            }
           },
           {
             "Id": "processor-performance-decrease-policy",
             "Name": "Processor Performance Decrease Policy",
             "InputType": 1,
-            "SelectedIndex": 1
+            "PowerSettings": {
+              "ACIndex": 1,
+              "DCIndex": 2
+            }
           },
           {
             "Id": "processor-core-parking-min-cores",
             "Name": "CPU Core Parking Minimum Cores",
-            "InputType": 2
+            "InputType": 2,
+            "PowerSettings": {
+              "ACValue": 0,
+              "DCValue": 0
+            }
           },
           {
             "Id": "processor-core-parking-max-cores",
             "Name": "CPU Core Parking Maximum Cores",
-            "InputType": 2
+            "InputType": 2,
+            "PowerSettings": {
+              "ACValue": 100,
+              "DCValue": 100
+            }
           },
           {
             "Id": "processor-energy-performance-preference",
             "Name": "Processor Energy Performance Preference",
-            "InputType": 2
+            "InputType": 2,
+            "PowerSettings": {
+              "ACValue": 0,
+              "DCValue": 50
+            }
           },
           {
             "Id": "processor-performance-increase-threshold",
             "Name": "Processor Performance Increase Threshold",
-            "InputType": 2
+            "InputType": 2,
+            "PowerSettings": {
+              "ACValue": 10,
+              "DCValue": 30
+            }
           },
           {
             "Id": "processor-performance-decrease-threshold",
             "Name": "Processor Performance Decrease Threshold",
-            "InputType": 2
+            "InputType": 2,
+            "PowerSettings": {
+              "ACValue": 8,
+              "DCValue": 20
+            }
           },
           {
             "Id": "power-throttling",
@@ -1800,25 +1810,37 @@
             "Id": "multimedia-when-sharing-media",
             "Name": "When Sharing Media",
             "InputType": 1,
-            "SelectedIndex": 1
+            "PowerSettings": {
+              "ACIndex": 1,
+              "DCIndex": 1
+            }
           },
           {
             "Id": "multimedia-video-playback-quality-bias",
             "Name": "Video Playback Quality Bias",
             "InputType": 1,
-            "SelectedIndex": 1
+            "PowerSettings": {
+              "ACIndex": 1,
+              "DCIndex": 1
+            }
           },
           {
             "Id": "multimedia-when-playing-video",
             "Name": "When Playing Video",
             "InputType": 1,
-            "SelectedIndex": 0
+            "PowerSettings": {
+              "ACIndex": 0,
+              "DCIndex": 0
+            }
           },
           {
             "Id": "amd-power-slider-overlay",
             "Name": "Overlay",
             "InputType": 1,
-            "SelectedIndex": 3
+            "PowerSettings": {
+              "ACIndex": 3,
+              "DCIndex": 1
+            }
           },
           {
             "Id": "start-power-lock-option",
@@ -2036,18 +2058,6 @@
             "InputType": 0
           },
           {
-            "Id": "privacy-activity-history",
-            "Name": "Activity History",
-            "IsSelected": false,
-            "InputType": 0
-          },
-          {
-            "Id": "privacy-timeline-suggestions",
-            "Name": "Timeline Suggestions",
-            "IsSelected": false,
-            "InputType": 0
-          },
-          {
             "Id": "privacy-search-history",
             "Name": "Search history on this device",
             "IsSelected": false,
@@ -2180,7 +2190,7 @@
           {
             "Id": "updates-latest-updates",
             "Name": "Get the latest updates as soon as they're available",
-            "IsSelected": true,
+            "IsSelected": false,
             "InputType": 0
           },
           {

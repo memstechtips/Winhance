@@ -20,12 +20,12 @@ namespace Winhance.WPF.Features.Common.ViewModels
     public abstract class BaseViewModel : ObservableObject, IDisposable
     {
         private bool _isDisposed;
+        public CancellationTokenSource? _disposalCancellationTokenSource;
 
         protected BaseViewModel()
         {
+            _disposalCancellationTokenSource = new CancellationTokenSource();
         }
-
-
 
         public void Dispose()
         {
@@ -37,6 +37,9 @@ namespace Winhance.WPF.Features.Common.ViewModels
         {
             if (!_isDisposed && disposing)
             {
+                _disposalCancellationTokenSource?.Cancel();
+                _disposalCancellationTokenSource?.Dispose();
+                _disposalCancellationTokenSource = null;
                 _isDisposed = true;
             }
         }

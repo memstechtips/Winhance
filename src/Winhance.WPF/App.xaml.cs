@@ -1,6 +1,7 @@
 using System;
 using System.Diagnostics;
 using System.IO;
+using System.Linq;
 using System.Runtime.InteropServices;
 using System.Security.Principal;
 using System.Threading;
@@ -18,6 +19,10 @@ using Winhance.WPF.Features.Common.Services;
 using Winhance.WPF.Features.Common.ViewModels;
 using Winhance.WPF.Features.Common.Views;
 using Winhance.WPF.Features.SoftwareApps.ViewModels;
+using Winhance.WPF.Features.Optimize.ViewModels;
+using Winhance.WPF.Features.Optimize.Views;
+using Winhance.WPF.Features.Customize.ViewModels;
+using Winhance.WPF.Features.Customize.Views;
 using Winhance.Infrastructure.Features.Common.Services;
 
 namespace Winhance.WPF

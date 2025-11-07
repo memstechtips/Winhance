@@ -96,6 +96,24 @@ namespace Winhance.Infrastructure.Features.Common.Services
             return _filterEnabled ? _preFilteredSettings : _windowsFilterBypassedSettings;
         }
 
+        public IEnumerable<SettingDefinition> GetBypassedSettings(string featureId)
+        {
+            if (!_isInitialized)
+                throw new InvalidOperationException("Registry not initialized");
+
+            return _windowsFilterBypassedSettings.TryGetValue(featureId, out var settings)
+                ? settings
+                : Enumerable.Empty<SettingDefinition>();
+        }
+
+        public IReadOnlyDictionary<string, IEnumerable<SettingDefinition>> GetAllBypassedSettings()
+        {
+            if (!_isInitialized)
+                throw new InvalidOperationException("Registry not initialized");
+
+            return _windowsFilterBypassedSettings;
+        }
+
         private async Task PreFilterAllFeatureSettingsAsync()
         {
             _logService.Log(LogLevel.Info, "Pre-filtering settings for all features");

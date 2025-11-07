@@ -13,9 +13,9 @@ namespace Winhance.WPF.Features.Common.Extensions.DI
         {
             return services
                 .AddMainViewModels()
+                .AddSoftwareAppViewModels()
                 .AddOptimizationViewModels()
                 .AddCustomizationViewModels()
-                .AddSoftwareAppViewModels()
                 .AddAdvancedToolsViewModels();
         }
 
@@ -28,28 +28,6 @@ namespace Winhance.WPF.Features.Common.Extensions.DI
             return services;
         }
 
-        public static IServiceCollection AddOptimizationViewModels(this IServiceCollection services)
-        {
-            services.AddTransient<OptimizeViewModel>();
-            services.AddSingleton<PowerOptimizationsViewModel>();
-            services.AddSingleton<PrivacyAndSecurityOptimizationsViewModel>();
-            services.AddSingleton<GamingandPerformanceOptimizationsViewModel>();
-            services.AddSingleton<NotificationOptimizationsViewModel>();
-            services.AddSingleton<SoundOptimizationsViewModel>();
-            services.AddSingleton<UpdateOptimizationsViewModel>();
-            return services;
-        }
-
-        public static IServiceCollection AddCustomizationViewModels(this IServiceCollection services)
-        {
-            services.AddTransient<CustomizeViewModel>();
-            services.AddSingleton<WindowsThemeCustomizationsViewModel>();
-            services.AddSingleton<StartMenuCustomizationsViewModel>();
-            services.AddSingleton<TaskbarCustomizationsViewModel>();
-            services.AddSingleton<ExplorerCustomizationsViewModel>();
-            return services;
-        }
-
         public static IServiceCollection AddSoftwareAppViewModels(this IServiceCollection services)
         {
             services.AddSingleton<SoftwareAppsViewModel>();
@@ -59,6 +37,28 @@ namespace Winhance.WPF.Features.Common.Extensions.DI
             services.AddTransient<RemovalStatusViewModel>();
             services.AddTransient<ExternalAppsHelpViewModel>();
             services.AddTransient<WindowsAppsHelpContentViewModel>();
+            return services;
+        }
+
+        public static IServiceCollection AddOptimizationViewModels(this IServiceCollection services)
+        {
+            services.AddSingleton<OptimizeViewModel>();
+            services.AddTransient<PowerOptimizationsViewModel>();
+            services.AddTransient<PrivacyAndSecurityOptimizationsViewModel>();
+            services.AddTransient<GamingandPerformanceOptimizationsViewModel>();
+            services.AddTransient<NotificationOptimizationsViewModel>();
+            services.AddTransient<SoundOptimizationsViewModel>();
+            services.AddTransient<UpdateOptimizationsViewModel>();
+            return services;
+        }
+
+        public static IServiceCollection AddCustomizationViewModels(this IServiceCollection services)
+        {
+            services.AddSingleton<CustomizeViewModel>();
+            services.AddTransient<WindowsThemeCustomizationsViewModel>();
+            services.AddTransient<StartMenuCustomizationsViewModel>();
+            services.AddTransient<TaskbarCustomizationsViewModel>();
+            services.AddTransient<ExplorerCustomizationsViewModel>();
             return services;
         }
 

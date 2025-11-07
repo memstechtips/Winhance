@@ -94,6 +94,16 @@ namespace Winhance.Core.Features.SoftwareApps.Models
                             WinGetPackageId = "valinet.ExplorerPatcher",
                             Category = "Customization Utilities",
                             WebsiteUrl = "https://github.com/valinet/ExplorerPatcher"
+                        },
+                        new ItemDefinition
+                        {
+                            Id = "external-app-nexus-dock",
+                            Name = "Nexus",
+                            Description = "The advanced docking system for Windows",
+                            GroupName = "Customization Utilities",
+                            WinGetPackageId = "WinStep.Nexus",
+                            Category = "Customization Utilities",
+                            WebsiteUrl = "https://www.winstep.net/nexus.asp"
                         }
                     }
                 };

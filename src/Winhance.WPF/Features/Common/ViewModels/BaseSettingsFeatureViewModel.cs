@@ -108,9 +108,13 @@ namespace Winhance.WPF.Features.Common.ViewModels
 
         public virtual async Task LoadSettingsAsync()
         {
+
             lock (_loadingLock)
             {
-                if (_settingsLoaded) return;
+                if (_settingsLoaded)
+                {
+                    return;
+                }
                 _settingsLoaded = true;
             }
 
@@ -133,10 +137,11 @@ namespace Winhance.WPF.Features.Common.ViewModels
                     $"Loading {DisplayName} settings...",
                     this
                 )).Cast<SettingItemViewModel>();
-                
+
                 Settings = new ObservableCollection<SettingItemViewModel>(loadedSettings);
 
                 UpdateParentChildRelationships();
+
 
                 logService.Log(LogLevel.Info,
                     $"{GetType().Name}: Successfully loaded {Settings.Count} settings");
@@ -211,11 +216,14 @@ namespace Winhance.WPF.Features.Common.ViewModels
         {
             if (!_isDisposed && disposing)
             {
+
                 if (Settings != null)
                 {
+                    int disposedSettingsCount = 0;
                     foreach (var setting in Settings.OfType<IDisposable>())
                     {
                         setting?.Dispose();
+                        disposedSettingsCount++;
                     }
                     Settings.Clear();
                 }

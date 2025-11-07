@@ -1,3 +1,4 @@
+using System;
 using System.Linq;
 using Winhance.Core.Features.Common.Constants;
 using Winhance.Core.Features.Common.Enums;
@@ -90,6 +91,15 @@ public class ConfigurationApplicationBridgeService
         if (item.CustomStateValues != null && item.CustomStateValues.Count > 0)
         {
             return item.CustomStateValues;
+        }
+
+        if (item.PowerSettings != null &&
+            item.PowerSettings.ContainsKey("ACIndex") &&
+            item.PowerSettings.ContainsKey("DCIndex"))
+        {
+            var acIndex = Convert.ToInt32(item.PowerSettings["ACIndex"]);
+            var dcIndex = Convert.ToInt32(item.PowerSettings["DCIndex"]);
+            return (acIndex, dcIndex);
         }
 
         if (item.SelectedIndex.HasValue)
@@ -190,7 +200,8 @@ public class ConfigurationApplicationBridgeService
 
             if (!currentWave.Any() && remainingItems.Any())
             {
-                _logService.Log(LogLevel.Warning, "Circular dependency detected, processing remaining items anyway");
+                var circularSettingIds = string.Join(", ", remainingItems.Select(x => x.setting.Id));
+                _logService.Log(LogLevel.Warning, $"Circular dependency detected in settings: {circularSettingIds}. Processing anyway.");
                 currentWave.AddRange(remainingItems);
                 remainingItems.Clear();
             }

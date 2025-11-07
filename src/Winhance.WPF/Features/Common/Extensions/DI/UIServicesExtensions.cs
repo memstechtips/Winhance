@@ -44,6 +44,14 @@ namespace Winhance.WPF.Features.Common.Extensions.DI
                 provider.GetRequiredService<UserPreferencesService>()
             );
 
+            services.AddSingleton<IViewPoolService>(provider =>
+            {
+                var config = ViewPoolConfiguration.CreateDefault();
+                return new Infrastructure.Features.Common.Services.ViewPoolService(
+                    provider.GetRequiredService<ILogService>(),
+                    config.PoolSizes
+                );
+            });
 
             return services;
         }

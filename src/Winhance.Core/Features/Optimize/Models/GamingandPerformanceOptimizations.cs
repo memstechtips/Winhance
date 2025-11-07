@@ -44,6 +44,10 @@ public static class GamingandPerformanceOptimizations
                     Description = "Adjust cursor speed based on movement velocity (mouse acceleration). Most competitive gamers disable this for consistent aiming in FPS games",
                     Icon = "Mouse",
                     InputType = InputType.Toggle,
+                    CustomProperties = new Dictionary<string, object>
+                    {
+                        [CustomPropertyKeys.RequiresRestartMessage] = "⚠️ System restart required for changes to take effect"
+                    },
                     RegistrySettings = new List<RegistrySetting>
                     {
                         new RegistrySetting

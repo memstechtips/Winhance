@@ -214,6 +214,16 @@ namespace Winhance.Core.Features.SoftwareApps.Models
                             WinGetPackageId = "DuckDuckGo.DesktopBrowser",
                             Category = "Browsers",
                             WebsiteUrl = "https://duckduckgo.com/"
+                        },
+                        new ItemDefinition
+                        {
+                            Id = "external-app-librewolf",
+                            Name = "LibreWolf",
+                            Description = "A custom version of Firefox, focused on privacy, security and freedom",
+                            GroupName = "Browsers",
+                            WinGetPackageId = "LibreWolf.LibreWolf",
+                            Category = "Browsers",
+                            WebsiteUrl = "https://librewolf.net/"
                         }
                     }
                 };

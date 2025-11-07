@@ -84,6 +84,36 @@ namespace Winhance.Core.Features.SoftwareApps.Models
                             WinGetPackageId = "Google.ChromeRemoteDesktopHost",
                             Category = "Remote Access",
                             WebsiteUrl = "https://remotedesktop.google.com/"
+                        },
+                        new ItemDefinition
+                        {
+                            Id = "external-app-parsec",
+                            Name = "Parsec",
+                            Description = "Remote desktop reimagined. Secure, flexible, effortless access to whatever you do, at any time, from wherever you go",
+                            GroupName = "Remote Access",
+                            WinGetPackageId = "Parsec.Parsec",
+                            Category = "Remote Access",
+                            WebsiteUrl = "https://parsec.app/"
+                        },
+                        new ItemDefinition
+                        {
+                            Id = "external-app-parsec-display",
+                            Name = "Parsec Virtual Display Driver",
+                            Description = "Virtual display driver for Parsec Remote Desktop",
+                            GroupName = "Remote Access",
+                            WinGetPackageId = "Parsec.ParsecVDD",
+                            Category = "Remote Access",
+                            WebsiteUrl = "https://parsec.app/"
+                        },
+                        new ItemDefinition
+                        {
+                            Id = "external-app-parsec-usb",
+                            Name = "Parsec Virtual USB Adapter Driver",
+                            Description = "Virtual USB driver for Parsec Remote Desktop",
+                            GroupName = "Remote Access",
+                            WinGetPackageId = "Parsec.ParsecVUD",
+                            Category = "Remote Access",
+                            WebsiteUrl = "https://parsec.app/"
                         }
                     }
                 };

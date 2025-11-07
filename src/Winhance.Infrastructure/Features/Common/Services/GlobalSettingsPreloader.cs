@@ -1,5 +1,4 @@
 using System;
-using System.Collections.Generic;
 using System.Linq;
 using System.Threading.Tasks;
 using Winhance.Core.Features.Common.Enums;
@@ -9,7 +8,7 @@ namespace Winhance.Infrastructure.Features.Common.Services
 {
     public class GlobalSettingsPreloader : IGlobalSettingsPreloader
     {
-        private readonly IEnumerable<IDomainService> _domainServices;
+        private readonly ICompatibleSettingsRegistry _compatibleSettingsRegistry;
         private readonly IGlobalSettingsRegistry _globalSettingsRegistry;
         private readonly IDomainServiceRouter _domainServiceRouter;
         private readonly ILogService _logService;
@@ -18,12 +17,12 @@ namespace Winhance.Infrastructure.Features.Common.Services
         public bool IsPreloaded => _isPreloaded;
 
         public GlobalSettingsPreloader(
-            IEnumerable<IDomainService> domainServices,
+            ICompatibleSettingsRegistry compatibleSettingsRegistry,
             IGlobalSettingsRegistry globalSettingsRegistry,
             IDomainServiceRouter domainServiceRouter,
             ILogService logService)
         {
-            _domainServices = domainServices;
+            _compatibleSettingsRegistry = compatibleSettingsRegistry;
             _globalSettingsRegistry = globalSettingsRegistry;
             _domainServiceRouter = domainServiceRouter;
             _logService = logService;
@@ -39,21 +38,22 @@ namespace Winhance.Infrastructure.Features.Common.Services
 
             _logService.Log(LogLevel.Info, "[Preloader] Starting global settings preload");
 
-            foreach (var domainService in _domainServices)
+            var allBypassedSettings = _compatibleSettingsRegistry.GetAllBypassedSettings();
+
+            foreach (var (featureId, settings) in allBypassedSettings)
             {
                 try
                 {
-                    var settings = await domainService.GetSettingsAsync();
                     var settingsList = settings.ToList();
 
-                    _globalSettingsRegistry.RegisterSettings(domainService.DomainName, settingsList);
-                    _domainServiceRouter.AddSettingMappings(domainService.DomainName, settingsList.Select(s => s.Id));
+                    _globalSettingsRegistry.RegisterSettings(featureId, settingsList);
+                    _domainServiceRouter.AddSettingMappings(featureId, settingsList.Select(s => s.Id));
 
-                    _logService.Log(LogLevel.Debug, $"[Preloader] Registered {settingsList.Count} settings from {domainService.DomainName}");
+                    _logService.Log(LogLevel.Debug, $"[Preloader] Registered {settingsList.Count} bypassed settings from {featureId}");
                 }
                 catch (Exception ex)
                 {
-                    _logService.Log(LogLevel.Warning, $"[Preloader] Failed to preload settings from {domainService.DomainName}: {ex.Message}");
+                    _logService.Log(LogLevel.Warning, $"[Preloader] Failed to preload settings from {featureId}: {ex.Message}");
                 }
             }
 

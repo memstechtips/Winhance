@@ -80,31 +80,88 @@ namespace Winhance.Infrastructure.Features.AdvancedTools.Helpers
             }
         }
 
-        public static void CategorizeAndCopyDrivers(
+        public static int CategorizeAndCopyDrivers(
             string sourceDirectory,
             string winpeDriverPath,
             string oemDriverPath,
-            ILogService logService)
+            ILogService logService,
+            string? workingDirectoryToExclude = null)
         {
             var infFiles = Directory.GetFiles(sourceDirectory, "*.inf", SearchOption.AllDirectories);
 
-            foreach (var infFile in infFiles)
+            if (infFiles.Length == 0)
             {
-                var isStorage = IsStorageDriver(infFile, logService);
-                var targetBase = isStorage ? winpeDriverPath : oemDriverPath;
+                logService.LogWarning($"No .inf files found in: {sourceDirectory}");
+                return 0;
+            }
 
-                var relativePath = Path.GetRelativePath(sourceDirectory, Path.GetDirectoryName(infFile)!);
-                var targetDirectory = Path.Combine(targetBase, relativePath);
+            var validInfFiles = infFiles;
 
-                Directory.CreateDirectory(targetDirectory);
+            if (!string.IsNullOrEmpty(workingDirectoryToExclude))
+            {
+                validInfFiles = infFiles
+                    .Where(inf => !inf.StartsWith(workingDirectoryToExclude, StringComparison.OrdinalIgnoreCase))
+                    .ToArray();
 
-                var sourceDir = Path.GetDirectoryName(infFile)!;
-                foreach (var file in Directory.GetFiles(sourceDir))
+                int excludedCount = infFiles.Length - validInfFiles.Length;
+                if (excludedCount > 0)
                 {
-                    var targetFile = Path.Combine(targetDirectory, Path.GetFileName(file));
-                    File.Copy(file, targetFile, overwrite: true);
+                    logService.LogInformation($"Excluded {excludedCount} driver(s) from working directory");
                 }
             }
+
+            if (validInfFiles.Length == 0)
+            {
+                logService.LogWarning("No valid drivers found after filtering");
+                return 0;
+            }
+
+            logService.LogInformation($"Found {validInfFiles.Length} driver(s) to categorize");
+            int copiedCount = 0;
+            var processedFolders = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
+
+            foreach (var infFile in validInfFiles)
+            {
+                try
+                {
+                    var sourceDir = Path.GetDirectoryName(infFile)!;
+
+                    if (processedFolders.Contains(sourceDir))
+                        continue;
+
+                    processedFolders.Add(sourceDir);
+
+                    var isStorage = IsStorageDriver(infFile, logService);
+                    var targetBase = isStorage ? winpeDriverPath : oemDriverPath;
+
+                    var folderName = Path.GetFileName(sourceDir);
+                    var targetDirectory = Path.Combine(targetBase, folderName);
+
+                    int counter = 1;
+                    while (Directory.Exists(targetDirectory) && counter < 100)
+                    {
+                        targetDirectory = Path.Combine(targetBase, $"{folderName}_{counter}");
+                        counter++;
+                    }
+
+                    Directory.CreateDirectory(targetDirectory);
+
+                    foreach (var file in Directory.GetFiles(sourceDir))
+                    {
+                        var targetFile = Path.Combine(targetDirectory, Path.GetFileName(file));
+                        File.Copy(file, targetFile, overwrite: true);
+                    }
+
+                    copiedCount++;
+                    logService.LogInformation($"Copied driver: {folderName}");
+                }
+                catch (Exception ex)
+                {
+                    logService.LogError($"Failed to copy driver {Path.GetFileName(infFile)}: {ex.Message}", ex);
+                }
+            }
+
+            return copiedCount;
         }
 
         public static void MergeDriverDirectory(string sourceDirectory, string targetDirectory, ILogService logService)

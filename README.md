@@ -17,13 +17,6 @@ Download from [winhance.net](https://winhance.net) or the [Releases](https://git
 
 The `Winhance.Installer.exe` includes an Installable and Portable version during setup.
 
-## 🔐 Winhance v25.11.03 Security Info
-
-**Important:** Please verify your download using the information below. Any file with different values for this particular version is not from the official source.
-
-- **Winhance.Installer.exe**
-  - SHA256: 3bd6e1721068fd8ed7bc92cf39c09f1c586c2624f16217d47063ef8e9c788b3d 
-
 > [!NOTE]
 > This tool is currently in development. Any issues can be reported using the Issues tab.<br>
 > Also, I'm not a developer, I'm just enjoying learning more about scripting/programming and learning as I go.<br><br>

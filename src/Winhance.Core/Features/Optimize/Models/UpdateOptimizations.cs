@@ -421,6 +421,8 @@ public static class UpdateOptimizations
                             KeyPath = @"HKEY_LOCAL_MACHINE\SOFTWARE\Microsoft\WindowsUpdate\UX\Settings",
                             ValueName = "IsContinuousInnovationOptedIn",
                             RecommendedValue = 0,
+                            EnabledValue = 1,
+                            DisabledValue = 0,
                             DefaultValue = null,
                             ValueType = RegistryValueKind.DWord,
                             AbsenceMeansEnabled = true,

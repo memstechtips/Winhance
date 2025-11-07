@@ -14,7 +14,7 @@ namespace Winhance.Core.Features.SoftwareApps.Models
             allItems.AddRange(Browsers.GetBrowsers().Items);
             allItems.AddRange(DocumentViewers.GetDocumentViewers().Items);
             allItems.AddRange(MessagingEmailCalendar.GetMessagingEmailCalendar().Items);
-            allItems.AddRange(OnlineStorage.GetOnlineStorage().Items);
+            allItems.AddRange(OnlineStorageBackup.GetOnlineStorageBackup().Items);
             allItems.AddRange(Multimedia.GetMultimedia().Items);
             allItems.AddRange(Imaging.GetImaging().Items);
             allItems.AddRange(CustomizationUtilities.GetCustomizationUtilities().Items);

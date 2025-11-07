@@ -1,6 +1,5 @@
 using System;
 using System.Diagnostics;
-using System.IO;
 using System.Threading.Tasks;
 using System.Windows;
 using Winhance.Core.Features.Common.Enums;
@@ -13,21 +12,16 @@ namespace Winhance.WPF.Features.Common.Services
     {
         private readonly ILogService _logService;
         private readonly ITaskProgressService _taskProgressService;
-        private readonly string _preferencesFilePath;
+        private readonly IUserPreferencesService _userPreferencesService;
 
         public ApplicationCloseService(
             ILogService logService,
-            ITaskProgressService taskProgressService)
+            ITaskProgressService taskProgressService,
+            IUserPreferencesService userPreferencesService)
         {
             _logService = logService ?? throw new ArgumentNullException(nameof(logService));
             _taskProgressService = taskProgressService ?? throw new ArgumentNullException(nameof(taskProgressService));
-
-            _preferencesFilePath = Path.Combine(
-                Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData),
-                "Winhance",
-                "Config",
-                "UserPreferences.json"
-            );
+            _userPreferencesService = userPreferencesService ?? throw new ArgumentNullException(nameof(userPreferencesService));
         }
 
         public async Task<bool> CheckOperationsAndCloseAsync()
@@ -153,23 +147,14 @@ namespace Winhance.WPF.Features.Common.Services
         {
             try
             {
-                _logService.LogInformation($"Checking preferences file: {_preferencesFilePath}");
+                _logService.LogInformation("Checking DontShowSupport preference");
 
-                if (File.Exists(_preferencesFilePath))
+                bool dontShow = await _userPreferencesService.GetPreferenceAsync("DontShowSupport", false);
+
+                if (dontShow)
                 {
-                    string json = await File.ReadAllTextAsync(_preferencesFilePath);
-                    _logService.LogInformation($"Preferences file content: {json}");
-
-                    if (
-                        json.Contains("\"DontShowSupport\": true")
-                        || json.Contains("\"DontShowSupport\":true")
-                        || json.Contains("\"DontShowSupport\": 1")
-                        || json.Contains("\"DontShowSupport\":1")
-                    )
-                    {
-                        _logService.LogInformation("DontShowSupport is set to true, skipping dialog");
-                        return false;
-                    }
+                    _logService.LogInformation("DontShowSupport is set to true, skipping dialog");
+                    return false;
                 }
 
                 return true;
@@ -185,42 +170,18 @@ namespace Winhance.WPF.Features.Common.Services
         {
             try
             {
-                string preferencesDir = Path.GetDirectoryName(_preferencesFilePath);
+                _logService.LogInformation($"Saving DontShowSupport preference: {dontShow}");
 
-                if (!Directory.Exists(preferencesDir))
-                {
-                    Directory.CreateDirectory(preferencesDir);
-                }
+                bool success = await _userPreferencesService.SetPreferenceAsync("DontShowSupport", dontShow);
 
-                string json = "{}";
-                if (File.Exists(_preferencesFilePath))
+                if (success)
                 {
-                    json = await File.ReadAllTextAsync(_preferencesFilePath);
-                }
-
-                if (json == "{}")
-                {
-                    json = "{ \"DontShowSupport\": " + (dontShow ? "true" : "false") + " }";
-                }
-                else if (json.Contains("\"DontShowSupport\":") || json.Contains("\"DontShowSupport\": "))
-                {
-                    json = json.Replace("\"DontShowSupport\": true", "\"DontShowSupport\": " + (dontShow ? "true" : "false"));
-                    json = json.Replace("\"DontShowSupport\": false", "\"DontShowSupport\": " + (dontShow ? "true" : "false"));
-                    json = json.Replace("\"DontShowSupport\":true", "\"DontShowSupport\":" + (dontShow ? "true" : "false"));
-                    json = json.Replace("\"DontShowSupport\":false", "\"DontShowSupport\":" + (dontShow ? "true" : "false"));
+                    _logService.LogInformation("Successfully saved DontShowSupport preference");
                 }
                 else
                 {
-                    json = json.TrimEnd('}');
-                    if (json.TrimEnd().EndsWith("}"))
-                    {
-                        json += ",";
-                    }
-                    json += " \"DontShowSupport\": " + (dontShow ? "true" : "false") + " }";
+                    _logService.LogError("Failed to save DontShowSupport preference");
                 }
-
-                await File.WriteAllTextAsync(_preferencesFilePath, json);
-                _logService.LogInformation($"Successfully saved DontShowSupport preference: {dontShow}");
             }
             catch (Exception ex)
             {

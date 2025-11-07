@@ -377,6 +377,23 @@ namespace Winhance.Infrastructure.Features.Common.Services
             {
                 if (setting.InputType == InputType.Selection &&
                     setting.PowerCfgSettings[0].PowerModeSupport == PowerModeSupport.Separate &&
+                    value is ValueTuple<int, int> tupleSeparate)
+                {
+                    logService.Log(LogLevel.Info, $"[SettingApplicationService] Applying PowerCfg settings for '{setting.Id}' with separate AC/DC Selection tuple");
+
+                    var acPowerCfgValue = comboBoxResolver.GetValueFromIndex(setting, tupleSeparate.Item1);
+                    var dcPowerCfgValue = comboBoxResolver.GetValueFromIndex(setting, tupleSeparate.Item2);
+
+                    var convertedDict = new Dictionary<string, object?>
+                    {
+                        ["ACValue"] = acPowerCfgValue,
+                        ["DCValue"] = dcPowerCfgValue
+                    };
+
+                    await ExecutePowerCfgSettings(setting.PowerCfgSettings, convertedDict, await hardwareDetectionService.HasBatteryAsync());
+                }
+                else if (setting.InputType == InputType.Selection &&
+                    setting.PowerCfgSettings[0].PowerModeSupport == PowerModeSupport.Separate &&
                     value is Dictionary<string, object?> dict)
                 {
                     logService.Log(LogLevel.Info, $"[SettingApplicationService] Applying PowerCfg settings for '{setting.Id}' with separate AC/DC Selection values");
@@ -417,6 +434,12 @@ namespace Winhance.Infrastructure.Features.Common.Services
                 }
                 else
                 {
+                    if (setting.InputType == InputType.NumericRange && value == null)
+                    {
+                        logService.Log(LogLevel.Debug, $"[SettingApplicationService] Skipping PowerCfg setting '{setting.Id}' - no value provided (old config format)");
+                        return;
+                    }
+
                     int valueToApply = setting.InputType switch
                     {
                         InputType.Toggle => enable ? 1 : 0,
@@ -466,10 +489,11 @@ namespace Winhance.Infrastructure.Features.Common.Services
             return value switch
             {
                 int intVal => intVal,
+                long longVal => (int)longVal,
                 double doubleVal => (int)doubleVal,
                 float floatVal => (int)floatVal,
                 string stringVal when int.TryParse(stringVal, out int parsed) => parsed,
-                _ => throw new ArgumentException($"Cannot convert '{value}' to numeric value")
+                _ => throw new ArgumentException($"Cannot convert '{value}' (type: {value?.GetType().Name ?? "null"}) to numeric value")
             };
         }
 
@@ -540,10 +564,12 @@ namespace Winhance.Infrastructure.Features.Common.Services
             return value switch
             {
                 int intVal => intVal,
+                long longVal => (int)longVal,
                 double doubleVal => (int)doubleVal,
                 float floatVal => (int)floatVal,
                 string stringVal when int.TryParse(stringVal, out int parsed) => parsed,
-                _ => throw new ArgumentException($"Cannot convert '{value}' to single numeric value")
+                ValueTuple<int, int> tuple => tuple.Item1,
+                _ => throw new ArgumentException($"Cannot convert '{value}' (type: {value?.GetType().Name ?? "null"}) to single numeric value")
             };
         }
 
