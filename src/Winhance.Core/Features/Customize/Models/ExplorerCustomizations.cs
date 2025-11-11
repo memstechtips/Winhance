@@ -88,6 +88,11 @@ public static class ExplorerCustomizations
                         {
                             EnabledContent = @"Windows Registry Editor Version 5.00
 
+; Created by: Shawn Brink
+; Created on: January 28, 2015
+; Updated on: February 25, 2024
+; Tutorial: https://www.tenforums.com/tutorials/3841-add-take-ownership-context-menu-windows-10-a.html
+
 [-HKEY_CLASSES_ROOT\*\shell\TakeOwnership]
 [-HKEY_CLASSES_ROOT\*\shell\runas]
 
@@ -99,8 +104,8 @@ public static class ExplorerCustomizations
 ""NeverDefault""=""""
 
 [HKEY_CLASSES_ROOT\*\shell\TakeOwnership\command]
-@=""powershell -windowstyle hidden -command \""Start-Process cmd -ArgumentList '/c takeown /f \\\\\\""%1\\\\\\"" && icacls \\\\\\""%1\\\\\\"" /grant *S-1-3-4:F /t /c /l & pause' -Verb runAs\""""
-""IsolatedCommand""=""powershell -windowstyle hidden -command \""Start-Process cmd -ArgumentList '/c takeown /f \\\\\\""%1\\\\\\"" && icacls \\\\\\""%1\\\\\\"" /grant *S-1-3-4:F /t /c /l & pause' -Verb runAs\""""
+@=""powershell -windowstyle hidden -command \""Start-Process cmd -ArgumentList '/c takeown /f \\\""%1\\\"" && icacls \\\""%1\\\"" /grant *S-1-3-4:F /t /c /l & pause' -Verb runAs\""""
+""IsolatedCommand""=""powershell -windowstyle hidden -command \""Start-Process cmd -ArgumentList '/c takeown /f \\\""%1\\\"" && icacls \\\""%1\\\"" /grant *S-1-3-4:F /t /c /l & pause' -Verb runAs\""""
 
 [HKEY_CLASSES_ROOT\Directory\shell\TakeOwnership]
 @=""Take Ownership""
@@ -111,8 +116,8 @@ public static class ExplorerCustomizations
 ""Position""=""middle""
 
 [HKEY_CLASSES_ROOT\Directory\shell\TakeOwnership\command]
-@=""powershell -windowstyle hidden -command \""$Y = ($null | choice).Substring(1,1); Start-Process cmd -ArgumentList ('/c takeown /f \\\\\\""%1\\\\\\"" /r /d ' + $Y + ' && icacls \\\\\\""%1\\\\\\"" /grant *S-1-3-4:F /t /c /l /q & pause') -Verb runAs\""""
-""IsolatedCommand""=""powershell -windowstyle hidden -command \""$Y = ($null | choice).Substring(1,1); Start-Process cmd -ArgumentList ('/c takeown /f \\\\\\""%1\\\\\\"" /r /d ' + $Y + ' && icacls \\\\\\""%1\\\\\\"" /grant *S-1-3-4:F /t /c /l /q & pause') -Verb runAs\""""
+@=""powershell -windowstyle hidden -command \""$Y = ($null | choice).Substring(1,1); Start-Process cmd -ArgumentList ('/c takeown /f \\\""%1\\\"" /r /d ' + $Y + ' && icacls \\\""%1\\\"" /grant *S-1-3-4:F /t /c /l /q & pause') -Verb runAs\""""
+""IsolatedCommand""=""powershell -windowstyle hidden -command \""$Y = ($null | choice).Substring(1,1); Start-Process cmd -ArgumentList ('/c takeown /f \\\""%1\\\"" /r /d ' + $Y + ' && icacls \\\""%1\\\"" /grant *S-1-3-4:F /t /c /l /q & pause') -Verb runAs\""""
 
 [HKEY_CLASSES_ROOT\Drive\shell\runas]
 @=""Take Ownership""
@@ -725,8 +730,8 @@ public static class ExplorerCustomizations
                     {
                         new RegistrySetting
                         {
-                            KeyPath = @"HKEY_CURRENT_USER\SOFTWARE\Classes\.jpg",
-                            ValueName = null,
+                            KeyPath = @"HKEY_CURRENT_USER\Software\Classes\.bmp",
+                            ValueName = "",
                             EnabledValue = "PhotoViewer.FileAssoc.Tiff",
                             DisabledValue = null,
                             DefaultValue = null,
