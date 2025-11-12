@@ -2,6 +2,7 @@ using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Management;
+using System.Text;
 using System.Threading.Tasks;
 using Microsoft.Win32;
 using Winhance.Core.Features.Common.Interfaces;
@@ -568,28 +569,65 @@ public class AppStatusDiscoveryService(
         {
             var normalizedDisplayName = NormalizeString(displayName);
 
-            if (normalizedProduct.Length >= 4 && normalizedDisplayName.Contains(normalizedProduct))
+            if (normalizedProduct.Length >= 6 && normalizedDisplayName.Contains(normalizedProduct))
             {
                 return true;
             }
 
-            if (normalizedProduct.Contains('.') || normalizedProduct.Contains(' '))
-            {
-                var productWords = normalizedProduct
-                    .Replace('.', ' ')
-                    .Split(' ', StringSplitOptions.RemoveEmptyEntries)
-                    .Where(w => w.Length >= 4)
-                    .ToList();
+            var productWords = SplitIntoWords(productName)
+                .Select(w => NormalizeString(w))
+                .Where(w => w.Length >= 5)
+                .ToList();
 
-                if (productWords.Count > 0 &&
-                    productWords.All(word => normalizedDisplayName.Contains(word)))
+            if (productWords.Count >= 2)
+            {
+                var allWordsMatch = productWords.All(word => normalizedDisplayName.Contains(word));
+
+                if (allWordsMatch)
                 {
-                    return true;
+                    var combinedWordLength = productWords.Sum(w => w.Length);
+                    if (combinedWordLength >= 10)
+                    {
+                        return true;
+                    }
                 }
             }
         }
 
         return false;
+    }
+
+    private List<string> SplitIntoWords(string input)
+    {
+        if (string.IsNullOrEmpty(input))
+            return new List<string>();
+
+        var words = new List<string>();
+        var currentWord = new StringBuilder();
+
+        foreach (var ch in input)
+        {
+            if (char.IsUpper(ch) && currentWord.Length > 0)
+            {
+                words.Add(currentWord.ToString());
+                currentWord.Clear();
+            }
+
+            if (char.IsLetterOrDigit(ch))
+            {
+                currentWord.Append(ch);
+            }
+            else if (currentWord.Length > 0)
+            {
+                words.Add(currentWord.ToString());
+                currentWord.Clear();
+            }
+        }
+
+        if (currentWord.Length > 0)
+            words.Add(currentWord.ToString());
+
+        return words;
     }
 
     private string NormalizeString(string input)
