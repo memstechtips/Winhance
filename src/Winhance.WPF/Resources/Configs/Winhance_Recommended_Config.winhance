@@ -1867,38 +1867,38 @@
           },
           {
             "Id": "security-workplace-join-messages",
-            "Name": "Disable Workplace Join Messages",
+            "Name": "Block Workplace Join Messages",
             "IsSelected": true,
             "InputType": 0
           },
           {
             "Id": "security-bitlocker-auto-encryption",
-            "Name": "Disable BitLocker Auto Encryption",
+            "Name": "Prevent BitLocker Auto Encryption",
             "IsSelected": true,
             "InputType": 0
           },
           {
             "Id": "security-wifi-sense",
-            "Name": "Disable WiFi-Sense",
-            "IsSelected": true,
+            "Name": "WiFi-Sense",
+            "IsSelected": false,
             "InputType": 0
           },
           {
             "Id": "security-automatic-maintenance",
-            "Name": "Disable Automatic Maintenance",
-            "IsSelected": true,
+            "Name": "Automatic Maintenance",
+            "IsSelected": false,
             "InputType": 0
           },
           {
             "Id": "security-error-reporting",
-            "Name": "Disable Windows Error Reporting",
-            "IsSelected": true,
+            "Name": "Windows Error Reporting",
+            "IsSelected": false,
             "InputType": 0
           },
           {
             "Id": "security-remote-assistance",
-            "Name": "Disable Remote Assistance",
-            "IsSelected": true,
+            "Name": "Remote Assistance",
+            "IsSelected": false,
             "InputType": 0
           },
           {
