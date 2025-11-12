@@ -564,6 +564,31 @@ public class AppStatusDiscoveryService(
             }
         }
 
+        foreach (var (displayName, _) in installedPrograms)
+        {
+            var normalizedDisplayName = NormalizeString(displayName);
+
+            if (normalizedProduct.Length >= 4 && normalizedDisplayName.Contains(normalizedProduct))
+            {
+                return true;
+            }
+
+            if (normalizedProduct.Contains('.') || normalizedProduct.Contains(' '))
+            {
+                var productWords = normalizedProduct
+                    .Replace('.', ' ')
+                    .Split(' ', StringSplitOptions.RemoveEmptyEntries)
+                    .Where(w => w.Length >= 4)
+                    .ToList();
+
+                if (productWords.Count > 0 &&
+                    productWords.All(word => normalizedDisplayName.Contains(word)))
+                {
+                    return true;
+                }
+            }
+        }
+
         return false;
     }
 
