@@ -41,7 +41,7 @@ namespace Winhance.Core.Features.SoftwareApps.Models
                             Name = "Foxit Reader",
                             Description = "Lightweight PDF reader with advanced features",
                             GroupName = "Document Viewers",
-                            WinGetPackageId = "Foxit.FoxitReader",
+                            WinGetPackageId = "Foxit.FoxitReader.Inno",
                             Category = "Document Viewers",
                             WebsiteUrl = "https://www.foxit.com/pdf-reader/"
                         },

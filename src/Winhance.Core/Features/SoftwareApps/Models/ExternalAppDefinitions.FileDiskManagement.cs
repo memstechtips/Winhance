@@ -124,16 +124,6 @@ namespace Winhance.Core.Features.SoftwareApps.Models
                             WinGetPackageId = "irzyxa.Volume2Portable",
                             Category = "File & Disk Management",
                             WebsiteUrl = "https://github.com/irzyxa/Volume2"
-                        },
-                        new ItemDefinition
-                        {
-                            Id = "external-app-bulk-rename-utility",
-                            Name = "Bulk Rename Utility",
-                            Description = "The Free File Renaming Utility for Windows to rename multiple files with the click of a button",
-                            GroupName = "File & Disk Management",
-                            WinGetPackageId = "TGRMNSoftware.BulkRenameUtility",
-                            Category = "File & Disk Management",
-                            WebsiteUrl = "https://www.bulkrenameutility.co.uk/"
                         }
                     }
                 };
