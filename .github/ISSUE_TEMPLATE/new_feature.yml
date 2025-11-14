@@ -69,15 +69,6 @@ body:
       required: false
       
   - type: textarea
-    id: alternatives
-    attributes:
-      label: "Alternatives considered"
-      description: "Have you considered any alternatives? If so, what are they?"
-      placeholder: "I have considered..."
-    validations:
-      required: false
-      
-  - type: textarea
     id: additional
     attributes:
       label: "Additional context"

@@ -1,0 +1,65 @@
+name: Close Stale Issues
+
+on:
+  schedule:
+    # Runs every day at 00:00 UTC (adjust as needed)
+    - cron: '0 0 * * *'
+  workflow_dispatch: # Allows you to run this manually from Actions tab
+
+permissions:
+  issues: write
+  pull-requests: write
+
+jobs:
+  stale:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/stale@v9
+        with:
+          # === ISSUE CONFIGURATION ===
+
+          # Days of inactivity before closing (7 days as requested)
+          days-before-issue-stale: -1  # -1 means skip the "stale" label phase
+          days-before-issue-close: 7   # Close after 7 days of inactivity
+
+          # Message posted when closing the issue
+          close-issue-message: |
+            This issue has been automatically closed due to inactivity.
+
+            If you believe this issue still needs attention, feel free to reopen it or create a new issue with updated information.
+
+            Thank you for your contribution!
+
+          # Optional: Message to post before closing (if you want a warning)
+          # stale-issue-message: 'This issue will be closed in 2 days due to inactivity.'
+
+          # Label to add when closing (optional)
+          close-issue-label: 'closed-due-to-inactivity'
+
+          # === EXEMPTIONS ===
+
+          # Issues with these labels will NEVER be closed
+          exempt-issue-labels: 'pinned,security,keep-open,bug,enhancement,feature request'
+
+          # Exempt issues with assignees
+          exempt-assignees: false  # Set to true if you want assigned issues to never close
+
+          # Exempt issues with milestones
+          exempt-milestones: true  # Issues in milestones won't be closed
+
+          # === PULL REQUEST CONFIGURATION ===
+
+          # Set to -1 to disable auto-closing PRs (only close issues)
+          days-before-pr-stale: -1
+          days-before-pr-close: -1
+
+          # === PERFORMANCE ===
+
+          # Maximum number of operations per run (prevents rate limiting)
+          operations-per-run: 100
+
+          # Remove stale label when issue gets new activity
+          remove-stale-when-updated: true
+
+          # Enable debug logging (set to true if you need to troubleshoot)
+          debug-only: false
