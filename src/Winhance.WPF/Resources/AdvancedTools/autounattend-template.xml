@@ -325,7 +325,7 @@
     </FirstLogonCommands>
     </component>
   </settings>
-  <Extensions>
+  <Extensions xmlns="urn:winhance:unattend">
     <ExtractScript>
 param(
     [xml] $Document
