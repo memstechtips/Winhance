@@ -13,9 +13,18 @@
 
 ## Installation 📥
 
-Download from [winhance.net](https://winhance.net) or the [Releases](https://github.com/memstechtips/Winhance/releases) section of this repository.
+### Quick Install via PowerShell
+Paste this command into PowerShell to download and run the installer:
+```powershell
+irm "https://get.winhance.net" | iex
+```
 
-The `Winhance.Installer.exe` includes an Installable and Portable version during setup.
+### Download the Installer
+
+[![Download from Winhance.net](https://img.shields.io/badge/Download-Winhance.net-0078D6?style=for-the-badge&logo=windows&logoColor=white)](https://winhance.net)
+[![Download from GitHub Releases](https://img.shields.io/badge/Download-GitHub%20Releases-181717?style=for-the-badge&logo=github&logoColor=white)](https://github.com/memstechtips/Winhance/releases)
+
+The `Winhance.Installer.exe` includes both Installable and Portable versions during setup.
 
 > [!NOTE]
 > This tool is currently in development. Any issues can be reported using the Issues tab.<br>
@@ -26,6 +35,7 @@ The `Winhance.Installer.exe` includes an Installable and Portable version during
 
 It really does make a big difference, and is very much appreciated. Thanks<br>
 [![ko-fi](https://ko-fi.com/img/githubbutton_sm.svg)](https://ko-fi.com/memstechtips)
+[![PayPal](https://img.shields.io/badge/PayPal-00457C?style=for-the-badge&logo=paypal&logoColor=white)](https://paypal.me/memstech)
 
 ## Current Features 🛠️
 
