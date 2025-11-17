@@ -738,7 +738,7 @@ namespace Winhance.WPF.Features.Common.ViewModels
                     return;
                 }
 
-                await _settingApplicationService.ApplySettingAsync(SettingId, false, null, false, ActionCommandName, applyRecommended);
+                await _settingApplicationService.ApplySettingAsync(SettingId, false, null, applyRecommended, ActionCommandName, applyRecommended);
                 Status = "Completed";
                 UpdateChildSettings();
             }

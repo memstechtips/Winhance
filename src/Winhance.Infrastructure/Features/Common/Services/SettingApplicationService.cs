@@ -51,12 +51,6 @@ namespace Winhance.Infrastructure.Features.Common.Services
 
             if (!string.IsNullOrEmpty(commandString))
             {
-                if (setting.RequiresConfirmation && !checkboxResult)
-                {
-                    logService.Log(LogLevel.Info, $"[SettingApplicationService] Skipping action command for '{settingId}' - checkbox not selected");
-                    return;
-                }
-
                 await ExecuteActionCommand(domainService, commandString, applyRecommended, settingId);
                 return;
             }

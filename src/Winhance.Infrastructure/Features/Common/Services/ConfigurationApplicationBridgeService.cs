@@ -265,13 +265,16 @@ public class ConfigurationApplicationBridgeService
 
             if (setting.InputType == InputType.Action && !string.IsNullOrEmpty(setting.ActionCommand))
             {
-                await _settingApplicationService.ApplySettingAsync(
-                    item.Id,
-                    false,
-                    null,
-                    checkboxResult,
-                    setting.ActionCommand,
-                    skipValuePrerequisites: true);
+                if (item.IsSelected ?? false)
+                {
+                    await _settingApplicationService.ApplySettingAsync(
+                        item.Id,
+                        false,
+                        null,
+                        false,
+                        setting.ActionCommand,
+                        skipValuePrerequisites: true);
+                }
             }
             else
             {
