@@ -220,9 +220,9 @@ namespace Winhance.Core.Features.SoftwareApps.Models
                             Id = "external-app-volume2",
                             Name = "Volume2",
                             Description = "Advanced Windows volume control",
-                            GroupName = "File & Disk Management",
+                            GroupName = "Multimedia (Audio & Video)",
                             WinGetPackageId = "irzyxa.Volume2Portable",
-                            Category = "File & Disk Management",
+                            Category = "Multimedia (Audio & Video)",
                             WebsiteUrl = "https://github.com/irzyxa/Volume2"
                         }
                     }
