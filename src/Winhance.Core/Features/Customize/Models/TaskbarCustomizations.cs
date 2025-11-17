@@ -24,6 +24,7 @@ public static class TaskbarCustomizations
                     InputType = InputType.Action,
                     Icon = "Broom",
                     RequiresConfirmation = true,
+                    RestartProcess = "Explorer",
                     DialogTitleIcon = "Broom",
                     ConfirmationTitle = "Taskbar Cleaning",
                     ConfirmationMessage =
