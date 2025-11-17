@@ -214,6 +214,16 @@ namespace Winhance.Core.Features.SoftwareApps.Models
                             WinGetPackageId = "SMPlayer.SMPlayer",
                             Category = "Multimedia (Audio & Video)",
                             WebsiteUrl = "https://www.smplayer.info/"
+                        },
+                        new ItemDefinition
+                        {
+                            Id = "external-app-volume2",
+                            Name = "Volume2",
+                            Description = "Advanced Windows volume control",
+                            GroupName = "File & Disk Management",
+                            WinGetPackageId = "irzyxa.Volume2Portable",
+                            Category = "File & Disk Management",
+                            WebsiteUrl = "https://github.com/irzyxa/Volume2"
                         }
                     }
                 };
