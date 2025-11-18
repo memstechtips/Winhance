@@ -34,6 +34,7 @@ namespace Winhance.WPF.Features.Common.Services
         private readonly ConfigurationApplicationBridgeService _bridgeService;
         private readonly IWindowsUIManagementService _windowsUIManagementService;
         private readonly IWindowsVersionService _windowsVersionService;
+        private readonly IWindowsThemeQueryService _windowsThemeQueryService;
 
         public ConfigurationService(
             IServiceProvider serviceProvider,
@@ -44,7 +45,8 @@ namespace Winhance.WPF.Features.Common.Services
             ISystemSettingsDiscoveryService discoveryService,
             ConfigurationApplicationBridgeService bridgeService,
             IWindowsUIManagementService windowsUIManagementService,
-            IWindowsVersionService windowsVersionService)
+            IWindowsVersionService windowsVersionService,
+            IWindowsThemeQueryService windowsThemeQueryService)
         {
             _serviceProvider = serviceProvider;
             _logService = logService;
@@ -55,6 +57,7 @@ namespace Winhance.WPF.Features.Common.Services
             _bridgeService = bridgeService;
             _windowsUIManagementService = windowsUIManagementService;
             _windowsVersionService = windowsVersionService;
+            _windowsThemeQueryService = windowsThemeQueryService;
         }
 
         public async Task ExportConfigurationAsync()
@@ -714,8 +717,7 @@ namespace Winhance.WPF.Features.Common.Services
         {
             _logService.Log(LogLevel.Info, $"Applying configuration to: {string.Join(", ", selectedSections)}");
 
-            bool hasCustomizations = selectedSections.Contains("Customize");
-            bool explorerWasKilled = false;
+            bool hasCustomizations = selectedSections.Any(s => s == "Customize" || s.StartsWith("Customize_"));
 
             if (selectedSections.Contains("WindowsApps") && options.ProcessWindowsAppsRemoval)
             {
@@ -728,7 +730,7 @@ namespace Winhance.WPF.Features.Common.Services
                 }
             }
 
-            if (selectedSections.Contains("Optimize"))
+            if (selectedSections.Any(s => s == "Optimize" || s.StartsWith("Optimize_")))
             {
                 overlayWindow?.UpdateProgress("Applying Optimizations...");
                 var success = await ApplyFeatureGroupWithOptionsAsync(config.Optimize, "Optimize", options, selectedSections, overlayWindow);
@@ -737,29 +739,28 @@ namespace Winhance.WPF.Features.Common.Services
 
             if (hasCustomizations)
             {
-                overlayWindow?.UpdateProgress("Preparing Customizations...");
-
-                await Task.Run(async () =>
-                {
-                    if (_windowsUIManagementService.IsProcessRunning("explorer"))
-                    {
-                        _logService.Log(LogLevel.Info, "Killing explorer before applying customizations");
-                        _windowsUIManagementService.KillProcess("explorer");
-                        explorerWasKilled = true;
-                        await Task.Delay(1000);
-                    }
-                });
-
                 overlayWindow?.UpdateProgress("Applying Customizations...");
                 var success = await ApplyFeatureGroupWithOptionsAsync(config.Customize, "Customize", options, selectedSections, overlayWindow);
                 _logService.Log(LogLevel.Info, $"  Customize: {(success ? "Success" : "Failed")}");
             }
 
-            if (explorerWasKilled)
+            // Always restart explorer at the end to apply all changes
+            overlayWindow?.UpdateProgress("Refreshing Windows UI...");
+            await Task.Run(async () =>
             {
-                overlayWindow?.UpdateProgress("Restarting Explorer...");
-                await Task.Run(async () => await RestartExplorerSilentlyAsync());
-            }
+                if (_windowsUIManagementService.IsProcessRunning("explorer"))
+                {
+                    _logService.Log(LogLevel.Info, "Killing explorer to apply changes");
+                    _windowsUIManagementService.KillProcess("explorer");
+                    await Task.Delay(1000);
+                }
+                else
+                {
+                    _logService.Log(LogLevel.Info, "Explorer not running, will start it");
+                }
+
+                await RestartExplorerSilentlyAsync();
+            });
         }
 
         private async Task<bool> ApplyFeatureGroupWithOptionsAsync(
@@ -769,29 +770,140 @@ namespace Winhance.WPF.Features.Common.Services
             List<string> selectedSections,
             ConfigImportOverlayWindow overlayWindow = null)
         {
-            if (featureGroup?.Features == null || !featureGroup.Features.Any())
+            bool hasActionOnlySubsections = selectedSections.Any(s =>
+                s.StartsWith($"{groupName}_") &&
+                options.ActionOnlySubsections.Contains(s));
+
+            if ((featureGroup?.Features == null || !featureGroup.Features.Any()) && !hasActionOnlySubsections)
             {
                 _logService.Log(LogLevel.Warning, $"{groupName} has no features to apply");
                 return false;
             }
 
             bool overallSuccess = true;
+            var processedFeatureKeys = new HashSet<string>();
 
-            foreach (var feature in featureGroup.Features)
+            if (featureGroup?.Features != null)
             {
-                var featureName = feature.Key;
-                var section = feature.Value;
-
-                var featureKey = $"{groupName}_{featureName}";
-                if (!selectedSections.Contains(featureKey))
+                foreach (var feature in featureGroup.Features)
                 {
-                    _logService.Log(LogLevel.Info, $"Skipping {featureName} - not selected by user");
-                    continue;
+                    var featureName = feature.Key;
+                    var section = feature.Value;
+
+                    var featureKey = $"{groupName}_{featureName}";
+                    processedFeatureKeys.Add(featureKey);
+
+                    if (!selectedSections.Contains(featureKey))
+                    {
+                        _logService.Log(LogLevel.Info, $"Skipping {featureName} - not selected by user");
+                        continue;
+                    }
+
+                    bool isActionOnly = options.ActionOnlySubsections.Contains(featureKey);
+
+                    Func<string, object?, SettingDefinition, Task<(bool confirmed, bool checkboxResult)>> confirmationHandler =
+                        async (settingId, value, setting) =>
+                        {
+                            if (settingId == "power-plan-selection" || settingId == "updates-policy-mode")
+                            {
+                                return (true, true);
+                            }
+
+                            if (settingId == "theme-mode-windows")
+                            {
+                                return (true, options?.ApplyThemeWallpaper ?? false);
+                            }
+                            else if (settingId == "taskbar-clean")
+                            {
+                                return (true, options?.ApplyCleanTaskbar ?? false);
+                            }
+                            else if (settingId == "start-menu-clean-10" || settingId == "start-menu-clean-11")
+                            {
+                                return (true, options?.ApplyCleanStartMenu ?? false);
+                            }
+
+                            return (true, true);
+                        };
+
+                    // Build action commands if any are requested
+                    var itemsToExecute = new List<ConfigurationItem>();
+
+                    if (options?.ApplyCleanTaskbar == true && featureName == FeatureIds.Taskbar)
+                    {
+                        itemsToExecute.Add(new ConfigurationItem
+                        {
+                            Id = "taskbar-clean",
+                            Name = "Clean Taskbar",
+                            IsSelected = true,
+                            InputType = InputType.Toggle
+                        });
+                    }
+
+                    if (options?.ApplyCleanStartMenu == true && featureName == FeatureIds.StartMenu)
+                    {
+                        var settingId = _windowsVersionService.IsWindows11() ? "start-menu-clean-11" : "start-menu-clean-10";
+                        itemsToExecute.Add(new ConfigurationItem
+                        {
+                            Id = settingId,
+                            Name = "Clean Start Menu",
+                            IsSelected = true,
+                            InputType = InputType.Toggle
+                        });
+                    }
+
+                    // Execute action commands if any
+                    if (itemsToExecute.Any())
+                    {
+                        var actionSection = new ConfigSection
+                        {
+                            IsIncluded = true,
+                            Items = itemsToExecute
+                        };
+
+                        overlayWindow?.UpdateProgress($"Applying {FeatureIds.GetDisplayName(featureName)} action commands...");
+                        _logService.Log(LogLevel.Info, $"Executing {itemsToExecute.Count} action command(s) for {featureName}");
+
+                        var success = await _bridgeService.ApplyConfigurationSectionAsync(
+                            actionSection,
+                            $"{groupName}.{featureName}",
+                            confirmationHandler);
+
+                        if (!success)
+                        {
+                            overallSuccess = false;
+                            _logService.Log(LogLevel.Warning, $"Failed to apply action commands for {featureName}");
+                        }
+                    }
+
+                    // Apply regular settings if not action-only
+                    if (!isActionOnly)
+                    {
+                        overlayWindow?.UpdateProgress($"Applying {FeatureIds.GetDisplayName(featureName)} Settings...");
+                        _logService.Log(LogLevel.Info, $"Applying {section.Items.Count} settings from {groupName} > {featureName}");
+
+                        var success = await _bridgeService.ApplyConfigurationSectionAsync(
+                            section,
+                            $"{groupName}.{featureName}",
+                            confirmationHandler);
+
+                        if (!success)
+                        {
+                            overallSuccess = false;
+                            _logService.Log(LogLevel.Warning, $"Failed to apply some settings from {groupName} > {featureName}");
+                        }
+                    }
                 }
+            }
 
-                overlayWindow?.UpdateProgress($"Applying {FeatureIds.GetDisplayName(featureName)} Settings...");
+            var unprocessedActionOnly = selectedSections
+                .Where(s => s.StartsWith($"{groupName}_") &&
+                           options.ActionOnlySubsections.Contains(s) &&
+                           !processedFeatureKeys.Contains(s))
+                .ToList();
 
-                _logService.Log(LogLevel.Info, $"Applying {section.Items.Count} settings from {groupName} > {featureName}");
+            foreach (var featureKey in unprocessedActionOnly)
+            {
+                var featureName = featureKey.Substring(groupName.Length + 1);
 
                 Func<string, object?, SettingDefinition, Task<(bool confirmed, bool checkboxResult)>> confirmationHandler =
                     async (settingId, value, setting) =>
@@ -817,15 +929,68 @@ namespace Winhance.WPF.Features.Common.Services
                         return (true, true);
                     };
 
-                var success = await _bridgeService.ApplyConfigurationSectionAsync(
-                    section,
-                    $"{groupName}.{featureName}",
-                    confirmationHandler);
+                var itemsToExecute = new List<ConfigurationItem>();
 
-                if (!success)
+                if (options?.ApplyCleanTaskbar == true && featureName == FeatureIds.Taskbar)
                 {
-                    overallSuccess = false;
-                    _logService.Log(LogLevel.Warning, $"Failed to apply some settings from {groupName} > {featureName}");
+                    itemsToExecute.Add(new ConfigurationItem
+                    {
+                        Id = "taskbar-clean",
+                        Name = "Clean Taskbar",
+                        IsSelected = true,
+                        InputType = InputType.Toggle
+                    });
+                }
+
+                if (options?.ApplyCleanStartMenu == true && featureName == FeatureIds.StartMenu)
+                {
+                    var settingId = _windowsVersionService.IsWindows11() ? "start-menu-clean-11" : "start-menu-clean-10";
+                    itemsToExecute.Add(new ConfigurationItem
+                    {
+                        Id = settingId,
+                        Name = "Clean Start Menu",
+                        IsSelected = true,
+                        InputType = InputType.Toggle
+                    });
+                }
+
+                if (options?.ApplyThemeWallpaper == true && featureName == FeatureIds.WindowsTheme)
+                {
+                    itemsToExecute.Add(new ConfigurationItem
+                    {
+                        Id = "theme-mode-windows",
+                        Name = "Windows Theme",
+                        IsSelected = true,
+                        InputType = InputType.Selection,
+                        SelectedIndex = 0
+                    });
+                }
+
+                if (itemsToExecute.Any())
+                {
+                    var actionSection = new ConfigSection
+                    {
+                        IsIncluded = true,
+                        Items = itemsToExecute
+                    };
+
+                    overlayWindow?.UpdateProgress($"Applying {FeatureIds.GetDisplayName(featureName)} action commands...");
+                    _logService.Log(LogLevel.Info, $"Executing {itemsToExecute.Count} action command(s) for {featureName} (not in config file)");
+
+                    var success = await _bridgeService.ApplyConfigurationSectionAsync(
+                        actionSection,
+                        $"{groupName}.{featureName}",
+                        confirmationHandler);
+
+                    if (!success)
+                    {
+                        overallSuccess = false;
+                        _logService.Log(LogLevel.Warning, $"Failed to apply action commands for {featureName}");
+                    }
+                }
+                else
+                {
+                    _logService.Log(LogLevel.Info, $"No action commands to execute for {featureName}");
                 }
             }
 
@@ -842,7 +1007,7 @@ namespace Winhance.WPF.Features.Common.Services
                     DialogType.Success,
                     "CheckCircle"
                 );
-                dialog.ShowDialog();
+            dialog.ShowDialog();
         }
 
 
@@ -921,7 +1086,28 @@ namespace Winhance.WPF.Features.Common.Services
                     System.Diagnostics.Process.Start(startInfo);
                 });
 
-                await Task.Delay(1500);
+                // Verify explorer actually started
+                retryCount = 0;
+                const int verifyMaxRetries = 10;
+
+                while (retryCount < verifyMaxRetries)
+                {
+                    await Task.Delay(500);
+
+                    bool isRunning = await Task.Run(() =>
+                        _windowsUIManagementService.IsProcessRunning("explorer"));
+
+                    if (isRunning)
+                    {
+                        _logService.Log(LogLevel.Info, "Explorer.exe started successfully");
+                        await Task.Delay(1000);
+                        return;
+                    }
+
+                    retryCount++;
+                }
+
+                _logService.Log(LogLevel.Error, "Failed to verify explorer restart");
             }
             catch (Exception ex)
             {

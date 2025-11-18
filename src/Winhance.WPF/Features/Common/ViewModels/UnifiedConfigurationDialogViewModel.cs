@@ -17,6 +17,7 @@ namespace Winhance.WPF.Features.Common.ViewModels
         private bool _isSelected;
         private bool _isRadioButton;
         private string _groupName;
+        private UnifiedConfigurationSectionViewModel _parentSection;
 
         public string Key
         {
@@ -33,7 +34,16 @@ namespace Winhance.WPF.Features.Common.ViewModels
         public bool IsSelected
         {
             get => _isSelected;
-            set => SetProperty(ref _isSelected, value);
+            set
+            {
+                if (SetProperty(ref _isSelected, value))
+                {
+                    if (value && RequiresParentSelection && _parentSection != null && !_parentSection.IsSelected)
+                    {
+                        _parentSection.IsSelected = true;
+                    }
+                }
+            }
         }
 
         public bool IsRadioButton
@@ -46,6 +56,13 @@ namespace Winhance.WPF.Features.Common.ViewModels
         {
             get => _groupName;
             set => SetProperty(ref _groupName, value);
+        }
+
+        public bool RequiresParentSelection { get; set; }
+
+        public void SetParentSection(UnifiedConfigurationSectionViewModel parent)
+        {
+            _parentSection = parent;
         }
     }
 
@@ -243,13 +260,16 @@ namespace Winhance.WPF.Features.Common.ViewModels
                     if (featureId == FeatureIds.WindowsTheme)
                     {
                         subSection.HasActionOptions = true;
-                        subSection.ActionOptions.Add(new ImportActionOption
+                        var wallpaperOption = new ImportActionOption
                         {
                             Key = "ApplyWallpaper",
                             Label = "Apply default wallpaper for selected theme",
                             IsSelected = true,
-                            IsRadioButton = false
-                        });
+                            IsRadioButton = false,
+                            RequiresParentSelection = true
+                        };
+                        wallpaperOption.SetParentSection(subSection);
+                        subSection.ActionOptions.Add(wallpaperOption);
                     }
                     else if (featureId == FeatureIds.Taskbar)
                     {
@@ -339,7 +359,15 @@ namespace Winhance.WPF.Features.Common.ViewModels
 
                         foreach (var subSection in section.SubSections)
                         {
-                            sections[subSection.SectionKey] = subSection.IsSelected;
+                            bool hasSelectedActionOptions = subSection.HasActionOptions &&
+                                                            subSection.ActionOptions.Any(a => a.IsSelected);
+
+                            if (!subSection.IsSelected && hasSelectedActionOptions)
+                            {
+                                options.ActionOnlySubsections.Add(subSection.SectionKey);
+                            }
+
+                            sections[subSection.SectionKey] = subSection.IsSelected || hasSelectedActionOptions;
 
                             if (subSection.HasActionOptions)
                             {
@@ -435,11 +463,11 @@ namespace Winhance.WPF.Features.Common.ViewModels
                         }
                     }
 
-                    if (!value && HasActionOptions)
+                    if (HasActionOptions)
                     {
-                        foreach (var actionOption in ActionOptions.Where(a => !a.IsRadioButton))
+                        foreach (var actionOption in ActionOptions)
                         {
-                            actionOption.IsSelected = false;
+                            actionOption.IsSelected = value;
                         }
                     }
                 }
