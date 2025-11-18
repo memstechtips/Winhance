@@ -126,21 +126,29 @@ namespace Winhance.Core.Features.Common.Services
 
         private async Task ApplyDependencyAsync(SettingDependency dependency, ISettingItem requiredSetting, ISettingApplicationService settingApplicationService)
         {
-            if (dependency.DependencyType == SettingDependencyType.RequiresSpecificValue)
+            try
             {
-                if (requiredSetting.InputType == InputType.Selection && !string.IsNullOrEmpty(dependency.RequiredValue))
+                if (dependency.DependencyType == SettingDependencyType.RequiresSpecificValue)
                 {
-                    await settingApplicationService.ApplySettingAsync(dependency.RequiredSettingId, true, dependency.RequiredValue);
+                    if (requiredSetting.InputType == InputType.Selection && !string.IsNullOrEmpty(dependency.RequiredValue))
+                    {
+                        await settingApplicationService.ApplySettingAsync(dependency.RequiredSettingId, true, dependency.RequiredValue);
+                    }
+                    else
+                    {
+                        await settingApplicationService.ApplySettingAsync(dependency.RequiredSettingId, true);
+                    }
                 }
                 else
                 {
-                    await settingApplicationService.ApplySettingAsync(dependency.RequiredSettingId, true);
+                    bool enableValue = dependency.DependencyType == SettingDependencyType.RequiresEnabled;
+                    await settingApplicationService.ApplySettingAsync(dependency.RequiredSettingId, enableValue);
                 }
             }
-            else
+            catch (ArgumentException ex) when (ex.Message.Contains("not found"))
             {
-                bool enableValue = dependency.DependencyType == SettingDependencyType.RequiresEnabled;
-                await settingApplicationService.ApplySettingAsync(dependency.RequiredSettingId, enableValue);
+                _logService.Log(LogLevel.Warning,
+                    $"Cannot apply dependency '{dependency.RequiredSettingId}' - likely filtered due to OS/hardware compatibility. Skipping.");
             }
         }
     }
