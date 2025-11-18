@@ -106,7 +106,10 @@ namespace Winhance.WPF.Features.Common.Views
                 {
                     bool hasSelectedSection = _viewModel.Sections.Any(s =>
                         s.IsSelected
-                        || (s.HasSubSections && s.SubSections.Any(sub => sub.IsSelected))
+                        || (s.HasSubSections && s.SubSections.Any(sub =>
+                            sub.IsSelected
+                            || (sub.HasActionOptions && sub.ActionOptions.Any(a => a.IsSelected))
+                        ))
                     );
 
                     if (hasSelectedSection)

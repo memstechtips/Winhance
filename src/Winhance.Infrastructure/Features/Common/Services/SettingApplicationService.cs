@@ -51,12 +51,6 @@ namespace Winhance.Infrastructure.Features.Common.Services
 
             if (!string.IsNullOrEmpty(commandString))
             {
-                if (setting.RequiresConfirmation && !checkboxResult)
-                {
-                    logService.Log(LogLevel.Info, $"[SettingApplicationService] Skipping action command for '{settingId}' - checkbox not selected");
-                    return;
-                }
-
                 await ExecuteActionCommand(domainService, commandString, applyRecommended, settingId);
                 return;
             }
@@ -69,6 +63,8 @@ namespace Winhance.Infrastructure.Features.Common.Services
 
             if (await domainService.TryApplySpecialSettingAsync(setting, value, checkboxResult))
             {
+                await HandleProcessAndServiceRestarts(setting);
+
                 eventBus.Publish(new SettingAppliedEvent(settingId, enable, value));
                 logService.Log(LogLevel.Info, $"[SettingApplicationService] Successfully applied setting '{settingId}' via domain service");
 
@@ -181,6 +177,9 @@ namespace Winhance.Infrastructure.Features.Common.Services
         {
             logService.Log(LogLevel.Info, $"[SettingApplicationService] Executing ActionCommand '{commandString}' for setting '{settingId}'");
 
+            var allSettings = await domainService.GetSettingsAsync();
+            var setting = allSettings.FirstOrDefault(s => s.Id == settingId);
+
             var method = domainService.GetType().GetMethod(commandString);
             if (method == null)
                 throw new NotSupportedException($"Method '{commandString}' not found on service '{domainService.GetType().Name}'");
@@ -204,6 +203,11 @@ namespace Winhance.Infrastructure.Features.Common.Services
                 {
                     logService.Log(LogLevel.Warning, $"[SettingApplicationService] Failed to apply recommended settings for '{settingId}': {ex.Message}");
                 }
+            }
+
+            if (setting != null)
+            {
+                await HandleProcessAndServiceRestarts(setting);
             }
 
             logService.Log(LogLevel.Info, $"[SettingApplicationService] Successfully executed ActionCommand '{commandString}' for setting '{settingId}'");
@@ -453,6 +457,11 @@ namespace Winhance.Infrastructure.Features.Common.Services
                 }
             }
 
+            await HandleProcessAndServiceRestarts(setting);
+        }
+
+        private async Task HandleProcessAndServiceRestarts(SettingDefinition setting)
+        {
             if (!string.IsNullOrEmpty(setting.RestartProcess))
             {
                 logService.Log(LogLevel.Info, $"[SettingApplicationService] Restarting process '{setting.RestartProcess}' for setting '{setting.Id}'");

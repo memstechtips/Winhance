@@ -114,16 +114,6 @@ namespace Winhance.Core.Features.SoftwareApps.Models
                             WinGetPackageId = "Ventoy.Ventoy",
                             Category = "File & Disk Management",
                             WebsiteUrl = "https://www.ventoy.net/"
-                        },
-                        new ItemDefinition
-                        {
-                            Id = "external-app-volume2",
-                            Name = "Volume2",
-                            Description = "Advanced Windows volume control",
-                            GroupName = "File & Disk Management",
-                            WinGetPackageId = "irzyxa.Volume2Portable",
-                            Category = "File & Disk Management",
-                            WebsiteUrl = "https://github.com/irzyxa/Volume2"
                         }
                     }
                 };

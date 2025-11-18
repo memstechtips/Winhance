@@ -21,7 +21,7 @@ namespace Winhance.Infrastructure.Features.Customize.Services
         {
             if (setting.Id == "theme-mode-windows" && value is int index)
             {
-                await ApplyThemeModeWindowsAsync(setting, index, additionalContext);
+                await ApplyThemeModeWindowsAsync(setting, index, applyWallpaper: additionalContext);
                 return true;
             }
             return false;
@@ -49,7 +49,7 @@ namespace Winhance.Infrastructure.Features.Customize.Services
 
             if (setting.RegistrySettings?.Count > 0)
             {
-                logService.Log(LogLevel.Info, $"[WindowsThemeService] Applying {setting.RegistrySettings.Count} registry settings");
+                logService.Log(LogLevel.Info, $"[WindowsThemeService] Applying theme change to {(selectionIndex == 1 ? "Dark" : "Light")} Mode");
 
                 foreach (var registrySetting in setting.RegistrySettings)
                 {
@@ -60,7 +60,7 @@ namespace Winhance.Infrastructure.Features.Customize.Services
 
             if (applyWallpaper)
             {
-                logService.Log(LogLevel.Info, $"[WindowsThemeService] Applying wallpaper for theme mode");
+                logService.Log(LogLevel.Info, $"[WindowsThemeService] Applying wallpaper for {(selectionIndex == 1 ? "Dark" : "Light")} theme");
                 await ApplyWallpaperForTheme(selectionIndex);
             }
 
@@ -94,13 +94,9 @@ namespace Winhance.Infrastructure.Features.Customize.Services
         {
             try
             {
+                // In config import mode, explorer restart is handled at the end
+                // So just send the theme change messages without killing explorer
                 bool shouldKillExplorer = !uiManagementService.IsConfigImportMode;
-
-                if (uiManagementService.IsConfigImportMode && !uiManagementService.IsProcessRunning("explorer"))
-                {
-                    logService.Log(LogLevel.Info, "[WindowsThemeService] Skipping Windows UI refresh - explorer not running");
-                    return;
-                }
 
                 await uiManagementService.RefreshWindowsGUI(killExplorer: shouldKillExplorer);
             }

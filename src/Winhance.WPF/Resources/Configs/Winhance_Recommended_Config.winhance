@@ -1,6 +1,6 @@
 {
   "Version": "2.0",
-  "CreatedAt": "2025-11-06T15:10:32.0149713Z",
+  "CreatedAt": "2025-11-17T15:13:27.9497481Z",
   "WindowsApps": {
     "IsIncluded": true,
     "Items": [
@@ -549,6 +549,12 @@
             "InputType": 0
           },
           {
+            "Id": "explorer-customization-show-menus",
+            "Name": "Always show menus",
+            "IsSelected": false,
+            "InputType": 0
+          },
+          {
             "Id": "explorer-customization-item-space",
             "Name": "Decrease space between items (compact view)",
             "IsSelected": false,
@@ -675,6 +681,12 @@
             "SelectedIndex": 0
           },
           {
+            "Id": "explorer-customization-3d-objects",
+            "Name": "Show 3D Objects",
+            "IsSelected": false,
+            "InputType": 0
+          },
+          {
             "Id": "explorer-customization-home-folder",
             "Name": "Show Home Folder",
             "IsSelected": false,
@@ -722,6 +734,11 @@
         "IsIncluded": true,
         "Items": [
           {
+            "Id": "start-menu-clean-10",
+            "Name": "Clean Start Menu",
+            "InputType": 3
+          },
+          {
             "Id": "start-menu-clean-11",
             "Name": "Clean Start Menu",
             "InputType": 3
@@ -739,6 +756,12 @@
             "SelectedIndex": 1
           },
           {
+            "Id": "start-show-all-pins-by-default",
+            "Name": "Show all pins by default",
+            "IsSelected": true,
+            "InputType": 0
+          },
+          {
             "Id": "start-show-recently-added-apps",
             "Name": "Show recently added apps",
             "IsSelected": false,
@@ -747,6 +770,18 @@
           {
             "Id": "start-show-frequent-list",
             "Name": "Show most used apps",
+            "IsSelected": false,
+            "InputType": 0
+          },
+          {
+            "Id": "start-track-progs",
+            "Name": "Show most used apps",
+            "IsSelected": false,
+            "InputType": 0
+          },
+          {
+            "Id": "start-show-suggestions",
+            "Name": "Show suggestions in Start",
             "IsSelected": false,
             "InputType": 0
           },
@@ -791,10 +826,28 @@
             "SelectedIndex": 0
           },
           {
+            "Id": "taskbar-search-box-10",
+            "Name": "Search in taskbar",
+            "InputType": 1,
+            "SelectedIndex": 0
+          },
+          {
             "Id": "taskbar-alignment",
             "Name": "Taskbar alignment",
             "InputType": 1,
             "SelectedIndex": 0
+          },
+          {
+            "Id": "taskbar-meet-now",
+            "Name": "Remove 'Meet Now' button from system tray",
+            "IsSelected": true,
+            "InputType": 0
+          },
+          {
+            "Id": "taskbar-system-tray-icons",
+            "Name": "Always show all system tray icons",
+            "IsSelected": true,
+            "InputType": 0
           },
           {
             "Id": "taskbar-task-view",
@@ -806,6 +859,24 @@
             "Id": "taskbar-widgets",
             "Name": "Show Widgets",
             "IsSelected": false,
+            "InputType": 0
+          },
+          {
+            "Id": "taskbar-news-and-interests",
+            "Name": "Show News and Interests",
+            "IsSelected": false,
+            "InputType": 0
+          },
+          {
+            "Id": "taskbar-transparent",
+            "Name": "Make taskbar transparent",
+            "IsSelected": false,
+            "InputType": 0
+          },
+          {
+            "Id": "taskbar-small",
+            "Name": "Make taskbar small",
+            "IsSelected": true,
             "InputType": 0
           },
           {
@@ -1583,7 +1654,7 @@
             "Name": "Desktop Background Slide Show",
             "InputType": 1,
             "PowerSettings": {
-              "ACIndex": 0,
+              "ACIndex": 1,
               "DCIndex": 1
             }
           },
@@ -1632,7 +1703,7 @@
           {
             "Id": "power-hybrid-sleep",
             "Name": "Allow hybrid sleep",
-            "IsSelected": false,
+            "IsSelected": true,
             "InputType": 0
           },
           {
@@ -2054,6 +2125,18 @@
           {
             "Id": "privacy-feedback-frequency",
             "Name": "Allow Windows to ask you for feedback",
+            "IsSelected": false,
+            "InputType": 0
+          },
+          {
+            "Id": "privacy-activity-history",
+            "Name": "Activity History",
+            "IsSelected": false,
+            "InputType": 0
+          },
+          {
+            "Id": "privacy-timeline-suggestions",
+            "Name": "Timeline Suggestions",
             "IsSelected": false,
             "InputType": 0
           },
