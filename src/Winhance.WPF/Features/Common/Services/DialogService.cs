@@ -15,7 +15,10 @@ namespace Winhance.WPF.Features.Common.Services
     {
         public void ShowMessage(string message, string title = "")
         {
-            CustomDialog.ShowInformation(title, title, message, "");
+            Application.Current.Dispatcher.Invoke(() =>
+            {
+                CustomDialog.ShowInformation(title, title, message, "");
+            });
         }
 
         public Task<bool> ShowConfirmationAsync(
@@ -25,18 +28,21 @@ namespace Winhance.WPF.Features.Common.Services
             string cancelButtonText = "Cancel"
         )
         {
-            var parsedContent = ParseMessageContent(message);
+            return Application.Current.Dispatcher.InvokeAsync(() =>
+            {
+                var parsedContent = ParseMessageContent(message);
 
-            if (parsedContent.IsAppList)
-            {
-                var result = CustomDialog.ShowConfirmation(title, parsedContent.HeaderText, parsedContent.Apps, parsedContent.FooterText);
-                return Task.FromResult(result ?? false);
-            }
-            else
-            {
-                var result = CustomDialog.ShowConfirmation(title, title, message, "");
-                return Task.FromResult(result ?? false);
-            }
+                if (parsedContent.IsAppList)
+                {
+                    var result = CustomDialog.ShowConfirmation(title, parsedContent.HeaderText, parsedContent.Apps, parsedContent.FooterText);
+                    return result ?? false;
+                }
+                else
+                {
+                    var result = CustomDialog.ShowConfirmation(title, title, message, "");
+                    return result ?? false;
+                }
+            }).Task;
         }
 
         public Task<bool> ShowAppOperationConfirmationAsync(
@@ -44,39 +50,44 @@ namespace Winhance.WPF.Features.Common.Services
             IEnumerable<string> itemNames,
             int count)
         {
-            bool isInstall = operationType.Equals("install", StringComparison.OrdinalIgnoreCase);
-            bool isRemove = operationType.Equals("remove", StringComparison.OrdinalIgnoreCase);
+            return Application.Current.Dispatcher.InvokeAsync(() =>
+            {
+                bool isInstall = operationType.Equals("install", StringComparison.OrdinalIgnoreCase);
+                bool isRemove = operationType.Equals("remove", StringComparison.OrdinalIgnoreCase);
 
-            string title = isInstall ? "Confirm Installation" :
-                          isRemove ? "Confirm Removal" :
-                          $"Confirm {operationType}";
+                string title = isInstall ? "Confirm Installation" :
+                              isRemove ? "Confirm Removal" :
+                              $"Confirm {operationType}";
 
-            string titleBarIcon = isInstall ? "Download" :
-                                 isRemove ? "Delete" :
-                                 "Information";
+                string titleBarIcon = isInstall ? "Download" :
+                                     isRemove ? "Delete" :
+                                     "Information";
 
-            string contextMessage = isInstall ? "These items will be installed.\nDo you want to continue?" :
-                                   isRemove ? "These items will be removed.\nDo you want to continue?" :
-                                   $"These items will be {operationType.ToLower()}ed.\nDo you want to continue?";
+                string contextMessage = isInstall ? "These items will be installed.\nDo you want to continue?" :
+                                       isRemove ? "These items will be removed.\nDo you want to continue?" :
+                                       $"These items will be {operationType.ToLower()}ed.\nDo you want to continue?";
 
-            var dialog = CustomDialog.CreateAppOperationConfirmationDialog(
-                title,
-                contextMessage,
-                itemNames,
-                DialogType.Question,
-                titleBarIcon);
+                var dialog = CustomDialog.CreateAppOperationConfirmationDialog(
+                    title,
+                    contextMessage,
+                    itemNames,
+                    DialogType.Question,
+                    titleBarIcon);
 
-            var result = dialog.ShowDialog();
-            return Task.FromResult(result ?? false);
+                var result = dialog.ShowDialog();
+                return result ?? false;
+            }).Task;
         }
 
-        public Task ShowErrorAsync(string message, string title = "Error", string buttonText = "OK")
+        public async Task ShowErrorAsync(string message, string title = "Error", string buttonText = "OK")
         {
-            CustomDialog.ShowInformation(title, title, message, "");
-            return Task.CompletedTask;
+            await Application.Current.Dispatcher.InvokeAsync(() =>
+            {
+                CustomDialog.ShowInformation(title, title, message, "");
+            });
         }
 
-        public Task ShowInformationAsync(
+        public async Task ShowInformationAsync(
             string message,
             string title = "Information",
             string buttonText = "OK"
@@ -84,16 +95,17 @@ namespace Winhance.WPF.Features.Common.Services
         {
             var parsedContent = ParseMessageContent(message);
 
-            if (parsedContent.IsAppList)
+            await Application.Current.Dispatcher.InvokeAsync(() =>
             {
-                CustomDialog.ShowInformation(title, parsedContent.HeaderText, parsedContent.Apps, parsedContent.FooterText);
-            }
-            else
-            {
-                CustomDialog.ShowInformation(title, title, message, "");
-            }
-
-            return Task.CompletedTask;
+                if (parsedContent.IsAppList)
+                {
+                    CustomDialog.ShowInformation(title, parsedContent.HeaderText, parsedContent.Apps, parsedContent.FooterText);
+                }
+                else
+                {
+                    CustomDialog.ShowInformation(title, title, message, "");
+                }
+            });
         }
 
         public Task ShowWarningAsync(
@@ -102,8 +114,10 @@ namespace Winhance.WPF.Features.Common.Services
             string buttonText = "OK"
         )
         {
-            MessageBox.Show(message, title, MessageBoxButton.OK, MessageBoxImage.Warning);
-            return Task.CompletedTask;
+            return Application.Current.Dispatcher.InvokeAsync(() =>
+            {
+                MessageBox.Show(message, title, MessageBoxButton.OK, MessageBoxImage.Warning);
+            }).Task;
         }
 
         public Task<string?> ShowInputAsync(
@@ -112,52 +126,58 @@ namespace Winhance.WPF.Features.Common.Services
             string defaultValue = ""
         )
         {
-            var result = MessageBox.Show(
-                message,
-                title,
-                MessageBoxButton.OKCancel,
-                MessageBoxImage.Question
-            );
-            return Task.FromResult(result == MessageBoxResult.OK ? defaultValue : null);
-        }
-
-        public Task<bool?> ShowYesNoCancelAsync(string message, string title = "")
-        {
-            if (message.Contains("theme wallpaper") || title.Contains("Theme"))
-            {
-                var messageList = new List<string> { message };
-                var themeDialogResult = CustomDialog.ShowConfirmation(
-                    title,
-                    "Theme Change",
-                    messageList,
-                    ""
-                );
-                return Task.FromResult<bool?>(themeDialogResult);
-            }
-
-            var parsedContent = ParseMessageContent(message);
-
-            if (parsedContent.IsAppList)
-            {
-                var dialogResult = CustomDialog.ShowYesNoCancel(title, parsedContent.HeaderText, parsedContent.Apps, parsedContent.FooterText);
-                return Task.FromResult(dialogResult);
-            }
-            else
+            return Application.Current.Dispatcher.InvokeAsync(() =>
             {
                 var result = MessageBox.Show(
                     message,
                     title,
-                    MessageBoxButton.YesNoCancel,
+                    MessageBoxButton.OKCancel,
                     MessageBoxImage.Question
                 );
-                bool? boolResult = result switch
+                return result == MessageBoxResult.OK ? defaultValue : null;
+            }).Task;
+        }
+
+        public Task<bool?> ShowYesNoCancelAsync(string message, string title = "")
+        {
+            return Application.Current.Dispatcher.InvokeAsync(() =>
+            {
+                if (message.Contains("theme wallpaper") || title.Contains("Theme"))
                 {
-                    MessageBoxResult.Yes => true,
-                    MessageBoxResult.No => false,
-                    _ => null,
-                };
-                return Task.FromResult(boolResult);
-            }
+                    var messageList = new List<string> { message };
+                    var themeDialogResult = CustomDialog.ShowConfirmation(
+                        title,
+                        "Theme Change",
+                        messageList,
+                        ""
+                    );
+                    return themeDialogResult;
+                }
+
+                var parsedContent = ParseMessageContent(message);
+
+                if (parsedContent.IsAppList)
+                {
+                    var dialogResult = CustomDialog.ShowYesNoCancel(title, parsedContent.HeaderText, parsedContent.Apps, parsedContent.FooterText);
+                    return dialogResult;
+                }
+                else
+                {
+                    var result = MessageBox.Show(
+                        message,
+                        title,
+                        MessageBoxButton.YesNoCancel,
+                        MessageBoxImage.Question
+                    );
+                    bool? boolResult = result switch
+                    {
+                        MessageBoxResult.Yes => true,
+                        MessageBoxResult.No => false,
+                        _ => null,
+                    };
+                    return boolResult;
+                }
+            }).Task;
         }
 
         public async Task<Dictionary<string, bool>> ShowUnifiedConfigurationSaveDialogAsync(
@@ -349,161 +369,164 @@ namespace Winhance.WPF.Features.Common.Services
             bool isUserCancelled = false
         )
         {
-            string GetPastTense(string op)
+            Application.Current.Dispatcher.Invoke(() =>
             {
-                if (string.IsNullOrEmpty(op))
-                    return string.Empty;
-
-                return op.Equals("Remove", StringComparison.OrdinalIgnoreCase)
-                    ? "removed"
-                    : $"{op.ToLower()}ed";
-            }
-
-            bool isFailure = successCount < totalCount;
-
-            string title;
-            if (isUserCancelled)
-            {
-                title = "Installation Aborted";
-            }
-            else if (hasConnectivityIssues)
-            {
-                title = "Internet Connection Lost";
-            }
-            else
-            {
-                title = isFailure
-                    ? $"{operationType} Operation Failed"
-                    : $"{operationType} Results";
-            }
-
-            string headerText;
-            if (isUserCancelled)
-            {
-                headerText = $"Installation aborted by user";
-            }
-            else if (hasConnectivityIssues)
-            {
-                headerText = "Installation stopped due to internet connection loss";
-            }
-            else
-            {
-                headerText =
-                    successCount > 0 && successCount == totalCount
-                        ? $"The following items were successfully {GetPastTense(operationType)}:"
-                        : (
-                            successCount > 0
-                                ? $"Successfully {GetPastTense(operationType)} {successCount} of {totalCount} items."
-                                : $"Unable to {operationType.ToLowerInvariant()} {totalCount} of {totalCount} items."
-                        );
-            }
-
-            var resultItems = new List<string>();
-
-            if (isUserCancelled)
-            {
-                resultItems.Add("The installation process was cancelled by the user.");
-                resultItems.Add("");
-                if (successCount > 0)
+                string GetPastTense(string op)
                 {
-                    resultItems.Add("Successfully installed items:");
+                    if (string.IsNullOrEmpty(op))
+                        return string.Empty;
+
+                    return op.Equals("Remove", StringComparison.OrdinalIgnoreCase)
+                        ? "removed"
+                        : $"{op.ToLower()}ed";
                 }
-            }
-            else if (hasConnectivityIssues)
-            {
-                resultItems.Add(
-                    "The installation process was stopped because the internet connection was lost."
-                );
-                resultItems.Add(
-                    "This is required to ensure installations complete properly and prevent corrupted installations."
-                );
-                resultItems.Add("");
-                resultItems.Add("Failed items:");
-            }
 
-            if (successItems != null && successItems.Any())
-            {
-                if (!hasConnectivityIssues)
+                bool isFailure = successCount < totalCount;
+
+                string title;
+                if (isUserCancelled)
                 {
-                    foreach (var item in successItems)
+                    title = "Installation Aborted";
+                }
+                else if (hasConnectivityIssues)
+                {
+                    title = "Internet Connection Lost";
+                }
+                else
+                {
+                    title = isFailure
+                        ? $"{operationType} Operation Failed"
+                        : $"{operationType} Results";
+                }
+
+                string headerText;
+                if (isUserCancelled)
+                {
+                    headerText = $"Installation aborted by user";
+                }
+                else if (hasConnectivityIssues)
+                {
+                    headerText = "Installation stopped due to internet connection loss";
+                }
+                else
+                {
+                    headerText =
+                        successCount > 0 && successCount == totalCount
+                            ? $"The following items were successfully {GetPastTense(operationType)}:"
+                            : (
+                                successCount > 0
+                                    ? $"Successfully {GetPastTense(operationType)} {successCount} of {totalCount} items."
+                                    : $"Unable to {operationType.ToLowerInvariant()} {totalCount} of {totalCount} items."
+                            );
+                }
+
+                var resultItems = new List<string>();
+
+                if (isUserCancelled)
+                {
+                    resultItems.Add("The installation process was cancelled by the user.");
+                    resultItems.Add("");
+                    if (successCount > 0)
                     {
-                        resultItems.Add(item);
+                        resultItems.Add("Successfully installed items:");
                     }
                 }
-            }
-            else if (!hasConnectivityIssues)
-            {
-                resultItems.Add($"No items were {GetPastTense(operationType)}.");
-            }
-
-            if (skippedItems != null && skippedItems.Any() && !hasConnectivityIssues)
-            {
-                resultItems.Add($"Skipped items: {skippedItems.Count()}");
-                foreach (var item in skippedItems)
+                else if (hasConnectivityIssues)
                 {
-                    resultItems.Add($"  - {item}");
-                }
-            }
-
-            if (failedItems != null && failedItems.Any())
-            {
-                if (!hasConnectivityIssues)
-                {
-                    resultItems.Add($"Failed items: {failedItems.Count()}");
-                }
-
-                foreach (var item in failedItems)
-                {
-                    resultItems.Add($"  - {item}");
-                }
-            }
-
-            string footerText;
-            if (isUserCancelled)
-            {
-                footerText =
-                    successCount > 0
-                        ? $"Some items were successfully {GetPastTense(operationType)} before cancellation."
-                        : $"No items were {GetPastTense(operationType)} before cancellation.";
-            }
-            else if (hasConnectivityIssues)
-            {
-                footerText =
-                    "Please check your network connection and try again when your internet connection is stable.";
-            }
-            else
-            {
-                bool hasConnectivityFailures =
-                    failedItems != null
-                    && failedItems.Any(item =>
-                        item.Contains("internet", StringComparison.OrdinalIgnoreCase)
-                        || item.Contains("connection", StringComparison.OrdinalIgnoreCase)
-                        || item.Contains("network", StringComparison.OrdinalIgnoreCase)
-                        || item.Contains(
-                            "pipeline has been stopped",
-                            StringComparison.OrdinalIgnoreCase
-                        )
+                    resultItems.Add(
+                        "The installation process was stopped because the internet connection was lost."
                     );
+                    resultItems.Add(
+                        "This is required to ensure installations complete properly and prevent corrupted installations."
+                    );
+                    resultItems.Add("");
+                    resultItems.Add("Failed items:");
+                }
 
-                footerText =
-                    successCount == totalCount
-                        ? $"All items were successfully {GetPastTense(operationType)}."
-                        : (
-                            successCount > 0
-                                ? (
-                                    hasConnectivityFailures
-                                        ? $"Some items could not be {GetPastTense(operationType)}. Please check your internet connection and try again."
-                                        : $"Some items could not be {GetPastTense(operationType)}. Please try again later."
-                                )
-                                : (
-                                    hasConnectivityFailures
-                                        ? $"Installation failed. Please check your internet connection and try again."
-                                        : $"Installation failed. Please try again later."
-                                )
+                if (successItems != null && successItems.Any())
+                {
+                    if (!hasConnectivityIssues)
+                    {
+                        foreach (var item in successItems)
+                        {
+                            resultItems.Add(item);
+                        }
+                    }
+                }
+                else if (!hasConnectivityIssues)
+                {
+                    resultItems.Add($"No items were {GetPastTense(operationType)}.");
+                }
+
+                if (skippedItems != null && skippedItems.Any() && !hasConnectivityIssues)
+                {
+                    resultItems.Add($"Skipped items: {skippedItems.Count()}");
+                    foreach (var item in skippedItems)
+                    {
+                        resultItems.Add($"  - {item}");
+                    }
+                }
+
+                if (failedItems != null && failedItems.Any())
+                {
+                    if (!hasConnectivityIssues)
+                    {
+                        resultItems.Add($"Failed items: {failedItems.Count()}");
+                    }
+
+                    foreach (var item in failedItems)
+                    {
+                        resultItems.Add($"  - {item}");
+                    }
+                }
+
+                string footerText;
+                if (isUserCancelled)
+                {
+                    footerText =
+                        successCount > 0
+                            ? $"Some items were successfully {GetPastTense(operationType)} before cancellation."
+                            : $"No items were {GetPastTense(operationType)} before cancellation.";
+                }
+                else if (hasConnectivityIssues)
+                {
+                    footerText =
+                        "Please check your network connection and try again when your internet connection is stable.";
+                }
+                else
+                {
+                    bool hasConnectivityFailures =
+                        failedItems != null
+                        && failedItems.Any(item =>
+                            item.Contains("internet", StringComparison.OrdinalIgnoreCase)
+                            || item.Contains("connection", StringComparison.OrdinalIgnoreCase)
+                            || item.Contains("network", StringComparison.OrdinalIgnoreCase)
+                            || item.Contains(
+                                "pipeline has been stopped",
+                                StringComparison.OrdinalIgnoreCase
+                            )
                         );
-            }
 
-            CustomDialog.ShowInformation(title, headerText, resultItems, footerText);
+                    footerText =
+                        successCount == totalCount
+                            ? $"All items were successfully {GetPastTense(operationType)}."
+                            : (
+                                successCount > 0
+                                    ? (
+                                        hasConnectivityFailures
+                                            ? $"Some items could not be {GetPastTense(operationType)}. Please check your internet connection and try again."
+                                            : $"Some items could not be {GetPastTense(operationType)}. Please try again later."
+                                    )
+                                    : (
+                                        hasConnectivityFailures
+                                            ? $"Installation failed. Please check your internet connection and try again."
+                                            : $"Installation failed. Please try again later."
+                                    )
+                            );
+                }
+
+                CustomDialog.ShowInformation(title, headerText, resultItems, footerText);
+            });
         }
 
         public Task ShowInformationAsync(
@@ -513,8 +536,10 @@ namespace Winhance.WPF.Features.Common.Services
             string footerText
         )
         {
-            CustomDialog.ShowInformation(title, headerText, apps, footerText);
-            return Task.CompletedTask;
+            return Application.Current.Dispatcher.InvokeAsync(() =>
+            {
+                CustomDialog.ShowInformation(title, headerText, apps, footerText);
+            }).Task;
         }
 
         private MessageContent ParseMessageContent(string message)

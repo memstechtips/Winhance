@@ -55,14 +55,13 @@ public class MoreMenuViewModel : ObservableObject
 
         _versionInfo = GetVersionInfo();
 
-        CheckForUpdatesCommand = new RelayCommand(
-            execute: () =>
+        CheckForUpdatesCommand = new AsyncRelayCommand(
+            execute: async () =>
             {
                 _logService.LogInformation("CheckForUpdatesCommand executed");
                 CloseFlyout();
-                _ = Task.Run(CheckForUpdatesAsync);
-            },
-            canExecute: () => true
+                await CheckForUpdatesAsync();
+            }
         );
 
         OpenLogsCommand = new RelayCommand(
@@ -173,7 +172,7 @@ public class MoreMenuViewModel : ObservableObject
             else
             {
                 _logService.LogInformation("No updates available");
-                _dialogService.ShowInformationAsync(
+                await _dialogService.ShowInformationAsync(
                     "You have the latest version of Winhance.",
                     "No Updates Available"
                 );
@@ -183,7 +182,7 @@ public class MoreMenuViewModel : ObservableObject
         {
             _logService.LogError($"Error checking for updates: {ex.Message}", ex);
 
-            _dialogService.ShowErrorAsync(
+            await _dialogService.ShowErrorAsync(
                 $"An error occurred while checking for updates: {ex.Message}",
                 "Update Check Error"
             );
