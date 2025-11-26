@@ -12,39 +12,45 @@
         <Grid Height="80"
               VerticalAlignment="Top"
               ClipToBounds="False">
-            <Grid.ColumnDefinitions>
-                <ColumnDefinition Width="Auto"/>
-                <ColumnDefinition Width="*"/>
-            </Grid.ColumnDefinitions>
+            <Viewbox Stretch="Uniform"
+                     StretchDirection="DownOnly"
+                     HorizontalAlignment="Left">
+                <Grid>
+                    <Grid.ColumnDefinitions>
+                        <ColumnDefinition Width="Auto"/>
+                        <ColumnDefinition Width="Auto"/>
+                    </Grid.ColumnDefinitions>
 
-            <iconPacks:PackIconMaterial Grid.Column="0"
-                                     Kind="DiscPlayer"
-                                     Width="60"
-                                     Height="60"
-                                     Margin="10,0,10,0"
-                                     VerticalAlignment="Center"
-                                     Foreground="{DynamicResource PrimaryTextColor}"/>
+                    <iconPacks:PackIconMaterial Grid.Column="0"
+                                             Kind="DiscPlayer"
+                                             Width="60"
+                                             Height="60"
+                                             Margin="10,0,10,0"
+                                             VerticalAlignment="Center"
+                                             Foreground="{DynamicResource PrimaryTextColor}"/>
 
-            <StackPanel Grid.Column="1"
-                      VerticalAlignment="Center">
-                <TextBlock Height="35"
-                           VerticalAlignment="Top"
-                           FontFamily="Helvetica Neue"
-                           FontSize="32"
-                           FontWeight="Bold"
-                           Foreground="{DynamicResource PrimaryTextColor}"
-                           Text="Windows Installation Media Utility"/>
+                    <StackPanel Grid.Column="1"
+                                VerticalAlignment="Center">
+                        <TextBlock Height="35"
+                                   VerticalAlignment="Top"
+                                   FontFamily="Helvetica Neue"
+                                   FontSize="32"
+                                   FontWeight="Bold"
+                                   Foreground="{DynamicResource PrimaryTextColor}"
+                                   Text="Windows Installation Media Utility"/>
 
-                <StackPanel Orientation="Horizontal"
-                            Margin="0,5,0,0">
-                    <TextBlock Height="22"
-                               VerticalAlignment="Center"
-                               FontFamily="Helvetica Neue"
-                               FontSize="14"
-                               Foreground="{DynamicResource SubTextColor}"
-                               Text="Create Custom Windows Installation Media"/>
-                </StackPanel>
-            </StackPanel>
+                        <StackPanel Orientation="Horizontal"
+                                    Margin="0,5,0,0">
+                            <TextBlock Height="22"
+                                       VerticalAlignment="Center"
+                                       FontFamily="Helvetica Neue"
+                                       FontSize="14"
+                                       Foreground="{DynamicResource SubTextColor}"
+                                       Text="Create Custom Windows Installation Media"/>
+                        </StackPanel>
+                    </StackPanel>
+                </Grid>
+            </Viewbox>
         </Grid>
 
         <Border Margin="0,85,0,0"
