@@ -21,12 +21,13 @@ namespace Winhance.WPF.Features.Optimize.ViewModels
         IDomainServiceRouter domainServiceRouter,
         ISettingsLoadingService settingsLoadingService,
         ILogService logService,
+        ILocalizationService localizationService,
         IEventBus eventBus,
         IPowerPlanComboBoxService powerPlanComboBoxService,
         IComboBoxResolver comboBoxResolver,
         IHardwareDetectionService hardwareDetectionService,
         IPowerCfgQueryService powerCfgQueryService)
-        : BaseSettingsFeatureViewModel(domainServiceRouter, settingsLoadingService, logService)
+        : BaseSettingsFeatureViewModel(domainServiceRouter, settingsLoadingService, logService, localizationService)
     {
         private ISubscriptionToken? _powerPlanChangedSubscription;
 

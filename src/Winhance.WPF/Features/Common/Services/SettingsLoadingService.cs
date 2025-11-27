@@ -27,7 +27,8 @@ namespace Winhance.WPF.Features.Common.Services
         IComboBoxResolver comboBoxResolver,
         IUserPreferencesService userPreferencesService,
         IDialogService dialogService,
-        ICompatibleSettingsRegistry compatibleSettingsRegistry) : ISettingsLoadingService
+        ICompatibleSettingsRegistry compatibleSettingsRegistry,
+        SettingLocalizationService settingLocalizationService) : ISettingsLoadingService
     {
 
         public async Task<ObservableCollection<object>> LoadConfiguredSettingsAsync<TDomainService>(
@@ -43,7 +44,8 @@ namespace Winhance.WPF.Features.Common.Services
                 initializationService.StartFeatureInitialization(featureModuleId);
 
                 var settingDefinitions = compatibleSettingsRegistry.GetFilteredSettings(featureModuleId);
-                var settingsList = settingDefinitions.ToList();
+                var localizedSettings = settingDefinitions.Select(s => settingLocalizationService.LocalizeSetting(s));
+                var settingsList = localizedSettings.ToList();
 
                 var settingViewModels = new ObservableCollection<object>();
                 

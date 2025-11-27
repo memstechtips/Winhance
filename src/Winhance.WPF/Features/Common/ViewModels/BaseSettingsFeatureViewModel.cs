@@ -15,6 +15,7 @@ namespace Winhance.WPF.Features.Common.ViewModels
         protected readonly IDomainServiceRouter domainServiceRouter;
         protected readonly ISettingsLoadingService settingsLoadingService;
         protected readonly ILogService logService;
+        protected readonly ILocalizationService localizationService;
         private bool _isDisposed;
         private bool _settingsLoaded = false;
         private readonly object _loadingLock = new object();
@@ -46,14 +47,28 @@ namespace Winhance.WPF.Features.Common.ViewModels
         protected BaseSettingsFeatureViewModel(
             IDomainServiceRouter domainServiceRouter,
             ISettingsLoadingService settingsLoadingService,
-            ILogService logService)
+            ILogService logService,
+            ILocalizationService localizationService)
             : base()
         {
             this.domainServiceRouter = domainServiceRouter ?? throw new ArgumentNullException(nameof(domainServiceRouter));
             this.settingsLoadingService = settingsLoadingService ?? throw new ArgumentNullException(nameof(settingsLoadingService));
             this.logService = logService ?? throw new ArgumentNullException(nameof(logService));
+            this.localizationService = localizationService ?? throw new ArgumentNullException(nameof(localizationService));
             LoadSettingsCommand = new AsyncRelayCommand(LoadSettingsAsync);
             ToggleExpandCommand = new RelayCommand(() => IsExpanded = !IsExpanded);
+
+            localizationService.LanguageChanged += OnLanguageChanged;
+        }
+
+        private async void OnLanguageChanged(object? sender, EventArgs e)
+        {
+            lock (_loadingLock)
+            {
+                _settingsLoaded = false;
+            }
+
+            await LoadSettingsAsync();
         }
 
         public virtual async Task<bool> HandleDomainContextSettingAsync(SettingDefinition setting, object? value, bool additionalContext = false)
@@ -216,6 +231,7 @@ namespace Winhance.WPF.Features.Common.ViewModels
         {
             if (!_isDisposed && disposing)
             {
+                localizationService.LanguageChanged -= OnLanguageChanged;
 
                 if (Settings != null)
                 {

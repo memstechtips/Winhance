@@ -234,3 +234,6 @@ $RECYCLE.BIN/
 
 # Claude folder
 .claude/
+
+# Plans
+LOCALIZATION_PLAN.md

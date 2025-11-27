@@ -172,6 +172,9 @@ namespace Winhance.WPF
                 // Initialize LogService after service provider is built
                 await InitializeLoggingService();
 
+                // Initialize localization service
+                await InitializeLocalizationService();
+
                 // Set application icon
                 SetApplicationIcon();
 
@@ -352,6 +355,26 @@ namespace Winhance.WPF
             catch (Exception initEx)
             {
                 LogStartupError("Error initializing LogService", initEx);
+            }
+        }
+
+        private async Task InitializeLocalizationService()
+        {
+            try
+            {
+                var localizationService = _host.Services.GetRequiredService<ILocalizationService>();
+                var preferencesService = _host.Services.GetRequiredService<IUserPreferencesService>();
+
+                WPF.Features.Common.Services.LocalizationManager.Instance.Initialize(localizationService);
+
+                var savedLanguage = await preferencesService.GetPreferenceAsync("Language", "en");
+                localizationService.SetLanguage(savedLanguage);
+
+                LogStartupMessage($"Localization initialized with language: {savedLanguage}");
+            }
+            catch (Exception ex)
+            {
+                LogStartupError("Error initializing LocalizationService", ex);
             }
         }
 

@@ -37,6 +37,8 @@ public class MoreMenuViewModel : ObservableObject
     private readonly IEventBus _eventBus;
     private readonly IApplicationCloseService _applicationCloseService;
     private readonly IDialogService _dialogService;
+    private readonly ILocalizationService _localizationService;
+    private readonly IUserPreferencesService _preferencesService;
 
     private string _versionInfo;
 
@@ -45,13 +47,17 @@ public class MoreMenuViewModel : ObservableObject
         IVersionService versionService,
         IEventBus eventBus,
         IApplicationCloseService applicationCloseService,
-        IDialogService dialogService)
+        IDialogService dialogService,
+        ILocalizationService localizationService,
+        IUserPreferencesService preferencesService)
     {
         _logService = logService;
         _versionService = versionService;
         _eventBus = eventBus;
         _applicationCloseService = applicationCloseService;
         _dialogService = dialogService;
+        _localizationService = localizationService;
+        _preferencesService = preferencesService;
 
         _versionInfo = GetVersionInfo();
 
@@ -93,6 +99,27 @@ public class MoreMenuViewModel : ObservableObject
             },
             canExecute: () => true
         );
+
+        ChangeLanguageCommand = new AsyncRelayCommand<string>(
+            execute: async (languageCode) =>
+            {
+                if (string.IsNullOrEmpty(languageCode))
+                    return;
+
+                _logService.LogInformation($"Changing language to: {languageCode}");
+                CloseFlyout();
+
+                if (_localizationService.SetLanguage(languageCode))
+                {
+                    await _preferencesService.SetPreferenceAsync("Language", languageCode);
+
+                    await _dialogService.ShowInformationAsync(
+                        _localizationService.GetString("Menu_LanguageChanged"),
+                        _localizationService.GetString("Dialog_Information")
+                    );
+                }
+            }
+        );
     }
 
     private string GetVersionInfo()
@@ -121,6 +148,8 @@ public class MoreMenuViewModel : ObservableObject
     public ICommand OpenScriptsCommand { get; }
 
     public ICommand CloseApplicationCommand { get; }
+
+    public ICommand ChangeLanguageCommand { get; }
 
 
     private void CloseFlyout()

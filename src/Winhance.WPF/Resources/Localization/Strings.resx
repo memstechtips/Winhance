@@ -1,0 +1,250 @@
+<?xml version="1.0" encoding="utf-8"?>
+<root>
+  <xsd:schema id="root" xmlns="" xmlns:xsd="http://www.w3.org/2001/XMLSchema" xmlns:msdata="urn:schemas-microsoft-com:xml-msdata">
+    <xsd:import namespace="http://www.w3.org/XML/1998/namespace" />
+    <xsd:element name="root" msdata:IsDataSet="true">
+      <xsd:complexType>
+        <xsd:choice maxOccurs="unbounded">
+          <xsd:element name="metadata">
+            <xsd:complexType>
+              <xsd:sequence>
+                <xsd:element name="value" type="xsd:string" minOccurs="0" />
+              </xsd:sequence>
+              <xsd:attribute name="name" use="required" type="xsd:string" />
+              <xsd:attribute name="type" type="xsd:string" />
+              <xsd:attribute name="mimetype" type="xsd:string" />
+              <xsd:attribute ref="xml:space" />
+            </xsd:complexType>
+          </xsd:element>
+          <xsd:element name="assembly">
+            <xsd:complexType>
+              <xsd:attribute name="alias" type="xsd:string" />
+              <xsd:attribute name="name" type="xsd:string" />
+            </xsd:complexType>
+          </xsd:element>
+          <xsd:element name="data">
+            <xsd:complexType>
+              <xsd:sequence>
+                <xsd:element name="value" type="xsd:string" minOccurs="0" msdata:Ordinal="1" />
+                <xsd:element name="comment" type="xsd:string" minOccurs="0" msdata:Ordinal="2" />
+              </xsd:sequence>
+              <xsd:attribute name="name" type="xsd:string" use="required" msdata:Ordinal="1" />
+              <xsd:attribute name="type" type="xsd:string" msdata:Ordinal="3" />
+              <xsd:attribute name="mimetype" type="xsd:string" msdata:Ordinal="4" />
+              <xsd:attribute ref="xml:space" />
+            </xsd:complexType>
+          </xsd:element>
+          <xsd:element name="resheader">
+            <xsd:complexType>
+              <xsd:sequence>
+                <xsd:element name="value" type="xsd:string" minOccurs="0" msdata:Ordinal="1" />
+              </xsd:sequence>
+              <xsd:attribute name="name" type="xsd:string" use="required" />
+            </xsd:complexType>
+          </xsd:element>
+        </xsd:choice>
+      </xsd:complexType>
+    </xsd:element>
+  </xsd:schema>
+  <resheader name="resmimetype">
+    <value>text/microsoft-resx</value>
+  </resheader>
+  <resheader name="version">
+    <value>2.0</value>
+  </resheader>
+  <resheader name="reader">
+    <value>System.Resources.ResXResourceReader, System.Windows.Forms, Version=4.0.0.0, Culture=neutral, PublicKeyToken=b77a5c561934e089</value>
+  </resheader>
+  <resheader name="writer">
+    <value>System.Resources.ResXResourceWriter, System.Windows.Forms, Version=4.0.0.0, Culture=neutral, PublicKeyToken=b77a5c561934e089</value>
+  </resheader>
+
+  <!-- Application -->
+  <data name="App_Title" xml:space="preserve">
+    <value>Winhance</value>
+  </data>
+  <data name="App_By" xml:space="preserve">
+    <value>by Memory</value>
+  </data>
+
+  <!-- Navigation -->
+  <data name="Nav_SoftwareAndApps" xml:space="preserve">
+    <value>Software &amp; Apps</value>
+  </data>
+  <data name="Nav_Optimize" xml:space="preserve">
+    <value>Optimize</value>
+  </data>
+  <data name="Nav_Customize" xml:space="preserve">
+    <value>Customize</value>
+  </data>
+  <data name="Nav_AdvancedTools" xml:space="preserve">
+    <value>Advanced  Tools</value>
+  </data>
+  <data name="Nav_More" xml:space="preserve">
+    <value>More</value>
+  </data>
+
+  <!-- Tooltips -->
+  <data name="Tooltip_SaveConfiguration" xml:space="preserve">
+    <value>Save Configuration</value>
+  </data>
+  <data name="Tooltip_ImportConfig" xml:space="preserve">
+    <value>Import Config</value>
+  </data>
+  <data name="Tooltip_FilterEnabled" xml:space="preserve">
+    <value>Windows Version Filter: ON</value>
+  </data>
+  <data name="Tooltip_FilterDisabled" xml:space="preserve">
+    <value>Windows Version Filter: OFF</value>
+  </data>
+  <data name="Tooltip_ToggleTheme" xml:space="preserve">
+    <value>Toggle Winhance Theme</value>
+  </data>
+  <data name="Tooltip_Donate" xml:space="preserve">
+    <value>Donate to Support Development</value>
+  </data>
+
+  <!-- More Menu -->
+  <data name="Menu_CheckForUpdates" xml:space="preserve">
+    <value>Check for Updates</value>
+  </data>
+  <data name="Menu_WinhanceLogs" xml:space="preserve">
+    <value>Winhance Logs</value>
+  </data>
+  <data name="Menu_WinhanceScripts" xml:space="preserve">
+    <value>Winhance Scripts</value>
+  </data>
+  <data name="Menu_CloseWinhance" xml:space="preserve">
+    <value>Close Winhance</value>
+  </data>
+  <data name="Menu_Language" xml:space="preserve">
+    <value>Language</value>
+  </data>
+  <data name="Menu_LanguageChanged" xml:space="preserve">
+    <value>Language changed successfully</value>
+  </data>
+
+  <!-- Dialogs - Common -->
+  <data name="Dialog_Information" xml:space="preserve">
+    <value>Information</value>
+  </data>
+  <data name="Dialog_Warning" xml:space="preserve">
+    <value>Warning</value>
+  </data>
+  <data name="Dialog_Error" xml:space="preserve">
+    <value>Error</value>
+  </data>
+  <data name="Dialog_Confirmation" xml:space="preserve">
+    <value>Confirmation</value>
+  </data>
+  <data name="Dialog_Question" xml:space="preserve">
+    <value>Question</value>
+  </data>
+
+  <!-- Dialogs - Operations -->
+  <data name="Dialog_ConfirmInstallation" xml:space="preserve">
+    <value>Confirm Installation</value>
+  </data>
+  <data name="Dialog_ConfirmRemoval" xml:space="preserve">
+    <value>Confirm Removal</value>
+  </data>
+  <data name="Dialog_ConfirmOperation" xml:space="preserve">
+    <value>Confirm {0}</value>
+  </data>
+  <data name="Dialog_ItemsWillBeInstalled" xml:space="preserve">
+    <value>These items will be installed.\nDo you want to continue?</value>
+  </data>
+  <data name="Dialog_ItemsWillBeRemoved" xml:space="preserve">
+    <value>These items will be removed.\nDo you want to continue?</value>
+  </data>
+  <data name="Dialog_ItemsWillBeProcessed" xml:space="preserve">
+    <value>These items will be {0}ed.\nDo you want to continue?</value>
+  </data>
+
+  <!-- Buttons -->
+  <data name="Button_OK" xml:space="preserve">
+    <value>OK</value>
+  </data>
+  <data name="Button_Cancel" xml:space="preserve">
+    <value>Cancel</value>
+  </data>
+  <data name="Button_Continue" xml:space="preserve">
+    <value>Continue</value>
+  </data>
+  <data name="Button_Yes" xml:space="preserve">
+    <value>Yes</value>
+  </data>
+  <data name="Button_No" xml:space="preserve">
+    <value>No</value>
+  </data>
+  <data name="Button_Close" xml:space="preserve">
+    <value>Close</value>
+  </data>
+
+  <!-- Language Names -->
+  <data name="Language_English" xml:space="preserve">
+    <value>English</value>
+  </data>
+  <data name="Language_Spanish" xml:space="preserve">
+    <value>Español (Spanish)</value>
+  </data>
+  <data name="Language_French" xml:space="preserve">
+    <value>Français (French)</value>
+  </data>
+  <data name="Language_German" xml:space="preserve">
+    <value>Deutsch (German)</value>
+  </data>
+  <data name="Language_Portuguese" xml:space="preserve">
+    <value>Português (Portuguese)</value>
+  </data>
+  <data name="Language_Italian" xml:space="preserve">
+    <value>Italiano (Italian)</value>
+  </data>
+  <data name="Language_Russian" xml:space="preserve">
+    <value>Русский (Russian)</value>
+  </data>
+  <data name="Language_Chinese" xml:space="preserve">
+    <value>中文 (Chinese)</value>
+  </data>
+
+  <!-- Setting Groups -->
+  <data name="SettingGroup_PrivacySecurity" xml:space="preserve">
+    <value>Privacy &amp; Security</value>
+  </data>
+  <data name="SettingGroup_Security" xml:space="preserve">
+    <value>Security</value>
+  </data>
+
+  <!-- Privacy & Security Settings -->
+  <data name="Setting_security-uac-level_Name" xml:space="preserve">
+    <value>User Account Control Level</value>
+  </data>
+  <data name="Setting_security-uac-level_Description" xml:space="preserve">
+    <value>Controls UAC notification level and secure desktop behavior</value>
+  </data>
+  <data name="Setting_security-uac-level_Option_0" xml:space="preserve">
+    <value>Prompt for Credentials</value>
+  </data>
+  <data name="Setting_security-uac-level_Option_1" xml:space="preserve">
+    <value>Always notify</value>
+  </data>
+  <data name="Setting_security-uac-level_Option_2" xml:space="preserve">
+    <value>Notify when apps try to make changes</value>
+  </data>
+  <data name="Setting_security-uac-level_Option_3" xml:space="preserve">
+    <value>Notify when apps try to make changes (no dim)</value>
+  </data>
+  <data name="Setting_security-uac-level_Option_4" xml:space="preserve">
+    <value>Never notify</value>
+  </data>
+  <data name="Setting_security-uac-level_CustomState" xml:space="preserve">
+    <value>Custom (User Defined)</value>
+  </data>
+
+  <data name="Setting_security-workplace-join-messages_Name" xml:space="preserve">
+    <value>Block Workplace Join Messages</value>
+  </data>
+  <data name="Setting_security-workplace-join-messages_Description" xml:space="preserve">
+    <value>Blocks the 'Allow my organization to manage my device' and 'No, sign in to this app only' pop-up messages</value>
+  </data>
+</root>

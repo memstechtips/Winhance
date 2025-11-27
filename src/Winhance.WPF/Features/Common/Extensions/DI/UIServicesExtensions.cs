@@ -22,6 +22,9 @@ namespace Winhance.WPF.Features.Common.Extensions.DI
 
         public static IServiceCollection AddUIInfrastructureServices(this IServiceCollection services)
         {
+            services.AddSingleton<ILocalizationService, LocalizationService>();
+            services.AddSingleton<SettingLocalizationService>();
+
             services.AddSingleton<IThemeManager>(provider => new ThemeManager(
                 provider.GetRequiredService<INavigationService>(),
                 provider.GetRequiredService<IWindowsThemeQueryService>()

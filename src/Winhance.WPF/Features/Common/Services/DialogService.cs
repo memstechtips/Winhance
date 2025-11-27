@@ -13,6 +13,13 @@ namespace Winhance.WPF.Features.Common.Services
 {
     public class DialogService : IDialogService
     {
+        private readonly ILocalizationService _localization;
+
+        public DialogService(ILocalizationService localization)
+        {
+            _localization = localization;
+        }
+
         public void ShowMessage(string message, string title = "")
         {
             Application.Current.Dispatcher.Invoke(() =>
@@ -28,6 +35,9 @@ namespace Winhance.WPF.Features.Common.Services
             string cancelButtonText = "Cancel"
         )
         {
+            okButtonText = okButtonText == "OK" ? _localization.GetString("Button_OK") : okButtonText;
+            cancelButtonText = cancelButtonText == "Cancel" ? _localization.GetString("Button_Cancel") : cancelButtonText;
+
             return Application.Current.Dispatcher.InvokeAsync(() =>
             {
                 var parsedContent = ParseMessageContent(message);
@@ -55,17 +65,17 @@ namespace Winhance.WPF.Features.Common.Services
                 bool isInstall = operationType.Equals("install", StringComparison.OrdinalIgnoreCase);
                 bool isRemove = operationType.Equals("remove", StringComparison.OrdinalIgnoreCase);
 
-                string title = isInstall ? "Confirm Installation" :
-                              isRemove ? "Confirm Removal" :
-                              $"Confirm {operationType}";
+                string title = isInstall ? _localization.GetString("Dialog_ConfirmInstallation") :
+                              isRemove ? _localization.GetString("Dialog_ConfirmRemoval") :
+                              _localization.GetString("Dialog_ConfirmOperation", operationType);
 
                 string titleBarIcon = isInstall ? "Download" :
                                      isRemove ? "Delete" :
                                      "Information";
 
-                string contextMessage = isInstall ? "These items will be installed.\nDo you want to continue?" :
-                                       isRemove ? "These items will be removed.\nDo you want to continue?" :
-                                       $"These items will be {operationType.ToLower()}ed.\nDo you want to continue?";
+                string contextMessage = isInstall ? _localization.GetString("Dialog_ItemsWillBeInstalled") :
+                                       isRemove ? _localization.GetString("Dialog_ItemsWillBeRemoved") :
+                                       _localization.GetString("Dialog_ItemsWillBeProcessed", operationType.ToLower());
 
                 var dialog = CustomDialog.CreateAppOperationConfirmationDialog(
                     title,
@@ -81,6 +91,9 @@ namespace Winhance.WPF.Features.Common.Services
 
         public async Task ShowErrorAsync(string message, string title = "Error", string buttonText = "OK")
         {
+            title = title == "Error" ? _localization.GetString("Dialog_Error") : title;
+            buttonText = buttonText == "OK" ? _localization.GetString("Button_OK") : buttonText;
+
             await Application.Current.Dispatcher.InvokeAsync(() =>
             {
                 CustomDialog.ShowInformation(title, title, message, "");
@@ -93,6 +106,9 @@ namespace Winhance.WPF.Features.Common.Services
             string buttonText = "OK"
         )
         {
+            title = title == "Information" ? _localization.GetString("Dialog_Information") : title;
+            buttonText = buttonText == "OK" ? _localization.GetString("Button_OK") : buttonText;
+
             var parsedContent = ParseMessageContent(message);
 
             await Application.Current.Dispatcher.InvokeAsync(() =>
@@ -114,6 +130,9 @@ namespace Winhance.WPF.Features.Common.Services
             string buttonText = "OK"
         )
         {
+            title = title == "Warning" ? _localization.GetString("Dialog_Warning") : title;
+            buttonText = buttonText == "OK" ? _localization.GetString("Button_OK") : buttonText;
+
             return Application.Current.Dispatcher.InvokeAsync(() =>
             {
                 MessageBox.Show(message, title, MessageBoxButton.OK, MessageBoxImage.Warning);
