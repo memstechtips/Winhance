@@ -215,12 +215,14 @@ namespace Winhance.WPF.Features.Common.Views
             string message,
             string footerText = "",
             DialogType dialogType = DialogType.Question,
-            string? titleBarIcon = null)
+            string? titleBarIcon = null,
+            string primaryButtonText = "Yes",
+            string secondaryButtonText = "No")
         {
             var dialog = CreateBaseDialog(title, title, footerText, dialogType, titleBarIcon);
             dialog.SetupSimpleMessageDisplay(message);
-            dialog.PrimaryButton.Content = "Yes";
-            dialog.SecondaryButton.Content = "No";
+            dialog.PrimaryButton.Content = primaryButtonText;
+            dialog.SecondaryButton.Content = secondaryButtonText;
             return dialog;
         }
 
@@ -228,13 +230,15 @@ namespace Winhance.WPF.Features.Common.Views
             string title,
             string headerText,
             string message,
-            string footerText
+            string footerText,
+            string primaryButtonText = "Yes",
+            string secondaryButtonText = "No"
         )
         {
             var dialog = CreateBaseDialog(title, headerText, footerText, DialogType.Question);
             dialog.SetupSimpleMessageDisplay(message);
-            dialog.PrimaryButton.Content = "Yes";
-            dialog.SecondaryButton.Content = "No";
+            dialog.PrimaryButton.Content = primaryButtonText;
+            dialog.SecondaryButton.Content = secondaryButtonText;
             return dialog;
         }
 
@@ -242,13 +246,15 @@ namespace Winhance.WPF.Features.Common.Views
             string title,
             string headerText,
             IEnumerable<string> items,
-            string footerText
+            string footerText,
+            string primaryButtonText = "Yes",
+            string secondaryButtonText = "No"
         )
         {
             var dialog = CreateBaseDialog(title, headerText, footerText, DialogType.Question);
             dialog.SetupAppListDisplay(items);
-            dialog.PrimaryButton.Content = "Yes";
-            dialog.SecondaryButton.Content = "No";
+            dialog.PrimaryButton.Content = primaryButtonText;
+            dialog.SecondaryButton.Content = secondaryButtonText;
             return dialog;
         }
 
@@ -257,11 +263,12 @@ namespace Winhance.WPF.Features.Common.Views
             string message,
             string footerText = "",
             DialogType dialogType = DialogType.Information,
-            string? titleBarIcon = null)
+            string? titleBarIcon = null,
+            string buttonText = "OK")
         {
             var dialog = CreateBaseDialog(title, title, footerText, dialogType, titleBarIcon);
             dialog.SetupSimpleMessageDisplay(message);
-            dialog.PrimaryButton.Content = "OK";
+            dialog.PrimaryButton.Content = buttonText;
             dialog.SecondaryButton.Visibility = Visibility.Collapsed;
             return dialog;
         }
@@ -270,12 +277,13 @@ namespace Winhance.WPF.Features.Common.Views
             string title,
             string headerText,
             string message,
-            string footerText
+            string footerText,
+            string buttonText = "OK"
         )
         {
             var dialog = CreateBaseDialog(title, headerText, footerText, DialogType.Information);
             dialog.SetupSimpleMessageDisplay(message);
-            dialog.PrimaryButton.Content = "OK";
+            dialog.PrimaryButton.Content = buttonText;
             dialog.SecondaryButton.Visibility = Visibility.Collapsed;
             return dialog;
         }
@@ -284,12 +292,13 @@ namespace Winhance.WPF.Features.Common.Views
             string title,
             string headerText,
             IEnumerable<string> items,
-            string footerText
+            string footerText,
+            string buttonText = "OK"
         )
         {
             var dialog = CreateBaseDialog(title, headerText, footerText, DialogType.Information);
             dialog.SetupAppListDisplay(items);
-            dialog.PrimaryButton.Content = "OK";
+            dialog.PrimaryButton.Content = buttonText;
             dialog.SecondaryButton.Visibility = Visibility.Collapsed;
             return dialog;
         }
@@ -298,10 +307,12 @@ namespace Winhance.WPF.Features.Common.Views
             string title,
             string headerText,
             string message,
-            string footerText
+            string footerText,
+            string primaryButtonText = "Yes",
+            string secondaryButtonText = "No"
         )
         {
-            var dialog = CreateConfirmationDialog(title, headerText, message, footerText);
+            var dialog = CreateConfirmationDialog(title, headerText, message, footerText, primaryButtonText, secondaryButtonText);
             return dialog.ShowDialog();
         }
 
@@ -309,10 +320,12 @@ namespace Winhance.WPF.Features.Common.Views
             string title,
             string headerText,
             IEnumerable<string> items,
-            string footerText
+            string footerText,
+            string primaryButtonText = "Yes",
+            string secondaryButtonText = "No"
         )
         {
-            var dialog = CreateConfirmationDialog(title, headerText, items, footerText);
+            var dialog = CreateConfirmationDialog(title, headerText, items, footerText, primaryButtonText, secondaryButtonText);
             return dialog.ShowDialog();
         }
 
@@ -320,10 +333,11 @@ namespace Winhance.WPF.Features.Common.Views
             string title,
             string headerText,
             string message,
-            string footerText
+            string footerText,
+            string buttonText = "OK"
         )
         {
-            var dialog = CreateInformationDialog(title, headerText, message, footerText);
+            var dialog = CreateInformationDialog(title, headerText, message, footerText, buttonText);
             dialog.ShowDialog();
         }
 
@@ -331,10 +345,11 @@ namespace Winhance.WPF.Features.Common.Views
             string title,
             string headerText,
             IEnumerable<string> items,
-            string footerText
+            string footerText,
+            string buttonText = "OK"
         )
         {
-            var dialog = CreateInformationDialog(title, headerText, items, footerText);
+            var dialog = CreateInformationDialog(title, headerText, items, footerText, buttonText);
             dialog.ShowDialog();
         }
 
@@ -342,14 +357,17 @@ namespace Winhance.WPF.Features.Common.Views
             string title,
             string headerText,
             string message,
-            string footerText
+            string footerText,
+            string primaryButtonText = "Yes",
+            string secondaryButtonText = "No",
+            string tertiaryButtonText = "Cancel"
         )
         {
             var dialog = CreateBaseDialog(title, headerText, footerText);
             dialog.SetupSimpleMessageDisplay(message);
-            dialog.PrimaryButton.Content = "Yes";
-            dialog.SecondaryButton.Content = "No";
-            dialog.TertiaryButton.Content = "Cancel";
+            dialog.PrimaryButton.Content = primaryButtonText;
+            dialog.SecondaryButton.Content = secondaryButtonText;
+            dialog.TertiaryButton.Content = tertiaryButtonText;
             dialog.TertiaryButton.Visibility = Visibility.Visible;
             dialog.TertiaryButton.IsCancel = true;
             return dialog;
@@ -359,14 +377,17 @@ namespace Winhance.WPF.Features.Common.Views
             string title,
             string headerText,
             IEnumerable<string> items,
-            string footerText
+            string footerText,
+            string primaryButtonText = "Yes",
+            string secondaryButtonText = "No",
+            string tertiaryButtonText = "Cancel"
         )
         {
             var dialog = CreateBaseDialog(title, headerText, footerText);
             dialog.SetupAppListDisplay(items);
-            dialog.PrimaryButton.Content = "Yes";
-            dialog.SecondaryButton.Content = "No";
-            dialog.TertiaryButton.Content = "Cancel";
+            dialog.PrimaryButton.Content = primaryButtonText;
+            dialog.SecondaryButton.Content = secondaryButtonText;
+            dialog.TertiaryButton.Content = tertiaryButtonText;
             dialog.TertiaryButton.Visibility = Visibility.Visible;
             dialog.TertiaryButton.IsCancel = true;
             return dialog;
@@ -376,10 +397,13 @@ namespace Winhance.WPF.Features.Common.Views
             string title,
             string headerText,
             string message,
-            string footerText
+            string footerText,
+            string primaryButtonText = "Yes",
+            string secondaryButtonText = "No",
+            string tertiaryButtonText = "Cancel"
         )
         {
-            var dialog = CreateYesNoCancelDialog(title, headerText, message, footerText);
+            var dialog = CreateYesNoCancelDialog(title, headerText, message, footerText, primaryButtonText, secondaryButtonText, tertiaryButtonText);
 
             // Add event handler for the Closing event to ensure DialogResult is set correctly
             dialog.Closing += (sender, e) =>
@@ -409,10 +433,13 @@ namespace Winhance.WPF.Features.Common.Views
             string title,
             string headerText,
             IEnumerable<string> items,
-            string footerText
+            string footerText,
+            string primaryButtonText = "Yes",
+            string secondaryButtonText = "No",
+            string tertiaryButtonText = "Cancel"
         )
         {
-            var dialog = CreateYesNoCancelDialog(title, headerText, items, footerText);
+            var dialog = CreateYesNoCancelDialog(title, headerText, items, footerText, primaryButtonText, secondaryButtonText, tertiaryButtonText);
 
             // Add event handler for the Closing event to ensure DialogResult is set correctly
             dialog.Closing += (sender, e) =>
@@ -504,12 +531,14 @@ namespace Winhance.WPF.Features.Common.Views
             string contextMessage,
             IEnumerable<string> items,
             DialogType dialogType = DialogType.Question,
-            string? titleBarIcon = null)
+            string? titleBarIcon = null,
+            string primaryButtonText = "Yes",
+            string secondaryButtonText = "No")
         {
             var dialog = CreateBaseDialog(title, title, "", dialogType, titleBarIcon);
             dialog.SetupAppListDisplayWithMessage(contextMessage, items);
-            dialog.PrimaryButton.Content = "Yes";
-            dialog.SecondaryButton.Content = "No";
+            dialog.PrimaryButton.Content = primaryButtonText;
+            dialog.SecondaryButton.Content = secondaryButtonText;
             return dialog;
         }
     }

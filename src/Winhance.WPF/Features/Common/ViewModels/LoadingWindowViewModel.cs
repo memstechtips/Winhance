@@ -9,6 +9,7 @@ namespace Winhance.WPF.Features.Common.ViewModels
     public class LoadingWindowViewModel : INotifyPropertyChanged
     {
         private readonly ITaskProgressService _progressService;
+        private readonly ILocalizationService _localizationService;
 
         // INotifyPropertyChanged implementation
         public event PropertyChangedEventHandler? PropertyChanged;
@@ -56,23 +57,28 @@ namespace Winhance.WPF.Features.Common.ViewModels
         }
 
         // Additional properties for more detailed loading information
-        private string _statusMessage = "Initializing...";
+        private string _statusMessage = string.Empty;
         public string StatusMessage
         {
             get => _statusMessage;
             set => SetProperty(ref _statusMessage, value);
         }
 
-        private string _detailMessage = "Please wait while the application loads...";
+        private string _detailMessage = string.Empty;
         public string DetailMessage
         {
             get => _detailMessage;
             set => SetProperty(ref _detailMessage, value);
         }
 
-        public LoadingWindowViewModel(ITaskProgressService progressService)
+        public LoadingWindowViewModel(ITaskProgressService progressService, ILocalizationService localizationService)
         {
             _progressService = progressService ?? throw new ArgumentNullException(nameof(progressService));
+            _localizationService = localizationService ?? throw new ArgumentNullException(nameof(localizationService));
+
+            // Set initial localized messages
+            StatusMessage = _localizationService.GetString("Status_Initializing");
+            DetailMessage = _localizationService.GetString("Status_PleaseWait");
 
             // Subscribe to progress events
             _progressService.ProgressUpdated += ProgressService_ProgressUpdated;
@@ -96,23 +102,23 @@ namespace Winhance.WPF.Features.Common.ViewModels
                 // Update detail message based on the current operation
                 if (detail.StatusText.Contains("Loading installable apps"))
                 {
-                    DetailMessage = "Discovering available applications...";
+                    DetailMessage = _localizationService.GetString("Status_DiscoveringApps");
                 }
                 else if (detail.StatusText.Contains("Loading removable apps"))
                 {
-                    DetailMessage = "Identifying Windows applications...";
+                    DetailMessage = _localizationService.GetString("Status_IdentifyingApps");
                 }
                 else if (detail.StatusText.Contains("Checking installation status"))
                 {
-                    DetailMessage = "Verifying which applications are installed...";
+                    DetailMessage = _localizationService.GetString("Status_VerifyingApps");
                 }
                 else if (detail.StatusText.Contains("Organizing apps"))
                 {
-                    DetailMessage = "Sorting applications for display...";
+                    DetailMessage = _localizationService.GetString("Status_SortingApps");
                 }
                 else
                 {
-                    DetailMessage = "Please wait while the application loads...";
+                    DetailMessage = _localizationService.GetString("Status_PleaseWait");
                 }
             }
         }

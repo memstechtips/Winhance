@@ -42,6 +42,7 @@ namespace Winhance.WPF.Features.Common.Extensions.DI
 
             // Loading Window (Transient - Created per startup)
             services.AddTransient<LoadingWindow>();
+            services.AddTransient<WinhanceSettingsView>();
 
             return services;
         }
@@ -129,7 +130,6 @@ namespace Winhance.WPF.Features.Common.Extensions.DI
             services.AddTransient<ModalDialog>();
             services.AddTransient<UnifiedConfigurationDialog>();
             services.AddTransient<UpdateDialog>();
-            services.AddTransient<UpdateNotificationDialog>();
             services.AddTransient<ConfigImportOptionsDialog>();
             services.AddTransient<DonationDialog>();
 

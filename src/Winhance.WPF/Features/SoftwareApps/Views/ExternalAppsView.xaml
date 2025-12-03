@@ -7,6 +7,7 @@
              xmlns:iconPacks="http://metro.mahapps.com/winfx/xaml/iconpacks"
              xmlns:controls="clr-namespace:Winhance.WPF.Features.Common.Controls"
              xmlns:views="clr-namespace:Winhance.WPF.Features.SoftwareApps.Views"
+             xmlns:loc="clr-namespace:Winhance.WPF.Features.Common.Extensions"
              mc:Ignorable="d"
              d:DataContext="{d:DesignInstance Type=viewModels:ExternalAppsViewModel}">
 
@@ -22,21 +23,21 @@
                                             <!-- Selection Checkboxes -->
                                             <StackPanel Orientation="Horizontal" Margin="15,10,0,10">
                                                 <CheckBox Style="{StaticResource CustomCheckBox}"
-                                                          Content="Select All"
+                                                          Content="{loc:Localize Common_SelectAll}"
                                                           FontSize="16"
                                                           FontWeight="Bold"
                                                           IsChecked="{Binding IsAllSelected}"
                                                           Margin="0,0,20,0"/>
 
                                                 <CheckBox Style="{StaticResource CustomCheckBox}"
-                                                          Content="Select All Installed"
+                                                          Content="{loc:Localize Common_SelectAll_Installed}"
                                                           FontSize="16"
                                                           FontWeight="Bold"
                                                           IsChecked="{Binding IsAllSelectedInstalled}"
                                                           Margin="0,0,20,0"/>
 
                                                 <CheckBox Style="{StaticResource CustomCheckBox}"
-                                                          Content="Select All Not Installed"
+                                                          Content="{loc:Localize Common_SelectAll_NotInstalled}"
                                                           FontSize="16"
                                                           FontWeight="Bold"
                                                           IsChecked="{Binding IsAllSelectedNotInstalled}"
@@ -63,7 +64,7 @@
                                                                                              VerticalAlignment="Center"
                                                                                              DockPanel.Dock="Left"/>
 
-                                                                    <TextBlock Text="{Binding Name}"
+                                                                    <TextBlock Text="{Binding DisplayName}"
                                                                                FontWeight="SemiBold"
                                                                                FontSize="14"
                                                                                Foreground="{DynamicResource PrimaryTextColor}"
@@ -104,7 +105,7 @@
                                                                                         <Ellipse Style="{StaticResource AppStatusIndicatorStyle}"
                                                                                                  Fill="{Binding IsInstalled, Converter={StaticResource InstalledStatusToColorConverter}}">
                                                                                             <Ellipse.ToolTip>
-                                                                                                <ToolTip Content="{Binding IsInstalled, Converter={StaticResource InstalledStatusToTextConverter}}"/>
+                                                                                                <ToolTip Content="{Binding InstalledStatusText}"/>
                                                                                             </Ellipse.ToolTip>
                                                                                         </Ellipse>
                                                                                         <TextBlock Text="{Binding Name}"
@@ -116,7 +117,7 @@
                                                                                         </TextBlock>
                                                                                         <Button Cursor="Hand"
                                                                                                 Command="{Binding OpenWebsiteCommand}"
-                                                                                                ToolTip="Visit website for more information"
+                                                                                                ToolTip="{loc:Localize Tooltip_VisitWebsite}"
                                                                                                 Margin="4,0,0,0"
                                                                                                 Padding="2"
                                                                                                 VerticalAlignment="Center"

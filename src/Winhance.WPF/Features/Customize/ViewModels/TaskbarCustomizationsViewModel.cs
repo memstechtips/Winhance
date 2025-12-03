@@ -12,7 +12,7 @@ namespace Winhance.WPF.Features.Customize.ViewModels
       : BaseSettingsFeatureViewModel(domainServiceRouter, settingsLoadingService, logService, localizationService)
     {
         public override string ModuleId => FeatureIds.Taskbar;
-        public override string DisplayName => "Taskbar";
 
+        protected override string GetDisplayNameKey() => "Feature_Taskbar_Name";
     }
 }

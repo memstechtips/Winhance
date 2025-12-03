@@ -6,7 +6,7 @@ using Winhance.Core.Features.Optimize.Models;
 namespace Winhance.Infrastructure.Features.Common.Services
 {
     public class PowerPlanComboBoxService(
-        IPowerCfgQueryService powerCfgQueryService, 
+        IPowerCfgQueryService powerCfgQueryService,
         ILogService logService) : IPowerPlanComboBoxService
     {
 
@@ -81,11 +81,9 @@ namespace Winhance.Infrastructure.Features.Common.Services
 
                 if (matchingSystemPlan != null)
                 {
-                    var displayName = CleanPlanName(matchingSystemPlan.Name);
-
                     options.Add(new PowerPlanComboBoxOption
                     {
-                        DisplayName = displayName,
+                        DisplayName = predefinedPlan.LocalizationKey,
                         PredefinedPlan = predefinedPlan,
                         SystemPlan = matchingSystemPlan,
                         ExistsOnSystem = true,
@@ -97,13 +95,13 @@ namespace Winhance.Infrastructure.Features.Common.Services
                     processedNames.Add(CleanPlanName(matchingSystemPlan.Name));
                     matchedPredefinedCount++;
 
-                    logService.Log(LogLevel.Info, $"[PowerPlanComboBoxService]   ✓ Matched predefined '{predefinedPlan.Name}' with system '{displayName}' by {matchMethod}{(matchingSystemPlan.IsActive ? " *ACTIVE*" : "")}");
+                    logService.Log(LogLevel.Info, $"[PowerPlanComboBoxService]   ✓ Matched predefined '{predefinedPlan.Name}' with system '{CleanPlanName(matchingSystemPlan.Name)}' by {matchMethod}{(matchingSystemPlan.IsActive ? " *ACTIVE*" : "")}");
                 }
                 else
                 {
                     options.Add(new PowerPlanComboBoxOption
                     {
-                        DisplayName = predefinedPlan.Name,
+                        DisplayName = predefinedPlan.LocalizationKey,
                         PredefinedPlan = predefinedPlan,
                         SystemPlan = null,
                         ExistsOnSystem = false,

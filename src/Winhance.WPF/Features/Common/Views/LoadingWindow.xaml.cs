@@ -20,7 +20,7 @@ namespace Winhance.WPF.Features.Common.Views
             InitializeComponent();
         }
 
-        public LoadingWindow(IThemeManager themeManager, ITaskProgressService progressService)
+        public LoadingWindow(IThemeManager themeManager, ITaskProgressService progressService, ILocalizationService localizationService)
         {
             _themeManager = themeManager ?? throw new ArgumentNullException(nameof(themeManager));
             _windowIconService = new WindowIconService(themeManager);
@@ -28,7 +28,7 @@ namespace Winhance.WPF.Features.Common.Views
 
             InitializeComponent();
 
-            var viewModel = new LoadingWindowViewModel(progressService);
+            var viewModel = new LoadingWindowViewModel(progressService, localizationService);
             DataContext = viewModel;
 
             UpdateThemeIcon();

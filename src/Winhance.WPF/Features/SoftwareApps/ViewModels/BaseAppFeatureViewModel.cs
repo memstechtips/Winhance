@@ -29,7 +29,8 @@ public abstract partial class BaseAppFeatureViewModel<T>(
     ILogService logService,
     IEventBus eventBus,
     IDialogService dialogService,
-    IInternetConnectivityService connectivityService) : BaseFeatureViewModel, IAppFeatureViewModel where T : class, ISelectable
+    IInternetConnectivityService connectivityService,
+    ILocalizationService localizationService) : BaseFeatureViewModel, IAppFeatureViewModel where T : class, ISelectable
 {
     private bool _isDisposed;
 
@@ -267,7 +268,7 @@ public abstract partial class BaseAppFeatureViewModel<T>(
     {
         foreach (var item in Items)
             item.IsSelected = false;
-        StatusText = "All selections cleared";
+        StatusText = localizationService.GetString("Progress_SelectionsCleared");
     }
 
     protected async Task<bool> CheckConnectivityAsync()
@@ -275,7 +276,7 @@ public abstract partial class BaseAppFeatureViewModel<T>(
         bool isConnected = await connectivityService.IsInternetConnectedAsync(true);
         if (!isConnected)
         {
-            StatusText = "No internet connection available. Installation cannot proceed.";
+            StatusText = localizationService.GetString("Progress_NoInternetConnection");
             await ShowNoInternetConnectionDialogAsync();
             return false;
         }

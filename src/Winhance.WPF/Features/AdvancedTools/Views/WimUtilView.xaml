@@ -5,6 +5,7 @@
              xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
              xmlns:viewModels="clr-namespace:Winhance.WPF.Features.AdvancedTools.ViewModels"
              xmlns:iconPacks="http://metro.mahapps.com/winfx/xaml/iconpacks"
+             xmlns:loc="clr-namespace:Winhance.WPF.Features.Common.Extensions"
              d:DataContext="{d:DesignInstance Type=viewModels:WimUtilViewModel}"
              mc:Ignorable="d">
 
@@ -37,7 +38,7 @@
                                    FontSize="32"
                                    FontWeight="Bold"
                                    Foreground="{DynamicResource PrimaryTextColor}"
-                                   Text="Windows Installation Media Utility"/>
+                                   Text="{loc:Localize WIMUtil_Title}"/>
 
                         <StackPanel Orientation="Horizontal"
                                     Margin="0,5,0,0">
@@ -46,7 +47,7 @@
                                        FontFamily="Helvetica Neue"
                                        FontSize="14"
                                        Foreground="{DynamicResource SubTextColor}"
-                                       Text="Create Custom Windows Installation Media"/>
+                                       Text="{loc:Localize WIMUtil_Subtitle}"/>
                         </StackPanel>
                     </StackPanel>
                 </Grid>
@@ -99,7 +100,7 @@
                                                               Foreground="{DynamicResource PrimaryTextColor}"/>
 
                                     <StackPanel Grid.Column="1" VerticalAlignment="Center" Margin="0,10,0,10">
-                                        <TextBlock Text="Select Working Directory"
+                                        <TextBlock Text="{loc:Localize WIMUtil_SelectWorkingDirectory}"
                                                   FontSize="14"
                                                   FontWeight="SemiBold"
                                                   Foreground="{DynamicResource PrimaryTextColor}"/>
@@ -111,35 +112,37 @@
                                     </StackPanel>
 
                                     <StackPanel Grid.Column="2" Orientation="Horizontal" VerticalAlignment="Center" Margin="15,0,15,0">
-                                        <CheckBox Content="I have extracted ISO contents already"
+                                        <CheckBox Content="{loc:Localize WIMUtil_CheckboxExtractedAlready}"
                                                   IsChecked="{Binding HasExtractedIsoAlready}"
                                                   Style="{StaticResource CustomCheckBox}"
                                                   FontSize="12"
                                                   VerticalAlignment="Center"
                                                   Margin="0,0,15,0"/>
 
-                                        <Button Content="Select Folder"
+                                        <Button Content="{loc:Localize WIMUtil_ButtonSelectFolder}"
                                                 Command="{Binding SelectWorkingDirectoryCommand}"
                                                 IsEnabled="{Binding SelectDirectoryCard.IsEnabled}"
                                                 Style="{StaticResource WizardActionButtonStyle}"
-                                                Width="130"
+                                                MinWidth="130"
+                                                Width="Auto"
                                                 Height="30"/>
                                     </StackPanel>
                                 </Grid>
                             </Border>
 
-                            <Button Content="Start Extraction"
+                            <Button Content="{loc:Localize WIMUtil_ButtonStartExtraction}"
                                     Command="{Binding StartIsoExtractionCommand}"
                                     IsEnabled="{Binding CanStartExtraction}"
                                     Style="{StaticResource WizardActionButtonStyle}"
-                                    Width="150"
+                                    MinWidth="150"
+                                        Width="Auto"
                                     HorizontalAlignment="Center"
                                     Margin="0,0,0,15"/>
 
                             <Border Visibility="{Binding ShowConversionCard, Converter={StaticResource BooleanToVisibilityConverter}}"
                                     Margin="0,10,0,10">
                                 <StackPanel>
-                                    <TextBlock Text="Optional: Convert Image Format"
+                                    <TextBlock Text="{loc:Localize WIMUtil_OptionalConvert}"
                                                FontSize="13"
                                                FontWeight="SemiBold"
                                                Foreground="{DynamicResource PrimaryTextColor}"
@@ -150,23 +153,25 @@
                             </Border>
 
                             <StackPanel Orientation="Horizontal" HorizontalAlignment="Left" Margin="0,10,0,0">
-                                <TextBlock Text="Download Windows ISO:"
+                                <TextBlock Text="{loc:Localize WIMUtil_DownloadISO}"
                                            FontSize="14"
                                            Foreground="{DynamicResource SubTextColor}"
                                            VerticalAlignment="Center"
                                            Margin="0,0,10,0"/>
 
-                                <Button Content="Windows 10"
+                                <Button Content="{loc:Localize WIMUtil_ButtonWindows10}"
                                         Command="{Binding OpenWindows10DownloadCommand}"
                                         Style="{StaticResource WizardActionButtonStyle}"
-                                        Width="120"
+                                        MinWidth="120"
+                                        Width="Auto"
                                         Height="30"
                                         Margin="0,0,10,0"/>
 
-                                <Button Content="Windows 11"
+                                <Button Content="{loc:Localize WIMUtil_ButtonWindows11}"
                                         Command="{Binding OpenWindows11DownloadCommand}"
                                         Style="{StaticResource WizardActionButtonStyle}"
-                                        Width="120"
+                                        MinWidth="120"
+                                        Width="Auto"
                                         Height="30"/>
                             </StackPanel>
                         </StackPanel>
@@ -191,7 +196,7 @@
                             <StackPanel IsEnabled="{Binding Step2State.IsAvailable}"
                                        Opacity="{Binding Step2State.IsAvailable, Converter={StaticResource BooleanToOpacityConverter}}">
 
-                                <TextBlock Text="Select ONE of the following options:"
+                                <TextBlock Text="{loc:Localize WIMUtil_SelectOneOption}"
                                            FontSize="14"
                                            FontWeight="SemiBold"
                                            Foreground="{DynamicResource PrimaryTextColor}"
@@ -223,7 +228,7 @@
                                         </Image>
 
                                         <StackPanel Grid.Column="1" VerticalAlignment="Center" Margin="0,10,0,10">
-                                            <TextBlock Text="Generate and Add Winhance XML"
+                                            <TextBlock Text="{loc:Localize WIMUtil_GenerateWinhanceXML}"
                                                       FontSize="14"
                                                       FontWeight="SemiBold"
                                                       Foreground="{DynamicResource PrimaryTextColor}"/>
@@ -253,11 +258,12 @@
                                         </Grid>
 
                                         <Button Grid.Column="3"
-                                                Content="Generate"
+                                                Content="{loc:Localize WIMUtil_ButtonGenerate}"
                                                 Command="{Binding GenerateWinhanceXmlCommand}"
                                                 IsEnabled="{Binding GenerateWinhanceXmlCard.IsEnabled}"
                                                 Style="{StaticResource WizardActionButtonStyle}"
-                                                Width="130"
+                                                MinWidth="130"
+                                                Width="Auto"
                                                 Height="30"
                                                 Margin="15,0,15,0"/>
                                     </Grid>
@@ -270,16 +276,17 @@
                                               ContentTemplate="{StaticResource WizardActionCardTemplate}"/>
 
                                 <StackPanel Orientation="Horizontal" HorizontalAlignment="Left" Margin="0,10,0,0">
-                                    <TextBlock Text="Generate XML Files:"
+                                    <TextBlock Text="{loc:Localize WIMUtil_GenerateXMLFiles}"
                                                FontSize="14"
                                                Foreground="{DynamicResource SubTextColor}"
                                                VerticalAlignment="Center"
                                                Margin="0,0,10,0"/>
 
-                                    <Button Content="Schneegans XML"
+                                    <Button Content="{loc:Localize WIMUtil_ButtonSchneegans}"
                                             Command="{Binding OpenSchneegansXmlGeneratorCommand}"
                                             Style="{StaticResource WizardActionButtonStyle}"
-                                            Width="140"
+                                            MinWidth="140"
+                                            Width="Auto"
                                             Height="30"/>
                                 </StackPanel>
                             </StackPanel>
@@ -348,11 +355,12 @@
                                 <ContentControl Content="{Binding SelectOutputCard}"
                                               ContentTemplate="{StaticResource WizardActionCardTemplate}"/>
 
-                                <Button Content="Create ISO"
+                                <Button Content="{loc:Localize WIMUtil_ButtonCreateISO}"
                                         Command="{Binding CreateIsoCommand}"
                                         IsEnabled="{Binding IsOscdimgAvailable}"
                                         Style="{StaticResource WizardActionButtonStyle}"
-                                        Width="150"
+                                        MinWidth="150"
+                                        Width="Auto"
                                         HorizontalAlignment="Center"
                                         Margin="0,0,0,15"/>
                             </StackPanel>

@@ -12,6 +12,7 @@ namespace Winhance.WPF.Features.Optimize.ViewModels
       : BaseSettingsFeatureViewModel(domainServiceRouter, settingsLoadingService, logService, localizationService)
     {
         public override string ModuleId => FeatureIds.Privacy;
-        public override string DisplayName => "Privacy & Security";
+
+        protected override string GetDisplayNameKey() => "Feature_Privacy_Name";
     }
 }

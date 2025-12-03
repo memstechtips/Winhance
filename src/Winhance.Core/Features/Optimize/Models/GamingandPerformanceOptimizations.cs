@@ -44,10 +44,7 @@ public static class GamingandPerformanceOptimizations
                     Description = "Adjust cursor speed based on movement velocity (mouse acceleration). Most competitive gamers disable this for consistent aiming in FPS games",
                     Icon = "Mouse",
                     InputType = InputType.Toggle,
-                    CustomProperties = new Dictionary<string, object>
-                    {
-                        [CustomPropertyKeys.RequiresRestartMessage] = "⚠️ System restart required for changes to take effect"
-                    },
+                    RequiresRestart = true,
                     RegistrySettings = new List<RegistrySetting>
                     {
                         new RegistrySetting
@@ -123,10 +120,7 @@ public static class GamingandPerformanceOptimizations
                     Description = "Compress unused memory pages to reduce RAM usage. On systems with plenty of RAM (16GB+), disabling can slightly reduce CPU overhead and improve performance",
                     Icon = "MemoryArrowDown",
                     InputType = InputType.Toggle,
-                    CustomProperties = new Dictionary<string, object>
-                    {
-                        [CustomPropertyKeys.RequiresRestartMessage] = "⚠️ System restart required for changes to take effect"
-                    },
+                    RequiresRestart = true,
                     RegistrySettings = new List<RegistrySetting>
                     {
                         new RegistrySetting
@@ -399,10 +393,7 @@ public static class GamingandPerformanceOptimizations
                     GroupName = "Graphics",
                     Icon = "ExpansionCard",
                     InputType = InputType.Toggle,
-                    CustomProperties = new Dictionary<string, object>
-                    {
-                        [CustomPropertyKeys.RequiresRestartMessage] = "⚠️ System restart required for changes to take effect"
-                    },
+                    RequiresRestart = true,
                     RegistrySettings = new List<RegistrySetting>
                     {
                         new RegistrySetting
@@ -695,9 +686,9 @@ public static class GamingandPerformanceOptimizations
                     GroupName = "System Services",
                     Icon = "Cached",
                     InputType = InputType.Selection,
+                    RequiresRestart = true,
                     CustomProperties = new Dictionary<string, object>
                     {
-                        [CustomPropertyKeys.RequiresRestartMessage] = "⚠️ Restart required for changes to take effect",
                         [CustomPropertyKeys.ComboBoxDisplayNames] = new string[]
                         {
                             "Disabled (Recommended for SSD)",
@@ -762,14 +753,14 @@ public static class GamingandPerformanceOptimizations
                     GroupName = "System Services",
                     Icon = "DatabaseSearch",
                     InputType = InputType.Selection,
+                    RequiresRestart = true,
                     CustomProperties = new Dictionary<string, object>
                     {
-                        [CustomPropertyKeys.RequiresRestartMessage] = "⚠️ Restart required for changes to take effect",
                         [CustomPropertyKeys.ComboBoxDisplayNames] = new string[]
                         {
-                            "Disabled",
-                            "Manual (Recommended)",
-                            "Automatic",
+                            "ServiceOption_Disabled",
+                            "ServiceOption_ManualRecommended",
+                            "ServiceOption_Automatic",
                         },
                         [CustomPropertyKeys.ValueMappings] = new Dictionary<int, Dictionary<string, object?>>
                         {
@@ -797,14 +788,14 @@ public static class GamingandPerformanceOptimizations
                     GroupName = "System Services",
                     Icon = "Printer",
                     InputType = InputType.Selection,
+                    RequiresRestart = true,
                     CustomProperties = new Dictionary<string, object>
                     {
-                        [CustomPropertyKeys.RequiresRestartMessage] = "⚠️ Restart required for changes to take effect",
                         [CustomPropertyKeys.ComboBoxDisplayNames] = new string[]
                         {
-                            "Disabled",
-                            "Manual (Recommended)",
-                            "Automatic",
+                            "ServiceOption_Disabled",
+                            "ServiceOption_ManualRecommended",
+                            "ServiceOption_Automatic",
                         },
                         [CustomPropertyKeys.ValueMappings] = new Dictionary<int, Dictionary<string, object?>>
                         {
@@ -832,14 +823,14 @@ public static class GamingandPerformanceOptimizations
                     GroupName = "System Services",
                     Icon = "CloudUpload",
                     InputType = InputType.Selection,
+                    RequiresRestart = true,
                     CustomProperties = new Dictionary<string, object>
                     {
-                        [CustomPropertyKeys.RequiresRestartMessage] = "⚠️ Restart required for changes to take effect",
                         [CustomPropertyKeys.ComboBoxDisplayNames] = new string[]
                         {
-                            "Disabled",
-                            "Manual (Recommended)",
-                            "Automatic",
+                            "ServiceOption_Disabled",
+                            "ServiceOption_ManualRecommended",
+                            "ServiceOption_Automatic",
                         },
                         [CustomPropertyKeys.ValueMappings] = new Dictionary<int, Dictionary<string, object?>>
                         {
@@ -867,14 +858,14 @@ public static class GamingandPerformanceOptimizations
                     GroupName = "System Services",
                     Icon = "ApplicationCog",
                     InputType = InputType.Selection,
+                    RequiresRestart = true,
                     CustomProperties = new Dictionary<string, object>
                     {
-                        [CustomPropertyKeys.RequiresRestartMessage] = "⚠️ Restart required for changes to take effect",
                         [CustomPropertyKeys.ComboBoxDisplayNames] = new string[]
                         {
-                            "Disabled",
-                            "Manual (Recommended)",
-                            "Automatic",
+                            "ServiceOption_Disabled",
+                            "ServiceOption_ManualRecommended",
+                            "ServiceOption_Automatic",
                         },
                         [CustomPropertyKeys.ValueMappings] = new Dictionary<int, Dictionary<string, object?>>
                         {
@@ -902,14 +893,14 @@ public static class GamingandPerformanceOptimizations
                     GroupName = "System Services",
                     Icon = "AlertOctagon",
                     InputType = InputType.Selection,
+                    RequiresRestart = true,
                     CustomProperties = new Dictionary<string, object>
                     {
-                        [CustomPropertyKeys.RequiresRestartMessage] = "⚠️ Restart required for changes to take effect",
                         [CustomPropertyKeys.ComboBoxDisplayNames] = new string[]
                         {
-                            "Disabled",
-                            "Manual (Recommended)",
-                            "Automatic",
+                            "ServiceOption_Disabled",
+                            "ServiceOption_ManualRecommended",
+                            "ServiceOption_Automatic",
                         },
                         [CustomPropertyKeys.ValueMappings] = new Dictionary<int, Dictionary<string, object?>>
                         {
@@ -937,14 +928,14 @@ public static class GamingandPerformanceOptimizations
                     GroupName = "System Services",
                     Icon = "MapMarkerOff",
                     InputType = InputType.Selection,
+                    RequiresRestart = true,
                     CustomProperties = new Dictionary<string, object>
                     {
-                        [CustomPropertyKeys.RequiresRestartMessage] = "⚠️ Restart required for changes to take effect",
                         [CustomPropertyKeys.ComboBoxDisplayNames] = new string[]
                         {
-                            "Disabled",
-                            "Manual (Recommended)",
-                            "Automatic",
+                            "ServiceOption_Disabled",
+                            "ServiceOption_ManualRecommended",
+                            "ServiceOption_Automatic",
                         },
                         [CustomPropertyKeys.ValueMappings] = new Dictionary<int, Dictionary<string, object?>>
                         {
@@ -972,14 +963,14 @@ public static class GamingandPerformanceOptimizations
                     GroupName = "System Services",
                     Icon = "StorefrontOutline",
                     InputType = InputType.Selection,
+                    RequiresRestart = true,
                     CustomProperties = new Dictionary<string, object>
                     {
-                        [CustomPropertyKeys.RequiresRestartMessage] = "⚠️ Restart required for changes to take effect",
                         [CustomPropertyKeys.ComboBoxDisplayNames] = new string[]
                         {
-                            "Disabled",
-                            "Manual (Recommended)",
-                            "Automatic",
+                            "ServiceOption_Disabled",
+                            "ServiceOption_ManualRecommended",
+                            "ServiceOption_Automatic",
                         },
                         [CustomPropertyKeys.ValueMappings] = new Dictionary<int, Dictionary<string, object?>>
                         {
@@ -1007,14 +998,14 @@ public static class GamingandPerformanceOptimizations
                     GroupName = "System Services",
                     Icon = "TestTube",
                     InputType = InputType.Selection,
+                    RequiresRestart = true,
                     CustomProperties = new Dictionary<string, object>
                     {
-                        [CustomPropertyKeys.RequiresRestartMessage] = "⚠️ Restart required for changes to take effect",
                         [CustomPropertyKeys.ComboBoxDisplayNames] = new string[]
                         {
-                            "Disabled",
-                            "Manual (Recommended)",
-                            "Automatic",
+                            "ServiceOption_Disabled",
+                            "ServiceOption_ManualRecommended",
+                            "ServiceOption_Automatic",
                         },
                         [CustomPropertyKeys.ValueMappings] = new Dictionary<int, Dictionary<string, object?>>
                         {
@@ -1042,14 +1033,14 @@ public static class GamingandPerformanceOptimizations
                     GroupName = "System Services",
                     Icon = "Cellphone",
                     InputType = InputType.Selection,
+                    RequiresRestart = true,
                     CustomProperties = new Dictionary<string, object>
                     {
-                        [CustomPropertyKeys.RequiresRestartMessage] = "⚠️ Restart required for changes to take effect",
                         [CustomPropertyKeys.ComboBoxDisplayNames] = new string[]
                         {
-                            "Disabled",
-                            "Manual (Recommended)",
-                            "Automatic",
+                            "ServiceOption_Disabled",
+                            "ServiceOption_ManualRecommended",
+                            "ServiceOption_Automatic",
                         },
                         [CustomPropertyKeys.ValueMappings] = new Dictionary<int, Dictionary<string, object?>>
                         {
@@ -1077,14 +1068,14 @@ public static class GamingandPerformanceOptimizations
                     GroupName = "System Services",
                     Icon = "Wallet",
                     InputType = InputType.Selection,
+                    RequiresRestart = true,
                     CustomProperties = new Dictionary<string, object>
                     {
-                        [CustomPropertyKeys.RequiresRestartMessage] = "⚠️ Restart required for changes to take effect",
                         [CustomPropertyKeys.ComboBoxDisplayNames] = new string[]
                         {
-                            "Disabled",
-                            "Manual (Recommended)",
-                            "Automatic",
+                            "ServiceOption_Disabled",
+                            "ServiceOption_ManualRecommended",
+                            "ServiceOption_Automatic",
                         },
                         [CustomPropertyKeys.ValueMappings] = new Dictionary<int, Dictionary<string, object?>>
                         {
@@ -1112,14 +1103,14 @@ public static class GamingandPerformanceOptimizations
                     GroupName = "System Services",
                     Icon = "SmartCard",
                     InputType = InputType.Selection,
+                    RequiresRestart = true,
                     CustomProperties = new Dictionary<string, object>
                     {
-                        [CustomPropertyKeys.RequiresRestartMessage] = "⚠️ Restart required for changes to take effect",
                         [CustomPropertyKeys.ComboBoxDisplayNames] = new string[]
                         {
-                            "Disabled",
-                            "Manual (Recommended)",
-                            "Automatic",
+                            "ServiceOption_Disabled",
+                            "ServiceOption_ManualRecommended",
+                            "ServiceOption_Automatic",
                         },
                         [CustomPropertyKeys.ValueMappings] = new Dictionary<int, Dictionary<string, object?>>
                         {
@@ -1161,14 +1152,14 @@ public static class GamingandPerformanceOptimizations
                     GroupName = "System Services",
                     Icon = "MapOutline",
                     InputType = InputType.Selection,
+                    RequiresRestart = true,
                     CustomProperties = new Dictionary<string, object>
                     {
-                        [CustomPropertyKeys.RequiresRestartMessage] = "⚠️ Restart required for changes to take effect",
                         [CustomPropertyKeys.ComboBoxDisplayNames] = new string[]
                         {
-                            "Disabled",
-                            "Manual (Recommended)",
-                            "Automatic",
+                            "ServiceOption_Disabled",
+                            "ServiceOption_ManualRecommended",
+                            "ServiceOption_Automatic",
                         },
                         [CustomPropertyKeys.ValueMappings] = new Dictionary<int, Dictionary<string, object?>>
                         {
@@ -1196,14 +1187,14 @@ public static class GamingandPerformanceOptimizations
                     GroupName = "System Services",
                     Icon = "Fax",
                     InputType = InputType.Selection,
+                    RequiresRestart = true,
                     CustomProperties = new Dictionary<string, object>
                     {
-                        [CustomPropertyKeys.RequiresRestartMessage] = "⚠️ Restart required for changes to take effect",
                         [CustomPropertyKeys.ComboBoxDisplayNames] = new string[]
                         {
-                            "Disabled (Recommended)",
-                            "Manual",
-                            "Automatic",
+                            "ServiceOption_DisabledRecommended",
+                            "ServiceOption_Manual",
+                            "ServiceOption_Automatic",
                         },
                         [CustomPropertyKeys.ValueMappings] = new Dictionary<int, Dictionary<string, object?>>
                         {
@@ -1231,14 +1222,14 @@ public static class GamingandPerformanceOptimizations
                     GroupName = "System Services",
                     Icon = "ShareOff",
                     InputType = InputType.Selection,
+                    RequiresRestart = true,
                     CustomProperties = new Dictionary<string, object>
                     {
-                        [CustomPropertyKeys.RequiresRestartMessage] = "⚠️ Restart required for changes to take effect",
                         [CustomPropertyKeys.ComboBoxDisplayNames] = new string[]
                         {
-                            "Disabled (Recommended)",
-                            "Manual",
-                            "Automatic",
+                            "ServiceOption_DisabledRecommended",
+                            "ServiceOption_Manual",
+                            "ServiceOption_Automatic",
                         },
                         [CustomPropertyKeys.ValueMappings] = new Dictionary<int, Dictionary<string, object?>>
                         {
@@ -1266,14 +1257,14 @@ public static class GamingandPerformanceOptimizations
                     GroupName = "System Services",
                     Icon = "VirtualReality",
                     InputType = InputType.Selection,
+                    RequiresRestart = true,
                     CustomProperties = new Dictionary<string, object>
                     {
-                        [CustomPropertyKeys.RequiresRestartMessage] = "⚠️ Restart required for changes to take effect",
                         [CustomPropertyKeys.ComboBoxDisplayNames] = new string[]
                         {
-                            "Disabled",
-                            "Manual (Recommended)",
-                            "Automatic",
+                            "ServiceOption_Disabled",
+                            "ServiceOption_ManualRecommended",
+                            "ServiceOption_Automatic",
                         },
                         [CustomPropertyKeys.ValueMappings] = new Dictionary<int, Dictionary<string, object?>>
                         {
@@ -1301,14 +1292,14 @@ public static class GamingandPerformanceOptimizations
                     GroupName = "System Services",
                     Icon = "CellphoneWireless",
                     InputType = InputType.Selection,
+                    RequiresRestart = true,
                     CustomProperties = new Dictionary<string, object>
                     {
-                        [CustomPropertyKeys.RequiresRestartMessage] = "⚠️ Restart required for changes to take effect",
                         [CustomPropertyKeys.ComboBoxDisplayNames] = new string[]
                         {
-                            "Disabled",
-                            "Manual (Recommended)",
-                            "Automatic",
+                            "ServiceOption_Disabled",
+                            "ServiceOption_ManualRecommended",
+                            "ServiceOption_Automatic",
                         },
                         [CustomPropertyKeys.ValueMappings] = new Dictionary<int, Dictionary<string, object?>>
                         {
@@ -1336,14 +1327,14 @@ public static class GamingandPerformanceOptimizations
                     GroupName = "System Services",
                     Icon = "MessageText",
                     InputType = InputType.Selection,
+                    RequiresRestart = true,
                     CustomProperties = new Dictionary<string, object>
                     {
-                        [CustomPropertyKeys.RequiresRestartMessage] = "⚠️ Restart required for changes to take effect",
                         [CustomPropertyKeys.ComboBoxDisplayNames] = new string[]
                         {
-                            "Disabled",
-                            "Manual (Recommended)",
-                            "Automatic",
+                            "ServiceOption_Disabled",
+                            "ServiceOption_ManualRecommended",
+                            "ServiceOption_Automatic",
                         },
                         [CustomPropertyKeys.ValueMappings] = new Dictionary<int, Dictionary<string, object?>>
                         {
@@ -1371,14 +1362,14 @@ public static class GamingandPerformanceOptimizations
                     GroupName = "System Services",
                     Icon = "ShieldAccount",
                     InputType = InputType.Selection,
+                    RequiresRestart = true,
                     CustomProperties = new Dictionary<string, object>
                     {
-                        [CustomPropertyKeys.RequiresRestartMessage] = "⚠️ Restart required for changes to take effect",
                         [CustomPropertyKeys.ComboBoxDisplayNames] = new string[]
                         {
-                            "Disabled",
-                            "Manual (Recommended)",
-                            "Automatic",
+                            "ServiceOption_Disabled",
+                            "ServiceOption_ManualRecommended",
+                            "ServiceOption_Automatic",
                         },
                         [CustomPropertyKeys.ValueMappings] = new Dictionary<int, Dictionary<string, object?>>
                         {
@@ -1406,14 +1397,14 @@ public static class GamingandPerformanceOptimizations
                     GroupName = "System Services",
                     Icon = "Nfc",
                     InputType = InputType.Selection,
+                    RequiresRestart = true,
                     CustomProperties = new Dictionary<string, object>
                     {
-                        [CustomPropertyKeys.RequiresRestartMessage] = "⚠️ Restart required for changes to take effect",
                         [CustomPropertyKeys.ComboBoxDisplayNames] = new string[]
                         {
-                            "Disabled",
-                            "Manual (Recommended)",
-                            "Automatic",
+                            "ServiceOption_Disabled",
+                            "ServiceOption_ManualRecommended",
+                            "ServiceOption_Automatic",
                         },
                         [CustomPropertyKeys.ValueMappings] = new Dictionary<int, Dictionary<string, object?>>
                         {
@@ -1441,14 +1432,14 @@ public static class GamingandPerformanceOptimizations
                     GroupName = "System Services",
                     Icon = "ShieldCheck",
                     InputType = InputType.Selection,
+                    RequiresRestart = true,
                     CustomProperties = new Dictionary<string, object>
                     {
-                        [CustomPropertyKeys.RequiresRestartMessage] = "⚠️ Restart required for changes to take effect",
                         [CustomPropertyKeys.ComboBoxDisplayNames] = new string[]
                         {
-                            "Disabled",
-                            "Manual (Recommended)",
-                            "Automatic",
+                            "ServiceOption_Disabled",
+                            "ServiceOption_ManualRecommended",
+                            "ServiceOption_Automatic",
                         },
                         [CustomPropertyKeys.ValueMappings] = new Dictionary<int, Dictionary<string, object?>>
                         {
@@ -1476,14 +1467,14 @@ public static class GamingandPerformanceOptimizations
                     GroupName = "System Services",
                     Icon = "Vpn",
                     InputType = InputType.Selection,
+                    RequiresRestart = true,
                     CustomProperties = new Dictionary<string, object>
                     {
-                        [CustomPropertyKeys.RequiresRestartMessage] = "⚠️ Restart required for changes to take effect",
                         [CustomPropertyKeys.ComboBoxDisplayNames] = new string[]
                         {
-                            "Disabled",
-                            "Manual (Recommended)",
-                            "Automatic",
+                            "ServiceOption_Disabled",
+                            "ServiceOption_ManualRecommended",
+                            "ServiceOption_Automatic",
                         },
                         [CustomPropertyKeys.ValueMappings] = new Dictionary<int, Dictionary<string, object?>>
                         {
@@ -1511,14 +1502,14 @@ public static class GamingandPerformanceOptimizations
                     GroupName = "System Services",
                     Icon = "NetworkOff",
                     InputType = InputType.Selection,
+                    RequiresRestart = true,
                     CustomProperties = new Dictionary<string, object>
                     {
-                        [CustomPropertyKeys.RequiresRestartMessage] = "⚠️ Restart required for changes to take effect",
                         [CustomPropertyKeys.ComboBoxDisplayNames] = new string[]
                         {
-                            "Disabled",
-                            "Manual (Recommended)",
-                            "Automatic",
+                            "ServiceOption_Disabled",
+                            "ServiceOption_ManualRecommended",
+                            "ServiceOption_Automatic",
                         },
                         [CustomPropertyKeys.ValueMappings] = new Dictionary<int, Dictionary<string, object?>>
                         {
@@ -1546,14 +1537,14 @@ public static class GamingandPerformanceOptimizations
                     GroupName = "System Services",
                     Icon = "RemoteDesktop",
                     InputType = InputType.Selection,
+                    RequiresRestart = true,
                     CustomProperties = new Dictionary<string, object>
                     {
-                        [CustomPropertyKeys.RequiresRestartMessage] = "⚠️ Restart required for changes to take effect",
                         [CustomPropertyKeys.ComboBoxDisplayNames] = new string[]
                         {
-                            "Disabled",
-                            "Manual (Recommended)",
-                            "Automatic",
+                            "ServiceOption_Disabled",
+                            "ServiceOption_ManualRecommended",
+                            "ServiceOption_Automatic",
                         },
                         [CustomPropertyKeys.ValueMappings] = new Dictionary<int, Dictionary<string, object?>>
                         {
@@ -1581,14 +1572,14 @@ public static class GamingandPerformanceOptimizations
                     GroupName = "System Services",
                     Icon = "MonitorShare",
                     InputType = InputType.Selection,
+                    RequiresRestart = true,
                     CustomProperties = new Dictionary<string, object>
                     {
-                        [CustomPropertyKeys.RequiresRestartMessage] = "⚠️ Restart required for changes to take effect",
                         [CustomPropertyKeys.ComboBoxDisplayNames] = new string[]
                         {
-                            "Disabled",
-                            "Manual (Recommended)",
-                            "Automatic",
+                            "ServiceOption_Disabled",
+                            "ServiceOption_ManualRecommended",
+                            "ServiceOption_Automatic",
                         },
                         [CustomPropertyKeys.ValueMappings] = new Dictionary<int, Dictionary<string, object?>>
                         {
@@ -1616,14 +1607,14 @@ public static class GamingandPerformanceOptimizations
                     GroupName = "System Services",
                     Icon = "TransitConnectionVariant",
                     InputType = InputType.Selection,
+                    RequiresRestart = true,
                     CustomProperties = new Dictionary<string, object>
                     {
-                        [CustomPropertyKeys.RequiresRestartMessage] = "⚠️ Restart required for changes to take effect",
                         [CustomPropertyKeys.ComboBoxDisplayNames] = new string[]
                         {
-                            "Disabled",
-                            "Manual (Recommended)",
-                            "Automatic",
+                            "ServiceOption_Disabled",
+                            "ServiceOption_ManualRecommended",
+                            "ServiceOption_Automatic",
                         },
                         [CustomPropertyKeys.ValueMappings] = new Dictionary<int, Dictionary<string, object?>>
                         {
@@ -1651,14 +1642,14 @@ public static class GamingandPerformanceOptimizations
                     GroupName = "System Services",
                     Icon = "CloudDownload",
                     InputType = InputType.Selection,
+                    RequiresRestart = true,
                     CustomProperties = new Dictionary<string, object>
                     {
-                        [CustomPropertyKeys.RequiresRestartMessage] = "⚠️ Restart required for changes to take effect",
                         [CustomPropertyKeys.ComboBoxDisplayNames] = new string[]
                         {
-                            "Disabled",
-                            "Manual (Recommended)",
-                            "Automatic",
+                            "ServiceOption_Disabled",
+                            "ServiceOption_ManualRecommended",
+                            "ServiceOption_Automatic",
                         },
                         [CustomPropertyKeys.ValueMappings] = new Dictionary<int, Dictionary<string, object?>>
                         {
@@ -1686,14 +1677,14 @@ public static class GamingandPerformanceOptimizations
                     GroupName = "System Services",
                     Icon = "MicrosoftXbox",
                     InputType = InputType.Selection,
+                    RequiresRestart = true,
                     CustomProperties = new Dictionary<string, object>
                     {
-                        [CustomPropertyKeys.RequiresRestartMessage] = "⚠️ Restart required for changes to take effect",
                         [CustomPropertyKeys.ComboBoxDisplayNames] = new string[]
                         {
-                            "Disabled",
-                            "Manual (Recommended)",
-                            "Automatic",
+                            "ServiceOption_Disabled",
+                            "ServiceOption_ManualRecommended",
+                            "ServiceOption_Automatic",
                         },
                         [CustomPropertyKeys.ValueMappings] = new Dictionary<int, Dictionary<string, object?>>
                         {
@@ -1725,14 +1716,14 @@ public static class GamingandPerformanceOptimizations
                     GroupName = "System Services",
                     Icon = "CloudUploadOutline",
                     InputType = InputType.Selection,
+                    RequiresRestart = true,
                     CustomProperties = new Dictionary<string, object>
                     {
-                        [CustomPropertyKeys.RequiresRestartMessage] = "⚠️ Restart required for changes to take effect",
                         [CustomPropertyKeys.ComboBoxDisplayNames] = new string[]
                         {
-                            "Disabled",
-                            "Manual (Recommended)",
-                            "Automatic",
+                            "ServiceOption_Disabled",
+                            "ServiceOption_ManualRecommended",
+                            "ServiceOption_Automatic",
                         },
                         [CustomPropertyKeys.ValueMappings] = new Dictionary<int, Dictionary<string, object?>>
                         {
@@ -1760,14 +1751,14 @@ public static class GamingandPerformanceOptimizations
                     GroupName = "System Services",
                     Icon = "NetworkOutline",
                     InputType = InputType.Selection,
+                    RequiresRestart = true,
                     CustomProperties = new Dictionary<string, object>
                     {
-                        [CustomPropertyKeys.RequiresRestartMessage] = "⚠️ Restart required for changes to take effect",
                         [CustomPropertyKeys.ComboBoxDisplayNames] = new string[]
                         {
-                            "Disabled",
-                            "Manual (Recommended)",
-                            "Automatic",
+                            "ServiceOption_Disabled",
+                            "ServiceOption_ManualRecommended",
+                            "ServiceOption_Automatic",
                         },
                         [CustomPropertyKeys.ValueMappings] = new Dictionary<int, Dictionary<string, object?>>
                         {
@@ -1795,14 +1786,14 @@ public static class GamingandPerformanceOptimizations
                     GroupName = "System Services",
                     Icon = "Fingerprint",
                     InputType = InputType.Selection,
+                    RequiresRestart = true,
                     CustomProperties = new Dictionary<string, object>
                     {
-                        [CustomPropertyKeys.RequiresRestartMessage] = "⚠️ Restart required for changes to take effect",
                         [CustomPropertyKeys.ComboBoxDisplayNames] = new string[]
                         {
-                            "Disabled",
-                            "Manual (Recommended)",
-                            "Automatic",
+                            "ServiceOption_Disabled",
+                            "ServiceOption_ManualRecommended",
+                            "ServiceOption_Automatic",
                         },
                         [CustomPropertyKeys.ValueMappings] = new Dictionary<int, Dictionary<string, object?>>
                         {
@@ -1830,14 +1821,14 @@ public static class GamingandPerformanceOptimizations
                     GroupName = "System Services",
                     Icon = "KeyboardOutline",
                     InputType = InputType.Selection,
+                    RequiresRestart = true,
                     CustomProperties = new Dictionary<string, object>
                     {
-                        [CustomPropertyKeys.RequiresRestartMessage] = "⚠️ Restart required for changes to take effect",
                         [CustomPropertyKeys.ComboBoxDisplayNames] = new string[]
                         {
-                            "Disabled",
-                            "Manual (Recommended)",
-                            "Automatic",
+                            "ServiceOption_Disabled",
+                            "ServiceOption_ManualRecommended",
+                            "ServiceOption_Automatic",
                         },
                         [CustomPropertyKeys.ValueMappings] = new Dictionary<int, Dictionary<string, object?>>
                         {
@@ -1865,14 +1856,14 @@ public static class GamingandPerformanceOptimizations
                     GroupName = "System Services",
                     Icon = "Radar",
                     InputType = InputType.Selection,
+                    RequiresRestart = true,
                     CustomProperties = new Dictionary<string, object>
                     {
-                        [CustomPropertyKeys.RequiresRestartMessage] = "⚠️ Restart required for changes to take effect",
                         [CustomPropertyKeys.ComboBoxDisplayNames] = new string[]
                         {
-                            "Disabled",
-                            "Manual (Recommended)",
-                            "Automatic",
+                            "ServiceOption_Disabled",
+                            "ServiceOption_ManualRecommended",
+                            "ServiceOption_Automatic",
                         },
                         [CustomPropertyKeys.ValueMappings] = new Dictionary<int, Dictionary<string, object?>>
                         {
@@ -1900,14 +1891,14 @@ public static class GamingandPerformanceOptimizations
                     GroupName = "System Services",
                     Icon = "ChartBox",
                     InputType = InputType.Selection,
+                    RequiresRestart = true,
                     CustomProperties = new Dictionary<string, object>
                     {
-                        [CustomPropertyKeys.RequiresRestartMessage] = "⚠️ Restart required for changes to take effect",
                         [CustomPropertyKeys.ComboBoxDisplayNames] = new string[]
                         {
-                            "Disabled",
-                            "Manual (Recommended)",
-                            "Automatic",
+                            "ServiceOption_Disabled",
+                            "ServiceOption_ManualRecommended",
+                            "ServiceOption_Automatic",
                         },
                         [CustomPropertyKeys.ValueMappings] = new Dictionary<int, Dictionary<string, object?>>
                         {
@@ -2259,6 +2250,7 @@ public static class GamingandPerformanceOptimizations
                     GroupName = "Visual Effects",
                     InputType = InputType.Selection,
                     Icon = "MonitorEye",
+                    RequiresRestart = true,
                     RegistrySettings = new List<RegistrySetting>
                     {
                         new RegistrySetting
@@ -2272,7 +2264,6 @@ public static class GamingandPerformanceOptimizations
                     },
                     CustomProperties = new Dictionary<string, object>
                     {
-                        [CustomPropertyKeys.RequiresRestartMessage] = "ℹ️ Restart or logout required for changes to take effect",
                         [CustomPropertyKeys.ComboBoxDisplayNames] = new string[]
                         {
                             "Let Windows choose what's best for my computer",
@@ -2376,6 +2367,7 @@ public static class GamingandPerformanceOptimizations
                     GroupName = "Visual Effects",
                     InputType = InputType.Toggle,
                     Icon = "Animation",
+                    RequiresRestart = true,
                     Dependencies = new List<SettingDependency>
                     {
                         new SettingDependency
@@ -2385,10 +2377,6 @@ public static class GamingandPerformanceOptimizations
                             RequiredSettingId = "visual-effects-mode",
                             RequiredValue = "Custom",
                         },
-                    },
-                    CustomProperties = new Dictionary<string, object>
-                    {
-                        [CustomPropertyKeys.RequiresRestartMessage] = "ℹ️ Restart or logout required for changes to take effect"
                     },
                     RegistrySettings = new List<RegistrySetting>
                     {
@@ -2414,6 +2402,7 @@ public static class GamingandPerformanceOptimizations
                     GroupName = "Visual Effects",
                     InputType = InputType.Toggle,
                     Icon = "WindowRestore",
+                    RequiresRestart = true,
                     Dependencies = new List<SettingDependency>
                     {
                         new SettingDependency
@@ -2423,10 +2412,6 @@ public static class GamingandPerformanceOptimizations
                             RequiredSettingId = "visual-effects-mode",
                             RequiredValue = "Custom",
                         },
-                    },
-                    CustomProperties = new Dictionary<string, object>
-                    {
-                        [CustomPropertyKeys.RequiresRestartMessage] = "ℹ️ Restart or logout required for changes to take effect"
                     },
                     RegistrySettings = new List<RegistrySetting>
                     {
@@ -2450,6 +2435,7 @@ public static class GamingandPerformanceOptimizations
                     GroupName = "Visual Effects",
                     InputType = InputType.Toggle,
                     Icon = "DockBottom",
+                    RequiresRestart = true,
                     Dependencies = new List<SettingDependency>
                     {
                         new SettingDependency
@@ -2459,10 +2445,6 @@ public static class GamingandPerformanceOptimizations
                             RequiredSettingId = "visual-effects-mode",
                             RequiredValue = "Custom",
                         },
-                    },
-                    CustomProperties = new Dictionary<string, object>
-                    {
-                        [CustomPropertyKeys.RequiresRestartMessage] = "ℹ️ Restart or logout required for changes to take effect"
                     },
                     RegistrySettings = new List<RegistrySetting>
                     {
@@ -2486,6 +2468,7 @@ public static class GamingandPerformanceOptimizations
                     GroupName = "Visual Effects",
                     InputType = InputType.Toggle,
                     Icon = "MonitorEye",
+                    RequiresRestart = true,
                     Dependencies = new List<SettingDependency>
                     {
                         new SettingDependency
@@ -2495,10 +2478,6 @@ public static class GamingandPerformanceOptimizations
                             RequiredSettingId = "visual-effects-mode",
                             RequiredValue = "Custom",
                         },
-                    },
-                    CustomProperties = new Dictionary<string, object>
-                    {
-                        [CustomPropertyKeys.RequiresRestartMessage] = "ℹ️ Restart or logout required for changes to take effect"
                     },
                     RegistrySettings = new List<RegistrySetting>
                     {
@@ -2523,6 +2502,7 @@ public static class GamingandPerformanceOptimizations
                     InputType = InputType.Toggle,
                     IconPack = "MaterialDesign",
                     Icon = "MenuOpenRound",
+                    RequiresRestart = true,
                     Dependencies = new List<SettingDependency>
                     {
                         new SettingDependency
@@ -2532,10 +2512,6 @@ public static class GamingandPerformanceOptimizations
                             RequiredSettingId = "visual-effects-mode",
                             RequiredValue = "Custom",
                         },
-                    },
-                    CustomProperties = new Dictionary<string, object>
-                    {
-                        [CustomPropertyKeys.RequiresRestartMessage] = "ℹ️ Restart or logout required for changes to take effect"
                     },
                     RegistrySettings = new List<RegistrySetting>
                     {
@@ -2561,6 +2537,7 @@ public static class GamingandPerformanceOptimizations
                     GroupName = "Visual Effects",
                     InputType = InputType.Toggle,
                     Icon = "TooltipText",
+                    RequiresRestart = true,
                     Dependencies = new List<SettingDependency>
                     {
                         new SettingDependency
@@ -2570,10 +2547,6 @@ public static class GamingandPerformanceOptimizations
                             RequiredSettingId = "visual-effects-mode",
                             RequiredValue = "Custom",
                         },
-                    },
-                    CustomProperties = new Dictionary<string, object>
-                    {
-                        [CustomPropertyKeys.RequiresRestartMessage] = "ℹ️ Restart or logout required for changes to take effect"
                     },
                     RegistrySettings = new List<RegistrySetting>
                     {
@@ -2600,6 +2573,7 @@ public static class GamingandPerformanceOptimizations
                     InputType = InputType.Toggle,
                     IconPack = "Lucide",
                     Icon = "SquareMousePointer",
+                    RequiresRestart = true,
                     Dependencies = new List<SettingDependency>
                     {
                         new SettingDependency
@@ -2609,10 +2583,6 @@ public static class GamingandPerformanceOptimizations
                             RequiredSettingId = "visual-effects-mode",
                             RequiredValue = "Custom",
                         },
-                    },
-                    CustomProperties = new Dictionary<string, object>
-                    {
-                        [CustomPropertyKeys.RequiresRestartMessage] = "ℹ️ Restart or logout required for changes to take effect"
                     },
                     RegistrySettings = new List<RegistrySetting>
                     {
@@ -2639,6 +2609,7 @@ public static class GamingandPerformanceOptimizations
                     InputType = InputType.Toggle,
                     IconPack = "Lucide",
                     Icon = "GalleryThumbnails",
+                    RequiresRestart = true,
                     Dependencies = new List<SettingDependency>
                     {
                         new SettingDependency
@@ -2648,10 +2619,6 @@ public static class GamingandPerformanceOptimizations
                             RequiredSettingId = "visual-effects-mode",
                             RequiredValue = "Custom",
                         },
-                    },
-                    CustomProperties = new Dictionary<string, object>
-                    {
-                        [CustomPropertyKeys.RequiresRestartMessage] = "ℹ️ Restart or logout required for changes to take effect"
                     },
                     RegistrySettings = new List<RegistrySetting>
                     {
@@ -2675,6 +2642,7 @@ public static class GamingandPerformanceOptimizations
                     GroupName = "Visual Effects",
                     InputType = InputType.Toggle,
                     Icon = "CursorDefault",
+                    RequiresRestart = true,
                     Dependencies = new List<SettingDependency>
                     {
                         new SettingDependency
@@ -2684,10 +2652,6 @@ public static class GamingandPerformanceOptimizations
                             RequiredSettingId = "visual-effects-mode",
                             RequiredValue = "Custom",
                         },
-                    },
-                    CustomProperties = new Dictionary<string, object>
-                    {
-                        [CustomPropertyKeys.RequiresRestartMessage] = "ℹ️ Restart or logout required for changes to take effect"
                     },
                     RegistrySettings = new List<RegistrySetting>
                     {
@@ -2713,6 +2677,7 @@ public static class GamingandPerformanceOptimizations
                     GroupName = "Visual Effects",
                     InputType = InputType.Toggle,
                     Icon = "BoxShadow",
+                    RequiresRestart = true,
                     Dependencies = new List<SettingDependency>
                     {
                         new SettingDependency
@@ -2722,10 +2687,6 @@ public static class GamingandPerformanceOptimizations
                             RequiredSettingId = "visual-effects-mode",
                             RequiredValue = "Custom",
                         },
-                    },
-                    CustomProperties = new Dictionary<string, object>
-                    {
-                        [CustomPropertyKeys.RequiresRestartMessage] = "ℹ️ Restart or logout required for changes to take effect"
                     },
                     RegistrySettings = new List<RegistrySetting>
                     {
@@ -2752,6 +2713,7 @@ public static class GamingandPerformanceOptimizations
                     InputType = InputType.Toggle,
                     IconPack = "Lucide",
                     Icon = "Image",
+                    RequiresRestart = true,
                     Dependencies = new List<SettingDependency>
                     {
                         new SettingDependency
@@ -2761,10 +2723,6 @@ public static class GamingandPerformanceOptimizations
                             RequiredSettingId = "visual-effects-mode",
                             RequiredValue = "Custom",
                         },
-                    },
-                    CustomProperties = new Dictionary<string, object>
-                    {
-                        [CustomPropertyKeys.RequiresRestartMessage] = "ℹ️ Restart or logout required for changes to take effect"
                     },
                     RegistrySettings = new List<RegistrySetting>
                     {
@@ -2789,6 +2747,7 @@ public static class GamingandPerformanceOptimizations
                     InputType = InputType.Toggle,
                     IconPack = "Lucide",
                     Icon = "SquareDashedMousePointer",
+                    RequiresRestart = true,
                     Dependencies = new List<SettingDependency>
                     {
                         new SettingDependency
@@ -2798,10 +2757,6 @@ public static class GamingandPerformanceOptimizations
                             RequiredSettingId = "visual-effects-mode",
                             RequiredValue = "Custom",
                         },
-                    },
-                    CustomProperties = new Dictionary<string, object>
-                    {
-                        [CustomPropertyKeys.RequiresRestartMessage] = "ℹ️ Restart or logout required for changes to take effect"
                     },
                     RegistrySettings = new List<RegistrySetting>
                     {
@@ -2825,6 +2780,7 @@ public static class GamingandPerformanceOptimizations
                     GroupName = "Visual Effects",
                     InputType = InputType.Toggle,
                     Icon = "SelectionDrag",
+                    RequiresRestart = true,
                     Dependencies = new List<SettingDependency>
                     {
                         new SettingDependency
@@ -2834,10 +2790,6 @@ public static class GamingandPerformanceOptimizations
                             RequiredSettingId = "visual-effects-mode",
                             RequiredValue = "Custom",
                         },
-                    },
-                    CustomProperties = new Dictionary<string, object>
-                    {
-                        [CustomPropertyKeys.RequiresRestartMessage] = "ℹ️ Restart or logout required for changes to take effect"
                     },
                     RegistrySettings = new List<RegistrySetting>
                     {
@@ -2861,6 +2813,7 @@ public static class GamingandPerformanceOptimizations
                     GroupName = "Visual Effects",
                     InputType = InputType.Toggle,
                     Icon = "FormDropdown",
+                    RequiresRestart = true,
                     Dependencies = new List<SettingDependency>
                     {
                         new SettingDependency
@@ -2870,10 +2823,6 @@ public static class GamingandPerformanceOptimizations
                             RequiredSettingId = "visual-effects-mode",
                             RequiredValue = "Custom",
                         },
-                    },
-                    CustomProperties = new Dictionary<string, object>
-                    {
-                        [CustomPropertyKeys.RequiresRestartMessage] = "ℹ️ Restart or logout required for changes to take effect"
                     },
                     RegistrySettings = new List<RegistrySetting>
                     {
@@ -2899,6 +2848,7 @@ public static class GamingandPerformanceOptimizations
                     GroupName = "Visual Effects",
                     InputType = InputType.Toggle,
                     Icon = "FormatSize",
+                    RequiresRestart = true,
                     Dependencies = new List<SettingDependency>
                     {
                         new SettingDependency
@@ -2908,10 +2858,6 @@ public static class GamingandPerformanceOptimizations
                             RequiredSettingId = "visual-effects-mode",
                             RequiredValue = "Custom",
                         },
-                    },
-                    CustomProperties = new Dictionary<string, object>
-                    {
-                        [CustomPropertyKeys.RequiresRestartMessage] = "ℹ️ Restart or logout required for changes to take effect"
                     },
                     RegistrySettings = new List<RegistrySetting>
                     {
@@ -2935,6 +2881,7 @@ public static class GamingandPerformanceOptimizations
                     GroupName = "Visual Effects",
                     InputType = InputType.Toggle,
                     Icon = "ListBox",
+                    RequiresRestart = true,
                     Dependencies = new List<SettingDependency>
                     {
                         new SettingDependency
@@ -2944,10 +2891,6 @@ public static class GamingandPerformanceOptimizations
                             RequiredSettingId = "visual-effects-mode",
                             RequiredValue = "Custom",
                         },
-                    },
-                    CustomProperties = new Dictionary<string, object>
-                    {
-                        [CustomPropertyKeys.RequiresRestartMessage] = "ℹ️ Restart or logout required for changes to take effect"
                     },
                     RegistrySettings = new List<RegistrySetting>
                     {
@@ -2973,6 +2916,7 @@ public static class GamingandPerformanceOptimizations
                     GroupName = "Visual Effects",
                     InputType = InputType.Toggle,
                     Icon = "TextShadow",
+                    RequiresRestart = true,
                     Dependencies = new List<SettingDependency>
                     {
                         new SettingDependency
@@ -2982,10 +2926,6 @@ public static class GamingandPerformanceOptimizations
                             RequiredSettingId = "visual-effects-mode",
                             RequiredValue = "Custom",
                         },
-                    },
-                    CustomProperties = new Dictionary<string, object>
-                    {
-                        [CustomPropertyKeys.RequiresRestartMessage] = "ℹ️ Restart or logout required for changes to take effect"
                     },
                     RegistrySettings = new List<RegistrySetting>
                     {

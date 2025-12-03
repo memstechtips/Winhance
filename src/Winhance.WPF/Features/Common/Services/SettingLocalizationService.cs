@@ -11,6 +11,8 @@ namespace Winhance.WPF.Features.Common.Services
     {
         private readonly ILocalizationService _localization;
 
+        public ILocalizationService LocalizationService => _localization;
+
         public SettingLocalizationService(ILocalizationService localization)
         {
             _localization = localization;
@@ -51,10 +53,45 @@ namespace Winhance.WPF.Features.Common.Services
                     customProps[CustomPropertyKeys.ComboBoxDisplayNames] = LocalizeComboBoxNames(setting);
                 }
 
-                if (customProps.ContainsKey(CustomPropertyKeys.CustomStateDisplayName))
+                if (customProps.TryGetValue(CustomPropertyKeys.CustomStateDisplayName, out var customState) && customState is string csKey)
                 {
                     customProps[CustomPropertyKeys.CustomStateDisplayName] = GetLocalizedCustomState(setting);
                 }
+
+                if (customProps.TryGetValue("Units", out var units) && units is string unitsKey)
+                {
+                    customProps["Units"] = LocalizeUnits(unitsKey);
+                }
+
+                // Handle compatibility messages (format: Key|Arg1|Arg2...)
+                if (customProps.TryGetValue(CustomPropertyKeys.VersionCompatibilityMessage, out var compatMsg) && compatMsg is string compatKey)
+                {
+                    if (compatKey.StartsWith("Compatibility_"))
+                    {
+                        var parts = compatKey.Split('|');
+                        var key = parts[0];
+                        
+                        if (parts.Length > 1)
+                        {
+                            // Handle args
+                            var args = parts.Skip(1).ToArray();
+                            try 
+                            {
+                                var format = _localization.GetString(key);
+                                customProps[CustomPropertyKeys.VersionCompatibilityMessage] = string.Format(format, args);
+                            }
+                            catch
+                            {
+                                customProps[CustomPropertyKeys.VersionCompatibilityMessage] = _localization.GetString(key);
+                            }
+                        }
+                        else
+                        {
+                            customProps[CustomPropertyKeys.VersionCompatibilityMessage] = _localization.GetString(key);
+                        }
+                    }
+                }
+
 
                 localized = localized with { CustomProperties = customProps };
             }
@@ -115,11 +152,35 @@ namespace Winhance.WPF.Features.Common.Services
 
             for (int i = 0; i < originalNames.Length; i++)
             {
-                var key = $"Setting_{setting.Id}_Option_{i}";
+                var key = IsLocalizationKey(originalNames[i])
+                    ? originalNames[i]
+                    : $"Setting_{setting.Id}_Option_{i}";
+
                 localizedNames[i] = GetStringOrFallback(key, originalNames[i]);
             }
 
             return localizedNames;
+        }
+
+        private bool IsLocalizationKey(string value)
+        {
+            return value.StartsWith("Template_") || 
+                   value.StartsWith("Setting_") || 
+                   value.StartsWith("PowerPlan_") ||
+                   value.StartsWith("ServiceOption_");
+        }
+
+        private string LocalizeUnits(string units)
+        {
+            var key = units switch
+            {
+                "Minutes" => "Common_Unit_Minutes",
+                "Milliseconds" => "Common_Unit_Milliseconds",
+                "%" => "%",
+                _ => null
+            };
+
+            return key != null ? GetStringOrFallback(key, units) : units;
         }
 
         private string GetStringOrFallback(string key, string fallback)

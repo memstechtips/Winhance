@@ -49,6 +49,9 @@
                 <DataTemplate DataType="{x:Type advancedToolsViewModels:WimUtilViewModel}">
                         <advancedToolsViews:WimUtilView/>
                 </DataTemplate>
+                <DataTemplate DataType="{x:Type viewModels:WinhanceSettingsViewModel}">
+                        <views:WinhanceSettingsView/>
+                </DataTemplate>
         </Window.Resources>
 
         <!-- Using ViewModel commands for window control -->
@@ -170,9 +173,7 @@
                                                 Style="{StaticResource WindowControlButton}"
                                                 WindowChrome.IsHitTestVisibleInChrome="True">
                                             <Button.ToolTip>
-                                                <TextBlock>
-                                                    <Run Text="{Binding IsWindowsVersionFilterEnabled, Converter={StaticResource BooleanToFilterTooltipConverter}}"/>
-                                                </TextBlock>
+                                                <TextBlock Text="{Binding WindowsVersionFilterTooltip}"/>
                                             </Button.ToolTip>
                                             <iconPacks:PackIconMaterial Width="16"
                                                                      Height="16"
@@ -308,6 +309,20 @@
                                                         utilities:NavigationButtonProperties.IsSelected="{Binding SelectedNavigationItem, Converter={StaticResource StringEqualityConverter}, ConverterParameter=AdvancedTools}">
                                                         <Button.Tag>
                                                                 <iconPacks:PackIconMaterial Kind="Tools"
+                                                                                         Width="22"
+                                                                                         Height="22"/>
+                                                        </Button.Tag>
+                                                </Button>
+                                                <Button x:Name="SettingsButton"
+                                                        Style="{StaticResource NavigationButton}"
+                                                        Command="{Binding NavigationService.NavigateCommand}"
+                                                        CommandParameter="WinhanceSettings"
+                                                        Content="{loc:Localize Nav_Settings}"
+                                                        Margin="0,0,0,10"
+                                                        utilities:NavigationButtonProperties.IsSelected="{Binding SelectedNavigationItem, Converter={StaticResource StringEqualityConverter}, ConverterParameter=WinhanceSettings}"
+                                                        utilities:NavigationButtonProperties.IsLoading="{Binding LoadingRoute, Converter={StaticResource StringEqualityConverter}, ConverterParameter=WinhanceSettings}">
+                                                        <Button.Tag>
+                                                                <iconPacks:PackIconMaterial Kind="Cog"
                                                                                          Width="22"
                                                                                          Height="22"/>
                                                         </Button.Tag>

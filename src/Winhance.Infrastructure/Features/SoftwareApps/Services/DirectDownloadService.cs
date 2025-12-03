@@ -20,13 +20,16 @@ public class DirectDownloadService : IDirectDownloadService
     private readonly ILogService _logService;
     private readonly IPowerShellExecutionService _powerShellService;
     private readonly HttpClient _httpClient;
+    private readonly ILocalizationService _localization;
 
     public DirectDownloadService(
         ILogService logService,
-        IPowerShellExecutionService powerShellService)
+        IPowerShellExecutionService powerShellService,
+        ILocalizationService localization)
     {
         _logService = logService;
         _powerShellService = powerShellService;
+        _localization = localization;
         _httpClient = new HttpClient
         {
             Timeout = TimeSpan.FromMinutes(30)
@@ -51,7 +54,7 @@ public class DirectDownloadService : IDirectDownloadService
             progress?.Report(new TaskProgressDetail
             {
                 Progress = 5,
-                StatusText = $"Preparing to download {item.Name}...",
+                StatusText = _localization.GetString("Progress_PreparingDownload", item.Name),
                 TerminalOutput = "Resolving download URL...",
                 IsActive = true
             });
@@ -64,7 +67,7 @@ public class DirectDownloadService : IDirectDownloadService
                 progress?.Report(new TaskProgressDetail
                 {
                     Progress = 0,
-                    StatusText = $"Failed to resolve download URL for {item.Name}",
+                    StatusText = _localization.GetString("Progress_FailedResolveUrl", item.Name),
                     IsActive = false
                 });
                 return false;
@@ -77,7 +80,7 @@ public class DirectDownloadService : IDirectDownloadService
             progress?.Report(new TaskProgressDetail
             {
                 Progress = 10,
-                StatusText = $"Downloading {item.Name}...",
+                StatusText = _localization.GetString("Progress_Downloading", item.Name),
                 TerminalOutput = "Starting download...",
                 IsActive = true
             });
@@ -88,7 +91,7 @@ public class DirectDownloadService : IDirectDownloadService
                 progress?.Report(new TaskProgressDetail
                 {
                     Progress = 0,
-                    StatusText = $"Failed to download {item.Name}",
+                    StatusText = _localization.GetString("Progress_FailedDownload", item.Name),
                     IsActive = false
                 });
                 return false;
@@ -101,7 +104,7 @@ public class DirectDownloadService : IDirectDownloadService
             progress?.Report(new TaskProgressDetail
             {
                 Progress = 80,
-                StatusText = $"Installing {item.Name}...",
+                StatusText = _localization.GetString("Progress_Installing", item.Name),
                 TerminalOutput = "Starting installation...",
                 IsActive = true
             });
@@ -113,7 +116,7 @@ public class DirectDownloadService : IDirectDownloadService
                 progress?.Report(new TaskProgressDetail
                 {
                     Progress = 100,
-                    StatusText = $"Successfully installed {item.Name}",
+                    StatusText = _localization.GetString("Progress_InstalledSuccess", item.Name),
                     TerminalOutput = "Installation complete",
                     IsActive = false
                 });
@@ -123,7 +126,7 @@ public class DirectDownloadService : IDirectDownloadService
             progress?.Report(new TaskProgressDetail
             {
                 Progress = 0,
-                StatusText = $"Failed to install {item.Name}",
+                StatusText = _localization.GetString("Progress_FailedInstall", item.Name),
                 IsActive = false
             });
             return false;
@@ -134,7 +137,7 @@ public class DirectDownloadService : IDirectDownloadService
             progress?.Report(new TaskProgressDetail
             {
                 Progress = 0,
-                StatusText = $"Download of {item.Name} was cancelled",
+                StatusText = _localization.GetString("Progress_DownloadCancelled", item.Name),
                 IsActive = false
             });
             throw;
@@ -145,7 +148,7 @@ public class DirectDownloadService : IDirectDownloadService
             progress?.Report(new TaskProgressDetail
             {
                 Progress = 0,
-                StatusText = $"Error: {ex.Message}",
+                StatusText = _localization.GetString("Progress_Error", ex.Message),
                 IsActive = false
             });
             return false;
@@ -289,7 +292,7 @@ public class DirectDownloadService : IDirectDownloadService
                         progress?.Report(new TaskProgressDetail
                         {
                             Progress = progressPercent,
-                            StatusText = $"Downloading {displayName}: {downloadedMB:F2} MB / {totalMB:F2} MB",
+                            StatusText = _localization.GetString("Progress_DownloadProgress", displayName, downloadedMB.ToString("F2"), totalMB.ToString("F2")),
                             TerminalOutput = $"{downloadedMB:F2} MB of {totalMB:F2} MB",
                             IsActive = true,
                             IsIndeterminate = false
@@ -324,7 +327,7 @@ public class DirectDownloadService : IDirectDownloadService
         progress?.Report(new TaskProgressDetail
         {
             Progress = 80,
-            StatusText = $"Installing {displayName}...",
+            StatusText = _localization.GetString("Progress_Installing", displayName),
             TerminalOutput = $"Installing {extension} file...",
             IsActive = true
         });
@@ -363,7 +366,7 @@ if ($process.ExitCode -eq 0) {{
             progress?.Report(new TaskProgressDetail
             {
                 Progress = 95,
-                StatusText = $"Installing {displayName}...",
+                StatusText = _localization.GetString("Progress_Installing", displayName),
                 TerminalOutput = "MSI installation completed",
                 IsActive = true
             });
@@ -414,7 +417,7 @@ if ($process.ExitCode -eq 0) {{
                     progress?.Report(new TaskProgressDetail
                     {
                         Progress = 95,
-                        StatusText = $"Installing {displayName}...",
+                        StatusText = _localization.GetString("Progress_Installing", displayName),
                         TerminalOutput = "EXE installation completed",
                         IsActive = true
                     });
@@ -433,7 +436,7 @@ if ($process.ExitCode -eq 0) {{
             progress?.Report(new TaskProgressDetail
             {
                 Progress = 90,
-                StatusText = $"Launching installer for {displayName}...",
+                StatusText = _localization.GetString("Progress_LaunchingInstaller", displayName),
                 TerminalOutput = "Launching interactive installer (requires user interaction)",
                 IsActive = true
             });
@@ -492,7 +495,7 @@ Write-Output 'Extracted to {extractPath}'
             progress?.Report(new TaskProgressDetail
             {
                 Progress = 95,
-                StatusText = $"Extracting {displayName}...",
+                StatusText = _localization.GetString("Progress_Extracting", displayName),
                 TerminalOutput = $"Extracted to: {extractPath}",
                 IsActive = true
             });

@@ -68,7 +68,18 @@ namespace Winhance.WPF.Features.Common.ViewModels
                 _settingsLoaded = false;
             }
 
+            OnPropertyChanged(nameof(DisplayName));
             await LoadSettingsAsync();
+        }
+
+        public override string DisplayName => GetDisplayName();
+
+        protected abstract string GetDisplayNameKey();
+
+        private string GetDisplayName()
+        {
+            var key = GetDisplayNameKey();
+            return localizationService.GetString(key);
         }
 
         public virtual async Task<bool> HandleDomainContextSettingAsync(SettingDefinition setting, object? value, bool additionalContext = false)

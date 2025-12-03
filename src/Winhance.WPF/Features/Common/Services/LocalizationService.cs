@@ -1,7 +1,9 @@
 using System;
 using System.Collections.Generic;
 using System.Globalization;
-using System.Resources;
+using System.IO;
+using System.Linq;
+using System.Text.Json;
 using Winhance.Core.Features.Common.Interfaces;
 
 namespace Winhance.WPF.Features.Common.Services
@@ -9,32 +11,38 @@ namespace Winhance.WPF.Features.Common.Services
     public class LocalizationService : ILocalizationService
     {
         private CultureInfo _currentCulture;
-        private readonly ResourceManager _resourceManager;
+        private Dictionary<string, string> _currentStrings;
+        private Dictionary<string, string> _fallbackStrings;
+        private readonly string _localizationPath;
 
         public event EventHandler? LanguageChanged;
 
         public LocalizationService()
         {
-            _resourceManager = new ResourceManager(
-                "Winhance.WPF.Resources.Localization.Strings",
-                typeof(LocalizationService).Assembly);
+            var baseDir = AppDomain.CurrentDomain.BaseDirectory;
+            _localizationPath = Path.Combine(baseDir, "Localization");
 
             _currentCulture = CultureInfo.CurrentUICulture;
+
+            _fallbackStrings = LoadLanguageFile("en");
+            _currentStrings = LoadLanguageFile(_currentCulture.TwoLetterISOLanguageName);
         }
 
         public string CurrentLanguage => _currentCulture.TwoLetterISOLanguageName;
 
         public string GetString(string key)
         {
-            try
+            if (_currentStrings.TryGetValue(key, out var value) && !string.IsNullOrEmpty(value))
             {
-                var value = _resourceManager.GetString(key, _currentCulture);
-                return value ?? $"[{key}]";
+                return value;
             }
-            catch
+
+            if (_fallbackStrings.TryGetValue(key, out var fallbackValue) && !string.IsNullOrEmpty(fallbackValue))
             {
-                return $"[{key}]";
+                return fallbackValue;
             }
+
+            return $"[{key}]";
         }
 
         public string GetString(string key, params object[] args)
@@ -57,6 +65,8 @@ namespace Winhance.WPF.Features.Common.Services
                 var culture = CultureInfo.GetCultureInfo(languageCode);
                 _currentCulture = culture;
 
+                _currentStrings = LoadLanguageFile(languageCode);
+
                 CultureInfo.CurrentUICulture = culture;
                 CultureInfo.CurrentCulture = culture;
 
@@ -71,7 +81,53 @@ namespace Winhance.WPF.Features.Common.Services
 
         public IEnumerable<string> GetAvailableLanguages()
         {
-            return new[] { "en", "es", "fr", "de", "pt", "it", "ru", "zh" };
+            try
+            {
+                if (!Directory.Exists(_localizationPath))
+                {
+                    return new[] { "en" };
+                }
+
+                var jsonFiles = Directory.GetFiles(_localizationPath, "*.json");
+                var languages = jsonFiles
+                    .Select(Path.GetFileNameWithoutExtension)
+                    .Where(lang => !string.IsNullOrEmpty(lang))
+                    .OrderBy(lang => lang)
+                    .ToList();
+
+                if (!languages.Contains("en"))
+                {
+                    languages.Insert(0, "en");
+                }
+
+                return languages;
+            }
+            catch
+            {
+                return new[] { "en" };
+            }
+        }
+
+        private Dictionary<string, string> LoadLanguageFile(string languageCode)
+        {
+            try
+            {
+                var filePath = Path.Combine(_localizationPath, $"{languageCode}.json");
+
+                if (!File.Exists(filePath))
+                {
+                    return new Dictionary<string, string>();
+                }
+
+                var json = File.ReadAllText(filePath);
+                var dictionary = JsonSerializer.Deserialize<Dictionary<string, string>>(json);
+
+                return dictionary ?? new Dictionary<string, string>();
+            }
+            catch
+            {
+                return new Dictionary<string, string>();
+            }
         }
     }
 }

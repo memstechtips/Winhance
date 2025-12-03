@@ -25,7 +25,7 @@ namespace Winhance.Core.Features.Common.Interfaces
 
         Task<(Dictionary<string, bool> sections, ImportOptions options)?> ShowUnifiedConfigurationImportDialogAsync(string title, string description, Dictionary<string, (bool IsSelected, bool IsAvailable, int ItemCount)> sections);
 
-        Task<(bool? Result, bool DontShowAgain)> ShowDonationDialogAsync(string title, string supportMessage, string footerText);
+        Task<(bool? Result, bool DontShowAgain)> ShowDonationDialogAsync(string title = null, string supportMessage = null);
 
         Task<ImportOption?> ShowConfigImportOptionsDialogAsync();
 
@@ -62,5 +62,19 @@ namespace Winhance.Core.Features.Common.Interfaces
             ConfirmationRequest confirmationRequest,
             string continueButtonText = "Continue",
             string cancelButtonText = "Cancel");
+
+        void ShowLocalizedDialog(
+            string titleKey,
+            string messageKey,
+            DialogType dialogType,
+            string iconName,
+            params object[] messageParams);
+
+        bool ShowLocalizedConfirmationDialog(
+            string titleKey,
+            string messageKey,
+            DialogType dialogType,
+            string iconName,
+            params object[] messageParams);
     }
 }

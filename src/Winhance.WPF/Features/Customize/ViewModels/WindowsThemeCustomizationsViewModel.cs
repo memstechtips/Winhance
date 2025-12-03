@@ -13,6 +13,7 @@ namespace Winhance.WPF.Features.Customize.ViewModels
         : BaseSettingsFeatureViewModel(domainServiceRouter, settingsLoadingService, logService, localizationService)
     {
         public override string ModuleId => FeatureIds.WindowsTheme;
-        public override string DisplayName => "Windows Theme";
+
+        protected override string GetDisplayNameKey() => "Feature_WindowsTheme_Name";
     }
 }

@@ -12,7 +12,7 @@ namespace Winhance.WPF.Features.Customize.ViewModels
       : BaseSettingsFeatureViewModel(domainServiceRouter, settingsLoadingService, logService, localizationService)
     {
         public override string ModuleId => FeatureIds.StartMenu;
-        public override string DisplayName => "Start Menu";
 
+        protected override string GetDisplayNameKey() => "Feature_StartMenu_Name";
     }
 }

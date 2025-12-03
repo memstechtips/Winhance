@@ -24,7 +24,8 @@ namespace Winhance.WPF.Features.Common.Views
             string title,
             string description,
             Dictionary<string, (bool IsSelected, bool IsAvailable, int ItemCount)> sections,
-            bool isSaveDialog
+            bool isSaveDialog,
+            ILocalizationService localization
         )
         {
             try
@@ -77,7 +78,8 @@ namespace Winhance.WPF.Features.Common.Views
                     title,
                     description,
                     sections,
-                    isSaveDialog
+                    isSaveDialog,
+                    localization
                 );
 
                 DataContext = _viewModel;
@@ -121,8 +123,8 @@ namespace Winhance.WPF.Features.Common.Views
                     {
                         LogInfo("OK button clicked, but no sections selected");
                         MessageBox.Show(
-                            "Please select at least one section to continue.",
-                            "No Sections Selected",
+                            localization.GetString("Dialog_Unified_Error_NoSelection"),
+                            localization.GetString("Dialog_Unified_Error_NoSelection_Title"),
                             MessageBoxButton.OK,
                             MessageBoxImage.Warning
                         );

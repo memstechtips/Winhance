@@ -219,6 +219,13 @@ namespace Winhance.WPF.Features.Common.Extensions.DI
                 typeof(Winhance.WPF.Features.AdvancedTools.Views.WimUtilView),
                 typeof(Winhance.WPF.Features.AdvancedTools.ViewModels.WimUtilViewModel)
             );
+
+            // Settings view mapping
+            navigationService.RegisterViewMapping(
+                "WinhanceSettings",
+                typeof(Winhance.WPF.Features.Common.Views.WinhanceSettingsView),
+                typeof(Winhance.WPF.Features.Common.ViewModels.WinhanceSettingsViewModel)
+            );
         }
     }
 }

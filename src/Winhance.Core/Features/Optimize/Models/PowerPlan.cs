@@ -1,5 +1,3 @@
-using System;
-
 namespace Winhance.Core.Features.Optimize.Models
 {
     public class PowerPlan

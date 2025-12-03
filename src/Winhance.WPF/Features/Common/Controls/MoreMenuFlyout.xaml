@@ -82,39 +82,6 @@
             <!-- Separator -->
             <Separator Style="{DynamicResource WinhanceSeparatorStyle}" Margin="0,4,0,4"/>
 
-            <!-- Language Selector -->
-            <TextBlock Text="{loc:Localize Menu_Language}"
-                       FontSize="12"
-                       FontWeight="SemiBold"
-                       Foreground="{DynamicResource PrimaryTextColor}"
-                       Margin="8,4,8,2"
-                       Opacity="0.7"/>
-            <Button Command="{Binding ChangeLanguageCommand}"
-                    CommandParameter="en"
-                    Style="{StaticResource MenuButtonStyle}"
-                    HorizontalAlignment="Stretch"
-                    HorizontalContentAlignment="Left"
-                    Padding="8,6"
-                    Height="36"
-                    Margin="0,1">
-                <StackPanel Orientation="Horizontal">
-                    <iconPacks:PackIconMaterial Kind="Translate" Width="12" Height="12" VerticalAlignment="Center" Margin="0,0,10,0"/>
-                    <TextBlock Text="{loc:Localize Language_English}" VerticalAlignment="Center" FontSize="13"/>
-                </StackPanel>
-            </Button>
-            <Button Command="{Binding ChangeLanguageCommand}"
-                    CommandParameter="es"
-                    Style="{StaticResource MenuButtonStyle}"
-                    HorizontalAlignment="Stretch"
-                    HorizontalContentAlignment="Left"
-                    Padding="8,6"
-                    Height="36"
-                    Margin="0,1">
-                <StackPanel Orientation="Horizontal">
-                    <iconPacks:PackIconMaterial Kind="Translate" Width="12" Height="12" VerticalAlignment="Center" Margin="0,0,10,0"/>
-                    <TextBlock Text="{loc:Localize Language_Spanish}" VerticalAlignment="Center" FontSize="13"/>
-                </StackPanel>
-            </Button>
 
             <!-- Check for Updates -->
             <Button Command="{Binding CheckForUpdatesCommand}"

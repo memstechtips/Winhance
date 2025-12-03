@@ -7,8 +7,9 @@
     xmlns:iconPacks="http://metro.mahapps.com/winfx/xaml/iconpacks"
     xmlns:local="clr-namespace:Winhance.WPF.Features.Common.Controls"
     xmlns:controls="clr-namespace:Winhance.WPF.Features.Common.Controls"
-    xmlns:behaviors="clr-namespace:Winhance.WPF.Features.Common.Behaviors" 
+    xmlns:behaviors="clr-namespace:Winhance.WPF.Features.Common.Behaviors"
     xmlns:i="http://schemas.microsoft.com/xaml/behaviors"
+    xmlns:loc="clr-namespace:Winhance.WPF.Features.Common.Extensions"
     d:DataContext="{d:DesignInstance Type=viewModels:ExternalAppsViewModel}" mc:Ignorable="d">
 
     
@@ -95,7 +96,7 @@
                                             BorderThickness="0"
                                             Cursor="Hand"
                                             Command="{Binding OpenWebsiteCommand}"
-                                            ToolTip="Visit website"
+                                            ToolTip="{loc:Localize Tooltip_VisitWebsite}"
                                             Margin="6,0,0,0"
                                             Padding="2"
                                             VerticalAlignment="Center"
@@ -145,10 +146,10 @@
                                     <Ellipse Style="{StaticResource AppStatusIndicatorStyle}"
                                              Fill="{Binding IsInstalled, Converter={StaticResource InstalledStatusToColorConverter}}">
                                         <Ellipse.ToolTip>
-                                            <ToolTip Content="{Binding IsInstalled, Converter={StaticResource InstalledStatusToTextConverter}}"/>
+                                            <ToolTip Content="{Binding InstalledStatusText}"/>
                                         </Ellipse.ToolTip>
                                     </Ellipse>
-                                    <TextBlock Text="{Binding IsInstalled, Converter={StaticResource InstalledStatusToTextConverter}}" Margin="5,0,0,0" Style="{StaticResource DataGridTextBlockStyle}" />
+                                    <TextBlock Text="{Binding InstalledStatusText}" Margin="5,0,0,0" Style="{StaticResource DataGridTextBlockStyle}" />
                                 </StackPanel>
                             </DataTemplate>
                         </DataGridTemplateColumn.CellTemplate>

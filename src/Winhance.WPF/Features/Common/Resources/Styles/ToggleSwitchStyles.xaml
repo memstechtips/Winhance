@@ -1,6 +1,7 @@
 <ResourceDictionary xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
                     xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
-                    xmlns:converters="clr-namespace:Winhance.WPF.Features.Common.Converters">
+                    xmlns:converters="clr-namespace:Winhance.WPF.Features.Common.Converters"
+                    xmlns:loc="clr-namespace:Winhance.WPF.Features.Common.Extensions">
 
     <!--
     Custom Toggle Switch Style
@@ -30,7 +31,7 @@
                         <!-- On/Off Text Label -->
                         <TextBlock x:Name="StateLabel"
                                    Grid.Column="0"
-                                   Text="Off"
+                                   Text="{loc:Localize Common_Off}"
                                    Foreground="{DynamicResource ControlForeground}"
                                    VerticalAlignment="Center"
                                    HorizontalAlignment="Center"
@@ -98,10 +99,10 @@
                         <!-- Move knob to right position when checked -->
                         <Trigger Property="IsChecked" Value="True">
                             <Setter TargetName="KnobContainer" Property="Margin" Value="22,0,0,0"/>
-                            <Setter TargetName="SwitchTrack" Property="Background" Value="#FF4CAF50"/> <!-- Green when checked -->
+                            <Setter TargetName="SwitchTrack" Property="Background" Value="#FF4CAF50"/>
                             <Setter TargetName="CheckIcon" Property="Visibility" Value="Visible"/>
                             <Setter TargetName="XIcon" Property="Visibility" Value="Collapsed"/>
-                            <Setter TargetName="StateLabel" Property="Text" Value="On"/>
+                            <Setter TargetName="StateLabel" Property="Text" Value="{loc:Localize Common_On}"/>
                         </Trigger>
 
                         <!-- Common hover state -->

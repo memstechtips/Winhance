@@ -6,9 +6,10 @@
         xmlns:local="clr-namespace:Winhance.WPF.Features.Common.Views"
         xmlns:controls="clr-namespace:Winhance.WPF.Features.Common.Controls"
         xmlns:converters="clr-namespace:Winhance.WPF.Features.Common.Converters"
+        xmlns:loc="clr-namespace:Winhance.WPF.Features.Common.Extensions"
         xmlns:iconPacks="http://metro.mahapps.com/winfx/xaml/iconpacks"
         mc:Ignorable="d"
-        Title="Import Config"
+        Title="{loc:Localize Dialog_ImportConfig_Title}"
         Height="450"
         Width="700"
         WindowStartupLocation="CenterOwner"
@@ -143,13 +144,13 @@
                                                    Foreground="{DynamicResource PrimaryTextColor}"/>
                             
                             <StackPanel Grid.Row="1" VerticalAlignment="Center" HorizontalAlignment="Center">
-                                <TextBlock Text="Import my own config"
+                                <TextBlock Text="{loc:Localize Dialog_ImportConfig_Option_Own_Title}"
                                            FontWeight="SemiBold"
-                                           FontSize="18"
+                                           FontSize="16"
                                            TextAlignment="Center"
                                            Foreground="{DynamicResource PrimaryTextColor}"/>
-                                <TextBlock Text="Select a configuration file from your computer"
-                                           FontSize="14"
+                                <TextBlock Text="{loc:Localize Dialog_ImportConfig_Option_Own_Description}"
+                                           FontSize="12"
                                            Margin="0,8,0,0"
                                            TextWrapping="Wrap"
                                            TextAlignment="Center"
@@ -182,13 +183,13 @@
                                    RenderOptions.BitmapScalingMode="HighQuality"/>
 
                             <StackPanel Grid.Row="1" VerticalAlignment="Center" HorizontalAlignment="Center">
-                                <TextBlock Text="Import recommended config"
+                                <TextBlock Text="{loc:Localize Dialog_ImportConfig_Option_Recommended_Title}"
                                            FontWeight="SemiBold"
-                                           FontSize="18"
+                                           FontSize="16"
                                            TextAlignment="Center"
                                            Foreground="{DynamicResource PrimaryTextColor}"/>
-                                <TextBlock Text="Load Winhance's recommended config file"
-                                           FontSize="14"
+                                <TextBlock Text="{loc:Localize Dialog_ImportConfig_Option_Recommended_Description}"
+                                           FontSize="12"
                                            Margin="0,8,0,0"
                                            TextWrapping="Wrap"
                                            TextAlignment="Center"
@@ -203,7 +204,7 @@
                             Orientation="Horizontal"
                             HorizontalAlignment="Right"
                             Margin="0,15,0,0">
-                    <Button Content="Cancel"
+                    <Button Content="{loc:Localize Dialog_Button_Cancel}"
                             Style="{StaticResource CancelButtonStyle}"
                             Click="CloseButton_Click"/>
                 </StackPanel>

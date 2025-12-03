@@ -27,12 +27,40 @@
     </Style>
 
     <Style x:Key="DialogButtonStyle" TargetType="Button" BasedOn="{StaticResource PrimaryButtonStyle}">
-        <Setter Property="Width" Value="85"/>
+        <Setter Property="MinWidth" Value="100"/>
+        <Setter Property="Width" Value="Auto"/>
         <Setter Property="Height" Value="30"/>
         <Setter Property="Margin" Value="5,0"/>
-        <Setter Property="Padding" Value="10,5"/>
+        <Setter Property="Padding" Value="20,5"/>
         <Setter Property="FontSize" Value="12"/>
         <Setter Property="FontWeight" Value="SemiBold"/>
+        <Setter Property="Template">
+            <Setter.Value>
+                <ControlTemplate TargetType="Button">
+                    <Border Background="{TemplateBinding Background}"
+                            BorderBrush="{TemplateBinding BorderBrush}"
+                            BorderThickness="1"
+                            CornerRadius="5"
+                            Padding="{TemplateBinding Padding}">
+                        <ContentPresenter HorizontalAlignment="Center"
+                                        VerticalAlignment="Center" />
+                    </Border>
+                    <ControlTemplate.Triggers>
+                        <Trigger Property="IsMouseOver" Value="True">
+                            <Setter Property="Background" Value="{DynamicResource ButtonBorderBrush}" />
+                            <Setter Property="Foreground" Value="{DynamicResource ButtonHoverTextColor}" />
+                            <Setter Property="BorderBrush" Value="{DynamicResource ButtonBorderBrush}" />
+                        </Trigger>
+                        <Trigger Property="IsEnabled" Value="False">
+                            <Setter Property="Background" Value="Transparent" />
+                            <Setter Property="Foreground" Value="{DynamicResource ButtonDisabledForeground}" />
+                            <Setter Property="BorderBrush" Value="{DynamicResource ButtonDisabledBorderBrush}" />
+                            <Setter Property="Cursor" Value="Arrow" />
+                        </Trigger>
+                    </ControlTemplate.Triggers>
+                </ControlTemplate>
+            </Setter.Value>
+        </Setter>
     </Style>
     
     <Style x:Key="DialogHeaderStyle" TargetType="DockPanel">

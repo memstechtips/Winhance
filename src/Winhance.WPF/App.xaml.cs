@@ -397,12 +397,13 @@ namespace Winhance.WPF
             LogStartupMessage("Creating loading window");
             var themeManager = _host.Services.GetRequiredService<IThemeManager>();
             var progressService = _host.Services.GetRequiredService<ITaskProgressService>();
+            var localizationService = _host.Services.GetRequiredService<ILocalizationService>();
 
             // Ensure the IsDarkTheme resource is set
             Application.Current.Resources["IsDarkTheme"] = themeManager.IsDarkTheme;
             LogStartupMessage($"Set IsDarkTheme resource to {themeManager.IsDarkTheme}");
 
-            var loadingWindow = new LoadingWindow(themeManager, progressService);
+            var loadingWindow = new LoadingWindow(themeManager, progressService, localizationService);
             loadingWindow.Show();
             LogStartupMessage("Loading window shown");
 
@@ -534,7 +535,6 @@ namespace Winhance.WPF
         private async Task ShowUpdateDialog(IVersionService versionService, VersionInfo latestVersion)
         {
             var currentVersion = versionService.GetCurrentVersion();
-            string message = "Good News! A New Version of Winhance is available.";
 
             Func<Task> downloadAndInstallAction = async () =>
             {
@@ -543,8 +543,6 @@ namespace Winhance.WPF
             };
 
             bool installNow = await UpdateDialog.ShowAsync(
-                "Update Available",
-                message,
                 currentVersion,
                 latestVersion,
                 downloadAndInstallAction

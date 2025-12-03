@@ -12,7 +12,7 @@ namespace Winhance.WPF.Features.Optimize.ViewModels
       : BaseSettingsFeatureViewModel(domainServiceRouter, settingsLoadingService, logService, localizationService)
     {
         public override string ModuleId => FeatureIds.Sound;
-        public override string DisplayName => "Sound";
-        
+
+        protected override string GetDisplayNameKey() => "Feature_Sound_Name";
     }
 }

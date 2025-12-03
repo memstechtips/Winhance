@@ -37,18 +37,9 @@
     <EmbeddedResource Include="Resources\AdvancedTools\autounattend-template.xml" />
   </ItemGroup>
   <ItemGroup>
-    <EmbeddedResource Update="Resources\Localization\Strings.resx">
-      <Generator>PublicResXFileCodeGenerator</Generator>
-      <LastGenOutput>Strings.Designer.cs</LastGenOutput>
-    </EmbeddedResource>
-    <EmbeddedResource Update="Resources\Localization\Strings.*.resx">
-      <DependentUpon>Strings.resx</DependentUpon>
-    </EmbeddedResource>
-    <Compile Update="Resources\Localization\Strings.Designer.cs">
-      <DesignTime>True</DesignTime>
-      <AutoGen>True</AutoGen>
-      <DependentUpon>Strings.resx</DependentUpon>
-    </Compile>
+    <None Update="Localization\*.json">
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+    </None>
   </ItemGroup>
   <ItemGroup>
     <ProjectReference Include="..\Winhance.Core\Winhance.Core.csproj" />

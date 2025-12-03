@@ -116,10 +116,10 @@
                                     <Ellipse Style="{StaticResource AppStatusIndicatorStyle}"
                                              Fill="{Binding IsInstalled, Converter={StaticResource InstalledStatusToColorConverter}}">
                                         <Ellipse.ToolTip>
-                                            <ToolTip Content="{Binding IsInstalled, Converter={StaticResource InstalledStatusToTextConverter}}"/>
+                                            <ToolTip Content="{Binding InstalledStatusText}"/>
                                         </Ellipse.ToolTip>
                                     </Ellipse>
-                                    <TextBlock Text="{Binding IsInstalled, Converter={StaticResource InstalledStatusToTextConverter}}" Margin="5,0,0,0" Style="{StaticResource DataGridTextBlockStyle}" />
+                                    <TextBlock Text="{Binding InstalledStatusText}" Margin="5,0,0,0" Style="{StaticResource DataGridTextBlockStyle}" />
                                 </StackPanel>
                             </DataTemplate>
                         </DataGridTemplateColumn.CellTemplate>
@@ -138,10 +138,10 @@
                                         Kind="{Binding CanBeReinstalled, Converter={StaticResource BooleanToReinstallableIconConverter}}"
                                         Foreground="{Binding CanBeReinstalled, Converter={StaticResource BooleanToReinstallableColorConverter}}">
                                         <iconPacks:PackIconMaterial.ToolTip>
-                                            <ToolTip Content="{Binding CanBeReinstalled, Converter={StaticResource BooleanToReinstallableTextConverter}}"/>
+                                            <ToolTip Content="{Binding ReinstallableStatusText}"/>
                                         </iconPacks:PackIconMaterial.ToolTip>
                                     </iconPacks:PackIconMaterial>
-                                    <TextBlock Text="{Binding CanBeReinstalled, Converter={StaticResource BooleanToReinstallableTextConverter}}" Margin="5,0,0,0" Style="{StaticResource DataGridTextBlockStyle}" />
+                                    <TextBlock Text="{Binding ReinstallableStatusText}" Margin="5,0,0,0" Style="{StaticResource DataGridTextBlockStyle}" />
                                 </StackPanel>
                             </DataTemplate>
                         </DataGridTemplateColumn.CellTemplate>

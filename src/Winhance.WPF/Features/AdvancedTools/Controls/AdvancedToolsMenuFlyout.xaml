@@ -5,6 +5,7 @@
              xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
              xmlns:viewModels="clr-namespace:Winhance.WPF.Features.AdvancedTools.ViewModels"
              xmlns:iconPacks="http://metro.mahapps.com/winfx/xaml/iconpacks"
+             xmlns:loc="clr-namespace:Winhance.WPF.Features.Common.Extensions"
              mc:Ignorable="d"
              d:DataContext="{d:DesignInstance Type=viewModels:AdvancedToolsMenuViewModel}">
 
@@ -74,7 +75,7 @@
                     Margin="0,1">
                 <StackPanel Orientation="Horizontal">
                     <iconPacks:PackIconMaterial Kind="DiscPlayer" Width="14" Height="14" VerticalAlignment="Center" Margin="0,0,12,0"/>
-                    <TextBlock Text="WIMUtil" VerticalAlignment="Center" FontSize="14"/>
+                    <TextBlock Text="{loc:Localize AdvancedTools_MenuItem_WIMUtil}" VerticalAlignment="Center" FontSize="14"/>
                 </StackPanel>
             </Button>
 
@@ -88,7 +89,7 @@
                     Margin="0,1">
                 <StackPanel Orientation="Horizontal">
                     <iconPacks:PackIconMaterial Kind="FileXmlBox" Width="14" Height="14" VerticalAlignment="Center" Margin="0,0,12,0"/>
-                    <TextBlock Text="Create Autounattend XML" VerticalAlignment="Center" FontSize="14"/>
+                    <TextBlock Text="{loc:Localize AdvancedTools_MenuItem_CreateXML}" VerticalAlignment="Center" FontSize="14"/>
                 </StackPanel>
             </Button>
         </StackPanel>

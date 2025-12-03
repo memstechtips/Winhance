@@ -100,26 +100,6 @@ public class MoreMenuViewModel : ObservableObject
             canExecute: () => true
         );
 
-        ChangeLanguageCommand = new AsyncRelayCommand<string>(
-            execute: async (languageCode) =>
-            {
-                if (string.IsNullOrEmpty(languageCode))
-                    return;
-
-                _logService.LogInformation($"Changing language to: {languageCode}");
-                CloseFlyout();
-
-                if (_localizationService.SetLanguage(languageCode))
-                {
-                    await _preferencesService.SetPreferenceAsync("Language", languageCode);
-
-                    await _dialogService.ShowInformationAsync(
-                        _localizationService.GetString("Menu_LanguageChanged"),
-                        _localizationService.GetString("Dialog_Information")
-                    );
-                }
-            }
-        );
     }
 
     private string GetVersionInfo()
@@ -180,13 +160,8 @@ public class MoreMenuViewModel : ObservableObject
 
             if (latestVersion != null && latestVersion.Version != currentVersion.Version)
             {
-                string title = "Update Available";
-                string message = "Good News! A New Version of Winhance is available.";
-
                 _logService.LogInformation("Showing update dialog");
                 await UpdateDialog.ShowAsync(
-                    title,
-                    message,
                     currentVersion,
                     latestVersion,
                     async () =>

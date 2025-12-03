@@ -12,7 +12,7 @@ namespace Winhance.WPF.Features.Optimize.ViewModels
       : BaseSettingsFeatureViewModel(domainServiceRouter, settingsLoadingService, logService, localizationService)
     {
         public override string ModuleId => FeatureIds.Notifications;
-        public override string DisplayName => "Notifications";
 
+        protected override string GetDisplayNameKey() => "Feature_Notifications_Name";
     }
 }

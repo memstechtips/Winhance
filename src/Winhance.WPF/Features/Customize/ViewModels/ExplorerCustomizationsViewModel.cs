@@ -12,7 +12,7 @@ namespace Winhance.WPF.Features.Customize.ViewModels
       : BaseSettingsFeatureViewModel(domainServiceRouter, settingsLoadingService, logService, localizationService)
     {
         public override string ModuleId => FeatureIds.ExplorerCustomization;
-        public override string DisplayName => "Explorer";
 
+        protected override string GetDisplayNameKey() => "Feature_Explorer_Name";
     }
 }

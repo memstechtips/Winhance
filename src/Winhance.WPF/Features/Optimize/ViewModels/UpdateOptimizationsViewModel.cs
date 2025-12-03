@@ -13,6 +13,7 @@ namespace Winhance.WPF.Features.Optimize.ViewModels
         : BaseSettingsFeatureViewModel(domainServiceRouter, settingsLoadingService, logService, localizationService)
     {
         public override string ModuleId => FeatureIds.Update;
-        public override string DisplayName => "Update";
+
+        protected override string GetDisplayNameKey() => "Feature_Update_Name";
     }
 }

@@ -80,7 +80,7 @@ namespace Winhance.WPF.Features.Common.Services
                     {
                         try
                         {
-                            await viewModel.SetupComboBoxAsync(setting, currentState.CurrentValue, comboBoxSetupService, logService, currentState.RawValues);
+                            await viewModel.SetupComboBoxAsync(setting, currentState.CurrentValue, comboBoxSetupService, logService, settingLocalizationService.LocalizationService, currentState.RawValues);
                             return (viewModel, success: true);
                         }
                         catch
@@ -129,7 +129,7 @@ namespace Winhance.WPF.Features.Common.Services
         {
             var currentState = batchStates.TryGetValue(setting.Id, out var state) ? state : new SettingStateResult();
 
-            var viewModel = new SettingItemViewModel(settingApplicationService, eventBus, logService, confirmationService, domainServiceRouter, initializationService, comboBoxSetupService, discoveryService, userPreferencesService, dialogService, compatibleSettingsRegistry)
+            var viewModel = new SettingItemViewModel(settingApplicationService, eventBus, logService, confirmationService, domainServiceRouter, initializationService, comboBoxSetupService, discoveryService, userPreferencesService, dialogService, compatibleSettingsRegistry, settingLocalizationService.LocalizationService)
             {
                 SettingDefinition = setting,
                 ParentFeatureViewModel = parentViewModel,

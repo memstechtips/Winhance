@@ -21,4 +21,5 @@ public abstract record BaseDefinition
     public Dictionary<string, object> CustomProperties { get; init; } = new();
     public string? RestartProcess { get; init; }
     public string? RestartService { get; init; }
+    public bool RequiresRestart { get; init; }
 }
