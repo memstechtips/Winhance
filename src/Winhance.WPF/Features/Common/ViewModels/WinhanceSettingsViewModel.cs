@@ -48,7 +48,12 @@ namespace Winhance.WPF.Features.Common.ViewModels
             Languages = new ObservableCollection<ComboBoxOption>
             {
                 new ComboBoxOption { DisplayText = "English", Value = "en" },
-                new ComboBoxOption { DisplayText = "Español", Value = "es" }
+                new ComboBoxOption { DisplayText = "Español", Value = "es" },
+                new ComboBoxOption { DisplayText = "Français", Value = "fr" },
+                new ComboBoxOption { DisplayText = "Deutsch", Value = "de" },
+                new ComboBoxOption { DisplayText = "Português", Value = "pt-BR" },
+                new ComboBoxOption { DisplayText = "Lietuviškai", Value = "lt" },
+                new ComboBoxOption { DisplayText = "Latviešu", Value = "lv" }
             };
 
             // Initialize themes
