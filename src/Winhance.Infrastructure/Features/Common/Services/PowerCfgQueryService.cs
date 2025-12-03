@@ -11,6 +11,7 @@ public class PowerCfgQueryService(ICommandService commandService, ILogService lo
     private List<PowerPlan>? _cachedPlans;
     private DateTime _cacheTime;
     private readonly TimeSpan _cacheTimeout = TimeSpan.FromSeconds(2);
+    private readonly Dictionary<string, (int? min, int? max)> _capabilityCache = new();
 
     public async Task<List<PowerPlan>> GetAvailablePowerPlansAsync()
     {
@@ -54,6 +55,7 @@ public class PowerCfgQueryService(ICommandService commandService, ILogService lo
     public void InvalidateCache()
     {
         _cachedPlans = null;
+        _capabilityCache.Clear();
     }
 
     public async Task<PowerPlan> GetActivePowerPlanAsync()
@@ -181,6 +183,60 @@ public class PowerCfgQueryService(ICommandService commandService, ILogService lo
             logService.Log(LogLevel.Error, $"Error in GetAllPowerSettingsACDCAsync: {ex.Message}");
             return new Dictionary<string, (int?, int?)>();
         }
+    }
+
+    public async Task<(int? minValue, int? maxValue)> GetPowerSettingCapabilitiesAsync(PowerCfgSetting powerCfgSetting)
+    {
+        var cacheKey = powerCfgSetting.SettingGuid;
+
+        if (_capabilityCache.TryGetValue(cacheKey, out var cached))
+        {
+            logService.Log(LogLevel.Debug, $"Using cached capabilities for {powerCfgSetting.SettingGUIDAlias ?? cacheKey}");
+            return cached;
+        }
+
+        try
+        {
+            var command = $"powercfg /query SCHEME_CURRENT {powerCfgSetting.SubgroupGuid} {powerCfgSetting.SettingGuid}";
+            logService.Log(LogLevel.Debug, $"Querying power setting capabilities: {command}");
+
+            var result = await commandService.ExecuteCommandAsync(command);
+
+            if (!result.Success || string.IsNullOrEmpty(result.Output))
+            {
+                logService.Log(LogLevel.Warning, $"Failed to query capabilities for {powerCfgSetting.SettingGUIDAlias ?? cacheKey}");
+                return (null, null);
+            }
+
+            var capabilities = OutputParser.PowerCfg.ParsePowerSettingMinMax(result.Output);
+            _capabilityCache[cacheKey] = capabilities;
+
+            logService.Log(LogLevel.Info,
+                $"Power setting '{powerCfgSetting.SettingGUIDAlias ?? cacheKey}' capabilities: Min={capabilities.minValue}, Max={capabilities.maxValue}");
+
+            return capabilities;
+        }
+        catch (Exception ex)
+        {
+            logService.Log(LogLevel.Error,
+                $"Error querying capabilities for {powerCfgSetting.SettingGuid}: {ex.Message}");
+            return (null, null);
+        }
+    }
+
+    public async Task<bool> IsSettingHardwareControlledAsync(PowerCfgSetting powerCfgSetting)
+    {
+        var (minValue, maxValue) = await GetPowerSettingCapabilitiesAsync(powerCfgSetting);
+
+        bool isHardwareControlled = minValue == 0 && maxValue == 0;
+
+        if (isHardwareControlled)
+        {
+            logService.Log(LogLevel.Info,
+                $"Setting '{powerCfgSetting.SettingGUIDAlias ?? powerCfgSetting.SettingGuid}' is hardware-controlled (Min=0, Max=0)");
+        }
+
+        return isHardwareControlled;
     }
 
 }

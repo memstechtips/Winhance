@@ -924,6 +924,7 @@ namespace Winhance.Core.Features.Optimize.Models
                                 Units = "%",
                                 RecommendedValueAC = 0,
                                 RecommendedValueDC = 0,
+                                CheckForHardwareControl = true,
                                 EnablementRegistrySetting = new RegistrySetting
                                 {
                                     KeyPath = @"HKEY_LOCAL_MACHINE\SYSTEM\CurrentControlSet\Control\Power\PowerSettings\54533251-82be-4824-96c1-47b60b740d00\0cc5b647-c1df-4637-891a-dec35c318583",
@@ -960,6 +961,7 @@ namespace Winhance.Core.Features.Optimize.Models
                                 Units = "%",
                                 RecommendedValueAC = 100,
                                 RecommendedValueDC = 100,
+                                CheckForHardwareControl = true,
                                 EnablementRegistrySetting = new RegistrySetting
                                 {
                                     KeyPath = @"HKEY_LOCAL_MACHINE\SYSTEM\CurrentControlSet\Control\Power\PowerSettings\54533251-82be-4824-96c1-47b60b740d00\ea062031-0e34-4ff1-9b6d-eb1059334028",

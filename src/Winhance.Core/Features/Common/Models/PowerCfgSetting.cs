@@ -20,4 +20,5 @@ public class PowerCfgSetting
     public RegistrySetting? EnablementRegistrySetting { get; set; }
     public int? RecommendedValueAC { get; set; }
     public int? RecommendedValueDC { get; set; }
+    public bool CheckForHardwareControl { get; set; } = false;
 }

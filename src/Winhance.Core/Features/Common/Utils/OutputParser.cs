@@ -331,6 +331,42 @@ namespace Winhance.Core.Features.Common.Utils
                 return settings;
             }
 
+            public static (int? minValue, int? maxValue) ParsePowerSettingMinMax(string output)
+            {
+                if (string.IsNullOrEmpty(output)) return (null, null);
+
+                try
+                {
+                    var lines = output.Split('\n', StringSplitOptions.RemoveEmptyEntries);
+                    int? minValue = null;
+                    int? maxValue = null;
+
+                    foreach (var line in lines)
+                    {
+                        var trimmed = line.Trim();
+
+                        if (trimmed.StartsWith("Minimum Possible Setting:"))
+                        {
+                            var valueStart = trimmed.IndexOf(':') + 1;
+                            var valueString = trimmed.Substring(valueStart).Trim();
+                            minValue = ParseIndexValue(valueString);
+                        }
+                        else if (trimmed.StartsWith("Maximum Possible Setting:"))
+                        {
+                            var valueStart = trimmed.IndexOf(':') + 1;
+                            var valueString = trimmed.Substring(valueStart).Trim();
+                            maxValue = ParseIndexValue(valueString);
+                        }
+                    }
+
+                    return (minValue, maxValue);
+                }
+                catch
+                {
+                    return (null, null);
+                }
+            }
+
             private static int? ParseIndexValue(string valueString)
             {
                 if (string.IsNullOrEmpty(valueString)) return null;
