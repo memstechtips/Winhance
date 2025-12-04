@@ -17,7 +17,6 @@
         xmlns:utilities="clr-namespace:Winhance.WPF.Features.Common.Utilities"
         xmlns:loc="clr-namespace:Winhance.WPF.Features.Common.Extensions"
         Title="{loc:Localize App_Title}"
-        Title="Winhance"
         MinWidth="800"
         MinHeight="500"
         Background="Transparent"
