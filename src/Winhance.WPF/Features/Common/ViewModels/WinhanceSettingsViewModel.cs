@@ -5,6 +5,7 @@ using CommunityToolkit.Mvvm.Input;
 using Winhance.Core.Features.Common.Interfaces;
 using Winhance.WPF.Features.Common.Interfaces;
 using Winhance.Core.Features.Common.Interfaces;
+using Winhance.WPF.Features.Common.Constants;
 
 namespace Winhance.WPF.Features.Common.ViewModels
 {
@@ -45,16 +46,11 @@ namespace Winhance.WPF.Features.Common.ViewModels
             _preferencesService = preferencesService;
             _dialogService = dialogService;
 
-            Languages = new ObservableCollection<ComboBoxOption>
+            Languages = new ObservableCollection<ComboBoxOption>();
+            foreach (var lang in StringKeys.Languages.SupportedLanguages)
             {
-                new ComboBoxOption { DisplayText = "English", Value = "en" },
-                new ComboBoxOption { DisplayText = "Español", Value = "es" },
-                new ComboBoxOption { DisplayText = "Français", Value = "fr" },
-                new ComboBoxOption { DisplayText = "Deutsch", Value = "de" },
-                new ComboBoxOption { DisplayText = "Português", Value = "pt-BR" },
-                new ComboBoxOption { DisplayText = "Lietuviškai", Value = "lt" },
-                new ComboBoxOption { DisplayText = "Latviešu", Value = "lv" }
-            };
+                Languages.Add(new ComboBoxOption { DisplayText = lang.Value, Value = lang.Key });
+            }
 
             // Initialize themes
             UpdateThemeOptions();

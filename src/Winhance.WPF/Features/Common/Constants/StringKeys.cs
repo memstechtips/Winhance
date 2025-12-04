@@ -113,16 +113,28 @@ namespace Winhance.WPF.Features.Common.Constants
         /// <summary>
         /// Language display names
         /// </summary>
+        /// <summary>
+        /// Language display names
+        /// </summary>
         public static class Languages
         {
-            public const string English = "Language_English";
-            public const string Spanish = "Language_Spanish";
-            public const string French = "Language_French";
-            public const string German = "Language_German";
-            public const string Portuguese = "Language_Portuguese";
-            public const string Italian = "Language_Italian";
-            public const string Russian = "Language_Russian";
-            public const string Chinese = "Language_Chinese";
+            public static readonly Dictionary<string, string> SupportedLanguages = new()
+            {
+                { "en", "English" },
+                { "es", "Español (Spanish)" },
+                { "fr", "Français (French)" },
+                { "de", "Deutsch (German)" },
+                { "pt-BR", "Português (Portuguese Brazil)" },
+                { "pt", "Português (Portuguese)" },
+                { "it", "Italiano (Italian)" },
+                { "ru", "Русский (Russian)" },
+                { "zh-Hans", "中文 (Chinese)" },
+                { "cs", "Čeština (Czech)" },
+                { "hi", "हिन्दी (Hindi)" },
+                { "ja", "日本語 (Japanese)" },
+                { "lt", "Lietuviškai (Lithuanian)" },
+                { "lv", "Latviešu (Latvian)" }
+            };
         }
 
         /// <summary>
