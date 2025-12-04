@@ -201,7 +201,8 @@ public class AutounattendScriptBuilder
         sb.AppendLine();
         sb.AppendLine("    if (-not $alreadyApplied) {");
         sb.AppendLine("        Write-Log \"Rebooting system to apply user customizations...\" \"INFO\"");
-        sb.AppendLine("        shutdown.exe /r /t 0");
+        sb.AppendLine("        # Wait 20 seconds to give the FirstLogon phase some more time before restarting");
+        sb.AppendLine("        shutdown.exe /r /t 20");
         sb.AppendLine("    } else {");
         sb.AppendLine("        Write-Log \"No restart needed - customizations were already applied\" \"INFO\"");
         sb.AppendLine("    }");
