@@ -15,6 +15,10 @@ namespace Winhance.Core.Features.Common.Utils
             @"\((.+?)\)",
             RegexOptions.Compiled);
 
+        private static readonly Regex HexValueRegex = new(
+            @"0x[0-9a-fA-F]+",
+            RegexOptions.Compiled);
+
         public static class PowerCfg
         {
             public static string? ExtractGuid(string output)
@@ -25,8 +29,58 @@ namespace Winhance.Core.Features.Common.Utils
                     ? ParenthesesContentRegex.Match(output).Groups[1].Value.Trim()
                     : null;
 
+            public static int? ParseAcValue(string output)
+            {
+                return ParseValueWithHeuristics(output, isAc: true);
+            }
+
+            public static int? ParseDcValue(string output)
+            {
+                return ParseValueWithHeuristics(output, isAc: false);
+            }
+
+            private static int? ParseValueWithHeuristics(string output, bool isAc)
+            {
+                if (string.IsNullOrEmpty(output)) return null;
+
+                var lines = output.Split('\n', StringSplitOptions.RemoveEmptyEntries);
+                foreach (var line in lines)
+                {
+                    // Use indentation heuristic (4 spaces) + Hex value
+                    // And check for AC/DC keywords
+                    if (line.StartsWith("    ") && !line.StartsWith("     ") && line.Contains("0x", StringComparison.OrdinalIgnoreCase))
+                    {
+                        var upper = line.ToUpperInvariant();
+                        bool match = false;
+                        if (isAc)
+                        {
+                            match = upper.Contains("AC") || upper.Contains("CA") || upper.Contains("NETZ");
+                        }
+                        else
+                        {
+                            match = upper.Contains("DC") || upper.Contains("CC") || upper.Contains("BAT") || upper.Contains("AKKU");
+                        }
+
+                        if (match)
+                        {
+                            var hexMatch = HexValueRegex.Match(line);
+                            if (hexMatch.Success)
+                            {
+                                return ParseIndexValue(hexMatch.Value);
+                            }
+                        }
+                    }
+                }
+                return null;
+            }
+
+            // Deprecated/Legacy method - tries to use pattern but falls back if needed
             public static int? ParsePowerSettingValue(string output, string searchPattern)
             {
+                // If search pattern is the standard English one, try our robust parser first
+                if (searchPattern.Contains("AC Power Setting Index")) return ParseAcValue(output);
+                if (searchPattern.Contains("DC Power Setting Index")) return ParseDcValue(output);
+
                 if (string.IsNullOrEmpty(output) || string.IsNullOrEmpty(searchPattern))
                     return null;
 
@@ -58,16 +112,10 @@ namespace Winhance.Core.Features.Common.Utils
                     var lines = powercfgOutput.Split('\n', StringSplitOptions.RemoveEmptyEntries);
                     foreach (var line in lines)
                     {
-                        var trimmed = line.Trim();
-                        if (trimmed.StartsWith("Power Scheme GUID:"))
+                        // Check for GUID. Scheme GUID is usually the first one in output or indentation 0
+                        if (GuidRegex.IsMatch(line))
                         {
-                            var parts = trimmed.Split(' ', StringSplitOptions.RemoveEmptyEntries);
-                            if (parts.Length >= 4)
-                            {
-                                var guid = parts[3];
-                                if (System.Guid.TryParse(guid, out _))
-                                    return guid;
-                            }
+                            return ExtractGuid(line);
                         }
                     }
                     return null;
@@ -152,7 +200,8 @@ namespace Winhance.Core.Features.Common.Utils
                     var lines = planOutput.Split('\n', StringSplitOptions.RemoveEmptyEntries);
                     foreach (var line in lines)
                     {
-                        if (line.Contains("Power Scheme GUID:"))
+                        // Robust check: contains a GUID
+                        if (GuidRegex.IsMatch(line))
                         {
                             var guid = ExtractGuid(line);
                             var name = ExtractNameFromParentheses(line);
@@ -203,8 +252,10 @@ namespace Winhance.Core.Features.Common.Utils
                 foreach (var line in lines)
                 {
                     var trimmed = line.Trim();
+                    // Heuristic: Subgroup lines are indented by 2 spaces
+                    bool isSubgroupLine = GuidRegex.IsMatch(line) && line.StartsWith("  ") && !line.StartsWith("   ");
 
-                    if (trimmed.StartsWith("Subgroup GUID:"))
+                    if (trimmed.StartsWith("Subgroup GUID:") || isSubgroupLine)
                     {
                         if (currentSubgroupGuid != null)
                         {
@@ -216,7 +267,7 @@ namespace Winhance.Core.Features.Common.Utils
                     }
                     else if (currentSubgroupGuid != null)
                     {
-                        currentContent.AppendLine(trimmed);
+                        currentContent.AppendLine(trimmed); // Note: this strips indentation for content processing
                     }
                 }
 
@@ -242,8 +293,10 @@ namespace Winhance.Core.Features.Common.Utils
                     foreach (var line in lines)
                     {
                         var trimmed = line.Trim();
+                        // Setting lines indented by 4 spaces
+                        bool isSettingLine = GuidRegex.IsMatch(line) && line.StartsWith("    ") && !line.StartsWith("     ");
 
-                        if (trimmed.StartsWith("Power Setting GUID:"))
+                        if (trimmed.StartsWith("Power Setting GUID:") || isSettingLine)
                         {
                             // Save previous setting if we have complete data
                             if (currentSettingGuid != null && currentACValue.HasValue)
@@ -255,16 +308,27 @@ namespace Winhance.Core.Features.Common.Utils
                             currentSettingGuid = ExtractGuid(trimmed);
                             currentACValue = null;
                         }
-                        else if (trimmed.StartsWith("Current AC Power Setting Index:"))
+                        else
                         {
-                            var colonIndex = trimmed.IndexOf(':');
-                            if (colonIndex != -1)
+                            // Try parsing values
+                            if (line.Contains("0x") && (line.ToUpper().Contains("AC") || line.ToUpper().Contains("CA") || line.ToUpper().Contains("NETZ")))
                             {
-                                var valueStr = trimmed.Substring(colonIndex + 1).Trim();
-                                currentACValue = ParseIndexValue(valueStr);
+                                var hexMatch = HexValueRegex.Match(line);
+                                if (hexMatch.Success)
+                                {
+                                    currentACValue = ParseIndexValue(hexMatch.Value);
+                                }
+                            }
+                            else if (trimmed.StartsWith("Current AC Power Setting Index:"))
+                            {
+                                var colonIndex = trimmed.IndexOf(':');
+                                if (colonIndex != -1)
+                                {
+                                    var valueStr = trimmed.Substring(colonIndex + 1).Trim();
+                                    currentACValue = ParseIndexValue(valueStr);
+                                }
                             }
                         }
-                        // We can ignore DC values for now since AC is typically used
                     }
 
                     // Don't forget the last setting
@@ -292,8 +356,18 @@ namespace Winhance.Core.Features.Common.Utils
                 foreach (var line in lines)
                 {
                     var trimmed = line.Trim();
+                    // Note: In ParseSubgroupSections, we used trimmed lines to build content, so indentation might be lost 
+                    // if it was trimmed before appending. 
+                    // Let's check ParseSubgroupSections again. 
+                    // "currentContent.AppendLine(trimmed);" -> Yes, indentation is lost in the content passed here.
+                    // So we can't use indentation check here easily if it was stripped!
+                    // BUT: The content of this method receives the output of `ParseSubgroupSections` which constructed it.
+                    // `ParseSubgroupSections` appends `trimmed`. So indentation is GONE.
+                    // We must rely on GuidRegex matching since indentation is 0.
+                    
+                    bool isSettingLine = GuidRegex.IsMatch(trimmed);
 
-                    if (trimmed.StartsWith("Power Setting GUID:"))
+                    if (trimmed.StartsWith("Power Setting GUID:") || isSettingLine)
                     {
                         if (currentSettingGuid != null)
                         {
@@ -303,22 +377,36 @@ namespace Winhance.Core.Features.Common.Utils
                         currentSettingGuid = ExtractGuid(trimmed);
                         currentValues.Clear();
                     }
-                    else if (trimmed.StartsWith("Current AC Power Setting Index:"))
+                    else
                     {
-                        var colonIndex = trimmed.IndexOf(':');
-                        if (colonIndex != -1)
+                        // Parse values (Robust)
+                        var upper = trimmed.ToUpperInvariant();
+                        if (trimmed.Contains("0x", StringComparison.OrdinalIgnoreCase))
                         {
-                            var valueStr = trimmed.Substring(colonIndex + 1).Trim();
-                            currentValues["AC"] = ParseIndexValue(valueStr);
+                            var hexMatch = HexValueRegex.Match(trimmed);
+                            if (hexMatch.Success)
+                            {
+                                if (upper.Contains("AC") || upper.Contains("CA") || upper.Contains("NETZ"))
+                                {
+                                    currentValues["AC"] = ParseIndexValue(hexMatch.Value);
+                                }
+                                else if (upper.Contains("DC") || upper.Contains("CC") || upper.Contains("BAT") || upper.Contains("AKKU"))
+                                {
+                                    currentValues["DC"] = ParseIndexValue(hexMatch.Value);
+                                }
+                            }
                         }
-                    }
-                    else if (trimmed.StartsWith("Current DC Power Setting Index:"))
-                    {
-                        var colonIndex = trimmed.IndexOf(':');
-                        if (colonIndex != -1)
+                        
+                        // Fallback to specific strings if strict match fails but specific strings are present (unlikely if robust failed)
+                        if (!currentValues.ContainsKey("AC") && trimmed.StartsWith("Current AC Power Setting Index:"))
                         {
-                            var valueStr = trimmed.Substring(colonIndex + 1).Trim();
-                            currentValues["DC"] = ParseIndexValue(valueStr);
+                            var colonIndex = trimmed.IndexOf(':');
+                            if (colonIndex != -1) currentValues["AC"] = ParseIndexValue(trimmed.Substring(colonIndex + 1));
+                        }
+                        else if (!currentValues.ContainsKey("DC") && trimmed.StartsWith("Current DC Power Setting Index:"))
+                        {
+                            var colonIndex = trimmed.IndexOf(':');
+                            if (colonIndex != -1) currentValues["DC"] = ParseIndexValue(trimmed.Substring(colonIndex + 1));
                         }
                     }
                 }
