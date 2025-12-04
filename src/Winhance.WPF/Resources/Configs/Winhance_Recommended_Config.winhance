@@ -700,7 +700,7 @@
           },
           {
             "Id": "explorer-customization-show-availability-status",
-            "Name": "Always show availibity status",
+            "Name": "Always show availability status",
             "IsSelected": false,
             "InputType": 0
           },
