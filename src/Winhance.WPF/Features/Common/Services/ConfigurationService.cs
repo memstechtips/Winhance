@@ -35,6 +35,7 @@ namespace Winhance.WPF.Features.Common.Services
         private readonly IWindowsUIManagementService _windowsUIManagementService;
         private readonly IWindowsVersionService _windowsVersionService;
         private readonly IWindowsThemeQueryService _windowsThemeQueryService;
+        private readonly ILocalizationService _localizationService;
 
         public ConfigurationService(
             IServiceProvider serviceProvider,
@@ -46,7 +47,8 @@ namespace Winhance.WPF.Features.Common.Services
             ConfigurationApplicationBridgeService bridgeService,
             IWindowsUIManagementService windowsUIManagementService,
             IWindowsVersionService windowsVersionService,
-            IWindowsThemeQueryService windowsThemeQueryService)
+            IWindowsThemeQueryService windowsThemeQueryService,
+            ILocalizationService localizationService)
         {
             _serviceProvider = serviceProvider;
             _logService = logService;
@@ -58,6 +60,7 @@ namespace Winhance.WPF.Features.Common.Services
             _windowsUIManagementService = windowsUIManagementService;
             _windowsVersionService = windowsVersionService;
             _windowsThemeQueryService = windowsThemeQueryService;
+            _localizationService = localizationService;
         }
 
         public async Task ExportConfigurationAsync()
@@ -88,11 +91,12 @@ namespace Winhance.WPF.Features.Common.Services
                 _logService.Log(LogLevel.Info, $"Configuration exported to {saveFileDialog.FileName}");
 
                 var dialog = CustomDialog.CreateInformationDialog(
-                    "Configuration Saved",
-                    $"Your config has been saved to:\n{saveFileDialog.FileName}",
+                    _localizationService.GetString("Config_Export_Success_Title"),
+                    _localizationService.GetString("Config_Export_Success_Message", saveFileDialog.FileName),
                     "",
                     DialogType.Success,
-                    "CheckCircle"
+                    "CheckCircle",
+                    _localizationService.GetString("Button_OK")
                 );
                 dialog.ShowDialog();
             }
@@ -100,8 +104,8 @@ namespace Winhance.WPF.Features.Common.Services
             {
                 _logService.Log(LogLevel.Error, $"Error exporting configuration: {ex.Message}");
                 await _dialogService.ShowErrorAsync(
-                    $"Failed to save configuration:\n\n{ex.Message}",
-                    "Export Error"
+                    _localizationService.GetString("Config_Export_Error_Message", ex.Message),
+                    _localizationService.GetString("Config_Export_Error_Title")
                 );
             }
         }
@@ -170,7 +174,9 @@ namespace Winhance.WPF.Features.Common.Services
 
                 if (!sectionSelection.Any(kvp => kvp.Value))
                 {
-                    _dialogService.ShowMessage("Please select at least one section to import.", "No Sections Selected");
+                    _dialogService.ShowMessage(
+                        _localizationService.GetString("Config_Import_Error_NoSelection"), 
+                        _localizationService.GetString("Config_Import_Error_NoSelection_Title"));
                     return;
                 }
 
@@ -211,7 +217,7 @@ namespace Winhance.WPF.Features.Common.Services
                 ConfigImportOverlayWindow overlayWindow = null;
                 Application.Current.Dispatcher.Invoke(() =>
                 {
-                    overlayWindow = new ConfigImportOverlayWindow("Sit back, relax and watch while Winhance enhances Windows with your desired settings...");
+                    overlayWindow = new ConfigImportOverlayWindow(_localizationService.GetString("Config_Import_Status_Applying"));
                     overlayWindow.Show();
                 });
 
@@ -551,17 +557,11 @@ namespace Winhance.WPF.Features.Common.Services
 
             if (loadedConfig.Version != "2.0")
             {
+                var versionText = loadedConfig.Version ?? "unknown";
                 CustomDialog.ShowInformation(
-                    "Unsupported Configuration Version",
-                    "Configuration Import Failed",
-                    $"This configuration file (version {loadedConfig.Version ?? "unknown"}) is not compatible with the current version of Winhance.\n\n" +
-                    "Why is this happening?\n" +
-                    "Winhance has moved to a more robust configuration format to provide better functionality and reliability.\n\n" +
-                    "What should you do?\n" +
-                    "• Configure Winhance with your preferred settings manually\n" +
-                    "• Export a new configuration file\n" +
-                    "• This new file will work with current and future versions of Winhance\n\n" +
-                    "We apologize for the inconvenience. Going forward, configuration files will remain compatible across versions.",
+                    _localizationService.GetString("Config_Unsupported_Title"),
+                    _localizationService.GetString("Config_Unsupported_Header"),
+                    _localizationService.GetString("Config_Unsupported_Message", versionText),
                     ""
                 );
                 _logService.Log(LogLevel.Warning, $"Rejected incompatible config version: {loadedConfig.Version}");
@@ -590,7 +590,7 @@ namespace Winhance.WPF.Features.Common.Services
 
             return await _dialogService.ShowUnifiedConfigurationImportDialogAsync(
                 "",
-                "Select which settings from the config file you want to apply to your computer.",
+                _localizationService.GetString("Dialog_Unified_Description_Import"),
                 sectionInfo);
         }
 
@@ -721,7 +721,7 @@ namespace Winhance.WPF.Features.Common.Services
 
             if (selectedSections.Contains("WindowsApps") && options.ProcessWindowsAppsRemoval)
             {
-                overlayWindow?.UpdateProgress("Removing Windows Apps...");
+                overlayWindow?.UpdateProgress(_localizationService.GetString("Config_Import_Progress_WindowsApps"));
                 var vm = _serviceProvider.GetService<WindowsAppsViewModel>();
                 if (vm != null)
                 {
@@ -732,20 +732,20 @@ namespace Winhance.WPF.Features.Common.Services
 
             if (selectedSections.Any(s => s == "Optimize" || s.StartsWith("Optimize_")))
             {
-                overlayWindow?.UpdateProgress("Applying Optimizations...");
+                overlayWindow?.UpdateProgress(_localizationService.GetString("Config_Import_Progress_Optimize"));
                 var success = await ApplyFeatureGroupWithOptionsAsync(config.Optimize, "Optimize", options, selectedSections, overlayWindow);
                 _logService.Log(LogLevel.Info, $"  Optimize: {(success ? "Success" : "Failed")}");
             }
 
             if (hasCustomizations)
             {
-                overlayWindow?.UpdateProgress("Applying Customizations...");
+                overlayWindow?.UpdateProgress(_localizationService.GetString("Config_Import_Progress_Customize"));
                 var success = await ApplyFeatureGroupWithOptionsAsync(config.Customize, "Customize", options, selectedSections, overlayWindow);
                 _logService.Log(LogLevel.Info, $"  Customize: {(success ? "Success" : "Failed")}");
             }
 
             // Always restart explorer at the end to apply all changes
-            overlayWindow?.UpdateProgress("Refreshing Windows UI...");
+            overlayWindow?.UpdateProgress(_localizationService.GetString("Config_Import_Progress_Refresh"));
             await Task.Run(async () =>
             {
                 if (_windowsUIManagementService.IsProcessRunning("explorer"))
@@ -1001,11 +1001,12 @@ namespace Winhance.WPF.Features.Common.Services
         private async Task ShowImportSuccessMessage(List<string> selectedSections)
         {
             var dialog = CustomDialog.CreateInformationDialog(
-                    "Configuration Applied",
-                    $"Your configuration has been applied successfully.",
+                    _localizationService.GetString("Config_Import_Success_Title"),
+                    _localizationService.GetString("Config_Import_Success_Message"),
                     "",
                     DialogType.Success,
-                    "CheckCircle"
+                    "CheckCircle",
+                    _localizationService.GetString("Button_OK")
                 );
             dialog.ShowDialog();
         }

@@ -15,6 +15,8 @@
         xmlns:advancedToolsControls="clr-namespace:Winhance.WPF.Features.AdvancedTools.Controls"
         xmlns:iconPacks="http://metro.mahapps.com/winfx/xaml/iconpacks"
         xmlns:utilities="clr-namespace:Winhance.WPF.Features.Common.Utilities"
+        xmlns:loc="clr-namespace:Winhance.WPF.Features.Common.Extensions"
+        Title="{loc:Localize App_Title}"
         Title="Winhance"
         MinWidth="800"
         MinHeight="500"
@@ -49,6 +51,9 @@
                 <!-- Advanced Tools -->
                 <DataTemplate DataType="{x:Type advancedToolsViewModels:WimUtilViewModel}">
                         <advancedToolsViews:WimUtilView/>
+                </DataTemplate>
+                <DataTemplate DataType="{x:Type viewModels:WinhanceSettingsViewModel}">
+                        <views:WinhanceSettingsView/>
                 </DataTemplate>
         </Window.Resources>
 
@@ -114,11 +119,11 @@
                                                    FontSize="18"
                                                    FontWeight="Light"
                                                    Foreground="{DynamicResource PrimaryTextColor}">
-                                                <Run Text="Winhance "/>
+                                                <Run Text="{loc:Localize App_Title}"/><Run Text=" "/>
                                                 <Run FontSize="12"
                                                      FontStyle="Italic"
                                                      Foreground="Gray"
-                                                     Text="by Memory"/>
+                                                     Text="{loc:Localize App_By}"/>
                                         </TextBlock>
                                 </DockPanel>
 
@@ -142,7 +147,7 @@
                                                 Height="28"
                                                 Margin="0,0,0,0"
                                                 Command="{Binding SaveUnifiedConfigCommand}"
-                                                ToolTip="Save Configuration"
+                                                ToolTip="{loc:Localize Tooltip_SaveConfiguration}"
                                                 Style="{StaticResource WindowControlButton}"
                                                 WindowChrome.IsHitTestVisibleInChrome="True">
                                             <iconPacks:PackIconMaterial Kind="ContentSave"
@@ -155,7 +160,7 @@
                                                 Height="28"
                                                 Margin="0,0,0,0"
                                                 Command="{Binding ImportUnifiedConfigCommand}"
-                                                ToolTip="Import Config"
+                                                ToolTip="{loc:Localize Tooltip_ImportConfig}"
                                                 Style="{StaticResource WindowControlButton}"
                                                 WindowChrome.IsHitTestVisibleInChrome="True">
                                             <iconPacks:PackIconMaterial Kind="FolderOpen"
@@ -171,9 +176,7 @@
                                                 Style="{StaticResource WindowControlButton}"
                                                 WindowChrome.IsHitTestVisibleInChrome="True">
                                             <Button.ToolTip>
-                                                <TextBlock>
-                                                    <Run Text="{Binding IsWindowsVersionFilterEnabled, Converter={StaticResource BooleanToFilterTooltipConverter}}"/>
-                                                </TextBlock>
+                                                <TextBlock Text="{Binding WindowsVersionFilterTooltip}"/>
                                             </Button.ToolTip>
                                             <iconPacks:PackIconMaterial Width="16"
                                                                      Height="16"
@@ -182,7 +185,7 @@
 
                                         <!-- Theme Toggle Button -->
                                         <Button Command="{Binding ToggleThemeCommand}"
-                                                ToolTip="Toggle Winhance Theme"
+                                                ToolTip="{loc:Localize Tooltip_ToggleTheme}"
                                                 Style="{StaticResource WindowControlButton}"
                                                 WindowChrome.IsHitTestVisibleInChrome="True"
                                                 Margin="0,0,0,0">
@@ -196,7 +199,7 @@
                                                 Height="28"
                                                 Margin="0,0,0,0"
                                                 Command="{Binding OpenDonateCommand}"
-                                                ToolTip="Donate to Support Development"
+                                                ToolTip="{loc:Localize Tooltip_Donate}"
                                                 Style="{StaticResource WindowControlButton}"
                                                 WindowChrome.IsHitTestVisibleInChrome="True">
                                             <iconPacks:PackIconMaterial Kind="Heart"
@@ -259,7 +262,7 @@
                                                         Style="{StaticResource NavigationButton}"
                                                         Command="{Binding NavigationService.NavigateCommand}"
                                                         CommandParameter="SoftwareApps"
-                                                        Content="Software &amp; Apps"
+                                                        Content="{loc:Localize Nav_SoftwareAndApps}"
                                                         Margin="0,0,0,10"
                                                         utilities:NavigationButtonProperties.IsSelected="{Binding SelectedNavigationItem, Converter={StaticResource StringEqualityConverter}, ConverterParameter=SoftwareApps}"
                                                         utilities:NavigationButtonProperties.IsLoading="{Binding LoadingRoute, Converter={StaticResource StringEqualityConverter}, ConverterParameter=SoftwareApps}">
@@ -273,7 +276,7 @@
                                                         Style="{StaticResource NavigationButton}"
                                                         Command="{Binding NavigationService.NavigateCommand}"
                                                         CommandParameter="Optimize"
-                                                        Content="Optimize"
+                                                        Content="{loc:Localize Nav_Optimize}"
                                                         Margin="0,0,0,10"
                                                         utilities:NavigationButtonProperties.IsSelected="{Binding SelectedNavigationItem, Converter={StaticResource StringEqualityConverter}, ConverterParameter=Optimize}"
                                                         utilities:NavigationButtonProperties.IsLoading="{Binding LoadingRoute, Converter={StaticResource StringEqualityConverter}, ConverterParameter=Optimize}">
@@ -287,7 +290,7 @@
                                                         Style="{StaticResource NavigationButton}"
                                                         Command="{Binding NavigationService.NavigateCommand}"
                                                         CommandParameter="Customize"
-                                                        Content="Customize"
+                                                        Content="{loc:Localize Nav_Customize}"
                                                         Margin="0,0,0,10"
                                                         utilities:NavigationButtonProperties.IsSelected="{Binding SelectedNavigationItem, Converter={StaticResource StringEqualityConverter}, ConverterParameter=Customize}"
                                                         utilities:NavigationButtonProperties.IsLoading="{Binding LoadingRoute, Converter={StaticResource StringEqualityConverter}, ConverterParameter=Customize}">
@@ -304,7 +307,7 @@
                                                 <Button x:Name="AdvancedToolsButton"
                                                         Style="{StaticResource NavigationButton}"
                                                         Command="{Binding AdvancedToolsCommand}"
-                                                        Content="Advanced  Tools" 
+                                                        Content="{loc:Localize Nav_AdvancedTools}"
                                                         Margin="0,0,0,10"
                                                         utilities:NavigationButtonProperties.IsSelected="{Binding SelectedNavigationItem, Converter={StaticResource StringEqualityConverter}, ConverterParameter=AdvancedTools}">
                                                         <Button.Tag>
@@ -313,9 +316,23 @@
                                                                                          Height="22"/>
                                                         </Button.Tag>
                                                 </Button>
+                                                <Button x:Name="SettingsButton"
+                                                        Style="{StaticResource NavigationButton}"
+                                                        Command="{Binding NavigationService.NavigateCommand}"
+                                                        CommandParameter="WinhanceSettings"
+                                                        Content="{loc:Localize Nav_Settings}"
+                                                        Margin="0,0,0,10"
+                                                        utilities:NavigationButtonProperties.IsSelected="{Binding SelectedNavigationItem, Converter={StaticResource StringEqualityConverter}, ConverterParameter=WinhanceSettings}"
+                                                        utilities:NavigationButtonProperties.IsLoading="{Binding LoadingRoute, Converter={StaticResource StringEqualityConverter}, ConverterParameter=WinhanceSettings}">
+                                                        <Button.Tag>
+                                                                <iconPacks:PackIconMaterial Kind="Cog"
+                                                                                         Width="22"
+                                                                                         Height="22"/>
+                                                        </Button.Tag>
+                                                </Button>
                                                 <Button x:Name="MoreButton"
                                                         Style="{StaticResource NavigationButton}"
-                                                        Content="More"
+                                                        Content="{loc:Localize Nav_More}"
                                                         Margin="0,0,0,10"
                                                         VerticalAlignment="Bottom"
                                                         Command="{Binding MoreCommand}"

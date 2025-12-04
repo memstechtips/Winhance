@@ -7,6 +7,8 @@ using CommunityToolkit.Mvvm.ComponentModel;
 using CommunityToolkit.Mvvm.Input;
 using Winhance.Core.Features.Common.Constants;
 using Winhance.Core.Features.Common.Models;
+using Winhance.Core.Features.Common.Interfaces;
+using Winhance.WPF.Features.Common.Constants;
 
 namespace Winhance.WPF.Features.Common.ViewModels
 {
@@ -68,6 +70,7 @@ namespace Winhance.WPF.Features.Common.ViewModels
 
     public class UnifiedConfigurationDialogViewModel : ObservableObject
     {
+        private readonly ILocalizationService _localization;
         private string _title;
         private string _description;
         private bool _isSaveDialog;
@@ -96,8 +99,10 @@ namespace Winhance.WPF.Features.Common.ViewModels
             string title,
             string description,
             Dictionary<string, (bool IsSelected, bool IsAvailable, int ItemCount)> sections,
-            bool isSaveDialog)
+            bool isSaveDialog,
+            ILocalizationService localization)
         {
+            _localization = localization;
             Title = title;
             Description = description;
             _isSaveDialog = isSaveDialog;
@@ -105,8 +110,8 @@ namespace Winhance.WPF.Features.Common.ViewModels
             // Create parent section for Windows Apps and External Apps
             var softwareAndAppsSection = new UnifiedConfigurationSectionViewModel
             {
-                Name = "Software & Apps",
-                Description = "Selections for Windows Packages and External Software",
+                Name = _localization.GetString("Dialog_Unified_Section_SoftwareAndApps"),
+                Description = _localization.GetString("Dialog_Unified_Description_SoftwareAndApps"),
                 IsSelected = sections.ContainsKey("WindowsApps") && sections.ContainsKey("ExternalApps") &&
                             (sections["WindowsApps"].IsSelected || sections["ExternalApps"].IsSelected),
                 IsAvailable = sections.ContainsKey("WindowsApps") && sections.ContainsKey("ExternalApps") &&
@@ -136,7 +141,7 @@ namespace Winhance.WPF.Features.Common.ViewModels
                     windowsAppsSection.ActionOptions.Add(new ImportActionOption
                     {
                         Key = "ProcessRemoval",
-                        Label = "Process app removals now",
+                        Label = _localization.GetString("Dialog_Unified_Option_ProcessRemoval"),
                         IsSelected = true,
                         IsRadioButton = true,
                         GroupName = "WindowsAppsAction"
@@ -145,7 +150,7 @@ namespace Winhance.WPF.Features.Common.ViewModels
                     windowsAppsSection.ActionOptions.Add(new ImportActionOption
                     {
                         Key = "ManualRemoval",
-                        Label = "Only select, I'll process manually",
+                        Label = _localization.GetString("Dialog_Unified_Option_ManualRemoval"),
                         IsSelected = false,
                         IsRadioButton = true,
                         GroupName = "WindowsAppsAction"
@@ -174,7 +179,7 @@ namespace Winhance.WPF.Features.Common.ViewModels
                     externalAppsSection.ActionOptions.Add(new ImportActionOption
                     {
                         Key = "ProcessInstallation",
-                        Label = "Process app installations now",
+                        Label = _localization.GetString("Dialog_Unified_Option_ProcessInstallation"),
                         IsSelected = true,
                         IsRadioButton = true,
                         GroupName = "ExternalAppsAction"
@@ -183,7 +188,7 @@ namespace Winhance.WPF.Features.Common.ViewModels
                     externalAppsSection.ActionOptions.Add(new ImportActionOption
                     {
                         Key = "ManualInstallation",
-                        Label = "Only select, I'll process manually",
+                        Label = _localization.GetString("Dialog_Unified_Option_ManualInstallation"),
                         IsSelected = false,
                         IsRadioButton = true,
                         GroupName = "ExternalAppsAction"
@@ -215,7 +220,7 @@ namespace Winhance.WPF.Features.Common.ViewModels
 
                 foreach (var featureId in FeatureIds.OptimizeFeatures)
                 {
-                    var displayName = FeatureIds.GetDisplayName(featureId);
+                    var displayName = GetLocalizedFeatureName(featureId);
                     optimizeSection.SubSections.Add(new UnifiedConfigurationSectionViewModel
                     {
                         Name = displayName,
@@ -246,7 +251,7 @@ namespace Winhance.WPF.Features.Common.ViewModels
 
                 foreach (var featureId in FeatureIds.CustomizeFeatures)
                 {
-                    var displayName = FeatureIds.GetDisplayName(featureId);
+                    var displayName = GetLocalizedFeatureName(featureId);
                     var subSection = new UnifiedConfigurationSectionViewModel
                     {
                         Name = displayName,
@@ -263,7 +268,7 @@ namespace Winhance.WPF.Features.Common.ViewModels
                         var wallpaperOption = new ImportActionOption
                         {
                             Key = "ApplyWallpaper",
-                            Label = "Apply default wallpaper for selected theme",
+                            Label = _localization.GetString("Dialog_Unified_Option_ApplyWallpaper"),
                             IsSelected = true,
                             IsRadioButton = false,
                             RequiresParentSelection = true
@@ -277,7 +282,7 @@ namespace Winhance.WPF.Features.Common.ViewModels
                         subSection.ActionOptions.Add(new ImportActionOption
                         {
                             Key = "ApplyCleanTaskbar",
-                            Label = "Apply clean Taskbar (Removes all pinned items from the Taskbar)",
+                            Label = _localization.GetString("Dialog_Unified_Option_CleanTaskbar"),
                             IsSelected = true,
                             IsRadioButton = false
                         });
@@ -288,7 +293,7 @@ namespace Winhance.WPF.Features.Common.ViewModels
                         subSection.ActionOptions.Add(new ImportActionOption
                         {
                             Key = "ApplyCleanStartMenu",
-                            Label = "Apply clean Start Menu (Removes all pinned items and applies clean layout)",
+                            Label = _localization.GetString("Dialog_Unified_Option_CleanStartMenu"),
                             IsSelected = true,
                             IsRadioButton = false
                         });
@@ -404,10 +409,10 @@ namespace Winhance.WPF.Features.Common.ViewModels
         {
             return sectionKey switch
             {
-                "WindowsApps" => "Windows Apps",
-                "ExternalApps" => "External Apps",
-                "Customize" => "Customization Settings",
-                "Optimize" => "Optimization Settings",
+                "WindowsApps" => _localization.GetString("Dialog_Unified_Section_WindowsApps"),
+                "ExternalApps" => _localization.GetString("Dialog_Unified_Section_ExternalApps"),
+                "Customize" => _localization.GetString("Dialog_Unified_Section_Customize"),
+                "Optimize" => _localization.GetString("Dialog_Unified_Section_Optimize"),
                 _ => sectionKey
             };
         }
@@ -416,12 +421,32 @@ namespace Winhance.WPF.Features.Common.ViewModels
         {
             return sectionKey switch
             {
-                "WindowsApps" => "Selections for Windows built-in applications",
-                "ExternalApps" => "Selections for third-party applications",
-                "Optimize" => "Windows optimization settings",
-                "Customize" => "Windows UI customization settings",
+                "WindowsApps" => _localization.GetString("Dialog_Unified_Description_WindowsApps"),
+                "ExternalApps" => _localization.GetString("Dialog_Unified_Description_ExternalApps"),
+                "Optimize" => _localization.GetString("Dialog_Unified_Description_Optimize"),
+                "Customize" => _localization.GetString("Dialog_Unified_Description_Customize"),
                 _ => string.Empty
             };
+        }
+
+        private string GetLocalizedFeatureName(string featureId)
+        {
+            var key = featureId switch
+            {
+                FeatureIds.Notifications => StringKeys.Features.Notifications_Name,
+                FeatureIds.Power => StringKeys.Features.Power_Name,
+                FeatureIds.Privacy => StringKeys.Features.Privacy_Name,
+                FeatureIds.GamingPerformance => StringKeys.Features.GamingPerformance_Name,
+                FeatureIds.Sound => StringKeys.Features.Sound_Name,
+                FeatureIds.Update => StringKeys.Features.Update_Name,
+                FeatureIds.WindowsTheme => StringKeys.Features.WindowsTheme_Name,
+                FeatureIds.Taskbar => StringKeys.Features.Taskbar_Name,
+                FeatureIds.StartMenu => StringKeys.Features.StartMenu_Name,
+                FeatureIds.ExplorerCustomization => StringKeys.Features.Explorer_Name,
+                _ => null
+            };
+
+            return key != null ? _localization.GetString(key) : FeatureIds.GetDisplayName(featureId);
         }
     }
 

@@ -23,8 +23,8 @@ namespace Winhance.WPF.Features.Common.Extensions.DI
         {
             services.AddSingleton<MainViewModel>();
             services.AddSingleton<MoreMenuViewModel>();
+            services.AddSingleton<WinhanceSettingsViewModel>();
             services.AddTransient<LoadingWindowViewModel>();
-            services.AddSingleton<UpdateNotificationViewModel>();
             return services;
         }
 

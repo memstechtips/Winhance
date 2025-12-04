@@ -15,17 +15,27 @@ public partial class AppItemViewModel : ObservableObject, ISelectable
     private readonly IAppOperationService _appOperationService;
     private readonly IDialogService _dialogService;
     private readonly ILogService _logService;
+    private readonly ILocalizationService _localizationService;
 
-    public AppItemViewModel(ItemDefinition definition, IAppOperationService appOperationService, IDialogService dialogService, ILogService logService)
+    public AppItemViewModel(ItemDefinition definition, IAppOperationService appOperationService, IDialogService dialogService, ILogService logService, ILocalizationService localizationService)
     {
         _definition = definition;
         _appOperationService = appOperationService;
         _dialogService = dialogService;
         _logService = logService;
+        _localizationService = localizationService;
 
         InstallCommand = new AsyncRelayCommand(InstallAsync, () => !IsInstalling && !Definition.IsInstalled);
         UninstallCommand = new AsyncRelayCommand(UninstallAsync, () => !IsUninstalling && Definition.IsInstalled);
         OpenWebsiteCommand = new RelayCommand(OpenWebsite, () => !string.IsNullOrEmpty(Definition.WebsiteUrl));
+
+        _localizationService.LanguageChanged += OnLanguageChanged;
+    }
+
+    private void OnLanguageChanged(object sender, EventArgs e)
+    {
+        OnPropertyChanged(nameof(InstalledStatusText));
+        OnPropertyChanged(nameof(ReinstallableStatusText));
     }
 
     public ItemDefinition Definition => _definition;
@@ -55,21 +65,31 @@ public partial class AppItemViewModel : ObservableObject, ISelectable
             if (Definition.IsInstalled != value)
             {
                 Definition.IsInstalled = value;
-                
-                // Ensure PropertyChanged is raised on the UI thread
+
                 if (System.Windows.Application.Current?.Dispatcher?.CheckAccess() == true)
                 {
                     OnPropertyChanged();
+                    OnPropertyChanged(nameof(InstalledStatusText));
                 }
                 else
                 {
-                    System.Windows.Application.Current?.Dispatcher?.BeginInvoke(() => OnPropertyChanged());
+                    System.Windows.Application.Current?.Dispatcher?.BeginInvoke(() =>
+                    {
+                        OnPropertyChanged();
+                        OnPropertyChanged(nameof(InstalledStatusText));
+                    });
                 }
             }
         }
     }
     public string Version => Definition.Version;
     public bool CanBeReinstalled => Definition.CanBeReinstalled;
+
+    public string InstalledStatusText => _localizationService.GetString(
+        IsInstalled ? "Status_Installed" : "Status_NotInstalled");
+
+    public string ReinstallableStatusText => _localizationService.GetString(
+        CanBeReinstalled ? "Status_CanReinstall" : "Status_CannotReinstall");
 
     public string ItemTypeDescription
     {

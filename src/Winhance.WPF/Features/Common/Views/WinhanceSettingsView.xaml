@@ -1,0 +1,153 @@
+<UserControl x:Class="Winhance.WPF.Features.Common.Views.WinhanceSettingsView"
+             xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
+             xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
+             xmlns:iconPacks="http://metro.mahapps.com/winfx/xaml/iconpacks"
+             xmlns:loc="clr-namespace:Winhance.WPF.Features.Common.Extensions"
+             xmlns:viewModels="clr-namespace:Winhance.WPF.Features.Common.ViewModels"
+             mc:Ignorable="d"
+             d:DataContext="{d:DesignInstance Type=viewModels:WinhanceSettingsViewModel}">
+
+    <UserControl.Resources>
+        <ResourceDictionary>
+            <ResourceDictionary.MergedDictionaries>
+                <ResourceDictionary Source="/Features/Common/Resources/Styles/ContainerStyles.xaml"/>
+                <ResourceDictionary Source="/Features/Common/Resources/Styles/ButtonStyles.xaml"/>
+                <ResourceDictionary Source="/Features/Common/Resources/Styles/ComboBoxStyles.xaml"/>
+            </ResourceDictionary.MergedDictionaries>
+        </ResourceDictionary>
+    </UserControl.Resources>
+
+    <Grid Margin="20">
+        <Grid.RowDefinitions>
+            <RowDefinition Height="Auto"/>
+            <RowDefinition Height="*"/>
+        </Grid.RowDefinitions>
+
+        <!-- Centered Header -->
+        <StackPanel Grid.Row="0" HorizontalAlignment="Center" Margin="0,0,0,30">
+            <TextBlock Text="{loc:Localize Settings_Title}"
+                       FontSize="32"
+                       FontWeight="Bold"
+                       Foreground="{DynamicResource PrimaryTextColor}"
+                       HorizontalAlignment="Center"/>
+        </StackPanel>
+
+        <!-- Centered Content -->
+        <StackPanel Grid.Row="1" HorizontalAlignment="Stretch" Margin="20,0">
+            
+            <!-- General Settings Group -->
+            <TextBlock Text="{loc:Localize Category_General}" 
+                       FontSize="14" FontWeight="SemiBold" 
+                       Foreground="{DynamicResource PrimaryTextColor}" 
+                       Margin="5,0,0,10"/>
+
+            <!-- Language Card -->
+            <Border Background="{DynamicResource SettingsItemBackground}" CornerRadius="4" Margin="0,0,0,10" Padding="15,10">
+                <Border.Effect>
+                    <DropShadowEffect ShadowDepth="1" BlurRadius="5" Opacity="0.1"/>
+                </Border.Effect>
+                <Grid>
+                    <Grid.ColumnDefinitions>
+                        <ColumnDefinition Width="*"/>
+                        <ColumnDefinition Width="Auto"/>
+                    </Grid.ColumnDefinitions>
+                    
+                    <StackPanel Orientation="Horizontal">
+                        <iconPacks:PackIconMaterial Kind="Translate" Width="20" Height="20" VerticalAlignment="Center" Foreground="{DynamicResource PrimaryTextColor}" Margin="0,0,15,0"/>
+                        <StackPanel VerticalAlignment="Center">
+                            <TextBlock Text="{loc:Localize Settings_Menu_Language}" FontWeight="SemiBold" FontSize="14" Foreground="{DynamicResource PrimaryTextColor}"/>
+                            <TextBlock Text="{loc:Localize Settings_Language_Description}" FontSize="12" Foreground="{DynamicResource SecondaryTextColor}"/>
+                        </StackPanel>
+                    </StackPanel>
+
+                    <ComboBox Grid.Column="1"
+                              Style="{StaticResource ModernComboBoxStyle}"
+                              Width="150"
+                              ItemsSource="{Binding Languages}"
+                              SelectedValue="{Binding SelectedLanguage}"
+                              DisplayMemberPath="DisplayText"
+                              SelectedValuePath="Value"/>
+                </Grid>
+            </Border>
+
+            <!-- Theme Card -->
+            <Border Background="{DynamicResource SettingsItemBackground}" CornerRadius="4" Margin="0,0,0,20" Padding="15,10">
+                <Border.Effect>
+                    <DropShadowEffect ShadowDepth="1" BlurRadius="5" Opacity="0.1"/>
+                </Border.Effect>
+                <Grid>
+                    <Grid.ColumnDefinitions>
+                        <ColumnDefinition Width="*"/>
+                        <ColumnDefinition Width="Auto"/>
+                    </Grid.ColumnDefinitions>
+
+                    <StackPanel Orientation="Horizontal">
+                        <iconPacks:PackIconMaterial Kind="ThemeLightDark" Width="20" Height="20" VerticalAlignment="Center" Foreground="{DynamicResource PrimaryTextColor}" Margin="0,0,15,0"/>
+                        <StackPanel VerticalAlignment="Center">
+                            <TextBlock Text="{loc:Localize Settings_Theme_Title}" FontWeight="SemiBold" FontSize="14" Foreground="{DynamicResource PrimaryTextColor}"/>
+                            <TextBlock Text="{loc:Localize Tooltip_ToggleTheme}" FontSize="12" Foreground="{DynamicResource SecondaryTextColor}"/>
+                        </StackPanel>
+                    </StackPanel>
+
+                    <ComboBox Grid.Column="1"
+                              Style="{StaticResource ModernComboBoxStyle}"
+                              Width="150"
+                              ItemsSource="{Binding Themes}"
+                              SelectedValue="{Binding SelectedTheme}"
+                              DisplayMemberPath="DisplayText"
+                              SelectedValuePath="Value"/>
+                </Grid>
+            </Border>
+
+            <!-- Data & Config Group -->
+            <TextBlock Text="{loc:Localize Category_Configuration}" 
+                       FontSize="14" FontWeight="SemiBold" 
+                       Foreground="{DynamicResource PrimaryTextColor}" 
+                       Margin="5,0,0,10"/>
+
+            <!-- Import/Export Card -->
+            <Border Background="{DynamicResource SettingsItemBackground}" CornerRadius="4" Margin="0,0,0,10" Padding="15,10">
+                <Border.Effect>
+                    <DropShadowEffect ShadowDepth="1" BlurRadius="5" Opacity="0.1"/>
+                </Border.Effect>
+                <Grid>
+                    <Grid.ColumnDefinitions>
+                        <ColumnDefinition Width="*"/>
+                        <ColumnDefinition Width="Auto"/>
+                    </Grid.ColumnDefinitions>
+
+                    <StackPanel Orientation="Horizontal">
+                        <iconPacks:PackIconMaterial Kind="FileCog" Width="20" Height="20" VerticalAlignment="Center" Foreground="{DynamicResource PrimaryTextColor}" Margin="0,0,15,0"/>
+                        <StackPanel VerticalAlignment="Center">
+                            <TextBlock Text="{loc:Localize Settings_BackupRestore_Title}" FontWeight="SemiBold" FontSize="14" Foreground="{DynamicResource PrimaryTextColor}"/>
+                            <TextBlock Text="{loc:Localize Settings_BackupRestore_Description}" FontSize="12" Foreground="{DynamicResource SecondaryTextColor}"/>
+                        </StackPanel>
+                    </StackPanel>
+
+                    <StackPanel Grid.Column="1" Orientation="Horizontal">
+                        <Button Command="{Binding ImportConfigCommand}"
+                                ToolTip="{loc:Localize Tooltip_ImportConfig}"
+                                Style="{StaticResource WizardActionButtonStyle}"
+                                Margin="0,0,10,0">
+                            <StackPanel Orientation="Horizontal">
+                                <iconPacks:PackIconMaterial Kind="FolderOpen" Margin="0,0,8,0" VerticalAlignment="Center"/>
+                                <TextBlock Text="{loc:Localize Button_Import}"/>
+                            </StackPanel>
+                        </Button>
+                        <Button Command="{Binding ExportConfigCommand}"
+                                ToolTip="{loc:Localize Tooltip_SaveConfiguration}"
+                                Style="{StaticResource WizardActionButtonStyle}">
+                            <StackPanel Orientation="Horizontal">
+                                <iconPacks:PackIconMaterial Kind="ContentSave" Margin="0,0,8,0" VerticalAlignment="Center"/>
+                                <TextBlock Text="{loc:Localize Button_Export}"/>
+                            </StackPanel>
+                        </Button>
+                    </StackPanel>
+                </Grid>
+            </Border>
+
+        </StackPanel>
+    </Grid>
+</UserControl>

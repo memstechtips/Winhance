@@ -30,9 +30,6 @@ namespace Winhance.Core.Features.Common.Constants
         public const string SettingPresets = "SettingPresets";
         public const string CrossGroupChildSettings = "CrossGroupChildSettings";
 
-        // Session-based properties
-        public const string RequiresRestartMessage = "RequiresRestartMessage";
-
         // Version compatibility
         public const string VersionCompatibilityMessage = "VersionCompatibilityMessage";
     }

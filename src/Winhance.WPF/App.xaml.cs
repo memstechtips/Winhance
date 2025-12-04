@@ -172,6 +172,9 @@ namespace Winhance.WPF
                 // Initialize LogService after service provider is built
                 await InitializeLoggingService();
 
+                // Initialize localization service
+                await InitializeLocalizationService();
+
                 // Set application icon
                 SetApplicationIcon();
 
@@ -355,6 +358,26 @@ namespace Winhance.WPF
             }
         }
 
+        private async Task InitializeLocalizationService()
+        {
+            try
+            {
+                var localizationService = _host.Services.GetRequiredService<ILocalizationService>();
+                var preferencesService = _host.Services.GetRequiredService<IUserPreferencesService>();
+
+                WPF.Features.Common.Services.LocalizationManager.Instance.Initialize(localizationService);
+
+                var savedLanguage = await preferencesService.GetPreferenceAsync("Language", "en");
+                localizationService.SetLanguage(savedLanguage);
+
+                LogStartupMessage($"Localization initialized with language: {savedLanguage}");
+            }
+            catch (Exception ex)
+            {
+                LogStartupError("Error initializing LocalizationService", ex);
+            }
+        }
+
         private void SetApplicationIcon()
         {
             try
@@ -374,12 +397,13 @@ namespace Winhance.WPF
             LogStartupMessage("Creating loading window");
             var themeManager = _host.Services.GetRequiredService<IThemeManager>();
             var progressService = _host.Services.GetRequiredService<ITaskProgressService>();
+            var localizationService = _host.Services.GetRequiredService<ILocalizationService>();
 
             // Ensure the IsDarkTheme resource is set
             Application.Current.Resources["IsDarkTheme"] = themeManager.IsDarkTheme;
             LogStartupMessage($"Set IsDarkTheme resource to {themeManager.IsDarkTheme}");
 
-            var loadingWindow = new LoadingWindow(themeManager, progressService);
+            var loadingWindow = new LoadingWindow(themeManager, progressService, localizationService);
             loadingWindow.Show();
             LogStartupMessage("Loading window shown");
 
@@ -511,7 +535,6 @@ namespace Winhance.WPF
         private async Task ShowUpdateDialog(IVersionService versionService, VersionInfo latestVersion)
         {
             var currentVersion = versionService.GetCurrentVersion();
-            string message = "Good News! A New Version of Winhance is available.";
 
             Func<Task> downloadAndInstallAction = async () =>
             {
@@ -520,8 +543,6 @@ namespace Winhance.WPF
             };
 
             bool installNow = await UpdateDialog.ShowAsync(
-                "Update Available",
-                message,
                 currentVersion,
                 latestVersion,
                 downloadAndInstallAction

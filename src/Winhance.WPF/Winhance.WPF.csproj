@@ -37,6 +37,11 @@
     <EmbeddedResource Include="Resources\AdvancedTools\autounattend-template.xml" />
   </ItemGroup>
   <ItemGroup>
+    <None Update="Localization\*.json">
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+    </None>
+  </ItemGroup>
+  <ItemGroup>
     <ProjectReference Include="..\Winhance.Core\Winhance.Core.csproj" />
     <ProjectReference Include="..\Winhance.Infrastructure\Winhance.Infrastructure.csproj" />
   </ItemGroup>

@@ -158,5 +158,7 @@ namespace Winhance.WPF.Features.Common.Services
         {
             themeManager.ToggleTheme();
         }
+
+        public bool IsDarkTheme => themeManager.IsDarkTheme;
     }
 }

@@ -2,7 +2,7 @@ using Winhance.Core.Features.Optimize.Models;
 
 namespace Winhance.Core.Features.Common.Models
 {
-    public record PredefinedPowerPlan(string Name, string Description, string Guid);
+    public record PredefinedPowerPlan(string Name, string Description, string LocalizationKey, string Guid);
 
     public class PowerPlanComboBoxOption
     {

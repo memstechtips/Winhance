@@ -37,6 +37,8 @@ public class MoreMenuViewModel : ObservableObject
     private readonly IEventBus _eventBus;
     private readonly IApplicationCloseService _applicationCloseService;
     private readonly IDialogService _dialogService;
+    private readonly ILocalizationService _localizationService;
+    private readonly IUserPreferencesService _preferencesService;
 
     private string _versionInfo;
 
@@ -45,13 +47,17 @@ public class MoreMenuViewModel : ObservableObject
         IVersionService versionService,
         IEventBus eventBus,
         IApplicationCloseService applicationCloseService,
-        IDialogService dialogService)
+        IDialogService dialogService,
+        ILocalizationService localizationService,
+        IUserPreferencesService preferencesService)
     {
         _logService = logService;
         _versionService = versionService;
         _eventBus = eventBus;
         _applicationCloseService = applicationCloseService;
         _dialogService = dialogService;
+        _localizationService = localizationService;
+        _preferencesService = preferencesService;
 
         _versionInfo = GetVersionInfo();
 
@@ -93,6 +99,7 @@ public class MoreMenuViewModel : ObservableObject
             },
             canExecute: () => true
         );
+
     }
 
     private string GetVersionInfo()
@@ -121,6 +128,8 @@ public class MoreMenuViewModel : ObservableObject
     public ICommand OpenScriptsCommand { get; }
 
     public ICommand CloseApplicationCommand { get; }
+
+    public ICommand ChangeLanguageCommand { get; }
 
 
     private void CloseFlyout()
@@ -151,13 +160,8 @@ public class MoreMenuViewModel : ObservableObject
 
             if (latestVersion != null && latestVersion.Version != currentVersion.Version)
             {
-                string title = "Update Available";
-                string message = "Good News! A New Version of Winhance is available.";
-
                 _logService.LogInformation("Showing update dialog");
                 await UpdateDialog.ShowAsync(
-                    title,
-                    message,
                     currentVersion,
                     latestVersion,
                     async () =>

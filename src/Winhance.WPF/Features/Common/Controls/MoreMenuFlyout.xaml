@@ -5,6 +5,7 @@
              xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
              xmlns:viewModels="clr-namespace:Winhance.WPF.Features.Common.ViewModels"
              xmlns:iconPacks="http://metro.mahapps.com/winfx/xaml/iconpacks"
+             xmlns:loc="clr-namespace:Winhance.WPF.Features.Common.Extensions"
              mc:Ignorable="d"
              d:DataContext="{d:DesignInstance Type=viewModels:MoreMenuViewModel}">
     
@@ -65,7 +66,7 @@
             Effect="{StaticResource LightShadowEffect}">
         <StackPanel>
             <!-- Version Info (non-clickable) -->
-            <Button IsEnabled="False" 
+            <Button IsEnabled="False"
                     Style="{StaticResource MenuButtonStyle}"
                     HorizontalAlignment="Stretch"
                     HorizontalContentAlignment="Left"
@@ -77,9 +78,13 @@
                     <TextBlock Text="{Binding VersionInfo}" Style="{DynamicResource VersionInfoTextStyle}"/>
                 </StackPanel>
             </Button>
-            
+
+            <!-- Separator -->
+            <Separator Style="{DynamicResource WinhanceSeparatorStyle}" Margin="0,4,0,4"/>
+
+
             <!-- Check for Updates -->
-            <Button Command="{Binding CheckForUpdatesCommand}" 
+            <Button Command="{Binding CheckForUpdatesCommand}"
                     Style="{StaticResource MenuButtonStyle}"
                     HorizontalAlignment="Stretch"
                     HorizontalContentAlignment="Left"
@@ -88,15 +93,15 @@
                     Margin="0,1">
                 <StackPanel Orientation="Horizontal">
                     <iconPacks:PackIconMaterial Kind="Download" Width="14" Height="14" VerticalAlignment="Center" Margin="0,0,12,0"/>
-                    <TextBlock Text="Check for Updates" VerticalAlignment="Center" FontSize="14"/>
+                    <TextBlock Text="{loc:Localize Menu_CheckForUpdates}" VerticalAlignment="Center" FontSize="14"/>
                 </StackPanel>
             </Button>
-            
+
             <!-- Separator -->
             <Separator Style="{DynamicResource WinhanceSeparatorStyle}" Margin="0,4,0,4"/>
-            
+
             <!-- Winhance Logs -->
-            <Button Command="{Binding OpenLogsCommand}" 
+            <Button Command="{Binding OpenLogsCommand}"
                     Style="{StaticResource MenuButtonStyle}"
                     HorizontalAlignment="Stretch"
                     HorizontalContentAlignment="Left"
@@ -105,12 +110,12 @@
                     Margin="0,1">
                 <StackPanel Orientation="Horizontal">
                     <iconPacks:PackIconMaterial Kind="FolderOpen" Width="14" Height="14" VerticalAlignment="Center" Margin="0,0,12,0"/>
-                    <TextBlock Text="Winhance Logs" VerticalAlignment="Center" FontSize="14"/>
+                    <TextBlock Text="{loc:Localize Menu_WinhanceLogs}" VerticalAlignment="Center" FontSize="14"/>
                 </StackPanel>
             </Button>
 
             <!-- Winhance Scripts -->
-            <Button Command="{Binding OpenScriptsCommand}" 
+            <Button Command="{Binding OpenScriptsCommand}"
                     Style="{StaticResource MenuButtonStyle}"
                     HorizontalAlignment="Stretch"
                     HorizontalContentAlignment="Left"
@@ -119,15 +124,15 @@
                     Margin="0,1">
                 <StackPanel Orientation="Horizontal">
                     <iconPacks:PackIconMaterial Kind="Script" Width="14" Height="14" VerticalAlignment="Center" Margin="0,0,12,0"/>
-                    <TextBlock Text="Winhance Scripts" VerticalAlignment="Center" FontSize="14"/>
+                    <TextBlock Text="{loc:Localize Menu_WinhanceScripts}" VerticalAlignment="Center" FontSize="14"/>
                 </StackPanel>
             </Button>
 
             <!-- Separator -->
             <Separator Style="{DynamicResource WinhanceSeparatorStyle}" Margin="0,4,0,4"/>
-            
+
             <!-- Close Winhance -->
-            <Button Command="{Binding CloseApplicationCommand}" 
+            <Button Command="{Binding CloseApplicationCommand}"
                     Style="{StaticResource MenuButtonStyle}"
                     HorizontalAlignment="Stretch"
                     HorizontalContentAlignment="Left"
@@ -136,7 +141,7 @@
                     Margin="0,1">
                 <StackPanel Orientation="Horizontal">
                     <iconPacks:PackIconMaterial Kind="Close" Width="12" Height="12" VerticalAlignment="Center" Margin="0,0,12,0"/>
-                    <TextBlock Text="Close Winhance" VerticalAlignment="Center" FontSize="14"/>
+                    <TextBlock Text="{loc:Localize Menu_CloseWinhance}" VerticalAlignment="Center" FontSize="14"/>
                 </StackPanel>
             </Button>
         </StackPanel>

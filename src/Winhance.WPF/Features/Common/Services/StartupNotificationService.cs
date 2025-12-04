@@ -11,13 +11,16 @@ namespace Winhance.WPF.Features.Common.Services
     {
         private readonly IUserPreferencesService _prefsService;
         private readonly ILogService _logService;
+        private readonly ILocalizationService _localizationService;
 
         public StartupNotificationService(
             IUserPreferencesService prefsService,
-            ILogService logService)
+            ILogService logService,
+            ILocalizationService localizationService)
         {
             _prefsService = prefsService;
             _logService = logService;
+            _localizationService = localizationService;
         }
 
         public async Task ShowBackupNotificationAsync(BackupResult result)
@@ -39,56 +42,56 @@ namespace Winhance.WPF.Features.Common.Services
 
             try
             {
-                var messageText = "Winhance has protected your system with backups.\n\n";
+                var messageText = _localizationService.GetString("Startup_Backup_Intro") + "\n\n";
 
                 if (result.SystemRestoreWasDisabled)
                 {
-                    messageText += "System Restore was disabled and is now enabled.\n\n";
+                    messageText += _localizationService.GetString("Startup_Backup_RestoreEnabled") + "\n\n";
                 }
 
-                messageText += "Created:\n";
+                messageText += _localizationService.GetString("Startup_Backup_Created") + "\n";
 
                 if (result.RegistryBackupCreated)
                 {
-                    messageText += $"• Registry backups ({result.RegistryBackupPaths.Count} hives) at:\n";
-                    messageText += "  C:\\ProgramData\\Winhance\\Backups\n";
+                    messageText += _localizationService.GetString("Startup_Backup_RegistryBackups", result.RegistryBackupPaths.Count) + "\n";
+                    messageText += _localizationService.GetString("Startup_Backup_RegistryPath") + "\n";
                 }
 
                 if (result.RestorePointCreated)
                 {
-                    messageText += "• System Restore Point: 'Winhance Initial Restore Point'\n";
+                    messageText += _localizationService.GetString("Startup_Backup_RestorePoint") + "\n";
                 }
 
                 messageText += "\n";
 
                 if (result.RestorePointCreated && result.RegistryBackupCreated)
                 {
-                    messageText += "To restore:\n";
-                    messageText += "• System: Open 'Create a restore point' in Settings > System Restore\n";
-                    messageText += "• Registry: Double-click .reg files in the backup folder\n\n";
+                    messageText += _localizationService.GetString("Startup_Backup_ToRestore") + "\n";
+                    messageText += _localizationService.GetString("Startup_Backup_RestoreInstructions_System") + "\n";
+                    messageText += _localizationService.GetString("Startup_Backup_RestoreInstructions_Registry") + "\n\n";
                 }
                 else if (result.RestorePointCreated)
                 {
-                    messageText += "To restore: Search 'restore point' in Windows Settings\n\n";
+                    messageText += _localizationService.GetString("Startup_Backup_RestoreInstructions_RestoreOnly") + "\n\n";
                 }
                 else if (result.RegistryBackupCreated)
                 {
-                    messageText += "To restore: Double-click .reg files in the backup folder\n\n";
+                    messageText += _localizationService.GetString("Startup_Backup_RestoreInstructions_RegistryOnly") + "\n\n";
                 }
 
-                messageText += "Note: System Restore won't restore removed apps.\n";
-                messageText += "Registry backups are one-time and require admin rights.";
+                messageText += _localizationService.GetString("Startup_Backup_Note") + "\n";
+                messageText += _localizationService.GetString("Startup_Backup_Note_AdminRights");
 
                 var checkboxText = result.RestorePointCreated
-                    ? "Don't create restore points in the future"
-                    : "Don't show this again";
+                    ? _localizationService.GetString("Startup_Backup_Checkbox_DontCreate")
+                    : _localizationService.GetString("Startup_Backup_Checkbox_DontShow");
 
                 var checkboxChecked = CustomDialog.ShowInformationWithCheckbox(
-                    "System Protection Enabled",
-                    "Winhance Backup",
+                    _localizationService.GetString("Startup_Backup_Title"),
+                    _localizationService.GetString("Startup_Backup_SubTitle"),
                     messageText,
                     checkboxText,
-                    "OK",
+                    _localizationService.GetString("Button_OK"),
                     DialogType.Information,
                     titleBarIcon: "Shield"
                 );
@@ -120,25 +123,25 @@ namespace Winhance.WPF.Features.Common.Services
 
             try
             {
-                var messageText = "Winhance has updated the location of Windows App removal scripts.\n\n";
+                var messageText = _localizationService.GetString("Startup_Migration_Intro") + "\n\n";
 
-                messageText += "What changed:\n";
-                messageText += "• Old location: %LOCALAPPDATA%\\Winhance\\Scripts\n";
-                messageText += "• New location: C:\\ProgramData\\Winhance\\Scripts\n";
-                messageText += $"• Removed {result.TasksDeleted} old scheduled task(s)\n";
-                messageText += $"• Renamed {result.ScriptsRenamed} old script(s) to .old\n\n";
+                messageText += _localizationService.GetString("Startup_Migration_WhatChanged") + "\n";
+                messageText += _localizationService.GetString("Startup_Migration_OldLocation") + "\n";
+                messageText += _localizationService.GetString("Startup_Migration_NewLocation") + "\n";
+                messageText += _localizationService.GetString("Startup_Migration_TasksDeleted", result.TasksDeleted) + "\n";
+                messageText += _localizationService.GetString("Startup_Migration_ScriptsRenamed", result.ScriptsRenamed) + "\n\n";
 
-                messageText += "Important Information:\n";
-                messageText += "• Windows apps you previously removed will stay removed\n";
-                messageText += "• Microsoft may reinstall some apps via Windows Updates\n\n";
+                messageText += _localizationService.GetString("Startup_Migration_ImportantInfo") + "\n";
+                messageText += _localizationService.GetString("Startup_Migration_AppsStayRemoved") + "\n";
+                messageText += _localizationService.GetString("Startup_Migration_MayReinstall") + "\n\n";
 
-                messageText += "We recommend that you re-run app removal using the new version of Winhance as the new scripts are more reliable and work better.";
+                messageText += _localizationService.GetString("Startup_Migration_Recommendation");
 
                 CustomDialog.ShowInformation(
-                    "Script Location Updated",
-                    "Winhance Migration",
+                    _localizationService.GetString("Startup_Migration_Title"),
+                    _localizationService.GetString("Startup_Migration_SubTitle"),
                     messageText,
-                    "This notification will only appear once"
+                    _localizationService.GetString("Startup_Migration_OneTime")
                 );
 
                 _logService.Log(LogLevel.Info, "Migration notification shown to user");

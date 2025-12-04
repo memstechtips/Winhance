@@ -23,6 +23,7 @@ namespace Winhance.Infrastructure.Features.AdvancedTools.Services
         private readonly ILogService _logService;
         private readonly HttpClient _httpClient;
         private readonly IWinGetService _winGetService;
+        private readonly ILocalizationService _localization;
 
         private static readonly string[] AdkDownloadSources = new[]
         {
@@ -36,12 +37,14 @@ namespace Winhance.Infrastructure.Features.AdvancedTools.Services
             IPowerShellExecutionService powerShellService,
             ILogService logService,
             HttpClient httpClient,
-            IWinGetService winGetService)
+            IWinGetService winGetService,
+            ILocalizationService localization)
         {
             _powerShellService = powerShellService;
             _logService = logService;
             _httpClient = httpClient;
             _winGetService = winGetService;
+            _localization = localization;
         }
 
         public string GetOscdimgPath()
@@ -245,7 +248,7 @@ catch {{
 
                 progress?.Report(new TaskProgressDetail
                 {
-                    StatusText = $"Converting {currentInfo.Format} to {targetFormat}...",
+                    StatusText = _localization.GetString("Progress_ConvertingFormat", currentInfo.Format.ToString(), targetFormat.ToString()),
                     TerminalOutput = "This may take 10-20 minutes"
                 });
 
@@ -260,7 +263,7 @@ catch {{
                 {
                     progress?.Report(new TaskProgressDetail
                     {
-                        StatusText = $"Converting edition {i} of {imageCount}...",
+                        StatusText = _localization.GetString("Progress_ConvertingEdition", i.ToString(), imageCount.ToString()),
                         TerminalOutput = currentInfo.EditionNames.Count >= i
                             ? currentInfo.EditionNames[i - 1]
                             : $"Index {i}"
@@ -314,7 +317,7 @@ catch {{
 
                 progress?.Report(new TaskProgressDetail
                 {
-                    StatusText = "Removing old image file...",
+                    StatusText = _localization.GetString("Progress_RemovingOldFile"),
                     TerminalOutput = $"Deleting {Path.GetFileName(sourceFile)}"
                 });
 
@@ -346,7 +349,7 @@ catch {{
                     _logService.LogError($"Failed to delete source file after 5 attempts: {sourceFile}");
                     progress?.Report(new TaskProgressDetail
                     {
-                        StatusText = "Warning: Could not delete old file",
+                        StatusText = _localization.GetString("Progress_WarningCouldNotDeleteFile"),
                         TerminalOutput = $"Please manually delete: {Path.GetFileName(sourceFile)}"
                     });
                 }
@@ -359,7 +362,7 @@ catch {{
 
                 progress?.Report(new TaskProgressDetail
                 {
-                    StatusText = "Conversion completed successfully",
+                    StatusText = _localization.GetString("Progress_ConversionCompleted"),
                     TerminalOutput = $"New size: {targetFileInfo.Length / (1024.0 * 1024 * 1024):F2} GB\n{savedSpace}"
                 });
 
@@ -410,7 +413,7 @@ catch {{
 
                 progress?.Report(new TaskProgressDetail
                 {
-                    StatusText = "Conversion failed",
+                    StatusText = _localization.GetString("Progress_ConversionFailed"),
                     TerminalOutput = ex.Message
                 });
                 return false;
@@ -442,7 +445,7 @@ catch {{
 
             progress?.Report(new TaskProgressDetail
             {
-                StatusText = "Preparing to install Windows ADK...",
+                StatusText = _localization.GetString("Progress_PreparingInstallAdk"),
                 TerminalOutput = "Checking installation methods"
             });
 
@@ -474,7 +477,7 @@ catch {{
                 {
                     progress?.Report(new TaskProgressDetail
                     {
-                        StatusText = "Downloading Windows ADK installer...",
+                        StatusText = _localization.GetString("Progress_DownloadingAdkInstaller"),
                         TerminalOutput = $"Source: {sourceUrl}"
                     });
 
@@ -512,7 +515,7 @@ catch {{
 
                 progress?.Report(new TaskProgressDetail
                 {
-                    StatusText = "Installing Windows ADK Deployment Tools...",
+                    StatusText = _localization.GetString("Progress_InstallingAdkTools"),
                     TerminalOutput = "This may take several minutes"
                 });
 
@@ -589,7 +592,7 @@ catch {{
             {
                 progress?.Report(new TaskProgressDetail
                 {
-                    StatusText = "Checking for winget...",
+                    StatusText = _localization.GetString("Progress_CheckingWinget"),
                     TerminalOutput = "Verifying winget availability"
                 });
 
@@ -599,7 +602,7 @@ catch {{
                 {
                     progress?.Report(new TaskProgressDetail
                     {
-                        StatusText = "Installing winget...",
+                        StatusText = _localization.GetString("Progress_InstallingWinget"),
                         TerminalOutput = "winget is required for this installation method"
                     });
 
@@ -613,7 +616,7 @@ catch {{
 
                 progress?.Report(new TaskProgressDetail
                 {
-                    StatusText = "Installing Windows ADK via winget...",
+                    StatusText = _localization.GetString("Progress_InstallingAdkViaWinget"),
                     TerminalOutput = "This may take several minutes"
                 });
 
@@ -821,7 +824,7 @@ catch {{
 
                 progress?.Report(new TaskProgressDetail
                 {
-                    StatusText = "Mounting ISO...",
+                    StatusText = _localization.GetString("Progress_MountingIso"),
                     TerminalOutput = $"ISO: {isoPath}"
                 });
 
@@ -856,7 +859,7 @@ catch {{
 
                 progress?.Report(new TaskProgressDetail
                 {
-                    StatusText = "Copying ISO contents...",
+                    StatusText = _localization.GetString("Progress_CopyingIsoContents"),
                     TerminalOutput = $"Source: {mountedPath}"
                 });
 
@@ -864,7 +867,7 @@ catch {{
 
                 progress?.Report(new TaskProgressDetail
                 {
-                    StatusText = "Dismounting ISO...",
+                    StatusText = _localization.GetString("Progress_DismountingIso"),
                     TerminalOutput = "Cleaning up..."
                 });
 
@@ -905,7 +908,7 @@ catch {{
 
                 progress?.Report(new TaskProgressDetail
                 {
-                    StatusText = "ISO extraction completed successfully",
+                    StatusText = _localization.GetString("Progress_IsoExtractionCompleted"),
                     TerminalOutput = $"Extracted to: {workingDirectory}"
                 });
 
@@ -981,7 +984,7 @@ catch {{
 
                 progress?.Report(new TaskProgressDetail
                 {
-                    StatusText = "ISO extraction failed",
+                    StatusText = _localization.GetString("Progress_IsoExtractionFailed"),
                     TerminalOutput = ex.Message
                 });
                 return false;
@@ -1004,7 +1007,7 @@ catch {{
                 var targetFilePath = Path.Combine(destDir, file.Name);
                 progress?.Report(new TaskProgressDetail
                 {
-                    StatusText = $"Copying: {file.Name}",
+                    StatusText = _localization.GetString("Progress_CopyingFile", file.Name),
                     TerminalOutput = file.Name
                 });
                 file.CopyTo(targetFilePath, overwrite: true);
@@ -1059,7 +1062,7 @@ catch {{
             {
                 progress?.Report(new TaskProgressDetail
                 {
-                    StatusText = "Downloading latest UnattendedWinstall XML...",
+                    StatusText = _localization.GetString("Progress_DownloadingXml"),
                     TerminalOutput = UnattendedWinstallXmlUrl
                 });
 
@@ -1070,7 +1073,7 @@ catch {{
 
                 progress?.Report(new TaskProgressDetail
                 {
-                    StatusText = "XML downloaded successfully",
+                    StatusText = _localization.GetString("Progress_XmlDownloaded"),
                     TerminalOutput = $"Saved to: {destinationPath}"
                 });
 
@@ -1098,7 +1101,7 @@ catch {{
                 {
                     progress?.Report(new TaskProgressDetail
                     {
-                        StatusText = "Exporting drivers from system...",
+                        StatusText = _localization.GetString("Progress_ExportingDrivers"),
                         TerminalOutput = "This may take several minutes"
                     });
 
@@ -1142,7 +1145,7 @@ catch {{
                 {
                     progress?.Report(new TaskProgressDetail
                     {
-                        StatusText = "Validating driver files...",
+                        StatusText = _localization.GetString("Progress_ValidatingDrivers"),
                         TerminalOutput = driverSourcePath
                     });
 
@@ -1157,7 +1160,7 @@ catch {{
 
                 progress?.Report(new TaskProgressDetail
                 {
-                    StatusText = "Categorizing drivers...",
+                    StatusText = _localization.GetString("Progress_CategorizingDrivers"),
                     TerminalOutput = "Separating storage and post-install drivers"
                 });
 
@@ -1194,7 +1197,7 @@ catch {{
 
                 progress?.Report(new TaskProgressDetail
                 {
-                    StatusText = "Creating driver installation script...",
+                    StatusText = _localization.GetString("Progress_CreatingDriverScript"),
                     TerminalOutput = "Setting up SetupComplete.cmd"
                 });
 
@@ -1208,7 +1211,7 @@ catch {{
                 _logService.LogError($"Error adding drivers: {ex.Message}", ex);
                 progress?.Report(new TaskProgressDetail
                 {
-                    StatusText = "Driver addition failed",
+                    StatusText = _localization.GetString("Progress_DriverAdditionFailed"),
                     TerminalOutput = ex.Message
                 });
                 return false;
@@ -1281,7 +1284,7 @@ exit
 
                 progress?.Report(new TaskProgressDetail
                 {
-                    StatusText = "Creating bootable ISO...",
+                    StatusText = _localization.GetString("Progress_CreatingBootableIso"),
                     TerminalOutput = $"Output: {outputPath}"
                 });
 
@@ -1359,7 +1362,7 @@ catch {{
 
                 progress?.Report(new TaskProgressDetail
                 {
-                    StatusText = "ISO created successfully!",
+                    StatusText = _localization.GetString("Progress_IsoCreatedSuccess"),
                     TerminalOutput = $"Location: {outputPath}\nSize: {isoFileInfo.Length / (1024 * 1024):F2} MB"
                 });
 
@@ -1379,7 +1382,7 @@ catch {{
                 _logService.LogError($"Error creating ISO: {ex.Message}", ex);
                 progress?.Report(new TaskProgressDetail
                 {
-                    StatusText = "ISO creation failed",
+                    StatusText = _localization.GetString("Progress_IsoCreationFailed"),
                     TerminalOutput = ex.Message
                 });
                 return false;

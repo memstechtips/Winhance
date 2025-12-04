@@ -30,8 +30,9 @@ namespace Winhance.WPF.Features.SoftwareApps.ViewModels
         IAppOperationService appOperationService,
         IConfigurationService configurationService,
         IDialogService dialogService,
-        IInternetConnectivityService connectivityService)
-        : BaseAppFeatureViewModel<AppItemViewModel>(progressService, logService, eventBus, dialogService, connectivityService)
+        IInternetConnectivityService connectivityService,
+        ILocalizationService localizationService)
+        : BaseAppFeatureViewModel<AppItemViewModel>(progressService, logService, eventBus, dialogService, connectivityService, localizationService)
     {
         private System.Threading.Timer? _refreshTimer;
         private CancellationTokenSource? _refreshCts;
@@ -117,7 +118,8 @@ namespace Winhance.WPF.Features.SoftwareApps.ViewModels
                     foreach (var group in appsByCategory)
                     {
                         var categoryApps = new ObservableCollection<AppItemViewModel>(group);
-                        var categoryViewModel = new ExternalAppsCategoryViewModel(group.Key, categoryApps);
+                        var localizedCategoryName = LocalizeCategoryName(group.Key);
+                        var categoryViewModel = new ExternalAppsCategoryViewModel(group.Key, categoryApps, localizedCategoryName);
                         categories.Add(categoryViewModel);
                     }
 
@@ -193,7 +195,18 @@ namespace Winhance.WPF.Features.SoftwareApps.ViewModels
             }, TaskScheduler.Default);
         }
 
-
+        private string LocalizeCategoryName(string englishCategory)
+        {
+            var keyName = englishCategory
+                .Replace(" ", "")
+                .Replace("&", "")
+                .Replace("(", "")
+                .Replace(")", "")
+                .Replace("/", "")
+                .Replace(",", "");
+            var key = $"ExternalApps_Category_{keyName}";
+            return localizationService.GetString(key);
+        }
 
         [RelayCommand]
         public async Task InstallApps(bool skipConfirmation = false)
@@ -213,7 +226,7 @@ namespace Winhance.WPF.Features.SoftwareApps.ViewModels
             {
                 await ExecuteWithProgressAsync(
                     progressService => ExecuteInstallOperation(selectedApps.ToList(), progressService.CreateDetailedProgress(), skipResultDialog: skipConfirmation),
-                    "Installing External Apps"
+                    localizationService.GetString("Progress_Task_InstallingExternalApps")
                 );
             }
             catch (OperationCanceledException)
@@ -239,7 +252,7 @@ namespace Winhance.WPF.Features.SoftwareApps.ViewModels
             {
                 await ExecuteWithProgressAsync(
                     progressService => ExecuteRemoveOperation(selectedItems, progressService.CreateDetailedProgress(), skipResultDialog: skipConfirmation),
-                    "Uninstalling External Apps"
+                    localizationService.GetString("Progress_Task_UninstallingExternalApps")
                 );
             }
             catch (OperationCanceledException)
@@ -264,7 +277,8 @@ namespace Winhance.WPF.Features.SoftwareApps.ViewModels
                         itemDef,
                         appOperationService,
                         dialogService,
-                        logService);
+                        logService,
+                        localizationService);
                     Items.Add(viewModel);
                     viewModel.PropertyChanged += Item_PropertyChanged;
                 }
@@ -297,7 +311,7 @@ namespace Winhance.WPF.Features.SoftwareApps.ViewModels
             if (showLoadingOverlay)
             {
                 IsLoading = true;
-                StatusText = "Checking installation status...";
+                StatusText = localizationService.GetString("Progress_CheckingInstallStatus");
             }
 
             try
@@ -360,12 +374,12 @@ namespace Winhance.WPF.Features.SoftwareApps.ViewModels
         {
             if (!IsInitialized)
             {
-                StatusText = "Please wait for initial load to complete";
+                StatusText = localizationService.GetString("Progress_WaitForInitialLoad");
                 return;
             }
 
             IsLoading = true;
-            StatusText = "Refreshing installation status...";
+            StatusText = localizationService.GetString("Progress_RefreshingStatus");
 
             try
             {

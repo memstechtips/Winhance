@@ -208,10 +208,11 @@
                                     HorizontalAlignment="Left"
                                     VerticalAlignment="Center">
                             <iconPacks:PackIconMaterial Kind="Download"
-                                                    Margin="5,0,5,0"
+                                                    Margin="4,0,4,0"
                                                     VerticalAlignment="Center"
                                                     Foreground="{TemplateBinding Foreground}"/>
                             <TextBlock Text="{TemplateBinding Content}"
+                                      Margin="0,0,5,0"
                                       VerticalAlignment="Center"
                                       Foreground="{TemplateBinding Foreground}"/>
                         </StackPanel>
@@ -249,10 +250,11 @@
                                     HorizontalAlignment="Left"
                                     VerticalAlignment="Center">
                             <iconPacks:PackIconMaterial Kind="Delete"
-                                                    Margin="5,0,5,0"
+                                                    Margin="4,0,4,0"
                                                     VerticalAlignment="Center"
                                                     Foreground="{TemplateBinding Foreground}"/>
                             <TextBlock Text="{TemplateBinding Content}"
+                                      Margin="0,0,5,0"
                                       VerticalAlignment="Center"
                                       Foreground="{TemplateBinding Foreground}"/>
                         </StackPanel>
@@ -289,10 +291,11 @@
                                     HorizontalAlignment="Center"
                                     VerticalAlignment="Center">
                             <iconPacks:PackIconMaterial Kind="Refresh"
-                                                    Margin="5,0,5,0"
+                                                    Margin="4,0,4,0"
                                                     VerticalAlignment="Center"
                                                     Foreground="{TemplateBinding Foreground}"/>
                             <TextBlock Text="{TemplateBinding Content}"
+                                      Margin="0,0,5,0"
                                       VerticalAlignment="Center"
                                       Foreground="{TemplateBinding Foreground}"/>
                         </StackPanel>
@@ -329,10 +332,11 @@
                                     HorizontalAlignment="Left"
                                     VerticalAlignment="Center">
                             <iconPacks:PackIconMaterial Kind="Help"
-                                                    Margin="5,0,5,0"
+                                                    Margin="4,0,4,0"
                                                     VerticalAlignment="Center"
                                                     Foreground="{TemplateBinding Foreground}"/>
                             <TextBlock Text="{TemplateBinding Content}"
+                                      Margin="0,0,5,0"
                                       VerticalAlignment="Center"
                                       Foreground="{TemplateBinding Foreground}"/>
                         </StackPanel>

@@ -6,6 +6,7 @@
              xmlns:viewModels="clr-namespace:Winhance.WPF.Features.Optimize.ViewModels"
              xmlns:commonControls="clr-namespace:Winhance.WPF.Features.Common.Controls"
              xmlns:iconPacks="http://metro.mahapps.com/winfx/xaml/iconpacks"
+             xmlns:loc="clr-namespace:Winhance.WPF.Features.Common.Extensions"
              d:DataContext="{d:DesignInstance Type=viewModels:OptimizeViewModel}"
              mc:Ignorable="d">
 
@@ -44,7 +45,7 @@
                                    FontSize="32"
                                    FontWeight="Bold"
                                    Foreground="{DynamicResource PrimaryTextColor}"
-                                   Text="Optimizations"/>
+                                   Text="{loc:Localize Category_Optimize_Title}"/>
 
                         <StackPanel Orientation="Horizontal"
                                     Margin="0,5,0,0">
@@ -53,7 +54,7 @@
                                        FontFamily="Helvetica Neue"
                                        FontSize="14"
                                        Foreground="{DynamicResource SubTextColor}"
-                                       Text="{Binding StatusText}"/>
+                                       Text="{loc:Localize Category_Optimize_StatusText}"/>
 
                             <commonControls:QuickNavControl/>
                         </StackPanel>
@@ -108,7 +109,7 @@
                                TextWrapping="Wrap"
                                FontSize="16"
                                Foreground="{DynamicResource SubTextColor}"
-                               Text="No settings found matching your search. Try different keywords."
+                               Text="{loc:Localize Common_NoSearchResults}"
                                Visibility="{Binding HasSearchResults, Converter={StaticResource InverseBooleanToVisibilityConverter}}"/>
                 </Grid>
             </commonControls:ResponsiveScrollViewer>

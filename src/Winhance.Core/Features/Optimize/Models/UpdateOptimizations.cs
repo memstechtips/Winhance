@@ -383,7 +383,7 @@ public static class UpdateOptimizations
                             "Windows Default",
                             "Devices on LAN Only",
                             "Devices on LAN and Internet",
-                            "Disabled",
+                            "ServiceOption_Disabled",
                         },
                         [CustomPropertyKeys.ValueMappings] = new Dictionary<int, Dictionary<string, object?>>
                         {

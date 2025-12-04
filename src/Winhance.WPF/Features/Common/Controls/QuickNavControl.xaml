@@ -31,7 +31,7 @@
                                 Margin="2"
                                 Padding="2"
                                 Cursor="Hand"
-                                ToolTip="{Binding DisplayName}">
+                                ToolTip="{Binding ViewModel.DisplayName}">
                         <Button.Style>
                             <Style TargetType="Button">
                                 <Setter Property="Background" Value="Transparent" />

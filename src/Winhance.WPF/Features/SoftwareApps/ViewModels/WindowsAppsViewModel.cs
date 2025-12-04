@@ -34,8 +34,9 @@ namespace Winhance.WPF.Features.SoftwareApps.ViewModels
         IConfigurationService configurationService,
         IScriptDetectionService scriptDetectionService,
         IInternetConnectivityService connectivityService,
-        IDialogService dialogService)
-        : BaseAppFeatureViewModel<AppItemViewModel>(progressService, logService, eventBus, dialogService, connectivityService)
+        IDialogService dialogService,
+        ILocalizationService localizationService)
+        : BaseAppFeatureViewModel<AppItemViewModel>(progressService, logService, eventBus, dialogService, connectivityService, localizationService)
     {
         private System.Threading.Timer? _refreshTimer;
         private CancellationTokenSource? _refreshCts;
@@ -269,7 +270,7 @@ namespace Winhance.WPF.Features.SoftwareApps.ViewModels
             if (showLoadingOverlay)
             {
                 IsLoading = true;
-                StatusText = "Checking installation status...";
+                StatusText = localizationService.GetString("Progress_CheckingInstallStatus");
             }
 
             try
@@ -328,7 +329,7 @@ namespace Winhance.WPF.Features.SoftwareApps.ViewModels
             {
                 await ExecuteWithProgressAsync(
                     progressService => ExecuteInstallOperation(selectedItems, progressService.CreateDetailedProgress()),
-                    "Installing Windows Apps"
+                    localizationService.GetString("Progress_Task_InstallingWindowsApps")
                 );
             }
             catch (OperationCanceledException)
@@ -343,12 +344,12 @@ namespace Winhance.WPF.Features.SoftwareApps.ViewModels
         {
             if (!IsInitialized)
             {
-                StatusText = "Please wait for initial load to complete";
+                StatusText = localizationService.GetString("Progress_WaitForInitialLoad");
                 return;
             }
 
             IsLoading = true;
-            StatusText = "Refreshing installation status...";
+            StatusText = localizationService.GetString("Progress_RefreshingStatus");
 
             try
             {
@@ -383,7 +384,7 @@ namespace Winhance.WPF.Features.SoftwareApps.ViewModels
             {
                 await ExecuteWithProgressAsync(
                     progressService => ExecuteRemoveOperation(selectedItems, progressService.CreateDetailedProgress(), skipResultDialog: skipConfirmation),
-                    "Removing Windows Apps"
+                    localizationService.GetString("Progress_Task_RemovingWindowsApps")
                 );
             }
             catch (OperationCanceledException)
@@ -727,7 +728,8 @@ namespace Winhance.WPF.Features.SoftwareApps.ViewModels
                     app,
                     appOperationService,
                     dialogService,
-                    logService);
+                    logService,
+                    localizationService);
                 Items.Add(viewModel);
                 viewModel.PropertyChanged += Item_PropertyChanged;
             }
@@ -738,7 +740,8 @@ namespace Winhance.WPF.Features.SoftwareApps.ViewModels
                     capability,
                     appOperationService,
                     dialogService,
-                    logService);
+                    logService,
+                    localizationService);
                 Items.Add(viewModel);
                 viewModel.PropertyChanged += Item_PropertyChanged;
             }
@@ -749,7 +752,8 @@ namespace Winhance.WPF.Features.SoftwareApps.ViewModels
                     feature,
                     appOperationService,
                     dialogService,
-                    logService);
+                    logService,
+                    localizationService);
                 Items.Add(viewModel);
                 viewModel.PropertyChanged += Item_PropertyChanged;
             }

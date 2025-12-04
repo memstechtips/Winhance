@@ -21,19 +21,21 @@ namespace Winhance.WPF.Features.Optimize.ViewModels
         IDomainServiceRouter domainServiceRouter,
         ISettingsLoadingService settingsLoadingService,
         ILogService logService,
+        ILocalizationService localizationService,
         IEventBus eventBus,
         IPowerPlanComboBoxService powerPlanComboBoxService,
         IComboBoxResolver comboBoxResolver,
         IHardwareDetectionService hardwareDetectionService,
         IPowerCfgQueryService powerCfgQueryService)
-        : BaseSettingsFeatureViewModel(domainServiceRouter, settingsLoadingService, logService)
+        : BaseSettingsFeatureViewModel(domainServiceRouter, settingsLoadingService, logService, localizationService)
     {
         private ISubscriptionToken? _powerPlanChangedSubscription;
 
         public ICommand DeletePowerPlanCommand => new RelayCommand<PowerPlanComboBoxOption>(async plan => await DeletePowerPlan(plan));
 
         public override string ModuleId => FeatureIds.Power;
-        public override string DisplayName => "Power";
+
+        protected override string GetDisplayNameKey() => "Feature_Power_Name";
 
         public override async Task LoadSettingsAsync()
         {
@@ -209,9 +211,15 @@ namespace Winhance.WPF.Features.Optimize.ViewModels
                         powerPlanSetting.ComboBoxOptions.Clear();
                         for (int i = 0; i < options.Count; i++)
                         {
+                            var displayName = options[i].DisplayName;
+                            if (displayName.StartsWith("PowerPlan_"))
+                            {
+                                displayName = localizationService.GetString(displayName);
+                            }
+
                             powerPlanSetting.ComboBoxOptions.Add(new Winhance.Core.Features.Common.Interfaces.ComboBoxOption
                             {
-                                DisplayText = options[i].DisplayName,
+                                DisplayText = displayName,
                                 Value = options[i].Index,
                                 Description = options[i].ExistsOnSystem ? "Installed on system" : "Not installed",
                                 Tag = options[i]

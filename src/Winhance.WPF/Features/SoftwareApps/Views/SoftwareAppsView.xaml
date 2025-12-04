@@ -7,6 +7,7 @@
              xmlns:views="clr-namespace:Winhance.WPF.Features.SoftwareApps.Views"
              xmlns:commonControls="clr-namespace:Winhance.WPF.Features.Common.Controls"
              xmlns:iconPacks="http://metro.mahapps.com/winfx/xaml/iconpacks"
+             xmlns:loc="clr-namespace:Winhance.WPF.Features.Common.Extensions"
              d:DataContext="{d:DesignInstance Type=viewModels:SoftwareAppsViewModel}"
              mc:Ignorable="d">
 
@@ -75,7 +76,7 @@
                                    FontSize="32"
                                    FontWeight="Bold"
                                    Foreground="{DynamicResource PrimaryTextColor}"
-                                   Text="Software &amp; Apps" />
+                                   Text="{loc:Localize Category_SoftwareApps_Title}" />
 
                         <StackPanel Orientation="Horizontal"
                                     Margin="0,5,0,0">
@@ -84,7 +85,7 @@
                                        FontFamily="Helvetica Neue"
                                        FontSize="14"
                                        Foreground="{DynamicResource SubTextColor}"
-                                       Text="{Binding StatusText}" />
+                                       Text="{loc:Localize Category_SoftwareApps_StatusText}" />
                         </StackPanel>
                     </StackPanel>
 
@@ -105,8 +106,9 @@
                                     VerticalAlignment="Center">
                             <!-- Install Selected Items Button -->
                             <Button Style="{StaticResource InstallAppsButtonStyle}"
-                                    Content="Install Selected Items"
-                                    Width="180"
+                                    Content="{loc:Localize SoftwareApps_Button_InstallSelected}"
+                                    MinWidth="180"
+                                    Width="Auto"
                                     Height="35"
                                     Margin="0,0,5,1"
                                     Command="{Binding InstallSelectedItemsCommand}"
@@ -122,7 +124,8 @@
                             <!-- Remove Selected Items Button -->
                             <Button Style="{StaticResource RemoveAppsButtonStyle}"
                                     Content="{Binding RemoveButtonText}"
-                                    Width="180"
+                                    MinWidth="180"
+                                    Width="Auto"
                                     Height="35"
                                     Margin="0,0,5,1"
                                     Command="{Binding RemoveSelectedItemsCommand}"
@@ -137,13 +140,14 @@
 
                             <!-- Refresh Button -->
                             <Button Style="{StaticResource RefreshButtonStyle}"
-                                    Content="Refresh"
-                                    Width="90"
+                                    Content="{loc:Localize Button_Refresh}"
+                                    MinWidth="90"
+                                    Width="Auto"
                                     Height="35"
                                     Margin="0,0,5,1"
                                     Command="{Binding RefreshInstallationStatusCommand}">
                                 <Button.ToolTip>
-                                    <TextBlock Text="Refresh installation status" />
+                                    <TextBlock Text="{loc:Localize Tooltip_RefreshInstallationStatus}" />
                                 </Button.ToolTip>
                             </Button>
 
@@ -156,8 +160,9 @@
 
                             <!-- Help Button -->
                             <Button x:Name="HelpButton"
-                                    Content="Help"
-                                    Width="60"
+                                    Content="{loc:Localize Button_Help}"
+                                    MinWidth="60"
+                                    Width="Auto"
                                     Height="35"
                                     Margin="0,0,0,1"
                                     Command="{Binding ShowHelpCommand}"
@@ -285,7 +290,7 @@
                                                     Margin="5,0,0,0"
                                                     VerticalAlignment="Center"
                                                     Foreground="{DynamicResource PrimaryTextColor}" />
-                                            <TextBlock Text="Windows Apps &amp; Features"
+                                            <TextBlock Text="{loc:Localize SoftwareApps_Tab_WindowsApps}"
                                                     Style="{StaticResource AppSectionHeaderTextStyle}"
                                                     Margin="0,0,5,0" />
                                         </DockPanel>
@@ -379,7 +384,7 @@
                                                                      Margin="5,0,0,0"
                                                                      VerticalAlignment="Center"
                                                                      Foreground="{DynamicResource PrimaryTextColor}" />
-                                            <TextBlock Text="External Software"
+                                            <TextBlock Text="{loc:Localize SoftwareApps_Tab_ExternalApps}"
                                                     Style="{StaticResource AppSectionHeaderTextStyle}"
                                                     Margin="0,0,5,0" />
                                         </DockPanel>
