@@ -16,6 +16,8 @@
         xmlns:iconPacks="http://metro.mahapps.com/winfx/xaml/iconpacks"
         xmlns:utilities="clr-namespace:Winhance.WPF.Features.Common.Utilities"
         Title="Winhance"
+        MinWidth="800"
+        MinHeight="500"
         Background="Transparent"
         WindowStartupLocation="CenterScreen"
         ResizeMode="CanResize"

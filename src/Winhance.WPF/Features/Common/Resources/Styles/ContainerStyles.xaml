@@ -141,9 +141,9 @@
                     </Grid.ColumnDefinitions>
 
                     <!-- Setting Text and Description (Left-aligned) with Icon -->
-                    <StackPanel Grid.Column="0" HorizontalAlignment="Left" VerticalAlignment="Center" Orientation="Horizontal" Margin="15,7,0,7">
+                    <DockPanel Grid.Column="0" VerticalAlignment="Center" HorizontalAlignment="Stretch" Margin="15,7,0,7">
                         <!-- Setting Icon -->
-                        <ContentControl VerticalAlignment="Center" Margin="0,0,15,0"
+                        <ContentControl DockPanel.Dock="Left" VerticalAlignment="Center" Margin="0,0,15,0"
                                         Visibility="{Binding Icon, Converter={StaticResource InverseNullToVisibilityConverter}}">
                             <ContentControl.Content>
                                 <MultiBinding Converter="{StaticResource IconPackConverter}">
@@ -167,7 +167,7 @@
                         <!-- Setting Name and Description -->
                         <StackPanel>
                             <TextBlock Text="{Binding Name}" FontWeight="SemiBold" FontSize="14" Foreground="{DynamicResource PrimaryTextColor}" VerticalAlignment="Center" TextWrapping="Wrap"/>
-                            <TextBlock Text="{Binding Description}" FontSize="12" Foreground="{DynamicResource SecondaryTextColor}" TextWrapping="Wrap" Margin="0,2,0,0" VerticalAlignment="Center"/>
+                            <TextBlock Text="{Binding Description}" FontSize="12" Foreground="{DynamicResource SecondaryTextColor}" TextWrapping="Wrap" MaxHeight="36" TextTrimming="CharacterEllipsis" Margin="0,2,0,0" VerticalAlignment="Center"/>
 
                             <!-- Warning Badge -->
                             <Border Background="#FFFACD" CornerRadius="3" Padding="6,3" Margin="0,5,0,0" HorizontalAlignment="Left"
@@ -186,7 +186,7 @@
                                 <TextBlock Text="⚠" FontSize="14" Foreground="White" VerticalAlignment="Center"/>
                             </Border>
                         </StackPanel>
-                    </StackPanel>
+                    </DockPanel>
 
                     <!-- ComboBox for non-power selection settings -->
                     <ComboBox Style="{StaticResource ModernComboBoxStyle}"
