@@ -7,6 +7,7 @@
       <UserData>
         <ProductKey>
           <Key>00000-00000-00000-00000-00000</Key>
+          <WillShowUI>Always</WillShowUI>
         </ProductKey>
         <AcceptEula>true</AcceptEula>
       </UserData>
@@ -35,27 +36,6 @@
         <RunSynchronousCommand wcm:action="add">
           <Order>6</Order>
           <Path>reg.exe add "HKLM\SYSTEM\Setup\LabConfig" /v BypassDiskCheck /t REG_DWORD /d 1 /f</Path>
-        </RunSynchronousCommand>
-        <RunSynchronousCommand wcm:action="add">
-          <Order>7</Order>
-          <Description>Order 7-11: Prevents auto detection of Windows Edition and forces Windows Setup to show all available Editions of Windows during setup</Description>
-          <Path>cmd.exe /c del /f /q X:\Sources\ei.cfg</Path>
-        </RunSynchronousCommand>
-        <RunSynchronousCommand wcm:action="add">
-          <Order>8</Order>
-          <Path>cmd.exe /c echo [Channel] > X:\Sources\ei.cfg</Path>
-        </RunSynchronousCommand>
-        <RunSynchronousCommand wcm:action="add">
-          <Order>9</Order>
-          <Path>cmd.exe /c echo _Default >> X:\Sources\ei.cfg</Path>
-        </RunSynchronousCommand>
-        <RunSynchronousCommand wcm:action="add">
-          <Order>10</Order>
-          <Path>cmd.exe /c echo [VL] >> X:\Sources\ei.cfg</Path>
-        </RunSynchronousCommand>
-        <RunSynchronousCommand wcm:action="add">
-          <Order>11</Order>
-          <Path>cmd.exe /c echo 0 >> X:\Sources\ei.cfg</Path>
         </RunSynchronousCommand>
       </RunSynchronous>
     </component>
@@ -63,6 +43,7 @@
       <UserData>
         <ProductKey>
           <Key>00000-00000-00000-00000-00000</Key>
+          <WillShowUI>Always</WillShowUI>
         </ProductKey>
         <AcceptEula>true</AcceptEula>
       </UserData>
@@ -91,27 +72,6 @@
         <RunSynchronousCommand wcm:action="add">
           <Order>6</Order>
           <Path>reg.exe add "HKLM\SYSTEM\Setup\LabConfig" /v BypassDiskCheck /t REG_DWORD /d 1 /f</Path>
-        </RunSynchronousCommand>
-        <RunSynchronousCommand wcm:action="add">
-          <Order>7</Order>
-          <Description>Order 7-11: Prevents auto detection of Windows Edition and forces Windows Setup to show all available Editions of Windows during setup</Description>
-          <Path>cmd.exe /c del /f /q X:\Sources\ei.cfg</Path>
-        </RunSynchronousCommand>
-        <RunSynchronousCommand wcm:action="add">
-          <Order>8</Order>
-          <Path>cmd.exe /c echo [Channel] > X:\Sources\ei.cfg</Path>
-        </RunSynchronousCommand>
-        <RunSynchronousCommand wcm:action="add">
-          <Order>9</Order>
-          <Path>cmd.exe /c echo _Default >> X:\Sources\ei.cfg</Path>
-        </RunSynchronousCommand>
-        <RunSynchronousCommand wcm:action="add">
-          <Order>10</Order>
-          <Path>cmd.exe /c echo [VL] >> X:\Sources\ei.cfg</Path>
-        </RunSynchronousCommand>
-        <RunSynchronousCommand wcm:action="add">
-          <Order>11</Order>
-          <Path>cmd.exe /c echo 0 >> X:\Sources\ei.cfg</Path>
         </RunSynchronousCommand>
       </RunSynchronous>
     </component>
@@ -119,6 +79,7 @@
       <UserData>
         <ProductKey>
           <Key>00000-00000-00000-00000-00000</Key>
+          <WillShowUI>Always</WillShowUI>
         </ProductKey>
         <AcceptEula>true</AcceptEula>
       </UserData>
@@ -147,35 +108,6 @@
         <RunSynchronousCommand wcm:action="add">
           <Order>6</Order>
           <Path>reg.exe add "HKLM\SYSTEM\Setup\LabConfig" /v BypassDiskCheck /t REG_DWORD /d 1 /f</Path>
-        </RunSynchronousCommand>
-        <RunSynchronousCommand wcm:action="add">
-          <Order>7</Order>
-          <Description>Order 7-11: Prevents auto detection of Windows Edition and forces Windows Setup to show all available Editions of Windows during setup</Description>
-          <Path>cmd.exe /c del /f /q X:\Sources\ei.cfg</Path>
-        </RunSynchronousCommand>
-        <RunSynchronousCommand wcm:action="add">
-          <Order>8</Order>
-          <Path>cmd.exe /c echo [Channel] > X:\Sources\ei.cfg</Path>
-        </RunSynchronousCommand>
-        <RunSynchronousCommand wcm:action="add">
-          <Order>9</Order>
-          <Path>cmd.exe /c echo _Default >> X:\Sources\ei.cfg</Path>
-        </RunSynchronousCommand>
-        <RunSynchronousCommand wcm:action="add">
-          <Order>10</Order>
-          <Path>cmd.exe /c echo [VL] >> X:\Sources\ei.cfg</Path>
-        </RunSynchronousCommand>
-        <RunSynchronousCommand wcm:action="add">
-          <Order>11</Order>
-          <Path>cmd.exe /c echo 0 >> X:\Sources\ei.cfg</Path>
-        </RunSynchronousCommand>
-        <RunSynchronousCommand wcm:action="add">
-          <Order>12</Order>
-          <Path>cmd.exe /c echo [PID] > X:\Sources\PID.txt</Path>
-        </RunSynchronousCommand>
-        <RunSynchronousCommand wcm:action="add">
-          <Order>13</Order>
-          <Path>cmd.exe /c echo Value=00000-00000-00000-00000-00000 >> X:\Sources\PID.txt</Path>
         </RunSynchronousCommand>
       </RunSynchronous>
     </component>

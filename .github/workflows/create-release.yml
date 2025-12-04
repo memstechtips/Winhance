@@ -1,158 +1,63 @@
-name: Create Release
+name: Create Release Draft
 
 on:
   push:
     tags:
-      - 'v*' # Trigger on any tag that starts with 'v'
+      - 'v*' # Trigger when you push a tag like v1.0.0
+
+permissions:
+  contents: write
 
 jobs:
-  create_release:
-    name: Create Release
+  create_draft:
+    name: Create Draft Release
     runs-on: ubuntu-latest
-    permissions:
-      contents: write
     steps:
       - name: Checkout code
         uses: actions/checkout@v4
         with:
-          fetch-depth: 0 # Fetch all history to get commit messages
-        
-      - name: Extract version from tag
-        id: get_version
-        run: echo "VERSION=${GITHUB_REF#refs/tags/v}" >> $GITHUB_OUTPUT
-        shell: bash
-        
-      - name: Get release template
-        id: get_template
+          fetch-depth: 0 # Important: Fetch all history to see commits
+
+      - name: Generate Release Notes
+        id: notes
         run: |
-          if [ -f ".github/RELEASE_TEMPLATE.md" ]; then
-            template=$(cat .github/RELEASE_TEMPLATE.md)
-            echo "TEMPLATE<<EOF" >> $GITHUB_OUTPUT
-            echo "$template" >> $GITHUB_OUTPUT
-            echo "EOF" >> $GITHUB_OUTPUT
+          # 1. Identify Tags
+          CURRENT_TAG=${GITHUB_REF#refs/tags/}
+          # Try to find the previous tag. If none, it's empty.
+          PREVIOUS_TAG=$(git describe --tags --abbrev=0 $CURRENT_TAG^ 2>/dev/null || echo "")
+          
+          echo "Current Tag: $CURRENT_TAG"
+          echo "Previous Tag: $PREVIOUS_TAG"
+
+          # 2. Start the Note
+          echo "## 🚀 Changes in $CURRENT_TAG" > release_body.md
+          echo "" >> release_body.md
+          
+          # 3. List Commits
+          if [ -z "$PREVIOUS_TAG" ]; then
+            echo "### Initial Release" >> release_body.md
+            # List all commits for the first release
+            git log --pretty=format:"- %s" >> release_body.md
           else
-            echo "TEMPLATE=# Release ${{ steps.get_version.outputs.VERSION }}" >> $GITHUB_OUTPUT
-          fi
-        shell: bash
-        
-      - name: Get commit messages
-        id: get_commits
-        run: |
-          # Get all tags sorted by version
-          all_tags=$(git tag -l | sort -V)
-          
-          # Get current tag from ref
-          current_tag=${GITHUB_REF#refs/tags/}
-          
-          # Find the previous tag
-          previous_tag=""
-          found_current=false
-          
-          for tag in $all_tags; do
-            if [ "$found_current" = true ]; then
-              previous_tag=$tag
-              break
-            fi
-            
-            if [ "$tag" = "$current_tag" ]; then
-              found_current=true
-            else
-              previous_tag=$tag
-            fi
-          done
-          
-          echo "Current tag: $current_tag"
-          echo "Previous tag: $previous_tag"
-          
-          if [ -z "$previous_tag" ]; then
-            # If no previous tag, get recent commits (limit to 20)
-            echo "No previous tag found, getting recent commits"
-            commit_list=$(git log -20 --pretty=format:"- %s" | grep -v "Merge pull request" | grep -v "Merge branch" || echo "- Initial release")
-          else
-            # Get commits between previous tag and current tag
-            echo "Getting commits between $previous_tag and $current_tag"
-            commit_list=$(git log --pretty=format:"- %s" $previous_tag..$current_tag | grep -v "Merge pull request" | grep -v "Merge branch" || echo "- No direct commits found")
+            echo "### 📝 Commits" >> release_body.md
+            # List commits between previous tag and this one (excluding merges)
+            git log --pretty=format:"- %s" $PREVIOUS_TAG..$CURRENT_TAG --no-merges >> release_body.md
           fi
           
-          # Get pull request titles (with fallback)
-          if [ -z "$previous_tag" ]; then
-            pr_list=$(git log -20 --pretty=format:"%s" | grep "Merge pull request" | sed 's/Merge pull request #[0-9]* from [^/]*\///g' | sed 's/-/ /g' | sed 's/_/ /g' | sed 's/^/- /' || echo "")
-          else
-            pr_list=$(git log --pretty=format:"%s" $previous_tag..$current_tag | grep "Merge pull request" | sed 's/Merge pull request #[0-9]* from [^/]*\///g' | sed 's/-/ /g' | sed 's/_/ /g' | sed 's/^/- /' || echo "")
-          fi
-          
-          # Get detailed commit messages with body
-          if [ -z "$previous_tag" ]; then
-            # If no previous tag, get recent detailed commits (limit to 20)
-            detailed_commits=$(git log -20 --pretty=format:"### %s%n%b" | grep -v "^### Merge pull request" | grep -v "^### Merge branch" || echo "")
-          else
-            # Get detailed commits between previous tag and current tag
-            detailed_commits=$(git log --pretty=format:"### %s%n%b" $previous_tag..$current_tag | grep -v "^### Merge pull request" | grep -v "^### Merge branch" || echo "")
-          fi
-          
-          # Ensure we have at least one item in the lists
-          if [ -z "$commit_list" ]; then
-            commit_list="- Updates and improvements"
-          fi
-          
-          echo "COMMITS<<EOF" >> $GITHUB_OUTPUT
-          echo "$commit_list" >> $GITHUB_OUTPUT
-          echo "EOF" >> $GITHUB_OUTPUT
-          
-          echo "PULL_REQUESTS<<EOF" >> $GITHUB_OUTPUT
-          echo "$pr_list" >> $GITHUB_OUTPUT
-          echo "EOF" >> $GITHUB_OUTPUT
-          
-          echo "DETAILED_COMMITS<<EOF" >> $GITHUB_OUTPUT
-          echo "$detailed_commits" >> $GITHUB_OUTPUT
-          echo "EOF" >> $GITHUB_OUTPUT
-          
-          echo "PREVIOUS_TAG=$previous_tag" >> $GITHUB_OUTPUT
-        shell: bash
-        
-      - name: Create simplified release notes
-        id: release_notes
-        run: |
-          version="${{ steps.get_version.outputs.VERSION }}"
-          
-          # Use a simplified approach to avoid complex string replacements
-          cat > release_notes.md << 'EOL'
+          echo "" >> release_body.md
+          echo "---" >> release_body.md
+          echo "Generated by GitHub Actions" >> release_body.md
 
-
-          ## 🔐 Security Info
-
-          **Important:** Please verify your download using the information below. Any file with different values for this particular version is not from the official source.
-
-          - **Winhance.Installer.exe**
-            - Size:   
-            - SHA256:   
-
-          ## Installation
-          Download from [winhance.net](https://winhance.net) or directly from this release.
-
-          The Winhance.Installer.exe includes both Installable and Portable versions during setup.
-
-          ## Feedback
-          Please report any issues on the [GitHub Issues page](https://github.com/memstechtips/Winhance/issues).
-          EOL
-          
-          # Replace version if needed
-          sed -i "s/VERSION/$version/g" release_notes.md
-          
-          # Set as output
-          echo "NOTES<<EOF" >> $GITHUB_OUTPUT
-          cat release_notes.md >> $GITHUB_OUTPUT
+          # 4. Save for the next step
+          echo "BODY<<EOF" >> $GITHUB_OUTPUT
+          cat release_body.md >> $GITHUB_OUTPUT
           echo "EOF" >> $GITHUB_OUTPUT
         shell: bash
-        
-      - name: Create Release
-        id: create_release
+
+      - name: Create Draft Release
         uses: softprops/action-gh-release@v1
         with:
-          name: Winhance v${{ steps.get_version.outputs.VERSION }}
-          body: ${{ steps.release_notes.outputs.NOTES }}
-          draft: true # Create as draft so you can upload files manually
-          prerelease: ${{ contains(github.ref, 'beta') || contains(github.ref, 'alpha') }}
-          generate_release_notes: true # Enable GitHub's automatic release notes generation
-        env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          draft: true # Create as Draft so you can review it
+          prerelease: false
+          body: ${{ steps.notes.outputs.BODY }}
+          generate_release_notes: false # Disable the native "PR-only" generator
