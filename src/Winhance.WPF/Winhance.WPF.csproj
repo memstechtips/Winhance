@@ -12,10 +12,10 @@
     <!-- Force icon refresh -->
     <Win32Resource></Win32Resource>
     <!-- Version information -->
-    <Version>25.11.12</Version>
-    <FileVersion>25.11.12</FileVersion>
-    <AssemblyVersion>25.11.12</AssemblyVersion>
-    <InformationalVersion>v25.11.12</InformationalVersion>
+    <Version>25.12.05</Version>
+    <FileVersion>25.12.05</FileVersion>
+    <AssemblyVersion>25.12.05</AssemblyVersion>
+    <InformationalVersion>v25.12.05</InformationalVersion>
   </PropertyGroup>
   <!-- Theme files are now included by default -->
   <ItemGroup>
@@ -61,6 +61,8 @@
     <PackageReference Include="System.Text.Json" Version="9.0.2" />
   </ItemGroup>
 </Project>
+
+
 
 
 

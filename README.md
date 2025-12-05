@@ -83,3 +83,11 @@ If you have feedback, suggestions, or need help with Winhance, please join the d
 
 [![Join the Discussion](https://img.shields.io/badge/Join-the%20Discussion-2D9F2D?style=for-the-badge&logo=github&logoColor=white)](https://github.com/memstechtips/Winhance/discussions/183)
 [![Join Discord Community](https://img.shields.io/badge/Join-Discord%20Community-5865F2?style=for-the-badge&logo=discord&logoColor=white)](https://www.discord.gg/zWGANV8QAX)
+
+## Localization 🌐
+
+I used AI (Gemini 2.5 Pro) to generate initial translations for Winhance, so it's available in multiple languages right out of the gate. That said, AI isn't perfect, and there are probably some mistakes or awkward phrasings in there.
+
+If you spot any translation errors or have suggestions to make things sound more natural, I'd love your help! Feel free to open a Pull Request with corrections or create an Issue to let me know what needs fixing. The localization files can be found in the `src/Winhance.WPF/Localization` directory.
+
+Want to see Winhance in a language that's not currently supported? Open an Issue with the "feature request" label and I'll see what I can do!
