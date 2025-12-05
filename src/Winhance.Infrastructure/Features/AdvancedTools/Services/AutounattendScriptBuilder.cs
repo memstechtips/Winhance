@@ -614,8 +614,8 @@ public class AutounattendScriptBuilder
 
     private string GetFeatureDisplayName(string featureId)
     {
-        var displayName = FeatureIds.GetDisplayName(featureId);
-        return $"{displayName} Settings";
+        var definition = FeatureDefinitions.Get(featureId);
+        return definition != null ? $"{definition.DefaultName} Settings" : $"{featureId} Settings";
     }
 
     private void AppendToggleCommandsFiltered(StringBuilder sb, SettingDefinition setting, bool? isEnabled, bool isHkcu, string indent = "")

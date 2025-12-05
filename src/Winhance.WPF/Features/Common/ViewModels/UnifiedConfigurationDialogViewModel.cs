@@ -9,6 +9,7 @@ using Winhance.Core.Features.Common.Constants;
 using Winhance.Core.Features.Common.Models;
 using Winhance.Core.Features.Common.Interfaces;
 using Winhance.WPF.Features.Common.Constants;
+using Winhance.WPF.Features.Common.Services;
 
 namespace Winhance.WPF.Features.Common.ViewModels
 {
@@ -218,7 +219,7 @@ namespace Winhance.WPF.Features.Common.ViewModels
                     HasSubSections = true
                 };
 
-                foreach (var featureId in FeatureIds.OptimizeFeatures)
+                foreach (var featureId in FeatureDefinitions.OptimizeFeatures)
                 {
                     var displayName = GetLocalizedFeatureName(featureId);
                     optimizeSection.SubSections.Add(new UnifiedConfigurationSectionViewModel
@@ -249,7 +250,7 @@ namespace Winhance.WPF.Features.Common.ViewModels
                     HasSubSections = true
                 };
 
-                foreach (var featureId in FeatureIds.CustomizeFeatures)
+                foreach (var featureId in FeatureDefinitions.CustomizeFeatures)
                 {
                     var displayName = GetLocalizedFeatureName(featureId);
                     var subSection = new UnifiedConfigurationSectionViewModel
@@ -431,22 +432,12 @@ namespace Winhance.WPF.Features.Common.ViewModels
 
         private string GetLocalizedFeatureName(string featureId)
         {
-            var key = featureId switch
+            var feature = FeatureRegistry.GetFeatureById(featureId);
+            if (feature != null)
             {
-                FeatureIds.Notifications => StringKeys.Features.Notifications_Name,
-                FeatureIds.Power => StringKeys.Features.Power_Name,
-                FeatureIds.Privacy => StringKeys.Features.Privacy_Name,
-                FeatureIds.GamingPerformance => StringKeys.Features.GamingPerformance_Name,
-                FeatureIds.Sound => StringKeys.Features.Sound_Name,
-                FeatureIds.Update => StringKeys.Features.Update_Name,
-                FeatureIds.WindowsTheme => StringKeys.Features.WindowsTheme_Name,
-                FeatureIds.Taskbar => StringKeys.Features.Taskbar_Name,
-                FeatureIds.StartMenu => StringKeys.Features.StartMenu_Name,
-                FeatureIds.ExplorerCustomization => StringKeys.Features.Explorer_Name,
-                _ => null
-            };
-
-            return key != null ? _localization.GetString(key) : FeatureIds.GetDisplayName(featureId);
+                return _localization.GetString(feature.LocalizationKey);
+            }
+            return featureId;
         }
     }
 

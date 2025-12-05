@@ -14,6 +14,7 @@ using Winhance.Core.Features.Common.Interfaces;
 using Winhance.Core.Features.Common.Models;
 using Winhance.Infrastructure.Features.Common.Services;
 using Winhance.WPF.Features.SoftwareApps.ViewModels;
+using Winhance.WPF.Features.Common.Services;
 using Winhance.WPF.Features.Common.Views;
 using Winhance.WPF.Features.Common.ViewModels;
 using Winhance.WPF.Features.Common.Interfaces;
@@ -277,8 +278,8 @@ namespace Winhance.WPF.Features.Common.Services
                 if (!settings.Any())
                     continue;
 
-                var isOptimize = FeatureIds.OptimizeFeatures.Contains(featureId);
-                var isCustomize = FeatureIds.CustomizeFeatures.Contains(featureId);
+                var isOptimize = FeatureDefinitions.OptimizeFeatures.Contains(featureId);
+                var isCustomize = FeatureDefinitions.CustomizeFeatures.Contains(featureId);
 
                 if (!isOptimize && !isCustomize)
                 {
@@ -860,7 +861,7 @@ namespace Winhance.WPF.Features.Common.Services
                             Items = itemsToExecute
                         };
 
-                        overlayWindow?.UpdateProgress($"Applying {FeatureIds.GetDisplayName(featureName)} action commands...");
+                        overlayWindow?.UpdateProgress($"Applying {_localizationService.GetString(FeatureRegistry.GetFeatureById(featureName)?.LocalizationKey ?? featureName)} action commands...");
                         _logService.Log(LogLevel.Info, $"Executing {itemsToExecute.Count} action command(s) for {featureName}");
 
                         var success = await _bridgeService.ApplyConfigurationSectionAsync(
@@ -878,7 +879,7 @@ namespace Winhance.WPF.Features.Common.Services
                     // Apply regular settings if not action-only
                     if (!isActionOnly)
                     {
-                        overlayWindow?.UpdateProgress($"Applying {FeatureIds.GetDisplayName(featureName)} Settings...");
+                        overlayWindow?.UpdateProgress($"Applying {_localizationService.GetString(FeatureRegistry.GetFeatureById(featureName)?.LocalizationKey ?? featureName)} Settings...");
                         _logService.Log(LogLevel.Info, $"Applying {section.Items.Count} settings from {groupName} > {featureName}");
 
                         var success = await _bridgeService.ApplyConfigurationSectionAsync(
@@ -974,7 +975,7 @@ namespace Winhance.WPF.Features.Common.Services
                         Items = itemsToExecute
                     };
 
-                    overlayWindow?.UpdateProgress($"Applying {FeatureIds.GetDisplayName(featureName)} action commands...");
+                    overlayWindow?.UpdateProgress($"Applying {_localizationService.GetString(FeatureRegistry.GetFeatureById(featureName)?.LocalizationKey ?? featureName)} action commands...");
                     _logService.Log(LogLevel.Info, $"Executing {itemsToExecute.Count} action command(s) for {featureName} (not in config file)");
 
                     var success = await _bridgeService.ApplyConfigurationSectionAsync(

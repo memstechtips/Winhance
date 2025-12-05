@@ -5,11 +5,11 @@ using System.Windows.Input;
 using CommunityToolkit.Mvvm.ComponentModel;
 using CommunityToolkit.Mvvm.Input;
 using Winhance.Core.Features.Common.Interfaces;
-using Winhance.Core.Features.Common.Services;
-using Winhance.WPF.Features.Common.Extensions;
-using Winhance.WPF.Features.Common.Interfaces;
-using Winhance.WPF.Features.Common.Models;
 using Winhance.WPF.Features.Common.Services;
+using Winhance.WPF.Features.Common.Interfaces;
+using Winhance.WPF.Features.Common.Extensions;
+using Winhance.WPF.Features.Common.Models;
+using Microsoft.Extensions.DependencyInjection;
 
 namespace Winhance.WPF.Features.Common.ViewModels
 {
@@ -129,14 +129,15 @@ namespace Winhance.WPF.Features.Common.ViewModels
         private void PopulateQuickNavItems()
         {
             QuickNavItems.Clear();
+            var localizationService = serviceProvider.GetRequiredService<ILocalizationService>();
 
             foreach (var view in FeatureViews)
             {
-                if (view.DataContext is ISettingsFeatureViewModel featureVm && view.Tag is FeatureInfo feature)
+                if (view.DataContext is ISettingsFeatureViewModel featureVm && view.Tag is FeatureMetadata feature)
                 {
                     var navItem = new QuickNavItem
                     {
-                        DisplayName = feature.DisplayName,
+                        DisplayName = localizationService.GetString(feature.LocalizationKey),
                         ViewModelType = featureVm.GetType(),
                         TargetView = view as UserControl,
                         ViewModel = featureVm,
