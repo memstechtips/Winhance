@@ -134,7 +134,6 @@ public class AutounattendXmlGeneratorService : IAutounattendXmlGeneratorService
                     else
                     {
                         item.SelectedIndex = selectedIndex;
-                        item.CustomStateValues = customStateValues;
                     }
                 }
 
@@ -144,6 +143,13 @@ public class AutounattendXmlGeneratorService : IAutounattendXmlGeneratorService
                     state?.CurrentValue is Dictionary<string, object> powerDict)
                 {
                     item.PowerSettings = powerDict;
+                }
+
+                if (state?.RawValues != null && state.RawValues.Count > 0)
+                {
+                    item.CustomStateValues = state.RawValues.ToDictionary(
+                        k => k.Key,
+                        v => (object)v.Value);
                 }
 
                 return item;

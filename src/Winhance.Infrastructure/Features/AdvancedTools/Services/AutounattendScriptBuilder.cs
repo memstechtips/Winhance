@@ -498,7 +498,7 @@ public class AutounattendScriptBuilder
                 // Apply the setting, but only output registry entries that match the current hive
                 if (configItem.InputType == InputType.Toggle)
                 {
-                    AppendToggleCommandsFiltered(sb, settingDef, configItem.IsSelected, isHkcu, indent);
+                    AppendToggleCommandsFiltered(sb, settingDef, configItem, isHkcu, indent);
                 }
                 else if (configItem.InputType == InputType.Selection)
                 {
@@ -618,9 +618,10 @@ public class AutounattendScriptBuilder
         return definition != null ? $"{definition.DefaultName} Settings" : $"{featureId} Settings";
     }
 
-    private void AppendToggleCommandsFiltered(StringBuilder sb, SettingDefinition setting, bool? isEnabled, bool isHkcu, string indent = "")
+    private void AppendToggleCommandsFiltered(StringBuilder sb, SettingDefinition setting, ConfigurationItem configItem, bool isHkcu, string indent = "")
     {
         var escapedDescription = EscapePowerShellString(setting.Description);
+        var isEnabled = configItem.IsSelected;
 
         foreach (var regSetting in setting.RegistrySettings)
         {
@@ -632,11 +633,13 @@ public class AutounattendScriptBuilder
             var regPath = EscapePowerShellString(ConvertRegistryPath(regSetting.KeyPath));
             var escapedValueName = EscapePowerShellString(regSetting.ValueName);
 
+            // Check if we have a raw value from the registry to use instead of definitions
+            var key = regSetting.ValueName ?? "KeyExists";
+            object customValue = null;
+            bool hasCustomValue = configItem.CustomStateValues?.TryGetValue(key, out customValue) == true;
+
             // Pattern 1: Key-Based Settings (CLSID folders, etc.)
             // Detection: ValueName is null or empty - these control registry KEY existence, not values
-            // The EnabledValue/DisabledValue tells us whether the key should exist in that state:
-            //   - If value is null → key should NOT exist (remove it)
-            //   - If value is non-null → key SHOULD exist (create it)
             if (string.IsNullOrEmpty(regSetting.ValueName))
             {
                 var keyValue = isEnabled == true ? regSetting.EnabledValue : regSetting.DisabledValue;
@@ -660,6 +663,44 @@ public class AutounattendScriptBuilder
                 continue;
             }
 
+            if (hasCustomValue)
+            {
+                if (customValue == null)
+                {
+                    // Value doesn't exist in registry, skip adding it
+                    continue;
+                }
+
+                // Use the exact value found in registry
+                var valueType = ConvertToRegistryType(regSetting.ValueType);
+
+                if (regSetting.ValueType == RegistryValueKind.Binary && regSetting.BinaryByteIndex.HasValue)
+                {
+                    if (regSetting.BitMask.HasValue)
+                    {
+                        var setBit = Convert.ToBoolean(customValue);
+                        sb.AppendLine($"{indent}Set-BinaryBit -Path '{regPath}' -Name '{escapedValueName}' -ByteIndex {regSetting.BinaryByteIndex.Value} -BitMask 0x{regSetting.BitMask.Value:X2} -SetBit ${setBit} -Description '{escapedDescription}'");
+                    }
+                    else if (regSetting.ModifyByteOnly)
+                    {
+                        var byteValue = FormatValueForPowerShell(customValue, RegistryValueKind.DWord).Replace("0x", "").PadLeft(2, '0');
+                        sb.AppendLine($"{indent}Set-BinaryByte -Path '{regPath}' -Name '{escapedValueName}' -ByteIndex {regSetting.BinaryByteIndex.Value} -ByteValue 0x{byteValue} -Description '{escapedDescription}'");
+                    }
+                    else
+                    {
+                        var formattedValue = FormatValueForPowerShell(customValue, regSetting.ValueType);
+                        sb.AppendLine($"{indent}Set-RegistryValue -Path '{regPath}' -Name '{escapedValueName}' -Type '{valueType}' -Value {formattedValue} -Description '{escapedDescription}'");
+                    }
+                }
+                else
+                {
+                    var formattedValue = FormatValueForPowerShell(customValue, regSetting.ValueType);
+                    sb.AppendLine($"{indent}Set-RegistryValue -Path '{regPath}' -Name '{escapedValueName}' -Type '{valueType}' -Value {formattedValue} -Description '{escapedDescription}'");
+                }
+                continue;
+            }
+
+            // Fallback for when custom value is not available (should happen rarely if discovery worked)
             var value = isEnabled == true ? regSetting.EnabledValue : regSetting.DisabledValue;
 
             if (value is string strValue && strValue == "")
@@ -676,7 +717,7 @@ public class AutounattendScriptBuilder
             }
 
             // Pattern 4: Regular Value Setting
-            var valueType = ConvertToRegistryType(regSetting.ValueType);
+            var fallbackValueType = ConvertToRegistryType(regSetting.ValueType);
 
             if (regSetting.ValueType == RegistryValueKind.Binary && regSetting.BinaryByteIndex.HasValue)
             {
@@ -698,23 +739,23 @@ public class AutounattendScriptBuilder
                 else
                 {
                     var formattedValue = FormatValueForPowerShell(value, regSetting.ValueType);
-                    sb.AppendLine($"{indent}Set-RegistryValue -Path '{regPath}' -Name '{escapedValueName}' -Type '{valueType}' -Value {formattedValue} -Description '{escapedDescription}'");
+                    sb.AppendLine($"{indent}Set-RegistryValue -Path '{regPath}' -Name '{escapedValueName}' -Type '{fallbackValueType}' -Value {formattedValue} -Description '{escapedDescription}'");
                 }
             }
             else
             {
                 var formattedValue = FormatValueForPowerShell(value, regSetting.ValueType);
-                sb.AppendLine($"{indent}Set-RegistryValue -Path '{regPath}' -Name '{escapedValueName}' -Type '{valueType}' -Value {formattedValue} -Description '{escapedDescription}'");
+                sb.AppendLine($"{indent}Set-RegistryValue -Path '{regPath}' -Name '{escapedValueName}' -Type '{fallbackValueType}' -Value {formattedValue} -Description '{escapedDescription}'");
             }
         }
 
         if (setting.RegContents?.Count > 0)
         {
-            AppendRegContentCommands(sb, setting, isEnabled, indent);
+            AppendRegContentCommands(sb, setting, isEnabled, isHkcu, indent);
         }
     }
 
-    private void AppendRegContentCommands(StringBuilder sb, SettingDefinition setting, bool? isEnabled, string indent = "")
+    private void AppendRegContentCommands(StringBuilder sb, SettingDefinition setting, bool? isEnabled, bool isHkcuPass, string indent = "")
     {
         if (setting.RegContents?.Count == 0) return;
 
@@ -726,6 +767,14 @@ public class AutounattendScriptBuilder
             var content = isEnabled == true ? regContent.EnabledContent : regContent.DisabledContent;
 
             if (string.IsNullOrEmpty(content)) continue;
+
+            // Determine if this content belongs in the current pass (System vs User)
+            // We check for HKEY_CURRENT_USER usage to identify User-specific content
+            bool isHkcuContent = content.IndexOf("HKEY_CURRENT_USER", StringComparison.OrdinalIgnoreCase) >= 0 ||
+                                 content.IndexOf("HKCU", StringComparison.OrdinalIgnoreCase) >= 0;
+
+            if (isHkcuContent != isHkcuPass)
+                continue;
 
             sb.AppendLine($"{indent}try {{");
             sb.AppendLine($"{indent}    $regContent_{varName} = @'");
@@ -850,7 +899,7 @@ public class AutounattendScriptBuilder
 
                 if (kvp.Value == null)
                 {
-                    sb.AppendLine($"{indent}Remove-RegistryValue -Path '{regPath}' -Name '{escapedValueName}' -Description '{escapedDescription}'");
+                    continue;
                 }
                 else
                 {
