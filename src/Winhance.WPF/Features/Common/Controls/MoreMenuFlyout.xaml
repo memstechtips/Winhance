@@ -82,6 +82,19 @@
             <!-- Separator -->
             <Separator Style="{DynamicResource WinhanceSeparatorStyle}" Margin="0,4,0,4"/>
 
+            <!-- Report a Bug -->
+            <Button Command="{Binding ReportBugCommand}"
+                    Style="{StaticResource MenuButtonStyle}"
+                    HorizontalAlignment="Stretch"
+                    HorizontalContentAlignment="Left"
+                    Padding="8,8"
+                    Height="40"
+                    Margin="0,1">
+                <StackPanel Orientation="Horizontal">
+                    <iconPacks:PackIconMaterial Kind="Bug" Width="14" Height="14" VerticalAlignment="Center" Margin="0,0,12,0"/>
+                    <TextBlock Text="{loc:Localize Menu_ReportBug}" VerticalAlignment="Center" FontSize="14"/>
+                </StackPanel>
+            </Button>
 
             <!-- Check for Updates -->
             <Button Command="{Binding CheckForUpdatesCommand}"

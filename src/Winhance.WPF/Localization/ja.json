@@ -19,6 +19,8 @@
   "Tooltip_VisitWebsite": "ウェブサイトにアクセス",
   "Tooltip_ToggleTheme": "Winhanceテーマを切り替え",
   "Tooltip_Donate": "開発を支援するために寄付",
+  "Tooltip_ReportBug": "バグを報告",
+  "Menu_ReportBug": "バグを報告",
   "Settings_Title": "Winhance設定",
   "Settings_Menu_Language": "言語",
   "Settings_Language_Description": "アプリケーションの表示言語を選択",

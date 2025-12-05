@@ -19,6 +19,8 @@
   "Tooltip_VisitWebsite": "Apsilankykite svetainėje",
   "Tooltip_ToggleTheme": "Perjungti „Winhance“ temą",
   "Tooltip_Donate": "Paaukokite, kad palaikytumėte kūrimą",
+  "Tooltip_ReportBug": "Pranešti apie klaidą",
+  "Menu_ReportBug": "Pranešti apie klaidą",
   "Settings_Title": "„Winhance“ nustatymai",
   "Settings_Menu_Language": "Kalba",
   "Settings_Language_Description": "Pasirinkite programos rodymo kalbą",

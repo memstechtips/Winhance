@@ -19,6 +19,8 @@
   "Tooltip_VisitWebsite": "Apmeklēt vietni",
   "Tooltip_ToggleTheme": "Pārslēgt Winhance motīvu",
   "Tooltip_Donate": "Ziedot, lai atbalstītu izstrādi",
+  "Tooltip_ReportBug": "Ziņot par kļūdu",
+  "Menu_ReportBug": "Ziņot par kļūdu",
   "Settings_Title": "Winhance iestatījumi",
   "Settings_Menu_Language": "Valoda",
   "Settings_Language_Description": "Atlasiet lietojumprogrammas attēlojuma valodu",

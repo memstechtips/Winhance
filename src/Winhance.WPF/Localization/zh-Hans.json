@@ -19,6 +19,8 @@
   "Tooltip_VisitWebsite": "访问网站",
   "Tooltip_ToggleTheme": "切换 Winhance 主题",
   "Tooltip_Donate": "捐赠以支持开发",
+  "Tooltip_ReportBug": "报告 Bug",
+  "Menu_ReportBug": "报告 Bug",
   "Settings_Title": "Winhance 设置",
   "Settings_Menu_Language": "语言",
   "Settings_Language_Description": "选择应用程序显示语言",

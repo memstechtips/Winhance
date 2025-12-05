@@ -19,6 +19,8 @@
   "Tooltip_VisitWebsite": "Navštívit webové stránky",
   "Tooltip_ToggleTheme": "Přepnout motiv Winhance",
   "Tooltip_Donate": "Přispějte na podporu vývoje",
+  "Tooltip_ReportBug": "Nahlásit chybu",
+  "Menu_ReportBug": "Nahlásit chybu",
   "Settings_Title": "Nastavení Winhance",
   "Settings_Menu_Language": "Jazyk",
   "Settings_Language_Description": "Vyberte jazyk zobrazení aplikace",

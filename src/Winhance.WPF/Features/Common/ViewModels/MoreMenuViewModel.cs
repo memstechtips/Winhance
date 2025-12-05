@@ -61,6 +61,16 @@ public class MoreMenuViewModel : ObservableObject
 
         _versionInfo = GetVersionInfo();
 
+        ReportBugCommand = new RelayCommand(
+            execute: () =>
+            {
+                _logService.LogInformation("ReportBugCommand executed");
+                CloseFlyout();
+                OpenBugReport();
+            },
+            canExecute: () => true
+        );
+
         CheckForUpdatesCommand = new AsyncRelayCommand(
             execute: async () =>
             {
@@ -121,6 +131,8 @@ public class MoreMenuViewModel : ObservableObject
         set => SetProperty(ref _versionInfo, value);
     }
 
+    public ICommand ReportBugCommand { get; }
+
     public ICommand CheckForUpdatesCommand { get; }
 
     public ICommand OpenLogsCommand { get; }
@@ -145,6 +157,23 @@ public class MoreMenuViewModel : ObservableObject
         catch (Exception ex)
         {
             _logService.LogError($"Error closing flyout: {ex.Message}", ex);
+        }
+    }
+
+    private void OpenBugReport()
+    {
+        try
+        {
+            var psi = new ProcessStartInfo
+            {
+                FileName = "https://github.com/memstechtips/Winhance/issues",
+                UseShellExecute = true,
+            };
+            Process.Start(psi);
+        }
+        catch (Exception ex)
+        {
+            _logService.LogError($"Error opening bug report page: {ex.Message}", ex);
         }
     }
 

@@ -106,6 +106,7 @@ namespace Winhance.WPF.Features.Common.ViewModels
         public ICommand SaveUnifiedConfigCommand { get; }
         public ICommand ImportUnifiedConfigCommand { get; }
         public ICommand OpenDonateCommand { get; }
+        public ICommand OpenBugReportCommand { get; }
         public ICommand MoreCommand { get; }
         public ICommand AdvancedToolsCommand { get; }
         public ICommand ToggleWindowsVersionFilterCommand { get; }
@@ -146,6 +147,7 @@ namespace Winhance.WPF.Features.Common.ViewModels
             SaveUnifiedConfigCommand = new AsyncRelayCommand(async () => await _configurationService.ExportConfigurationAsync());
             ImportUnifiedConfigCommand = new AsyncRelayCommand(async () => await _configurationService.ImportConfigurationAsync());
             OpenDonateCommand = new RelayCommand(OpenDonate);
+            OpenBugReportCommand = new RelayCommand(OpenBugReport);
             MoreCommand = new RelayCommand(HandleMoreButtonClick);
             AdvancedToolsCommand = new RelayCommand(HandleAdvancedToolsButtonClick);
             ToggleWindowsVersionFilterCommand = new AsyncRelayCommand(ToggleWindowsVersionFilterAsync);
@@ -261,6 +263,28 @@ namespace Winhance.WPF.Features.Common.ViewModels
                 _eventBus.Publish(new LogEvent
                 {
                     Message = $"Error opening donation page: {ex.Message}",
+                    Level = LogLevel.Error,
+                    Exception = ex,
+                });
+            }
+        }
+
+        private void OpenBugReport()
+        {
+            try
+            {
+                var psi = new ProcessStartInfo
+                {
+                    FileName = "https://github.com/memstechtips/Winhance/issues",
+                    UseShellExecute = true,
+                };
+                Process.Start(psi);
+            }
+            catch (Exception ex)
+            {
+                _eventBus.Publish(new LogEvent
+                {
+                    Message = $"Error opening bug report page: {ex.Message}",
                     Level = LogLevel.Error,
                     Exception = ex,
                 });

@@ -207,6 +207,20 @@
                                                                      Foreground="Red"/>
                                         </Button>
 
+                                        <!-- Bug Report Button -->
+                                        <Button Width="28"
+                                                Height="28"
+                                                Margin="0,0,0,0"
+                                                Command="{Binding OpenBugReportCommand}"
+                                                ToolTip="{loc:Localize Tooltip_ReportBug}"
+                                                Style="{StaticResource WindowControlButton}"
+                                                WindowChrome.IsHitTestVisibleInChrome="True">
+                                            <iconPacks:PackIconMaterial Kind="Bug"
+                                                                     Width="16"
+                                                                     Height="16"
+                                                                     Foreground="{DynamicResource PrimaryTextColor}"/>
+                                        </Button>
+
                                         <!-- Use commands with direct event handlers as fallback -->
                                         <Button x:Name="MinimizeButton"
                                                 Style="{StaticResource WindowControlButton}"

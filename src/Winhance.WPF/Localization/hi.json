@@ -19,6 +19,8 @@
   "Tooltip_VisitWebsite": "वेबसाइट पर जाएं",
   "Tooltip_ToggleTheme": "विनहैन्स थीम टॉगल करें",
   "Tooltip_Donate": "विकास का समर्थन करने के लिए दान करें",
+  "Tooltip_ReportBug": "बग रिपोर्ट करें",
+  "Menu_ReportBug": "बग रिपोर्ट करें",
   "Settings_Title": "विनहैन्स सेटिंग्स",
   "Settings_Menu_Language": "भाषा",
   "Settings_Language_Description": "एप्लिकेशन डिस्प्ले भाषा चुनें",

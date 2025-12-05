@@ -19,6 +19,8 @@
   "Tooltip_VisitWebsite": "Посетить веб-сайт",
   "Tooltip_ToggleTheme": "Переключить тему Winhance",
   "Tooltip_Donate": "Поддержать разработку",
+  "Tooltip_ReportBug": "Сообщить об ошибке",
+  "Menu_ReportBug": "Сообщить об ошибке",
   "Settings_Title": "Настройки Winhance",
   "Settings_Menu_Language": "Язык",
   "Settings_Language_Description": "Выберите язык отображения приложения",
