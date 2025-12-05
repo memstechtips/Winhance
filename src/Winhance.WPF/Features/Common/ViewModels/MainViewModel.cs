@@ -213,15 +213,6 @@ namespace Winhance.WPF.Features.Common.ViewModels
             }
         }
 
-
-        [RelayCommand]
-        private void ToggleTheme()
-        {
-            _windowManagement.ToggleTheme();
-        }
-
-
-
         [RelayCommand]
         private void MinimizeWindow()
         {

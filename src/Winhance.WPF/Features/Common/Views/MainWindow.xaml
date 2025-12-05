@@ -182,17 +182,6 @@
                                                                      Kind="{Binding IsWindowsVersionFilterEnabled, Converter={StaticResource BooleanToFilterIconConverter}}"/>
                                         </Button>
 
-                                        <!-- Theme Toggle Button -->
-                                        <Button Command="{Binding ToggleThemeCommand}"
-                                                ToolTip="{loc:Localize Tooltip_ToggleTheme}"
-                                                Style="{StaticResource WindowControlButton}"
-                                                WindowChrome.IsHitTestVisibleInChrome="True"
-                                                Margin="0,0,0,0">
-                                            <iconPacks:PackIconMaterial Kind="ThemeLightDark"
-                                                                     Width="16"
-                                                                     Height="16"/>
-                                        </Button>
-
                                         <!-- Donation Button -->
                                         <Button Width="28"
                                                 Height="28"
