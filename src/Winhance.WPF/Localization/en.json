@@ -569,8 +569,6 @@
   "Setting_gaming-performance-autostart-delay_Description": "Delay startup applications by 10 seconds after boot to improve initial system responsiveness. Windows becomes usable faster, but your startup apps take longer to load",
   "Setting_gaming-background-apps_Name": "Let Apps Run in Background",
   "Setting_gaming-background-apps_Description": "Allow apps to receive notifications, update data, and perform tasks even when not actively in use",
-  "Setting_gaming-memory-compression_Name": "Memory Compression",
-  "Setting_gaming-memory-compression_Description": "Compress unused memory pages to reduce RAM usage. On systems with plenty of RAM (16GB+), disabling can slightly reduce CPU overhead and improve performance",
   "Setting_gaming-storage-sense_Name": "Storage Sense",
   "Setting_gaming-storage-sense_Description": "Automatically free up disk space by removing temporary files, emptying the recycle bin, and managing downloads",
   "Setting_gaming-performance-explorer-search_Name": "Search Entire File System",

@@ -569,8 +569,6 @@
   "Setting_gaming-performance-autostart-delay_Description": "Atrasar a inicialização de aplicativos em 10 segundos após a inicialização para melhorar a capacidade de resposta inicial do sistema. O Windows se torna utilizável mais rápido, mas seus aplicativos de inicialização demoram mais para carregar",
   "Setting_gaming-background-apps_Name": "Permitir que Aplicativos sejam Executados em Segundo Plano",
   "Setting_gaming-background-apps_Description": "Permitir que os aplicativos recebam notificações, atualizem dados e executem tarefas mesmo quando não estão em uso ativo",
-  "Setting_gaming-memory-compression_Name": "Compressão de Memória",
-  "Setting_gaming-memory-compression_Description": "Comprimir páginas de memória não utilizadas para reduzir o uso de RAM. Em sistemas com bastante RAM (16 GB+), desativar pode reduzir levemente a sobrecarga da CPU e melhorar o desempenho",
   "Setting_gaming-storage-sense_Name": "Sensor de Armazenamento",
   "Setting_gaming-storage-sense_Description": "Liberar espaço em disco automaticamente removendo arquivos temporários, esvaziando a lixeira e gerenciando downloads",
   "Setting_gaming-performance-explorer-search_Name": "Pesquisar em Todo o Sistema de Arquivos",

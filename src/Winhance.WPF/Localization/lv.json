@@ -569,8 +569,6 @@
   "Setting_gaming-performance-autostart-delay_Description": "Aizkavēt startēšanas lietojumprogrammas par 10 sekundēm pēc sāknēšanas, lai uzlabotu sākotnējo sistēmas reakciju. Windows kļūst lietojams ātrāk, bet startēšanas lietotņu ielāde aizņem ilgāku laiku",
   "Setting_gaming-background-apps_Name": "Ļaut lietotnēm darboties fonā",
   "Setting_gaming-background-apps_Description": "Atļaut lietotnēm saņemt paziņojumus, atjaunināt datus un veikt uzdevumus pat tad, ja tās netiek aktīvi izmantotas",
-  "Setting_gaming-memory-compression_Name": "Atmiņas saspiešana",
-  "Setting_gaming-memory-compression_Description": "Saspiest neizmantotās atmiņas lapas, lai samazinātu RAM lietojumu. Sistēmās ar lielu RAM (16 GB+), atspējošana var nedaudz samazināt CPU slodzi un uzlabot veiktspēju",
   "Setting_gaming-storage-sense_Name": "Krātuves izjūta",
   "Setting_gaming-storage-sense_Description": "Automātiski atbrīvot diska vietu, noņemot pagaidu failus, iztukšojot atkritni un pārvaldot lejupielādes",
   "Setting_gaming-performance-explorer-search_Name": "Meklēt visā failu sistēmā",

@@ -115,28 +115,6 @@ public static class GamingandPerformanceOptimizations
                 },
                 new SettingDefinition
                 {
-                    Id = "gaming-memory-compression",
-                    Name = "Memory Compression",
-                    Description = "Compress unused memory pages to reduce RAM usage. On systems with plenty of RAM (16GB+), disabling can slightly reduce CPU overhead and improve performance",
-                    Icon = "MemoryArrowDown",
-                    InputType = InputType.Toggle,
-                    RequiresRestart = true,
-                    RegistrySettings = new List<RegistrySetting>
-                    {
-                        new RegistrySetting
-                        {
-                            KeyPath = @"HKEY_LOCAL_MACHINE\SYSTEM\CurrentControlSet\Control\Session Manager\Memory Management",
-                            ValueName = "DisablePageCombining",
-                            RecommendedValue = 1,
-                            EnabledValue = 0,
-                            DisabledValue = 1,
-                            DefaultValue = 0,
-                            ValueType = RegistryValueKind.DWord,
-                        },
-                    },
-                },
-                new SettingDefinition
-                {
                     Id = "gaming-storage-sense",
                     Name = "Storage Sense",
                     Description = "Automatically free up disk space by removing temporary files, emptying the recycle bin, and managing downloads",

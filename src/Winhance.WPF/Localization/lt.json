@@ -569,8 +569,6 @@
   "Setting_gaming-performance-autostart-delay_Description": "Atidėti paleidimo programų paleidimą 10 sekundžių po paleidimo, kad pagerėtų pradinė sistemos reakcija. „Windows“ tampa greičiau naudojama, tačiau jūsų paleidimo programos įkeliamos ilgiau",
   "Setting_gaming-background-apps_Name": "Leisti programoms veikti fone",
   "Setting_gaming-background-apps_Description": "Leisti programoms gauti pranešimus, atnaujinti duomenis ir atlikti užduotis net tada, kai jos nėra aktyviai naudojamos",
-  "Setting_gaming-memory-compression_Name": "Atminties suglaudinimas",
-  "Setting_gaming-memory-compression_Description": "Suglaudinti nenaudojamus atminties puslapius, kad sumažėtų RAM naudojimas. Sistemos su daug RAM (16 GB+) gali išjungti, kad šiek tiek sumažėtų procesoriaus apkrova ir pagerėtų našumas",
   "Setting_gaming-storage-sense_Name": "Saugyklos jutiklis",
   "Setting_gaming-storage-sense_Description": "Automatiškai atlaisvinti disko vietą pašalinant laikinus failus, ištuštinant šiukšliadėžę ir valdant atsisiuntimus",
   "Setting_gaming-performance-explorer-search_Name": "Ieškoti visoje failų sistemoje",

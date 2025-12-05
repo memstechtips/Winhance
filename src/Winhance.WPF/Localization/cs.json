@@ -569,8 +569,6 @@
   "Setting_gaming-performance-autostart-delay_Description": "Zpozdit spouÅ¡tÄ›nÃ­ aplikacÃ­ o 10 sekund po spuÅ¡tÄ›nÃ­, aby se zlepÅ¡ila poÄÃ¡teÄnÃ­ odezva systÃ©mu. Windows se stane pouÅ¾itelnÃ½m rychleji, ale vaÅ¡e spouÅ¡tÄ›cÃ­ aplikace se naÄÃ­tajÃ­ dÃ©le",
   "Setting_gaming-background-apps_Name": "Nechat aplikace bÄ›Å¾et na pozadÃ­",
   "Setting_gaming-background-apps_Description": "UmoÅ¾nit aplikacÃ­m pÅ™ijÃ­mat oznÃ¡menÃ­, aktualizovat data a provÃ¡dÄ›t Ãºkoly, i kdyÅ¾ nejsou aktivnÄ› pouÅ¾Ã­vÃ¡ny",
-  "Setting_gaming-memory-compression_Name": "Komprese pamÄ›ti",
-  "Setting_gaming-memory-compression_Description": "Komprimovat nevyuÅ¾itÃ© strÃ¡nky pamÄ›ti pro snÃ­Å¾enÃ­ vyuÅ¾itÃ­ RAM. Na systÃ©mech s dostatkem RAM (16 GB+) mÅ¯Å¾e vypnutÃ­ mÃ­rnÄ› snÃ­Å¾it zatÃ­Å¾enÃ­ CPU a zlepÅ¡it vÃ½kon",
   "Setting_gaming-storage-sense_Name": "SkladovacÃ­ smysl",
   "Setting_gaming-storage-sense_Description": "Automaticky uvolnit mÃ­sto na disku odstranÄ›nÃ­m doÄasnÃ½ch souborÅ¯, vyprÃ¡zdnÄ›nÃ­m koÅ¡e a sprÃ¡vou stahovÃ¡nÃ­",
   "Setting_gaming-performance-explorer-search_Name": "Prohledat celÃ½ souborovÃ½ systÃ©m",

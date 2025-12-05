@@ -569,8 +569,6 @@
   "Setting_gaming-performance-autostart-delay_Description": "Startanwendungen nach dem Hochfahren um 10 Sekunden verzögern, um die anfängliche Systemreaktionsfähigkeit zu verbessern. Windows wird schneller nutzbar, aber Ihre Start-Apps brauchen länger zum Laden",
   "Setting_gaming-background-apps_Name": "Apps im Hintergrund ausführen lassen",
   "Setting_gaming-background-apps_Description": "Apps erlauben, Benachrichtigungen zu empfangen, Daten zu aktualisieren und Aufgaben auszuführen, auch wenn sie nicht aktiv verwendet werden",
-  "Setting_gaming-memory-compression_Name": "Speicherkomprimierung",
-  "Setting_gaming-memory-compression_Description": "Komprimieren Sie ungenutzte Speicherseiten, um die RAM-Nutzung zu reduzieren. Auf Systemen mit viel RAM (16 GB+) kann das Deaktivieren den CPU-Overhead leicht reduzieren und die Leistung verbessern",
   "Setting_gaming-storage-sense_Name": "Speicheroptimierung",
   "Setting_gaming-storage-sense_Description": "Automatisch Speicherplatz freigeben, indem temporäre Dateien entfernt, der Papierkorb geleert und Downloads verwaltet werden",
   "Setting_gaming-performance-explorer-search_Name": "Gesamtes Dateisystem durchsuchen",

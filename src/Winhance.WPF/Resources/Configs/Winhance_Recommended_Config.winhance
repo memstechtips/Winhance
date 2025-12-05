@@ -937,12 +937,6 @@
             "InputType": 0
           },
           {
-            "Id": "gaming-memory-compression",
-            "Name": "Memory Compression",
-            "IsSelected": true,
-            "InputType": 0
-          },
-          {
             "Id": "gaming-storage-sense",
             "Name": "Storage Sense",
             "IsSelected": false,

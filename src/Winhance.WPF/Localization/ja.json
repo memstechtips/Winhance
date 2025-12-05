@@ -569,8 +569,6 @@
   "Setting_gaming-performance-autostart-delay_Description": "起動後10秒間スタートアップアプリケーションを遅延させ、起動時のシステム応答性を向上させます。Windowsはより速く使用可能になりますが、スタートアップアプリの読み込みには時間がかかります。",
   "Setting_gaming-background-apps_Name": "アプリをバックグラウンドで実行させる",
   "Setting_gaming-background-apps_Description": "アクティブに使用されていない場合でも、アプリが通知を受け取ったり、データを更新したり、タスクを実行したりできるようにします。",
-  "Setting_gaming-memory-compression_Name": "メモリ圧縮",
-  "Setting_gaming-memory-compression_Description": "未使用のメモリページを圧縮してRAMの使用量を削減します。十分なRAM（16GB以上）があるシステムでは、無効にするとCPUオーバーヘッドがわずかに減少し、パフォーマンスが向上する可能性があります。",
   "Setting_gaming-storage-sense_Name": "ストレージセンサー",
   "Setting_gaming-storage-sense_Description": "一時ファイルを削除したり、ごみ箱を空にしたり、ダウンロードを管理したりして、ディスク領域を自動的に解放します。",
   "Setting_gaming-performance-explorer-search_Name": "ファイルシステム全体を検索",
