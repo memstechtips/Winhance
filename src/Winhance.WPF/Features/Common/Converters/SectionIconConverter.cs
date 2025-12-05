@@ -1,7 +1,8 @@
 using System;
 using System.Globalization;
 using System.Windows.Data;
-using Winhance.WPF.Features.Common.Models;
+using Winhance.WPF.Features.Common.Services;
+using MahApps.Metro.IconPacks;
 
 namespace Winhance.WPF.Features.Common.Converters
 {
@@ -11,9 +12,9 @@ namespace Winhance.WPF.Features.Common.Converters
         {
             if (value is string sectionName)
             {
-                return FeatureCategoryIcons.GetIcon(sectionName);
+                return FeatureRegistry.GetIcon(sectionName);
             }
-            return "Cog";
+            return PackIconMaterialKind.Cog;
         }
 
         public object ConvertBack(object value, Type targetType, object parameter, CultureInfo culture)

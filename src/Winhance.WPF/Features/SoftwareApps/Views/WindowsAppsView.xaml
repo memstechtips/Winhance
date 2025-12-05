@@ -9,6 +9,7 @@
              xmlns:controls="clr-namespace:Winhance.WPF.Features.Common.Controls"
              xmlns:behaviors="clr-namespace:Winhance.WPF.Features.Common.Behaviors"
              xmlns:views="clr-namespace:Winhance.WPF.Features.SoftwareApps.Views"
+             xmlns:loc="clr-namespace:Winhance.WPF.Features.Common.Extensions"
              d:DataContext="{d:DesignInstance Type=viewModels:WindowsAppsViewModel}"
              mc:Ignorable="d">
 
@@ -25,7 +26,7 @@
         <StackPanel Orientation="Horizontal" Margin="15,10,0,10">
             <!-- Select All checkbox -->
             <CheckBox Style="{StaticResource CustomCheckBox}"
-                      Content="Select All"
+                      Content="{loc:Localize Common_SelectAll}"
                       FontSize="16"
                       FontWeight="Bold"
                       IsChecked="{Binding IsAllSelected}"
@@ -33,7 +34,7 @@
 
             <!-- Select All Installed checkbox -->
             <CheckBox Style="{StaticResource CustomCheckBox}"
-                      Content="Select All Installed"
+                      Content="{loc:Localize Common_SelectAll_Installed}"
                       FontSize="16"
                       FontWeight="Bold"
                       IsChecked="{Binding IsAllSelectedInstalled}"
@@ -41,7 +42,7 @@
 
             <!-- Select All Not Installed checkbox -->
             <CheckBox Style="{StaticResource CustomCheckBox}"
-                      Content="Select All Not Installed"
+                      Content="{loc:Localize Common_SelectAll_NotInstalled}"
                       FontSize="16"
                       FontWeight="Bold"
                       IsChecked="{Binding IsAllSelectedNotInstalled}"
@@ -51,7 +52,7 @@
         <!-- Windows Apps (Appx Packages) Section -->
         <StackPanel Orientation="Horizontal" Margin="0,5,0,5"
                     Visibility="{Binding HasWindowsApps, Converter={StaticResource BooleanToVisibilityConverter}}">
-            <TextBlock Text="Windows Apps"
+            <TextBlock Text="{loc:Localize WindowsApps_Section_Apps}"
                       Style="{StaticResource SectionHeaderStyle}"/>
         </StackPanel>
 
@@ -72,7 +73,7 @@
                             <Ellipse Style="{StaticResource AppStatusIndicatorStyle}"
                                      Fill="{Binding IsInstalled, Converter={StaticResource InstalledStatusToColorConverter}}">
                                 <Ellipse.ToolTip>
-                                    <ToolTip Content="{Binding IsInstalled, Converter={StaticResource InstalledStatusToTextConverter}}"/>
+                                    <ToolTip Content="{Binding InstalledStatusText}"/>
                                 </Ellipse.ToolTip>
                             </Ellipse>
 
@@ -82,7 +83,7 @@
                                 Kind="{Binding CanBeReinstalled, Converter={StaticResource BooleanToReinstallableIconConverter}}"
                                 Foreground="{Binding CanBeReinstalled, Converter={StaticResource BooleanToReinstallableColorConverter}}">
                                 <iconPacks:PackIconMaterial.ToolTip>
-                                    <ToolTip Content="{Binding CanBeReinstalled, Converter={StaticResource BooleanToReinstallableTextConverter}}"/>
+                                    <ToolTip Content="{Binding ReinstallableStatusText}"/>
                                 </iconPacks:PackIconMaterial.ToolTip>
                             </iconPacks:PackIconMaterial>
 
@@ -106,7 +107,7 @@
         <!-- Capabilities Section -->
         <StackPanel Orientation="Horizontal" Margin="0,5,0,5"
                     Visibility="{Binding HasCapabilities, Converter={StaticResource BooleanToVisibilityConverter}}">
-            <TextBlock Text="Windows Capabilities"
+            <TextBlock Text="{loc:Localize WindowsApps_Section_Capabilities}"
                       Style="{StaticResource SectionHeaderStyle}"/>
         </StackPanel>
 
@@ -127,7 +128,7 @@
                             <Ellipse Style="{StaticResource AppStatusIndicatorStyle}"
                                      Fill="{Binding IsInstalled, Converter={StaticResource InstalledStatusToColorConverter}}">
                                 <Ellipse.ToolTip>
-                                    <ToolTip Content="{Binding IsInstalled, Converter={StaticResource InstalledStatusToTextConverter}}"/>
+                                    <ToolTip Content="{Binding InstalledStatusText}"/>
                                 </Ellipse.ToolTip>
                             </Ellipse>
 
@@ -137,7 +138,7 @@
                                 Kind="{Binding CanBeReinstalled, Converter={StaticResource BooleanToReinstallableIconConverter}}"
                                 Foreground="{Binding CanBeReinstalled, Converter={StaticResource BooleanToReinstallableColorConverter}}">
                                 <iconPacks:PackIconMaterial.ToolTip>
-                                    <ToolTip Content="{Binding CanBeReinstalled, Converter={StaticResource BooleanToReinstallableTextConverter}}"/>
+                                    <ToolTip Content="{Binding ReinstallableStatusText}"/>
                                 </iconPacks:PackIconMaterial.ToolTip>
                             </iconPacks:PackIconMaterial>
 
@@ -161,7 +162,7 @@
         <!-- Optional Features Section -->
         <StackPanel Orientation="Horizontal" Margin="0,5,0,5"
                     Visibility="{Binding HasOptionalFeatures, Converter={StaticResource BooleanToVisibilityConverter}}">
-            <TextBlock Text="Windows Optional Features"
+            <TextBlock Text="{loc:Localize WindowsApps_Section_OptionalFeatures}"
                       Style="{StaticResource SectionHeaderStyle}"/>
         </StackPanel>
 
@@ -182,7 +183,7 @@
                             <Ellipse Style="{StaticResource AppStatusIndicatorStyle}"
                                      Fill="{Binding IsInstalled, Converter={StaticResource InstalledStatusToColorConverter}}">
                                 <Ellipse.ToolTip>
-                                    <ToolTip Content="{Binding IsInstalled, Converter={StaticResource InstalledStatusToTextConverter}}"/>
+                                    <ToolTip Content="{Binding InstalledStatusText}"/>
                                 </Ellipse.ToolTip>
                             </Ellipse>
 
@@ -192,7 +193,7 @@
                                 Kind="{Binding CanBeReinstalled, Converter={StaticResource BooleanToReinstallableIconConverter}}"
                                 Foreground="{Binding CanBeReinstalled, Converter={StaticResource BooleanToReinstallableColorConverter}}">
                                 <iconPacks:PackIconMaterial.ToolTip>
-                                    <ToolTip Content="{Binding CanBeReinstalled, Converter={StaticResource BooleanToReinstallableTextConverter}}"/>
+                                    <ToolTip Content="{Binding ReinstallableStatusText}"/>
                                 </iconPacks:PackIconMaterial.ToolTip>
                             </iconPacks:PackIconMaterial>
 

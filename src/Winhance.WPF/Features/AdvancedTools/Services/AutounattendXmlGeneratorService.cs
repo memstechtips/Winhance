@@ -11,6 +11,7 @@ using Winhance.Core.Features.Common.Models;
 using Winhance.Infrastructure.Features.AdvancedTools.Services;
 using Winhance.Infrastructure.Features.Common.Services;
 using Winhance.WPF.Features.SoftwareApps.ViewModels;
+using Winhance.WPF.Features.Common.Services;
 
 namespace Winhance.WPF.Features.AdvancedTools.Services;
 
@@ -95,8 +96,8 @@ public class AutounattendXmlGeneratorService : IAutounattendXmlGeneratorService
             if (!settings.Any())
                 continue;
 
-            var isOptimize = FeatureIds.OptimizeFeatures.Contains(featureId);
-            var isCustomize = FeatureIds.CustomizeFeatures.Contains(featureId);
+            var isOptimize = FeatureDefinitions.OptimizeFeatures.Contains(featureId);
+            var isCustomize = FeatureDefinitions.CustomizeFeatures.Contains(featureId);
 
             if (!isOptimize && !isCustomize)
             {
@@ -133,7 +134,6 @@ public class AutounattendXmlGeneratorService : IAutounattendXmlGeneratorService
                     else
                     {
                         item.SelectedIndex = selectedIndex;
-                        item.CustomStateValues = customStateValues;
                     }
                 }
 
@@ -143,6 +143,13 @@ public class AutounattendXmlGeneratorService : IAutounattendXmlGeneratorService
                     state?.CurrentValue is Dictionary<string, object> powerDict)
                 {
                     item.PowerSettings = powerDict;
+                }
+
+                if (state?.RawValues != null && state.RawValues.Count > 0)
+                {
+                    item.CustomStateValues = state.RawValues.ToDictionary(
+                        k => k.Key,
+                        v => (object)v.Value);
                 }
 
                 return item;

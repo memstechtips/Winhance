@@ -13,5 +13,6 @@ namespace Winhance.Core.Features.Common.Interfaces
         string GetDefaultIconPath();
         void RequestThemeIconUpdate();
         void ToggleTheme();
+        bool IsDarkTheme { get; }
     }
 }

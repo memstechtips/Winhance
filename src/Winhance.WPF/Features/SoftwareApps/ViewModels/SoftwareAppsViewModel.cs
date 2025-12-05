@@ -51,8 +51,11 @@ namespace Winhance.WPF.Features.SoftwareApps.ViewModels
         [ObservableProperty]
         private bool _canRemoveItems = false;
 
-        [ObservableProperty]
-        private string _removeButtonText = "Remove Selected Items";
+        private readonly ILocalizationService _localizationService;
+
+        public string RemoveButtonText => IsWindowsAppsTabSelected
+            ? _localizationService.GetString("SoftwareApps_Button_RemoveSelected")
+            : _localizationService.GetString("SoftwareApps_Button_UninstallSelected");
 
         [ObservableProperty]
         private object _currentHelpContent = null;
@@ -91,9 +94,11 @@ namespace Winhance.WPF.Features.SoftwareApps.ViewModels
 
         public SoftwareAppsViewModel(
             IServiceProvider serviceProvider,
-            ISearchTextCoordinationService searchTextCoordinationService)
+            ISearchTextCoordinationService searchTextCoordinationService,
+            ILocalizationService localizationService)
             : base(serviceProvider, searchTextCoordinationService)
         {
+            _localizationService = localizationService;
             WindowsAppsViewModel = serviceProvider.GetRequiredService<WindowsAppsViewModel>();
             ExternalAppsViewModel = serviceProvider.GetRequiredService<ExternalAppsViewModel>();
 
@@ -101,11 +106,10 @@ namespace Winhance.WPF.Features.SoftwareApps.ViewModels
                 ? WindowsAppsViewModel.IsTableViewMode
                 : ExternalAppsViewModel.IsTableViewMode;
 
-            RemoveButtonText = IsWindowsAppsTabSelected ? "Remove Selected Items" : "Uninstall Selected Items";
-
             this.PropertyChanged += SoftwareAppsViewModel_PropertyChanged;
             WindowsAppsViewModel.PropertyChanged += ChildViewModel_PropertyChanged;
             ExternalAppsViewModel.PropertyChanged += ChildViewModel_PropertyChanged;
+            _localizationService.LanguageChanged += OnLanguageChanged;
 
             WindowsAppsViewModel.PropertyChanged += (s, e) =>
             {
@@ -266,7 +270,7 @@ namespace Winhance.WPF.Features.SoftwareApps.ViewModels
             WindowsAppsContentVisibility = isWindowsAppsTab ? Visibility.Visible : Visibility.Collapsed;
             ExternalAppsContentVisibility = isWindowsAppsTab ? Visibility.Collapsed : Visibility.Visible;
 
-            RemoveButtonText = isWindowsAppsTab ? "Remove Selected Items" : "Uninstall Selected Items";
+            OnPropertyChanged(nameof(RemoveButtonText));
 
             RouteSearchTextToActiveViewModel();
 
@@ -320,6 +324,11 @@ namespace Winhance.WPF.Features.SoftwareApps.ViewModels
             }
         }
 
+        private void OnLanguageChanged(object sender, EventArgs e)
+        {
+            OnPropertyChanged(nameof(RemoveButtonText));
+        }
+
         private bool _isUpdatingButtonStates = false;
 
         private void UpdateButtonStates()
@@ -341,14 +350,12 @@ namespace Winhance.WPF.Features.SoftwareApps.ViewModels
                     var hasSelected = WindowsAppsViewModel.HasSelectedItems;
                     CanInstallItems = hasSelected && !isAnyTaskRunning;
                     CanRemoveItems = hasSelected && !isAnyTaskRunning;
-                    RemoveButtonText = "Remove Selected Items";
                 }
                 else if (IsExternalAppsTabSelected)
                 {
                     var hasSelected = ExternalAppsViewModel.HasSelectedItems;
                     CanInstallItems = hasSelected && !isAnyTaskRunning;
                     CanRemoveItems = hasSelected && !isAnyTaskRunning;
-                    RemoveButtonText = "Uninstall Selected Items";
                 }
                 else
                 {
@@ -582,6 +589,15 @@ namespace Winhance.WPF.Features.SoftwareApps.ViewModels
         private void ChildViewModel_SelectedItemsChanged(object sender, EventArgs e)
         {
             UpdateButtonStates();
+        }
+
+        protected override void Dispose(bool disposing)
+        {
+            if (disposing)
+            {
+                _localizationService.LanguageChanged -= OnLanguageChanged;
+            }
+            base.Dispose(disposing);
         }
     }
 }

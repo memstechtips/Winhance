@@ -27,7 +27,8 @@ namespace Winhance.WPF.Features.Common.Services
         IComboBoxResolver comboBoxResolver,
         IUserPreferencesService userPreferencesService,
         IDialogService dialogService,
-        ICompatibleSettingsRegistry compatibleSettingsRegistry) : ISettingsLoadingService
+        ICompatibleSettingsRegistry compatibleSettingsRegistry,
+        SettingLocalizationService settingLocalizationService) : ISettingsLoadingService
     {
 
         public async Task<ObservableCollection<object>> LoadConfiguredSettingsAsync<TDomainService>(
@@ -43,7 +44,8 @@ namespace Winhance.WPF.Features.Common.Services
                 initializationService.StartFeatureInitialization(featureModuleId);
 
                 var settingDefinitions = compatibleSettingsRegistry.GetFilteredSettings(featureModuleId);
-                var settingsList = settingDefinitions.ToList();
+                var localizedSettings = settingDefinitions.Select(s => settingLocalizationService.LocalizeSetting(s));
+                var settingsList = localizedSettings.ToList();
 
                 var settingViewModels = new ObservableCollection<object>();
                 
@@ -78,7 +80,7 @@ namespace Winhance.WPF.Features.Common.Services
                     {
                         try
                         {
-                            await viewModel.SetupComboBoxAsync(setting, currentState.CurrentValue, comboBoxSetupService, logService, currentState.RawValues);
+                            await viewModel.SetupComboBoxAsync(setting, currentState.CurrentValue, comboBoxSetupService, logService, settingLocalizationService.LocalizationService, currentState.RawValues);
                             return (viewModel, success: true);
                         }
                         catch
@@ -127,7 +129,7 @@ namespace Winhance.WPF.Features.Common.Services
         {
             var currentState = batchStates.TryGetValue(setting.Id, out var state) ? state : new SettingStateResult();
 
-            var viewModel = new SettingItemViewModel(settingApplicationService, eventBus, logService, confirmationService, domainServiceRouter, initializationService, comboBoxSetupService, discoveryService, userPreferencesService, dialogService, compatibleSettingsRegistry)
+            var viewModel = new SettingItemViewModel(settingApplicationService, eventBus, logService, confirmationService, domainServiceRouter, initializationService, comboBoxSetupService, discoveryService, userPreferencesService, dialogService, compatibleSettingsRegistry, settingLocalizationService.LocalizationService)
             {
                 SettingDefinition = setting,
                 ParentFeatureViewModel = parentViewModel,

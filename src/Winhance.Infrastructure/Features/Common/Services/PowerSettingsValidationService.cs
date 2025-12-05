@@ -74,7 +74,23 @@ public class PowerSettingsValidationService(
 
             if (hasValidPowerCfgSetting)
             {
-                validatedSettings.Add(setting);
+                var shouldFilterOutDueToHardwareControl = false;
+
+                foreach (var powerCfgSetting in setting.PowerCfgSettings.Where(p => p.CheckForHardwareControl))
+                {
+                    if (await powerCfgQueryService.IsSettingHardwareControlledAsync(powerCfgSetting))
+                    {
+                        logService.Log(LogLevel.Info,
+                            $"Filtering out hardware-controlled setting: {setting.Id} ({powerCfgSetting.SettingGUIDAlias})");
+                        shouldFilterOutDueToHardwareControl = true;
+                        break;
+                    }
+                }
+
+                if (!shouldFilterOutDueToHardwareControl)
+                {
+                    validatedSettings.Add(setting);
+                }
             }
         }
 

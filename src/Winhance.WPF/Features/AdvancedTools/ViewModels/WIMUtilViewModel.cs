@@ -24,7 +24,6 @@ using Winhance.Core.Features.Common.Models;
 using Winhance.WPF.Features.AdvancedTools.Models;
 using Winhance.WPF.Features.Common.Resources.Theme;
 using Winhance.WPF.Features.Common.ViewModels;
-using Winhance.WPF.Features.Common.Views;
 
 namespace Winhance.WPF.Features.AdvancedTools.ViewModels
 {
@@ -36,6 +35,7 @@ namespace Winhance.WPF.Features.AdvancedTools.ViewModels
         private readonly ILogService _logService;
         private readonly IServiceProvider _serviceProvider;
         private readonly IThemeManager _themeManager;
+        private readonly ILocalizationService _localizationService;
         private CancellationTokenSource? _cancellationTokenSource;
 
         public bool IsDarkTheme => _themeManager.IsDarkTheme;
@@ -95,9 +95,9 @@ namespace Winhance.WPF.Features.AdvancedTools.ViewModels
         }
 
         public override string ModuleId => "WimUtil";
-        public override string DisplayName => "Windows Installation Media Utility";
+        public override string DisplayName => _localizationService?.GetString("WIMUtil_Title") ?? "Windows Installation Media Utility";
         public string FeatureId => "WimUtil";
-        public string Title => "Windows Installation Media Utility";
+        public string Title => _localizationService?.GetString("WIMUtil_Title") ?? "Windows Installation Media Utility";
 
         [ObservableProperty]
         private int _currentStep = 1;
@@ -190,7 +190,8 @@ namespace Winhance.WPF.Features.AdvancedTools.ViewModels
             IDialogService dialogService,
             ILogService logService,
             IServiceProvider serviceProvider,
-            IThemeManager themeManager)
+            IThemeManager themeManager,
+            ILocalizationService localizationService)
         {
             _wimUtilService = wimUtilService;
             _taskProgressService = taskProgressService;
@@ -199,6 +200,7 @@ namespace Winhance.WPF.Features.AdvancedTools.ViewModels
             _serviceProvider = serviceProvider;
             _themeManager = themeManager;
 
+            _localizationService = localizationService;
             if (_themeManager is INotifyPropertyChanged notifyPropertyChanged)
             {
                 notifyPropertyChanged.PropertyChanged += (s, e) =>
@@ -210,20 +212,27 @@ namespace Winhance.WPF.Features.AdvancedTools.ViewModels
                 };
             }
 
+            _localizationService.LanguageChanged += (s, e) =>
+            {
+                OnPropertyChanged(nameof(DisplayName));
+                OnPropertyChanged(nameof(Title));
+                RefreshLocalization();
+            };
+
             WorkingDirectory = Path.Combine(Path.GetTempPath(), "WinhanceWIM");
 
             InitializeStepStates();
-            InitializeActionCards();
+            CreateActionCards();
         }
 
-        private void InitializeActionCards()
+        private void CreateActionCards()
         {
             SelectIsoCard = new WizardActionCard
             {
                 Icon = "DiscPlayer",
-                Title = "Select Windows ISO",
-                Description = "No file selected",
-                ButtonText = "Select ISO",
+                Title = _localizationService.GetString("WIMUtil_Card_SelectISO_Title"),
+                Description = _localizationService.GetString("WIMUtil_Label_NoSelection"),
+                ButtonText = _localizationService.GetString("WIMUtil_Card_SelectISO_Button"),
                 ButtonCommand = SelectIsoFileCommand,
                 IsEnabled = true
             };
@@ -231,9 +240,9 @@ namespace Winhance.WPF.Features.AdvancedTools.ViewModels
             SelectDirectoryCard = new WizardActionCard
             {
                 Icon = "FolderOpen",
-                Title = "Select working directory",
-                Description = $"Default path: {Path.Combine(Path.GetTempPath(), "WinhanceWIM")}",
-                ButtonText = "Select Directory",
+                Title = _localizationService.GetString("WIMUtil_Card_SelectDirectory_Title"),
+                Description = $"{_localizationService.GetString("WIMUtil_Label_DefaultPath")}: {Path.Combine(Path.GetTempPath(), "WinhanceWIM")}",
+                ButtonText = _localizationService.GetString("WIMUtil_Card_SelectDirectory_Button"),
                 ButtonCommand = SelectWorkingDirectoryCommand,
                 IsEnabled = true
             };
@@ -241,9 +250,9 @@ namespace Winhance.WPF.Features.AdvancedTools.ViewModels
             GenerateWinhanceXmlCard = new WizardActionCard
             {
                 Icon = "Creation",
-                Title = "Generate and add Winhance XML",
-                Description = "Generate an autounattend.xml file based on your current selections in Winhance",
-                ButtonText = "Generate",
+                Title = _localizationService.GetString("WIMUtil_Card_GenerateWinhanceXML_Title"),
+                Description = _localizationService.GetString("WIMUtil_Card_GenerateWinhanceXML_Description"),
+                ButtonText = _localizationService.GetString("WIMUtil_Card_GenerateWinhanceXML_Button"),
                 ButtonCommand = GenerateWinhanceXmlCommand,
                 IsEnabled = true
             };
@@ -251,9 +260,9 @@ namespace Winhance.WPF.Features.AdvancedTools.ViewModels
             DownloadXmlCard = new WizardActionCard
             {
                 Icon = "FileDownload",
-                Title = "Download & add UnattendedWinstall XML",
-                Description = "Get the latest UnattendedWinstall preconfigured autounattend.xml file (requires internet)",
-                ButtonText = "Download",
+                Title = _localizationService.GetString("WIMUtil_Card_DownloadXML_Title"),
+                Description = _localizationService.GetString("WIMUtil_Card_DownloadXML_Description"),
+                ButtonText = _localizationService.GetString("WIMUtil_Card_DownloadXML_Button"),
                 ButtonCommand = DownloadUnattendedWinstallXmlCommand,
                 IsEnabled = true
             };
@@ -261,9 +270,9 @@ namespace Winhance.WPF.Features.AdvancedTools.ViewModels
             SelectXmlCard = new WizardActionCard
             {
                 Icon = "FileCode",
-                Title = "Select XML File",
-                Description = "Add an autounattend.xml file generated by yourself or services like Winhance, Schneegans or other similar services",
-                ButtonText = "Select XML",
+                Title = _localizationService.GetString("WIMUtil_Card_SelectXML_Title"),
+                Description = _localizationService.GetString("WIMUtil_Card_SelectXML_Description"),
+                ButtonText = _localizationService.GetString("WIMUtil_Card_SelectXML_Button"),
                 ButtonCommand = SelectXmlFileCommand,
                 IsEnabled = true
             };
@@ -271,9 +280,9 @@ namespace Winhance.WPF.Features.AdvancedTools.ViewModels
             ExtractSystemDriversCard = new WizardActionCard
             {
                 Icon = "MemoryArrowDown",
-                Title = "Extract and add drivers from current OS (Recommended)",
-                Description = "Extract the drivers from the current operating system and add it to the installation media",
-                ButtonText = "Extract & Add",
+                Title = _localizationService.GetString("WIMUtil_Card_ExtractDrivers_Title"),
+                Description = _localizationService.GetString("WIMUtil_Card_ExtractDrivers_Description"),
+                ButtonText = _localizationService.GetString("WIMUtil_Card_ExtractDrivers_Button"),
                 ButtonCommand = ExtractAndAddSystemDriversCommand,
                 IsEnabled = true
             };
@@ -281,9 +290,9 @@ namespace Winhance.WPF.Features.AdvancedTools.ViewModels
             SelectCustomDriversCard = new WizardActionCard
             {
                 Icon = "FolderOpen",
-                Title = "Add other drivers",
-                Description = "Select a folder that contains drivers that you want to add to the installation media",
-                ButtonText = "Select & Add",
+                Title = _localizationService.GetString("WIMUtil_Card_CustomDrivers_Title"),
+                Description = _localizationService.GetString("WIMUtil_Card_CustomDrivers_Description"),
+                ButtonText = _localizationService.GetString("WIMUtil_Card_CustomDrivers_Button"),
                 ButtonCommand = SelectAndAddCustomDriversCommand,
                 IsEnabled = true
             };
@@ -291,9 +300,9 @@ namespace Winhance.WPF.Features.AdvancedTools.ViewModels
             DownloadOscdimgCard = new WizardActionCard
             {
                 Icon = "DiscAlert",
-                Title = "Download & install oscdimg.exe (Required)",
-                Description = "The official Windows ADK will be downloaded and Deployment Tools installed. Download time depends on your internet connection speed",
-                ButtonText = "Download & Install",
+                Title = _localizationService.GetString("WIMUtil_Card_DownloadOscdimg_Title"),
+                Description = _localizationService.GetString("WIMUtil_Card_DownloadOscdimg_Description"),
+                ButtonText = _localizationService.GetString("WIMUtil_Card_DownloadOscdimg_Button"),
                 ButtonCommand = DownloadOscdimgCommand,
                 IsEnabled = true
             };
@@ -301,9 +310,9 @@ namespace Winhance.WPF.Features.AdvancedTools.ViewModels
             SelectOutputCard = new WizardActionCard
             {
                 Icon = "ContentSaveOutline",
-                Title = "Select output location",
-                Description = "No location selected",
-                ButtonText = "Select Location",
+                Title = _localizationService.GetString("WIMUtil_Card_SelectOutput_Title"),
+                Description = _localizationService.GetString("WIMUtil_Label_NoLocation"),
+                ButtonText = _localizationService.GetString("WIMUtil_Card_SelectOutput_Button"),
                 ButtonCommand = SelectIsoOutputLocationCommand,
                 IsEnabled = true
             };
@@ -311,9 +320,9 @@ namespace Winhance.WPF.Features.AdvancedTools.ViewModels
             ConvertImageCard = new WizardActionCard
             {
                 Icon = "SwapHorizontal",
-                Title = "Convert Image Format",
-                Description = "Detecting image format...",
-                ButtonText = "Convert",
+                Title = _localizationService.GetString("WIMUtil_Card_ConvertImage_Title"),
+                Description = _localizationService.GetString("WIMUtil_Label_Detecting"),
+                ButtonText = _localizationService.GetString("WIMUtil_Card_ConvertImage_Button"),
                 ButtonCommand = ConvertImageFormatCommand,
                 IsEnabled = false
             };
@@ -338,14 +347,152 @@ namespace Winhance.WPF.Features.AdvancedTools.ViewModels
             UpdateStepStates();
         }
 
+        private void RefreshLocalization()
+        {
+            // 1. Recreate Step objects (for new Titles) and restore state
+            InitializeStepStates();
+            UpdateStepStates();
+
+            // 2. Update Titles and Buttons for all cards (Static loc)
+            SelectIsoCard.Title = _localizationService.GetString("WIMUtil_Card_SelectISO_Title");
+            SelectIsoCard.ButtonText = _localizationService.GetString("WIMUtil_Card_SelectISO_Button");
+
+            SelectDirectoryCard.Title = _localizationService.GetString("WIMUtil_Card_SelectDirectory_Title");
+            SelectDirectoryCard.ButtonText = _localizationService.GetString("WIMUtil_Card_SelectDirectory_Button");
+
+            GenerateWinhanceXmlCard.Title = _localizationService.GetString("WIMUtil_Card_GenerateWinhanceXML_Title");
+            GenerateWinhanceXmlCard.ButtonText = _localizationService.GetString("WIMUtil_Card_GenerateWinhanceXML_Button");
+
+            DownloadXmlCard.Title = _localizationService.GetString("WIMUtil_Card_DownloadXML_Title");
+            DownloadXmlCard.ButtonText = _localizationService.GetString("WIMUtil_Card_DownloadXML_Button");
+
+            SelectXmlCard.Title = _localizationService.GetString("WIMUtil_Card_SelectXML_Title");
+            SelectXmlCard.ButtonText = _localizationService.GetString("WIMUtil_Card_SelectXML_Button");
+
+            ExtractSystemDriversCard.Title = _localizationService.GetString("WIMUtil_Card_ExtractDrivers_Title");
+            ExtractSystemDriversCard.ButtonText = _localizationService.GetString("WIMUtil_Card_ExtractDrivers_Button");
+
+            SelectCustomDriversCard.Title = _localizationService.GetString("WIMUtil_Card_CustomDrivers_Title");
+            SelectCustomDriversCard.ButtonText = _localizationService.GetString("WIMUtil_Card_CustomDrivers_Button");
+
+            DownloadOscdimgCard.Title = _localizationService.GetString("WIMUtil_Card_DownloadOscdimg_Title");
+            // Button text for Oscdimg is handled in UpdateDownloadOscdimgCardState
+
+            SelectOutputCard.Title = _localizationService.GetString("WIMUtil_Card_SelectOutput_Title");
+            SelectOutputCard.ButtonText = _localizationService.GetString("WIMUtil_Card_SelectOutput_Button");
+
+            ConvertImageCard.Title = _localizationService.GetString("WIMUtil_Card_ConvertImage_Title");
+            // Button text for ConvertImage is handled in UpdateConversionCardState
+
+            // 3. Update Descriptions (Dynamic loc) based on current state
+
+            // SelectIsoCard
+            if (IsExtractionComplete)
+            {
+                SelectIsoCard.Description = _localizationService.GetString("WIMUtil_Status_IsoExtractionSuccess");
+            }
+            else if (string.IsNullOrEmpty(SelectedIsoPath))
+            {
+                SelectIsoCard.Description = _localizationService.GetString("WIMUtil_Label_NoSelection");
+            }
+            // Else: It shows the file path, which doesn't need localization
+
+            // SelectDirectoryCard
+            var defaultPath = Path.Combine(Path.GetTempPath(), "WinhanceWIM");
+            if (HasExtractedIsoAlready && string.IsNullOrEmpty(WorkingDirectory))
+            {
+                SelectDirectoryCard.Description = _localizationService.GetString("WIMUtil_Label_SelectExtracted");
+            }
+            else if (WorkingDirectory == defaultPath || string.IsNullOrEmpty(WorkingDirectory))
+            {
+                SelectDirectoryCard.Description = $"{_localizationService.GetString("WIMUtil_Label_DefaultPath")}: {defaultPath}";
+            }
+            else
+            {
+                SelectDirectoryCard.Description = $"{_localizationService.GetString("WIMUtil_Label_Using")}: {WorkingDirectory}";
+            }
+
+            // GenerateWinhanceXmlCard
+            if (GenerateWinhanceXmlCard.IsComplete)
+                GenerateWinhanceXmlCard.Description = _localizationService.GetString("WIMUtil_Status_XmlGenSuccess");
+            else if (GenerateWinhanceXmlCard.HasFailed)
+                GenerateWinhanceXmlCard.Description = XmlStatus.StartsWith("Generation failed") ? _localizationService.GetString("WIMUtil_Status_XmlGenFailed", XmlStatus.Replace("Generation failed: ", "")) : XmlStatus;
+            else
+                GenerateWinhanceXmlCard.Description = _localizationService.GetString("WIMUtil_Card_GenerateWinhanceXML_Description");
+
+            // DownloadXmlCard
+            if (DownloadXmlCard.IsComplete)
+                DownloadXmlCard.Description = _localizationService.GetString("WIMUtil_Status_XmlDownloadSuccess");
+            else if (DownloadXmlCard.HasFailed)
+                DownloadXmlCard.Description = XmlStatus == "Downloaded but failed to add to media" ? _localizationService.GetString("WIMUtil_Status_XmlAddFailed") : XmlStatus;
+            else
+                DownloadXmlCard.Description = _localizationService.GetString("WIMUtil_Card_DownloadXML_Description");
+
+            // SelectXmlCard
+            if (SelectXmlCard.IsComplete)
+                SelectXmlCard.Description = _localizationService.GetString("WIMUtil_Status_XmlSelectSuccess");
+            else if (SelectXmlCard.HasFailed)
+                SelectXmlCard.Description = XmlStatus == "Valid XML but failed to add to media" ? _localizationService.GetString("WIMUtil_Status_XmlValidAddFailed") : 
+                                            (XmlStatus == "Invalid XML file" ? _localizationService.GetString("WIMUtil_Status_XmlInvalid") : XmlStatus);
+            else
+                SelectXmlCard.Description = _localizationService.GetString("WIMUtil_Card_SelectXML_Description");
+
+            // ExtractSystemDriversCard
+            if (ExtractSystemDriversCard.IsComplete)
+                ExtractSystemDriversCard.Description = _localizationService.GetString("WIMUtil_Status_DriversAdded");
+            else if (ExtractSystemDriversCard.HasFailed)
+                ExtractSystemDriversCard.Description = _localizationService.GetString("WIMUtil_Status_ErrorPrefix", "Extraction failed"); // simplified
+            else
+                ExtractSystemDriversCard.Description = _localizationService.GetString("WIMUtil_Card_ExtractDrivers_Description");
+
+            // SelectCustomDriversCard
+            if (SelectCustomDriversCard.IsComplete)
+                SelectCustomDriversCard.Description = _localizationService.GetString("WIMUtil_Status_DriversAdded"); // Reuse success message
+            else if (SelectCustomDriversCard.HasFailed)
+                SelectCustomDriversCard.Description = _localizationService.GetString("WIMUtil_Status_NoDriversAdded"); // Simplified failure
+            else
+                SelectCustomDriversCard.Description = _localizationService.GetString("WIMUtil_Card_CustomDrivers_Description");
+
+            // DownloadOscdimgCard
+            UpdateDownloadOscdimgCardState(); // Handles full refresh of this card
+
+            // SelectOutputCard
+            if (IsIsoCreated)
+                SelectOutputCard.Description = _localizationService.GetString("WIMUtil_Desc_IsoCreatedSuccess");
+            else if (!string.IsNullOrEmpty(OutputIsoPath))
+                SelectOutputCard.Description = $"{_localizationService.GetString("WIMUtil_Label_Output")}: {Path.GetFileName(OutputIsoPath)}";
+            else
+                SelectOutputCard.Description = _localizationService.GetString("WIMUtil_Label_NoLocation");
+
+            // ConvertImageCard
+            UpdateConversionCardState(); // Handles full refresh of this card
+
+            // Notify UI
+            NotifyCardPropertiesChanged();
+        }
+
+        private void NotifyCardPropertiesChanged()
+        {
+            OnPropertyChanged(nameof(SelectIsoCard));
+            OnPropertyChanged(nameof(SelectDirectoryCard));
+            OnPropertyChanged(nameof(GenerateWinhanceXmlCard));
+            OnPropertyChanged(nameof(DownloadXmlCard));
+            OnPropertyChanged(nameof(SelectXmlCard));
+            OnPropertyChanged(nameof(ExtractSystemDriversCard));
+            OnPropertyChanged(nameof(SelectCustomDriversCard));
+            OnPropertyChanged(nameof(DownloadOscdimgCard));
+            OnPropertyChanged(nameof(SelectOutputCard));
+            OnPropertyChanged(nameof(ConvertImageCard));
+        }
+
         private void InitializeStepStates()
         {
             Step1State = new WizardStepState
             {
                 StepNumber = 1,
-                Title = "Select Windows ISO",
+                Title = _localizationService.GetString("WIMUtil_Step1_Title"),
                 Icon = "DiscPlayer",
-                StatusText = "No ISO Selected",
+                StatusText = _localizationService.GetString("WIMUtil_Status_NoIsoSelected"),
                 IsExpanded = true,
                 IsAvailable = true,
                 IsComplete = false
@@ -354,9 +501,9 @@ namespace Winhance.WPF.Features.AdvancedTools.ViewModels
             Step2State = new WizardStepState
             {
                 StepNumber = 2,
-                Title = "Add XML File",
+                Title = _localizationService.GetString("WIMUtil_Step2_Title"),
                 Icon = "FileCode",
-                StatusText = "Complete Step 1 first",
+                StatusText = _localizationService.GetString("WIMUtil_Status_CompleteStep1"),
                 IsExpanded = false,
                 IsAvailable = false,
                 IsComplete = false
@@ -365,9 +512,9 @@ namespace Winhance.WPF.Features.AdvancedTools.ViewModels
             Step3State = new WizardStepState
             {
                 StepNumber = 3,
-                Title = "Extract and Add Drivers",
+                Title = _localizationService.GetString("WIMUtil_Step3_Title"),
                 Icon = "Chip",
-                StatusText = "Complete Step 1 first",
+                StatusText = _localizationService.GetString("WIMUtil_Status_CompleteStep1"),
                 IsExpanded = false,
                 IsAvailable = false,
                 IsComplete = false
@@ -376,9 +523,9 @@ namespace Winhance.WPF.Features.AdvancedTools.ViewModels
             Step4State = new WizardStepState
             {
                 StepNumber = 4,
-                Title = "Create New ISO",
+                Title = _localizationService.GetString("WIMUtil_Step4_Title"),
                 Icon = "WrenchClock",
-                StatusText = "Complete Step 1 first",
+                StatusText = _localizationService.GetString("WIMUtil_Status_CompleteStep1"),
                 IsExpanded = false,
                 IsAvailable = false,
                 IsComplete = false
@@ -391,7 +538,7 @@ namespace Winhance.WPF.Features.AdvancedTools.ViewModels
             var dialog = new OpenFileDialog
             {
                 Filter = "ISO Files (*.iso)|*.iso|All Files (*.*)|*.*",
-                Title = "Select Windows ISO File"
+                Title = _localizationService.GetString("WIMUtil_FileDialog_SelectIso")
             };
 
             if (dialog.ShowDialog() == true)
@@ -406,11 +553,11 @@ namespace Winhance.WPF.Features.AdvancedTools.ViewModels
         {
             if (value)
             {
-                SelectDirectoryCard.Description = "Select a folder containing already extracted Windows ISO files";
+                SelectDirectoryCard.Description = _localizationService.GetString("WIMUtil_Label_SelectExtracted");
             }
             else
             {
-                SelectDirectoryCard.Description = $"Default path: {Path.Combine(Path.GetTempPath(), "WinhanceWIM")}";
+                SelectDirectoryCard.Description = $"{_localizationService.GetString("WIMUtil_Label_DefaultPath")}: {Path.Combine(Path.GetTempPath(), "WinhanceWIM")}";
             }
         }
 
@@ -433,11 +580,11 @@ namespace Winhance.WPF.Features.AdvancedTools.ViewModels
         [RelayCommand]
         private async Task SelectWorkingDirectory()
         {
-            var selectedPath = ShowFolderBrowserDialog(
-                HasExtractedIsoAlready
-                    ? "Select folder with extracted ISO contents"
-                    : "Select a working directory to extract the ISO"
-            );
+            var description = HasExtractedIsoAlready
+                ? _localizationService.GetString("WIMUtil_FolderDialog_SelectExtracted")
+                : _localizationService.GetString("WIMUtil_FolderDialog_SelectWorkDir");
+
+            var selectedPath = ShowFolderBrowserDialog(description);
 
             if (string.IsNullOrEmpty(selectedPath))
                 return;
@@ -449,53 +596,46 @@ namespace Winhance.WPF.Features.AdvancedTools.ViewModels
                 if (isValid)
                 {
                     WorkingDirectory = selectedPath;
-                    SelectDirectoryCard.Description = $"Using: {WorkingDirectory}";
+                    SelectDirectoryCard.Description = $"{_localizationService.GetString("WIMUtil_Label_Using")}: {WorkingDirectory}";
                     IsExtractionComplete = true;
                     UpdateStepStates();
 
-                    var dialog = CustomDialog.CreateInformationDialog(
-                        "Validation Complete",
-                        "The selected directory contains valid Windows ISO files. You can proceed to the next step.",
-                        "",
+                    _dialogService.ShowLocalizedDialog(
+                        "Dialog_ValidationComplete",
+                        "WIMUtil_Msg_ValidationComplete",
                         DialogType.Success,
                         "CheckCircle"
                     );
-                    dialog.ShowDialog();
                 }
                 else
                 {
                     WorkingDirectory = string.Empty;
-                    SelectDirectoryCard.Description = "Invalid directory. Please select a folder with extracted ISO contents.";
+                    SelectDirectoryCard.Description = _localizationService.GetString("WIMUtil_Error_InvalidDirectory");
 
-                    var dialog = CustomDialog.CreateInformationDialog(
-                        "Invalid Directory",
-                        "The selected directory is not valid:\n\n" +
-                        "• It might be a mounted ISO file (must be extracted to a real folder)\n" +
-                        "• It might be read-only or on a CD/DVD drive\n" +
-                        "• It might not contain the required 'sources' and 'boot' folders\n\n" +
-                        "Please extract the ISO contents to a writable folder on your hard drive first.",
-                        "",
+                    _dialogService.ShowLocalizedDialog(
+                        "Dialog_InvalidDirectory",
+                        "WIMUtil_Msg_InvalidDirectory",
                         DialogType.Error,
                         "CloseCircle"
                     );
-                    dialog.ShowDialog();
                 }
             }
             else
             {
+
                 WorkingDirectory = Path.Combine(selectedPath, "WinhanceWIM");
 
                 try
                 {
                     Directory.CreateDirectory(WorkingDirectory);
-                    SelectDirectoryCard.Description = $"Using: {WorkingDirectory}";
+                    SelectDirectoryCard.Description = $"{_localizationService.GetString("WIMUtil_Label_Using")}: {WorkingDirectory}";
                     CanStartExtraction = !string.IsNullOrEmpty(SelectedIsoPath) && !string.IsNullOrEmpty(WorkingDirectory);
                     _logService.LogInformation($"Working directory set to: {WorkingDirectory}");
                 }
                 catch (Exception ex)
                 {
                     _logService.LogError($"Failed to create working directory: {ex.Message}", ex);
-                    SelectDirectoryCard.Description = "Failed to create directory. Please try another location.";
+                    SelectDirectoryCard.Description = _localizationService.GetString("WIMUtil_Error_DirectoryCreateFailed");
                     WorkingDirectory = string.Empty;
                 }
             }
@@ -591,20 +731,18 @@ namespace Winhance.WPF.Features.AdvancedTools.ViewModels
                     SelectIsoCard.Opacity = 1.0;
                     SelectDirectoryCard.IsEnabled = true;
                     SelectDirectoryCard.Opacity = 1.0;
-                    SelectIsoCard.Description = "ISO extracted successfully!";
+                    SelectIsoCard.Description = _localizationService.GetString("WIMUtil_Status_IsoExtractionSuccess");
                     SelectIsoCard.DescriptionForeground = new SolidColorBrush(Color.FromRgb(27, 94, 32));
                     IsExtracting = false;
                     IsExtractionComplete = true;
                     UpdateStepStates();
 
-                    var dialog = CustomDialog.CreateInformationDialog(
-                        "Extraction Complete",
-                        "ISO has been extracted successfully. You can now proceed to the next step.",
-                        "",
+                    _dialogService.ShowLocalizedDialog(
+                        "Dialog_ExtractionComplete",
+                        "WIMUtil_Msg_ExtractionComplete",
                         DialogType.Success,
                         "CheckCircle"
                     );
-                    dialog.ShowDialog();
                 }
                 else
                 {
@@ -613,19 +751,17 @@ namespace Winhance.WPF.Features.AdvancedTools.ViewModels
                     SelectIsoCard.Opacity = 1.0;
                     SelectDirectoryCard.IsEnabled = true;
                     SelectDirectoryCard.Opacity = 1.0;
-                    SelectIsoCard.Description = "ISO extraction failed";
+                    SelectIsoCard.Description = _localizationService.GetString("WIMUtil_Status_IsoExtractionFailed");
                     SelectIsoCard.DescriptionForeground = new SolidColorBrush(Color.FromRgb(198, 40, 40));
                     IsExtracting = false;
                     UpdateStepStates();
 
-                    var dialog = CustomDialog.CreateInformationDialog(
-                        "Extraction Failed",
-                        "Failed to extract ISO. Please check that the ISO file is valid and you have sufficient disk space.",
-                        "",
+                    _dialogService.ShowLocalizedDialog(
+                        "Dialog_ExtractionFailed",
+                        "WIMUtil_Msg_ExtractionFailed",
                         DialogType.Error,
                         "CloseCircle"
                     );
-                    dialog.ShowDialog();
                 }
             }
             catch (OperationCanceledException)
@@ -637,7 +773,7 @@ namespace Winhance.WPF.Features.AdvancedTools.ViewModels
                 IsExtracting = false;
                 UpdateStepStates();
 
-                SelectIsoCard.Description = "ISO extraction cancelled";
+                SelectIsoCard.Description = _localizationService.GetString("WIMUtil_Status_IsoExtractionCancelled");
                 SelectIsoCard.DescriptionForeground = new SolidColorBrush(Color.FromRgb(255, 152, 0));
 
             }
@@ -651,23 +787,21 @@ namespace Winhance.WPF.Features.AdvancedTools.ViewModels
                 IsExtracting = false;
                 UpdateStepStates();
 
-                SelectIsoCard.Description = $"Insufficient disk space on {spaceEx.DriveName}";
+                SelectIsoCard.Description = _localizationService.GetString("WIMUtil_Status_InsufficientDiskSpace", spaceEx.DriveName);
                 SelectIsoCard.DescriptionForeground = new SolidColorBrush(Color.FromRgb(198, 40, 40));
 
                 _logService.LogError($"Insufficient disk space for ISO extraction: {spaceEx.Message}", spaceEx);
 
-                var dialog = CustomDialog.CreateInformationDialog(
-                    "Insufficient Disk Space",
-                    $"There is not enough space on drive {spaceEx.DriveName} to extract the ISO.\n\n" +
-                    $"Required: {spaceEx.RequiredGB:F2} GB\n" +
-                    $"Available: {spaceEx.AvailableGB:F2} GB\n" +
-                    $"Needed: {(spaceEx.RequiredGB - spaceEx.AvailableGB):F2} GB more\n\n" +
-                    $"Please free up space or select another location with more free space.",
-                    "",
+                _dialogService.ShowLocalizedDialog(
+                    "Dialog_InsufficientSpace",
+                    "WIMUtil_Msg_InsufficientSpace",
                     DialogType.Warning,
-                    "Alert"
+                    "Alert",
+                    spaceEx.DriveName,
+                    spaceEx.RequiredGB.ToString("F2"),
+                    spaceEx.AvailableGB.ToString("F2"),
+                    (spaceEx.RequiredGB - spaceEx.AvailableGB).ToString("F2")
                 );
-                dialog.ShowDialog();
             }
             catch (Exception ex)
             {
@@ -676,20 +810,19 @@ namespace Winhance.WPF.Features.AdvancedTools.ViewModels
                 SelectIsoCard.Opacity = 1.0;
                 SelectDirectoryCard.IsEnabled = true;
                 SelectDirectoryCard.Opacity = 1.0;
-                SelectIsoCard.Description = $"Error: {ex.Message}";
+                SelectIsoCard.Description = _localizationService.GetString("WIMUtil_Status_ErrorPrefix", ex.Message);
                 SelectIsoCard.DescriptionForeground = new SolidColorBrush(Color.FromRgb(198, 40, 40));
                 IsExtracting = false;
                 UpdateStepStates();
                 _logService.LogError($"Error extracting ISO: {ex.Message}", ex);
 
-                var dialog = CustomDialog.CreateInformationDialog(
-                    "Extraction Error",
-                    $"An error occurred: {ex.Message}",
-                    "",
+                _dialogService.ShowLocalizedDialog(
+                    "Dialog_ExtractionError",
+                    "WIMUtil_Msg_ExtractionError",
                     DialogType.Error,
-                    "CloseCircle"
+                    "CloseCircle",
+                    ex.Message
                 );
-                dialog.ShowDialog();
             }
             finally
             {
@@ -717,23 +850,17 @@ namespace Winhance.WPF.Features.AdvancedTools.ViewModels
                 GenerateWinhanceXmlCard.IsComplete = false;
                 GenerateWinhanceXmlCard.HasFailed = false;
 
-                var confirmDialog = CustomDialog.CreateConfirmationDialog(
-                    "Generate Autounattend XML",
-                    "You can generate an autounattend.xml file to add to a Windows ISO to customize Windows during installation based on your selections in Winhance.\n\n" +
-                    "How this works:\n" +
-                    "• Apps selected on the Windows Apps screen will be uninstalled automatically\n" +
-                    "• Settings in the Optimize and Customize screens will be added according to their current state in Winhance\n\n" +
-                    "If you're sure your selections are correct you can continue.\nIf not, hit no, review your app and setting selections, and come back here.\n\n" +
-                    "Do you want to generate the XML file and add it to the media?",
-                    "",
+                var confirmed = _dialogService.ShowLocalizedConfirmationDialog(
+                    "Dialog_GenerateXml",
+                    "Msg_GenerateXmlConfirm",
                     DialogType.Information,
                     "Information"
                 );
 
-                if (confirmDialog.ShowDialog() != true)
+                if (!confirmed)
                     return;
 
-                XmlStatus = "Generating Winhance XML...";
+                XmlStatus = _localizationService.GetString("WIMUtil_Status_XmlGenerating");
 
                 var xmlGeneratorService = _serviceProvider.GetRequiredService<IAutounattendXmlGeneratorService>();
                 var outputPath = Path.Combine(WorkingDirectory, "autounattend.xml");
@@ -742,7 +869,7 @@ namespace Winhance.WPF.Features.AdvancedTools.ViewModels
 
                 SelectedXmlPath = generatedPath;
                 IsXmlAdded = true;
-                XmlStatus = "Winhance XML generated and added successfully!";
+                XmlStatus = _localizationService.GetString("WIMUtil_Status_XmlGenSuccess");
                 ClearOtherXmlCardCompletions("generate");
                 GenerateWinhanceXmlCard.IsComplete = true;
                 UpdateStepStates();
@@ -752,17 +879,16 @@ namespace Winhance.WPF.Features.AdvancedTools.ViewModels
             catch (Exception ex)
             {
                 _logService.LogError($"Error generating Winhance XML: {ex.Message}", ex);
-                XmlStatus = $"Generation failed: {ex.Message}";
+                XmlStatus = _localizationService.GetString("WIMUtil_Status_XmlGenFailed", ex.Message);
                 GenerateWinhanceXmlCard.HasFailed = true;
 
-                var errorDialog = CustomDialog.CreateInformationDialog(
-                    "Generation Error",
-                    $"Failed to generate XML: {ex.Message}",
-                    "",
+                _dialogService.ShowLocalizedDialog(
+                    "Dialog_XmlGenError",
+                    "WIMUtil_Msg_XmlGenError",
                     DialogType.Error,
-                    "CloseCircle"
+                    "CloseCircle",
+                    ex.Message
                 );
-                errorDialog.ShowDialog();
             }
         }
 
@@ -779,10 +905,10 @@ namespace Winhance.WPF.Features.AdvancedTools.ViewModels
                 _cancellationTokenSource = new CancellationTokenSource();
                 var progress = new Progress<TaskProgressDetail>(detail =>
                 {
-                    XmlStatus = detail.StatusText ?? "Downloading XML...";
+                    XmlStatus = detail.StatusText ?? _localizationService.GetString("WIMUtil_Status_XmlDownloading");
                 });
 
-                XmlStatus = "Downloading latest UnattendedWinstall XML...";
+                XmlStatus = _localizationService.GetString("WIMUtil_Status_XmlDownloadStart");
                 await _wimUtilService.DownloadUnattendedWinstallXmlAsync(
                     destinationPath,
                     progress,
@@ -795,7 +921,7 @@ namespace Winhance.WPF.Features.AdvancedTools.ViewModels
                 {
                     SelectedXmlPath = destinationPath;
                     IsXmlAdded = true;
-                    XmlStatus = "XML downloaded and added successfully!";
+                    XmlStatus = _localizationService.GetString("WIMUtil_Status_XmlDownloadSuccess");
                     ClearOtherXmlCardCompletions("download");
                     DownloadXmlCard.IsComplete = true;
                     UpdateStepStates();
@@ -805,32 +931,29 @@ namespace Winhance.WPF.Features.AdvancedTools.ViewModels
                 else
                 {
                     DownloadXmlCard.HasFailed = true;
-                    XmlStatus = "Downloaded but failed to add to media";
+                    XmlStatus = _localizationService.GetString("WIMUtil_Status_XmlAddFailed");
 
-                    var dialog = CustomDialog.CreateInformationDialog(
-                        "Addition Failed",
-                        "XML was downloaded but could not be added to the installation media.",
-                        "",
+                    _dialogService.ShowLocalizedDialog(
+                        "Dialog_XmlAddFailed",
+                        "WIMUtil_Msg_XmlAddFailed",
                         DialogType.Error,
                         "CloseCircle"
                     );
-                    dialog.ShowDialog();
                 }
             }
             catch (Exception ex)
             {
                 _logService.LogError($"Error downloading XML: {ex.Message}", ex);
-                XmlStatus = $"Download failed: {ex.Message}";
+                XmlStatus = _localizationService.GetString("WIMUtil_Status_XmlDownloadFailed", ex.Message);
                 DownloadXmlCard.HasFailed = true;
 
-                var dialog = CustomDialog.CreateInformationDialog(
-                    "Download Error",
-                    $"Failed to download XML: {ex.Message}",
-                    "",
+                _dialogService.ShowLocalizedDialog(
+                    "Dialog_XmlDownloadError",
+                    "WIMUtil_Msg_XmlDownloadError",
                     DialogType.Error,
-                    "CloseCircle"
+                    "CloseCircle",
+                    ex.Message
                 );
-                dialog.ShowDialog();
             }
         }
 
@@ -845,7 +968,7 @@ namespace Winhance.WPF.Features.AdvancedTools.ViewModels
                 var dialog = new OpenFileDialog
                 {
                     Filter = "XML Files (*.xml)|*.xml|All Files (*.*)|*.*",
-                    Title = "Select autounattend.xml File"
+                    Title = _localizationService.GetString("WIMUtil_FileDialog_SelectXml")
                 };
 
                 if (dialog.ShowDialog() != true)
@@ -853,33 +976,31 @@ namespace Winhance.WPF.Features.AdvancedTools.ViewModels
 
                 var selectedPath = dialog.FileName;
 
-                XmlStatus = "Validating XML file...";
+                XmlStatus = _localizationService.GetString("WIMUtil_Status_XmlValidating");
                 var isValidXml = await ValidateXmlFile(selectedPath);
 
                 if (!isValidXml)
                 {
                     SelectXmlCard.HasFailed = true;
-                    XmlStatus = "Invalid XML file";
+                    XmlStatus = _localizationService.GetString("WIMUtil_Status_XmlInvalid");
 
-                    var errorDialog = CustomDialog.CreateInformationDialog(
-                        "Invalid XML",
-                        "The selected file is not a valid XML file. Please check the file and try again.",
-                        "",
+                    _dialogService.ShowLocalizedDialog(
+                        "Dialog_XmlInvalid",
+                        "WIMUtil_Msg_XmlInvalidError",
                         DialogType.Error,
                         "CloseCircle"
                     );
-                    errorDialog.ShowDialog();
                     return;
                 }
 
-                XmlStatus = "Adding XML to media...";
+                XmlStatus = _localizationService.GetString("WIMUtil_Status_XmlAdding");
                 var addSuccess = await _wimUtilService.AddXmlToImageAsync(selectedPath, WorkingDirectory);
 
                 if (addSuccess)
                 {
                     SelectedXmlPath = selectedPath;
                     IsXmlAdded = true;
-                    XmlStatus = "XML validated and added successfully!";
+                    XmlStatus = _localizationService.GetString("WIMUtil_Status_XmlSelectSuccess");
                     ClearOtherXmlCardCompletions("select");
                     SelectXmlCard.IsComplete = true;
                     UpdateStepStates();
@@ -889,32 +1010,29 @@ namespace Winhance.WPF.Features.AdvancedTools.ViewModels
                 else
                 {
                     SelectXmlCard.HasFailed = true;
-                    XmlStatus = "Valid XML but failed to add to media";
+                    XmlStatus = _localizationService.GetString("WIMUtil_Status_XmlValidAddFailed");
 
-                    var errorDialog = CustomDialog.CreateInformationDialog(
-                        "Addition Failed",
-                        "XML is valid but could not be added to the installation media.",
-                        "",
+                    _dialogService.ShowLocalizedDialog(
+                        "Dialog_XmlAddFailed",
+                        "WIMUtil_Msg_XmlValidAddFailed",
                         DialogType.Error,
                         "CloseCircle"
                     );
-                    errorDialog.ShowDialog();
                 }
             }
             catch (Exception ex)
             {
                 _logService.LogError($"Error selecting XML: {ex.Message}", ex);
-                XmlStatus = $"Error: {ex.Message}";
+                XmlStatus = _localizationService.GetString("WIMUtil_Status_ErrorPrefix", ex.Message);
                 SelectXmlCard.HasFailed = true;
 
-                var errorDialog = CustomDialog.CreateInformationDialog(
-                    "Selection Error",
-                    $"An error occurred: {ex.Message}",
-                    "",
+                _dialogService.ShowLocalizedDialog(
+                    "Dialog_XmlSelectError",
+                    "WIMUtil_Msg_XmlSelectError",
                     DialogType.Error,
-                    "CloseCircle"
+                    "CloseCircle",
+                    ex.Message
                 );
-                errorDialog.ShowDialog();
             }
         }
 
@@ -964,18 +1082,14 @@ namespace Winhance.WPF.Features.AdvancedTools.ViewModels
                 ExtractSystemDriversCard.IsComplete = false;
                 ExtractSystemDriversCard.HasFailed = false;
 
-                var confirmDialog = CustomDialog.CreateConfirmationDialog(
-                    "Extract System Drivers",
-                    "This will extract all third-party drivers from your current Windows installation and add them to the installation media.\n\n" +
-                    "This operation may take several minutes depending on the number of drivers installed.\n\n" +
-                    "Do you want to continue?",
-                    "",
+                if (!_dialogService.ShowLocalizedConfirmationDialog(
+                    "Dialog_ExtractDrivers",
+                    "WIMUtil_Msg_ExtractDriversConfirm",
                     DialogType.Information,
-                    "Information"
-                );
-
-                if (confirmDialog.ShowDialog() != true)
+                    "Information"))
+                {
                     return;
+                }
 
                 ExtractSystemDriversCard.IsProcessing = true;
                 ExtractSystemDriversCard.IsEnabled = false;
@@ -1001,31 +1115,23 @@ namespace Winhance.WPF.Features.AdvancedTools.ViewModels
 
                     _logService.LogInformation("System drivers extracted and added successfully");
 
-                    var successDialog = CustomDialog.CreateInformationDialog(
-                        "Drivers Extracted Successfully",
-                        "System drivers have been extracted and added to the installation media. They will be automatically installed during Windows setup.",
-                        "",
+                    _dialogService.ShowLocalizedDialog(
+                        "Dialog_DriversSuccess",
+                        "WIMUtil_Msg_DriversSuccess",
                         DialogType.Success,
                         "CheckCircle"
                     );
-                    successDialog.ShowDialog();
                 }
                 else
                 {
                     ExtractSystemDriversCard.HasFailed = true;
 
-                    var errorDialog = CustomDialog.CreateInformationDialog(
-                        "No Drivers Found",
-                        "No third-party drivers were found on your current system, or the extraction failed.\n\n" +
-                        "This can happen if:\n" +
-                        "• Your system only uses built-in Windows drivers\n" +
-                        "• The drivers are not exportable\n" +
-                        "• Insufficient permissions to export drivers",
-                        "",
+                    _dialogService.ShowLocalizedDialog(
+                        "Dialog_NoDrivers",
+                        "WIMUtil_Msg_NoDriversFound",
                         DialogType.Warning,
                         "Alert"
                     );
-                    errorDialog.ShowDialog();
                 }
             }
             catch (Exception ex)
@@ -1035,14 +1141,13 @@ namespace Winhance.WPF.Features.AdvancedTools.ViewModels
                 ExtractSystemDriversCard.IsEnabled = true;
                 ExtractSystemDriversCard.HasFailed = true;
 
-                var errorDialog = CustomDialog.CreateInformationDialog(
-                    "Driver Extraction Error",
-                    $"An error occurred while extracting drivers: {ex.Message}",
-                    "",
+                _dialogService.ShowLocalizedDialog(
+                    "Dialog_DriverError",
+                    "WIMUtil_Msg_DriverExtractionError",
                     DialogType.Error,
-                    "CloseCircle"
+                    "CloseCircle",
+                    ex.Message
                 );
-                errorDialog.ShowDialog();
             }
         }
 
@@ -1054,7 +1159,7 @@ namespace Winhance.WPF.Features.AdvancedTools.ViewModels
                 SelectCustomDriversCard.IsComplete = false;
                 SelectCustomDriversCard.HasFailed = false;
 
-                var selectedPath = ShowFolderBrowserDialog("Select folder containing drivers");
+                var selectedPath = ShowFolderBrowserDialog(_localizationService.GetString("WIMUtil_FolderDialog_SelectDrivers"));
 
                 if (string.IsNullOrEmpty(selectedPath))
                 {
@@ -1066,14 +1171,12 @@ namespace Winhance.WPF.Features.AdvancedTools.ViewModels
                 {
                     SelectCustomDriversCard.HasFailed = true;
 
-                    var errorDialog = CustomDialog.CreateInformationDialog(
-                        "Invalid Folder",
-                        "The selected folder does not exist. Please try again.",
-                        "",
+                    _dialogService.ShowLocalizedDialog(
+                        "Dialog_InvalidFolder",
+                        "WIMUtil_Msg_InvalidFolder",
                         DialogType.Error,
                         "CloseCircle"
                     );
-                    errorDialog.ShowDialog();
                     return;
                 }
 
@@ -1082,14 +1185,12 @@ namespace Winhance.WPF.Features.AdvancedTools.ViewModels
                 {
                     SelectCustomDriversCard.HasFailed = true;
 
-                    var errorDialog = CustomDialog.CreateInformationDialog(
-                        "Empty Folder",
-                        "The selected folder appears to be empty. Please select a folder containing driver files.",
-                        "",
+                    _dialogService.ShowLocalizedDialog(
+                        "Dialog_EmptyFolder",
+                        "WIMUtil_Msg_EmptyFolder",
                         DialogType.Warning,
                         "Alert"
                     );
-                    errorDialog.ShowDialog();
                     return;
                 }
 
@@ -1099,7 +1200,7 @@ namespace Winhance.WPF.Features.AdvancedTools.ViewModels
                 _cancellationTokenSource = new CancellationTokenSource();
                 var progress = new Progress<TaskProgressDetail>(detail => { });
 
-                SelectCustomDriversCard.Description = $"Selected: {selectedPath}";
+                SelectCustomDriversCard.Description = $"{_localizationService.GetString("WIMUtil_Label_Selected")}: {selectedPath}";
 
                 var success = await _wimUtilService.AddDriversAsync(
                     WorkingDirectory,
@@ -1119,31 +1220,24 @@ namespace Winhance.WPF.Features.AdvancedTools.ViewModels
 
                     _logService.LogInformation($"Custom drivers added from: {selectedPath}");
 
-                    var successDialog = CustomDialog.CreateInformationDialog(
-                        "Drivers Added Successfully",
-                        "Driver files have been added to the installation media and will be automatically installed during Windows setup.",
-                        "",
+                    _dialogService.ShowLocalizedDialog(
+                        "Dialog_DriversAdded",
+                        "WIMUtil_Msg_DriverFilesAdded",
                         DialogType.Success,
                         "CheckCircle"
                     );
-                    successDialog.ShowDialog();
                 }
                 else
                 {
                     SelectCustomDriversCard.HasFailed = true;
 
-                    var errorDialog = CustomDialog.CreateInformationDialog(
-                        "No Drivers Found",
-                        $"No driver files (.inf) were found in the selected directory:\n\n{selectedPath}\n\n" +
-                        "Please ensure:\n" +
-                        "• The directory contains driver files with .inf extensions\n" +
-                        "• You have selected the correct folder\n" +
-                        "• The drivers are compatible with your Windows version",
-                        "",
+                    _dialogService.ShowLocalizedDialog(
+                        "Dialog_NoDrivers",
+                        "WIMUtil_Msg_NoCustomDrivers",
                         DialogType.Warning,
-                        "Alert"
+                        "Alert",
+                        selectedPath
                     );
-                    errorDialog.ShowDialog();
                 }
             }
             catch (Exception ex)
@@ -1153,14 +1247,13 @@ namespace Winhance.WPF.Features.AdvancedTools.ViewModels
                 SelectCustomDriversCard.IsEnabled = true;
                 SelectCustomDriversCard.HasFailed = true;
 
-                var errorDialog = CustomDialog.CreateInformationDialog(
-                    "Driver Addition Error",
-                    $"An error occurred while adding drivers: {ex.Message}",
-                    "",
+                _dialogService.ShowLocalizedDialog(
+                    "Dialog_DriverAddError",
+                    "WIMUtil_Msg_DriverAdditionError",
                     DialogType.Error,
-                    "CloseCircle"
+                    "CloseCircle",
+                    ex.Message
                 );
-                errorDialog.ShowDialog();
             }
         }
 
@@ -1192,34 +1285,30 @@ namespace Winhance.WPF.Features.AdvancedTools.ViewModels
                     IsOscdimgAvailable = true;
                     DownloadOscdimgCard.IsComplete = true;
                     DownloadOscdimgCard.IsEnabled = false;
-                    DownloadOscdimgCard.ButtonText = "oscdimg.exe found";
-                    DownloadOscdimgCard.Description = "Successfully installed from Windows ADK";
+                    DownloadOscdimgCard.ButtonText = _localizationService.GetString("WIMUtil_Button_OscdimgFound");
+                    DownloadOscdimgCard.Description = _localizationService.GetString("WIMUtil_Desc_OscdimgInstalled");
                     DownloadOscdimgCard.Icon = "CheckCircle";
 
                     UpdateStepStates();
 
-                    var dialog = CustomDialog.CreateInformationDialog(
-                        "Installation Complete",
-                        "Windows ADK Deployment Tools have been installed successfully. oscdimg.exe is now available.",
-                        "",
+                    _dialogService.ShowLocalizedDialog(
+                        "Dialog_AdkComplete",
+                        "WIMUtil_Msg_AdkInstallComplete",
                         DialogType.Success,
                         "CheckCircle"
                     );
-                    dialog.ShowDialog();
                 }
                 else
                 {
                     DownloadOscdimgCard.IsEnabled = true;
                     DownloadOscdimgCard.HasFailed = true;
 
-                    var dialog = CustomDialog.CreateInformationDialog(
-                        "Installation Failed",
-                        "Failed to install Windows ADK Deployment Tools. Please check your internet connection and try again.",
-                        "",
+                    _dialogService.ShowLocalizedDialog(
+                        "Dialog_AdkFailed",
+                        "WIMUtil_Msg_AdkInstallFailed",
                         DialogType.Error,
                         "CloseCircle"
                     );
-                    dialog.ShowDialog();
                 }
             }
             catch (Exception ex)
@@ -1230,14 +1319,13 @@ namespace Winhance.WPF.Features.AdvancedTools.ViewModels
                 DownloadOscdimgCard.IsEnabled = true;
                 DownloadOscdimgCard.HasFailed = true;
 
-                var dialog = CustomDialog.CreateInformationDialog(
-                    "Installation Error",
-                    $"An error occurred: {ex.Message}",
-                    "",
+                _dialogService.ShowLocalizedDialog(
+                    "Dialog_AdkError",
+                    "WIMUtil_Msg_AdkInstallError",
                     DialogType.Error,
-                    "CloseCircle"
+                    "CloseCircle",
+                    ex.Message
                 );
-                dialog.ShowDialog();
             }
         }
 
@@ -1247,14 +1335,14 @@ namespace Winhance.WPF.Features.AdvancedTools.ViewModels
             var dialog = new SaveFileDialog
             {
                 Filter = "ISO Files (*.iso)|*.iso",
-                Title = "Select Output Location for New ISO",
+                Title = _localizationService.GetString("WIMUtil_FileDialog_SelectOutput"),
                 FileName = "Winhance_Windows.iso"
             };
 
             if (dialog.ShowDialog() == true)
             {
                 OutputIsoPath = dialog.FileName;
-                SelectOutputCard.Description = $"Output: {Path.GetFileName(OutputIsoPath)}";
+                SelectOutputCard.Description = $"{_localizationService.GetString("WIMUtil_Label_Output")}: {Path.GetFileName(OutputIsoPath)}";
             }
         }
 
@@ -1265,27 +1353,23 @@ namespace Winhance.WPF.Features.AdvancedTools.ViewModels
             {
                 if (!IsOscdimgAvailable)
                 {
-                    var dialog = CustomDialog.CreateInformationDialog(
-                        "oscdimg.exe Required",
-                        "Please download oscdimg.exe first by clicking the 'Download oscdimg' button.",
-                        "",
+                    _dialogService.ShowLocalizedDialog(
+                        "Dialog_OscdimgRequired",
+                        "WIMUtil_Msg_OscdimgRequired",
                         DialogType.Warning,
                         "Alert"
                     );
-                    dialog.ShowDialog();
                     return;
                 }
 
                 if (string.IsNullOrEmpty(OutputIsoPath))
                 {
-                    var dialog = CustomDialog.CreateInformationDialog(
-                        "Output Location Required",
-                        "Please select an output location for the ISO file.",
-                        "",
+                    _dialogService.ShowLocalizedDialog(
+                        "Dialog_OutputRequired",
+                        "WIMUtil_Msg_OutputRequired",
                         DialogType.Warning,
                         "Alert"
                     );
-                    dialog.ShowDialog();
                     return;
                 }
 
@@ -1307,21 +1391,16 @@ namespace Winhance.WPF.Features.AdvancedTools.ViewModels
                     SelectOutputCard.IsEnabled = true;
                     SelectOutputCard.Opacity = 1.0;
                     IsIsoCreated = true;
-                    SelectOutputCard.Description = "ISO created successfully!";
+                    SelectOutputCard.Description = _localizationService.GetString("WIMUtil_Desc_IsoCreatedSuccess");
                     SelectOutputCard.DescriptionForeground = new SolidColorBrush(Color.FromRgb(27, 94, 32));
                     UpdateStepStates();
 
-                    var dialog = CustomDialog.CreateConfirmationDialog(
-                        "ISO Created Successfully",
-                        $"Your Windows installation ISO has been created successfully!\n\n" +
-                        $"Location: {OutputIsoPath}\n\n" +
-                        "Would you like to open the folder containing the ISO?",
-                        "",
+                    if (_dialogService.ShowLocalizedConfirmationDialog(
+                        "Dialog_IsoCreated",
+                        "WIMUtil_Msg_IsoCreatedSuccess",
                         DialogType.Success,
-                        "CheckCircle"
-                    );
-
-                    if (dialog.ShowDialog() == true)
+                        "CheckCircle",
+                        OutputIsoPath))
                     {
                         Process.Start("explorer.exe", $"/select,\"{OutputIsoPath}\"");
                     }
@@ -1330,17 +1409,15 @@ namespace Winhance.WPF.Features.AdvancedTools.ViewModels
                 {
                     SelectOutputCard.IsEnabled = true;
                     SelectOutputCard.Opacity = 1.0;
-                    SelectOutputCard.Description = "Failed to create ISO";
+                    SelectOutputCard.Description = _localizationService.GetString("WIMUtil_Desc_IsoCreateFailed");
                     SelectOutputCard.DescriptionForeground = new SolidColorBrush(Color.FromRgb(198, 40, 40));
 
-                    var dialog = CustomDialog.CreateInformationDialog(
-                        "ISO Creation Failed",
-                        "Failed to create ISO file. Please check the logs for details.",
-                        "",
+                    _dialogService.ShowLocalizedDialog(
+                        "Dialog_IsoCreationFailed",
+                        "WIMUtil_Msg_IsoCreationFailed",
                         DialogType.Error,
                         "CloseCircle"
                     );
-                    dialog.ShowDialog();
                 }
             }
             catch (OperationCanceledException)
@@ -1361,7 +1438,7 @@ namespace Winhance.WPF.Features.AdvancedTools.ViewModels
                     _logService.LogWarning($"Could not cleanup ISO file: {cleanupEx.Message}");
                 }
 
-                SelectOutputCard.Description = "ISO creation cancelled";
+                SelectOutputCard.Description = _localizationService.GetString("WIMUtil_Desc_IsoCreateCancelled");
                 SelectOutputCard.DescriptionForeground = new SolidColorBrush(Color.FromRgb(255, 152, 0));
 
             }
@@ -1370,40 +1447,37 @@ namespace Winhance.WPF.Features.AdvancedTools.ViewModels
                 SelectOutputCard.IsEnabled = true;
                 SelectOutputCard.Opacity = 1.0;
 
-                SelectOutputCard.Description = $"Insufficient disk space on {spaceEx.DriveName}";
+                SelectOutputCard.Description = _localizationService.GetString("WIMUtil_Status_InsufficientDiskSpace", spaceEx.DriveName);
                 SelectOutputCard.DescriptionForeground = new SolidColorBrush(Color.FromRgb(198, 40, 40));
 
                 _logService.LogError($"Insufficient disk space for ISO creation: {spaceEx.Message}", spaceEx);
 
-                var dialog = CustomDialog.CreateInformationDialog(
-                    "Insufficient Disk Space",
-                    $"There is not enough space on drive {spaceEx.DriveName} to create the ISO.\n\n" +
-                    $"Required: {spaceEx.RequiredGB:F2} GB\n" +
-                    $"Available: {spaceEx.AvailableGB:F2} GB\n" +
-                    $"Needed: {(spaceEx.RequiredGB - spaceEx.AvailableGB):F2} GB more\n\n" +
-                    $"Please free up space or select another location with more free space.",
-                    "",
+                _dialogService.ShowLocalizedDialog(
+                    "Dialog_InsufficientSpace",
+                    "WIMUtil_Msg_InsufficientSpace_Create",
                     DialogType.Warning,
-                    "Alert"
+                    "Alert",
+                    spaceEx.DriveName,
+                    spaceEx.RequiredGB.ToString("F2"),
+                    spaceEx.AvailableGB.ToString("F2"),
+                    (spaceEx.RequiredGB - spaceEx.AvailableGB).ToString("F2")
                 );
-                dialog.ShowDialog();
             }
             catch (Exception ex)
             {
                 SelectOutputCard.IsEnabled = true;
                 SelectOutputCard.Opacity = 1.0;
                 _logService.LogError($"Error creating ISO: {ex.Message}", ex);
-                SelectOutputCard.Description = $"Error: {ex.Message}";
+                SelectOutputCard.Description = _localizationService.GetString("WIMUtil_Status_ErrorPrefix", ex.Message);
                 SelectOutputCard.DescriptionForeground = new SolidColorBrush(Color.FromRgb(198, 40, 40));
 
-                var dialog = CustomDialog.CreateInformationDialog(
-                    "ISO Creation Error",
-                    $"An error occurred: {ex.Message}",
-                    "",
+                _dialogService.ShowLocalizedDialog(
+                    "Dialog_IsoCreationError",
+                    "WIMUtil_Msg_IsoCreationError",
                     DialogType.Error,
-                    "CloseCircle"
+                    "CloseCircle",
+                    ex.Message
                 );
-                dialog.ShowDialog();
             }
             finally
             {
@@ -1426,14 +1500,12 @@ namespace Winhance.WPF.Features.AdvancedTools.ViewModels
 
             if (!IsStepAvailable(targetStep))
             {
-                var dialog = CustomDialog.CreateInformationDialog(
-                    "Step Not Available",
-                    "Please complete Step 1 (Select Windows ISO) before accessing this step.",
-                    "",
+                _dialogService.ShowLocalizedDialog(
+                    "Dialog_StepNotAvailable",
+                    "WIMUtil_Msg_StepNotAvailable",
                     DialogType.Information,
                     "Information"
                 );
-                dialog.ShowDialog();
                 return;
             }
 
@@ -1459,16 +1531,16 @@ namespace Winhance.WPF.Features.AdvancedTools.ViewModels
             {
                 DownloadOscdimgCard.IsEnabled = false;
                 DownloadOscdimgCard.IsComplete = true;
-                DownloadOscdimgCard.ButtonText = "oscdimg.exe found";
-                DownloadOscdimgCard.Description = "Required to create bootable ISO files, but was already found on your system, no download needed";
+                DownloadOscdimgCard.ButtonText = _localizationService.GetString("WIMUtil_Button_OscdimgFound");
+                DownloadOscdimgCard.Description = _localizationService.GetString("WIMUtil_Desc_OscdimgFound");
                 DownloadOscdimgCard.Icon = "CheckCircle";
             }
             else
             {
                 DownloadOscdimgCard.IsEnabled = true;
                 DownloadOscdimgCard.IsComplete = false;
-                DownloadOscdimgCard.ButtonText = "Download";
-                DownloadOscdimgCard.Description = "The official Windows ADK will be downloaded and Deployment Tools installed. Download time depends on your internet connection speed";
+                DownloadOscdimgCard.ButtonText = _localizationService.GetString("WIMUtil_Button_Download");
+                DownloadOscdimgCard.Description = _localizationService.GetString("WIMUtil_Card_DownloadOscdimg_Description");
                 DownloadOscdimgCard.Icon = "Download";
             }
         }
@@ -1503,37 +1575,37 @@ namespace Winhance.WPF.Features.AdvancedTools.ViewModels
 
         private string GetStep1StatusText()
         {
-            if (IsConverting) return "Converting image format...";
-            if (IsExtractionComplete) return "✓ ISO Extracted";
-            if (IsExtracting) return "Extracting ISO contents...";
-            if (!string.IsNullOrEmpty(SelectedIsoPath)) return "ISO selected, ready to start extraction";
-            return "No ISO Selected";
+            if (IsConverting) return _localizationService.GetString("WIMUtil_Status_Converting");
+            if (IsExtractionComplete) return _localizationService.GetString("WIMUtil_Status_IsoExtracted");
+            if (IsExtracting) return _localizationService.GetString("WIMUtil_Status_Extracting");
+            if (!string.IsNullOrEmpty(SelectedIsoPath)) return _localizationService.GetString("WIMUtil_Status_IsoSelected");
+            return _localizationService.GetString("WIMUtil_Status_NoIsoSelected");
         }
 
         private string GetStep2StatusText()
         {
-            if (IsConverting) return "🔒 Wait for conversion to complete";
-            if (!IsExtractionComplete) return "🔒 Complete Step 1";
-            if (IsXmlAdded) return "✓ XML Added";
-            if (!string.IsNullOrEmpty(SelectedXmlPath)) return $"Selected: {Path.GetFileName(SelectedXmlPath)}";
-            return "No XML Added (Optional)";
+            if (IsConverting) return _localizationService.GetString("WIMUtil_Status_WaitForConversion");
+            if (!IsExtractionComplete) return _localizationService.GetString("WIMUtil_Status_CompleteStep1");
+            if (IsXmlAdded) return _localizationService.GetString("WIMUtil_Status_XmlAdded");
+            if (!string.IsNullOrEmpty(SelectedXmlPath)) return $"{_localizationService.GetString("WIMUtil_Label_Selected")}: {Path.GetFileName(SelectedXmlPath)}";
+            return _localizationService.GetString("WIMUtil_Status_NoXmlAdded");
         }
 
         private string GetStep3StatusText()
         {
-            if (IsConverting) return "🔒 Wait for conversion to complete";
-            if (!IsExtractionComplete) return "🔒 Complete Step 1";
-            if (AreDriversAdded) return "✓ Drivers Added";
-            return "No Drivers Added (Optional)";
+            if (IsConverting) return _localizationService.GetString("WIMUtil_Status_WaitForConversion");
+            if (!IsExtractionComplete) return _localizationService.GetString("WIMUtil_Status_CompleteStep1");
+            if (AreDriversAdded) return _localizationService.GetString("WIMUtil_Status_DriversAdded");
+            return _localizationService.GetString("WIMUtil_Status_NoDriversAdded");
         }
 
         private string GetStep4StatusText()
         {
-            if (IsConverting) return "🔒 Wait for conversion to complete";
-            if (!IsExtractionComplete) return "🔒 Complete Step 1";
-            if (IsIsoCreated) return "✓ ISO Created";
-            if (!string.IsNullOrEmpty(OutputIsoPath)) return $"Output: {Path.GetFileName(OutputIsoPath)}";
-            return "Ready to Create ISO";
+            if (IsConverting) return _localizationService.GetString("WIMUtil_Status_WaitForConversion");
+            if (!IsExtractionComplete) return _localizationService.GetString("WIMUtil_Status_CompleteStep1");
+            if (IsIsoCreated) return _localizationService.GetString("WIMUtil_Status_IsoCreated");
+            if (!string.IsNullOrEmpty(OutputIsoPath)) return $"{_localizationService.GetString("WIMUtil_Label_Output")}: {Path.GetFileName(OutputIsoPath)}";
+            return _localizationService.GetString("WIMUtil_Status_ReadyToCreateIso");
         }
 
         [RelayCommand]
@@ -1597,7 +1669,7 @@ namespace Winhance.WPF.Features.AdvancedTools.ViewModels
             if (CurrentImageFormat == null)
             {
                 ConvertImageCard.IsEnabled = false;
-                ConvertImageCard.Description = "No image file detected";
+                ConvertImageCard.Description = _localizationService.GetString("WIMUtil_Label_NoImageDetected");
                 return;
             }
 
@@ -1609,32 +1681,31 @@ namespace Winhance.WPF.Features.AdvancedTools.ViewModels
                 ? currentSize * 0.65
                 : currentSize * 1.50;
 
+            var diff = Math.Abs(estimatedTargetSize - currentSize);
             var sizeChange = CurrentImageFormat.Format == ImageFormat.Wim
-                ? $"Save ~{(currentSize - estimatedTargetSize):F2} GB"
-                : $"Requires ~{(estimatedTargetSize - currentSize):F2} GB more space";
+                ? $"{_localizationService.GetString("WIMUtil_Label_Save")} ~{diff:F2} GB"
+                : _localizationService.GetString("WIMUtil_Label_RequiresMore", diff.ToString("F2"));
 
             ConvertImageCard.Icon = CurrentImageFormat.Format == ImageFormat.Wim
                 ? "ArrowCollapseAll"
                 : "ArrowExpandAll";
 
-            ConvertImageCard.Title = $"Convert {currentFormat} to {targetFormat} Format (Optional)";
+            ConvertImageCard.Title = _localizationService.GetString("WIMUtil_Card_ConvertImage_Title_Dynamic", currentFormat, targetFormat);
 
             var performanceNote = CurrentImageFormat.Format == ImageFormat.Wim
-                ? "Creates smaller ISO but slower Windows installation"
-                : "Creates larger ISO but faster Windows installation";
+                ? _localizationService.GetString("WIMUtil_Label_PerfNote_Wim")
+                : _localizationService.GetString("WIMUtil_Label_PerfNote_Esd");
 
             ConvertImageCard.Description =
-                $"Current: install.{currentFormat.ToLower()} ({currentSize:F2} GB)\n" +
-                $"After conversion: ~{estimatedTargetSize:F2} GB ({sizeChange})\n" +
+                $"{_localizationService.GetString("WIMUtil_Label_Current")}: install.{currentFormat.ToLower()} ({currentSize:F2} GB)\n" +
+                $"{_localizationService.GetString("WIMUtil_Label_AfterConversion")}: ~{estimatedTargetSize:F2} GB ({sizeChange})\n" +
                 $"{performanceNote}";
 
-            ConvertImageCard.ButtonText = $"Convert to {targetFormat}";
+            ConvertImageCard.ButtonText = _localizationService.GetString("WIMUtil_Card_ConvertImage_Button_Dynamic", targetFormat);
             ConvertImageCard.IsEnabled = !IsConverting;
 
             _logService.LogInformation(
-                $"Format detected: {currentFormat}, " +
-                $"{CurrentImageFormat.ImageCount} editions, " +
-                $"{currentSize:F2} GB"
+                string.Format(_localizationService.GetString("WIMUtil_Label_FormatDetected"), currentFormat, CurrentImageFormat.ImageCount, currentSize.ToString("F2"))
             );
         }
 
@@ -1652,28 +1723,21 @@ namespace Winhance.WPF.Features.AdvancedTools.ViewModels
                 var targetFormatName = targetFormat == ImageFormat.Wim ? "WIM" : "ESD";
                 var currentFormatName = CurrentImageFormat.Format == ImageFormat.Wim ? "WIM" : "ESD";
 
-                var confirmMessage = targetFormat == ImageFormat.Esd
-                    ? $"Convert to ESD format?\n\n" +
-                      $"✓ Smaller ISO size (save ~{(CurrentImageFormat.FileSizeBytes * 0.35 / (1024.0 * 1024 * 1024)):F2} GB)\n" +
-                      $"✗ Slower Windows installation\n\n" +
-                      $"This process will take 10-20 minutes.\n\n" +
-                      $"Continue?"
-                    : $"Convert to WIM format?\n\n" +
-                      $"✓ Faster Windows installation\n" +
-                      $"✗ Larger ISO size (needs ~{(CurrentImageFormat.FileSizeBytes * 0.50 / (1024.0 * 1024 * 1024)):F2} GB more space)\n\n" +
-                      $"This process will take 10-20 minutes.\n\n" +
-                      $"Continue?";
+                var dialogTitleKey = targetFormat == ImageFormat.Esd ? "Dialog_ConvertToEsd" : "Dialog_ConvertToWim";
+                var messageKey = targetFormat == ImageFormat.Esd ? "WIMUtil_Msg_ConvertConfirm_Esd" : "WIMUtil_Msg_ConvertConfirm_Wim";
+                var sizeDiff = targetFormat == ImageFormat.Esd
+                    ? (CurrentImageFormat.FileSizeBytes * 0.35 / (1024.0 * 1024 * 1024))
+                    : (CurrentImageFormat.FileSizeBytes * 0.50 / (1024.0 * 1024 * 1024));
 
-                var confirmDialog = CustomDialog.CreateConfirmationDialog(
-                    $"Convert {currentFormatName} to {targetFormatName}",
-                    confirmMessage,
-                    "",
+                if (!_dialogService.ShowLocalizedConfirmationDialog(
+                    dialogTitleKey,
+                    messageKey,
                     DialogType.Information,
-                    "Information"
-                );
-
-                if (confirmDialog.ShowDialog() != true)
+                    "Information",
+                    sizeDiff.ToString("F2")))
+                {
                     return;
+                }
 
                 IsConverting = true;
                 ConvertImageCard.IsProcessing = true;
@@ -1694,75 +1758,69 @@ namespace Winhance.WPF.Features.AdvancedTools.ViewModels
                 if (success)
                 {
                     ConvertImageCard.IsComplete = true;
-                    ConversionStatus = $"Successfully converted to {targetFormatName}!";
+                    ConversionStatus = _localizationService.GetString("WIMUtil_Status_ConversionSuccess", targetFormatName);
 
                     await DetectImageFormatAsync();
 
-                    var successDialog = CustomDialog.CreateInformationDialog(
-                        "Conversion Successful",
-                        $"Image successfully converted to {targetFormatName} format!\n\n" +
-                        $"You can now proceed to the next steps.",
-                        "",
+                    _dialogService.ShowLocalizedDialog(
+                        "Dialog_ConversionSuccess",
+                        "WIMUtil_Msg_ConversionSuccess",
                         DialogType.Success,
-                        "CheckCircle"
+                        "CheckCircle",
+                        targetFormatName
                     );
-                    successDialog.ShowDialog();
                 }
                 else
                 {
                     ConvertImageCard.HasFailed = true;
-                    ConversionStatus = "Conversion failed";
+                    ConversionStatus = _localizationService.GetString("WIMUtil_Status_ConversionFailed");
 
-                    var errorDialog = CustomDialog.CreateInformationDialog(
-                        "Conversion Failed",
-                        $"Failed to convert image to {targetFormatName} format. Please check the logs for details.",
-                        "",
+                    _dialogService.ShowLocalizedDialog(
+                        "Dialog_ConversionFailed",
+                        "WIMUtil_Msg_ConversionFailed",
                         DialogType.Error,
-                        "CloseCircle"
+                        "CloseCircle",
+                        targetFormatName
                     );
-                    errorDialog.ShowDialog();
                 }
             }
             catch (OperationCanceledException)
             {
-                ConversionStatus = "Conversion cancelled";
+                ConversionStatus = _localizationService.GetString("WIMUtil_Status_ConversionCancelled");
                 ConvertImageCard.IsComplete = false;
 
             }
             catch (InsufficientDiskSpaceException spaceEx)
             {
                 ConvertImageCard.HasFailed = true;
-                ConversionStatus = $"Insufficient disk space on {spaceEx.DriveName}";
+                ConversionStatus = _localizationService.GetString("WIMUtil_Status_InsufficientDiskSpace", spaceEx.DriveName);
 
                 _logService.LogError($"Insufficient disk space for image conversion: {spaceEx.Message}", spaceEx);
 
-                var dialog = CustomDialog.CreateInformationDialog(
-                    "Insufficient Disk Space",
-                    $"There is not enough space on drive {spaceEx.DriveName} to convert the image.\n\n" +
-                    $"Required: {spaceEx.RequiredGB:F2} GB\n" +
-                    $"Available: {spaceEx.AvailableGB:F2} GB\n" +
-                    $"Needed: {(spaceEx.RequiredGB - spaceEx.AvailableGB):F2} GB more\n\n" +
-                    $"Please free up space or select a different location.",
-                    "",
+                _dialogService.ShowLocalizedDialog(
+                    "Dialog_InsufficientSpace",
+                    "WIMUtil_Msg_InsufficientSpace_Convert",
                     DialogType.Warning,
-                    "Alert"
+                    "Alert",
+                    spaceEx.DriveName,
+                    spaceEx.RequiredGB.ToString("F2"),
+                    spaceEx.AvailableGB.ToString("F2"),
+                    (spaceEx.RequiredGB - spaceEx.AvailableGB).ToString("F2")
                 );
-                dialog.ShowDialog();
             }
             catch (Exception ex)
             {
                 _logService.LogError($"Error during conversion: {ex.Message}", ex);
                 ConvertImageCard.HasFailed = true;
-                ConversionStatus = $"Error: {ex.Message}";
+                ConversionStatus = _localizationService.GetString("WIMUtil_Status_ErrorPrefix", ex.Message);
 
-                var errorDialog = CustomDialog.CreateInformationDialog(
-                    "Conversion Error",
-                    $"An error occurred during conversion: {ex.Message}",
-                    "",
+                _dialogService.ShowLocalizedDialog(
+                    "Dialog_ConversionError",
+                    "WIMUtil_Msg_ConversionError",
                     DialogType.Error,
-                    "CloseCircle"
+                    "CloseCircle",
+                    ex.Message
                 );
-                errorDialog.ShowDialog();
             }
             finally
             {

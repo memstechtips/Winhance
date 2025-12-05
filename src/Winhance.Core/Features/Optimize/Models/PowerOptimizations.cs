@@ -53,7 +53,7 @@ namespace Winhance.Core.Features.Optimize.Models
                                 RecommendedValueDC = 300
                             }
                         },
-                        CustomProperties = new Dictionary<string, object>(Templates.TimeIntervals)
+                        CustomProperties = new Dictionary<string, object>(PowerTemplates.TimeIntervals)
                         {
                             ["RecommendedOptionAC"] = "Never",
                             ["RecommendedOptionDC"] = "5 minutes"
@@ -81,7 +81,7 @@ namespace Winhance.Core.Features.Optimize.Models
 //                                Units = "%"
 //                            }
 //                        },
-//                        CustomProperties = Templates.CreateNumericRange(0, 100, "%")
+//                        CustomProperties = PowerTemplates.CreateNumericRange(0, 100, "%")
 //                    },
 
 //                    new SettingDefinition
@@ -103,7 +103,7 @@ namespace Winhance.Core.Features.Optimize.Models
 //                                Units = "%"
 //                            }
 //                        },
-//                        CustomProperties = Templates.CreateNumericRange(0, 100, "%")
+//                        CustomProperties = PowerTemplates.CreateNumericRange(0, 100, "%")
 //                    },
 
 //                    new SettingDefinition
@@ -124,7 +124,7 @@ namespace Winhance.Core.Features.Optimize.Models
 //                                SettingGuid = "fbd9aa66-9553-4097-ba44-ed6e9d65eab8",
 //                            }
 //                        },
-//                        CustomProperties = Templates.OnOff
+//                        CustomProperties = PowerTemplates.OnOff
 //                    },
 
                     // Hard Disk
@@ -150,7 +150,7 @@ namespace Winhance.Core.Features.Optimize.Models
                                 RecommendedValueDC = 600
                             }
                         },
-                        CustomProperties = Templates.CreateNumericRange(0, int.MaxValue, "Minutes")
+                        CustomProperties = PowerTemplates.CreateNumericRange(0, int.MaxValue, "Minutes")
                     },
 
                     // Internet Explorer
@@ -174,7 +174,7 @@ namespace Winhance.Core.Features.Optimize.Models
                                 RecommendedValueDC = 0
                             }
                         },
-                        CustomProperties = new Dictionary<string, object>(Templates.JavaScriptTimers)
+                        CustomProperties = new Dictionary<string, object>(PowerTemplates.JavaScriptTimers)
                         {
                             ["RecommendedOptionAC"] = "Maximum Performance",
                             ["RecommendedOptionDC"] = "Maximum Performance"
@@ -201,7 +201,7 @@ namespace Winhance.Core.Features.Optimize.Models
                                 RecommendedValueDC = 1
                             }
                         },
-                        CustomProperties = new Dictionary<string, object>(Templates.Slideshow)
+                        CustomProperties = new Dictionary<string, object>(PowerTemplates.Slideshow)
                         {
                             ["RecommendedOptionAC"] = "Available",
                             ["RecommendedOptionDC"] = "Paused"
@@ -228,7 +228,7 @@ namespace Winhance.Core.Features.Optimize.Models
                                 RecommendedValueDC = 2
                             }
                         },
-                        CustomProperties = new Dictionary<string, object>(Templates.WirelessPower)
+                        CustomProperties = new Dictionary<string, object>(PowerTemplates.WirelessPower)
                         {
                             ["RecommendedOptionAC"] = "Maximum Performance",
                             ["RecommendedOptionDC"] = "Medium Power Saving"
@@ -257,7 +257,7 @@ namespace Winhance.Core.Features.Optimize.Models
                                 RecommendedValueDC = 900
                             }
                         },
-                        CustomProperties = new Dictionary<string, object>(Templates.TimeIntervals)
+                        CustomProperties = new Dictionary<string, object>(PowerTemplates.TimeIntervals)
                         {
                             ["RecommendedOptionAC"] = "Never",
                             ["RecommendedOptionDC"] = "15 minutes"
@@ -285,7 +285,7 @@ namespace Winhance.Core.Features.Optimize.Models
                                 RecommendedValueDC = 0
                             }
                         },
-                        CustomProperties = new Dictionary<string, object>(Templates.WakeTimers)
+                        CustomProperties = new Dictionary<string, object>(PowerTemplates.WakeTimers)
                         {
                             ["RecommendedOptionAC"] = "Disable",
                             ["RecommendedOptionDC"] = "Disable"
@@ -332,7 +332,7 @@ namespace Winhance.Core.Features.Optimize.Models
                                 PowerModeSupport = PowerModeSupport.Separate
                             }
                         },
-                        CustomProperties = Templates.TimeIntervals
+                        CustomProperties = PowerTemplates.TimeIntervals
                     },
 
                     new SettingDefinition
@@ -465,7 +465,7 @@ namespace Winhance.Core.Features.Optimize.Models
                                 }
                             }
                         },
-                        CustomProperties = Templates.CreateNumericRange(0, 100000, "Milliseconds")
+                        CustomProperties = PowerTemplates.CreateNumericRange(0, 100000, "Milliseconds")
                     },
                     new SettingDefinition
                     {
@@ -486,7 +486,7 @@ namespace Winhance.Core.Features.Optimize.Models
                                 RecommendedValueDC = 1
                             }
                         },
-                        CustomProperties = new Dictionary<string, object>(Templates.EnabledDisabled)
+                        CustomProperties = new Dictionary<string, object>(PowerTemplates.EnabledDisabled)
                         {
                             ["RecommendedOptionAC"] = "Disabled",
                             ["RecommendedOptionDC"] = "Enabled"
@@ -521,7 +521,7 @@ namespace Winhance.Core.Features.Optimize.Models
                                 }
                             }
                         },
-                        CustomProperties = new Dictionary<string, object>(Templates.Usb3LinkPower)
+                        CustomProperties = new Dictionary<string, object>(PowerTemplates.Usb3LinkPower)
                         {
                             ["RecommendedOptionAC"] = "Off",
                             ["RecommendedOptionDC"] = "Moderate power savings"
@@ -549,7 +549,7 @@ namespace Winhance.Core.Features.Optimize.Models
                                 RecommendedValueDC = 1
                             }
                         },
-                        CustomProperties = new Dictionary<string, object>(Templates.IntelGraphics)
+                        CustomProperties = new Dictionary<string, object>(PowerTemplates.IntelGraphics)
                         {
                             ["RecommendedOptionAC"] = "Maximum Performance",
                             ["RecommendedOptionDC"] = "Balanced"
@@ -586,7 +586,7 @@ namespace Winhance.Core.Features.Optimize.Models
                                 }
                             }
                         },
-                        CustomProperties = new Dictionary<string, object>(Templates.PowerButtonActions)
+                        CustomProperties = new Dictionary<string, object>(PowerTemplates.PowerButtonActions)
                         {
                             ["RecommendedOptionAC"] = "Do nothing",
                             ["RecommendedOptionDC"] = "Do nothing"
@@ -622,7 +622,7 @@ namespace Winhance.Core.Features.Optimize.Models
                                 }
                             }
                         },
-                        CustomProperties = new Dictionary<string, object>(Templates.PowerButtonActions)
+                        CustomProperties = new Dictionary<string, object>(PowerTemplates.PowerButtonActions)
                         {
                             ["RecommendedOptionAC"] = "Do nothing",
                             ["RecommendedOptionDC"] = "Do nothing"
@@ -660,7 +660,7 @@ namespace Winhance.Core.Features.Optimize.Models
                                 }
                             }
                         },
-                        CustomProperties = new Dictionary<string, object>(Templates.LidActions)
+                        CustomProperties = new Dictionary<string, object>(PowerTemplates.LidActions)
                         {
                             ["RecommendedOptionAC"] = "Sleep",
                             ["RecommendedOptionDC"] = "Sleep"
@@ -689,7 +689,7 @@ namespace Winhance.Core.Features.Optimize.Models
                                 RecommendedValueDC = 2
                             }
                         },
-                        CustomProperties = new Dictionary<string, object>(Templates.PciExpress)
+                        CustomProperties = new Dictionary<string, object>(PowerTemplates.PciExpress)
                         {
                             ["RecommendedOptionAC"] = "Off",
                             ["RecommendedOptionDC"] = "Maximum power savings"
@@ -719,7 +719,7 @@ namespace Winhance.Core.Features.Optimize.Models
                                 RecommendedValueDC = 5
                             }
                         },
-                        CustomProperties = Templates.CreateNumericRange(0, 100, "%")
+                        CustomProperties = PowerTemplates.CreateNumericRange(0, 100, "%")
                     },
 
                     new SettingDefinition
@@ -744,7 +744,7 @@ namespace Winhance.Core.Features.Optimize.Models
                                 RecommendedValueDC = 100
                             }
                         },
-                        CustomProperties = Templates.CreateNumericRange(0, 100, "%")
+                        CustomProperties = PowerTemplates.CreateNumericRange(0, 100, "%")
                     },
 
                     new SettingDefinition
@@ -778,7 +778,7 @@ namespace Winhance.Core.Features.Optimize.Models
                                 }
                             }
                         },
-                        CustomProperties = new Dictionary<string, object>(Templates.CoolingPolicy)
+                        CustomProperties = new Dictionary<string, object>(PowerTemplates.CoolingPolicy)
                         {
                             ["RecommendedOptionAC"] = "Active",
                             ["RecommendedOptionDC"] = "Active"
@@ -817,7 +817,7 @@ namespace Winhance.Core.Features.Optimize.Models
                                 }
                             }
                         },
-                        CustomProperties = new Dictionary<string, object>(Templates.ProcessorBoostMode)
+                        CustomProperties = new Dictionary<string, object>(PowerTemplates.ProcessorBoostMode)
                         {
                             ["RecommendedOptionAC"] = "Aggressive",
                             ["RecommendedOptionDC"] = "Enabled"
@@ -856,7 +856,7 @@ namespace Winhance.Core.Features.Optimize.Models
                                 }
                             }
                         },
-                        CustomProperties = new Dictionary<string, object>(Templates.PerformanceIncreasePolicy)
+                        CustomProperties = new Dictionary<string, object>(PowerTemplates.PerformanceIncreasePolicy)
                         {
                             ["RecommendedOptionAC"] = "Rocket",
                             ["RecommendedOptionDC"] = "Ideal"
@@ -895,7 +895,7 @@ namespace Winhance.Core.Features.Optimize.Models
                                 }
                             }
                         },
-                        CustomProperties = new Dictionary<string, object>(Templates.PerformanceDecreasePolicy)
+                        CustomProperties = new Dictionary<string, object>(PowerTemplates.PerformanceDecreasePolicy)
                         {
                             ["RecommendedOptionAC"] = "Single",
                             ["RecommendedOptionDC"] = "Rocket"
@@ -924,6 +924,7 @@ namespace Winhance.Core.Features.Optimize.Models
                                 Units = "%",
                                 RecommendedValueAC = 0,
                                 RecommendedValueDC = 0,
+                                CheckForHardwareControl = true,
                                 EnablementRegistrySetting = new RegistrySetting
                                 {
                                     KeyPath = @"HKEY_LOCAL_MACHINE\SYSTEM\CurrentControlSet\Control\Power\PowerSettings\54533251-82be-4824-96c1-47b60b740d00\0cc5b647-c1df-4637-891a-dec35c318583",
@@ -935,7 +936,7 @@ namespace Winhance.Core.Features.Optimize.Models
                                 }
                             }
                         },
-                        CustomProperties = Templates.CreateNumericRange(0, 100, "%")
+                        CustomProperties = PowerTemplates.CreateNumericRange(0, 100, "%")
                     },
 
                     new SettingDefinition
@@ -960,6 +961,7 @@ namespace Winhance.Core.Features.Optimize.Models
                                 Units = "%",
                                 RecommendedValueAC = 100,
                                 RecommendedValueDC = 100,
+                                CheckForHardwareControl = true,
                                 EnablementRegistrySetting = new RegistrySetting
                                 {
                                     KeyPath = @"HKEY_LOCAL_MACHINE\SYSTEM\CurrentControlSet\Control\Power\PowerSettings\54533251-82be-4824-96c1-47b60b740d00\ea062031-0e34-4ff1-9b6d-eb1059334028",
@@ -971,7 +973,7 @@ namespace Winhance.Core.Features.Optimize.Models
                                 }
                             }
                         },
-                        CustomProperties = Templates.CreateNumericRange(0, 100, "%")
+                        CustomProperties = PowerTemplates.CreateNumericRange(0, 100, "%")
                     },
 
                     new SettingDefinition
@@ -1007,7 +1009,7 @@ namespace Winhance.Core.Features.Optimize.Models
                                 }
                             }
                         },
-                        CustomProperties = Templates.CreateNumericRange(0, 100, "%")
+                        CustomProperties = PowerTemplates.CreateNumericRange(0, 100, "%")
                     },
 
                     new SettingDefinition
@@ -1043,7 +1045,7 @@ namespace Winhance.Core.Features.Optimize.Models
                                 }
                             }
                         },
-                        CustomProperties = Templates.CreateNumericRange(0, 100, "%")
+                        CustomProperties = PowerTemplates.CreateNumericRange(0, 100, "%")
                     },
 
                     new SettingDefinition
@@ -1079,7 +1081,7 @@ namespace Winhance.Core.Features.Optimize.Models
                                 }
                             }
                         },
-                        CustomProperties = Templates.CreateNumericRange(0, 100, "%")
+                        CustomProperties = PowerTemplates.CreateNumericRange(0, 100, "%")
                     },
 
                     new SettingDefinition
@@ -1126,7 +1128,7 @@ namespace Winhance.Core.Features.Optimize.Models
                                 RecommendedValueDC = 1
                             }
                         },
-                        CustomProperties = new Dictionary<string, object>(Templates.MediaSharing)
+                        CustomProperties = new Dictionary<string, object>(PowerTemplates.MediaSharing)
                         {
                             ["RecommendedOptionAC"] = "Prevent idling to sleep",
                             ["RecommendedOptionDC"] = "Prevent idling to sleep"
@@ -1152,7 +1154,7 @@ namespace Winhance.Core.Features.Optimize.Models
                                 RecommendedValueDC = 1
                             }
                         },
-                        CustomProperties = new Dictionary<string, object>(Templates.VideoQualityBias)
+                        CustomProperties = new Dictionary<string, object>(PowerTemplates.VideoQualityBias)
                         {
                             ["RecommendedOptionAC"] = "Video playback performance bias",
                             ["RecommendedOptionDC"] = "Video playback performance bias"
@@ -1178,7 +1180,7 @@ namespace Winhance.Core.Features.Optimize.Models
                                 RecommendedValueDC = 0
                             }
                         },
-                        CustomProperties = new Dictionary<string, object>(Templates.VideoPlayback)
+                        CustomProperties = new Dictionary<string, object>(PowerTemplates.VideoPlayback)
                         {
                             ["RecommendedOptionAC"] = "Optimize video quality",
                             ["RecommendedOptionDC"] = "Optimize video quality"
@@ -1207,7 +1209,7 @@ namespace Winhance.Core.Features.Optimize.Models
                                 RecommendedValueDC = 1
                             }
                         },
-                        CustomProperties = new Dictionary<string, object>(Templates.OnOff)
+                        CustomProperties = new Dictionary<string, object>(PowerTemplates.OnOff)
                         {
                             ["RecommendedOptionAC"] = "On",
                             ["RecommendedOptionDC"] = "On"
@@ -1236,7 +1238,7 @@ namespace Winhance.Core.Features.Optimize.Models
                                 RecommendedValueDC = 2
                             }
                         },
-                        CustomProperties = new Dictionary<string, object>(Templates.BatteryActions)
+                        CustomProperties = new Dictionary<string, object>(PowerTemplates.BatteryActions)
                         {
                             ["RecommendedOptionAC"] = "Hibernate",
                             ["RecommendedOptionDC"] = "Hibernate"
@@ -1266,7 +1268,7 @@ namespace Winhance.Core.Features.Optimize.Models
                                 RecommendedValueDC = 10
                             }
                         },
-                        CustomProperties = Templates.CreateNumericRange(0, 100, "%")
+                        CustomProperties = PowerTemplates.CreateNumericRange(0, 100, "%")
                     },
 
                     new SettingDefinition
@@ -1292,7 +1294,7 @@ namespace Winhance.Core.Features.Optimize.Models
                                 RecommendedValueDC = 5
                             }
                         },
-                        CustomProperties = Templates.CreateNumericRange(0, 100, "%")
+                        CustomProperties = PowerTemplates.CreateNumericRange(0, 100, "%")
                     },
 
                     new SettingDefinition
@@ -1317,7 +1319,7 @@ namespace Winhance.Core.Features.Optimize.Models
                                 RecommendedValueDC = 1
                             }
                         },
-                        CustomProperties = new Dictionary<string, object>(Templates.OnOff)
+                        CustomProperties = new Dictionary<string, object>(PowerTemplates.OnOff)
                         {
                             ["RecommendedOptionAC"] = "On",
                             ["RecommendedOptionDC"] = "On"
@@ -1346,7 +1348,7 @@ namespace Winhance.Core.Features.Optimize.Models
                                 RecommendedValueDC = 0
                             }
                         },
-                        CustomProperties = new Dictionary<string, object>(Templates.BatteryActions)
+                        CustomProperties = new Dictionary<string, object>(PowerTemplates.BatteryActions)
                         {
                             ["RecommendedOptionAC"] = "Do nothing",
                             ["RecommendedOptionDC"] = "Do nothing"
@@ -1375,7 +1377,7 @@ namespace Winhance.Core.Features.Optimize.Models
                                 RecommendedValueDC = 7
                             }
                         },
-                        CustomProperties = Templates.CreateNumericRange(0, 100, "%")
+                        CustomProperties = PowerTemplates.CreateNumericRange(0, 100, "%")
                     },
 
                     new SettingDefinition
@@ -1397,7 +1399,7 @@ namespace Winhance.Core.Features.Optimize.Models
                                 RecommendedValueDC = 1
                             }
                         },
-                        CustomProperties = new Dictionary<string, object>(Templates.AmdPowerSlider)
+                        CustomProperties = new Dictionary<string, object>(PowerTemplates.AmdPowerSlider)
                         {
                             ["RecommendedOptionAC"] = "Best Performance",
                             ["RecommendedOptionDC"] = "Better Battery"
@@ -1424,7 +1426,7 @@ namespace Winhance.Core.Features.Optimize.Models
                                 RecommendedValueDC = 1
                             }
                         },
-                        CustomProperties = new Dictionary<string, object>(Templates.AtiPowerPlay)
+                        CustomProperties = new Dictionary<string, object>(PowerTemplates.AtiPowerPlay)
                         {
                             ["RecommendedOptionAC"] = "Maximum Performance",
                             ["RecommendedOptionDC"] = "Balanced"
@@ -1451,7 +1453,7 @@ namespace Winhance.Core.Features.Optimize.Models
                                 RecommendedValueDC = 1
                             }
                         },
-                        CustomProperties = new Dictionary<string, object>(Templates.SwitchableGraphics)
+                        CustomProperties = new Dictionary<string, object>(PowerTemplates.SwitchableGraphics)
                         {
                             ["RecommendedOptionAC"] = "Maximize Performance",
                             ["RecommendedOptionDC"] = "Optimize Power Savings"
@@ -1519,329 +1521,17 @@ namespace Winhance.Core.Features.Optimize.Models
                 }
             };
         }
-
-        private static class Templates
-        {
-            public static readonly Dictionary<string, object> TimeIntervals = new()
-            {
-                [CustomPropertyKeys.ComboBoxDisplayNames] = new string[]
-                {
-                    "Never", "1 minute", "2 minutes", "3 minutes", "5 minutes", "10 minutes",
-                    "15 minutes", "20 minutes", "25 minutes", "30 minutes", "45 minutes",
-                    "1 hour", "2 hours", "3 hours", "4 hours", "5 hours"
-                },
-                [CustomPropertyKeys.ValueMappings] = new Dictionary<int, Dictionary<string, object?>>
-                {
-                    [0] = new Dictionary<string, object?> { ["PowerCfgValue"] = 0 },
-                    [1] = new Dictionary<string, object?> { ["PowerCfgValue"] = 60 },
-                    [2] = new Dictionary<string, object?> { ["PowerCfgValue"] = 120 },
-                    [3] = new Dictionary<string, object?> { ["PowerCfgValue"] = 180 },
-                    [4] = new Dictionary<string, object?> { ["PowerCfgValue"] = 300 },
-                    [5] = new Dictionary<string, object?> { ["PowerCfgValue"] = 600 },
-                    [6] = new Dictionary<string, object?> { ["PowerCfgValue"] = 900 },
-                    [7] = new Dictionary<string, object?> { ["PowerCfgValue"] = 1200 },
-                    [8] = new Dictionary<string, object?> { ["PowerCfgValue"] = 1500 },
-                    [9] = new Dictionary<string, object?> { ["PowerCfgValue"] = 1800 },
-                    [10] = new Dictionary<string, object?> { ["PowerCfgValue"] = 2700 },
-                    [11] = new Dictionary<string, object?> { ["PowerCfgValue"] = 3600 },
-                    [12] = new Dictionary<string, object?> { ["PowerCfgValue"] = 7200 },
-                    [13] = new Dictionary<string, object?> { ["PowerCfgValue"] = 10800 },
-                    [14] = new Dictionary<string, object?> { ["PowerCfgValue"] = 14400 },
-                    [15] = new Dictionary<string, object?> { ["PowerCfgValue"] = 18000 }
-                }
-            };
-
-            public static readonly Dictionary<string, object> OnOff = new()
-            {
-                [CustomPropertyKeys.ComboBoxDisplayNames] = new[] { "Off", "On" },
-                [CustomPropertyKeys.ValueMappings] = new Dictionary<int, Dictionary<string, object?>>
-                {
-                    [0] = new Dictionary<string, object?> { ["Value"] = 0 },
-                    [1] = new Dictionary<string, object?> { ["Value"] = 1 }
-                }
-            };
-
-            public static readonly Dictionary<string, object> OnOffCommand = new()
-            {
-                [CustomPropertyKeys.ComboBoxDisplayNames] = new[] { "Off", "On" },
-                [CustomPropertyKeys.ValueMappings] = new Dictionary<int, Dictionary<string, object?>>
-                {
-                    [0] = new Dictionary<string, object?> { ["CommandEnabled"] = 0 },
-                    [1] = new Dictionary<string, object?> { ["CommandEnabled"] = 1 }
-                }
-            };
-
-            public static readonly Dictionary<string, object> EnabledDisabled = new()
-            {
-                [CustomPropertyKeys.ComboBoxDisplayNames] = new[] { "Disabled", "Enabled" },
-                [CustomPropertyKeys.ValueMappings] = new Dictionary<int, Dictionary<string, object?>>
-                {
-                    [0] = new Dictionary<string, object?> { ["Value"] = 0 },
-                    [1] = new Dictionary<string, object?> { ["Value"] = 1 }
-                }
-            };
-
-            public static readonly Dictionary<string, object> WakeTimers = new()
-            {
-                [CustomPropertyKeys.ComboBoxDisplayNames] = new[] { "Disable", "Enable", "Important Wake Timers Only" },
-                [CustomPropertyKeys.ValueMappings] = new Dictionary<int, Dictionary<string, object?>>
-                {
-                    [0] = new Dictionary<string, object?> { ["PowerCfgValue"] = 0 },
-                    [1] = new Dictionary<string, object?> { ["PowerCfgValue"] = 1 },
-                    [2] = new Dictionary<string, object?> { ["PowerCfgValue"] = 2 }
-                }
-            };
-
-            public static readonly Dictionary<string, object> PowerButtonActions = new()
-            {
-                [CustomPropertyKeys.ComboBoxDisplayNames] = new[] { "Do nothing", "Sleep", "Hibernate", "Shut down", "Turn off the display" },
-                [CustomPropertyKeys.ValueMappings] = new Dictionary<int, Dictionary<string, object?>>
-                {
-                    [0] = new Dictionary<string, object?> { ["PowerCfgValue"] = 0 },
-                    [1] = new Dictionary<string, object?> { ["PowerCfgValue"] = 1 },
-                    [2] = new Dictionary<string, object?> { ["PowerCfgValue"] = 2 },
-                    [3] = new Dictionary<string, object?> { ["PowerCfgValue"] = 3 },
-                    [4] = new Dictionary<string, object?> { ["PowerCfgValue"] = 4 }
-                }
-            };
-
-            public static readonly Dictionary<string, object> SleepButtonActions = new()
-            {
-                [CustomPropertyKeys.ComboBoxDisplayNames] = new[] { "Do nothing", "Sleep", "Hibernate", "Turn off the display" },
-                [CustomPropertyKeys.ValueMappings] = new Dictionary<int, Dictionary<string, object?>>
-                {
-                    [0] = new Dictionary<string, object?> { ["PowerCfgValue"] = 0 },
-                    [1] = new Dictionary<string, object?> { ["PowerCfgValue"] = 1 },
-                    [2] = new Dictionary<string, object?> { ["PowerCfgValue"] = 2 },
-                    [3] = new Dictionary<string, object?> { ["PowerCfgValue"] = 3 }
-                }
-            };
-
-            public static readonly Dictionary<string, object> LidActions = new()
-            {
-                [CustomPropertyKeys.ComboBoxDisplayNames] = new[] { "Do nothing", "Sleep", "Hibernate", "Shut down" },
-                [CustomPropertyKeys.ValueMappings] = new Dictionary<int, Dictionary<string, object?>>
-                {
-                    [0] = new Dictionary<string, object?> { ["PowerCfgValue"] = 0 },
-                    [1] = new Dictionary<string, object?> { ["PowerCfgValue"] = 1 },
-                    [2] = new Dictionary<string, object?> { ["PowerCfgValue"] = 2 },
-                    [3] = new Dictionary<string, object?> { ["PowerCfgValue"] = 3 }
-                }
-            };
-
-            public static readonly Dictionary<string, object> CoolingPolicy = new()
-            {
-                [CustomPropertyKeys.ComboBoxDisplayNames] = new[] { "Passive", "Active" },
-                [CustomPropertyKeys.ValueMappings] = new Dictionary<int, Dictionary<string, object?>>
-                {
-                    [0] = new Dictionary<string, object?> { ["PowerCfgValue"] = 0 },
-                    [1] = new Dictionary<string, object?> { ["PowerCfgValue"] = 1 }
-                }
-            };
-
-            public static readonly Dictionary<string, object> BatteryActions = new()
-            {
-                [CustomPropertyKeys.ComboBoxDisplayNames] = new[] { "Do nothing", "Sleep", "Hibernate", "Shut down" },
-                [CustomPropertyKeys.ValueMappings] = new Dictionary<int, Dictionary<string, object?>>
-                {
-                    [0] = new Dictionary<string, object?> { ["PowerCfgValue"] = 0 },
-                    [1] = new Dictionary<string, object?> { ["PowerCfgValue"] = 1 },
-                    [2] = new Dictionary<string, object?> { ["PowerCfgValue"] = 2 },
-                    [3] = new Dictionary<string, object?> { ["PowerCfgValue"] = 3 }
-                }
-            };
-
-            public static readonly Dictionary<string, object> WirelessPower = new()
-            {
-                [CustomPropertyKeys.ComboBoxDisplayNames] = new[] { "Maximum Performance", "Low Power Saving", "Medium Power Saving", "Maximum Power Saving" },
-                [CustomPropertyKeys.ValueMappings] = new Dictionary<int, Dictionary<string, object?>>
-                {
-                    [0] = new Dictionary<string, object?> { ["PowerCfgValue"] = 0 },
-                    [1] = new Dictionary<string, object?> { ["PowerCfgValue"] = 1 },
-                    [2] = new Dictionary<string, object?> { ["PowerCfgValue"] = 2 },
-                    [3] = new Dictionary<string, object?> { ["PowerCfgValue"] = 3 }
-                }
-            };
-
-            public static readonly Dictionary<string, object> Slideshow = new()
-            {
-                [CustomPropertyKeys.ComboBoxDisplayNames] = new[] { "Available", "Paused" },
-                [CustomPropertyKeys.ValueMappings] = new Dictionary<int, Dictionary<string, object?>>
-                {
-                    [0] = new Dictionary<string, object?> { ["PowerCfgValue"] = 0 },
-                    [1] = new Dictionary<string, object?> { ["PowerCfgValue"] = 1 }
-                }
-            };
-
-            public static readonly Dictionary<string, object> PciExpress = new()
-            {
-                [CustomPropertyKeys.ComboBoxDisplayNames] = new[] { "Off", "Moderate power savings", "Maximum power savings" },
-                [CustomPropertyKeys.ValueMappings] = new Dictionary<int, Dictionary<string, object?>>
-                {
-                    [0] = new Dictionary<string, object?> { ["PowerCfgValue"] = 0 },
-                    [1] = new Dictionary<string, object?> { ["PowerCfgValue"] = 1 },
-                    [2] = new Dictionary<string, object?> { ["PowerCfgValue"] = 2 }
-                }
-            };
-
-            public static readonly Dictionary<string, object> Usb3LinkPower = new()
-            {
-                [CustomPropertyKeys.ComboBoxDisplayNames] = new[] { "Off", "Minimum power savings", "Moderate power savings", "Maximum power savings" },
-                [CustomPropertyKeys.ValueMappings] = new Dictionary<int, Dictionary<string, object?>>
-                {
-                    [0] = new Dictionary<string, object?> { ["PowerCfgValue"] = 0 },
-                    [1] = new Dictionary<string, object?> { ["PowerCfgValue"] = 1 },
-                    [2] = new Dictionary<string, object?> { ["PowerCfgValue"] = 2 },
-                    [3] = new Dictionary<string, object?> { ["PowerCfgValue"] = 3 }
-                }
-            };
-
-            public static readonly Dictionary<string, object> MediaSharing = new()
-            {
-                [CustomPropertyKeys.ComboBoxDisplayNames] = new[] { "Allow the computer to sleep", "Prevent idling to sleep" },
-                [CustomPropertyKeys.ValueMappings] = new Dictionary<int, Dictionary<string, object?>>
-                {
-                    [0] = new Dictionary<string, object?> { ["PowerCfgValue"] = 0 },
-                    [1] = new Dictionary<string, object?> { ["PowerCfgValue"] = 1 }
-                }
-            };
-
-            public static readonly Dictionary<string, object> VideoQualityBias = new()
-            {
-                [CustomPropertyKeys.ComboBoxDisplayNames] = new[] { "Video playback power-saving bias", "Video playback performance bias" },
-                [CustomPropertyKeys.ValueMappings] = new Dictionary<int, Dictionary<string, object?>>
-                {
-                    [0] = new Dictionary<string, object?> { ["PowerCfgValue"] = 0 },
-                    [1] = new Dictionary<string, object?> { ["PowerCfgValue"] = 1 }
-                }
-            };
-
-            public static readonly Dictionary<string, object> VideoPlayback = new()
-            {
-                [CustomPropertyKeys.ComboBoxDisplayNames] = new[] { "Optimize video quality", "Balanced", "Optimize power savings" },
-                [CustomPropertyKeys.ValueMappings] = new Dictionary<int, Dictionary<string, object?>>
-                {
-                    [0] = new Dictionary<string, object?> { ["PowerCfgValue"] = 0 },
-                    [1] = new Dictionary<string, object?> { ["PowerCfgValue"] = 1 },
-                    [2] = new Dictionary<string, object?> { ["PowerCfgValue"] = 2 }
-                }
-            };
-
-            public static readonly Dictionary<string, object> AmdPowerSlider = new()
-            {
-                [CustomPropertyKeys.ComboBoxDisplayNames] = new[] { "Battery Saver", "Better Battery", "Better Performance", "Best Performance" },
-                [CustomPropertyKeys.ValueMappings] = new Dictionary<int, Dictionary<string, object?>>
-                {
-                    [0] = new Dictionary<string, object?> { ["PowerCfgValue"] = 0 },
-                    [1] = new Dictionary<string, object?> { ["PowerCfgValue"] = 1 },
-                    [2] = new Dictionary<string, object?> { ["PowerCfgValue"] = 2 },
-                    [3] = new Dictionary<string, object?> { ["PowerCfgValue"] = 3 }
-                }
-            };
-
-            public static readonly Dictionary<string, object> JavaScriptTimers = new()
-            {
-                [CustomPropertyKeys.ComboBoxDisplayNames] = new[] { "Maximum Power Savings", "Maximum Performance" },
-                [CustomPropertyKeys.ValueMappings] = new Dictionary<int, Dictionary<string, object?>>
-                {
-                    [0] = new Dictionary<string, object?> { ["PowerCfgValue"] = 1 },
-                    [1] = new Dictionary<string, object?> { ["PowerCfgValue"] = 0 }
-                }
-            };
-
-            public static readonly Dictionary<string, object> IntelGraphics = new()
-            {
-                [CustomPropertyKeys.ComboBoxDisplayNames] = new[] { "Maximum Battery Life", "Balanced", "Maximum Performance" },
-                [CustomPropertyKeys.ValueMappings] = new Dictionary<int, Dictionary<string, object?>>
-                {
-                    [0] = new Dictionary<string, object?> { ["PowerCfgValue"] = 0 },
-                    [1] = new Dictionary<string, object?> { ["PowerCfgValue"] = 1 },
-                    [2] = new Dictionary<string, object?> { ["PowerCfgValue"] = 2 }
-                }
-            };
-
-            public static readonly Dictionary<string, object> AtiPowerPlay = new()
-            {
-                [CustomPropertyKeys.ComboBoxDisplayNames] = new[] { "Maximum Battery Life", "Balanced", "Maximum Performance" },
-                [CustomPropertyKeys.ValueMappings] = new Dictionary<int, Dictionary<string, object?>>
-                {
-                    [0] = new Dictionary<string, object?> { ["PowerCfgValue"] = 0 },
-                    [1] = new Dictionary<string, object?> { ["PowerCfgValue"] = 1 },
-                    [2] = new Dictionary<string, object?> { ["PowerCfgValue"] = 2 }
-                }
-            };
-
-            public static readonly Dictionary<string, object> SwitchableGraphics = new()
-            {
-                [CustomPropertyKeys.ComboBoxDisplayNames] = new[] { "Maximize Battery Life", "Optimize Power Savings", "Maximize Performance" },
-                [CustomPropertyKeys.ValueMappings] = new Dictionary<int, Dictionary<string, object?>>
-                {
-                    [0] = new Dictionary<string, object?> { ["PowerCfgValue"] = 0 },
-                    [1] = new Dictionary<string, object?> { ["PowerCfgValue"] = 1 },
-                    [2] = new Dictionary<string, object?> { ["PowerCfgValue"] = 2 }
-                }
-            };
-
-            public static readonly Dictionary<string, object> ProcessorBoostMode = new()
-            {
-                [CustomPropertyKeys.ComboBoxDisplayNames] = new[] { "Disabled", "Enabled", "Aggressive", "Efficient Enabled", "Efficient Aggressive", "Aggressive At Guaranteed", "Efficient Aggressive At Guaranteed" },
-                [CustomPropertyKeys.ValueMappings] = new Dictionary<int, Dictionary<string, object?>>
-                {
-                    [0] = new Dictionary<string, object?> { ["PowerCfgValue"] = 0 },
-                    [1] = new Dictionary<string, object?> { ["PowerCfgValue"] = 1 },
-                    [2] = new Dictionary<string, object?> { ["PowerCfgValue"] = 2 },
-                    [3] = new Dictionary<string, object?> { ["PowerCfgValue"] = 3 },
-                    [4] = new Dictionary<string, object?> { ["PowerCfgValue"] = 4 },
-                    [5] = new Dictionary<string, object?> { ["PowerCfgValue"] = 5 },
-                    [6] = new Dictionary<string, object?> { ["PowerCfgValue"] = 6 }
-                }
-            };
-
-            public static readonly Dictionary<string, object> PerformanceIncreasePolicy = new()
-            {
-                [CustomPropertyKeys.ComboBoxDisplayNames] = new[] { "Ideal", "Single", "Rocket", "IdealAggressive" },
-                [CustomPropertyKeys.ValueMappings] = new Dictionary<int, Dictionary<string, object?>>
-                {
-                    [0] = new Dictionary<string, object?> { ["PowerCfgValue"] = 0 },
-                    [1] = new Dictionary<string, object?> { ["PowerCfgValue"] = 1 },
-                    [2] = new Dictionary<string, object?> { ["PowerCfgValue"] = 2 },
-                    [3] = new Dictionary<string, object?> { ["PowerCfgValue"] = 3 }
-                }
-            };
-
-            public static readonly Dictionary<string, object> PerformanceDecreasePolicy = new()
-            {
-                [CustomPropertyKeys.ComboBoxDisplayNames] = new[] { "Ideal", "Single", "Rocket" },
-                [CustomPropertyKeys.ValueMappings] = new Dictionary<int, Dictionary<string, object?>>
-                {
-                    [0] = new Dictionary<string, object?> { ["PowerCfgValue"] = 0 },
-                    [1] = new Dictionary<string, object?> { ["PowerCfgValue"] = 1 },
-                    [2] = new Dictionary<string, object?> { ["PowerCfgValue"] = 2 }
-                }
-            };
-
-            public static Dictionary<string, object> CreateNumericRange(int minValue, int maxValue, string units)
-            {
-                return new Dictionary<string, object>
-                {
-                    ["MinValue"] = minValue,
-                    ["MaxValue"] = maxValue,
-                    ["Increment"] = 1,
-                    ["Units"] = units
-                };
-            }
-        }
     }
 
     public static class PowerPlanDefinitions
     {
         public static readonly List<PredefinedPowerPlan> BuiltInPowerPlans = new List<PredefinedPowerPlan>
         {
-            new("Power Saver", "Delivers reduced performance which may increase power savings.", "a1841308-3541-4fab-bc81-f71556f20b4a"),
-            new("Balanced", "Automatically balances performance and power consumption according to demand.", "381b4222-f694-41f0-9685-ff5bb260df2e"),
-            new("High Performance", "Delivers maximum performance at the expense of higher power consumption.", "8c5e7fda-e8bf-4a96-9a85-a6e23a8c635c"),
-            new("Ultimate Performance", "Provides ultimate performance on higher end PCs.", "e9a42b02-d5df-448d-aa00-03f14749eb61"),
-            new("Winhance Power Plan", "Ultimate Performance with Winhance-optimized settings for maximum performance.", "57696e68-616e-6365-506f-776572000000")
+            new("Power saver", "Saves energy by reducing computer performance", "PowerPlan_PowerSaver_Name", "a1841308-3541-4fab-bc81-f71556f20b4a"),
+            new("Balanced", "Balances performance with energy consumption", "PowerPlan_Balanced_Name", "381b4222-f694-41f0-9685-ff5bb260df2e"),
+            new("High performance", "Favors performance over energy consumption", "PowerPlan_HighPerformance_Name", "8c5e7fda-e8bf-4a96-9a85-a6e23a8c635c"),
+            new("Ultimate Performance", "Maximum performance with no power saving measures", "PowerPlan_UltimatePerformance_Name", "e9a42b02-d5df-448d-aa00-03f14749eb61"),
+            new("Winhance Power Plan", "Optimized power plan for gaming and performance", "PowerPlan_WinhancePowerPlan_Name", "57696e68-616e-6365-506f-776572000000")
         };
     }
 }

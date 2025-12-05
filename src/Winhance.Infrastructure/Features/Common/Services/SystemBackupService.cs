@@ -13,6 +13,7 @@ namespace Winhance.Infrastructure.Features.Common.Services
         private readonly IPowerShellExecutionService _psService;
         private readonly ILogService _logService;
         private readonly IUserPreferencesService _prefsService;
+        private readonly ILocalizationService _localization;
 
         private const string RestorePointName = "Winhance Initial Restore Point";
         private const string BackupDirectory = @"C:\ProgramData\Winhance\Backups";
@@ -21,11 +22,13 @@ namespace Winhance.Infrastructure.Features.Common.Services
         public SystemBackupService(
             IPowerShellExecutionService psService,
             ILogService logService,
-            IUserPreferencesService prefsService)
+            IUserPreferencesService prefsService,
+            ILocalizationService localization)
         {
             _psService = psService;
             _logService = logService;
             _prefsService = prefsService;
+            _localization = localization;
         }
 
         public async Task<BackupResult> EnsureInitialBackupsAsync(
@@ -65,7 +68,7 @@ namespace Winhance.Infrastructure.Features.Common.Services
                 // Report: Checking restore point
                 progress?.Report(new TaskProgressDetail
                 {
-                    StatusText = "Checking system restore point...",
+                    StatusText = _localization.GetString("Progress_CheckingRestorePoint"),
                     IsIndeterminate = true
                 });
 
@@ -85,7 +88,7 @@ namespace Winhance.Infrastructure.Features.Common.Services
                 // Report: Checking if System Restore is enabled
                 progress?.Report(new TaskProgressDetail
                 {
-                    StatusText = "Checking System Restore status...",
+                    StatusText = _localization.GetString("Progress_CheckingRestoreStatus"),
                     IsIndeterminate = true
                 });
 
@@ -98,7 +101,7 @@ namespace Winhance.Infrastructure.Features.Common.Services
                     // Report: Enabling System Restore
                     progress?.Report(new TaskProgressDetail
                     {
-                        StatusText = "Enabling System Restore...",
+                        StatusText = _localization.GetString("Progress_EnablingRestore"),
                         IsIndeterminate = true
                     });
 
@@ -125,7 +128,7 @@ namespace Winhance.Infrastructure.Features.Common.Services
                 // Report: Creating restore point
                 progress?.Report(new TaskProgressDetail
                 {
-                    StatusText = "Creating system restore point...",
+                    StatusText = _localization.GetString("Progress_CreatingRestorePoint"),
                     IsIndeterminate = true
                 });
 
@@ -312,7 +315,7 @@ if (-not (Test-Path '{BackupDirectory}')) {{
 
                     progress?.Report(new TaskProgressDetail
                     {
-                        StatusText = $"Backing up {hive} registry hive...",
+                        StatusText = _localization.GetString("Progress_BackingUpRegistry", hive),
                         IsIndeterminate = true
                     });
 

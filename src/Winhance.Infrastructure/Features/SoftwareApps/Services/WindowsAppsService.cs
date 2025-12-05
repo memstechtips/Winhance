@@ -19,7 +19,8 @@ public class WindowsAppsService(
     IStoreDownloadService storeDownloadService = null,
     IDialogService dialogService = null,
     IUserPreferencesService userPreferencesService = null,
-    ITaskProgressService taskProgressService = null) : IWindowsAppsService
+    ITaskProgressService taskProgressService = null,
+    ILocalizationService localizationService = null) : IWindowsAppsService
 {
     public string DomainName => FeatureIds.WindowsApps;
     private const string FallbackConfirmationPreferenceKey = "StoreDownloadFallback_DontShowAgain";
@@ -80,17 +81,24 @@ public class WindowsAppsService(
                     // Show confirmation dialog if needed
                     if (!skipConfirmation && dialogService != null)
                     {
+                        var title = localizationService?.GetString("Dialog_FallbackDownload") ?? "Alternative Download Method";
+                        var message = localizationService?.GetString("WindowsApps_Msg_FallbackDownload", item.Name) ??
+                                     $"The package '{item.Name}' could not be found via WinGet, likely due to geographic market restrictions.\n\n" +
+                                     $"Winhance can download this package directly from Microsoft's servers using an alternative method (store.rg-adguard.net).\n\n" +
+                                     $"• The package files come directly from Microsoft's official CDN\n" +
+                                     $"• This method is completely legal and safe\n" +
+                                     $"• It bypasses regional restrictions only\n\n" +
+                                     $"Would you like to proceed with the alternative download method?";
+                        var checkboxText = localizationService?.GetString("WindowsApps_Checkbox_DontAskAgain") ?? "Don't ask me again for future installations";
+                        var downloadButton = localizationService?.GetString("Dialog_Button_Download") ?? "Download";
+                        var cancelButton = localizationService?.GetString("Dialog_Button_Cancel") ?? "Cancel";
+
                         var (confirmed, dontShowAgain) = await dialogService.ShowConfirmationWithCheckboxAsync(
-                            message: $"The package '{item.Name}' could not be found via WinGet, likely due to geographic market restrictions.\n\n" +
-                                    $"Winhance can download this package directly from Microsoft's servers using an alternative method (store.rg-adguard.net).\n\n" +
-                                    $"• The package files come directly from Microsoft's official CDN\n" +
-                                    $"• This method is completely legal and safe\n" +
-                                    $"• It bypasses regional restrictions only\n\n" +
-                                    $"Would you like to proceed with the alternative download method?",
-                            checkboxText: "Don't ask me again for future installations",
-                            title: "Alternative Download Method",
-                            continueButtonText: "Download",
-                            cancelButtonText: "Cancel",
+                            message: message,
+                            checkboxText: checkboxText,
+                            title: title,
+                            continueButtonText: downloadButton,
+                            cancelButtonText: cancelButton,
                             titleBarIcon: "Download"
                         );
 

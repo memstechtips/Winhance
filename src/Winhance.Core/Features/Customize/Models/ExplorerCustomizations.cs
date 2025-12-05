@@ -1261,7 +1261,7 @@ public static class ExplorerCustomizations
                 new SettingDefinition
                 {
                     Id = "explorer-customization-show-availability-status",
-                    Name = "Always show availibity status",
+                    Name = "Always show availability status",
                     Description = "Shows cloud sync status icons for OneDrive files in navigation pane",
                     GroupName = "Navigation Pane",
                     InputType = InputType.Toggle,

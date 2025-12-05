@@ -20,17 +20,20 @@ namespace Winhance.WPF.Features.AdvancedTools.ViewModels
         private readonly INavigationService _navigationService;
         private readonly IAutounattendXmlGeneratorService _xmlGeneratorService;
         private readonly IDialogService _dialogService;
+        private readonly ILocalizationService _localizationService;
 
         public AdvancedToolsMenuViewModel(
             ILogService logService,
             INavigationService navigationService,
             IAutounattendXmlGeneratorService xmlGeneratorService,
-            IDialogService dialogService)
+            IDialogService dialogService,
+            ILocalizationService localizationService)
         {
             _logService = logService;
             _navigationService = navigationService;
             _xmlGeneratorService = xmlGeneratorService;
             _dialogService = dialogService;
+            _localizationService = localizationService;
         }
 
         [RelayCommand]
@@ -65,25 +68,14 @@ namespace Winhance.WPF.Features.AdvancedTools.ViewModels
 
         private async Task GenerateAutounattendXmlAsync()
         {
-            var explanation =
-                "You can generate an autounattend.xml file to add to a Windows ISO to customize Windows during installation based on your selections in Winhance.\n\n" +
-                "How this works:\n" +
-                "• Apps selected on the Windows Apps screen will be uninstalled automatically\n" +
-                "• Settings in the Optimize and Customize screens will be added according to their current state in Winhance\n\n" +
-                "If you're sure your selections are correct you can continue. If not, hit cancel, review your app and setting selections, and come back here.";
-
-            var confirmDialog = CustomDialog.CreateConfirmationDialog(
-                "Generate Autounattend XML",
-                explanation,
-                "",
+            var confirmed = _dialogService.ShowLocalizedConfirmationDialog(
+                "Dialog_GenerateXml",
+                "Msg_GenerateXmlConfirm",
                 DialogType.Question,
                 "HelpCircle"
             );
-            confirmDialog.PrimaryButton.Content = "Continue";
-            confirmDialog.SecondaryButton.Content = "Cancel";
 
-            var continueResult = confirmDialog.ShowDialog();
-            if (continueResult != true)
+            if (!confirmed)
             {
                 _logService.Log(LogLevel.Info, "Autounattend.xml generation canceled by user");
                 return;
@@ -93,7 +85,7 @@ namespace Winhance.WPF.Features.AdvancedTools.ViewModels
             {
                 FileName = "autounattend.xml",
                 Filter = "Autounattend Files (autounattend.xml)|autounattend.xml|All Files|*.*",
-                Title = "Save Autounattend XML File",
+                Title = _localizationService.GetString("AdvancedTools_FileDialog_SaveXml"),
                 DefaultExt = ".xml",
                 OverwritePrompt = true,
                 InitialDirectory = Environment.GetFolderPath(Environment.SpecialFolder.Desktop)
@@ -108,14 +100,12 @@ namespace Winhance.WPF.Features.AdvancedTools.ViewModels
             var fileName = Path.GetFileName(saveFileDialog.FileName);
             if (!fileName.Equals("autounattend.xml", StringComparison.OrdinalIgnoreCase))
             {
-                var errorDialog = CustomDialog.CreateInformationDialog(
-                    "Invalid Filename",
-                    "The file must be named 'autounattend.xml' to work properly with Windows installation.",
-                    "Please save the file with the exact name: autounattend.xml",
+                _dialogService.ShowLocalizedDialog(
+                    "Dialog_InvalidFilename",
+                    "AdvancedTools_Msg_InvalidFilename",
                     DialogType.Warning,
                     "AlertCircle"
                 );
-                errorDialog.ShowDialog();
                 return;
             }
 
@@ -127,27 +117,15 @@ namespace Winhance.WPF.Features.AdvancedTools.ViewModels
                     saveFileDialog.FileName
                 );
 
-                var successMessage =
-                    $"Your autounattend.xml file has been created!\n\n" +
-                    $"Location: {outputPath}\n\n" +
-                    $"Next steps:\n" +
-                    $"1. Use the WIMUtil feature to add this file to a Windows ISO\n" +
-                    $"2. Or manually copy it to the root of your Windows installation media\n" +
-                    $"3. Install Windows using the modified media\n\n" +
-                    $"Would you like to use the WIMUtil to create a Windows installation ISO with this file now?";
-
-                var useWimUtilDialog = CustomDialog.CreateConfirmationDialog(
-                    "XML Generated Successfully",
-                    successMessage,
-                    "",
+                var useWimUtil = _dialogService.ShowLocalizedConfirmationDialog(
+                    "Dialog_XmlGenSuccess",
+                    "AdvancedTools_Msg_XmlGenSuccess",
                     DialogType.Success,
-                    "CheckCircle"
+                    "CheckCircle",
+                    outputPath
                 );
-                useWimUtilDialog.PrimaryButton.Content = "Open WIMUtil";
-                useWimUtilDialog.SecondaryButton.Content = "I'll Do It Later";
 
-                var useWimUtilResult = useWimUtilDialog.ShowDialog();
-                if (useWimUtilResult == true)
+                if (useWimUtil)
                 {
                     _navigationService.NavigateTo("WimUtil");
                 }
@@ -158,14 +136,13 @@ namespace Winhance.WPF.Features.AdvancedTools.ViewModels
             {
                 _logService.Log(LogLevel.Error, $"Error generating autounattend.xml: {ex.Message}\n{ex.StackTrace}");
 
-                var errorDialog = CustomDialog.CreateInformationDialog(
-                    "Generation Error",
-                    $"Failed to generate autounattend.xml file.",
-                    $"Error: {ex.Message}\n\nPlease check the log file for more details.",
+                _dialogService.ShowLocalizedDialog(
+                    "Dialog_XmlGenError",
+                    "AdvancedTools_Msg_XmlGenError",
                     DialogType.Error,
-                    "CloseCircle"
+                    "CloseCircle",
+                    ex.Message
                 );
-                errorDialog.ShowDialog();
             }
         }
 

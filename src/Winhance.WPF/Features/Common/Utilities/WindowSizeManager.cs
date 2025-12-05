@@ -21,11 +21,11 @@ namespace Winhance.WPF.Features.Common.Utilities
         private readonly ILogService _logService;
 
         // Default window dimensions
-        private const double DEFAULT_WIDTH = 1360;
-        private const double DEFAULT_HEIGHT = 768;
+        private const double DEFAULT_WIDTH = 1600;
+        private const double DEFAULT_HEIGHT = 900;
         private const double MIN_WIDTH = 800;
         private const double MIN_HEIGHT = 600; // Reduced minimum height to fit better on smaller screens
-        private const double SCREEN_PERCENTAGE = 0.95; // Use 95% of screen size for better fit
+        private const double SCREEN_PERCENTAGE = 0.80; // Use 80% of screen size for better fit
 
         public WindowSizeManager(Window window, UserPreferencesService userPreferencesService, ILogService logService)
         {
@@ -42,7 +42,7 @@ namespace Winhance.WPF.Features.Common.Utilities
         {
             try
             {
-                // Set dynamic window size based on screen resolution (75% of screen)
+                // Set dynamic window size based on screen resolution
                 SetDynamicWindowSize();
 
                 // Always center the window on screen
@@ -136,9 +136,9 @@ namespace Winhance.WPF.Features.Common.Utilities
                 double screenWidth = workArea.Width / dpiScaleX;
                 double screenHeight = workArea.Height / dpiScaleY;
 
-                // Calculate window size (75% of screen size with minimum/maximum constraints)
-                double windowWidth = Math.Min(DEFAULT_WIDTH, screenWidth * SCREEN_PERCENTAGE);
-                double windowHeight = Math.Min(DEFAULT_HEIGHT, screenHeight * SCREEN_PERCENTAGE);
+                // Calculate window size (80% of screen size, using min/max constraints only where logical)
+                double windowWidth = screenWidth * SCREEN_PERCENTAGE;
+                double windowHeight = screenHeight * SCREEN_PERCENTAGE;
 
                 // Ensure minimum size for usability
                 windowWidth = Math.Max(windowWidth, MIN_WIDTH);

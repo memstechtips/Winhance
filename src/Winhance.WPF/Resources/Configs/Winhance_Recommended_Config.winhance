@@ -700,7 +700,7 @@
           },
           {
             "Id": "explorer-customization-show-availability-status",
-            "Name": "Always show availibity status",
+            "Name": "Always show availability status",
             "IsSelected": false,
             "InputType": 0
           },
@@ -934,12 +934,6 @@
             "Id": "gaming-background-apps",
             "Name": "Let Apps Run in Background",
             "IsSelected": false,
-            "InputType": 0
-          },
-          {
-            "Id": "gaming-memory-compression",
-            "Name": "Memory Compression",
-            "IsSelected": true,
             "InputType": 0
           },
           {

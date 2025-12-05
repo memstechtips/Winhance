@@ -27,9 +27,23 @@ namespace Winhance.WPF.Features.Common.Services
 
                         logService?.LogInformation($"Button position: X={buttonPosition.X}, Y={buttonPosition.Y}, Button size: {moreButton.ActualWidth}x{moreButton.ActualHeight}");
 
+                        // Measure the flyout content to get its height
+                        flyoutContent.Measure(new Size(double.PositiveInfinity, double.PositiveInfinity));
+                        var flyoutHeight = flyoutContent.DesiredSize.Height;
+                        
+                        // Calculate Top position to align the bottom of the flyout with the bottom of the button
+                        // Default behavior for bottom-left menus
+                        var topPosition = (buttonPosition.Y + moreButton.ActualHeight) - flyoutHeight;
+                        
+                        // Ensure we don't go off the top edge of the window
+                        if (topPosition < 10)
+                        {
+                            topPosition = 10;
+                        }
+
                         var flyoutMargin = new Thickness(
                             buttonPosition.X + moreButton.ActualWidth + 5,
-                            buttonPosition.Y - (moreButton.ActualHeight * 2) - 45,
+                            topPosition,
                             0,
                             0
                         );

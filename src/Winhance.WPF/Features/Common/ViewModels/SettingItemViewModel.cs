@@ -29,6 +29,7 @@ namespace Winhance.WPF.Features.Common.ViewModels
         private readonly IUserPreferencesService _userPreferencesService;
         private readonly IDialogService _dialogService;
         private readonly ICompatibleSettingsRegistry _compatibleSettingsRegistry;
+        private readonly ILocalizationService _localizationService;
         private ISubscriptionToken? _tooltipUpdatedSubscription;
         private ISubscriptionToken? _tooltipsBulkLoadedSubscription;
         private ISubscriptionToken? _settingAppliedSubscription;
@@ -399,6 +400,7 @@ namespace Winhance.WPF.Features.Common.ViewModels
             object? currentValue,
             IComboBoxSetupService comboBoxSetupService,
             ILogService logService,
+            ILocalizationService localizationService,
             Dictionary<string, object?>? rawValues = null
         )
         {
@@ -418,9 +420,18 @@ namespace Winhance.WPF.Features.Common.ViewModels
                     {
                         foreach (var option in comboBoxSetupResult.Options)
                         {
+                            var displayText = option.DisplayText;
+
+                            if (displayText.StartsWith("PowerPlan_") ||
+                                displayText.StartsWith("Setting_") ||
+                                displayText.StartsWith("Template_"))
+                            {
+                                displayText = localizationService.GetString(displayText);
+                            }
+
                             ComboBoxOptions.Add(new Winhance.Core.Features.Common.Interfaces.ComboBoxOption
                             {
-                                DisplayText = option.DisplayText,
+                                DisplayText = displayText,
                                 Value = option.Value,
                                 Description = option.Description,
                                 Tag = option.Tag
@@ -488,7 +499,8 @@ namespace Winhance.WPF.Features.Common.ViewModels
             ISystemSettingsDiscoveryService discoveryService,
             IUserPreferencesService userPreferencesService,
             IDialogService dialogService,
-            ICompatibleSettingsRegistry compatibleSettingsRegistry
+            ICompatibleSettingsRegistry compatibleSettingsRegistry,
+            ILocalizationService localizationService
         )
         {
             _settingApplicationService =
@@ -503,6 +515,7 @@ namespace Winhance.WPF.Features.Common.ViewModels
             _userPreferencesService = userPreferencesService ?? throw new ArgumentNullException(nameof(userPreferencesService));
             _dialogService = dialogService ?? throw new ArgumentNullException(nameof(dialogService));
             _compatibleSettingsRegistry = compatibleSettingsRegistry ?? throw new ArgumentNullException(nameof(compatibleSettingsRegistry));
+            _localizationService = localizationService ?? throw new ArgumentNullException(nameof(localizationService));
 
             _disposalCancellationTokenSource = new CancellationTokenSource();
 
@@ -1101,11 +1114,9 @@ namespace Winhance.WPF.Features.Common.ViewModels
             if (!_hasChangedThisSession)
                 return;
 
-            if (SettingDefinition?.CustomProperties?.TryGetValue(
-                CustomPropertyKeys.RequiresRestartMessage, out var message) == true &&
-                message is string messageText)
+            if (SettingDefinition?.RequiresRestart == true)
             {
-                WarningText = messageText;
+                WarningText = _localizationService.GetString("Common_RestartRequired");
             }
         }
 
@@ -1357,22 +1368,14 @@ namespace Winhance.WPF.Features.Common.ViewModels
         {
             if (!IsLocked) return;
 
-            var message = "⚠️ Advanced Power Setting Warning\n\n" +
-                          "This setting is not normally exposed in Windows Power Options and requires registry modifications to access.\n\n" +
-                          "Modifying it incorrectly may cause:\n" +
-                          "• System instability or unexpected behavior\n" +
-                          "• Performance degradation\n" +
-                          "• Thermal management problems\n" +
-                          "• Settings may not work on all CPU types (modern HWP vs legacy)\n\n" +
-                          "Only change this if you understand processor power management.\n\n" +
-                          "Are you sure you want to modify this setting?";
+            var message = _localizationService.GetString("Dialog_AdvancedPowerWarning_Message");
 
             var (confirmed, dontShowAgain) = await _dialogService.ShowConfirmationWithCheckboxAsync(
                 message,
-                "Don't show this warning again for advanced power settings",
-                "Advanced Setting Warning",
-                "Unlock",
-                "Cancel",
+                _localizationService.GetString("Dialog_AdvancedPowerWarning_DontShowAgain"),
+                _localizationService.GetString("Dialog_AdvancedPowerWarning_Title"),
+                _localizationService.GetString("Button_Unlock"),
+                _localizationService.GetString("Dialog_Button_Cancel"),
                 "AlertCircle"
             );
 

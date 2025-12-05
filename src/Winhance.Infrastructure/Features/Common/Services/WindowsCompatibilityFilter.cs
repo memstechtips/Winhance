@@ -148,21 +148,21 @@ namespace Winhance.Infrastructure.Features.Common.Services
 
                 if (setting.IsWindows10Only && isWindows11)
                 {
-                    compatibilityMessage = "ℹ️ This setting applies to Windows 10 only";
+                    compatibilityMessage = "Compatibility_Windows10Only";
                 }
                 else if (setting.IsWindows11Only && !isWindows11)
                 {
-                    compatibilityMessage = "ℹ️ This setting applies to Windows 11 only";
+                    compatibilityMessage = "Compatibility_Windows11Only";
                 }
                 else if (setting.MinimumBuildNumber.HasValue &&
                          buildNumber < setting.MinimumBuildNumber.Value)
                 {
-                    compatibilityMessage = $"ℹ️ Requires Windows build {setting.MinimumBuildNumber.Value} or higher";
+                    compatibilityMessage = $"Compatibility_MinBuild|{setting.MinimumBuildNumber.Value}";
                 }
                 else if (setting.MaximumBuildNumber.HasValue &&
                          buildNumber > setting.MaximumBuildNumber.Value)
                 {
-                    compatibilityMessage = $"ℹ️ Only compatible with Windows build {setting.MaximumBuildNumber.Value} or lower";
+                    compatibilityMessage = $"Compatibility_MaxBuild|{setting.MaximumBuildNumber.Value}";
                 }
                 else if (setting.SupportedBuildRanges?.Count > 0)
                 {
@@ -173,7 +173,7 @@ namespace Winhance.Infrastructure.Features.Common.Services
                     {
                         var rangeText = string.Join(" or ",
                             setting.SupportedBuildRanges.Select(r => $"{r.MinBuild}-{r.MaxBuild}"));
-                        compatibilityMessage = $"ℹ️ Compatible with builds: {rangeText}";
+                        compatibilityMessage = $"Compatibility_BuildRange|{rangeText}";
                     }
                 }
 

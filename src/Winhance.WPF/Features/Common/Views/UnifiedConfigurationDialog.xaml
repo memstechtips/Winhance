@@ -6,6 +6,7 @@
         xmlns:local="clr-namespace:Winhance.WPF.Features.Common.Views"
         xmlns:controls="clr-namespace:Winhance.WPF.Features.Common.Controls"
         xmlns:converters="clr-namespace:Winhance.WPF.Features.Common.Converters"
+        xmlns:loc="clr-namespace:Winhance.WPF.Features.Common.Extensions"
         xmlns:iconPacks="http://metro.mahapps.com/winfx/xaml/iconpacks"
         mc:Ignorable="d"
         Title="{Binding Title}"
@@ -305,11 +306,11 @@
                             Orientation="Horizontal"
                             HorizontalAlignment="Right"
                             Margin="0,15,0,0">
-                    <Button Content="Cancel"
+                    <Button Content="{loc:Localize Button_Cancel}"
                             Style="{StaticResource DialogButtonStyle}"
                             Margin="0,0,10,0"
                             Command="{Binding CancelCommand}"/>
-                    <Button Content="OK"
+                    <Button Content="{loc:Localize Button_OK}"
                             Style="{StaticResource DialogButtonStyle}"
                             Command="{Binding OkCommand}"
                             IsDefault="True"/>

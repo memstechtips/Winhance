@@ -6,8 +6,10 @@
         xmlns:iconPacks="http://metro.mahapps.com/winfx/xaml/iconpacks"
         x:Name="DialogWindow"
         Title="{Binding Title}"
-        Width="500"
-        SizeToContent="Height"
+        MinWidth="500"
+        MaxWidth="800"
+        SizeToContent="WidthAndHeight"
+        MaxHeight="700"
         WindowStartupLocation="CenterScreen"
         ResizeMode="NoResize"
         WindowStyle="None"
@@ -85,72 +87,82 @@
             </Button>
         </Grid>
         
-        <!-- Content Area -->
-        <Grid Grid.Row="1" Margin="20">
-            <Grid.RowDefinitions>
-                <RowDefinition Height="Auto"/>
-                <RowDefinition Height="Auto"/>
-                <RowDefinition Height="Auto"/>
-            </Grid.RowDefinitions>
+        <!-- Content Area with ScrollViewer for low resolution safety -->
+        <ScrollViewer Grid.Row="1" 
+                      VerticalScrollBarVisibility="Auto" 
+                      HorizontalScrollBarVisibility="Disabled"
+                      Margin="0">
+            <Grid Margin="20">
+                <Grid.RowDefinitions>
+                    <RowDefinition Height="Auto"/>
+                    <RowDefinition Height="Auto"/>
+                    <RowDefinition Height="Auto"/>
+                </Grid.RowDefinitions>
 
-            <!-- Simple Message Content with optional icon -->
-            <Grid x:Name="SimpleContentPanel" Grid.Row="0" VerticalAlignment="Center">
-                <Grid.ColumnDefinitions>
-                    <ColumnDefinition Width="Auto"/>
-                    <ColumnDefinition Width="*"/>
-                </Grid.ColumnDefinitions>
+                <!-- Simple Message Content with optional icon -->
+                <Grid x:Name="SimpleContentPanel" Grid.Row="0" VerticalAlignment="Center">
+                    <Grid.ColumnDefinitions>
+                        <ColumnDefinition Width="Auto"/>
+                        <ColumnDefinition Width="*"/>
+                    </Grid.ColumnDefinitions>
 
-                <ContentControl x:Name="ContentIconContainer"
-                               Grid.Column="0"
-                               Width="48"
-                               Height="48"
-                               Margin="0,0,10,0"
-                               VerticalAlignment="Top"
-                               Visibility="Collapsed"/>
+                    <ContentControl x:Name="ContentIconContainer"
+                                   Grid.Column="0"
+                                   Width="48"
+                                   Height="48"
+                                   Margin="0,0,10,0"
+                                   VerticalAlignment="Top"
+                                   Visibility="Collapsed"/>
 
-                <StackPanel Grid.Column="1" VerticalAlignment="Center">
-                    <TextBlock x:Name="MessageContent"
-                              Style="{StaticResource DialogTextBlockStyle}"
-                              FontWeight="SemiBold"
-                              TextWrapping="Wrap"
-                              Margin="0,0,0,0"/>
+                    <StackPanel Grid.Column="1" VerticalAlignment="Center">
+                        <TextBlock x:Name="MessageContent"
+                                  Style="{StaticResource DialogTextBlockStyle}"
+                                  FontWeight="SemiBold"
+                                  TextWrapping="Wrap"
+                                  Margin="0,0,0,0"/>
 
-                    <CheckBox x:Name="OptionCheckbox"
-                              Style="{StaticResource CustomCheckBox}"
-                              FontSize="14"
-                              Margin="0,0,0,0"
-                              Visibility="Collapsed"/>
-                </StackPanel>
+                        <CheckBox x:Name="OptionCheckbox"
+                                  Style="{StaticResource CustomCheckBox}"
+                                  FontSize="14"
+                                  Margin="0,0,0,0"
+                                  Visibility="Collapsed">
+                            <CheckBox.ContentTemplate>
+                                <DataTemplate>
+                                    <TextBlock Text="{Binding}" TextWrapping="Wrap"/>
+                                </DataTemplate>
+                            </CheckBox.ContentTemplate>
+                        </CheckBox>
+                    </StackPanel>
+                </Grid>
+
+                <!-- App List Content with ModernScrollViewer -->
+                <Border x:Name="AppListBorder"
+                        Grid.Row="1"
+                        Style="{StaticResource DialogAppListBorderStyle}"
+                        Visibility="Collapsed">
+                    <ScrollViewer x:Name="ContentScrollViewer"
+                                  Style="{StaticResource ModernScrollViewer}"
+                                  MaxHeight="250"
+                                  MinHeight="100">
+                        <ItemsControl x:Name="AppListControl">
+                            <ItemsControl.ItemsPanel>
+                                <ItemsPanelTemplate>
+                                    <StackPanel Orientation="Vertical"/>
+                                </ItemsPanelTemplate>
+                            </ItemsControl.ItemsPanel>
+                            <ItemsControl.ItemTemplate>
+                                <DataTemplate>
+                                    <TextBlock Text="{Binding}"
+                                             TextWrapping="Wrap"
+                                             Style="{StaticResource DialogAppTextBlockStyle}"
+                                             Margin="0,3,0,3"/>
+                                </DataTemplate>
+                            </ItemsControl.ItemTemplate>
+                        </ItemsControl>
+                    </ScrollViewer>
+                </Border>
             </Grid>
-
-            <!-- App List Content with ModernScrollViewer -->
-            <Border x:Name="AppListBorder"
-                    Grid.Row="1"
-                    Style="{StaticResource DialogAppListBorderStyle}"
-                    Visibility="Collapsed">
-                <ScrollViewer x:Name="ContentScrollViewer"
-                              Style="{StaticResource ModernScrollViewer}"
-                              MaxHeight="250"
-                              MinHeight="100">
-                    <ItemsControl x:Name="AppListControl">
-                        <ItemsControl.ItemsPanel>
-                            <ItemsPanelTemplate>
-                                <StackPanel Orientation="Vertical"/>
-                            </ItemsPanelTemplate>
-                        </ItemsControl.ItemsPanel>
-                        <ItemsControl.ItemTemplate>
-                            <DataTemplate>
-                                <TextBlock Text="{Binding}"
-                                         TextWrapping="Wrap"
-                                         Style="{StaticResource DialogAppTextBlockStyle}"
-                                         Margin="0,3,0,3"/>
-                            </DataTemplate>
-                        </ItemsControl.ItemTemplate>
-                    </ItemsControl>
-                </ScrollViewer>
-            </Border>
-
-        </Grid>
+        </ScrollViewer>
         
         <!-- Buttons -->
         <StackPanel x:Name="ButtonsPanel"

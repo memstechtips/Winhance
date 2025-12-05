@@ -20,17 +20,20 @@ namespace Winhance.WPF.Features.Common.Services
         private readonly IServiceProvider _serviceProvider;
         private readonly IEventBus _eventBus;
         private readonly ILogService _logService;
+        private readonly SettingLocalizationService _localizationService;
 
         public FilterUpdateService(
             ICompatibleSettingsRegistry registry,
             IServiceProvider serviceProvider,
             IEventBus eventBus,
-            ILogService logService)
+            ILogService logService,
+            SettingLocalizationService localizationService)
         {
             _registry = registry;
             _serviceProvider = serviceProvider;
             _eventBus = eventBus;
             _logService = logService;
+            _localizationService = localizationService ?? throw new ArgumentNullException(nameof(localizationService));
         }
 
         public async Task UpdateFeatureSettingsAsync(ISettingsFeatureViewModel feature)
@@ -38,7 +41,13 @@ namespace Winhance.WPF.Features.Common.Services
             try
             {
                 var currentSettingIds = feature.Settings.Select(s => s.SettingId).ToHashSet();
-                var newDefinitions = _registry.GetFilteredSettings(feature.ModuleId).ToList();
+                var rawDefinitions = _registry.GetFilteredSettings(feature.ModuleId).ToList();
+                
+                // Localize definitions
+                var newDefinitions = rawDefinitions
+                    .Select(d => _localizationService.LocalizeSetting(d))
+                    .ToList();
+
                 var newSettingIds = newDefinitions.Select(s => s.Id).ToHashSet();
 
                 var toRemove = feature.Settings.Where(s => !newSettingIds.Contains(s.SettingId)).ToList();
@@ -126,6 +135,7 @@ namespace Winhance.WPF.Features.Common.Services
                 var settingsLoadingService = _serviceProvider.GetRequiredService<ISettingsLoadingService>();
                 var comboBoxSetupService = _serviceProvider.GetRequiredService<IComboBoxSetupService>();
                 var comboBoxResolver = _serviceProvider.GetRequiredService<IComboBoxResolver>();
+                var localizationService = _serviceProvider.GetRequiredService<ILocalizationService>();
 
                 var states = await discoveryService.GetSettingStatesAsync(definitions);
 
@@ -165,6 +175,7 @@ namespace Winhance.WPF.Features.Common.Services
                             currentState.CurrentValue,
                             comboBoxSetupService,
                             _logService,
+                            localizationService,
                             currentState.RawValues);
                     }
                 }

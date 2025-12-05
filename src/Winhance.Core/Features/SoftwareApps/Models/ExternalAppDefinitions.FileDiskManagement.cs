@@ -107,6 +107,16 @@ namespace Winhance.Core.Features.SoftwareApps.Models
                         },
                         new ItemDefinition
                         {
+                            Id = "external-app-hibit-uninstaller",
+                            Name = "HiBit Uninstaller",
+                            Description = "Completely Uninstall Stubborn Software, Windows Apps & Browser Extension",
+                            GroupName = "File & Disk Management",
+                            WinGetPackageId = "HiBitSoftware.HiBitUninstaller",
+                            Category = "File & Disk Management",
+                            WebsiteUrl = "https://www.hibitsoft.ir/Uninstaller.html"
+                        },
+                        new ItemDefinition
+                        {
                             Id = "external-app-ventoy",
                             Name = "Ventoy",
                             Description = "Open source tool to create bootable USB drive for ISO files",

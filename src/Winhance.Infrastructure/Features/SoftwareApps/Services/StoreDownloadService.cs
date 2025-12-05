@@ -22,6 +22,7 @@ public class StoreDownloadService : IStoreDownloadService
     private readonly ITaskProgressService _taskProgressService;
     private readonly IPowerShellExecutionService _powerShellService;
     private readonly ILogService _logService;
+    private readonly ILocalizationService _localization;
     private readonly HttpClient _httpClient;
 
     private const string StoreApiUrl = "https://store.rg-adguard.net/api/GetFiles";
@@ -30,10 +31,12 @@ public class StoreDownloadService : IStoreDownloadService
     public StoreDownloadService(
         ITaskProgressService taskProgressService,
         IPowerShellExecutionService powerShellService,
+        ILocalizationService localization,
         ILogService logService = null)
     {
         _taskProgressService = taskProgressService;
         _powerShellService = powerShellService;
+        _localization = localization;
         _logService = logService;
         _httpClient = new HttpClient
         {
@@ -56,45 +59,45 @@ public class StoreDownloadService : IStoreDownloadService
             _logService?.LogInformation($"Created temporary directory: {tempPath}");
 
             // Download the package
-            _taskProgressService?.UpdateProgress(5, $"Fetching download links for {displayName}...");
+            _taskProgressService?.UpdateProgress(5, _localization.GetString("Progress_Store_FetchingLinks", displayName));
             var packagePath = await DownloadPackageAsync(productId, tempPath, displayName, cancellationToken);
 
             if (string.IsNullOrEmpty(packagePath))
             {
-                _taskProgressService?.UpdateProgress(0, $"Failed to download {displayName}");
+                _taskProgressService?.UpdateProgress(0, _localization.GetString("Progress_Store_FailedDownload", displayName));
                 return false;
             }
 
             // packagePath is null if download failed, or contains the path if installation with dependencies already succeeded
             if (string.IsNullOrEmpty(packagePath))
             {
-                _taskProgressService?.UpdateProgress(0, $"Failed to download {displayName}");
+                _taskProgressService?.UpdateProgress(0, _localization.GetString("Progress_Store_FailedDownload", displayName));
                 return false;
             }
 
             // If we reach here, the package was downloaded but not installed yet (no dependencies found)
             // This shouldn't happen with the new flow, but handle it just in case
-            _taskProgressService?.UpdateProgress(80, $"Installing {displayName}...");
+            _taskProgressService?.UpdateProgress(80, _localization.GetString("Progress_Store_Installing", displayName));
             var installSuccess = await InstallPackageAsync(packagePath, displayName, cancellationToken);
 
             if (installSuccess)
             {
-                _taskProgressService?.UpdateProgress(100, $"Successfully installed {displayName}");
+                _taskProgressService?.UpdateProgress(100, _localization.GetString("Progress_Store_InstalledSuccess", displayName));
                 return true;
             }
 
-            _taskProgressService?.UpdateProgress(0, $"Failed to install {displayName}");
+            _taskProgressService?.UpdateProgress(0, _localization.GetString("Progress_Store_FailedInstall", displayName));
             return false;
         }
         catch (OperationCanceledException)
         {
-            _taskProgressService?.UpdateProgress(0, $"Download of {displayName} was cancelled");
+            _taskProgressService?.UpdateProgress(0, _localization.GetString("Progress_Store_DownloadCancelled", displayName));
             throw;
         }
         catch (Exception ex)
         {
             _logService?.LogError($"Error downloading/installing {productId}: {ex.Message}");
-            _taskProgressService?.UpdateProgress(0, $"Error installing {displayName}: {ex.Message}");
+            _taskProgressService?.UpdateProgress(0, _localization.GetString("Progress_Store_InstallError", displayName, ex.Message));
             return false;
         }
         finally
@@ -126,7 +129,7 @@ public class StoreDownloadService : IStoreDownloadService
         try
         {
             // Step 1: Get download links from store.rg-adguard.net API
-            _taskProgressService?.UpdateProgress(10, $"Requesting package information for {displayName}...");
+            _taskProgressService?.UpdateProgress(10, _localization.GetString("Progress_Store_RequestingInfo", displayName));
             var downloadLinks = await GetDownloadLinksAsync(productId, cancellationToken);
 
             // Check for cancellation after API call
@@ -152,7 +155,7 @@ public class StoreDownloadService : IStoreDownloadService
             }
 
             // Step 3: Download the main package first (prefer bundles)
-            _taskProgressService?.UpdateProgress(30, $"Downloading {displayName} main package...");
+            _taskProgressService?.UpdateProgress(30, _localization.GetString("Progress_Store_DownloadingMain", displayName));
             var mainPackage = mainPackages
                 .OrderByDescending(x => x.FileName.Contains("bundle", StringComparison.OrdinalIgnoreCase))
                 .ThenByDescending(x => x.FileName.Contains(currentArch, StringComparison.OrdinalIgnoreCase))
@@ -173,7 +176,7 @@ public class StoreDownloadService : IStoreDownloadService
             _logService?.LogInformation($"Successfully downloaded main package: {downloadedFile}");
 
             // Step 4: Try installing without dependencies first
-            _taskProgressService?.UpdateProgress(80, $"Installing {displayName}...");
+            _taskProgressService?.UpdateProgress(80, _localization.GetString("Progress_Store_Installing", displayName));
             _logService?.LogInformation("Attempting installation without dependencies first...");
 
             var (success, errorMessage) = await TryInstallPackageAsync(downloadedFile, displayName, cancellationToken);
@@ -188,7 +191,7 @@ public class StoreDownloadService : IStoreDownloadService
             if (IsNonRecoverableError(errorMessage))
             {
                 _logService?.LogError($"Cannot install {displayName}: {GetFriendlyErrorMessage(errorMessage)}");
-                _taskProgressService?.UpdateProgress(0, GetFriendlyErrorMessage(errorMessage));
+                _taskProgressService?.UpdateProgress(0, _localization.GetString("Progress_Store_NonRecoverableError", GetFriendlyErrorMessage(errorMessage)));
                 return null;
             }
 
@@ -210,7 +213,7 @@ public class StoreDownloadService : IStoreDownloadService
                 }
 
                 _logService?.LogInformation($"Dependency round {currentRound}: Missing {string.Join(", ", missingDependencies)}");
-                _taskProgressService?.UpdateProgress(50 + (currentRound * 5), $"Downloading {missingDependencies.Count} required dependency package(s)...");
+                _taskProgressService?.UpdateProgress(50 + (currentRound * 5), _localization.GetString("Progress_Store_DownloadingDependencies", missingDependencies.Count));
 
                 var newDependencies = new List<string>();
                 foreach (var depName in missingDependencies)
@@ -300,7 +303,7 @@ public class StoreDownloadService : IStoreDownloadService
                 allDownloadedDependencies.AddRange(newDependencies);
 
                 // Try installing with all dependencies collected so far
-                _taskProgressService?.UpdateProgress(80, $"Installing {displayName} with {allDownloadedDependencies.Count} dependencies...");
+                _taskProgressService?.UpdateProgress(80, _localization.GetString("Progress_Store_InstallingWithDependencies", displayName, allDownloadedDependencies.Count));
                 var (retrySuccess, retryError) = await TryInstallPackageWithDependenciesAsync(
                     downloadedFile, allDownloadedDependencies, displayName, cancellationToken);
 
@@ -439,12 +442,12 @@ public class StoreDownloadService : IStoreDownloadService
 
                 if (totalBytes > 0)
                 {
-                    var progressPercent = (int)((totalRead * 40.0 / totalBytes) + 30); // 30-70% range
+                    var progressPercent = (int)((totalRead * 40.0 / totalBytes) + 30);
                     if (progressPercent > lastProgress)
                     {
                         lastProgress = progressPercent;
                         var downloadedMB = totalRead / (1024.0 * 1024.0);
-                        var statusText = $"Downloading {displayName}: {downloadedMB:F2} MB / {totalMB:F2} MB";
+                        var statusText = _localization.GetString("Progress_DownloadProgress", displayName, downloadedMB.ToString("F2"), totalMB.ToString("F2"));
                         var terminalOutput = $"{downloadedMB:F2} MB of {totalMB:F2} MB";
 
                         _taskProgressService?.UpdateDetailedProgress(new TaskProgressDetail

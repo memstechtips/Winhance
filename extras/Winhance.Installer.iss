@@ -190,6 +190,7 @@ Source: "C:\Winhance\src\Winhance.WPF\bin\Release\net9.0-windows\win-x64\{#MyApp
 Source: "C:\Winhance\src\Winhance.WPF\bin\Release\net9.0-windows\win-x64\*.dll"; DestDir: "{app}"; Flags: ignoreversion
 Source: "C:\Winhance\src\Winhance.WPF\bin\Release\net9.0-windows\win-x64\*.json"; DestDir: "{app}"; Flags: ignoreversion
 Source: "C:\Winhance\src\Winhance.WPF\bin\Release\net9.0-windows\win-x64\*.pdb"; DestDir: "{app}"; Flags: ignoreversion
+Source: "C:\Winhance\src\Winhance.WPF\bin\Release\net9.0-windows\win-x64\Localization\*"; DestDir: "{app}\Localization"; Flags: ignoreversion recursesubdirs createallsubdirs
 ; Copy only necessary Windows x64 runtime files
 Source: "C:\Winhance\src\Winhance.WPF\bin\Release\net9.0-windows\win-x64\runtimes\win\*"; DestDir: "{app}\runtimes\win"; Flags: ignoreversion recursesubdirs createallsubdirs
 Source: "C:\Winhance\src\Winhance.WPF\bin\Release\net9.0-windows\win-x64\runtimes\win-x64\*"; DestDir: "{app}\runtimes\win-x64"; Flags: ignoreversion recursesubdirs createallsubdirs

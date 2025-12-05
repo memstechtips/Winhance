@@ -7,6 +7,7 @@
              xmlns:views="clr-namespace:Winhance.WPF.Features.SoftwareApps.Views"
              xmlns:commonControls="clr-namespace:Winhance.WPF.Features.Common.Controls"
              xmlns:iconPacks="http://metro.mahapps.com/winfx/xaml/iconpacks"
+             xmlns:loc="clr-namespace:Winhance.WPF.Features.Common.Extensions"
              d:DataContext="{d:DesignInstance Type=viewModels:SoftwareAppsViewModel}"
              mc:Ignorable="d">
 
@@ -14,248 +15,186 @@
         <!-- Direct DataTemplates for Windows Apps -->
         <DataTemplate x:Key="ListViewTemplate"
                 DataType="{x:Type viewModels:WindowsAppsViewModel}">
-            <views:WindowsAppsView/>
+            <views:WindowsAppsView />
         </DataTemplate>
 
         <DataTemplate x:Key="TableViewTemplate"
                 DataType="{x:Type viewModels:WindowsAppsViewModel}">
-            <views:WindowsAppsTableView/>
+            <views:WindowsAppsTableView />
         </DataTemplate>
 
         <!-- Direct DataTemplates for External Apps -->
         <DataTemplate x:Key="ExternalListViewTemplate"
                 DataType="{x:Type viewModels:ExternalAppsViewModel}">
-            <views:ExternalAppsView/>
+            <views:ExternalAppsView />
         </DataTemplate>
 
         <DataTemplate x:Key="ExternalTableViewTemplate"
                 DataType="{x:Type viewModels:ExternalAppsViewModel}">
-            <views:ExternalAppsTableView/>
+            <views:ExternalAppsTableView />
         </DataTemplate>
     </UserControl.Resources>
 
     <Grid>
         <!-- Header -->
-        <Grid Height="80"
+        <Grid x:Name="HeaderGrid"
+              Height="80"
               VerticalAlignment="Top"
               ClipToBounds="False">
-            <Grid.ColumnDefinitions>
-                <ColumnDefinition Width="Auto"/>
-                <ColumnDefinition Width="*"/>
-                <ColumnDefinition Width="Auto"/>
-            </Grid.ColumnDefinitions>
+            <Viewbox Stretch="Uniform"
+                     StretchDirection="DownOnly"
+                     HorizontalAlignment="Stretch">
+                <Grid Width="{Binding ActualWidth, ElementName=HeaderGrid}"
+                      MinWidth="1250"
+                      MinHeight="80">
+                    <Grid.ColumnDefinitions>
+                        <ColumnDefinition Width="Auto" />
+                        <!-- Icon -->
+                        <ColumnDefinition Width="Auto" />
+                        <!-- Text -->
+                        <ColumnDefinition Width="*" />
+                        <!-- Spacer -->
+                        <ColumnDefinition Width="Auto" />
+                        <!-- Buttons -->
+                    </Grid.ColumnDefinitions>
 
-            <!-- Icon -->
-            <iconPacks:PackIconMaterial Grid.Column="0"
-                                     Kind="PackageVariant"
-                                     Width="60"
-                                     Height="60"
-                                     Margin="10,0,10,0"
-                                     VerticalAlignment="Center"
-                                     Foreground="{DynamicResource PrimaryTextColor}"/>
+                    <!-- Icon (Col 0) -->
+                    <iconPacks:PackIconMaterial Grid.Column="0"
+                                             Kind="PackageVariant"
+                                             Width="60"
+                                             Height="60"
+                                             Margin="10,0,10,0"
+                                             VerticalAlignment="Center"
+                                             Foreground="{DynamicResource PrimaryTextColor}" />
 
-            <!-- Title and Status with Quick Nav -->
-            <StackPanel Grid.Column="1"
-                        VerticalAlignment="Center">
-                <TextBlock Height="35"
-                           VerticalAlignment="Top"
-                           FontFamily="Helvetica Neue"
-                           FontSize="32"
-                           FontWeight="Bold"
-                           Foreground="{DynamicResource PrimaryTextColor}"
-                           Text="Software &amp; Apps"/>
+                    <!-- Title and Status (Col 1) -->
+                    <StackPanel Grid.Column="1"
+                                VerticalAlignment="Center">
+                        <TextBlock Height="35"
+                                   VerticalAlignment="Top"
+                                   FontFamily="Helvetica Neue"
+                                   FontSize="32"
+                                   FontWeight="Bold"
+                                   Foreground="{DynamicResource PrimaryTextColor}"
+                                   Text="{loc:Localize Category_SoftwareApps_Title}" />
 
-                <StackPanel Orientation="Horizontal"
-                            Margin="0,5,0,0">
-                    <TextBlock Height="22"
-                               VerticalAlignment="Center"
-                               FontFamily="Helvetica Neue"
-                               FontSize="14"
-                               Foreground="{DynamicResource SubTextColor}"
-                               Text="{Binding StatusText}"/>
+                        <StackPanel Orientation="Horizontal"
+                                    Margin="0,5,0,0">
+                            <TextBlock Height="22"
+                                       VerticalAlignment="Center"
+                                       FontFamily="Helvetica Neue"
+                                       FontSize="14"
+                                       Foreground="{DynamicResource SubTextColor}"
+                                       Text="{loc:Localize Category_SoftwareApps_StatusText}" />
+                        </StackPanel>
+                    </StackPanel>
 
-                    <!-- Quick Nav -->
-                    <commonControls:QuickNavControl/>
-                </StackPanel>
-            </StackPanel>
+                    <!-- Buttons and Search (Col 2) -->
+                    <StackPanel Grid.Column="2"
+                                Orientation="Horizontal"
+                                VerticalAlignment="Bottom"
+                                HorizontalAlignment="Right"
+                                Margin="0,0,0,0">
 
-            <!-- Search Box and Action Buttons (right, prioritized) -->
-            <Grid Grid.Column="2"
-                    HorizontalAlignment="Right"
-                    VerticalAlignment="Bottom"
-                    Margin="10,0,10,0"
-                    Panel.ZIndex="100"
-                    MinWidth="600">
-                <Grid.RowDefinitions>
-                    <RowDefinition Height="Auto"/>
-                    <RowDefinition Height="Auto"/>
-                </Grid.RowDefinitions>
-                <Grid.ColumnDefinitions>
-                    <ColumnDefinition Width="Auto"/>
-                    <ColumnDefinition Width="Auto"/>
-                </Grid.ColumnDefinitions>
+                        <!-- Buttons Row 1 -->
+                        <StackPanel Orientation="Horizontal">
+                            <!-- Commented out View mode toggle -->
+                        </StackPanel>
 
-                <!-- View Mode Toggle Container -->
-                <!-- Commented out for future implementation
-                <StackPanel Grid.Row="0"
-                        Grid.Column="0"
-                        Grid.ColumnSpan="2"
-                        Orientation="Horizontal"
-                        HorizontalAlignment="Right"
-                        Margin="0,0,0,10">
-                    <TextBlock Text="View mode:"
-                            VerticalAlignment="Center"
-                            Margin="0,0,10,0"
-                            Foreground="{DynamicResource PrimaryTextColor}"/>
-                    <Border Width="110"
-                            Height="35"
-                            VerticalAlignment="Center"
-                            Background="{DynamicResource MainContainerBorderBrush}"
-                            BorderBrush="{DynamicResource BorderBrush}"
-                            BorderThickness="1"
-                            CornerRadius="4">
-                        <Grid>
-                            <Grid.ColumnDefinitions>
-                                <ColumnDefinition Width="*"/>
-                                <ColumnDefinition Width="*"/>
-                            </Grid.ColumnDefinitions>
+                        <!-- Action Buttons -->
+                        <StackPanel Orientation="Horizontal"
+                                    VerticalAlignment="Center">
+                            <!-- Install Selected Items Button -->
+                            <Button Style="{StaticResource InstallAppsButtonStyle}"
+                                    Content="{loc:Localize SoftwareApps_Button_InstallSelected}"
+                                    MinWidth="180"
+                                    Width="Auto"
+                                    Height="35"
+                                    Margin="0,0,5,1"
+                                    Command="{Binding InstallSelectedItemsCommand}"
+                                    IsEnabled="{Binding CanInstallItems}" />
 
-                            <Button Grid.Column="0"
-                                    Command="{Binding ToggleViewModeCommand}"
-                                    CommandParameter="False"
-                                    Padding="0"
-                                    ToolTip="List View">
+                            <!-- Separator -->
+                            <Border Width="1"
+                                    Height="28"
+                                    Background="#505050"
+                                    VerticalAlignment="Center"
+                                    Margin="0,0,5,0" />
+
+                            <!-- Remove Selected Items Button -->
+                            <Button Style="{StaticResource RemoveAppsButtonStyle}"
+                                    Content="{Binding RemoveButtonText}"
+                                    MinWidth="180"
+                                    Width="Auto"
+                                    Height="35"
+                                    Margin="0,0,5,1"
+                                    Command="{Binding RemoveSelectedItemsCommand}"
+                                    IsEnabled="{Binding CanRemoveItems}" />
+
+                            <!-- Separator -->
+                            <Border Width="1"
+                                    Height="28"
+                                    Background="#505050"
+                                    VerticalAlignment="Center"
+                                    Margin="0,0,5,0" />
+
+                            <!-- Refresh Button -->
+                            <Button Style="{StaticResource RefreshButtonStyle}"
+                                    Content="{loc:Localize Button_Refresh}"
+                                    MinWidth="90"
+                                    Width="Auto"
+                                    Height="35"
+                                    Margin="0,0,5,1"
+                                    Command="{Binding RefreshInstallationStatusCommand}">
+                                <Button.ToolTip>
+                                    <TextBlock Text="{loc:Localize Tooltip_RefreshInstallationStatus}" />
+                                </Button.ToolTip>
+                            </Button>
+
+                            <!-- Separator -->
+                            <Border Width="1"
+                                    Height="28"
+                                    Background="#505050"
+                                    VerticalAlignment="Center"
+                                    Margin="0,0,10,0" />
+
+                            <!-- Help Button -->
+                            <Button x:Name="HelpButton"
+                                    Content="{loc:Localize Button_Help}"
+                                    MinWidth="60"
+                                    Width="Auto"
+                                    Height="35"
+                                    Margin="0,0,0,1"
+                                    Command="{Binding ShowHelpCommand}"
+                                    VerticalAlignment="Center"
+                                    Loaded="HelpButton_Loaded">
                                 <Button.Style>
-                                    <Style TargetType="Button" BasedOn="{StaticResource ToggleIconButtonStyle}">
+                                    <Style TargetType="Button"
+                                            BasedOn="{StaticResource HelpButtonStyle}">
                                         <Style.Triggers>
-                                            <DataTrigger Binding="{Binding IsTableViewMode}" Value="False">
-                                                <Setter Property="Background" Value="{DynamicResource ButtonBorderBrush}"/>
-                                                <Setter Property="Foreground" Value="{DynamicResource ButtonHoverTextColor}"/>
+                                            <DataTrigger Binding="{Binding IsHelpButtonActive}"
+                                                    Value="True">
+                                                <Setter Property="Background"
+                                                        Value="{DynamicResource ButtonBorderBrush}" />
+                                                <Setter Property="Foreground"
+                                                        Value="{DynamicResource ButtonHoverTextColor}" />
                                             </DataTrigger>
                                         </Style.Triggers>
                                     </Style>
                                 </Button.Style>
-                                <iconPacks:PackIconMaterial Kind="ViewList"
-                                        Width="20"
-                                        Height="20"/>
                             </Button>
 
-                            <Button Grid.Column="1"
-                                    Command="{Binding ToggleViewModeCommand}"
-                                    CommandParameter="True"
-                                    Padding="0"
-                                    ToolTip="Table View">
-                                <Button.Style>
-                                    <Style TargetType="Button" BasedOn="{StaticResource ToggleIconButtonStyle}">
-                                        <Style.Triggers>
-                                            <DataTrigger Binding="{Binding IsTableViewMode}" Value="True">
-                                                <Setter Property="Background" Value="{DynamicResource ButtonBorderBrush}"/>
-                                                <Setter Property="Foreground" Value="{DynamicResource ButtonHoverTextColor}"/>
-                                            </DataTrigger>
-                                        </Style.Triggers>
-                                    </Style>
-                                </Button.Style>
-                                <iconPacks:PackIconMaterial Kind="ViewModule"
-                                        Width="20"
-                                        Height="20"/>
-                            </Button>
-                        </Grid>
-                    </Border>
-                </StackPanel>
-                -->
-
-                <!-- Action Buttons on the left -->
-                <StackPanel Grid.Row="1"
-                        Grid.Column="0"
-                        Orientation="Horizontal"
-                        HorizontalAlignment="Left"
-                        VerticalAlignment="Center"
-                        Margin="0,0,0,0">
-                    <!-- Install Selected Items Button -->
-                    <Button Style="{StaticResource InstallAppsButtonStyle}"
-                            Content="Install Selected Items"
-                            Width="180"
-                            Height="35"
-                            Margin="0,0,5,1"
-                            Command="{Binding InstallSelectedItemsCommand}"
-                            IsEnabled="{Binding CanInstallItems}"/>
-
-                    <!-- Separator -->
-                    <Border Width="1"
-                            Height="28"
-                            Background="#505050"
-                            VerticalAlignment="Center"
-                            Margin="0,0,5,0"/>
-
-                    <!-- Remove Selected Items Button (or Clear Selection for External Apps) -->
-                    <Button Style="{StaticResource RemoveAppsButtonStyle}"
-                            Content="{Binding RemoveButtonText}"
-                            Width="180"
-                            Height="35"
-                            Margin="0,0,5,1"
-                            Command="{Binding RemoveSelectedItemsCommand}"
-                            IsEnabled="{Binding CanRemoveItems}"/>
-
-                    <!-- Separator -->
-                    <Border Width="1"
-                            Height="28"
-                            Background="#505050"
-                            VerticalAlignment="Center"
-                            Margin="0,0,5,0"/>
-
-                    <!-- Refresh Button -->
-                    <Button Style="{StaticResource RefreshButtonStyle}"
-                            Content="Refresh"
-                            Width="90"
-                            Height="35"
-                            Margin="0,0,5,1"
-                            Command="{Binding RefreshInstallationStatusCommand}">
-                        <Button.ToolTip>
-                            <TextBlock Text="Refresh installation status"/>
-                        </Button.ToolTip>
-                    </Button>
-
-                    <!-- Separator -->
-                    <Border Width="1"
-                            Height="28"
-                            Background="#505050"
-                            VerticalAlignment="Center"
-                            Margin="0,0,10,0"/>
-
-                    <!-- Help Button -->
-                    <Button x:Name="HelpButton"
-                            Content="Help"
-                            Width="60"
-                            Height="35"
-                            Margin="0,0,0,1"
-                            Command="{Binding ShowHelpCommand}"
-                            VerticalAlignment="Center"
-                            Loaded="HelpButton_Loaded">
-                        <Button.Style>
-                            <Style TargetType="Button"
-                                    BasedOn="{StaticResource HelpButtonStyle}">
-                                <Style.Triggers>
-                                    <DataTrigger Binding="{Binding IsHelpButtonActive}"
-                                            Value="True">
-                                        <Setter Property="Background"
-                                                Value="{DynamicResource ButtonBorderBrush}"/>
-                                        <Setter Property="Foreground"
-                                                Value="{DynamicResource ButtonHoverTextColor}"/>
-                                    </DataTrigger>
-                                </Style.Triggers>
-                            </Style>
-                        </Button.Style>
-                    </Button>
-
-                    <!-- Search Box -->
-                    <commonControls:SearchBox
-                            Width="200"
-                            HorizontalAlignment="Right"
-                            VerticalAlignment="Center"
-                            SearchText="{Binding SearchText, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}"
-                            Margin="0,0,0,1"/>
-                </StackPanel>
-            </Grid>
+                            <!-- Search Box -->
+                            <commonControls:SearchBox
+                                    Width="200"
+                                    HorizontalAlignment="Right"
+                                    VerticalAlignment="Center"
+                                    SearchText="{Binding SearchText, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}"
+                                    Margin="0,0,0,1" />
+                        </StackPanel>
+                    </StackPanel>
+                </Grid>
+            </Viewbox>
         </Grid>
 
         <!-- Main Content -->
@@ -273,9 +212,9 @@
                     <Border Style="{StaticResource AppSectionHeaderStyle}">
                         <Grid>
                             <Grid.ColumnDefinitions>
-                                <ColumnDefinition Width="*"/>
-                                <ColumnDefinition Width="Auto"/>
-                                <ColumnDefinition Width="*"/>
+                                <ColumnDefinition Width="*" />
+                                <ColumnDefinition Width="Auto" />
+                                <ColumnDefinition Width="*" />
                             </Grid.ColumnDefinitions>
 
                             <!-- Windows Apps Tab -->
@@ -289,7 +228,7 @@
                                         Margin="5,0,0,0"
                                         CornerRadius="1.5"
                                         Visibility="{Binding IsWindowsAppsTabSelected, Converter={StaticResource BooleanToVisibilityConverter}}"
-                                        Panel.ZIndex="1"/>
+                                        Panel.ZIndex="1" />
 
                                 <!-- Tab Content -->
                                 <Border x:Name="WindowsAppsTab"
@@ -303,18 +242,18 @@
                                                 <Trigger Property="IsMouseOver"
                                                         Value="True">
                                                     <Setter Property="Background"
-                                                            Value="{DynamicResource MainContainerBorderBrush}"/>
+                                                            Value="{DynamicResource MainContainerBorderBrush}" />
                                                 </Trigger>
                                                 <DataTrigger Binding="{Binding IsWindowsAppsTabSelected}"
                                                         Value="True">
                                                     <Setter Property="Background"
-                                                            Value="{DynamicResource MainContainerBorderBrush}"/>
+                                                            Value="{DynamicResource MainContainerBorderBrush}" />
                                                 </DataTrigger>
                                             </Style.Triggers>
                                         </Style>
                                     </Border.Resources>
                                     <Border.Style>
-                                        <StaticResource ResourceKey="TabHoverStyle"/>
+                                        <StaticResource ResourceKey="TabHoverStyle" />
                                     </Border.Style>
                                     <Grid x:Name="WindowsAppsTabGrid">
                                         <!-- Inner border for selected tab or hover -->
@@ -327,17 +266,17 @@
                                             <Border.Style>
                                                 <Style TargetType="Border">
                                                     <Setter Property="Visibility"
-                                                            Value="Collapsed"/>
+                                                            Value="Collapsed" />
                                                     <Style.Triggers>
                                                         <DataTrigger Binding="{Binding IsWindowsAppsTabSelected}"
                                                                 Value="True">
                                                             <Setter Property="Visibility"
-                                                                    Value="Visible"/>
+                                                                    Value="Visible" />
                                                         </DataTrigger>
                                                         <DataTrigger Binding="{Binding ElementName=WindowsAppsTab, Path=IsMouseOver}"
                                                                 Value="True">
                                                             <Setter Property="Visibility"
-                                                                    Value="Visible"/>
+                                                                    Value="Visible" />
                                                         </DataTrigger>
                                                     </Style.Triggers>
                                                 </Style>
@@ -350,16 +289,16 @@
                                                     Height="20"
                                                     Margin="5,0,0,0"
                                                     VerticalAlignment="Center"
-                                                    Foreground="{DynamicResource PrimaryTextColor}"/>
-                                            <TextBlock Text="Windows Apps &amp; Features"
+                                                    Foreground="{DynamicResource PrimaryTextColor}" />
+                                            <TextBlock Text="{loc:Localize SoftwareApps_Tab_WindowsApps}"
                                                     Style="{StaticResource AppSectionHeaderTextStyle}"
-                                                    Margin="0,0,5,0"/>
+                                                    Margin="0,0,5,0" />
                                         </DockPanel>
                                     </Grid>
                                     <Border.InputBindings>
                                         <MouseBinding MouseAction="LeftClick"
                                                 Command="{Binding SelectTabCommand}"
-                                                CommandParameter="True"/>
+                                                CommandParameter="True" />
                                     </Border.InputBindings>
                                 </Border>
                             </Grid>
@@ -370,7 +309,7 @@
                                     Height="25"
                                     Margin="0,5"
                                     VerticalAlignment="Stretch"
-                                    Background="#AAAAAA"/>
+                                    Background="#AAAAAA" />
 
                             <!-- External Software Tab -->
                             <Grid Grid.Column="2">
@@ -383,7 +322,7 @@
                                         Margin="5,0,0,0"
                                         CornerRadius="1.5"
                                         Visibility="{Binding IsExternalAppsTabSelected, Converter={StaticResource BooleanToVisibilityConverter}}"
-                                        Panel.ZIndex="1"/>
+                                        Panel.ZIndex="1" />
 
                                 <!-- Tab Content -->
                                 <Border x:Name="ExternalAppsTab"
@@ -397,18 +336,18 @@
                                                 <Trigger Property="IsMouseOver"
                                                         Value="True">
                                                     <Setter Property="Background"
-                                                            Value="{DynamicResource MainContainerBorderBrush}"/>
+                                                            Value="{DynamicResource MainContainerBorderBrush}" />
                                                 </Trigger>
                                                 <DataTrigger Binding="{Binding IsExternalAppsTabSelected}"
                                                         Value="True">
                                                     <Setter Property="Background"
-                                                            Value="{DynamicResource MainContainerBorderBrush}"/>
+                                                            Value="{DynamicResource MainContainerBorderBrush}" />
                                                 </DataTrigger>
                                             </Style.Triggers>
                                         </Style>
                                     </Border.Resources>
                                     <Border.Style>
-                                        <StaticResource ResourceKey="TabHoverStyle"/>
+                                        <StaticResource ResourceKey="TabHoverStyle" />
                                     </Border.Style>
                                     <Grid x:Name="ExternalAppsTabGrid">
                                         <!-- Inner border for selected tab or hover -->
@@ -421,17 +360,17 @@
                                             <Border.Style>
                                                 <Style TargetType="Border">
                                                     <Setter Property="Visibility"
-                                                            Value="Collapsed"/>
+                                                            Value="Collapsed" />
                                                     <Style.Triggers>
                                                         <DataTrigger Binding="{Binding IsExternalAppsTabSelected}"
                                                                 Value="True">
                                                             <Setter Property="Visibility"
-                                                                    Value="Visible"/>
+                                                                    Value="Visible" />
                                                         </DataTrigger>
                                                         <DataTrigger Binding="{Binding ElementName=ExternalAppsTab, Path=IsMouseOver}"
                                                                 Value="True">
                                                             <Setter Property="Visibility"
-                                                                    Value="Visible"/>
+                                                                    Value="Visible" />
                                                         </DataTrigger>
                                                     </Style.Triggers>
                                                 </Style>
@@ -444,16 +383,16 @@
                                                                      Height="20"
                                                                      Margin="5,0,0,0"
                                                                      VerticalAlignment="Center"
-                                                                     Foreground="{DynamicResource PrimaryTextColor}"/>
-                                            <TextBlock Text="External Software"
+                                                                     Foreground="{DynamicResource PrimaryTextColor}" />
+                                            <TextBlock Text="{loc:Localize SoftwareApps_Tab_ExternalApps}"
                                                     Style="{StaticResource AppSectionHeaderTextStyle}"
-                                                    Margin="0,0,5,0"/>
+                                                    Margin="0,0,5,0" />
                                         </DockPanel>
                                     </Grid>
                                     <Border.InputBindings>
                                         <MouseBinding MouseAction="LeftClick"
                                                 Command="{Binding SelectTabCommand}"
-                                                CommandParameter="False"/>
+                                                CommandParameter="False" />
                                     </Border.InputBindings>
                                 </Border>
                             </Grid>
@@ -468,8 +407,8 @@
                                                            commonControls:ResponsiveScrollViewer.ScrollPositionCommand="{Binding UpdateScrollPositionCommand}">
                         <Grid>
                             <Grid.RowDefinitions>
-                                <RowDefinition Height="*"/>
-                                <RowDefinition Height="Auto"/>
+                                <RowDefinition Height="*" />
+                                <RowDefinition Height="Auto" />
                             </Grid.RowDefinitions>
 
                             <StackPanel Grid.Row="0"
@@ -485,12 +424,12 @@
                                                 <ContentControl.Style>
                                                     <Style TargetType="ContentControl">
                                                         <Setter Property="Visibility"
-                                                                Value="Collapsed"/>
+                                                                Value="Collapsed" />
                                                         <Style.Triggers>
                                                             <DataTrigger Binding="{Binding WindowsAppsViewModel.IsTableViewMode}"
                                                                     Value="True">
                                                                 <Setter Property="Visibility"
-                                                                        Value="Visible"/>
+                                                                        Value="Visible" />
                                                             </DataTrigger>
                                                         </Style.Triggers>
                                                     </Style>
@@ -503,12 +442,12 @@
                                                 <ContentControl.Style>
                                                     <Style TargetType="ContentControl">
                                                         <Setter Property="Visibility"
-                                                                Value="Collapsed"/>
+                                                                Value="Collapsed" />
                                                         <Style.Triggers>
                                                             <DataTrigger Binding="{Binding WindowsAppsViewModel.IsTableViewMode}"
                                                                     Value="False">
                                                                 <Setter Property="Visibility"
-                                                                        Value="Visible"/>
+                                                                        Value="Visible" />
                                                             </DataTrigger>
                                                         </Style.Triggers>
                                                     </Style>
@@ -524,12 +463,12 @@
                                                 <ContentControl.Style>
                                                     <Style TargetType="ContentControl">
                                                         <Setter Property="Visibility"
-                                                                Value="Collapsed"/>
+                                                                Value="Collapsed" />
                                                         <Style.Triggers>
                                                             <DataTrigger Binding="{Binding ExternalAppsViewModel.IsTableViewMode}"
                                                                     Value="True">
                                                                 <Setter Property="Visibility"
-                                                                        Value="Visible"/>
+                                                                        Value="Visible" />
                                                             </DataTrigger>
                                                         </Style.Triggers>
                                                     </Style>
@@ -542,12 +481,12 @@
                                                 <ContentControl.Style>
                                                     <Style TargetType="ContentControl">
                                                         <Setter Property="Visibility"
-                                                                Value="Collapsed"/>
+                                                                Value="Collapsed" />
                                                         <Style.Triggers>
                                                             <DataTrigger Binding="{Binding ExternalAppsViewModel.IsTableViewMode}"
                                                                     Value="False">
                                                                 <Setter Property="Visibility"
-                                                                        Value="Visible"/>
+                                                                        Value="Visible" />
                                                             </DataTrigger>
                                                         </Style.Triggers>
                                                     </Style>
@@ -559,7 +498,7 @@
                             </StackPanel>
 
                             <Border Grid.Row="1"
-                                    Height="20"/>
+                                    Height="20" />
                         </Grid>
                     </commonControls:ResponsiveScrollViewer>
                 </Border>
@@ -569,7 +508,7 @@
                     Panel.ZIndex="200"
                     Margin="0,85,0,0"
                     IsVisible="{Binding IsRefreshingContent}"
-                    StatusMessage="Refreshing installation status..."/>
+                    StatusMessage="Refreshing installation status..." />
             </Grid>
         </Border>
 
@@ -582,15 +521,15 @@
                StaysOpen="False"
                Closed="HelpFlyoutPopup_Closed">
             <Popup.HorizontalOffset>
-                <Binding Path="HelpFlyoutLeft"/>
+                <Binding Path="HelpFlyoutLeft" />
             </Popup.HorizontalOffset>
             <Popup.VerticalOffset>
-                <Binding Path="HelpFlyoutTop"/>
+                <Binding Path="HelpFlyoutTop" />
             </Popup.VerticalOffset>
 
             <!-- The flyout help content -->
             <ContentControl x:Name="HelpFlyoutContent"
-                           Content="{Binding CurrentHelpContent}"/>
+                           Content="{Binding CurrentHelpContent}" />
         </Popup>
 
         <!-- Invisible overlay for click detection -->
@@ -600,6 +539,6 @@
               MouseLeftButtonDown="HelpFlyoutOverlay_MouseLeftButtonDown"
               KeyDown="HelpFlyoutOverlay_KeyDown"
               Focusable="True"
-              Panel.ZIndex="1001"/>
+              Panel.ZIndex="1001" />
     </Grid>
 </UserControl>

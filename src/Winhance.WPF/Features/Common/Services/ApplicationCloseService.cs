@@ -84,12 +84,7 @@ namespace Winhance.WPF.Features.Common.Services
                 {
                     _logService.LogInformation("Showing donation dialog");
 
-                    string supportMessage = "Your support helps keep this project going!";
-                    var dialog = await DonationDialog.ShowDonationDialogAsync(
-                        "Support Winhance",
-                        supportMessage,
-                        "Click 'Yes' to show your support!"
-                    );
+                    var dialog = await DonationDialog.ShowDonationDialogAsync();
 
                     _logService.LogInformation($"Donation dialog completed with result: {dialog?.DialogResult}, DontShowAgain: {dialog?.DontShowAgain}");
 

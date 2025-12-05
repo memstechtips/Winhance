@@ -5,6 +5,7 @@ using Winhance.Core.Features.Common.Interfaces;
 using Winhance.Infrastructure.Features.Common.Events;
 using Winhance.Infrastructure.Features.Common.Services;
 using Winhance.WPF.Features.Common.Interfaces;
+using Winhance.WPF.Features.Common.Services;
 
 namespace Winhance.WPF.Features.Common.Extensions.DI
 {
@@ -136,7 +137,8 @@ namespace Winhance.WPF.Features.Common.Extensions.DI
                     provider.GetRequiredService<IComboBoxResolver>(),
                     provider.GetRequiredService<IUserPreferencesService>(),
                     provider.GetRequiredService<IDialogService>(),
-                    provider.GetRequiredService<ICompatibleSettingsRegistry>()
+                    provider.GetRequiredService<ICompatibleSettingsRegistry>(),
+                    provider.GetRequiredService<SettingLocalizationService>()
                 )
             );
 
@@ -216,6 +218,13 @@ namespace Winhance.WPF.Features.Common.Extensions.DI
                 "WimUtil",
                 typeof(Winhance.WPF.Features.AdvancedTools.Views.WimUtilView),
                 typeof(Winhance.WPF.Features.AdvancedTools.ViewModels.WimUtilViewModel)
+            );
+
+            // Settings view mapping
+            navigationService.RegisterViewMapping(
+                "WinhanceSettings",
+                typeof(Winhance.WPF.Features.Common.Views.WinhanceSettingsView),
+                typeof(Winhance.WPF.Features.Common.ViewModels.WinhanceSettingsViewModel)
             );
         }
     }

@@ -6,74 +6,72 @@
              xmlns:viewModels="clr-namespace:Winhance.WPF.Features.Optimize.ViewModels"
              xmlns:commonControls="clr-namespace:Winhance.WPF.Features.Common.Controls"
              xmlns:iconPacks="http://metro.mahapps.com/winfx/xaml/iconpacks"
+             xmlns:loc="clr-namespace:Winhance.WPF.Features.Common.Extensions"
              d:DataContext="{d:DesignInstance Type=viewModels:OptimizeViewModel}"
              mc:Ignorable="d">
 
 
     <Grid>
         <!-- Header -->
-        <Grid Height="80"
+        <Grid x:Name="HeaderGrid"
+              Height="80"
               VerticalAlignment="Top"
               ClipToBounds="False">
-            <Grid.ColumnDefinitions>
-                <ColumnDefinition Width="Auto"/> <!-- Icon -->
-                <ColumnDefinition Width="*"/> <!-- Title and Status -->
-                <ColumnDefinition Width="Auto"/> <!-- Search Box -->
-            </Grid.ColumnDefinitions>
+            <Viewbox Stretch="Uniform" 
+                     StretchDirection="DownOnly" 
+                     HorizontalAlignment="Stretch">
+                <Grid Width="{Binding ActualWidth, ElementName=HeaderGrid}"
+                      MinWidth="850">
+                    <Grid.ColumnDefinitions>
+                        <ColumnDefinition Width="Auto"/>
+                        <ColumnDefinition Width="Auto"/>
+                        <ColumnDefinition Width="*"/>
+                        <ColumnDefinition Width="Auto"/>
+                    </Grid.ColumnDefinitions>
 
-            <!-- Icon -->
-            <iconPacks:PackIconMaterial Grid.Column="0"
-                                     Kind="RocketLaunch"
-                                     Width="60"
-                                     Height="60"
-                                     Margin="10,0,10,0"
-                                     VerticalAlignment="Center"
-                                     Foreground="{DynamicResource PrimaryTextColor}"/>
+                    <iconPacks:PackIconMaterial Grid.Column="0"
+                                             Kind="RocketLaunch"
+                                             Width="60"
+                                             Height="60"
+                                             Margin="10,0,10,0"
+                                             VerticalAlignment="Center"
+                                             Foreground="{DynamicResource PrimaryTextColor}"/>
 
-            <!-- Title and Status with Quick Nav inline -->
-            <StackPanel Grid.Column="1"
-                      VerticalAlignment="Center">
-                <TextBlock Height="35"
-                           VerticalAlignment="Top"
-                           FontFamily="Helvetica Neue"
-                           FontSize="32"
-                           FontWeight="Bold"
-                           Foreground="{DynamicResource PrimaryTextColor}"
-                           Text="Optimizations"/>
+                    <StackPanel Grid.Column="1"
+                                VerticalAlignment="Center">
+                        <TextBlock Height="35"
+                                   VerticalAlignment="Top"
+                                   FontFamily="Helvetica Neue"
+                                   FontSize="32"
+                                   FontWeight="Bold"
+                                   Foreground="{DynamicResource PrimaryTextColor}"
+                                   Text="{loc:Localize Category_Optimize_Title}"/>
 
-                <StackPanel Orientation="Horizontal" 
-                            Margin="0,5,0,0">
-                    <TextBlock Height="22"
-                               VerticalAlignment="Center"
-                               FontFamily="Helvetica Neue"
-                               FontSize="14"
-                               Foreground="{DynamicResource SubTextColor}"
-                               Text="{Binding StatusText}"/>
-                    
-                    <!-- Quick Nav -->
-                    <commonControls:QuickNavControl/>
-                </StackPanel>
-            </StackPanel>
+                        <StackPanel Orientation="Horizontal"
+                                    Margin="0,5,0,0">
+                            <TextBlock Height="22"
+                                       VerticalAlignment="Center"
+                                       FontFamily="Helvetica Neue"
+                                       FontSize="14"
+                                       Foreground="{DynamicResource SubTextColor}"
+                                       Text="{loc:Localize Category_Optimize_StatusText}"/>
 
-            <!-- Search Box (prioritized) -->
-            <Grid Grid.Column="2"
-                  HorizontalAlignment="Right"
-                  VerticalAlignment="Bottom"
-                  Margin="10,0,10,3"
-                  Panel.ZIndex="100"
-                  MinWidth="200">
-                <Grid.ColumnDefinitions>
-                    <ColumnDefinition Width="Auto"/>
-                </Grid.ColumnDefinitions>
+                            <commonControls:QuickNavControl/>
+                        </StackPanel>
+                    </StackPanel>
 
-                <!-- Search Box -->
-                <commonControls:SearchBox Grid.Column="0"
-                                         Width="200"
-                                         HorizontalAlignment="Right"
-                                         VerticalAlignment="Center"
-                                         SearchText="{Binding SearchText, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}"
-                                         Margin="0,0,0,1"/>
-            </Grid>
+                    <Grid Grid.Column="3"
+                          HorizontalAlignment="Right"
+                          VerticalAlignment="Bottom"
+                          Margin="10,0,0,3">
+                        <commonControls:SearchBox Width="200"
+                                                 HorizontalAlignment="Right"
+                                                 VerticalAlignment="Center"
+                                                 SearchText="{Binding SearchText, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}"
+                                                 Margin="0,0,0,1"/>
+                    </Grid>
+                </Grid>
+            </Viewbox>
         </Grid>
 
         <!-- Main Content -->
@@ -111,7 +109,7 @@
                                TextWrapping="Wrap"
                                FontSize="16"
                                Foreground="{DynamicResource SubTextColor}"
-                               Text="No settings found matching your search. Try different keywords."
+                               Text="{loc:Localize Common_NoSearchResults}"
                                Visibility="{Binding HasSearchResults, Converter={StaticResource InverseBooleanToVisibilityConverter}}"/>
                 </Grid>
             </commonControls:ResponsiveScrollViewer>

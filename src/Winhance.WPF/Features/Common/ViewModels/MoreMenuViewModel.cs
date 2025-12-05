@@ -37,6 +37,8 @@ public class MoreMenuViewModel : ObservableObject
     private readonly IEventBus _eventBus;
     private readonly IApplicationCloseService _applicationCloseService;
     private readonly IDialogService _dialogService;
+    private readonly ILocalizationService _localizationService;
+    private readonly IUserPreferencesService _preferencesService;
 
     private string _versionInfo;
 
@@ -45,24 +47,37 @@ public class MoreMenuViewModel : ObservableObject
         IVersionService versionService,
         IEventBus eventBus,
         IApplicationCloseService applicationCloseService,
-        IDialogService dialogService)
+        IDialogService dialogService,
+        ILocalizationService localizationService,
+        IUserPreferencesService preferencesService)
     {
         _logService = logService;
         _versionService = versionService;
         _eventBus = eventBus;
         _applicationCloseService = applicationCloseService;
         _dialogService = dialogService;
+        _localizationService = localizationService;
+        _preferencesService = preferencesService;
 
         _versionInfo = GetVersionInfo();
 
-        CheckForUpdatesCommand = new RelayCommand(
+        ReportBugCommand = new RelayCommand(
             execute: () =>
+            {
+                _logService.LogInformation("ReportBugCommand executed");
+                CloseFlyout();
+                OpenBugReport();
+            },
+            canExecute: () => true
+        );
+
+        CheckForUpdatesCommand = new AsyncRelayCommand(
+            execute: async () =>
             {
                 _logService.LogInformation("CheckForUpdatesCommand executed");
                 CloseFlyout();
-                _ = Task.Run(CheckForUpdatesAsync);
-            },
-            canExecute: () => true
+                await CheckForUpdatesAsync();
+            }
         );
 
         OpenLogsCommand = new RelayCommand(
@@ -94,6 +109,7 @@ public class MoreMenuViewModel : ObservableObject
             },
             canExecute: () => true
         );
+
     }
 
     private string GetVersionInfo()
@@ -115,6 +131,8 @@ public class MoreMenuViewModel : ObservableObject
         set => SetProperty(ref _versionInfo, value);
     }
 
+    public ICommand ReportBugCommand { get; }
+
     public ICommand CheckForUpdatesCommand { get; }
 
     public ICommand OpenLogsCommand { get; }
@@ -122,6 +140,8 @@ public class MoreMenuViewModel : ObservableObject
     public ICommand OpenScriptsCommand { get; }
 
     public ICommand CloseApplicationCommand { get; }
+
+    public ICommand ChangeLanguageCommand { get; }
 
 
     private void CloseFlyout()
@@ -140,6 +160,23 @@ public class MoreMenuViewModel : ObservableObject
         }
     }
 
+    private void OpenBugReport()
+    {
+        try
+        {
+            var psi = new ProcessStartInfo
+            {
+                FileName = "https://github.com/memstechtips/Winhance/issues",
+                UseShellExecute = true,
+            };
+            Process.Start(psi);
+        }
+        catch (Exception ex)
+        {
+            _logService.LogError($"Error opening bug report page: {ex.Message}", ex);
+        }
+    }
+
 
     private async Task CheckForUpdatesAsync()
     {
@@ -152,13 +189,8 @@ public class MoreMenuViewModel : ObservableObject
 
             if (latestVersion != null && latestVersion.Version != currentVersion.Version)
             {
-                string title = "Update Available";
-                string message = "Good News! A New Version of Winhance is available.";
-
                 _logService.LogInformation("Showing update dialog");
                 await UpdateDialog.ShowAsync(
-                    title,
-                    message,
                     currentVersion,
                     latestVersion,
                     async () =>
@@ -173,7 +205,7 @@ public class MoreMenuViewModel : ObservableObject
             else
             {
                 _logService.LogInformation("No updates available");
-                _dialogService.ShowInformationAsync(
+                await _dialogService.ShowInformationAsync(
                     "You have the latest version of Winhance.",
                     "No Updates Available"
                 );
@@ -183,7 +215,7 @@ public class MoreMenuViewModel : ObservableObject
         {
             _logService.LogError($"Error checking for updates: {ex.Message}", ex);
 
-            _dialogService.ShowErrorAsync(
+            await _dialogService.ShowErrorAsync(
                 $"An error occurred while checking for updates: {ex.Message}",
                 "Update Check Error"
             );

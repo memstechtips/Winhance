@@ -13,9 +13,19 @@ namespace Winhance.WPF.Features.Common.Services
 {
     public class DialogService : IDialogService
     {
+        private readonly ILocalizationService _localization;
+
+        public DialogService(ILocalizationService localization)
+        {
+            _localization = localization;
+        }
+
         public void ShowMessage(string message, string title = "")
         {
-            CustomDialog.ShowInformation(title, title, message, "");
+            Application.Current.Dispatcher.Invoke(() =>
+            {
+                CustomDialog.ShowInformation(title, title, message, "");
+            });
         }
 
         public Task<bool> ShowConfirmationAsync(
@@ -25,18 +35,29 @@ namespace Winhance.WPF.Features.Common.Services
             string cancelButtonText = "Cancel"
         )
         {
-            var parsedContent = ParseMessageContent(message);
+            string finalOkText = okButtonText == "OK" ? _localization.GetString("Button_OK") : okButtonText;
+            string finalCancelText = cancelButtonText == "Cancel" ? _localization.GetString("Button_Cancel") : cancelButtonText;
+            
+            if (string.IsNullOrEmpty(title))
+            {
+                title = _localization.GetString("Dialog_Confirmation");
+            }
 
-            if (parsedContent.IsAppList)
+            return Application.Current.Dispatcher.InvokeAsync(() =>
             {
-                var result = CustomDialog.ShowConfirmation(title, parsedContent.HeaderText, parsedContent.Apps, parsedContent.FooterText);
-                return Task.FromResult(result ?? false);
-            }
-            else
-            {
-                var result = CustomDialog.ShowConfirmation(title, title, message, "");
-                return Task.FromResult(result ?? false);
-            }
+                var parsedContent = ParseMessageContent(message);
+
+                if (parsedContent.IsAppList)
+                {
+                    var result = CustomDialog.ShowConfirmation(title, parsedContent.HeaderText, parsedContent.Apps, parsedContent.FooterText, finalOkText, finalCancelText);
+                    return result ?? false;
+                }
+                else
+                {
+                    var result = CustomDialog.ShowConfirmation(title, title, message, "", finalOkText, finalCancelText);
+                    return result ?? false;
+                }
+            }).Task;
         }
 
         public Task<bool> ShowAppOperationConfirmationAsync(
@@ -44,56 +65,70 @@ namespace Winhance.WPF.Features.Common.Services
             IEnumerable<string> itemNames,
             int count)
         {
-            bool isInstall = operationType.Equals("install", StringComparison.OrdinalIgnoreCase);
-            bool isRemove = operationType.Equals("remove", StringComparison.OrdinalIgnoreCase);
+            return Application.Current.Dispatcher.InvokeAsync(() =>
+            {
+                bool isInstall = operationType.Equals("install", StringComparison.OrdinalIgnoreCase);
+                bool isRemove = operationType.Equals("remove", StringComparison.OrdinalIgnoreCase);
 
-            string title = isInstall ? "Confirm Installation" :
-                          isRemove ? "Confirm Removal" :
-                          $"Confirm {operationType}";
+                string title = isInstall ? _localization.GetString("Dialog_ConfirmInstallation") :
+                              isRemove ? _localization.GetString("Dialog_ConfirmRemoval") :
+                              _localization.GetString("Dialog_ConfirmOperation", operationType);
 
-            string titleBarIcon = isInstall ? "Download" :
-                                 isRemove ? "Delete" :
-                                 "Information";
+                string titleBarIcon = isInstall ? "Download" :
+                                     isRemove ? "Delete" :
+                                     "Information";
 
-            string contextMessage = isInstall ? "These items will be installed.\nDo you want to continue?" :
-                                   isRemove ? "These items will be removed.\nDo you want to continue?" :
-                                   $"These items will be {operationType.ToLower()}ed.\nDo you want to continue?";
+                string contextMessage = isInstall ? _localization.GetString("Dialog_ItemsWillBeInstalled") :
+                                       isRemove ? _localization.GetString("Dialog_ItemsWillBeRemoved") :
+                                       _localization.GetString("Dialog_ItemsWillBeProcessed", operationType.ToLower());
 
-            var dialog = CustomDialog.CreateAppOperationConfirmationDialog(
-                title,
-                contextMessage,
-                itemNames,
-                DialogType.Question,
-                titleBarIcon);
+                var dialog = CustomDialog.CreateAppOperationConfirmationDialog(
+                    title,
+                    contextMessage,
+                    itemNames,
+                    DialogType.Question,
+                    titleBarIcon,
+                    _localization.GetString("Button_Yes"),
+                    _localization.GetString("Button_No"));
 
-            var result = dialog.ShowDialog();
-            return Task.FromResult(result ?? false);
+                var result = dialog.ShowDialog();
+                return result ?? false;
+            }).Task;
         }
 
-        public Task ShowErrorAsync(string message, string title = "Error", string buttonText = "OK")
+        public async Task ShowErrorAsync(string message, string title = "Error", string buttonText = "OK")
         {
-            CustomDialog.ShowInformation(title, title, message, "");
-            return Task.CompletedTask;
+            title = title == "Error" ? _localization.GetString("Dialog_Error") : title;
+            string finalButtonText = buttonText == "OK" ? _localization.GetString("Button_OK") : buttonText;
+
+            await Application.Current.Dispatcher.InvokeAsync(() =>
+            {
+                CustomDialog.ShowInformation(title, title, message, "", finalButtonText);
+            });
         }
 
-        public Task ShowInformationAsync(
+        public async Task ShowInformationAsync(
             string message,
             string title = "Information",
             string buttonText = "OK"
         )
         {
+            title = title == "Information" ? _localization.GetString("Dialog_Information") : title;
+            string finalButtonText = buttonText == "OK" ? _localization.GetString("Button_OK") : buttonText;
+
             var parsedContent = ParseMessageContent(message);
 
-            if (parsedContent.IsAppList)
+            await Application.Current.Dispatcher.InvokeAsync(() =>
             {
-                CustomDialog.ShowInformation(title, parsedContent.HeaderText, parsedContent.Apps, parsedContent.FooterText);
-            }
-            else
-            {
-                CustomDialog.ShowInformation(title, title, message, "");
-            }
-
-            return Task.CompletedTask;
+                if (parsedContent.IsAppList)
+                {
+                    CustomDialog.ShowInformation(title, parsedContent.HeaderText, parsedContent.Apps, parsedContent.FooterText, finalButtonText);
+                }
+                else
+                {
+                    CustomDialog.ShowInformation(title, title, message, "", finalButtonText);
+                }
+            });
         }
 
         public Task ShowWarningAsync(
@@ -102,8 +137,13 @@ namespace Winhance.WPF.Features.Common.Services
             string buttonText = "OK"
         )
         {
-            MessageBox.Show(message, title, MessageBoxButton.OK, MessageBoxImage.Warning);
-            return Task.CompletedTask;
+            title = title == "Warning" ? _localization.GetString("Dialog_Warning") : title;
+            // MessageBox uses system language for buttons
+            
+            return Application.Current.Dispatcher.InvokeAsync(() =>
+            {
+                MessageBox.Show(message, title, MessageBoxButton.OK, MessageBoxImage.Warning);
+            }).Task;
         }
 
         public Task<string?> ShowInputAsync(
@@ -112,52 +152,63 @@ namespace Winhance.WPF.Features.Common.Services
             string defaultValue = ""
         )
         {
-            var result = MessageBox.Show(
-                message,
-                title,
-                MessageBoxButton.OKCancel,
-                MessageBoxImage.Question
-            );
-            return Task.FromResult(result == MessageBoxResult.OK ? defaultValue : null);
-        }
-
-        public Task<bool?> ShowYesNoCancelAsync(string message, string title = "")
-        {
-            if (message.Contains("theme wallpaper") || title.Contains("Theme"))
-            {
-                var messageList = new List<string> { message };
-                var themeDialogResult = CustomDialog.ShowConfirmation(
-                    title,
-                    "Theme Change",
-                    messageList,
-                    ""
-                );
-                return Task.FromResult<bool?>(themeDialogResult);
-            }
-
-            var parsedContent = ParseMessageContent(message);
-
-            if (parsedContent.IsAppList)
-            {
-                var dialogResult = CustomDialog.ShowYesNoCancel(title, parsedContent.HeaderText, parsedContent.Apps, parsedContent.FooterText);
-                return Task.FromResult(dialogResult);
-            }
-            else
+            return Application.Current.Dispatcher.InvokeAsync(() =>
             {
                 var result = MessageBox.Show(
                     message,
                     title,
-                    MessageBoxButton.YesNoCancel,
+                    MessageBoxButton.OKCancel,
                     MessageBoxImage.Question
                 );
-                bool? boolResult = result switch
+                return result == MessageBoxResult.OK ? defaultValue : null;
+            }).Task;
+        }
+
+        public Task<bool?> ShowYesNoCancelAsync(string message, string title = "")
+        {
+            return Application.Current.Dispatcher.InvokeAsync(() =>
+            {
+                if (message.Contains("theme wallpaper") || title.Contains("Theme"))
                 {
-                    MessageBoxResult.Yes => true,
-                    MessageBoxResult.No => false,
-                    _ => null,
-                };
-                return Task.FromResult(boolResult);
-            }
+                    var messageList = new List<string> { message };
+                    var themeDialogResult = CustomDialog.ShowConfirmation(
+                        title,
+                        "Theme Change",
+                        messageList,
+                        "",
+                        _localization.GetString("Button_Yes"),
+                        _localization.GetString("Button_No")
+                    );
+                    return themeDialogResult;
+                }
+
+                var parsedContent = ParseMessageContent(message);
+
+                if (parsedContent.IsAppList)
+                {
+                    var dialogResult = CustomDialog.ShowYesNoCancel(
+                        title, 
+                        parsedContent.HeaderText, 
+                        parsedContent.Apps, 
+                        parsedContent.FooterText,
+                        _localization.GetString("Button_Yes"),
+                        _localization.GetString("Button_No"),
+                        _localization.GetString("Button_Cancel"));
+                    return dialogResult;
+                }
+                else
+                {
+                    var dialogResult = CustomDialog.ShowYesNoCancel(
+                        title, 
+                        title, 
+                        message, 
+                        "", 
+                        _localization.GetString("Button_Yes"),
+                        _localization.GetString("Button_No"),
+                        _localization.GetString("Button_Cancel"));
+                    return dialogResult;
+                }
+            }).Task;
         }
 
         public async Task<Dictionary<string, bool>> ShowUnifiedConfigurationSaveDialogAsync(
@@ -166,7 +217,7 @@ namespace Winhance.WPF.Features.Common.Services
             Dictionary<string, (bool IsSelected, bool IsAvailable, int ItemCount)> sections
         )
         {
-            var dialog = new UnifiedConfigurationDialog(title, description, sections, true);
+            var dialog = new UnifiedConfigurationDialog(title, description, sections, true, _localization);
 
             if (Application.Current.MainWindow != null && Application.Current.MainWindow.IsVisible)
             {
@@ -196,7 +247,7 @@ namespace Winhance.WPF.Features.Common.Services
             Dictionary<string, (bool IsSelected, bool IsAvailable, int ItemCount)> sections
         )
         {
-            var dialog = new UnifiedConfigurationDialog(title, description, sections, false);
+            var dialog = new UnifiedConfigurationDialog(title, description, sections, false, _localization);
 
             if (Application.Current.MainWindow != null && Application.Current.MainWindow.IsVisible)
             {
@@ -220,19 +271,13 @@ namespace Winhance.WPF.Features.Common.Services
         }
 
         public async Task<(bool? Result, bool DontShowAgain)> ShowDonationDialogAsync(
-            string title,
-            string supportMessage,
-            string footerText
+            string title = null,
+            string supportMessage = null
         )
         {
             try
             {
-                var dialog = await DonationDialog.ShowDonationDialogAsync(
-                    title,
-                    supportMessage,
-                    footerText
-                );
-
+                var dialog = await DonationDialog.ShowDonationDialogAsync(title, supportMessage);
                 return (dialog?.DialogResult, dialog?.DontShowAgain ?? false);
             }
             catch (Exception ex)
@@ -281,6 +326,13 @@ namespace Winhance.WPF.Features.Common.Services
             string cancelButtonText = "Cancel",
             string? titleBarIcon = null)
         {
+            // Localize title if default
+            if (title == "Confirmation") title = _localization.GetString("Dialog_Confirmation");
+            
+            // Localize buttons if default or keys
+            string finalContinueText = continueButtonText == "Continue" ? _localization.GetString("Button_Continue") : continueButtonText;
+            string finalCancelText = cancelButtonText == "Cancel" ? _localization.GetString("Button_Cancel") : cancelButtonText;
+
             try
             {
                 var result = await System.Windows.Application.Current.Dispatcher.InvokeAsync(() =>
@@ -289,8 +341,8 @@ namespace Winhance.WPF.Features.Common.Services
                         title,
                         message,
                         checkboxText,
-                        continueButtonText,
-                        cancelButtonText,
+                        finalContinueText,
+                        finalCancelText,
                         titleBarIcon
                     );
                 });
@@ -349,161 +401,164 @@ namespace Winhance.WPF.Features.Common.Services
             bool isUserCancelled = false
         )
         {
-            string GetPastTense(string op)
+            Application.Current.Dispatcher.Invoke(() =>
             {
-                if (string.IsNullOrEmpty(op))
-                    return string.Empty;
-
-                return op.Equals("Remove", StringComparison.OrdinalIgnoreCase)
-                    ? "removed"
-                    : $"{op.ToLower()}ed";
-            }
-
-            bool isFailure = successCount < totalCount;
-
-            string title;
-            if (isUserCancelled)
-            {
-                title = "Installation Aborted";
-            }
-            else if (hasConnectivityIssues)
-            {
-                title = "Internet Connection Lost";
-            }
-            else
-            {
-                title = isFailure
-                    ? $"{operationType} Operation Failed"
-                    : $"{operationType} Results";
-            }
-
-            string headerText;
-            if (isUserCancelled)
-            {
-                headerText = $"Installation aborted by user";
-            }
-            else if (hasConnectivityIssues)
-            {
-                headerText = "Installation stopped due to internet connection loss";
-            }
-            else
-            {
-                headerText =
-                    successCount > 0 && successCount == totalCount
-                        ? $"The following items were successfully {GetPastTense(operationType)}:"
-                        : (
-                            successCount > 0
-                                ? $"Successfully {GetPastTense(operationType)} {successCount} of {totalCount} items."
-                                : $"Unable to {operationType.ToLowerInvariant()} {totalCount} of {totalCount} items."
-                        );
-            }
-
-            var resultItems = new List<string>();
-
-            if (isUserCancelled)
-            {
-                resultItems.Add("The installation process was cancelled by the user.");
-                resultItems.Add("");
-                if (successCount > 0)
+                string GetPastTense(string op)
                 {
-                    resultItems.Add("Successfully installed items:");
+                    if (string.IsNullOrEmpty(op))
+                        return string.Empty;
+
+                    return op.Equals("Remove", StringComparison.OrdinalIgnoreCase)
+                        ? "removed"
+                        : $"{op.ToLower()}ed";
                 }
-            }
-            else if (hasConnectivityIssues)
-            {
-                resultItems.Add(
-                    "The installation process was stopped because the internet connection was lost."
-                );
-                resultItems.Add(
-                    "This is required to ensure installations complete properly and prevent corrupted installations."
-                );
-                resultItems.Add("");
-                resultItems.Add("Failed items:");
-            }
 
-            if (successItems != null && successItems.Any())
-            {
-                if (!hasConnectivityIssues)
+                bool isFailure = successCount < totalCount;
+
+                string title;
+                if (isUserCancelled)
                 {
-                    foreach (var item in successItems)
+                    title = "Installation Aborted";
+                }
+                else if (hasConnectivityIssues)
+                {
+                    title = "Internet Connection Lost";
+                }
+                else
+                {
+                    title = isFailure
+                        ? $"{operationType} Operation Failed"
+                        : $"{operationType} Results";
+                }
+
+                string headerText;
+                if (isUserCancelled)
+                {
+                    headerText = $"Installation aborted by user";
+                }
+                else if (hasConnectivityIssues)
+                {
+                    headerText = "Installation stopped due to internet connection loss";
+                }
+                else
+                {
+                    headerText =
+                        successCount > 0 && successCount == totalCount
+                            ? $"The following items were successfully {GetPastTense(operationType)}:"
+                            : (
+                                successCount > 0
+                                    ? $"Successfully {GetPastTense(operationType)} {successCount} of {totalCount} items."
+                                    : $"Unable to {operationType.ToLowerInvariant()} {totalCount} of {totalCount} items."
+                            );
+                }
+
+                var resultItems = new List<string>();
+
+                if (isUserCancelled)
+                {
+                    resultItems.Add("The installation process was cancelled by the user.");
+                    resultItems.Add("");
+                    if (successCount > 0)
                     {
-                        resultItems.Add(item);
+                        resultItems.Add("Successfully installed items:");
                     }
                 }
-            }
-            else if (!hasConnectivityIssues)
-            {
-                resultItems.Add($"No items were {GetPastTense(operationType)}.");
-            }
-
-            if (skippedItems != null && skippedItems.Any() && !hasConnectivityIssues)
-            {
-                resultItems.Add($"Skipped items: {skippedItems.Count()}");
-                foreach (var item in skippedItems)
+                else if (hasConnectivityIssues)
                 {
-                    resultItems.Add($"  - {item}");
-                }
-            }
-
-            if (failedItems != null && failedItems.Any())
-            {
-                if (!hasConnectivityIssues)
-                {
-                    resultItems.Add($"Failed items: {failedItems.Count()}");
-                }
-
-                foreach (var item in failedItems)
-                {
-                    resultItems.Add($"  - {item}");
-                }
-            }
-
-            string footerText;
-            if (isUserCancelled)
-            {
-                footerText =
-                    successCount > 0
-                        ? $"Some items were successfully {GetPastTense(operationType)} before cancellation."
-                        : $"No items were {GetPastTense(operationType)} before cancellation.";
-            }
-            else if (hasConnectivityIssues)
-            {
-                footerText =
-                    "Please check your network connection and try again when your internet connection is stable.";
-            }
-            else
-            {
-                bool hasConnectivityFailures =
-                    failedItems != null
-                    && failedItems.Any(item =>
-                        item.Contains("internet", StringComparison.OrdinalIgnoreCase)
-                        || item.Contains("connection", StringComparison.OrdinalIgnoreCase)
-                        || item.Contains("network", StringComparison.OrdinalIgnoreCase)
-                        || item.Contains(
-                            "pipeline has been stopped",
-                            StringComparison.OrdinalIgnoreCase
-                        )
+                    resultItems.Add(
+                        "The installation process was stopped because the internet connection was lost."
                     );
+                    resultItems.Add(
+                        "This is required to ensure installations complete properly and prevent corrupted installations."
+                    );
+                    resultItems.Add("");
+                    resultItems.Add("Failed items:");
+                }
 
-                footerText =
-                    successCount == totalCount
-                        ? $"All items were successfully {GetPastTense(operationType)}."
-                        : (
-                            successCount > 0
-                                ? (
-                                    hasConnectivityFailures
-                                        ? $"Some items could not be {GetPastTense(operationType)}. Please check your internet connection and try again."
-                                        : $"Some items could not be {GetPastTense(operationType)}. Please try again later."
-                                )
-                                : (
-                                    hasConnectivityFailures
-                                        ? $"Installation failed. Please check your internet connection and try again."
-                                        : $"Installation failed. Please try again later."
-                                )
+                if (successItems != null && successItems.Any())
+                {
+                    if (!hasConnectivityIssues)
+                    {
+                        foreach (var item in successItems)
+                        {
+                            resultItems.Add(item);
+                        }
+                    }
+                }
+                else if (!hasConnectivityIssues)
+                {
+                    resultItems.Add($"No items were {GetPastTense(operationType)}.");
+                }
+
+                if (skippedItems != null && skippedItems.Any() && !hasConnectivityIssues)
+                {
+                    resultItems.Add($"Skipped items: {skippedItems.Count()}");
+                    foreach (var item in skippedItems)
+                    {
+                        resultItems.Add($"  - {item}");
+                    }
+                }
+
+                if (failedItems != null && failedItems.Any())
+                {
+                    if (!hasConnectivityIssues)
+                    {
+                        resultItems.Add($"Failed items: {failedItems.Count()}");
+                    }
+
+                    foreach (var item in failedItems)
+                    {
+                        resultItems.Add($"  - {item}");
+                    }
+                }
+
+                string footerText;
+                if (isUserCancelled)
+                {
+                    footerText =
+                        successCount > 0
+                            ? $"Some items were successfully {GetPastTense(operationType)} before cancellation."
+                            : $"No items were {GetPastTense(operationType)} before cancellation.";
+                }
+                else if (hasConnectivityIssues)
+                {
+                    footerText =
+                        "Please check your network connection and try again when your internet connection is stable.";
+                }
+                else
+                {
+                    bool hasConnectivityFailures =
+                        failedItems != null
+                        && failedItems.Any(item =>
+                            item.Contains("internet", StringComparison.OrdinalIgnoreCase)
+                            || item.Contains("connection", StringComparison.OrdinalIgnoreCase)
+                            || item.Contains("network", StringComparison.OrdinalIgnoreCase)
+                            || item.Contains(
+                                "pipeline has been stopped",
+                                StringComparison.OrdinalIgnoreCase
+                            )
                         );
-            }
 
-            CustomDialog.ShowInformation(title, headerText, resultItems, footerText);
+                    footerText =
+                        successCount == totalCount
+                            ? $"All items were successfully {GetPastTense(operationType)}."
+                            : (
+                                successCount > 0
+                                    ? (
+                                        hasConnectivityFailures
+                                            ? $"Some items could not be {GetPastTense(operationType)}. Please check your internet connection and try again."
+                                            : $"Some items could not be {GetPastTense(operationType)}. Please try again later."
+                                    )
+                                    : (
+                                        hasConnectivityFailures
+                                            ? $"Installation failed. Please check your internet connection and try again."
+                                            : $"Installation failed. Please try again later."
+                                    )
+                            );
+                }
+
+                CustomDialog.ShowInformation(title, headerText, resultItems, footerText);
+            });
         }
 
         public Task ShowInformationAsync(
@@ -513,9 +568,140 @@ namespace Winhance.WPF.Features.Common.Services
             string footerText
         )
         {
-            CustomDialog.ShowInformation(title, headerText, apps, footerText);
-            return Task.CompletedTask;
+            return Application.Current.Dispatcher.InvokeAsync(() =>
+            {
+                CustomDialog.ShowInformation(title, headerText, apps, footerText);
+            }).Task;
         }
+
+        #region Localized Dialog Helpers
+
+        /// <summary>
+        /// Shows a localized information dialog using resource keys.
+        /// </summary>
+        /// <param name="titleKey">Resource key for the dialog title</param>
+        /// <param name="messageKey">Resource key for the dialog message</param>
+        /// <param name="args">Optional format arguments for the message</param>
+        public void ShowLocalizedInformation(string titleKey, string messageKey, params object[] args)
+        {
+            var title = _localization.GetString(titleKey);
+            var message = _localization.GetString(messageKey, args);
+            var buttonText = _localization.GetString("Button_OK");
+
+            Application.Current.Dispatcher.Invoke(() =>
+            {
+                CustomDialog.ShowInformation(title, title, message, "", buttonText);
+            });
+        }
+
+        /// <summary>
+        /// Shows a localized confirmation dialog using resource keys.
+        /// </summary>
+        /// <param name="titleKey">Resource key for the dialog title</param>
+        /// <param name="messageKey">Resource key for the dialog message</param>
+        /// <param name="args">Optional format arguments for the message</param>
+        /// <returns>True if user confirmed, false otherwise</returns>
+        public bool ShowLocalizedConfirmation(string titleKey, string messageKey, params object[] args)
+        {
+            var title = _localization.GetString(titleKey);
+            var message = _localization.GetString(messageKey, args);
+            var yesText = _localization.GetString("Button_Yes");
+            var noText = _localization.GetString("Button_No");
+
+            return Application.Current.Dispatcher.Invoke(() =>
+            {
+                var result = CustomDialog.ShowConfirmation(title, title, message, "", yesText, noText);
+                return result ?? false;
+            });
+        }
+
+        /// <summary>
+        /// Shows a localized confirmation dialog with separate header and message keys.
+        /// </summary>
+        /// <param name="titleKey">Resource key for the dialog title</param>
+        /// <param name="headerKey">Resource key for the dialog header</param>
+        /// <param name="messageKey">Resource key for the dialog message</param>
+        /// <param name="args">Optional format arguments for the message</param>
+        /// <returns>True if user confirmed, false otherwise</returns>
+        public bool ShowLocalizedConfirmation(string titleKey, string headerKey, string messageKey, params object[] args)
+        {
+            var title = _localization.GetString(titleKey);
+            var header = _localization.GetString(headerKey);
+            var message = _localization.GetString(messageKey, args);
+            var yesText = _localization.GetString("Button_Yes");
+            var noText = _localization.GetString("Button_No");
+
+            return Application.Current.Dispatcher.Invoke(() =>
+            {
+                var result = CustomDialog.ShowConfirmation(title, header, message, "", yesText, noText);
+                return result ?? false;
+            });
+        }
+
+        /// <summary>
+        /// Shows a localized error dialog using resource keys.
+        /// </summary>
+        /// <param name="titleKey">Resource key for the dialog title</param>
+        /// <param name="messageKey">Resource key for the dialog message</param>
+        /// <param name="args">Optional format arguments for the message</param>
+        public void ShowLocalizedError(string titleKey, string messageKey, params object[] args)
+        {
+            var title = _localization.GetString(titleKey);
+            var message = _localization.GetString(messageKey, args);
+            var buttonText = _localization.GetString("Button_OK");
+
+            Application.Current.Dispatcher.Invoke(() =>
+            {
+                CustomDialog.ShowInformation(title, title, message, "", buttonText);
+            });
+        }
+
+        /// <summary>
+        /// Shows a localized warning dialog using resource keys.
+        /// </summary>
+        /// <param name="titleKey">Resource key for the dialog title</param>
+        /// <param name="messageKey">Resource key for the dialog message</param>
+        /// <param name="args">Optional format arguments for the message</param>
+        public void ShowLocalizedWarning(string titleKey, string messageKey, params object[] args)
+        {
+            var title = _localization.GetString(titleKey);
+            var message = _localization.GetString(messageKey, args);
+
+            Application.Current.Dispatcher.Invoke(() =>
+            {
+                MessageBox.Show(message, title, MessageBoxButton.OK, MessageBoxImage.Warning);
+            });
+        }
+
+        public void ShowLocalizedDialog(string titleKey, string messageKey, DialogType dialogType, string icon, params object[] args)
+        {
+            var title = _localization.GetString(titleKey);
+            var message = _localization.GetString(messageKey, args);
+            var okButton = _localization.GetString("Dialog_Button_OK");
+
+            Application.Current.Dispatcher.Invoke(() =>
+            {
+                var dialog = CustomDialog.CreateInformationDialog(title, message, "", dialogType, icon, okButton);
+                dialog.ShowDialog();
+            });
+        }
+
+        public bool ShowLocalizedConfirmationDialog(string titleKey, string messageKey, DialogType dialogType, string icon, params object[] args)
+        {
+            var title = _localization.GetString(titleKey);
+            var message = _localization.GetString(messageKey, args);
+            var yesButton = _localization.GetString("Dialog_Button_Yes");
+            var noButton = _localization.GetString("Dialog_Button_No");
+
+            return Application.Current.Dispatcher.Invoke(() =>
+            {
+                var dialog = CustomDialog.CreateConfirmationDialog(title, message, "", dialogType, icon, yesButton, noButton);
+                var result = dialog.ShowDialog();
+                return result ?? false;
+            });
+        }
+
+        #endregion
 
         private MessageContent ParseMessageContent(string message)
         {

@@ -523,13 +523,17 @@ namespace Winhance.Infrastructure.Features.Common.Services
 
             foreach (var powerCfgSetting in powerCfgSettings)
             {
+                var (currentAc, currentDc) = await powerCfgQueryService.GetPowerSettingACDCValuesAsync(powerCfgSetting);
+
                 switch (powerCfgSetting.PowerModeSupport)
                 {
                     case PowerModeSupport.Both:
                         var singleValue = ExtractSingleValue(valueToApply);
-                        commands.Add($"powercfg /setacvalueindex SCHEME_CURRENT {powerCfgSetting.SubgroupGuid} {powerCfgSetting.SettingGuid} {singleValue}");
+                        
+                        if (currentAc != singleValue)
+                            commands.Add($"powercfg /setacvalueindex SCHEME_CURRENT {powerCfgSetting.SubgroupGuid} {powerCfgSetting.SettingGuid} {singleValue}");
 
-                        if (hasBattery)
+                        if (hasBattery && currentDc != singleValue)
                         {
                             commands.Add($"powercfg /setdcvalueindex SCHEME_CURRENT {powerCfgSetting.SubgroupGuid} {powerCfgSetting.SettingGuid} {singleValue}");
                         }
@@ -537,9 +541,11 @@ namespace Winhance.Infrastructure.Features.Common.Services
 
                     case PowerModeSupport.Separate:
                         var (acValue, dcValue) = ExtractACDCValues(valueToApply);
-                        commands.Add($"powercfg /setacvalueindex SCHEME_CURRENT {powerCfgSetting.SubgroupGuid} {powerCfgSetting.SettingGuid} {acValue}");
+                        
+                        if (currentAc != acValue)
+                            commands.Add($"powercfg /setacvalueindex SCHEME_CURRENT {powerCfgSetting.SubgroupGuid} {powerCfgSetting.SettingGuid} {acValue}");
 
-                        if (hasBattery)
+                        if (hasBattery && currentDc != dcValue)
                         {
                             commands.Add($"powercfg /setdcvalueindex SCHEME_CURRENT {powerCfgSetting.SubgroupGuid} {powerCfgSetting.SettingGuid} {dcValue}");
                         }
@@ -547,17 +553,25 @@ namespace Winhance.Infrastructure.Features.Common.Services
 
                     case PowerModeSupport.ACOnly:
                         var acOnlyValue = ExtractSingleValue(valueToApply);
-                        commands.Add($"powercfg /setacvalueindex SCHEME_CURRENT {powerCfgSetting.SubgroupGuid} {powerCfgSetting.SettingGuid} {acOnlyValue}");
+                        if (currentAc != acOnlyValue)
+                            commands.Add($"powercfg /setacvalueindex SCHEME_CURRENT {powerCfgSetting.SubgroupGuid} {powerCfgSetting.SettingGuid} {acOnlyValue}");
                         break;
 
                     case PowerModeSupport.DCOnly:
                         if (hasBattery)
                         {
                             var dcOnlyValue = ExtractSingleValue(valueToApply);
-                            commands.Add($"powercfg /setdcvalueindex SCHEME_CURRENT {powerCfgSetting.SubgroupGuid} {powerCfgSetting.SettingGuid} {dcOnlyValue}");
+                            if (currentDc != dcOnlyValue)
+                                commands.Add($"powercfg /setdcvalueindex SCHEME_CURRENT {powerCfgSetting.SubgroupGuid} {powerCfgSetting.SettingGuid} {dcOnlyValue}");
                         }
                         break;
                 }
+            }
+
+            if (commands.Count == 0)
+            {
+                logService.Log(LogLevel.Info, "[SettingApplicationService] No powercfg commands needed (values already match)");
+                return;
             }
 
             commands.Add("powercfg /setactive SCHEME_CURRENT");

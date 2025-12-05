@@ -38,6 +38,7 @@ namespace Winhance.WPF.Features.Common.ViewModels
         private readonly ICompatibleSettingsRegistry _compatibleSettingsRegistry;
         private readonly IDialogService _dialogService;
         private readonly IFilterUpdateService _filterUpdateService;
+        private readonly ILocalizationService _localizationService;
         private readonly HashSet<BaseCategoryViewModel> _loadedCategoryViewModels = new();
 
         public INavigationService NavigationService => _navigationService;
@@ -88,11 +89,24 @@ namespace Winhance.WPF.Features.Common.ViewModels
         [ObservableProperty]
         private bool _isWindowsVersionFilterEnabled = true;
 
+        public string WindowsVersionFilterTooltip =>
+            IsWindowsVersionFilterEnabled
+                ? _localizationService.GetString("Tooltip_FilterEnabled") + "\n" +
+                  _localizationService.GetString("Tooltip_FilterEnabled_Description")
+                : _localizationService.GetString("Tooltip_FilterDisabled") + "\n" +
+                  _localizationService.GetString("Tooltip_FilterDisabled_Description");
+
+        partial void OnIsWindowsVersionFilterEnabledChanged(bool value)
+        {
+            OnPropertyChanged(nameof(WindowsVersionFilterTooltip));
+        }
+
         public MoreMenuViewModel MoreMenuViewModel { get; }
         public Winhance.WPF.Features.AdvancedTools.ViewModels.AdvancedToolsMenuViewModel AdvancedToolsMenuViewModel { get; }
         public ICommand SaveUnifiedConfigCommand { get; }
         public ICommand ImportUnifiedConfigCommand { get; }
         public ICommand OpenDonateCommand { get; }
+        public ICommand OpenBugReportCommand { get; }
         public ICommand MoreCommand { get; }
         public ICommand AdvancedToolsCommand { get; }
         public ICommand ToggleWindowsVersionFilterCommand { get; }
@@ -111,6 +125,7 @@ namespace Winhance.WPF.Features.Common.ViewModels
             ICompatibleSettingsRegistry compatibleSettingsRegistry,
             IDialogService dialogService,
             IFilterUpdateService filterUpdateService,
+            ILocalizationService localizationService,
             MoreMenuViewModel moreMenuViewModel,
             Winhance.WPF.Features.AdvancedTools.ViewModels.AdvancedToolsMenuViewModel advancedToolsMenuViewModel
         )
@@ -125,12 +140,14 @@ namespace Winhance.WPF.Features.Common.ViewModels
             _compatibleSettingsRegistry = compatibleSettingsRegistry;
             _dialogService = dialogService;
             _filterUpdateService = filterUpdateService;
+            _localizationService = localizationService;
             MoreMenuViewModel = moreMenuViewModel;
             AdvancedToolsMenuViewModel = advancedToolsMenuViewModel;
 
             SaveUnifiedConfigCommand = new AsyncRelayCommand(async () => await _configurationService.ExportConfigurationAsync());
             ImportUnifiedConfigCommand = new AsyncRelayCommand(async () => await _configurationService.ImportConfigurationAsync());
             OpenDonateCommand = new RelayCommand(OpenDonate);
+            OpenBugReportCommand = new RelayCommand(OpenBugReport);
             MoreCommand = new RelayCommand(HandleMoreButtonClick);
             AdvancedToolsCommand = new RelayCommand(HandleAdvancedToolsButtonClick);
             ToggleWindowsVersionFilterCommand = new AsyncRelayCommand(ToggleWindowsVersionFilterAsync);
@@ -196,15 +213,6 @@ namespace Winhance.WPF.Features.Common.ViewModels
             }
         }
 
-
-        [RelayCommand]
-        private void ToggleTheme()
-        {
-            _windowManagement.ToggleTheme();
-        }
-
-
-
         [RelayCommand]
         private void MinimizeWindow()
         {
@@ -246,6 +254,28 @@ namespace Winhance.WPF.Features.Common.ViewModels
                 _eventBus.Publish(new LogEvent
                 {
                     Message = $"Error opening donation page: {ex.Message}",
+                    Level = LogLevel.Error,
+                    Exception = ex,
+                });
+            }
+        }
+
+        private void OpenBugReport()
+        {
+            try
+            {
+                var psi = new ProcessStartInfo
+                {
+                    FileName = "https://github.com/memstechtips/Winhance/issues",
+                    UseShellExecute = true,
+                };
+                Process.Start(psi);
+            }
+            catch (Exception ex)
+            {
+                _eventBus.Publish(new LogEvent
+                {
+                    Message = $"Error opening bug report page: {ex.Message}",
                     Level = LogLevel.Error,
                     Exception = ex,
                 });
@@ -367,19 +397,11 @@ namespace Winhance.WPF.Features.Common.ViewModels
             if (!dontShowAgain)
             {
                 var (confirmed, dontShow) = await _dialogService.ShowConfirmationWithCheckboxAsync(
-                    "This filter controls which settings are visible in Winhance and included in export operations:\n\n" +
-                    "• Filter ON (Default):\n" +
-                    "  - Shows only settings compatible with your Windows version\n" +
-                    "  - Exports settings for your Windows version only\n\n" +
-                    "• Filter OFF:\n" +
-                    "  - Shows ALL settings (Windows 10 + 11)\n" +
-                    "  - Exports cross-version settings (for both Windows 10 + 11)\n\n" +
-                    "Use this when creating Winhance config or autounattend.xml files that need to work across different Windows versions or if you need to toggle a setting that is related to the other Windows version.\n\n" +
-                    "Do you want to toggle the filter?",
-                    checkboxText: "Don't show this message again",
-                    title: "Windows Version Filter",
-                    continueButtonText: "Toggle Filter",
-                    cancelButtonText: "Cancel",
+                    _localizationService.GetString("Filter_Dialog_Message"),
+                    checkboxText: _localizationService.GetString("Filter_Dialog_Checkbox"),
+                    title: _localizationService.GetString("Filter_Dialog_Title"),
+                    continueButtonText: _localizationService.GetString("Filter_Dialog_Button_Toggle"),
+                    cancelButtonText: _localizationService.GetString("Button_Cancel"),
                     titleBarIcon: "Filter");
 
                 if (dontShow)
