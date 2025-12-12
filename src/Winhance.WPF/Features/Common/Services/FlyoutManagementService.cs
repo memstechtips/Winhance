@@ -1,5 +1,6 @@
 using System;
 using System.Windows;
+using System.Windows.Media;
 using Winhance.Core.Features.Common.Interfaces;
 
 namespace Winhance.WPF.Features.Common.Services
@@ -17,15 +18,21 @@ namespace Winhance.WPF.Features.Common.Services
 
                     var overlay = mainWindow.FindName("MoreMenuOverlay") as FrameworkElement;
                     var flyoutContent = mainWindow.FindName("MoreMenuFlyoutContent") as FrameworkElement;
-                    var moreButton = mainWindow.FindName("MoreButton") as FrameworkElement;
+                    
+                    // Use VisualTreeHelper to find the button reliably, bypassing FindName scope issues
+                    var moreButton = FindChild<FrameworkElement>(mainWindow, "MoreButton");
 
                     logService?.LogInformation($"Elements found - Overlay: {overlay != null}, FlyoutContent: {flyoutContent != null}, MoreButton: {moreButton != null}");
 
                     if (overlay != null && flyoutContent != null && moreButton != null)
                     {
+                        moreButton.UpdateLayout();
                         var buttonPosition = moreButton.TransformToAncestor(mainWindow).Transform(new Point(0, 0));
 
                         logService?.LogInformation($"Button position: X={buttonPosition.X}, Y={buttonPosition.Y}, Button size: {moreButton.ActualWidth}x{moreButton.ActualHeight}");
+
+                        // Reset margin before measuring to ensure DesiredSize doesn't include the previous margin
+                        flyoutContent.Margin = new Thickness(0);
 
                         // Measure the flyout content to get its height
                         flyoutContent.Measure(new Size(double.PositiveInfinity, double.PositiveInfinity));
@@ -112,6 +119,7 @@ namespace Winhance.WPF.Features.Common.Services
 
                     if (overlay != null && flyoutContent != null && advancedButton != null)
                     {
+                        advancedButton.UpdateLayout();
                         var buttonPosition = advancedButton.TransformToAncestor(mainWindow).Transform(new Point(0, 0));
 
                         logService?.LogInformation($"Button position: X={buttonPosition.X}, Y={buttonPosition.Y}, Button size: {advancedButton.ActualWidth}x{advancedButton.ActualHeight}");
@@ -168,6 +176,28 @@ namespace Winhance.WPF.Features.Common.Services
             {
                 logService?.LogError($"Error closing AdvancedTools flyout: {ex.Message}", ex);
             }
+        }
+
+        private T FindChild<T>(DependencyObject parent, string childName) where T : FrameworkElement
+        {
+            if (parent == null) return null;
+
+            int childrenCount = VisualTreeHelper.GetChildrenCount(parent);
+            for (int i = 0; i < childrenCount; i++)
+            {
+                var child = VisualTreeHelper.GetChild(parent, i);
+                if (child is T frameworkElement && frameworkElement.Name == childName)
+                {
+                    return frameworkElement;
+                }
+
+                var childOfChild = FindChild<T>(child, childName);
+                if (childOfChild != null)
+                {
+                    return childOfChild;
+                }
+            }
+            return null;
         }
     }
 }
