@@ -266,12 +266,19 @@ namespace Winhance.WPF.Features.Optimize.ViewModels
                     return;
                 }
 
+                // Translate display name if it's a localization key
+                var displayName = planToDelete.DisplayName;
+                if (displayName.StartsWith("PowerPlan_"))
+                {
+                    displayName = localizationService.GetString(displayName);
+                }
+
                 bool? confirmed = await Application.Current.Dispatcher.InvokeAsync(() =>
                 {
                     return CustomDialog.ShowConfirmation(
                         "Confirm Delete",
                         "Delete Power Plan",
-                        $"Are you sure you want to delete the following power plan?\n\n{planToDelete.DisplayName}",
+                        $"Are you sure you want to delete the following power plan?\n\n{displayName}",
                         "");
                 });
 
@@ -292,7 +299,7 @@ namespace Winhance.WPF.Features.Optimize.ViewModels
                         await RefreshPowerPlanComboBox(powerPlanSetting);
                     }
 
-                    logService.Log(LogLevel.Info, $"Successfully deleted power plan: {planToDelete.DisplayName}");
+                    logService.Log(LogLevel.Info, $"Successfully deleted power plan: {displayName}");
                 }
                 else
                 {
@@ -300,10 +307,10 @@ namespace Winhance.WPF.Features.Optimize.ViewModels
                     {
                         CustomDialog.ShowInformation("Delete Failed",
                             "Delete Failed",
-                            $"Failed to delete power plan '{planToDelete.DisplayName}'. Check the logs for more details.",
+                            $"Failed to delete power plan '{displayName}'. Check the logs for more details.",
                             "");
                     });
-                    logService.Log(LogLevel.Error, $"Failed to delete power plan: {planToDelete.DisplayName}");
+                    logService.Log(LogLevel.Error, $"Failed to delete power plan: {displayName}");
                 }
             }
             catch (Exception ex)

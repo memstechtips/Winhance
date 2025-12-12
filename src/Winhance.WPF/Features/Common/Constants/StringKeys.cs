@@ -128,12 +128,17 @@ namespace Winhance.WPF.Features.Common.Constants
                 { "pt", "Português (Portuguese)" },
                 { "it", "Italiano (Italian)" },
                 { "ru", "Русский (Russian)" },
-                { "zh-Hans", "中文 (Chinese)" },
+                { "zh-Hans", "中文 (Chinese Simplified)" },
+                { "zh-Hant", "中文 (Chinese Traditional)" },
                 { "cs", "Čeština (Czech)" },
                 { "hi", "हिन्दी (Hindi)" },
                 { "ja", "日本語 (Japanese)" },
                 { "lt", "Lietuviškai (Lithuanian)" },
-                { "lv", "Latviešu (Latvian)" }
+                { "lv", "Latviešu (Latvian)" },
+                { "pl", "Polski (Polish)" },
+                { "sv", "Svenska (Swedish)" },
+                { "vi", "Tiếng Việt (Vietnamese)" },
+                { "uk", "Українська (Ukrainian)" }
             };
         }
 

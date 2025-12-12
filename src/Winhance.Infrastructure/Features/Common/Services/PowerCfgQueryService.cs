@@ -2,7 +2,9 @@ using Winhance.Core.Features.Common.Enums;
 using Winhance.Core.Features.Common.Interfaces;
 using Winhance.Core.Features.Common.Models;
 using Winhance.Core.Features.Common.Utils;
+using Winhance.Core.Features.Common.Native;
 using Winhance.Core.Features.Optimize.Models;
+using System.Runtime.InteropServices;
 
 namespace Winhance.Infrastructure.Features.Common.Services;
 
@@ -23,26 +25,55 @@ public class PowerCfgQueryService(ICommandService commandService, ILogService lo
 
         try
         {
-            logService.Log(LogLevel.Info, "[PowerCfgQueryService] Executing 'powercfg /list' to discover system power plans");
-            var result = await commandService.ExecuteCommandAsync("powercfg /list");
+            logService.Log(LogLevel.Info, "[PowerCfgQueryService] Enumerating power plans via Native API");
+            
+            var plans = new List<PowerPlan>();
+            var activeGuid = GetActivePowerSchemeGuid();
 
-            if (!result.Success || string.IsNullOrEmpty(result.Output))
+            uint index = 0;
+            uint bufferSize = 16; // Guid size
+            IntPtr buffer = Marshal.AllocHGlobal((int)bufferSize);
+
+            try
             {
-                logService.Log(LogLevel.Warning, "[PowerCfgQueryService] No power plans found or command failed");
-                return new List<PowerPlan>();
+                while (true)
+                {
+                    uint ret = PowerProf.PowerEnumerate(IntPtr.Zero, IntPtr.Zero, IntPtr.Zero, PowerProf.ACCESS_SCHEME, index, buffer, ref bufferSize);
+                    
+                    if (ret == PowerProf.ERROR_NO_MORE_ITEMS)
+                        break;
+
+                    if (ret == PowerProf.ERROR_SUCCESS)
+                    {
+                        var guidBytes = new byte[16];
+                        Marshal.Copy(buffer, guidBytes, 0, 16);
+                        var guid = new Guid(guidBytes);
+
+                        var name = GetPowerPlanName(guid);
+                        var isActive = guid == activeGuid;
+
+                        plans.Add(new PowerPlan
+                        {
+                            Guid = guid.ToString(),
+                            Name = name,
+                            IsActive = isActive
+                        });
+                    }
+                    index++;
+                    bufferSize = 16; // Reset for next call
+                }
+            }
+            finally
+            {
+                Marshal.FreeHGlobal(buffer);
             }
 
-            _cachedPlans = OutputParser.PowerCfg.ParsePowerPlansFromListOutput(result.Output);
+            _cachedPlans = plans.OrderByDescending(p => p.IsActive).ThenBy(p => p.Name).ToList();
             _cacheTime = DateTime.UtcNow;
 
             var activePlan = _cachedPlans.FirstOrDefault(p => p.IsActive);
             logService.Log(LogLevel.Info, $"[PowerCfgQueryService] Discovered {_cachedPlans.Count} system power plans. Active: {activePlan?.Name ?? "None"} ({activePlan?.Guid ?? "N/A"})");
             
-            foreach (var plan in _cachedPlans)
-            {
-                logService.Log(LogLevel.Debug, $"[PowerCfgQueryService]   - {plan.Name} ({plan.Guid}){(plan.IsActive ? " *ACTIVE*" : "")}");
-            }
-
             return _cachedPlans;
         }
         catch (Exception ex)
@@ -50,6 +81,51 @@ public class PowerCfgQueryService(ICommandService commandService, ILogService lo
             logService.Log(LogLevel.Warning, $"[PowerCfgQueryService] Error getting available power plans: {ex.Message}");
             return new List<PowerPlan>();
         }
+    }
+
+    private Guid GetActivePowerSchemeGuid()
+    {
+        IntPtr ptr = IntPtr.Zero;
+        try
+        {
+            uint ret = PowerProf.PowerGetActiveScheme(IntPtr.Zero, out ptr);
+            if (ret == PowerProf.ERROR_SUCCESS && ptr != IntPtr.Zero)
+            {
+                return Marshal.PtrToStructure<Guid>(ptr);
+            }
+            return Guid.Empty;
+        }
+        finally
+        {
+            if (ptr != IntPtr.Zero)
+            {
+                PowerProf.LocalFree(ptr);
+            }
+        }
+    }
+
+    private string GetPowerPlanName(Guid schemeGuid)
+    {
+        uint bufferSize = 0;
+        // First call to get size
+        PowerProf.PowerReadFriendlyName(IntPtr.Zero, ref schemeGuid, IntPtr.Zero, IntPtr.Zero, IntPtr.Zero, ref bufferSize);
+
+        if (bufferSize == 0) return "Unknown Power Plan";
+
+        IntPtr buffer = Marshal.AllocHGlobal((int)bufferSize);
+        try
+        {
+            uint ret = PowerProf.PowerReadFriendlyName(IntPtr.Zero, ref schemeGuid, IntPtr.Zero, IntPtr.Zero, buffer, ref bufferSize);
+            if (ret == PowerProf.ERROR_SUCCESS)
+            {
+                return Marshal.PtrToStringUni(buffer) ?? "Unknown Power Plan";
+            }
+        }
+        finally
+        {
+            Marshal.FreeHGlobal(buffer);
+        }
+        return "Unknown Power Plan";
     }
 
     public void InvalidateCache()
@@ -62,8 +138,19 @@ public class PowerCfgQueryService(ICommandService commandService, ILogService lo
     {
         try
         {
-            var allPlans = await GetAvailablePowerPlansAsync();
-            return allPlans.FirstOrDefault(p => p.IsActive) ?? new PowerPlan { Guid = "", Name = "Unknown", IsActive = true };
+            var activeGuid = GetActivePowerSchemeGuid();
+            if (activeGuid == Guid.Empty)
+            {
+                return new PowerPlan { Guid = "", Name = "Unknown", IsActive = true };
+            }
+
+            var name = GetPowerPlanName(activeGuid);
+            return new PowerPlan
+            {
+                Guid = activeGuid.ToString(),
+                Name = name,
+                IsActive = true
+            };
         }
         catch (Exception ex)
         {
@@ -138,16 +225,25 @@ public class PowerCfgQueryService(ICommandService commandService, ILogService lo
     {
         try
         {
-            var command = $"powercfg /query SCHEME_CURRENT {powerCfgSetting.SubgroupGuid} {powerCfgSetting.SettingGuid}";
-            var result = await commandService.ExecuteCommandAsync(command);
+            return await Task.Run(() =>
+            {
+                var schemeGuid = GetActivePowerSchemeGuid();
+                if (schemeGuid == Guid.Empty) return (null, null);
 
-            if (!result.Success || string.IsNullOrEmpty(result.Output))
-                return (null, null);
+                var subGuid = Guid.Parse(powerCfgSetting.SubgroupGuid);
+                var setGuid = Guid.Parse(powerCfgSetting.SettingGuid);
 
-            var acValue = OutputParser.PowerCfg.ParsePowerSettingValue(result.Output, "Current AC Power Setting Index:");
-            var dcValue = OutputParser.PowerCfg.ParsePowerSettingValue(result.Output, "Current DC Power Setting Index:");
+                uint acIndex, dcIndex;
+                int? ac = null, dc = null;
 
-            return (acValue, dcValue);
+                if (PowerProf.PowerReadACValueIndex(IntPtr.Zero, ref schemeGuid, ref subGuid, ref setGuid, out acIndex) == PowerProf.ERROR_SUCCESS)
+                    ac = (int)acIndex;
+
+                if (PowerProf.PowerReadDCValueIndex(IntPtr.Zero, ref schemeGuid, ref subGuid, ref setGuid, out dcIndex) == PowerProf.ERROR_SUCCESS)
+                    dc = (int)dcIndex;
+
+                return (ac, dc);
+            });
         }
         catch (Exception ex)
         {
@@ -160,23 +256,90 @@ public class PowerCfgQueryService(ICommandService commandService, ILogService lo
     {
         try
         {
-            var command = $"powercfg /query {powerPlanGuid}";
-            var result = await commandService.ExecuteCommandAsync(command);
-
-            if (!result.Success || string.IsNullOrEmpty(result.Output))
-                return new Dictionary<string, (int?, int?)>();
-
-            var bulkResults = OutputParser.PowerCfg.ParseBulkPowerSettingsOutput(result.Output);
-
-            var acDcResults = new Dictionary<string, (int? acValue, int? dcValue)>();
-            foreach (var (settingGuid, values) in bulkResults)
+            return await Task.Run(() =>
             {
-                var ac = values.TryGetValue("AC", out var acVal) ? acVal : null;
-                var dc = values.TryGetValue("DC", out var dcVal) ? dcVal : null;
-                acDcResults[settingGuid] = (ac, dc);
-            }
+                var results = new Dictionary<string, (int? acValue, int? dcValue)>();
+                
+                Guid schemeGuid;
+                if (string.Equals(powerPlanGuid, "SCHEME_CURRENT", StringComparison.OrdinalIgnoreCase))
+                {
+                    schemeGuid = GetActivePowerSchemeGuid();
+                }
+                else if (!Guid.TryParse(powerPlanGuid, out schemeGuid))
+                {
+                     return results;
+                }
 
-            return acDcResults;
+                if (schemeGuid == Guid.Empty) return results;
+
+                // Enumerate Subgroups
+                uint subIndex = 0;
+                uint bufferSize = 16;
+                IntPtr buffer = Marshal.AllocHGlobal((int)bufferSize);
+
+                try
+                {
+                    while (true)
+                    {
+                        uint ret = PowerProf.PowerEnumerate(IntPtr.Zero, ref schemeGuid, IntPtr.Zero, PowerProf.ACCESS_SUBGROUP, subIndex, buffer, ref bufferSize);
+                        if (ret == PowerProf.ERROR_NO_MORE_ITEMS) break;
+                        if (ret == PowerProf.ERROR_SUCCESS)
+                        {
+                            var subBytes = new byte[16];
+                            Marshal.Copy(buffer, subBytes, 0, 16);
+                            var subGuid = new Guid(subBytes);
+
+                            // Enumerate Settings in Subgroup
+                            uint setIndex = 0;
+                            uint setBufferSize = 16;
+                            IntPtr setBuffer = Marshal.AllocHGlobal((int)setBufferSize);
+
+                            try
+                            {
+                                while (true)
+                                {
+                                    uint setRet = PowerProf.PowerEnumerate(IntPtr.Zero, ref schemeGuid, ref subGuid, PowerProf.ACCESS_INDIVIDUAL_SETTING, setIndex, setBuffer, ref setBufferSize);
+                                    if (setRet == PowerProf.ERROR_NO_MORE_ITEMS) break;
+                                    if (setRet == PowerProf.ERROR_SUCCESS)
+                                    {
+                                        var setBytes = new byte[16];
+                                        Marshal.Copy(setBuffer, setBytes, 0, 16);
+                                        var setGuid = new Guid(setBytes);
+
+                                        uint acIndex, dcIndex;
+                                        int? ac = null, dc = null;
+
+                                        if (PowerProf.PowerReadACValueIndex(IntPtr.Zero, ref schemeGuid, ref subGuid, ref setGuid, out acIndex) == PowerProf.ERROR_SUCCESS)
+                                            ac = (int)acIndex;
+
+                                        if (PowerProf.PowerReadDCValueIndex(IntPtr.Zero, ref schemeGuid, ref subGuid, ref setGuid, out dcIndex) == PowerProf.ERROR_SUCCESS)
+                                            dc = (int)dcIndex;
+
+                                        if (ac.HasValue || dc.HasValue)
+                                        {
+                                            results[setGuid.ToString()] = (ac, dc);
+                                        }
+                                    }
+                                    setIndex++;
+                                    setBufferSize = 16;
+                                }
+                            }
+                            finally
+                            {
+                                Marshal.FreeHGlobal(setBuffer);
+                            }
+                        }
+                        subIndex++;
+                        bufferSize = 16;
+                    }
+                }
+                finally
+                {
+                    Marshal.FreeHGlobal(buffer);
+                }
+
+                return results;
+            });
         }
         catch (Exception ex)
         {

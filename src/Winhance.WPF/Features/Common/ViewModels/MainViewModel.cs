@@ -9,6 +9,7 @@ using System.Windows;
 using System.Windows.Input;
 using System.Windows.Interop;
 using System.Windows.Media;
+using System.Windows.Threading;
 using CommunityToolkit.Mvvm.ComponentModel;
 using CommunityToolkit.Mvvm.Input;
 using Winhance.Core.Features.Common.Enums;
@@ -334,7 +335,10 @@ namespace Winhance.WPF.Features.Common.ViewModels
         public void HandleMoreButtonClick()
         {
             SelectedNavigationItem = "More";
-            _flyoutManagement.ShowMoreMenuFlyout();
+            Application.Current.Dispatcher.InvokeAsync(() =>
+            {
+                _flyoutManagement.ShowMoreMenuFlyout();
+            }, DispatcherPriority.Render);
         }
 
 
@@ -347,7 +351,10 @@ namespace Winhance.WPF.Features.Common.ViewModels
         public void HandleAdvancedToolsButtonClick()
         {
             SelectedNavigationItem = "AdvancedTools";
-            _flyoutManagement.ShowAdvancedToolsFlyout();
+            Application.Current.Dispatcher.InvokeAsync(() =>
+            {
+                _flyoutManagement.ShowAdvancedToolsFlyout();
+            }, DispatcherPriority.Render);
         }
 
         public void CloseAdvancedToolsFlyout()

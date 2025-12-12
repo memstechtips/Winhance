@@ -216,20 +216,41 @@ namespace Winhance.Infrastructure.Features.Common.Services
         {
             try
             {
-                if (!rawValues.TryGetValue("ActivePowerPlan", out var activePlanName) || activePlanName == null)
+                var options = GetPowerPlanOptionsAsync().GetAwaiter().GetResult();
+
+                // 1. Try to match by GUID (Best, independent of language)
+                if (rawValues.TryGetValue("ActivePowerPlanGuid", out var activeGuidObj) && activeGuidObj != null)
                 {
-                    return 0;
+                    var activeGuid = activeGuidObj.ToString();
+                    for (int i = 0; i < options.Count; i++)
+                    {
+                        var opt = options[i];
+                        var optGuid = opt.SystemPlan?.Guid ?? opt.PredefinedPlan?.Guid;
+
+                        if (!string.IsNullOrEmpty(optGuid) && 
+                            string.Equals(optGuid, activeGuid, StringComparison.OrdinalIgnoreCase))
+                        {
+                            return i;
+                        }
+                    }
                 }
 
-                var options = GetPowerPlanOptionsAsync().GetAwaiter().GetResult();
-                var activeNameStr = activePlanName.ToString();
-
-                for (int i = 0; i < options.Count; i++)
+                // 2. Fallback: Match by Name (Legacy/Unreliable if localized)
+                if (rawValues.TryGetValue("ActivePowerPlan", out var activePlanName) && activePlanName != null)
                 {
-                    var cleanDisplayName = CleanPlanName(options[i].DisplayName);
-                    if (string.Equals(cleanDisplayName, activeNameStr, StringComparison.OrdinalIgnoreCase))
+                    var activeNameStr = activePlanName.ToString();
+
+                    for (int i = 0; i < options.Count; i++)
                     {
-                        return i;
+                        // Check against DisplayName (LocalizationKey) or SystemPlan.Name
+                        var displayMatch = string.Equals(CleanPlanName(options[i].DisplayName), activeNameStr, StringComparison.OrdinalIgnoreCase);
+                        var systemMatch = options[i].SystemPlan != null && 
+                                        string.Equals(CleanPlanName(options[i].SystemPlan!.Name), activeNameStr, StringComparison.OrdinalIgnoreCase);
+
+                        if (displayMatch || systemMatch)
+                        {
+                            return i;
+                        }
                     }
                 }
 

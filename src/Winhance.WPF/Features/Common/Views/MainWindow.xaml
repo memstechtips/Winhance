@@ -18,7 +18,7 @@
         xmlns:loc="clr-namespace:Winhance.WPF.Features.Common.Extensions"
         Title="{loc:Localize App_Title}"
         MinWidth="800"
-        MinHeight="500"
+        MinHeight="600"
         Background="Transparent"
         WindowStartupLocation="CenterScreen"
         ResizeMode="CanResize"
@@ -305,7 +305,7 @@
                                         </StackPanel>
                                         
                                         <!-- Bottom Navigation Buttons (Extra space in Advanced Tools is intentional) -->
-                                        <StackPanel Grid.Row="2">
+                                        <StackPanel Grid.Row="2" x:Name="BottomNavPanel">
                                                 <Button x:Name="AdvancedToolsButton"
                                                         Style="{StaticResource NavigationButton}"
                                                         Command="{Binding AdvancedToolsCommand}"

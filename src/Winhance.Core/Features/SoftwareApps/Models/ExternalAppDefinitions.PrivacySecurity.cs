@@ -65,8 +65,9 @@ namespace Winhance.Core.Features.SoftwareApps.Models
                             WebsiteUrl = "https://sniffnet.net/",
                             CustomProperties = new Dictionary<string, object>
                             {
-                                { "DownloadUrl_x64", "https://github.com/GyulyVGC/sniffnet/releases/latest/download/Sniffnet_Windows_64-bit.msi" },
-                                { "DownloadUrl_x86", "https://github.com/GyulyVGC/sniffnet/releases/latest/download/Sniffnet_Windows_32-bit.msi" },
+                                { "DownloadUrl_arm64", "https://github.com/GyulyVGC/sniffnet/releases/latest/download/Sniffnet_Windows_arm64.msi" },
+                                { "DownloadUrl_x64", "https://github.com/GyulyVGC/sniffnet/releases/latest/download/Sniffnet_Windows_x64.msi" },
+                                { "DownloadUrl_x86", "https://github.com/GyulyVGC/sniffnet/releases/latest/download/Sniffnet_Windows_x86.msi" },
                                 { "RequiresDirectDownload", true }
                             }
                         },
