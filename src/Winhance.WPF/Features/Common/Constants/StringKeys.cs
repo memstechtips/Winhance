@@ -133,7 +133,11 @@ namespace Winhance.WPF.Features.Common.Constants
                 { "hi", "हिन्दी (Hindi)" },
                 { "ja", "日本語 (Japanese)" },
                 { "lt", "Lietuviškai (Lithuanian)" },
-                { "lv", "Latviešu (Latvian)" }
+                { "lv", "Latviešu (Latvian)" },
+                { "pl", "Polski (Polish)" },
+                { "sv", "Svenska (Swedish)" },
+                { "vi", "Tiếng Việt (Vietnamese)" },
+                { "uk", "Українська (Ukrainian)" }
             };
         }
 
