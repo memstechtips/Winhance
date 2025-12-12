@@ -576,7 +576,7 @@ public class AppStatusDiscoveryService(
 
             var productWords = SplitIntoWords(productName)
                 .Select(w => NormalizeString(w))
-                .Where(w => w.Length >= 5)
+                .Where(w => w.Length >= 4)
                 .ToList();
 
             if (productWords.Count >= 2)
