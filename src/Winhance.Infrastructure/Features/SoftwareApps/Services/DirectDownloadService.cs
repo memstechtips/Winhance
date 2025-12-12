@@ -193,14 +193,22 @@ public class DirectDownloadService : IDirectDownloadService
     private string SelectDownloadUrl(ItemDefinition item)
     {
         var arch = GetCurrentArchitecture();
+        _logService?.LogInformation($"Detecting architecture: {arch}");
 
         if (item.CustomProperties.TryGetValue($"DownloadUrl_{arch}", out var archUrl))
+        {
+            _logService?.LogInformation($"Found architecture-specific URL for {arch}");
             return archUrl.ToString()!;
+        }
 
         if (item.CustomProperties.TryGetValue("DownloadUrl", out var genericUrl))
+        {
+            _logService?.LogWarning($"No {arch}-specific download found for {item.Name}, using generic URL. This may not work on this architecture.");
             return genericUrl.ToString()!;
+        }
 
-        throw new Exception("No download URL found in item CustomProperties");
+        _logService?.LogError($"No download URL found for {item.Name} (architecture: {arch})");
+        throw new Exception($"No download URL found for {item.Name}. This app may not support {arch} architecture.");
     }
 
     private async Task<string> ResolveGitHubReleaseUrlAsync(
