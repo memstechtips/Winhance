@@ -62,28 +62,31 @@ namespace Winhance.Infrastructure.Features.Customize.Services
         {
             try
             {
-                logService.Log(
-                    LogLevel.Info,
-                    "Starting Taskbar cleanup - deleting Taskband registry key"
-                );
+                const string taskbandKey = "HKEY_CURRENT_USER\\Software\\Microsoft\\Windows\\CurrentVersion\\Explorer\\Taskband";
+                const string favoritesValue = "Favorites";
 
-                bool success = windowsRegistryService.DeleteKey(
-                    "HKEY_CURRENT_USER\\Software\\Microsoft\\Windows\\CurrentVersion\\Explorer\\Taskband"
+                logService.Log(LogLevel.Info, "Starting Taskbar cleanup - clearing Favorites data");
+
+                if (!windowsRegistryService.KeyExists(taskbandKey))
+                {
+                    logService.Log(LogLevel.Warning, "Taskband key does not exist - nothing to clean");
+                    return;
+                }
+
+                bool success = windowsRegistryService.SetValue(
+                    taskbandKey,
+                    favoritesValue,
+                    new byte[0],
+                    Microsoft.Win32.RegistryValueKind.Binary
                 );
 
                 if (success)
                 {
-                    logService.Log(
-                        LogLevel.Success,
-                        "Successfully deleted Taskband registry key - Taskbar cleaned"
-                    );
+                    logService.Log(LogLevel.Success, "Successfully cleared Favorites data");
                 }
                 else
                 {
-                    logService.Log(
-                        LogLevel.Warning,
-                        "Failed to delete Taskband registry key - may not exist or access denied"
-                    );
+                    logService.Log(LogLevel.Warning, "Failed to clear Favorites data");
                 }
 
                 await Task.CompletedTask;
