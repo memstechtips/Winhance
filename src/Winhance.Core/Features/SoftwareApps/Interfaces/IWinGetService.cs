@@ -1,5 +1,7 @@
+using System;
 using System.Threading;
 using System.Threading.Tasks;
+using Winhance.Core.Features.Common.Models;
 
 namespace Winhance.Core.Features.SoftwareApps.Interfaces;
 
@@ -11,4 +13,5 @@ public interface IWinGetService
     Task<bool> IsWinGetInstalledAsync(CancellationToken cancellationToken = default);
     Task<bool> IsPackageInstalledAsync(string packageId, CancellationToken cancellationToken = default);
     Task<bool> EnsureWinGetReadyAsync(CancellationToken cancellationToken = default);
+    Task<bool> EnsureWinGetUpToDateAsync(IProgress<TaskProgressDetail> progress = null, CancellationToken cancellationToken = default);
 }

@@ -151,6 +151,19 @@ namespace Winhance.Infrastructure.Features.SoftwareApps.Services
                     return false;
                 }
             }
+            else
+            {
+                logService?.LogInformation("WinGet found, ensuring it's up to date...");
+                taskProgressService?.UpdateProgress(15, "Checking WinGet version...");
+
+                var updateProgress = taskProgressService?.CreateDetailedProgress();
+                var isUpdated = await EnsureWinGetUpToDateAsync(updateProgress, cancellationToken);
+
+                if (!isUpdated)
+                {
+                    logService?.LogWarning("Could not ensure WinGet is up to date, proceeding anyway...");
+                }
+            }
 
             try
             {
@@ -539,6 +552,101 @@ namespace Winhance.Infrastructure.Features.SoftwareApps.Services
             {
                 logService?.LogError($"Error checking WinGet availability: {ex.Message}");
                 return false;
+            }
+        }
+
+        public async Task<bool> EnsureWinGetUpToDateAsync(IProgress<TaskProgressDetail> progress = null, CancellationToken cancellationToken = default)
+        {
+            try
+            {
+                logService?.LogInformation("Ensuring WinGet is up to date...");
+                progress?.Report(new TaskProgressDetail
+                {
+                    Progress = 10,
+                    StatusText = "Checking for WinGet updates..."
+                });
+
+                string wingetPath = _wingetExePath ?? "winget";
+                var arguments = "install Microsoft.AppInstaller --source winget " +
+                               "--accept-source-agreements --accept-package-agreements " +
+                               "--disable-interactivity --silent";
+
+                var result = await ExecuteProcessAsync(wingetPath, arguments, "WinGet Update", cancellationToken, "Updating WinGet");
+
+                if (result.ExitCode == 0 ||
+                    result.ExitCode == -2147467260 ||
+                    result.ExitCode == -1978335189 ||
+                    result.ExitCode == -1978335135)
+                {
+                    if (result.ExitCode == -2147467260)
+                    {
+                        logService?.LogInformation("WinGet update initiated via Store, verifying completion...");
+                        progress?.Report(new TaskProgressDetail
+                        {
+                            Progress = 50,
+                            StatusText = "Waiting for WinGet update to complete..."
+                        });
+
+                        bool isReady = false;
+                        for (int i = 0; i < 10; i++)
+                        {
+                            await Task.Delay(1000, cancellationToken);
+
+                            if (await IsWinGetInstalledAsync(cancellationToken))
+                            {
+                                _wingetExePath = await ResolveWinGetPathAsync(cancellationToken);
+                                logService?.LogInformation($"WinGet update completed and verified (waited {i + 1}s)");
+                                isReady = true;
+                                break;
+                            }
+                        }
+
+                        if (!isReady)
+                        {
+                            logService?.LogWarning("WinGet update did not complete in time, attempting reinstall...");
+                            return await InstallWinGetAsync(cancellationToken);
+                        }
+                    }
+
+                    var status = result.ExitCode switch
+                    {
+                        0 => "WinGet updated successfully",
+                        -2147467260 => "WinGet update completed",
+                        -1978335189 => "WinGet is already up to date",
+                        -1978335135 => "WinGet is already installed at latest version",
+                        _ => "WinGet is ready"
+                    };
+
+                    logService?.LogInformation($"{status} (exit code: {result.ExitCode})");
+                    progress?.Report(new TaskProgressDetail
+                    {
+                        Progress = 100,
+                        StatusText = "WinGet is ready"
+                    });
+                    return true;
+                }
+
+                logService?.LogWarning($"WinGet self-update returned unexpected code: {result.ExitCode}, attempting reinstall...");
+                progress?.Report(new TaskProgressDetail
+                {
+                    Progress = 40,
+                    StatusText = "Reinstalling WinGet..."
+                });
+
+                return await InstallWinGetAsync(cancellationToken);
+            }
+            catch (Exception ex)
+            {
+                logService?.LogError($"Error updating WinGet: {ex.Message}");
+
+                try
+                {
+                    return await InstallWinGetAsync(cancellationToken);
+                }
+                catch
+                {
+                    return false;
+                }
             }
         }
 
