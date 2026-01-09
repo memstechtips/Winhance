@@ -100,6 +100,137 @@ namespace Winhance.Infrastructure.Features.AdvancedTools.Services
             }
         }
 
+        public async Task<ImageDetectionResult> DetectAllImageFormatsAsync(string workingDirectory)
+        {
+            var result = new ImageDetectionResult();
+
+            try
+            {
+                var sourcesPath = Path.Combine(workingDirectory, "sources");
+                if (!Directory.Exists(sourcesPath))
+                {
+                    _logService.LogWarning($"Sources directory not found: {sourcesPath}");
+                    return result;
+                }
+
+                var wimPath = Path.Combine(sourcesPath, "install.wim");
+                if (File.Exists(wimPath))
+                {
+                    result.WimInfo = await GetImageInfoAsync(wimPath, ImageFormat.Wim);
+                }
+
+                var esdPath = Path.Combine(sourcesPath, "install.esd");
+                if (File.Exists(esdPath))
+                {
+                    result.EsdInfo = await GetImageInfoAsync(esdPath, ImageFormat.Esd);
+                }
+
+                if (result.BothExist)
+                {
+                    _logService.LogWarning("Both install.wim and install.esd found - only one should exist");
+                }
+                else if (result.NeitherExists)
+                {
+                    _logService.LogWarning("No install.wim or install.esd found");
+                }
+                else
+                {
+                    var format = result.WimInfo != null ? "WIM" : "ESD";
+                    _logService.LogInformation($"Found {format} format");
+                }
+            }
+            catch (Exception ex)
+            {
+                _logService.LogError($"Error detecting image formats: {ex.Message}", ex);
+            }
+
+            return result;
+        }
+
+        public async Task<bool> DeleteImageFileAsync(
+            string workingDirectory,
+            ImageFormat format,
+            IProgress<TaskProgressDetail>? progress = null,
+            CancellationToken cancellationToken = default)
+        {
+            try
+            {
+                var sourcesPath = Path.Combine(workingDirectory, "sources");
+                var fileName = format == ImageFormat.Wim ? "install.wim" : "install.esd";
+                var filePath = Path.Combine(sourcesPath, fileName);
+
+                if (!File.Exists(filePath))
+                {
+                    _logService.LogWarning($"File not found for deletion: {filePath}");
+                    return false;
+                }
+
+                var fileInfo = new FileInfo(filePath);
+                var fileSizeGB = fileInfo.Length / (1024.0 * 1024 * 1024);
+
+                progress?.Report(new TaskProgressDetail
+                {
+                    StatusText = _localization.GetString("Progress_DeletingImageFile"),
+                    TerminalOutput = $"Deleting {fileName} ({fileSizeGB:F2} GB)..."
+                });
+
+                _logService.LogInformation($"Deleting {fileName} from {sourcesPath}");
+
+                var deleted = false;
+                for (int attempt = 1; attempt <= 5; attempt++)
+                {
+                    try
+                    {
+                        var file = new FileInfo(filePath);
+                        if (file.Exists)
+                        {
+                            file.Attributes = FileAttributes.Normal;
+                            file.Delete();
+                            _logService.LogInformation($"Successfully deleted {fileName}");
+                            deleted = true;
+
+                            progress?.Report(new TaskProgressDetail
+                            {
+                                StatusText = _localization.GetString("Progress_ImageFileDeleted"),
+                                TerminalOutput = $"{fileName} deleted successfully"
+                            });
+
+                            break;
+                        }
+                    }
+                    catch (Exception ex)
+                    {
+                        _logService.LogWarning($"Attempt {attempt}/5 to delete {fileName} failed: {ex.Message}");
+                        if (attempt < 5)
+                        {
+                            await Task.Delay(2000, cancellationToken);
+                        }
+                    }
+                }
+
+                if (!deleted)
+                {
+                    progress?.Report(new TaskProgressDetail
+                    {
+                        StatusText = _localization.GetString("Progress_ImageFileDeletionFailed"),
+                        TerminalOutput = $"Could not delete {fileName} after 5 attempts. File may be in use."
+                    });
+                }
+
+                return deleted;
+            }
+            catch (Exception ex)
+            {
+                _logService.LogError($"Error deleting image file: {ex.Message}", ex);
+                progress?.Report(new TaskProgressDetail
+                {
+                    StatusText = _localization.GetString("Progress_ImageFileDeletionFailed"),
+                    TerminalOutput = ex.Message
+                });
+                return false;
+            }
+        }
+
         private async Task<ImageFormatInfo> GetImageInfoAsync(string imagePath, ImageFormat format)
         {
             try
@@ -309,6 +440,8 @@ catch {{
                     await _powerShellService.ExecuteScriptFromContentAsync(script, progress, cancellationToken);
                 }
 
+                await Task.Delay(2000, cancellationToken);
+
                 if (!File.Exists(targetFile))
                 {
                     _logService.LogError($"Target file not found: {targetFile}");
@@ -328,8 +461,15 @@ catch {{
                     {
                         if (File.Exists(sourceFile))
                         {
-                            File.Delete(sourceFile);
+                            var file = new FileInfo(sourceFile);
+                            file.Attributes = FileAttributes.Normal;
+                            file.Delete();
                             _logService.LogInformation($"Deleted source file: {sourceFile}");
+                            deleted = true;
+                            break;
+                        }
+                        else
+                        {
                             deleted = true;
                             break;
                         }
@@ -344,17 +484,23 @@ catch {{
                     }
                 }
 
+                var targetFileInfo = new FileInfo(targetFile);
+
                 if (!deleted && File.Exists(sourceFile))
                 {
-                    _logService.LogError($"Failed to delete source file after 5 attempts: {sourceFile}");
+                    _logService.LogWarning($"Could not delete source file after multiple attempts: {sourceFile}");
+
                     progress?.Report(new TaskProgressDetail
                     {
-                        StatusText = _localization.GetString("Progress_WarningCouldNotDeleteFile"),
-                        TerminalOutput = $"Please manually delete: {Path.GetFileName(sourceFile)}"
+                        StatusText = _localization.GetString("Progress_ConversionCompleted"),
+                        TerminalOutput = $"Conversion succeeded! New size: {targetFileInfo.Length / (1024.0 * 1024 * 1024):F2} GB\n\n" +
+                                       $"However, the source file is still in use and could not be deleted automatically.\n\n" +
+                                       $"Please manually delete:\n{sourceFile}"
                     });
+
+                    return true;
                 }
 
-                var targetFileInfo = new FileInfo(targetFile);
                 var sizeDiff = currentInfo.FileSizeBytes - targetFileInfo.Length;
                 var savedSpace = sizeDiff > 0
                     ? $"Saved {sizeDiff / (1024.0 * 1024 * 1024):F2} GB"

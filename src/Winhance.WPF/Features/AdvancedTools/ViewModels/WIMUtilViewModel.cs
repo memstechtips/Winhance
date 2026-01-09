@@ -148,6 +148,18 @@ namespace Winhance.WPF.Features.AdvancedTools.ViewModels
         [ObservableProperty]
         private string _conversionStatus = string.Empty;
 
+        [ObservableProperty]
+        private bool _bothFormatsExist;
+
+        [ObservableProperty]
+        private string _wimFileSize = string.Empty;
+
+        [ObservableProperty]
+        private string _esdFileSize = string.Empty;
+
+        [ObservableProperty]
+        private ImageDetectionResult? _detectionResult;
+
         public WizardActionCard ConvertImageCard { get; private set; } = new();
 
         // Step 2: Add XML
@@ -1646,26 +1658,51 @@ namespace Winhance.WPF.Features.AdvancedTools.ViewModels
         {
             try
             {
-                _logService.LogInformation("Detecting image format...");
+                _logService.LogInformation("Detecting image formats...");
 
-                var formatInfo = await _wimUtilService.DetectImageFormatAsync(WorkingDirectory);
+                var detection = await _wimUtilService.DetectAllImageFormatsAsync(WorkingDirectory);
 
                 System.Windows.Application.Current.Dispatcher.Invoke(() =>
                 {
-                    CurrentImageFormat = formatInfo;
-                    ShowConversionCard = formatInfo != null;
+                    DetectionResult = detection;
+                    BothFormatsExist = detection.BothExist;
+                    CurrentImageFormat = detection.PrimaryFormat;
+                    ShowConversionCard = detection.HasAnyFormat;
+
+                    if (detection.BothExist)
+                    {
+                        WimFileSize = FormatFileSize(detection.WimInfo!.FileSizeBytes);
+                        EsdFileSize = FormatFileSize(detection.EsdInfo!.FileSizeBytes);
+                    }
+
                     UpdateConversionCardState();
                 });
             }
             catch (Exception ex)
             {
-                _logService.LogError($"Error detecting image format: {ex.Message}", ex);
+                _logService.LogError($"Error detecting image formats: {ex.Message}", ex);
                 ShowConversionCard = false;
             }
         }
 
+        private string FormatFileSize(long bytes)
+        {
+            var gb = bytes / (1024.0 * 1024 * 1024);
+            return $"{gb:F2} GB";
+        }
+
         private void UpdateConversionCardState()
         {
+            if (BothFormatsExist)
+            {
+                ConvertImageCard.Icon = "Alert";
+                ConvertImageCard.Title = "Both WIM and ESD Found";
+                ConvertImageCard.Description = "Both install.wim and install.esd exist. Only one should be present. Please delete one to continue.";
+                ConvertImageCard.ButtonText = string.Empty;
+                ConvertImageCard.IsEnabled = false;
+                return;
+            }
+
             if (CurrentImageFormat == null)
             {
                 ConvertImageCard.IsEnabled = false;
@@ -1707,6 +1744,114 @@ namespace Winhance.WPF.Features.AdvancedTools.ViewModels
             _logService.LogInformation(
                 string.Format(_localizationService.GetString("WIMUtil_Label_FormatDetected"), currentFormat, CurrentImageFormat.ImageCount, currentSize.ToString("F2"))
             );
+        }
+
+        [RelayCommand]
+        private async Task DeleteWim()
+        {
+            try
+            {
+                if (!_dialogService.ShowLocalizedConfirmationDialog(
+                    "Dialog_DeleteWim",
+                    "WIMUtil_Msg_DeleteWimConfirm",
+                    DialogType.Warning,
+                    "Alert"))
+                {
+                    return;
+                }
+
+                _cancellationTokenSource = new CancellationTokenSource();
+                var progress = new Progress<TaskProgressDetail>(detail => { });
+
+                var success = await _wimUtilService.DeleteImageFileAsync(
+                    WorkingDirectory,
+                    ImageFormat.Wim,
+                    progress,
+                    _cancellationTokenSource.Token);
+
+                if (success)
+                {
+                    await DetectImageFormatAsync();
+
+                    _dialogService.ShowLocalizedDialog(
+                        "Dialog_DeleteSuccess",
+                        "WIMUtil_Msg_WimDeleteSuccess",
+                        DialogType.Success,
+                        "CheckCircle");
+                }
+                else
+                {
+                    _dialogService.ShowLocalizedDialog(
+                        "Dialog_DeleteFailed",
+                        "WIMUtil_Msg_WimDeleteFailed",
+                        DialogType.Error,
+                        "CloseCircle");
+                }
+            }
+            catch (Exception ex)
+            {
+                _logService.LogError($"Error deleting WIM: {ex.Message}", ex);
+                _dialogService.ShowLocalizedDialog(
+                    "Dialog_DeleteError",
+                    "WIMUtil_Msg_DeleteError",
+                    DialogType.Error,
+                    "CloseCircle",
+                    ex.Message);
+            }
+        }
+
+        [RelayCommand]
+        private async Task DeleteEsd()
+        {
+            try
+            {
+                if (!_dialogService.ShowLocalizedConfirmationDialog(
+                    "Dialog_DeleteEsd",
+                    "WIMUtil_Msg_DeleteEsdConfirm",
+                    DialogType.Warning,
+                    "Alert"))
+                {
+                    return;
+                }
+
+                _cancellationTokenSource = new CancellationTokenSource();
+                var progress = new Progress<TaskProgressDetail>(detail => { });
+
+                var success = await _wimUtilService.DeleteImageFileAsync(
+                    WorkingDirectory,
+                    ImageFormat.Esd,
+                    progress,
+                    _cancellationTokenSource.Token);
+
+                if (success)
+                {
+                    await DetectImageFormatAsync();
+
+                    _dialogService.ShowLocalizedDialog(
+                        "Dialog_DeleteSuccess",
+                        "WIMUtil_Msg_EsdDeleteSuccess",
+                        DialogType.Success,
+                        "CheckCircle");
+                }
+                else
+                {
+                    _dialogService.ShowLocalizedDialog(
+                        "Dialog_DeleteFailed",
+                        "WIMUtil_Msg_EsdDeleteFailed",
+                        DialogType.Error,
+                        "CloseCircle");
+                }
+            }
+            catch (Exception ex)
+            {
+                _logService.LogError($"Error deleting ESD: {ex.Message}", ex);
+                _dialogService.ShowLocalizedDialog(
+                    "Dialog_DeleteError",
+                    "WIMUtil_Msg_DeleteError",
+                    DialogType.Error,
+                    "CloseCircle",
+                    ex.Message);
+            }
         }
 
         [RelayCommand]

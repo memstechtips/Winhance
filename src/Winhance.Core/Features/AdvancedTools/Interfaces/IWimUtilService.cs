@@ -10,6 +10,14 @@ namespace Winhance.Core.Features.AdvancedTools.Interfaces
     {
         Task<ImageFormatInfo?> DetectImageFormatAsync(string workingDirectory);
 
+        Task<ImageDetectionResult> DetectAllImageFormatsAsync(string workingDirectory);
+
+        Task<bool> DeleteImageFileAsync(
+            string workingDirectory,
+            ImageFormat format,
+            IProgress<TaskProgressDetail>? progress = null,
+            CancellationToken cancellationToken = default);
+
         Task<bool> ConvertImageAsync(
             string workingDirectory,
             ImageFormat targetFormat,
