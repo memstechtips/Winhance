@@ -90,7 +90,14 @@ public class ExternalAppsService(
 
         try
         {
-            var batch = await CheckBatchInstalledAsync(new[] { winGetPackageId });
+            var tempDef = new ItemDefinition
+            {
+                Id = winGetPackageId,
+                Name = winGetPackageId,
+                Description = "",
+                WinGetPackageId = winGetPackageId
+            };
+            var batch = await CheckBatchInstalledAsync(new[] { tempDef });
             return batch.GetValueOrDefault(winGetPackageId, false);
         }
         catch (Exception ex)
@@ -100,9 +107,9 @@ public class ExternalAppsService(
         }
     }
 
-    public async Task<Dictionary<string, bool>> CheckBatchInstalledAsync(IEnumerable<string> winGetPackageIds)
+    public async Task<Dictionary<string, bool>> CheckBatchInstalledAsync(IEnumerable<ItemDefinition> definitions)
     {
-        return await appStatusDiscoveryService.GetExternalAppsInstallationStatusAsync(winGetPackageIds);
+        return await appStatusDiscoveryService.GetExternalAppsInstallationStatusAsync(definitions);
     }
 
     public async Task<Dictionary<string, bool>> CheckInstalledByDisplayNameAsync(IEnumerable<string> displayNames)

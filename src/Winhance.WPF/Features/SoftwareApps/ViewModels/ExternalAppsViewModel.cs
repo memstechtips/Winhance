@@ -328,12 +328,12 @@ namespace Winhance.WPF.Features.SoftwareApps.ViewModels
 
                 if (appsWithWinGetId.Any())
                 {
-                    var packageIds = appsWithWinGetId.Select(item => item.Definition.WinGetPackageId).ToList();
-                    var statusResults = await externalAppsService.CheckBatchInstalledAsync(packageIds).ConfigureAwait(false);
+                    var definitions = appsWithWinGetId.Select(item => item.Definition).ToList();
+                    var statusResults = await externalAppsService.CheckBatchInstalledAsync(definitions).ConfigureAwait(false);
 
                     foreach (var item in appsWithWinGetId)
                     {
-                        if (statusResults.TryGetValue(item.Definition.WinGetPackageId, out bool isInstalled))
+                        if (statusResults.TryGetValue(item.Definition.Id, out bool isInstalled))
                         {
                             item.IsInstalled = isInstalled;
                             checkedCount++;

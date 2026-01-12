@@ -147,8 +147,105 @@
                                                FontWeight="SemiBold"
                                                Foreground="{DynamicResource PrimaryTextColor}"
                                                Margin="5,0,0,8"/>
+
+                                    <Border Background="#FFFACD"
+                                            CornerRadius="4"
+                                            BorderBrush="#FFA500"
+                                            BorderThickness="1"
+                                            Padding="15"
+                                            Margin="0,0,0,10"
+                                            Visibility="{Binding BothFormatsExist, Converter={StaticResource BooleanToVisibilityConverter}}">
+                                        <StackPanel>
+                                            <StackPanel Orientation="Horizontal" Margin="0,0,0,10">
+                                                <iconPacks:PackIconMaterial Kind="Alert"
+                                                                          Width="24"
+                                                                          Height="24"
+                                                                          Foreground="#FFA500"
+                                                                          VerticalAlignment="Center"
+                                                                          Margin="0,0,10,0"/>
+                                                <TextBlock Text="Both WIM and ESD Found"
+                                                          FontSize="14"
+                                                          FontWeight="SemiBold"
+                                                          Foreground="#8B4513"
+                                                          VerticalAlignment="Center"/>
+                                            </StackPanel>
+
+                                            <TextBlock Text="Both install.wim and install.esd were found in the ISO. Only one should exist. Please delete one to continue."
+                                                      FontSize="12"
+                                                      Foreground="#8B4513"
+                                                      TextWrapping="Wrap"
+                                                      Margin="0,0,0,15"/>
+
+                                            <StackPanel>
+                                                <Border Background="{DynamicResource SettingsItemBackground}"
+                                                       CornerRadius="4"
+                                                       Padding="10"
+                                                       Margin="0,0,0,10">
+                                                    <Grid>
+                                                        <Grid.ColumnDefinitions>
+                                                            <ColumnDefinition Width="*"/>
+                                                            <ColumnDefinition Width="Auto"/>
+                                                        </Grid.ColumnDefinitions>
+
+                                                        <StackPanel Grid.Column="0" VerticalAlignment="Center">
+                                                            <TextBlock Text="install.wim"
+                                                                      FontSize="13"
+                                                                      FontWeight="SemiBold"
+                                                                      Foreground="{DynamicResource PrimaryTextColor}"/>
+                                                            <TextBlock Text="{Binding WimFileSize}"
+                                                                      FontSize="11"
+                                                                      Foreground="{DynamicResource SecondaryTextColor}"
+                                                                      Margin="0,2,0,0"/>
+                                                        </StackPanel>
+
+                                                        <Button Grid.Column="1"
+                                                               Content="Delete WIM"
+                                                               Command="{Binding DeleteWimCommand}"
+                                                               Style="{StaticResource WizardActionButtonStyle}"
+                                                               Background="#F44336"
+                                                               MinWidth="110"
+                                                               Height="30"
+                                                               Margin="10,0,0,0"/>
+                                                    </Grid>
+                                                </Border>
+
+                                                <Border Background="{DynamicResource SettingsItemBackground}"
+                                                       CornerRadius="4"
+                                                       Padding="10">
+                                                    <Grid>
+                                                        <Grid.ColumnDefinitions>
+                                                            <ColumnDefinition Width="*"/>
+                                                            <ColumnDefinition Width="Auto"/>
+                                                        </Grid.ColumnDefinitions>
+
+                                                        <StackPanel Grid.Column="0" VerticalAlignment="Center">
+                                                            <TextBlock Text="install.esd"
+                                                                      FontSize="13"
+                                                                      FontWeight="SemiBold"
+                                                                      Foreground="{DynamicResource PrimaryTextColor}"/>
+                                                            <TextBlock Text="{Binding EsdFileSize}"
+                                                                      FontSize="11"
+                                                                      Foreground="{DynamicResource SecondaryTextColor}"
+                                                                      Margin="0,2,0,0"/>
+                                                        </StackPanel>
+
+                                                        <Button Grid.Column="1"
+                                                               Content="Delete ESD"
+                                                               Command="{Binding DeleteEsdCommand}"
+                                                               Style="{StaticResource WizardActionButtonStyle}"
+                                                               Background="#F44336"
+                                                               MinWidth="110"
+                                                               Height="30"
+                                                               Margin="10,0,0,0"/>
+                                                    </Grid>
+                                                </Border>
+                                            </StackPanel>
+                                        </StackPanel>
+                                    </Border>
+
                                     <ContentControl Content="{Binding ConvertImageCard}"
-                                                  ContentTemplate="{StaticResource WizardActionCardTemplate}"/>
+                                                  ContentTemplate="{StaticResource WizardActionCardTemplate}"
+                                                  Visibility="{Binding BothFormatsExist, Converter={StaticResource InverseBooleanToVisibilityConverter}}"/>
                                 </StackPanel>
                             </Border>
 
