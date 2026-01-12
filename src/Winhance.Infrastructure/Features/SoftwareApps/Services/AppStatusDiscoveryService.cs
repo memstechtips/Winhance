@@ -230,18 +230,21 @@ public class AppStatusDiscoveryService(
 
     #region External Apps Detection
 
-    public async Task<Dictionary<string, bool>> GetExternalAppsInstallationStatusAsync(IEnumerable<string> winGetPackageIds)
+    public async Task<Dictionary<string, bool>> GetExternalAppsInstallationStatusAsync(IEnumerable<ItemDefinition> definitions)
     {
         var result = new Dictionary<string, bool>(StringComparer.OrdinalIgnoreCase);
-        var packageIdList = winGetPackageIds.Where(id => !string.IsNullOrWhiteSpace(id)).ToList();
+        var definitionList = definitions
+            .Where(d => !string.IsNullOrWhiteSpace(d.WinGetPackageId))
+            .ToList();
 
-        if (!packageIdList.Any())
+        if (!definitionList.Any())
             return result;
 
         try
         {
-            var remainingToCheck = new List<string>(packageIdList);
-            var foundByWinGet = 0;
+            var remainingToCheck = new List<ItemDefinition>(definitionList);
+            var foundByWinGetId = 0;
+            var foundByWinGetName = 0;
 
             bool winGetReady = false;
             try
@@ -261,19 +264,26 @@ public class AppStatusDiscoveryService(
 
             if (winGetReady)
             {
-                var wingetPackages = await GetAllInstalledWinGetPackagesAsync();
+                var (wingetPackageIds, wingetPackageNames) = await GetAllInstalledWinGetPackagesAsync();
 
-                foreach (var packageId in packageIdList)
+                foreach (var def in definitionList.ToList())
                 {
-                    if (wingetPackages.Contains(packageId))
+                    if (wingetPackageIds.Contains(def.WinGetPackageId))
                     {
-                        result[packageId] = true;
-                        remainingToCheck.Remove(packageId);
-                        foundByWinGet++;
+                        result[def.Id] = true;
+                        remainingToCheck.Remove(def);
+                        foundByWinGetId++;
+                    }
+                    else if (MatchWinGetName(def.Name, wingetPackageNames))
+                    {
+                        result[def.Id] = true;
+                        remainingToCheck.Remove(def);
+                        foundByWinGetName++;
+                        logService.LogInformation($"WinGet name match: {def.Name} (Id: {def.Id})");
                     }
                 }
 
-                logService.LogInformation($"WinGet detection: Found {foundByWinGet}/{packageIdList.Count} apps");
+                logService.LogInformation($"WinGet: Found {foundByWinGetId} by package ID, {foundByWinGetName} by name ({foundByWinGetId + foundByWinGetName}/{definitionList.Count} total)");
             }
 
             if (remainingToCheck.Any())
@@ -289,43 +299,44 @@ public class AppStatusDiscoveryService(
                 var foundByWmi = 0;
                 var foundByRegistry = 0;
 
-                foreach (var packageId in remainingToCheck.ToList())
+                foreach (var def in remainingToCheck.ToList())
                 {
-                    var wmiMatch = FuzzyMatchProgram(packageId, wmiPrograms);
-                    var registryMatch = FuzzyMatchProgram(packageId, registryPrograms);
+                    var wmiMatch = FuzzyMatchProgram(def.WinGetPackageId, wmiPrograms);
+                    var registryMatch = FuzzyMatchProgram(def.WinGetPackageId, registryPrograms);
 
                     if (wmiMatch || registryMatch)
                     {
-                        result[packageId] = true;
-                        remainingToCheck.Remove(packageId);
+                        result[def.Id] = true;
+                        remainingToCheck.Remove(def);
                         if (wmiMatch) foundByWmi++;
                         if (registryMatch) foundByRegistry++;
                     }
                 }
 
-                logService.LogInformation($"Parallel detection: Found {foundByWmi} via WMI, {foundByRegistry} via Registry");
+                logService.LogInformation($"Fallback detection: Found {foundByWmi} via WMI, {foundByRegistry} via Registry");
             }
 
-            foreach (var packageId in remainingToCheck)
+            foreach (var def in remainingToCheck)
             {
-                result[packageId] = false;
+                result[def.Id] = false;
             }
 
             var totalFound = result.Count(kvp => kvp.Value);
-            logService.LogInformation($"Total detection: Found {totalFound}/{packageIdList.Count} apps installed");
+            logService.LogInformation($"Total: {totalFound}/{definitionList.Count} apps installed");
 
             return result;
         }
         catch (Exception ex)
         {
             logService.LogError($"Error checking batch installed apps: {ex.Message}", ex);
-            return packageIdList.ToDictionary(id => id, id => false, StringComparer.OrdinalIgnoreCase);
+            return definitionList.ToDictionary(d => d.Id, d => false, StringComparer.OrdinalIgnoreCase);
         }
     }
 
-    private async Task<HashSet<string>> GetAllInstalledWinGetPackagesAsync()
+    private async Task<(HashSet<string> PackageIds, HashSet<string> PackageNames)> GetAllInstalledWinGetPackagesAsync()
     {
-        var installedPackages = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
+        var installedPackageIds = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
+        var installedPackageNames = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
 
         try
         {
@@ -334,10 +345,11 @@ public class AppStatusDiscoveryService(
                 var startInfo = new System.Diagnostics.ProcessStartInfo
                 {
                     FileName = "winget",
-                    Arguments = "list --accept-source-agreements",
+                    Arguments = "list --accept-source-agreements --disable-interactivity",
                     UseShellExecute = false,
                     RedirectStandardOutput = true,
-                    CreateNoWindow = true
+                    CreateNoWindow = true,
+                    StandardOutputEncoding = System.Text.Encoding.UTF8
                 };
 
                 using var process = new System.Diagnostics.Process { StartInfo = startInfo };
@@ -363,12 +375,23 @@ public class AppStatusDiscoveryService(
                         process.Kill(true);
                     }
                     catch { }
-                    
+
                     logService.LogWarning("WinGet list command timed out after 30 seconds");
                     return;
                 }
 
-                ParseWinGetListOutput(output.ToString(), installedPackages);
+                var outputString = output.ToString();
+
+                if (outputString.TrimStart().StartsWith("{"))
+                {
+                    ParseWinGetJsonOutput(outputString, installedPackageIds, installedPackageNames);
+                }
+                else
+                {
+                    ParseWinGetTableOutput(outputString, installedPackageIds, installedPackageNames);
+                }
+
+                logService.LogInformation($"WinGet returned {installedPackageIds.Count} unique package IDs and {installedPackageNames.Count} unique names");
             });
         }
         catch (Exception ex)
@@ -376,45 +399,116 @@ public class AppStatusDiscoveryService(
             logService.LogError($"Error getting installed WinGet packages: {ex.Message}", ex);
         }
 
-        return installedPackages;
+        return (installedPackageIds, installedPackageNames);
     }
 
-    private void ParseWinGetListOutput(string output, HashSet<string> installedPackages)
+    private void ParseWinGetJsonOutput(string jsonOutput, HashSet<string> installedPackageIds, HashSet<string> installedPackageNames)
     {
-        var lines = output.Split('\n', StringSplitOptions.RemoveEmptyEntries);
-        bool headerPassed = false;
-
-        foreach (var line in lines)
+        try
         {
-            if (line.Contains("---"))
+            using var document = System.Text.Json.JsonDocument.Parse(jsonOutput);
+            var root = document.RootElement;
+
+            if (root.TryGetProperty("Sources", out var sources))
             {
-                headerPassed = true;
-                continue;
-            }
-
-            if (!headerPassed || string.IsNullOrWhiteSpace(line))
-                continue;
-
-            var trimmedLine = line.Trim();
-            var parts = trimmedLine.Split(new[] { ' ' }, StringSplitOptions.RemoveEmptyEntries);
-
-            if (parts.Length >= 2)
-            {
-                var appName = parts[0];
-                installedPackages.Add(appName);
-
-                foreach (var part in parts.Skip(1))
+                foreach (var source in sources.EnumerateArray())
                 {
-                    if (part.Contains('.') && !part.All(char.IsDigit) && !part.Contains('/'))
+                    if (source.TryGetProperty("Packages", out var packages))
                     {
-                        installedPackages.Add(part);
-                    }
-                    else if (part.Length > 10 && part.All(c => char.IsLetterOrDigit(c)))
-                    {
-                        installedPackages.Add(part);
+                        foreach (var package in packages.EnumerateArray())
+                        {
+                            if (package.TryGetProperty("Id", out var id))
+                            {
+                                var packageId = id.GetString();
+                                if (!string.IsNullOrEmpty(packageId))
+                                {
+                                    installedPackageIds.Add(packageId);
+                                }
+                            }
+
+                            if (package.TryGetProperty("Name", out var name))
+                            {
+                                var packageName = name.GetString();
+                                if (!string.IsNullOrEmpty(packageName))
+                                {
+                                    installedPackageNames.Add(packageName);
+                                }
+                            }
+                        }
                     }
                 }
             }
+
+            logService.LogInformation("Parsed WinGet JSON output successfully");
+        }
+        catch (Exception ex)
+        {
+            logService.LogError($"Error parsing WinGet JSON output: {ex.Message}", ex);
+        }
+    }
+
+    private void ParseWinGetTableOutput(string output, HashSet<string> installedPackageIds, HashSet<string> installedPackageNames)
+    {
+        try
+        {
+            var lines = output.Split('\n', StringSplitOptions.RemoveEmptyEntries);
+            bool headerPassed = false;
+            int? nameColumnStart = null;
+            int? idColumnStart = null;
+            int? versionColumnStart = null;
+
+            for (int i = 0; i < lines.Length; i++)
+            {
+                var line = lines[i];
+
+                if (line.Contains("---"))
+                {
+                    headerPassed = true;
+
+                    if (i > 0)
+                    {
+                        var headerLine = lines[i - 1];
+                        nameColumnStart = headerLine.IndexOf("Name", StringComparison.OrdinalIgnoreCase);
+                        idColumnStart = headerLine.IndexOf("Id", StringComparison.OrdinalIgnoreCase);
+                        versionColumnStart = headerLine.IndexOf("Version", StringComparison.OrdinalIgnoreCase);
+                    }
+
+                    continue;
+                }
+
+                if (!headerPassed)
+                    continue;
+
+                if (nameColumnStart.HasValue && idColumnStart.HasValue && line.Length > nameColumnStart.Value)
+                {
+                    var nameSection = line.Substring(nameColumnStart.Value, idColumnStart.Value - nameColumnStart.Value);
+                    var packageName = nameSection.Trim();
+                    if (!string.IsNullOrEmpty(packageName))
+                    {
+                        installedPackageNames.Add(packageName);
+                    }
+                }
+
+                if (idColumnStart.HasValue && line.Length > idColumnStart.Value)
+                {
+                    var idSection = versionColumnStart.HasValue && line.Length > versionColumnStart.Value
+                        ? line.Substring(idColumnStart.Value, versionColumnStart.Value - idColumnStart.Value)
+                        : line.Substring(idColumnStart.Value);
+
+                    var packageId = idSection.Trim();
+
+                    if (!string.IsNullOrEmpty(packageId) && packageId.Contains('.'))
+                    {
+                        installedPackageIds.Add(packageId);
+                    }
+                }
+            }
+
+            logService.LogInformation($"Parsed WinGet table output: {installedPackageIds.Count} IDs, {installedPackageNames.Count} names");
+        }
+        catch (Exception ex)
+        {
+            logService.LogError($"Error parsing WinGet table output: {ex.Message}", ex);
         }
     }
 
@@ -487,6 +581,10 @@ public class AppStatusDiscoveryService(
                         using var subKey = key.OpenSubKey(subKeyName);
                         if (subKey == null) continue;
 
+                        var systemComponent = subKey.GetValue("SystemComponent");
+                        if (systemComponent is int systemComponentValue && systemComponentValue == 1)
+                            continue;
+
                         var displayName = subKey.GetValue("DisplayName")?.ToString();
                         var publisher = subKey.GetValue("Publisher")?.ToString();
 
@@ -500,134 +598,62 @@ public class AppStatusDiscoveryService(
         }
     }
 
-    private bool FuzzyMatchProgram(string winGetPackageId, HashSet<(string DisplayName, string Publisher)> installedPrograms)
+    private bool MatchWinGetName(string definitionName, HashSet<string> wingetPackageNames)
     {
-        var parts = winGetPackageId.Split('.');
-        if (parts.Length < 2)
+        var normalizedDefName = NormalizeString(definitionName);
+
+        foreach (var wingetName in wingetPackageNames)
         {
-            var normalizedPackageId = NormalizeString(winGetPackageId);
-            foreach (var (displayName, _) in installedPrograms)
-            {
-                if (NormalizeString(displayName).Contains(normalizedPackageId))
-                    return true;
-            }
-            return false;
-        }
+            var normalizedWingetName = NormalizeString(wingetName);
 
-        var publisher = parts[0];
-        var productName = string.Join(".", parts.Skip(1));
-
-        var normalizedPublisher = NormalizeString(publisher);
-        var normalizedProduct = NormalizeString(productName);
-        var publisherWords = normalizedPublisher.Split(' ', StringSplitOptions.RemoveEmptyEntries);
-
-        foreach (var (displayName, vendor) in installedPrograms)
-        {
-            var normalizedDisplayName = NormalizeString(displayName);
-            var normalizedVendor = NormalizeString(vendor);
-
-            if (normalizedDisplayName.Contains(normalizedProduct))
-            {
-                if (string.IsNullOrEmpty(vendor) ||
-                    normalizedVendor.Contains(normalizedPublisher))
-                {
-                    return true;
-                }
-            }
-
-            if (normalizedDisplayName.Contains(normalizedProduct))
-            {
-                var vendorWords = normalizedVendor.Split(' ', StringSplitOptions.RemoveEmptyEntries);
-
-                if (publisherWords.Any(pw => vendorWords.Any(vw => vw.Contains(pw) || pw.Contains(vw))))
-                {
-                    return true;
-                }
-            }
-
-            if (normalizedProduct.Length >= 5)
-            {
-                var productWords = normalizedProduct.Split(' ', StringSplitOptions.RemoveEmptyEntries);
-                foreach (var word in productWords)
-                {
-                    if (word.Length >= 4 && normalizedDisplayName.Contains(word))
-                    {
-                        if (string.IsNullOrEmpty(vendor))
-                            return true;
-
-                        if (normalizedVendor.Contains(normalizedPublisher) ||
-                            publisherWords.Any(pw => normalizedVendor.Contains(pw)))
-                        {
-                            return true;
-                        }
-                    }
-                }
-            }
-        }
-
-        foreach (var (displayName, _) in installedPrograms)
-        {
-            var normalizedDisplayName = NormalizeString(displayName);
-
-            if (normalizedProduct.Length >= 6 && normalizedDisplayName.Contains(normalizedProduct))
-            {
+            if (normalizedWingetName == normalizedDefName)
                 return true;
-            }
 
-            var productWords = SplitIntoWords(productName)
-                .Select(w => NormalizeString(w))
-                .Where(w => w.Length >= 4)
-                .ToList();
-
-            if (productWords.Count >= 2)
-            {
-                var allWordsMatch = productWords.All(word => normalizedDisplayName.Contains(word));
-
-                if (allWordsMatch)
-                {
-                    var combinedWordLength = productWords.Sum(w => w.Length);
-                    if (combinedWordLength >= 10)
-                    {
-                        return true;
-                    }
-                }
-            }
+            if (normalizedWingetName.StartsWith(normalizedDefName + " ") ||
+                normalizedWingetName.StartsWith(normalizedDefName + "-"))
+                return true;
         }
 
         return false;
     }
 
-    private List<string> SplitIntoWords(string input)
+    private bool FuzzyMatchProgram(string winGetPackageId, HashSet<(string DisplayName, string Publisher)> installedPrograms)
     {
-        if (string.IsNullOrEmpty(input))
-            return new List<string>();
+        var parts = winGetPackageId.Split('.');
 
-        var words = new List<string>();
-        var currentWord = new StringBuilder();
-
-        foreach (var ch in input)
+        if (parts.Length < 2)
         {
-            if (char.IsUpper(ch) && currentWord.Length > 0)
-            {
-                words.Add(currentWord.ToString());
-                currentWord.Clear();
-            }
-
-            if (char.IsLetterOrDigit(ch))
-            {
-                currentWord.Append(ch);
-            }
-            else if (currentWord.Length > 0)
-            {
-                words.Add(currentWord.ToString());
-                currentWord.Clear();
-            }
+            var normalized = NormalizeString(winGetPackageId);
+            return installedPrograms.Any(p => NormalizeString(p.DisplayName).Contains(normalized));
         }
 
-        if (currentWord.Length > 0)
-            words.Add(currentWord.ToString());
+        var publisher = NormalizeString(parts[0]);
+        var productName = NormalizeString(string.Join(".", parts.Skip(1)));
 
-        return words;
+        foreach (var (displayName, vendor) in installedPrograms)
+        {
+            var normDisplayName = NormalizeString(displayName);
+            var normVendor = NormalizeString(vendor);
+
+            if (normDisplayName.Contains(productName))
+            {
+                if (normDisplayName.Contains("add-in") ||
+                    normDisplayName.Contains("for " + productName) ||
+                    normDisplayName.Contains("plugin"))
+                {
+                    continue;
+                }
+
+                if (string.IsNullOrEmpty(vendor) || normVendor.Contains(publisher))
+                    return true;
+            }
+
+            var fullId = NormalizeString(winGetPackageId).Replace(".", "");
+            if (normDisplayName.Replace(" ", "").Contains(fullId))
+                return true;
+        }
+
+        return false;
     }
 
     private string NormalizeString(string input)
