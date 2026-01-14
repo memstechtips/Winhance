@@ -981,7 +981,7 @@ catch {{
                     StartInfo = new System.Diagnostics.ProcessStartInfo
                     {
                         FileName = "powershell.exe",
-                        Arguments = $"-Command \"(Mount-DiskImage -ImagePath '{isoPath}' -PassThru | Get-Volume).DriveLetter\"",
+                        Arguments = $"-NoProfile -Command \"(Mount-DiskImage -ImagePath '{isoPath}' -PassThru | Get-Volume).DriveLetter\"",
                         RedirectStandardOutput = true,
                         RedirectStandardError = true,
                         UseShellExecute = false,
@@ -990,8 +990,11 @@ catch {{
                 };
 
                 mountProcess.Start();
-                var driveLetter = (await mountProcess.StandardOutput.ReadToEndAsync()).Trim();
+                var rawOutput = await mountProcess.StandardOutput.ReadToEndAsync();
                 await mountProcess.WaitForExitAsync(cancellationToken);
+
+                var driveLetterMatch = System.Text.RegularExpressions.Regex.Match(rawOutput, @"\b[A-Z]\b");
+                var driveLetter = driveLetterMatch.Success ? driveLetterMatch.Value : string.Empty;
 
                 if (string.IsNullOrEmpty(driveLetter) || mountProcess.ExitCode != 0)
                 {
@@ -1024,7 +1027,7 @@ catch {{
                     StartInfo = new System.Diagnostics.ProcessStartInfo
                     {
                         FileName = "powershell.exe",
-                        Arguments = $"-Command \"Dismount-DiskImage -ImagePath '{isoPath}'\"",
+                        Arguments = $"-NoProfile -Command \"Dismount-DiskImage -ImagePath '{isoPath}'\"",
                         RedirectStandardOutput = true,
                         RedirectStandardError = true,
                         UseShellExecute = false,
@@ -1075,7 +1078,7 @@ catch {{
                             StartInfo = new System.Diagnostics.ProcessStartInfo
                             {
                                 FileName = "powershell.exe",
-                                Arguments = $"-Command \"Dismount-DiskImage -ImagePath '{isoPath}'\"",
+                                Arguments = $"-NoProfile -Command \"Dismount-DiskImage -ImagePath '{isoPath}'\"",
                                 RedirectStandardOutput = true,
                                 RedirectStandardError = true,
                                 UseShellExecute = false,
@@ -1112,7 +1115,7 @@ catch {{
                             StartInfo = new System.Diagnostics.ProcessStartInfo
                             {
                                 FileName = "powershell.exe",
-                                Arguments = $"-Command \"Dismount-DiskImage -ImagePath '{isoPath}'\"",
+                                Arguments = $"-NoProfile -Command \"Dismount-DiskImage -ImagePath '{isoPath}'\"",
                                 RedirectStandardOutput = true,
                                 RedirectStandardError = true,
                                 UseShellExecute = false,
