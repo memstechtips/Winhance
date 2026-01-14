@@ -120,6 +120,7 @@ namespace Winhance.WPF.Features.Common.Constants
         {
             public static readonly Dictionary<string, string> SupportedLanguages = new()
             {
+                { "af", "Afrikaans" },
                 { "en", "English" },
                 { "es", "Español (Spanish)" },
                 { "fr", "Français (French)" },
@@ -140,7 +141,8 @@ namespace Winhance.WPF.Features.Common.Constants
                 { "pl", "Polski (Polish)" },
                 { "sv", "Svenska (Swedish)" },
                 { "vi", "Tiếng Việt (Vietnamese)" },
-                { "uk", "Українська (Ukrainian)" }
+                { "uk", "Українська (Ukrainian)" },
+                { "el", "Ελληνικά (Greek)" }
             };
         }
 
