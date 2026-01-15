@@ -14,6 +14,7 @@ namespace Winhance.WPF.Features.Common.Services
         private Dictionary<string, string> _currentStrings;
         private Dictionary<string, string> _fallbackStrings;
         private readonly string _localizationPath;
+        private string _currentLanguageCode;
 
         public event EventHandler? LanguageChanged;
 
@@ -23,12 +24,12 @@ namespace Winhance.WPF.Features.Common.Services
             _localizationPath = Path.Combine(baseDir, "Localization");
 
             _currentCulture = CultureInfo.CurrentUICulture;
-
             _fallbackStrings = LoadLanguageFile("en");
-            _currentStrings = LoadLanguageFile(_currentCulture.TwoLetterISOLanguageName);
+            _currentLanguageCode = ResolveLanguageCode(_currentCulture);
+            _currentStrings = LoadLanguageFile(_currentLanguageCode);
         }
 
-        public string CurrentLanguage => _currentCulture.TwoLetterISOLanguageName;
+        public string CurrentLanguage => _currentLanguageCode;
 
         public string GetString(string key)
         {
@@ -64,6 +65,7 @@ namespace Winhance.WPF.Features.Common.Services
             {
                 var culture = CultureInfo.GetCultureInfo(languageCode);
                 _currentCulture = culture;
+                _currentLanguageCode = languageCode;
 
                 _currentStrings = LoadLanguageFile(languageCode);
 
@@ -77,6 +79,22 @@ namespace Winhance.WPF.Features.Common.Services
             {
                 return false;
             }
+        }
+
+        private string ResolveLanguageCode(CultureInfo culture)
+        {
+            var availableLanguages = GetAvailableLanguages().ToList();
+
+            if (availableLanguages.Contains(culture.Name))
+                return culture.Name;
+
+            if (availableLanguages.Contains(culture.Parent.Name))
+                return culture.Parent.Name;
+
+            if (availableLanguages.Contains(culture.TwoLetterISOLanguageName))
+                return culture.TwoLetterISOLanguageName;
+
+            return "en";
         }
 
         public IEnumerable<string> GetAvailableLanguages()
