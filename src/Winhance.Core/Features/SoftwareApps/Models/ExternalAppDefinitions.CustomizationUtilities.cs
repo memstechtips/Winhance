@@ -22,7 +22,6 @@ namespace Winhance.Core.Features.SoftwareApps.Models
                             Description = "Windows context menu customization tool",
                             GroupName = "Customization Utilities",
                             WinGetPackageId = "Nilesoft.Shell",
-                            Category = "Customization Utilities",
                             WebsiteUrl = "https://nilesoft.org/"
                         },
                         new ItemDefinition
@@ -32,7 +31,6 @@ namespace Winhance.Core.Features.SoftwareApps.Models
                             Description = "Windows 11 Start menu and taskbar customization",
                             GroupName = "Customization Utilities",
                             WinGetPackageId = "StartIsBack.StartAllBack",
-                            Category = "Customization Utilities",
                             WebsiteUrl = "https://www.startallback.com/"
                         },
                         new ItemDefinition
@@ -42,7 +40,6 @@ namespace Winhance.Core.Features.SoftwareApps.Models
                             Description = "Classic style Start Menu for Windows",
                             GroupName = "Customization Utilities",
                             WinGetPackageId = "Open-Shell.Open-Shell-Menu",
-                            Category = "Customization Utilities",
                             WebsiteUrl = "https://open-shell.github.io/Open-Shell-Menu/"
                         },
                         new ItemDefinition
@@ -52,7 +49,6 @@ namespace Winhance.Core.Features.SoftwareApps.Models
                             Description = "Customization platform for Windows",
                             GroupName = "Customization Utilities",
                             WinGetPackageId = "RamenSoftware.Windhawk",
-                            Category = "Customization Utilities",
                             WebsiteUrl = "https://windhawk.net/"
                         },
                         new ItemDefinition
@@ -62,7 +58,6 @@ namespace Winhance.Core.Features.SoftwareApps.Models
                             Description = "Free and open-source animated desktop wallpaper application",
                             GroupName = "Customization Utilities",
                             WinGetPackageId = "rocksdanister.LivelyWallpaper",
-                            Category = "Customization Utilities",
                             WebsiteUrl = "https://www.rocksdanister.com/lively/"
                         },
                         new ItemDefinition
@@ -72,7 +67,6 @@ namespace Winhance.Core.Features.SoftwareApps.Models
                             Description = "Free and open-source animated desktop wallpaper application",
                             GroupName = "Customization Utilities",
                             WinGetPackageId = "Taiizor.SucroseWallpaperEngine",
-                            Category = "Customization Utilities",
                             WebsiteUrl = "https://github.com/Taiizor/Sucrose"
                         },
                         new ItemDefinition
@@ -82,7 +76,6 @@ namespace Winhance.Core.Features.SoftwareApps.Models
                             Description = "Desktop customization tool for Windows",
                             GroupName = "Customization Utilities",
                             WinGetPackageId = "Rainmeter.Rainmeter",
-                            Category = "Customization Utilities",
                             WebsiteUrl = "https://www.rainmeter.net/"
                         },
                         new ItemDefinition
@@ -92,7 +85,6 @@ namespace Winhance.Core.Features.SoftwareApps.Models
                             Description = "Utility that enhances the Windows Explorer experience",
                             GroupName = "Customization Utilities",
                             WinGetPackageId = "valinet.ExplorerPatcher",
-                            Category = "Customization Utilities",
                             WebsiteUrl = "https://github.com/valinet/ExplorerPatcher"
                         },
                         new ItemDefinition
@@ -102,7 +94,6 @@ namespace Winhance.Core.Features.SoftwareApps.Models
                             Description = "The advanced docking system for Windows",
                             GroupName = "Customization Utilities",
                             WinGetPackageId = "WinStep.Nexus",
-                            Category = "Customization Utilities",
                             WebsiteUrl = "https://www.winstep.net/nexus.asp"
                         }
                     }

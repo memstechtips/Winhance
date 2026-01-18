@@ -20,7 +20,6 @@ namespace Winhance.Core.Features.SoftwareApps.Models
                         Description = "Allows running Linux binary executables natively on Windows",
                         GroupName = "Development",
                         OptionalFeatureName = "Microsoft-Windows-Subsystem-Linux",
-                        Category = "Development",
                         RequiresReboot = true,
                         CanBeReinstalled = true
                     },
@@ -31,7 +30,6 @@ namespace Winhance.Core.Features.SoftwareApps.Models
                         Description = "Core virtualization platform without Hyper-V management tools",
                         GroupName = "Virtualization",
                         OptionalFeatureName = "Microsoft-Hyper-V-Hypervisor",
-                        Category = "Virtualization",
                         RequiresReboot = true,
                         CanBeReinstalled = true
                     },
@@ -42,7 +40,6 @@ namespace Winhance.Core.Features.SoftwareApps.Models
                         Description = "Virtualization platform for running multiple operating systems",
                         GroupName = "Virtualization",
                         OptionalFeatureName = "Microsoft-Hyper-V-All",
-                        Category = "Virtualization",
                         RequiresReboot = true,
                         CanBeReinstalled = true
                     },
@@ -53,7 +50,6 @@ namespace Winhance.Core.Features.SoftwareApps.Models
                         Description = "Tools for managing Hyper-V virtual machines",
                         GroupName = "Virtualization",
                         OptionalFeatureName = "Microsoft-Hyper-V-Tools-All",
-                        Category = "Virtualization",
                         RequiresReboot = false,
                         CanBeReinstalled = true
                     },
@@ -64,7 +60,6 @@ namespace Winhance.Core.Features.SoftwareApps.Models
                         Description = "Legacy .NET Framework for older applications",
                         GroupName = "Development",
                         OptionalFeatureName = "NetFx3",
-                        Category = "Development",
                         RequiresReboot = true,
                         CanBeReinstalled = true
                     },
@@ -75,7 +70,6 @@ namespace Winhance.Core.Features.SoftwareApps.Models
                         Description = "Isolated desktop environment for running applications",
                         GroupName = "Security",
                         OptionalFeatureName = "Containers-DisposableClientVM",
-                        Category = "Security",
                         RequiresReboot = true,
                         CanBeReinstalled = true
                     },
@@ -86,7 +80,6 @@ namespace Winhance.Core.Features.SoftwareApps.Models
                         Description = "Windows 11 feature that records user activity",
                         GroupName = "System",
                         OptionalFeatureName = "Recall",
-                        Category = "System",
                         RequiresReboot = false,
                         CanBeReinstalled = true
                     }

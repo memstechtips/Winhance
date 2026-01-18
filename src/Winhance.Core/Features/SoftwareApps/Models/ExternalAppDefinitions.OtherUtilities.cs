@@ -19,7 +19,6 @@ namespace Winhance.Core.Features.SoftwareApps.Models
                             Description = "Driver installer and updater",
                             GroupName = "Other Utilities",
                             WinGetPackageId = "GlennDelahoy.SnappyDriverInstallerOrigin",
-                            Category = "Other Utilities",
                             WebsiteUrl = "https://www.snappy-driver-installer.org/"
                         },
                         new ItemDefinition
@@ -29,7 +28,6 @@ namespace Winhance.Core.Features.SoftwareApps.Models
                             Description = "Registry cleaning and optimization tool",
                             GroupName = "Other Utilities",
                             WinGetPackageId = "XPDLS1XBTXVPP4",
-                            Category = "Other Utilities",
                             WebsiteUrl = "https://www.wisecleaner.com/wise-registry-cleaner.html"
                         },
                         new ItemDefinition
@@ -39,7 +37,6 @@ namespace Winhance.Core.Features.SoftwareApps.Models
                             Description = "Universal package manager interface supporting WinGet, Chocolatey, and more",
                             GroupName = "Other Utilities",
                             WinGetPackageId = "MartiCliment.UniGetUI",
-                            Category = "Other Utilities",
                             WebsiteUrl = "https://www.marticliment.com/unigetui/"
                         },
                         new ItemDefinition
@@ -49,7 +46,6 @@ namespace Winhance.Core.Features.SoftwareApps.Models
                             Description = "Open source RGB lighting control software",
                             GroupName = "Other Utilities",
                             WinGetPackageId = "OpenRGB.OpenRGB",
-                            Category = "Other Utilities",
                             WebsiteUrl = "https://openrgb.org/"
                         },
                         new ItemDefinition
@@ -59,7 +55,6 @@ namespace Winhance.Core.Features.SoftwareApps.Models
                             Description = "Download management tool",
                             GroupName = "Other Utilities",
                             WinGetPackageId = "AppWork.JDownloader",
-                            Category = "Other Utilities",
                             WebsiteUrl = "https://jdownloader.org/"
                         },
                         new ItemDefinition
@@ -69,7 +64,6 @@ namespace Winhance.Core.Features.SoftwareApps.Models
                             Description = "Audiobook manager and converter for Audible files",
                             GroupName = "Other Utilities",
                             WinGetPackageId = "OpenAudible.OpenAudible",
-                            Category = "Other Utilities",
                             WebsiteUrl = "https://openaudible.org/"
                         },
                         new ItemDefinition
@@ -79,7 +73,6 @@ namespace Winhance.Core.Features.SoftwareApps.Models
                             Description = "Document scanning application with OCR support",
                             GroupName = "Other Utilities",
                             WinGetPackageId = "Cyanfish.NAPS2",
-                            Category = "Other Utilities",
                             WebsiteUrl = "https://www.naps2.com/"
                         },
                         new ItemDefinition
@@ -89,7 +82,6 @@ namespace Winhance.Core.Features.SoftwareApps.Models
                             Description = "Free and open-source virtualization software",
                             GroupName = "Other Utilities",
                             WinGetPackageId = "Oracle.VirtualBox",
-                            Category = "Other Utilities",
                             WebsiteUrl = "https://www.virtualbox.org/"
                         }
                     }

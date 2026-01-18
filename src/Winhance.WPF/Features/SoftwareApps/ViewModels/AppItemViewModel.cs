@@ -55,7 +55,7 @@ public partial class AppItemViewModel : ObservableObject, ISelectable
     private string _status = string.Empty;
 
     public string Description => Definition.Description;
-    public string Category => Definition.Category;
+    public string GroupName => Definition.GroupName ?? string.Empty;
     public string Id => Definition.Id;
     public bool IsInstalled
     {
