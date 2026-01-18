@@ -1075,7 +1075,8 @@ namespace Winhance.WPF.Features.Common.ViewModels
                 if (groupedSettings.Any())
                 {
                     var lines = groupedSettings.Select(kvp => $"• {kvp.Key}: {string.Join(", ", kvp.Value)}");
-                    var message = "This setting also controls:\n" + string.Join("\n", lines);
+                    var header = _localizationService.GetString("Setting_CrossGroupWarning_Header");
+                    var message = header + "\n" + string.Join("\n", lines);
 
                     Application.Current.Dispatcher.Invoke(() => WarningText = message);
                 }

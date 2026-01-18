@@ -1693,15 +1693,7 @@ namespace Winhance.WPF.Features.AdvancedTools.ViewModels
 
         private void UpdateConversionCardState()
         {
-            if (BothFormatsExist)
-            {
-                ConvertImageCard.Icon = "Alert";
-                ConvertImageCard.Title = "Both WIM and ESD Found";
-                ConvertImageCard.Description = "Both install.wim and install.esd exist. Only one should be present. Please delete one to continue.";
-                ConvertImageCard.ButtonText = string.Empty;
-                ConvertImageCard.IsEnabled = false;
-                return;
-            }
+            if (BothFormatsExist) return;
 
             if (CurrentImageFormat == null)
             {
@@ -1752,8 +1744,8 @@ namespace Winhance.WPF.Features.AdvancedTools.ViewModels
             try
             {
                 if (!_dialogService.ShowLocalizedConfirmationDialog(
-                    "Dialog_DeleteWim",
-                    "WIMUtil_Msg_DeleteWimConfirm",
+                    "Dialog_DeleteImg",
+                    "WIMUtil_Msg_DeleteImgConfirm",
                     DialogType.Warning,
                     "Alert"))
                 {
@@ -1806,8 +1798,8 @@ namespace Winhance.WPF.Features.AdvancedTools.ViewModels
             try
             {
                 if (!_dialogService.ShowLocalizedConfirmationDialog(
-                    "Dialog_DeleteEsd",
-                    "WIMUtil_Msg_DeleteEsdConfirm",
+                    "Dialog_DeleteImg",
+                    "WIMUtil_Msg_DeleteImgConfirm",
                     DialogType.Warning,
                     "Alert"))
                 {

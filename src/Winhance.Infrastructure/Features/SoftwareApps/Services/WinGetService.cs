@@ -603,7 +603,7 @@ namespace Winhance.Infrastructure.Features.SoftwareApps.Services
                 progress?.Report(new TaskProgressDetail
                 {
                     Progress = 10,
-                    StatusText = "Checking for WinGet updates..."
+                    StatusText = _localization.GetString("Progress_WinGet_CheckingUpdates")
                 });
 
                 string wingetPath = _wingetExePath ?? "winget";
@@ -611,7 +611,7 @@ namespace Winhance.Infrastructure.Features.SoftwareApps.Services
                                "--accept-source-agreements --accept-package-agreements " +
                                "--disable-interactivity --silent";
 
-                var result = await ExecuteProcessAsync(wingetPath, arguments, "WinGet Update", cancellationToken, "Updating WinGet");
+                var result = await ExecuteProcessAsync(wingetPath, arguments, "WinGet Update", cancellationToken, _localization.GetString("Progress_WinGet_Updating"));
 
                 if (result.ExitCode == 0 ||
                     result.ExitCode == -2147467260 ||
@@ -624,7 +624,7 @@ namespace Winhance.Infrastructure.Features.SoftwareApps.Services
                         progress?.Report(new TaskProgressDetail
                         {
                             Progress = 50,
-                            StatusText = "Waiting for WinGet update to complete..."
+                            StatusText = _localization.GetString("Progress_WinGet_WaitingForUpdate")
                         });
 
                         bool isReady = false;
@@ -648,20 +648,20 @@ namespace Winhance.Infrastructure.Features.SoftwareApps.Services
                         }
                     }
 
-                    var status = result.ExitCode switch
+                    var statusKey = result.ExitCode switch
                     {
-                        0 => "WinGet updated successfully",
-                        -2147467260 => "WinGet update completed",
-                        -1978335189 => "WinGet is already up to date",
-                        -1978335135 => "WinGet is already installed at latest version",
-                        _ => "WinGet is ready"
+                        0 => "Progress_WinGet_UpdateSuccess",
+                        -2147467260 => "Progress_WinGet_UpdateCompleted",
+                        -1978335189 => "Progress_WinGet_AlreadyUpToDate",
+                        -1978335135 => "Progress_WinGet_InstalledLatest",
+                        _ => "Progress_WinGet_Ready"
                     };
 
-                    logService?.LogInformation($"{status} (exit code: {result.ExitCode})");
+                    logService?.LogInformation($"{statusKey} (exit code: {result.ExitCode})");
                     progress?.Report(new TaskProgressDetail
                     {
                         Progress = 100,
-                        StatusText = "WinGet is ready"
+                        StatusText = _localization.GetString(statusKey)
                     });
 
                     await RegisterDesktopAppInstallerAsync(cancellationToken);
@@ -673,7 +673,7 @@ namespace Winhance.Infrastructure.Features.SoftwareApps.Services
                 progress?.Report(new TaskProgressDetail
                 {
                     Progress = 40,
-                    StatusText = "Reinstalling WinGet..."
+                    StatusText = _localization.GetString("Progress_WinGet_Reinstalling")
                 });
 
                 return await InstallWinGetAsync(cancellationToken);
