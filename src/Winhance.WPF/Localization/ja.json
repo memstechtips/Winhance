@@ -1395,5 +1395,7 @@
   "Dialog_AdvancedPowerWarning_Message": "⚠️ 詳細な電源設定の警告\n\nこの設定は通常Windowsの電源オプションには表示されず、アクセスするにはレジストリの変更が必要です。\n\n誤って変更すると、次の問題が発生する可能性があります：\n• システムの不安定性または予期しない動作\n• パフォーマンスの低下\n• 熱管理の問題\n• 設定がすべてのCPUタイプ（最新のHWP対レガシー）で機能しない可能性がある\n\nプロセッサの電源管理を理解している場合にのみ、これを変更してください。\n\nこの設定を変更してもよろしいですか？",
   "Dialog_AdvancedPowerWarning_DontShowAgain": "詳細な電源設定について、この警告を再度表示しない",
   "Button_Unlock": "ロック解除",
-  "Common_ClickToUnlock": "クリックしてロック解除"
+  "Common_ClickToUnlock": "クリックしてロック解除",
+  "Setting_taskbar-copilot_Name": "Copilot プレビューボタン",
+  "Setting_taskbar-copilot_Description": "タスクバーの Copilot プレビューボタンを表示または非表示にします"
 }

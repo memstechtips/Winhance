@@ -1395,5 +1395,7 @@
   "Dialog_AdvancedPowerWarning_Message": "⚠️ Išplėstinio energijos nustatymo įspėjimas\n\nŠis nustatymas paprastai nerodomas Windows energijos parinktyse ir reikalauja registro modifikacijų, kad būtų pasiekiamas.\n\nNetinkamai jį modifikavus, gali kilti:\n• Sistemos nestabilumas ar netikėta elgsena\n• Našumo pablogėjimas\n• Šilumos valdymo problemos\n• Nustatymai gali neveikti visų tipų procesoriuose (šiuolaikiniuose HWP ir senuosiuose)\n\nKeiskite tai tik jei suprantate procesoriaus energijos valdymą.\n\nAr tikrai norite modifikuoti šį nustatymą?",
   "Dialog_AdvancedPowerWarning_DontShowAgain": "Daugiau nerodyti šio įspėjimo dėl išplėstinių energijos nustatymų",
   "Button_Unlock": "Atrakinti",
-  "Common_ClickToUnlock": "Spustelėkite, kad atrakintumėte"
+  "Common_ClickToUnlock": "Spustelėkite, kad atrakintumėte",
+  "Setting_taskbar-copilot_Name": "Copilot peržiūros mygtukas",
+  "Setting_taskbar-copilot_Description": "Rodyti arba slėpti Copilot peržiūros mygtuką užduočių juostoje"
 }

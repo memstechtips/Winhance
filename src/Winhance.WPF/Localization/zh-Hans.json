@@ -1395,5 +1395,7 @@
   "Dialog_AdvancedPowerWarning_Message": "⚠️ 高级电源设置警告\n\n此设置通常不会在 Windows 电源选项中公开，需要修改注册表才能访问。\n\n不正确地修改它可能会导致：\n• 系统不稳定或意外行为\n• 性能下降\n• 热管理问题\n• 设置可能不适用于所有 CPU 类型（现代 HWP 与旧版）\n\n仅当您了解处理器电源管理时才更改此设置。\n\n您确定要修改此设置吗？",
   "Dialog_AdvancedPowerWarning_DontShowAgain": "不再显示此高级电源设置警告",
   "Button_Unlock": "解锁",
-  "Common_ClickToUnlock": "点击解锁"
+  "Common_ClickToUnlock": "点击解锁",
+  "Setting_taskbar-copilot_Name": "Copilot 预览按钮",
+  "Setting_taskbar-copilot_Description": "在任务栏上显示或隐藏 Copilot 预览按钮"
 }

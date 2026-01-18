@@ -1395,5 +1395,7 @@
   "Dialog_AdvancedPowerWarning_Message": "⚠️ Warnung vor erweiterten Energieeinstellungen\n\nDiese Einstellung wird normalerweise nicht in den Windows-Energieoptionen angezeigt und erfordert Registrierungsänderungen für den Zugriff.\n\nEine falsche Änderung kann zu Folgendem führen:\n• Systeminstabilität oder unerwartetes Verhalten\n• Leistungsabfall\n• Probleme mit dem Wärmemanagement\n• Einstellungen funktionieren möglicherweise nicht auf allen CPU-Typen (moderne HWP vs. Legacy)\n\nÄndern Sie dies nur, wenn Sie die Prozessor-Energieverwaltung verstehen.\n\nSind Sie sicher, dass Sie diese Einstellung ändern möchten?",
   "Dialog_AdvancedPowerWarning_DontShowAgain": "Diese Warnung für erweiterte Energieeinstellungen nicht mehr anzeigen",
   "Button_Unlock": "Entsperren",
-  "Common_ClickToUnlock": "Zum Entsperren klicken"
+  "Common_ClickToUnlock": "Zum Entsperren klicken",
+  "Setting_taskbar-copilot_Name": "Copilot-Vorschau-Schaltfläche",
+  "Setting_taskbar-copilot_Description": "Copilot-Vorschau-Schaltfläche auf der Taskleiste ein- oder ausblenden"
 }

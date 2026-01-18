@@ -1395,5 +1395,7 @@
   "Dialog_AdvancedPowerWarning_Message": "⚠️ Papildu enerģijas iestatījumu brīdinājums\n\nŠis iestatījums parasti nav pieejams Windows enerģijas opcijās un prasa reģistra modifikācijas, lai tam piekļūtu.\n\nNepareiza modifikācija var izraisīt:\n• Sistēmas nestabilitāti vai negaidītu uzvedību\n• Veiktspējas pasliktināšanos\n• Termiskās pārvaldības problēmas\n• Iestatījumi var nedarboties visos CPU tipos (mūsdienu HWP pret mantotajiem)\n\nTikai mainiet šo, ja saprotat procesora enerģijas pārvaldību.\n\nVai esat pārliecināts, ka vēlaties modificēt šo iestatījumu?",
   "Dialog_AdvancedPowerWarning_DontShowAgain": "Vairs nerādīt šo brīdinājumu par papildu enerģijas iestatījumiem",
   "Button_Unlock": "Atbloķēt",
-  "Common_ClickToUnlock": "Noklikšķiniet, lai atbloķētu"
+  "Common_ClickToUnlock": "Noklikšķiniet, lai atbloķētu",
+  "Setting_taskbar-copilot_Name": "Copilot priekšskatījuma poga",
+  "Setting_taskbar-copilot_Description": "Rādīt vai slēpt Copilot priekšskatījuma pogu uzdevumjoslā"
 }

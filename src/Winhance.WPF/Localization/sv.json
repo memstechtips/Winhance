@@ -1395,5 +1395,7 @@
   "Dialog_AdvancedPowerWarning_Message": "⚠️ Varning för avancerad energiinställning\n\nDenna inställning visas normalt inte i Windows Energialternativ och kräver registerändringar för att komma åt.\n\nFelaktig modifiering kan orsaka:\n• Systeminstabilitet eller oväntat beteende\n• Prestandaförsämring\n• Problem med värmehantering\n• Inställningar kanske inte fungerar på alla CPU-typer (moderna HWP vs äldre)\n\nÄndra endast detta om du förstår processorströmhantering.\n\nÄr du säker på att du vill ändra den här inställningen?",
   "Dialog_AdvancedPowerWarning_DontShowAgain": "Visa inte den här varningen igen för avancerade energiinställningar",
   "Button_Unlock": "Lås upp",
-  "Common_ClickToUnlock": "Klicka för att låsa upp"
+  "Common_ClickToUnlock": "Klicka för att låsa upp",
+  "Setting_taskbar-copilot_Name": "Copilot-förhandsgranskningsknapp",
+  "Setting_taskbar-copilot_Description": "Visa eller dölj Copilot-förhandsgranskningsknappen i aktivitetsfältet"
 }

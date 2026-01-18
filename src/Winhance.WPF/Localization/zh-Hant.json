@@ -1395,5 +1395,7 @@
   "Dialog_AdvancedPowerWarning_Message": "⚠️ 進階電源設定警告\n\n此設定通常不顯示在 Windows 電源選項中，需要修改登錄檔才能存取。\n\n不正確的修改可能會導致：\n• 系統不穩定或意外行為\n• 效能降低\n• 散熱管理問題\n• 設定可能無法在所有 CPU 類型上運作 (現代 HWP 與舊版)\n\n除非您了解處理器電源管理，否則請勿變更此設定。\n\n您確定要修改此設定嗎？",
   "Dialog_AdvancedPowerWarning_DontShowAgain": "針對進階電源設定不再顯示此警告",
   "Button_Unlock": "解鎖",
-  "Common_ClickToUnlock": "點擊以解鎖"
+  "Common_ClickToUnlock": "點擊以解鎖",
+  "Setting_taskbar-copilot_Name": "Copilot 預覽按鈕",
+  "Setting_taskbar-copilot_Description": "顯示或隱藏工作列上的 Copilot 預覽按鈕"
 }

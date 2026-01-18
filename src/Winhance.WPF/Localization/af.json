@@ -1395,5 +1395,7 @@
   "Dialog_AdvancedPowerWarning_Message": "⚠️ Gevorderde Krag Instelling Waarskuwing\n\nHierdie instelling word nie normaalweg in Windows Kragopsies blootgestel nie en vereis registerwysigings om toegang te verkry.\n\nOm dit verkeerd te wysig mag veroorsaak:\n• Stelselonstabiliteit of onverwagte gedrag\n• Verrigtingdegradasie\n• Termiese bestuur probleme\n• Instellings mag nie op alle SVE tipes werk nie (moderne HWP vs nalatenskap)\n\nVerander dit slegs as jy verwerker kragbestuur verstaan.\n\nIs jy seker jy wil hierdie instelling wysig?",
   "Dialog_AdvancedPowerWarning_DontShowAgain": "Moenie hierdie waarskuwing weer wys vir gevorderde kraginstellings nie",
   "Button_Unlock": "Ontsluit",
-  "Common_ClickToUnlock": "Klik om te ontsluit"
+  "Common_ClickToUnlock": "Klik om te ontsluit",
+  "Setting_taskbar-copilot_Name": "Copilot Voorskou Knoppie",
+  "Setting_taskbar-copilot_Description": "Wys of verberg die Copilot Voorskou knoppie op die taakbalk"
 }

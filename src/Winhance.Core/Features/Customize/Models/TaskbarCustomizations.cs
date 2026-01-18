@@ -269,6 +269,36 @@ public static class TaskbarCustomizations
                 },
                 new SettingDefinition
                 {
+                    Id = "taskbar-copilot",
+                    Name = "Copilot Preview Button",
+                    Description = "Show or hide the Copilot Preview button on the taskbar",
+                    GroupName = "Taskbar Icons",
+                    InputType = InputType.Toggle,
+                    IconPack = "Lucide",
+                    Icon = "Bot",
+                    SupportedBuildRanges = new List<(int, int)>
+                    {
+                        (19045, 19045), // Windows 10 22H2
+                        (22621, 26099)  // Windows 11 22H2/23H2+
+                    },
+                    RestartProcess = "Explorer",
+                    RegistrySettings = new List<RegistrySetting>
+                    {
+                        new RegistrySetting
+                        {
+                            KeyPath = @"HKEY_CURRENT_USER\Software\Microsoft\Windows\CurrentVersion\Explorer\Advanced",
+                            ValueName = "ShowCopilotButton",
+                            RecommendedValue = 0, // Hidden
+                            EnabledValue = 1,     // Show
+                            DisabledValue = 0,    // Hide
+                            DefaultValue = 1,
+                            ValueType = RegistryValueKind.DWord,
+                            AbsenceMeansEnabled = true,
+                        },
+                    },
+                },
+                new SettingDefinition
+                {
                     Id = "taskbar-widgets",
                     Name = "Show Widgets",
                     Description = "Show the Widgets button that displays personalized news, weather, calendar, and other information",

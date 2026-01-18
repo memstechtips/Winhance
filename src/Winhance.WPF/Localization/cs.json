@@ -1395,5 +1395,7 @@
   "Dialog_AdvancedPowerWarning_Message": "⚠️ Varování pokročilého nastavení napájení\n\nToto nastavení není běžně zobrazeno v Možnostech napájení systému Windows a vyžaduje úpravy registru pro přístup.\n\nNesprávná úprava může způsobit:\n• Nestabilitu systému nebo neočekávané chování\n• Snížení výkonu\n• Problémy s řízením teploty\n• Nastavení nemusí fungovat na všech typech CPU (moderní HWP vs. starší)\n\nZměňte toto pouze v případě, že rozumíte správě napájení procesoru.\n\nJste si jisti, že chcete toto nastavení změnit?",
   "Dialog_AdvancedPowerWarning_DontShowAgain": "Příště toto varování pro pokročilá nastavení napájení nezobrazovat",
   "Button_Unlock": "Odemknout",
-  "Common_ClickToUnlock": "Kliknutím odemknete"
+  "Common_ClickToUnlock": "Kliknutím odemknete",
+  "Setting_taskbar-copilot_Name": "Tlačítko náhledu Copilota",
+  "Setting_taskbar-copilot_Description": "Zobrazit nebo skrýt tlačítko náhledu Copilota na hlavním panelu"
 }

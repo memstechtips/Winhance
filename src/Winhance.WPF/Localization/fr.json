@@ -1395,5 +1395,7 @@
   "Dialog_AdvancedPowerWarning_Message": "⚠️ Avertissement de paramètre d'alimentation avancé\n\nCe paramètre n'est normalement pas exposé dans les options d'alimentation de Windows et nécessite des modifications du Registre pour y accéder.\n\nLe modifier de manière incorrecte peut entraîner :\n• Une instabilité du système ou un comportement inattendu\n• Une dégradation des performances\n• Des problèmes de gestion thermique\n• Les paramètres peuvent ne pas fonctionner sur tous les types de processeurs (HWP modernes vs anciens)\n\nNe modifiez ce paramètre que si vous comprenez la gestion de l'alimentation du processeur.\n\nÊtes-vous sûr de vouloir modifier ce paramètre ?",
   "Dialog_AdvancedPowerWarning_DontShowAgain": "Ne plus afficher cet avertissement pour les paramètres d'alimentation avancés",
   "Button_Unlock": "Déverrouiller",
-  "Common_ClickToUnlock": "Cliquez pour déverrouiller"
+  "Common_ClickToUnlock": "Cliquez pour déverrouiller",
+  "Setting_taskbar-copilot_Name": "Bouton d'aperçu Copilot",
+  "Setting_taskbar-copilot_Description": "Afficher ou masquer le bouton d'aperçu Copilot sur la barre des tâches"
 }

@@ -1395,5 +1395,7 @@
   "Dialog_AdvancedPowerWarning_Message": "⚠️ Cảnh báo cài đặt năng lượng nâng cao\n\nCài đặt này thường không được hiển thị trong Tùy chọn nguồn của Windows và yêu cầu sửa đổi sổ đăng ký để truy cập.\n\nSửa đổi không chính xác có thể gây ra:\n• Mất ổn định hệ thống hoặc hành vi không mong muốn\n• Giảm hiệu suất\n• Các vấn đề quản lý nhiệt\n• Cài đặt có thể không hoạt động trên tất cả các loại CPU (HWP hiện đại so với cũ)\n\nChỉ thay đổi điều này nếu bạn hiểu về quản lý năng lượng của bộ xử lý.\n\nBạn có chắc chắn muốn sửa đổi cài đặt này không?",
   "Dialog_AdvancedPowerWarning_DontShowAgain": "Không hiển thị lại cảnh báo này cho các cài đặt năng lượng nâng cao",
   "Button_Unlock": "Mở khóa",
-  "Common_ClickToUnlock": "Nhấp để mở khóa"
+  "Common_ClickToUnlock": "Nhấp để mở khóa",
+  "Setting_taskbar-copilot_Name": "Nút Xem trước Copilot",
+  "Setting_taskbar-copilot_Description": "Hiển thị hoặc ẩn nút Xem trước Copilot trên thanh tác vụ"
 }

@@ -856,6 +856,12 @@
             "InputType": 0
           },
           {
+            "Id": "taskbar-copilot",
+            "Name": "Copilot Preview Button",
+            "IsSelected": false,
+            "InputType": 0
+          },
+          {
             "Id": "taskbar-widgets",
             "Name": "Show Widgets",
             "IsSelected": false,

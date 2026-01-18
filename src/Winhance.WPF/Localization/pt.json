@@ -1395,5 +1395,7 @@
   "Dialog_AdvancedPowerWarning_Message": "⚠️ Aviso de Definição de Energia Avançada\n\nEsta definição não é normalmente exposta nas Opções de Energia do Windows e requer modificações no registo para aceder.\n\nModificá-la incorretamente pode causar:\n• Instabilidade do sistema ou comportamento inesperado\n• Degradação do desempenho\n• Problemas de gestão térmica\n• As definições podem não funcionar em todos os tipos de CPU (moderno HWP vs legado)\n\nAltere isto apenas se compreender a gestão de energia do processador.\n\nTem a certeza de que quer modificar esta definição?",
   "Dialog_AdvancedPowerWarning_DontShowAgain": "Não mostrar este aviso novamente para definições de energia avançadas",
   "Button_Unlock": "Desbloquear",
-  "Common_ClickToUnlock": "Clique para desbloquear"
+  "Common_ClickToUnlock": "Clique para desbloquear",
+  "Setting_taskbar-copilot_Name": "Botão de Pré-visualização do Copilot",
+  "Setting_taskbar-copilot_Description": "Mostrar ou ocultar o botão de Pré-visualização do Copilot na barra de tarefas"
 }
