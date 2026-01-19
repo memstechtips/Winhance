@@ -223,11 +223,12 @@ namespace Winhance.Core.Features.SoftwareApps.Models
                     new ItemDefinition
                     {
                         Id = "windows-app-office-hub",
-                        Name = "Office Hub",
-                        Description = "Microsoft Office app hub",
+                        Name = "MS 365 Copilot (Office Hub)",
+                        Description = "Microsoft 365 Copilot (formerly known as Office hub)",
                         GroupName = "Office",
                         AppxPackageName = "Microsoft.MicrosoftOfficeHub",
-                        CanBeReinstalled = false
+                        WinGetPackageId = "9WZDNCRD29V9",
+                        CanBeReinstalled = true
                     },
                     new ItemDefinition
                     {
