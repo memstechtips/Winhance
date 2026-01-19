@@ -34,7 +34,7 @@ namespace Winhance.Core.Features.SoftwareApps.Models
                     new ItemDefinition
                     {
                         Id = "capability-quick-assist",
-                        Name = "Quick Assist",
+                        Name = "Quick Assist (Legacy)",
                         Description = "Remote assistance app",
                         GroupName = "System",
                         CapabilityName = "App.Support.QuickAssist",
@@ -65,6 +65,15 @@ namespace Winhance.Core.Features.SoftwareApps.Models
                         Description = "Rich text editor",
                         GroupName = "Productivity",
                         CapabilityName = "Microsoft.Windows.WordPad",
+                        CanBeReinstalled = false
+                    },
+                    new ItemDefinition
+                    {
+                        Id = "capability-notepad",
+                        Name = "Notepad (Legacy)",
+                        Description = "Simple text editor",
+                        GroupName = "Productivity",
+                        CapabilityName = "Microsoft.Windows.Notepad",
                         CanBeReinstalled = false
                     },
                     new ItemDefinition
