@@ -20,7 +20,6 @@ namespace Winhance.Core.Features.SoftwareApps.Models
                         Description = "Legacy web browser",
                         GroupName = "Browser",
                         CapabilityName = "Browser.InternetExplorer",
-                        Category = "Browser",
                         CanBeReinstalled = false
                     },
                     new ItemDefinition
@@ -30,17 +29,15 @@ namespace Winhance.Core.Features.SoftwareApps.Models
                         Description = "PowerShell Integrated Scripting Environment",
                         GroupName = "Development",
                         CapabilityName = "Microsoft.Windows.PowerShell.ISE",
-                        Category = "Development",
                         CanBeReinstalled = true
                     },
                     new ItemDefinition
                     {
                         Id = "capability-quick-assist",
-                        Name = "Quick Assist",
+                        Name = "Quick Assist (Legacy)",
                         Description = "Remote assistance app",
                         GroupName = "System",
                         CapabilityName = "App.Support.QuickAssist",
-                        Category = "System",
                         CanBeReinstalled = false
                     },
                     new ItemDefinition
@@ -50,7 +47,6 @@ namespace Winhance.Core.Features.SoftwareApps.Models
                         Description = "Screen recording tool",
                         GroupName = "Utilities",
                         CapabilityName = "App.StepsRecorder",
-                        Category = "Utilities",
                         CanBeReinstalled = true
                     },
                     new ItemDefinition
@@ -60,7 +56,6 @@ namespace Winhance.Core.Features.SoftwareApps.Models
                         Description = "Classic media player",
                         GroupName = "Media",
                         CapabilityName = "Media.WindowsMediaPlayer",
-                        Category = "Media",
                         CanBeReinstalled = true
                     },
                     new ItemDefinition
@@ -70,7 +65,15 @@ namespace Winhance.Core.Features.SoftwareApps.Models
                         Description = "Rich text editor",
                         GroupName = "Productivity",
                         CapabilityName = "Microsoft.Windows.WordPad",
-                        Category = "Productivity",
+                        CanBeReinstalled = false
+                    },
+                    new ItemDefinition
+                    {
+                        Id = "capability-notepad",
+                        Name = "Notepad (Legacy)",
+                        Description = "Simple text editor",
+                        GroupName = "Productivity",
+                        CapabilityName = "Microsoft.Windows.Notepad",
                         CanBeReinstalled = false
                     },
                     new ItemDefinition
@@ -80,7 +83,6 @@ namespace Winhance.Core.Features.SoftwareApps.Models
                         Description = "Classic Paint app",
                         GroupName = "Graphics",
                         CapabilityName = "Microsoft.Windows.MSPaint",
-                        Category = "Graphics",
                         CanBeReinstalled = false
                     },
                     new ItemDefinition
@@ -90,7 +92,6 @@ namespace Winhance.Core.Features.SoftwareApps.Models
                         Description = "Secure Shell client for remote connections",
                         GroupName = "Networking",
                         CapabilityName = "OpenSSH.Client",
-                        Category = "Networking",
                         CanBeReinstalled = true
                     },
                     new ItemDefinition
@@ -100,7 +101,6 @@ namespace Winhance.Core.Features.SoftwareApps.Models
                         Description = "Secure Shell server for remote connections",
                         GroupName = "Networking",
                         CapabilityName = "OpenSSH.Server",
-                        Category = "Networking",
                         CanBeReinstalled = true
                     }
                 }

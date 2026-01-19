@@ -134,6 +134,24 @@ namespace Winhance.Infrastructure.Features.SoftwareApps.Services
             }
         }
 
+        private async Task RegisterDesktopAppInstallerAsync(CancellationToken cancellationToken = default)
+        {
+            try
+            {
+                logService?.LogInformation("Attempting to repair WinGet AppX registration...");
+
+                string script = "Add-AppxPackage -RegisterByFamilyName -MainPackage Microsoft.DesktopAppInstaller_8wekyb3d8bbwe";
+
+                await powerShellExecutionService.ExecuteScriptAsync(script, null, cancellationToken);
+
+                logService?.LogInformation("WinGet AppX registration repair command executed.");
+            }
+            catch (Exception ex)
+            {
+                logService?.LogWarning($"WinGet AppX registration repair failed: {ex.Message}");
+            }
+        }
+
         public async Task<bool> InstallPackageAsync(string packageId, string displayName = null, CancellationToken cancellationToken = default)
         {
             if (string.IsNullOrWhiteSpace(packageId))
@@ -210,6 +228,26 @@ namespace Winhance.Infrastructure.Features.SoftwareApps.Services
                     taskProgressService?.UpdateProgress(60, _localization.GetString("Progress_WinGet_RetryingInstallation", displayName));
                     wingetPath = _wingetExePath;
                     result = await ExecuteProcessAsync(wingetPath, args, displayName, cancellationToken, $"Installing {displayName}");
+
+                    if (result.ExitCode == 0)
+                    {
+                        taskProgressService?.UpdateProgress(100, _localization.GetString("Progress_WinGet_InstalledSuccess", displayName));
+                        return true;
+                    }
+                }
+
+                bool shouldRetry = result.ExitCode == unchecked((int)0x80080005) || result.ExitCode != 0;
+
+                if (shouldRetry)
+                {
+                    logService?.LogWarning($"Installation failed with code {result.ExitCode}. Attempting AppX registration repair and retry...");
+                    taskProgressService?.UpdateProgress(40, _localization.GetString("Progress_WinGet_RepairingInstallation"));
+
+                    await RegisterDesktopAppInstallerAsync(cancellationToken);
+                    await Task.Delay(1000, cancellationToken);
+
+                    taskProgressService?.UpdateProgress(60, _localization.GetString("Progress_WinGet_RetryingInstallation", displayName));
+                    result = await ExecuteProcessAsync(wingetPath, args, displayName, cancellationToken, $"Retry Installing {displayName}");
 
                     if (result.ExitCode == 0)
                     {
@@ -326,6 +364,8 @@ namespace Winhance.Infrastructure.Features.SoftwareApps.Services
 
                 taskProgressService?.UpdateProgress(75, _localization.GetString("Progress_WinGet_InitializingSources"));
                 await InitializeWinGetSourcesAsync(cancellationToken);
+
+                await RegisterDesktopAppInstallerAsync(cancellationToken);
 
                 taskProgressService?.UpdateProgress(100, _localization.GetString("Progress_WinGet_InstalledSuccessfully"));
                 return true;
@@ -563,7 +603,7 @@ namespace Winhance.Infrastructure.Features.SoftwareApps.Services
                 progress?.Report(new TaskProgressDetail
                 {
                     Progress = 10,
-                    StatusText = "Checking for WinGet updates..."
+                    StatusText = _localization.GetString("Progress_WinGet_CheckingUpdates")
                 });
 
                 string wingetPath = _wingetExePath ?? "winget";
@@ -571,7 +611,7 @@ namespace Winhance.Infrastructure.Features.SoftwareApps.Services
                                "--accept-source-agreements --accept-package-agreements " +
                                "--disable-interactivity --silent";
 
-                var result = await ExecuteProcessAsync(wingetPath, arguments, "WinGet Update", cancellationToken, "Updating WinGet");
+                var result = await ExecuteProcessAsync(wingetPath, arguments, "WinGet Update", cancellationToken, _localization.GetString("Progress_WinGet_Updating"));
 
                 if (result.ExitCode == 0 ||
                     result.ExitCode == -2147467260 ||
@@ -584,7 +624,7 @@ namespace Winhance.Infrastructure.Features.SoftwareApps.Services
                         progress?.Report(new TaskProgressDetail
                         {
                             Progress = 50,
-                            StatusText = "Waiting for WinGet update to complete..."
+                            StatusText = _localization.GetString("Progress_WinGet_WaitingForUpdate")
                         });
 
                         bool isReady = false;
@@ -608,21 +648,24 @@ namespace Winhance.Infrastructure.Features.SoftwareApps.Services
                         }
                     }
 
-                    var status = result.ExitCode switch
+                    var statusKey = result.ExitCode switch
                     {
-                        0 => "WinGet updated successfully",
-                        -2147467260 => "WinGet update completed",
-                        -1978335189 => "WinGet is already up to date",
-                        -1978335135 => "WinGet is already installed at latest version",
-                        _ => "WinGet is ready"
+                        0 => "Progress_WinGet_UpdateSuccess",
+                        -2147467260 => "Progress_WinGet_UpdateCompleted",
+                        -1978335189 => "Progress_WinGet_AlreadyUpToDate",
+                        -1978335135 => "Progress_WinGet_InstalledLatest",
+                        _ => "Progress_WinGet_Ready"
                     };
 
-                    logService?.LogInformation($"{status} (exit code: {result.ExitCode})");
+                    logService?.LogInformation($"{statusKey} (exit code: {result.ExitCode})");
                     progress?.Report(new TaskProgressDetail
                     {
                         Progress = 100,
-                        StatusText = "WinGet is ready"
+                        StatusText = _localization.GetString(statusKey)
                     });
+
+                    await RegisterDesktopAppInstallerAsync(cancellationToken);
+
                     return true;
                 }
 
@@ -630,7 +673,7 @@ namespace Winhance.Infrastructure.Features.SoftwareApps.Services
                 progress?.Report(new TaskProgressDetail
                 {
                     Progress = 40,
-                    StatusText = "Reinstalling WinGet..."
+                    StatusText = _localization.GetString("Progress_WinGet_Reinstalling")
                 });
 
                 return await InstallWinGetAsync(cancellationToken);

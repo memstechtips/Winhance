@@ -487,7 +487,15 @@ namespace Winhance.Infrastructure.Features.Optimize.Services
                     if (result.Success)
                     {
                         powerCfgQueryService.InvalidateCache();
-                        var actualGuid = await FindNewlyCreatedPlanGuidAsync(predefinedPlan.Name, existingPlanNames);
+
+                        // Try to parse GUID directly from output to avoid race conditions
+                        var actualGuid = OutputParser.PowerCfg.ExtractGuid(result.Output);
+
+                        if (string.IsNullOrEmpty(actualGuid))
+                        {
+                            actualGuid = await FindNewlyCreatedPlanGuidAsync(predefinedPlan.Name, existingPlanNames);
+                        }
+
                         if (!string.IsNullOrEmpty(actualGuid))
                         {
                             await commandService.ExecuteCommandAsync($"powercfg /changename {actualGuid} \"{predefinedPlan.Name}\" \"{predefinedPlan.Description}\"");
@@ -519,7 +527,15 @@ namespace Winhance.Infrastructure.Features.Optimize.Services
                     if (duplicateResult.Success)
                     {
                         powerCfgQueryService.InvalidateCache();
-                        var actualGuid = await FindNewlyCreatedPlanGuidAsync(predefinedPlan.Name, existingPlanNames);
+
+                        // Try to parse GUID directly from output to avoid race conditions
+                        var actualGuid = OutputParser.PowerCfg.ExtractGuid(duplicateResult.Output);
+
+                        if (string.IsNullOrEmpty(actualGuid))
+                        {
+                            actualGuid = await FindNewlyCreatedPlanGuidAsync(predefinedPlan.Name, existingPlanNames);
+                        }
+
                         if (!string.IsNullOrEmpty(actualGuid))
                         {
                             logService.Log(LogLevel.Info, $"Successfully duplicated power plan '{predefinedPlan.Name}' with GUID: {actualGuid}");

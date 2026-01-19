@@ -14,16 +14,19 @@ namespace Winhance.WPF.Features.Common.Services
         private readonly WindowEffectsService _windowEffectsService;
         private readonly UserPreferencesService _userPreferencesService;
         private readonly ILogService _logService;
+        private readonly IApplicationCloseService _applicationCloseService;
 
         public WindowInitializationService(
             IEventBus eventBus,
             UserPreferencesService userPreferencesService,
-            ILogService logService
+            ILogService logService,
+            IApplicationCloseService applicationCloseService
         )
         {
             _eventBus = eventBus ?? throw new ArgumentNullException(nameof(eventBus));
             _userPreferencesService = userPreferencesService ?? throw new ArgumentNullException(nameof(userPreferencesService));
             _logService = logService ?? throw new ArgumentNullException(nameof(logService));
+            _applicationCloseService = applicationCloseService ?? throw new ArgumentNullException(nameof(applicationCloseService));
             _windowEffectsService = new WindowEffectsService();
         }
 
@@ -43,10 +46,13 @@ namespace Winhance.WPF.Features.Common.Services
                         _userPreferencesService,
                         _logService
                     );
+
+                    // Register shutdown hook to save window state
+                    _applicationCloseService.BeforeShutdown = async () => await windowSizeManager.SaveWindowSettingsAsync();
                 }
 
                 // Set up window effects and messaging when loaded
-                window.Loaded += (sender, e) =>
+                window.Loaded += async (sender, e) =>
                 {
                     try
                     {
@@ -55,7 +61,7 @@ namespace Winhance.WPF.Features.Common.Services
                         if (windowSizeManager == null)
                             _windowEffectsService.SetDynamicWindowSize(window);
                         else
-                            windowSizeManager.Initialize();
+                            await windowSizeManager.InitializeAsync();
                     }
                     catch (Exception ex)
                     {

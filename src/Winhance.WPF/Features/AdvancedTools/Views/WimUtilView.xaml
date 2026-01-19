@@ -163,14 +163,14 @@
                                                                           Foreground="#FFA500"
                                                                           VerticalAlignment="Center"
                                                                           Margin="0,0,10,0"/>
-                                                <TextBlock Text="Both WIM and ESD Found"
+                                                <TextBlock Text="{loc:Localize WIMUtil_Card_BothImages_Title}"
                                                           FontSize="14"
                                                           FontWeight="SemiBold"
                                                           Foreground="#8B4513"
                                                           VerticalAlignment="Center"/>
                                             </StackPanel>
 
-                                            <TextBlock Text="Both install.wim and install.esd were found in the ISO. Only one should exist. Please delete one to continue."
+                                            <TextBlock Text="{loc:Localize WIMUtil_Card_BothImages_Description}"
                                                       FontSize="12"
                                                       Foreground="#8B4513"
                                                       TextWrapping="Wrap"
@@ -199,7 +199,7 @@
                                                         </StackPanel>
 
                                                         <Button Grid.Column="1"
-                                                               Content="Delete WIM"
+                                                               Content="{loc:Localize WIMUtil_Button_DeleteWim}"
                                                                Command="{Binding DeleteWimCommand}"
                                                                Style="{StaticResource WizardActionButtonStyle}"
                                                                Background="#F44336"
@@ -230,7 +230,7 @@
                                                         </StackPanel>
 
                                                         <Button Grid.Column="1"
-                                                               Content="Delete ESD"
+                                                               Content="{loc:Localize WIMUtil_Button_DeleteEsd}"
                                                                Command="{Binding DeleteEsdCommand}"
                                                                Style="{StaticResource WizardActionButtonStyle}"
                                                                Background="#F44336"

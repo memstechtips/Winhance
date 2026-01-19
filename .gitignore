@@ -234,3 +234,7 @@ $RECYCLE.BIN/
 
 # Claude folder
 .claude/
+
+# Gemini stuff
+GEMINI.md
+.gemini/

@@ -30,28 +30,114 @@ namespace Winhance.WPF.Features.Common.Utilities
         public WindowSizeManager(Window window, UserPreferencesService userPreferencesService, ILogService logService)
         {
             _window = window ?? throw new ArgumentNullException(nameof(window));
+            _userPreferencesService = userPreferencesService ?? throw new ArgumentNullException(nameof(userPreferencesService));
             _logService = logService ?? throw new ArgumentNullException(nameof(logService));
-
-            // No events registered - we don't save window position anymore
         }
 
+        private readonly UserPreferencesService _userPreferencesService;
+
         /// <summary>
-        /// Initializes the window size and position
+        /// Initializes the window size and position, restoring from preferences if available
         /// </summary>
-        public void Initialize()
+        public async Task InitializeAsync()
         {
             try
             {
-                // Set dynamic window size based on screen resolution
-                SetDynamicWindowSize();
+                // Try to load saved settings
+                bool loaded = await LoadWindowSettingsAsync();
 
-                // Always center the window on screen
-                // This ensures consistent behavior regardless of WindowStartupLocation
-                CenterWindowOnScreen();
+                if (!loaded)
+                {
+                    // Fallback to dynamic defaults if no settings found
+                    SetDynamicWindowSize();
+                    CenterWindowOnScreen();
+                }
             }
             catch (Exception ex)
             {
-                // Error initializing window size manager
+                _logService.Log(Core.Features.Common.Enums.LogLevel.Error, $"Error initializing window size: {ex.Message}");
+                // Fallback on error
+                SetDynamicWindowSize();
+                CenterWindowOnScreen();
+            }
+        }
+
+        private async Task<bool> LoadWindowSettingsAsync()
+        {
+            try
+            {
+                var width = await _userPreferencesService.GetPreferenceAsync<double>("WindowWidth", 0);
+                var height = await _userPreferencesService.GetPreferenceAsync<double>("WindowHeight", 0);
+                var left = await _userPreferencesService.GetPreferenceAsync<double>("WindowLeft", double.NaN);
+                var top = await _userPreferencesService.GetPreferenceAsync<double>("WindowTop", double.NaN);
+                var isMaximized = await _userPreferencesService.GetPreferenceAsync<bool>("WindowMaximized", false);
+
+                // Validation: Ensure size is reasonable
+                if (width < MIN_WIDTH || height < MIN_HEIGHT)
+                    return false;
+
+                _window.Width = width;
+                _window.Height = height;
+
+                // Restore position if valid
+                if (!double.IsNaN(left) && !double.IsNaN(top))
+                {
+                    // Basic off-screen check could be added here, but WPF handles some of this
+                    _window.Left = left;
+                    _window.Top = top;
+                }
+                else
+                {
+                    CenterWindowOnScreen();
+                }
+
+                // Restore state (must be done last)
+                if (isMaximized)
+                {
+                    _window.WindowState = System.Windows.WindowState.Maximized;
+                }
+
+                return true;
+            }
+            catch (Exception ex)
+            {
+                _logService.Log(Core.Features.Common.Enums.LogLevel.Error, $"Failed to load window settings: {ex.Message}");
+                return false;
+            }
+        }
+
+        public async Task SaveWindowSettingsAsync()
+        {
+            try
+            {
+                var prefs = await _userPreferencesService.GetPreferencesAsync();
+
+                if (_window.WindowState == System.Windows.WindowState.Maximized)
+                {
+                    prefs["WindowMaximized"] = true;
+                    // Save RestoreBounds to remember the "normal" size/position before maximizing
+                    prefs["WindowWidth"] = _window.RestoreBounds.Width;
+                    prefs["WindowHeight"] = _window.RestoreBounds.Height;
+                    prefs["WindowLeft"] = _window.RestoreBounds.Left;
+                    prefs["WindowTop"] = _window.RestoreBounds.Top;
+                }
+                else if (_window.WindowState == System.Windows.WindowState.Normal)
+                {
+                    prefs["WindowMaximized"] = false;
+                    prefs["WindowWidth"] = _window.Width;
+                    prefs["WindowHeight"] = _window.Height;
+                    prefs["WindowLeft"] = _window.Left;
+                    prefs["WindowTop"] = _window.Top;
+                }
+                // If minimized, we ideally don't overwrite with "Minimized" state or bad bounds, 
+                // but usually RestoreBounds works there too. For safety, we skip saving if minimized 
+                // to avoid saving a tiny window or off-screen coordinates accidentally.
+
+                await _userPreferencesService.SavePreferencesAsync(prefs);
+            }
+            catch (Exception ex)
+            {
+                _logService.Log(Core.Features.Common.Enums.LogLevel.Error, $"Failed to save window settings: {ex.Message}");
             }
         }
 

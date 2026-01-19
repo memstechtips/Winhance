@@ -22,7 +22,6 @@ namespace Winhance.Core.Features.SoftwareApps.Models
                             Description = "Anti-malware software for Windows",
                             GroupName = "Privacy & Security",
                             WinGetPackageId = "Malwarebytes.Malwarebytes",
-                            Category = "Privacy & Security",
                             WebsiteUrl = "https://www.malwarebytes.com/"
                         },
                         new ItemDefinition
@@ -32,7 +31,6 @@ namespace Winhance.Core.Features.SoftwareApps.Models
                             Description = "Adware removal tool for Windows",
                             GroupName = "Privacy & Security",
                             WinGetPackageId = "Malwarebytes.AdwCleaner",
-                            Category = "Privacy & Security",
                             WebsiteUrl = "https://www.malwarebytes.com/adwcleaner"
                         },
                         new ItemDefinition
@@ -42,7 +40,6 @@ namespace Winhance.Core.Features.SoftwareApps.Models
                             Description = "Malwarebytes Windows Firewall Control application",
                             GroupName = "Privacy & Security",
                             WinGetPackageId = "BiniSoft.WindowsFirewallControl",
-                            Category = "Privacy & Security",
                             WebsiteUrl = "https://www.binisoft.org/wfc"
                         },
                         new ItemDefinition
@@ -52,7 +49,6 @@ namespace Winhance.Core.Features.SoftwareApps.Models
                             Description = "Securely and anonymously share files, host websites, and chat via Tor network",
                             GroupName = "Privacy & Security",
                             WinGetPackageId = "OnionShare.OnionShare",
-                            Category = "Privacy & Security",
                             WebsiteUrl = "https://onionshare.org/"
                         },
                         new ItemDefinition
@@ -61,7 +57,6 @@ namespace Winhance.Core.Features.SoftwareApps.Models
                             Name = "Sniffnet",
                             Description = "Network monitoring tool to analyze your internet traffic",
                             GroupName = "Privacy & Security",
-                            Category = "Privacy & Security",
                             WebsiteUrl = "https://sniffnet.net/",
                             CustomProperties = new Dictionary<string, object>
                             {
@@ -77,7 +72,6 @@ namespace Winhance.Core.Features.SoftwareApps.Models
                             Name = "Teleguard",
                             Description = "Secure messaging app with end-to-end encryption",
                             GroupName = "Privacy & Security",
-                            Category = "Privacy & Security",
                             WebsiteUrl = "https://teleguard.com/en",
                             CustomProperties = new Dictionary<string, object>
                             {
@@ -92,7 +86,6 @@ namespace Winhance.Core.Features.SoftwareApps.Models
                             Description = "Free antispy tool for Windows 10 and 11",
                             GroupName = "Privacy & Security",
                             WinGetPackageId = "OO-Software.ShutUp10",
-                            Category = "Privacy & Security",
                             WebsiteUrl = "https://www.oo-software.com/en/shutup10"
                         }
                     }

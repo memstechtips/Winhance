@@ -1060,14 +1060,17 @@ namespace Winhance.WPF.Features.Common.ViewModels
                         if (childSetting != null)
                         {
                             var featureName = GetFeatureName(settingId);
-                            var groupKey = $"{featureName} ({childSetting.GroupName})";
+                            var groupNameKey = $"SettingGroup_{childSetting.GroupName.Replace(" ", "_")}";
+                            var localizedGroupName = _localizationService.GetString(groupNameKey);
+                            var groupKey = $"{featureName} ({localizedGroupName})";
 
                             if (!groupedSettings.ContainsKey(groupKey))
                             {
                                 groupedSettings[groupKey] = new List<string>();
                             }
 
-                            groupedSettings[groupKey].Add(shortName);
+                            var localizedShortName = _localizationService.GetString(shortName);
+                            groupedSettings[groupKey].Add(localizedShortName);
                         }
                     }
                 }
@@ -1075,7 +1078,8 @@ namespace Winhance.WPF.Features.Common.ViewModels
                 if (groupedSettings.Any())
                 {
                     var lines = groupedSettings.Select(kvp => $"• {kvp.Key}: {string.Join(", ", kvp.Value)}");
-                    var message = "This setting also controls:\n" + string.Join("\n", lines);
+                    var header = _localizationService.GetString("Setting_CrossGroupWarning_Header");
+                    var message = header + "\n" + string.Join("\n", lines);
 
                     Application.Current.Dispatcher.Invoke(() => WarningText = message);
                 }
@@ -1094,19 +1098,19 @@ namespace Winhance.WPF.Features.Common.ViewModels
         private string GetFeatureName(string settingId)
         {
             if (settingId.StartsWith("privacy-"))
-                return "Privacy";
+                return _localizationService.GetString("Feature_Privacy_Name");
             if (settingId.StartsWith("notifications-"))
-                return "Notifications";
+                return _localizationService.GetString("Feature_Notifications_Name");
             if (settingId.StartsWith("start-"))
-                return "Start Menu";
+                return _localizationService.GetString("Feature_StartMenu_Name");
             if (settingId.StartsWith("customize-"))
-                return "Customization";
+                return _localizationService.GetString("Feature_Explorer_Name");
             if (settingId.StartsWith("gaming-"))
-                return "Gaming";
+                return _localizationService.GetString("Feature_GamingPerformance_Name");
             if (settingId.StartsWith("power-"))
-                return "Power";
+                return _localizationService.GetString("Feature_Power_Name");
 
-            return "Settings";
+            return _localizationService.GetString("Nav_Settings");
         }
 
         private void ShowRestartWarningIfNeeded()

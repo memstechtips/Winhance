@@ -12,7 +12,6 @@ public record ItemDefinition : BaseDefinition
     public string? CapabilityName { get; init; }
     public string? OptionalFeatureName { get; init; }
     public string? ScoopPackageName { get; init; }
-    public string Category { get; init; } = string.Empty;
     public bool CanBeReinstalled { get; init; } = true;
     public bool RequiresReboot { get; init; }
     public Func<string>? RemovalScript { get; init; }

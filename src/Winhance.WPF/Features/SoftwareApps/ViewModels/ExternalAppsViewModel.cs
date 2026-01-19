@@ -113,9 +113,9 @@ namespace Winhance.WPF.Features.SoftwareApps.ViewModels
                     var filteredItems = GetFilteredItems();
                     var categories = new ObservableCollection<ExternalAppsCategoryViewModel>();
 
-                    var appsByCategory = filteredItems.GroupBy(app => app.Category).OrderBy(group => group.Key);
+                    var appsByGroup = filteredItems.GroupBy(app => app.GroupName).OrderBy(group => group.Key);
 
-                    foreach (var group in appsByCategory)
+                    foreach (var group in appsByGroup)
                     {
                         var categoryApps = new ObservableCollection<AppItemViewModel>(group);
                         var localizedCategoryName = LocalizeCategoryName(group.Key);
@@ -442,7 +442,7 @@ namespace Winhance.WPF.Features.SoftwareApps.ViewModels
 
         protected override string[] GetSearchableFields(AppItemViewModel item)
         {
-            return new[] { item.Name, item.Description, item.Category };
+            return new[] { item.Name, item.Description, item.GroupName };
         }
 
         protected override string GetItemName(AppItemViewModel item)

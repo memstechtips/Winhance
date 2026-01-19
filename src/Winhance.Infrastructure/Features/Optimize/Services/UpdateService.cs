@@ -298,6 +298,21 @@ namespace Winhance.Infrastructure.Features.Optimize.Services
                     var dllPath = $@"C:\Windows\System32\{dll}";
                     var backupPath = $@"C:\Windows\System32\{Path.GetFileNameWithoutExtension(dll)}_BAK.dll";
 
+                    if (File.Exists(backupPath))
+                    {
+                        if (File.Exists(dllPath))
+                        {
+                            logService.Log(LogLevel.Info, $"Conflict detected for {dll}. Deleting stale backup.");
+                            await commandService.ExecuteCommandAsync($"takeown /f \"{backupPath}\"");
+                            await commandService.ExecuteCommandAsync($"icacls \"{backupPath}\" /grant *S-1-1-0:F");
+                            File.Delete(backupPath);
+                        }
+                        else
+                        {
+                            continue;
+                        }
+                    }
+
                     if (!File.Exists(dllPath) || File.Exists(backupPath))
                         continue;
 
@@ -325,13 +340,23 @@ namespace Winhance.Infrastructure.Features.Optimize.Services
                     var dllPath = $@"C:\Windows\System32\{dll}";
                     var backupPath = $@"C:\Windows\System32\{Path.GetFileNameWithoutExtension(dll)}_BAK.dll";
 
-                    if (File.Exists(backupPath) && !File.Exists(dllPath))
+                    if (File.Exists(backupPath))
                     {
-                        await commandService.ExecuteCommandAsync($"takeown /f \"{backupPath}\"");
-                        await commandService.ExecuteCommandAsync($"icacls \"{backupPath}\" /grant *S-1-1-0:F");
+                        if (File.Exists(dllPath))
+                        {
+                            logService.Log(LogLevel.Info, $"System already restored {dll}. Removing backup.");
+                            await commandService.ExecuteCommandAsync($"takeown /f \"{backupPath}\"");
+                            await commandService.ExecuteCommandAsync($"icacls \"{backupPath}\" /grant *S-1-1-0:F");
+                            File.Delete(backupPath);
+                        }
+                        else
+                        {
+                            await commandService.ExecuteCommandAsync($"takeown /f \"{backupPath}\"");
+                            await commandService.ExecuteCommandAsync($"icacls \"{backupPath}\" /grant *S-1-1-0:F");
 
-                        File.Move(backupPath, dllPath);
-                        logService.Log(LogLevel.Info, $"Restored {dll} from backup");
+                            File.Move(backupPath, dllPath);
+                            logService.Log(LogLevel.Info, $"Restored {dll} from backup");
+                        }
                     }
                 }
                 catch (Exception ex)
@@ -417,9 +442,10 @@ namespace Winhance.Infrastructure.Features.Optimize.Services
 
             foreach (var dll in dlls)
             {
+                var dllPath = $@"C:\Windows\System32\{dll}";
                 var backupPath = $@"C:\Windows\System32\{Path.GetFileNameWithoutExtension(dll)}_BAK.dll";
 
-                if (File.Exists(backupPath))
+                if (File.Exists(backupPath) && !File.Exists(dllPath))
                     return true;
             }
 
