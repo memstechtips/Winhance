@@ -273,13 +273,14 @@ public class AppStatusDiscoveryService(
                         result[def.Id] = true;
                         remainingToCheck.Remove(def);
                         foundByWinGetId++;
+                        logService.LogInformation($"Installed (WinGet ID): {def.Name} (Id: {def.Id}, PackageId: {def.WinGetPackageId})");
                     }
                     else if (MatchWinGetName(def.Name, wingetPackageNames))
                     {
                         result[def.Id] = true;
                         remainingToCheck.Remove(def);
                         foundByWinGetName++;
-                        logService.LogInformation($"WinGet name match: {def.Name} (Id: {def.Id})");
+                        logService.LogInformation($"Installed (WinGet Name): {def.Name} (Id: {def.Id})");
                     }
                 }
 
@@ -308,6 +309,8 @@ public class AppStatusDiscoveryService(
                     {
                         result[def.Id] = true;
                         remainingToCheck.Remove(def);
+                        var method = wmiMatch && registryMatch ? "WMI+Registry" : (wmiMatch ? "WMI" : "Registry");
+                        logService.LogInformation($"Installed ({method}): {def.Name} (Id: {def.Id})");
                         if (wmiMatch) foundByWmi++;
                         if (registryMatch) foundByRegistry++;
                     }
@@ -690,6 +693,10 @@ public class AppStatusDiscoveryService(
             {
                 var isInstalled = FuzzyMatchProgram(displayName, registryPrograms);
                 result[displayName] = isInstalled;
+                if (isInstalled)
+                {
+                    logService.LogInformation($"Installed (DisplayName): {displayName}");
+                }
             }
 
             var totalFound = result.Count(kvp => kvp.Value);
