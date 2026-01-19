@@ -276,10 +276,10 @@ public static class TaskbarCustomizations
                     InputType = InputType.Toggle,
                     IconPack = "Lucide",
                     Icon = "Bot",
+                    IsWindows11Only = true,
                     SupportedBuildRanges = new List<(int, int)>
                     {
-                        (19045, 19045), // Windows 10 22H2
-                        (22621, 26099)  // Windows 11 22H2/23H2+
+                        (22621, 26099)  // Windows 11 22H2/23H2
                     },
                     RestartProcess = "Explorer",
                     RegistrySettings = new List<RegistrySetting>
