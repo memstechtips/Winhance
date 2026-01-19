@@ -314,7 +314,7 @@
       },
       {
         "Id": "capability-quick-assist",
-        "Name": "Quick Assist",
+        "Name": "Quick Assist (Legacy)",
         "IsSelected": true,
         "InputType": 0,
         "CapabilityName": "App.Support.QuickAssist"
@@ -332,6 +332,13 @@
         "IsSelected": true,
         "InputType": 0,
         "CapabilityName": "Microsoft.Windows.WordPad"
+      },
+      {
+        "Id": "capability-notepad",
+        "Name": "Notepad (Legacy)",
+        "IsSelected": false,
+        "InputType": 0,
+        "CapabilityName": "Microsoft.Windows.Notepad"
       },
       {
         "Id": "capability-openssh-server",
