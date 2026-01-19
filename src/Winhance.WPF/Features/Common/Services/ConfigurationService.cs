@@ -628,7 +628,7 @@ namespace Winhance.WPF.Features.Common.Services
                 {
                     var vmItem = FindMatchingWindowsApp(vm.Items, configItem);
                     if (vmItem != null)
-                        vmItem.IsSelected = true;
+                        vmItem.IsSelected = configItem.IsSelected ?? false;
                 }
             }
 
