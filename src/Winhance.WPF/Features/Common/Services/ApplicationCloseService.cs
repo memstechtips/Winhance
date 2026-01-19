@@ -14,6 +14,8 @@ namespace Winhance.WPF.Features.Common.Services
         private readonly ITaskProgressService _taskProgressService;
         private readonly IUserPreferencesService _userPreferencesService;
 
+        public Func<Task> BeforeShutdown { get; set; }
+
         public ApplicationCloseService(
             ILogService logService,
             ITaskProgressService taskProgressService,
@@ -28,6 +30,18 @@ namespace Winhance.WPF.Features.Common.Services
         {
             try
             {
+                if (BeforeShutdown != null)
+                {
+                    try
+                    {
+                        await BeforeShutdown.Invoke();
+                    }
+                    catch (Exception ex)
+                    {
+                        _logService.LogError($"Error running cleanup tasks: {ex.Message}", ex);
+                    }
+                }
+
                 if (_taskProgressService.IsTaskRunning)
                 {
                     string currentOperation = _taskProgressService.CurrentStatusText ?? "an operation";
