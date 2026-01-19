@@ -500,7 +500,7 @@ public class AppStatusDiscoveryService(
 
                     var packageId = idSection.Trim();
 
-                    if (!string.IsNullOrEmpty(packageId) && packageId.Contains('.'))
+                    if (!string.IsNullOrEmpty(packageId))
                     {
                         installedPackageIds.Add(packageId);
                     }
