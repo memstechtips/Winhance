@@ -26,15 +26,6 @@ namespace Winhance.Core.Features.SoftwareApps.Models
                         },
                         new ItemDefinition
                         {
-                            Id = "external-app-input-leap",
-                            Name = "Input Leap",
-                            Description = "Open-source KVM software for sharing mouse and keyboard between computers",
-                            GroupName = "Remote Access",
-                            WinGetPackageId = "input-leap.input-leap",
-                            WebsiteUrl = "https://github.com/input-leap/input-leap"
-                        },
-                        new ItemDefinition
-                        {
                             Id = "external-app-anydesk",
                             Name = "AnyDesk",
                             Description = "Remote desktop software for remote access and support",
@@ -104,6 +95,24 @@ namespace Winhance.Core.Features.SoftwareApps.Models
                             GroupName = "Remote Access",
                             WinGetPackageId = "Parsec.ParsecVUD",
                             WebsiteUrl = "https://parsec.app/"
+                        },
+                        new ItemDefinition
+                        {
+                            Id = "external-app-input-leap",
+                            Name = "Input Leap",
+                            Description = "Open-source KVM software for sharing mouse and keyboard between computers",
+                            GroupName = "Remote Access",
+                            WinGetPackageId = "input-leap.input-leap",
+                            WebsiteUrl = "https://github.com/input-leap/input-leap"
+                        },
+                        new ItemDefinition
+                        {
+                            Id = "external-app-deskflow",
+                            Name = "Deskflow",
+                            Description = "Share a single keyboard and mouse between multiple computers",
+                            GroupName = "Remote Access",
+                            WinGetPackageId = "Deskflow.Deskflow",
+                            WebsiteUrl = "https://github.com/deskflow/deskflow"
                         }
                     }
                 };
