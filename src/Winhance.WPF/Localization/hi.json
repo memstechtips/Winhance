@@ -1367,6 +1367,7 @@
   "Progress_Store_DownloadingMain": "{0} मुख्य पैकेज डाउनलोड किया जा रहा है...",
   "Progress_Store_NonRecoverableError": "इंस्टॉलेशन विफल रहा: {0}",
   "Progress_WinGet_CheckingUpdates": "WinGet अपडेट की जाँच की जा रही है...",
+  "Progress_WinGet_Updating": "WinGet अपडेट किया जा रहा है...",
   "Progress_WinGet_CheckingVersion": "WinGet संस्करण की जाँच की जा रही है...",
   "Progress_WinGet_UpdateInitiated": "स्टोर के माध्यम से WinGet अपडेट शुरू किया गया, पूर्णता की पुष्टि की जा रही है...",
   "Progress_WinGet_WaitingForUpdate": "WinGet अपडेट पूरा होने की प्रतीक्षा की जा रही है...",

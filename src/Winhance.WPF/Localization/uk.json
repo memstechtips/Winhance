@@ -1367,6 +1367,7 @@
   "Progress_Store_DownloadingMain": "Завантаження основного пакета {0}...",
   "Progress_Store_NonRecoverableError": "Помилка встановлення: {0}",
   "Progress_WinGet_CheckingUpdates": "Перевірка оновлень WinGet...",
+  "Progress_WinGet_Updating": "Оновлення WinGet...",
   "Progress_WinGet_CheckingVersion": "Перевірка версії WinGet...",
   "Progress_WinGet_UpdateInitiated": "Оновлення WinGet розпочато через Store, перевірка завершення...",
   "Progress_WinGet_WaitingForUpdate": "Очікування завершення оновлення WinGet...",

@@ -1367,6 +1367,7 @@
   "Progress_Store_DownloadingMain": "{0} メインパッケージをダウンロードしています...",
   "Progress_Store_NonRecoverableError": "インストールに失敗しました: {0}",
   "Progress_WinGet_CheckingUpdates": "WinGet の更新を確認しています...",
+  "Progress_WinGet_Updating": "WinGet を更新しています...",
   "Progress_WinGet_CheckingVersion": "WinGet のバージョンを確認しています...",
   "Progress_WinGet_UpdateInitiated": "Store 経由で WinGet の更新が開始されました。完了を確認しています...",
   "Progress_WinGet_WaitingForUpdate": "WinGet の更新が完了するのを待っています...",

@@ -1367,6 +1367,7 @@
   "Progress_Store_DownloadingMain": "Λήψη κύριου πακέτου {0}...",
   "Progress_Store_NonRecoverableError": "Η εγκατάσταση απέτυχε: {0}",
   "Progress_WinGet_CheckingUpdates": "Έλεγχος για ενημερώσεις WinGet...",
+  "Progress_WinGet_Updating": "Ενημέρωση του WinGet...",
   "Progress_WinGet_CheckingVersion": "Έλεγχος έκδοσης WinGet...",
   "Progress_WinGet_UpdateInitiated": "Η ενημέρωση WinGet ξεκίνησε μέσω Store, επαλήθευση ολοκλήρωσης...",
   "Progress_WinGet_WaitingForUpdate": "Αναμονή για ολοκλήρωση της ενημέρωσης WinGet...",

@@ -1367,6 +1367,7 @@
   "Progress_Store_DownloadingMain": "Stahování hlavního balíčku {0}...",
   "Progress_Store_NonRecoverableError": "Instalace se nezdařila: {0}",
   "Progress_WinGet_CheckingUpdates": "Kontrola aktualizací WinGet...",
+  "Progress_WinGet_Updating": "Aktualizace WinGet...",
   "Progress_WinGet_CheckingVersion": "Kontrola verze WinGet...",
   "Progress_WinGet_UpdateInitiated": "Aktualizace WinGet byla zahájena přes Store, ověřování dokončení...",
   "Progress_WinGet_WaitingForUpdate": "Čekání na dokončení aktualizace WinGet...",

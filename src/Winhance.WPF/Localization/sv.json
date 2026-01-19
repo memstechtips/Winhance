@@ -1367,6 +1367,7 @@
   "Progress_Store_DownloadingMain": "Laddar ner huvudpaketet för {0}...",
   "Progress_Store_NonRecoverableError": "Installationen misslyckades: {0}",
   "Progress_WinGet_CheckingUpdates": "Söker efter WinGet-uppdateringar...",
+  "Progress_WinGet_Updating": "Uppdaterar WinGet...",
   "Progress_WinGet_CheckingVersion": "Kontrollerar WinGet-version...",
   "Progress_WinGet_UpdateInitiated": "WinGet-uppdatering initierad via Store, verifierar slutförande...",
   "Progress_WinGet_WaitingForUpdate": "Väntar på att WinGet-uppdateringen ska slutföras...",

@@ -1367,6 +1367,7 @@
   "Progress_Store_DownloadingMain": "Downloading {0} main package...",
   "Progress_Store_NonRecoverableError": "Installation failed: {0}",
   "Progress_WinGet_CheckingUpdates": "Checking for WinGet updates...",
+  "Progress_WinGet_Updating": "Updating WinGet...",
   "Progress_WinGet_CheckingVersion": "Checking WinGet version...",
   "Progress_WinGet_UpdateInitiated": "WinGet update initiated via Store, verifying completion...",
   "Progress_WinGet_WaitingForUpdate": "Waiting for WinGet update to complete...",

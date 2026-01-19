@@ -1367,6 +1367,7 @@
   "Progress_Store_DownloadingMain": "Laai {0} hoofpakket af...",
   "Progress_Store_NonRecoverableError": "Installasie het misluk: {0}",
   "Progress_WinGet_CheckingUpdates": "Kontroleer vir WinGet-opdaterings...",
+  "Progress_WinGet_Updating": "WinGet word opgedateer...",
   "Progress_WinGet_CheckingVersion": "Kontroleer WinGet-weergawe...",
   "Progress_WinGet_UpdateInitiated": "WinGet-opdatering geïnisieer via Store, verifieer voltooiing...",
   "Progress_WinGet_WaitingForUpdate": "Wag for WinGet-opdatering om te voltooi...",

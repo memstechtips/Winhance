@@ -1367,6 +1367,7 @@
   "Progress_Store_DownloadingMain": "Baixando pacote principal {0}...",
   "Progress_Store_NonRecoverableError": "Falha na instalação: {0}",
   "Progress_WinGet_CheckingUpdates": "Verificando atualizações do WinGet...",
+  "Progress_WinGet_Updating": "Atualizando o WinGet...",
   "Progress_WinGet_CheckingVersion": "Verificando versão do WinGet...",
   "Progress_WinGet_UpdateInitiated": "Atualização do WinGet iniciada via Store, verificando conclusão...",
   "Progress_WinGet_WaitingForUpdate": "Aguardando a conclusão da atualização do WinGet...",

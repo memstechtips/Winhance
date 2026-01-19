@@ -1367,6 +1367,7 @@
   "Progress_Store_DownloadingMain": "Atsisiunčiamas pagrindinis paketas {0}...",
   "Progress_Store_NonRecoverableError": "Įdiegti nepavyko: {0}",
   "Progress_WinGet_CheckingUpdates": "Tikrinami „WinGet“ atnaujinimai...",
+  "Progress_WinGet_Updating": "Atnaujinama „WinGet“...",
   "Progress_WinGet_CheckingVersion": "Tikrinama „WinGet“ versija...",
   "Progress_WinGet_UpdateInitiated": "„WinGet“ atnaujinimas pradėtas per „Store“, tikrinamas užbaigimas...",
   "Progress_WinGet_WaitingForUpdate": "Laukiama, kol bus baigtas „WinGet“ atnaujinimas...",

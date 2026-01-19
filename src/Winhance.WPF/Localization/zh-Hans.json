@@ -1367,6 +1367,7 @@
   "Progress_Store_DownloadingMain": "正在下载 {0} 主包...",
   "Progress_Store_NonRecoverableError": "安装失败: {0}",
   "Progress_WinGet_CheckingUpdates": "正在检查 WinGet 更新...",
+  "Progress_WinGet_Updating": "正在更新 WinGet...",
   "Progress_WinGet_CheckingVersion": "正在检查 WinGet 版本...",
   "Progress_WinGet_UpdateInitiated": "已通过 Store 启动 WinGet 更新，正在验证完成情况...",
   "Progress_WinGet_WaitingForUpdate": "正在等待 WinGet 更新完成...",

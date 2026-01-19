@@ -1367,6 +1367,7 @@
   "Progress_Store_DownloadingMain": "Lejupielādē galveno pakotni {0}...",
   "Progress_Store_NonRecoverableError": "Instalēšana neizdevās: {0}",
   "Progress_WinGet_CheckingUpdates": "Pārbauda „WinGet“ atjauninājumus...",
+  "Progress_WinGet_Updating": "Atjaunina „WinGet“...",
   "Progress_WinGet_CheckingVersion": "Pārbauda „WinGet“ versiju...",
   "Progress_WinGet_UpdateInitiated": "„WinGet“ atjaunināšana sākta caur „Store“, pārbauda pabeigšanu...",
   "Progress_WinGet_WaitingForUpdate": "Gaida „WinGet“ atjaunināšanas pabeigšanu...",

@@ -1367,6 +1367,7 @@
   "Progress_Store_DownloadingMain": "Đang tải xuống gói chính {0}...",
   "Progress_Store_NonRecoverableError": "Cài đặt thất bại: {0}",
   "Progress_WinGet_CheckingUpdates": "Đang kiểm tra các bản cập nhật WinGet...",
+  "Progress_WinGet_Updating": "Đang cập nhật WinGet...",
   "Progress_WinGet_CheckingVersion": "Đang kiểm tra phiên bản WinGet...",
   "Progress_WinGet_UpdateInitiated": "Cập nhật WinGet đã được khởi tạo qua Store, đang xác minh hoàn tất...",
   "Progress_WinGet_WaitingForUpdate": "Đang chờ cập nhật WinGet hoàn tất...",
