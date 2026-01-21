@@ -13,7 +13,8 @@ public static class OneDriveRemovalScript
 
   .DESCRIPTION
       This script detects and removes Microsoft OneDrive installations including:
-      - Registry-based uninstallation using the user's HKU uninstall entry
+      - OneDrive AppxPackage (Microsoft.OneDriveSync)
+      - Registry-based uninstallation using HKLM and HKU uninstall entries
       - OneDrive files and folders from the current users' AppData folder. (NOTE: Userdata in %USERPROFILE%\OneDrive is preserved)
       - System-wide OneDrive installation files
       - OneDrive scheduled tasks
@@ -79,7 +80,6 @@ Write-Log ""Starting OneDrive removal process""
 function Get-TargetUser {
     Write-Log ""Get-TargetUser: Starting user detection""
 
-    # Try interactive user first
     try {
         $user = Get-WmiObject Win32_ComputerSystem | Select-Object -ExpandProperty UserName
         Write-Log ""Get-TargetUser: Win32_ComputerSystem returned: '$user'""
@@ -113,7 +113,7 @@ function Get-TargetUser {
     return $null
 }
 
-# Get the user's SID for registry access
+# Get the user's SID for registry access 
 function Get-UserSID {
     param($Username)
     try {
@@ -145,32 +145,78 @@ if ($env:USERNAME -eq ""SYSTEM"" -or $env:USERNAME -like ""*$"" -or $env:USERPRO
     Write-Log ""Running as regular user: '$targetUser', profile path: '$userProfilePath'""
 }
 
-# Step 1: Check registry for OneDrive installation and run uninstaller if found
-if ($targetUser) {
+# Step 1: Remove OneDrive AppxPackage and check registry for OneDrive installation
+Write-Log ""Removing OneDrive AppxPackage if present""
+try {
+    Get-AppxPackage *OneDriveSync* | Remove-AppxPackage -AllUsers -ErrorAction SilentlyContinue
+    Write-Log ""OneDrive AppxPackage removal completed""
+}
+catch {
+    Write-Log ""AppxPackage removal failed or not found: $($_.Exception.Message)""
+}
+
+$uninstallExecuted = $false
+
+# Check HKLM first (system-wide installation)
+$hklmUninstallKey = ""HKLM\SOFTWARE\Microsoft\Windows\CurrentVersion\Uninstall\OneDriveSetup.exe""
+Write-Log ""Checking HKLM uninstall registry key: $hklmUninstallKey""
+
+try {
+    $uninstallString = reg.exe query $hklmUninstallKey /v UninstallString 2>$null
+    if ($LASTEXITCODE -eq 0 -and $uninstallString) {
+        $uninstallLine = $uninstallString | Where-Object { $_ -match ""UninstallString"" } | Select-Object -First 1
+        if ($uninstallLine -match ""REG_SZ\s+(.+)"") {
+            $uninstallCommand = $matches[1].Trim()
+            Write-Log ""Found HKLM uninstall command: $uninstallCommand""
+
+            Write-Log ""Stopping OneDrive processes""
+            Stop-Process -Name ""*OneDrive*"" -Force -ErrorAction SilentlyContinue | Out-Null
+
+            Write-Log ""Executing HKLM registry-based uninstaller""
+
+            if ($uninstallCommand -match '^""([^""]+)""(.*)') {
+                $exePath = $matches[1]
+                $arguments = $matches[2].Trim()
+                Write-Log ""Command: '$exePath' Arguments: '$arguments'""
+                Start-Process -FilePath $exePath -ArgumentList $arguments -WindowStyle Hidden -Wait | Out-Null
+            } else {
+                Write-Log ""Command: '$uninstallCommand'""
+                cmd.exe /c $uninstallCommand 2>&1 | Out-Null
+            }
+            Write-Log ""HKLM registry-based uninstaller completed""
+            $uninstallExecuted = $true
+        } else {
+            Write-Log ""Could not parse UninstallString from HKLM registry output""
+        }
+    } else {
+        Write-Log ""OneDrive uninstall registry key not found in HKLM""
+    }
+}
+catch {
+    Write-Log ""HKLM registry-based uninstall failed: $($_.Exception.Message)""
+}
+
+# Check HKU if HKLM didn't execute (user-specific installation)
+if (-not $uninstallExecuted -and $targetUser) {
     $userSID = Get-UserSID -Username $targetUser
     if ($userSID) {
         Write-Log ""User SID for '$targetUser': $userSID""
 
-        # Check if OneDrive uninstall entry exists in user's registry
         $uninstallKey = ""HKU\$userSID\SOFTWARE\Microsoft\Windows\CurrentVersion\Uninstall\OneDriveSetup.exe""
-        Write-Log ""Checking uninstall registry key: $uninstallKey""
+        Write-Log ""Checking HKU uninstall registry key: $uninstallKey""
 
         try {
-            # Query the uninstall string
             $uninstallString = reg.exe query $uninstallKey /v UninstallString 2>$null
             if ($LASTEXITCODE -eq 0 -and $uninstallString) {
-                # Extract the actual command from reg output
                 $uninstallLine = $uninstallString | Where-Object { $_ -match ""UninstallString"" } | Select-Object -First 1
                 if ($uninstallLine -match ""REG_SZ\s+(.+)"") {
                     $uninstallCommand = $matches[1].Trim()
-                    Write-Log ""Found uninstall command: $uninstallCommand""
+                    Write-Log ""Found HKU uninstall command: $uninstallCommand""
 
-                    # Stop OneDrive processes
                     Write-Log ""Stopping OneDrive processes""
                     Stop-Process -Name ""*OneDrive*"" -Force -ErrorAction SilentlyContinue | Out-Null
 
-                    # Execute the uninstall command directly
-                    Write-Log ""Executing registry-based uninstaller""
+                    Write-Log ""Executing HKU registry-based uninstaller""
 
                     if ($uninstallCommand -match '^""([^""]+)""(.*)') {
                         $exePath = $matches[1]
@@ -178,40 +224,46 @@ if ($targetUser) {
                         Write-Log ""Command: '$exePath' Arguments: '$arguments'""
                         Start-Process -FilePath $exePath -ArgumentList $arguments -WindowStyle Hidden -Wait | Out-Null
                     } else {
-                        # Fallback: execute as-is
                         Write-Log ""Command: '$uninstallCommand'""
                         cmd.exe /c $uninstallCommand 2>&1 | Out-Null
                     }
-                    Write-Log ""Registry-based uninstaller completed""
+                    Write-Log ""HKU registry-based uninstaller completed""
                 } else {
-                    Write-Log ""Could not parse UninstallString from registry output""
+                    Write-Log ""Could not parse UninstallString from HKU registry output""
                 }
             } else {
-                Write-Log ""OneDrive uninstall registry key not found or empty""
+                Write-Log ""OneDrive uninstall registry key not found in HKU""
             }
         }
         catch {
-            Write-Log ""Registry-based uninstall failed: $($_.Exception.Message)""
+            Write-Log ""HKU registry-based uninstall failed: $($_.Exception.Message)""
         }
     } else {
         Write-Log ""Could not get user SID for '$targetUser'""
     }
-} else {
-    Write-Log ""No target user found for uninstall check""
 }
 
 # Step 3: Always run cleanup tasks
 Write-Log ""Starting cleanup tasks""
 
-# 3.1: Delete OneDrive registry key
+# 3.1: Delete OneDrive registry keys
+$hklmUninstallKey = ""HKLM\SOFTWARE\Microsoft\Windows\CurrentVersion\Uninstall\OneDriveSetup.exe""
+Write-Log ""Deleting HKLM OneDrive uninstall registry key: $hklmUninstallKey""
+reg.exe delete $hklmUninstallKey /f 2>&1 | Out-Null
+if ($LASTEXITCODE -eq 0) {
+    Write-Log ""HKLM registry key deleted successfully""
+} else {
+    Write-Log ""HKLM registry key not found or already deleted""
+}
+
 if ($targetUser -and $userSID) {
     $uninstallKey = ""HKU\$userSID\SOFTWARE\Microsoft\Windows\CurrentVersion\Uninstall\OneDriveSetup.exe""
-    Write-Log ""Deleting OneDrive uninstall registry key: $uninstallKey""
+    Write-Log ""Deleting HKU OneDrive uninstall registry key: $uninstallKey""
     reg.exe delete $uninstallKey /f 2>&1 | Out-Null
     if ($LASTEXITCODE -eq 0) {
-        Write-Log ""Registry key deleted successfully""
+        Write-Log ""HKU registry key deleted successfully""
     } else {
-        Write-Log ""Registry key not found or already deleted""
+        Write-Log ""HKU registry key not found or already deleted""
     }
 }
 
@@ -257,20 +309,59 @@ $systemPaths = @(
 )
 
 foreach ($path in $systemPaths) {
-    Write-Log ""Checking system path: $path""
     if (Test-Path $path) {
         Write-Log ""Removing: $path""
-        try {
+        if (Test-Path $path -PathType Container) {
             takeown /f $path /r /d y 2>&1 | Out-Null
             icacls $path /grant ""${env:USERNAME}:F"" /t 2>&1 | Out-Null
-            Remove-Item $path -Recurse -Force -ErrorAction SilentlyContinue
-            Write-Log ""Successfully removed: $path""
+        } else {
+            takeown /f $path 2>&1 | Out-Null
+            icacls $path /grant ""${env:USERNAME}:F"" 2>&1 | Out-Null
         }
-        catch {
-            Write-Log ""Failed to remove: $path - $($_.Exception.Message)""
+        Remove-Item $path -Recurse -Force -ErrorAction SilentlyContinue
+    }
+}
+
+$remaining = $systemPaths | Where-Object { Test-Path $_ }
+if ($remaining) {
+    Write-Log ""Stopping explorer to release file locks""
+    Stop-Process -Name explorer -Force -ErrorAction SilentlyContinue
+
+    if (Test-Path ""C:\Program Files\Microsoft OneDrive"") {
+        Write-Log ""Unregistering OneDrive DLLs""
+        Get-ChildItem ""C:\Program Files\Microsoft OneDrive"" -Filter ""*.dll"" -Recurse -ErrorAction SilentlyContinue | ForEach-Object {
+            regsvr32.exe /s /u $_.FullName 2>&1 | Out-Null
         }
-    } else {
-        Write-Log ""Path not found: $path""
+    }
+
+    $maxRetries = 3
+    $retryCount = 0
+
+    do {
+        $retryCount++
+        Write-Log ""Removal retry $retryCount/$maxRetries""
+
+        foreach ($path in $remaining) {
+            if (Test-Path $path) {
+                if (Test-Path $path -PathType Container) {
+                    takeown /f $path /r /d y 2>&1 | Out-Null
+                    icacls $path /grant ""${env:USERNAME}:F"" /t 2>&1 | Out-Null
+                } else {
+                    takeown /f $path 2>&1 | Out-Null
+                    icacls $path /grant ""${env:USERNAME}:F"" 2>&1 | Out-Null
+                }
+                Remove-Item $path -Recurse -Force -ErrorAction SilentlyContinue
+            }
+        }
+
+        $remaining = $systemPaths | Where-Object { Test-Path $_ }
+        if ($remaining.Count -eq 0) { break }
+        if ($retryCount -lt $maxRetries) { Start-Sleep -Seconds 2 }
+
+    } while ($retryCount -lt $maxRetries -and $remaining.Count -gt 0)
+
+    if ($remaining.Count -gt 0) {
+        Write-Log ""Warning: Could not remove: $($remaining -join ', ')""
     }
 }
 
