@@ -16,6 +16,7 @@ public class WindowsAppsService(
     ILogService logService,
     IPowerShellExecutionService powerShellService,
     IWinGetService winGetService,
+    IAppStatusDiscoveryService appStatusDiscoveryService,
     IStoreDownloadService storeDownloadService = null,
     IDialogService dialogService = null,
     IUserPreferencesService userPreferencesService = null,
@@ -43,6 +44,11 @@ public class WindowsAppsService(
     {
         var apps = await GetAppsAsync();
         return apps.FirstOrDefault(app => app.Id == appId);
+    }
+
+    public async Task<Dictionary<string, bool>> CheckBatchInstalledAsync(IEnumerable<ItemDefinition> definitions)
+    {
+        return await appStatusDiscoveryService.GetInstallationStatusBatchAsync(definitions);
     }
 
     public async Task<OperationResult<bool>> InstallAppAsync(ItemDefinition item, IProgress<TaskProgressDetail>? progress = null)

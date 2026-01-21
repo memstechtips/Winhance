@@ -109,11 +109,38 @@ public class ExternalAppsService(
 
     public async Task<Dictionary<string, bool>> CheckBatchInstalledAsync(IEnumerable<ItemDefinition> definitions)
     {
-        return await appStatusDiscoveryService.GetExternalAppsInstallationStatusAsync(definitions);
-    }
+        var result = new Dictionary<string, bool>(StringComparer.OrdinalIgnoreCase);
+        var definitionList = definitions.ToList();
 
-    public async Task<Dictionary<string, bool>> CheckInstalledByDisplayNameAsync(IEnumerable<string> displayNames)
-    {
-        return await appStatusDiscoveryService.CheckInstalledByDisplayNameAsync(displayNames);
+        if (!definitionList.Any())
+            return result;
+
+        var appsWithWinGetId = definitionList.Where(d => !string.IsNullOrEmpty(d.WinGetPackageId)).ToList();
+        var appsWithoutWinGetId = definitionList.Where(d => string.IsNullOrEmpty(d.WinGetPackageId)).ToList();
+
+        if (appsWithWinGetId.Any())
+        {
+            var winGetResults = await appStatusDiscoveryService.GetExternalAppsInstallationStatusAsync(appsWithWinGetId);
+            foreach (var kvp in winGetResults)
+            {
+                result[kvp.Key] = kvp.Value;
+            }
+        }
+
+        if (appsWithoutWinGetId.Any())
+        {
+            var displayNames = appsWithoutWinGetId.Select(d => d.Name).ToList();
+            var displayNameResults = await appStatusDiscoveryService.CheckInstalledByDisplayNameAsync(displayNames);
+
+            foreach (var app in appsWithoutWinGetId)
+            {
+                if (displayNameResults.TryGetValue(app.Name, out bool isInstalled))
+                {
+                    result[app.Id] = isInstalled;
+                }
+            }
+        }
+
+        return result;
     }
 }

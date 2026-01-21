@@ -30,8 +30,6 @@ namespace Winhance.WPF.Features.SoftwareApps.ViewModels
         IEventBus eventBus,
         IWindowsAppsService windowsAppsService,
         IAppOperationService appOperationService,
-        IAppStatusDiscoveryService appStatusDiscoveryService,
-        IConfigurationService configurationService,
         IScriptDetectionService scriptDetectionService,
         IInternetConnectivityService connectivityService,
         IDialogService dialogService,
@@ -265,7 +263,7 @@ namespace Winhance.WPF.Features.SoftwareApps.ViewModels
 
         public async Task CheckInstallationStatusAsync(bool showLoadingOverlay)
         {
-            if (appStatusDiscoveryService == null) return;
+            if (windowsAppsService == null) return;
 
             if (showLoadingOverlay)
             {
@@ -276,7 +274,7 @@ namespace Winhance.WPF.Features.SoftwareApps.ViewModels
             try
             {
                 var definitions = Items.Select(item => item.Definition).ToList();
-                var statusResults = await appStatusDiscoveryService.GetInstallationStatusBatchAsync(definitions).ConfigureAwait(false);
+                var statusResults = await windowsAppsService.CheckBatchInstalledAsync(definitions).ConfigureAwait(false);
 
                 foreach (var item in Items)
                 {

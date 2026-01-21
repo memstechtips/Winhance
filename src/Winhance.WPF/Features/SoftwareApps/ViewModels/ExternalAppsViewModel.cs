@@ -28,7 +28,6 @@ namespace Winhance.WPF.Features.SoftwareApps.ViewModels
         IEventBus eventBus,
         IExternalAppsService externalAppsService,
         IAppOperationService appOperationService,
-        IConfigurationService configurationService,
         IDialogService dialogService,
         IInternetConnectivityService connectivityService,
         ILocalizationService localizationService)
@@ -263,15 +262,17 @@ namespace Winhance.WPF.Features.SoftwareApps.ViewModels
 
         public override async Task LoadItemsAsync()
         {
+            if (externalAppsService == null) return;
+
             IsLoading = true;
 
             try
             {
                 Items.Clear();
 
-                var itemGroup = ExternalAppDefinitions.GetExternalApps();
+                var allItems = await externalAppsService.GetAppsAsync().ConfigureAwait(false);
 
-                foreach (var itemDef in itemGroup.Items)
+                foreach (var itemDef in allItems)
                 {
                     var viewModel = new AppItemViewModel(
                         itemDef,
@@ -294,8 +295,6 @@ namespace Winhance.WPF.Features.SoftwareApps.ViewModels
             {
                 IsLoading = false;
             }
-
-            await Task.CompletedTask;
         }
 
         public override async Task CheckInstallationStatusAsync()
@@ -305,7 +304,7 @@ namespace Winhance.WPF.Features.SoftwareApps.ViewModels
 
         public async Task CheckInstallationStatusAsync(bool showLoadingOverlay)
         {
-            if (Items == null || !Items.Any())
+            if (externalAppsService == null || Items == null || !Items.Any())
                 return;
 
             if (showLoadingOverlay)
@@ -316,47 +315,18 @@ namespace Winhance.WPF.Features.SoftwareApps.ViewModels
 
             try
             {
-                var appsWithWinGetId = Items
-                    .Where(item => !string.IsNullOrEmpty(item.Definition.WinGetPackageId))
-                    .ToList();
+                var definitions = Items.Select(item => item.Definition).ToList();
+                var statusResults = await externalAppsService.CheckBatchInstalledAsync(definitions).ConfigureAwait(false);
 
-                var appsWithoutWinGetId = Items
-                    .Where(item => string.IsNullOrEmpty(item.Definition.WinGetPackageId))
-                    .ToList();
-
-                int checkedCount = 0;
-
-                if (appsWithWinGetId.Any())
+                foreach (var item in Items)
                 {
-                    var definitions = appsWithWinGetId.Select(item => item.Definition).ToList();
-                    var statusResults = await externalAppsService.CheckBatchInstalledAsync(definitions).ConfigureAwait(false);
-
-                    foreach (var item in appsWithWinGetId)
+                    if (statusResults.TryGetValue(item.Definition.Id, out bool isInstalled))
                     {
-                        if (statusResults.TryGetValue(item.Definition.Id, out bool isInstalled))
-                        {
-                            item.IsInstalled = isInstalled;
-                            checkedCount++;
-                        }
+                        item.IsInstalled = isInstalled;
                     }
                 }
 
-                if (appsWithoutWinGetId.Any())
-                {
-                    var displayNames = appsWithoutWinGetId.Select(item => item.Definition.Name).ToList();
-                    var statusResults = await externalAppsService.CheckInstalledByDisplayNameAsync(displayNames).ConfigureAwait(false);
-
-                    foreach (var item in appsWithoutWinGetId)
-                    {
-                        if (statusResults.TryGetValue(item.Definition.Name, out bool isInstalled))
-                        {
-                            item.IsInstalled = isInstalled;
-                            checkedCount++;
-                        }
-                    }
-                }
-
-                StatusText = $"Status checked for {checkedCount} apps";
+                StatusText = $"Status checked for {Items.Count} apps";
             }
             catch (Exception ex)
             {

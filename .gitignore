@@ -238,3 +238,6 @@ $RECYCLE.BIN/
 # Gemini stuff
 GEMINI.md
 .gemini/
+
+# Plans
+.plans/
