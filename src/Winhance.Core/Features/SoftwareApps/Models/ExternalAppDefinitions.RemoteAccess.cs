@@ -44,6 +44,15 @@ namespace Winhance.Core.Features.SoftwareApps.Models
                         },
                         new ItemDefinition
                         {
+                            Id = "external-app-ultraviewer",
+                            Name = "UltraViewer",
+                            Description = "Helps you control your partner's computer to support them as if you were sitting in front of their screen",
+                            GroupName = "Remote Access",
+                            WinGetPackageId = "DucFabulous.UltraViewer",
+                            WebsiteUrl = "https://www.ultraviewer.net/"
+                        },
+                        new ItemDefinition
+                        {
                             Id = "external-app-vnc-server",
                             Name = "RealVNC Server",
                             Description = "Remote access software",
