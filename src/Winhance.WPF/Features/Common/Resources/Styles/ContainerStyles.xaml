@@ -120,11 +120,9 @@
 
     <!-- Modern Settings Item Template (Card-style layout) -->
     <DataTemplate x:Key="ModernSettingsItemTemplate">
-        <!-- Group header template -->
         <Grid>
-
             <!-- Setting Card Wrapper -->
-            <Border Background="{DynamicResource SettingsItemBackground}" CornerRadius="4" Visibility="{Binding IsVisible, Converter={StaticResource BooleanToVisibilityConverter}}" Margin="{Binding IsSubSetting, Converter={StaticResource SubSettingMarginConverter}}" Opacity="{Binding EffectiveIsEnabled, Converter={StaticResource BooleanToOpacityConverter}}">
+            <Border Background="{DynamicResource SettingsItemBackground}" CornerRadius="4" Visibility="{Binding IsVisible, Converter={StaticResource BooleanToVisibilityConverter}}" Margin="{Binding IsSubSetting, Converter={StaticResource SubSettingMarginConverter}}" Opacity="{Binding EffectiveIsEnabled, Converter={StaticResource BooleanToOpacityConverter}}" Cursor="Hand">
                 <Border.Style>
                     <Style TargetType="Border">
                         <Setter Property="Effect" Value="{StaticResource UltraLightShadowEffect}"/>
@@ -135,7 +133,74 @@
                         </Style.Triggers>
                     </Style>
                 </Border.Style>
-                <Grid>
+
+                <Grid x:Name="CardContentGrid">
+                    <Grid.Triggers>
+                        <EventTrigger RoutedEvent="MouseEnter">
+                            <BeginStoryboard>
+                                <Storyboard>
+                                    <DoubleAnimation Storyboard.TargetName="HoverIndicator"
+                                                   Storyboard.TargetProperty="Opacity"
+                                                   To="1"
+                                                   Duration="0:0:0.2">
+                                        <DoubleAnimation.EasingFunction>
+                                            <CubicEase EasingMode="EaseOut"/>
+                                        </DoubleAnimation.EasingFunction>
+                                    </DoubleAnimation>
+                                    <DoubleAnimation Storyboard.TargetName="HoverIndicator"
+                                                   Storyboard.TargetProperty="(UIElement.RenderTransform).(TranslateTransform.X)"
+                                                   To="0"
+                                                   Duration="0:0:0.2">
+                                        <DoubleAnimation.EasingFunction>
+                                            <CubicEase EasingMode="EaseOut"/>
+                                        </DoubleAnimation.EasingFunction>
+                                    </DoubleAnimation>
+                                </Storyboard>
+                            </BeginStoryboard>
+                        </EventTrigger>
+                        <EventTrigger RoutedEvent="MouseLeave">
+                            <BeginStoryboard>
+                                <Storyboard>
+                                    <DoubleAnimation Storyboard.TargetName="HoverIndicator"
+                                                   Storyboard.TargetProperty="Opacity"
+                                                   To="0"
+                                                   Duration="0:0:0.2">
+                                        <DoubleAnimation.EasingFunction>
+                                            <CubicEase EasingMode="EaseOut"/>
+                                        </DoubleAnimation.EasingFunction>
+                                    </DoubleAnimation>
+                                    <DoubleAnimation Storyboard.TargetName="HoverIndicator"
+                                                   Storyboard.TargetProperty="(UIElement.RenderTransform).(TranslateTransform.X)"
+                                                   To="-3"
+                                                   Duration="0:0:0.2">
+                                        <DoubleAnimation.EasingFunction>
+                                            <CubicEase EasingMode="EaseOut"/>
+                                        </DoubleAnimation.EasingFunction>
+                                    </DoubleAnimation>
+                                </Storyboard>
+                            </BeginStoryboard>
+                        </EventTrigger>
+                    </Grid.Triggers>
+
+                    <!-- Left hover indicator line -->
+                    <Border x:Name="HoverIndicator"
+                            Width="3"
+                            Height="30"
+                            HorizontalAlignment="Left"
+                            VerticalAlignment="Center"
+                            Background="{DynamicResource ButtonHoverBackground}"
+                            Margin="5,0,0,0"
+                            CornerRadius="1.5"
+                            Panel.ZIndex="1"
+                            Opacity="0"
+                            RenderTransformOrigin="0.5,0.5">
+                        <Border.RenderTransform>
+                            <TranslateTransform X="-3"/>
+                        </Border.RenderTransform>
+                    </Border>
+
+                    <!-- Main content grid -->
+                    <Grid>
                     <Grid.ColumnDefinitions>
                         <ColumnDefinition Width="*"/>
                         <ColumnDefinition Width="Auto"/>
@@ -529,6 +594,7 @@
                                        HorizontalAlignment="Center"/>
                         </StackPanel>
                     </Border>
+                </Grid>
                 </Grid>
             </Border>
         </Grid>
