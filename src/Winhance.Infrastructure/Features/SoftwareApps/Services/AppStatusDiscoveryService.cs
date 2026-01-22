@@ -5,6 +5,7 @@ using System.IO;
 using System.Linq;
 using System.Management;
 using System.Text.Json;
+using System.Text.RegularExpressions;
 using System.Threading.Tasks;
 using Microsoft.Win32;
 using Winhance.Core.Features.Common.Interfaces;
@@ -39,7 +40,13 @@ public class AppStatusDiscoveryService(
                 foreach (var capability in capabilities)
                 {
                     if (capabilityResults.TryGetValue(capability.CapabilityName, out bool isInstalled))
+                    {
                         result[capability.Id] = isInstalled;
+                        if (isInstalled)
+                        {
+                            logService.LogInformation($"Installed (Capability): {capability.Name} ({capability.CapabilityName})");
+                        }
+                    }
                 }
             }
 
@@ -50,7 +57,13 @@ public class AppStatusDiscoveryService(
                 foreach (var feature in features)
                 {
                     if (featureResults.TryGetValue(feature.OptionalFeatureName, out bool isInstalled))
+                    {
                         result[feature.Id] = isInstalled;
+                        if (isInstalled)
+                        {
+                            logService.LogInformation($"Installed (Feature): {feature.Name} ({feature.OptionalFeatureName})");
+                        }
+                    }
                 }
             }
 
@@ -59,7 +72,15 @@ public class AppStatusDiscoveryService(
                 var installedApps = await GetInstalledStoreAppsAsync();
                 foreach (var app in apps)
                 {
-                    result[app.Id] = installedApps.Contains(app.AppxPackageName);
+                    if (installedApps.TryGetValue(app.AppxPackageName, out var detectionMethod))
+                    {
+                        result[app.Id] = true;
+                        logService.LogInformation($"Installed ({detectionMethod}): {app.Name} ({app.AppxPackageName})");
+                    }
+                    else
+                    {
+                        result[app.Id] = false;
+                    }
                 }
             }
 
@@ -84,7 +105,15 @@ public class AppStatusDiscoveryService(
             var installedApps = await GetInstalledStoreAppsAsync();
             foreach (var appId in appIdList)
             {
-                result[appId] = installedApps.Contains(appId);
+                if (installedApps.TryGetValue(appId, out var detectionMethod))
+                {
+                    result[appId] = true;
+                    logService.LogInformation($"Installed ({detectionMethod}): {appId}");
+                }
+                else
+                {
+                    result[appId] = false;
+                }
             }
             return result;
         }
@@ -170,9 +199,9 @@ public class AppStatusDiscoveryService(
         return result;
     }
 
-    private async Task<HashSet<string>> GetInstalledStoreAppsAsync()
+    private async Task<Dictionary<string, string>> GetInstalledStoreAppsAsync()
     {
-        var installedApps = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
+        var installedApps = new Dictionary<string, string>(StringComparer.OrdinalIgnoreCase);
 
         try
         {
@@ -185,7 +214,9 @@ public class AppStatusDiscoveryService(
                 {
                     var name = obj["Name"]?.ToString();
                     if (!string.IsNullOrEmpty(name))
-                        installedApps.Add(name);
+                    {
+                        installedApps[name] = "WMI";
+                    }
                 }
             });
 
@@ -207,12 +238,12 @@ public class AppStatusDiscoveryService(
 
                         if (subKeyNames.Any(name => name.Contains("OneNote", StringComparison.OrdinalIgnoreCase)))
                         {
-                            installedApps.Add("Microsoft.Office.OneNote");
+                            installedApps["Microsoft.Office.OneNote"] = "Registry";
                         }
 
                         if (subKeyNames.Any(name => name.Contains("OneDrive", StringComparison.OrdinalIgnoreCase)))
                         {
-                            installedApps.Add("Microsoft.OneDriveSync");
+                            installedApps["Microsoft.OneDriveSync"] = "Registry";
                         }
                     }
                 }
@@ -497,36 +528,80 @@ public class AppStatusDiscoveryService(
         if (parts.Length < 2)
         {
             var normalized = NormalizeString(winGetPackageId);
-            return installedPrograms.Any(p => NormalizeString(p.DisplayName).Contains(normalized));
+            return installedPrograms.Any(p =>
+                NormalizeString(p.DisplayName).Equals(normalized, StringComparison.OrdinalIgnoreCase));
         }
 
         var publisher = NormalizeString(parts[0]);
-        var productName = NormalizeString(string.Join(".", parts.Skip(1)));
+        var productName = NormalizeString(string.Join(" ", parts.Skip(1)));
 
         foreach (var (displayName, vendor) in installedPrograms)
         {
             var normDisplayName = NormalizeString(displayName);
             var normVendor = NormalizeString(vendor);
 
-            if (normDisplayName.Contains(productName))
+            if (normDisplayName.Equals(productName, StringComparison.OrdinalIgnoreCase))
             {
-                if (normDisplayName.Contains("add-in") ||
-                    normDisplayName.Contains("for " + productName) ||
-                    normDisplayName.Contains("plugin"))
-                {
-                    continue;
-                }
-
                 if (string.IsNullOrEmpty(vendor) || normVendor.Contains(publisher))
+                {
+                    logService.LogInformation($"Exact match: '{winGetPackageId}' to '{displayName}'");
                     return true;
+                }
             }
+        }
 
-            var fullId = NormalizeString(winGetPackageId).Replace(".", "");
-            if (normDisplayName.Replace(" ", "").Contains(fullId))
-                return true;
+        foreach (var (displayName, vendor) in installedPrograms)
+        {
+            var normDisplayName = NormalizeString(displayName);
+            var normVendor = NormalizeString(vendor);
+
+            if (normDisplayName.StartsWith(productName + " ", StringComparison.OrdinalIgnoreCase) ||
+                normDisplayName.StartsWith(productName + "-", StringComparison.OrdinalIgnoreCase))
+            {
+                if (IsMainApplication(normDisplayName))
+                {
+                    if (string.IsNullOrEmpty(vendor) || normVendor.Contains(publisher))
+                    {
+                        logService.LogInformation($"Prefix match: '{winGetPackageId}' to '{displayName}' (Publisher: {vendor})");
+                        return true;
+                    }
+                }
+            }
+        }
+
+        foreach (var (displayName, vendor) in installedPrograms)
+        {
+            var normDisplayName = NormalizeString(displayName);
+            var normVendor = NormalizeString(vendor);
+
+            if (ContainsAsWord(normDisplayName, productName))
+            {
+                if (IsMainApplication(normDisplayName))
+                {
+                    if (string.IsNullOrEmpty(vendor) || normVendor.Contains(publisher))
+                    {
+                        logService.LogInformation($"Word match: '{winGetPackageId}' to '{displayName}' (Publisher: {vendor})");
+                        return true;
+                    }
+                }
+            }
         }
 
         return false;
+    }
+
+    private bool IsMainApplication(string displayName)
+    {
+        string[] utilityKeywords = { "helper", "updater", "installer", "uninstall",
+                                      "add-in", "plugin", "addon", "extension" };
+
+        return !utilityKeywords.Any(keyword => displayName.Contains(keyword));
+    }
+
+    private bool ContainsAsWord(string text, string word)
+    {
+        var pattern = $@"\b{Regex.Escape(word)}\b";
+        return Regex.IsMatch(text, pattern, RegexOptions.IgnoreCase);
     }
 
     private string NormalizeString(string input)
