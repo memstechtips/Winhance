@@ -14,4 +14,5 @@ public interface IWinGetService
     Task<bool> IsPackageInstalledAsync(string packageId, CancellationToken cancellationToken = default);
     Task<bool> EnsureWinGetReadyAsync(CancellationToken cancellationToken = default);
     Task<bool> EnsureWinGetUpToDateAsync(IProgress<TaskProgressDetail> progress = null, CancellationToken cancellationToken = default);
+    Task<string?> GetInstallerTypeAsync(string packageId, CancellationToken cancellationToken = default);
 }

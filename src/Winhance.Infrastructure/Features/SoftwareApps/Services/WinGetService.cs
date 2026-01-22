@@ -693,5 +693,43 @@ namespace Winhance.Infrastructure.Features.SoftwareApps.Services
             }
         }
 
+        public async Task<string?> GetInstallerTypeAsync(string packageId, CancellationToken cancellationToken = default)
+        {
+            if (string.IsNullOrWhiteSpace(packageId))
+                return null;
+
+            try
+            {
+                string wingetPath = _wingetExePath ?? "winget";
+                var result = await ExecuteProcessAsync(
+                    wingetPath,
+                    $"show --id {EscapeArgument(packageId)} --accept-source-agreements",
+                    packageId,
+                    cancellationToken,
+                    $"Checking installer type for {packageId}");
+
+                if (result.ExitCode != 0)
+                    return null;
+
+                foreach (var line in result.Output.Split('\n'))
+                {
+                    var trimmed = line.Trim();
+                    if (trimmed.StartsWith("Installer Type:", StringComparison.OrdinalIgnoreCase))
+                    {
+                        var installerType = trimmed.Substring("Installer Type:".Length).Trim().ToLowerInvariant();
+                        logService?.LogInformation($"Installer type for {packageId}: {installerType}");
+                        return installerType;
+                    }
+                }
+
+                return null;
+            }
+            catch (Exception ex)
+            {
+                logService?.LogWarning($"Could not determine installer type for {packageId}: {ex.Message}");
+                return null;
+            }
+        }
+
     }
 }
