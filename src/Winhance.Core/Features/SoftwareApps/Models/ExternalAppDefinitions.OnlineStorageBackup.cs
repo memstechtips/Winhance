@@ -21,7 +21,7 @@ namespace Winhance.Core.Features.SoftwareApps.Models
                             Name = "Google Drive",
                             Description = "Cloud storage and file synchronization service",
                             GroupName = "Online Storage & Backup",
-                            WinGetPackageId = "Google.GoogleDrive",
+                            WinGetPackageId = ["Google.GoogleDrive"],
                             WebsiteUrl = "https://www.google.com/drive/"
                         },
                         new ItemDefinition
@@ -30,7 +30,7 @@ namespace Winhance.Core.Features.SoftwareApps.Models
                             Name = "Dropbox",
                             Description = "File hosting service that offers cloud storage, file synchronization, personal cloud",
                             GroupName = "Online Storage & Backup",
-                            WinGetPackageId = "Dropbox.Dropbox",
+                            WinGetPackageId = ["Dropbox.Dropbox"],
                             WebsiteUrl = "https://www.dropbox.com/"
                         },
                         new ItemDefinition
@@ -39,7 +39,7 @@ namespace Winhance.Core.Features.SoftwareApps.Models
                             Name = "SugarSync",
                             Description = "Automatically access and share your photos, videos, and files in any folder",
                             GroupName = "Online Storage & Backup",
-                            WinGetPackageId = "IPVanish.SugarSync",
+                            WinGetPackageId = ["IPVanish.SugarSync"],
                             WebsiteUrl = "https://www.sugarsync.com/"
                         },
                         new ItemDefinition
@@ -48,7 +48,7 @@ namespace Winhance.Core.Features.SoftwareApps.Models
                             Name = "NextCloud",
                             Description = "Access, share and protect your files, calendars, contacts, communication & more at home and in your organization",
                             GroupName = "Online Storage & Backup",
-                            WinGetPackageId = "Nextcloud.NextcloudDesktop",
+                            WinGetPackageId = ["Nextcloud.NextcloudDesktop"],
                             WebsiteUrl = "https://nextcloud.com/"
                         },
                         new ItemDefinition
@@ -57,7 +57,7 @@ namespace Winhance.Core.Features.SoftwareApps.Models
                             Name = "Proton Drive",
                             Description = "Secure cloud storage with end-to-end encryption",
                             GroupName = "Online Storage & Backup",
-                            WinGetPackageId = "Proton.ProtonDrive",
+                            WinGetPackageId = ["Proton.ProtonDrive"],
                             WebsiteUrl = "https://proton.me/drive"
                         },
                         new ItemDefinition
@@ -66,7 +66,7 @@ namespace Winhance.Core.Features.SoftwareApps.Models
                             Name = "Hekasoft Backup & Restore",
                             Description = "The complete free solution for browser backup and management",
                             GroupName = "Online Storage & Backup",
-                            WinGetPackageId = "Hekasoft.Backup-Restore",
+                            WinGetPackageId = ["Hekasoft.Backup-Restore"],
                             WebsiteUrl = "https://hekasoft.com/hekasoft-backup-restore/"
                         },
                     }

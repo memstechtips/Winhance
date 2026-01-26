@@ -116,12 +116,12 @@ namespace Winhance.Infrastructure.Features.SoftwareApps.Services
                 string wingetPath = _wingetExePath ?? "winget";
                 logService?.LogInformation("Triggering WinGet source initialization...");
 
-                var result = await ExecuteProcessAsync(wingetPath, "source list", "Initializing WinGet", cancellationToken);
+                var result = await ExecuteProcessAsync(wingetPath, "source list --accept-source-agreements", "Initializing WinGet", cancellationToken);
 
                 if (result.ExitCode != 0)
                 {
                     logService?.LogWarning($"WinGet source list returned exit code {result.ExitCode}, attempting reset");
-                    await ExecuteProcessAsync(wingetPath, "source reset --force", "Resetting WinGet sources", cancellationToken);
+                    await ExecuteProcessAsync(wingetPath, "source reset --force --accept-source-agreements", "Resetting WinGet sources", cancellationToken);
                 }
                 else
                 {

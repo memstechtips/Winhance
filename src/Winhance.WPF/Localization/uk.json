@@ -1398,5 +1398,9 @@
   "Button_Unlock": "Розблокувати",
   "Common_ClickToUnlock": "Натисніть, щоб розблокувати",
   "Setting_taskbar-copilot_Name": "Кнопка попереднього перегляду Copilot",
-  "Setting_taskbar-copilot_Description": "Показати або приховати кнопку попереднього перегляду Copilot на панелі завдань"
+  "Setting_taskbar-copilot_Description": "Показати або приховати кнопку попереднього перегляду Copilot на панелі завдань",
+  "ExternalApps_WinGetUnavailable": "Неможливо визначити статус встановлення. Підключіться до Інтернету та натисніть кнопку Оновити.",
+  "Error_NoInternetConnection": "Немає підключення до Інтернету. Будь ласка, підключіться та спробуйте ще раз.",
+  "Error_WinGetInstallFailed": "Не вдалося встановити WinGet. Будь ласка, перевірте підключення до Інтернету.",
+  "Error_WinGetNotAvailable": "WinGet недоступний у цій системі."
 }

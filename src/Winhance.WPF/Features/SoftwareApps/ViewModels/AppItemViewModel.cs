@@ -109,7 +109,7 @@ public partial class AppItemViewModel : ObservableObject, ISelectable
     }
 
     public string PackageName => Definition.AppxPackageName
-        ?? Definition.WinGetPackageId
+        ?? (Definition.WinGetPackageId?.FirstOrDefault())
         ?? Definition.CapabilityName
         ?? Definition.OptionalFeatureName
         ?? string.Empty;

@@ -49,13 +49,14 @@ public class ExternalAppsService(
                     : OperationResult<bool>.Failed("Direct download installation failed");
             }
 
-            if (string.IsNullOrEmpty(item.WinGetPackageId))
+            if (item.WinGetPackageId == null || !item.WinGetPackageId.Any())
                 return OperationResult<bool>.Failed("No WinGet package ID or download URL specified");
 
-            var installerType = await winGetService.GetInstallerTypeAsync(item.WinGetPackageId, cancellationToken);
+            var primaryPackageId = item.WinGetPackageId[0];
+            var installerType = await winGetService.GetInstallerTypeAsync(primaryPackageId, cancellationToken);
             var isPortable = IsPortableInstallerType(installerType);
 
-            var wingetSuccess = await winGetService.InstallPackageAsync(item.WinGetPackageId, item.Name, cancellationToken);
+            var wingetSuccess = await winGetService.InstallPackageAsync(primaryPackageId, item.Name, cancellationToken);
 
             if (wingetSuccess && isPortable)
             {
@@ -154,7 +155,11 @@ $Shortcut.Save()
             if (!Directory.Exists(basePath))
                 continue;
 
-            var matchingDirs = Directory.GetDirectories(basePath, $"{item.WinGetPackageId}*");
+            var matchingDirs = item.WinGetPackageId!
+                .SelectMany(pkgId => Directory.GetDirectories(basePath, $"{pkgId}*"))
+                .Distinct()
+                .ToList();
+
             foreach (var dir in matchingDirs)
             {
                 var exeFiles = Directory.GetFiles(dir, "*.exe", SearchOption.AllDirectories)
@@ -233,7 +238,7 @@ $Shortcut.Save()
                 Id = winGetPackageId,
                 Name = winGetPackageId,
                 Description = "",
-                WinGetPackageId = winGetPackageId
+                WinGetPackageId = [winGetPackageId]
             };
             var batch = await CheckBatchInstalledAsync(new[] { tempDef });
             return batch.GetValueOrDefault(winGetPackageId, false);
@@ -247,38 +252,6 @@ $Shortcut.Save()
 
     public async Task<Dictionary<string, bool>> CheckBatchInstalledAsync(IEnumerable<ItemDefinition> definitions)
     {
-        var result = new Dictionary<string, bool>(StringComparer.OrdinalIgnoreCase);
-        var definitionList = definitions.ToList();
-
-        if (!definitionList.Any())
-            return result;
-
-        var appsWithWinGetId = definitionList.Where(d => !string.IsNullOrEmpty(d.WinGetPackageId)).ToList();
-        var appsWithoutWinGetId = definitionList.Where(d => string.IsNullOrEmpty(d.WinGetPackageId)).ToList();
-
-        if (appsWithWinGetId.Any())
-        {
-            var winGetResults = await appStatusDiscoveryService.GetExternalAppsInstallationStatusAsync(appsWithWinGetId);
-            foreach (var kvp in winGetResults)
-            {
-                result[kvp.Key] = kvp.Value;
-            }
-        }
-
-        if (appsWithoutWinGetId.Any())
-        {
-            var displayNames = appsWithoutWinGetId.Select(d => d.Name).ToList();
-            var displayNameResults = await appStatusDiscoveryService.CheckInstalledByDisplayNameAsync(displayNames);
-
-            foreach (var app in appsWithoutWinGetId)
-            {
-                if (displayNameResults.TryGetValue(app.Name, out bool isInstalled))
-                {
-                    result[app.Id] = isInstalled;
-                }
-            }
-        }
-
-        return result;
+        return await appStatusDiscoveryService.GetExternalAppsInstallationStatusAsync(definitions);
     }
 }

@@ -1398,5 +1398,9 @@
   "Button_Unlock": "Entsperren",
   "Common_ClickToUnlock": "Zum Entsperren klicken",
   "Setting_taskbar-copilot_Name": "Copilot-Vorschau-Schaltfläche",
-  "Setting_taskbar-copilot_Description": "Copilot-Vorschau-Schaltfläche auf der Taskleiste ein- oder ausblenden"
+  "Setting_taskbar-copilot_Description": "Copilot-Vorschau-Schaltfläche auf der Taskleiste ein- oder ausblenden",
+  "ExternalApps_WinGetUnavailable": "Installationsstatus kann nicht ermittelt werden. Verbinden Sie sich mit dem Internet und klicken Sie auf die Schaltfläche Aktualisieren.",
+  "Error_NoInternetConnection": "Keine Internetverbindung. Bitte verbinden Sie sich und versuchen Sie es erneut.",
+  "Error_WinGetInstallFailed": "WinGet konnte nicht installiert werden. Bitte überprüfen Sie Ihre Internetverbindung.",
+  "Error_WinGetNotAvailable": "WinGet ist auf diesem System nicht verfügbar."
 }

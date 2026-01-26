@@ -55,9 +55,9 @@ public class WindowsAppsService(
     {
         try
         {
-            if (!string.IsNullOrEmpty(item.WinGetPackageId) || !string.IsNullOrEmpty(item.AppxPackageName))
+            if ((item.WinGetPackageId != null && item.WinGetPackageId.Any()) || !string.IsNullOrEmpty(item.AppxPackageName))
             {
-                var packageId = item.WinGetPackageId ?? item.AppxPackageName;
+                var packageId = (item.WinGetPackageId?.FirstOrDefault()) ?? item.AppxPackageName;
 
                 // Try WinGet first (official method)
                 logService?.LogInformation($"Attempting to install {item.Name} using WinGet...");
@@ -71,7 +71,7 @@ public class WindowsAppsService(
 
                 // If WinGet failed and we have a WinGetPackageId, try fallback to direct download
                 // This bypasses market restrictions
-                if (!string.IsNullOrEmpty(item.WinGetPackageId) && storeDownloadService != null)
+                if ((item.WinGetPackageId != null && item.WinGetPackageId.Any()) && storeDownloadService != null)
                 {
                     logService?.LogWarning($"WinGet installation failed for {item.Name}. Checking if fallback method should be used...");
 
@@ -129,7 +129,7 @@ public class WindowsAppsService(
                     try
                     {
                         var fallbackSuccess = await storeDownloadService.DownloadAndInstallPackageAsync(
-                            item.WinGetPackageId,
+                            item.WinGetPackageId![0],
                             item.Name,
                             cancellationToken);
 

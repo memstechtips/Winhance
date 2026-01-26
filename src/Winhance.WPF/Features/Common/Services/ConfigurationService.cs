@@ -462,8 +462,8 @@ namespace Winhance.WPF.Features.Common.Services
                             InputType = InputType.Toggle
                         };
 
-                        if (!string.IsNullOrEmpty(item.Definition.WinGetPackageId))
-                            configItem.WinGetPackageId = item.Definition.WinGetPackageId;
+                        if (item.Definition.WinGetPackageId != null && item.Definition.WinGetPackageId.Any())
+                            configItem.WinGetPackageId = item.Definition.WinGetPackageId[0];
 
                         return configItem;
                     }).ToList();
@@ -607,7 +607,9 @@ namespace Winhance.WPF.Features.Common.Services
         private AppItemViewModel FindMatchingExternalApp(IEnumerable<AppItemViewModel> vmItems, ConfigurationItem configItem)
         {
             return vmItems.FirstOrDefault(i =>
-                (!string.IsNullOrEmpty(configItem.WinGetPackageId) && i.Definition?.WinGetPackageId == configItem.WinGetPackageId) ||
+                (!string.IsNullOrEmpty(configItem.WinGetPackageId) &&
+                 i.Definition?.WinGetPackageId != null &&
+                 i.Definition.WinGetPackageId.Contains(configItem.WinGetPackageId)) ||
                 i.Id == configItem.Id);
         }
 

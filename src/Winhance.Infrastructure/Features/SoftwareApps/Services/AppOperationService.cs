@@ -86,7 +86,7 @@ public class AppOperationService(
                 return OperationResult<bool>.Failed("Failed to launch PowerShell for feature");
             }
 
-            if (!string.IsNullOrEmpty(app?.WinGetPackageId) ||
+            if ((app?.WinGetPackageId != null && app.WinGetPackageId.Any()) ||
                 (app?.CustomProperties?.ContainsKey("RequiresDirectDownload") == true))
             {
                 // Check if this is a Windows Store app (has AppxPackageName) or External app
@@ -274,7 +274,7 @@ public class AppOperationService(
                 Id = packageId,
                 Name = displayName,
                 Description = string.Empty,
-                WinGetPackageId = packageId
+                WinGetPackageId = [packageId]
             };
             var result = await externalAppsService.UninstallAppAsync(item, progress);
 

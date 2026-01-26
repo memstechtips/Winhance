@@ -238,7 +238,7 @@ namespace Winhance.WPF.Features.SoftwareApps.ViewModels
                 UnsubscribeFromItemPropertyChangedEvents();
 
                 var allItems = await windowsAppsService.GetAppsAsync().ConfigureAwait(false);
-                var apps = allItems.Where(x => !string.IsNullOrEmpty(x.AppxPackageName) || !string.IsNullOrEmpty(x.WinGetPackageId));
+                var apps = allItems.Where(x => !string.IsNullOrEmpty(x.AppxPackageName) || (x.WinGetPackageId != null && x.WinGetPackageId.Any()));
                 var capabilities = allItems.Where(x => !string.IsNullOrEmpty(x.CapabilityName));
                 var features = allItems.Where(x => !string.IsNullOrEmpty(x.OptionalFeatureName));
 

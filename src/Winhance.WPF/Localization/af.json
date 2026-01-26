@@ -1398,5 +1398,9 @@
   "Button_Unlock": "Ontsluit",
   "Common_ClickToUnlock": "Klik om te ontsluit",
   "Setting_taskbar-copilot_Name": "Copilot Voorskou Knoppie",
-  "Setting_taskbar-copilot_Description": "Wys of verberg die Copilot Voorskou knoppie op die taakbalk"
+  "Setting_taskbar-copilot_Description": "Wys of verberg die Copilot Voorskou knoppie op die taakbalk",
+  "ExternalApps_WinGetUnavailable": "Kan nie installasiestatus bepaal nie. Koppel aan die internet en klik die Verfris-knoppie.",
+  "Error_NoInternetConnection": "Geen internetverbinding nie. Koppel asseblief en probeer weer.",
+  "Error_WinGetInstallFailed": "Kon nie WinGet installeer nie. Gaan asseblief u internetverbinding na.",
+  "Error_WinGetNotAvailable": "WinGet is nie beskikbaar op hierdie stelsel nie."
 }
