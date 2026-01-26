@@ -353,74 +353,98 @@ public class AppStatusDiscoveryService(
     private async Task<HashSet<string>> GetInstalledWinGetPackageIdsAsync()
     {
         var installedPackageIds = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
+        const int maxRetries = 3;
+        const int timeoutMs = 10000; // 10 seconds
 
-        try
+        var cacheDir = Path.Combine(
+            Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData),
+            "Winhance", "Cache");
+        Directory.CreateDirectory(cacheDir);
+
+        var exportPath = Path.Combine(cacheDir, "winget-packages.json");
+
+        for (int attempt = 1; attempt <= maxRetries; attempt++)
         {
-            var cacheDir = Path.Combine(
-                Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData),
-                "Winhance", "Cache");
-            Directory.CreateDirectory(cacheDir);
-
-            var exportPath = Path.Combine(cacheDir, "winget-packages.json");
-
-            if (File.Exists(exportPath))
-                File.Delete(exportPath);
-
-            var startInfo = new ProcessStartInfo
+            try
             {
-                FileName = "winget",
-                Arguments = $"export -o \"{exportPath}\" --accept-source-agreements --nowarn --disable-interactivity",
-                UseShellExecute = false,
-                RedirectStandardOutput = true,
-                RedirectStandardError = true,
-                CreateNoWindow = true
-            };
+                if (File.Exists(exportPath))
+                    File.Delete(exportPath);
 
-            using var process = new Process { StartInfo = startInfo };
-            process.Start();
-
-            var completed = await Task.Run(() => process.WaitForExit(10000));
-            if (!completed)
-            {
-                try { process.Kill(true); } catch { }
-                logService.LogWarning("WinGet export timed out after 10 seconds");
-                return installedPackageIds;
-            }
-
-            if (process.ExitCode != 0 || !File.Exists(exportPath))
-            {
-                logService.LogWarning($"WinGet export failed with exit code {process.ExitCode}");
-                return installedPackageIds;
-            }
-
-            var json = await File.ReadAllTextAsync(exportPath);
-            using var document = JsonDocument.Parse(json);
-            var root = document.RootElement;
-
-            if (root.TryGetProperty("Sources", out var sources))
-            {
-                foreach (var source in sources.EnumerateArray())
+                var startInfo = new ProcessStartInfo
                 {
-                    if (source.TryGetProperty("Packages", out var packages))
+                    FileName = "winget",
+                    Arguments = $"export -o \"{exportPath}\" --accept-source-agreements --nowarn --disable-interactivity",
+                    UseShellExecute = false,
+                    RedirectStandardOutput = true,
+                    RedirectStandardError = true,
+                    CreateNoWindow = true
+                };
+
+                using var process = new Process { StartInfo = startInfo };
+                process.Start();
+
+                var completed = await Task.Run(() => process.WaitForExit(timeoutMs));
+                if (!completed)
+                {
+                    try { process.Kill(true); } catch { }
+                    logService.LogWarning($"WinGet export timed out after {timeoutMs / 1000} seconds (Attempt {attempt}/{maxRetries})");
+                    
+                    if (attempt < maxRetries)
                     {
-                        foreach (var package in packages.EnumerateArray())
+                        await Task.Delay(2000);
+                        continue;
+                    }
+                    return installedPackageIds;
+                }
+
+                if (process.ExitCode != 0 || !File.Exists(exportPath))
+                {
+                    var error = await process.StandardError.ReadToEndAsync();
+                    logService.LogWarning($"WinGet export failed with exit code {process.ExitCode} (Attempt {attempt}/{maxRetries}). Error: {error}");
+                    
+                    if (attempt < maxRetries)
+                    {
+                        await Task.Delay(2000);
+                        continue;
+                    }
+                    return installedPackageIds;
+                }
+
+                var json = await File.ReadAllTextAsync(exportPath);
+                using var document = JsonDocument.Parse(json);
+                var root = document.RootElement;
+
+                if (root.TryGetProperty("Sources", out var sources))
+                {
+                    foreach (var source in sources.EnumerateArray())
+                    {
+                        if (source.TryGetProperty("Packages", out var packages))
                         {
-                            if (package.TryGetProperty("PackageIdentifier", out var id))
+                            foreach (var package in packages.EnumerateArray())
                             {
-                                var packageId = id.GetString();
-                                if (!string.IsNullOrEmpty(packageId))
-                                    installedPackageIds.Add(packageId);
+                                if (package.TryGetProperty("PackageIdentifier", out var id))
+                                {
+                                    var packageId = id.GetString();
+                                    if (!string.IsNullOrEmpty(packageId))
+                                        installedPackageIds.Add(packageId);
+                                }
                             }
                         }
                     }
                 }
-            }
 
-            logService.LogInformation($"WinGet export: Found {installedPackageIds.Count} installed packages");
-        }
-        catch (Exception ex)
-        {
-            logService.LogError($"Error running WinGet export: {ex.Message}", ex);
+                logService.LogInformation($"WinGet export: Found {installedPackageIds.Count} installed packages");
+                return installedPackageIds; // Success, return results
+            }
+            catch (Exception ex)
+            {
+                logService.LogError($"Error running WinGet export (Attempt {attempt}/{maxRetries}): {ex.Message}", ex);
+                if (attempt < maxRetries)
+                {
+                    await Task.Delay(2000);
+                    continue;
+                }
+            }
         }
 
         return installedPackageIds;
