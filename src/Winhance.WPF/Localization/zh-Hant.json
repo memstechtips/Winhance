@@ -1398,5 +1398,9 @@
   "Button_Unlock": "解鎖",
   "Common_ClickToUnlock": "點擊以解鎖",
   "Setting_taskbar-copilot_Name": "Copilot 預覽按鈕",
-  "Setting_taskbar-copilot_Description": "顯示或隱藏工作列上的 Copilot 預覽按鈕"
+  "Setting_taskbar-copilot_Description": "顯示或隱藏工作列上的 Copilot 預覽按鈕",
+  "ExternalApps_WinGetUnavailable": "無法確定安裝狀態。請連接到網際網路並點擊重新整理按鈕。",
+  "Error_NoInternetConnection": "無網路連線。請連接後重試。",
+  "Error_WinGetInstallFailed": "安裝 WinGet 失敗。請檢查您的網路連線。",
+  "Error_WinGetNotAvailable": "此系統上無法使用 WinGet。"
 }

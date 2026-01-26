@@ -1398,5 +1398,9 @@
   "Button_Unlock": "अनलॉक",
   "Common_ClickToUnlock": "अनलॉक करने के लिए क्लिक करें",
   "Setting_taskbar-copilot_Name": "कोपायलट पूर्वावलोकन बटन",
-  "Setting_taskbar-copilot_Description": "टास्कबार पर कोपायलट पूर्वावलोकन बटन दिखाएं या छिपाएं"
+  "Setting_taskbar-copilot_Description": "टास्कबार पर कोपायलट पूर्वावलोकन बटन दिखाएं या छिपाएं",
+  "ExternalApps_WinGetUnavailable": "इंस्टॉलेशन स्थिति निर्धारित करने में असमर्थ। इंटरनेट से कनेक्ट करें और रिफ्रेश बटन पर क्लिक करें।",
+  "Error_NoInternetConnection": "कोई इंटरनेट कनेक्शन नहीं। कृपया कनेक्ट करें और पुनः प्रयास करें।",
+  "Error_WinGetInstallFailed": "WinGet इंस्टॉल करने में विफल। कृपया अपना इंटरनेट कनेक्शन जांचें।",
+  "Error_WinGetNotAvailable": "WinGet इस सिस्टम पर उपलब्ध नहीं है।"
 }

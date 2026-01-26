@@ -21,7 +21,7 @@ namespace Winhance.Core.Features.SoftwareApps.Models
                             Name = "Telegram",
                             Description = "Instant messaging and voice calling app",
                             GroupName = "Messaging, Email & Calendar",
-                            WinGetPackageId = "Telegram.TelegramDesktop",
+                            WinGetPackageId = ["Telegram.TelegramDesktop"],
                             WebsiteUrl = "https://telegram.org/"
                         },
                         new ItemDefinition
@@ -30,7 +30,7 @@ namespace Winhance.Core.Features.SoftwareApps.Models
                             Name = "Whatsapp",
                             Description = "Instant messaging and voice calling app",
                             GroupName = "Messaging, Email & Calendar",
-                            WinGetPackageId = "9NKSQGP7F2NH",
+                            WinGetPackageId = ["9NKSQGP7F2NH"],
                             WebsiteUrl = "https://www.whatsapp.com/"
                         },
                         new ItemDefinition
@@ -39,7 +39,7 @@ namespace Winhance.Core.Features.SoftwareApps.Models
                             Name = "Zoom",
                             Description = "Video conferencing and messaging platform",
                             GroupName = "Messaging, Email & Calendar",
-                            WinGetPackageId = "Zoom.Zoom",
+                            WinGetPackageId = ["Zoom.Zoom"],
                             WebsiteUrl = "https://zoom.us/"
                         },
                         new ItemDefinition
@@ -48,7 +48,7 @@ namespace Winhance.Core.Features.SoftwareApps.Models
                             Name = "Discord",
                             Description = "Voice, video and text communication service",
                             GroupName = "Messaging, Email & Calendar",
-                            WinGetPackageId = "Discord.Discord",
+                            WinGetPackageId = ["Discord.Discord"],
                             WebsiteUrl = "https://discord.com/"
                         },
                         new ItemDefinition
@@ -57,7 +57,7 @@ namespace Winhance.Core.Features.SoftwareApps.Models
                             Name = "Pidgin",
                             Description = "Multi-protocol instant messaging client",
                             GroupName = "Messaging, Email & Calendar",
-                            WinGetPackageId = "Pidgin.Pidgin",
+                            WinGetPackageId = ["Pidgin.Pidgin"],
                             WebsiteUrl = "https://pidgin.im/"
                         },
                         new ItemDefinition
@@ -66,7 +66,7 @@ namespace Winhance.Core.Features.SoftwareApps.Models
                             Name = "Thunderbird",
                             Description = "Free email application",
                             GroupName = "Messaging, Email & Calendar",
-                            WinGetPackageId = "Mozilla.Thunderbird",
+                            WinGetPackageId = ["Mozilla.Thunderbird"],
                             WebsiteUrl = "https://www.thunderbird.net/"
                         },
                         new ItemDefinition
@@ -75,7 +75,7 @@ namespace Winhance.Core.Features.SoftwareApps.Models
                             Name = "eMClient",
                             Description = "Email client with calendar, tasks, and chat",
                             GroupName = "Messaging, Email & Calendar",
-                            WinGetPackageId = "eMClient.eMClient",
+                            WinGetPackageId = ["eMClient.eMClient"],
                             WebsiteUrl = "https://www.emclient.com/"
                         },
                         new ItemDefinition
@@ -84,7 +84,7 @@ namespace Winhance.Core.Features.SoftwareApps.Models
                             Name = "Proton Mail",
                             Description = "Secure email service with end-to-end encryption",
                             GroupName = "Messaging, Email & Calendar",
-                            WinGetPackageId = "Proton.ProtonMail",
+                            WinGetPackageId = ["Proton.ProtonMail"],
                             WebsiteUrl = "https://proton.me/mail"
                         },
                         new ItemDefinition
@@ -93,7 +93,7 @@ namespace Winhance.Core.Features.SoftwareApps.Models
                             Name = "Trillian",
                             Description = "Instant messaging application",
                             GroupName = "Messaging, Email & Calendar",
-                            WinGetPackageId = "CeruleanStudios.Trillian",
+                            WinGetPackageId = ["CeruleanStudios.Trillian"],
                             WebsiteUrl = "https://www.trillian.im/"
                         },
                         new ItemDefinition
@@ -102,7 +102,7 @@ namespace Winhance.Core.Features.SoftwareApps.Models
                             Name = "Element",
                             Description = "Secure and decentralized messaging app built on Matrix protocol",
                             GroupName = "Messaging, Email & Calendar",
-                            WinGetPackageId = "Element.Element",
+                            WinGetPackageId = ["Element.Element"],
                             WebsiteUrl = "https://element.io/"
                         }
                     }

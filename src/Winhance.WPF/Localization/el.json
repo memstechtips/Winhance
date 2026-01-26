@@ -1398,5 +1398,9 @@
   "Button_Unlock": "Ξεκλείδωμα",
   "Common_ClickToUnlock": "Κάντε κλικ για ξεκλείδωμα",
   "Setting_taskbar-copilot_Name": "Κουμπί Προεπισκόπησης Copilot",
-  "Setting_taskbar-copilot_Description": "Εμφάνιση ή απόκρυψη του κουμπιού Προεπισκόπησης Copilot στη γραμμή εργασιών"
+  "Setting_taskbar-copilot_Description": "Εμφάνιση ή απόκρυψη του κουμπιού Προεπισκόπησης Copilot στη γραμμή εργασιών",
+  "ExternalApps_WinGetUnavailable": "Αδυναμία προσδιορισμού κατάστασης εγκατάστασης. Συνδεθείτε στο διαδίκτυο και κάντε κλικ στο κουμπί Ανανέωση.",
+  "Error_NoInternetConnection": "Δεν υπάρχει σύνδεση στο διαδίκτυο. Παρακαλώ συνδεθείτε και προσπαθήστε ξανά.",
+  "Error_WinGetInstallFailed": "Αποτυχία εγκατάστασης του WinGet. Παρακαλώ ελέγξτε τη σύνδεσή σας στο διαδίκτυο.",
+  "Error_WinGetNotAvailable": "Το WinGet δεν είναι διαθέσιμο σε αυτό το σύστημα."
 }

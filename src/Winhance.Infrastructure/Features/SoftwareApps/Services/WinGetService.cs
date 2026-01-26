@@ -116,12 +116,12 @@ namespace Winhance.Infrastructure.Features.SoftwareApps.Services
                 string wingetPath = _wingetExePath ?? "winget";
                 logService?.LogInformation("Triggering WinGet source initialization...");
 
-                var result = await ExecuteProcessAsync(wingetPath, "source list", "Initializing WinGet", cancellationToken);
+                var result = await ExecuteProcessAsync(wingetPath, "source list --accept-source-agreements", "Initializing WinGet", cancellationToken);
 
                 if (result.ExitCode != 0)
                 {
                     logService?.LogWarning($"WinGet source list returned exit code {result.ExitCode}, attempting reset");
-                    await ExecuteProcessAsync(wingetPath, "source reset --force", "Resetting WinGet sources", cancellationToken);
+                    await ExecuteProcessAsync(wingetPath, "source reset --force --accept-source-agreements", "Resetting WinGet sources", cancellationToken);
                 }
                 else
                 {
@@ -690,6 +690,44 @@ namespace Winhance.Infrastructure.Features.SoftwareApps.Services
                 {
                     return false;
                 }
+            }
+        }
+
+        public async Task<string?> GetInstallerTypeAsync(string packageId, CancellationToken cancellationToken = default)
+        {
+            if (string.IsNullOrWhiteSpace(packageId))
+                return null;
+
+            try
+            {
+                string wingetPath = _wingetExePath ?? "winget";
+                var result = await ExecuteProcessAsync(
+                    wingetPath,
+                    $"show --id {EscapeArgument(packageId)} --accept-source-agreements",
+                    packageId,
+                    cancellationToken,
+                    $"Checking installer type for {packageId}");
+
+                if (result.ExitCode != 0)
+                    return null;
+
+                foreach (var line in result.Output.Split('\n'))
+                {
+                    var trimmed = line.Trim();
+                    if (trimmed.StartsWith("Installer Type:", StringComparison.OrdinalIgnoreCase))
+                    {
+                        var installerType = trimmed.Substring("Installer Type:".Length).Trim().ToLowerInvariant();
+                        logService?.LogInformation($"Installer type for {packageId}: {installerType}");
+                        return installerType;
+                    }
+                }
+
+                return null;
+            }
+            catch (Exception ex)
+            {
+                logService?.LogWarning($"Could not determine installer type for {packageId}: {ex.Message}");
+                return null;
             }
         }
 

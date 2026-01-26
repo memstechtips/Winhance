@@ -23,7 +23,7 @@ namespace Winhance.Core.Features.SoftwareApps.Models
                         Description = "View 3D models and animations",
                         GroupName = "3D/Mixed Reality",
                         AppxPackageName = "Microsoft.Microsoft3DViewer",
-                        WinGetPackageId = "9NBLGGH42THS",
+                        WinGetPackageId = ["9NBLGGH42THS"],
                         CanBeReinstalled = true
                     },
                     new ItemDefinition
@@ -33,7 +33,7 @@ namespace Winhance.Core.Features.SoftwareApps.Models
                         Description = "Portal for Windows Mixed Reality experiences",
                         GroupName = "3D/Mixed Reality",
                         AppxPackageName = "Microsoft.MixedReality.Portal",
-                        WinGetPackageId = "9NG1H8B3ZC7M",
+                        WinGetPackageId = ["9NG1H8B3ZC7M"],
                         CanBeReinstalled = true
                     },
 
@@ -45,7 +45,7 @@ namespace Winhance.Core.Features.SoftwareApps.Models
                         Description = "Bing search integration for Windows",
                         GroupName = "Bing/Search",
                         AppxPackageName = "Microsoft.BingSearch",
-                        WinGetPackageId = "9NZBF4GT040C",
+                        WinGetPackageId = ["9NZBF4GT040C"],
                         CanBeReinstalled = true
                     },
                     new ItemDefinition
@@ -55,7 +55,7 @@ namespace Winhance.Core.Features.SoftwareApps.Models
                         Description = "Microsoft News app",
                         GroupName = "Bing/Search",
                         AppxPackageName = "Microsoft.BingNews",
-                        WinGetPackageId = "9WZDNCRFHVFW",
+                        WinGetPackageId = ["9WZDNCRFHVFW"],
                         CanBeReinstalled = true
                     },
                     new ItemDefinition
@@ -65,7 +65,7 @@ namespace Winhance.Core.Features.SoftwareApps.Models
                         Description = "Weather forecasts and information",
                         GroupName = "Bing/Search",
                         AppxPackageName = "Microsoft.BingWeather",
-                        WinGetPackageId = "9WZDNCRFJ3Q2",
+                        WinGetPackageId = ["9WZDNCRFJ3Q2"],
                         CanBeReinstalled = true
                     },
 
@@ -77,7 +77,7 @@ namespace Winhance.Core.Features.SoftwareApps.Models
                         Description = "Windows Camera app",
                         GroupName = "Camera/Media",
                         AppxPackageName = "Microsoft.WindowsCamera",
-                        WinGetPackageId = "9WZDNCRFJBBG",
+                        WinGetPackageId = ["9WZDNCRFJBBG"],
                         CanBeReinstalled = true
                     },
                     new ItemDefinition
@@ -87,7 +87,7 @@ namespace Winhance.Core.Features.SoftwareApps.Models
                         Description = "Video editor app",
                         GroupName = "Camera/Media",
                         AppxPackageName = "Clipchamp.Clipchamp",
-                        WinGetPackageId = "9P1J8S7CCWWT",
+                        WinGetPackageId = ["9P1J8S7CCWWT"],
                         CanBeReinstalled = true
                     },
 
@@ -99,7 +99,7 @@ namespace Winhance.Core.Features.SoftwareApps.Models
                         Description = "Clock, alarms, timer, and stopwatch app",
                         GroupName = "System Utilities",
                         AppxPackageName = "Microsoft.WindowsAlarms",
-                        WinGetPackageId = "9WZDNCRFJ3PR",
+                        WinGetPackageId = ["9WZDNCRFJ3PR"],
                         CanBeReinstalled = true
                     },
                     new ItemDefinition
@@ -109,7 +109,7 @@ namespace Winhance.Core.Features.SoftwareApps.Models
                         Description = "Microsoft's virtual assistant",
                         GroupName = "System Utilities",
                         AppxPackageName = "Microsoft.549981C3F5F10",
-                        WinGetPackageId = "9NFFX4SZZ23L", // Package is deprecated
+                        WinGetPackageId = ["9NFFX4SZZ23L"], // Package is deprecated
                         CanBeReinstalled = false
                     },
                     new ItemDefinition
@@ -119,7 +119,7 @@ namespace Winhance.Core.Features.SoftwareApps.Models
                         Description = "Microsoft support app",
                         GroupName = "System Utilities",
                         AppxPackageName = "Microsoft.GetHelp",
-                        WinGetPackageId = "9PKDZBMV1H3T",
+                        WinGetPackageId = ["9PKDZBMV1H3T"],
                         CanBeReinstalled = true
                     },
                     new ItemDefinition
@@ -129,7 +129,7 @@ namespace Winhance.Core.Features.SoftwareApps.Models
                         Description = "Calculator app with standard, scientific, and programmer modes",
                         GroupName = "System Utilities",
                         AppxPackageName = "Microsoft.WindowsCalculator",
-                        WinGetPackageId = "9WZDNCRFHVN5",
+                        WinGetPackageId = ["9WZDNCRFHVN5"],
                         CanBeReinstalled = true
                     },
 
@@ -141,7 +141,7 @@ namespace Winhance.Core.Features.SoftwareApps.Models
                         Description = "Development environment for Windows",
                         GroupName = "Development",
                         AppxPackageName = "Microsoft.Windows.DevHome",
-                        WinGetPackageId = "9N8MHTPHNGVV", // not available in your market
+                        WinGetPackageId = ["9N8MHTPHNGVV"], // not available in your market
                         CanBeReinstalled = true
                     },
 
@@ -153,7 +153,7 @@ namespace Winhance.Core.Features.SoftwareApps.Models
                         Description = "Family safety and screen time management",
                         GroupName = "Communication",
                         AppxPackageName = "MicrosoftCorporationII.MicrosoftFamily",
-                        WinGetPackageId = "9PDJDJS743XF",
+                        WinGetPackageId = ["9PDJDJS743XF"],
                         CanBeReinstalled = true
                     },
                     new ItemDefinition
@@ -163,7 +163,7 @@ namespace Winhance.Core.Features.SoftwareApps.Models
                         Description = "Microsoft Mail and Calendar apps",
                         GroupName = "Communication",
                         AppxPackageName = "microsoft.windowscommunicationsapps",
-                        WinGetPackageId = "9WZDNCRFHVQM",
+                        WinGetPackageId = ["9WZDNCRFHVQM"],
                         CanBeReinstalled = true
                     },
                     new ItemDefinition
@@ -173,7 +173,7 @@ namespace Winhance.Core.Features.SoftwareApps.Models
                         Description = "Video calling and messaging app",
                         GroupName = "Communication",
                         AppxPackageName = "Microsoft.SkypeApp",
-                        WinGetPackageId = "9WZDNCRFJ364", // Skype is retired
+                        WinGetPackageId = ["9WZDNCRFJ364"], // Skype is retired
                         CanBeReinstalled = false
                     },
                     new ItemDefinition
@@ -183,7 +183,7 @@ namespace Winhance.Core.Features.SoftwareApps.Models
                         Description = "Team collaboration and communication app",
                         GroupName = "Communication",
                         AppxPackageName = "MSTeams",
-                        WinGetPackageId = "XP8BT8DW290MPQ",
+                        WinGetPackageId = ["XP8BT8DW290MPQ"],
                         CanBeReinstalled = true
                     },
 
@@ -195,7 +195,7 @@ namespace Winhance.Core.Features.SoftwareApps.Models
                         Description = "App for sending feedback to Microsoft",
                         GroupName = "System Tools",
                         AppxPackageName = "Microsoft.WindowsFeedbackHub",
-                        WinGetPackageId = "9NBLGGH4R32N",
+                        WinGetPackageId = ["9NBLGGH4R32N"],
                         CanBeReinstalled = true
                     },
                     new ItemDefinition
@@ -205,7 +205,7 @@ namespace Winhance.Core.Features.SoftwareApps.Models
                         Description = "Microsoft Maps app",
                         GroupName = "System Tools",
                         AppxPackageName = "Microsoft.WindowsMaps",
-                        WinGetPackageId = "9WZDNCRDTBVB", // unavailable in your market
+                        WinGetPackageId = ["9WZDNCRDTBVB"], // unavailable in your market
                         CanBeReinstalled = true
                     },
                     new ItemDefinition
@@ -215,7 +215,7 @@ namespace Winhance.Core.Features.SoftwareApps.Models
                         Description = "Modern terminal application for Windows",
                         GroupName = "System Tools",
                         AppxPackageName = "Microsoft.WindowsTerminal",
-                        WinGetPackageId = "9N0DX20HK701",
+                        WinGetPackageId = ["9N0DX20HK701"],
                         CanBeReinstalled = true
                     },
 
@@ -227,7 +227,7 @@ namespace Winhance.Core.Features.SoftwareApps.Models
                         Description = "Microsoft 365 Copilot (formerly known as Office hub)",
                         GroupName = "Office",
                         AppxPackageName = "Microsoft.MicrosoftOfficeHub",
-                        WinGetPackageId = "9WZDNCRD29V9",
+                        WinGetPackageId = ["9WZDNCRD29V9"],
                         CanBeReinstalled = true
                     },
                     new ItemDefinition
@@ -237,7 +237,7 @@ namespace Winhance.Core.Features.SoftwareApps.Models
                         Description = "Reimagined Outlook app for Windows",
                         GroupName = "Office",
                         AppxPackageName = "Microsoft.OutlookForWindows",
-                        WinGetPackageId = "9NRX63209R7B",
+                        WinGetPackageId = ["9NRX63209R7B"],
                         CanBeReinstalled = true
                     },
 
@@ -258,7 +258,7 @@ namespace Winhance.Core.Features.SoftwareApps.Models
                         Description = "Traditional image editing app",
                         GroupName = "Graphics",
                         AppxPackageName = "Microsoft.Paint",
-                        WinGetPackageId = "9PCFS5B6T72H",
+                        WinGetPackageId = ["9PCFS5B6T72H"],
                         CanBeReinstalled = true
                     },
                     new ItemDefinition
@@ -268,7 +268,7 @@ namespace Winhance.Core.Features.SoftwareApps.Models
                         Description = "Photo viewing and editing app",
                         GroupName = "Graphics",
                         AppxPackageName = "Microsoft.Windows.Photos",
-                        WinGetPackageId = "9WZDNCRFJBH4",
+                        WinGetPackageId = ["9WZDNCRFJBH4"],
                         CanBeReinstalled = true
                     },
                     new ItemDefinition
@@ -278,7 +278,7 @@ namespace Winhance.Core.Features.SoftwareApps.Models
                         Description = "Screen capture and annotation tool",
                         GroupName = "Graphics",
                         AppxPackageName = "Microsoft.ScreenSketch",
-                        WinGetPackageId = "9MZ95KL8MR0L",
+                        WinGetPackageId = ["9MZ95KL8MR0L"],
                         CanBeReinstalled = true
                     },
 
@@ -290,7 +290,7 @@ namespace Winhance.Core.Features.SoftwareApps.Models
                         Description = "Contact management app",
                         GroupName = "Social",
                         AppxPackageName = "Microsoft.People",
-                        WinGetPackageId = "9NBLGGH10PG8", // unavailable in your market
+                        WinGetPackageId = ["9NBLGGH10PG8"], // unavailable in your market
                         CanBeReinstalled = true
                     },
 
@@ -302,7 +302,7 @@ namespace Winhance.Core.Features.SoftwareApps.Models
                         Description = "Desktop automation tool",
                         GroupName = "Automation",
                         AppxPackageName = "Microsoft.PowerAutomateDesktop",
-                        WinGetPackageId = "9NFTCH6J7FHV",
+                        WinGetPackageId = ["9NFTCH6J7FHV"],
                         CanBeReinstalled = true
                     },
 
@@ -314,7 +314,7 @@ namespace Winhance.Core.Features.SoftwareApps.Models
                         Description = "Remote assistance tool",
                         GroupName = "Support",
                         AppxPackageName = "MicrosoftCorporationII.QuickAssist",
-                        WinGetPackageId = "9P7BP5VNWKX5",
+                        WinGetPackageId = ["9P7BP5VNWKX5"],
                         CanBeReinstalled = true
                     },
 
@@ -326,7 +326,7 @@ namespace Winhance.Core.Features.SoftwareApps.Models
                         Description = "Microsoft Solitaire Collection games",
                         GroupName = "Games",
                         AppxPackageName = "Microsoft.MicrosoftSolitaireCollection",
-                        WinGetPackageId = "9WZDNCRFHWD2", // https://apps.microsoft.com/detail/9wzdncrfhwd2?hl=en-US&gl=ZA
+                        WinGetPackageId = ["9WZDNCRFHWD2"], // https://apps.microsoft.com/detail/9wzdncrfhwd2?hl=en-US&gl=ZA
                         CanBeReinstalled = true
                     },
                     new ItemDefinition
@@ -336,7 +336,7 @@ namespace Winhance.Core.Features.SoftwareApps.Models
                         Description = "Xbox App for Windows",
                         GroupName = "Games",
                         AppxPackageName = "Microsoft.GamingApp",
-                        WinGetPackageId = "9MV0B5HZVK9Z",
+                        WinGetPackageId = ["9MV0B5HZVK9Z"],
                         CanBeReinstalled = true,
                         SubPackages = new string[] { "Microsoft.XboxApp" },
                         RegistrySettings = new List<RegistrySetting>
@@ -366,7 +366,7 @@ namespace Winhance.Core.Features.SoftwareApps.Models
                         Description = "Authentication service for Xbox Live and related Microsoft gaming services",
                         GroupName = "Games",
                         AppxPackageName = "Microsoft.XboxIdentityProvider",
-                        WinGetPackageId = "9WZDNCRD1HKW",
+                        WinGetPackageId = ["9WZDNCRD1HKW"],
                         CanBeReinstalled = true
                     },
                     new ItemDefinition
@@ -376,7 +376,7 @@ namespace Winhance.Core.Features.SoftwareApps.Models
                         Description = "Extension component for Xbox Game Bar providing additional functionality",
                         GroupName = "Games",
                         AppxPackageName = "Microsoft.XboxGameOverlay",
-                        WinGetPackageId = "9NBLGGH537C2", // unavailable in market
+                        WinGetPackageId = ["9NBLGGH537C2"], // unavailable in market
                         CanBeReinstalled = true,
                         RegistrySettings = new List<RegistrySetting>
                         {
@@ -405,7 +405,7 @@ namespace Winhance.Core.Features.SoftwareApps.Models
                         Description = "Core component for Xbox Live services within games",
                         GroupName = "Games",
                         AppxPackageName = "Microsoft.Xbox.TCUI",
-                        WinGetPackageId = "9NKNC0LD5NN6",
+                        WinGetPackageId = ["9NKNC0LD5NN6"],
                         CanBeReinstalled = true
                     },
                     new ItemDefinition
@@ -415,7 +415,7 @@ namespace Winhance.Core.Features.SoftwareApps.Models
                         Description = "Gaming overlay with screen capture, performance monitoring, and social features",
                         GroupName = "Games",
                         AppxPackageName = "Microsoft.XboxGamingOverlay",
-                        WinGetPackageId = "9NZKPSTSNW4P",
+                        WinGetPackageId = ["9NZKPSTSNW4P"],
                         CanBeReinstalled = true,
                         RegistrySettings = new List<RegistrySetting>
                         {
@@ -446,7 +446,7 @@ namespace Winhance.Core.Features.SoftwareApps.Models
                         Description = "App store for Windows",
                         GroupName = "Store",
                         AppxPackageName = "Microsoft.WindowsStore",
-                        WinGetPackageId = "9WZDNCRFJBMP",
+                        WinGetPackageId = ["9WZDNCRFJBMP"],
                         CanBeReinstalled = true
                     },
 
@@ -458,7 +458,7 @@ namespace Winhance.Core.Features.SoftwareApps.Models
                         Description = "Music player app",
                         GroupName = "Media",
                         AppxPackageName = "Microsoft.ZuneMusic",
-                        WinGetPackageId = "9WZDNCRFJ3PT",
+                        WinGetPackageId = ["9WZDNCRFJ3PT"],
                         CanBeReinstalled = true
                     },
                     new ItemDefinition
@@ -468,7 +468,7 @@ namespace Winhance.Core.Features.SoftwareApps.Models
                         Description = "Video player app",
                         GroupName = "Media",
                         AppxPackageName = "Microsoft.ZuneVideo",
-                        WinGetPackageId = "9WZDNCRFJ3P2",
+                        WinGetPackageId = ["9WZDNCRFJ3P2"],
                         CanBeReinstalled = true
                     },
                     new ItemDefinition
@@ -478,7 +478,7 @@ namespace Winhance.Core.Features.SoftwareApps.Models
                         Description = "Audio recording app",
                         GroupName = "Media",
                         AppxPackageName = "Microsoft.WindowsSoundRecorder",
-                        WinGetPackageId = "9WZDNCRFHWKN",
+                        WinGetPackageId = ["9WZDNCRFHWKN"],
                         CanBeReinstalled = true
                     },
 
@@ -490,7 +490,7 @@ namespace Winhance.Core.Features.SoftwareApps.Models
                         Description = "Note-taking app",
                         GroupName = "Productivity",
                         AppxPackageName = "Microsoft.MicrosoftStickyNotes",
-                        WinGetPackageId = "9NBLGGH4QGHW",
+                        WinGetPackageId = ["9NBLGGH4QGHW"],
                         CanBeReinstalled = true
                     },
                     new ItemDefinition
@@ -509,7 +509,7 @@ namespace Winhance.Core.Features.SoftwareApps.Models
                         Description = "Task management app",
                         GroupName = "Productivity",
                         AppxPackageName = "Microsoft.Todos",
-                        WinGetPackageId = "9NBLGGH5R558",
+                        WinGetPackageId = ["9NBLGGH5R558"],
                         CanBeReinstalled = true
                     },
                     new ItemDefinition
@@ -519,7 +519,7 @@ namespace Winhance.Core.Features.SoftwareApps.Models
                         Description = "Text editing app",
                         GroupName = "Productivity",
                         AppxPackageName = "Microsoft.WindowsNotepad",
-                        WinGetPackageId = "9MSMLRH6LZF3",
+                        WinGetPackageId = ["9MSMLRH6LZF3"],
                         CanBeReinstalled = true
                     },
 
@@ -531,7 +531,7 @@ namespace Winhance.Core.Features.SoftwareApps.Models
                         Description = "Connect your Android or iOS device to Windows",
                         GroupName = "Phone",
                         AppxPackageName = "Microsoft.YourPhone",
-                        WinGetPackageId = "9NMPJ99VJBWV",
+                        WinGetPackageId = ["9NMPJ99VJBWV"],
                         CanBeReinstalled = true
                     },
 
@@ -543,7 +543,7 @@ namespace Winhance.Core.Features.SoftwareApps.Models
                         Description = "AI assistant for Windows, includes Copilot provider and Store components",
                         GroupName = "AI",
                         AppxPackageName = "Microsoft.Copilot",
-                        WinGetPackageId = "9NHT9RB2F4HD",
+                        WinGetPackageId = ["9NHT9RB2F4HD"],
                         CanBeReinstalled = true,
                         SubPackages = new string[]
                         {
@@ -560,7 +560,7 @@ namespace Winhance.Core.Features.SoftwareApps.Models
                         Description = "Microsoft's web browser",
                         GroupName = "Browsers",
                         AppxPackageName = "Microsoft.MicrosoftEdge.Stable",
-                        WinGetPackageId = "XPFFTQ037JWMHS",
+                        WinGetPackageId = ["XPFFTQ037JWMHS"],
                         CanBeReinstalled = true,
                         RemovalScript = () => EdgeRemovalScript.GetScript()
                     },
@@ -571,7 +571,7 @@ namespace Winhance.Core.Features.SoftwareApps.Models
                         Description = "Microsoft's cloud storage service",
                         GroupName = "System",
                         AppxPackageName = "Microsoft.OneDriveSync",
-                        WinGetPackageId = "Microsoft.OneDrive",
+                        WinGetPackageId = ["Microsoft.OneDrive"],
                         CanBeReinstalled = true,
                         RemovalScript = () => OneDriveRemovalScript.GetScript()
                     },
@@ -582,7 +582,7 @@ namespace Winhance.Core.Features.SoftwareApps.Models
                         Description = "Microsoft note-taking app",
                         GroupName = "Office",
                         AppxPackageName = "Microsoft.Office.OneNote",
-                        WinGetPackageId = "XPFFZHVGQWWLHB",
+                        WinGetPackageId = ["XPFFZHVGQWWLHB"],
                         CanBeReinstalled = true
                     }
                 }

@@ -30,13 +30,20 @@ namespace Winhance.WPF.Features.SoftwareApps.ViewModels
         IAppOperationService appOperationService,
         IDialogService dialogService,
         IInternetConnectivityService connectivityService,
-        ILocalizationService localizationService)
+        ILocalizationService localizationService,
+        IWinGetService winGetService)
         : BaseAppFeatureViewModel<AppItemViewModel>(progressService, logService, eventBus, dialogService, connectivityService, localizationService)
     {
         private System.Threading.Timer? _refreshTimer;
         private CancellationTokenSource? _refreshCts;
         public override string ModuleId => FeatureIds.ExternalApps;
         public override string DisplayName => "External Apps";
+
+        [ObservableProperty]
+        private bool _showWinGetUnavailableBanner = false;
+
+        [ObservableProperty]
+        private string _winGetUnavailableMessage = string.Empty;
 
         public new bool IsTableViewMode
         {
@@ -353,8 +360,52 @@ namespace Winhance.WPF.Features.SoftwareApps.ViewModels
 
             try
             {
-                await CheckInstallationStatusAsync();
-                StatusText = $"Installation status refreshed for {Items.Count} items";
+                bool wasWinGetUnavailable = ShowWinGetUnavailableBanner;
+
+                if (wasWinGetUnavailable)
+                {
+                    bool hasInternet = await connectivityService.IsInternetConnectedAsync(forceCheck: true);
+
+                    if (!hasInternet)
+                    {
+                        StatusText = localizationService.GetString("Error_NoInternetConnection");
+                        return;
+                    }
+
+                    StatusText = localizationService.GetString("Progress_CheckingWinget");
+                    logService.LogInformation("WinGet was unavailable, attempting to install/update...");
+
+                    progressService.StartTask(localizationService.GetString("Progress_InstallingWinget"), isIndeterminate: true);
+
+                    var progress = progressService.CreateDetailedProgress();
+                    bool updated = await winGetService.EnsureWinGetUpToDateAsync(progress);
+
+                    progressService.CompleteTask();
+
+                    if (!updated)
+                    {
+                        StatusText = localizationService.GetString("Error_WinGetInstallFailed");
+                        logService.LogWarning("Failed to install/update WinGet");
+                        return;
+                    }
+
+                    logService.LogInformation("WinGet successfully installed/updated");
+                }
+
+                bool isWinGetReady = await winGetService.EnsureWinGetReadyAsync();
+
+                if (isWinGetReady)
+                {
+                    ShowWinGetUnavailableBanner = false;
+                    await CheckInstallationStatusAsync();
+                    StatusText = $"Installation status refreshed for {Items.Count} items";
+                }
+                else
+                {
+                    ShowWinGetUnavailableBanner = true;
+                    WinGetUnavailableMessage = localizationService.GetString("ExternalApps_WinGetUnavailable");
+                    StatusText = localizationService.GetString("Error_WinGetNotAvailable");
+                }
             }
             catch (Exception ex)
             {
@@ -378,11 +429,23 @@ namespace Winhance.WPF.Features.SoftwareApps.ViewModels
             logService.LogInformation("[ExternalAppsViewModel] LoadItemsAsync starting");
             await LoadItemsAsync().ConfigureAwait(false);
             logService.LogInformation("[ExternalAppsViewModel] LoadItemsAsync completed");
-            
-            logService.LogInformation("[ExternalAppsViewModel] CheckInstallationStatusAsync starting");
-            await CheckInstallationStatusAsync().ConfigureAwait(false);
-            logService.LogInformation("[ExternalAppsViewModel] CheckInstallationStatusAsync completed");
-            
+
+            bool isWinGetReady = await winGetService.EnsureWinGetReadyAsync();
+
+            if (isWinGetReady)
+            {
+                logService.LogInformation("[ExternalAppsViewModel] WinGet ready, checking installation status");
+                ShowWinGetUnavailableBanner = false;
+                await CheckInstallationStatusAsync(showLoadingOverlay: false).ConfigureAwait(false);
+                logService.LogInformation("[ExternalAppsViewModel] Installation status check completed");
+            }
+            else
+            {
+                logService.LogInformation("[ExternalAppsViewModel] WinGet not ready, skipping status check");
+                ShowWinGetUnavailableBanner = true;
+                WinGetUnavailableMessage = localizationService.GetString("ExternalApps_WinGetUnavailable");
+            }
+
             IsAllSelected = false;
             IsInitialized = true;
             logService.LogInformation("[ExternalAppsViewModel] LoadAppsAndCheckInstallationStatusAsync fully completed");
@@ -400,7 +463,19 @@ namespace Winhance.WPF.Features.SoftwareApps.ViewModels
                 }
                 else
                 {
-                    await CheckInstallationStatusAsync();
+                    bool isWinGetReady = await winGetService.EnsureWinGetReadyAsync();
+
+                    if (isWinGetReady)
+                    {
+                        ShowWinGetUnavailableBanner = false;
+                        await CheckInstallationStatusAsync();
+                    }
+                    else
+                    {
+                        ShowWinGetUnavailableBanner = true;
+                        WinGetUnavailableMessage = localizationService.GetString("ExternalApps_WinGetUnavailable");
+                        logService.LogWarning("WinGet unavailable - cannot determine installation status");
+                    }
                 }
             }
             catch (Exception ex)

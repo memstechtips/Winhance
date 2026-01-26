@@ -1398,5 +1398,9 @@
   "Button_Unlock": "Déverrouiller",
   "Common_ClickToUnlock": "Cliquez pour déverrouiller",
   "Setting_taskbar-copilot_Name": "Bouton d'aperçu Copilot",
-  "Setting_taskbar-copilot_Description": "Afficher ou masquer le bouton d'aperçu Copilot sur la barre des tâches"
+  "Setting_taskbar-copilot_Description": "Afficher ou masquer le bouton d'aperçu Copilot sur la barre des tâches",
+  "ExternalApps_WinGetUnavailable": "Impossible de déterminer l'état de l'installation. Connectez-vous à Internet et cliquez sur le bouton Actualiser.",
+  "Error_NoInternetConnection": "Pas de connexion Internet. Veuillez vous connecter et réessayer.",
+  "Error_WinGetInstallFailed": "Échec de l'installation de WinGet. Veuillez vérifier votre connexion Internet.",
+  "Error_WinGetNotAvailable": "WinGet n'est pas disponible sur ce système."
 }

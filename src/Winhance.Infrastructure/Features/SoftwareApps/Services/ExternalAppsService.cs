@@ -1,5 +1,7 @@
 using System;
 using System.Collections.Generic;
+using System.Diagnostics;
+using System.IO;
 using System.Linq;
 using System.Threading;
 using System.Threading.Tasks;
@@ -47,10 +49,20 @@ public class ExternalAppsService(
                     : OperationResult<bool>.Failed("Direct download installation failed");
             }
 
-            if (string.IsNullOrEmpty(item.WinGetPackageId))
+            if (item.WinGetPackageId == null || !item.WinGetPackageId.Any())
                 return OperationResult<bool>.Failed("No WinGet package ID or download URL specified");
 
-            var wingetSuccess = await winGetService.InstallPackageAsync(item.WinGetPackageId, item.Name, cancellationToken);
+            var primaryPackageId = item.WinGetPackageId[0];
+            var installerType = await winGetService.GetInstallerTypeAsync(primaryPackageId, cancellationToken);
+            var isPortable = IsPortableInstallerType(installerType);
+
+            var wingetSuccess = await winGetService.InstallPackageAsync(primaryPackageId, item.Name, cancellationToken);
+
+            if (wingetSuccess && isPortable)
+            {
+                await CreateStartMenuShortcutForPortableAppAsync(item);
+            }
+
             return wingetSuccess ? OperationResult<bool>.Succeeded(true) : OperationResult<bool>.Failed("Installation failed");
         }
         catch (OperationCanceledException)
@@ -65,11 +77,122 @@ public class ExternalAppsService(
         }
     }
 
+    private static bool IsPortableInstallerType(string? installerType)
+    {
+        if (string.IsNullOrEmpty(installerType))
+            return false;
+
+        var lower = installerType.ToLowerInvariant();
+        return lower.Contains("portable") || lower == "zip";
+    }
+
+    private async Task CreateStartMenuShortcutForPortableAppAsync(ItemDefinition item)
+    {
+        try
+        {
+            var exePath = FindPortableAppExecutable(item);
+            if (string.IsNullOrEmpty(exePath))
+            {
+                logService.LogWarning($"Could not find executable for portable app {item.Name}");
+                return;
+            }
+
+            var startMenuPath = Path.Combine(
+                Environment.GetFolderPath(Environment.SpecialFolder.Programs),
+                $"{item.Name}.lnk");
+
+            var script = $@"
+$WshShell = New-Object -ComObject WScript.Shell
+$Shortcut = $WshShell.CreateShortcut('{startMenuPath.Replace("'", "''")}')
+$Shortcut.TargetPath = '{exePath.Replace("'", "''")}'
+$Shortcut.WorkingDirectory = '{Path.GetDirectoryName(exePath)?.Replace("'", "''")}'
+$Shortcut.Description = '{item.Name.Replace("'", "''")}'
+$Shortcut.Save()
+";
+
+            var startInfo = new ProcessStartInfo
+            {
+                FileName = "powershell",
+                Arguments = $"-NoProfile -ExecutionPolicy Bypass -Command \"{script.Replace("\"", "\\\"")}\"",
+                UseShellExecute = false,
+                CreateNoWindow = true,
+                RedirectStandardOutput = true,
+                RedirectStandardError = true
+            };
+
+            using var process = new Process { StartInfo = startInfo };
+            process.Start();
+            await process.WaitForExitAsync();
+
+            if (process.ExitCode == 0)
+            {
+                logService.LogInformation($"Created Start Menu shortcut for portable app: {item.Name} -> {exePath}");
+            }
+            else
+            {
+                var error = await process.StandardError.ReadToEndAsync();
+                logService.LogWarning($"Failed to create shortcut for {item.Name}: {error}");
+            }
+        }
+        catch (Exception ex)
+        {
+            logService.LogWarning($"Error creating Start Menu shortcut for {item.Name}: {ex.Message}");
+        }
+    }
+
+    private string? FindPortableAppExecutable(ItemDefinition item)
+    {
+        var searchPaths = new[]
+        {
+            Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData),
+                "Microsoft", "WinGet", "Packages"),
+            @"C:\Program Files\WinGet\Packages",
+            @"C:\Program Files (x86)\WinGet\Packages"
+        };
+
+        foreach (var basePath in searchPaths)
+        {
+            if (!Directory.Exists(basePath))
+                continue;
+
+            var matchingDirs = item.WinGetPackageId!
+                .SelectMany(pkgId => Directory.GetDirectories(basePath, $"{pkgId}*"))
+                .Distinct()
+                .ToList();
+
+            foreach (var dir in matchingDirs)
+            {
+                var exeFiles = Directory.GetFiles(dir, "*.exe", SearchOption.AllDirectories)
+                    .Where(f => !Path.GetFileName(f).StartsWith("unins", StringComparison.OrdinalIgnoreCase))
+                    .ToList();
+
+                if (!exeFiles.Any())
+                    continue;
+
+                // Try to find an exe that matches the app name
+                var appNamePart = item.Name.Split(' ')[0];
+                var bestMatch = exeFiles.FirstOrDefault(e =>
+                    Path.GetFileNameWithoutExtension(e).Contains(appNamePart, StringComparison.OrdinalIgnoreCase));
+
+                return bestMatch ?? exeFiles.First();
+            }
+        }
+
+        return null;
+    }
+
     public async Task<OperationResult<bool>> UninstallAppAsync(ItemDefinition item, IProgress<TaskProgressDetail>? progress = null)
     {
         try
         {
-            return await appUninstallService.UninstallAsync(item, progress, CancellationToken.None);
+            var result = await appUninstallService.UninstallAsync(item, progress, CancellationToken.None);
+
+            if (result.Success)
+            {
+                RemoveStartMenuShortcutIfExists(item.Name);
+            }
+
+            return result;
         }
         catch (OperationCanceledException)
         {
@@ -80,6 +203,26 @@ public class ExternalAppsService(
         {
             logService.LogError($"Failed to uninstall {item.Name}: {ex.Message}");
             return OperationResult<bool>.Failed(ex.Message);
+        }
+    }
+
+    private void RemoveStartMenuShortcutIfExists(string appName)
+    {
+        try
+        {
+            var shortcutPath = Path.Combine(
+                Environment.GetFolderPath(Environment.SpecialFolder.Programs),
+                $"{appName}.lnk");
+
+            if (File.Exists(shortcutPath))
+            {
+                File.Delete(shortcutPath);
+                logService.LogInformation($"Removed Start Menu shortcut for {appName}");
+            }
+        }
+        catch (Exception ex)
+        {
+            logService.LogWarning($"Could not remove Start Menu shortcut for {appName}: {ex.Message}");
         }
     }
 
@@ -95,7 +238,7 @@ public class ExternalAppsService(
                 Id = winGetPackageId,
                 Name = winGetPackageId,
                 Description = "",
-                WinGetPackageId = winGetPackageId
+                WinGetPackageId = [winGetPackageId]
             };
             var batch = await CheckBatchInstalledAsync(new[] { tempDef });
             return batch.GetValueOrDefault(winGetPackageId, false);
@@ -109,38 +252,6 @@ public class ExternalAppsService(
 
     public async Task<Dictionary<string, bool>> CheckBatchInstalledAsync(IEnumerable<ItemDefinition> definitions)
     {
-        var result = new Dictionary<string, bool>(StringComparer.OrdinalIgnoreCase);
-        var definitionList = definitions.ToList();
-
-        if (!definitionList.Any())
-            return result;
-
-        var appsWithWinGetId = definitionList.Where(d => !string.IsNullOrEmpty(d.WinGetPackageId)).ToList();
-        var appsWithoutWinGetId = definitionList.Where(d => string.IsNullOrEmpty(d.WinGetPackageId)).ToList();
-
-        if (appsWithWinGetId.Any())
-        {
-            var winGetResults = await appStatusDiscoveryService.GetExternalAppsInstallationStatusAsync(appsWithWinGetId);
-            foreach (var kvp in winGetResults)
-            {
-                result[kvp.Key] = kvp.Value;
-            }
-        }
-
-        if (appsWithoutWinGetId.Any())
-        {
-            var displayNames = appsWithoutWinGetId.Select(d => d.Name).ToList();
-            var displayNameResults = await appStatusDiscoveryService.CheckInstalledByDisplayNameAsync(displayNames);
-
-            foreach (var app in appsWithoutWinGetId)
-            {
-                if (displayNameResults.TryGetValue(app.Name, out bool isInstalled))
-                {
-                    result[app.Id] = isInstalled;
-                }
-            }
-        }
-
-        return result;
+        return await appStatusDiscoveryService.GetExternalAppsInstallationStatusAsync(definitions);
     }
 }

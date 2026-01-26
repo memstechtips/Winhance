@@ -34,7 +34,7 @@ public class AppUninstallService(
 
     public async Task<UninstallMethod> DetermineUninstallMethodAsync(ItemDefinition item)
     {
-        if (!string.IsNullOrEmpty(item.WinGetPackageId))
+        if (item.WinGetPackageId != null && item.WinGetPackageId.Any())
             return UninstallMethod.WinGet;
 
         var (found, _) = await GetUninstallStringAsync(item.Name);
@@ -48,7 +48,8 @@ public class AppUninstallService(
     {
         try
         {
-            var success = await winGetService.UninstallPackageAsync(item.WinGetPackageId, item.Name, cancellationToken);
+            var primaryPackageId = item.WinGetPackageId?[0];
+            var success = await winGetService.UninstallPackageAsync(primaryPackageId!, item.Name, cancellationToken);
 
             if (!success)
             {

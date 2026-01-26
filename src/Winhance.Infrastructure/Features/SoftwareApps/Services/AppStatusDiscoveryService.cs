@@ -1,8 +1,10 @@
 using System;
 using System.Collections.Generic;
+using System.Diagnostics;
+using System.IO;
 using System.Linq;
 using System.Management;
-using System.Text;
+using System.Text.Json;
 using System.Threading.Tasks;
 using Microsoft.Win32;
 using Winhance.Core.Features.Common.Interfaces;
@@ -37,7 +39,13 @@ public class AppStatusDiscoveryService(
                 foreach (var capability in capabilities)
                 {
                     if (capabilityResults.TryGetValue(capability.CapabilityName, out bool isInstalled))
+                    {
                         result[capability.Id] = isInstalled;
+                        if (isInstalled)
+                        {
+                            logService.LogInformation($"Installed (Capability): {capability.Name} ({capability.CapabilityName})");
+                        }
+                    }
                 }
             }
 
@@ -48,7 +56,13 @@ public class AppStatusDiscoveryService(
                 foreach (var feature in features)
                 {
                     if (featureResults.TryGetValue(feature.OptionalFeatureName, out bool isInstalled))
+                    {
                         result[feature.Id] = isInstalled;
+                        if (isInstalled)
+                        {
+                            logService.LogInformation($"Installed (Feature): {feature.Name} ({feature.OptionalFeatureName})");
+                        }
+                    }
                 }
             }
 
@@ -57,7 +71,15 @@ public class AppStatusDiscoveryService(
                 var installedApps = await GetInstalledStoreAppsAsync();
                 foreach (var app in apps)
                 {
-                    result[app.Id] = installedApps.Contains(app.AppxPackageName);
+                    if (installedApps.TryGetValue(app.AppxPackageName, out var detectionMethod))
+                    {
+                        result[app.Id] = true;
+                        logService.LogInformation($"Installed ({detectionMethod}): {app.Name} ({app.AppxPackageName})");
+                    }
+                    else
+                    {
+                        result[app.Id] = false;
+                    }
                 }
             }
 
@@ -82,7 +104,15 @@ public class AppStatusDiscoveryService(
             var installedApps = await GetInstalledStoreAppsAsync();
             foreach (var appId in appIdList)
             {
-                result[appId] = installedApps.Contains(appId);
+                if (installedApps.TryGetValue(appId, out var detectionMethod))
+                {
+                    result[appId] = true;
+                    logService.LogInformation($"Installed ({detectionMethod}): {appId}");
+                }
+                else
+                {
+                    result[appId] = false;
+                }
             }
             return result;
         }
@@ -168,9 +198,9 @@ public class AppStatusDiscoveryService(
         return result;
     }
 
-    private async Task<HashSet<string>> GetInstalledStoreAppsAsync()
+    private async Task<Dictionary<string, string>> GetInstalledStoreAppsAsync()
     {
-        var installedApps = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
+        var installedApps = new Dictionary<string, string>(StringComparer.OrdinalIgnoreCase);
 
         try
         {
@@ -183,7 +213,9 @@ public class AppStatusDiscoveryService(
                 {
                     var name = obj["Name"]?.ToString();
                     if (!string.IsNullOrEmpty(name))
-                        installedApps.Add(name);
+                    {
+                        installedApps[name] = "WMI";
+                    }
                 }
             });
 
@@ -205,12 +237,12 @@ public class AppStatusDiscoveryService(
 
                         if (subKeyNames.Any(name => name.Contains("OneNote", StringComparison.OrdinalIgnoreCase)))
                         {
-                            installedApps.Add("Microsoft.Office.OneNote");
+                            installedApps["Microsoft.Office.OneNote"] = "Registry";
                         }
 
                         if (subKeyNames.Any(name => name.Contains("OneDrive", StringComparison.OrdinalIgnoreCase)))
                         {
-                            installedApps.Add("Microsoft.OneDriveSync");
+                            installedApps["Microsoft.OneDriveSync"] = "Registry";
                         }
                     }
                 }
@@ -233,183 +265,136 @@ public class AppStatusDiscoveryService(
     public async Task<Dictionary<string, bool>> GetExternalAppsInstallationStatusAsync(IEnumerable<ItemDefinition> definitions)
     {
         var result = new Dictionary<string, bool>(StringComparer.OrdinalIgnoreCase);
-        var definitionList = definitions
-            .Where(d => !string.IsNullOrWhiteSpace(d.WinGetPackageId))
-            .ToList();
+        var definitionList = definitions.ToList();
 
         if (!definitionList.Any())
             return result;
 
         try
         {
-            var remainingToCheck = new List<ItemDefinition>(definitionList);
-            var foundByWinGetId = 0;
-            var foundByWinGetName = 0;
+            var appsWithWinGetId = definitionList
+                .Where(d => d.WinGetPackageId != null && d.WinGetPackageId.Any())
+                .ToList();
 
-            bool winGetReady = false;
-            try
+            var appsWithoutWinGetId = definitionList
+                .Where(d => d.WinGetPackageId == null || !d.WinGetPackageId.Any())
+                .ToList();
+
+            if (appsWithWinGetId.Any())
             {
-                winGetReady = await winGetService.EnsureWinGetReadyAsync();
-
-                if (!winGetReady)
+                bool winGetReady = false;
+                try
                 {
-                    logService.LogInformation("WinGet is not available - skipping WinGet detection, using WMI/Registry only");
+                    winGetReady = await winGetService.EnsureWinGetReadyAsync();
                 }
-            }
-            catch (Exception ex)
-            {
-                logService.LogWarning($"WinGet readiness check failed: {ex.Message}");
-                winGetReady = false;
-            }
-
-            if (winGetReady)
-            {
-                var (wingetPackageIds, wingetPackageNames) = await GetAllInstalledWinGetPackagesAsync();
-
-                foreach (var def in definitionList.ToList())
+                catch (Exception ex)
                 {
-                    if (wingetPackageIds.Contains(def.WinGetPackageId))
-                    {
-                        result[def.Id] = true;
-                        remainingToCheck.Remove(def);
-                        foundByWinGetId++;
-                        logService.LogInformation($"Installed (WinGet ID): {def.Name} (Id: {def.Id}, PackageId: {def.WinGetPackageId})");
-                    }
-                    else if (MatchWinGetName(def.Name, wingetPackageNames))
-                    {
-                        result[def.Id] = true;
-                        remainingToCheck.Remove(def);
-                        foundByWinGetName++;
-                        logService.LogInformation($"Installed (WinGet Name): {def.Name} (Id: {def.Id})");
-                    }
+                    logService.LogWarning($"WinGet readiness check failed: {ex.Message}");
                 }
 
-                logService.LogInformation($"WinGet: Found {foundByWinGetId} by package ID, {foundByWinGetName} by name ({foundByWinGetId + foundByWinGetName}/{definitionList.Count} total)");
-            }
-
-            if (remainingToCheck.Any())
-            {
-                var wmiTask = GetInstalledProgramsFromWmiOnlyAsync();
-                var registryTask = GetInstalledProgramsFromRegistryAsync();
-
-                await Task.WhenAll(wmiTask, registryTask);
-
-                var wmiPrograms = wmiTask.Result;
-                var registryPrograms = registryTask.Result;
-
-                var foundByWmi = 0;
-                var foundByRegistry = 0;
-
-                foreach (var def in remainingToCheck.ToList())
+                if (winGetReady)
                 {
-                    var wmiMatch = FuzzyMatchProgram(def.WinGetPackageId, wmiPrograms);
-                    var registryMatch = FuzzyMatchProgram(def.WinGetPackageId, registryPrograms);
+                    var wingetPackageIds = await GetInstalledWinGetPackageIdsAsync();
 
-                    if (wmiMatch || registryMatch)
+                    foreach (var def in appsWithWinGetId)
                     {
-                        result[def.Id] = true;
-                        remainingToCheck.Remove(def);
-                        var method = wmiMatch && registryMatch ? "WMI+Registry" : (wmiMatch ? "WMI" : "Registry");
-                        logService.LogInformation($"Installed ({method}): {def.Name} (Id: {def.Id})");
-                        if (wmiMatch) foundByWmi++;
-                        if (registryMatch) foundByRegistry++;
+                        bool isInstalled = def.WinGetPackageId!.Any(pkgId => wingetPackageIds.Contains(pkgId));
+                        result[def.Id] = isInstalled;
+
+                        if (isInstalled)
+                        {
+                            var matchedPackageId = def.WinGetPackageId!.First(pkgId => wingetPackageIds.Contains(pkgId));
+                            logService.LogInformation($"Installed (WinGet): {def.Name} ({matchedPackageId})");
+                        }
+                    }
+
+                    logService.LogInformation($"WinGet: Checked {appsWithWinGetId.Count} apps");
+                }
+                else
+                {
+                    logService.LogWarning("WinGet unavailable - cannot check installation status for apps with WinGetPackageId");
+                    foreach (var def in appsWithWinGetId)
+                    {
+                        result[def.Id] = false;
                     }
                 }
-
-                logService.LogInformation($"Fallback detection: Found {foundByWmi} via WMI, {foundByRegistry} via Registry");
             }
 
-            foreach (var def in remainingToCheck)
+            if (appsWithoutWinGetId.Any())
             {
-                result[def.Id] = false;
+                var registryPrograms = await GetInstalledProgramsFromRegistryAsync();
+
+                foreach (var def in appsWithoutWinGetId)
+                {
+                    bool isInstalled = registryPrograms.Any(p =>
+                        p.DisplayName.Equals(def.Name, StringComparison.OrdinalIgnoreCase));
+
+                    result[def.Id] = isInstalled;
+
+                    if (isInstalled)
+                    {
+                        logService.LogInformation($"Installed (Registry): {def.Name}");
+                    }
+                }
             }
 
             var totalFound = result.Count(kvp => kvp.Value);
-            logService.LogInformation($"Total: {totalFound}/{definitionList.Count} apps installed");
+            logService.LogInformation($"Status check complete: {totalFound}/{definitionList.Count} apps installed");
 
             return result;
         }
         catch (Exception ex)
         {
-            logService.LogError($"Error checking batch installed apps: {ex.Message}", ex);
+            logService.LogError($"Error checking installation status: {ex.Message}", ex);
             return definitionList.ToDictionary(d => d.Id, d => false, StringComparer.OrdinalIgnoreCase);
         }
     }
 
-    private async Task<(HashSet<string> PackageIds, HashSet<string> PackageNames)> GetAllInstalledWinGetPackagesAsync()
+    private async Task<HashSet<string>> GetInstalledWinGetPackageIdsAsync()
     {
         var installedPackageIds = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
-        var installedPackageNames = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
 
         try
         {
-            await Task.Run(async () =>
+            var cacheDir = Path.Combine(
+                Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData),
+                "Winhance", "Cache");
+            Directory.CreateDirectory(cacheDir);
+
+            var exportPath = Path.Combine(cacheDir, "winget-packages.json");
+
+            if (File.Exists(exportPath))
+                File.Delete(exportPath);
+
+            var startInfo = new ProcessStartInfo
             {
-                var startInfo = new System.Diagnostics.ProcessStartInfo
-                {
-                    FileName = "winget",
-                    Arguments = "list --accept-source-agreements --disable-interactivity",
-                    UseShellExecute = false,
-                    RedirectStandardOutput = true,
-                    CreateNoWindow = true,
-                    StandardOutputEncoding = System.Text.Encoding.UTF8
-                };
+                FileName = "winget",
+                Arguments = $"export -o \"{exportPath}\" --accept-source-agreements --nowarn --disable-interactivity",
+                UseShellExecute = false,
+                RedirectStandardOutput = true,
+                RedirectStandardError = true,
+                CreateNoWindow = true
+            };
 
-                using var process = new System.Diagnostics.Process { StartInfo = startInfo };
-                var output = new System.Text.StringBuilder();
+            using var process = new Process { StartInfo = startInfo };
+            process.Start();
 
-                process.OutputDataReceived += (_, e) =>
-                {
-                    if (!string.IsNullOrEmpty(e.Data))
-                        output.AppendLine(e.Data);
-                };
+            var completed = await Task.Run(() => process.WaitForExit(10000));
+            if (!completed)
+            {
+                try { process.Kill(true); } catch { }
+                logService.LogWarning("WinGet export timed out after 10 seconds");
+                return installedPackageIds;
+            }
 
-                process.Start();
-                process.BeginOutputReadLine();
+            if (process.ExitCode != 0 || !File.Exists(exportPath))
+            {
+                logService.LogWarning($"WinGet export failed with exit code {process.ExitCode}");
+                return installedPackageIds;
+            }
 
-                var timeoutTask = Task.Delay(TimeSpan.FromSeconds(30));
-                var processTask = process.WaitForExitAsync();
-                var completedTask = await Task.WhenAny(processTask, timeoutTask).ConfigureAwait(false);
-
-                if (completedTask == timeoutTask)
-                {
-                    try
-                    {
-                        process.Kill(true);
-                    }
-                    catch { }
-
-                    logService.LogWarning("WinGet list command timed out after 30 seconds");
-                    return;
-                }
-
-                var outputString = output.ToString();
-
-                if (outputString.TrimStart().StartsWith("{"))
-                {
-                    ParseWinGetJsonOutput(outputString, installedPackageIds, installedPackageNames);
-                }
-                else
-                {
-                    ParseWinGetTableOutput(outputString, installedPackageIds, installedPackageNames);
-                }
-
-                logService.LogInformation($"WinGet returned {installedPackageIds.Count} unique package IDs and {installedPackageNames.Count} unique names");
-            });
-        }
-        catch (Exception ex)
-        {
-            logService.LogError($"Error getting installed WinGet packages: {ex.Message}", ex);
-        }
-
-        return (installedPackageIds, installedPackageNames);
-    }
-
-    private void ParseWinGetJsonOutput(string jsonOutput, HashSet<string> installedPackageIds, HashSet<string> installedPackageNames)
-    {
-        try
-        {
-            using var document = System.Text.Json.JsonDocument.Parse(jsonOutput);
+            var json = await File.ReadAllTextAsync(exportPath);
+            using var document = JsonDocument.Parse(json);
             var root = document.RootElement;
 
             if (root.TryGetProperty("Sources", out var sources))
@@ -420,130 +405,27 @@ public class AppStatusDiscoveryService(
                     {
                         foreach (var package in packages.EnumerateArray())
                         {
-                            if (package.TryGetProperty("Id", out var id))
+                            if (package.TryGetProperty("PackageIdentifier", out var id))
                             {
                                 var packageId = id.GetString();
                                 if (!string.IsNullOrEmpty(packageId))
-                                {
                                     installedPackageIds.Add(packageId);
-                                }
-                            }
-
-                            if (package.TryGetProperty("Name", out var name))
-                            {
-                                var packageName = name.GetString();
-                                if (!string.IsNullOrEmpty(packageName))
-                                {
-                                    installedPackageNames.Add(packageName);
-                                }
                             }
                         }
                     }
                 }
             }
 
-            logService.LogInformation("Parsed WinGet JSON output successfully");
+            logService.LogInformation($"WinGet export: Found {installedPackageIds.Count} installed packages");
         }
         catch (Exception ex)
         {
-            logService.LogError($"Error parsing WinGet JSON output: {ex.Message}", ex);
+            logService.LogError($"Error running WinGet export: {ex.Message}", ex);
         }
+
+        return installedPackageIds;
     }
 
-    private void ParseWinGetTableOutput(string output, HashSet<string> installedPackageIds, HashSet<string> installedPackageNames)
-    {
-        try
-        {
-            var lines = output.Split('\n', StringSplitOptions.RemoveEmptyEntries);
-            bool headerPassed = false;
-            int? nameColumnStart = null;
-            int? idColumnStart = null;
-            int? versionColumnStart = null;
-
-            for (int i = 0; i < lines.Length; i++)
-            {
-                var line = lines[i];
-
-                if (line.Contains("---"))
-                {
-                    headerPassed = true;
-
-                    if (i > 0)
-                    {
-                        var headerLine = lines[i - 1];
-                        nameColumnStart = headerLine.IndexOf("Name", StringComparison.OrdinalIgnoreCase);
-                        idColumnStart = headerLine.IndexOf("Id", StringComparison.OrdinalIgnoreCase);
-                        versionColumnStart = headerLine.IndexOf("Version", StringComparison.OrdinalIgnoreCase);
-                    }
-
-                    continue;
-                }
-
-                if (!headerPassed)
-                    continue;
-
-                if (nameColumnStart.HasValue && idColumnStart.HasValue && line.Length > nameColumnStart.Value)
-                {
-                    var nameSection = line.Substring(nameColumnStart.Value, idColumnStart.Value - nameColumnStart.Value);
-                    var packageName = nameSection.Trim();
-                    if (!string.IsNullOrEmpty(packageName))
-                    {
-                        installedPackageNames.Add(packageName);
-                    }
-                }
-
-                if (idColumnStart.HasValue && line.Length > idColumnStart.Value)
-                {
-                    var idSection = versionColumnStart.HasValue && line.Length > versionColumnStart.Value
-                        ? line.Substring(idColumnStart.Value, versionColumnStart.Value - idColumnStart.Value)
-                        : line.Substring(idColumnStart.Value);
-
-                    var packageId = idSection.Trim();
-
-                    if (!string.IsNullOrEmpty(packageId))
-                    {
-                        installedPackageIds.Add(packageId);
-                    }
-                }
-            }
-
-            logService.LogInformation($"Parsed WinGet table output: {installedPackageIds.Count} IDs, {installedPackageNames.Count} names");
-        }
-        catch (Exception ex)
-        {
-            logService.LogError($"Error parsing WinGet table output: {ex.Message}", ex);
-        }
-    }
-
-    private async Task<HashSet<(string DisplayName, string Publisher)>> GetInstalledProgramsFromWmiOnlyAsync()
-    {
-        var installedPrograms = new HashSet<(string, string)>();
-
-        try
-        {
-            await Task.Run(() =>
-            {
-                using var searcher = new ManagementObjectSearcher(
-                    "SELECT Name, Vendor FROM Win32_InstalledWin32Program");
-                using var collection = searcher.Get();
-
-                foreach (ManagementObject obj in collection)
-                {
-                    var name = obj["Name"]?.ToString();
-                    var vendor = obj["Vendor"]?.ToString();
-
-                    if (!string.IsNullOrEmpty(name))
-                        installedPrograms.Add((name, vendor ?? ""));
-                }
-            });
-        }
-        catch (Exception ex)
-        {
-            logService.LogError($"Error querying WMI for installed programs: {ex.Message}", ex);
-        }
-
-        return installedPrograms;
-    }
 
     private async Task<HashSet<(string DisplayName, string Publisher)>> GetInstalledProgramsFromRegistryAsync()
     {
@@ -601,115 +483,7 @@ public class AppStatusDiscoveryService(
         }
     }
 
-    private bool MatchWinGetName(string definitionName, HashSet<string> wingetPackageNames)
-    {
-        var normalizedDefName = NormalizeString(definitionName);
 
-        foreach (var wingetName in wingetPackageNames)
-        {
-            var normalizedWingetName = NormalizeString(wingetName);
-
-            if (normalizedWingetName == normalizedDefName)
-                return true;
-
-            if (normalizedWingetName.StartsWith(normalizedDefName + " ") ||
-                normalizedWingetName.StartsWith(normalizedDefName + "-"))
-                return true;
-        }
-
-        return false;
-    }
-
-    private bool FuzzyMatchProgram(string winGetPackageId, HashSet<(string DisplayName, string Publisher)> installedPrograms)
-    {
-        var parts = winGetPackageId.Split('.');
-
-        if (parts.Length < 2)
-        {
-            var normalized = NormalizeString(winGetPackageId);
-            return installedPrograms.Any(p => NormalizeString(p.DisplayName).Contains(normalized));
-        }
-
-        var publisher = NormalizeString(parts[0]);
-        var productName = NormalizeString(string.Join(".", parts.Skip(1)));
-
-        foreach (var (displayName, vendor) in installedPrograms)
-        {
-            var normDisplayName = NormalizeString(displayName);
-            var normVendor = NormalizeString(vendor);
-
-            if (normDisplayName.Contains(productName))
-            {
-                if (normDisplayName.Contains("add-in") ||
-                    normDisplayName.Contains("for " + productName) ||
-                    normDisplayName.Contains("plugin"))
-                {
-                    continue;
-                }
-
-                if (string.IsNullOrEmpty(vendor) || normVendor.Contains(publisher))
-                    return true;
-            }
-
-            var fullId = NormalizeString(winGetPackageId).Replace(".", "");
-            if (normDisplayName.Replace(" ", "").Contains(fullId))
-                return true;
-        }
-
-        return false;
-    }
-
-    private string NormalizeString(string input)
-    {
-        if (string.IsNullOrEmpty(input))
-            return string.Empty;
-
-        var normalized = input.ToLowerInvariant();
-
-        normalized = normalized
-            .Replace("á", "a").Replace("à", "a").Replace("ä", "a").Replace("â", "a")
-            .Replace("é", "e").Replace("è", "e").Replace("ë", "e").Replace("ê", "e")
-            .Replace("í", "i").Replace("ì", "i").Replace("ï", "i").Replace("î", "i")
-            .Replace("ó", "o").Replace("ò", "o").Replace("ö", "o").Replace("ô", "o")
-            .Replace("ú", "u").Replace("ù", "u").Replace("ü", "u").Replace("û", "u")
-            .Replace("ñ", "n").Replace("ç", "c");
-
-        return normalized;
-    }
-
-    public async Task<Dictionary<string, bool>> CheckInstalledByDisplayNameAsync(IEnumerable<string> displayNames)
-    {
-        var result = new Dictionary<string, bool>(StringComparer.OrdinalIgnoreCase);
-        var nameList = displayNames.Where(n => !string.IsNullOrWhiteSpace(n)).ToList();
-
-        if (!nameList.Any())
-            return result;
-
-        try
-        {
-            var registryPrograms = await GetInstalledProgramsFromRegistryAsync();
-
-            foreach (var displayName in nameList)
-            {
-                var isInstalled = FuzzyMatchProgram(displayName, registryPrograms);
-                result[displayName] = isInstalled;
-                if (isInstalled)
-                {
-                    logService.LogInformation($"Installed (DisplayName): {displayName}");
-                }
-            }
-
-            var totalFound = result.Count(kvp => kvp.Value);
-            logService.LogInformation($"Display name detection: Found {totalFound}/{nameList.Count} apps installed");
-
-            return result;
-        }
-        catch (Exception ex)
-        {
-            logService.LogError($"Error checking apps by display name: {ex.Message}", ex);
-            return nameList.ToDictionary(name => name, name => false, StringComparer.OrdinalIgnoreCase);
-        }
-    }
 
     #endregion
 }

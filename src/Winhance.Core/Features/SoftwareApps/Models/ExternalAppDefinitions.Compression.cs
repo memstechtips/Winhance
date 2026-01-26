@@ -21,7 +21,7 @@ namespace Winhance.Core.Features.SoftwareApps.Models
                             Name = "7-Zip",
                             Description = "Open-source file archiver with a high compression ratio",
                             GroupName = "Compression",
-                            WinGetPackageId = "7zip.7zip",
+                            WinGetPackageId = ["7zip.7zip"],
                             WebsiteUrl = "https://www.7-zip.org/"
                         },
                         new ItemDefinition
@@ -30,7 +30,7 @@ namespace Winhance.Core.Features.SoftwareApps.Models
                             Name = "WinRAR",
                             Description = "File archiver with a high compression ratio",
                             GroupName = "Compression",
-                            WinGetPackageId = "RARLab.WinRAR",
+                            WinGetPackageId = ["RARLab.WinRAR"],
                             WebsiteUrl = "https://www.win-rar.com/"
                         },
                         new ItemDefinition
@@ -39,7 +39,7 @@ namespace Winhance.Core.Features.SoftwareApps.Models
                             Name = "PeaZip",
                             Description = "Free file archiver utility. Open and extract RAR, TAR, ZIP files and more",
                             GroupName = "Compression",
-                            WinGetPackageId = "Giorgiotani.Peazip",
+                            WinGetPackageId = ["Giorgiotani.Peazip"],
                             WebsiteUrl = "https://peazip.github.io/"
                         },
                         new ItemDefinition
@@ -48,7 +48,7 @@ namespace Winhance.Core.Features.SoftwareApps.Models
                             Name = "NanaZip",
                             Description = "Open source fork of 7-zip intended for the modern Windows experience",
                             GroupName = "Compression",
-                            WinGetPackageId = "M2Team.NanaZip",
+                            WinGetPackageId = ["M2Team.NanaZip"],
                             WebsiteUrl = "https://github.com/M2Team/NanaZip"
                         }
                     }

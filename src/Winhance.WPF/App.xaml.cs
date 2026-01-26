@@ -24,6 +24,7 @@ using Winhance.WPF.Features.Optimize.Views;
 using Winhance.WPF.Features.Customize.ViewModels;
 using Winhance.WPF.Features.Customize.Views;
 using Winhance.Infrastructure.Features.Common.Services;
+using Winhance.Core.Features.SoftwareApps.Interfaces;
 
 namespace Winhance.WPF
 {
@@ -467,6 +468,10 @@ namespace Winhance.WPF
                     LogStartupMessage("No script migration needed");
                 }
 
+                LogStartupMessage("Checking for removal script updates");
+                var scriptUpdateService = _host.Services.GetRequiredService<IRemovalScriptUpdateService>();
+                await scriptUpdateService.CheckAndUpdateScriptsAsync();
+
                 var mainViewModel = _host.Services.GetRequiredService<MainViewModel>();
 
                 LogStartupMessage("Preloading SoftwareAppsViewModel data");
@@ -491,12 +496,56 @@ namespace Winhance.WPF
         {
             LogStartupMessage("Initializing and showing main window");
 
-            // Initialize window with effects and messaging
             var windowInitService = _host.Services.GetRequiredService<WindowInitializationService>();
             windowInitService.InitializeWindow(mainWindow);
 
             mainWindow.Show();
             LogStartupMessage("Main window shown");
+
+            _ = Task.Run(async () =>
+            {
+                try
+                {
+                    LogStartupMessage("Starting background WinGet preparation...");
+                    var winGetService = _host.Services.GetRequiredService<IWinGetService>();
+                    var logService = _host.Services.GetRequiredService<ILogService>();
+                    var taskProgressService = _host.Services.GetRequiredService<ITaskProgressService>();
+                    var localizationService = _host.Services.GetRequiredService<ILocalizationService>();
+
+                    bool isReady = await winGetService.EnsureWinGetReadyAsync();
+
+                    if (!isReady)
+                    {
+                        logService.LogInformation("WinGet not ready, attempting to install/update...");
+
+                        taskProgressService.StartTask(localizationService.GetString("Progress_CheckingWinget"), isIndeterminate: true);
+
+                        var progress = taskProgressService.CreateDetailedProgress();
+                        bool updated = await winGetService.EnsureWinGetUpToDateAsync(progress);
+
+                        if (updated)
+                        {
+                            logService.LogInformation("WinGet successfully prepared in background");
+                            taskProgressService.CompleteTask();
+                        }
+                        else
+                        {
+                            logService.LogWarning("Could not prepare WinGet in background - likely no internet connection");
+                            taskProgressService.UpdateProgress(0, localizationService.GetString("Error_WinGetInstallFailed"));
+                            await Task.Delay(7000);
+                            taskProgressService.CompleteTask();
+                        }
+                    }
+                    else
+                    {
+                        logService.LogInformation("WinGet already ready");
+                    }
+                }
+                catch (Exception ex)
+                {
+                    LogStartupError("Error preparing WinGet in background", ex);
+                }
+            });
         }
 
         private static void CloseLoadingWindow(LoadingWindow? loadingWindow)

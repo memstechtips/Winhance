@@ -1398,5 +1398,9 @@
   "Button_Unlock": "ロック解除",
   "Common_ClickToUnlock": "クリックしてロック解除",
   "Setting_taskbar-copilot_Name": "Copilot プレビューボタン",
-  "Setting_taskbar-copilot_Description": "タスクバーの Copilot プレビューボタンを表示または非表示にします"
+  "Setting_taskbar-copilot_Description": "タスクバーの Copilot プレビューボタンを表示または非表示にします",
+  "ExternalApps_WinGetUnavailable": "インストールの状態を確認できません。インターネットに接続して、更新ボタンをクリックしてください。",
+  "Error_NoInternetConnection": "インターネットに接続されていません。接続してもう一度お試しください。",
+  "Error_WinGetInstallFailed": "WinGet のインストールに失敗しました。インターネット接続を確認してください。",
+  "Error_WinGetNotAvailable": "WinGet はこのシステムでは利用できません。"
 }
