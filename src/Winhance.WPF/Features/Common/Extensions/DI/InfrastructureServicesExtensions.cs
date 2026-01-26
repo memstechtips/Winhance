@@ -61,6 +61,9 @@ namespace Winhance.WPF.Features.Common.Extensions.DI
             // Script Migration Service (Singleton - One-time migration)
             services.AddSingleton<IScriptMigrationService, ScriptMigrationService>();
 
+            // Removal Script Update Service (Singleton - Checks and updates removal scripts on startup)
+            services.AddSingleton<IRemovalScriptUpdateService, RemovalScriptUpdateService>();
+
             // Task Progress Service (Singleton - Application-wide progress tracking)
             services.AddSingleton<ITaskProgressService, TaskProgressService>();
 

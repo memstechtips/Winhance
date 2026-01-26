@@ -467,6 +467,10 @@ namespace Winhance.WPF
                     LogStartupMessage("No script migration needed");
                 }
 
+                LogStartupMessage("Checking for removal script updates");
+                var scriptUpdateService = _host.Services.GetRequiredService<IRemovalScriptUpdateService>();
+                await scriptUpdateService.CheckAndUpdateScriptsAsync();
+
                 var mainViewModel = _host.Services.GetRequiredService<MainViewModel>();
 
                 LogStartupMessage("Preloading SoftwareAppsViewModel data");

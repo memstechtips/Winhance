@@ -97,6 +97,40 @@ public class ScheduledTaskService(ILogService logService) : IScheduledTaskServic
         });
     }
 
+    public async Task<bool> RunScheduledTaskAsync(string taskName)
+    {
+        return await Task.Run(() =>
+        {
+            try
+            {
+                var taskService = CreateTaskService();
+                var folder = GetWinhanceFolder(taskService);
+
+                if (folder == null)
+                {
+                    logService.LogError($"Winhance task folder not found when trying to run: {taskName}");
+                    return false;
+                }
+
+                var task = folder.GetTask(taskName);
+                if (task == null)
+                {
+                    logService.LogError($"Task not found: {taskName}");
+                    return false;
+                }
+
+                task.Run(null);
+                logService.LogInformation($"Started task: {taskName}");
+                return true;
+            }
+            catch (Exception ex)
+            {
+                logService.LogError($"Error running task: {taskName}", ex);
+                return false;
+            }
+        });
+    }
+
     public async Task<bool> CreateUserLogonTaskAsync(string taskName, string command, string username, bool deleteAfterRun = true)
     {
         return await Task.Run(() =>

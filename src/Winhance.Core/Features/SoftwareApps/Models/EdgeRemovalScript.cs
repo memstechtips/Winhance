@@ -2,12 +2,15 @@ namespace Winhance.Core.Features.SoftwareApps.Models;
 
 public static class EdgeRemovalScript
 {
+    public const string ScriptVersion = "1.0";
+
     public static string GetScript()
     {
         return @"
 <#
   .SYNOPSIS
       Removes Microsoft Edge (Legacy and Chromium versions) from Windows 10/11 systems.
+      Script Version: " + ScriptVersion + @"
 
   .DESCRIPTION
       This script detects and removes Microsoft Edge installations including:
@@ -169,7 +172,7 @@ function Remove-LegacyEdge {
     }
     # Remove Legacy UWP Edge package
     Write-Log ""Removing Legacy UWP Edge package""
-    Get-AppxPackage Microsoft.MicrosoftEdge | Remove-AppxPackage -ErrorAction SilentlyContinue | Out-Null
+    Get-AppxPackage -AllUsers Microsoft.MicrosoftEdge | Remove-AppxPackage -AllUsers -ErrorAction SilentlyContinue | Out-Null
     Write-Log ""Legacy Edge/UWP Edge removal process completed""
 }
 
@@ -372,7 +375,7 @@ function Remove-ChromiumEdge {
     }
     # Remove UWP Edge Chromium package
     Write-Log ""Removing UWP Edge Chromium package""
-    Get-AppxPackage *Microsoft.MicrosoftEdge.Stable* | Remove-AppxPackage -ErrorAction SilentlyContinue | Out-Null
+    Get-AppxPackage -AllUsers Microsoft.MicrosoftEdge.Stable | Remove-AppxPackage -AllUsers -ErrorAction SilentlyContinue | Out-Null
     # Cleanup: Remove folder and file we created earlier
     Write-Log ""Cleaning up temporary Edge directory""
     Remove-Item -Recurse -Force $edgePath -ErrorAction SilentlyContinue | Out-Null
@@ -411,20 +414,6 @@ function Remove-ChromiumEdge {
     } else {
         Write-Log ""No EdgeUpdate ClientState registry found to backup""
     }
-    # Clean registry entries
-    Write-Log ""Removing EdgeUpdate registry entries""
-    $registryPaths = @(
-        ""HKLM:\SOFTWARE"", ""HKLM:\SOFTWARE\Policies"", ""HKLM:\SOFTWARE\WOW6432Node"", ""HKLM:\SOFTWARE\WOW6432Node\Policies""
-    )
-    $removedRegCount = 0
-    foreach ($location in $registryPaths) {
-        $regPath = ""$location\Microsoft\EdgeUpdate""
-        if (Test-Path $regPath) {
-            Remove-Item $regPath -Recurse -Force -ErrorAction SilentlyContinue
-            $removedRegCount++
-        }
-    }
-    Write-Log ""Removed EdgeUpdate registry entries from $removedRegCount location(s)""
     # Uninstall EdgeUpdate executables
     Write-Log ""Processing EdgeUpdate uninstallation""
     foreach ($path in $edgeupdate) {
@@ -455,6 +444,117 @@ function Remove-ChromiumEdge {
         Write-Log ""No registry backup file found to restore""
     }
     Write-Log ""EdgeUpdate removal process completed""
+}
+
+function Remove-EdgeRegistryKeys {
+    Write-Log ""Starting comprehensive Edge registry cleanup""
+
+    $directPaths = @(
+        ""HKLM:\SOFTWARE\Microsoft\Edge"",
+        ""HKLM:\SOFTWARE\WOW6432Node\Microsoft\Edge"",
+        ""HKCU:\Software\Microsoft\Edge"",
+        ""HKCU:\Software\Microsoft\EdgeUpdate"",
+        ""HKLM:\SOFTWARE\Clients\StartMenuInternet\Microsoft Edge"",
+        ""HKLM:\SOFTWARE\Microsoft\Windows\CurrentVersion\App Paths\msedge.exe"",
+        ""HKLM:\SOFTWARE\Microsoft\Windows\CurrentVersion\MicrosoftEdge"",
+        ""HKLM:\SOFTWARE\Microsoft\Windows\CurrentVersion\Uninstall\Microsoft Edge"",
+        ""HKLM:\SYSTEM\CurrentControlSet\Services\Eventlog\Application\Edge"",
+        ""HKLM:\SYSTEM\CurrentControlSet\Services\Eventlog\Application\edgeupdate"",
+        ""HKLM:\SYSTEM\CurrentControlSet\Services\Eventlog\Application\edgeupdatem""
+    )
+
+    $removedCount = 0
+    foreach ($path in $directPaths) {
+        if (Test-Path $path) {
+            Remove-Item $path -Recurse -Force -ErrorAction SilentlyContinue
+            $removedCount++
+        }
+    }
+    Write-Log ""Removed $removedCount direct registry key(s)""
+
+    $valuesToRemove = @(
+        @{Path = ""HKLM:\SOFTWARE\RegisteredApplications""; Name = ""Microsoft Edge""},
+        @{Path = ""HKCU:\Software\Microsoft\Windows\CurrentVersion\Explorer\FeatureUsage\AppLaunch""; Name = ""MSEdge""},
+        @{Path = ""HKCU:\Software\Microsoft\Windows NT\CurrentVersion\AppCompatFlags\Compatibility Assistant\Store""; Name = ""C:\Program Files (x86)\Microsoft\Edge\Application\msedge.exe""}
+    )
+
+    $removedValuesCount = 0
+    foreach ($item in $valuesToRemove) {
+        if ((Test-Path $item.Path) -and (Get-ItemProperty -Path $item.Path -Name $item.Name -ErrorAction SilentlyContinue)) {
+            Remove-ItemProperty -Path $item.Path -Name $item.Name -Force -ErrorAction SilentlyContinue
+            $removedValuesCount++
+        }
+    }
+    Write-Log ""Removed $removedValuesCount registry value(s)""
+
+    $patterns = @(
+        @{Root = ""HKLM:\SOFTWARE\Classes""; Pattern = ""microsoft-edge""},
+        @{Root = ""HKLM:\SOFTWARE\Classes""; Pattern = ""MicrosoftEdgeUpdate*""},
+        @{Root = ""HKLM:\SOFTWARE\Classes""; Pattern = ""MSEdge*""},
+        @{Root = ""HKLM:\SOFTWARE\Classes\WOW6432Node""; Pattern = ""MicrosoftEdgeUpdate*""},
+        @{Root = ""HKLM:\SOFTWARE\WOW6432Node\Classes""; Pattern = ""MicrosoftEdgeUpdate*""}
+    )
+
+    $removedPatternCount = 0
+    foreach ($patternItem in $patterns) {
+        if (Test-Path $patternItem.Root) {
+            $matchedKeys = Get-ChildItem -Path $patternItem.Root -ErrorAction SilentlyContinue |
+                Where-Object { $_.PSChildName -like $patternItem.Pattern }
+
+            foreach ($key in $matchedKeys) {
+                Remove-Item $key.PSPath -Recurse -Force -ErrorAction SilentlyContinue
+                $removedPatternCount++
+            }
+        }
+    }
+    Write-Log ""Removed $removedPatternCount pattern-matched key(s)""
+
+    $muiCachePath = ""HKCU:\SOFTWARE\Classes\Local Settings\Software\Microsoft\Windows\Shell\MuiCache""
+    if (Test-Path $muiCachePath) {
+        $properties = Get-ItemProperty -Path $muiCachePath -ErrorAction SilentlyContinue
+        $removedMuiCount = 0
+        if ($properties) {
+            foreach ($prop in $properties.PSObject.Properties) {
+                if ($prop.Name -like ""*Edge*"" -or $prop.Name -like ""*EdgeUpdate*"") {
+                    Remove-ItemProperty -Path $muiCachePath -Name $prop.Name -Force -ErrorAction SilentlyContinue
+                    $removedMuiCount++
+                }
+            }
+        }
+        Write-Log ""Removed $removedMuiCount MuiCache entry(ies)""
+    }
+}
+
+function Remove-AdditionalEdgeFolders {
+    Write-Log ""Starting additional Edge folder cleanup""
+
+    $systemPaths = @(
+        ""C:\ProgramData\Microsoft\EdgeUpdate"",
+        ""C:\Windows\Temp\MsEdgeCrashpad""
+    )
+
+    $removedCount = 0
+    foreach ($path in $systemPaths) {
+        if (Test-Path $path) {
+            Write-Log ""Removing: $path""
+            Remove-Item $path -Recurse -Force -ErrorAction SilentlyContinue
+            $removedCount++
+        }
+    }
+
+    $userProfiles = Get-ChildItem -Path ""C:\Users"" -Directory -ErrorAction SilentlyContinue |
+        Where-Object { Test-Path ""$($_.FullName)\NTUSER.DAT"" }
+
+    foreach ($profile in $userProfiles) {
+        $edgeLocalPath = ""$($profile.FullName)\AppData\Local\Microsoft\Edge""
+        if (Test-Path $edgeLocalPath) {
+            Write-Log ""Removing: $edgeLocalPath""
+            Remove-Item $edgeLocalPath -Recurse -Force -ErrorAction SilentlyContinue
+            $removedCount++
+        }
+    }
+
+    Write-Log ""Removed $removedCount additional Edge folder(s)""
 }
 
 Write-Host ""Starting Edge removal process. See $logFile for details.""
@@ -533,6 +633,8 @@ if ($removedSomething) {
     }
 
     Remove-EdgeShortcuts
+    Remove-EdgeRegistryKeys
+    Remove-AdditionalEdgeFolders
     Install-EdgeProtocolRedirect
 }
 

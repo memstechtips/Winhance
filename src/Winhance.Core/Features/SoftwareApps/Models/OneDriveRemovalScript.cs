@@ -1,15 +1,16 @@
-using System;
-
 namespace Winhance.Core.Features.SoftwareApps.Models;
 
 public static class OneDriveRemovalScript
 {
+    public const string ScriptVersion = "1.0";
+
     public static string GetScript()
     {
         return @"
 <#
   .SYNOPSIS
       Removes Microsoft OneDrive from Windows 10/11 systems.
+      Script Version: " + ScriptVersion + @"
 
   .DESCRIPTION
       This script detects and removes Microsoft OneDrive installations including:
@@ -148,7 +149,7 @@ if ($env:USERNAME -eq ""SYSTEM"" -or $env:USERNAME -like ""*$"" -or $env:USERPRO
 # Step 1: Remove OneDrive AppxPackage and check registry for OneDrive installation
 Write-Log ""Removing OneDrive AppxPackage if present""
 try {
-    Get-AppxPackage *OneDriveSync* | Remove-AppxPackage -AllUsers -ErrorAction SilentlyContinue
+    Get-AppxPackage -AllUsers *OneDriveSync* | Remove-AppxPackage -AllUsers -ErrorAction SilentlyContinue
     Write-Log ""OneDrive AppxPackage removal completed""
 }
 catch {
@@ -267,6 +268,50 @@ if ($targetUser -and $userSID) {
     }
 }
 
+# 3.1b: Delete OneDrive main registry keys
+Write-Log ""Deleting OneDrive configuration registry keys""
+
+$systemRegistryPaths = @(
+    ""HKLM\SOFTWARE\Microsoft\OneDrive"",
+    ""HKLM\SOFTWARE\WOW6432Node\Microsoft\OneDrive""
+)
+
+foreach ($path in $systemRegistryPaths) {
+    Write-Log ""Deleting registry key: $path""
+    reg.exe delete $path /f 2>&1 | Out-Null
+    if ($LASTEXITCODE -eq 0) {
+        Write-Log ""Registry key deleted successfully: $path""
+    } else {
+        Write-Log ""Registry key not found or already deleted: $path""
+    }
+}
+
+if ($targetUser) {
+    if (-not $userSID) {
+        $userSID = Get-UserSID -Username $targetUser
+    }
+
+    if ($userSID) {
+        Write-Log ""Deleting user-specific OneDrive registry keys for user: $targetUser (SID: $userSID)""
+        $userRegistryPaths = @(
+            ""HKU\$userSID\SOFTWARE\Microsoft\OneDrive"",
+            ""HKU\$userSID\SOFTWARE\WOW6432Node\Microsoft\OneDrive""
+        )
+
+        foreach ($path in $userRegistryPaths) {
+            Write-Log ""Deleting registry key: $path""
+            reg.exe delete $path /f 2>&1 | Out-Null
+            if ($LASTEXITCODE -eq 0) {
+                Write-Log ""Registry key deleted successfully: $path""
+            } else {
+                Write-Log ""Registry key not found or already deleted: $path""
+            }
+        }
+    } else {
+        Write-Log ""Could not get user SID for '$targetUser', skipping user-specific registry cleanup""
+    }
+}
+
 # 3.2: Delete OneDrive AppData folder
 if ($userProfilePath) {
     $currentUserOneDrivePath = Join-Path $userProfilePath ""AppData\Local\Microsoft\OneDrive""
@@ -301,11 +346,17 @@ if ($userProfilePath) {
     }
 }
 
+if (Test-Path ""C:\ProgramData\Microsoft\Windows\Start Menu\Programs\OneDrive.lnk"") {
+    Remove-Item ""C:\ProgramData\Microsoft\Windows\Start Menu\Programs\OneDrive.lnk"" -Force -ErrorAction SilentlyContinue
+    Write-Log ""System-wide Start Menu shortcut removed""
+}
+
 # 3.4: Delete system OneDrive files
 $systemPaths = @(
     ""C:\Windows\System32\OneDriveSetup.exe"",
     ""C:\Windows\SysWOW64\OneDriveSetup.exe"",
-    ""C:\Program Files\Microsoft OneDrive""
+    ""C:\Program Files\Microsoft OneDrive"",
+    ""C:\ProgramData\Microsoft OneDrive""
 )
 
 foreach ($path in $systemPaths) {

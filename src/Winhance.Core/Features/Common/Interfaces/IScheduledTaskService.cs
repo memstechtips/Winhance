@@ -8,6 +8,7 @@ namespace Winhance.Core.Features.Common.Interfaces
         Task<bool> RegisterScheduledTaskAsync(RemovalScript script);
         Task<bool> UnregisterScheduledTaskAsync(string taskName);
         Task<bool> IsTaskRegisteredAsync(string taskName);
+        Task<bool> RunScheduledTaskAsync(string taskName);
         Task<bool> CreateUserLogonTaskAsync(string taskName, string command, string username, bool deleteAfterRun = true);
     }
 }
