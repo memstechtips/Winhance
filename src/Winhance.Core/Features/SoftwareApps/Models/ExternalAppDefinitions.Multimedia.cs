@@ -157,7 +157,7 @@ namespace Winhance.Core.Features.SoftwareApps.Models
                             Description = "Comprehensive multimedia player for Windows",
                             GroupName = "Multimedia (Audio & Video)",
                             WinGetPackageId = ["Daum.PotPlayer"],
-                            WebsiteUrl = "https://potplayer.daum.net/"
+                            WebsiteUrl = "https://potplayer.tv/"
                         },
                         new ItemDefinition
                         {
