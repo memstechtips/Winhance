@@ -235,14 +235,11 @@ public class AppStatusDiscoveryService(
                     {
                         var subKeyNames = uninstallKey.GetSubKeyNames();
 
+                        // OneNote (UWP version) doesn't appear in Win32_InstalledStoreProgram WMI query
+                        // so we check registry as a fallback
                         if (subKeyNames.Any(name => name.Contains("OneNote", StringComparison.OrdinalIgnoreCase)))
                         {
                             installedApps["Microsoft.Office.OneNote"] = "Registry";
-                        }
-
-                        if (subKeyNames.Any(name => name.Contains("OneDrive", StringComparison.OrdinalIgnoreCase)))
-                        {
-                            installedApps["Microsoft.OneDriveSync"] = "Registry";
                         }
                     }
                 }
