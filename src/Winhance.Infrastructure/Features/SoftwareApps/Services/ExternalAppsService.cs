@@ -90,57 +90,43 @@ public class ExternalAppsService(
     {
         try
         {
-            var exePath = FindPortableAppExecutable(item);
-            if (string.IsNullOrEmpty(exePath))
+            var installDir = FindPortableAppDirectory(item);
+            if (string.IsNullOrEmpty(installDir))
             {
-                logService.LogWarning($"Could not find executable for portable app {item.Name}");
+                logService.LogWarning($"Could not find installation directory for {item.Name}");
                 return;
             }
 
-            var startMenuPath = Path.Combine(
+            var exeFiles = Directory.GetFiles(installDir, "*.exe", SearchOption.AllDirectories).ToList();
+            if (!exeFiles.Any())
+            {
+                logService.LogWarning($"No executables found for {item.Name}");
+                return;
+            }
+
+            var startMenuFolder = Path.Combine(
                 Environment.GetFolderPath(Environment.SpecialFolder.Programs),
-                $"{item.Name}.lnk");
+                item.Name);
 
-            var script = $@"
-$WshShell = New-Object -ComObject WScript.Shell
-$Shortcut = $WshShell.CreateShortcut('{startMenuPath.Replace("'", "''")}')
-$Shortcut.TargetPath = '{exePath.Replace("'", "''")}'
-$Shortcut.WorkingDirectory = '{Path.GetDirectoryName(exePath)?.Replace("'", "''")}'
-$Shortcut.Description = '{item.Name.Replace("'", "''")}'
-$Shortcut.Save()
-";
+            Directory.CreateDirectory(startMenuFolder);
 
-            var startInfo = new ProcessStartInfo
+            foreach (var exePath in exeFiles)
             {
-                FileName = "powershell",
-                Arguments = $"-NoProfile -ExecutionPolicy Bypass -Command \"{script.Replace("\"", "\\\"")}\"",
-                UseShellExecute = false,
-                CreateNoWindow = true,
-                RedirectStandardOutput = true,
-                RedirectStandardError = true
-            };
+                var exeName = Path.GetFileNameWithoutExtension(exePath);
+                var shortcutPath = Path.Combine(startMenuFolder, $"{exeName}.lnk");
 
-            using var process = new Process { StartInfo = startInfo };
-            process.Start();
-            await process.WaitForExitAsync();
-
-            if (process.ExitCode == 0)
-            {
-                logService.LogInformation($"Created Start Menu shortcut for portable app: {item.Name} -> {exePath}");
+                await CreateShortcutAsync(shortcutPath, exePath, Path.GetDirectoryName(exePath), item.Name);
             }
-            else
-            {
-                var error = await process.StandardError.ReadToEndAsync();
-                logService.LogWarning($"Failed to create shortcut for {item.Name}: {error}");
-            }
+
+            logService.LogInformation($"Created Start Menu folder with {exeFiles.Count} shortcuts for {item.Name}");
         }
         catch (Exception ex)
         {
-            logService.LogWarning($"Error creating Start Menu shortcut for {item.Name}: {ex.Message}");
+            logService.LogWarning($"Error creating Start Menu shortcuts for {item.Name}: {ex.Message}");
         }
     }
 
-    private string? FindPortableAppExecutable(ItemDefinition item)
+    private string? FindPortableAppDirectory(ItemDefinition item)
     {
         var searchPaths = new[]
         {
@@ -155,30 +141,48 @@ $Shortcut.Save()
             if (!Directory.Exists(basePath))
                 continue;
 
-            var matchingDirs = item.WinGetPackageId!
+            var matchingDir = item.WinGetPackageId!
                 .SelectMany(pkgId => Directory.GetDirectories(basePath, $"{pkgId}*"))
                 .Distinct()
-                .ToList();
+                .FirstOrDefault();
 
-            foreach (var dir in matchingDirs)
-            {
-                var exeFiles = Directory.GetFiles(dir, "*.exe", SearchOption.AllDirectories)
-                    .Where(f => !Path.GetFileName(f).StartsWith("unins", StringComparison.OrdinalIgnoreCase))
-                    .ToList();
-
-                if (!exeFiles.Any())
-                    continue;
-
-                // Try to find an exe that matches the app name
-                var appNamePart = item.Name.Split(' ')[0];
-                var bestMatch = exeFiles.FirstOrDefault(e =>
-                    Path.GetFileNameWithoutExtension(e).Contains(appNamePart, StringComparison.OrdinalIgnoreCase));
-
-                return bestMatch ?? exeFiles.First();
-            }
+            if (matchingDir != null)
+                return matchingDir;
         }
 
         return null;
+    }
+
+    private async Task CreateShortcutAsync(string shortcutPath, string targetPath, string workingDir, string description)
+    {
+        var script = $@"
+$WshShell = New-Object -ComObject WScript.Shell
+$Shortcut = $WshShell.CreateShortcut('{shortcutPath.Replace("'", "''")}')
+$Shortcut.TargetPath = '{targetPath.Replace("'", "''")}'
+$Shortcut.WorkingDirectory = '{workingDir?.Replace("'", "''")}'
+$Shortcut.Description = '{description.Replace("'", "''")}'
+$Shortcut.Save()
+";
+
+        var startInfo = new ProcessStartInfo
+        {
+            FileName = "powershell",
+            Arguments = $"-NoProfile -ExecutionPolicy Bypass -Command \"{script.Replace("\"", "\\\"")}\"",
+            UseShellExecute = false,
+            CreateNoWindow = true,
+            RedirectStandardOutput = true,
+            RedirectStandardError = true
+        };
+
+        using var process = new Process { StartInfo = startInfo };
+        process.Start();
+        await process.WaitForExitAsync();
+
+        if (process.ExitCode != 0)
+        {
+            var error = await process.StandardError.ReadToEndAsync();
+            logService.LogWarning($"Failed to create shortcut at {shortcutPath}: {error}");
+        }
     }
 
     public async Task<OperationResult<bool>> UninstallAppAsync(ItemDefinition item, IProgress<TaskProgressDetail>? progress = null)
@@ -210,19 +214,19 @@ $Shortcut.Save()
     {
         try
         {
-            var shortcutPath = Path.Combine(
+            var startMenuFolder = Path.Combine(
                 Environment.GetFolderPath(Environment.SpecialFolder.Programs),
-                $"{appName}.lnk");
+                appName);
 
-            if (File.Exists(shortcutPath))
+            if (Directory.Exists(startMenuFolder))
             {
-                File.Delete(shortcutPath);
-                logService.LogInformation($"Removed Start Menu shortcut for {appName}");
+                Directory.Delete(startMenuFolder, true);
+                logService.LogInformation($"Removed Start Menu folder for {appName}");
             }
         }
         catch (Exception ex)
         {
-            logService.LogWarning($"Could not remove Start Menu shortcut for {appName}: {ex.Message}");
+            logService.LogWarning($"Could not remove Start Menu folder for {appName}: {ex.Message}");
         }
     }
 
