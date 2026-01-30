@@ -1,3 +1,6 @@
+// This file is not used by the codebase but is being kept for future development purposes
+// when it might be needed in the Winhancements.ps1/autounattend.xml file
+
 using System;
 using System.IO;
 using System.IO.Compression;

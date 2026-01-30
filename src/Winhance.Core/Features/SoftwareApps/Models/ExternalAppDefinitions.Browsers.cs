@@ -54,7 +54,7 @@ namespace Winhance.Core.Features.SoftwareApps.Models
                         new ItemDefinition
                         {
                             Id = "external-app-firefox",
-                            Name = "Firefox",
+                            Name = "Mozilla Firefox",
                             Description = "Popular web browser known for privacy and customization",
                             GroupName = "Browsers",
                             WinGetPackageId = ["Mozilla.Firefox"],
@@ -63,7 +63,7 @@ namespace Winhance.Core.Features.SoftwareApps.Models
                         new ItemDefinition
                         {
                             Id = "external-app-chrome",
-                            Name = "Chrome",
+                            Name = "Google Chrome",
                             Description = "Google's web browser with sync and extension support",
                             GroupName = "Browsers",
                             WinGetPackageId = ["Google.Chrome", "Google.Chrome.EXE"],

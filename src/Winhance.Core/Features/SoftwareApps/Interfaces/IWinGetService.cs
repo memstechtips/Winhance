@@ -1,4 +1,5 @@
 using System;
+using System.Collections.Generic;
 using System.Threading;
 using System.Threading.Tasks;
 using Winhance.Core.Features.Common.Models;
@@ -15,4 +16,5 @@ public interface IWinGetService
     Task<bool> EnsureWinGetReadyAsync(CancellationToken cancellationToken = default);
     Task<bool> EnsureWinGetUpToDateAsync(IProgress<TaskProgressDetail> progress = null, CancellationToken cancellationToken = default);
     Task<string?> GetInstallerTypeAsync(string packageId, CancellationToken cancellationToken = default);
+    Task<HashSet<string>> GetInstalledPackageIdsAsync(CancellationToken cancellationToken = default);
 }

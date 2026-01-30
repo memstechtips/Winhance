@@ -1,6 +1,6 @@
 <Project Sdk="Microsoft.NET.Sdk">
     <PropertyGroup>
-        <TargetFramework>net9.0-windows</TargetFramework>
+        <TargetFramework>net9.0-windows10.0.19041.0</TargetFramework>
         <Nullable>enable</Nullable>
         <ImplicitUsings>enable</ImplicitUsings>
         <UseWPF>true</UseWPF>
@@ -15,6 +15,7 @@
 
   <ItemGroup>
     <ProjectReference Include="..\Winhance.Core\Winhance.Core.csproj" />
+    <ProjectReference Include="..\WindowsPackageManager.Interop\WindowsPackageManager.Interop.csproj" />
   </ItemGroup>
 
     <ItemGroup>
@@ -28,5 +29,6 @@
         <PackageReference Include="System.Text.Json" Version="9.0.2" />
         <PackageReference Include="Newtonsoft.Json" Version="13.0.3" />
         <PackageReference Include="Microsoft.PowerShell.SDK" Version="7.4.6" />
+        <PackageReference Include="Microsoft.Dism" Version="4.0.7" />
     </ItemGroup>
 </Project>

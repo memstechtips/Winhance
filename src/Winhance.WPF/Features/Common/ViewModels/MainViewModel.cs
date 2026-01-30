@@ -162,7 +162,7 @@ namespace Winhance.WPF.Features.Common.ViewModels
         {
             IsLoading = _taskProgressService.IsTaskRunning;
 
-            if (string.IsNullOrEmpty(detail.TerminalOutput) && !string.IsNullOrEmpty(detail.StatusText))
+            if (!string.IsNullOrEmpty(detail.StatusText))
             {
                 AppName = detail.StatusText;
             }

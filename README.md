@@ -47,6 +47,7 @@ It really does make a big difference, and is very much appreciated. Thanks<br>
   - Control scripts and scheduled tasks via Windows Apps Help menu
 - **External Apps Section**
   - Install various useful applications via WinGet
+    - (WinGet COM API integration based on https://github.com/marticliment/WinGet-API-from-CSharp)
   - Categories include Browsers, Multimedia utilities, Document viewers, and more
 
 ### Optimize 🚀
