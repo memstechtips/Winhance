@@ -1,0 +1,9 @@
+<Project>
+  <!--
+    This file is kept for future use if additional properties need to be set
+    before the SDK targets are processed.
+
+    The critical EnableCoreMrtTooling=false property is in the csproj to disable
+    MRT/PRI generation which requires Visual Studio build tools.
+  -->
+</Project>

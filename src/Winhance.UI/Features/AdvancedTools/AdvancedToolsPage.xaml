@@ -1,0 +1,67 @@
+<?xml version="1.0" encoding="utf-8"?>
+<Page
+    x:Class="Winhance.UI.Features.AdvancedTools.AdvancedToolsPage"
+    xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+    xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+    xmlns:local="using:Winhance.UI.Features.AdvancedTools"
+    xmlns:controls="using:CommunityToolkit.WinUI.Controls"
+    x:DefaultBindMode="OneWay"
+    NavigationCacheMode="Disabled">
+
+    <Grid Padding="24">
+        <Grid.RowDefinitions>
+            <RowDefinition Height="Auto"/>
+            <RowDefinition Height="*"/>
+        </Grid.RowDefinitions>
+
+        <!-- Page Header -->
+        <Grid Grid.Row="0" Margin="0,0,0,24">
+            <StackPanel Orientation="Horizontal" Spacing="16">
+                <FontIcon
+                    Glyph="&#xE90F;"
+                    FontSize="48"
+                    FontFamily="Segoe MDL2 Assets"/>
+                <StackPanel VerticalAlignment="Center">
+                    <TextBlock
+                        Text="Advanced Tools"
+                        Style="{StaticResource TitleTextBlockStyle}"/>
+                    <TextBlock
+                        Text="Power tools for Windows customization"
+                        Style="{StaticResource CaptionTextBlockStyle}"
+                        Foreground="{ThemeResource TextFillColorSecondaryBrush}"/>
+                </StackPanel>
+            </StackPanel>
+        </Grid>
+
+        <!-- Main Content -->
+        <ScrollView Grid.Row="1">
+            <StackPanel Spacing="8" MaxWidth="900" HorizontalAlignment="Stretch">
+
+                <!-- WIM Utility Card -->
+                <controls:SettingsCard
+                    Header="WIM Utility"
+                    Description="Create custom Windows installation images"
+                    IsClickEnabled="True"
+                    Click="WimUtilCard_Click">
+                    <controls:SettingsCard.HeaderIcon>
+                        <FontIcon Glyph="&#xE958;" FontFamily="Segoe MDL2 Assets"/>
+                    </controls:SettingsCard.HeaderIcon>
+                    <FontIcon
+                        Glyph="&#xE76C;"
+                        FontFamily="Segoe MDL2 Assets"
+                        Foreground="{ThemeResource TextFillColorSecondaryBrush}"/>
+                </controls:SettingsCard>
+
+                <!-- Placeholder for future tools -->
+                <InfoBar
+                    Title="More tools coming soon"
+                    Message="Additional advanced tools will be available in future updates."
+                    Severity="Informational"
+                    IsOpen="True"
+                    IsClosable="False"
+                    Margin="0,16,0,0"/>
+
+            </StackPanel>
+        </ScrollView>
+    </Grid>
+</Page>

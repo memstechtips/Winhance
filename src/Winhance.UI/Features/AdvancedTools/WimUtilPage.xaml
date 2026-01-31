@@ -1,0 +1,406 @@
+<?xml version="1.0" encoding="utf-8"?>
+<Page
+    x:Class="Winhance.UI.Features.AdvancedTools.WimUtilPage"
+    xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+    xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+    xmlns:local="using:Winhance.UI.Features.AdvancedTools"
+    xmlns:controls="using:CommunityToolkit.WinUI.Controls"
+    xmlns:viewmodels="using:Winhance.UI.Features.AdvancedTools.ViewModels"
+    x:DefaultBindMode="OneWay"
+    NavigationCacheMode="Disabled">
+
+    <Grid Padding="24">
+        <Grid.RowDefinitions>
+            <RowDefinition Height="Auto"/>
+            <RowDefinition Height="*"/>
+        </Grid.RowDefinitions>
+
+        <!-- Page Header with Back Button -->
+        <Grid Grid.Row="0" Margin="0,0,0,24">
+            <Grid.ColumnDefinitions>
+                <ColumnDefinition Width="Auto"/>
+                <ColumnDefinition Width="*"/>
+                <ColumnDefinition Width="Auto"/>
+            </Grid.ColumnDefinitions>
+
+            <Button
+                x:Name="BackButton"
+                Grid.Column="0"
+                Style="{StaticResource NavigationBackButtonNormalStyle}"
+                Click="BackButton_Click"
+                Margin="0,0,16,0"
+                ToolTipService.ToolTip="Back"/>
+
+            <StackPanel Grid.Column="1" Orientation="Horizontal" Spacing="16">
+                <FontIcon
+                    Glyph="&#xE958;"
+                    FontSize="48"
+                    FontFamily="Segoe MDL2 Assets"/>
+                <StackPanel VerticalAlignment="Center">
+                    <TextBlock
+                        Text="WIM Utility"
+                        Style="{StaticResource TitleTextBlockStyle}"/>
+                    <TextBlock
+                        Text="Create custom Windows installation images"
+                        Style="{StaticResource CaptionTextBlockStyle}"
+                        Foreground="{ThemeResource TextFillColorSecondaryBrush}"/>
+                </StackPanel>
+            </StackPanel>
+
+            <!-- Download Windows buttons -->
+            <StackPanel Grid.Column="2" Orientation="Horizontal" Spacing="8">
+                <Button Click="Windows10Download_Click" ToolTipService.ToolTip="Download Windows 10 ISO">
+                    <StackPanel Orientation="Horizontal" Spacing="8">
+                        <FontIcon Glyph="&#xE896;" FontSize="16"/>
+                        <TextBlock Text="Win 10"/>
+                    </StackPanel>
+                </Button>
+                <Button Click="Windows11Download_Click" ToolTipService.ToolTip="Download Windows 11 ISO">
+                    <StackPanel Orientation="Horizontal" Spacing="8">
+                        <FontIcon Glyph="&#xE896;" FontSize="16"/>
+                        <TextBlock Text="Win 11"/>
+                    </StackPanel>
+                </Button>
+            </StackPanel>
+        </Grid>
+
+        <!-- Main Content - Wizard Steps -->
+        <ScrollView Grid.Row="1">
+            <StackPanel Spacing="8" MaxWidth="900" HorizontalAlignment="Stretch">
+
+                <!-- Step 1: Select ISO -->
+                <controls:SettingsExpander
+                    x:Name="Step1Expander"
+                    IsExpanded="{x:Bind ViewModel.Step1State.IsExpanded, Mode=OneWay}"
+                    IsEnabled="{x:Bind ViewModel.Step1State.IsAvailable, Mode=OneWay}">
+                    <controls:SettingsExpander.Header>
+                        <Grid>
+                            <Grid.ColumnDefinitions>
+                                <ColumnDefinition Width="Auto"/>
+                                <ColumnDefinition Width="*"/>
+                                <ColumnDefinition Width="Auto"/>
+                            </Grid.ColumnDefinitions>
+                            <Border Grid.Column="0"
+                                    Width="32" Height="32"
+                                    CornerRadius="16"
+                                    Background="{ThemeResource AccentFillColorDefaultBrush}"
+                                    Margin="0,0,12,0">
+                                <TextBlock Text="1"
+                                           HorizontalAlignment="Center"
+                                           VerticalAlignment="Center"
+                                           FontWeight="SemiBold"/>
+                            </Border>
+                            <StackPanel Grid.Column="1" VerticalAlignment="Center">
+                                <TextBlock Text="{x:Bind ViewModel.Step1State.Title, Mode=OneWay}"
+                                           Style="{StaticResource BodyStrongTextBlockStyle}"/>
+                                <TextBlock Text="{x:Bind ViewModel.Step1State.StatusText, Mode=OneWay}"
+                                           Style="{StaticResource CaptionTextBlockStyle}"
+                                           Foreground="{ThemeResource TextFillColorSecondaryBrush}"/>
+                            </StackPanel>
+                            <FontIcon Grid.Column="2"
+                                      Glyph="{x:Bind ViewModel.Step1State.HeaderIcon, Mode=OneWay}"
+                                      FontFamily="Segoe MDL2 Assets"
+                                      FontSize="16"/>
+                        </Grid>
+                    </controls:SettingsExpander.Header>
+                    <controls:SettingsExpander.Items>
+                        <!-- Select ISO Card -->
+                        <controls:SettingsCard
+                            Header="{x:Bind ViewModel.SelectIsoCard.Title, Mode=OneWay}"
+                            Description="{x:Bind ViewModel.SelectIsoCard.Description, Mode=OneWay}"
+                            IsEnabled="{x:Bind ViewModel.SelectIsoCard.IsEnabled, Mode=OneWay}">
+                            <controls:SettingsCard.HeaderIcon>
+                                <FontIcon Glyph="&#xE958;" FontFamily="Segoe MDL2 Assets"/>
+                            </controls:SettingsCard.HeaderIcon>
+                            <Button Content="{x:Bind ViewModel.SelectIsoCard.ButtonText, Mode=OneWay}"
+                                    Command="{x:Bind ViewModel.SelectIsoFileCommand}"/>
+                        </controls:SettingsCard>
+
+                        <!-- Select Working Directory Card -->
+                        <controls:SettingsCard
+                            Header="{x:Bind ViewModel.SelectDirectoryCard.Title, Mode=OneWay}"
+                            Description="{x:Bind ViewModel.SelectDirectoryCard.Description, Mode=OneWay}"
+                            IsEnabled="{x:Bind ViewModel.SelectDirectoryCard.IsEnabled, Mode=OneWay}">
+                            <controls:SettingsCard.HeaderIcon>
+                                <FontIcon Glyph="&#xE8B7;" FontFamily="Segoe MDL2 Assets"/>
+                            </controls:SettingsCard.HeaderIcon>
+                            <Button Content="{x:Bind ViewModel.SelectDirectoryCard.ButtonText, Mode=OneWay}"
+                                    Command="{x:Bind ViewModel.SelectWorkingDirectoryCommand}"/>
+                        </controls:SettingsCard>
+
+                        <!-- Has Extracted ISO Checkbox -->
+                        <controls:SettingsCard
+                            Header="Already have extracted ISO?"
+                            Description="Check this if you already have an extracted ISO folder">
+                            <controls:SettingsCard.HeaderIcon>
+                                <FontIcon Glyph="&#xE8B7;" FontFamily="Segoe MDL2 Assets"/>
+                            </controls:SettingsCard.HeaderIcon>
+                            <CheckBox IsChecked="{x:Bind ViewModel.HasExtractedIsoAlready, Mode=TwoWay}"/>
+                        </controls:SettingsCard>
+
+                        <!-- Start Extraction Button -->
+                        <controls:SettingsCard
+                            Header="Extract ISO"
+                            Description="Extract the selected ISO to the working directory"
+                            Visibility="{x:Bind ViewModel.CanStartExtraction, Mode=OneWay}">
+                            <controls:SettingsCard.HeaderIcon>
+                                <FontIcon Glyph="&#xE7B8;" FontFamily="Segoe MDL2 Assets"/>
+                            </controls:SettingsCard.HeaderIcon>
+                            <Button Content="Start Extraction"
+                                    Style="{StaticResource AccentButtonStyle}"
+                                    Command="{x:Bind ViewModel.StartIsoExtractionCommand}"
+                                    IsEnabled="{x:Bind ViewModel.CanStartExtraction, Mode=OneWay}"/>
+                        </controls:SettingsCard>
+                    </controls:SettingsExpander.Items>
+                </controls:SettingsExpander>
+
+                <!-- Step 2: Add XML File -->
+                <controls:SettingsExpander
+                    x:Name="Step2Expander"
+                    IsExpanded="{x:Bind ViewModel.Step2State.IsExpanded, Mode=OneWay}"
+                    IsEnabled="{x:Bind ViewModel.Step2State.IsAvailable, Mode=OneWay}">
+                    <controls:SettingsExpander.Header>
+                        <Grid>
+                            <Grid.ColumnDefinitions>
+                                <ColumnDefinition Width="Auto"/>
+                                <ColumnDefinition Width="*"/>
+                                <ColumnDefinition Width="Auto"/>
+                            </Grid.ColumnDefinitions>
+                            <Border Grid.Column="0"
+                                    Width="32" Height="32"
+                                    CornerRadius="16"
+                                    Background="{ThemeResource AccentFillColorDefaultBrush}"
+                                    Margin="0,0,12,0">
+                                <TextBlock Text="2"
+                                           HorizontalAlignment="Center"
+                                           VerticalAlignment="Center"
+                                           FontWeight="SemiBold"/>
+                            </Border>
+                            <StackPanel Grid.Column="1" VerticalAlignment="Center">
+                                <TextBlock Text="{x:Bind ViewModel.Step2State.Title, Mode=OneWay}"
+                                           Style="{StaticResource BodyStrongTextBlockStyle}"/>
+                                <TextBlock Text="{x:Bind ViewModel.Step2State.StatusText, Mode=OneWay}"
+                                           Style="{StaticResource CaptionTextBlockStyle}"
+                                           Foreground="{ThemeResource TextFillColorSecondaryBrush}"/>
+                            </StackPanel>
+                            <FontIcon Grid.Column="2"
+                                      Glyph="{x:Bind ViewModel.Step2State.HeaderIcon, Mode=OneWay}"
+                                      FontFamily="Segoe MDL2 Assets"
+                                      FontSize="16"/>
+                        </Grid>
+                    </controls:SettingsExpander.Header>
+                    <controls:SettingsExpander.Items>
+                        <!-- Generate Winhance XML -->
+                        <controls:SettingsCard
+                            Header="{x:Bind ViewModel.GenerateWinhanceXmlCard.Title, Mode=OneWay}"
+                            Description="{x:Bind ViewModel.GenerateWinhanceXmlCard.Description, Mode=OneWay}"
+                            IsEnabled="{x:Bind ViewModel.GenerateWinhanceXmlCard.IsEnabled, Mode=OneWay}">
+                            <controls:SettingsCard.HeaderIcon>
+                                <FontIcon Glyph="&#xE710;" FontFamily="Segoe MDL2 Assets"/>
+                            </controls:SettingsCard.HeaderIcon>
+                            <Button Content="{x:Bind ViewModel.GenerateWinhanceXmlCard.ButtonText, Mode=OneWay}"
+                                    Command="{x:Bind ViewModel.GenerateWinhanceXmlCommand}"/>
+                        </controls:SettingsCard>
+
+                        <!-- Download XML -->
+                        <controls:SettingsCard
+                            Header="{x:Bind ViewModel.DownloadXmlCard.Title, Mode=OneWay}"
+                            Description="{x:Bind ViewModel.DownloadXmlCard.Description, Mode=OneWay}"
+                            IsEnabled="{x:Bind ViewModel.DownloadXmlCard.IsEnabled, Mode=OneWay}">
+                            <controls:SettingsCard.HeaderIcon>
+                                <FontIcon Glyph="&#xE896;" FontFamily="Segoe MDL2 Assets"/>
+                            </controls:SettingsCard.HeaderIcon>
+                            <Button Content="{x:Bind ViewModel.DownloadXmlCard.ButtonText, Mode=OneWay}"
+                                    Command="{x:Bind ViewModel.DownloadUnattendedWinstallXmlCommand}"/>
+                        </controls:SettingsCard>
+
+                        <!-- Select XML File -->
+                        <controls:SettingsCard
+                            Header="{x:Bind ViewModel.SelectXmlCard.Title, Mode=OneWay}"
+                            Description="{x:Bind ViewModel.SelectXmlCard.Description, Mode=OneWay}"
+                            IsEnabled="{x:Bind ViewModel.SelectXmlCard.IsEnabled, Mode=OneWay}">
+                            <controls:SettingsCard.HeaderIcon>
+                                <FontIcon Glyph="&#xE8E5;" FontFamily="Segoe MDL2 Assets"/>
+                            </controls:SettingsCard.HeaderIcon>
+                            <Button Content="{x:Bind ViewModel.SelectXmlCard.ButtonText, Mode=OneWay}"
+                                    Command="{x:Bind ViewModel.SelectXmlFileCommand}"/>
+                        </controls:SettingsCard>
+
+                        <!-- Schneegans Generator Link -->
+                        <controls:SettingsCard
+                            Header="Schneegans XML Generator"
+                            Description="Create custom unattend.xml online"
+                            IsClickEnabled="True"
+                            Click="SchneegansLink_Click">
+                            <controls:SettingsCard.HeaderIcon>
+                                <FontIcon Glyph="&#xE71B;" FontFamily="Segoe MDL2 Assets"/>
+                            </controls:SettingsCard.HeaderIcon>
+                            <FontIcon Glyph="&#xE8A7;" FontFamily="Segoe MDL2 Assets"/>
+                        </controls:SettingsCard>
+                    </controls:SettingsExpander.Items>
+                </controls:SettingsExpander>
+
+                <!-- Step 3: Add Drivers -->
+                <controls:SettingsExpander
+                    x:Name="Step3Expander"
+                    IsExpanded="{x:Bind ViewModel.Step3State.IsExpanded, Mode=OneWay}"
+                    IsEnabled="{x:Bind ViewModel.Step3State.IsAvailable, Mode=OneWay}">
+                    <controls:SettingsExpander.Header>
+                        <Grid>
+                            <Grid.ColumnDefinitions>
+                                <ColumnDefinition Width="Auto"/>
+                                <ColumnDefinition Width="*"/>
+                                <ColumnDefinition Width="Auto"/>
+                            </Grid.ColumnDefinitions>
+                            <Border Grid.Column="0"
+                                    Width="32" Height="32"
+                                    CornerRadius="16"
+                                    Background="{ThemeResource AccentFillColorDefaultBrush}"
+                                    Margin="0,0,12,0">
+                                <TextBlock Text="3"
+                                           HorizontalAlignment="Center"
+                                           VerticalAlignment="Center"
+                                           FontWeight="SemiBold"/>
+                            </Border>
+                            <StackPanel Grid.Column="1" VerticalAlignment="Center">
+                                <TextBlock Text="{x:Bind ViewModel.Step3State.Title, Mode=OneWay}"
+                                           Style="{StaticResource BodyStrongTextBlockStyle}"/>
+                                <TextBlock Text="{x:Bind ViewModel.Step3State.StatusText, Mode=OneWay}"
+                                           Style="{StaticResource CaptionTextBlockStyle}"
+                                           Foreground="{ThemeResource TextFillColorSecondaryBrush}"/>
+                            </StackPanel>
+                            <FontIcon Grid.Column="2"
+                                      Glyph="{x:Bind ViewModel.Step3State.HeaderIcon, Mode=OneWay}"
+                                      FontFamily="Segoe MDL2 Assets"
+                                      FontSize="16"/>
+                        </Grid>
+                    </controls:SettingsExpander.Header>
+                    <controls:SettingsExpander.Items>
+                        <!-- Extract System Drivers -->
+                        <controls:SettingsCard
+                            Header="{x:Bind ViewModel.ExtractSystemDriversCard.Title, Mode=OneWay}"
+                            Description="{x:Bind ViewModel.ExtractSystemDriversCard.Description, Mode=OneWay}"
+                            IsEnabled="{x:Bind ViewModel.ExtractSystemDriversCard.IsEnabled, Mode=OneWay}">
+                            <controls:SettingsCard.HeaderIcon>
+                                <FontIcon Glyph="&#xE964;" FontFamily="Segoe MDL2 Assets"/>
+                            </controls:SettingsCard.HeaderIcon>
+                            <StackPanel Orientation="Horizontal" Spacing="8">
+                                <ProgressRing IsActive="{x:Bind ViewModel.ExtractSystemDriversCard.IsProcessing, Mode=OneWay}"
+                                              Width="20" Height="20"
+                                              Visibility="{x:Bind ViewModel.ExtractSystemDriversCard.IsProcessing, Mode=OneWay}"/>
+                                <Button Content="{x:Bind ViewModel.ExtractSystemDriversCard.ButtonText, Mode=OneWay}"
+                                        Command="{x:Bind ViewModel.ExtractAndAddSystemDriversCommand}"/>
+                            </StackPanel>
+                        </controls:SettingsCard>
+
+                        <!-- Add Custom Drivers -->
+                        <controls:SettingsCard
+                            Header="{x:Bind ViewModel.SelectCustomDriversCard.Title, Mode=OneWay}"
+                            Description="{x:Bind ViewModel.SelectCustomDriversCard.Description, Mode=OneWay}"
+                            IsEnabled="{x:Bind ViewModel.SelectCustomDriversCard.IsEnabled, Mode=OneWay}">
+                            <controls:SettingsCard.HeaderIcon>
+                                <FontIcon Glyph="&#xE8B7;" FontFamily="Segoe MDL2 Assets"/>
+                            </controls:SettingsCard.HeaderIcon>
+                            <StackPanel Orientation="Horizontal" Spacing="8">
+                                <ProgressRing IsActive="{x:Bind ViewModel.SelectCustomDriversCard.IsProcessing, Mode=OneWay}"
+                                              Width="20" Height="20"
+                                              Visibility="{x:Bind ViewModel.SelectCustomDriversCard.IsProcessing, Mode=OneWay}"/>
+                                <Button Content="{x:Bind ViewModel.SelectCustomDriversCard.ButtonText, Mode=OneWay}"
+                                        Command="{x:Bind ViewModel.SelectAndAddCustomDriversCommand}"/>
+                            </StackPanel>
+                        </controls:SettingsCard>
+                    </controls:SettingsExpander.Items>
+                </controls:SettingsExpander>
+
+                <!-- Step 4: Create ISO -->
+                <controls:SettingsExpander
+                    x:Name="Step4Expander"
+                    IsExpanded="{x:Bind ViewModel.Step4State.IsExpanded, Mode=OneWay}"
+                    IsEnabled="{x:Bind ViewModel.Step4State.IsAvailable, Mode=OneWay}">
+                    <controls:SettingsExpander.Header>
+                        <Grid>
+                            <Grid.ColumnDefinitions>
+                                <ColumnDefinition Width="Auto"/>
+                                <ColumnDefinition Width="*"/>
+                                <ColumnDefinition Width="Auto"/>
+                            </Grid.ColumnDefinitions>
+                            <Border Grid.Column="0"
+                                    Width="32" Height="32"
+                                    CornerRadius="16"
+                                    Background="{ThemeResource AccentFillColorDefaultBrush}"
+                                    Margin="0,0,12,0">
+                                <TextBlock Text="4"
+                                           HorizontalAlignment="Center"
+                                           VerticalAlignment="Center"
+                                           FontWeight="SemiBold"/>
+                            </Border>
+                            <StackPanel Grid.Column="1" VerticalAlignment="Center">
+                                <TextBlock Text="{x:Bind ViewModel.Step4State.Title, Mode=OneWay}"
+                                           Style="{StaticResource BodyStrongTextBlockStyle}"/>
+                                <TextBlock Text="{x:Bind ViewModel.Step4State.StatusText, Mode=OneWay}"
+                                           Style="{StaticResource CaptionTextBlockStyle}"
+                                           Foreground="{ThemeResource TextFillColorSecondaryBrush}"/>
+                            </StackPanel>
+                            <FontIcon Grid.Column="2"
+                                      Glyph="{x:Bind ViewModel.Step4State.HeaderIcon, Mode=OneWay}"
+                                      FontFamily="Segoe MDL2 Assets"
+                                      FontSize="16"/>
+                        </Grid>
+                    </controls:SettingsExpander.Header>
+                    <controls:SettingsExpander.Items>
+                        <!-- Download Oscdimg -->
+                        <controls:SettingsCard
+                            Header="{x:Bind ViewModel.DownloadOscdimgCard.Title, Mode=OneWay}"
+                            Description="{x:Bind ViewModel.DownloadOscdimgCard.Description, Mode=OneWay}"
+                            IsEnabled="{x:Bind ViewModel.DownloadOscdimgCard.IsEnabled, Mode=OneWay}">
+                            <controls:SettingsCard.HeaderIcon>
+                                <FontIcon Glyph="{x:Bind ViewModel.DownloadOscdimgCard.Icon, Mode=OneWay}" FontFamily="Segoe MDL2 Assets"/>
+                            </controls:SettingsCard.HeaderIcon>
+                            <StackPanel Orientation="Horizontal" Spacing="8">
+                                <ProgressRing IsActive="{x:Bind ViewModel.DownloadOscdimgCard.IsProcessing, Mode=OneWay}"
+                                              Width="20" Height="20"
+                                              Visibility="{x:Bind ViewModel.DownloadOscdimgCard.IsProcessing, Mode=OneWay}"/>
+                                <Button Content="{x:Bind ViewModel.DownloadOscdimgCard.ButtonText, Mode=OneWay}"
+                                        Command="{x:Bind ViewModel.DownloadOscdimgCommand}"/>
+                            </StackPanel>
+                        </controls:SettingsCard>
+
+                        <!-- Select Output Location -->
+                        <controls:SettingsCard
+                            Header="{x:Bind ViewModel.SelectOutputCard.Title, Mode=OneWay}"
+                            Description="{x:Bind ViewModel.SelectOutputCard.Description, Mode=OneWay}"
+                            IsEnabled="{x:Bind ViewModel.SelectOutputCard.IsEnabled, Mode=OneWay}">
+                            <controls:SettingsCard.HeaderIcon>
+                                <FontIcon Glyph="&#xE74E;" FontFamily="Segoe MDL2 Assets"/>
+                            </controls:SettingsCard.HeaderIcon>
+                            <Button Content="{x:Bind ViewModel.SelectOutputCard.ButtonText, Mode=OneWay}"
+                                    Command="{x:Bind ViewModel.SelectIsoOutputLocationCommand}"/>
+                        </controls:SettingsCard>
+
+                        <!-- Create ISO Button -->
+                        <controls:SettingsCard
+                            Header="Create ISO"
+                            Description="Build the final ISO file with all customizations">
+                            <controls:SettingsCard.HeaderIcon>
+                                <FontIcon Glyph="&#xE7C1;" FontFamily="Segoe MDL2 Assets"/>
+                            </controls:SettingsCard.HeaderIcon>
+                            <Button Content="Create ISO"
+                                    Style="{StaticResource AccentButtonStyle}"
+                                    Command="{x:Bind ViewModel.CreateIsoCommand}"/>
+                        </controls:SettingsCard>
+                    </controls:SettingsExpander.Items>
+                </controls:SettingsExpander>
+
+                <!-- Info about optional steps -->
+                <InfoBar
+                    Title="Optional Steps"
+                    Message="Steps 2 (XML) and 3 (Drivers) are optional. You can skip directly to Step 4 to create a vanilla Windows ISO."
+                    Severity="Informational"
+                    IsOpen="True"
+                    IsClosable="False"
+                    Margin="0,16,0,0"/>
+
+            </StackPanel>
+        </ScrollView>
+    </Grid>
+</Page>
