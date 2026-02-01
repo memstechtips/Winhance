@@ -198,7 +198,12 @@ public abstract partial class BaseSettingsFeatureViewModel : BaseViewModel, ISet
 
             UpdateParentChildRelationships();
 
-            _logService.Log(LogLevel.Info, $"{GetType().Name}: Successfully loaded {Settings.Count} settings");
+            // Notify that computed properties have changed
+            OnPropertyChanged(nameof(HasVisibleSettings));
+            OnPropertyChanged(nameof(IsVisibleInSearch));
+            OnPropertyChanged(nameof(SettingsCount));
+
+            _logService.Log(LogLevel.Info, $"{GetType().Name}: Successfully loaded {Settings.Count} settings, HasVisibleSettings={HasVisibleSettings}");
         }
         catch (Exception ex)
         {

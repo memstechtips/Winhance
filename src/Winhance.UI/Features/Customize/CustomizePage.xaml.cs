@@ -10,29 +10,47 @@ namespace Winhance.UI.Features.Customize;
 /// </summary>
 public sealed partial class CustomizePage : Page
 {
+    private static readonly string LogFile = Path.Combine(AppContext.BaseDirectory, "..", "..", "..", "..", "..", "startup-debug.log");
+    private static void Log(string msg) { try { File.AppendAllText(LogFile, $"[{DateTime.Now:HH:mm:ss.fff}] [CustomizePage] {msg}{Environment.NewLine}"); } catch { } }
+
     public CustomizeViewModel ViewModel { get; }
 
     public CustomizePage()
     {
-        this.InitializeComponent();
-
-        // Get ViewModel from DI
-        ViewModel = App.Services.GetRequiredService<CustomizeViewModel>();
+        try
+        {
+            Log("Constructor starting...");
+            this.InitializeComponent();
+            Log("InitializeComponent done, getting ViewModel...");
+            ViewModel = App.Services.GetRequiredService<CustomizeViewModel>();
+            Log("ViewModel obtained, constructor complete");
+        }
+        catch (Exception ex)
+        {
+            Log($"Constructor EXCEPTION: {ex}");
+            throw;
+        }
     }
 
     protected override async void OnNavigatedTo(NavigationEventArgs e)
     {
-        base.OnNavigatedTo(e);
-
-        // Initialize ViewModel when navigating to this page
-        await ViewModel.InitializeAsync();
+        try
+        {
+            Log("OnNavigatedTo starting...");
+            base.OnNavigatedTo(e);
+            Log("Calling ViewModel.InitializeAsync...");
+            await ViewModel.InitializeAsync();
+            Log("OnNavigatedTo complete");
+        }
+        catch (Exception ex)
+        {
+            Log($"OnNavigatedTo EXCEPTION: {ex}");
+        }
     }
 
     protected override void OnNavigatedFrom(NavigationEventArgs e)
     {
         base.OnNavigatedFrom(e);
-
-        // Clear search when navigating away
         ViewModel.OnNavigatedFrom();
     }
 }

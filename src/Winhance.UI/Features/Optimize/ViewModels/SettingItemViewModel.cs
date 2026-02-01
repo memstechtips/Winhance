@@ -1,6 +1,7 @@
 using System.Collections.ObjectModel;
 using CommunityToolkit.Mvvm.ComponentModel;
 using CommunityToolkit.Mvvm.Input;
+using Microsoft.UI.Xaml.Controls;
 using Winhance.Core.Features.Common.Enums;
 using Winhance.Core.Features.Common.Interfaces;
 using Winhance.Core.Features.Common.Models;
@@ -17,7 +18,6 @@ public partial class SettingItemViewModel : BaseViewModel
     private readonly ISettingApplicationService _settingApplicationService;
     private readonly ILogService _logService;
     private readonly IDispatcherService _dispatcherService;
-    private bool _isInitializing = true;
 
     /// <summary>
     /// Reference to the parent feature ViewModel.
@@ -44,12 +44,6 @@ public partial class SettingItemViewModel : BaseViewModel
     [ObservableProperty]
     private bool _isSelected;
 
-    partial void OnIsSelectedChanged(bool value)
-    {
-        if (_isInitializing) return;
-        _ = HandleToggleAsync();
-    }
-
     [ObservableProperty]
     private bool _isApplying;
 
@@ -65,23 +59,11 @@ public partial class SettingItemViewModel : BaseViewModel
     [ObservableProperty]
     private object? _selectedValue;
 
-    partial void OnSelectedValueChanged(object? value)
-    {
-        if (_isInitializing) return;
-        _ = HandleValueChangedAsync(value);
-    }
-
     [ObservableProperty]
     private ObservableCollection<ComboBoxOption> _comboBoxOptions = new();
 
     [ObservableProperty]
     private int _numericValue;
-
-    partial void OnNumericValueChanged(int value)
-    {
-        if (_isInitializing) return;
-        _ = HandleNumericValueChangedAsync(value);
-    }
 
     [ObservableProperty]
     private int _minValue;
@@ -132,12 +114,21 @@ public partial class SettingItemViewModel : BaseViewModel
     public bool IsNumericType => InputType == InputType.NumericRange;
 
     /// <summary>
+    /// Indicates whether this is an action-type setting (button).
+    /// </summary>
+    public bool IsActionType => InputType == InputType.Action;
+
+    /// <summary>
+    /// Indicates whether this is a checkbox-type setting.
+    /// </summary>
+    public bool IsCheckBoxType => InputType == InputType.CheckBox;
+
+    /// <summary>
     /// Indicates whether this is a sub-setting (has a parent).
     /// </summary>
     public bool IsSubSetting => !string.IsNullOrEmpty(SettingDefinition?.ParentSettingId);
 
-    public IAsyncRelayCommand ToggleCommand { get; }
-    public IAsyncRelayCommand<object?> ValueChangedCommand { get; }
+    public IAsyncRelayCommand ExecuteActionCommand { get; }
 
     public SettingItemViewModel(
         ISettingApplicationService settingApplicationService,
@@ -148,16 +139,7 @@ public partial class SettingItemViewModel : BaseViewModel
         _logService = logService;
         _dispatcherService = dispatcherService;
 
-        ToggleCommand = new AsyncRelayCommand(HandleToggleAsync);
-        ValueChangedCommand = new AsyncRelayCommand<object?>(HandleValueChangedAsync);
-    }
-
-    /// <summary>
-    /// Marks initialization as complete, enabling change handlers.
-    /// </summary>
-    public void CompleteInitialization()
-    {
-        _isInitializing = false;
+        ExecuteActionCommand = new AsyncRelayCommand(HandleActionAsync);
     }
 
     /// <summary>
@@ -176,28 +158,84 @@ public partial class SettingItemViewModel : BaseViewModel
                    Description.ToLowerInvariant().Contains(lowerSearch);
     }
 
-    private async Task HandleToggleAsync()
+    #region UI Event Handlers (bound via x:Bind)
+
+    /// <summary>
+    /// Handles ToggleSwitch.Toggled event - bound via x:Bind in XAML.
+    /// </summary>
+    public void OnToggleSwitchToggled(object sender, Microsoft.UI.Xaml.RoutedEventArgs e)
+    {
+        if (sender is ToggleSwitch toggle)
+        {
+            _ = HandleToggleAsync(toggle.IsOn);
+        }
+    }
+
+    /// <summary>
+    /// Handles CheckBox.Click event - bound via x:Bind in XAML.
+    /// </summary>
+    public void OnCheckBoxClick(object sender, Microsoft.UI.Xaml.RoutedEventArgs e)
+    {
+        if (sender is CheckBox checkBox)
+        {
+            _ = HandleToggleAsync(checkBox.IsChecked == true);
+        }
+    }
+
+    /// <summary>
+    /// Handles ComboBox.DropDownClosed event - bound via x:Bind in XAML.
+    /// Using DropDownClosed instead of SelectionChanged because SelectionChanged
+    /// fires during control initialization, but DropDownClosed only fires on user interaction.
+    /// </summary>
+    public void OnComboBoxDropDownClosed(object sender, object e)
+    {
+        if (sender is ComboBox comboBox && comboBox.SelectedValue is { } value)
+        {
+            _ = HandleValueChangedAsync(value);
+        }
+    }
+
+    /// <summary>
+    /// Handles NumberBox.ValueChanged event - bound via x:Bind in XAML.
+    /// </summary>
+    public void OnNumberBoxValueChanged(NumberBox sender, NumberBoxValueChangedEventArgs e)
+    {
+        if (!double.IsNaN(e.NewValue))
+        {
+            _ = HandleValueChangedAsync((int)e.NewValue);
+        }
+    }
+
+    #endregion
+
+    #region Apply Logic
+
+    private async Task HandleToggleAsync(bool newValue)
     {
         if (IsApplying || SettingDefinition == null) return;
+
+        // Skip if value hasn't actually changed
+        if (newValue == IsSelected) return;
 
         try
         {
             IsApplying = true;
-            _logService.Log(LogLevel.Info, $"Toggling setting: {SettingId} to {IsSelected}");
+            _logService.Log(LogLevel.Info, $"Toggling setting: {SettingId} to {newValue}");
 
             await _settingApplicationService.ApplySettingAsync(
                 SettingId,
-                IsSelected);
+                newValue);
 
-            _logService.Log(LogLevel.Info, $"Successfully toggled setting {SettingId} to {IsSelected}");
+            // Update the ViewModel property after successful apply
+            IsSelected = newValue;
+            _logService.Log(LogLevel.Info, $"Successfully toggled setting {SettingId} to {newValue}");
         }
         catch (Exception ex)
         {
             _logService.Log(LogLevel.Error, $"Error toggling setting {SettingId}: {ex.Message}");
-            // Revert the toggle on failure
-            _isInitializing = true;
-            IsSelected = !IsSelected;
-            _isInitializing = false;
+            // The UI control already shows the new value, but apply failed
+            // We need to revert the UI - force a property change notification
+            OnPropertyChanged(nameof(IsSelected));
         }
         finally
         {
@@ -207,7 +245,10 @@ public partial class SettingItemViewModel : BaseViewModel
 
     private async Task HandleValueChangedAsync(object? value)
     {
-        if (IsApplying || SettingDefinition == null) return;
+        if (IsApplying || SettingDefinition == null || value == null) return;
+
+        // Skip if value hasn't actually changed
+        if (Equals(value, SelectedValue)) return;
 
         try
         {
@@ -219,11 +260,20 @@ public partial class SettingItemViewModel : BaseViewModel
                 true,
                 value);
 
+            // Update the ViewModel property after successful apply
+            SelectedValue = value;
+            if (value is int intValue)
+            {
+                NumericValue = intValue;
+            }
             _logService.Log(LogLevel.Info, $"Successfully changed value for setting {SettingId}");
         }
         catch (Exception ex)
         {
             _logService.Log(LogLevel.Error, $"Error changing value for setting {SettingId}: {ex.Message}");
+            // Force UI to refresh to the old value
+            OnPropertyChanged(nameof(SelectedValue));
+            OnPropertyChanged(nameof(NumericValue));
         }
         finally
         {
@@ -231,8 +281,30 @@ public partial class SettingItemViewModel : BaseViewModel
         }
     }
 
-    private async Task HandleNumericValueChangedAsync(int value)
+    private async Task HandleActionAsync()
     {
-        await HandleValueChangedAsync(value);
+        if (IsApplying || SettingDefinition == null) return;
+
+        try
+        {
+            IsApplying = true;
+            _logService.Log(LogLevel.Info, $"Executing action for setting: {SettingId}");
+
+            await _settingApplicationService.ApplySettingAsync(
+                SettingId,
+                true);
+
+            _logService.Log(LogLevel.Info, $"Successfully executed action for setting {SettingId}");
+        }
+        catch (Exception ex)
+        {
+            _logService.Log(LogLevel.Error, $"Error executing action for setting {SettingId}: {ex.Message}");
+        }
+        finally
+        {
+            IsApplying = false;
+        }
     }
+
+    #endregion
 }

@@ -155,8 +155,33 @@ public class SettingsLoadingService : ISettingsLoadingService
             }
         }
 
-        // Complete initialization to enable change handlers
-        viewModel.CompleteInitialization();
+        // Set up combo box options for selection settings
+        if (setting.InputType == InputType.Selection)
+        {
+            try
+            {
+                var comboBoxResult = await _comboBoxSetupService.SetupComboBoxOptionsAsync(setting, currentState.CurrentValue);
+                viewModel.ComboBoxOptions.Clear();
+                foreach (var option in comboBoxResult.Options)
+                {
+                    viewModel.ComboBoxOptions.Add(option);
+                }
+
+                // Set the selected value from the setup result or current state
+                if (comboBoxResult.SelectedValue != null)
+                {
+                    viewModel.SelectedValue = comboBoxResult.SelectedValue;
+                }
+                else if (currentState.CurrentValue != null)
+                {
+                    viewModel.SelectedValue = currentState.CurrentValue;
+                }
+            }
+            catch (Exception ex)
+            {
+                _logService.Log(LogLevel.Warning, $"Failed to setup combo box for '{setting.Id}': {ex.Message}");
+            }
+        }
 
         return viewModel;
     }

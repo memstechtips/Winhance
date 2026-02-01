@@ -1,6 +1,7 @@
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Hosting;
 using Microsoft.UI.Xaml;
+using Winhance.Core.Features.Common.Enums;
 using Winhance.Core.Features.Common.Interfaces;
 using Winhance.UI.Features.Common.Constants;
 using Winhance.UI.Features.Common.Extensions.DI;
@@ -81,8 +82,8 @@ public partial class App : Application
     private void OnAppDomainUnhandledException(object sender, System.UnhandledExceptionEventArgs e)
     {
         var ex = e.ExceptionObject as Exception;
+        Log($"[FATAL] AppDomain unhandled exception: {ex?.Message}\n{ex?.StackTrace}");
         _logService?.LogError($"Fatal unhandled exception: {ex?.Message}", ex);
-        System.Diagnostics.Debug.WriteLine($"[FATAL] AppDomain unhandled exception: {ex?.Message}");
     }
 
     /// <summary>
@@ -90,8 +91,8 @@ public partial class App : Application
     /// </summary>
     private void OnAppUnhandledException(object sender, Microsoft.UI.Xaml.UnhandledExceptionEventArgs e)
     {
+        Log($"[CRASH] Unhandled UI exception: {e.Exception?.Message}\n{e.Exception?.StackTrace}\nInner: {e.Exception?.InnerException?.Message}\n{e.Exception?.InnerException?.StackTrace}");
         _logService?.LogError($"Unhandled UI exception: {e.Exception?.Message}", e.Exception);
-        System.Diagnostics.Debug.WriteLine($"[ERROR] Unhandled UI exception: {e.Exception?.Message}");
         e.Handled = true; // Prevent crash if possible
     }
 
@@ -100,8 +101,8 @@ public partial class App : Application
     /// </summary>
     private void OnUnobservedTaskException(object? sender, UnobservedTaskExceptionEventArgs e)
     {
+        Log($"[ERROR] Unobserved task exception: {e.Exception?.Message}\n{e.Exception?.StackTrace}");
         _logService?.LogError($"Unobserved task exception: {e.Exception?.Message}", e.Exception);
-        System.Diagnostics.Debug.WriteLine($"[ERROR] Unobserved task exception: {e.Exception?.Message}");
         e.SetObserved(); // Prevent crash
     }
 
@@ -119,11 +120,26 @@ public partial class App : Application
             _host = CompositionRoot.CreateWinhanceHost().Build();
             Log("DI host built successfully");
 
-            // Initialize log service for exception handlers
+            // Initialize log service for exception handlers and file logging
             try
             {
                 _logService = Services.GetService<ILogService>();
                 Log("LogService obtained");
+
+                // Start file logging to C:\ProgramData\Winhance\Logs
+                try
+                {
+                    _logService?.StartLog();
+                    Log("LogService.StartLog() called - file logging initialized");
+                    var logPath = _logService?.GetLogPath();
+                    Log($"Log file path: {logPath}");
+                    _logService?.LogInformation("Winhance application starting...");
+                }
+                catch (Exception startLogEx)
+                {
+                    Log($"StartLog() FAILED: {startLogEx.Message}");
+                    Log($"StartLog() Stack: {startLogEx.StackTrace}");
+                }
             }
             catch (Exception ex)
             {
@@ -134,6 +150,12 @@ public partial class App : Application
             Log("Initializing localization...");
             InitializeLocalization();
             Log("Localization initialized");
+
+            // Initialize settings registry and preload settings (critical for Optimize/Customize pages)
+            // Run on thread pool to avoid deadlock (async code may try to capture UI context)
+            Log("Initializing settings registry...");
+            Task.Run(async () => await InitializeSettingsRegistryAsync()).GetAwaiter().GetResult();
+            Log("Settings registry initialized");
 
             // Create and activate the main window
             Log("Creating MainWindow...");
@@ -185,6 +207,37 @@ public partial class App : Application
         {
             // Log error but don't crash - app will use default theme
             System.Diagnostics.Debug.WriteLine($"Failed to load theme: {ex.Message}");
+        }
+    }
+
+    /// <summary>
+    /// Initializes the compatible settings registry and preloads all settings.
+    /// This must be called before any pages that display settings are loaded.
+    /// </summary>
+    private async Task InitializeSettingsRegistryAsync()
+    {
+        try
+        {
+            Log("Getting ICompatibleSettingsRegistry from DI...");
+            // Initialize the compatible settings registry (discovers and filters settings by Windows version/hardware)
+            var settingsRegistry = Services.GetRequiredService<ICompatibleSettingsRegistry>();
+            Log("Got ICompatibleSettingsRegistry, calling InitializeAsync...");
+            await settingsRegistry.InitializeAsync().ConfigureAwait(false);
+            Log("ICompatibleSettingsRegistry initialized");
+
+            Log("Getting IGlobalSettingsPreloader from DI...");
+            // Preload global settings registry (maps settings to feature IDs)
+            var settingsPreloader = Services.GetRequiredService<IGlobalSettingsPreloader>();
+            Log("Got IGlobalSettingsPreloader, calling PreloadAllSettingsAsync...");
+            await settingsPreloader.PreloadAllSettingsAsync().ConfigureAwait(false);
+            Log("IGlobalSettingsPreloader completed");
+        }
+        catch (Exception ex)
+        {
+            Log($"Settings registry initialization FAILED: {ex}");
+            _logService?.LogError($"Failed to initialize settings registry: {ex.Message}", ex);
+            System.Diagnostics.Debug.WriteLine($"Failed to initialize settings registry: {ex.Message}");
+            // Don't crash - pages will show empty content but app will still run
         }
     }
 }

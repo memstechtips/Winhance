@@ -103,7 +103,8 @@ namespace Winhance.Core.Features.Common.Services
             }
             catch (Exception ex)
             {
-                // Fallback if file write fails
+                // Re-throw so caller can handle/log the error
+                throw new InvalidOperationException($"Failed to start log at '{_logPath}': {ex.Message}", ex);
             }
         }
 

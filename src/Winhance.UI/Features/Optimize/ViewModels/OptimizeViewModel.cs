@@ -96,20 +96,43 @@ public partial class OptimizeViewModel : ObservableObject
             IsLoading = true;
             _logService.Log(Core.Features.Common.Enums.LogLevel.Info, "OptimizeViewModel: Starting initialization");
 
-            // Load all feature settings in parallel
-            var tasks = new[]
+            // Load all feature settings in parallel, catching individual failures
+            var loadTasks = new (string Name, Func<Task> LoadTask)[]
             {
-                SoundViewModel.LoadSettingsAsync(),
-                UpdateViewModel.LoadSettingsAsync(),
-                NotificationViewModel.LoadSettingsAsync(),
-                PrivacyViewModel.LoadSettingsAsync(),
-                PowerViewModel.LoadSettingsAsync(),
-                GamingViewModel.LoadSettingsAsync()
+                ("Sound", () => SoundViewModel.LoadSettingsAsync()),
+                ("Update", () => UpdateViewModel.LoadSettingsAsync()),
+                ("Notification", () => NotificationViewModel.LoadSettingsAsync()),
+                ("Privacy", () => PrivacyViewModel.LoadSettingsAsync()),
+                ("Power", () => PowerViewModel.LoadSettingsAsync()),
+                ("Gaming", () => GamingViewModel.LoadSettingsAsync())
             };
 
-            await Task.WhenAll(tasks);
+            foreach (var (name, loadTask) in loadTasks)
+            {
+                try
+                {
+                    await loadTask();
+                }
+                catch (Exception ex)
+                {
+                    _logService.Log(Core.Features.Common.Enums.LogLevel.Error,
+                        $"OptimizeViewModel: Failed to load {name} settings - {ex.Message}");
+                }
+            }
 
             _isInitialized = true;
+
+            // Log settings count for each feature to help debug visibility issues
+            _logService.Log(Core.Features.Common.Enums.LogLevel.Info,
+                $"OptimizeViewModel: Loaded settings - Sound:{SoundViewModel.SettingsCount}, " +
+                $"Update:{UpdateViewModel.SettingsCount}, Notification:{NotificationViewModel.SettingsCount}, " +
+                $"Privacy:{PrivacyViewModel.SettingsCount}, Power:{PowerViewModel.SettingsCount}, " +
+                $"Gaming:{GamingViewModel.SettingsCount}");
+            _logService.Log(Core.Features.Common.Enums.LogLevel.Info,
+                $"OptimizeViewModel: HasVisibleSettings - Sound:{SoundViewModel.HasVisibleSettings}, " +
+                $"Update:{UpdateViewModel.HasVisibleSettings}, Notification:{NotificationViewModel.HasVisibleSettings}, " +
+                $"Privacy:{PrivacyViewModel.HasVisibleSettings}, Power:{PowerViewModel.HasVisibleSettings}, " +
+                $"Gaming:{GamingViewModel.HasVisibleSettings}");
             _logService.Log(Core.Features.Common.Enums.LogLevel.Info, "OptimizeViewModel: Initialization complete");
         }
         catch (Exception ex)

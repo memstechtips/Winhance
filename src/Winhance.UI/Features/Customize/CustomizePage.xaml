@@ -6,8 +6,82 @@
     xmlns:local="using:Winhance.UI.Features.Customize"
     xmlns:viewModels="using:Winhance.UI.Features.Optimize.ViewModels"
     xmlns:controls="using:CommunityToolkit.WinUI.Controls"
+    xmlns:selectors="using:Winhance.UI.Features.Common.TemplateSelectors"
     x:DefaultBindMode="OneWay"
     NavigationCacheMode="Enabled">
+
+    <Page.Resources>
+        <!-- Template for Toggle settings (only contains ToggleSwitch) -->
+        <DataTemplate x:Key="ToggleSettingTemplate" x:DataType="viewModels:SettingItemViewModel">
+            <ToggleSwitch
+                IsOn="{x:Bind IsSelected, Mode=OneWay}"
+                Toggled="{x:Bind OnToggleSwitchToggled}"
+                OnContent=""
+                OffContent=""/>
+        </DataTemplate>
+
+        <!-- Template for Selection settings (only contains ComboBox) -->
+        <DataTemplate x:Key="SelectionSettingTemplate" x:DataType="viewModels:SettingItemViewModel">
+            <ComboBox
+                ItemsSource="{x:Bind ComboBoxOptions}"
+                SelectedValue="{x:Bind SelectedValue, Mode=OneWay}"
+                DropDownClosed="{x:Bind OnComboBoxDropDownClosed}"
+                SelectedValuePath="Value"
+                DisplayMemberPath="DisplayText"
+                MinWidth="150"/>
+        </DataTemplate>
+
+        <!-- Template for NumericRange settings (only contains NumberBox) -->
+        <DataTemplate x:Key="NumericSettingTemplate" x:DataType="viewModels:SettingItemViewModel">
+            <NumberBox
+                Value="{x:Bind NumericValue, Mode=OneWay}"
+                ValueChanged="{x:Bind OnNumberBoxValueChanged}"
+                Minimum="{x:Bind MinValue}"
+                Maximum="{x:Bind MaxValue}"
+                SpinButtonPlacementMode="Inline"
+                SmallChange="1"
+                LargeChange="10"
+                MinWidth="120"/>
+        </DataTemplate>
+
+        <!-- Template for Action settings (only contains Button) -->
+        <DataTemplate x:Key="ActionSettingTemplate" x:DataType="viewModels:SettingItemViewModel">
+            <Button
+                Content="Run"
+                Command="{x:Bind ExecuteActionCommand}"/>
+        </DataTemplate>
+
+        <!-- Template for CheckBox settings (only contains CheckBox) -->
+        <DataTemplate x:Key="CheckBoxSettingTemplate" x:DataType="viewModels:SettingItemViewModel">
+            <CheckBox
+                IsChecked="{x:Bind IsSelected, Mode=OneWay}"
+                Click="{x:Bind OnCheckBoxClick}"/>
+        </DataTemplate>
+
+        <!-- Template Selector that chooses the right template based on InputType -->
+        <selectors:SettingTemplateSelector
+            x:Key="SettingTemplateSelector"
+            ToggleTemplate="{StaticResource ToggleSettingTemplate}"
+            SelectionTemplate="{StaticResource SelectionSettingTemplate}"
+            NumericTemplate="{StaticResource NumericSettingTemplate}"
+            ActionTemplate="{StaticResource ActionSettingTemplate}"
+            CheckBoxTemplate="{StaticResource CheckBoxSettingTemplate}"/>
+
+        <!-- Main item template that wraps each setting in a SettingsCard with the appropriate control -->
+        <DataTemplate x:Key="SettingItemTemplate" x:DataType="viewModels:SettingItemViewModel">
+            <controls:SettingsCard
+                Header="{x:Bind Name}"
+                Description="{x:Bind Description}"
+                IsEnabled="{x:Bind EffectiveIsEnabled}"
+                Visibility="{x:Bind IsVisible, Converter={StaticResource BooleanToVisibilityConverter}}">
+                <!-- ContentControl uses the TemplateSelector to create only the appropriate control -->
+                <ContentControl
+                    Content="{x:Bind}"
+                    ContentTemplateSelector="{StaticResource SettingTemplateSelector}"
+                    HorizontalContentAlignment="Stretch"/>
+            </controls:SettingsCard>
+        </DataTemplate>
+    </Page.Resources>
 
     <Grid Padding="24">
         <Grid.RowDefinitions>
@@ -79,30 +153,12 @@
                     x:Name="ExplorerExpander"
                     Header="{x:Bind ViewModel.ExplorerViewModel.DisplayName}"
                     IsExpanded="{x:Bind ViewModel.ExplorerViewModel.IsExpanded, Mode=TwoWay}"
-                    Visibility="{x:Bind ViewModel.ExplorerViewModel.HasVisibleSettings, Converter={StaticResource BooleanToVisibilityConverter}}">
+                    Visibility="{x:Bind ViewModel.ExplorerViewModel.HasVisibleSettings, Converter={StaticResource BooleanToVisibilityConverter}}"
+                    ItemsSource="{x:Bind ViewModel.ExplorerViewModel.Settings}"
+                    ItemTemplate="{StaticResource SettingItemTemplate}">
                     <controls:SettingsExpander.HeaderIcon>
                         <FontIcon Glyph="&#xEC50;" FontFamily="Segoe MDL2 Assets"/>
                     </controls:SettingsExpander.HeaderIcon>
-                    <controls:SettingsExpander.Items>
-                        <ItemsRepeater ItemsSource="{x:Bind ViewModel.ExplorerViewModel.Settings}">
-                            <ItemsRepeater.ItemTemplate>
-                                <DataTemplate x:DataType="viewModels:SettingItemViewModel">
-                                    <controls:SettingsCard
-                                        Header="{x:Bind Name}"
-                                        Description="{x:Bind Description}"
-                                        IsEnabled="{x:Bind EffectiveIsEnabled}"
-                                        Visibility="{x:Bind IsVisible, Converter={StaticResource BooleanToVisibilityConverter}}">
-                                        <!-- Toggle Switch for boolean settings -->
-                                        <ToggleSwitch
-                                            IsOn="{x:Bind IsSelected, Mode=TwoWay}"
-                                            Visibility="{x:Bind IsToggleType, Converter={StaticResource BooleanToVisibilityConverter}}"
-                                            OnContent=""
-                                            OffContent=""/>
-                                    </controls:SettingsCard>
-                                </DataTemplate>
-                            </ItemsRepeater.ItemTemplate>
-                        </ItemsRepeater>
-                    </controls:SettingsExpander.Items>
                 </controls:SettingsExpander>
 
                 <!-- Start Menu Customizations -->
@@ -110,29 +166,12 @@
                     x:Name="StartMenuExpander"
                     Header="{x:Bind ViewModel.StartMenuViewModel.DisplayName}"
                     IsExpanded="{x:Bind ViewModel.StartMenuViewModel.IsExpanded, Mode=TwoWay}"
-                    Visibility="{x:Bind ViewModel.StartMenuViewModel.HasVisibleSettings, Converter={StaticResource BooleanToVisibilityConverter}}">
+                    Visibility="{x:Bind ViewModel.StartMenuViewModel.HasVisibleSettings, Converter={StaticResource BooleanToVisibilityConverter}}"
+                    ItemsSource="{x:Bind ViewModel.StartMenuViewModel.Settings}"
+                    ItemTemplate="{StaticResource SettingItemTemplate}">
                     <controls:SettingsExpander.HeaderIcon>
                         <FontIcon Glyph="&#xE737;" FontFamily="Segoe MDL2 Assets"/>
                     </controls:SettingsExpander.HeaderIcon>
-                    <controls:SettingsExpander.Items>
-                        <ItemsRepeater ItemsSource="{x:Bind ViewModel.StartMenuViewModel.Settings}">
-                            <ItemsRepeater.ItemTemplate>
-                                <DataTemplate x:DataType="viewModels:SettingItemViewModel">
-                                    <controls:SettingsCard
-                                        Header="{x:Bind Name}"
-                                        Description="{x:Bind Description}"
-                                        IsEnabled="{x:Bind EffectiveIsEnabled}"
-                                        Visibility="{x:Bind IsVisible, Converter={StaticResource BooleanToVisibilityConverter}}">
-                                        <ToggleSwitch
-                                            IsOn="{x:Bind IsSelected, Mode=TwoWay}"
-                                            Visibility="{x:Bind IsToggleType, Converter={StaticResource BooleanToVisibilityConverter}}"
-                                            OnContent=""
-                                            OffContent=""/>
-                                    </controls:SettingsCard>
-                                </DataTemplate>
-                            </ItemsRepeater.ItemTemplate>
-                        </ItemsRepeater>
-                    </controls:SettingsExpander.Items>
                 </controls:SettingsExpander>
 
                 <!-- Taskbar Customizations -->
@@ -140,29 +179,12 @@
                     x:Name="TaskbarExpander"
                     Header="{x:Bind ViewModel.TaskbarViewModel.DisplayName}"
                     IsExpanded="{x:Bind ViewModel.TaskbarViewModel.IsExpanded, Mode=TwoWay}"
-                    Visibility="{x:Bind ViewModel.TaskbarViewModel.HasVisibleSettings, Converter={StaticResource BooleanToVisibilityConverter}}">
+                    Visibility="{x:Bind ViewModel.TaskbarViewModel.HasVisibleSettings, Converter={StaticResource BooleanToVisibilityConverter}}"
+                    ItemsSource="{x:Bind ViewModel.TaskbarViewModel.Settings}"
+                    ItemTemplate="{StaticResource SettingItemTemplate}">
                     <controls:SettingsExpander.HeaderIcon>
                         <FontIcon Glyph="&#xE700;" FontFamily="Segoe MDL2 Assets"/>
                     </controls:SettingsExpander.HeaderIcon>
-                    <controls:SettingsExpander.Items>
-                        <ItemsRepeater ItemsSource="{x:Bind ViewModel.TaskbarViewModel.Settings}">
-                            <ItemsRepeater.ItemTemplate>
-                                <DataTemplate x:DataType="viewModels:SettingItemViewModel">
-                                    <controls:SettingsCard
-                                        Header="{x:Bind Name}"
-                                        Description="{x:Bind Description}"
-                                        IsEnabled="{x:Bind EffectiveIsEnabled}"
-                                        Visibility="{x:Bind IsVisible, Converter={StaticResource BooleanToVisibilityConverter}}">
-                                        <ToggleSwitch
-                                            IsOn="{x:Bind IsSelected, Mode=TwoWay}"
-                                            Visibility="{x:Bind IsToggleType, Converter={StaticResource BooleanToVisibilityConverter}}"
-                                            OnContent=""
-                                            OffContent=""/>
-                                    </controls:SettingsCard>
-                                </DataTemplate>
-                            </ItemsRepeater.ItemTemplate>
-                        </ItemsRepeater>
-                    </controls:SettingsExpander.Items>
                 </controls:SettingsExpander>
 
                 <!-- Windows Theme Customizations -->
@@ -170,29 +192,12 @@
                     x:Name="WindowsThemeExpander"
                     Header="{x:Bind ViewModel.WindowsThemeViewModel.DisplayName}"
                     IsExpanded="{x:Bind ViewModel.WindowsThemeViewModel.IsExpanded, Mode=TwoWay}"
-                    Visibility="{x:Bind ViewModel.WindowsThemeViewModel.HasVisibleSettings, Converter={StaticResource BooleanToVisibilityConverter}}">
+                    Visibility="{x:Bind ViewModel.WindowsThemeViewModel.HasVisibleSettings, Converter={StaticResource BooleanToVisibilityConverter}}"
+                    ItemsSource="{x:Bind ViewModel.WindowsThemeViewModel.Settings}"
+                    ItemTemplate="{StaticResource SettingItemTemplate}">
                     <controls:SettingsExpander.HeaderIcon>
                         <FontIcon Glyph="&#xE790;" FontFamily="Segoe MDL2 Assets"/>
                     </controls:SettingsExpander.HeaderIcon>
-                    <controls:SettingsExpander.Items>
-                        <ItemsRepeater ItemsSource="{x:Bind ViewModel.WindowsThemeViewModel.Settings}">
-                            <ItemsRepeater.ItemTemplate>
-                                <DataTemplate x:DataType="viewModels:SettingItemViewModel">
-                                    <controls:SettingsCard
-                                        Header="{x:Bind Name}"
-                                        Description="{x:Bind Description}"
-                                        IsEnabled="{x:Bind EffectiveIsEnabled}"
-                                        Visibility="{x:Bind IsVisible, Converter={StaticResource BooleanToVisibilityConverter}}">
-                                        <ToggleSwitch
-                                            IsOn="{x:Bind IsSelected, Mode=TwoWay}"
-                                            Visibility="{x:Bind IsToggleType, Converter={StaticResource BooleanToVisibilityConverter}}"
-                                            OnContent=""
-                                            OffContent=""/>
-                                    </controls:SettingsCard>
-                                </DataTemplate>
-                            </ItemsRepeater.ItemTemplate>
-                        </ItemsRepeater>
-                    </controls:SettingsExpander.Items>
                 </controls:SettingsExpander>
 
                 <!-- No Results Message -->

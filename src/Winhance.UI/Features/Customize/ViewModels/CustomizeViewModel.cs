@@ -80,18 +80,35 @@ public partial class CustomizeViewModel : ObservableObject
             IsLoading = true;
             _logService.Log(Core.Features.Common.Enums.LogLevel.Info, "CustomizeViewModel: Starting initialization");
 
-            // Load all feature settings in parallel
-            var tasks = new[]
+            // Load all feature settings, catching individual failures
+            var loadTasks = new (string Name, Func<Task> LoadTask)[]
             {
-                ExplorerViewModel.LoadSettingsAsync(),
-                StartMenuViewModel.LoadSettingsAsync(),
-                TaskbarViewModel.LoadSettingsAsync(),
-                WindowsThemeViewModel.LoadSettingsAsync()
+                ("Explorer", () => ExplorerViewModel.LoadSettingsAsync()),
+                ("StartMenu", () => StartMenuViewModel.LoadSettingsAsync()),
+                ("Taskbar", () => TaskbarViewModel.LoadSettingsAsync()),
+                ("WindowsTheme", () => WindowsThemeViewModel.LoadSettingsAsync())
             };
 
-            await Task.WhenAll(tasks);
+            foreach (var (name, loadTask) in loadTasks)
+            {
+                try
+                {
+                    await loadTask();
+                }
+                catch (Exception ex)
+                {
+                    _logService.Log(Core.Features.Common.Enums.LogLevel.Error,
+                        $"CustomizeViewModel: Failed to load {name} settings - {ex.Message}");
+                }
+            }
 
             _isInitialized = true;
+
+            // Log settings count for each feature
+            _logService.Log(Core.Features.Common.Enums.LogLevel.Info,
+                $"CustomizeViewModel: Loaded settings - Explorer:{ExplorerViewModel.SettingsCount}, " +
+                $"StartMenu:{StartMenuViewModel.SettingsCount}, Taskbar:{TaskbarViewModel.SettingsCount}, " +
+                $"WindowsTheme:{WindowsThemeViewModel.SettingsCount}");
             _logService.Log(Core.Features.Common.Enums.LogLevel.Info, "CustomizeViewModel: Initialization complete");
         }
         catch (Exception ex)
