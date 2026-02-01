@@ -7,83 +7,102 @@
     xmlns:viewModels="using:Winhance.UI.Features.Settings.ViewModels"
     xmlns:controls="using:CommunityToolkit.WinUI.Controls">
 
-    <ScrollViewer Padding="40,24,40,24" VerticalScrollBarVisibility="Auto">
-        <StackPanel Spacing="4" MaxWidth="1000" HorizontalAlignment="Center">
+    <Page.Resources>
+        <x:Double x:Key="SettingsCardSpacing">4</x:Double>
+        <Style
+            x:Key="SettingsSectionHeaderTextBlockStyle"
+            BasedOn="{StaticResource BodyStrongTextBlockStyle}"
+            TargetType="TextBlock">
+            <Style.Setters>
+                <Setter Property="Margin" Value="1,30,0,6" />
+            </Style.Setters>
+        </Style>
+    </Page.Resources>
 
-            <!-- Page Header -->
-            <TextBlock
-                Text="Settings"
-                Style="{StaticResource TitleTextBlockStyle}"
-                Margin="0,0,0,24"/>
+    <ScrollViewer
+        Padding="0,24,0,24"
+        VerticalScrollBarVisibility="Auto"
+        HorizontalScrollBarVisibility="Disabled">
+        <Grid>
+            <StackPanel
+                HorizontalAlignment="Stretch"
+                MaxWidth="1000"
+                Margin="36,0,36,0"
+                Spacing="{StaticResource SettingsCardSpacing}">
 
-            <!-- General Settings Group -->
-            <TextBlock
-                Text="General"
-                Style="{StaticResource BodyStrongTextBlockStyle}"
-                Margin="0,0,0,8"/>
+                <!-- Page Header -->
+                <TextBlock
+                    Text="{x:Bind ViewModel.PageTitle, Mode=OneWay}"
+                    Style="{StaticResource TitleTextBlockStyle}"
+                    Margin="0,0,0,24"/>
 
-            <!-- Language Setting -->
-            <controls:SettingsCard
-                Header="Language"
-                Description="Select your preferred language">
-                <controls:SettingsCard.HeaderIcon>
-                    <FontIcon Glyph="&#xF2B7;" FontFamily="Segoe MDL2 Assets"/>
-                </controls:SettingsCard.HeaderIcon>
-                <ComboBox
-                    x:Name="LanguageComboBox"
-                    MinWidth="200"
-                    ItemsSource="{x:Bind ViewModel.Languages, Mode=OneWay}"
-                    SelectedValue="{x:Bind ViewModel.SelectedLanguage, Mode=TwoWay}"
-                    DisplayMemberPath="DisplayText"
-                    SelectedValuePath="Value"/>
-            </controls:SettingsCard>
+                <!-- General Settings Group -->
+                <TextBlock
+                    Text="{x:Bind ViewModel.GeneralLabel, Mode=OneWay}"
+                    Style="{StaticResource SettingsSectionHeaderTextBlockStyle}"/>
 
-            <!-- Theme Setting -->
-            <controls:SettingsCard
-                Header="Theme"
-                Description="Choose your preferred theme">
-                <controls:SettingsCard.HeaderIcon>
-                    <FontIcon Glyph="&#xE790;" FontFamily="Segoe MDL2 Assets"/>
-                </controls:SettingsCard.HeaderIcon>
-                <ComboBox
-                    x:Name="ThemeComboBox"
-                    MinWidth="200"
-                    ItemsSource="{x:Bind ViewModel.Themes, Mode=OneWay}"
-                    SelectedItem="{x:Bind ViewModel.SelectedThemeOption, Mode=TwoWay}"
-                    DisplayMemberPath="DisplayText"/>
-            </controls:SettingsCard>
+                <!-- Language Setting -->
+                <controls:SettingsCard
+                    Header="{x:Bind ViewModel.LanguageHeader, Mode=OneWay}"
+                    Description="{x:Bind ViewModel.LanguageDescription, Mode=OneWay}">
+                    <controls:SettingsCard.HeaderIcon>
+                        <FontIcon Glyph="&#xF2B7;" FontFamily="Segoe MDL2 Assets"/>
+                    </controls:SettingsCard.HeaderIcon>
+                    <ComboBox
+                        x:Name="LanguageComboBox"
+                        MinWidth="200"
+                        ItemsSource="{x:Bind ViewModel.Languages, Mode=OneWay}"
+                        SelectedValue="{x:Bind ViewModel.SelectedLanguage, Mode=TwoWay}"
+                        DisplayMemberPath="DisplayText"
+                        SelectedValuePath="Value"/>
+                </controls:SettingsCard>
 
-            <!-- Configuration Group -->
-            <TextBlock
-                Text="Configuration"
-                Style="{StaticResource BodyStrongTextBlockStyle}"
-                Margin="0,24,0,8"/>
+                <!-- Theme Setting -->
+                <controls:SettingsCard
+                    Header="{x:Bind ViewModel.ThemeHeader, Mode=OneWay}"
+                    Description="{x:Bind ViewModel.ThemeDescription, Mode=OneWay}">
+                    <controls:SettingsCard.HeaderIcon>
+                        <FontIcon Glyph="&#xE790;" FontFamily="Segoe MDL2 Assets"/>
+                    </controls:SettingsCard.HeaderIcon>
+                    <ComboBox
+                        x:Name="ThemeComboBox"
+                        MinWidth="200"
+                        ItemsSource="{x:Bind ViewModel.Themes, Mode=OneWay}"
+                        SelectedItem="{x:Bind ViewModel.SelectedThemeOption, Mode=TwoWay}"
+                        DisplayMemberPath="DisplayText"/>
+                </controls:SettingsCard>
 
-            <!-- Import/Export Configuration -->
-            <controls:SettingsCard
-                Header="Backup &amp; Restore"
-                Description="Import or export your settings configuration">
-                <controls:SettingsCard.HeaderIcon>
-                    <FontIcon Glyph="&#xE8F1;" FontFamily="Segoe MDL2 Assets"/>
-                </controls:SettingsCard.HeaderIcon>
-                <StackPanel Orientation="Horizontal" Spacing="8">
-                    <Button
-                        Content="Import"
-                        Command="{x:Bind ViewModel.ImportConfigCommand}">
-                        <Button.KeyboardAccelerators>
-                            <KeyboardAccelerator Key="I" Modifiers="Control"/>
-                        </Button.KeyboardAccelerators>
-                    </Button>
-                    <Button
-                        Content="Export"
-                        Command="{x:Bind ViewModel.ExportConfigCommand}">
-                        <Button.KeyboardAccelerators>
-                            <KeyboardAccelerator Key="E" Modifiers="Control"/>
-                        </Button.KeyboardAccelerators>
-                    </Button>
-                </StackPanel>
-            </controls:SettingsCard>
+                <!-- Configuration Group -->
+                <TextBlock
+                    Text="{x:Bind ViewModel.ConfigurationLabel, Mode=OneWay}"
+                    Style="{StaticResource SettingsSectionHeaderTextBlockStyle}"/>
 
-        </StackPanel>
+                <!-- Import/Export Configuration -->
+                <controls:SettingsCard
+                    Header="{x:Bind ViewModel.BackupRestoreHeader, Mode=OneWay}"
+                    Description="{x:Bind ViewModel.BackupRestoreDescription, Mode=OneWay}">
+                    <controls:SettingsCard.HeaderIcon>
+                        <FontIcon Glyph="&#xE8F1;" FontFamily="Segoe MDL2 Assets"/>
+                    </controls:SettingsCard.HeaderIcon>
+                    <StackPanel Orientation="Horizontal" Spacing="8">
+                        <Button
+                            Content="{x:Bind ViewModel.ImportButtonText, Mode=OneWay}"
+                            Command="{x:Bind ViewModel.ImportConfigCommand}">
+                            <Button.KeyboardAccelerators>
+                                <KeyboardAccelerator Key="I" Modifiers="Control"/>
+                            </Button.KeyboardAccelerators>
+                        </Button>
+                        <Button
+                            Content="{x:Bind ViewModel.ExportButtonText, Mode=OneWay}"
+                            Command="{x:Bind ViewModel.ExportConfigCommand}">
+                            <Button.KeyboardAccelerators>
+                                <KeyboardAccelerator Key="E" Modifiers="Control"/>
+                            </Button.KeyboardAccelerators>
+                        </Button>
+                    </StackPanel>
+                </controls:SettingsCard>
+
+            </StackPanel>
+        </Grid>
     </ScrollViewer>
 </Page>

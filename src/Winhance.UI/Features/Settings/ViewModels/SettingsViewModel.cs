@@ -5,6 +5,7 @@ using CommunityToolkit.Mvvm.Input;
 using Winhance.Core.Features.Common.Interfaces;
 using Winhance.UI.Features.Common.Constants;
 using Winhance.UI.Features.Common.Interfaces;
+using Winhance.UI.Features.Common.Services;
 
 namespace Winhance.UI.Features.Settings.ViewModels;
 
@@ -17,6 +18,7 @@ public partial class SettingsViewModel : ObservableObject
     private readonly IThemeService _themeService;
     private readonly IUserPreferencesService _preferencesService;
     private readonly IDialogService _dialogService;
+    private readonly IConfigurationService _configurationService;
 
     private ObservableCollection<ComboBoxOption> _languages = new();
     public ObservableCollection<ComboBoxOption> Languages
@@ -78,12 +80,14 @@ public partial class SettingsViewModel : ObservableObject
         ILocalizationService localizationService,
         IThemeService themeService,
         IUserPreferencesService preferencesService,
-        IDialogService dialogService)
+        IDialogService dialogService,
+        IConfigurationService configurationService)
     {
         _localizationService = localizationService;
         _themeService = themeService;
         _preferencesService = preferencesService;
         _dialogService = dialogService;
+        _configurationService = configurationService;
 
         // Initialize languages from StringKeys
         InitializeLanguages();
@@ -139,7 +143,7 @@ public partial class SettingsViewModel : ObservableObject
     };
 
     /// <summary>
-    /// Called when the language changes to update theme display names.
+    /// Called when the language changes to update all localized strings.
     /// </summary>
     private void OnLanguageChanged(object? sender, EventArgs e)
     {
@@ -148,7 +152,33 @@ public partial class SettingsViewModel : ObservableObject
         {
             theme.DisplayText = GetThemeDisplayName(theme.Theme);
         }
+
+        // Notify UI to refresh all localized strings
+        OnPropertyChanged(nameof(PageTitle));
+        OnPropertyChanged(nameof(GeneralLabel));
+        OnPropertyChanged(nameof(LanguageHeader));
+        OnPropertyChanged(nameof(LanguageDescription));
+        OnPropertyChanged(nameof(ThemeHeader));
+        OnPropertyChanged(nameof(ThemeDescription));
+        OnPropertyChanged(nameof(ConfigurationLabel));
+        OnPropertyChanged(nameof(BackupRestoreHeader));
+        OnPropertyChanged(nameof(BackupRestoreDescription));
+        OnPropertyChanged(nameof(ImportButtonText));
+        OnPropertyChanged(nameof(ExportButtonText));
     }
+
+    // Localized string properties for x:Bind
+    public string PageTitle => _localizationService.GetString(StringKeys.Settings.Title) ?? "Settings";
+    public string GeneralLabel => _localizationService.GetString(StringKeys.Categories.General) ?? "General";
+    public string LanguageHeader => _localizationService.GetString(StringKeys.Settings.Language) ?? "Language";
+    public string LanguageDescription => _localizationService.GetString(StringKeys.Settings.LanguageDescription) ?? "Select your preferred language";
+    public string ThemeHeader => _localizationService.GetString(StringKeys.Settings.ThemeTitle) ?? "Theme";
+    public string ThemeDescription => _localizationService.GetString(StringKeys.Settings.ThemeDescription) ?? "Choose your preferred theme";
+    public string ConfigurationLabel => _localizationService.GetString(StringKeys.Categories.Configuration) ?? "Configuration";
+    public string BackupRestoreHeader => _localizationService.GetString(StringKeys.Settings.BackupRestoreTitle) ?? "Backup & Restore";
+    public string BackupRestoreDescription => _localizationService.GetString(StringKeys.Settings.BackupRestoreDescription) ?? "Import or export your settings configuration";
+    public string ImportButtonText => _localizationService.GetString(StringKeys.Buttons.Import) ?? "Import";
+    public string ExportButtonText => _localizationService.GetString(StringKeys.Buttons.Export) ?? "Export";
 
     /// <summary>
     /// Called when the selected theme changes.
@@ -181,8 +211,7 @@ public partial class SettingsViewModel : ObservableObject
     [RelayCommand]
     private async Task ImportConfigAsync()
     {
-        // TODO: Implement configuration import for WinUI 3
-        await _dialogService.ShowInformationAsync("Configuration import not yet implemented.", "Import");
+        await _configurationService.ImportConfigurationAsync();
     }
 
     /// <summary>
@@ -191,8 +220,7 @@ public partial class SettingsViewModel : ObservableObject
     [RelayCommand]
     private async Task ExportConfigAsync()
     {
-        // TODO: Implement configuration export for WinUI 3
-        await _dialogService.ShowInformationAsync("Configuration export not yet implemented.", "Export");
+        await _configurationService.ExportConfigurationAsync();
     }
 }
 

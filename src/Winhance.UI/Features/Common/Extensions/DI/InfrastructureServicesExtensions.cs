@@ -24,9 +24,13 @@ public static class InfrastructureServicesExtensions
         services.AddSingleton<IWindowsRegistryService, WindowsRegistryService>();
         services.AddSingleton<ICommandService, CommandService>();
 
+        // Dependency Manager
+        services.AddSingleton<IDependencyManager, Winhance.Core.Features.Common.Services.DependencyManager>();
+
         // Windows Services
         services.AddSingleton<IWindowsVersionService, WindowsVersionService>();
         services.AddSingleton<IWindowsThemeQueryService, WindowsThemeQueryService>();
+        services.AddSingleton<IWindowsUIManagementService, WindowsUIManagementService>();
 
         // User Preferences Service
         services.AddSingleton<IUserPreferencesService, UserPreferencesService>();
@@ -40,6 +44,13 @@ public static class InfrastructureServicesExtensions
         // Initialization Service
         services.AddSingleton<IInitializationService, Winhance.Core.Features.Common.Services.InitializationService>();
 
+        // Settings Registry
+        services.AddSingleton<IGlobalSettingsRegistry, Winhance.Core.Features.Common.Services.GlobalSettingsRegistry>();
+        services.AddSingleton<ISettingsRegistry, Winhance.Core.Features.Common.Services.SettingsRegistry>();
+
+        // Global Settings Preloader (populates setting-to-feature mappings)
+        services.AddSingleton<IGlobalSettingsPreloader, GlobalSettingsPreloader>();
+
         // Settings Discovery and Application
         services.AddSingleton<ISystemSettingsDiscoveryService, SystemSettingsDiscoveryService>();
         services.AddSingleton<ISettingApplicationService, SettingApplicationService>();
@@ -52,7 +63,7 @@ public static class InfrastructureServicesExtensions
         services.AddSingleton<IComboBoxResolver, ComboBoxResolver>();
         services.AddSingleton<IPowerPlanComboBoxService, PowerPlanComboBoxService>();
 
-        // Settings Registry and Compatibility
+        // Settings Compatibility
         services.AddSingleton<ICompatibleSettingsRegistry, CompatibleSettingsRegistry>();
         services.AddSingleton<IWindowsCompatibilityFilter, WindowsCompatibilityFilter>();
         services.AddSingleton<IHardwareCompatibilityFilter, HardwareCompatibilityFilter>();
@@ -63,8 +74,39 @@ public static class InfrastructureServicesExtensions
         services.AddSingleton<IPowerCfgQueryService, PowerCfgQueryService>();
         services.AddSingleton<IPowerSettingsValidationService, PowerSettingsValidationService>();
 
+        // Internet Connectivity
+        services.AddSingleton<IInternetConnectivityService>(provider =>
+            new InternetConnectivityService(provider.GetRequiredService<ILogService>()));
+
+        // System Services
+        services.AddSingleton<IScheduledTaskService, ScheduledTaskService>();
+        services.AddSingleton<ISystemBackupService, SystemBackupService>();
+        services.AddSingleton<IVersionService, VersionService>();
+
+        // Script Services
+        services.AddSingleton<IScriptMigrationService, ScriptMigrationService>();
+        services.AddSingleton<IRemovalScriptUpdateService, RemovalScriptUpdateService>();
+
         // Task Progress Service
         services.AddSingleton<ITaskProgressService, TaskProgressService>();
+
+        // Configuration Application Bridge (for config import/export)
+        services.AddSingleton<ConfigurationApplicationBridgeService>();
+
+        // Recommended Settings Service
+        services.AddSingleton<IRecommendedSettingsService>(provider =>
+            new RecommendedSettingsService(
+                provider.GetRequiredService<IDomainServiceRouter>(),
+                provider.GetRequiredService<IWindowsRegistryService>(),
+                provider.GetRequiredService<IComboBoxResolver>(),
+                provider.GetRequiredService<IWindowsVersionService>(),
+                provider.GetRequiredService<ILogService>(),
+                provider.GetRequiredService<IEventBus>()));
+
+        // Advanced Tools Services
+        services.AddSingleton<Winhance.Core.Features.AdvancedTools.Interfaces.IWimUtilService,
+            Winhance.Infrastructure.Features.AdvancedTools.Services.WimUtilService>();
+        services.AddSingleton<Winhance.Infrastructure.Features.AdvancedTools.Services.AutounattendScriptBuilder>();
 
         // Http Client
         services.TryAddSingleton<System.Net.Http.HttpClient>();

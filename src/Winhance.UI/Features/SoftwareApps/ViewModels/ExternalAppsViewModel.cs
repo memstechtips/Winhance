@@ -142,6 +142,11 @@ public partial class ExternalAppsViewModel : BaseViewModel
         }
     }
 
+    /// <summary>
+    /// Loads items - alias for LoadAppsAndCheckInstallationStatusAsync for ConfigurationService compatibility.
+    /// </summary>
+    public Task LoadItemsAsync() => LoadAppsAndCheckInstallationStatusAsync();
+
     [RelayCommand]
     public async Task LoadAppsAndCheckInstallationStatusAsync()
     {
@@ -262,6 +267,35 @@ public partial class ExternalAppsViewModel : BaseViewModel
         }
     }
 
+    /// <summary>
+    /// Installs selected apps with optional confirmation skip (for ConfigurationService compatibility).
+    /// </summary>
+    public async Task InstallApps(bool skipConfirmation = false)
+    {
+        var selectedItems = Items.Where(a => a.IsSelected).ToList();
+        if (!selectedItems.Any()) return;
+
+        if (!await _connectivityService.IsInternetConnectedAsync(true))
+        {
+            if (!skipConfirmation)
+            {
+                await _dialogService.ShowWarningAsync(
+                    "An internet connection is required to install apps.",
+                    "No Internet Connection");
+            }
+            return;
+        }
+
+        if (!skipConfirmation)
+        {
+            var itemNames = selectedItems.Select(a => a.Name).ToList();
+            var confirmed = await _dialogService.ShowAppOperationConfirmationAsync("install", itemNames, selectedItems.Count);
+            if (!confirmed) return;
+        }
+
+        await InstallAppsInternalAsync(selectedItems);
+    }
+
     [RelayCommand]
     public async Task InstallAppsAsync()
     {
@@ -285,6 +319,12 @@ public partial class ExternalAppsViewModel : BaseViewModel
         var itemNames = selectedItems.Select(a => a.Name).ToList();
         var confirmed = await _dialogService.ShowAppOperationConfirmationAsync("install", itemNames, selectedItems.Count);
         if (!confirmed) return;
+
+        await InstallAppsInternalAsync(selectedItems);
+    }
+
+    private async Task InstallAppsInternalAsync(List<AppItemViewModel> selectedItems)
+    {
 
         IsTaskRunning = true;
         StatusText = _localizationService.GetString("Progress_Task_InstallingExternalApps");

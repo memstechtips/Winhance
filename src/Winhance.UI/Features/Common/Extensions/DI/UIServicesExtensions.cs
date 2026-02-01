@@ -34,6 +34,9 @@ public static class UIServicesExtensions
         // Requires XamlRoot to be set by MainWindow after content is loaded
         services.AddSingleton<IDialogService, DialogService>();
 
+        // Configuration Service (Singleton - Import/Export configuration files)
+        services.AddSingleton<IConfigurationService, ConfigurationService>();
+
         // Setting Localization Service (Singleton - Localizes setting definitions)
         services.AddSingleton<ISettingLocalizationService, SettingLocalizationService>();
 

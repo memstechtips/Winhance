@@ -143,6 +143,11 @@ public partial class WindowsAppsViewModel : BaseViewModel
         }
     }
 
+    /// <summary>
+    /// Loads items - alias for LoadAppsAndCheckInstallationStatusAsync for ConfigurationService compatibility.
+    /// </summary>
+    public Task LoadItemsAsync() => LoadAppsAndCheckInstallationStatusAsync();
+
     [RelayCommand]
     public async Task LoadAppsAndCheckInstallationStatusAsync()
     {
@@ -328,6 +333,37 @@ public partial class WindowsAppsViewModel : BaseViewModel
         }
     }
 
+    /// <summary>
+    /// Shows removal summary and asks for confirmation.
+    /// </summary>
+    /// <returns>True if user confirmed, false otherwise.</returns>
+    public async Task<bool> ShowRemovalSummaryAndConfirm()
+    {
+        var selectedItems = Items.Where(a => a.IsSelected).ToList();
+        if (!selectedItems.Any()) return true;
+
+        var itemNames = selectedItems.Select(a => a.Name).ToList();
+        return await _dialogService.ShowAppOperationConfirmationAsync("remove", itemNames, selectedItems.Count);
+    }
+
+    /// <summary>
+    /// Removes selected apps with optional confirmation skip (for ConfigurationService compatibility).
+    /// </summary>
+    public async Task RemoveApps(bool skipConfirmation = false)
+    {
+        var selectedItems = Items.Where(a => a.IsSelected).ToList();
+        if (!selectedItems.Any()) return;
+
+        if (!skipConfirmation)
+        {
+            var itemNames = selectedItems.Select(a => a.Name).ToList();
+            var confirmed = await _dialogService.ShowAppOperationConfirmationAsync("remove", itemNames, selectedItems.Count);
+            if (!confirmed) return;
+        }
+
+        await RemoveAppsInternalAsync(selectedItems);
+    }
+
     [RelayCommand]
     public async Task RemoveAppsAsync()
     {
@@ -343,6 +379,12 @@ public partial class WindowsAppsViewModel : BaseViewModel
         var itemNames = selectedItems.Select(a => a.Name).ToList();
         var confirmed = await _dialogService.ShowAppOperationConfirmationAsync("remove", itemNames, selectedItems.Count);
         if (!confirmed) return;
+
+        await RemoveAppsInternalAsync(selectedItems);
+    }
+
+    private async Task RemoveAppsInternalAsync(List<AppItemViewModel> selectedItems)
+    {
 
         IsTaskRunning = true;
         StatusText = _localizationService.GetString("Progress_Task_RemovingWindowsApps");

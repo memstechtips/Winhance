@@ -20,7 +20,8 @@ public static class CompositionRoot
         services
             .AddCoreServices()           // Core abstractions and interfaces
             .AddInfrastructureServices() // Infrastructure implementations
-            .AddUIServices();             // UI-specific services (ThemeService, etc.)
+            .AddDomainServices()         // Domain services (Customization, Optimization, SoftwareApps)
+            .AddUIServices();            // UI-specific services (ThemeService, etc.)
 
         return services;
     }

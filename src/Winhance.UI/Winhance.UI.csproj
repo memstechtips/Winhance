@@ -72,21 +72,21 @@
     <ProjectReference Include="..\Winhance.Infrastructure\Winhance.Infrastructure.csproj" />
   </ItemGroup>
 
-  <!-- Content files (localization, configs) -->
+  <!-- Content files (localization) - uses local UI project files -->
   <ItemGroup>
-    <None Update="..\Winhance.WPF\Localization\*.json">
+    <Content Include="Features\Common\Localization\*.json">
       <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
       <Link>Localization\%(Filename)%(Extension)</Link>
-    </None>
+    </Content>
   </ItemGroup>
 
-  <!-- Embedded resources -->
+  <!-- Embedded resources - uses local UI project files -->
   <ItemGroup>
-    <EmbeddedResource Include="..\Winhance.WPF\Resources\Configs\Winhance_Recommended_Config.winhance">
-      <Link>Resources\Configs\Winhance_Recommended_Config.winhance</Link>
+    <EmbeddedResource Include="Features\Common\Resources\Configs\Winhance_Recommended_Config.winhance">
+      <LogicalName>Winhance.UI.Resources.Configs.Winhance_Recommended_Config.winhance</LogicalName>
     </EmbeddedResource>
-    <EmbeddedResource Include="..\Winhance.WPF\Resources\AdvancedTools\autounattend-template.xml">
-      <Link>Resources\AdvancedTools\autounattend-template.xml</Link>
+    <EmbeddedResource Include="Features\Common\Resources\AdvancedTools\autounattend-template.xml">
+      <LogicalName>Winhance.UI.Resources.AdvancedTools.autounattend-template.xml</LogicalName>
     </EmbeddedResource>
   </ItemGroup>
 
