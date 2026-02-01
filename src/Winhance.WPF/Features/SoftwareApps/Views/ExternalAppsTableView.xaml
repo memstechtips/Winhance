@@ -13,14 +13,12 @@
     d:DataContext="{d:DesignInstance Type=viewModels:ExternalAppsViewModel}" mc:Ignorable="d">
 
     
-    <controls:ResponsiveScrollViewer>
-        <StackPanel Margin="10">
-
-            <!-- Combined Table View for All Items -->
-            <DataGrid x:Name="AppsDataGrid"
-                      ItemsSource="{Binding AllItemsView}"
+    <Grid>
+        <!-- Combined Table View for All Items -->
+        <DataGrid x:Name="AppsDataGrid"
+                  ItemsSource="{Binding AllItemsView}"
                       Style="{StaticResource ThemedDataGrid}"
-                      Margin="10,0,10,10"
+                      Margin="10"
                       Width="Auto"
                       HorizontalAlignment="Stretch"
                       HorizontalContentAlignment="Stretch"
@@ -168,6 +166,5 @@
                     </DataGridTemplateColumn>
                 </DataGrid.Columns>
             </DataGrid>
-        </StackPanel>
-    </controls:ResponsiveScrollViewer>
+    </Grid>
 </UserControl>

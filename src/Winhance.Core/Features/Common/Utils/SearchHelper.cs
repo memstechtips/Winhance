@@ -9,12 +9,11 @@ namespace Winhance.Core.Features.Common.Utils
         {
             if (string.IsNullOrWhiteSpace(searchTerm)) return true;
 
-            var searchTerms = searchTerm.ToLowerInvariant()
-                .Split(' ', StringSplitOptions.RemoveEmptyEntries);
+            var searchTerms = searchTerm.Split(' ', StringSplitOptions.RemoveEmptyEntries);
 
             return searchTerms.All(term =>
                 searchableFields.Any(field =>
-                    field?.ToLowerInvariant().Contains(term) == true));
+                    field != null && field.Contains(term, StringComparison.OrdinalIgnoreCase)));
         }
     }
 }
