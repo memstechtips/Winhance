@@ -173,7 +173,7 @@ public static class GamingandPerformanceOptimizations
                     Name = "Allow Desktop Wallpaper Compression",
                     Description = "Allow Windows to compress wallpapers to save disk space and improve performance. Only affects images in JPEG format.",
                     InputType = InputType.Toggle,
-                    IconPack = "Lucide",
+                    IconPack = "Fluent",
                     Icon = "Wallpaper",
                     RestartProcess = "Explorer",
                     RegistrySettings = new List<RegistrySetting>
@@ -2478,8 +2478,7 @@ public static class GamingandPerformanceOptimizations
                     Description = "Animates menus when they appear using fade or slide effects",
                     GroupName = "Visual Effects",
                     InputType = InputType.Toggle,
-                    IconPack = "MaterialDesign",
-                    Icon = "MenuOpenRound",
+                    Icon = "MenuOpen",
                     RequiresRestart = true,
                     Dependencies = new List<SettingDependency>
                     {
@@ -2549,8 +2548,8 @@ public static class GamingandPerformanceOptimizations
                     Description = "Fades menu items after selection before closing the menu",
                     GroupName = "Visual Effects",
                     InputType = InputType.Toggle,
-                    IconPack = "Lucide",
-                    Icon = "SquareMousePointer",
+                    IconPack = "Fluent",
+                    Icon = "CursorClick",
                     RequiresRestart = true,
                     Dependencies = new List<SettingDependency>
                     {
@@ -2585,8 +2584,8 @@ public static class GamingandPerformanceOptimizations
                     Description = "Saves thumbnail previews of taskbar windows for faster display",
                     GroupName = "Visual Effects",
                     InputType = InputType.Toggle,
-                    IconPack = "Lucide",
-                    Icon = "GalleryThumbnails",
+                    IconPack = "Fluent",
+                    Icon = "ImageMultiple",
                     RequiresRestart = true,
                     Dependencies = new List<SettingDependency>
                     {
@@ -2689,7 +2688,7 @@ public static class GamingandPerformanceOptimizations
                     Description = "Displays image and document previews instead of generic file icons",
                     GroupName = "Visual Effects",
                     InputType = InputType.Toggle,
-                    IconPack = "Lucide",
+                    IconPack = "Fluent",
                     Icon = "Image",
                     RequiresRestart = true,
                     Dependencies = new List<SettingDependency>
@@ -2723,8 +2722,8 @@ public static class GamingandPerformanceOptimizations
                     Description = "Display a semi-transparent selection box when dragging to select multiple files or items",
                     GroupName = "Visual Effects",
                     InputType = InputType.Toggle,
-                    IconPack = "Lucide",
-                    Icon = "SquareDashedMousePointer",
+                    IconPack = "Fluent",
+                    Icon = "SelectObject",
                     RequiresRestart = true,
                     Dependencies = new List<SettingDependency>
                     {

@@ -63,8 +63,8 @@ public static class StartMenuCustomizations
                     GroupName = "Layout",
                     InputType = InputType.Selection,
                     IsWindows11Only = true,
-                    IconPack = "Lucide",
-                    Icon = "LayoutPanelLeft",
+                    IconPack = "Fluent",
+                    Icon = "PanelLeft",
                     MinimumBuildNumber = 22000, // Windows 11 24H2 starts around build 26100
                     MaximumBuildNumber = 26120, // Removed in build 26120.4250, so max 26120
                     RegistrySettings = new List<RegistrySetting>
@@ -175,7 +175,7 @@ public static class StartMenuCustomizations
                     Description = "Automatically expand to show all pinned apps instead of requiring you to click 'All apps'",
                     GroupName = "Start Menu Settings",
                     InputType = InputType.Toggle,
-                    IconPack = "Lucide",
+                    IconPack = "Fluent",
                     Icon = "Pin",
                     IsWindows11Only = true,
                     SupportedBuildRanges = new List<(int, int)>
@@ -227,8 +227,8 @@ public static class StartMenuCustomizations
                     Description = "Display your frequently launched applications at the top of the All Apps list for quick access",
                     GroupName = "Start Menu",
                     InputType = InputType.Toggle,
-                    IconPack = "Lucide",
-                    Icon = "Boxes",
+                    IconPack = "Fluent",
+                    Icon = "BoxMultiple",
                     IsWindows11Only = true,
                     RegistrySettings = new List<RegistrySetting>
                     {
@@ -251,8 +251,8 @@ public static class StartMenuCustomizations
                     Description = "Display your frequently launched applications at the top of the All Apps list for quick access",
                     GroupName = "Start Menu",
                     InputType = InputType.Toggle,
-                    IconPack = "Lucide",
-                    Icon = "Boxes",
+                    IconPack = "Fluent",
+                    Icon = "BoxMultiple",
                     IsWindows10Only = true,
                     RegistrySettings = new List<RegistrySetting>
                     {

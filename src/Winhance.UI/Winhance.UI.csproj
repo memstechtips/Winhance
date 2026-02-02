@@ -1,7 +1,9 @@
 <Project Sdk="Microsoft.NET.Sdk">
   <PropertyGroup>
     <OutputType>WinExe</OutputType>
-    <TargetFramework>net9.0-windows10.0.19041.0</TargetFramework>
+    <TargetFramework>net10.0-windows10.0.19041.0</TargetFramework>
+    <!-- Windows SDK package version - aligns SDK.NET projections with packages -->
+    <WindowsSdkPackageVersion>10.0.26100.48</WindowsSdkPackageVersion>
     <TargetPlatformMinVersion>10.0.17763.0</TargetPlatformMinVersion>
     <RootNamespace>Winhance.UI</RootNamespace>
     <AssemblyName>Winhance</AssemblyName>
@@ -36,9 +38,16 @@
     <!-- Windows App SDK - Use 1.7.x for stability -->
     <PackageReference Include="Microsoft.WindowsAppSDK" Version="1.7.250401001" />
     <PackageReference Include="Microsoft.Windows.SDK.BuildTools" Version="10.0.26100.1742" />
+    <!-- CsWinRT - WinRT projections for .NET (needed for CommunityToolkit.WinUI 8.2+) -->
+    <PackageReference Include="Microsoft.Windows.CsWinRT" Version="2.2.0" />
 
     <!-- MVVM -->
     <PackageReference Include="CommunityToolkit.Mvvm" Version="8.4.0" />
+
+    <!-- Icons - Material Design Icons for WinUI3 -->
+    <PackageReference Include="Material.Icons.WinUI3" Version="2.4.1" />
+    <!-- Icons - Microsoft Fluent System Icons (4000+ icons) -->
+    <PackageReference Include="FluentIcons.WinUI" Version="1.1.271" />
 
     <!-- WinUI Controls - Use 8.2.x for Windows App SDK 1.6+ compatibility -->
     <PackageReference Include="CommunityToolkit.WinUI.Controls.SettingsControls" Version="8.2.250402" />

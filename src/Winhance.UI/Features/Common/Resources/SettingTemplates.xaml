@@ -8,7 +8,13 @@
 
     <!-- Common layout values for settings pages -->
     <x:Double x:Key="SettingsContentMaxWidth">1000</x:Double>
-    <Thickness x:Key="SettingsContentMargin">36,0,36,0</Thickness>
+    <Thickness x:Key="SettingsContentMargin">24,0,24,0</Thickness>
+
+    <!-- SettingsCard internal spacing overrides for tighter layout -->
+    <!-- Reduce padding around the icon area -->
+    <Thickness x:Key="SettingsCardPadding">16,12,16,12</Thickness>
+    <Thickness x:Key="SettingsCardHeaderIconMargin">0,0,16,0</Thickness>
+    <Thickness x:Key="SettingsExpanderItemPadding">16,12,16,12</Thickness>
 
     <!-- Style for settings section headers -->
     <Style

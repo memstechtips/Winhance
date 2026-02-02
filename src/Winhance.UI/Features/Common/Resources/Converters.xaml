@@ -34,8 +34,9 @@
     <converters:StringEqualityConverter x:Key="StringEqualityConverter"/>
     <converters:EnumMatchToVisibilityConverter x:Key="EnumMatchToVisibilityConverter"/>
 
-    <!-- Icon Converter -->
+    <!-- Icon Converters -->
     <converters:FluentIconConverter x:Key="FluentIconConverter"/>
+    <converters:SettingIconConverter x:Key="SettingIconConverter"/>
 
     <!-- SoftwareApps Converters -->
     <softwareConverters:BoolToColorConverter x:Key="BoolToColorConverter"/>

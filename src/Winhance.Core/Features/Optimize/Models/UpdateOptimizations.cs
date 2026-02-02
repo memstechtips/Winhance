@@ -619,8 +619,8 @@ public static class UpdateOptimizations
                     Name = "Auto Update Microsoft Store Apps",
                     Description = "Automatically download and install updates for apps from the Microsoft Store",
                     GroupName = "Delivery & Store",
-                    IconPack = "Lucide",
-                    Icon = "Store",
+                    IconPack = "Fluent",
+                    Icon = "StoreMicrosoft",
                     InputType = InputType.Toggle,
                     RegistrySettings = new List<RegistrySetting>
                     {

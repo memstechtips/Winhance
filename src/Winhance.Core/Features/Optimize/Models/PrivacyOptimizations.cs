@@ -127,8 +127,7 @@ public static class PrivacyAndSecurityOptimizations
                     Description = "Prevents Windows from automatically encrypting your device with BitLocker without user consent",
                     GroupName = "Security",
                     InputType = InputType.Toggle,
-                    IconPack = "MaterialDesign",
-                    Icon = "EnhancedEncryptionRound",
+                    Icon = "ShieldLock",
                     IsWindows11Only = true,
                     RegistrySettings = new List<RegistrySetting>
                     {
@@ -205,7 +204,7 @@ public static class PrivacyAndSecurityOptimizations
                     Description = "Choose if Windows should collect and send crash reports and error information to Microsoft",
                     GroupName = "Security",
                     InputType = InputType.Toggle,
-                    IconPack = "Lucide",
+                    IconPack = "Fluent",
                     Icon = "Bug",
                     RegistrySettings = new List<RegistrySetting>
                     {
@@ -424,8 +423,7 @@ public static class PrivacyAndSecurityOptimizations
                     Name = "Feature Management",
                     Description = "Enables Windows feature management functionality for promotional features and automatic app installations",
                     GroupName = "Content Delivery & Advertising",
-                    IconPack = "MaterialDesign",
-                    Icon = "InstallDesktopRound",
+                    Icon = "MonitorArrowDown",
                     InputType = InputType.Toggle,
                     Dependencies = new List<SettingDependency>
                     {
@@ -457,8 +455,7 @@ public static class PrivacyAndSecurityOptimizations
                     Name = "Soft Landing Experiences",
                     Description = "Displays tips and notifications about Windows features as you use the operating system",
                     GroupName = "Content Delivery & Advertising",
-                    IconPack = "MaterialDesign",
-                    Icon = "TipsAndUpdates",
+                    Icon = "LightbulbOn",
                     InputType = InputType.Toggle,
                     Dependencies = new List<SettingDependency>
                     {
@@ -641,7 +638,7 @@ public static class PrivacyAndSecurityOptimizations
                     Name = "Windows Spotlight on Lock Screen",
                     Description = "Displays rotating Windows Spotlight images on your lock screen instead of a static background",
                     GroupName = "Lock Screen",
-                    IconPack = "Lucide",
+                    IconPack = "Fluent",
                     Icon = "Wallpaper",
                     InputType = InputType.Toggle,
                     ParentSettingId = "privacy-lock-screen",
@@ -708,8 +705,8 @@ public static class PrivacyAndSecurityOptimizations
                     Name = "Lock Screen Slideshow",
                     Description = "Enables slideshow option for lock screen background",
                     GroupName = "Lock Screen",
-                    IconPack = "Lucide",
-                    Icon = "MonitorPlay",
+                    IconPack = "Fluent",
+                    Icon = "DesktopPulse",
                     InputType = InputType.Toggle,
                     ParentSettingId = "privacy-lock-screen",
                     Dependencies = new List<SettingDependency>
@@ -1000,8 +997,8 @@ public static class PrivacyAndSecurityOptimizations
                     Name = "Custom Inking and Typing Dictionary",
                     Description = "Uses your typing history and handwriting patterns to create a custom dictionary (turning off will clear all words in your custom dictionary)",
                     GroupName = "Inking and typing personalization",
-                    IconPack = "Lucide",
-                    Icon = "BookA",
+                    IconPack = "Fluent",
+                    Icon = "BookOpen",
                     InputType = InputType.Toggle,
                     RegistrySettings = new List<RegistrySetting>
                     {
@@ -1053,8 +1050,8 @@ public static class PrivacyAndSecurityOptimizations
                     Name = "Send Diagnostic Data",
                     Description = "Send diagnostic data to Microsoft to help improve Windows and keep it secure",
                     GroupName = "Diagnostics & Feedback",
-                    IconPack = "Lucide",
-                    Icon = "SquareActivity",
+                    IconPack = "Fluent",
+                    Icon = "PulseSquare",
                     InputType = InputType.Toggle,
                     RegistrySettings = new List<RegistrySetting>
                     {
@@ -1137,8 +1134,8 @@ public static class PrivacyAndSecurityOptimizations
                     Name = "Improve inking and typing",
                     Description = "Send optional inking and typing diagnostic data to Microsoft",
                     GroupName = "Diagnostics & Feedback",
-                    IconPack = "Lucide",
-                    Icon = "PencilLine",
+                    IconPack = "Fluent",
+                    Icon = "Pen",
                     InputType = InputType.Toggle,
                     Dependencies = new List<SettingDependency>
                     {
@@ -1255,8 +1252,7 @@ public static class PrivacyAndSecurityOptimizations
                     Name = "Activity History",
                     Description = "Allows you to jump back into what you were doing with apps, docs, or other activities on startup",
                     GroupName = "Activity History",
-                    IconPack = "MaterialDesign",
-                    Icon = "WorkHistoryRound",
+                    Icon = "History",
                     InputType = InputType.Toggle,
                     IsWindows10Only = true,
                     RegistrySettings = new List<RegistrySetting>
@@ -1348,8 +1344,7 @@ public static class PrivacyAndSecurityOptimizations
                     Name = "Show search highlights",
                     Description = "See content suggestions in search",
                     GroupName = "Search permissions",
-                    IconPack = "MaterialDesign",
-                    Icon = "SavedSearchRound",
+                    Icon = "TextBoxSearch",
                     InputType = InputType.Toggle,
                     RegistrySettings = new List<RegistrySetting>
                     {
@@ -1419,8 +1414,8 @@ public static class PrivacyAndSecurityOptimizations
                     Description = "Enables Microsoft's Cortana virtual assistant for voice commands and searches",
                     GroupName = "Search permissions",
                     InputType = InputType.Toggle,
-                    IconPack = "Lucide",
-                    Icon = "BotMessageSquare",
+                    IconPack = "Fluent",
+                    Icon = "Bot",
                     RegistrySettings = new List<RegistrySetting>
                     {
                         new RegistrySetting

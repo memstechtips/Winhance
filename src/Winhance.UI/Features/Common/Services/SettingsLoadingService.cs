@@ -133,6 +133,8 @@ public class SettingsLoadingService : ISettingsLoadingService
             Name = setting.Name,
             Description = setting.Description,
             GroupName = setting.GroupName ?? string.Empty,
+            Icon = setting.Icon ?? string.Empty,
+            IconPack = setting.IconPack ?? "Material",
             InputType = setting.InputType,
             IsSelected = currentState.IsEnabled
         };

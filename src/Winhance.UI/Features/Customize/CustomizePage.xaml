@@ -17,7 +17,9 @@
                 Header="{x:Bind Name}"
                 Description="{x:Bind Description}"
                 IsEnabled="{x:Bind EffectiveIsEnabled}"
-                Visibility="{x:Bind IsVisible, Converter={StaticResource BooleanToVisibilityConverter}}">
+                Visibility="{x:Bind IsVisible, Converter={StaticResource BooleanToVisibilityConverter}}"
+                HeaderIcon="{x:Bind Converter={StaticResource SettingIconConverter}}"
+                Padding="16,12,16,12">
                 <commonControls:SettingsCardItem Setting="{x:Bind}"/>
             </controls:SettingsCard>
         </DataTemplate>

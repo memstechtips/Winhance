@@ -42,6 +42,12 @@ public partial class SettingItemViewModel : BaseViewModel
     private string _groupName = string.Empty;
 
     [ObservableProperty]
+    private string _icon = string.Empty;
+
+    [ObservableProperty]
+    private string _iconPack = "Material";
+
+    [ObservableProperty]
     private bool _isSelected;
 
     [ObservableProperty]

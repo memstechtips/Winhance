@@ -21,8 +21,8 @@ namespace Winhance.Core.Features.Optimize.Models
                         Id = "power-plan-selection",
                         Name = "Power Plan",
                         Description = "Select the active power plan for your system",
-                        Icon = "DatabaseZap",
-                        IconPack = "Lucide",
+                        Icon = "BatteryCharge",
+                        IconPack = "Fluent",
                         InputType = InputType.Selection,
                         CustomProperties = new Dictionary<string, object>
                         {
@@ -37,8 +37,8 @@ namespace Winhance.Core.Features.Optimize.Models
                         Name = "Turn off the display",
                         Description = "Specifies the period of inactivity before Windows turns off the display",
                         GroupName = "Display",
-                        IconPack = "Lucide",
-                        Icon = "MonitorX",
+                        IconPack = "Fluent",
+                        Icon = "DesktopOff",
                         InputType = InputType.Selection,
                         PowerCfgSettings = new List<PowerCfgSetting>
                         {
@@ -1090,8 +1090,7 @@ namespace Winhance.Core.Features.Optimize.Models
                         Name = "Disable Power Throttling",
                         Description = "Automatically reduces CPU performance for background processes to improve battery life and reduce heat generation",
                         GroupName = "Processor Power Management",
-                        IconPack = "MaterialDesign",
-                        Icon = "DeselectRound",
+                        Icon = "SelectOff",
                         InputType = InputType.Toggle,
                         RegistrySettings = new List<RegistrySetting>
                         {

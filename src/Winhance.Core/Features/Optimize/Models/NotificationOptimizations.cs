@@ -67,8 +67,7 @@ public static class NotificationOptimizations
                     Id = "notifications-toast-above-lock",
                     Name = "Show notifications on the lock screen",
                     Description = "Display toast notifications on the lock screen when your device is locked",
-                    IconPack = "MaterialDesign",
-                    Icon = "ScreenLockLandscapeOutline",
+                    Icon = "CellphoneLock",
                     InputType = InputType.Toggle,
                     ParentSettingId = "windows-pushnotifications",
                     Dependencies = new List<SettingDependency>
@@ -202,8 +201,7 @@ public static class NotificationOptimizations
                     Name = "Suggest ways to get the most out of Windows and finish setting up this device",
                     Description = "Show suggestions to help you complete device setup and optimize Windows features",
                     GroupName = "Additional Settings",
-                    IconPack = "MaterialDesign",
-                    Icon = "AutoAwesomeRound",
+                    Icon = "AutoFix",
                     InputType = InputType.Toggle,
                     RegistrySettings = new List<RegistrySetting>
                     {
@@ -226,8 +224,7 @@ public static class NotificationOptimizations
                     Name = "Get tips and suggestions when using Windows",
                     Description = "Show helpful tips and suggestions while using Windows",
                     GroupName = "Additional Settings",
-                    IconPack = "MaterialDesign",
-                    Icon = "TipsAndUpdatesOutline",
+                    Icon = "LightbulbOnOutline",
                     InputType = InputType.Toggle,
                     Dependencies = new List<SettingDependency>
                     {
@@ -260,7 +257,6 @@ public static class NotificationOptimizations
                     Name = "Show suggestions in Notification Center",
                     Description = "Display helpful suggestions in the Action Center and Notification Center",
                     GroupName = "Additional Settings",
-                    IconPack = "MaterialDesign",
                     Icon = "Doorbell",
                     InputType = InputType.Toggle,
                     Dependencies = new List<SettingDependency>
@@ -385,8 +381,8 @@ public static class NotificationOptimizations
                     Name = "Windows Security Notifications",
                     Description = "Show all notifications from Windows Security about threats, scans, and protection status",
                     GroupName = "Security Notifications",
-                    IconPack = "Lucide",
-                    Icon = "ShieldAlert",
+                    IconPack = "Fluent",
+                    Icon = "ShieldError",
                     InputType = InputType.Toggle,
                     RegistrySettings = new List<RegistrySetting>
                     {
