@@ -1,0 +1,76 @@
+<?xml version="1.0" encoding="utf-8"?>
+<UserControl
+    x:Class="Winhance.UI.Features.Common.Controls.NavSidebar"
+    xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+    xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+    xmlns:local="using:Winhance.UI.Features.Common.Controls">
+
+    <Grid x:Name="SidebarGrid"
+          Width="{x:Bind ActualSidebarWidth, Mode=OneWay}"
+          Background="Transparent">
+
+        <Grid.RowDefinitions>
+            <RowDefinition Height="Auto"/>  <!-- Top Nav Buttons -->
+            <RowDefinition Height="*"/>     <!-- Spacer -->
+            <RowDefinition Height="Auto"/>  <!-- Bottom Nav Buttons -->
+        </Grid.RowDefinitions>
+
+        <!-- Top Navigation Buttons -->
+        <StackPanel x:Name="TopNavPanel"
+                    Grid.Row="0"
+                    Spacing="4"
+                    Padding="{x:Bind NavPanelPadding, Mode=OneWay}"
+                    Margin="0,8,0,0">
+
+            <local:NavButton x:Name="SoftwareAppsButton"
+                             IconGlyph="&#xE71D;"
+                             Text="Software &amp; Apps"
+                             NavigationTag="SoftwareApps"
+                             IsCompact="{x:Bind IsCompact, Mode=OneWay}"
+                             Clicked="NavButton_Clicked"/>
+
+            <local:NavButton x:Name="OptimizeButton"
+                             IconGlyph="&#xE7C1;"
+                             Text="Optimize"
+                             NavigationTag="Optimize"
+                             IsCompact="{x:Bind IsCompact, Mode=OneWay}"
+                             Clicked="NavButton_Clicked"/>
+
+            <local:NavButton x:Name="CustomizeButton"
+                             IconGlyph="&#xE771;"
+                             Text="Customize"
+                             NavigationTag="Customize"
+                             IsCompact="{x:Bind IsCompact, Mode=OneWay}"
+                             Clicked="NavButton_Clicked"/>
+        </StackPanel>
+
+        <!-- Bottom Navigation Buttons -->
+        <StackPanel x:Name="BottomNavPanel"
+                    Grid.Row="2"
+                    Spacing="4"
+                    Padding="{x:Bind NavPanelPadding, Mode=OneWay}"
+                    Margin="0,0,0,8">
+
+            <local:NavButton x:Name="AdvancedToolsButton"
+                             IconGlyph="&#xE90F;"
+                             Text="Advanced Tools"
+                             NavigationTag="AdvancedTools"
+                             IsCompact="{x:Bind IsCompact, Mode=OneWay}"
+                             Clicked="NavButton_Clicked"/>
+
+            <local:NavButton x:Name="SettingsButton"
+                             IconGlyph="&#xE713;"
+                             Text="Settings"
+                             NavigationTag="Settings"
+                             IsCompact="{x:Bind IsCompact, Mode=OneWay}"
+                             Clicked="NavButton_Clicked"/>
+
+            <local:NavButton x:Name="MoreButton"
+                             IconGlyph="&#xE712;"
+                             Text="More"
+                             NavigationTag="More"
+                             IsCompact="{x:Bind IsCompact, Mode=OneWay}"
+                             Clicked="NavButton_Clicked"/>
+        </StackPanel>
+    </Grid>
+</UserControl>

@@ -4,11 +4,12 @@
     xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
     xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
     xmlns:local="using:Winhance.UI"
+    xmlns:controls="using:Winhance.UI.Features.Common.Controls"
     Title="Winhance">
 
     <Grid x:Name="RootGrid" Loaded="RootGrid_Loaded">
         <Grid.RowDefinitions>
-            <RowDefinition Height="Auto"/>
+            <RowDefinition Height="48"/>  <!-- TitleBar -->
             <RowDefinition Height="*"/>
         </Grid.RowDefinitions>
 
@@ -16,6 +17,7 @@
         <Grid x:Name="AppTitleBar" Height="48" Grid.Row="0">
             <Grid.ColumnDefinitions>
                 <ColumnDefinition x:Name="LeftPaddingColumn" Width="0"/>
+                <ColumnDefinition x:Name="ToggleColumn" Width="Auto"/>
                 <ColumnDefinition x:Name="IconColumn" Width="Auto"/>
                 <ColumnDefinition x:Name="TitleColumn" Width="Auto"/>
                 <ColumnDefinition x:Name="DragColumn" Width="*"/>
@@ -23,15 +25,25 @@
                 <ColumnDefinition x:Name="RightPaddingColumn" Width="0"/>
             </Grid.ColumnDefinitions>
 
+            <!-- Navigation Toggle Button (Hamburger) -->
+            <Button x:Name="PaneToggleButton"
+                    Grid.Column="1"
+                    Click="PaneToggleButton_Click"
+                    Style="{StaticResource TitleBarButtonStyle}"
+                    ToolTipService.ToolTip="Toggle Navigation"
+                    Margin="4,0,0,0">
+                <FontIcon Glyph="&#xE700;" FontSize="16"/>
+            </Button>
+
             <!-- App Icon -->
             <Image x:Name="AppIcon"
-                   Grid.Column="1"
+                   Grid.Column="2"
                    Width="20" Height="20"
-                   Margin="12,0,8,0"
+                   Margin="8,0,8,0"
                    VerticalAlignment="Center"/>
 
             <!-- App Title and Subtitle -->
-            <StackPanel Grid.Column="2"
+            <StackPanel Grid.Column="3"
                         Orientation="Horizontal"
                         VerticalAlignment="Center"
                         Spacing="6">
@@ -49,7 +61,7 @@
 
             <!-- Title Bar Action Buttons -->
             <StackPanel x:Name="TitleBarButtons"
-                        Grid.Column="4"
+                        Grid.Column="5"
                         Orientation="Horizontal"
                         VerticalAlignment="Center"
                         Margin="0,0,8,0"
@@ -92,41 +104,21 @@
             </StackPanel>
         </Grid>
 
-        <!-- Main Content with NavigationView -->
-        <NavigationView
-            x:Name="NavView"
-            Grid.Row="1"
-            IsBackButtonVisible="Collapsed"
-            IsSettingsVisible="True"
-            PaneDisplayMode="Left"
-            SelectionChanged="NavView_SelectionChanged">
+        <!-- Main Content Area -->
+        <Grid Grid.Row="1">
+            <Grid.ColumnDefinitions>
+                <ColumnDefinition Width="Auto"/>  <!-- NavSidebar -->
+                <ColumnDefinition Width="*"/>     <!-- Content -->
+            </Grid.ColumnDefinitions>
 
-            <NavigationView.MenuItems>
-                <NavigationViewItem Content="Software &amp; Apps" Tag="SoftwareApps">
-                    <NavigationViewItem.Icon>
-                        <FontIcon Glyph="&#xE71D;"/>
-                    </NavigationViewItem.Icon>
-                </NavigationViewItem>
-                <NavigationViewItem Content="Optimize" Tag="Optimize">
-                    <NavigationViewItem.Icon>
-                        <FontIcon Glyph="&#xE7C1;"/>
-                    </NavigationViewItem.Icon>
-                </NavigationViewItem>
-                <NavigationViewItem Content="Customize" Tag="Customize">
-                    <NavigationViewItem.Icon>
-                        <FontIcon Glyph="&#xE771;"/>
-                    </NavigationViewItem.Icon>
-                </NavigationViewItem>
-                <NavigationViewItem Content="Advanced Tools" Tag="AdvancedTools">
-                    <NavigationViewItem.Icon>
-                        <FontIcon Glyph="&#xE90F;"/>
-                    </NavigationViewItem.Icon>
-                </NavigationViewItem>
-            </NavigationView.MenuItems>
+            <!-- Custom Navigation Sidebar -->
+            <controls:NavSidebar x:Name="NavSidebar"
+                                 Grid.Column="0"
+                                 ItemClicked="NavSidebar_ItemClicked"/>
 
             <!-- Content Frame for Page Navigation -->
-            <Frame x:Name="ContentFrame"/>
-        </NavigationView>
+            <Frame x:Name="ContentFrame" Grid.Column="1"/>
+        </Grid>
 
         <!-- Loading Overlay (shown during initialization) -->
         <Grid x:Name="LoadingOverlay"

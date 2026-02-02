@@ -1,11 +1,13 @@
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.UI.Composition.SystemBackdrops;
+using Microsoft.UI.Input;
 using Microsoft.UI.Xaml;
 using Microsoft.UI.Xaml.Controls;
 using Microsoft.UI.Xaml.Media;
 using Microsoft.UI.Xaml.Media.Imaging;
 using Winhance.Core.Features.Common.Interfaces;
 using Winhance.UI.Features.AdvancedTools;
+using Winhance.UI.Features.Common.Controls;
 using Winhance.UI.Features.Common.Interfaces;
 using Winhance.UI.Features.Common.Services;
 using Winhance.UI.Features.Customize;
@@ -13,11 +15,16 @@ using Winhance.UI.Features.Optimize;
 using Winhance.UI.Features.Settings;
 using Winhance.UI.Features.SoftwareApps;
 using Winhance.UI.ViewModels;
+using System;
+using System.Collections.Generic;
+using System.IO;
+using Windows.Foundation;
+using Windows.Graphics;
 
 namespace Winhance.UI;
 
 /// <summary>
-/// Main application window with NavigationView.
+/// Main application window with custom NavSidebar navigation.
 /// </summary>
 public sealed partial class MainWindow : Window
 {
@@ -64,20 +71,20 @@ public sealed partial class MainWindow : Window
         // Set up title bar after loaded
         AppTitleBar.Loaded += AppTitleBar_Loaded;
 
-        // Set default navigation to SoftwareApps after window is loaded
-        NavView.Loaded += NavView_Loaded;
+        // Set default navigation after sidebar is loaded
+        NavSidebar.Loaded += NavSidebar_Loaded;
     }
 
     /// <summary>
-    /// Sets the default navigation item after the NavigationView is loaded.
+    /// Sets the default navigation item after the NavSidebar is loaded.
     /// </summary>
-    private void NavView_Loaded(object sender, RoutedEventArgs e)
+    private void NavSidebar_Loaded(object sender, RoutedEventArgs e)
     {
-        Log($"NavView_Loaded - MenuItems count: {NavView.MenuItems.Count}");
+        Log("NavSidebar_Loaded");
         // Navigate to Settings page by default (for testing - has fewer dependencies)
-        // TODO: Change back to SoftwareApps when all services are registered
         Log("Navigating to Settings as default...");
-        NavView.SelectedItem = NavView.SettingsItem;
+        NavSidebar.SelectedTag = "Settings";
+        NavigateToPage("Settings");
         Log("Settings selected");
     }
 
@@ -156,27 +163,21 @@ public sealed partial class MainWindow : Window
     }
 
     /// <summary>
-    /// Handles navigation when a NavigationViewItem is selected.
+    /// Handles the pane toggle button click in the title bar.
     /// </summary>
-    private void NavView_SelectionChanged(NavigationView sender, NavigationViewSelectionChangedEventArgs args)
+    private void PaneToggleButton_Click(object sender, RoutedEventArgs e)
     {
-        Log($"NavView_SelectionChanged - IsSettingsSelected: {args.IsSettingsSelected}");
-        if (args.IsSettingsSelected)
-        {
-            NavigateToPage("Settings");
-            return;
-        }
+        NavSidebar.TogglePane();
+    }
 
-        if (args.SelectedItemContainer is NavigationViewItem item)
-        {
-            var tag = item.Tag?.ToString();
-            Log($"Selected item tag: {tag}");
-            NavigateToPage(tag);
-        }
-        else
-        {
-            Log("SelectedItemContainer is null or not NavigationViewItem");
-        }
+    /// <summary>
+    /// Handles navigation when a NavButton is clicked in the sidebar.
+    /// </summary>
+    private void NavSidebar_ItemClicked(object sender, NavButtonClickedEventArgs e)
+    {
+        var tag = e.NavigationTag?.ToString();
+        Log($"NavSidebar_ItemClicked - Tag: {tag}");
+        NavigateToPage(tag);
     }
 
     /// <summary>
@@ -192,6 +193,7 @@ public sealed partial class MainWindow : Window
             "Customize" => typeof(CustomizePage),
             "AdvancedTools" => typeof(AdvancedToolsPage),
             "SoftwareApps" => typeof(SoftwareAppsPage),
+            "More" => null, // More button could open a flyout or dialog
             _ => null
         };
 
@@ -232,6 +234,16 @@ public sealed partial class MainWindow : Window
         LoadingOverlay.Visibility = Visibility.Collapsed;
     }
 
+    /// <summary>
+    /// Sets the loading state for a specific navigation button.
+    /// </summary>
+    /// <param name="tag">The navigation tag of the button.</param>
+    /// <param name="isLoading">Whether the button should show loading state.</param>
+    public void SetNavButtonLoading(string tag, bool isLoading)
+    {
+        NavSidebar.SetButtonLoading(tag, isLoading);
+    }
+
     #region Title Bar
 
     /// <summary>
@@ -242,8 +254,69 @@ public sealed partial class MainWindow : Window
         // Set up caption button padding
         SetTitleBarPadding();
 
+        // Defer passthrough region setup to ensure all elements are laid out
+        DispatcherQueue.TryEnqueue(() => SetTitleBarPassthroughRegions());
+
+        // Update passthrough regions when title bar size changes
+        AppTitleBar.SizeChanged += (_, _) => SetTitleBarPassthroughRegions();
+        TitleBarButtons.SizeChanged += (_, _) => SetTitleBarPassthroughRegions();
+
         // Initialize ViewModel and wire up bindings
         InitializeViewModel();
+    }
+
+    /// <summary>
+    /// Sets up passthrough regions for interactive elements in the title bar.
+    /// This prevents double-clicks on buttons from maximizing the window.
+    /// </summary>
+    private void SetTitleBarPassthroughRegions()
+    {
+        try
+        {
+            var nonClientInputSrc = InputNonClientPointerSource.GetForWindowId(this.AppWindow.Id);
+            var scale = AppTitleBar.XamlRoot?.RasterizationScale ?? 1.0;
+
+            var passthroughRects = new List<RectInt32>();
+
+            // Add passthrough region for the pane toggle button
+            AddElementPassthroughRect(PaneToggleButton, scale, passthroughRects);
+
+            // Add passthrough region for the entire title bar buttons container
+            // This ensures all buttons are covered regardless of individual positioning
+            AddElementPassthroughRect(TitleBarButtons, scale, passthroughRects);
+
+            if (passthroughRects.Count > 0)
+            {
+                nonClientInputSrc.SetRegionRects(NonClientRegionKind.Passthrough, passthroughRects.ToArray());
+            }
+        }
+        catch (Exception ex)
+        {
+            System.Diagnostics.Debug.WriteLine($"Failed to set title bar passthrough regions: {ex.Message}");
+        }
+    }
+
+    /// <summary>
+    /// Adds an element's bounds to the passthrough rectangles list.
+    /// </summary>
+    private void AddElementPassthroughRect(FrameworkElement element, double scale, List<RectInt32> rects)
+    {
+        try
+        {
+            var transform = element.TransformToVisual(null);
+            var bounds = transform.TransformBounds(new Rect(0, 0, element.ActualWidth, element.ActualHeight));
+
+            rects.Add(new RectInt32(
+                _X: (int)Math.Round(bounds.X * scale),
+                _Y: (int)Math.Round(bounds.Y * scale),
+                _Width: (int)Math.Round(bounds.Width * scale),
+                _Height: (int)Math.Round(bounds.Height * scale)
+            ));
+        }
+        catch (Exception ex)
+        {
+            System.Diagnostics.Debug.WriteLine($"Failed to add passthrough rect for {element.Name}: {ex.Message}");
+        }
     }
 
     /// <summary>
