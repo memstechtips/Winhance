@@ -7,17 +7,7 @@
     xmlns:viewModels="using:Winhance.UI.Features.Settings.ViewModels"
     xmlns:controls="using:CommunityToolkit.WinUI.Controls">
 
-    <Page.Resources>
-        <x:Double x:Key="SettingsCardSpacing">4</x:Double>
-        <Style
-            x:Key="SettingsSectionHeaderTextBlockStyle"
-            BasedOn="{StaticResource BodyStrongTextBlockStyle}"
-            TargetType="TextBlock">
-            <Style.Setters>
-                <Setter Property="Margin" Value="1,30,0,6" />
-            </Style.Setters>
-        </Style>
-    </Page.Resources>
+    <!-- Resources are now defined in SettingTemplates.xaml -->
 
     <ScrollViewer
         Padding="0,24,0,24"
@@ -26,8 +16,8 @@
         <Grid>
             <StackPanel
                 HorizontalAlignment="Stretch"
-                MaxWidth="1000"
-                Margin="36,0,36,0"
+                MaxWidth="{StaticResource SettingsContentMaxWidth}"
+                Margin="{StaticResource SettingsContentMargin}"
                 Spacing="{StaticResource SettingsCardSpacing}">
 
                 <!-- Page Header -->

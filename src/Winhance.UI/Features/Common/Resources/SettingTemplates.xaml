@@ -1,0 +1,23 @@
+<?xml version="1.0" encoding="utf-8"?>
+<ResourceDictionary
+    xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+    xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml">
+
+    <!-- Common spacing for settings cards -->
+    <x:Double x:Key="SettingsCardSpacing">4</x:Double>
+
+    <!-- Common layout values for settings pages -->
+    <x:Double x:Key="SettingsContentMaxWidth">1000</x:Double>
+    <Thickness x:Key="SettingsContentMargin">36,0,36,0</Thickness>
+
+    <!-- Style for settings section headers -->
+    <Style
+        x:Key="SettingsSectionHeaderTextBlockStyle"
+        BasedOn="{StaticResource BodyStrongTextBlockStyle}"
+        TargetType="TextBlock">
+        <Style.Setters>
+            <Setter Property="Margin" Value="1,30,0,6" />
+        </Style.Setters>
+    </Style>
+
+</ResourceDictionary>

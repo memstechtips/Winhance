@@ -13,6 +13,8 @@
                 <ResourceDictionary Source="ms-appx:///Features/Common/Resources/LegacyThemes.xaml" />
                 <!-- Value converters -->
                 <ResourceDictionary Source="ms-appx:///Features/Common/Resources/Converters.xaml" />
+                <!-- Shared setting templates and styles -->
+                <ResourceDictionary Source="ms-appx:///Features/Common/Resources/SettingTemplates.xaml" />
             </ResourceDictionary.MergedDictionaries>
             <!-- Other app resources here -->
         </ResourceDictionary>

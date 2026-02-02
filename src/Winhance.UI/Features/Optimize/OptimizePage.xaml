@@ -6,79 +6,19 @@
     xmlns:local="using:Winhance.UI.Features.Optimize"
     xmlns:viewModels="using:Winhance.UI.Features.Optimize.ViewModels"
     xmlns:controls="using:CommunityToolkit.WinUI.Controls"
-    xmlns:selectors="using:Winhance.UI.Features.Common.TemplateSelectors"
+    xmlns:commonControls="using:Winhance.UI.Features.Common.Controls"
     x:DefaultBindMode="OneWay"
     NavigationCacheMode="Required">
 
     <Page.Resources>
-        <!-- Template for Toggle settings (only contains ToggleSwitch) -->
-        <DataTemplate x:Key="ToggleSettingTemplate" x:DataType="viewModels:SettingItemViewModel">
-            <ToggleSwitch
-                IsOn="{x:Bind IsSelected, Mode=OneWay}"
-                Toggled="{x:Bind OnToggleSwitchToggled}"
-                OnContent=""
-                OffContent=""/>
-        </DataTemplate>
-
-        <!-- Template for Selection settings (only contains ComboBox) -->
-        <DataTemplate x:Key="SelectionSettingTemplate" x:DataType="viewModels:SettingItemViewModel">
-            <ComboBox
-                ItemsSource="{x:Bind ComboBoxOptions}"
-                SelectedValue="{x:Bind SelectedValue, Mode=OneWay}"
-                DropDownClosed="{x:Bind OnComboBoxDropDownClosed}"
-                SelectedValuePath="Value"
-                DisplayMemberPath="DisplayText"
-                MinWidth="150"/>
-        </DataTemplate>
-
-        <!-- Template for NumericRange settings (only contains NumberBox) -->
-        <DataTemplate x:Key="NumericSettingTemplate" x:DataType="viewModels:SettingItemViewModel">
-            <NumberBox
-                Value="{x:Bind NumericValue, Mode=OneWay}"
-                ValueChanged="{x:Bind OnNumberBoxValueChanged}"
-                Minimum="{x:Bind MinValue}"
-                Maximum="{x:Bind MaxValue}"
-                SpinButtonPlacementMode="Inline"
-                SmallChange="1"
-                LargeChange="10"
-                MinWidth="120"/>
-        </DataTemplate>
-
-        <!-- Template for Action settings (only contains Button) -->
-        <DataTemplate x:Key="ActionSettingTemplate" x:DataType="viewModels:SettingItemViewModel">
-            <Button
-                Content="Run"
-                Command="{x:Bind ExecuteActionCommand}"/>
-        </DataTemplate>
-
-        <!-- Template for CheckBox settings (only contains CheckBox) -->
-        <DataTemplate x:Key="CheckBoxSettingTemplate" x:DataType="viewModels:SettingItemViewModel">
-            <CheckBox
-                IsChecked="{x:Bind IsSelected, Mode=OneWay}"
-                Click="{x:Bind OnCheckBoxClick}"/>
-        </DataTemplate>
-
-        <!-- Template Selector that chooses the right template based on InputType -->
-        <selectors:SettingTemplateSelector
-            x:Key="SettingTemplateSelector"
-            ToggleTemplate="{StaticResource ToggleSettingTemplate}"
-            SelectionTemplate="{StaticResource SelectionSettingTemplate}"
-            NumericTemplate="{StaticResource NumericSettingTemplate}"
-            ActionTemplate="{StaticResource ActionSettingTemplate}"
-            CheckBoxTemplate="{StaticResource CheckBoxSettingTemplate}"/>
-
-        <!-- Main item template that wraps each setting in a SettingsCard with the appropriate control -->
+        <!-- ItemTemplate: SettingsCard wraps the shared SettingsCardItem control -->
         <DataTemplate x:Key="SettingItemTemplate" x:DataType="viewModels:SettingItemViewModel">
             <controls:SettingsCard
                 Header="{x:Bind Name}"
                 Description="{x:Bind Description}"
                 IsEnabled="{x:Bind EffectiveIsEnabled}"
                 Visibility="{x:Bind IsVisible, Converter={StaticResource BooleanToVisibilityConverter}}">
-                <!-- ContentControl uses the TemplateSelector to create only the appropriate control -->
-                <ContentControl
-                    Content="{x:Bind}"
-                    ContentTemplateSelector="{StaticResource SettingTemplateSelector}"
-                    HorizontalContentAlignment="Stretch"/>
+                <commonControls:SettingsCardItem Setting="{x:Bind}"/>
             </controls:SettingsCard>
         </DataTemplate>
     </Page.Resources>
@@ -146,7 +86,7 @@
         <ScrollView
             Grid.Row="2"
             Visibility="{x:Bind ViewModel.IsNotLoading}">
-            <StackPanel Spacing="8" MaxWidth="900" HorizontalAlignment="Stretch">
+            <StackPanel Spacing="8" MaxWidth="{StaticResource SettingsContentMaxWidth}" Margin="{StaticResource SettingsContentMargin}" HorizontalAlignment="Stretch">
 
                 <!-- Sound Optimizations -->
                 <controls:SettingsExpander
