@@ -9,6 +9,7 @@ namespace Winhance.UI.Features.Customize.ViewModels;
 public partial class CustomizeViewModel : ObservableObject
 {
     private readonly ILogService _logService;
+    private readonly ILocalizationService _localizationService;
     private bool _isInitialized;
 
     [ObservableProperty]
@@ -16,6 +17,16 @@ public partial class CustomizeViewModel : ObservableObject
 
     [ObservableProperty]
     private string _searchText = string.Empty;
+
+    /// <summary>
+    /// Gets the localized page title.
+    /// </summary>
+    public string PageTitle => _localizationService.GetString("Category_Customize_Title");
+
+    /// <summary>
+    /// Gets the localized page description.
+    /// </summary>
+    public string PageDescription => _localizationService.GetString("Category_Customize_StatusText");
 
     /// <summary>
     /// Gets whether the page is not loading (inverse of IsLoading for visibility binding).
@@ -53,12 +64,14 @@ public partial class CustomizeViewModel : ObservableObject
 
     public CustomizeViewModel(
         ILogService logService,
+        ILocalizationService localizationService,
         ExplorerCustomizationsViewModel explorerViewModel,
         StartMenuCustomizationsViewModel startMenuViewModel,
         TaskbarCustomizationsViewModel taskbarViewModel,
         WindowsThemeCustomizationsViewModel windowsThemeViewModel)
     {
         _logService = logService;
+        _localizationService = localizationService;
         ExplorerViewModel = explorerViewModel;
         StartMenuViewModel = startMenuViewModel;
         TaskbarViewModel = taskbarViewModel;

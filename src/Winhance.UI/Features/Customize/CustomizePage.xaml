@@ -25,49 +25,47 @@
         </DataTemplate>
     </Page.Resources>
 
-    <Grid Padding="24">
+    <Grid Padding="0,0,12,0">
         <Grid.RowDefinitions>
             <RowDefinition Height="Auto"/>
             <RowDefinition Height="Auto"/>
             <RowDefinition Height="*"/>
         </Grid.RowDefinitions>
 
-        <!-- Page Header -->
-        <Grid Grid.Row="0" Margin="0,0,0,24">
-            <Grid.ColumnDefinitions>
-                <ColumnDefinition Width="Auto"/>
-                <ColumnDefinition Width="*"/>
-                <ColumnDefinition Width="Auto"/>
-            </Grid.ColumnDefinitions>
-
-            <StackPanel Grid.Column="0" Orientation="Horizontal" Spacing="16">
-                <Viewbox Width="56" Height="56" Stretch="Uniform">
-                    <PathIcon Data="{StaticResource CustomizeIconPath}"/>
-                </Viewbox>
-                <StackPanel VerticalAlignment="Center">
-                    <TextBlock
-                        Text="Customize"
-                        Style="{StaticResource TitleTextBlockStyle}"/>
-                    <TextBlock
-                        Text="Customize your Windows appearance and behavior"
-                        Style="{StaticResource CaptionTextBlockStyle}"
-                        Foreground="{ThemeResource TextFillColorSecondaryBrush}"/>
-                </StackPanel>
+        <!-- Page Header with Icon -->
+        <StackPanel Grid.Row="0" Orientation="Horizontal" Spacing="16">
+            <Viewbox Width="64" Height="64" Stretch="Uniform">
+                <PathIcon Data="{StaticResource CustomizeIconPath}"/>
+            </Viewbox>
+            <StackPanel VerticalAlignment="Center">
+                <TextBlock
+                    Text="{x:Bind ViewModel.PageTitle}"
+                    Style="{StaticResource TitleTextBlockStyle}"
+                    FontWeight="Bold"
+                    FontSize="30"/>
+                <TextBlock
+                    Text="{x:Bind ViewModel.PageDescription}"
+                    Style="{StaticResource CaptionTextBlockStyle}"
+                    Foreground="{ThemeResource TextFillColorTertiaryBrush}"
+                    Margin="0,2,0,0"/>
             </StackPanel>
+        </StackPanel>
 
-            <!-- Search Box -->
-            <Grid Grid.Column="2" Width="250">
+        <!-- Search Box Row -->
+        <Grid Grid.Row="1" Margin="0,12,0,16" HorizontalAlignment="Right">
+            <Grid Width="220">
                 <TextBox
                     x:Name="SearchTextBox"
                     PlaceholderText="Search settings..."
                     Text="{x:Bind ViewModel.SearchText, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}"
-                    Padding="8,8,36,8"/>
+                    Padding="8,4,36,4"
+                    MinHeight="0"/>
                 <FontIcon
                     Glyph="{StaticResource SearchIconGlyph}"
-                    FontSize="14"
+                    FontSize="12"
                     HorizontalAlignment="Right"
                     VerticalAlignment="Center"
-                    Margin="0,0,12,0"
+                    Margin="0,0,10,0"
                     Foreground="{ThemeResource TextFillColorSecondaryBrush}"
                     IsHitTestVisible="False"/>
             </Grid>
