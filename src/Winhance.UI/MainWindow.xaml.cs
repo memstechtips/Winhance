@@ -3,6 +3,7 @@ using Microsoft.UI.Composition.SystemBackdrops;
 using Microsoft.UI.Xaml;
 using Microsoft.UI.Xaml.Controls;
 using Microsoft.UI.Xaml.Media;
+using Microsoft.UI.Xaml.Media.Imaging;
 using Winhance.Core.Features.Common.Interfaces;
 using Winhance.UI.Features.AdvancedTools;
 using Winhance.UI.Features.Common.Interfaces;
@@ -11,6 +12,7 @@ using Winhance.UI.Features.Customize;
 using Winhance.UI.Features.Optimize;
 using Winhance.UI.Features.Settings;
 using Winhance.UI.Features.SoftwareApps;
+using Winhance.UI.ViewModels;
 
 namespace Winhance.UI;
 
@@ -20,6 +22,7 @@ namespace Winhance.UI;
 public sealed partial class MainWindow : Window
 {
     private static readonly string LogFile = Path.Combine(AppContext.BaseDirectory, "..", "..", "..", "..", "..", "startup-debug.log");
+    private MainWindowViewModel? _viewModel;
 
     private static void Log(string message)
     {
@@ -40,6 +43,13 @@ public sealed partial class MainWindow : Window
         ExtendsContentIntoTitleBar = true;
         SetTitleBar(AppTitleBar);
 
+        // Set tall title bar mode so caption buttons fill the full height
+        this.AppWindow.TitleBar.PreferredHeightOption = Microsoft.UI.Windowing.TitleBarHeightOption.Tall;
+
+        // Apply theme-aware caption button colors and update when theme changes
+        RootGrid.ActualThemeChanged += (_, _) => ApplySystemThemeToCaptionButtons();
+        RootGrid.Loaded += (_, _) => ApplySystemThemeToCaptionButtons();
+
         // Set initial window size
         var appWindow = this.AppWindow;
         appWindow.Resize(new Windows.Graphics.SizeInt32(1280, 800));
@@ -50,6 +60,9 @@ public sealed partial class MainWindow : Window
         // Initialize DispatcherService - MUST be done before any service uses it
         // This is required because DispatcherQueue is only available after window creation
         InitializeDispatcherService();
+
+        // Set up title bar after loaded
+        AppTitleBar.Loaded += AppTitleBar_Loaded;
 
         // Set default navigation to SoftwareApps after window is loaded
         NavView.Loaded += NavView_Loaded;
@@ -218,4 +231,144 @@ public sealed partial class MainWindow : Window
     {
         LoadingOverlay.Visibility = Visibility.Collapsed;
     }
+
+    #region Title Bar
+
+    /// <summary>
+    /// Called when the title bar is loaded. Sets up ViewModel bindings and padding.
+    /// </summary>
+    private void AppTitleBar_Loaded(object sender, RoutedEventArgs e)
+    {
+        // Set up caption button padding
+        SetTitleBarPadding();
+
+        // Initialize ViewModel and wire up bindings
+        InitializeViewModel();
+    }
+
+    /// <summary>
+    /// Initializes the ViewModel and wires up button commands.
+    /// </summary>
+    private void InitializeViewModel()
+    {
+        try
+        {
+            _viewModel = App.Services.GetService<MainWindowViewModel>();
+
+            if (_viewModel != null)
+            {
+                // Wire up button commands
+                SaveConfigButton.Command = _viewModel.SaveConfigCommand;
+                ImportConfigButton.Command = _viewModel.ImportConfigCommand;
+                WindowsFilterButton.Command = _viewModel.WindowsFilterCommand;
+                DonateButton.Command = _viewModel.DonateCommand;
+                BugReportButton.Command = _viewModel.BugReportCommand;
+
+                // Wire up tooltips
+                ToolTipService.SetToolTip(SaveConfigButton, _viewModel.SaveConfigTooltip);
+                ToolTipService.SetToolTip(ImportConfigButton, _viewModel.ImportConfigTooltip);
+                ToolTipService.SetToolTip(WindowsFilterButton, _viewModel.WindowsFilterTooltip);
+                ToolTipService.SetToolTip(DonateButton, _viewModel.DonateTooltip);
+                ToolTipService.SetToolTip(BugReportButton, _viewModel.BugReportTooltip);
+
+                // Subscribe to icon changes
+                _viewModel.PropertyChanged += ViewModel_PropertyChanged;
+
+                // Set initial icon
+                UpdateAppIcon();
+            }
+        }
+        catch (Exception ex)
+        {
+            System.Diagnostics.Debug.WriteLine($"Failed to initialize ViewModel: {ex.Message}");
+        }
+    }
+
+    /// <summary>
+    /// Handles ViewModel property changes.
+    /// </summary>
+    private void ViewModel_PropertyChanged(object? sender, System.ComponentModel.PropertyChangedEventArgs e)
+    {
+        if (e.PropertyName == nameof(MainWindowViewModel.AppIconSource))
+        {
+            DispatcherQueue.TryEnqueue(UpdateAppIcon);
+        }
+    }
+
+    /// <summary>
+    /// Updates the app icon from the ViewModel.
+    /// </summary>
+    private void UpdateAppIcon()
+    {
+        try
+        {
+            if (_viewModel != null)
+            {
+                AppIcon.Source = new BitmapImage(new Uri(_viewModel.AppIconSource));
+            }
+        }
+        catch (Exception ex)
+        {
+            System.Diagnostics.Debug.WriteLine($"Failed to update app icon: {ex.Message}");
+        }
+    }
+
+    /// <summary>
+    /// Sets the padding columns to account for system caption buttons.
+    /// </summary>
+    private void SetTitleBarPadding()
+    {
+        try
+        {
+            var titleBar = this.AppWindow.TitleBar;
+            var scale = AppTitleBar.XamlRoot?.RasterizationScale ?? 1.0;
+
+            // Account for caption buttons (minimize, maximize, close)
+            RightPaddingColumn.Width = new GridLength(titleBar.RightInset / scale);
+            LeftPaddingColumn.Width = new GridLength(titleBar.LeftInset / scale);
+        }
+        catch (Exception ex)
+        {
+            System.Diagnostics.Debug.WriteLine($"Failed to set title bar padding: {ex.Message}");
+        }
+    }
+
+    /// <summary>
+    /// Applies theme-aware colors to the caption buttons (minimize, maximize, close).
+    /// This is a workaround as AppWindow TitleBar doesn't update caption button colors correctly when theme changes.
+    /// Based on WinUI Gallery implementation.
+    /// </summary>
+    private void ApplySystemThemeToCaptionButtons()
+    {
+        try
+        {
+            var titleBar = this.AppWindow.TitleBar;
+            var currentTheme = RootGrid.ActualTheme;
+
+            // Set foreground colors based on theme
+            var foregroundColor = currentTheme == ElementTheme.Dark
+                ? Microsoft.UI.Colors.White
+                : Microsoft.UI.Colors.Black;
+
+            titleBar.ButtonForegroundColor = foregroundColor;
+            titleBar.ButtonHoverForegroundColor = foregroundColor;
+
+            // Set hover background to subtle theme-aware color (~9% opacity)
+            var hoverBackgroundColor = currentTheme == ElementTheme.Dark
+                ? Windows.UI.Color.FromArgb(24, 255, 255, 255)  // Subtle white
+                : Windows.UI.Color.FromArgb(24, 0, 0, 0);        // Subtle black
+
+            titleBar.ButtonHoverBackgroundColor = hoverBackgroundColor;
+
+            // Set other backgrounds to transparent
+            titleBar.ButtonBackgroundColor = Microsoft.UI.Colors.Transparent;
+            titleBar.ButtonInactiveBackgroundColor = Microsoft.UI.Colors.Transparent;
+        }
+        catch (Exception ex)
+        {
+            System.Diagnostics.Debug.WriteLine($"Failed to apply caption button colors: {ex.Message}");
+        }
+    }
+
+    #endregion
 }

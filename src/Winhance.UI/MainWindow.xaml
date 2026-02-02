@@ -14,12 +14,82 @@
 
         <!-- Title Bar Area -->
         <Grid x:Name="AppTitleBar" Height="48" Grid.Row="0">
-            <TextBlock
-                x:Name="AppTitleTextBlock"
-                Text="Winhance"
-                VerticalAlignment="Center"
-                Margin="16,0,0,0"
-                FontSize="12"/>
+            <Grid.ColumnDefinitions>
+                <ColumnDefinition x:Name="LeftPaddingColumn" Width="0"/>
+                <ColumnDefinition x:Name="IconColumn" Width="Auto"/>
+                <ColumnDefinition x:Name="TitleColumn" Width="Auto"/>
+                <ColumnDefinition x:Name="DragColumn" Width="*"/>
+                <ColumnDefinition x:Name="ButtonsColumn" Width="Auto"/>
+                <ColumnDefinition x:Name="RightPaddingColumn" Width="0"/>
+            </Grid.ColumnDefinitions>
+
+            <!-- App Icon -->
+            <Image x:Name="AppIcon"
+                   Grid.Column="1"
+                   Width="20" Height="20"
+                   Margin="12,0,8,0"
+                   VerticalAlignment="Center"/>
+
+            <!-- App Title and Subtitle -->
+            <StackPanel Grid.Column="2"
+                        Orientation="Horizontal"
+                        VerticalAlignment="Center"
+                        Spacing="6">
+                <TextBlock x:Name="AppTitleTextBlock"
+                           Text="Winhance"
+                           FontSize="12"
+                           FontWeight="SemiBold"
+                           VerticalAlignment="Center"/>
+                <TextBlock x:Name="AppSubtitleTextBlock"
+                           Text="by Memory"
+                           FontSize="11"
+                           Opacity="0.6"
+                           VerticalAlignment="Center"/>
+            </StackPanel>
+
+            <!-- Title Bar Action Buttons -->
+            <StackPanel x:Name="TitleBarButtons"
+                        Grid.Column="4"
+                        Orientation="Horizontal"
+                        VerticalAlignment="Center"
+                        Margin="0,0,8,0"
+                        Spacing="2">
+
+                <!-- Save Configuration Button -->
+                <Button x:Name="SaveConfigButton"
+                        Style="{StaticResource TitleBarButtonStyle}"
+                        ToolTipService.ToolTip="Save Configuration">
+                    <FontIcon Glyph="&#xE74E;" FontSize="14"/>
+                </Button>
+
+                <!-- Import Configuration Button -->
+                <Button x:Name="ImportConfigButton"
+                        Style="{StaticResource TitleBarButtonStyle}"
+                        ToolTipService.ToolTip="Import Configuration">
+                    <FontIcon Glyph="&#xE8B7;" FontSize="14"/>
+                </Button>
+
+                <!-- Windows Version Filter Button -->
+                <Button x:Name="WindowsFilterButton"
+                        Style="{StaticResource TitleBarButtonStyle}"
+                        ToolTipService.ToolTip="Windows Version Filter">
+                    <FontIcon Glyph="&#xE71C;" FontSize="14"/>
+                </Button>
+
+                <!-- Donate Button -->
+                <Button x:Name="DonateButton"
+                        Style="{StaticResource TitleBarButtonStyle}"
+                        ToolTipService.ToolTip="Donate">
+                    <FontIcon Glyph="&#xE00B;" FontSize="14" Foreground="#FFE74C3C"/>
+                </Button>
+
+                <!-- Bug Report Button -->
+                <Button x:Name="BugReportButton"
+                        Style="{StaticResource TitleBarButtonStyle}"
+                        ToolTipService.ToolTip="Report a Bug">
+                    <FontIcon Glyph="&#xEBE8;" FontSize="14"/>
+                </Button>
+            </StackPanel>
         </Grid>
 
         <!-- Main Content with NavigationView -->

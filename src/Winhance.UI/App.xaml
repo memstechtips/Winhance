@@ -16,7 +16,18 @@
                 <!-- Shared setting templates and styles -->
                 <ResourceDictionary Source="ms-appx:///Features/Common/Resources/SettingTemplates.xaml" />
             </ResourceDictionary.MergedDictionaries>
-            <!-- Other app resources here -->
+
+            <!-- Title Bar Button Style -->
+            <Style x:Key="TitleBarButtonStyle" TargetType="Button">
+                <Setter Property="Background" Value="Transparent"/>
+                <Setter Property="BorderThickness" Value="0"/>
+                <Setter Property="Padding" Value="10,8"/>
+                <Setter Property="Width" Value="40"/>
+                <Setter Property="Height" Value="32"/>
+                <Setter Property="HorizontalContentAlignment" Value="Center"/>
+                <Setter Property="VerticalContentAlignment" Value="Center"/>
+                <Setter Property="CornerRadius" Value="4"/>
+            </Style>
         </ResourceDictionary>
     </Application.Resources>
 </Application>

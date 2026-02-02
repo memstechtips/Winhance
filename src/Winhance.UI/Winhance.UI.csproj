@@ -21,7 +21,7 @@
     <GenerateAppxPackageOnBuild>false</GenerateAppxPackageOnBuild>
     <AppxPackage>false</AppxPackage>
     <!-- Application icon -->
-    <ApplicationIcon>Assets\winhance-rocket.ico</ApplicationIcon>
+    <ApplicationIcon>Assets\AppIcons\winhance-rocket.ico</ApplicationIcon>
     <!-- Use custom Program.cs entry point for single-instance enforcement -->
     <DefineConstants>DISABLE_XAML_GENERATED_MAIN</DefineConstants>
     <StartupObject>Winhance.UI.Program</StartupObject>

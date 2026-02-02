@@ -8,6 +8,7 @@ using Winhance.UI.Features.Optimize;
 using Winhance.UI.Features.Optimize.ViewModels;
 using Winhance.UI.Features.Settings.ViewModels;
 using Winhance.UI.Features.SoftwareApps.ViewModels;
+using Winhance.UI.ViewModels;
 
 namespace Winhance.UI.Features.Common.Extensions.DI;
 
@@ -42,6 +43,9 @@ public static class UIServicesExtensions
 
         // Settings Loading Service (Singleton - Creates setting ViewModels)
         services.AddSingleton<Features.Common.Interfaces.ISettingsLoadingService, SettingsLoadingService>();
+
+        // MainWindow ViewModel (Singleton - one main window)
+        services.AddSingleton<MainWindowViewModel>();
 
         // Settings ViewModels
         services.AddTransient<SettingsViewModel>();
