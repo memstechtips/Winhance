@@ -182,6 +182,20 @@ public sealed partial class NavSidebar : UserControl, INotifyPropertyChanged
         }
     }
 
+    /// <summary>
+    /// Gets a NavButton by its tag.
+    /// </summary>
+    /// <param name="tag">The navigation tag of the button to get.</param>
+    /// <returns>The NavButton if found, null otherwise.</returns>
+    public NavButton? GetButton(string tag)
+    {
+        if (_navButtons != null && _navButtons.TryGetValue(tag, out var button))
+        {
+            return button;
+        }
+        return null;
+    }
+
     #endregion
 
     private void NotifyPropertyChanged([CallerMemberName] string? propertyName = null)

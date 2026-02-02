@@ -177,7 +177,58 @@ public sealed partial class MainWindow : Window
     {
         var tag = e.NavigationTag?.ToString();
         Log($"NavSidebar_ItemClicked - Tag: {tag}");
+
+        // Special handling for More button - show flyout instead of navigating
+        if (tag == "More")
+        {
+            ShowMoreMenuFlyout();
+            return;
+        }
+
         NavigateToPage(tag);
+    }
+
+    /// <summary>
+    /// Shows the More menu flyout positioned relative to the More button.
+    /// </summary>
+    private void ShowMoreMenuFlyout()
+    {
+        try
+        {
+            var flyout = RootGrid.Resources["MoreMenuFlyout"] as MenuFlyout;
+            if (flyout != null)
+            {
+                // Update version text from ViewModel
+                if (_viewModel != null)
+                {
+                    // Find the version menu item and update its text
+                    foreach (var item in flyout.Items)
+                    {
+                        if (item is MenuFlyoutItem menuItem && menuItem.Name == "VersionMenuItem")
+                        {
+                            menuItem.Text = _viewModel.VersionInfo;
+                            break;
+                        }
+                    }
+                }
+
+                // Get the More button from NavSidebar and show flyout relative to it
+                var moreButton = NavSidebar.GetButton("More");
+                if (moreButton != null)
+                {
+                    flyout.ShowAt(moreButton);
+                }
+                else
+                {
+                    // Fallback: show at NavSidebar
+                    flyout.ShowAt(NavSidebar);
+                }
+            }
+        }
+        catch (Exception ex)
+        {
+            Log($"Error showing More menu flyout: {ex.Message}");
+        }
     }
 
     /// <summary>
@@ -441,6 +492,50 @@ public sealed partial class MainWindow : Window
         {
             System.Diagnostics.Debug.WriteLine($"Failed to apply caption button colors: {ex.Message}");
         }
+    }
+
+    #endregion
+
+    #region More Menu Flyout Handlers
+
+    /// <summary>
+    /// Handles the Report a Bug menu item click.
+    /// </summary>
+    private void ReportBugMenuItem_Click(object sender, RoutedEventArgs e)
+    {
+        _viewModel?.BugReportCommand?.Execute(null);
+    }
+
+    /// <summary>
+    /// Handles the Check for Updates menu item click.
+    /// </summary>
+    private void CheckUpdatesMenuItem_Click(object sender, RoutedEventArgs e)
+    {
+        _viewModel?.CheckForUpdatesCommand?.Execute(null);
+    }
+
+    /// <summary>
+    /// Handles the Open Logs menu item click.
+    /// </summary>
+    private void OpenLogsMenuItem_Click(object sender, RoutedEventArgs e)
+    {
+        _viewModel?.OpenLogsCommand?.Execute(null);
+    }
+
+    /// <summary>
+    /// Handles the Open Scripts menu item click.
+    /// </summary>
+    private void OpenScriptsMenuItem_Click(object sender, RoutedEventArgs e)
+    {
+        _viewModel?.OpenScriptsCommand?.Execute(null);
+    }
+
+    /// <summary>
+    /// Handles the Close Application menu item click.
+    /// </summary>
+    private void CloseAppMenuItem_Click(object sender, RoutedEventArgs e)
+    {
+        _viewModel?.CloseApplicationCommand?.Execute(null);
     }
 
     #endregion

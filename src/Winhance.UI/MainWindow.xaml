@@ -8,6 +8,70 @@
     Title="Winhance">
 
     <Grid x:Name="RootGrid" Loaded="RootGrid_Loaded">
+        <Grid.Resources>
+            <!-- More Menu Flyout -->
+            <MenuFlyout x:Key="MoreMenuFlyout" Placement="RightEdgeAlignedBottom">
+                <!-- Version Info (disabled, for display only) -->
+                <MenuFlyoutItem x:Name="VersionMenuItem"
+                                Text="Winhance"
+                                IsEnabled="False">
+                    <MenuFlyoutItem.Icon>
+                        <FontIcon Glyph="&#xE946;"/>
+                    </MenuFlyoutItem.Icon>
+                </MenuFlyoutItem>
+
+                <MenuFlyoutSeparator/>
+
+                <!-- Report a Bug -->
+                <MenuFlyoutItem x:Name="ReportBugMenuItem"
+                                Text="Report a Bug"
+                                Click="ReportBugMenuItem_Click">
+                    <MenuFlyoutItem.Icon>
+                        <FontIcon Glyph="&#xEBE8;"/>
+                    </MenuFlyoutItem.Icon>
+                </MenuFlyoutItem>
+
+                <!-- Check for Updates -->
+                <MenuFlyoutItem x:Name="CheckUpdatesMenuItem"
+                                Text="Check for Updates"
+                                Click="CheckUpdatesMenuItem_Click">
+                    <MenuFlyoutItem.Icon>
+                        <FontIcon Glyph="&#xE896;"/>
+                    </MenuFlyoutItem.Icon>
+                </MenuFlyoutItem>
+
+                <MenuFlyoutSeparator/>
+
+                <!-- Winhance Logs -->
+                <MenuFlyoutItem x:Name="OpenLogsMenuItem"
+                                Text="Winhance Logs"
+                                Click="OpenLogsMenuItem_Click">
+                    <MenuFlyoutItem.Icon>
+                        <FontIcon Glyph="&#xE8B7;"/>
+                    </MenuFlyoutItem.Icon>
+                </MenuFlyoutItem>
+
+                <!-- Winhance Scripts -->
+                <MenuFlyoutItem x:Name="OpenScriptsMenuItem"
+                                Text="Winhance Scripts"
+                                Click="OpenScriptsMenuItem_Click">
+                    <MenuFlyoutItem.Icon>
+                        <FontIcon Glyph="&#xE756;"/>
+                    </MenuFlyoutItem.Icon>
+                </MenuFlyoutItem>
+
+                <MenuFlyoutSeparator/>
+
+                <!-- Close Winhance -->
+                <MenuFlyoutItem x:Name="CloseAppMenuItem"
+                                Text="Close Winhance"
+                                Click="CloseAppMenuItem_Click">
+                    <MenuFlyoutItem.Icon>
+                        <FontIcon Glyph="&#xE711;"/>
+                    </MenuFlyoutItem.Icon>
+                </MenuFlyoutItem>
+            </MenuFlyout>
+        </Grid.Resources>
         <Grid.RowDefinitions>
             <RowDefinition Height="48"/>  <!-- TitleBar -->
             <RowDefinition Height="*"/>
