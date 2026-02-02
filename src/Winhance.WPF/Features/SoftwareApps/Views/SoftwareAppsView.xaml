@@ -400,107 +400,104 @@
                     </Border>
                 </Border>
 
-                <!-- Scrollable Content Section -->
+                <!-- Content Section -->
                 <Border Margin="0,85,0,0"
                         CornerRadius="0,0,10,10">
-                    <commonControls:ResponsiveScrollViewer Style="{StaticResource ModernScrollViewer}"
-                                                           commonControls:ResponsiveScrollViewer.ScrollPositionCommand="{Binding UpdateScrollPositionCommand}">
-                        <Grid>
-                            <Grid.RowDefinitions>
-                                <RowDefinition Height="*" />
-                                <RowDefinition Height="Auto" />
-                            </Grid.RowDefinitions>
+                    <Grid>
+                        <Grid.RowDefinitions>
+                            <RowDefinition Height="*" />
+                            <RowDefinition Height="Auto" />
+                        </Grid.RowDefinitions>
 
-                            <StackPanel Grid.Row="0"
-                                    Margin="10">
-                                <!-- Content Section -->
-                                <Border Style="{StaticResource AppSectionContentBorderStyle}">
-                                    <Grid>
-                                        <!-- Windows Apps Content -->
-                                        <Grid Visibility="{Binding WindowsAppsContentVisibility}">
-                                            <!-- Table View Mode - Shows when IsTableViewMode is true -->
-                                            <ContentControl Content="{Binding WindowsAppsViewModel}"
-                                                    ContentTemplate="{StaticResource TableViewTemplate}">
-                                                <ContentControl.Style>
-                                                    <Style TargetType="ContentControl">
-                                                        <Setter Property="Visibility"
-                                                                Value="Collapsed" />
-                                                        <Style.Triggers>
-                                                            <DataTrigger Binding="{Binding WindowsAppsViewModel.IsTableViewMode}"
-                                                                    Value="True">
-                                                                <Setter Property="Visibility"
-                                                                        Value="Visible" />
-                                                            </DataTrigger>
-                                                        </Style.Triggers>
-                                                    </Style>
-                                                </ContentControl.Style>
-                                            </ContentControl>
+                        <Grid Grid.Row="0"
+                                Margin="10">
+                            <!-- Content Section -->
+                            <Border Style="{StaticResource AppSectionContentBorderStyle}">
+                                <Grid>
+                                    <!-- Windows Apps Content -->
+                                    <Grid Visibility="{Binding WindowsAppsContentVisibility}">
+                                        <!-- Table View Mode - Shows when IsTableViewMode is true -->
+                                        <ContentControl Content="{Binding WindowsAppsViewModel}"
+                                                ContentTemplate="{StaticResource TableViewTemplate}">
+                                            <ContentControl.Style>
+                                                <Style TargetType="ContentControl">
+                                                    <Setter Property="Visibility"
+                                                            Value="Collapsed" />
+                                                    <Style.Triggers>
+                                                        <DataTrigger Binding="{Binding WindowsAppsViewModel.IsTableViewMode}"
+                                                                Value="True">
+                                                            <Setter Property="Visibility"
+                                                                    Value="Visible" />
+                                                        </DataTrigger>
+                                                    </Style.Triggers>
+                                                </Style>
+                                            </ContentControl.Style>
+                                        </ContentControl>
 
-                                            <!-- List View Mode - Shows when IsTableViewMode is false -->
-                                            <ContentControl Content="{Binding WindowsAppsViewModel}"
-                                                    ContentTemplate="{StaticResource ListViewTemplate}">
-                                                <ContentControl.Style>
-                                                    <Style TargetType="ContentControl">
-                                                        <Setter Property="Visibility"
-                                                                Value="Collapsed" />
-                                                        <Style.Triggers>
-                                                            <DataTrigger Binding="{Binding WindowsAppsViewModel.IsTableViewMode}"
-                                                                    Value="False">
-                                                                <Setter Property="Visibility"
-                                                                        Value="Visible" />
-                                                            </DataTrigger>
-                                                        </Style.Triggers>
-                                                    </Style>
-                                                </ContentControl.Style>
-                                            </ContentControl>
-                                        </Grid>
-
-                                        <!-- External Apps Content -->
-                                        <Grid Visibility="{Binding ExternalAppsContentVisibility}">
-                                            <!-- Table View Mode - Shows when IsTableViewMode is true -->
-                                            <ContentControl Content="{Binding ExternalAppsViewModel}"
-                                                    ContentTemplate="{StaticResource ExternalTableViewTemplate}">
-                                                <ContentControl.Style>
-                                                    <Style TargetType="ContentControl">
-                                                        <Setter Property="Visibility"
-                                                                Value="Collapsed" />
-                                                        <Style.Triggers>
-                                                            <DataTrigger Binding="{Binding ExternalAppsViewModel.IsTableViewMode}"
-                                                                    Value="True">
-                                                                <Setter Property="Visibility"
-                                                                        Value="Visible" />
-                                                            </DataTrigger>
-                                                        </Style.Triggers>
-                                                    </Style>
-                                                </ContentControl.Style>
-                                            </ContentControl>
-
-                                            <!-- List View Mode - Shows when IsTableViewMode is false -->
-                                            <ContentControl Content="{Binding ExternalAppsViewModel}"
-                                                    ContentTemplate="{StaticResource ExternalListViewTemplate}">
-                                                <ContentControl.Style>
-                                                    <Style TargetType="ContentControl">
-                                                        <Setter Property="Visibility"
-                                                                Value="Collapsed" />
-                                                        <Style.Triggers>
-                                                            <DataTrigger Binding="{Binding ExternalAppsViewModel.IsTableViewMode}"
-                                                                    Value="False">
-                                                                <Setter Property="Visibility"
-                                                                        Value="Visible" />
-                                                            </DataTrigger>
-                                                        </Style.Triggers>
-                                                    </Style>
-                                                </ContentControl.Style>
-                                            </ContentControl>
-                                        </Grid>
+                                        <!-- List View Mode - Shows when IsTableViewMode is false -->
+                                        <ContentControl Content="{Binding WindowsAppsViewModel}"
+                                                ContentTemplate="{StaticResource ListViewTemplate}">
+                                            <ContentControl.Style>
+                                                <Style TargetType="ContentControl">
+                                                    <Setter Property="Visibility"
+                                                            Value="Collapsed" />
+                                                    <Style.Triggers>
+                                                        <DataTrigger Binding="{Binding WindowsAppsViewModel.IsTableViewMode}"
+                                                                Value="False">
+                                                            <Setter Property="Visibility"
+                                                                    Value="Visible" />
+                                                        </DataTrigger>
+                                                    </Style.Triggers>
+                                                </Style>
+                                            </ContentControl.Style>
+                                        </ContentControl>
                                     </Grid>
-                                </Border>
-                            </StackPanel>
 
-                            <Border Grid.Row="1"
-                                    Height="20" />
+                                    <!-- External Apps Content -->
+                                    <Grid Visibility="{Binding ExternalAppsContentVisibility}">
+                                        <!-- Table View Mode - Shows when IsTableViewMode is true -->
+                                        <ContentControl Content="{Binding ExternalAppsViewModel}"
+                                                ContentTemplate="{StaticResource ExternalTableViewTemplate}">
+                                            <ContentControl.Style>
+                                                <Style TargetType="ContentControl">
+                                                    <Setter Property="Visibility"
+                                                            Value="Collapsed" />
+                                                    <Style.Triggers>
+                                                        <DataTrigger Binding="{Binding ExternalAppsViewModel.IsTableViewMode}"
+                                                                Value="True">
+                                                            <Setter Property="Visibility"
+                                                                    Value="Visible" />
+                                                        </DataTrigger>
+                                                    </Style.Triggers>
+                                                </Style>
+                                            </ContentControl.Style>
+                                        </ContentControl>
+
+                                        <!-- List View Mode - Shows when IsTableViewMode is false -->
+                                        <ContentControl Content="{Binding ExternalAppsViewModel}"
+                                                ContentTemplate="{StaticResource ExternalListViewTemplate}">
+                                            <ContentControl.Style>
+                                                <Style TargetType="ContentControl">
+                                                    <Setter Property="Visibility"
+                                                            Value="Collapsed" />
+                                                    <Style.Triggers>
+                                                        <DataTrigger Binding="{Binding ExternalAppsViewModel.IsTableViewMode}"
+                                                                Value="False">
+                                                            <Setter Property="Visibility"
+                                                                    Value="Visible" />
+                                                        </DataTrigger>
+                                                    </Style.Triggers>
+                                                </Style>
+                                            </ContentControl.Style>
+                                        </ContentControl>
+                                    </Grid>
+                                </Grid>
+                            </Border>
                         </Grid>
-                    </commonControls:ResponsiveScrollViewer>
+
+                        <Border Grid.Row="1"
+                                Height="20" />
+                    </Grid>
                 </Border>
 
                 <!-- Loading Overlay -->
