@@ -4,35 +4,19 @@
     xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
     xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
     xmlns:local="using:Winhance.UI.Features.Customize"
-    xmlns:viewModels="using:Winhance.UI.Features.Optimize.ViewModels"
+    xmlns:models="using:Winhance.UI.Features.Customize.Models"
     xmlns:controls="using:CommunityToolkit.WinUI.Controls"
-    xmlns:commonControls="using:Winhance.UI.Features.Common.Controls"
     x:DefaultBindMode="OneWay"
     NavigationCacheMode="Enabled">
 
-    <Page.Resources>
-        <!-- ItemTemplate: SettingsCard wraps the shared SettingsCardItem control -->
-        <DataTemplate x:Key="SettingItemTemplate" x:DataType="viewModels:SettingItemViewModel">
-            <controls:SettingsCard
-                Header="{x:Bind Name}"
-                Description="{x:Bind Description}"
-                IsEnabled="{x:Bind EffectiveIsEnabled}"
-                Visibility="{x:Bind IsVisible, Converter={StaticResource BooleanToVisibilityConverter}}"
-                HeaderIcon="{x:Bind Converter={StaticResource SettingIconConverter}}"
-                Padding="16,12,16,12">
-                <commonControls:SettingsCardItem Setting="{x:Bind}"/>
-            </controls:SettingsCard>
-        </DataTemplate>
-    </Page.Resources>
-
     <Grid Padding="0,0,12,0">
         <Grid.RowDefinitions>
-            <RowDefinition Height="Auto"/>
-            <RowDefinition Height="Auto"/>
-            <RowDefinition Height="*"/>
+            <RowDefinition Height="Auto"/>  <!-- Header -->
+            <RowDefinition Height="Auto"/>  <!-- NavRow -->
+            <RowDefinition Height="*"/>     <!-- Content -->
         </Grid.RowDefinitions>
 
-        <!-- Page Header with Icon -->
+        <!-- Row 0: Page Header with Icon -->
         <StackPanel Grid.Row="0" Orientation="Horizontal" Spacing="16">
             <Viewbox Width="64" Height="64" Stretch="Uniform">
                 <PathIcon Data="{StaticResource CustomizeIconPath}"/>
@@ -51,104 +35,174 @@
             </StackPanel>
         </StackPanel>
 
-        <!-- Search Box Row -->
-        <Grid Grid.Row="1" Margin="0,12,0,16" HorizontalAlignment="Right">
-            <Grid Width="220">
-                <TextBox
-                    x:Name="SearchTextBox"
-                    PlaceholderText="Search settings..."
-                    Text="{x:Bind ViewModel.SearchText, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}"
-                    Padding="8,4,36,4"
-                    MinHeight="0"/>
+        <!-- Row 1: Navigation Bar -->
+        <Grid Grid.Row="1" Margin="0,12,0,16">
+            <Grid.ColumnDefinitions>
+                <ColumnDefinition Width="*"/>     <!-- Breadcrumb -->
+                <ColumnDefinition Width="Auto"/>  <!-- Search -->
+            </Grid.ColumnDefinitions>
+
+            <!-- Breadcrumb navigation -->
+            <StackPanel Grid.Column="0" Orientation="Horizontal" VerticalAlignment="Center" Spacing="4">
+                <!-- "Customizations" root button - navigates to overview -->
+                <Button
+                    x:Name="BreadcrumbRoot"
+                    Click="BreadcrumbOverview_Click"
+                    Padding="8,4">
+                    <StackPanel Orientation="Horizontal" Spacing="8">
+                        <Viewbox Width="16" Height="16">
+                            <PathIcon Data="{StaticResource CustomizeIconPath}"/>
+                        </Viewbox>
+                        <TextBlock Text="Customizations" VerticalAlignment="Center"/>
+                    </StackPanel>
+                </Button>
+
+                <!-- Separator (visible only on detail pages) -->
                 <FontIcon
-                    Glyph="{StaticResource SearchIconGlyph}"
+                    x:Name="BreadcrumbSeparator"
+                    Glyph="&#xE76C;"
                     FontSize="12"
-                    HorizontalAlignment="Right"
-                    VerticalAlignment="Center"
-                    Margin="0,0,10,0"
                     Foreground="{ThemeResource TextFillColorSecondaryBrush}"
-                    IsHitTestVisible="False"/>
+                    VerticalAlignment="Center"
+                    Visibility="Collapsed"/>
+
+                <!-- Current section dropdown with icon (visible only on detail pages) -->
+                <DropDownButton
+                    x:Name="BreadcrumbSection"
+                    Visibility="Collapsed"
+                    Padding="8,4">
+                    <DropDownButton.Content>
+                        <StackPanel Orientation="Horizontal" Spacing="8">
+                            <Viewbox x:Name="BreadcrumbSectionIconBox" Width="16" Height="16">
+                                <PathIcon x:Name="BreadcrumbSectionIcon"/>
+                            </Viewbox>
+                            <TextBlock x:Name="BreadcrumbSectionText" VerticalAlignment="Center"/>
+                        </StackPanel>
+                    </DropDownButton.Content>
+                    <DropDownButton.Flyout>
+                        <MenuFlyout Placement="BottomEdgeAlignedLeft">
+                            <MenuFlyoutItem Text="Windows Theme" Click="NavigateWindowsTheme_Click">
+                                <MenuFlyoutItem.Icon>
+                                    <PathIcon Data="{StaticResource WindowsThemeIconPath}"/>
+                                </MenuFlyoutItem.Icon>
+                            </MenuFlyoutItem>
+                            <MenuFlyoutItem Text="Taskbar" Click="NavigateTaskbar_Click">
+                                <MenuFlyoutItem.Icon>
+                                    <PathIcon Data="{StaticResource TaskbarIconPath}"/>
+                                </MenuFlyoutItem.Icon>
+                            </MenuFlyoutItem>
+                            <MenuFlyoutItem Text="Start Menu" Click="NavigateStartMenu_Click">
+                                <MenuFlyoutItem.Icon>
+                                    <PathIcon Data="{StaticResource StartMenuIconPath}"/>
+                                </MenuFlyoutItem.Icon>
+                            </MenuFlyoutItem>
+                            <MenuFlyoutItem Text="Explorer" Click="NavigateExplorer_Click">
+                                <MenuFlyoutItem.Icon>
+                                    <PathIcon Data="{StaticResource ExplorerIconPath}"/>
+                                </MenuFlyoutItem.Icon>
+                            </MenuFlyoutItem>
+                        </MenuFlyout>
+                    </DropDownButton.Flyout>
+                </DropDownButton>
+            </StackPanel>
+
+            <!-- Search box with suggestions -->
+            <Grid Grid.Column="1" Width="220">
+                <AutoSuggestBox
+                    x:Name="SearchBox"
+                    PlaceholderText="Search settings..."
+                    QueryIcon="Find"
+                    Text="{x:Bind ViewModel.SearchText, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}"
+                    ItemsSource="{x:Bind ViewModel.SearchSuggestions}"
+                    TextMemberPath="SettingName"
+                    SuggestionChosen="SearchBox_SuggestionChosen"
+                    QuerySubmitted="SearchBox_QuerySubmitted">
+                    <AutoSuggestBox.ItemTemplate>
+                        <DataTemplate x:DataType="models:SearchSuggestionItem">
+                            <Grid Padding="4,2">
+                                <Grid.ColumnDefinitions>
+                                    <ColumnDefinition Width="Auto"/>
+                                    <ColumnDefinition Width="*"/>
+                                </Grid.ColumnDefinitions>
+                                <StackPanel Grid.Column="1">
+                                    <TextBlock Text="{x:Bind SettingName}" Style="{StaticResource BodyTextBlockStyle}"/>
+                                    <TextBlock Text="{x:Bind SectionDisplayName}" Style="{StaticResource CaptionTextBlockStyle}" Foreground="{ThemeResource TextFillColorSecondaryBrush}"/>
+                                </StackPanel>
+                            </Grid>
+                        </DataTemplate>
+                    </AutoSuggestBox.ItemTemplate>
+                </AutoSuggestBox>
             </Grid>
         </Grid>
 
-        <!-- Loading State -->
-        <ProgressRing
+        <!-- Row 2: Overview Content (visible when not on detail page) -->
+        <Grid x:Name="OverviewContent" Grid.Row="2">
+            <!-- Loading State -->
+            <ProgressRing
+                IsActive="{x:Bind ViewModel.IsLoading}"
+                Visibility="{x:Bind ViewModel.IsLoading}"
+                Width="48"
+                Height="48"
+                HorizontalAlignment="Center"
+                VerticalAlignment="Center"/>
+
+            <!-- Overview Cards -->
+            <ScrollView Visibility="{x:Bind ViewModel.IsNotLoading}">
+                <StackPanel Spacing="8" MaxWidth="{StaticResource SettingsContentMaxWidth}" Margin="{StaticResource SettingsContentMargin}" HorizontalAlignment="Stretch">
+
+                    <!-- Windows Theme Card -->
+                    <controls:SettingsCard
+                        Header="{x:Bind ViewModel.WindowsThemeViewModel.DisplayName}"
+                        Description="Customize Windows visual theme settings"
+                        IsClickEnabled="True"
+                        Click="WindowsThemeCard_Click">
+                        <controls:SettingsCard.HeaderIcon>
+                            <PathIcon Data="{StaticResource WindowsThemeIconPath}"/>
+                        </controls:SettingsCard.HeaderIcon>
+                    </controls:SettingsCard>
+
+                    <!-- Taskbar Card -->
+                    <controls:SettingsCard
+                        Header="{x:Bind ViewModel.TaskbarViewModel.DisplayName}"
+                        Description="Customize Taskbar appearance and behavior"
+                        IsClickEnabled="True"
+                        Click="TaskbarCard_Click">
+                        <controls:SettingsCard.HeaderIcon>
+                            <PathIcon Data="{StaticResource TaskbarIconPath}"/>
+                        </controls:SettingsCard.HeaderIcon>
+                    </controls:SettingsCard>
+
+                    <!-- Start Menu Card -->
+                    <controls:SettingsCard
+                        Header="{x:Bind ViewModel.StartMenuViewModel.DisplayName}"
+                        Description="Customize Start Menu layout and features"
+                        IsClickEnabled="True"
+                        Click="StartMenuCard_Click">
+                        <controls:SettingsCard.HeaderIcon>
+                            <PathIcon Data="{StaticResource StartMenuIconPath}"/>
+                        </controls:SettingsCard.HeaderIcon>
+                    </controls:SettingsCard>
+
+                    <!-- Explorer Card -->
+                    <controls:SettingsCard
+                        Header="{x:Bind ViewModel.ExplorerViewModel.DisplayName}"
+                        Description="Customize File Explorer appearance and behavior"
+                        IsClickEnabled="True"
+                        Click="ExplorerCard_Click">
+                        <controls:SettingsCard.HeaderIcon>
+                            <PathIcon Data="{StaticResource ExplorerIconPath}"/>
+                        </controls:SettingsCard.HeaderIcon>
+                    </controls:SettingsCard>
+
+                </StackPanel>
+            </ScrollView>
+        </Grid>
+
+        <!-- Row 2: Detail Page Frame (visible when on detail page) -->
+        <Frame
+            x:Name="InnerContentFrame"
             Grid.Row="2"
-            IsActive="{x:Bind ViewModel.IsLoading}"
-            Visibility="{x:Bind ViewModel.IsLoading}"
-            Width="48"
-            Height="48"
-            HorizontalAlignment="Center"
-            VerticalAlignment="Center"/>
-
-        <!-- Main Content - Feature Sections -->
-        <ScrollView
-            Grid.Row="2"
-            Visibility="{x:Bind ViewModel.IsNotLoading}">
-            <StackPanel Spacing="8" MaxWidth="{StaticResource SettingsContentMaxWidth}" Margin="{StaticResource SettingsContentMargin}" HorizontalAlignment="Stretch">
-
-                <!-- Explorer Customizations -->
-                <controls:SettingsExpander
-                    x:Name="ExplorerExpander"
-                    Header="{x:Bind ViewModel.ExplorerViewModel.DisplayName}"
-                    IsExpanded="{x:Bind ViewModel.ExplorerViewModel.IsExpanded, Mode=TwoWay}"
-                    Visibility="{x:Bind ViewModel.ExplorerViewModel.HasVisibleSettings, Converter={StaticResource BooleanToVisibilityConverter}}"
-                    ItemsSource="{x:Bind ViewModel.ExplorerViewModel.Settings}"
-                    ItemTemplate="{StaticResource SettingItemTemplate}">
-                    <controls:SettingsExpander.HeaderIcon>
-                        <FontIcon Glyph="{StaticResource ExplorerIconGlyph}" FontFamily="Segoe MDL2 Assets"/>
-                    </controls:SettingsExpander.HeaderIcon>
-                </controls:SettingsExpander>
-
-                <!-- Start Menu Customizations -->
-                <controls:SettingsExpander
-                    x:Name="StartMenuExpander"
-                    Header="{x:Bind ViewModel.StartMenuViewModel.DisplayName}"
-                    IsExpanded="{x:Bind ViewModel.StartMenuViewModel.IsExpanded, Mode=TwoWay}"
-                    Visibility="{x:Bind ViewModel.StartMenuViewModel.HasVisibleSettings, Converter={StaticResource BooleanToVisibilityConverter}}"
-                    ItemsSource="{x:Bind ViewModel.StartMenuViewModel.Settings}"
-                    ItemTemplate="{StaticResource SettingItemTemplate}">
-                    <controls:SettingsExpander.HeaderIcon>
-                        <FontIcon Glyph="{StaticResource StartMenuIconGlyph}" FontFamily="Segoe MDL2 Assets"/>
-                    </controls:SettingsExpander.HeaderIcon>
-                </controls:SettingsExpander>
-
-                <!-- Taskbar Customizations -->
-                <controls:SettingsExpander
-                    x:Name="TaskbarExpander"
-                    Header="{x:Bind ViewModel.TaskbarViewModel.DisplayName}"
-                    IsExpanded="{x:Bind ViewModel.TaskbarViewModel.IsExpanded, Mode=TwoWay}"
-                    Visibility="{x:Bind ViewModel.TaskbarViewModel.HasVisibleSettings, Converter={StaticResource BooleanToVisibilityConverter}}"
-                    ItemsSource="{x:Bind ViewModel.TaskbarViewModel.Settings}"
-                    ItemTemplate="{StaticResource SettingItemTemplate}">
-                    <controls:SettingsExpander.HeaderIcon>
-                        <FontIcon Glyph="{StaticResource TaskbarIconGlyph}" FontFamily="Segoe MDL2 Assets"/>
-                    </controls:SettingsExpander.HeaderIcon>
-                </controls:SettingsExpander>
-
-                <!-- Windows Theme Customizations -->
-                <controls:SettingsExpander
-                    x:Name="WindowsThemeExpander"
-                    Header="{x:Bind ViewModel.WindowsThemeViewModel.DisplayName}"
-                    IsExpanded="{x:Bind ViewModel.WindowsThemeViewModel.IsExpanded, Mode=TwoWay}"
-                    Visibility="{x:Bind ViewModel.WindowsThemeViewModel.HasVisibleSettings, Converter={StaticResource BooleanToVisibilityConverter}}"
-                    ItemsSource="{x:Bind ViewModel.WindowsThemeViewModel.Settings}"
-                    ItemTemplate="{StaticResource SettingItemTemplate}">
-                    <controls:SettingsExpander.HeaderIcon>
-                        <FontIcon Glyph="{StaticResource WindowsThemeIconGlyph}" FontFamily="Segoe MDL2 Assets"/>
-                    </controls:SettingsExpander.HeaderIcon>
-                </controls:SettingsExpander>
-
-                <!-- No Results Message -->
-                <TextBlock
-                    Text="No settings match your search."
-                    Style="{StaticResource BodyTextBlockStyle}"
-                    Foreground="{ThemeResource TextFillColorSecondaryBrush}"
-                    HorizontalAlignment="Center"
-                    Margin="0,40,0,0"
-                    Visibility="{x:Bind ViewModel.HasNoSearchResults, Converter={StaticResource BooleanToVisibilityConverter}}"/>
-
-            </StackPanel>
-        </ScrollView>
+            Visibility="Collapsed"
+            Navigated="InnerContentFrame_Navigated"/>
     </Grid>
 </Page>

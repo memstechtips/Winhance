@@ -59,12 +59,12 @@ public static class UIServicesExtensions
         services.AddTransient<PowerOptimizationsViewModel>();
         services.AddTransient<GamingOptimizationsViewModel>();
 
-        // Customize ViewModels (Transient - created per page)
-        services.AddTransient<CustomizeViewModel>();
-        services.AddTransient<ExplorerCustomizationsViewModel>();
-        services.AddTransient<StartMenuCustomizationsViewModel>();
-        services.AddTransient<TaskbarCustomizationsViewModel>();
-        services.AddTransient<WindowsThemeCustomizationsViewModel>();
+        // Customize ViewModels (Singleton for state preservation during inner navigation)
+        services.AddSingleton<CustomizeViewModel>();
+        services.AddSingleton<ExplorerCustomizationsViewModel>();
+        services.AddSingleton<StartMenuCustomizationsViewModel>();
+        services.AddSingleton<TaskbarCustomizationsViewModel>();
+        services.AddSingleton<WindowsThemeCustomizationsViewModel>();
 
         // AdvancedTools ViewModels (Transient - created per page)
         services.AddTransient<WimUtilViewModel>();

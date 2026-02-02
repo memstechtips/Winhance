@@ -42,8 +42,22 @@
     <x:String x:Key="PowerIconGlyph">&#xEC0A;</x:String>
     <x:String x:Key="GamingIconGlyph">&#xE7FC;</x:String>
 
-    <!-- ==================== Customize Section Icons ==================== -->
-    <!-- Icons for Customize page feature sections -->
+    <!-- ==================== Customize Section Icons (Material Design - Path Data) ==================== -->
+    <!-- Icons for Customize page feature sections - matching WPF project's Material Design icons -->
+
+    <!-- Brush - Used for Windows Theme -->
+    <x:String x:Key="WindowsThemeIconPath">M20.71,4.63L19.37,3.29C19,2.9 18.35,2.9 17.96,3.29L9,12.25L11.75,15L20.71,6.04C21.1,5.65 21.1,5 20.71,4.63M7,14A3,3 0 0,0 4,17C4,18.31 2.84,19 2,19C2.92,20.22 4.5,21 6,21A4,4 0 0,0 10,17A3,3 0 0,0 7,14Z</x:String>
+
+    <!-- DockBottom - Used for Taskbar -->
+    <x:String x:Key="TaskbarIconPath">M20,4H4A2,2 0 0,0 2,6V18A2,2 0 0,0 4,20H20A2,2 0 0,0 22,18V6A2,2 0 0,0 20,4M20,18H4V14H20V18Z</x:String>
+
+    <!-- FileTableBoxOutline - Used for Start Menu -->
+    <x:String x:Key="StartMenuIconPath">M19 3H5C3.89 3 3 3.89 3 5V19C3 20.11 3.89 21 5 21H19C20.11 21 21 20.11 21 19V5C21 3.89 20.11 3 19 3M19 19H5V5H19V19M9 18H6V16H9V18M13 18H10V16H13V18M9 15H6V13H9V15M13 15H10V13H13V15M9 12H6V10H9V12M13 12H10V10H13V12Z</x:String>
+
+    <!-- Folder - Used for Explorer -->
+    <x:String x:Key="ExplorerIconPath">M10,4H4C2.89,4 2,4.89 2,6V18A2,2 0 0,0 4,20H20A2,2 0 0,0 22,18V8C22,6.89 21.1,6 20,6H12L10,4Z</x:String>
+
+    <!-- Legacy Segoe MDL2 glyphs (kept for backward compatibility) -->
     <x:String x:Key="ExplorerIconGlyph">&#xEC50;</x:String>
     <x:String x:Key="StartMenuIconGlyph">&#xE737;</x:String>
     <x:String x:Key="TaskbarIconGlyph">&#xE700;</x:String>
