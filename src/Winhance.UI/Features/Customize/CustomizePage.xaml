@@ -41,10 +41,9 @@
             </Grid.ColumnDefinitions>
 
             <StackPanel Grid.Column="0" Orientation="Horizontal" Spacing="16">
-                <FontIcon
-                    Glyph="&#xE771;"
-                    FontSize="48"
-                    FontFamily="Segoe MDL2 Assets"/>
+                <Viewbox Width="56" Height="56" Stretch="Uniform">
+                    <PathIcon Data="{StaticResource CustomizeIconPath}"/>
+                </Viewbox>
                 <StackPanel VerticalAlignment="Center">
                     <TextBlock
                         Text="Customize"
@@ -64,7 +63,7 @@
                     Text="{x:Bind ViewModel.SearchText, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}"
                     Padding="8,8,36,8"/>
                 <FontIcon
-                    Glyph="&#xE721;"
+                    Glyph="{StaticResource SearchIconGlyph}"
                     FontSize="14"
                     HorizontalAlignment="Right"
                     VerticalAlignment="Center"
@@ -99,7 +98,7 @@
                     ItemsSource="{x:Bind ViewModel.ExplorerViewModel.Settings}"
                     ItemTemplate="{StaticResource SettingItemTemplate}">
                     <controls:SettingsExpander.HeaderIcon>
-                        <FontIcon Glyph="&#xEC50;" FontFamily="Segoe MDL2 Assets"/>
+                        <FontIcon Glyph="{StaticResource ExplorerIconGlyph}" FontFamily="Segoe MDL2 Assets"/>
                     </controls:SettingsExpander.HeaderIcon>
                 </controls:SettingsExpander>
 
@@ -112,7 +111,7 @@
                     ItemsSource="{x:Bind ViewModel.StartMenuViewModel.Settings}"
                     ItemTemplate="{StaticResource SettingItemTemplate}">
                     <controls:SettingsExpander.HeaderIcon>
-                        <FontIcon Glyph="&#xE737;" FontFamily="Segoe MDL2 Assets"/>
+                        <FontIcon Glyph="{StaticResource StartMenuIconGlyph}" FontFamily="Segoe MDL2 Assets"/>
                     </controls:SettingsExpander.HeaderIcon>
                 </controls:SettingsExpander>
 
@@ -125,7 +124,7 @@
                     ItemsSource="{x:Bind ViewModel.TaskbarViewModel.Settings}"
                     ItemTemplate="{StaticResource SettingItemTemplate}">
                     <controls:SettingsExpander.HeaderIcon>
-                        <FontIcon Glyph="&#xE700;" FontFamily="Segoe MDL2 Assets"/>
+                        <FontIcon Glyph="{StaticResource TaskbarIconGlyph}" FontFamily="Segoe MDL2 Assets"/>
                     </controls:SettingsExpander.HeaderIcon>
                 </controls:SettingsExpander>
 
@@ -138,7 +137,7 @@
                     ItemsSource="{x:Bind ViewModel.WindowsThemeViewModel.Settings}"
                     ItemTemplate="{StaticResource SettingItemTemplate}">
                     <controls:SettingsExpander.HeaderIcon>
-                        <FontIcon Glyph="&#xE790;" FontFamily="Segoe MDL2 Assets"/>
+                        <FontIcon Glyph="{StaticResource WindowsThemeIconGlyph}" FontFamily="Segoe MDL2 Assets"/>
                     </controls:SettingsExpander.HeaderIcon>
                 </controls:SettingsExpander>
 

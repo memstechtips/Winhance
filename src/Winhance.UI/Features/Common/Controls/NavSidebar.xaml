@@ -23,21 +23,22 @@
                     Margin="0,8,0,0">
 
             <local:NavButton x:Name="SoftwareAppsButton"
-                             IconGlyph="&#xE71D;"
+                             IconPath="{StaticResource SoftwareAppsIconPath}"
                              Text="Software &amp; Apps"
                              NavigationTag="SoftwareApps"
                              IsCompact="{x:Bind IsCompact, Mode=OneWay}"
                              Clicked="NavButton_Clicked"/>
 
             <local:NavButton x:Name="OptimizeButton"
-                             IconGlyph="&#xE7C1;"
+                             IconPath="{StaticResource OptimizeIconPath}"
                              Text="Optimize"
                              NavigationTag="Optimize"
                              IsCompact="{x:Bind IsCompact, Mode=OneWay}"
                              Clicked="NavButton_Clicked"/>
 
             <local:NavButton x:Name="CustomizeButton"
-                             IconGlyph="&#xE771;"
+                             IconPath="{StaticResource CustomizeIconPath}"
+                             IconMargin="-3,0,0,0"
                              Text="Customize"
                              NavigationTag="Customize"
                              IsCompact="{x:Bind IsCompact, Mode=OneWay}"
@@ -52,21 +53,21 @@
                     Margin="0,0,0,8">
 
             <local:NavButton x:Name="AdvancedToolsButton"
-                             IconGlyph="&#xE90F;"
+                             IconGlyph="{StaticResource AdvancedToolsIconGlyph}"
                              Text="Advanced Tools"
                              NavigationTag="AdvancedTools"
                              IsCompact="{x:Bind IsCompact, Mode=OneWay}"
                              Clicked="NavButton_Clicked"/>
 
             <local:NavButton x:Name="SettingsButton"
-                             IconGlyph="&#xE713;"
+                             IconGlyph="{StaticResource SettingsIconGlyph}"
                              Text="Settings"
                              NavigationTag="Settings"
                              IsCompact="{x:Bind IsCompact, Mode=OneWay}"
                              Clicked="NavButton_Clicked"/>
 
             <local:NavButton x:Name="MoreButton"
-                             IconGlyph="&#xE712;"
+                             IconGlyph="{StaticResource MoreIconGlyph}"
                              Text="More"
                              NavigationTag="More"
                              IsCompact="{x:Bind IsCompact, Mode=OneWay}"

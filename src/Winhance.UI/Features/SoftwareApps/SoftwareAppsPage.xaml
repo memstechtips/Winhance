@@ -31,9 +31,11 @@
                         Padding="8"
                         Background="Transparent"
                         BorderThickness="0">
-                    <FontIcon Glyph="&#xE72B;" FontSize="16"/>
+                    <FontIcon Glyph="{StaticResource BackIconGlyph}" FontSize="16"/>
                 </Button>
-                <FontIcon Glyph="&#xE8F1;" FontSize="32" Margin="8,0,12,0"/>
+                <Viewbox Width="40" Height="40" Stretch="Uniform" Margin="8,0,12,0">
+                    <PathIcon Data="{StaticResource SoftwareAppsIconPath}"/>
+                </Viewbox>
                 <StackPanel VerticalAlignment="Center">
                     <TextBlock Text="Software &amp; Apps"
                                Style="{StaticResource TitleTextBlockStyle}"
@@ -75,7 +77,7 @@
                               IsChecked="{x:Bind ViewModel.IsWindowsAppsTabSelected, Mode=TwoWay}"
                               Padding="16,8">
                     <StackPanel Orientation="Horizontal" Spacing="8">
-                        <FontIcon Glyph="&#xE782;" FontSize="16"/>
+                        <FontIcon Glyph="{StaticResource WindowsAppsIconGlyph}" FontSize="16"/>
                         <TextBlock Text="Windows Apps"/>
                     </StackPanel>
                 </ToggleButton>
@@ -83,7 +85,7 @@
                               IsChecked="{x:Bind ViewModel.IsExternalAppsTabSelected, Mode=TwoWay}"
                               Padding="16,8">
                     <StackPanel Orientation="Horizontal" Spacing="8">
-                        <FontIcon Glyph="&#xE896;" FontSize="16"/>
+                        <FontIcon Glyph="{StaticResource ExternalAppsIconGlyph}" FontSize="16"/>
                         <TextBlock Text="External Apps"/>
                     </StackPanel>
                 </ToggleButton>

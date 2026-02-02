@@ -41,10 +41,9 @@
             </Grid.ColumnDefinitions>
 
             <StackPanel Grid.Column="0" Orientation="Horizontal" Spacing="16">
-                <FontIcon
-                    Glyph="&#xE7C1;"
-                    FontSize="48"
-                    FontFamily="Segoe MDL2 Assets"/>
+                <Viewbox Width="56" Height="56" Stretch="Uniform">
+                    <PathIcon Data="{StaticResource OptimizeIconPath}"/>
+                </Viewbox>
                 <StackPanel VerticalAlignment="Center">
                     <TextBlock
                         Text="Optimize"
@@ -64,7 +63,7 @@
                     Text="{x:Bind ViewModel.SearchText, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}"
                     Padding="8,8,36,8"/>
                 <FontIcon
-                    Glyph="&#xE721;"
+                    Glyph="{StaticResource SearchIconGlyph}"
                     FontSize="14"
                     HorizontalAlignment="Right"
                     VerticalAlignment="Center"
@@ -99,7 +98,7 @@
                     ItemsSource="{x:Bind ViewModel.SoundViewModel.Settings}"
                     ItemTemplate="{StaticResource SettingItemTemplate}">
                     <controls:SettingsExpander.HeaderIcon>
-                        <FontIcon Glyph="&#xE767;" FontFamily="Segoe MDL2 Assets"/>
+                        <FontIcon Glyph="{StaticResource SoundIconGlyph}" FontFamily="Segoe MDL2 Assets"/>
                     </controls:SettingsExpander.HeaderIcon>
                 </controls:SettingsExpander>
 
@@ -112,7 +111,7 @@
                     ItemsSource="{x:Bind ViewModel.UpdateViewModel.Settings}"
                     ItemTemplate="{StaticResource SettingItemTemplate}">
                     <controls:SettingsExpander.HeaderIcon>
-                        <FontIcon Glyph="&#xE895;" FontFamily="Segoe MDL2 Assets"/>
+                        <FontIcon Glyph="{StaticResource UpdateIconGlyph}" FontFamily="Segoe MDL2 Assets"/>
                     </controls:SettingsExpander.HeaderIcon>
                 </controls:SettingsExpander>
 
@@ -125,7 +124,7 @@
                     ItemsSource="{x:Bind ViewModel.NotificationViewModel.Settings}"
                     ItemTemplate="{StaticResource SettingItemTemplate}">
                     <controls:SettingsExpander.HeaderIcon>
-                        <FontIcon Glyph="&#xE7E7;" FontFamily="Segoe MDL2 Assets"/>
+                        <FontIcon Glyph="{StaticResource NotificationIconGlyph}" FontFamily="Segoe MDL2 Assets"/>
                     </controls:SettingsExpander.HeaderIcon>
                 </controls:SettingsExpander>
 
@@ -138,7 +137,7 @@
                     ItemsSource="{x:Bind ViewModel.PrivacyViewModel.Settings}"
                     ItemTemplate="{StaticResource SettingItemTemplate}">
                     <controls:SettingsExpander.HeaderIcon>
-                        <FontIcon Glyph="&#xE72E;" FontFamily="Segoe MDL2 Assets"/>
+                        <FontIcon Glyph="{StaticResource PrivacyIconGlyph}" FontFamily="Segoe MDL2 Assets"/>
                     </controls:SettingsExpander.HeaderIcon>
                 </controls:SettingsExpander>
 
@@ -151,7 +150,7 @@
                     ItemsSource="{x:Bind ViewModel.PowerViewModel.Settings}"
                     ItemTemplate="{StaticResource SettingItemTemplate}">
                     <controls:SettingsExpander.HeaderIcon>
-                        <FontIcon Glyph="&#xEC0A;" FontFamily="Segoe MDL2 Assets"/>
+                        <FontIcon Glyph="{StaticResource PowerIconGlyph}" FontFamily="Segoe MDL2 Assets"/>
                     </controls:SettingsExpander.HeaderIcon>
                 </controls:SettingsExpander>
 
@@ -164,7 +163,7 @@
                     ItemsSource="{x:Bind ViewModel.GamingViewModel.Settings}"
                     ItemTemplate="{StaticResource SettingItemTemplate}">
                     <controls:SettingsExpander.HeaderIcon>
-                        <FontIcon Glyph="&#xE7FC;" FontFamily="Segoe MDL2 Assets"/>
+                        <FontIcon Glyph="{StaticResource GamingIconGlyph}" FontFamily="Segoe MDL2 Assets"/>
                     </controls:SettingsExpander.HeaderIcon>
                 </controls:SettingsExpander>
 

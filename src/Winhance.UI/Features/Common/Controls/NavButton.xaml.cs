@@ -32,7 +32,21 @@ public sealed partial class NavButton : UserControl, INotifyPropertyChanged
             nameof(IconGlyph),
             typeof(string),
             typeof(NavButton),
-            new PropertyMetadata("\uE700"));
+            new PropertyMetadata(null, OnIconPropertyChanged));
+
+    public static readonly DependencyProperty IconPathProperty =
+        DependencyProperty.Register(
+            nameof(IconPath),
+            typeof(string),
+            typeof(NavButton),
+            new PropertyMetadata(null, OnIconPropertyChanged));
+
+    public static readonly DependencyProperty IconMarginProperty =
+        DependencyProperty.Register(
+            nameof(IconMargin),
+            typeof(Thickness),
+            typeof(NavButton),
+            new PropertyMetadata(new Thickness(0)));
 
     public static readonly DependencyProperty TextProperty =
         DependencyProperty.Register(
@@ -75,11 +89,32 @@ public sealed partial class NavButton : UserControl, INotifyPropertyChanged
 
     /// <summary>
     /// The FontIcon glyph to display (e.g., "\uE71D").
+    /// Use this for Segoe MDL2/Fluent font icons.
     /// </summary>
     public string IconGlyph
     {
         get => (string)GetValue(IconGlyphProperty);
         set => SetValue(IconGlyphProperty, value);
+    }
+
+    /// <summary>
+    /// The PathIcon geometry data to display (SVG path data string).
+    /// Use this for Material Design icons or custom vector icons.
+    /// </summary>
+    public string IconPath
+    {
+        get => (string)GetValue(IconPathProperty);
+        set => SetValue(IconPathProperty, value);
+    }
+
+    /// <summary>
+    /// Optional margin for fine-tuning icon positioning.
+    /// Use this to adjust icons that appear visually off-center.
+    /// </summary>
+    public Thickness IconMargin
+    {
+        get => (Thickness)GetValue(IconMarginProperty);
+        set => SetValue(IconMarginProperty, value);
     }
 
     /// <summary>
@@ -139,6 +174,10 @@ public sealed partial class NavButton : UserControl, INotifyPropertyChanged
     public Visibility IndicatorVisibility => IsSelected ? Visibility.Visible : Visibility.Collapsed;
     public Visibility LoadingVisibility => IsLoading ? Visibility.Visible : Visibility.Collapsed;
 
+    // Icon type visibility - show FontIcon if IconGlyph is set, PathIcon if IconPath is set
+    public Visibility FontIconVisibility => !string.IsNullOrEmpty(IconGlyph) ? Visibility.Visible : Visibility.Collapsed;
+    public Visibility PathIconVisibility => !string.IsNullOrEmpty(IconPath) && string.IsNullOrEmpty(IconGlyph) ? Visibility.Visible : Visibility.Collapsed;
+
     #endregion
 
     private bool _isPointerOver;
@@ -177,6 +216,15 @@ public sealed partial class NavButton : UserControl, INotifyPropertyChanged
             button.NotifyPropertyChanged(nameof(ActualButtonHeight));
             button.NotifyPropertyChanged(nameof(IconSize));
             button.NotifyPropertyChanged(nameof(TextVisibility));
+        }
+    }
+
+    private static void OnIconPropertyChanged(DependencyObject d, DependencyPropertyChangedEventArgs e)
+    {
+        if (d is NavButton button)
+        {
+            button.NotifyPropertyChanged(nameof(FontIconVisibility));
+            button.NotifyPropertyChanged(nameof(PathIconVisibility));
         }
     }
 

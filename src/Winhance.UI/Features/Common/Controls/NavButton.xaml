@@ -22,11 +22,26 @@
         <StackPanel HorizontalAlignment="Center"
                     VerticalAlignment="Center"
                     Spacing="4">
-            <!-- Icon -->
-            <FontIcon x:Name="ButtonIcon"
+            <!-- FontIcon - for Segoe MDL2/Fluent glyph icons -->
+            <FontIcon x:Name="ButtonFontIcon"
                       Glyph="{x:Bind IconGlyph, Mode=OneWay}"
                       FontSize="{x:Bind IconSize, Mode=OneWay}"
-                      HorizontalAlignment="Center"/>
+                      HorizontalAlignment="Center"
+                      Margin="{x:Bind IconMargin, Mode=OneWay}"
+                      Visibility="{x:Bind FontIconVisibility, Mode=OneWay}"/>
+
+            <!-- PathIcon - for Material Design / vector path icons (wrapped in Viewbox for scaling) -->
+            <Viewbox Width="{x:Bind IconSize, Mode=OneWay}"
+                     Height="{x:Bind IconSize, Mode=OneWay}"
+                     Stretch="Uniform"
+                     HorizontalAlignment="Center"
+                     Margin="{x:Bind IconMargin, Mode=OneWay}"
+                     Visibility="{x:Bind PathIconVisibility, Mode=OneWay}">
+                <PathIcon x:Name="ButtonPathIcon"
+                          Data="{x:Bind IconPath, Mode=OneWay}"
+                          HorizontalAlignment="Center"
+                          VerticalAlignment="Center"/>
+            </Viewbox>
 
             <!-- Text (Hidden when compact) -->
             <TextBlock x:Name="ButtonText"
