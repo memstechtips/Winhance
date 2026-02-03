@@ -1,9 +1,13 @@
+using Microsoft.Extensions.DependencyInjection;
 using Microsoft.UI.Xaml;
 using Microsoft.UI.Xaml.Controls;
+using Microsoft.UI.Xaml.Controls.Primitives;
 using System;
 using System.Collections.Generic;
 using System.ComponentModel;
 using System.Runtime.CompilerServices;
+using Winhance.UI.Features.Common.ViewModels;
+using Winhance.UI.ViewModels;
 
 namespace Winhance.UI.Features.Common.Controls;
 
@@ -18,8 +22,10 @@ public sealed partial class NavSidebar : UserControl, INotifyPropertyChanged
 
     public event PropertyChangedEventHandler? PropertyChanged;
     public event EventHandler<NavButtonClickedEventArgs>? ItemClicked;
+    public event EventHandler? MoreMenuClosed;
 
     private Dictionary<string, NavButton>? _navButtons;
+    private MoreMenuViewModel? _moreMenuViewModel;
 
     #region Dependency Properties
 
@@ -36,6 +42,13 @@ public sealed partial class NavSidebar : UserControl, INotifyPropertyChanged
             typeof(string),
             typeof(NavSidebar),
             new PropertyMetadata(null, OnSelectedTagChanged));
+
+    public static readonly DependencyProperty ViewModelProperty =
+        DependencyProperty.Register(
+            nameof(ViewModel),
+            typeof(MainWindowViewModel),
+            typeof(NavSidebar),
+            new PropertyMetadata(null));
 
     #endregion
 
@@ -60,6 +73,15 @@ public sealed partial class NavSidebar : UserControl, INotifyPropertyChanged
     }
 
     /// <summary>
+    /// The ViewModel providing localized strings for nav buttons.
+    /// </summary>
+    public MainWindowViewModel? ViewModel
+    {
+        get => (MainWindowViewModel?)GetValue(ViewModelProperty);
+        set => SetValue(ViewModelProperty, value);
+    }
+
+    /// <summary>
     /// Computed property: true when pane is closed (compact mode).
     /// </summary>
     public bool IsCompact => !IsPaneOpen;
@@ -80,6 +102,36 @@ public sealed partial class NavSidebar : UserControl, INotifyPropertyChanged
     {
         this.InitializeComponent();
         InitializeNavButtonDictionary();
+
+        // Get MoreMenuViewModel and apply localized text to flyout after control is loaded
+        this.Loaded += NavSidebar_Loaded;
+    }
+
+    private void NavSidebar_Loaded(object sender, RoutedEventArgs e)
+    {
+        // Get MoreMenuViewModel for flyout commands and text
+        _moreMenuViewModel = App.Services.GetService<MoreMenuViewModel>();
+
+        // Apply localized text to More menu flyout items
+        ApplyMoreMenuLocalizedText();
+
+        // Subscribe to MoreMenuViewModel property changes to update flyout text
+        if (_moreMenuViewModel != null)
+        {
+            _moreMenuViewModel.PropertyChanged += OnMoreMenuViewModelPropertyChanged;
+        }
+
+        // Subscribe to flyout closed event to restore selection
+        if (MoreMenuFlyout != null)
+        {
+            MoreMenuFlyout.Closed += MoreMenuFlyout_Closed;
+        }
+    }
+
+    private void OnMoreMenuViewModelPropertyChanged(object? sender, PropertyChangedEventArgs e)
+    {
+        // Re-apply flyout text when MoreMenuViewModel properties change (language change)
+        ApplyMoreMenuLocalizedText();
     }
 
     private void InitializeNavButtonDictionary()
@@ -93,6 +145,90 @@ public sealed partial class NavSidebar : UserControl, INotifyPropertyChanged
             { "Settings", SettingsButton },
             { "More", MoreButton }
         };
+    }
+
+    /// <summary>
+    /// Applies localized text to the More menu flyout items.
+    /// </summary>
+    private void ApplyMoreMenuLocalizedText()
+    {
+        if (_moreMenuViewModel == null || MoreMenuFlyout == null) return;
+
+        foreach (var item in MoreMenuFlyout.Items)
+        {
+            if (item is MenuFlyoutItem menuItem)
+            {
+                var tag = menuItem.Tag as string;
+                menuItem.Text = tag switch
+                {
+                    "ReportBug" => _moreMenuViewModel.MenuReportBug,
+                    "CheckUpdates" => _moreMenuViewModel.MenuCheckForUpdates,
+                    "OpenLogs" => _moreMenuViewModel.MenuWinhanceLogs,
+                    "OpenScripts" => _moreMenuViewModel.MenuWinhanceScripts,
+                    "CloseApp" => _moreMenuViewModel.MenuCloseWinhance,
+                    _ => menuItem.Text
+                };
+
+                // Special case for version item (no tag, disabled)
+                if (!menuItem.IsEnabled && string.IsNullOrEmpty(tag))
+                {
+                    menuItem.Text = _moreMenuViewModel.VersionInfo;
+                }
+            }
+        }
+    }
+
+    /// <summary>
+    /// Shows the More menu flyout positioned relative to the More button.
+    /// Uses FlyoutBase.ShowAttachedFlyout which handles toggle behavior automatically.
+    /// </summary>
+    public void ShowMoreMenuFlyout()
+    {
+        try
+        {
+            FlyoutBase.ShowAttachedFlyout(MoreButton);
+        }
+        catch (Exception ex)
+        {
+            System.Diagnostics.Debug.WriteLine($"Error showing More menu flyout: {ex.Message}");
+        }
+    }
+
+    /// <summary>
+    /// Handles the More menu flyout closing by raising an event for the parent to restore selection.
+    /// </summary>
+    private void MoreMenuFlyout_Closed(object? sender, object e)
+    {
+        // Raise event so MainWindow can restore selection based on current page
+        MoreMenuClosed?.Invoke(this, EventArgs.Empty);
+    }
+
+    /// <summary>
+    /// Handles More menu item clicks and dispatches to MoreMenuViewModel commands.
+    /// </summary>
+    private void MoreMenuItem_Click(object sender, RoutedEventArgs e)
+    {
+        if (sender is MenuFlyoutItem menuItem && menuItem.Tag is string tag && _moreMenuViewModel != null)
+        {
+            switch (tag)
+            {
+                case "ReportBug":
+                    _moreMenuViewModel.ReportBugCommand.Execute(null);
+                    break;
+                case "CheckUpdates":
+                    _moreMenuViewModel.CheckForUpdatesCommand.Execute(null);
+                    break;
+                case "OpenLogs":
+                    _moreMenuViewModel.OpenLogsCommand.Execute(null);
+                    break;
+                case "OpenScripts":
+                    _moreMenuViewModel.OpenScriptsCommand.Execute(null);
+                    break;
+                case "CloseApp":
+                    _moreMenuViewModel.CloseApplicationCommand.Execute(null);
+                    break;
+            }
+        }
     }
 
     #region Property Change Handlers

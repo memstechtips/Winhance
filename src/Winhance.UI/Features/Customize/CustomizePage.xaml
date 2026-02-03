@@ -44,7 +44,7 @@
 
             <!-- Breadcrumb navigation -->
             <StackPanel Grid.Column="0" Orientation="Horizontal" VerticalAlignment="Center" Spacing="4">
-                <!-- "Customizations" root button - navigates to overview -->
+                <!-- "Customize" root button - navigates to overview -->
                 <Button
                     x:Name="BreadcrumbRoot"
                     Click="BreadcrumbOverview_Click"
@@ -53,7 +53,7 @@
                         <Viewbox Width="16" Height="16">
                             <PathIcon Data="{StaticResource CustomizeIconPath}"/>
                         </Viewbox>
-                        <TextBlock Text="Customizations" VerticalAlignment="Center"/>
+                        <TextBlock Text="{x:Bind ViewModel.BreadcrumbRootText}" VerticalAlignment="Center"/>
                     </StackPanel>
                 </Button>
 
@@ -110,7 +110,7 @@
             <Grid Grid.Column="1" Width="220">
                 <AutoSuggestBox
                     x:Name="SearchBox"
-                    PlaceholderText="Search settings..."
+                    PlaceholderText="{x:Bind ViewModel.SearchPlaceholder}"
                     QueryIcon="Find"
                     Text="{x:Bind ViewModel.SearchText, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}"
                     ItemsSource="{x:Bind ViewModel.SearchSuggestions}"
@@ -153,7 +153,7 @@
                     <!-- Windows Theme Card -->
                     <controls:SettingsCard
                         Header="{x:Bind ViewModel.WindowsThemeViewModel.DisplayName}"
-                        Description="Customize Windows visual theme settings"
+                        Description="keep empty for now"
                         IsClickEnabled="True"
                         Click="WindowsThemeCard_Click">
                         <controls:SettingsCard.HeaderIcon>
@@ -164,7 +164,7 @@
                     <!-- Taskbar Card -->
                     <controls:SettingsCard
                         Header="{x:Bind ViewModel.TaskbarViewModel.DisplayName}"
-                        Description="Customize Taskbar appearance and behavior"
+                        Description="keep empty for now"
                         IsClickEnabled="True"
                         Click="TaskbarCard_Click">
                         <controls:SettingsCard.HeaderIcon>
@@ -175,7 +175,7 @@
                     <!-- Start Menu Card -->
                     <controls:SettingsCard
                         Header="{x:Bind ViewModel.StartMenuViewModel.DisplayName}"
-                        Description="Customize Start Menu layout and features"
+                        Description="keep empty for now"
                         IsClickEnabled="True"
                         Click="StartMenuCard_Click">
                         <controls:SettingsCard.HeaderIcon>
@@ -186,7 +186,7 @@
                     <!-- Explorer Card -->
                     <controls:SettingsCard
                         Header="{x:Bind ViewModel.ExplorerViewModel.DisplayName}"
-                        Description="Customize File Explorer appearance and behavior"
+                        Description="keep empty for now"
                         IsClickEnabled="True"
                         Click="ExplorerCard_Click">
                         <controls:SettingsCard.HeaderIcon>

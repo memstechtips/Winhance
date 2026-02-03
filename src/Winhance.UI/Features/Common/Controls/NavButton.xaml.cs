@@ -101,9 +101,9 @@ public sealed partial class NavButton : UserControl, INotifyPropertyChanged
     /// The PathIcon geometry data to display (SVG path data string).
     /// Use this for Material Design icons or custom vector icons.
     /// </summary>
-    public string IconPath
+    public string? IconPath
     {
-        get => (string)GetValue(IconPathProperty);
+        get => (string?)GetValue(IconPathProperty);
         set => SetValue(IconPathProperty, value);
     }
 
@@ -225,6 +225,21 @@ public sealed partial class NavButton : UserControl, INotifyPropertyChanged
         {
             button.NotifyPropertyChanged(nameof(FontIconVisibility));
             button.NotifyPropertyChanged(nameof(PathIconVisibility));
+
+            // Convert IconPath string to Geometry and apply to PathIcon
+            if (e.Property == IconPathProperty && !string.IsNullOrEmpty(button.IconPath))
+            {
+                try
+                {
+                    var geometry = (Geometry)Microsoft.UI.Xaml.Markup.XamlBindingHelper.ConvertValue(
+                        typeof(Geometry), button.IconPath);
+                    button.ButtonPathIcon.Data = geometry;
+                }
+                catch (Exception ex)
+                {
+                    System.Diagnostics.Debug.WriteLine($"Failed to convert IconPath to Geometry: {ex.Message}");
+                }
+            }
         }
     }
 

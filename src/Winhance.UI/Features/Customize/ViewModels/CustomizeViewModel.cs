@@ -39,6 +39,16 @@ public partial class CustomizeViewModel : ObservableObject
     public string PageDescription => _localizationService.GetString("Category_Customize_StatusText");
 
     /// <summary>
+    /// Gets the localized breadcrumb root text.
+    /// </summary>
+    public string BreadcrumbRootText => _localizationService.GetString("Nav_Customize") ?? "Customize";
+
+    /// <summary>
+    /// Gets the localized search placeholder text.
+    /// </summary>
+    public string SearchPlaceholder => _localizationService.GetString("Common_Search_Placeholder") ?? "Type here to search...";
+
+    /// <summary>
     /// Gets whether the page is not loading (inverse of IsLoading for visibility binding).
     /// </summary>
     public bool IsNotLoading => !IsLoading;

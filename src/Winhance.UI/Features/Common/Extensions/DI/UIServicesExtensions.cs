@@ -3,6 +3,7 @@ using Winhance.Core.Features.Common.Interfaces;
 using Winhance.UI.Features.AdvancedTools.ViewModels;
 using Winhance.UI.Features.Common.Interfaces;
 using Winhance.UI.Features.Common.Services;
+using Winhance.UI.Features.Common.ViewModels;
 using Winhance.UI.Features.Customize.ViewModels;
 using Winhance.UI.Features.Optimize;
 using Winhance.UI.Features.Optimize.ViewModels;
@@ -46,6 +47,9 @@ public static class UIServicesExtensions
 
         // MainWindow ViewModel (Singleton - one main window)
         services.AddSingleton<MainWindowViewModel>();
+
+        // More Menu ViewModel (Singleton - shared menu state)
+        services.AddSingleton<MoreMenuViewModel>();
 
         // Settings ViewModels
         services.AddTransient<SettingsViewModel>();

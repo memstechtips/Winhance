@@ -81,11 +81,47 @@ public sealed partial class MainWindow : Window
     private void NavSidebar_Loaded(object sender, RoutedEventArgs e)
     {
         Log("NavSidebar_Loaded");
+
+        // Subscribe to MoreMenuClosed to restore selection based on current page
+        NavSidebar.MoreMenuClosed += NavSidebar_MoreMenuClosed;
+
         // Navigate to Settings page by default (for testing - has fewer dependencies)
         Log("Navigating to Settings as default...");
         NavSidebar.SelectedTag = "Settings";
         NavigateToPage("Settings");
         Log("Settings selected");
+    }
+
+    /// <summary>
+    /// Handles the More menu closing by restoring selection to the current page.
+    /// </summary>
+    private void NavSidebar_MoreMenuClosed(object? sender, EventArgs e)
+    {
+        // Get the tag for the currently displayed page
+        var currentTag = GetTagForCurrentPage();
+        if (!string.IsNullOrEmpty(currentTag))
+        {
+            NavSidebar.SelectedTag = currentTag;
+        }
+    }
+
+    /// <summary>
+    /// Gets the navigation tag for the currently displayed page.
+    /// </summary>
+    private string? GetTagForCurrentPage()
+    {
+        var pageType = ContentFrame.CurrentSourcePageType;
+        if (pageType == null) return null;
+
+        return pageType.Name switch
+        {
+            nameof(SettingsPage) => "Settings",
+            nameof(OptimizePage) => "Optimize",
+            nameof(CustomizePage) => "Customize",
+            nameof(AdvancedToolsPage) => "AdvancedTools",
+            nameof(SoftwareAppsPage) => "SoftwareApps",
+            _ => null
+        };
     }
 
     /// <summary>
@@ -189,46 +225,11 @@ public sealed partial class MainWindow : Window
     }
 
     /// <summary>
-    /// Shows the More menu flyout positioned relative to the More button.
+    /// Shows the More menu flyout - delegates to NavSidebar which owns the flyout.
     /// </summary>
     private void ShowMoreMenuFlyout()
     {
-        try
-        {
-            var flyout = RootGrid.Resources["MoreMenuFlyout"] as MenuFlyout;
-            if (flyout != null)
-            {
-                // Update version text from ViewModel
-                if (_viewModel != null)
-                {
-                    // Find the version menu item and update its text
-                    foreach (var item in flyout.Items)
-                    {
-                        if (item is MenuFlyoutItem menuItem && menuItem.Name == "VersionMenuItem")
-                        {
-                            menuItem.Text = _viewModel.VersionInfo;
-                            break;
-                        }
-                    }
-                }
-
-                // Get the More button from NavSidebar and show flyout relative to it
-                var moreButton = NavSidebar.GetButton("More");
-                if (moreButton != null)
-                {
-                    flyout.ShowAt(moreButton);
-                }
-                else
-                {
-                    // Fallback: show at NavSidebar
-                    flyout.ShowAt(NavSidebar);
-                }
-            }
-        }
-        catch (Exception ex)
-        {
-            Log($"Error showing More menu flyout: {ex.Message}");
-        }
+        NavSidebar.ShowMoreMenuFlyout();
     }
 
     /// <summary>
@@ -400,6 +401,13 @@ public sealed partial class MainWindow : Window
 
                 // Set initial icon
                 UpdateAppIcon();
+
+                // Set localized app title and subtitle
+                AppTitleTextBlock.Text = _viewModel.AppTitle;
+                AppSubtitleTextBlock.Text = _viewModel.AppSubtitle;
+
+                // Pass ViewModel to NavSidebar for localized nav button text
+                NavSidebar.ViewModel = _viewModel;
             }
         }
         catch (Exception ex)
@@ -416,6 +424,34 @@ public sealed partial class MainWindow : Window
         if (e.PropertyName == nameof(MainWindowViewModel.AppIconSource))
         {
             DispatcherQueue.TryEnqueue(UpdateAppIcon);
+        }
+        else if (e.PropertyName == nameof(MainWindowViewModel.AppTitle) && _viewModel != null)
+        {
+            DispatcherQueue.TryEnqueue(() => AppTitleTextBlock.Text = _viewModel.AppTitle);
+        }
+        else if (e.PropertyName == nameof(MainWindowViewModel.AppSubtitle) && _viewModel != null)
+        {
+            DispatcherQueue.TryEnqueue(() => AppSubtitleTextBlock.Text = _viewModel.AppSubtitle);
+        }
+        else if (e.PropertyName == nameof(MainWindowViewModel.SaveConfigTooltip) && _viewModel != null)
+        {
+            DispatcherQueue.TryEnqueue(() => ToolTipService.SetToolTip(SaveConfigButton, _viewModel.SaveConfigTooltip));
+        }
+        else if (e.PropertyName == nameof(MainWindowViewModel.ImportConfigTooltip) && _viewModel != null)
+        {
+            DispatcherQueue.TryEnqueue(() => ToolTipService.SetToolTip(ImportConfigButton, _viewModel.ImportConfigTooltip));
+        }
+        else if (e.PropertyName == nameof(MainWindowViewModel.WindowsFilterTooltip) && _viewModel != null)
+        {
+            DispatcherQueue.TryEnqueue(() => ToolTipService.SetToolTip(WindowsFilterButton, _viewModel.WindowsFilterTooltip));
+        }
+        else if (e.PropertyName == nameof(MainWindowViewModel.DonateTooltip) && _viewModel != null)
+        {
+            DispatcherQueue.TryEnqueue(() => ToolTipService.SetToolTip(DonateButton, _viewModel.DonateTooltip));
+        }
+        else if (e.PropertyName == nameof(MainWindowViewModel.BugReportTooltip) && _viewModel != null)
+        {
+            DispatcherQueue.TryEnqueue(() => ToolTipService.SetToolTip(BugReportButton, _viewModel.BugReportTooltip));
         }
     }
 
@@ -492,50 +528,6 @@ public sealed partial class MainWindow : Window
         {
             System.Diagnostics.Debug.WriteLine($"Failed to apply caption button colors: {ex.Message}");
         }
-    }
-
-    #endregion
-
-    #region More Menu Flyout Handlers
-
-    /// <summary>
-    /// Handles the Report a Bug menu item click.
-    /// </summary>
-    private void ReportBugMenuItem_Click(object sender, RoutedEventArgs e)
-    {
-        _viewModel?.BugReportCommand?.Execute(null);
-    }
-
-    /// <summary>
-    /// Handles the Check for Updates menu item click.
-    /// </summary>
-    private void CheckUpdatesMenuItem_Click(object sender, RoutedEventArgs e)
-    {
-        _viewModel?.CheckForUpdatesCommand?.Execute(null);
-    }
-
-    /// <summary>
-    /// Handles the Open Logs menu item click.
-    /// </summary>
-    private void OpenLogsMenuItem_Click(object sender, RoutedEventArgs e)
-    {
-        _viewModel?.OpenLogsCommand?.Execute(null);
-    }
-
-    /// <summary>
-    /// Handles the Open Scripts menu item click.
-    /// </summary>
-    private void OpenScriptsMenuItem_Click(object sender, RoutedEventArgs e)
-    {
-        _viewModel?.OpenScriptsCommand?.Execute(null);
-    }
-
-    /// <summary>
-    /// Handles the Close Application menu item click.
-    /// </summary>
-    private void CloseAppMenuItem_Click(object sender, RoutedEventArgs e)
-    {
-        _viewModel?.CloseApplicationCommand?.Execute(null);
     }
 
     #endregion

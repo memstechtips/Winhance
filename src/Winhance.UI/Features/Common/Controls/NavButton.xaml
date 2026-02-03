@@ -31,6 +31,7 @@
                       Visibility="{x:Bind FontIconVisibility, Mode=OneWay}"/>
 
             <!-- PathIcon - for Material Design / vector path icons (wrapped in Viewbox for scaling) -->
+            <!-- Note: Data is set in code-behind via OnIconPropertyChanged because x:Bind doesn't support string-to-Geometry conversion -->
             <Viewbox Width="{x:Bind IconSize, Mode=OneWay}"
                      Height="{x:Bind IconSize, Mode=OneWay}"
                      Stretch="Uniform"
@@ -38,7 +39,6 @@
                      Margin="{x:Bind IconMargin, Mode=OneWay}"
                      Visibility="{x:Bind PathIconVisibility, Mode=OneWay}">
                 <PathIcon x:Name="ButtonPathIcon"
-                          Data="{x:Bind IconPath, Mode=OneWay}"
                           HorizontalAlignment="Center"
                           VerticalAlignment="Center"/>
             </Viewbox>
