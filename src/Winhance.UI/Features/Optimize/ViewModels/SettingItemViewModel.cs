@@ -150,6 +150,7 @@ public partial class SettingItemViewModel : BaseViewModel
 
     /// <summary>
     /// Updates visibility based on search text.
+    /// Searches in Name, Description, and GroupName.
     /// </summary>
     public void UpdateVisibility(string searchText)
     {
@@ -161,7 +162,8 @@ public partial class SettingItemViewModel : BaseViewModel
 
         var lowerSearch = searchText.ToLowerInvariant();
         IsVisible = Name.ToLowerInvariant().Contains(lowerSearch) ||
-                   Description.ToLowerInvariant().Contains(lowerSearch);
+                   Description.ToLowerInvariant().Contains(lowerSearch) ||
+                   (!string.IsNullOrEmpty(GroupName) && GroupName.ToLowerInvariant().Contains(lowerSearch));
     }
 
     #region UI Event Handlers (bound via x:Bind)

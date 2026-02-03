@@ -81,22 +81,22 @@
                     </DropDownButton.Content>
                     <DropDownButton.Flyout>
                         <MenuFlyout Placement="BottomEdgeAlignedLeft">
-                            <MenuFlyoutItem Text="Windows Theme" Click="NavigateWindowsTheme_Click">
+                            <MenuFlyoutItem x:Name="MenuItemWindowsTheme" Click="NavigateWindowsTheme_Click">
                                 <MenuFlyoutItem.Icon>
                                     <PathIcon Data="{StaticResource WindowsThemeIconPath}"/>
                                 </MenuFlyoutItem.Icon>
                             </MenuFlyoutItem>
-                            <MenuFlyoutItem Text="Taskbar" Click="NavigateTaskbar_Click">
+                            <MenuFlyoutItem x:Name="MenuItemTaskbar" Click="NavigateTaskbar_Click">
                                 <MenuFlyoutItem.Icon>
                                     <PathIcon Data="{StaticResource TaskbarIconPath}"/>
                                 </MenuFlyoutItem.Icon>
                             </MenuFlyoutItem>
-                            <MenuFlyoutItem Text="Start Menu" Click="NavigateStartMenu_Click">
+                            <MenuFlyoutItem x:Name="MenuItemStartMenu" Click="NavigateStartMenu_Click">
                                 <MenuFlyoutItem.Icon>
                                     <PathIcon Data="{StaticResource StartMenuIconPath}"/>
                                 </MenuFlyoutItem.Icon>
                             </MenuFlyoutItem>
-                            <MenuFlyoutItem Text="Explorer" Click="NavigateExplorer_Click">
+                            <MenuFlyoutItem x:Name="MenuItemExplorer" Click="NavigateExplorer_Click">
                                 <MenuFlyoutItem.Icon>
                                     <PathIcon Data="{StaticResource ExplorerIconPath}"/>
                                 </MenuFlyoutItem.Icon>
@@ -153,7 +153,7 @@
                     <!-- Windows Theme Card -->
                     <controls:SettingsCard
                         Header="{x:Bind ViewModel.WindowsThemeViewModel.DisplayName}"
-                        Description="keep empty for now"
+                        Description="{x:Bind ViewModel.WindowsThemeViewModel.GroupDescriptionText}"
                         IsClickEnabled="True"
                         Click="WindowsThemeCard_Click">
                         <controls:SettingsCard.HeaderIcon>
@@ -164,7 +164,7 @@
                     <!-- Taskbar Card -->
                     <controls:SettingsCard
                         Header="{x:Bind ViewModel.TaskbarViewModel.DisplayName}"
-                        Description="keep empty for now"
+                        Description="{x:Bind ViewModel.TaskbarViewModel.GroupDescriptionText}"
                         IsClickEnabled="True"
                         Click="TaskbarCard_Click">
                         <controls:SettingsCard.HeaderIcon>
@@ -175,7 +175,7 @@
                     <!-- Start Menu Card -->
                     <controls:SettingsCard
                         Header="{x:Bind ViewModel.StartMenuViewModel.DisplayName}"
-                        Description="keep empty for now"
+                        Description="{x:Bind ViewModel.StartMenuViewModel.GroupDescriptionText}"
                         IsClickEnabled="True"
                         Click="StartMenuCard_Click">
                         <controls:SettingsCard.HeaderIcon>
@@ -186,7 +186,7 @@
                     <!-- Explorer Card -->
                     <controls:SettingsCard
                         Header="{x:Bind ViewModel.ExplorerViewModel.DisplayName}"
-                        Description="keep empty for now"
+                        Description="{x:Bind ViewModel.ExplorerViewModel.GroupDescriptionText}"
                         IsClickEnabled="True"
                         Click="ExplorerCard_Click">
                         <controls:SettingsCard.HeaderIcon>

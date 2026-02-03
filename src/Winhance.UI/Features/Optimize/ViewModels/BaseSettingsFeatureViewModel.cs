@@ -27,6 +27,9 @@ public abstract partial class BaseSettingsFeatureViewModel : BaseViewModel, ISet
     private ObservableCollection<SettingItemViewModel> _settings = new();
 
     [ObservableProperty]
+    private ObservableCollection<SettingsGroup> _groupedSettings = new();
+
+    [ObservableProperty]
     private bool _isLoading;
 
     [ObservableProperty]
@@ -59,6 +62,40 @@ public abstract partial class BaseSettingsFeatureViewModel : BaseViewModel, ISet
     /// Number of settings in this feature.
     /// </summary>
     public int SettingsCount => Settings?.Count ?? 0;
+
+    /// <summary>
+    /// Gets a comma-separated list of unique group names for display on overview cards.
+    /// </summary>
+    public string GroupDescriptionText
+    {
+        get
+        {
+            if (Settings == null || Settings.Count == 0)
+                return string.Empty;
+
+            var groups = Settings
+                .Where(s => !string.IsNullOrEmpty(s.GroupName))
+                .Select(s => s.GroupName)
+                .Distinct()
+                .Take(4)
+                .ToList();
+
+            if (groups.Count == 0)
+                return string.Empty;
+
+            var totalGroups = Settings
+                .Where(s => !string.IsNullOrEmpty(s.GroupName))
+                .Select(s => s.GroupName)
+                .Distinct()
+                .Count();
+
+            var text = string.Join(", ", groups);
+            if (totalGroups > 4)
+                text += ", ...";
+
+            return text;
+        }
+    }
 
     /// <summary>
     /// Event raised when feature visibility changes due to search.
@@ -198,10 +235,14 @@ public abstract partial class BaseSettingsFeatureViewModel : BaseViewModel, ISet
 
             UpdateParentChildRelationships();
 
+            // Build the grouped settings collection
+            RebuildGroupedSettings();
+
             // Notify that computed properties have changed
             OnPropertyChanged(nameof(HasVisibleSettings));
             OnPropertyChanged(nameof(IsVisibleInSearch));
             OnPropertyChanged(nameof(SettingsCount));
+            OnPropertyChanged(nameof(GroupDescriptionText));
 
             _logService.Log(LogLevel.Info, $"{GetType().Name}: Successfully loaded {Settings.Count} settings, HasVisibleSettings={HasVisibleSettings}");
         }
@@ -280,6 +321,51 @@ public abstract partial class BaseSettingsFeatureViewModel : BaseViewModel, ISet
                     setting.ParentIsEnabled = parentEnabled;
                 }
             }
+        }
+    }
+
+    /// <summary>
+    /// Rebuilds the grouped settings collection from the flat settings list.
+    /// Groups settings by their GroupName property, preserving original order.
+    /// Settings without a GroupName are placed in an "Other" group.
+    /// </summary>
+    private void RebuildGroupedSettings()
+    {
+        GroupedSettings.Clear();
+
+        if (Settings == null || Settings.Count == 0)
+            return;
+
+        // Get localized "Other" group name
+        var otherGroupName = _localizationService.GetString("SettingGroup_Other");
+        if (otherGroupName.StartsWith("[") && otherGroupName.EndsWith("]"))
+        {
+            otherGroupName = "Other"; // Fallback if not localized
+        }
+
+        // Group settings by GroupName, preserving order of first occurrence
+        var groupOrder = new List<string>();
+        var groupedDict = new Dictionary<string, List<SettingItemViewModel>>();
+
+        foreach (var setting in Settings)
+        {
+            // Use "Other" for settings without a group name
+            var groupName = string.IsNullOrEmpty(setting.GroupName) ? otherGroupName : setting.GroupName;
+
+            if (!groupedDict.ContainsKey(groupName))
+            {
+                groupOrder.Add(groupName);
+                groupedDict[groupName] = new List<SettingItemViewModel>();
+            }
+
+            groupedDict[groupName].Add(setting);
+        }
+
+        // Build the grouped collection in order
+        foreach (var groupName in groupOrder)
+        {
+            var group = new SettingsGroup(groupName, groupedDict[groupName]);
+            GroupedSettings.Add(group);
         }
     }
 

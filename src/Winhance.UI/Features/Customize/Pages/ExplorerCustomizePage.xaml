@@ -11,6 +11,12 @@
     NavigationCacheMode="Disabled">
 
     <Page.Resources>
+        <!-- CollectionViewSource for grouped settings -->
+        <CollectionViewSource
+            x:Name="GroupedSettingsSource"
+            Source="{x:Bind ViewModel.ExplorerViewModel.GroupedSettings}"
+            IsSourceGrouped="True"/>
+
         <!-- ItemTemplate: SettingsCard wraps the shared SettingsCardItem control -->
         <DataTemplate x:Key="SettingItemTemplate" x:DataType="viewModels:SettingItemViewModel">
             <controls:SettingsCard
@@ -37,20 +43,67 @@
 
         <!-- Main Content -->
         <ScrollView Visibility="{x:Bind ViewModel.IsNotLoading}">
-            <StackPanel Spacing="8" MaxWidth="{StaticResource SettingsContentMaxWidth}" Margin="{StaticResource SettingsContentMargin}" HorizontalAlignment="Stretch">
-                <ItemsRepeater
-                    ItemsSource="{x:Bind ViewModel.ExplorerViewModel.Settings}"
-                    ItemTemplate="{StaticResource SettingItemTemplate}"/>
+            <!-- Wrap StackPanel in Grid to avoid visual glitches with MaxWidth -->
+            <Grid>
+                <StackPanel Spacing="{StaticResource SettingsCardSpacing}" MaxWidth="{StaticResource SettingsContentMaxWidth}" Margin="{StaticResource SettingsContentMargin}" HorizontalAlignment="Stretch">
 
-                <!-- No Results Message -->
-                <TextBlock
-                    Text="No settings match your search."
-                    Style="{StaticResource BodyTextBlockStyle}"
-                    Foreground="{ThemeResource TextFillColorSecondaryBrush}"
-                    HorizontalAlignment="Center"
-                    Margin="0,40,0,0"
-                    Visibility="{x:Bind ViewModel.HasNoSearchResults, Converter={StaticResource BooleanToVisibilityConverter}}"/>
-            </StackPanel>
+                    <ListView
+                        x:Name="SettingsListView"
+                        ItemsSource="{x:Bind GroupedSettingsSource.View, Mode=OneWay}"
+                        ItemTemplate="{StaticResource SettingItemTemplate}"
+                        SelectionMode="None"
+                        IsItemClickEnabled="False"
+                        Background="Transparent"
+                        Padding="0">
+
+                        <ListView.ItemsPanel>
+                            <ItemsPanelTemplate>
+                                <StackPanel Spacing="{StaticResource SettingsCardSpacing}"/>
+                            </ItemsPanelTemplate>
+                        </ListView.ItemsPanel>
+
+                        <ListView.ItemContainerStyle>
+                            <Style TargetType="ListViewItem">
+                                <Setter Property="Padding" Value="0"/>
+                                <Setter Property="Margin" Value="0"/>
+                                <Setter Property="MinHeight" Value="0"/>
+                                <Setter Property="HorizontalContentAlignment" Value="Stretch"/>
+                                <Setter Property="Template">
+                                    <Setter.Value>
+                                        <ControlTemplate TargetType="ListViewItem">
+                                            <ContentPresenter
+                                                Content="{TemplateBinding Content}"
+                                                ContentTemplate="{TemplateBinding ContentTemplate}"
+                                                HorizontalAlignment="Stretch"/>
+                                        </ControlTemplate>
+                                    </Setter.Value>
+                                </Setter>
+                            </Style>
+                        </ListView.ItemContainerStyle>
+
+                        <ListView.GroupStyle>
+                            <GroupStyle>
+                                <GroupStyle.HeaderTemplate>
+                                    <DataTemplate>
+                                        <TextBlock
+                                            Text="{Binding Key}"
+                                            Style="{StaticResource SettingsSectionHeaderTextBlockStyle}"/>
+                                    </DataTemplate>
+                                </GroupStyle.HeaderTemplate>
+                            </GroupStyle>
+                        </ListView.GroupStyle>
+                    </ListView>
+
+                    <!-- No Results Message -->
+                    <TextBlock
+                        Text="No settings match your search."
+                        Style="{StaticResource BodyTextBlockStyle}"
+                        Foreground="{ThemeResource TextFillColorSecondaryBrush}"
+                        HorizontalAlignment="Center"
+                        Margin="0,40,0,0"
+                        Visibility="{x:Bind ViewModel.HasNoSearchResults, Converter={StaticResource BooleanToVisibilityConverter}}"/>
+                </StackPanel>
+            </Grid>
         </ScrollView>
     </Grid>
 </Page>

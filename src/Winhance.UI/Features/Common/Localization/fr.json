@@ -178,6 +178,7 @@
   "SettingGroup_Files_and_Folders": "Fichiers et dossiers",
   "SettingGroup_File_Associations": "Associations de fichiers",
   "SettingGroup_Navigation_Pane": "Volet de navigation",
+  "SettingGroup_Other": "Autre",
   "Setting_windows-pushnotifications_Name": "Afficher les notifications",
   "Setting_windows-pushnotifications_Description": "Recevoir des notifications d'applications et d'autres expéditeurs dans Windows",
   "Setting_notifications-sound_Name": "Autoriser les notifications à jouer des sons",

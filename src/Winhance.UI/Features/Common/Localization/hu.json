@@ -178,6 +178,7 @@
   "SettingGroup_Files_and_Folders": "Fájlok és mappák",
   "SettingGroup_File_Associations": "Fájltársítások",
   "SettingGroup_Navigation_Pane": "Navigációs panel",
+  "SettingGroup_Other": "Egyéb",
   "Setting_windows-pushnotifications_Name": "Értesítések megjelenítése",
   "Setting_windows-pushnotifications_Description": "Értesítések fogadása alkalmazásoktól és más küldőktől Windows rendszeren",
   "Setting_notifications-sound_Name": "Engedélyezze az értesítések hangjait",

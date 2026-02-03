@@ -178,6 +178,7 @@
   "SettingGroup_Files_and_Folders": "फ़ाइलें और फ़ोल्डर",
   "SettingGroup_File_Associations": "फ़ाइल एसोसिएशन",
   "SettingGroup_Navigation_Pane": "नेविगेशन पेन",
+  "SettingGroup_Other": "अन्य",
   "Setting_windows-pushnotifications_Name": "सूचनाएं दिखाएं",
   "Setting_windows-pushnotifications_Description": "विंडोज में ऐप्स और अन्य प्रेषकों से सूचनाएं प्राप्त करें",
   "Setting_notifications-sound_Name": "सूचनाओं को ध्वनि चलाने की अनुमति दें",

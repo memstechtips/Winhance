@@ -178,6 +178,7 @@
   "SettingGroup_Files_and_Folders": "Файлы и папки",
   "SettingGroup_File_Associations": "Ассоциации файлов",
   "SettingGroup_Navigation_Pane": "Панель навигации",
+  "SettingGroup_Other": "Прочее",
   "Setting_windows-pushnotifications_Name": "Показывать уведомления",
   "Setting_windows-pushnotifications_Description": "Получать уведомления от приложений и других отправителей в Windows",
   "Setting_notifications-sound_Name": "Разрешить уведомлениям воспроизводить звуки",

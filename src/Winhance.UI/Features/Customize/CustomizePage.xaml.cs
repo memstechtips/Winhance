@@ -36,6 +36,7 @@ public sealed partial class CustomizePage : Page
             this.InitializeComponent();
             Log("InitializeComponent done, getting ViewModel...");
             ViewModel = App.Services.GetRequiredService<CustomizeViewModel>();
+            UpdateBreadcrumbMenuItems();
             Log("ViewModel obtained, constructor complete");
         }
         catch (Exception ex)
@@ -43,6 +44,17 @@ public sealed partial class CustomizePage : Page
             Log($"Constructor EXCEPTION: {ex}");
             throw;
         }
+    }
+
+    /// <summary>
+    /// Updates the breadcrumb dropdown menu items with localized text.
+    /// </summary>
+    private void UpdateBreadcrumbMenuItems()
+    {
+        MenuItemWindowsTheme.Text = ViewModel.GetSectionDisplayName("WindowsTheme");
+        MenuItemTaskbar.Text = ViewModel.GetSectionDisplayName("Taskbar");
+        MenuItemStartMenu.Text = ViewModel.GetSectionDisplayName("StartMenu");
+        MenuItemExplorer.Text = ViewModel.GetSectionDisplayName("Explorer");
     }
 
     protected override async void OnNavigatedTo(NavigationEventArgs e)

@@ -178,6 +178,7 @@
   "SettingGroup_Files_and_Folders": "ファイルとフォルダー",
   "SettingGroup_File_Associations": "ファイルの関連付け",
   "SettingGroup_Navigation_Pane": "ナビゲーションウィンドウ",
+  "SettingGroup_Other": "その他",
   "Setting_windows-pushnotifications_Name": "通知を表示",
   "Setting_windows-pushnotifications_Description": "Windowsでアプリや他の送信者からの通知を受け取る",
   "Setting_notifications-sound_Name": "通知音の再生を許可",

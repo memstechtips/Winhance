@@ -178,6 +178,7 @@
   "SettingGroup_Files_and_Folders": "Filer och mappar",
   "SettingGroup_File_Associations": "Filassociationer",
   "SettingGroup_Navigation_Pane": "Navigeringsfönster",
+  "SettingGroup_Other": "Övrigt",
   "Setting_windows-pushnotifications_Name": "Visa meddelanden",
   "Setting_windows-pushnotifications_Description": "Få meddelanden från appar och andra avsändare i Windows",
   "Setting_notifications-sound_Name": "Tillåt att meddelanden spelar upp ljud",

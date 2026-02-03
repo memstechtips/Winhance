@@ -178,6 +178,7 @@
   "SettingGroup_Files_and_Folders": "檔案與資料夾",
   "SettingGroup_File_Associations": "檔案關聯",
   "SettingGroup_Navigation_Pane": "導覽窗格",
+  "SettingGroup_Other": "其他",
   "Setting_windows-pushnotifications_Name": "顯示通知",
   "Setting_windows-pushnotifications_Description": "取得來自應用程式與其他傳送者的通知",
   "Setting_notifications-sound_Name": "允許通知播放音效",

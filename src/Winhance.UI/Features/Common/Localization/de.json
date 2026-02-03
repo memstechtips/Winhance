@@ -178,6 +178,7 @@
   "SettingGroup_Files_and_Folders": "Dateien und Ordner",
   "SettingGroup_File_Associations": "Dateizuordnungen",
   "SettingGroup_Navigation_Pane": "Navigationsbereich",
+  "SettingGroup_Other": "Sonstige",
   "Setting_windows-pushnotifications_Name": "Benachrichtigungen anzeigen",
   "Setting_windows-pushnotifications_Description": "Benachrichtigungen von Apps und anderen Absendern in Windows erhalten",
   "Setting_notifications-sound_Name": "Benachrichtigungen dürfen Sounds abspielen",
