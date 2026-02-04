@@ -134,74 +134,82 @@
             </Grid>
         </Grid>
 
-        <!-- Row 2: Overview Content (visible when not on detail page) -->
-        <Grid x:Name="OverviewContent" Grid.Row="2">
-            <!-- Loading State -->
-            <ProgressRing
-                IsActive="{x:Bind ViewModel.IsLoading}"
-                Visibility="{x:Bind ViewModel.IsLoading}"
-                Width="48"
-                Height="48"
-                HorizontalAlignment="Center"
-                VerticalAlignment="Center"/>
-
-            <!-- Overview Cards -->
-            <ScrollView Visibility="{x:Bind ViewModel.IsNotLoading}">
-                <StackPanel Spacing="8" MaxWidth="{StaticResource SettingsContentMaxWidth}" Margin="{StaticResource SettingsContentMargin}" HorizontalAlignment="Stretch">
-
-                    <!-- Windows Theme Card -->
-                    <controls:SettingsCard
-                        Header="{x:Bind ViewModel.WindowsThemeViewModel.DisplayName}"
-                        Description="{x:Bind ViewModel.WindowsThemeViewModel.GroupDescriptionText}"
-                        IsClickEnabled="True"
-                        Click="WindowsThemeCard_Click">
-                        <controls:SettingsCard.HeaderIcon>
-                            <PathIcon Data="{StaticResource WindowsThemeIconPath}"/>
-                        </controls:SettingsCard.HeaderIcon>
-                    </controls:SettingsCard>
-
-                    <!-- Taskbar Card -->
-                    <controls:SettingsCard
-                        Header="{x:Bind ViewModel.TaskbarViewModel.DisplayName}"
-                        Description="{x:Bind ViewModel.TaskbarViewModel.GroupDescriptionText}"
-                        IsClickEnabled="True"
-                        Click="TaskbarCard_Click">
-                        <controls:SettingsCard.HeaderIcon>
-                            <PathIcon Data="{StaticResource TaskbarIconPath}"/>
-                        </controls:SettingsCard.HeaderIcon>
-                    </controls:SettingsCard>
-
-                    <!-- Start Menu Card -->
-                    <controls:SettingsCard
-                        Header="{x:Bind ViewModel.StartMenuViewModel.DisplayName}"
-                        Description="{x:Bind ViewModel.StartMenuViewModel.GroupDescriptionText}"
-                        IsClickEnabled="True"
-                        Click="StartMenuCard_Click">
-                        <controls:SettingsCard.HeaderIcon>
-                            <PathIcon Data="{StaticResource StartMenuIconPath}"/>
-                        </controls:SettingsCard.HeaderIcon>
-                    </controls:SettingsCard>
-
-                    <!-- Explorer Card -->
-                    <controls:SettingsCard
-                        Header="{x:Bind ViewModel.ExplorerViewModel.DisplayName}"
-                        Description="{x:Bind ViewModel.ExplorerViewModel.GroupDescriptionText}"
-                        IsClickEnabled="True"
-                        Click="ExplorerCard_Click">
-                        <controls:SettingsCard.HeaderIcon>
-                            <PathIcon Data="{StaticResource ExplorerIconPath}"/>
-                        </controls:SettingsCard.HeaderIcon>
-                    </controls:SettingsCard>
-
-                </StackPanel>
-            </ScrollView>
-        </Grid>
-
-        <!-- Row 2: Detail Page Frame (visible when on detail page) -->
-        <Frame
-            x:Name="InnerContentFrame"
+        <!-- Row 2: Content Container with rounded corners and lighter background -->
+        <Border
             Grid.Row="2"
-            Visibility="Collapsed"
-            Navigated="InnerContentFrame_Navigated"/>
+            Background="{ThemeResource SystemFillColorNeutralBackgroundBrush}"
+            CornerRadius="8"
+            Margin="0,0,0,12">
+            <Grid>
+                <!-- Overview Content (visible when not on detail page) -->
+                <Grid x:Name="OverviewContent">
+                    <!-- Loading State -->
+                    <ProgressRing
+                        IsActive="{x:Bind ViewModel.IsLoading}"
+                        Visibility="{x:Bind ViewModel.IsLoading}"
+                        Width="48"
+                        Height="48"
+                        HorizontalAlignment="Center"
+                        VerticalAlignment="Center"/>
+
+                    <!-- Overview Cards -->
+                    <ScrollView Visibility="{x:Bind ViewModel.IsNotLoading}">
+                        <StackPanel Spacing="8" MaxWidth="{StaticResource SettingsContentMaxWidth}" Margin="{StaticResource SettingsContentMargin}" HorizontalAlignment="Stretch" Padding="0,12,0,12">
+
+                            <!-- Windows Theme Card -->
+                            <controls:SettingsCard
+                                Header="{x:Bind ViewModel.WindowsThemeViewModel.DisplayName}"
+                                Description="{x:Bind ViewModel.WindowsThemeViewModel.GroupDescriptionText}"
+                                IsClickEnabled="True"
+                                Click="WindowsThemeCard_Click">
+                                <controls:SettingsCard.HeaderIcon>
+                                    <PathIcon Data="{StaticResource WindowsThemeIconPath}"/>
+                                </controls:SettingsCard.HeaderIcon>
+                            </controls:SettingsCard>
+
+                            <!-- Taskbar Card -->
+                            <controls:SettingsCard
+                                Header="{x:Bind ViewModel.TaskbarViewModel.DisplayName}"
+                                Description="{x:Bind ViewModel.TaskbarViewModel.GroupDescriptionText}"
+                                IsClickEnabled="True"
+                                Click="TaskbarCard_Click">
+                                <controls:SettingsCard.HeaderIcon>
+                                    <PathIcon Data="{StaticResource TaskbarIconPath}"/>
+                                </controls:SettingsCard.HeaderIcon>
+                            </controls:SettingsCard>
+
+                            <!-- Start Menu Card -->
+                            <controls:SettingsCard
+                                Header="{x:Bind ViewModel.StartMenuViewModel.DisplayName}"
+                                Description="{x:Bind ViewModel.StartMenuViewModel.GroupDescriptionText}"
+                                IsClickEnabled="True"
+                                Click="StartMenuCard_Click">
+                                <controls:SettingsCard.HeaderIcon>
+                                    <PathIcon Data="{StaticResource StartMenuIconPath}"/>
+                                </controls:SettingsCard.HeaderIcon>
+                            </controls:SettingsCard>
+
+                            <!-- Explorer Card -->
+                            <controls:SettingsCard
+                                Header="{x:Bind ViewModel.ExplorerViewModel.DisplayName}"
+                                Description="{x:Bind ViewModel.ExplorerViewModel.GroupDescriptionText}"
+                                IsClickEnabled="True"
+                                Click="ExplorerCard_Click">
+                                <controls:SettingsCard.HeaderIcon>
+                                    <PathIcon Data="{StaticResource ExplorerIconPath}"/>
+                                </controls:SettingsCard.HeaderIcon>
+                            </controls:SettingsCard>
+
+                        </StackPanel>
+                    </ScrollView>
+                </Grid>
+
+                <!-- Detail Page Frame (visible when on detail page) -->
+                <Frame
+                    x:Name="InnerContentFrame"
+                    Visibility="Collapsed"
+                    Navigated="InnerContentFrame_Navigated"/>
+            </Grid>
+        </Border>
     </Grid>
 </Page>
