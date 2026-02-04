@@ -21,6 +21,7 @@ public abstract partial class BaseSettingsFeatureViewModel : BaseViewModel, ISet
     protected readonly ISettingsLoadingService _settingsLoadingService;
     protected readonly ILogService _logService;
     protected readonly ILocalizationService _localizationService;
+    protected readonly IDispatcherService _dispatcherService;
     protected readonly MainWindowViewModel? _mainWindowViewModel;
     private bool _settingsLoaded = false;
     private readonly object _loadingLock = new();
@@ -114,12 +115,14 @@ public abstract partial class BaseSettingsFeatureViewModel : BaseViewModel, ISet
         ISettingsLoadingService settingsLoadingService,
         ILogService logService,
         ILocalizationService localizationService,
+        IDispatcherService dispatcherService,
         MainWindowViewModel? mainWindowViewModel = null)
     {
         _domainServiceRouter = domainServiceRouter ?? throw new ArgumentNullException(nameof(domainServiceRouter));
         _settingsLoadingService = settingsLoadingService ?? throw new ArgumentNullException(nameof(settingsLoadingService));
         _logService = logService ?? throw new ArgumentNullException(nameof(logService));
         _localizationService = localizationService ?? throw new ArgumentNullException(nameof(localizationService));
+        _dispatcherService = dispatcherService ?? throw new ArgumentNullException(nameof(dispatcherService));
         _mainWindowViewModel = mainWindowViewModel;
 
         LoadSettingsCommand = new RelayCommand(() => _ = LoadSettingsAsync());
@@ -259,29 +262,35 @@ public abstract partial class BaseSettingsFeatureViewModel : BaseViewModel, ISet
         {
             try
             {
-                await Task.Delay(100, token);
+
+                // Check cancellation before proceeding
+                token.ThrowIfCancellationRequested();
 
                 bool featureMatches = string.IsNullOrWhiteSpace(value) ||
                     DisplayName.ToLowerInvariant().Contains(value.ToLowerInvariant());
 
-                if (featureMatches)
+                // Dispatch UI property updates to the UI thread
+                _dispatcherService.RunOnUIThread(() =>
                 {
-                    foreach (var setting in Settings)
+                    if (featureMatches)
                     {
-                        setting.IsVisible = true;
+                        foreach (var setting in Settings)
+                        {
+                            setting.IsVisible = true;
+                        }
                     }
-                }
-                else
-                {
-                    foreach (var setting in Settings)
+                    else
                     {
-                        setting.UpdateVisibility(value);
+                        foreach (var setting in Settings)
+                        {
+                            setting.UpdateVisibility(value);
+                        }
                     }
-                }
 
-                OnPropertyChanged(nameof(HasVisibleSettings));
-                OnPropertyChanged(nameof(IsVisibleInSearch));
-                VisibilityChanged?.Invoke(this, new FeatureVisibilityChangedEventArgs(ModuleId, IsVisibleInSearch, value));
+                    OnPropertyChanged(nameof(HasVisibleSettings));
+                    OnPropertyChanged(nameof(IsVisibleInSearch));
+                    VisibilityChanged?.Invoke(this, new FeatureVisibilityChangedEventArgs(ModuleId, IsVisibleInSearch, value));
+                });
             }
             catch (OperationCanceledException)
             {

@@ -302,11 +302,8 @@ public partial class CustomizeViewModel : ObservableObject
             WindowsThemeViewModel.ApplySearchFilter(value);
         }
 
-        // Update suggestions from other sections
-        if (IsInDetailPage)
-        {
-            UpdateSearchSuggestions(value);
-        }
+        // Update suggestions (searches all sections, excludes current section if on detail page)
+        UpdateSearchSuggestions(value);
 
         OnPropertyChanged(nameof(HasNoSearchResults));
     }

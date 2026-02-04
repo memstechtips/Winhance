@@ -17,8 +17,9 @@ public partial class TaskbarCustomizationsViewModel : BaseSettingsFeatureViewMod
         ISettingsLoadingService settingsLoadingService,
         ILogService logService,
         ILocalizationService localizationService,
+        IDispatcherService dispatcherService,
         MainWindowViewModel mainWindowViewModel)
-        : base(domainServiceRouter, settingsLoadingService, logService, localizationService, mainWindowViewModel)
+        : base(domainServiceRouter, settingsLoadingService, logService, localizationService, dispatcherService, mainWindowViewModel)
     {
     }
 

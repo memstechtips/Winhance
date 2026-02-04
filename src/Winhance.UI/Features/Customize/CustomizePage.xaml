@@ -114,7 +114,6 @@
                     QueryIcon="Find"
                     Text="{x:Bind ViewModel.SearchText, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}"
                     ItemsSource="{x:Bind ViewModel.SearchSuggestions}"
-                    TextMemberPath="SettingName"
                     SuggestionChosen="SearchBox_SuggestionChosen"
                     QuerySubmitted="SearchBox_QuerySubmitted">
                     <AutoSuggestBox.ItemTemplate>

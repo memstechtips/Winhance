@@ -42,7 +42,7 @@
     <!-- SettingItemTemplate - shared template for SettingsCard with badge support -->
     <DataTemplate x:Key="SettingItemTemplate" x:DataType="viewModels:SettingItemViewModel">
         <controls:SettingsCard
-            Visibility="{x:Bind IsVisible, Converter={StaticResource BooleanToVisibilityConverter}}"
+            Visibility="{x:Bind IsVisible, Mode=OneWay, Converter={StaticResource BooleanToVisibilityConverter}}"
             Header="{x:Bind Name}"
             Description="{x:Bind Description}"
             IsEnabled="{x:Bind EffectiveIsEnabled}"
@@ -99,6 +99,7 @@
     <DataTemplate x:Key="SettingsGroupHeaderTemplate">
         <TextBlock
             Text="{Binding Key}"
+            Visibility="{Binding HasVisibleItems, Converter={StaticResource BooleanToVisibilityConverter}}"
             Style="{StaticResource SettingsSectionHeaderTextBlockStyle}"/>
     </DataTemplate>
 

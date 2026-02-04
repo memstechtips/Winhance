@@ -89,7 +89,7 @@ public sealed partial class CustomizePage : Page
     /// </summary>
     public void NavigateToSection(string sectionKey, string? searchText = null)
     {
-        Type pageType = sectionKey switch
+        Type? pageType = sectionKey switch
         {
             "Explorer" => typeof(ExplorerCustomizePage),
             "StartMenu" => typeof(StartMenuCustomizePage),
@@ -100,6 +100,14 @@ public sealed partial class CustomizePage : Page
 
         if (pageType != null)
         {
+            // Pre-apply the search filter BEFORE navigating to avoid visual flash
+            // This ensures settings have correct visibility when the page renders
+            if (!string.IsNullOrWhiteSpace(searchText))
+            {
+                var targetViewModel = ViewModel.GetSectionViewModel(sectionKey);
+                targetViewModel?.ApplySearchFilter(searchText);
+            }
+
             InnerContentFrame.Navigate(pageType, searchText);
         }
         else
