@@ -1,0 +1,35 @@
+<?xml version="1.0" encoding="utf-8"?>
+<UserControl
+    x:Class="Winhance.UI.Features.Common.Controls.SettingBadge"
+    xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+    xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+    xmlns:local="using:Winhance.UI.Features.Common.Controls">
+
+    <UserControl.Resources>
+        <ResourceDictionary>
+            <ResourceDictionary.MergedDictionaries>
+                <ResourceDictionary Source="ms-appx:///Features/Common/Styles/BadgeStyles.xaml"/>
+                <ResourceDictionary Source="ms-appx:///Features/Common/Resources/FeatureIcons.xaml"/>
+            </ResourceDictionary.MergedDictionaries>
+        </ResourceDictionary>
+    </UserControl.Resources>
+
+    <Border x:Name="BadgeBorder"
+            CornerRadius="8"
+            Padding="5,1,5,1"
+            BorderThickness="1.5"
+            ToolTipService.ToolTip="{x:Bind Tooltip, Mode=OneWay}">
+        <StackPanel Orientation="Horizontal" Spacing="4" Margin="0,0,0,1">
+            <!-- Windows Logo Icon (Material Design Path) -->
+            <Viewbox Width="12" Height="12" VerticalAlignment="Center" HorizontalAlignment="Center">
+                <PathIcon x:Name="BadgeIcon" Data="{StaticResource WindowsLogoIconPath}" Foreground="{ThemeResource TextFillColorPrimaryBrush}"/>
+            </Viewbox>
+            <!-- Version Text -->
+            <TextBlock x:Name="BadgeText"
+                       FontSize="11"
+                       FontWeight="SemiBold"
+                       VerticalAlignment="Center"
+                       HorizontalAlignment="Center"/>
+        </StackPanel>
+    </Border>
+</UserControl>

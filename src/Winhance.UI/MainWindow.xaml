@@ -85,7 +85,9 @@
                 <Button x:Name="WindowsFilterButton"
                         Style="{StaticResource TitleBarButtonStyle}"
                         ToolTipService.ToolTip="Windows Version Filter">
-                    <FontIcon Glyph="&#xE71C;" FontSize="14"/>
+                    <Viewbox Width="14" Height="14">
+                        <PathIcon x:Name="WindowsFilterIcon" Data="{StaticResource FilterCheckIconPath}" Foreground="{ThemeResource TextFillColorPrimaryBrush}"/>
+                    </Viewbox>
                 </Button>
 
                 <!-- Donate Button -->

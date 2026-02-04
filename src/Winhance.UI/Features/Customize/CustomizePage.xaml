@@ -19,7 +19,7 @@
         <!-- Row 0: Page Header with Icon -->
         <StackPanel Grid.Row="0" Orientation="Horizontal" Spacing="16">
             <Viewbox Width="64" Height="64" Stretch="Uniform">
-                <PathIcon Data="{StaticResource CustomizeIconPath}"/>
+                <PathIcon Data="{StaticResource CustomizeIconPath}" Foreground="{ThemeResource TextFillColorPrimaryBrush}"/>
             </Viewbox>
             <StackPanel VerticalAlignment="Center">
                 <TextBlock
@@ -51,7 +51,7 @@
                     Padding="8,4">
                     <StackPanel Orientation="Horizontal" Spacing="8">
                         <Viewbox Width="16" Height="16">
-                            <PathIcon Data="{StaticResource CustomizeIconPath}"/>
+                            <PathIcon Data="{StaticResource CustomizeIconPath}" Foreground="{ThemeResource TextFillColorPrimaryBrush}"/>
                         </Viewbox>
                         <TextBlock Text="{x:Bind ViewModel.BreadcrumbRootText}" VerticalAlignment="Center"/>
                     </StackPanel>
@@ -74,7 +74,7 @@
                     <DropDownButton.Content>
                         <StackPanel Orientation="Horizontal" Spacing="8">
                             <Viewbox x:Name="BreadcrumbSectionIconBox" Width="16" Height="16">
-                                <PathIcon x:Name="BreadcrumbSectionIcon"/>
+                                <PathIcon x:Name="BreadcrumbSectionIcon" Foreground="{ThemeResource TextFillColorPrimaryBrush}"/>
                             </Viewbox>
                             <TextBlock x:Name="BreadcrumbSectionText" VerticalAlignment="Center"/>
                         </StackPanel>

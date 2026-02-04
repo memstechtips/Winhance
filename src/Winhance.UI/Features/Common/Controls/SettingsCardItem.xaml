@@ -19,8 +19,8 @@
             <ToggleSwitch
                 IsOn="{x:Bind IsSelected, Mode=OneWay}"
                 Toggled="{x:Bind OnToggleSwitchToggled}"
-                OnContent=""
-                OffContent=""/>
+                OnContent="{x:Bind OnText}"
+                OffContent="{x:Bind OffText}"/>
         </DataTemplate>
 
         <!-- Template for Selection settings -->
@@ -30,8 +30,7 @@
                 SelectedValue="{x:Bind SelectedValue, Mode=OneWay}"
                 DropDownClosed="{x:Bind OnComboBoxDropDownClosed}"
                 SelectedValuePath="Value"
-                DisplayMemberPath="DisplayText"
-                MinWidth="200"/>
+                DisplayMemberPath="DisplayText"/>
         </DataTemplate>
 
         <!-- Template for NumericRange settings -->

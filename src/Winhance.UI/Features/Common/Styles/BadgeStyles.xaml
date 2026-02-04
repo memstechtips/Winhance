@@ -1,0 +1,54 @@
+<?xml version="1.0" encoding="utf-8"?>
+<ResourceDictionary
+    xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+    xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml">
+
+    <!-- Win11 Badge (Cyan) - Light Mode -->
+    <LinearGradientBrush x:Key="Win11BadgeBackgroundLight" StartPoint="0,0" EndPoint="1,1">
+        <GradientStop Color="#3300C8FF" Offset="0"/>
+        <GradientStop Color="#3300E6E6" Offset="1"/>
+    </LinearGradientBrush>
+    <SolidColorBrush x:Key="Win11BadgeBorderLight" Color="#8000C8FF"/>
+    <SolidColorBrush x:Key="Win11BadgeForegroundLight" Color="#008AAA"/>
+
+    <!-- Win11 Badge (Cyan) - Dark Mode -->
+    <LinearGradientBrush x:Key="Win11BadgeBackgroundDark" StartPoint="0,0" EndPoint="1,1">
+        <GradientStop Color="#4000D2FF" Offset="0"/>
+        <GradientStop Color="#4000F0F0" Offset="1"/>
+    </LinearGradientBrush>
+    <SolidColorBrush x:Key="Win11BadgeBorderDark" Color="#9900DCFF"/>
+    <SolidColorBrush x:Key="Win11BadgeForegroundDark" Color="#00E5FF"/>
+
+    <!-- Win10 Badge (Blue) - Light Mode -->
+    <LinearGradientBrush x:Key="Win10BadgeBackgroundLight" StartPoint="0,0" EndPoint="1,1">
+        <GradientStop Color="#33005A9E" Offset="0"/>
+        <GradientStop Color="#33003C78" Offset="1"/>
+    </LinearGradientBrush>
+    <SolidColorBrush x:Key="Win10BadgeBorderLight" Color="#80005A9E"/>
+    <SolidColorBrush x:Key="Win10BadgeForegroundLight" Color="#004A82"/>
+
+    <!-- Win10 Badge (Blue) - Dark Mode -->
+    <LinearGradientBrush x:Key="Win10BadgeBackgroundDark" StartPoint="0,0" EndPoint="1,1">
+        <GradientStop Color="#40006BB2" Offset="0"/>
+        <GradientStop Color="#40005096" Offset="1"/>
+    </LinearGradientBrush>
+    <SolidColorBrush x:Key="Win10BadgeBorderDark" Color="#990078C8"/>
+    <SolidColorBrush x:Key="Win10BadgeForegroundDark" Color="#5CB8FF"/>
+
+    <!-- WinBuild Badge (Orange/Alert) - Light Mode -->
+    <LinearGradientBrush x:Key="WinBuildBadgeBackgroundLight" StartPoint="0,0" EndPoint="1,1">
+        <GradientStop Color="#33FF8C00" Offset="0"/>
+        <GradientStop Color="#33FF6600" Offset="1"/>
+    </LinearGradientBrush>
+    <SolidColorBrush x:Key="WinBuildBadgeBorderLight" Color="#80FF8C00"/>
+    <SolidColorBrush x:Key="WinBuildBadgeForegroundLight" Color="#B35F00"/>
+
+    <!-- WinBuild Badge (Orange/Alert) - Dark Mode -->
+    <LinearGradientBrush x:Key="WinBuildBadgeBackgroundDark" StartPoint="0,0" EndPoint="1,1">
+        <GradientStop Color="#40FFA500" Offset="0"/>
+        <GradientStop Color="#40FF8000" Offset="1"/>
+    </LinearGradientBrush>
+    <SolidColorBrush x:Key="WinBuildBadgeBorderDark" Color="#99FFB347"/>
+    <SolidColorBrush x:Key="WinBuildBadgeForegroundDark" Color="#FFC266"/>
+
+</ResourceDictionary>

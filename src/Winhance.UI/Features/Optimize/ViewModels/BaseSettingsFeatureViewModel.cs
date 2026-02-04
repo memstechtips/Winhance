@@ -1,11 +1,13 @@
 using System.Collections.ObjectModel;
 using CommunityToolkit.Mvvm.ComponentModel;
 using CommunityToolkit.Mvvm.Input;
+using Microsoft.UI.Xaml;
 using Winhance.Core.Features.Common.Enums;
 using Winhance.Core.Features.Common.Interfaces;
 using Winhance.Core.Features.Common.Models;
 using Winhance.UI.Features.Common.Interfaces;
 using Winhance.UI.Features.Common.ViewModels;
+using Winhance.UI.ViewModels;
 using ISettingsLoadingService = Winhance.UI.Features.Common.Interfaces.ISettingsLoadingService;
 
 namespace Winhance.UI.Features.Optimize.ViewModels;
@@ -19,9 +21,11 @@ public abstract partial class BaseSettingsFeatureViewModel : BaseViewModel, ISet
     protected readonly ISettingsLoadingService _settingsLoadingService;
     protected readonly ILogService _logService;
     protected readonly ILocalizationService _localizationService;
+    protected readonly MainWindowViewModel? _mainWindowViewModel;
     private bool _settingsLoaded = false;
     private readonly object _loadingLock = new();
     private CancellationTokenSource? _searchDebounceTokenSource;
+    private bool _showCompatibilityBadges = false;
 
     [ObservableProperty]
     private ObservableCollection<SettingItemViewModel> _settings = new();
@@ -109,17 +113,27 @@ public abstract partial class BaseSettingsFeatureViewModel : BaseViewModel, ISet
         IDomainServiceRouter domainServiceRouter,
         ISettingsLoadingService settingsLoadingService,
         ILogService logService,
-        ILocalizationService localizationService)
+        ILocalizationService localizationService,
+        MainWindowViewModel? mainWindowViewModel = null)
     {
         _domainServiceRouter = domainServiceRouter ?? throw new ArgumentNullException(nameof(domainServiceRouter));
         _settingsLoadingService = settingsLoadingService ?? throw new ArgumentNullException(nameof(settingsLoadingService));
         _logService = logService ?? throw new ArgumentNullException(nameof(logService));
         _localizationService = localizationService ?? throw new ArgumentNullException(nameof(localizationService));
+        _mainWindowViewModel = mainWindowViewModel;
 
         LoadSettingsCommand = new RelayCommand(() => _ = LoadSettingsAsync());
         ToggleExpandCommand = new RelayCommand(() => IsExpanded = !IsExpanded);
 
         _localizationService.LanguageChanged += OnLanguageChanged;
+
+        // Subscribe to filter state changes
+        if (_mainWindowViewModel != null)
+        {
+            _mainWindowViewModel.FilterStateChanged += OnFilterStateChanged;
+            // Initialize badge visibility based on current filter state
+            _showCompatibilityBadges = !_mainWindowViewModel.IsWindowsVersionFilterEnabled;
+        }
     }
 
     /// <summary>
@@ -142,6 +156,89 @@ public abstract partial class BaseSettingsFeatureViewModel : BaseViewModel, ISet
 
         OnPropertyChanged(nameof(DisplayName));
         await LoadSettingsAsync();
+    }
+
+    /// <summary>
+    /// Handles filter state changes from MainWindowViewModel.
+    /// When filter changes, we need to reload settings from the registry.
+    /// </summary>
+    private async void OnFilterStateChanged(object? sender, FilterStateChangedEventArgs e)
+    {
+        // Show badges when filter is OFF (showing all settings including incompatible ones)
+        _showCompatibilityBadges = !e.IsFilterEnabled;
+
+        // Reload settings to get the updated filtered set
+        await RefreshSettingsForFilterChangeAsync();
+    }
+
+    /// <summary>
+    /// Refreshes settings when the Windows version filter changes.
+    /// This reloads settings from the registry to get the updated filtered set.
+    /// </summary>
+    private async Task RefreshSettingsForFilterChangeAsync()
+    {
+        try
+        {
+            _logService.Log(LogLevel.Info, $"Refreshing settings for {DisplayName} due to filter change");
+
+            // Reset the loaded flag to allow reloading
+            lock (_loadingLock)
+            {
+                _settingsLoaded = false;
+            }
+
+            // Clear and reload settings
+            if (Settings?.Any() == true)
+            {
+                foreach (var setting in Settings.OfType<IDisposable>())
+                {
+                    setting?.Dispose();
+                }
+                Settings.Clear();
+            }
+
+            await LoadSettingsAsync();
+
+            _logService.Log(LogLevel.Info, $"Successfully refreshed {Settings.Count} settings for {DisplayName}");
+        }
+        catch (Exception ex)
+        {
+            _logService.Log(LogLevel.Error, $"Error refreshing settings for filter change: {ex.Message}");
+        }
+    }
+
+    /// <summary>
+    /// Updates badges on all settings based on current filter state.
+    /// Always checks the current state from MainWindowViewModel to handle timing issues.
+    /// </summary>
+    protected void UpdateAllBadges()
+    {
+        // Always get the current state from MainWindowViewModel to avoid timing issues
+        var showBadges = _mainWindowViewModel != null && !_mainWindowViewModel.IsWindowsVersionFilterEnabled;
+
+        foreach (var setting in Settings)
+        {
+            setting.UpdateBadges(showBadges, _localizationService);
+        }
+
+        // Update badge column width for all settings to ensure uniform layout
+        UpdateBadgeColumnWidth();
+    }
+
+    /// <summary>
+    /// Updates the badge column width for all settings.
+    /// When any setting has visible badges, all settings reserve space for the badge column.
+    /// This ensures uniform alignment across all SettingsCards on the page.
+    /// </summary>
+    protected void UpdateBadgeColumnWidth()
+    {
+        var hasAnyBadges = Settings?.Any(s => s.HasBadges) ?? false;
+        var columnWidth = hasAnyBadges ? new GridLength(50) : new GridLength(0);
+
+        foreach (var setting in Settings)
+        {
+            setting.BadgeColumnWidth = columnWidth;
+        }
     }
 
     /// <summary>
@@ -237,6 +334,9 @@ public abstract partial class BaseSettingsFeatureViewModel : BaseViewModel, ISet
 
             // Build the grouped settings collection
             RebuildGroupedSettings();
+
+            // Initialize badges based on current filter state
+            UpdateAllBadges();
 
             // Notify that computed properties have changed
             OnPropertyChanged(nameof(HasVisibleSettings));
@@ -374,6 +474,11 @@ public abstract partial class BaseSettingsFeatureViewModel : BaseViewModel, ISet
         if (disposing)
         {
             _localizationService.LanguageChanged -= OnLanguageChanged;
+
+            if (_mainWindowViewModel != null)
+            {
+                _mainWindowViewModel.FilterStateChanged -= OnFilterStateChanged;
+            }
 
             if (Settings != null)
             {

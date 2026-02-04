@@ -40,7 +40,8 @@
                      Visibility="{x:Bind PathIconVisibility, Mode=OneWay}">
                 <PathIcon x:Name="ButtonPathIcon"
                           HorizontalAlignment="Center"
-                          VerticalAlignment="Center"/>
+                          VerticalAlignment="Center"
+                          Foreground="{ThemeResource TextFillColorPrimaryBrush}"/>
             </Viewbox>
 
             <!-- Text (Hidden when compact) -->

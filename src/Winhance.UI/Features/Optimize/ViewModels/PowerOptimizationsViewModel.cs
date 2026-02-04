@@ -1,6 +1,7 @@
 using Winhance.Core.Features.Common.Constants;
 using Winhance.Core.Features.Common.Interfaces;
 using Winhance.UI.Features.Common.Interfaces;
+using Winhance.UI.ViewModels;
 
 namespace Winhance.UI.Features.Optimize.ViewModels;
 
@@ -17,8 +18,9 @@ public partial class PowerOptimizationsViewModel : BaseSettingsFeatureViewModel
         IDomainServiceRouter domainServiceRouter,
         ISettingsLoadingService settingsLoadingService,
         ILogService logService,
-        ILocalizationService localizationService)
-        : base(domainServiceRouter, settingsLoadingService, logService, localizationService)
+        ILocalizationService localizationService,
+        MainWindowViewModel mainWindowViewModel)
+        : base(domainServiceRouter, settingsLoadingService, logService, localizationService, mainWindowViewModel)
     {
     }
 }

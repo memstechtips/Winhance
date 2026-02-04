@@ -3,7 +3,8 @@
     x:Class="Winhance.UI.App"
     xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
     xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
-    xmlns:local="using:Winhance.UI">
+    xmlns:local="using:Winhance.UI"
+    xmlns:resources="using:Winhance.UI.Features.Common.Resources">
     <Application.Resources>
         <ResourceDictionary>
             <ResourceDictionary.MergedDictionaries>
@@ -13,10 +14,12 @@
                 <ResourceDictionary Source="ms-appx:///Features/Common/Resources/LegacyThemes.xaml" />
                 <!-- Value converters -->
                 <ResourceDictionary Source="ms-appx:///Features/Common/Resources/Converters.xaml" />
-                <!-- Shared setting templates and styles -->
-                <ResourceDictionary Source="ms-appx:///Features/Common/Resources/SettingTemplates.xaml" />
+                <!-- Shared setting templates and styles (code-behind enabled for x:Bind) -->
+                <resources:SettingTemplates />
                 <!-- Centralized feature icons -->
                 <ResourceDictionary Source="ms-appx:///Features/Common/Resources/FeatureIcons.xaml" />
+                <!-- Badge styles for setting compatibility indicators -->
+                <ResourceDictionary Source="ms-appx:///Features/Common/Styles/BadgeStyles.xaml" />
             </ResourceDictionary.MergedDictionaries>
 
             <!-- Title Bar Button Style -->

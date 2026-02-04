@@ -34,7 +34,7 @@
                     <FontIcon Glyph="{StaticResource BackIconGlyph}" FontSize="16"/>
                 </Button>
                 <Viewbox Width="40" Height="40" Stretch="Uniform" Margin="8,0,12,0">
-                    <PathIcon Data="{StaticResource SoftwareAppsIconPath}"/>
+                    <PathIcon Data="{StaticResource SoftwareAppsIconPath}" Foreground="{ThemeResource TextFillColorPrimaryBrush}"/>
                 </Viewbox>
                 <StackPanel VerticalAlignment="Center">
                     <TextBlock Text="Software &amp; Apps"

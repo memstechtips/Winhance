@@ -74,4 +74,14 @@
     <x:String x:Key="BackIconGlyph">&#xE72B;</x:String>
     <x:String x:Key="SearchIconGlyph">&#xE721;</x:String>
 
+    <!-- ==================== Badge Icons (Material Design - Path Data) ==================== -->
+    <!-- Microsoft Windows logo (4-pane grid) - Used for compatibility badges -->
+    <x:String x:Key="WindowsLogoIconPath">M0,0 H10 V10 H0 Z M12,0 H22 V10 H12 Z M0,12 H10 V22 H0 Z M12,12 H22 V22 H12 Z</x:String>
+
+    <!-- ==================== Filter Icons (Material Design - Path Data) ==================== -->
+    <!-- Filter with checkmark - Used when Windows version filter is ON -->
+    <x:String x:Key="FilterCheckIconPath">M12 12V19.88C12.04 20.18 11.94 20.5 11.71 20.71C11.32 21.1 10.69 21.1 10.3 20.71L8.29 18.7C8.06 18.47 7.96 18.16 8 17.87V12H7.97L2.21 4.62C1.87 4.19 1.95 3.56 2.38 3.22C2.57 3.08 2.78 3 3 3H17C17.22 3 17.43 3.08 17.62 3.22C18.05 3.56 18.13 4.19 17.79 4.62L12.03 12H12M17.75 21L15 18L16.16 16.84L17.75 18.43L21.34 14.84L22.5 16.25L17.75 21</x:String>
+    <!-- Filter with strikethrough - Used when Windows version filter is OFF -->
+    <x:String x:Key="FilterOffIconPath">M2.39 1.73L1.11 3L9.5 11.37L9.97 12H10V17.87C9.96 18.16 10.06 18.47 10.29 18.7L12.3 20.71C12.69 21.1 13.32 21.1 13.71 20.71C13.94 20.5 14.04 20.18 14 19.88V15.89L20.84 22.73L22.11 21.46L14 13.35L9.41 8.76L4.15 3.5L2.39 1.73M6.21 3L14.54 11.34L19.79 4.62C20.13 4.19 20.05 3.56 19.62 3.22C19.43 3.08 19.22 3 19 3H6.21Z</x:String>
+
 </ResourceDictionary>

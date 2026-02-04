@@ -1,11 +1,13 @@
 using System.Collections.ObjectModel;
 using CommunityToolkit.Mvvm.ComponentModel;
 using CommunityToolkit.Mvvm.Input;
+using Microsoft.UI.Xaml;
 using Microsoft.UI.Xaml.Controls;
 using Winhance.Core.Features.Common.Enums;
 using Winhance.Core.Features.Common.Interfaces;
 using Winhance.Core.Features.Common.Models;
 using Winhance.UI.Features.Common.Interfaces;
+using Winhance.UI.Features.Common.Models;
 using Winhance.UI.Features.Common.ViewModels;
 
 namespace Winhance.UI.Features.Optimize.ViewModels;
@@ -80,11 +82,45 @@ public partial class SettingItemViewModel : BaseViewModel
     [ObservableProperty]
     private string _units = string.Empty;
 
+    /// <summary>
+    /// Localized "On" text for toggle switches.
+    /// </summary>
+    public string OnText { get; set; } = "On";
+
+    /// <summary>
+    /// Localized "Off" text for toggle switches.
+    /// </summary>
+    public string OffText { get; set; } = "Off";
+
     [ObservableProperty]
     private bool _isVisible = true;
 
     [ObservableProperty]
     private bool _isEnabled = true;
+
+    /// <summary>
+    /// Collection of badges to display on this setting.
+    /// </summary>
+    public ObservableCollection<SettingBadgeInfo> Badges { get; } = new();
+
+    /// <summary>
+    /// Indicates whether this setting has any badges to display.
+    /// </summary>
+    [ObservableProperty]
+    private bool _hasBadges;
+
+    /// <summary>
+    /// Width of the badge column. Set by parent ViewModel to ensure uniform layout.
+    /// When any setting on the page has badges, all settings reserve space for the badge column.
+    /// </summary>
+    [ObservableProperty]
+    private GridLength _badgeColumnWidth = new GridLength(0);
+
+    /// <summary>
+    /// The compatibility message for this setting (e.g., "Windows 11 Only").
+    /// </summary>
+    [ObservableProperty]
+    private string? _compatibilityMessage;
 
     partial void OnIsEnabledChanged(bool value)
     {
@@ -312,6 +348,68 @@ public partial class SettingItemViewModel : BaseViewModel
         {
             IsApplying = false;
         }
+    }
+
+    #endregion
+
+    #region Badge Support
+
+    /// <summary>
+    /// Updates the badges collection based on the filter state and setting compatibility.
+    /// Badges only appear when the filter is OFF and the setting has a compatibility message.
+    /// Shows Windows icon with version number (10 or 11) and tooltip with full details.
+    /// </summary>
+    /// <param name="showCompatibilityBadges">True when filter is OFF and badges should be shown.</param>
+    /// <param name="localizationService">Service for getting localized tooltip text.</param>
+    public void UpdateBadges(bool showCompatibilityBadges, ILocalizationService? localizationService = null)
+    {
+        Badges.Clear();
+
+        if (showCompatibilityBadges && SettingDefinition != null)
+        {
+            // Check for compatibility message from the registry (set by WindowsCompatibilityFilter)
+            // This message is only present on settings that are incompatible with current OS
+            if (SettingDefinition.CustomProperties.TryGetValue(
+                Core.Features.Common.Constants.CustomPropertyKeys.VersionCompatibilityMessage,
+                out var compatMessageObj) && compatMessageObj is string compatMessage)
+            {
+                // Determine badge type and text based on SettingDefinition properties
+                // Build range issues get orange styling, version-only issues get version-specific styling
+                var hasBuildRanges = SettingDefinition.SupportedBuildRanges?.Count > 0 ||
+                                     SettingDefinition.MinimumBuildNumber.HasValue ||
+                                     SettingDefinition.MaximumBuildNumber.HasValue;
+
+                // Determine which Windows version this setting is for
+                var versionText = SettingDefinition.IsWindows11Only ? "11" :
+                                  SettingDefinition.IsWindows10Only ? "10" : "10";
+
+                if (hasBuildRanges)
+                {
+                    // Build range issue - use orange/alert styling with the version number
+                    Badges.Add(new SettingBadgeInfo(BadgeType.WinBuild, versionText, compatMessage));
+                }
+                else if (SettingDefinition.IsWindows10Only)
+                {
+                    // Windows 10 only - blue styling
+                    Badges.Add(new SettingBadgeInfo(BadgeType.Win10, "10", compatMessage));
+                }
+                else if (SettingDefinition.IsWindows11Only)
+                {
+                    // Windows 11 only - cyan styling
+                    Badges.Add(new SettingBadgeInfo(BadgeType.Win11, "11", compatMessage));
+                }
+
+                // Also set the warning text for display purposes
+                WarningText = compatMessage;
+            }
+        }
+        else
+        {
+            // Clear warning text when filter is ON (only compatible settings shown)
+            WarningText = null;
+        }
+
+        HasBadges = Badges.Count > 0;
     }
 
     #endregion

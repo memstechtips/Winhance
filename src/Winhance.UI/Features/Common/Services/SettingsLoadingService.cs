@@ -136,7 +136,9 @@ public class SettingsLoadingService : ISettingsLoadingService
             Icon = setting.Icon ?? string.Empty,
             IconPack = setting.IconPack ?? "Material",
             InputType = setting.InputType,
-            IsSelected = currentState.IsEnabled
+            IsSelected = currentState.IsEnabled,
+            OnText = _localizationService.GetString("Common_On") ?? "On",
+            OffText = _localizationService.GetString("Common_Off") ?? "Off"
         };
 
         if (setting.InputType != InputType.Selection)

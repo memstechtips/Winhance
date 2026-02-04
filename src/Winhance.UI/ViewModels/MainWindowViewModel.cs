@@ -1,10 +1,20 @@
 using CommunityToolkit.Mvvm.ComponentModel;
 using CommunityToolkit.Mvvm.Input;
 using Microsoft.UI.Xaml;
+using Winhance.Core.Features.Common.Constants;
 using Winhance.Core.Features.Common.Interfaces;
 using Winhance.UI.Features.Common.Interfaces;
 
 namespace Winhance.UI.ViewModels;
+
+/// <summary>
+/// Event arguments for filter state changes.
+/// </summary>
+public class FilterStateChangedEventArgs : EventArgs
+{
+    public bool IsFilterEnabled { get; }
+    public FilterStateChangedEventArgs(bool isFilterEnabled) => IsFilterEnabled = isFilterEnabled;
+}
 
 /// <summary>
 /// ViewModel for the MainWindow, handling title bar commands and state.
@@ -17,6 +27,8 @@ public partial class MainWindowViewModel : ObservableObject
     private readonly IVersionService _versionService;
     private readonly ILogService _logService;
     private readonly IDialogService _dialogService;
+    private readonly IUserPreferencesService _preferencesService;
+    private readonly ICompatibleSettingsRegistry _compatibleSettingsRegistry;
 
     [ObservableProperty]
     private string _appIconSource = "ms-appx:///Assets/AppIcons/winhance-rocket-white-transparent-bg.png";
@@ -24,13 +36,25 @@ public partial class MainWindowViewModel : ObservableObject
     [ObservableProperty]
     private string _versionInfo = "Winhance";
 
+    [ObservableProperty]
+    [NotifyPropertyChangedFor(nameof(WindowsFilterTooltip))]
+    [NotifyPropertyChangedFor(nameof(WindowsFilterIcon))]
+    private bool _isWindowsVersionFilterEnabled = true;
+
+    /// <summary>
+    /// Event raised when the Windows version filter state changes.
+    /// </summary>
+    public event EventHandler<FilterStateChangedEventArgs>? FilterStateChanged;
+
     public MainWindowViewModel(
         IThemeService themeService,
         IConfigurationService configurationService,
         ILocalizationService localizationService,
         IVersionService versionService,
         ILogService logService,
-        IDialogService dialogService)
+        IDialogService dialogService,
+        IUserPreferencesService preferencesService,
+        ICompatibleSettingsRegistry compatibleSettingsRegistry)
     {
         _themeService = themeService;
         _configurationService = configurationService;
@@ -38,6 +62,8 @@ public partial class MainWindowViewModel : ObservableObject
         _versionService = versionService;
         _logService = logService;
         _dialogService = dialogService;
+        _preferencesService = preferencesService;
+        _compatibleSettingsRegistry = compatibleSettingsRegistry;
 
         // Subscribe to theme changes
         _themeService.ThemeChanged += OnThemeChanged;
@@ -107,8 +133,39 @@ public partial class MainWindowViewModel : ObservableObject
     public string ImportConfigTooltip =>
         _localizationService.GetString("Tooltip_ImportConfig") ?? "Import Configuration";
 
-    public string WindowsFilterTooltip =>
-        _localizationService.GetString("Tooltip_FilterDisabled") ?? "Windows Version Filter";
+    public string WindowsFilterTooltip
+    {
+        get
+        {
+            if (IsWindowsVersionFilterEnabled)
+            {
+                var title = _localizationService.GetString("Tooltip_FilterEnabled") ?? "Windows Version Filter: ON";
+                var description = _localizationService.GetString("Tooltip_FilterEnabled_Description") ?? "Click to show settings for all Windows versions";
+                return $"{title}\n{description}";
+            }
+            else
+            {
+                var title = _localizationService.GetString("Tooltip_FilterDisabled") ?? "Windows Version Filter: OFF";
+                var description = _localizationService.GetString("Tooltip_FilterDisabled_Description") ?? "Showing all settings (incompatible settings marked)";
+                return $"{title}\n{description}";
+            }
+        }
+    }
+
+    /// <summary>
+    /// Gets the icon path data for the Windows filter button based on filter state.
+    /// Filter ON = filter-check icon (showing filtered/compatible only)
+    /// Filter OFF = filter-off icon (showing all settings)
+    /// Path data is retrieved from Application resources (FeatureIcons.xaml).
+    /// </summary>
+    public string WindowsFilterIcon
+    {
+        get
+        {
+            var resourceKey = IsWindowsVersionFilterEnabled ? "FilterCheckIconPath" : "FilterOffIconPath";
+            return Application.Current.Resources[resourceKey] as string ?? string.Empty;
+        }
+    }
 
     public string DonateTooltip =>
         _localizationService.GetString("Tooltip_Donate") ?? "Donate";
@@ -172,14 +229,87 @@ public partial class MainWindowViewModel : ObservableObject
     }
 
     /// <summary>
-    /// Command to open Windows version filter.
+    /// Command to toggle Windows version filter.
     /// </summary>
     [RelayCommand]
-    private void WindowsFilter()
+    private async Task ToggleWindowsFilterAsync()
     {
-        // TODO: Implement Windows version filter functionality
-        // This could open a flyout or dialog to filter settings by Windows version
-        System.Diagnostics.Debug.WriteLine("Windows filter button clicked");
+        try
+        {
+            // Check if we should show explanation dialog
+            var dontShowAgain = await _preferencesService.GetPreferenceAsync(
+                UserPreferenceKeys.DontShowFilterExplanation, defaultValue: false);
+
+            if (!dontShowAgain)
+            {
+                var message = _localizationService.GetString("Filter_Dialog_Message") ??
+                    "The Windows Version Filter controls which settings are shown based on your Windows version.\n\nWhen ON: Only settings compatible with your Windows version are shown.\nWhen OFF: All settings are shown, with incompatible ones marked.";
+                var checkboxText = _localizationService.GetString("Filter_Dialog_Checkbox") ?? "Don't show this message again";
+                var title = _localizationService.GetString("Filter_Dialog_Title") ?? "Windows Version Filter";
+                var continueText = _localizationService.GetString("Filter_Dialog_Button_Toggle") ?? "Toggle Filter";
+                var cancelText = _localizationService.GetString("Button_Cancel") ?? "Cancel";
+
+                var result = await _dialogService.ShowConfirmationWithCheckboxAsync(
+                    message,
+                    checkboxText: checkboxText,
+                    title: title,
+                    continueButtonText: continueText,
+                    cancelButtonText: cancelText);
+
+                if (result.CheckboxChecked)
+                {
+                    await _preferencesService.SetPreferenceAsync(
+                        UserPreferenceKeys.DontShowFilterExplanation, true);
+                }
+
+                if (!result.Confirmed) return;
+            }
+
+            // Toggle state
+            IsWindowsVersionFilterEnabled = !IsWindowsVersionFilterEnabled;
+
+            // Persist preference
+            await _preferencesService.SetPreferenceAsync(
+                UserPreferenceKeys.EnableWindowsVersionFilter,
+                IsWindowsVersionFilterEnabled);
+
+            // Update registry filter state
+            _compatibleSettingsRegistry.SetFilterEnabled(IsWindowsVersionFilterEnabled);
+
+            // Publish event for all subscribers (pages/viewmodels) to refresh
+            FilterStateChanged?.Invoke(this, new FilterStateChangedEventArgs(IsWindowsVersionFilterEnabled));
+
+            _logService.Log(Core.Features.Common.Enums.LogLevel.Info,
+                $"Windows version filter toggled to: {(IsWindowsVersionFilterEnabled ? "ON" : "OFF")}");
+        }
+        catch (Exception ex)
+        {
+            _logService.Log(Core.Features.Common.Enums.LogLevel.Error,
+                $"Failed to toggle Windows version filter: {ex.Message}");
+        }
+    }
+
+    /// <summary>
+    /// Loads the filter preference from user preferences.
+    /// Should be called during initialization.
+    /// </summary>
+    public async Task LoadFilterPreferenceAsync()
+    {
+        try
+        {
+            IsWindowsVersionFilterEnabled = await _preferencesService.GetPreferenceAsync(
+                UserPreferenceKeys.EnableWindowsVersionFilter, defaultValue: true);
+
+            _compatibleSettingsRegistry.SetFilterEnabled(IsWindowsVersionFilterEnabled);
+
+            _logService.Log(Core.Features.Common.Enums.LogLevel.Info,
+                $"Loaded Windows version filter preference: {(IsWindowsVersionFilterEnabled ? "ON" : "OFF")}");
+        }
+        catch (Exception ex)
+        {
+            _logService.Log(Core.Features.Common.Enums.LogLevel.Error,
+                $"Failed to load filter preference: {ex.Message}");
+        }
     }
 
     /// <summary>

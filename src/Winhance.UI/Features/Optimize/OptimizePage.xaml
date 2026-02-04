@@ -5,22 +5,49 @@
     xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
     xmlns:local="using:Winhance.UI.Features.Optimize"
     xmlns:viewModels="using:Winhance.UI.Features.Optimize.ViewModels"
+    xmlns:models="using:Winhance.UI.Features.Common.Models"
     xmlns:controls="using:CommunityToolkit.WinUI.Controls"
     xmlns:commonControls="using:Winhance.UI.Features.Common.Controls"
     x:DefaultBindMode="OneWay"
     NavigationCacheMode="Required">
 
     <Page.Resources>
+        <!-- Badge ItemTemplate -->
+        <DataTemplate x:Key="BadgeItemTemplate" x:DataType="models:SettingBadgeInfo">
+            <commonControls:SettingBadge
+                BadgeType="{x:Bind Type}"
+                Text="{x:Bind Text}"
+                Tooltip="{x:Bind Tooltip}"/>
+        </DataTemplate>
+
         <!-- ItemTemplate: SettingsCard wraps the shared SettingsCardItem control -->
         <DataTemplate x:Key="SettingItemTemplate" x:DataType="viewModels:SettingItemViewModel">
             <controls:SettingsCard
+                Visibility="{x:Bind IsVisible, Converter={StaticResource BooleanToVisibilityConverter}}"
                 Header="{x:Bind Name}"
                 Description="{x:Bind Description}"
                 IsEnabled="{x:Bind EffectiveIsEnabled}"
-                Visibility="{x:Bind IsVisible, Converter={StaticResource BooleanToVisibilityConverter}}"
                 HeaderIcon="{x:Bind Converter={StaticResource SettingIconConverter}}"
                 Padding="16,12,16,12">
-                <commonControls:SettingsCardItem Setting="{x:Bind}"/>
+                <!-- Content: Grid overlay - badge at top-right, control centered -->
+                <Grid MinHeight="32">
+                    <!-- Badges (top-right corner, floating) -->
+                    <ItemsControl
+                        ItemsSource="{x:Bind Badges}"
+                        Visibility="{x:Bind HasBadges, Converter={StaticResource BooleanToVisibilityConverter}}"
+                        VerticalAlignment="Top"
+                        HorizontalAlignment="Right"
+                        Margin="0,-8,0,0"
+                        ItemTemplate="{StaticResource BadgeItemTemplate}">
+                        <ItemsControl.ItemsPanel>
+                            <ItemsPanelTemplate>
+                                <StackPanel Orientation="Horizontal" Spacing="6"/>
+                            </ItemsPanelTemplate>
+                        </ItemsControl.ItemsPanel>
+                    </ItemsControl>
+                    <!-- Setting control (centered) -->
+                    <commonControls:SettingsCardItem Setting="{x:Bind}" VerticalAlignment="Center" HorizontalAlignment="Right"/>
+                </Grid>
             </controls:SettingsCard>
         </DataTemplate>
     </Page.Resources>
@@ -42,7 +69,7 @@
 
             <StackPanel Grid.Column="0" Orientation="Horizontal" Spacing="16">
                 <Viewbox Width="56" Height="56" Stretch="Uniform">
-                    <PathIcon Data="{StaticResource OptimizeIconPath}"/>
+                    <PathIcon Data="{StaticResource OptimizeIconPath}" Foreground="{ThemeResource TextFillColorPrimaryBrush}"/>
                 </Viewbox>
                 <StackPanel VerticalAlignment="Center">
                     <TextBlock

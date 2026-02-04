@@ -385,9 +385,12 @@ public sealed partial class MainWindow : Window
                 // Wire up button commands
                 SaveConfigButton.Command = _viewModel.SaveConfigCommand;
                 ImportConfigButton.Command = _viewModel.ImportConfigCommand;
-                WindowsFilterButton.Command = _viewModel.WindowsFilterCommand;
+                WindowsFilterButton.Command = _viewModel.ToggleWindowsFilterCommand;
                 DonateButton.Command = _viewModel.DonateCommand;
                 BugReportButton.Command = _viewModel.BugReportCommand;
+
+                // Set initial filter button icon
+                UpdateFilterButtonIcon();
 
                 // Wire up tooltips
                 ToolTipService.SetToolTip(SaveConfigButton, _viewModel.SaveConfigTooltip);
@@ -408,6 +411,9 @@ public sealed partial class MainWindow : Window
 
                 // Pass ViewModel to NavSidebar for localized nav button text
                 NavSidebar.ViewModel = _viewModel;
+
+                // Load filter preference asynchronously
+                _ = _viewModel.LoadFilterPreferenceAsync();
             }
         }
         catch (Exception ex)
@@ -452,6 +458,31 @@ public sealed partial class MainWindow : Window
         else if (e.PropertyName == nameof(MainWindowViewModel.BugReportTooltip) && _viewModel != null)
         {
             DispatcherQueue.TryEnqueue(() => ToolTipService.SetToolTip(BugReportButton, _viewModel.BugReportTooltip));
+        }
+        else if (e.PropertyName == nameof(MainWindowViewModel.WindowsFilterIcon) && _viewModel != null)
+        {
+            DispatcherQueue.TryEnqueue(UpdateFilterButtonIcon);
+        }
+    }
+
+    /// <summary>
+    /// Updates the Windows filter button icon based on the filter state.
+    /// </summary>
+    private void UpdateFilterButtonIcon()
+    {
+        try
+        {
+            if (_viewModel != null && WindowsFilterIcon != null)
+            {
+                var geometry = (Microsoft.UI.Xaml.Media.Geometry)Microsoft.UI.Xaml.Markup.XamlBindingHelper.ConvertValue(
+                    typeof(Microsoft.UI.Xaml.Media.Geometry),
+                    _viewModel.WindowsFilterIcon);
+                WindowsFilterIcon.Data = geometry;
+            }
+        }
+        catch (Exception ex)
+        {
+            System.Diagnostics.Debug.WriteLine($"Failed to update filter button icon: {ex.Message}");
         }
     }
 
