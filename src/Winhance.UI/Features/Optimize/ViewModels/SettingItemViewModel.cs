@@ -20,6 +20,8 @@ public partial class SettingItemViewModel : BaseViewModel
     private readonly ISettingApplicationService _settingApplicationService;
     private readonly ILogService _logService;
     private readonly IDispatcherService _dispatcherService;
+    private readonly IDialogService _dialogService;
+    private readonly ILocalizationService _localizationService;
 
     /// <summary>
     /// Reference to the parent feature ViewModel.
@@ -91,6 +93,11 @@ public partial class SettingItemViewModel : BaseViewModel
     /// Localized "Off" text for toggle switches.
     /// </summary>
     public string OffText { get; set; } = "Off";
+
+    /// <summary>
+    /// Localized "Apply" text for action buttons.
+    /// </summary>
+    public string ActionButtonText { get; set; } = "Apply";
 
     [ObservableProperty]
     private bool _isVisible = true;
@@ -175,11 +182,15 @@ public partial class SettingItemViewModel : BaseViewModel
     public SettingItemViewModel(
         ISettingApplicationService settingApplicationService,
         ILogService logService,
-        IDispatcherService dispatcherService)
+        IDispatcherService dispatcherService,
+        IDialogService dialogService,
+        ILocalizationService localizationService)
     {
         _settingApplicationService = settingApplicationService;
         _logService = logService;
         _dispatcherService = dispatcherService;
+        _dialogService = dialogService;
+        _localizationService = localizationService;
 
         ExecuteActionCommand = new AsyncRelayCommand(HandleActionAsync);
     }
@@ -263,12 +274,22 @@ public partial class SettingItemViewModel : BaseViewModel
 
         try
         {
+            // Check for confirmation if required
+            var (confirmed, checkboxChecked) = await HandleConfirmationIfNeededAsync(newValue);
+            if (!confirmed)
+            {
+                // User cancelled - revert UI
+                OnPropertyChanged(nameof(IsSelected));
+                return;
+            }
+
             IsApplying = true;
             _logService.Log(LogLevel.Info, $"Toggling setting: {SettingId} to {newValue}");
 
             await _settingApplicationService.ApplySettingAsync(
                 SettingId,
-                newValue);
+                newValue,
+                checkboxResult: checkboxChecked);
 
             // Update the ViewModel property after successful apply
             IsSelected = newValue;
@@ -296,13 +317,24 @@ public partial class SettingItemViewModel : BaseViewModel
 
         try
         {
+            // Check for confirmation if required
+            var (confirmed, checkboxChecked) = await HandleConfirmationIfNeededAsync(value);
+            if (!confirmed)
+            {
+                // User cancelled - revert UI
+                OnPropertyChanged(nameof(SelectedValue));
+                OnPropertyChanged(nameof(NumericValue));
+                return;
+            }
+
             IsApplying = true;
             _logService.Log(LogLevel.Info, $"Changing value for setting: {SettingId} to {value}");
 
             await _settingApplicationService.ApplySettingAsync(
                 SettingId,
                 true,
-                value);
+                value,
+                checkboxResult: checkboxChecked);
 
             // Update the ViewModel property after successful apply
             SelectedValue = value;
@@ -331,14 +363,33 @@ public partial class SettingItemViewModel : BaseViewModel
 
         try
         {
+            // Check for confirmation if required
+            var (confirmed, checkboxChecked) = await HandleConfirmationIfNeededAsync(null);
+            if (!confirmed)
+            {
+                return;
+            }
+
             IsApplying = true;
             _logService.Log(LogLevel.Info, $"Executing action for setting: {SettingId}");
 
+            // Pass the ActionCommand from the setting definition
             await _settingApplicationService.ApplySettingAsync(
                 SettingId,
-                true);
+                true,
+                value: null,
+                checkboxResult: checkboxChecked,
+                commandString: SettingDefinition.ActionCommand,
+                applyRecommended: checkboxChecked);
 
             _logService.Log(LogLevel.Info, $"Successfully executed action for setting {SettingId}");
+
+            // If recommended settings were applied, refresh the parent to update UI
+            if (checkboxChecked && ParentFeatureViewModel != null)
+            {
+                _logService.Log(LogLevel.Info, $"Refreshing parent ViewModel after applying recommended settings for {SettingId}");
+                await ParentFeatureViewModel.RefreshSettingsAsync();
+            }
         }
         catch (Exception ex)
         {
@@ -348,6 +399,44 @@ public partial class SettingItemViewModel : BaseViewModel
         {
             IsApplying = false;
         }
+    }
+
+    /// <summary>
+    /// Handles confirmation dialog if the setting requires it.
+    /// </summary>
+    /// <param name="value">The value being applied (used for placeholder replacement)</param>
+    /// <returns>Tuple of (confirmed, checkboxChecked)</returns>
+    private async Task<(bool confirmed, bool checkboxChecked)> HandleConfirmationIfNeededAsync(object? value)
+    {
+        if (SettingDefinition == null || !SettingDefinition.RequiresConfirmation)
+        {
+            return (true, false);
+        }
+
+        // Get localized confirmation strings using convention-based keys
+        var title = _localizationService.GetString($"Setting_{SettingId}_ConfirmTitle");
+        var message = _localizationService.GetString($"Setting_{SettingId}_ConfirmMessage");
+        var checkboxText = _localizationService.GetString($"Setting_{SettingId}_ConfirmCheckbox");
+
+        // Replace {themeMode} placeholder for theme-mode-windows setting
+        if (SettingId == "theme-mode-windows" && value is int comboBoxIndex)
+        {
+            var themeMode = comboBoxIndex == 1
+                ? _localizationService.GetString("Setting_theme-mode-windows_Option_1")
+                : _localizationService.GetString("Setting_theme-mode-windows_Option_0");
+            message = message.Replace("{themeMode}", themeMode);
+            checkboxText = checkboxText.Replace("{themeMode}", themeMode);
+        }
+
+        var continueText = _localizationService.GetString("Button_Continue");
+        var cancelText = _localizationService.GetString("Button_Cancel");
+
+        return await _dialogService.ShowConfirmationWithCheckboxAsync(
+            message,
+            checkboxText,
+            title,
+            continueText,
+            cancelText);
     }
 
     #endregion

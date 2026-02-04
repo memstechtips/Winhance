@@ -367,13 +367,22 @@ public class DialogService : IDialogService
                 return (false, false);
             }
 
-            var checkBox = new CheckBox { Content = checkboxText ?? "Don't show again" };
+            var checkBox = new CheckBox { Content = checkboxText ?? "Don't show again", IsChecked = true };
 
             var contentPanel = new StackPanel { Spacing = 12 };
             contentPanel.Children.Add(new TextBlock { Text = message, TextWrapping = TextWrapping.Wrap });
             if (!string.IsNullOrEmpty(checkboxText))
             {
                 contentPanel.Children.Add(checkBox);
+            }
+
+            // Get the current theme from the XamlRoot content
+            var currentTheme = ElementTheme.Default;
+            if (XamlRoot.Content is FrameworkElement rootElement)
+            {
+                currentTheme = rootElement.ActualTheme == Microsoft.UI.Xaml.ElementTheme.Dark
+                    ? ElementTheme.Dark
+                    : ElementTheme.Light;
             }
 
             var dialog = new ContentDialog
@@ -383,8 +392,15 @@ public class DialogService : IDialogService
                 PrimaryButtonText = continueButtonText,
                 CloseButtonText = cancelButtonText,
                 DefaultButton = ContentDialogButton.Primary,
-                XamlRoot = XamlRoot
+                XamlRoot = XamlRoot,
+                RequestedTheme = currentTheme
             };
+
+            // Apply the default ContentDialog style for proper theming
+            if (Application.Current.Resources.TryGetValue("DefaultContentDialogStyle", out var style) && style is Style dialogStyle)
+            {
+                dialog.Style = dialogStyle;
+            }
 
             var result = await dialog.ShowAsync();
             return (result == ContentDialogResult.Primary, checkBox.IsChecked == true);

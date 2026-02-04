@@ -43,16 +43,10 @@ namespace Winhance.Core.Features.Customize.Models
                         Id = "theme-mode-windows",
                         Name = "Choose your mode",
                         Description = "Choose between Light and Dark mode for Windows and apps",
-                        GroupName = "Theme mode",
+                        GroupName = "Theme Mode",
                         InputType = InputType.Selection,
                         Icon = "BrushVariant",
                         RequiresConfirmation = true,
-                        DialogTitleIcon = "Palette",
-                        ConfirmationTitle = "Windows Theme Change",
-                        ConfirmationMessage =
-                            "You are about to apply {themeMode} to Windows and apps.\nDo you want to continue?",
-                        ConfirmationCheckboxText =
-                            "Apply default Windows wallpaper for {themeMode}",
                         RegistrySettings = new List<RegistrySetting>
                         {
                             new RegistrySetting

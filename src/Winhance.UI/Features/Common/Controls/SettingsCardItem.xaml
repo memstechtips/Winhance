@@ -49,7 +49,7 @@
         <!-- Template for Action settings -->
         <DataTemplate x:Key="ActionSettingTemplate" x:DataType="viewModels:SettingItemViewModel">
             <Button
-                Content="Run"
+                Content="{x:Bind ActionButtonText}"
                 Command="{x:Bind ExecuteActionCommand}"/>
         </DataTemplate>
 

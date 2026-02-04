@@ -141,8 +141,6 @@ namespace Winhance.WPF.Features.Common.Services
                 Icon = setting.Icon,
                 IconPack = setting.IconPack ?? "Material",
                 RequiresConfirmation = setting.RequiresConfirmation,
-                ConfirmationTitle = setting.ConfirmationTitle,
-                ConfirmationMessage = setting.ConfirmationMessage,
                 ActionCommandName = setting.ActionCommand,
                 IsSelected = currentState.IsEnabled
             };

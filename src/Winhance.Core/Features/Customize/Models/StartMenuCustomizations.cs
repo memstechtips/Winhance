@@ -27,13 +27,6 @@ public static class StartMenuCustomizations
                     Icon = "Broom",
                     IsWindows10Only = true,
                     RequiresConfirmation = true,
-                    DialogTitleIcon = "Broom",
-                    ConfirmationTitle = "Start Menu Cleaning",
-                    ConfirmationMessage =
-                        "You are about to clean the Start Menu for all users on this computer. This will remove all pinned items and apply the recommended layout.\n\n"
-                        + "Do you want to continue?",
-                    ConfirmationCheckboxText = "Also apply recommended Start Menu settings to disable\n"
-                        + "suggestions, recommendations, and tracking features.",
                     ActionCommand = "CleanWindows10StartMenuAsync",
                 },
                 new SettingDefinition
@@ -46,13 +39,6 @@ public static class StartMenuCustomizations
                     Icon = "Broom",
                     IsWindows11Only = true,
                     RequiresConfirmation = true,
-                    DialogTitleIcon = "Broom",
-                    ConfirmationTitle = "Start Menu Cleaning",
-                    ConfirmationMessage =
-                        "You are about to clean the Start Menu for all users on this computer. This will remove all pinned items and apply the recommended layout.\n\n"
-                        + "Do you want to continue?",
-                    ConfirmationCheckboxText = "Also apply recommended Start Menu settings to disable\n"
-                        + "suggestions, recommendations, and tracking features.",
                     ActionCommand = "CleanWindows11StartMenuAsync",
                 },
                 new SettingDefinition

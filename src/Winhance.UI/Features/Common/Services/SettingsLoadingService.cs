@@ -26,6 +26,7 @@ public class SettingsLoadingService : ISettingsLoadingService
     private readonly ISettingLocalizationService _settingLocalizationService;
     private readonly IDispatcherService _dispatcherService;
     private readonly ILocalizationService _localizationService;
+    private readonly IDialogService _dialogService;
 
     public SettingsLoadingService(
         ISystemSettingsDiscoveryService discoveryService,
@@ -39,7 +40,8 @@ public class SettingsLoadingService : ISettingsLoadingService
         ICompatibleSettingsRegistry compatibleSettingsRegistry,
         ISettingLocalizationService settingLocalizationService,
         IDispatcherService dispatcherService,
-        ILocalizationService localizationService)
+        ILocalizationService localizationService,
+        IDialogService dialogService)
     {
         _discoveryService = discoveryService;
         _settingApplicationService = settingApplicationService;
@@ -53,6 +55,7 @@ public class SettingsLoadingService : ISettingsLoadingService
         _settingLocalizationService = settingLocalizationService;
         _dispatcherService = dispatcherService;
         _localizationService = localizationService;
+        _dialogService = dialogService;
     }
 
     public async Task<ObservableCollection<object>> LoadConfiguredSettingsAsync<TDomainService>(
@@ -125,7 +128,9 @@ public class SettingsLoadingService : ISettingsLoadingService
         var viewModel = new SettingItemViewModel(
             _settingApplicationService,
             _logService,
-            _dispatcherService)
+            _dispatcherService,
+            _dialogService,
+            _localizationService)
         {
             SettingDefinition = setting,
             ParentFeatureViewModel = parentViewModel,
@@ -138,7 +143,8 @@ public class SettingsLoadingService : ISettingsLoadingService
             InputType = setting.InputType,
             IsSelected = currentState.IsEnabled,
             OnText = _localizationService.GetString("Common_On") ?? "On",
-            OffText = _localizationService.GetString("Common_Off") ?? "Off"
+            OffText = _localizationService.GetString("Common_Off") ?? "Off",
+            ActionButtonText = _localizationService.GetString("Dialog_Button_Apply") ?? "Apply"
         };
 
         if (setting.InputType != InputType.Selection)

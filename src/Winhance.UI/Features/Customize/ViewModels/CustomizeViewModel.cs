@@ -41,7 +41,7 @@ public partial class CustomizeViewModel : ObservableObject
     /// <summary>
     /// Gets the localized breadcrumb root text.
     /// </summary>
-    public string BreadcrumbRootText => _localizationService.GetString("Nav_Customize") ?? "Customize";
+    public string BreadcrumbRootText => _localizationService.GetString("Category_Customize_Title") ?? "Customizations";
 
     /// <summary>
     /// Gets the localized search placeholder text.
@@ -132,6 +132,20 @@ public partial class CustomizeViewModel : ObservableObject
         StartMenuViewModel = startMenuViewModel;
         TaskbarViewModel = taskbarViewModel;
         WindowsThemeViewModel = windowsThemeViewModel;
+
+        // Subscribe to language changes to update localized strings
+        _localizationService.LanguageChanged += OnLanguageChanged;
+    }
+
+    /// <summary>
+    /// Handles language changes to update localized strings.
+    /// </summary>
+    private void OnLanguageChanged(object? sender, EventArgs e)
+    {
+        OnPropertyChanged(nameof(PageTitle));
+        OnPropertyChanged(nameof(PageDescription));
+        OnPropertyChanged(nameof(BreadcrumbRootText));
+        OnPropertyChanged(nameof(SearchPlaceholder));
     }
 
     /// <summary>

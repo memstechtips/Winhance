@@ -8,9 +8,6 @@ namespace Winhance.Core.Features.Common.Models;
 public record SettingDefinition : BaseDefinition, ISettingItem
 {
     public bool RequiresConfirmation { get; init; } = false;
-    public string? ConfirmationTitle { get; init; }
-    public string? ConfirmationMessage { get; init; }
-    public string? ConfirmationCheckboxText { get; init; }
     public string? ActionCommand { get; init; }
     public List<(int MinBuild, int MaxBuild)> SupportedBuildRanges { get; init; } = new();
     public List<CommandSetting> CommandSettings { get; init; } = new();

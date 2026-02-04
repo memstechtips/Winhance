@@ -38,10 +38,7 @@ public class SettingLocalizationService : ISettingLocalizationService
         {
             Name = GetLocalizedName(setting),
             Description = GetLocalizedDescription(setting),
-            GroupName = setting.GroupName != null ? GetLocalizedGroupName(setting.GroupName) : null,
-            ConfirmationTitle = setting.ConfirmationTitle != null ? GetLocalizedConfirmationTitle(setting) : null,
-            ConfirmationMessage = setting.ConfirmationMessage != null ? GetLocalizedConfirmationMessage(setting) : null,
-            ConfirmationCheckboxText = setting.ConfirmationCheckboxText != null ? GetLocalizedConfirmationCheckbox(setting) : null
+            GroupName = setting.GroupName != null ? GetLocalizedGroupName(setting.GroupName) : null
         };
 
         if (setting.CustomProperties.Count > 0)
@@ -150,24 +147,6 @@ public class SettingLocalizationService : ISettingLocalizationService
 
         var keySnake = $"SettingGroup_{snakeCaseName}";
         return GetStringOrFallback(keySnake, groupName);
-    }
-
-    private string GetLocalizedConfirmationTitle(SettingDefinition setting)
-    {
-        var key = $"Setting_{setting.Id}_ConfirmTitle";
-        return GetStringOrFallback(key, setting.ConfirmationTitle!);
-    }
-
-    private string GetLocalizedConfirmationMessage(SettingDefinition setting)
-    {
-        var key = $"Setting_{setting.Id}_ConfirmMessage";
-        return GetStringOrFallback(key, setting.ConfirmationMessage!);
-    }
-
-    private string GetLocalizedConfirmationCheckbox(SettingDefinition setting)
-    {
-        var key = $"Setting_{setting.Id}_ConfirmCheckbox";
-        return GetStringOrFallback(key, setting.ConfirmationCheckboxText!);
     }
 
     private string GetLocalizedCustomState(SettingDefinition setting)

@@ -25,13 +25,6 @@ public static class TaskbarCustomizations
                     Icon = "Broom",
                     RequiresConfirmation = true,
                     RestartProcess = "Explorer",
-                    DialogTitleIcon = "Broom",
-                    ConfirmationTitle = "Taskbar Cleaning",
-                    ConfirmationMessage =
-                        "You are about to clean the Taskbar for the current user.\n\n"
-                        + "This will remove all pinned items from the Taskbar.\n\n"
-                        + "Do you want to continue?",
-                    ConfirmationCheckboxText = "Also apply recommended Taskbar settings",
                     ActionCommand = "CleanTaskbarAsync",
                 },
                 new SettingDefinition
