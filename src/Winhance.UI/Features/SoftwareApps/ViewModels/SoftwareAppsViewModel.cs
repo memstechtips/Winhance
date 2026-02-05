@@ -6,9 +6,6 @@ using Winhance.UI.Features.Common.ViewModels;
 
 namespace Winhance.UI.Features.SoftwareApps.ViewModels;
 
-/// <summary>
-/// Main ViewModel for the SoftwareApps page that manages Windows Apps and External Apps tabs.
-/// </summary>
 public partial class SoftwareAppsViewModel : BaseViewModel
 {
     private readonly ILocalizationService _localizationService;
@@ -51,6 +48,16 @@ public partial class SoftwareAppsViewModel : BaseViewModel
 
     [ObservableProperty]
     private bool _canRemoveItems = false;
+
+    // Localized text properties
+    public string PageTitle => _localizationService.GetString("Category_SoftwareApps_Title");
+    public string PageDescription => _localizationService.GetString("Category_SoftwareApps_StatusText");
+    public string SearchPlaceholder => _localizationService.GetString("Common_Search_Placeholder") ?? "Search apps...";
+    public string WindowsAppsTabText => _localizationService.GetString("SoftwareApps_Tab_WindowsApps");
+    public string ExternalAppsTabText => _localizationService.GetString("SoftwareApps_Tab_ExternalApps");
+    public string InstallButtonText => _localizationService.GetString("SoftwareApps_Button_InstallSelected");
+    public string RefreshButtonText => _localizationService.GetString("Button_Refresh");
+    public string HelpButtonText => _localizationService.GetString("Button_Help");
 
     public string RemoveButtonText => IsWindowsAppsTabSelected
         ? _localizationService.GetString("SoftwareApps_Button_RemoveSelected")
@@ -100,7 +107,15 @@ public partial class SoftwareAppsViewModel : BaseViewModel
 
     private void OnLanguageChanged(object? sender, EventArgs e)
     {
+        OnPropertyChanged(nameof(PageTitle));
+        OnPropertyChanged(nameof(PageDescription));
+        OnPropertyChanged(nameof(SearchPlaceholder));
+        OnPropertyChanged(nameof(WindowsAppsTabText));
+        OnPropertyChanged(nameof(ExternalAppsTabText));
+        OnPropertyChanged(nameof(InstallButtonText));
         OnPropertyChanged(nameof(RemoveButtonText));
+        OnPropertyChanged(nameof(RefreshButtonText));
+        OnPropertyChanged(nameof(HelpButtonText));
     }
 
     private void ChildViewModel_PropertyChanged(object? sender, PropertyChangedEventArgs e)

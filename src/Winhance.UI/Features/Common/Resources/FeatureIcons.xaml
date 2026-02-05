@@ -68,13 +68,15 @@
     <x:String x:Key="AppsIconGlyph">&#xE8F1;</x:String>
     <x:String x:Key="WindowsAppsIconGlyph">&#xE782;</x:String>
     <x:String x:Key="ExternalAppsIconGlyph">&#xE896;</x:String>
+    <!-- PackageDown - Used for External Apps tab -->
+    <x:String x:Key="ExternalAppsIconPath">M5.12,5L5.93,4H17.93L18.87,5M12,17.5L6.5,12H10V10H14V12H17.5L12,17.5M20.54,5.23L19.15,3.55C18.88,3.21 18.47,3 18,3H6C5.53,3 5.12,3.21 4.84,3.55L3.46,5.23C3.17,5.57 3,6 3,6.5V19A2,2 0 0,0 5,21H19A2,2 0 0,0 21,19V6.5C21,6 20.83,5.57 20.54,5.23Z</x:String>
 
     <!-- ==================== Common UI Icons ==================== -->
     <!-- Commonly used UI icons -->
     <x:String x:Key="BackIconGlyph">&#xE72B;</x:String>
     <x:String x:Key="SearchIconGlyph">&#xE721;</x:String>
 
-    <!-- ==================== Badge Icons (Material Design - Path Data) ==================== -->
+    <!-- ==================== Badge Icons (Path Data) ==================== -->
     <!-- Microsoft Windows logo (4-pane grid) - Used for compatibility badges -->
     <x:String x:Key="WindowsLogoIconPath">M0,0 H10 V10 H0 Z M12,0 H22 V10 H12 Z M0,12 H10 V22 H0 Z M12,12 H22 V22 H12 Z</x:String>
 

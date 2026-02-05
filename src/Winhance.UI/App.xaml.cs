@@ -185,6 +185,11 @@ public partial class App : Application
         {
             var localizationService = Services.GetRequiredService<ILocalizationService>();
             StringKeys.Localized.Initialize(localizationService);
+
+            // Load and apply the saved language preference (sync to avoid async deadlock on UI thread)
+            var preferencesService = Services.GetRequiredService<IUserPreferencesService>();
+            var savedLanguage = preferencesService.GetPreference("Language", "en");
+            localizationService.SetLanguage(savedLanguage);
         }
         catch (Exception ex)
         {

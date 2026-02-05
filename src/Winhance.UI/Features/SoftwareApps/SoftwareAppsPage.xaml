@@ -6,229 +6,317 @@
     xmlns:controls="using:CommunityToolkit.WinUI.UI.Controls"
     xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
     xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
+    x:DefaultBindMode="OneWay"
+    NavigationCacheMode="Enabled"
     mc:Ignorable="d">
 
-    <Grid Padding="24,16,24,24">
+    <Grid Padding="0,0,12,0">
         <Grid.RowDefinitions>
-            <RowDefinition Height="Auto"/>
-            <RowDefinition Height="Auto"/>
-            <RowDefinition Height="*"/>
+            <RowDefinition Height="Auto"/>  <!-- Header -->
+            <RowDefinition Height="Auto"/>  <!-- Action Bar -->
+            <RowDefinition Height="*"/>     <!-- Content -->
         </Grid.RowDefinitions>
 
-        <!-- Header Section -->
-        <Grid Grid.Row="0" Margin="0,0,0,16">
-            <Grid.ColumnDefinitions>
-                <ColumnDefinition Width="Auto"/>
-                <ColumnDefinition Width="*"/>
-                <ColumnDefinition Width="Auto"/>
-            </Grid.ColumnDefinitions>
+        <!-- Row 0: Page Header with Icon -->
+        <StackPanel Grid.Row="0" Orientation="Horizontal" Spacing="16">
+            <Viewbox Width="64" Height="64" Stretch="Uniform">
+                <PathIcon Data="{StaticResource SoftwareAppsIconPath}" Foreground="{ThemeResource TextFillColorPrimaryBrush}"/>
+            </Viewbox>
+            <StackPanel VerticalAlignment="Center">
+                <TextBlock
+                    Text="{x:Bind ViewModel.PageTitle}"
+                    Style="{StaticResource TitleTextBlockStyle}"
+                    FontWeight="Bold"
+                    FontSize="30"/>
+                <TextBlock
+                    Text="{x:Bind ViewModel.PageDescription}"
+                    Style="{StaticResource CaptionTextBlockStyle}"
+                    Foreground="{ThemeResource TextFillColorTertiaryBrush}"
+                    Margin="0,2,0,0"/>
+            </StackPanel>
+        </StackPanel>
 
-            <!-- Back button and title -->
-            <StackPanel Grid.Column="0" Orientation="Horizontal" VerticalAlignment="Center">
-                <Button x:Name="BackButton"
-                        Click="BackButton_Click"
-                        ToolTipService.ToolTip="Go back"
-                        Padding="8"
-                        Background="Transparent"
-                        BorderThickness="0">
-                    <FontIcon Glyph="{StaticResource BackIconGlyph}" FontSize="16"/>
-                </Button>
-                <Viewbox Width="40" Height="40" Stretch="Uniform" Margin="8,0,12,0">
-                    <PathIcon Data="{StaticResource SoftwareAppsIconPath}" Foreground="{ThemeResource TextFillColorPrimaryBrush}"/>
-                </Viewbox>
-                <StackPanel VerticalAlignment="Center">
-                    <TextBlock Text="Software &amp; Apps"
-                               Style="{StaticResource TitleTextBlockStyle}"
-                               FontWeight="SemiBold"/>
-                    <TextBlock Text="Manage Windows Packages and Install External Software"
-                               Style="{StaticResource CaptionTextBlockStyle}"
-                               Foreground="{ThemeResource TextFillColorSecondaryBrush}"/>
+        <!-- Row 1: Action Bar (right-aligned) -->
+        <StackPanel Grid.Row="1" Orientation="Horizontal" Spacing="8" HorizontalAlignment="Right" Margin="0,12,0,16">
+            <Button Command="{x:Bind ViewModel.InstallSelectedItemsCommand}"
+                    IsEnabled="{x:Bind ViewModel.CanInstallItems, Mode=OneWay}">
+                <StackPanel Orientation="Horizontal" Spacing="8">
+                    <FontIcon Glyph="&#xE896;" FontSize="14"/>
+                    <TextBlock Text="{x:Bind ViewModel.InstallButtonText}"/>
                 </StackPanel>
-            </StackPanel>
+            </Button>
+            <Button Command="{x:Bind ViewModel.RemoveSelectedItemsCommand}"
+                    IsEnabled="{x:Bind ViewModel.CanRemoveItems, Mode=OneWay}">
+                <StackPanel Orientation="Horizontal" Spacing="8">
+                    <FontIcon Glyph="&#xE74D;" FontSize="14"/>
+                    <TextBlock Text="{x:Bind ViewModel.RemoveButtonText, Mode=OneWay}"/>
+                </StackPanel>
+            </Button>
+            <AppBarSeparator/>
+            <Button Command="{x:Bind ViewModel.RefreshInstallationStatusCommand}">
+                <Button.KeyboardAccelerators>
+                    <KeyboardAccelerator Key="F5"/>
+                </Button.KeyboardAccelerators>
+                <StackPanel Orientation="Horizontal" Spacing="8">
+                    <FontIcon Glyph="&#xE72C;" FontSize="14"/>
+                    <TextBlock Text="{x:Bind ViewModel.RefreshButtonText}"/>
+                </StackPanel>
+            </Button>
+            <Button>
+                <StackPanel Orientation="Horizontal" Spacing="8">
+                    <FontIcon Glyph="&#xE897;" FontSize="14"/>
+                    <TextBlock Text="{x:Bind ViewModel.HelpButtonText}"/>
+                </StackPanel>
+            </Button>
+            <AutoSuggestBox
+                PlaceholderText="{x:Bind ViewModel.SearchPlaceholder}"
+                QueryIcon="Find"
+                Width="220"
+                Text="{x:Bind ViewModel.SearchText, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}"/>
+        </StackPanel>
 
-            <!-- Action buttons -->
-            <StackPanel Grid.Column="2" Orientation="Horizontal" Spacing="8" VerticalAlignment="Center">
-                <Button Content="Install Selected"
-                        Command="{x:Bind ViewModel.InstallSelectedItemsCommand}"
-                        IsEnabled="{x:Bind ViewModel.CanInstallItems, Mode=OneWay}"
-                        Style="{StaticResource AccentButtonStyle}"/>
-                <Button Content="{x:Bind ViewModel.RemoveButtonText, Mode=OneWay}"
-                        Command="{x:Bind ViewModel.RemoveSelectedItemsCommand}"
-                        IsEnabled="{x:Bind ViewModel.CanRemoveItems, Mode=OneWay}"/>
-                <AppBarSeparator/>
-                <Button Content="Refresh"
-                        Command="{x:Bind ViewModel.RefreshInstallationStatusCommand}">
-                    <Button.KeyboardAccelerators>
-                        <KeyboardAccelerator Key="F5"/>
-                    </Button.KeyboardAccelerators>
-                </Button>
-                <AutoSuggestBox x:Name="SearchBox"
-                                PlaceholderText="Search apps..."
-                                QueryIcon="Find"
-                                Width="200"
-                                Text="{x:Bind ViewModel.SearchText, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}"/>
-            </StackPanel>
-        </Grid>
+        <!-- Row 2: Content Container with rounded corners and background -->
+        <Border
+            Grid.Row="2"
+            Background="{ThemeResource SystemFillColorNeutralBackgroundBrush}"
+            CornerRadius="8"
+            Margin="0,0,0,12">
+            <Grid>
+                <!-- Tab Navigation Container -->
+                <Border Margin="12,12,12,0"
+                        VerticalAlignment="Top"
+                        Background="{ThemeResource CardBackgroundFillColorDefaultBrush}"
+                        CornerRadius="6"
+                        Padding="4">
+                    <Grid>
+                        <Grid.ColumnDefinitions>
+                            <ColumnDefinition Width="*"/>
+                            <ColumnDefinition Width="Auto"/>
+                            <ColumnDefinition Width="*"/>
+                        </Grid.ColumnDefinitions>
 
-        <!-- Tab Navigation -->
-        <Grid Grid.Row="1" Margin="0,0,0,16">
-            <StackPanel Orientation="Horizontal" Spacing="4">
-                <ToggleButton x:Name="WindowsAppsTab"
-                              IsChecked="{x:Bind ViewModel.IsWindowsAppsTabSelected, Mode=TwoWay}"
-                              Padding="16,8">
-                    <StackPanel Orientation="Horizontal" Spacing="8">
-                        <FontIcon Glyph="{StaticResource WindowsAppsIconGlyph}" FontSize="16"/>
-                        <TextBlock Text="Windows Apps"/>
-                    </StackPanel>
-                </ToggleButton>
-                <ToggleButton x:Name="ExternalAppsTab"
-                              IsChecked="{x:Bind ViewModel.IsExternalAppsTabSelected, Mode=TwoWay}"
-                              Padding="16,8">
-                    <StackPanel Orientation="Horizontal" Spacing="8">
-                        <FontIcon Glyph="{StaticResource ExternalAppsIconGlyph}" FontSize="16"/>
-                        <TextBlock Text="External Apps"/>
-                    </StackPanel>
-                </ToggleButton>
-            </StackPanel>
-        </Grid>
+                        <!-- Windows Apps Tab -->
+                        <Grid Grid.Column="0">
+                            <!-- Selection background (visible when selected) -->
+                            <Border CornerRadius="4"
+                                    Margin="2"
+                                    Background="{ThemeResource ControlFillColorDefaultBrush}"
+                                    BorderThickness="1"
+                                    BorderBrush="{ThemeResource ControlStrokeColorDefaultBrush}"
+                                    IsHitTestVisible="False"
+                                    Visibility="{x:Bind ViewModel.IsWindowsAppsTabSelected, Mode=OneWay, Converter={StaticResource BooleanToVisibilityConverter}}"/>
+                            <!-- Accent indicator on left -->
+                            <Border Width="3"
+                                    Height="18"
+                                    CornerRadius="1.5"
+                                    HorizontalAlignment="Left"
+                                    VerticalAlignment="Center"
+                                    Margin="6,0,0,0"
+                                    Background="{ThemeResource AccentFillColorDefaultBrush}"
+                                    IsHitTestVisible="False"
+                                    Visibility="{x:Bind ViewModel.IsWindowsAppsTabSelected, Mode=OneWay, Converter={StaticResource BooleanToVisibilityConverter}}"/>
+                            <!-- Tab button (transparent) -->
+                            <Button x:Name="WindowsAppsTab"
+                                    Command="{x:Bind ViewModel.SelectWindowsAppsTabCommand}"
+                                    HorizontalAlignment="Stretch"
+                                    HorizontalContentAlignment="Center"
+                                    Background="Transparent"
+                                    BorderThickness="0"
+                                    Padding="12,10">
+                                <StackPanel Orientation="Horizontal" Spacing="8">
+                                    <Viewbox Width="18" Height="18">
+                                        <PathIcon Data="{StaticResource WindowsLogoIconPath}" Foreground="{ThemeResource TextFillColorPrimaryBrush}"/>
+                                    </Viewbox>
+                                    <TextBlock Text="{x:Bind ViewModel.WindowsAppsTabText}" VerticalAlignment="Center"/>
+                                </StackPanel>
+                            </Button>
+                        </Grid>
 
-        <!-- Content Area -->
-        <Grid Grid.Row="2">
-            <!-- Windows Apps Content -->
-            <Grid Visibility="{x:Bind ViewModel.IsWindowsAppsTabSelected, Mode=OneWay, Converter={StaticResource BooleanToVisibilityConverter}}">
-                <controls:DataGrid x:Name="WindowsAppsDataGrid"
-                                   ItemsSource="{x:Bind ViewModel.WindowsAppsViewModel.ItemsView, Mode=OneWay}"
-                                   AutoGenerateColumns="False"
-                                   CanUserSortColumns="True"
-                                   CanUserReorderColumns="False"
-                                   CanUserResizeColumns="True"
-                                   GridLinesVisibility="None"
-                                   HeadersVisibility="Column"
-                                   SelectionMode="Extended"
-                                   IsReadOnly="True"
-                                   VerticalScrollBarVisibility="Auto"
-                                   HorizontalScrollBarVisibility="Disabled">
-                    <controls:DataGrid.Columns>
-                        <!-- Selection Column -->
-                        <controls:DataGridTemplateColumn Width="50" CanUserResize="False">
-                            <controls:DataGridTemplateColumn.CellTemplate>
-                                <DataTemplate>
-                                    <CheckBox IsChecked="{Binding IsSelected, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}"
-                                              HorizontalAlignment="Center"/>
-                                </DataTemplate>
-                            </controls:DataGridTemplateColumn.CellTemplate>
-                        </controls:DataGridTemplateColumn>
+                        <!-- Separator -->
+                        <Border Grid.Column="1"
+                                Width="1"
+                                Margin="4,8"
+                                VerticalAlignment="Stretch"
+                                Background="{ThemeResource ControlStrokeColorDefaultBrush}"/>
 
-                        <!-- Name Column -->
-                        <controls:DataGridTextColumn Header="Name"
-                                                     Binding="{Binding Name}"
-                                                     Width="*"/>
+                        <!-- External Apps Tab -->
+                        <Grid Grid.Column="2">
+                            <!-- Selection background (visible when selected) -->
+                            <Border CornerRadius="4"
+                                    Margin="2"
+                                    Background="{ThemeResource ControlFillColorDefaultBrush}"
+                                    BorderThickness="1"
+                                    BorderBrush="{ThemeResource ControlStrokeColorDefaultBrush}"
+                                    IsHitTestVisible="False"
+                                    Visibility="{x:Bind ViewModel.IsExternalAppsTabSelected, Mode=OneWay, Converter={StaticResource BooleanToVisibilityConverter}}"/>
+                            <!-- Accent indicator on left -->
+                            <Border Width="3"
+                                    Height="18"
+                                    CornerRadius="1.5"
+                                    HorizontalAlignment="Left"
+                                    VerticalAlignment="Center"
+                                    Margin="6,0,0,0"
+                                    Background="{ThemeResource AccentFillColorDefaultBrush}"
+                                    IsHitTestVisible="False"
+                                    Visibility="{x:Bind ViewModel.IsExternalAppsTabSelected, Mode=OneWay, Converter={StaticResource BooleanToVisibilityConverter}}"/>
+                            <!-- Tab button (transparent) -->
+                            <Button x:Name="ExternalAppsTab"
+                                    Command="{x:Bind ViewModel.SelectExternalAppsTabCommand}"
+                                    HorizontalAlignment="Stretch"
+                                    HorizontalContentAlignment="Center"
+                                    Background="Transparent"
+                                    BorderThickness="0"
+                                    Padding="12,10">
+                                <StackPanel Orientation="Horizontal" Spacing="8">
+                                    <Viewbox Width="18" Height="18">
+                                        <PathIcon Data="{StaticResource ExternalAppsIconPath}" Foreground="{ThemeResource TextFillColorPrimaryBrush}"/>
+                                    </Viewbox>
+                                    <TextBlock Text="{x:Bind ViewModel.ExternalAppsTabText}" VerticalAlignment="Center"/>
+                                </StackPanel>
+                            </Button>
+                        </Grid>
+                    </Grid>
+                </Border>
 
-                        <!-- Type Column -->
-                        <controls:DataGridTextColumn Header="Type"
-                                                     Binding="{Binding ItemTypeDescription}"
-                                                     Width="180"/>
+                <!-- Content Area (below tabs) -->
+                <Grid Margin="0,66,0,0">
+                    <!-- Windows Apps Content -->
+                    <Grid Visibility="{x:Bind ViewModel.IsWindowsAppsTabSelected, Mode=OneWay, Converter={StaticResource BooleanToVisibilityConverter}}">
+                        <controls:DataGrid x:Name="WindowsAppsDataGrid"
+                                           ItemsSource="{x:Bind ViewModel.WindowsAppsViewModel.ItemsView, Mode=OneWay}"
+                                           AutoGenerateColumns="False"
+                                           CanUserSortColumns="True"
+                                           CanUserReorderColumns="False"
+                                           CanUserResizeColumns="True"
+                                           GridLinesVisibility="None"
+                                           HeadersVisibility="Column"
+                                           SelectionMode="Extended"
+                                           IsReadOnly="True"
+                                           VerticalScrollBarVisibility="Auto"
+                                           HorizontalScrollBarVisibility="Disabled">
+                            <controls:DataGrid.Columns>
+                                <!-- Selection Column -->
+                                <controls:DataGridTemplateColumn Width="50" CanUserResize="False">
+                                    <controls:DataGridTemplateColumn.CellTemplate>
+                                        <DataTemplate>
+                                            <CheckBox IsChecked="{Binding IsSelected, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}"
+                                                      HorizontalAlignment="Center"/>
+                                        </DataTemplate>
+                                    </controls:DataGridTemplateColumn.CellTemplate>
+                                </controls:DataGridTemplateColumn>
 
-                        <!-- Status Column -->
-                        <controls:DataGridTemplateColumn Header="Status" Width="140">
-                            <controls:DataGridTemplateColumn.CellTemplate>
-                                <DataTemplate>
-                                    <StackPanel Orientation="Horizontal" Spacing="8" VerticalAlignment="Center">
-                                        <Ellipse Width="10" Height="10"
-                                                 Fill="{Binding IsInstalled, Converter={StaticResource BoolToStatusBrushConverter}}"/>
-                                        <TextBlock Text="{Binding InstalledStatusText}" VerticalAlignment="Center"/>
-                                    </StackPanel>
-                                </DataTemplate>
-                            </controls:DataGridTemplateColumn.CellTemplate>
-                        </controls:DataGridTemplateColumn>
+                                <!-- Name Column -->
+                                <controls:DataGridTextColumn Header="Name"
+                                                             Binding="{Binding Name}"
+                                                             Width="*"/>
 
-                        <!-- Reinstallable Column -->
-                        <controls:DataGridTemplateColumn Header="Installable" Width="140">
-                            <controls:DataGridTemplateColumn.CellTemplate>
-                                <DataTemplate>
-                                    <StackPanel Orientation="Horizontal" Spacing="8" VerticalAlignment="Center">
-                                        <FontIcon Glyph="{Binding CanBeReinstalled, Converter={StaticResource BoolToGlyphConverter}}"
-                                                  FontSize="14"
-                                                  Foreground="{Binding CanBeReinstalled, Converter={StaticResource BoolToReinstallBrushConverter}}"/>
-                                        <TextBlock Text="{Binding ReinstallableStatusText}" VerticalAlignment="Center"/>
-                                    </StackPanel>
-                                </DataTemplate>
-                            </controls:DataGridTemplateColumn.CellTemplate>
-                        </controls:DataGridTemplateColumn>
-                    </controls:DataGrid.Columns>
-                </controls:DataGrid>
+                                <!-- Type Column -->
+                                <controls:DataGridTextColumn Header="Type"
+                                                             Binding="{Binding ItemTypeDescription}"
+                                                             Width="180"/>
 
-                <!-- Loading overlay for Windows Apps -->
-                <Grid Visibility="{x:Bind ViewModel.WindowsAppsViewModel.IsLoading, Mode=OneWay, Converter={StaticResource BooleanToVisibilityConverter}}"
-                      Background="{ThemeResource LayerFillColorDefaultBrush}">
-                    <StackPanel HorizontalAlignment="Center" VerticalAlignment="Center" Spacing="16">
-                        <ProgressRing IsActive="True" Width="48" Height="48"/>
-                        <TextBlock Text="{x:Bind ViewModel.WindowsAppsViewModel.StatusText, Mode=OneWay}"
-                                   Style="{StaticResource BodyTextBlockStyle}"/>
-                    </StackPanel>
+                                <!-- Status Column -->
+                                <controls:DataGridTemplateColumn Header="Status" Width="140">
+                                    <controls:DataGridTemplateColumn.CellTemplate>
+                                        <DataTemplate>
+                                            <StackPanel Orientation="Horizontal" Spacing="8" VerticalAlignment="Center">
+                                                <Ellipse Width="10" Height="10"
+                                                         Fill="{Binding IsInstalled, Converter={StaticResource BoolToStatusBrushConverter}}"/>
+                                                <TextBlock Text="{Binding InstalledStatusText}" VerticalAlignment="Center"/>
+                                            </StackPanel>
+                                        </DataTemplate>
+                                    </controls:DataGridTemplateColumn.CellTemplate>
+                                </controls:DataGridTemplateColumn>
+
+                                <!-- Reinstallable Column -->
+                                <controls:DataGridTemplateColumn Header="Installable" Width="140">
+                                    <controls:DataGridTemplateColumn.CellTemplate>
+                                        <DataTemplate>
+                                            <StackPanel Orientation="Horizontal" Spacing="8" VerticalAlignment="Center">
+                                                <FontIcon Glyph="{Binding CanBeReinstalled, Converter={StaticResource BoolToGlyphConverter}}"
+                                                          FontSize="14"
+                                                          Foreground="{Binding CanBeReinstalled, Converter={StaticResource BoolToReinstallBrushConverter}}"/>
+                                                <TextBlock Text="{Binding ReinstallableStatusText}" VerticalAlignment="Center"/>
+                                            </StackPanel>
+                                        </DataTemplate>
+                                    </controls:DataGridTemplateColumn.CellTemplate>
+                                </controls:DataGridTemplateColumn>
+                            </controls:DataGrid.Columns>
+                        </controls:DataGrid>
+
+                        <!-- Loading overlay for Windows Apps -->
+                        <Grid Visibility="{x:Bind ViewModel.WindowsAppsViewModel.IsLoading, Mode=OneWay, Converter={StaticResource BooleanToVisibilityConverter}}"
+                              Background="{ThemeResource LayerFillColorDefaultBrush}">
+                            <StackPanel HorizontalAlignment="Center" VerticalAlignment="Center" Spacing="16">
+                                <ProgressRing IsActive="True" Width="48" Height="48"/>
+                                <TextBlock Text="{x:Bind ViewModel.WindowsAppsViewModel.StatusText, Mode=OneWay}"
+                                           Style="{StaticResource BodyTextBlockStyle}"/>
+                            </StackPanel>
+                        </Grid>
+                    </Grid>
+
+                    <!-- External Apps Content -->
+                    <Grid Visibility="{x:Bind ViewModel.IsExternalAppsTabSelected, Mode=OneWay, Converter={StaticResource BooleanToVisibilityConverter}}">
+                        <controls:DataGrid x:Name="ExternalAppsDataGrid"
+                                           ItemsSource="{x:Bind ViewModel.ExternalAppsViewModel.ItemsView, Mode=OneWay}"
+                                           AutoGenerateColumns="False"
+                                           CanUserSortColumns="True"
+                                           CanUserReorderColumns="False"
+                                           CanUserResizeColumns="True"
+                                           GridLinesVisibility="None"
+                                           HeadersVisibility="Column"
+                                           SelectionMode="Extended"
+                                           IsReadOnly="True"
+                                           VerticalScrollBarVisibility="Auto"
+                                           HorizontalScrollBarVisibility="Disabled">
+                            <controls:DataGrid.Columns>
+                                <!-- Selection Column -->
+                                <controls:DataGridTemplateColumn Width="50" CanUserResize="False">
+                                    <controls:DataGridTemplateColumn.CellTemplate>
+                                        <DataTemplate>
+                                            <CheckBox IsChecked="{Binding IsSelected, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}"
+                                                      HorizontalAlignment="Center"/>
+                                        </DataTemplate>
+                                    </controls:DataGridTemplateColumn.CellTemplate>
+                                </controls:DataGridTemplateColumn>
+
+                                <!-- Name Column -->
+                                <controls:DataGridTextColumn Header="Name"
+                                                             Binding="{Binding Name}"
+                                                             Width="*"/>
+
+                                <!-- Description Column -->
+                                <controls:DataGridTextColumn Header="Description"
+                                                             Binding="{Binding Description}"
+                                                             Width="2*"/>
+
+                                <!-- Status Column -->
+                                <controls:DataGridTemplateColumn Header="Status" Width="140">
+                                    <controls:DataGridTemplateColumn.CellTemplate>
+                                        <DataTemplate>
+                                            <StackPanel Orientation="Horizontal" Spacing="8" VerticalAlignment="Center">
+                                                <Ellipse Width="10" Height="10"
+                                                         Fill="{Binding IsInstalled, Converter={StaticResource BoolToStatusBrushConverter}}"/>
+                                                <TextBlock Text="{Binding InstalledStatusText}" VerticalAlignment="Center"/>
+                                            </StackPanel>
+                                        </DataTemplate>
+                                    </controls:DataGridTemplateColumn.CellTemplate>
+                                </controls:DataGridTemplateColumn>
+                            </controls:DataGrid.Columns>
+                        </controls:DataGrid>
+
+                        <!-- Loading overlay for External Apps -->
+                        <Grid Visibility="{x:Bind ViewModel.ExternalAppsViewModel.IsLoading, Mode=OneWay, Converter={StaticResource BooleanToVisibilityConverter}}"
+                              Background="{ThemeResource LayerFillColorDefaultBrush}">
+                            <StackPanel HorizontalAlignment="Center" VerticalAlignment="Center" Spacing="16">
+                                <ProgressRing IsActive="True" Width="48" Height="48"/>
+                                <TextBlock Text="{x:Bind ViewModel.ExternalAppsViewModel.StatusText, Mode=OneWay}"
+                                           Style="{StaticResource BodyTextBlockStyle}"/>
+                            </StackPanel>
+                        </Grid>
+                    </Grid>
                 </Grid>
             </Grid>
-
-            <!-- External Apps Content -->
-            <Grid Visibility="{x:Bind ViewModel.IsExternalAppsTabSelected, Mode=OneWay, Converter={StaticResource BooleanToVisibilityConverter}}">
-                <controls:DataGrid x:Name="ExternalAppsDataGrid"
-                                   ItemsSource="{x:Bind ViewModel.ExternalAppsViewModel.ItemsView, Mode=OneWay}"
-                                   AutoGenerateColumns="False"
-                                   CanUserSortColumns="True"
-                                   CanUserReorderColumns="False"
-                                   CanUserResizeColumns="True"
-                                   GridLinesVisibility="None"
-                                   HeadersVisibility="Column"
-                                   SelectionMode="Extended"
-                                   IsReadOnly="True"
-                                   VerticalScrollBarVisibility="Auto"
-                                   HorizontalScrollBarVisibility="Disabled">
-                    <controls:DataGrid.Columns>
-                        <!-- Selection Column -->
-                        <controls:DataGridTemplateColumn Width="50" CanUserResize="False">
-                            <controls:DataGridTemplateColumn.CellTemplate>
-                                <DataTemplate>
-                                    <CheckBox IsChecked="{Binding IsSelected, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}"
-                                              HorizontalAlignment="Center"/>
-                                </DataTemplate>
-                            </controls:DataGridTemplateColumn.CellTemplate>
-                        </controls:DataGridTemplateColumn>
-
-                        <!-- Name Column -->
-                        <controls:DataGridTextColumn Header="Name"
-                                                     Binding="{Binding Name}"
-                                                     Width="*"/>
-
-                        <!-- Description Column -->
-                        <controls:DataGridTextColumn Header="Description"
-                                                     Binding="{Binding Description}"
-                                                     Width="2*"/>
-
-                        <!-- Status Column -->
-                        <controls:DataGridTemplateColumn Header="Status" Width="140">
-                            <controls:DataGridTemplateColumn.CellTemplate>
-                                <DataTemplate>
-                                    <StackPanel Orientation="Horizontal" Spacing="8" VerticalAlignment="Center">
-                                        <Ellipse Width="10" Height="10"
-                                                 Fill="{Binding IsInstalled, Converter={StaticResource BoolToStatusBrushConverter}}"/>
-                                        <TextBlock Text="{Binding InstalledStatusText}" VerticalAlignment="Center"/>
-                                    </StackPanel>
-                                </DataTemplate>
-                            </controls:DataGridTemplateColumn.CellTemplate>
-                        </controls:DataGridTemplateColumn>
-                    </controls:DataGrid.Columns>
-                </controls:DataGrid>
-
-                <!-- Loading overlay for External Apps -->
-                <Grid Visibility="{x:Bind ViewModel.ExternalAppsViewModel.IsLoading, Mode=OneWay, Converter={StaticResource BooleanToVisibilityConverter}}"
-                      Background="{ThemeResource LayerFillColorDefaultBrush}">
-                    <StackPanel HorizontalAlignment="Center" VerticalAlignment="Center" Spacing="16">
-                        <ProgressRing IsActive="True" Width="48" Height="48"/>
-                        <TextBlock Text="{x:Bind ViewModel.ExternalAppsViewModel.StatusText, Mode=OneWay}"
-                                   Style="{StaticResource BodyTextBlockStyle}"/>
-                    </StackPanel>
-                </Grid>
-            </Grid>
-        </Grid>
+        </Border>
     </Grid>
 </Page>
