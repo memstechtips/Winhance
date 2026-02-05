@@ -195,20 +195,30 @@ public class SettingsLoadingService : ISettingsLoadingService
                     viewModel.ComboBoxOptions.Add(option);
                 }
 
+                // Build cross-group info message if this setting has CrossGroupChildSettings
+                viewModel.CrossGroupInfoMessage = _settingLocalizationService.BuildCrossGroupInfoMessage(setting);
+
                 // Set the selected value from the setup result or current state
                 if (comboBoxResult.SelectedValue != null)
                 {
                     viewModel.SelectedValue = comboBoxResult.SelectedValue;
+                    viewModel.UpdateWarningText(comboBoxResult.SelectedValue);
                 }
                 else if (currentState.CurrentValue != null)
                 {
                     viewModel.SelectedValue = currentState.CurrentValue;
+                    viewModel.UpdateWarningText(currentState.CurrentValue);
                 }
             }
             catch (Exception ex)
             {
                 _logService.Log(LogLevel.Warning, $"Failed to setup combo box for '{setting.Id}': {ex.Message}");
             }
+        }
+        else
+        {
+            // For non-Selection types, initialize compatibility warning (Selection types handle this in UpdateWarningText)
+            viewModel.InitializeCompatibilityWarning();
         }
 
         return viewModel;

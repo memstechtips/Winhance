@@ -1,13 +1,14 @@
 using System.Collections.ObjectModel;
+using System.Linq;
 using CommunityToolkit.Mvvm.ComponentModel;
 using CommunityToolkit.Mvvm.Input;
-using Microsoft.UI.Xaml;
 using Microsoft.UI.Xaml.Controls;
+using Winhance.Core.Features.Common.Constants;
 using Winhance.Core.Features.Common.Enums;
 using Winhance.Core.Features.Common.Interfaces;
 using Winhance.Core.Features.Common.Models;
+using Winhance.Infrastructure.Features.Common.Services;
 using Winhance.UI.Features.Common.Interfaces;
-using Winhance.UI.Features.Common.Models;
 using Winhance.UI.Features.Common.ViewModels;
 
 namespace Winhance.UI.Features.Optimize.ViewModels;
@@ -21,6 +22,7 @@ public partial class SettingItemViewModel : BaseViewModel
     private readonly ILocalizationService _localizationService;
     private readonly IUserPreferencesService? _userPreferencesService;
     private bool _isUpdatingFromEvent;
+    private bool _hasChangedThisSession;
 
     public ISettingsFeatureViewModel? ParentFeatureViewModel { get; set; }
 
@@ -57,6 +59,16 @@ public partial class SettingItemViewModel : BaseViewModel
     private string? _warningText;
 
     [ObservableProperty]
+    private InfoBarSeverity _warningSeverity = InfoBarSeverity.Informational;
+
+    public bool HasWarningMessage => !string.IsNullOrEmpty(WarningText);
+
+    partial void OnWarningTextChanged(string? value)
+    {
+        OnPropertyChanged(nameof(HasWarningMessage));
+    }
+
+    [ObservableProperty]
     private InputType _inputType;
 
     [ObservableProperty]
@@ -87,16 +99,8 @@ public partial class SettingItemViewModel : BaseViewModel
     [ObservableProperty]
     private bool _isEnabled = true;
 
-    public ObservableCollection<SettingBadgeInfo> Badges { get; } = new();
-
-    [ObservableProperty]
-    private bool _hasBadges;
-
-    [ObservableProperty]
-    private GridLength _badgeColumnWidth = new GridLength(0);
-
-    [ObservableProperty]
-    private string? _compatibilityMessage;
+    // Pre-built message for cross-group child settings (built during initialization)
+    public string? CrossGroupInfoMessage { get; set; }
 
     // Advanced unlock support
     [ObservableProperty]
@@ -257,6 +261,8 @@ public partial class SettingItemViewModel : BaseViewModel
             await _settingApplicationService.ApplySettingAsync(SettingId, newValue, checkboxResult: checkboxChecked);
 
             IsSelected = newValue;
+            _hasChangedThisSession = true;
+            ShowRestartWarningIfNeeded();
             _logService.Log(LogLevel.Info, $"Successfully toggled setting {SettingId} to {newValue}");
         }
         catch (Exception ex)
@@ -310,6 +316,10 @@ public partial class SettingItemViewModel : BaseViewModel
 
             if (value is int intValue)
                 NumericValue = intValue;
+
+            _hasChangedThisSession = true;
+            UpdateWarningText(value);
+            ShowRestartWarningIfNeeded();
 
             _logService.Log(LogLevel.Info, $"Successfully changed value for setting {SettingId}");
             LogToFile($"[SettingItemViewModel] SelectedValue set to {value} for {SettingId}");
@@ -441,41 +451,120 @@ public partial class SettingItemViewModel : BaseViewModel
 
     #endregion
 
-    #region Badge Support
+    #region Warning Messages
 
-    public void UpdateBadges(bool showCompatibilityBadges, ILocalizationService? localizationService = null)
+    // Initializes the compatibility warning from SettingDefinition (called once during loading)
+    public void InitializeCompatibilityWarning()
     {
-        Badges.Clear();
-
-        if (showCompatibilityBadges && SettingDefinition != null)
+        if (SettingDefinition?.CustomProperties?.TryGetValue(
+            CustomPropertyKeys.VersionCompatibilityMessage, out var compatMessage) == true &&
+            compatMessage is string messageText)
         {
-            if (SettingDefinition.CustomProperties.TryGetValue(
-                Core.Features.Common.Constants.CustomPropertyKeys.VersionCompatibilityMessage,
-                out var compatMessageObj) && compatMessageObj is string compatMessage)
+            WarningText = messageText;
+            WarningSeverity = InfoBarSeverity.Informational;
+        }
+    }
+
+    // Updates warning text based on selected value, option warnings, or cross-group settings
+    public void UpdateWarningText(object? value)
+    {
+        if (SettingDefinition == null || value is not int selectedIndex)
+        {
+            // Keep existing compatibility warning if present, otherwise clear
+            if (SettingDefinition?.CustomProperties?.ContainsKey(CustomPropertyKeys.VersionCompatibilityMessage) != true)
             {
-                var hasBuildRanges = SettingDefinition.SupportedBuildRanges?.Count > 0 ||
-                                     SettingDefinition.MinimumBuildNumber.HasValue ||
-                                     SettingDefinition.MaximumBuildNumber.HasValue;
-
-                var versionText = SettingDefinition.IsWindows11Only ? "11" :
-                                  SettingDefinition.IsWindows10Only ? "10" : "10";
-
-                if (hasBuildRanges)
-                    Badges.Add(new SettingBadgeInfo(BadgeType.WinBuild, versionText, compatMessage));
-                else if (SettingDefinition.IsWindows10Only)
-                    Badges.Add(new SettingBadgeInfo(BadgeType.Win10, "10", compatMessage));
-                else if (SettingDefinition.IsWindows11Only)
-                    Badges.Add(new SettingBadgeInfo(BadgeType.Win11, "11", compatMessage));
-
-                WarningText = compatMessage;
+                ClearWarning();
             }
+            return;
+        }
+
+        // Check for option-specific warnings (e.g., update policy security warnings)
+        if (SettingDefinition.CustomProperties?.TryGetValue(CustomPropertyKeys.OptionWarnings, out var warnings) == true &&
+            warnings is Dictionary<int, string> warningDict &&
+            warningDict.TryGetValue(selectedIndex, out var warning))
+        {
+            WarningText = warning;
+            WarningSeverity = InfoBarSeverity.Error;
+            return;
+        }
+
+        // Check for cross-group child settings info (privacy promotional banner)
+        if (SettingDefinition.CustomProperties?.ContainsKey(CustomPropertyKeys.CrossGroupChildSettings) == true)
+        {
+            UpdateCrossGroupInfoMessage(selectedIndex);
+            return;
+        }
+
+        // No option-specific warning - check if we should keep compatibility message
+        if (SettingDefinition.CustomProperties?.TryGetValue(CustomPropertyKeys.VersionCompatibilityMessage, out var compatMessage) == true &&
+            compatMessage is string messageText)
+        {
+            WarningText = messageText;
+            WarningSeverity = InfoBarSeverity.Informational;
         }
         else
         {
-            WarningText = null;
+            ClearWarning();
+        }
+    }
+
+    // Shows informational message for cross-group child settings when "Custom" is selected
+    private void UpdateCrossGroupInfoMessage(int selectedIndex)
+    {
+        var displayNames = SettingDefinition?.CustomProperties?.TryGetValue(CustomPropertyKeys.ComboBoxDisplayNames, out var names) == true
+            ? names as string[]
+            : null;
+
+        if (displayNames == null)
+        {
+            ClearWarning();
+            return;
         }
 
-        HasBadges = Badges.Count > 0;
+        // Check if "Custom" option is selected (last index or special custom state index)
+        var customOptionIndex = displayNames.Length - 1;
+        bool isCustomState = selectedIndex == customOptionIndex || selectedIndex == ComboBoxResolver.CUSTOM_STATE_INDEX;
+
+        if (!isCustomState)
+        {
+            ClearWarning();
+            return;
+        }
+
+        // Use the pre-built message if available (built during initialization with full grouping)
+        if (!string.IsNullOrEmpty(CrossGroupInfoMessage))
+        {
+            WarningText = CrossGroupInfoMessage;
+            WarningSeverity = InfoBarSeverity.Informational;
+            return;
+        }
+
+        // Fallback: just show the header if pre-built message not available
+        var header = _localizationService.GetString("Setting_CrossGroupWarning_Header");
+        if (!string.IsNullOrEmpty(header))
+        {
+            WarningText = header;
+            WarningSeverity = InfoBarSeverity.Informational;
+        }
+    }
+
+    // Shows restart required warning after a setting that requires restart is changed
+    private void ShowRestartWarningIfNeeded()
+    {
+        if (!_hasChangedThisSession)
+            return;
+
+        if (SettingDefinition?.RequiresRestart == true)
+        {
+            WarningText = _localizationService.GetString("Common_RestartRequired");
+            WarningSeverity = InfoBarSeverity.Informational;
+        }
+    }
+
+    private void ClearWarning()
+    {
+        WarningText = null;
+        WarningSeverity = InfoBarSeverity.Informational;
     }
 
     #endregion

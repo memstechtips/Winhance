@@ -234,8 +234,8 @@ public static class UpdateOptimizations
                         },
                         [CustomPropertyKeys.OptionWarnings] = new Dictionary<int, string>
                         {
-                            [2] = "⚠️ WARNING: Pausing updates for a long time leaves your system vulnerable to security threats. Use at your own risk.",
-                            [3] = "⚠️ WARNING: Disabling updates leaves your system vulnerable to security threats. Use at your own risk."
+                            [2] = "WARNING: Pausing updates for a long time leaves your system vulnerable to security threats. Use at your own risk.",
+                            [3] = "WARNING: Disabling updates leaves your system vulnerable to security threats. Use at your own risk."
                         },
                         [CustomPropertyKeys.OptionTooltips] = new string[]
                         {

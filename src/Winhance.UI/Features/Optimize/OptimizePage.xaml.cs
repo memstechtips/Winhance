@@ -14,14 +14,15 @@ public sealed partial class OptimizePage : Page
     private static readonly string LogFile = Path.Combine(AppContext.BaseDirectory, "..", "..", "..", "..", "..", "startup-debug.log");
     private static void Log(string msg) { try { File.AppendAllText(LogFile, $"[{DateTime.Now:HH:mm:ss.fff}] [OptimizePage] {msg}{Environment.NewLine}"); } catch { } }
 
+    // Maps section keys to their icon resource keys (PathIcon paths end with "Path", FontIcon glyphs end with "Glyph")
     private static readonly Dictionary<string, string> SectionIconResourceKeys = new()
     {
         { "Privacy", "PrivacyIconPath" },
         { "Power", "PowerIconPath" },
         { "Gaming", "GamingIconPath" },
-        { "Update", "UpdateIconPath" },
+        { "Update", "UpdateIconGlyph" },
         { "Notification", "NotificationIconPath" },
-        { "Sound", "SoundIconPath" }
+        { "Sound", "SoundIconGlyph" }
     };
 
     public OptimizeViewModel ViewModel { get; }
@@ -158,12 +159,25 @@ public sealed partial class OptimizePage : Page
             BreadcrumbSectionText.Text = ViewModel.CurrentSectionName;
 
             if (SectionIconResourceKeys.TryGetValue(ViewModel.CurrentSectionKey, out var resourceKey) &&
-                Application.Current.Resources.TryGetValue(resourceKey, out var pathDataObj) &&
-                pathDataObj is string pathData)
+                Application.Current.Resources.TryGetValue(resourceKey, out var resourceValue) &&
+                resourceValue is string iconData)
             {
-                var geometry = (Microsoft.UI.Xaml.Media.Geometry)Microsoft.UI.Xaml.Markup.XamlBindingHelper.ConvertValue(
-                    typeof(Microsoft.UI.Xaml.Media.Geometry), pathData);
-                BreadcrumbSectionIcon.Data = geometry;
+                // Check if this is a glyph icon or a path icon based on the resource key naming convention
+                bool isGlyph = resourceKey.EndsWith("Glyph");
+
+                BreadcrumbSectionIconBox.Visibility = isGlyph ? Visibility.Collapsed : Visibility.Visible;
+                BreadcrumbSectionGlyph.Visibility = isGlyph ? Visibility.Visible : Visibility.Collapsed;
+
+                if (isGlyph)
+                {
+                    BreadcrumbSectionGlyph.Glyph = iconData;
+                }
+                else
+                {
+                    var geometry = (Microsoft.UI.Xaml.Media.Geometry)Microsoft.UI.Xaml.Markup.XamlBindingHelper.ConvertValue(
+                        typeof(Microsoft.UI.Xaml.Media.Geometry), iconData);
+                    BreadcrumbSectionIcon.Data = geometry;
+                }
             }
         }
     }

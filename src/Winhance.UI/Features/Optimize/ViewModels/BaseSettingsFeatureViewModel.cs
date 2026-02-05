@@ -1,7 +1,6 @@
 using System.Collections.ObjectModel;
 using CommunityToolkit.Mvvm.ComponentModel;
 using CommunityToolkit.Mvvm.Input;
-using Microsoft.UI.Xaml;
 using Winhance.Core.Features.Common.Enums;
 using Winhance.Core.Features.Common.Events;
 using Winhance.Core.Features.Common.Events.Settings;
@@ -27,7 +26,6 @@ public abstract partial class BaseSettingsFeatureViewModel : BaseViewModel, ISet
     private bool _settingsLoaded = false;
     private readonly object _loadingLock = new();
     private CancellationTokenSource? _searchDebounceTokenSource;
-    private bool _showCompatibilityBadges = false;
     private ISubscriptionToken? _settingAppliedSubscription;
     private Dictionary<string, SettingItemViewModel> _settingsById = new();
     private Dictionary<string, List<SettingItemViewModel>> _childrenByParentId = new();
@@ -117,7 +115,6 @@ public abstract partial class BaseSettingsFeatureViewModel : BaseViewModel, ISet
         if (_mainWindowViewModel != null)
         {
             _mainWindowViewModel.FilterStateChanged += OnFilterStateChanged;
-            _showCompatibilityBadges = !_mainWindowViewModel.IsWindowsVersionFilterEnabled;
         }
     }
 
@@ -169,7 +166,6 @@ public abstract partial class BaseSettingsFeatureViewModel : BaseViewModel, ISet
 
     private async void OnFilterStateChanged(object? sender, FilterStateChangedEventArgs e)
     {
-        _showCompatibilityBadges = !e.IsFilterEnabled;
         await RefreshSettingsForFilterChangeAsync();
     }
 
@@ -202,29 +198,6 @@ public abstract partial class BaseSettingsFeatureViewModel : BaseViewModel, ISet
         catch (Exception ex)
         {
             _logService.Log(LogLevel.Error, $"Error refreshing settings for filter change: {ex.Message}");
-        }
-    }
-
-    protected void UpdateAllBadges()
-    {
-        var showBadges = _mainWindowViewModel != null && !_mainWindowViewModel.IsWindowsVersionFilterEnabled;
-
-        foreach (var setting in Settings)
-        {
-            setting.UpdateBadges(showBadges, _localizationService);
-        }
-
-        UpdateBadgeColumnWidth();
-    }
-
-    protected void UpdateBadgeColumnWidth()
-    {
-        var hasAnyBadges = Settings?.Any(s => s.HasBadges) ?? false;
-        var columnWidth = hasAnyBadges ? new GridLength(50) : new GridLength(0);
-
-        foreach (var setting in Settings)
-        {
-            setting.BadgeColumnWidth = columnWidth;
         }
     }
 
@@ -331,7 +304,6 @@ public abstract partial class BaseSettingsFeatureViewModel : BaseViewModel, ISet
 
             UpdateParentChildRelationships();
             RebuildGroupedSettings();
-            UpdateAllBadges();
 
             OnPropertyChanged(nameof(HasVisibleSettings));
             OnPropertyChanged(nameof(IsVisibleInSearch));

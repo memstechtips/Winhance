@@ -17,6 +17,7 @@
     <ComboBox
         x:Name="PowerPlanSelector"
         MinWidth="220"
+        MaxDropDownHeight="300"
         ItemsSource="{x:Bind ItemsSource, Mode=OneWay}"
         SelectedValue="{x:Bind SelectedValue, Mode=OneWay}"
         SelectedValuePath="Value"

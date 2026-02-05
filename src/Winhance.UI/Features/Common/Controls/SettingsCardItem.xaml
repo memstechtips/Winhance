@@ -14,6 +14,9 @@
     -->
 
     <UserControl.Resources>
+        <!-- ComboBoxEx needs explicit style inheritance to maintain rounded corners -->
+        <Style TargetType="local:ComboBoxEx" BasedOn="{StaticResource DefaultComboBoxStyle}"/>
+
         <!-- Template for Toggle settings -->
         <DataTemplate x:Key="ToggleSettingTemplate" x:DataType="viewModels:SettingItemViewModel">
             <ToggleSwitch
@@ -23,9 +26,9 @@
                 OffContent="{x:Bind OffText}"/>
         </DataTemplate>
 
-        <!-- Template for Selection settings -->
+        <!-- Template for Selection settings - uses ComboBoxEx to fix dropdown positioning issues -->
         <DataTemplate x:Key="SelectionSettingTemplate" x:DataType="viewModels:SettingItemViewModel">
-            <ComboBox
+            <local:ComboBoxEx
                 ItemsSource="{x:Bind ComboBoxOptions}"
                 SelectedValue="{x:Bind SelectedValue, Mode=OneWay}"
                 DropDownClosed="{x:Bind OnComboBoxDropDownClosed}"

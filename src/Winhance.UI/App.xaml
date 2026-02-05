@@ -18,8 +18,6 @@
                 <resources:SettingTemplates />
                 <!-- Centralized feature icons -->
                 <ResourceDictionary Source="ms-appx:///Features/Common/Resources/FeatureIcons.xaml" />
-                <!-- Badge styles for setting compatibility indicators -->
-                <ResourceDictionary Source="ms-appx:///Features/Common/Styles/BadgeStyles.xaml" />
             </ResourceDictionary.MergedDictionaries>
 
             <!-- Title Bar Button Style -->

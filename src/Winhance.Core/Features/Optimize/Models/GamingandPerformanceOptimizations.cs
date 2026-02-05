@@ -1672,7 +1672,7 @@ public static class GamingandPerformanceOptimizations
                         },
                         [CustomPropertyKeys.OptionWarnings] = new Dictionary<int, string>
                         {
-                            [0] = "⚠️ Disabling will prevent Xbox Game Pass and Microsoft Store games from working",
+                            [0] = "Disabling will prevent Xbox Game Pass and Microsoft Store games from working",
                         },
                     },
                     RegistrySettings = new List<RegistrySetting>

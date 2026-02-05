@@ -50,7 +50,7 @@
                     Click="BreadcrumbOverview_Click"
                     Padding="8,4">
                     <StackPanel Orientation="Horizontal" Spacing="8">
-                        <Viewbox Width="16" Height="16">
+                        <Viewbox Width="16" Height="16" VerticalAlignment="Center" Margin="0,-2,0,0">
                             <PathIcon Data="{StaticResource CustomizeIconPath}" Foreground="{ThemeResource TextFillColorPrimaryBrush}"/>
                         </Viewbox>
                         <TextBlock Text="{x:Bind ViewModel.BreadcrumbRootText}" VerticalAlignment="Center"/>
@@ -73,7 +73,7 @@
                     Padding="8,4">
                     <DropDownButton.Content>
                         <StackPanel Orientation="Horizontal" Spacing="8">
-                            <Viewbox x:Name="BreadcrumbSectionIconBox" Width="16" Height="16">
+                            <Viewbox x:Name="BreadcrumbSectionIconBox" Width="16" Height="16" VerticalAlignment="Center" Margin="0,-2,0,0">
                                 <PathIcon x:Name="BreadcrumbSectionIcon" Foreground="{ThemeResource TextFillColorPrimaryBrush}"/>
                             </Viewbox>
                             <TextBlock x:Name="BreadcrumbSectionText" VerticalAlignment="Center"/>
