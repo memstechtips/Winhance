@@ -34,13 +34,13 @@
     <x:String x:Key="MoreIconGlyph">&#xE712;</x:String>
 
     <!-- ==================== Optimize Section Icons ==================== -->
-    <!-- Icons for Optimize page feature sections -->
-    <x:String x:Key="SoundIconGlyph">&#xE767;</x:String>
+    <x:String x:Key="PrivacyIconPath">M12,17A2,2 0 0,0 14,15C14,13.89 13.1,13 12,13A2,2 0 0,0 10,15A2,2 0 0,0 12,17M18,8A2,2 0 0,1 20,10V20A2,2 0 0,1 18,22H6A2,2 0 0,1 4,20V10C4,8.89 4.9,8 6,8H7V6A5,5 0 0,1 12,1A5,5 0 0,1 17,6V8H18M12,3A3,3 0 0,0 9,6V8H15V6A3,3 0 0,0 12,3Z</x:String>
+    <x:String x:Key="PowerIconPath">M16.56,5.44L15.11,6.89C16.84,7.94 18,9.83 18,12A6,6 0 0,1 12,18A6,6 0 0,1 6,12C6,9.83 7.16,7.94 8.88,6.88L7.44,5.44C5.36,6.88 4,9.28 4,12A8,8 0 0,0 12,20A8,8 0 0,0 20,12C20,9.28 18.64,6.88 16.56,5.44M13,3H11V13H13</x:String>
+    <x:String x:Key="GamingIconPath">M7.97,16L5,19C4.67,19.3 4.23,19.5 3.75,19.5A1.75,1.75 0 0,1 2,17.75V17.5L3,10.12C3.21,7.81 5.14,6 7.5,6H16.5C18.86,6 20.79,7.81 21,10.12L22,17.5V17.75A1.75,1.75 0 0,1 20.25,19.5C19.77,19.5 19.33,19.3 19,19L16.03,16H7.97M7,8V10H5V11H7V13H8V11H10V10H8V8H7M16.5,8A0.75,0.75 0 0,0 15.75,8.75A0.75,0.75 0 0,0 16.5,9.5A0.75,0.75 0 0,0 17.25,8.75A0.75,0.75 0 0,0 16.5,8M14.75,9.75A0.75,0.75 0 0,0 14,10.5A0.75,0.75 0 0,0 14.75,11.25A0.75,0.75 0 0,0 15.5,10.5A0.75,0.75 0 0,0 14.75,9.75M18.25,9.75A0.75,0.75 0 0,0 17.5,10.5A0.75,0.75 0 0,0 18.25,11.25A0.75,0.75 0 0,0 19,10.5A0.75,0.75 0 0,0 18.25,9.75M16.5,11.5A0.75,0.75 0 0,0 15.75,12.25A0.75,0.75 0 0,0 16.5,13A0.75,0.75 0 0,0 17.25,12.25A0.75,0.75 0 0,0 16.5,11.5Z</x:String>
+    <x:String x:Key="NotificationIconPath">M21,19V20H3V19L5,17V11C5,7.9 7.03,5.17 10,4.29C10,4.19 10,4.1 10,4A2,2 0 0,1 12,2A2,2 0 0,1 14,4C14,4.1 14,4.19 14,4.29C16.97,5.17 19,7.9 19,11V17L21,19M14,21A2,2 0 0,1 12,23A2,2 0 0,1 10,21M19.75,3.19L18.33,4.61C20.04,6.3 21,8.6 21,11H23C23,8.07 21.84,5.25 19.75,3.19M1,11H3C3,8.6 3.96,6.3 5.67,4.61L4.25,3.19C2.16,5.25 1,8.07 1,11Z</x:String>
     <x:String x:Key="UpdateIconGlyph">&#xE895;</x:String>
-    <x:String x:Key="NotificationIconGlyph">&#xE7E7;</x:String>
-    <x:String x:Key="PrivacyIconGlyph">&#xE72E;</x:String>
-    <x:String x:Key="PowerIconGlyph">&#xEC0A;</x:String>
-    <x:String x:Key="GamingIconGlyph">&#xE7FC;</x:String>
+    <x:String x:Key="SoundIconGlyph">&#xE767;</x:String>
+
 
     <!-- ==================== Customize Section Icons (Material Design - Path Data) ==================== -->
     <!-- Icons for Customize page feature sections - matching WPF project's Material Design icons -->
@@ -77,6 +77,10 @@
     <!-- ==================== Badge Icons (Material Design - Path Data) ==================== -->
     <!-- Microsoft Windows logo (4-pane grid) - Used for compatibility badges -->
     <x:String x:Key="WindowsLogoIconPath">M0,0 H10 V10 H0 Z M12,0 H22 V10 H12 Z M0,12 H10 V22 H0 Z M12,12 H22 V22 H12 Z</x:String>
+
+    <!-- ==================== Power Plan Icons (Material Design - Path Data) ==================== -->
+    <!-- DeleteForever - Used for power plan deletion -->
+    <x:String x:Key="DeleteForeverIconPath">M6,19A2,2 0 0,0 8,21H16A2,2 0 0,0 18,19V7H6V19M8.46,11.88L9.87,10.47L12,12.59L14.12,10.47L15.53,11.88L13.41,14L15.53,16.12L14.12,17.53L12,15.41L9.88,17.53L8.47,16.12L10.59,14L8.46,11.88M15.5,4L14.5,3H9.5L8.5,4H5V6H19V4H15.5Z</x:String>
 
     <!-- ==================== Filter Icons (Material Design - Path Data) ==================== -->
     <!-- Filter with checkmark - Used when Windows version filter is ON -->

@@ -1,13 +1,11 @@
 using Winhance.Core.Features.Common.Constants;
+using Winhance.Core.Features.Common.Events;
 using Winhance.Core.Features.Common.Interfaces;
 using Winhance.UI.Features.Common.Interfaces;
 using Winhance.UI.ViewModels;
 
 namespace Winhance.UI.Features.Optimize.ViewModels;
 
-/// <summary>
-/// ViewModel for Gaming and Performance optimization settings.
-/// </summary>
 public partial class GamingOptimizationsViewModel : BaseSettingsFeatureViewModel
 {
     public override string ModuleId => FeatureIds.GamingPerformance;
@@ -20,8 +18,9 @@ public partial class GamingOptimizationsViewModel : BaseSettingsFeatureViewModel
         ILogService logService,
         ILocalizationService localizationService,
         IDispatcherService dispatcherService,
+        IEventBus eventBus,
         MainWindowViewModel mainWindowViewModel)
-        : base(domainServiceRouter, settingsLoadingService, logService, localizationService, dispatcherService, mainWindowViewModel)
+        : base(domainServiceRouter, settingsLoadingService, logService, localizationService, dispatcherService, eventBus, mainWindowViewModel)
     {
     }
 }

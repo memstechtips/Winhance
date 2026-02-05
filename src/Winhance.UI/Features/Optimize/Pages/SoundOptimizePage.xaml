@@ -1,17 +1,18 @@
 <?xml version="1.0" encoding="utf-8"?>
 <Page
-    x:Class="Winhance.UI.Features.Customize.Pages.ExplorerCustomizePage"
+    x:Class="Winhance.UI.Features.Optimize.Pages.SoundOptimizePage"
     xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
     xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
-    xmlns:local="using:Winhance.UI.Features.Customize.Pages"
+    xmlns:local="using:Winhance.UI.Features.Optimize.Pages"
     xmlns:commonControls="using:Winhance.UI.Features.Common.Controls"
     x:DefaultBindMode="OneWay"
     NavigationCacheMode="Disabled">
 
     <Page.Resources>
+        <!-- CollectionViewSource for grouped settings -->
         <CollectionViewSource
             x:Name="GroupedSettingsSource"
-            Source="{x:Bind ViewModel.ExplorerViewModel.GroupedSettings}"
+            Source="{x:Bind ViewModel.SoundViewModel.GroupedSettings}"
             IsSourceGrouped="True"/>
     </Page.Resources>
 

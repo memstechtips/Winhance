@@ -1,3 +1,4 @@
+using System.ComponentModel;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.UI.Xaml;
 using Microsoft.UI.Xaml.Controls;
@@ -8,16 +9,11 @@ using Winhance.UI.Features.Customize.ViewModels;
 
 namespace Winhance.UI.Features.Customize;
 
-/// <summary>
-/// Shell page for customizing Windows appearance and behavior.
-/// Shows overview cards by default, uses inner Frame for detail pages.
-/// </summary>
 public sealed partial class CustomizePage : Page
 {
     private static readonly string LogFile = Path.Combine(AppContext.BaseDirectory, "..", "..", "..", "..", "..", "startup-debug.log");
     private static void Log(string msg) { try { File.AppendAllText(LogFile, $"[{DateTime.Now:HH:mm:ss.fff}] [CustomizePage] {msg}{Environment.NewLine}"); } catch { } }
 
-    // Map section keys to their icon path resource keys in FeatureIcons.xaml
     private static readonly Dictionary<string, string> SectionIconResourceKeys = new()
     {
         { "Explorer", "ExplorerIconPath" },
@@ -36,6 +32,7 @@ public sealed partial class CustomizePage : Page
             this.InitializeComponent();
             Log("InitializeComponent done, getting ViewModel...");
             ViewModel = App.Services.GetRequiredService<CustomizeViewModel>();
+            ViewModel.PropertyChanged += OnViewModelPropertyChanged;
             UpdateBreadcrumbMenuItems();
             Log("ViewModel obtained, constructor complete");
         }
@@ -46,9 +43,14 @@ public sealed partial class CustomizePage : Page
         }
     }
 
-    /// <summary>
-    /// Updates the breadcrumb dropdown menu items with localized text.
-    /// </summary>
+    private void OnViewModelPropertyChanged(object? sender, PropertyChangedEventArgs e)
+    {
+        if (e.PropertyName == nameof(ViewModel.BreadcrumbRootText))
+        {
+            UpdateBreadcrumbMenuItems();
+        }
+    }
+
     private void UpdateBreadcrumbMenuItems()
     {
         MenuItemWindowsTheme.Text = ViewModel.GetSectionDisplayName("WindowsTheme");
@@ -84,9 +86,6 @@ public sealed partial class CustomizePage : Page
         ViewModel.OnNavigatedFrom();
     }
 
-    /// <summary>
-    /// Navigates to a specific section by key.
-    /// </summary>
     public void NavigateToSection(string sectionKey, string? searchText = null)
     {
         Type? pageType = sectionKey switch
@@ -100,8 +99,7 @@ public sealed partial class CustomizePage : Page
 
         if (pageType != null)
         {
-            // Pre-apply the search filter BEFORE navigating to avoid visual flash
-            // This ensures settings have correct visibility when the page renders
+            // Pre-apply search filter before navigation
             if (!string.IsNullOrWhiteSpace(searchText))
             {
                 var targetViewModel = ViewModel.GetSectionViewModel(sectionKey);
@@ -112,14 +110,10 @@ public sealed partial class CustomizePage : Page
         }
         else
         {
-            // Navigate to overview
             NavigateToOverview();
         }
     }
 
-    /// <summary>
-    /// Returns to the overview (hides detail frame, shows overview cards).
-    /// </summary>
     public void NavigateToOverview()
     {
         ViewModel.CurrentSectionKey = "Overview";
@@ -129,7 +123,6 @@ public sealed partial class CustomizePage : Page
 
     private void InnerContentFrame_Navigated(object sender, NavigationEventArgs e)
     {
-        // Update the ViewModel's current section key based on the navigated page
         ViewModel.CurrentSectionKey = e.SourcePageType.Name switch
         {
             nameof(ExplorerCustomizePage) => "Explorer",
@@ -146,25 +139,20 @@ public sealed partial class CustomizePage : Page
     {
         var isInDetailPage = ViewModel.IsInDetailPage;
 
-        // Toggle between overview and detail frame
         OverviewContent.Visibility = isInDetailPage ? Visibility.Collapsed : Visibility.Visible;
         InnerContentFrame.Visibility = isInDetailPage ? Visibility.Visible : Visibility.Collapsed;
 
-        // Update breadcrumb visibility
         BreadcrumbSeparator.Visibility = isInDetailPage ? Visibility.Visible : Visibility.Collapsed;
         BreadcrumbSection.Visibility = isInDetailPage ? Visibility.Visible : Visibility.Collapsed;
 
-        // Update the section dropdown icon and text
         if (isInDetailPage)
         {
             BreadcrumbSectionText.Text = ViewModel.CurrentSectionName;
 
-            // Get the icon path data from application resources (FeatureIcons.xaml)
             if (SectionIconResourceKeys.TryGetValue(ViewModel.CurrentSectionKey, out var resourceKey) &&
                 Application.Current.Resources.TryGetValue(resourceKey, out var pathDataObj) &&
                 pathDataObj is string pathData)
             {
-                // Parse the path data string into a Geometry
                 var geometry = (Microsoft.UI.Xaml.Media.Geometry)Microsoft.UI.Xaml.Markup.XamlBindingHelper.ConvertValue(
                     typeof(Microsoft.UI.Xaml.Media.Geometry), pathData);
                 BreadcrumbSectionIcon.Data = geometry;

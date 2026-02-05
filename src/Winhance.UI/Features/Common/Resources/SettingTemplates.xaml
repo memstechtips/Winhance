@@ -39,7 +39,6 @@
             Tooltip="{x:Bind Tooltip}"/>
     </DataTemplate>
 
-    <!-- SettingItemTemplate - shared template for SettingsCard with badge support -->
     <DataTemplate x:Key="SettingItemTemplate" x:DataType="viewModels:SettingItemViewModel">
         <controls:SettingsCard
             Visibility="{x:Bind IsVisible, Mode=OneWay, Converter={StaticResource BooleanToVisibilityConverter}}"

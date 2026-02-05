@@ -1,12 +1,12 @@
-namespace Winhance.UI.Features.Customize.Models;
+namespace Winhance.UI.Features.Optimize.Models;
 
 /// <summary>
-/// Contains metadata for a customization section.
+/// Contains metadata for an optimization section.
 /// </summary>
-public class CustomizeSectionInfo
+public class OptimizeSectionInfo
 {
     /// <summary>
-    /// Gets the unique key for the section (e.g., "Explorer", "StartMenu").
+    /// Gets the unique key for the section (e.g., "Sound", "Privacy").
     /// </summary>
     public string Key { get; }
 
@@ -20,7 +20,7 @@ public class CustomizeSectionInfo
     /// </summary>
     public string DisplayName { get; }
 
-    public CustomizeSectionInfo(string key, string iconGlyphKey, string displayName)
+    public OptimizeSectionInfo(string key, string iconGlyphKey, string displayName)
     {
         Key = key;
         IconGlyphKey = iconGlyphKey;

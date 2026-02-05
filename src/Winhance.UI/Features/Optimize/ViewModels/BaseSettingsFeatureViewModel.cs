@@ -3,6 +3,8 @@ using CommunityToolkit.Mvvm.ComponentModel;
 using CommunityToolkit.Mvvm.Input;
 using Microsoft.UI.Xaml;
 using Winhance.Core.Features.Common.Enums;
+using Winhance.Core.Features.Common.Events;
+using Winhance.Core.Features.Common.Events.Settings;
 using Winhance.Core.Features.Common.Interfaces;
 using Winhance.Core.Features.Common.Models;
 using Winhance.UI.Features.Common.Interfaces;
@@ -12,9 +14,6 @@ using ISettingsLoadingService = Winhance.UI.Features.Common.Interfaces.ISettings
 
 namespace Winhance.UI.Features.Optimize.ViewModels;
 
-/// <summary>
-/// Base class for feature ViewModels that display settings.
-/// </summary>
 public abstract partial class BaseSettingsFeatureViewModel : BaseViewModel, ISettingsFeatureViewModel
 {
     protected readonly IDomainServiceRouter _domainServiceRouter;
@@ -23,10 +22,14 @@ public abstract partial class BaseSettingsFeatureViewModel : BaseViewModel, ISet
     protected readonly ILocalizationService _localizationService;
     protected readonly IDispatcherService _dispatcherService;
     protected readonly MainWindowViewModel? _mainWindowViewModel;
+    protected readonly IEventBus _eventBus;
+
     private bool _settingsLoaded = false;
     private readonly object _loadingLock = new();
     private CancellationTokenSource? _searchDebounceTokenSource;
     private bool _showCompatibilityBadges = false;
+    private ISubscriptionToken? _settingAppliedSubscription;
+    private Dictionary<string, SettingItemViewModel> _settingsById = new();
 
     [ObservableProperty]
     private ObservableCollection<SettingItemViewModel> _settings = new();
@@ -43,34 +46,12 @@ public abstract partial class BaseSettingsFeatureViewModel : BaseViewModel, ISet
     [ObservableProperty]
     private string _searchText = string.Empty;
 
-    /// <summary>
-    /// Module identifier for this feature.
-    /// </summary>
     public abstract string ModuleId { get; }
-
-    /// <summary>
-    /// Display name for this feature.
-    /// </summary>
     public virtual string DisplayName => GetDisplayName();
-
-    /// <summary>
-    /// Indicates whether this feature has any visible settings.
-    /// </summary>
     public bool HasVisibleSettings => Settings.Any(s => s.IsVisible);
-
-    /// <summary>
-    /// Indicates whether this feature is visible in search results.
-    /// </summary>
     public bool IsVisibleInSearch => HasVisibleSettings;
-
-    /// <summary>
-    /// Number of settings in this feature.
-    /// </summary>
     public int SettingsCount => Settings?.Count ?? 0;
 
-    /// <summary>
-    /// Gets a comma-separated list of unique group names for display on overview cards.
-    /// </summary>
     public string GroupDescriptionText
     {
         get
@@ -102,9 +83,6 @@ public abstract partial class BaseSettingsFeatureViewModel : BaseViewModel, ISet
         }
     }
 
-    /// <summary>
-    /// Event raised when feature visibility changes due to search.
-    /// </summary>
     public event EventHandler<FeatureVisibilityChangedEventArgs>? VisibilityChanged;
 
     public IRelayCommand LoadSettingsCommand { get; }
@@ -116,6 +94,7 @@ public abstract partial class BaseSettingsFeatureViewModel : BaseViewModel, ISet
         ILogService logService,
         ILocalizationService localizationService,
         IDispatcherService dispatcherService,
+        IEventBus eventBus,
         MainWindowViewModel? mainWindowViewModel = null)
     {
         _domainServiceRouter = domainServiceRouter ?? throw new ArgumentNullException(nameof(domainServiceRouter));
@@ -123,6 +102,7 @@ public abstract partial class BaseSettingsFeatureViewModel : BaseViewModel, ISet
         _logService = logService ?? throw new ArgumentNullException(nameof(logService));
         _localizationService = localizationService ?? throw new ArgumentNullException(nameof(localizationService));
         _dispatcherService = dispatcherService ?? throw new ArgumentNullException(nameof(dispatcherService));
+        _eventBus = eventBus ?? throw new ArgumentNullException(nameof(eventBus));
         _mainWindowViewModel = mainWindowViewModel;
 
         LoadSettingsCommand = new RelayCommand(() => _ = LoadSettingsAsync());
@@ -130,18 +110,28 @@ public abstract partial class BaseSettingsFeatureViewModel : BaseViewModel, ISet
 
         _localizationService.LanguageChanged += OnLanguageChanged;
 
-        // Subscribe to filter state changes
+        // Subscribe to setting applied events for cross-module dependency updates
+        _settingAppliedSubscription = _eventBus.Subscribe<SettingAppliedEvent>(OnSettingApplied);
+
         if (_mainWindowViewModel != null)
         {
             _mainWindowViewModel.FilterStateChanged += OnFilterStateChanged;
-            // Initialize badge visibility based on current filter state
             _showCompatibilityBadges = !_mainWindowViewModel.IsWindowsVersionFilterEnabled;
         }
     }
 
-    /// <summary>
-    /// Gets the localization key for the display name.
-    /// </summary>
+    private void OnSettingApplied(SettingAppliedEvent evt)
+    {
+        // Only process if this setting belongs to us (O(1) lookup)
+        if (!_settingsById.TryGetValue(evt.SettingId, out var setting))
+            return;
+
+        _dispatcherService.RunOnUIThread(() =>
+        {
+            setting.UpdateStateFromEvent(evt.IsEnabled, evt.Value);
+        });
+    }
+
     protected abstract string GetDisplayNameKey();
 
     private string GetDisplayName()
@@ -161,23 +151,12 @@ public abstract partial class BaseSettingsFeatureViewModel : BaseViewModel, ISet
         await LoadSettingsAsync();
     }
 
-    /// <summary>
-    /// Handles filter state changes from MainWindowViewModel.
-    /// When filter changes, we need to reload settings from the registry.
-    /// </summary>
     private async void OnFilterStateChanged(object? sender, FilterStateChangedEventArgs e)
     {
-        // Show badges when filter is OFF (showing all settings including incompatible ones)
         _showCompatibilityBadges = !e.IsFilterEnabled;
-
-        // Reload settings to get the updated filtered set
         await RefreshSettingsForFilterChangeAsync();
     }
 
-    /// <summary>
-    /// Refreshes settings when the Windows version filter changes.
-    /// This reloads settings from the registry to get the updated filtered set.
-    /// </summary>
     private async Task RefreshSettingsForFilterChangeAsync()
     {
         try
@@ -210,13 +189,8 @@ public abstract partial class BaseSettingsFeatureViewModel : BaseViewModel, ISet
         }
     }
 
-    /// <summary>
-    /// Updates badges on all settings based on current filter state.
-    /// Always checks the current state from MainWindowViewModel to handle timing issues.
-    /// </summary>
     protected void UpdateAllBadges()
     {
-        // Always get the current state from MainWindowViewModel to avoid timing issues
         var showBadges = _mainWindowViewModel != null && !_mainWindowViewModel.IsWindowsVersionFilterEnabled;
 
         foreach (var setting in Settings)
@@ -224,15 +198,9 @@ public abstract partial class BaseSettingsFeatureViewModel : BaseViewModel, ISet
             setting.UpdateBadges(showBadges, _localizationService);
         }
 
-        // Update badge column width for all settings to ensure uniform layout
         UpdateBadgeColumnWidth();
     }
 
-    /// <summary>
-    /// Updates the badge column width for all settings.
-    /// When any setting has visible badges, all settings reserve space for the badge column.
-    /// This ensures uniform alignment across all SettingsCards on the page.
-    /// </summary>
     protected void UpdateBadgeColumnWidth()
     {
         var hasAnyBadges = Settings?.Any(s => s.HasBadges) ?? false;
@@ -244,9 +212,6 @@ public abstract partial class BaseSettingsFeatureViewModel : BaseViewModel, ISet
         }
     }
 
-    /// <summary>
-    /// Applies a search filter to all settings.
-    /// </summary>
     public void ApplySearchFilter(string searchText)
     {
         SearchText = searchText ?? string.Empty;
@@ -262,14 +227,11 @@ public abstract partial class BaseSettingsFeatureViewModel : BaseViewModel, ISet
         {
             try
             {
-
-                // Check cancellation before proceeding
                 token.ThrowIfCancellationRequested();
 
                 bool featureMatches = string.IsNullOrWhiteSpace(value) ||
                     DisplayName.ToLowerInvariant().Contains(value.ToLowerInvariant());
 
-                // Dispatch UI property updates to the UI thread
                 _dispatcherService.RunOnUIThread(() =>
                 {
                     if (featureMatches)
@@ -294,22 +256,16 @@ public abstract partial class BaseSettingsFeatureViewModel : BaseViewModel, ISet
             }
             catch (OperationCanceledException)
             {
-                // Search was cancelled, ignore
             }
         });
     }
 
-    /// <summary>
-    /// Loads all settings for this feature.
-    /// </summary>
     public virtual async Task LoadSettingsAsync()
     {
         lock (_loadingLock)
         {
             if (_settingsLoaded)
-            {
                 return;
-            }
             _settingsLoaded = true;
         }
 
@@ -317,7 +273,6 @@ public abstract partial class BaseSettingsFeatureViewModel : BaseViewModel, ISet
         {
             IsLoading = true;
 
-            // Clear existing settings
             if (Settings?.Any() == true)
             {
                 foreach (var setting in Settings.OfType<IDisposable>())
@@ -327,7 +282,6 @@ public abstract partial class BaseSettingsFeatureViewModel : BaseViewModel, ISet
                 Settings.Clear();
             }
 
-            // Load settings using the settings loading service
             var loadedSettings = await _settingsLoadingService.LoadConfiguredSettingsAsync(
                 _domainServiceRouter.GetDomainService(ModuleId),
                 ModuleId,
@@ -335,19 +289,21 @@ public abstract partial class BaseSettingsFeatureViewModel : BaseViewModel, ISet
                 this
             );
 
-            // Convert to our ViewModel type
             var settingViewModels = loadedSettings.Cast<SettingItemViewModel>().ToList();
             Settings = new ObservableCollection<SettingItemViewModel>(settingViewModels);
 
+            // Build dictionary for O(1) event lookup
+            _settingsById.Clear();
+            foreach (var setting in Settings)
+            {
+                if (!string.IsNullOrEmpty(setting.SettingId))
+                    _settingsById[setting.SettingId] = setting;
+            }
+
             UpdateParentChildRelationships();
-
-            // Build the grouped settings collection
             RebuildGroupedSettings();
-
-            // Initialize badges based on current filter state
             UpdateAllBadges();
 
-            // Notify that computed properties have changed
             OnPropertyChanged(nameof(HasVisibleSettings));
             OnPropertyChanged(nameof(IsVisibleInSearch));
             OnPropertyChanged(nameof(SettingsCount));
@@ -370,9 +326,6 @@ public abstract partial class BaseSettingsFeatureViewModel : BaseViewModel, ISet
         }
     }
 
-    /// <summary>
-    /// Refreshes all settings.
-    /// </summary>
     public virtual async Task RefreshSettingsAsync()
     {
         try
@@ -403,9 +356,6 @@ public abstract partial class BaseSettingsFeatureViewModel : BaseViewModel, ISet
         }
     }
 
-    /// <summary>
-    /// Handles domain-specific setting context changes.
-    /// </summary>
     public virtual Task<bool> HandleDomainContextSettingAsync(SettingDefinition setting, object? value, bool additionalContext = false)
     {
         return Task.FromResult(false);
@@ -433,11 +383,6 @@ public abstract partial class BaseSettingsFeatureViewModel : BaseViewModel, ISet
         }
     }
 
-    /// <summary>
-    /// Rebuilds the grouped settings collection from the flat settings list.
-    /// Groups settings by their GroupName property, preserving original order.
-    /// Settings without a GroupName are placed in an "Other" group.
-    /// </summary>
     private void RebuildGroupedSettings()
     {
         GroupedSettings.Clear();
@@ -445,20 +390,15 @@ public abstract partial class BaseSettingsFeatureViewModel : BaseViewModel, ISet
         if (Settings == null || Settings.Count == 0)
             return;
 
-        // Get localized "Other" group name
         var otherGroupName = _localizationService.GetString("SettingGroup_Other");
         if (otherGroupName.StartsWith("[") && otherGroupName.EndsWith("]"))
-        {
-            otherGroupName = "Other"; // Fallback if not localized
-        }
+            otherGroupName = "Other";
 
-        // Group settings by GroupName, preserving order of first occurrence
         var groupOrder = new List<string>();
         var groupedDict = new Dictionary<string, List<SettingItemViewModel>>();
 
         foreach (var setting in Settings)
         {
-            // Use "Other" for settings without a group name
             var groupName = string.IsNullOrEmpty(setting.GroupName) ? otherGroupName : setting.GroupName;
 
             if (!groupedDict.ContainsKey(groupName))
@@ -470,7 +410,6 @@ public abstract partial class BaseSettingsFeatureViewModel : BaseViewModel, ISet
             groupedDict[groupName].Add(setting);
         }
 
-        // Build the grouped collection in order
         foreach (var groupName in groupOrder)
         {
             var group = new SettingsGroup(groupName, groupedDict[groupName]);
@@ -482,6 +421,9 @@ public abstract partial class BaseSettingsFeatureViewModel : BaseViewModel, ISet
     {
         if (disposing)
         {
+            _settingAppliedSubscription?.Dispose();
+            _settingAppliedSubscription = null;
+
             _localizationService.LanguageChanged -= OnLanguageChanged;
 
             if (_mainWindowViewModel != null)
@@ -498,6 +440,7 @@ public abstract partial class BaseSettingsFeatureViewModel : BaseViewModel, ISet
                 Settings.Clear();
             }
 
+            _settingsById.Clear();
             _settingsLoaded = false;
             VisibilityChanged = null;
         }

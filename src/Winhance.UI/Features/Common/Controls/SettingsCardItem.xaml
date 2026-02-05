@@ -33,6 +33,15 @@
                 DisplayMemberPath="DisplayText"/>
         </DataTemplate>
 
+        <!-- Template for PowerPlan selection settings -->
+        <DataTemplate x:Key="PowerPlanSettingTemplate" x:DataType="viewModels:SettingItemViewModel">
+            <local:PowerPlanComboBox
+                ItemsSource="{x:Bind ComboBoxOptions}"
+                SelectedValue="{x:Bind SelectedValue, Mode=OneWay}"
+                Loaded="OnPowerPlanComboBoxLoaded"
+                Tag="{x:Bind}"/>
+        </DataTemplate>
+
         <!-- Template for NumericRange settings -->
         <DataTemplate x:Key="NumericSettingTemplate" x:DataType="viewModels:SettingItemViewModel">
             <NumberBox
@@ -65,6 +74,7 @@
             x:Key="SettingTemplateSelector"
             ToggleTemplate="{StaticResource ToggleSettingTemplate}"
             SelectionTemplate="{StaticResource SelectionSettingTemplate}"
+            PowerPlanTemplate="{StaticResource PowerPlanSettingTemplate}"
             NumericTemplate="{StaticResource NumericSettingTemplate}"
             ActionTemplate="{StaticResource ActionSettingTemplate}"
             CheckBoxTemplate="{StaticResource CheckBoxSettingTemplate}"/>

@@ -5,6 +5,20 @@
     xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
     xmlns:local="using:Winhance.UI.Features.Common.Controls">
 
+    <!--
+    KNOWN ISSUE: Visual "jump" on navigation when Windows animations are disabled
+
+    When users disable "Animation effects" in Windows Settings > Accessibility > Visual effects,
+    ListView items briefly show controls in their default state before bindings resolve,
+    causing a visible "jump" as toggles animate to their correct positions.
+
+    This is a known WinUI3 limitation related to how the framework handles Loaded events
+    and binding timing when animations are disabled.
+    See: https://github.com/microsoft/microsoft-ui-xaml/issues/8841
+
+    FIX: Enable "Animation effects" in Windows Settings resolves this visual issue.
+    -->
+
     <Grid>
         <!-- Loading State -->
         <ProgressRing
@@ -19,7 +33,7 @@
         <ScrollView Visibility="{x:Bind IsNotLoading, Mode=OneWay}">
             <!-- Wrap StackPanel in Grid to avoid visual glitches with MaxWidth -->
             <Grid>
-                <StackPanel Spacing="{StaticResource SettingsCardSpacing}" MaxWidth="{StaticResource SettingsContentMaxWidth}" Margin="{StaticResource SettingsContentMargin}" HorizontalAlignment="Stretch">
+                <StackPanel Spacing="{StaticResource SettingsCardSpacing}" MaxWidth="{StaticResource SettingsContentMaxWidth}" Margin="{StaticResource SettingsContentMargin}" HorizontalAlignment="Stretch" Padding="0,12,0,24">
 
                     <ListView
                         x:Name="SettingsListViewControl"

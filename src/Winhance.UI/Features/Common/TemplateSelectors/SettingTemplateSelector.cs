@@ -14,6 +14,7 @@ public class SettingTemplateSelector : DataTemplateSelector
 {
     public DataTemplate? ToggleTemplate { get; set; }
     public DataTemplate? SelectionTemplate { get; set; }
+    public DataTemplate? PowerPlanTemplate { get; set; }
     public DataTemplate? NumericTemplate { get; set; }
     public DataTemplate? ActionTemplate { get; set; }
     public DataTemplate? CheckBoxTemplate { get; set; }
@@ -22,6 +23,12 @@ public class SettingTemplateSelector : DataTemplateSelector
     {
         if (item is SettingItemViewModel vm)
         {
+            // Check for PowerPlan setting first (special case of Selection)
+            if (vm.IsPowerPlanSetting && PowerPlanTemplate != null)
+            {
+                return PowerPlanTemplate;
+            }
+
             return vm.InputType switch
             {
                 InputType.Toggle => ToggleTemplate,

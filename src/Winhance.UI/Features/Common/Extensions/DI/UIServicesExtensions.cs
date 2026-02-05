@@ -54,14 +54,14 @@ public static class UIServicesExtensions
         // Settings ViewModels
         services.AddTransient<SettingsViewModel>();
 
-        // Optimize ViewModels (Transient - created per page)
-        services.AddTransient<OptimizeViewModel>();
-        services.AddTransient<SoundOptimizationsViewModel>();
-        services.AddTransient<UpdateOptimizationsViewModel>();
-        services.AddTransient<NotificationOptimizationsViewModel>();
-        services.AddTransient<PrivacyOptimizationsViewModel>();
-        services.AddTransient<PowerOptimizationsViewModel>();
-        services.AddTransient<GamingOptimizationsViewModel>();
+        // Optimize ViewModels (Singleton for state preservation during inner navigation)
+        services.AddSingleton<OptimizeViewModel>();
+        services.AddSingleton<SoundOptimizationsViewModel>();
+        services.AddSingleton<UpdateOptimizationsViewModel>();
+        services.AddSingleton<NotificationOptimizationsViewModel>();
+        services.AddSingleton<PrivacyOptimizationsViewModel>();
+        services.AddSingleton<PowerOptimizationsViewModel>();
+        services.AddSingleton<GamingOptimizationsViewModel>();
 
         // Customize ViewModels (Singleton for state preservation during inner navigation)
         services.AddSingleton<CustomizeViewModel>();

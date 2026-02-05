@@ -1,4 +1,5 @@
 using Winhance.Core.Features.Common.Constants;
+using Winhance.Core.Features.Common.Events;
 using Winhance.Core.Features.Common.Interfaces;
 using Winhance.UI.Features.Common.Interfaces;
 using Winhance.UI.Features.Optimize.ViewModels;
@@ -7,9 +8,6 @@ using ISettingsLoadingService = Winhance.UI.Features.Common.Interfaces.ISettings
 
 namespace Winhance.UI.Features.Customize.ViewModels;
 
-/// <summary>
-/// ViewModel for Taskbar customization settings.
-/// </summary>
 public partial class TaskbarCustomizationsViewModel : BaseSettingsFeatureViewModel
 {
     public TaskbarCustomizationsViewModel(
@@ -18,8 +16,9 @@ public partial class TaskbarCustomizationsViewModel : BaseSettingsFeatureViewMod
         ILogService logService,
         ILocalizationService localizationService,
         IDispatcherService dispatcherService,
+        IEventBus eventBus,
         MainWindowViewModel mainWindowViewModel)
-        : base(domainServiceRouter, settingsLoadingService, logService, localizationService, dispatcherService, mainWindowViewModel)
+        : base(domainServiceRouter, settingsLoadingService, logService, localizationService, dispatcherService, eventBus, mainWindowViewModel)
     {
     }
 

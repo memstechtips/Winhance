@@ -2,7 +2,6 @@ using System.Collections.ObjectModel;
 using CommunityToolkit.Mvvm.ComponentModel;
 using Winhance.Core.Features.Common.Interfaces;
 using Winhance.UI.Features.Customize.Models;
-using Winhance.UI.Features.Customize.Pages;
 using Winhance.UI.Features.Optimize.ViewModels;
 
 namespace Winhance.UI.Features.Customize.ViewModels;
@@ -92,10 +91,10 @@ public partial class CustomizeViewModel : ObservableObject
     /// </summary>
     public static readonly List<CustomizeSectionInfo> Sections = new()
     {
-        new("Explorer", "ExplorerIconGlyph", "Explorer", "Customize File Explorer appearance and behavior", typeof(ExplorerCustomizePage)),
-        new("StartMenu", "StartMenuIconGlyph", "Start Menu", "Customize Start Menu layout and features", typeof(StartMenuCustomizePage)),
-        new("Taskbar", "TaskbarIconGlyph", "Taskbar", "Customize Taskbar appearance and behavior", typeof(TaskbarCustomizePage)),
-        new("WindowsTheme", "WindowsThemeIconGlyph", "Windows Theme", "Customize Windows visual theme settings", typeof(WindowsThemeCustomizePage)),
+        new("Explorer", "ExplorerIconGlyph", "Explorer"),
+        new("StartMenu", "StartMenuIconGlyph", "Start Menu"),
+        new("Taskbar", "TaskbarIconGlyph", "Taskbar"),
+        new("WindowsTheme", "WindowsThemeIconGlyph", "Windows Theme"),
     };
 
     /// <summary>

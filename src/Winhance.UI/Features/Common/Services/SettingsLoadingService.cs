@@ -172,8 +172,18 @@ public class SettingsLoadingService : ISettingsLoadingService
             {
                 var comboBoxResult = await _comboBoxSetupService.SetupComboBoxOptionsAsync(setting, currentState.CurrentValue);
                 viewModel.ComboBoxOptions.Clear();
+
+                // Check if this is a PowerPlan setting that needs localization
+                var isPowerPlanSetting = setting.CustomProperties?.ContainsKey("LoadDynamicOptions") == true;
+
                 foreach (var option in comboBoxResult.Options)
                 {
+                    // Translate PowerPlan localization keys
+                    if (isPowerPlanSetting && option.DisplayText.StartsWith("PowerPlan_"))
+                    {
+                        option.DisplayText = _localizationService.GetString(option.DisplayText);
+                    }
+
                     viewModel.ComboBoxOptions.Add(option);
                 }
 
