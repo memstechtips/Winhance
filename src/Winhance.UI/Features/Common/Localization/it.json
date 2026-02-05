@@ -1458,7 +1458,7 @@
   "Setting_gaming-sysmain-service_Option_2": "Automatico (consigliato per HDD)",
   "Setting_power-plan-selection_Description": "Seleziona la combinazione per il risparmio di energia attiva per il tuo sistema",
   "Dialog_AdvancedPowerWarning_Title": "Avviso di impostazione avanzata",
-  "Dialog_AdvancedPowerWarning_Message": "⚠️ Avviso di impostazione avanzata dell'alimentazione\n\nQuesta impostazione non è normalmente esposta nelle Opzioni risparmio energia di Windows e richiede modifiche al registro per accedervi.\n\nLa modifica errata può causare:\n• Instabilità del sistema o comportamento imprevisto\n• Degrado delle prestazioni\n• Problemi di gestione termica\n• Le impostazioni potrebbero non funzionare su tutti i tipi di CPU (HWP moderno vs legacy)\n\nModifica questo solo se comprendi la gestione dell'alimentazione del processore.\n\nSei sicuro di voler modificare questa impostazione?",
+  "Dialog_AdvancedPowerWarning_Message": "Questa impostazione non è normalmente esposta nelle Opzioni risparmio energia di Windows e richiede modifiche al registro per accedervi.\n\nLa modifica errata può causare:\n• Instabilità del sistema o comportamento imprevisto\n• Degrado delle prestazioni\n• Problemi di gestione termica\n• Le impostazioni potrebbero non funzionare su tutti i tipi di CPU (HWP moderno vs legacy)\n\nModifica questo solo se comprendi la gestione dell'alimentazione del processore.\n\nSei sicuro di voler modificare questa impostazione?",
   "Dialog_AdvancedPowerWarning_DontShowAgain": "Non mostrare più questo avviso per le impostazioni di alimentazione avanzate",
   "Button_Unlock": "Sblocca",
   "Common_ClickToUnlock": "Fai clic per sbloccare",

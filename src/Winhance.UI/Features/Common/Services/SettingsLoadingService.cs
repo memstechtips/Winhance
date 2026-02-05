@@ -9,9 +9,6 @@ using Winhance.UI.Features.Optimize.ViewModels;
 
 namespace Winhance.UI.Features.Common.Services;
 
-/// <summary>
-/// Service for loading settings and creating ViewModels.
-/// </summary>
 public class SettingsLoadingService : ISettingsLoadingService
 {
     private readonly ISystemSettingsDiscoveryService _discoveryService;
@@ -27,6 +24,7 @@ public class SettingsLoadingService : ISettingsLoadingService
     private readonly IDispatcherService _dispatcherService;
     private readonly ILocalizationService _localizationService;
     private readonly IDialogService _dialogService;
+    private readonly IUserPreferencesService _userPreferencesService;
 
     public SettingsLoadingService(
         ISystemSettingsDiscoveryService discoveryService,
@@ -41,7 +39,8 @@ public class SettingsLoadingService : ISettingsLoadingService
         ISettingLocalizationService settingLocalizationService,
         IDispatcherService dispatcherService,
         ILocalizationService localizationService,
-        IDialogService dialogService)
+        IDialogService dialogService,
+        IUserPreferencesService userPreferencesService)
     {
         _discoveryService = discoveryService;
         _settingApplicationService = settingApplicationService;
@@ -56,6 +55,7 @@ public class SettingsLoadingService : ISettingsLoadingService
         _dispatcherService = dispatcherService;
         _localizationService = localizationService;
         _dialogService = dialogService;
+        _userPreferencesService = userPreferencesService;
     }
 
     public async Task<ObservableCollection<object>> LoadConfiguredSettingsAsync<TDomainService>(
@@ -130,7 +130,8 @@ public class SettingsLoadingService : ISettingsLoadingService
             _logService,
             _dispatcherService,
             _dialogService,
-            _localizationService)
+            _localizationService,
+            _userPreferencesService)
         {
             SettingDefinition = setting,
             ParentFeatureViewModel = parentViewModel,
@@ -146,6 +147,13 @@ public class SettingsLoadingService : ISettingsLoadingService
             OffText = _localizationService.GetString("Common_Off") ?? "Off",
             ActionButtonText = _localizationService.GetString("Dialog_Button_Apply") ?? "Apply"
         };
+
+        // Set lock state for advanced settings
+        if (setting.RequiresAdvancedUnlock)
+        {
+            var unlocked = await _userPreferencesService.GetPreferenceAsync("AdvancedPowerSettingsUnlocked", false);
+            viewModel.IsLocked = !unlocked;
+        }
 
         if (setting.InputType != InputType.Selection)
         {

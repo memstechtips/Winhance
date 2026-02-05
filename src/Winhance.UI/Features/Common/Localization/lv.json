@@ -1458,7 +1458,7 @@
   "Setting_gaming-sysmain-service_Option_2": "Automātisks (ieteicams HDD)",
   "Setting_power-plan-selection_Description": "Atlasiet aktīvo enerģijas plānu savai sistēmai",
   "Dialog_AdvancedPowerWarning_Title": "Papildu iestatījumu brīdinājums",
-  "Dialog_AdvancedPowerWarning_Message": "⚠️ Papildu enerģijas iestatījumu brīdinājums\n\nŠis iestatījums parasti nav pieejams Windows enerģijas opcijās un prasa reģistra modifikācijas, lai tam piekļūtu.\n\nNepareiza modifikācija var izraisīt:\n• Sistēmas nestabilitāti vai negaidītu uzvedību\n• Veiktspējas pasliktināšanos\n• Termiskās pārvaldības problēmas\n• Iestatījumi var nedarboties visos CPU tipos (mūsdienu HWP pret mantotajiem)\n\nTikai mainiet šo, ja saprotat procesora enerģijas pārvaldību.\n\nVai esat pārliecināts, ka vēlaties modificēt šo iestatījumu?",
+  "Dialog_AdvancedPowerWarning_Message": "Šis iestatījums parasti nav pieejams Windows enerģijas opcijās un prasa reģistra modifikācijas, lai tam piekļūtu.\n\nNepareiza modifikācija var izraisīt:\n• Sistēmas nestabilitāti vai negaidītu uzvedību\n• Veiktspējas pasliktināšanos\n• Termiskās pārvaldības problēmas\n• Iestatījumi var nedarboties visos CPU tipos (mūsdienu HWP pret mantotajiem)\n\nTikai mainiet šo, ja saprotat procesora enerģijas pārvaldību.\n\nVai esat pārliecināts, ka vēlaties modificēt šo iestatījumu?",
   "Dialog_AdvancedPowerWarning_DontShowAgain": "Vairs nerādīt šo brīdinājumu par papildu enerģijas iestatījumiem",
   "Button_Unlock": "Atbloķēt",
   "Common_ClickToUnlock": "Noklikšķiniet, lai atbloķētu",

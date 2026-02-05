@@ -1458,7 +1458,7 @@
   "Setting_gaming-sysmain-service_Option_2": "Automático (Recomendado para HDD)",
   "Setting_power-plan-selection_Description": "Selecione o plano de energia ativo para o seu sistema",
   "Dialog_AdvancedPowerWarning_Title": "Aviso de Configuração Avançada",
-  "Dialog_AdvancedPowerWarning_Message": "⚠️ Aviso de Configuração de Energia Avançada\n\nEsta configuração normalmente não é exposta nas Opções de Energia do Windows e requer modificações no registro para ser acessada.\n\nA modificação incorreta pode causar:\n• Instabilidade do sistema ou comportamento inesperado\n• Degradação do desempenho\n• Problemas de gerenciamento térmico\n• As configurações podem não funcionar em todos os tipos de CPU (HWP moderno vs. legado)\n\nAltere isso apenas se você entender o gerenciamento de energia do processador.\n\nTem certeza de que deseja modificar esta configuração?",
+  "Dialog_AdvancedPowerWarning_Message": "Esta configuração normalmente não é exposta nas Opções de Energia do Windows e requer modificações no registro para ser acessada.\n\nA modificação incorreta pode causar:\n• Instabilidade do sistema ou comportamento inesperado\n• Degradação do desempenho\n• Problemas de gerenciamento térmico\n• As configurações podem não funcionar em todos os tipos de CPU (HWP moderno vs. legado)\n\nAltere isso apenas se você entender o gerenciamento de energia do processador.\n\nTem certeza de que deseja modificar esta configuração?",
   "Dialog_AdvancedPowerWarning_DontShowAgain": "Não mostrar este aviso novamente para configurações avançadas de energia",
   "Button_Unlock": "Desbloquear",
   "Common_ClickToUnlock": "Clique para desbloquear",

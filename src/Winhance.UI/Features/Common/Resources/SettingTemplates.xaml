@@ -40,40 +40,79 @@
     </DataTemplate>
 
     <DataTemplate x:Key="SettingItemTemplate" x:DataType="viewModels:SettingItemViewModel">
-        <controls:SettingsCard
-            Visibility="{x:Bind IsVisible, Mode=OneWay, Converter={StaticResource BooleanToVisibilityConverter}}"
-            Header="{x:Bind Name}"
-            Description="{x:Bind Description}"
-            IsEnabled="{x:Bind EffectiveIsEnabled}"
-            HeaderIcon="{x:Bind Converter={StaticResource SettingIconConverter}}"
-            Padding="16,12,16,12">
-            <!-- Content: Grid with dynamic badge column for uniform alignment -->
-            <Grid VerticalAlignment="Center">
-                <Grid.ColumnDefinitions>
-                    <ColumnDefinition Width="Auto"/>  <!-- Control -->
-                    <ColumnDefinition Width="{x:Bind BadgeColumnWidth, Mode=OneWay}"/>  <!-- Badge column (width set by parent ViewModel) -->
-                </Grid.ColumnDefinitions>
+        <Grid Visibility="{x:Bind IsVisible, Mode=OneWay, Converter={StaticResource BooleanToVisibilityConverter}}">
+            <controls:SettingsCard
+                Header="{x:Bind Name}"
+                Description="{x:Bind Description}"
+                IsEnabled="{x:Bind EffectiveIsEnabled, Mode=OneWay}"
+                HeaderIcon="{x:Bind Converter={StaticResource SettingIconConverter}}"
+                Padding="16,12,16,12">
+                <Grid VerticalAlignment="Center">
+                    <Grid.ColumnDefinitions>
+                        <ColumnDefinition Width="Auto"/>
+                        <ColumnDefinition Width="{x:Bind BadgeColumnWidth, Mode=OneWay}"/>
+                    </Grid.ColumnDefinitions>
 
-                <!-- Setting control -->
-                <commonControls:SettingsCardItem Grid.Column="0" Setting="{x:Bind}" VerticalAlignment="Center"/>
+                    <!-- Setting control -->
+                    <commonControls:SettingsCardItem Grid.Column="0" Setting="{x:Bind}" VerticalAlignment="Center"/>
 
-                <!-- Badges (stacked vertically, in dynamic-width column) -->
-                <ItemsControl
-                    Grid.Column="1"
-                    ItemsSource="{x:Bind Badges}"
-                    Visibility="{x:Bind HasBadges, Converter={StaticResource BooleanToVisibilityConverter}}"
+                    <!-- Badges -->
+                    <ItemsControl
+                        Grid.Column="1"
+                        ItemsSource="{x:Bind Badges}"
+                        Visibility="{x:Bind HasBadges, Converter={StaticResource BooleanToVisibilityConverter}}"
+                        VerticalAlignment="Center"
+                        HorizontalAlignment="Right"
+                        Margin="8,0,0,0"
+                        ItemTemplate="{StaticResource BadgeItemTemplate}">
+                        <ItemsControl.ItemsPanel>
+                            <ItemsPanelTemplate>
+                                <StackPanel Orientation="Vertical" Spacing="4"/>
+                            </ItemsPanelTemplate>
+                        </ItemsControl.ItemsPanel>
+                    </ItemsControl>
+                </Grid>
+            </controls:SettingsCard>
+
+            <!-- Applying overlay with spinner -->
+            <Border
+                Visibility="{x:Bind IsApplying, Mode=OneWay}"
+                Background="{ThemeResource SmokeFillColorDefaultBrush}"
+                CornerRadius="4">
+                <ProgressRing IsActive="{x:Bind IsApplying, Mode=OneWay}" Width="24" Height="24"/>
+            </Border>
+
+            <!-- Lock overlay covering entire SettingsCard -->
+            <Grid Visibility="{x:Bind IsLocked, Mode=OneWay}">
+                <Grid.Transitions>
+                    <TransitionCollection>
+                        <AddDeleteThemeTransition/>
+                    </TransitionCollection>
+                </Grid.Transitions>
+                <!-- Semi-transparent background layer -->
+                <Border
+                    Background="{ThemeResource SmokeFillColorDefaultBrush}"
+                    CornerRadius="4"/>
+                <!-- Button layer with full opacity -->
+                <Button
+                    Command="{x:Bind UnlockCommand}"
+                    HorizontalAlignment="Center"
                     VerticalAlignment="Center"
-                    HorizontalAlignment="Right"
-                    Margin="8,0,0,0"
-                    ItemTemplate="{StaticResource BadgeItemTemplate}">
-                    <ItemsControl.ItemsPanel>
-                        <ItemsPanelTemplate>
-                            <StackPanel Orientation="Vertical" Spacing="4"/>
-                        </ItemsPanelTemplate>
-                    </ItemsControl.ItemsPanel>
-                </ItemsControl>
+                    Padding="12,8">
+                    <StackPanel Orientation="Horizontal" Spacing="8">
+                        <Viewbox Width="16" Height="16">
+                            <Path
+                                Data="{StaticResource PrivacyIconPath}"
+                                Fill="#FFA500"
+                                Stretch="Uniform"/>
+                        </Viewbox>
+                        <TextBlock
+                            Text="{x:Bind ClickToUnlockText}"
+                            VerticalAlignment="Center"/>
+                    </StackPanel>
+                </Button>
             </Grid>
-        </controls:SettingsCard>
+        </Grid>
     </DataTemplate>
 
     <!-- ListViewItem container style for settings lists - removes default padding/margins -->

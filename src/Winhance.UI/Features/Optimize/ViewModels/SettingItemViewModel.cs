@@ -19,6 +19,7 @@ public partial class SettingItemViewModel : BaseViewModel
     private readonly IDispatcherService _dispatcherService;
     private readonly IDialogService _dialogService;
     private readonly ILocalizationService _localizationService;
+    private readonly IUserPreferencesService? _userPreferencesService;
     private bool _isUpdatingFromEvent;
 
     public ISettingsFeatureViewModel? ParentFeatureViewModel { get; set; }
@@ -97,6 +98,14 @@ public partial class SettingItemViewModel : BaseViewModel
     [ObservableProperty]
     private string? _compatibilityMessage;
 
+    // Advanced unlock support
+    [ObservableProperty]
+    private bool _isLocked;
+
+    public bool RequiresAdvancedUnlock => SettingDefinition?.RequiresAdvancedUnlock == true;
+    public string ClickToUnlockText => _localizationService.GetString("Common_ClickToUnlock") ?? "Click to unlock";
+    public IAsyncRelayCommand UnlockCommand { get; }
+
     partial void OnIsEnabledChanged(bool value)
     {
         OnPropertyChanged(nameof(EffectiveIsEnabled));
@@ -127,15 +136,18 @@ public partial class SettingItemViewModel : BaseViewModel
         ILogService logService,
         IDispatcherService dispatcherService,
         IDialogService dialogService,
-        ILocalizationService localizationService)
+        ILocalizationService localizationService,
+        IUserPreferencesService? userPreferencesService = null)
     {
         _settingApplicationService = settingApplicationService;
         _logService = logService;
         _dispatcherService = dispatcherService;
         _dialogService = dialogService;
         _localizationService = localizationService;
+        _userPreferencesService = userPreferencesService;
 
         ExecuteActionCommand = new AsyncRelayCommand(HandleActionAsync);
+        UnlockCommand = new AsyncRelayCommand(HandleUnlockAsync);
     }
 
     public void UpdateVisibility(string searchText)
@@ -152,10 +164,7 @@ public partial class SettingItemViewModel : BaseViewModel
                    (!string.IsNullOrEmpty(GroupName) && GroupName.ToLowerInvariant().Contains(lowerSearch));
     }
 
-    /// <summary>
-    /// Updates the setting state from an external event (e.g., dependency auto-enable).
-    /// This bypasses the apply logic since the change already happened.
-    /// </summary>
+    // Updates setting state from external events (bypasses apply logic since change already happened)
     public void UpdateStateFromEvent(bool isEnabled, object? value)
     {
         _isUpdatingFromEvent = true;
@@ -383,6 +392,51 @@ public partial class SettingItemViewModel : BaseViewModel
             title,
             continueText,
             cancelText);
+    }
+
+    #endregion
+
+    #region Advanced Unlock
+
+    private async Task HandleUnlockAsync()
+    {
+        if (!IsLocked) return;
+
+        var message = _localizationService.GetString("Dialog_AdvancedPowerWarning_Message");
+        var checkboxText = _localizationService.GetString("Dialog_AdvancedPowerWarning_DontShowAgain");
+        var title = _localizationService.GetString("Dialog_AdvancedPowerWarning_Title");
+        var unlockText = _localizationService.GetString("Button_Unlock") ?? "Unlock";
+        var cancelText = _localizationService.GetString("Button_Cancel") ?? "Cancel";
+
+        var (confirmed, dontShowAgain) = await _dialogService.ShowConfirmationWithCheckboxAsync(
+            message,
+            checkboxText,
+            title,
+            unlockText,
+            cancelText);
+
+        if (!confirmed) return;
+
+        IsLocked = false;
+        _logService.Log(LogLevel.Info, $"Unlocked advanced setting: {SettingId}");
+
+        if (dontShowAgain && _userPreferencesService != null)
+        {
+            await _userPreferencesService.SetPreferenceAsync("AdvancedPowerSettingsUnlocked", true);
+            _logService.Log(LogLevel.Info, "User permanently unlocked advanced power settings");
+
+            // Unlock all other advanced settings in the same feature
+            if (ParentFeatureViewModel != null)
+            {
+                foreach (var setting in ParentFeatureViewModel.Settings.OfType<SettingItemViewModel>())
+                {
+                    if (setting.RequiresAdvancedUnlock && setting != this)
+                    {
+                        setting.IsLocked = false;
+                    }
+                }
+            }
+        }
     }
 
     #endregion

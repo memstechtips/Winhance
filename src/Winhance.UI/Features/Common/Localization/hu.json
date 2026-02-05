@@ -1462,7 +1462,7 @@
   "Setting_gaming-sysmain-service_Option_2": "Automatikus (HDD-hez ajánlott)",
   "Setting_power-plan-selection_Description": "Válassza ki a rendszer aktív energiagazdálkodási sémáját",
   "Dialog_AdvancedPowerWarning_Title": "Haladó beállítás figyelmeztetés",
-  "Dialog_AdvancedPowerWarning_Message": "⚠️ Haladó energiagazdálkodási figyelmeztetés\n\nEz a beállítás alapértelmezés szerint rejtett a Windows Energiagazdálkodási lehetőségei között, eléréséhez jegyzékfájl (registry) módosítás szükséges.\n\nA helytelen módosítás a következőket okozhatja:\n• Rendszerinstabilitás vagy váratlan működés\n• Teljesítménycsökkenés\n• Hőkezelési problémák\n• Előfordulhat, hogy nem minden processzortípuson működik (modern HWP vs legacy)\n\nCsak akkor módosítsa, ha tisztában van a processzor energiagazdálkodásával!\n\nBiztosan módosítani szeretné a beállítást?",
+  "Dialog_AdvancedPowerWarning_Message": "Ez a beállítás alapértelmezés szerint rejtett a Windows Energiagazdálkodási lehetőségei között, eléréséhez jegyzékfájl (registry) módosítás szükséges.\n\nA helytelen módosítás a következőket okozhatja:\n• Rendszerinstabilitás vagy váratlan működés\n• Teljesítménycsökkenés\n• Hőkezelési problémák\n• Előfordulhat, hogy nem minden processzortípuson működik (modern HWP vs legacy)\n\nCsak akkor módosítsa, ha tisztában van a processzor energiagazdálkodásával!\n\nBiztosan módosítani szeretné a beállítást?",
   "Dialog_AdvancedPowerWarning_DontShowAgain": "Ne mutassa meg többé ezt a figyelmeztetést a haladó beállításoknál",
   "Button_Unlock": "Feloldás",
   "Common_ClickToUnlock": "Kattintson a feloldáshoz",

@@ -1458,7 +1458,7 @@
   "Setting_gaming-sysmain-service_Option_2": "Automatyczne (zalecane dla HDD)",
   "Setting_power-plan-selection_Description": "Wybierz aktywny plan zasilania dla swojego systemu",
   "Dialog_AdvancedPowerWarning_Title": "Ostrzeżenie o zaawansowanych ustawieniach zasilania",
-  "Dialog_AdvancedPowerWarning_Message": "⚠️ Ostrzeżenie o zaawansowanych ustawieniach zasilania\n\nTo ustawienie nie jest normalnie dostępne w opcjach zasilania systemu Windows i wymaga modyfikacji rejestru, aby uzyskać do niego dostęp.\n\nNieprawidłowa modyfikacja może spowodować:\n• Niestabilność systemu lub nieoczekiwane zachowanie\n• Degradację wydajności\n• Problemy z zarządzaniem temperaturą\n• Ustawienia mogą nie działać na wszystkich typach procesorów (nowoczesne HWP vs starsze)\n\nZmieniaj to tylko, jeśli rozumiesz zarządzanie energią procesora.\n\nCzy na pewno chcesz zmodyfikować to ustawienie?",
+  "Dialog_AdvancedPowerWarning_Message": "To ustawienie nie jest normalnie dostępne w opcjach zasilania systemu Windows i wymaga modyfikacji rejestru, aby uzyskać do niego dostęp.\n\nNieprawidłowa modyfikacja może spowodować:\n• Niestabilność systemu lub nieoczekiwane zachowanie\n• Degradację wydajności\n• Problemy z zarządzaniem temperaturą\n• Ustawienia mogą nie działać na wszystkich typach procesorów (nowoczesne HWP vs starsze)\n\nZmieniaj to tylko, jeśli rozumiesz zarządzanie energią procesora.\n\nCzy na pewno chcesz zmodyfikować to ustawienie?",
   "Dialog_AdvancedPowerWarning_DontShowAgain": "Nie pokazuj ponownie tego ostrzeżenia dla zaawansowanych ustawień zasilania",
   "Button_Unlock": "Odblokuj",
   "Common_ClickToUnlock": "Kliknij, aby odblokować",

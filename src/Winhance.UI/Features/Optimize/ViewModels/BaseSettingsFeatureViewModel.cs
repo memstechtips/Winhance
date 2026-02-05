@@ -30,6 +30,7 @@ public abstract partial class BaseSettingsFeatureViewModel : BaseViewModel, ISet
     private bool _showCompatibilityBadges = false;
     private ISubscriptionToken? _settingAppliedSubscription;
     private Dictionary<string, SettingItemViewModel> _settingsById = new();
+    private Dictionary<string, List<SettingItemViewModel>> _childrenByParentId = new();
 
     [ObservableProperty]
     private ObservableCollection<SettingItemViewModel> _settings = new();
@@ -122,13 +123,28 @@ public abstract partial class BaseSettingsFeatureViewModel : BaseViewModel, ISet
 
     private void OnSettingApplied(SettingAppliedEvent evt)
     {
-        // Only process if this setting belongs to us (O(1) lookup)
         if (!_settingsById.TryGetValue(evt.SettingId, out var setting))
             return;
 
         _dispatcherService.RunOnUIThread(() =>
         {
             setting.UpdateStateFromEvent(evt.IsEnabled, evt.Value);
+
+            // Update children's ParentIsEnabled if this setting has any children
+            if (_childrenByParentId.TryGetValue(evt.SettingId, out var children))
+            {
+                bool parentEnabled = setting.InputType switch
+                {
+                    InputType.Toggle => setting.IsSelected,
+                    InputType.Selection => setting.SelectedValue is int index && index != 0,
+                    _ => setting.IsSelected
+                };
+
+                foreach (var child in children)
+                {
+                    child.ParentIsEnabled = parentEnabled;
+                }
+            }
         });
     }
 
@@ -292,12 +308,25 @@ public abstract partial class BaseSettingsFeatureViewModel : BaseViewModel, ISet
             var settingViewModels = loadedSettings.Cast<SettingItemViewModel>().ToList();
             Settings = new ObservableCollection<SettingItemViewModel>(settingViewModels);
 
-            // Build dictionary for O(1) event lookup
+            // Build dictionaries for O(1) lookups
             _settingsById.Clear();
+            _childrenByParentId.Clear();
             foreach (var setting in Settings)
             {
                 if (!string.IsNullOrEmpty(setting.SettingId))
                     _settingsById[setting.SettingId] = setting;
+
+                // Index children by their parent ID for fast lookup when parent changes
+                var parentId = setting.SettingDefinition?.ParentSettingId;
+                if (!string.IsNullOrEmpty(parentId))
+                {
+                    if (!_childrenByParentId.TryGetValue(parentId, out var children))
+                    {
+                        children = new List<SettingItemViewModel>();
+                        _childrenByParentId[parentId] = children;
+                    }
+                    children.Add(setting);
+                }
             }
 
             UpdateParentChildRelationships();
@@ -441,6 +470,7 @@ public abstract partial class BaseSettingsFeatureViewModel : BaseViewModel, ISet
             }
 
             _settingsById.Clear();
+            _childrenByParentId.Clear();
             _settingsLoaded = false;
             VisibilityChanged = null;
         }

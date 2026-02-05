@@ -1462,7 +1462,7 @@
   "Setting_gaming-sysmain-service_Option_2": "Automatic (Recommended for HDD)",
   "Setting_power-plan-selection_Description": "Select the active power plan for your system",
   "Dialog_AdvancedPowerWarning_Title": "Advanced Setting Warning",
-  "Dialog_AdvancedPowerWarning_Message": "⚠️ Advanced Power Setting Warning\n\nThis setting is not normally exposed in Windows Power Options and requires registry modifications to access.\n\nModifying it incorrectly may cause:\n• System instability or unexpected behavior\n• Performance degradation\n• Thermal management problems\n• Settings may not work on all CPU types (modern HWP vs legacy)\n\nOnly change this if you understand processor power management.\n\nAre you sure you want to modify this setting?",
+  "Dialog_AdvancedPowerWarning_Message": "This setting is not normally exposed in Windows Power Options and requires registry modifications to access.\n\nModifying it incorrectly may cause:\n• System instability or unexpected behavior\n• Performance degradation\n• Thermal management problems\n• Settings may not work on all CPU types (modern HWP vs legacy)\n\nOnly change this if you understand processor power management.\n\nAre you sure you want to modify this setting?",
   "Dialog_AdvancedPowerWarning_DontShowAgain": "Don't show this warning again for advanced power settings",
   "Button_Unlock": "Unlock",
   "Common_ClickToUnlock": "Click to unlock",

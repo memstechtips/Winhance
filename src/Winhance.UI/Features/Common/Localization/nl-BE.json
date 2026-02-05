@@ -1458,7 +1458,7 @@
   "Setting_gaming-sysmain-service_Option_2": "Automatisch (Aanbevolen voor HDD)",
   "Setting_power-plan-selection_Description": "Selecteer het actieve energiebeheerschema voor uw systeem",
   "Dialog_AdvancedPowerWarning_Title": "Waarschuwing Geavanceerde Instelling",
-  "Dialog_AdvancedPowerWarning_Message": "⚠️ Waarschuwing Geavanceerde Energie-instelling\n\nDeze instelling wordt normaal niet getoond in Windows Energiebeheer en vereist registeraanpassingen om toegang te krijgen.\n\nOnjuist wijzigen kan veroorzaken:\n• Systeeminstabiliteit of onverwacht gedrag\n• Prestatievermindering\n• Problemen met thermisch beheer\n• Instellingen werken mogelijk niet op alle CPU-types (modern HWP vs legacy)\n\nWijzig dit alleen als u processor-energiebeheer begrijpt.\n\nWilt u zeker dat u deze instelling wilt wijzigen?",
+  "Dialog_AdvancedPowerWarning_Message": "Deze instelling wordt normaal niet getoond in Windows Energiebeheer en vereist registeraanpassingen om toegang te krijgen.\n\nOnjuist wijzigen kan veroorzaken:\n• Systeeminstabiliteit of onverwacht gedrag\n• Prestatievermindering\n• Problemen met thermisch beheer\n• Instellingen werken mogelijk niet op alle CPU-types (modern HWP vs legacy)\n\nWijzig dit alleen als u processor-energiebeheer begrijpt.\n\nWilt u zeker dat u deze instelling wilt wijzigen?",
   "Dialog_AdvancedPowerWarning_DontShowAgain": "Toon deze waarschuwing niet opnieuw voor geavanceerde energie-instellingen",
   "Button_Unlock": "Ontgrendelen",
   "Common_ClickToUnlock": "Klik om te ontgrendelen",

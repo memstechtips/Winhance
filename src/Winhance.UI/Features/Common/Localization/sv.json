@@ -1458,7 +1458,7 @@
   "Setting_gaming-sysmain-service_Option_2": "Automatisk (rekommenderas för HDD)",
   "Setting_power-plan-selection_Description": "Välj det aktiva energischemat för ditt system",
   "Dialog_AdvancedPowerWarning_Title": "Varning för avancerad inställning",
-  "Dialog_AdvancedPowerWarning_Message": "⚠️ Varning för avancerad energiinställning\n\nDenna inställning visas normalt inte i Windows Energialternativ och kräver registerändringar för att komma åt.\n\nFelaktig modifiering kan orsaka:\n• Systeminstabilitet eller oväntat beteende\n• Prestandaförsämring\n• Problem med värmehantering\n• Inställningar kanske inte fungerar på alla CPU-typer (moderna HWP vs äldre)\n\nÄndra endast detta om du förstår processorströmhantering.\n\nÄr du säker på att du vill ändra den här inställningen?",
+  "Dialog_AdvancedPowerWarning_Message": "Denna inställning visas normalt inte i Windows Energialternativ och kräver registerändringar för att komma åt.\n\nFelaktig modifiering kan orsaka:\n• Systeminstabilitet eller oväntat beteende\n• Prestandaförsämring\n• Problem med värmehantering\n• Inställningar kanske inte fungerar på alla CPU-typer (moderna HWP vs äldre)\n\nÄndra endast detta om du förstår processorströmhantering.\n\nÄr du säker på att du vill ändra den här inställningen?",
   "Dialog_AdvancedPowerWarning_DontShowAgain": "Visa inte den här varningen igen för avancerade energiinställningar",
   "Button_Unlock": "Lås upp",
   "Common_ClickToUnlock": "Klicka för att låsa upp",
