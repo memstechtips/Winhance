@@ -52,8 +52,9 @@
   "Dialog_ItemsWillBeInstalled": "Hierdie items sal geïnstalleer word.\nWil jy voortgaan?",
   "Dialog_ItemsWillBeRemoved": "Hierdie items sal verwyder word.\nWil jy voortgaan?",
   "Dialog_ItemsWillBeProcessed": "Hierdie items sal {0} word.\nWil jy voortgaan?",
+  "Dialog_SaveRemovalScripts": "Stoor verwyderings-skripte om deurlopende verwydering te verseker",
   "Dialog_Donation_Title": "Ondersteun Winhance",
-  "Dialog_Donation_Header_Title": "Dankie dat jy Winhance gebruik! ❤",
+  "Dialog_Donation_Header_Title": "Dankie dat jy Winhance gebruik!",
   "Dialog_Donation_Header_Message": "As jy hierdie hulpmiddel nuttig gevind het, oorweeg asseblief 'n klein skenking om ontwikkeling te ondersteun.",
   "Dialog_Donation_SupportMessage": "Jou ondersteuning help om hierdie projek aan die gang te hou!",
   "Dialog_Donation_Footer": "Klik 'Ja' om jou ondersteuning te wys!",
@@ -63,7 +64,6 @@
   "Dialog_Update_CurrentVersion": "Huidige Weergawe:",
   "Dialog_Update_LatestVersion": "Nuutste Weergawe:",
   "Dialog_Update_Footer": "Wil jy die opdatering nou aflaai en installeer?",
-  "Dialog_Update_Button_RemindLater": "Herinner Later",
   "Dialog_Update_Button_InstallNow": "Installeer Nou",
   "Dialog_Update_Status_Downloading": "Laai opdatering af...",
   "Dialog_Update_Status_Error": "Fout met aflaai van opdatering: {0}",
@@ -1473,5 +1473,11 @@
   "ExternalApps_WinGetUnavailable": "Kan nie installasiestatus bepaal nie. Koppel aan die internet en klik die Verfris-knoppie.",
   "Error_NoInternetConnection": "Geen internetverbinding nie. Koppel asseblief en probeer weer.",
   "Error_WinGetInstallFailed": "Kon nie WinGet installeer nie. Gaan asseblief u internetverbinding na.",
-  "Error_WinGetNotAvailable": "WinGet is nie beskikbaar op hierdie stelsel nie."
+  "Error_WinGetNotAvailable": "WinGet is nie beskikbaar op hierdie stelsel nie.",
+  "App_Tagline": "Verbeter jou Windows-ervaring",
+  "Loading_InitializingSettings": "Instellings word geïnisialiseer...",
+  "Loading_CreatingRestorePoint": "Stelsel-herstelpunt word geskep. Wag asseblief, dit kan 'n rukkie neem...",
+  "Loading_MigratingScripts": "Skripte word gemigreer...",
+  "Loading_CheckingScripts": "Word nagegaan vir skrip-opdaterings...",
+  "Loading_PreparingApp": "Toepassing word voorberei..."
 }

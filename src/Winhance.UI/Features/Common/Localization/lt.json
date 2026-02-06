@@ -52,8 +52,9 @@
   "Dialog_ItemsWillBeInstalled": "Šie elementai bus įdiegti.\nAr norite tęsti?",
   "Dialog_ItemsWillBeRemoved": "Šie elementai bus pašalinti.\nAr norite tęsti?",
   "Dialog_ItemsWillBeProcessed": "Šie elementai bus {0}.\nAr norite tęsti?",
+  "Dialog_SaveRemovalScripts": "Išsaugoti pašalinimo scenarijus, kad būtų užtikrintas nuolatinis pašalinimas",
   "Dialog_Donation_Title": "Paremkite Winhance",
-  "Dialog_Donation_Header_Title": "Ačiū, kad naudojatės Winhance! ❤",
+  "Dialog_Donation_Header_Title": "Ačiū, kad naudojatės Winhance!",
   "Dialog_Donation_Header_Message": "Jei šis įrankis jums buvo naudingas, apsvarstykite galimybę paaukoti nedidelę sumą, kad paremtumėte plėtrą.",
   "Dialog_Donation_SupportMessage": "Jūsų parama padeda šiam projektui gyvuoti!",
   "Dialog_Donation_Footer": "Spustelėkite „Taip“, kad parodytumėte savo paramą!",
@@ -63,7 +64,6 @@
   "Dialog_Update_CurrentVersion": "Dabartinė versija:",
   "Dialog_Update_LatestVersion": "Naujausia versija:",
   "Dialog_Update_Footer": "Ar norėtumėte atsisiųsti ir įdiegti atnaujinimą dabar?",
-  "Dialog_Update_Button_RemindLater": "Priminti vėliau",
   "Dialog_Update_Button_InstallNow": "Įdiegti dabar",
   "Dialog_Update_Status_Downloading": "Atsisiunčiamas atnaujinimas...",
   "Dialog_Update_Status_Error": "Klaida atsisiunčiant atnaujinimą: {0}",
@@ -1473,5 +1473,11 @@
   "ExternalApps_WinGetUnavailable": "Nepavyko nustatyti diegimo būsenos. Prisijunkite prie interneto ir spustelėkite mygtuką Atnaujinti.",
   "Error_NoInternetConnection": "Nėra interneto ryšio. Prisijunkite ir bandykite dar kartą.",
   "Error_WinGetInstallFailed": "Nepavyko įdiegti „WinGet“. Patikrinkite interneto ryšį.",
-  "Error_WinGetNotAvailable": "„WinGet“ šioje sistemoje nepasiekiama."
+  "Error_WinGetNotAvailable": "„WinGet“ šioje sistemoje nepasiekiama.",
+  "App_Tagline": "Pagerinkite savo „Windows“ patirtį",
+  "Loading_InitializingSettings": "Inicializuojami nustatymai...",
+  "Loading_CreatingRestorePoint": "Kuriamas sistemos atkūrimo taškas. Palaukite, tai gali užtrukti...",
+  "Loading_MigratingScripts": "Perkeliami scenarijai...",
+  "Loading_CheckingScripts": "Tikrinami scenarijų atnaujinimai...",
+  "Loading_PreparingApp": "Ruošiama programa..."
 }

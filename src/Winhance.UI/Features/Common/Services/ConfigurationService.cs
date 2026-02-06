@@ -33,6 +33,7 @@ public class ConfigurationService : IConfigurationService
     private readonly IWindowsVersionService _windowsVersionService;
     private readonly IWindowsThemeQueryService _windowsThemeQueryService;
     private readonly ILocalizationService _localizationService;
+    private bool _configImportSaveRemovalScripts = true;
 
     private static readonly JsonSerializerOptions JsonOptions = new()
     {
@@ -682,7 +683,9 @@ public class ConfigurationService : IConfigurationService
         var selectedCount = vm.Items.Count(i => i.IsSelected);
         if (selectedCount == 0) return true;
 
-        return await vm.ShowRemovalSummaryAndConfirm();
+        var (confirmed, saveScripts) = await vm.ShowRemovalSummaryAndConfirm();
+        _configImportSaveRemovalScripts = saveScripts;
+        return confirmed;
     }
 
     private async Task ClearWindowsAppsSelectionAsync()
@@ -763,7 +766,7 @@ public class ConfigurationService : IConfigurationService
             if (vm != null)
             {
                 _logService.Log(LogLevel.Info, "Processing Windows Apps removal");
-                await vm.RemoveApps(skipConfirmation: true);
+                await vm.RemoveApps(skipConfirmation: true, saveRemovalScripts: _configImportSaveRemovalScripts);
             }
         }
 

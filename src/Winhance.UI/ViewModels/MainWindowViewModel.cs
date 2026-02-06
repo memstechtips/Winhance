@@ -1,8 +1,10 @@
 using CommunityToolkit.Mvvm.ComponentModel;
 using CommunityToolkit.Mvvm.Input;
 using Microsoft.UI.Xaml;
+using Microsoft.UI.Xaml.Controls;
 using Winhance.Core.Features.Common.Constants;
 using Winhance.Core.Features.Common.Interfaces;
+using Winhance.Core.Features.Common.Models;
 using Winhance.UI.Features.Common.Interfaces;
 
 namespace Winhance.UI.ViewModels;
@@ -29,6 +31,8 @@ public partial class MainWindowViewModel : ObservableObject
     private readonly IDialogService _dialogService;
     private readonly IUserPreferencesService _preferencesService;
     private readonly ICompatibleSettingsRegistry _compatibleSettingsRegistry;
+    private readonly ITaskProgressService _taskProgressService;
+    private readonly IDispatcherService _dispatcherService;
 
     [ObservableProperty]
     private string _appIconSource = "ms-appx:///Assets/AppIcons/winhance-rocket-white-transparent-bg.png";
@@ -40,6 +44,33 @@ public partial class MainWindowViewModel : ObservableObject
     [NotifyPropertyChangedFor(nameof(WindowsFilterTooltip))]
     [NotifyPropertyChangedFor(nameof(WindowsFilterIcon))]
     private bool _isWindowsVersionFilterEnabled = true;
+
+    [ObservableProperty]
+    private bool _isLoading;
+
+    [ObservableProperty]
+    private string _appName = string.Empty;
+
+    [ObservableProperty]
+    private string _lastTerminalLine = string.Empty;
+
+    [ObservableProperty]
+    private bool _isUpdateInfoBarOpen;
+
+    [ObservableProperty]
+    private string _updateInfoBarTitle = string.Empty;
+
+    [ObservableProperty]
+    private string _updateInfoBarMessage = string.Empty;
+
+    [ObservableProperty]
+    private InfoBarSeverity _updateInfoBarSeverity;
+
+    [ObservableProperty]
+    private bool _isUpdateActionButtonVisible;
+
+    [ObservableProperty]
+    private bool _isUpdateCheckInProgress;
 
     /// <summary>
     /// Event raised when the Windows version filter state changes.
@@ -54,7 +85,9 @@ public partial class MainWindowViewModel : ObservableObject
         ILogService logService,
         IDialogService dialogService,
         IUserPreferencesService preferencesService,
-        ICompatibleSettingsRegistry compatibleSettingsRegistry)
+        ICompatibleSettingsRegistry compatibleSettingsRegistry,
+        ITaskProgressService taskProgressService,
+        IDispatcherService dispatcherService)
     {
         _themeService = themeService;
         _configurationService = configurationService;
@@ -64,12 +97,17 @@ public partial class MainWindowViewModel : ObservableObject
         _dialogService = dialogService;
         _preferencesService = preferencesService;
         _compatibleSettingsRegistry = compatibleSettingsRegistry;
+        _taskProgressService = taskProgressService;
+        _dispatcherService = dispatcherService;
 
         // Subscribe to theme changes
         _themeService.ThemeChanged += OnThemeChanged;
 
         // Subscribe to language changes
         _localizationService.LanguageChanged += OnLanguageChanged;
+
+        // Subscribe to task progress updates
+        _taskProgressService.ProgressUpdated += OnProgressUpdated;
 
         // Set initial icon based on current theme
         UpdateAppIconForTheme();
@@ -99,6 +137,12 @@ public partial class MainWindowViewModel : ObservableObject
         OnPropertyChanged(nameof(NavAdvancedToolsText));
         OnPropertyChanged(nameof(NavSettingsText));
         OnPropertyChanged(nameof(NavMoreText));
+
+        // Task progress
+        OnPropertyChanged(nameof(CancelButtonLabel));
+
+        // Update InfoBar
+        OnPropertyChanged(nameof(InstallNowButtonText));
     }
 
     /// <summary>
@@ -191,6 +235,14 @@ public partial class MainWindowViewModel : ObservableObject
 
     public string NavMoreText =>
         _localizationService.GetString("Nav_More") ?? "More";
+
+    // Task progress
+    public string CancelButtonLabel =>
+        _localizationService.GetString("Button_Cancel") ?? "Cancel";
+
+    // Update InfoBar
+    public string InstallNowButtonText =>
+        _localizationService.GetString("Dialog_Update_Button_InstallNow") ?? "Install Now";
 
     #endregion
 
@@ -344,6 +396,157 @@ public partial class MainWindowViewModel : ObservableObject
         {
             System.Diagnostics.Debug.WriteLine($"Failed to open bug report page: {ex.Message}");
         }
+    }
+
+    [RelayCommand]
+    private void Cancel() => _taskProgressService.CancelCurrentTask();
+
+    [RelayCommand]
+    private async Task CheckForUpdatesAsync()
+    {
+        if (IsUpdateCheckInProgress) return;
+
+        try
+        {
+            IsUpdateCheckInProgress = true;
+            _logService.Log(Core.Features.Common.Enums.LogLevel.Info, "Checking for updates...");
+
+            var latestVersion = await _versionService.CheckForUpdateAsync();
+            var currentVersion = _versionService.GetCurrentVersion();
+
+            if (latestVersion != null && latestVersion.Version != currentVersion.Version)
+            {
+                _logService.Log(Core.Features.Common.Enums.LogLevel.Info, $"Update available: {latestVersion.Version}");
+
+                var message = _localizationService.GetString("Dialog_Update_Message") ?? "Good News! A New Version of Winhance is available.";
+                var currentVersionLabel = _localizationService.GetString("Dialog_Update_CurrentVersion") ?? "Current Version:";
+                var latestVersionLabel = _localizationService.GetString("Dialog_Update_LatestVersion") ?? "Latest Version:";
+                var title = _localizationService.GetString("Dialog_Update_Title") ?? "Update Available";
+
+                UpdateInfoBarTitle = title;
+                UpdateInfoBarMessage = $"{message}  {currentVersionLabel} {currentVersion.Version}  →  {latestVersionLabel} {latestVersion.Version}";
+                UpdateInfoBarSeverity = InfoBarSeverity.Success;
+                IsUpdateActionButtonVisible = true;
+                IsUpdateInfoBarOpen = true;
+            }
+            else
+            {
+                _logService.Log(Core.Features.Common.Enums.LogLevel.Info, "No updates available");
+
+                var noUpdatesTitle = _localizationService.GetString("Dialog_Update_NoUpdates_Title") ?? "No Updates Available";
+                var noUpdatesMessage = _localizationService.GetString("Dialog_Update_NoUpdates_Message") ?? "You have the latest version of Winhance.";
+
+                UpdateInfoBarTitle = noUpdatesTitle;
+                UpdateInfoBarMessage = noUpdatesMessage;
+                UpdateInfoBarSeverity = InfoBarSeverity.Success;
+                IsUpdateActionButtonVisible = false;
+                IsUpdateInfoBarOpen = true;
+            }
+        }
+        catch (Exception ex)
+        {
+            _logService.Log(Core.Features.Common.Enums.LogLevel.Error, $"Error checking for updates: {ex.Message}");
+
+            var errorTitle = _localizationService.GetString("Dialog_Update_CheckError_Title") ?? "Update Check Error";
+            var errorMessageTemplate = _localizationService.GetString("Dialog_Update_CheckError_Message") ?? "An error occurred while checking for updates: {0}";
+            var errorMessage = string.Format(errorMessageTemplate, ex.Message);
+
+            UpdateInfoBarTitle = errorTitle;
+            UpdateInfoBarMessage = errorMessage;
+            UpdateInfoBarSeverity = InfoBarSeverity.Error;
+            IsUpdateActionButtonVisible = false;
+            IsUpdateInfoBarOpen = true;
+        }
+        finally
+        {
+            IsUpdateCheckInProgress = false;
+        }
+    }
+
+    [RelayCommand]
+    private async Task InstallUpdateAsync()
+    {
+        try
+        {
+            var downloadingMessage = _localizationService.GetString("Dialog_Update_Status_Downloading") ?? "Downloading update...";
+            UpdateInfoBarMessage = downloadingMessage;
+            IsUpdateActionButtonVisible = false;
+
+            await _versionService.DownloadAndInstallUpdateAsync();
+        }
+        catch (Exception ex)
+        {
+            _logService.Log(Core.Features.Common.Enums.LogLevel.Error, $"Error installing update: {ex.Message}");
+
+            var errorMessageTemplate = _localizationService.GetString("Dialog_Update_Status_Error") ?? "Error downloading update: {0}";
+            var errorMessage = string.Format(errorMessageTemplate, ex.Message);
+
+            UpdateInfoBarMessage = errorMessage;
+            UpdateInfoBarSeverity = InfoBarSeverity.Error;
+            IsUpdateActionButtonVisible = false;
+        }
+    }
+
+    /// <summary>
+    /// Silently checks for updates on startup. Only shows the InfoBar if an update is available.
+    /// No-update and error scenarios are logged but not shown to the user.
+    /// </summary>
+    public async Task CheckForUpdatesOnStartupAsync()
+    {
+        try
+        {
+            _logService.Log(Core.Features.Common.Enums.LogLevel.Info, "Startup: Checking for updates...");
+
+            var latestVersion = await _versionService.CheckForUpdateAsync();
+            var currentVersion = _versionService.GetCurrentVersion();
+
+            if (latestVersion != null && latestVersion.Version != currentVersion.Version)
+            {
+                _logService.Log(Core.Features.Common.Enums.LogLevel.Info, $"Startup: Update available: {latestVersion.Version}");
+
+                var message = _localizationService.GetString("Dialog_Update_Message") ?? "Good News! A New Version of Winhance is available.";
+                var currentVersionLabel = _localizationService.GetString("Dialog_Update_CurrentVersion") ?? "Current Version:";
+                var latestVersionLabel = _localizationService.GetString("Dialog_Update_LatestVersion") ?? "Latest Version:";
+                var title = _localizationService.GetString("Dialog_Update_Title") ?? "Update Available";
+
+                UpdateInfoBarTitle = title;
+                UpdateInfoBarMessage = $"{message}  {currentVersionLabel} {currentVersion.Version}  →  {latestVersionLabel} {latestVersion.Version}";
+                UpdateInfoBarSeverity = InfoBarSeverity.Success;
+                IsUpdateActionButtonVisible = true;
+                IsUpdateInfoBarOpen = true;
+            }
+            else
+            {
+                _logService.Log(Core.Features.Common.Enums.LogLevel.Info, "Startup: No updates available");
+            }
+        }
+        catch (Exception ex)
+        {
+            _logService.Log(Core.Features.Common.Enums.LogLevel.Error, $"Startup: Error checking for updates: {ex.Message}");
+        }
+    }
+
+    /// <summary>
+    /// Dismisses the update InfoBar (called from code-behind on InfoBar.Closed).
+    /// </summary>
+    public void DismissUpdateInfoBar()
+    {
+        IsUpdateInfoBarOpen = false;
+    }
+
+    #endregion
+
+    #region Task Progress
+
+    private void OnProgressUpdated(object? sender, TaskProgressDetail detail)
+    {
+        _dispatcherService.RunOnUIThread(() =>
+        {
+            IsLoading = _taskProgressService.IsTaskRunning;
+            if (!string.IsNullOrEmpty(detail.StatusText))
+                AppName = detail.StatusText;
+            LastTerminalLine = detail.TerminalOutput ?? string.Empty;
+        });
     }
 
     #endregion

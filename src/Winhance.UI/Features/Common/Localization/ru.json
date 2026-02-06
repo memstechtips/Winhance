@@ -52,8 +52,9 @@
   "Dialog_ItemsWillBeInstalled": "Эти элементы будут установлены.\nВы хотите продолжить?",
   "Dialog_ItemsWillBeRemoved": "Эти элементы будут удалены.\nВы хотите продолжить?",
   "Dialog_ItemsWillBeProcessed": "Эти элементы будут {0}.\nВы хотите продолжить?",
+  "Dialog_SaveRemovalScripts": "Сохранить скрипты удаления для обеспечения непрерывного удаления",
   "Dialog_Donation_Title": "Поддержать Winhance",
-  "Dialog_Donation_Header_Title": "Спасибо за использование Winhance! ❤",
+  "Dialog_Donation_Header_Title": "Спасибо за использование Winhance!",
   "Dialog_Donation_Header_Message": "Если этот инструмент оказался для вас полезным, пожалуйста, рассмотрите возможность небольшого пожертвования для поддержки разработки.",
   "Dialog_Donation_SupportMessage": "Ваша поддержка помогает этому проекту развиваться!",
   "Dialog_Donation_Footer": "Нажмите 'Да', чтобы показать свою поддержку!",
@@ -63,7 +64,6 @@
   "Dialog_Update_CurrentVersion": "Текущая версия:",
   "Dialog_Update_LatestVersion": "Последняя версия:",
   "Dialog_Update_Footer": "Хотите скачать и установить обновление сейчас?",
-  "Dialog_Update_Button_RemindLater": "Напомнить позже",
   "Dialog_Update_Button_InstallNow": "Установить сейчас",
   "Dialog_Update_Status_Downloading": "Загрузка обновления...",
   "Dialog_Update_Status_Error": "Ошибка загрузки обновления: {0}",
@@ -1473,5 +1473,11 @@
   "ExternalApps_WinGetUnavailable": "Невозможно определить статус установки. Подключитесь к Интернету и нажмите кнопку Обновить.",
   "Error_NoInternetConnection": "Нет подключения к Интернету. Пожалуйста, подключитесь и попробуйте снова.",
   "Error_WinGetInstallFailed": "Не удалось установить WinGet. Пожалуйста, проверьте подключение к Интернету.",
-  "Error_WinGetNotAvailable": "WinGet недоступен в этой системе."
+  "Error_WinGetNotAvailable": "WinGet недоступен в этой системе.",
+  "App_Tagline": "Улучшите ваш опыт работы с Windows",
+  "Loading_InitializingSettings": "Инициализация настроек...",
+  "Loading_CreatingRestorePoint": "Создание точки восстановления системы. Пожалуйста, подождите, это может занять некоторое время...",
+  "Loading_MigratingScripts": "Миграция скриптов...",
+  "Loading_CheckingScripts": "Проверка обновлений скриптов...",
+  "Loading_PreparingApp": "Подготовка приложения..."
 }

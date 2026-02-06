@@ -52,8 +52,9 @@
   "Dialog_ItemsWillBeInstalled": "Tyto položky budou nainstalovány.\nChcete pokračovat?",
   "Dialog_ItemsWillBeRemoved": "Tyto položky budou odebrány.\nChcete pokračovat?",
   "Dialog_ItemsWillBeProcessed": "Tyto položky budou {0}.\nChcete pokračovat?",
+  "Dialog_SaveRemovalScripts": "Uložit skripty pro odebrání k zajištění průběžného odebírání",
   "Dialog_Donation_Title": "Podpořte Winhance",
-  "Dialog_Donation_Header_Title": "Děkujeme, že používáte Winhance! ❤",
+  "Dialog_Donation_Header_Title": "Děkujeme, že používáte Winhance!",
   "Dialog_Donation_Header_Message": "Pokud vám tento nástroj pomohl, zvažte prosím malý příspěvek na podporu vývoje.",
   "Dialog_Donation_SupportMessage": "Vaše podpora pomáhá udržet tento projekt v chodu!",
   "Dialog_Donation_Footer": "Kliknutím na 'Ano' projevíte svou podporu!",
@@ -63,7 +64,6 @@
   "Dialog_Update_CurrentVersion": "Aktuální verze:",
   "Dialog_Update_LatestVersion": "Nejnovější verze:",
   "Dialog_Update_Footer": "Chcete si nyní stáhnout a nainstalovat aktualizaci?",
-  "Dialog_Update_Button_RemindLater": "Připomenout později",
   "Dialog_Update_Button_InstallNow": "Nainstalovat nyní",
   "Dialog_Update_Status_Downloading": "Stahování aktualizace...",
   "Dialog_Update_Status_Error": "Chyba při stahování aktualizace: {0}",
@@ -1473,5 +1473,11 @@
   "ExternalApps_WinGetUnavailable": "Nelze zjistit stav instalace. Připojte se k internetu a klikněte na tlačítko Obnovit.",
   "Error_NoInternetConnection": "Žádné připojení k internetu. Připojte se prosím a zkuste to znovu.",
   "Error_WinGetInstallFailed": "Nepodařilo se nainstalovat WinGet. Zkontrolujte prosím své připojení k internetu.",
-  "Error_WinGetNotAvailable": "WinGet není v tomto systému k dispozici."
+  "Error_WinGetNotAvailable": "WinGet není v tomto systému k dispozici.",
+  "App_Tagline": "Vylepšete svůj zážitek s Windows",
+  "Loading_InitializingSettings": "Inicializace nastavení...",
+  "Loading_CreatingRestorePoint": "Vytváření bodu obnovení systému. Prosím čekejte, může to chvíli trvat...",
+  "Loading_MigratingScripts": "Migrace skriptů...",
+  "Loading_CheckingScripts": "Kontrola aktualizací skriptů...",
+  "Loading_PreparingApp": "Příprava aplikace..."
 }

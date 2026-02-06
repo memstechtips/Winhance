@@ -63,7 +63,6 @@
   "Dialog_Update_CurrentVersion": "現在のバージョン：",
   "Dialog_Update_LatestVersion": "最新バージョン：",
   "Dialog_Update_Footer": "今すぐアップデートをダウンロードしてインストールしますか？",
-  "Dialog_Update_Button_RemindLater": "後で通知",
   "Dialog_Update_Button_InstallNow": "今すぐインストール",
   "Dialog_Update_Status_Downloading": "アップデートをダウンロード中...",
   "Dialog_Update_Status_Error": "アップデートのダウンロードエラー：{0}",

@@ -52,8 +52,9 @@
   "Dialog_ItemsWillBeInstalled": "Các mục này sẽ được cài đặt.\nBạn có muốn tiếp tục không?",
   "Dialog_ItemsWillBeRemoved": "Các mục này sẽ bị xóa.\nBạn có muốn tiếp tục không?",
   "Dialog_ItemsWillBeProcessed": "Các mục này sẽ được {0}.\nBạn có muốn tiếp tục không?",
+  "Dialog_SaveRemovalScripts": "Lưu tập lệnh gỡ bỏ để đảm bảo gỡ bỏ liên tục",
   "Dialog_Donation_Title": "Hỗ trợ Winhance",
-  "Dialog_Donation_Header_Title": "Cảm ơn bạn đã sử dụng Winhance! ❤",
+  "Dialog_Donation_Header_Title": "Cảm ơn bạn đã sử dụng Winhance!",
   "Dialog_Donation_Header_Message": "Nếu bạn thấy công cụ này hữu ích, vui lòng xem xét quyên góp nhỏ để hỗ trợ phát triển.",
   "Dialog_Donation_SupportMessage": "Sự hỗ trợ của bạn giúp dự án này tiếp tục!",
   "Dialog_Donation_Footer": "Nhấp vào 'Có' để thể hiện sự ủng hộ của bạn!",
@@ -63,7 +64,6 @@
   "Dialog_Update_CurrentVersion": "Phiên bản hiện tại:",
   "Dialog_Update_LatestVersion": "Phiên bản mới nhất:",
   "Dialog_Update_Footer": "Bạn có muốn tải xuống và cài đặt bản cập nhật ngay bây giờ không?",
-  "Dialog_Update_Button_RemindLater": "Nhắc tôi sau",
   "Dialog_Update_Button_InstallNow": "Cài đặt ngay",
   "Dialog_Update_Status_Downloading": "Đang tải xuống bản cập nhật...",
   "Dialog_Update_Status_Error": "Lỗi khi tải xuống bản cập nhật: {0}",
@@ -1473,5 +1473,11 @@
   "ExternalApps_WinGetUnavailable": "Không thể xác định trạng thái cài đặt. Kết nối internet và nhấp vào nút Làm mới.",
   "Error_NoInternetConnection": "Không có kết nối internet. Vui lòng kết nối và thử lại.",
   "Error_WinGetInstallFailed": "Cài đặt WinGet thất bại. Vui lòng kiểm tra kết nối internet của bạn.",
-  "Error_WinGetNotAvailable": "WinGet không có sẵn trên hệ thống này."
+  "Error_WinGetNotAvailable": "WinGet không có sẵn trên hệ thống này.",
+  "App_Tagline": "Nâng cao trải nghiệm Windows của bạn",
+  "Loading_InitializingSettings": "Đang khởi tạo cài đặt...",
+  "Loading_CreatingRestorePoint": "Đang tạo điểm khôi phục hệ thống. Vui lòng đợi, quá trình này có thể mất một lúc...",
+  "Loading_MigratingScripts": "Đang di chuyển tập lệnh...",
+  "Loading_CheckingScripts": "Đang kiểm tra bản cập nhật tập lệnh...",
+  "Loading_PreparingApp": "Đang chuẩn bị ứng dụng..."
 }

@@ -52,8 +52,9 @@
   "Dialog_ItemsWillBeInstalled": "Deze items worden geïnstalleerd.\nWilt u doorgaan?",
   "Dialog_ItemsWillBeRemoved": "Deze items worden verwijderd.\nWilt u doorgaan?",
   "Dialog_ItemsWillBeProcessed": "Deze items worden ge{0}.\nWilt u doorgaan?",
+  "Dialog_SaveRemovalScripts": "Verwijderingsscripts opslaan om continue verwijdering te garanderen",
   "Dialog_Donation_Title": "Steun Winhance",
-  "Dialog_Donation_Header_Title": "Bedankt voor het gebruik van Winhance! ❤",
+  "Dialog_Donation_Header_Title": "Bedankt voor het gebruik van Winhance!",
   "Dialog_Donation_Header_Message": "Als u deze tool nuttig vond, overweeg dan een kleine donatie om de ontwikkeling te steunen.",
   "Dialog_Donation_SupportMessage": "Uw steun houdt dit project gaande!",
   "Dialog_Donation_Footer": "Klik op \u0027Ja\u0027 om uw steun te betuigen!",
@@ -63,7 +64,6 @@
   "Dialog_Update_CurrentVersion": "Huidige Versie:",
   "Dialog_Update_LatestVersion": "Nieuwste Versie:",
   "Dialog_Update_Footer": "Wilt u de update nu downloaden en installeren?",
-  "Dialog_Update_Button_RemindLater": "Herinner mij later",
   "Dialog_Update_Button_InstallNow": "Nu Installeren",
   "Dialog_Update_Status_Downloading": "Update downloaden...",
   "Dialog_Update_Status_Error": "Fout bij downloaden update: {0}",
@@ -1473,5 +1473,11 @@
   "ExternalApps_WinGetUnavailable": "Kan installatiestatus niet bepalen. Maak verbinding met internet en klik op de knop Vernieuwen.",
   "Error_NoInternetConnection": "Geen internetverbinding. Maak verbinding en probeer het opnieuw.",
   "Error_WinGetInstallFailed": "Kan WinGet niet installeren. Controleer uw internetverbinding.",
-  "Error_WinGetNotAvailable": "WinGet is niet beschikbaar op dit systeem."
+  "Error_WinGetNotAvailable": "WinGet is niet beschikbaar op dit systeem.",
+  "App_Tagline": "Verbeter uw Windows-ervaring",
+  "Loading_InitializingSettings": "Instellingen initialiseren...",
+  "Loading_CreatingRestorePoint": "Systeemherstelpunt wordt gemaakt. Even geduld, dit kan even duren...",
+  "Loading_MigratingScripts": "Scripts migreren...",
+  "Loading_CheckingScripts": "Controleren op scriptupdates...",
+  "Loading_PreparingApp": "Toepassing voorbereiden..."
 }

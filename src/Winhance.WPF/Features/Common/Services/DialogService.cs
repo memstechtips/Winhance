@@ -60,10 +60,11 @@ namespace Winhance.WPF.Features.Common.Services
             }).Task;
         }
 
-        public Task<bool> ShowAppOperationConfirmationAsync(
+        public Task<(bool Confirmed, bool CheckboxChecked)> ShowAppOperationConfirmationAsync(
             string operationType,
             IEnumerable<string> itemNames,
-            int count)
+            int count,
+            string? checkboxText = null)
         {
             return Application.Current.Dispatcher.InvokeAsync(() =>
             {
@@ -92,7 +93,7 @@ namespace Winhance.WPF.Features.Common.Services
                     _localization.GetString("Button_No"));
 
                 var result = dialog.ShowDialog();
-                return result ?? false;
+                return (result ?? false, true);
             }).Task;
         }
 

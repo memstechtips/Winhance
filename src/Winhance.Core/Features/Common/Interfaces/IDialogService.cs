@@ -53,10 +53,11 @@ namespace Winhance.Core.Features.Common.Interfaces
             IEnumerable<string> apps,
             string footerText);
 
-        Task<bool> ShowAppOperationConfirmationAsync(
+        Task<(bool Confirmed, bool CheckboxChecked)> ShowAppOperationConfirmationAsync(
             string operationType,
             IEnumerable<string> itemNames,
-            int count);
+            int count,
+            string? checkboxText = null);
 
         Task<ConfirmationResponse> ShowConfirmationAsync(
             ConfirmationRequest confirmationRequest,

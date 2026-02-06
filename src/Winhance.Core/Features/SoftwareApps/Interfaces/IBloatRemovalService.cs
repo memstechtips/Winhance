@@ -12,7 +12,8 @@ public interface IBloatRemovalService
     Task<bool> RemoveAppsAsync(
         List<ItemDefinition> selectedApps,
         IProgress<TaskProgressDetail>? progress = null,
-        CancellationToken cancellationToken = default);
+        CancellationToken cancellationToken = default,
+        bool saveRemovalScripts = true);
 
     Task<bool> RemoveSpecialAppsAsync(
         List<string> specialAppTypes,

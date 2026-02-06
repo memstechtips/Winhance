@@ -52,6 +52,7 @@
   "Dialog_ItemsWillBeInstalled": "これらの項目がインストールされます。\n続行しますか？",
   "Dialog_ItemsWillBeRemoved": "これらの項目が削除されます。\n続行しますか？",
   "Dialog_ItemsWillBeProcessed": "これらの項目は{0}されます。\n続行しますか？",
+  "Dialog_SaveRemovalScripts": "継続的な削除を確実にするために削除スクリプトを保存する",
   "Dialog_Donation_Title": "Winhanceをサポート",
   "Dialog_Donation_Header_Title": "Winhanceをご利用いただきありがとうございます！❤",
   "Dialog_Donation_Header_Message": "このツールが役立った場合は、開発をサポートするために少額の寄付をご検討ください。",
@@ -63,7 +64,6 @@
   "Dialog_Update_CurrentVersion": "現在のバージョン：",
   "Dialog_Update_LatestVersion": "最新バージョン：",
   "Dialog_Update_Footer": "今すぐアップデートをダウンロードしてインストールしますか？",
-  "Dialog_Update_Button_RemindLater": "後で通知",
   "Dialog_Update_Button_InstallNow": "今すぐインストール",
   "Dialog_Update_Status_Downloading": "アップデートをダウンロード中...",
   "Dialog_Update_Status_Error": "アップデートのダウンロードエラー：{0}",
@@ -1473,5 +1473,11 @@
   "ExternalApps_WinGetUnavailable": "インストールの状態を確認できません。インターネットに接続して、更新ボタンをクリックしてください。",
   "Error_NoInternetConnection": "インターネットに接続されていません。接続してもう一度お試しください。",
   "Error_WinGetInstallFailed": "WinGet のインストールに失敗しました。インターネット接続を確認してください。",
-  "Error_WinGetNotAvailable": "WinGet はこのシステムでは利用できません。"
+  "Error_WinGetNotAvailable": "WinGet はこのシステムでは利用できません。",
+  "App_Tagline": "Windows エクスペリエンスを向上させる",
+  "Loading_InitializingSettings": "設定を初期化中...",
+  "Loading_CreatingRestorePoint": "システムの復元ポイントを作成しています。しばらくお待ちください...",
+  "Loading_MigratingScripts": "スクリプトを移行中...",
+  "Loading_CheckingScripts": "スクリプトの更新を確認中...",
+  "Loading_PreparingApp": "アプリケーションを準備中..."
 }

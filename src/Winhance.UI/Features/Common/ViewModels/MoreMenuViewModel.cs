@@ -4,7 +4,6 @@ using Microsoft.UI.Xaml;
 using System.Diagnostics;
 using Winhance.Core.Features.Common.Constants;
 using Winhance.Core.Features.Common.Interfaces;
-using Winhance.UI.Features.Common.Interfaces;
 
 namespace Winhance.UI.Features.Common.ViewModels;
 
@@ -16,7 +15,6 @@ public partial class MoreMenuViewModel : ObservableObject
     private readonly ILocalizationService _localizationService;
     private readonly IVersionService _versionService;
     private readonly ILogService _logService;
-    private readonly IDialogService _dialogService;
 
     [ObservableProperty]
     private string _versionInfo = "Winhance";
@@ -24,13 +22,11 @@ public partial class MoreMenuViewModel : ObservableObject
     public MoreMenuViewModel(
         ILocalizationService localizationService,
         IVersionService versionService,
-        ILogService logService,
-        IDialogService dialogService)
+        ILogService logService)
     {
         _localizationService = localizationService;
         _versionService = versionService;
         _logService = logService;
-        _dialogService = dialogService;
 
         // Subscribe to language changes
         _localizationService.LanguageChanged += OnLanguageChanged;
@@ -95,53 +91,6 @@ public partial class MoreMenuViewModel : ObservableObject
         catch (Exception ex)
         {
             _logService.LogError($"Failed to open bug report page: {ex.Message}", ex);
-        }
-    }
-
-    [RelayCommand]
-    private async Task CheckForUpdatesAsync()
-    {
-        try
-        {
-            _logService.LogInformation("Checking for updates...");
-
-            var latestVersion = await _versionService.CheckForUpdateAsync();
-            var currentVersion = _versionService.GetCurrentVersion();
-
-            if (latestVersion != null && latestVersion.Version != currentVersion.Version)
-            {
-                _logService.LogInformation($"Update available: {latestVersion.Version}");
-
-                var message = _localizationService.GetString("Dialog_Update_Message") ?? "Good News! A New Version of Winhance is available.";
-                var currentVersionLabel = _localizationService.GetString("Dialog_Update_CurrentVersion") ?? "Current Version:";
-                var latestVersionLabel = _localizationService.GetString("Dialog_Update_LatestVersion") ?? "Latest Version:";
-                var footer = _localizationService.GetString("Dialog_Update_Footer") ?? "Would you like to download and install the update now?";
-                var title = _localizationService.GetString("Dialog_Update_Title") ?? "Update Available";
-
-                var fullMessage = $"{message}\n\n{currentVersionLabel} {currentVersion.Version}\n{latestVersionLabel} {latestVersion.Version}\n\n{footer}";
-
-                var result = await _dialogService.ShowConfirmationAsync(fullMessage, title);
-
-                if (result)
-                {
-                    await _versionService.DownloadAndInstallUpdateAsync();
-                }
-            }
-            else
-            {
-                _logService.LogInformation("No updates available");
-                var noUpdatesTitle = _localizationService.GetString("Dialog_Update_NoUpdates_Title") ?? "No Updates Available";
-                var noUpdatesMessage = _localizationService.GetString("Dialog_Update_NoUpdates_Message") ?? "You have the latest version of Winhance.";
-                await _dialogService.ShowInformationAsync(noUpdatesMessage, noUpdatesTitle);
-            }
-        }
-        catch (Exception ex)
-        {
-            _logService.LogError($"Error checking for updates: {ex.Message}", ex);
-            var errorTitle = _localizationService.GetString("Dialog_Update_CheckError_Title") ?? "Update Check Error";
-            var errorMessageTemplate = _localizationService.GetString("Dialog_Update_CheckError_Message") ?? "An error occurred while checking for updates: {0}";
-            var errorMessage = string.Format(errorMessageTemplate, ex.Message);
-            await _dialogService.ShowErrorAsync(errorMessage, errorTitle);
         }
     }
 

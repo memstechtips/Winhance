@@ -52,8 +52,9 @@
   "Dialog_ItemsWillBeInstalled": "ये आइटम इंस्टॉल किए जाएंगे।\nक्या आप जारी रखना चाहते हैं?",
   "Dialog_ItemsWillBeRemoved": "ये आइटम हटा दिए जाएंगे।\nक्या आप जारी रखना चाहते हैं?",
   "Dialog_ItemsWillBeProcessed": "ये आइटम {0} किए जाएंगे।\nक्या आप जारी रखना चाहते हैं?",
+  "Dialog_SaveRemovalScripts": "निरंतर हटाने को सुनिश्चित करने के लिए हटाने की स्क्रिप्ट सहेजें",
   "Dialog_Donation_Title": "विनहान्स का समर्थन करें",
-  "Dialog_Donation_Header_Title": "विनहान्स का उपयोग करने के लिए धन्यवाद! ❤",
+  "Dialog_Donation_Header_Title": "विनहान्स का उपयोग करने के लिए धन्यवाद!",
   "Dialog_Donation_Header_Message": "यदि आपको यह टूल उपयोगी लगा, तो कृपया विकास का समर्थन करने के लिए एक छोटा सा दान देने पर विचार करें।",
   "Dialog_Donation_SupportMessage": "आपका समर्थन इस परियोजना को जारी रखने में मदद करता है!",
   "Dialog_Donation_Footer": "अपना समर्थन दिखाने के लिए 'हां' पर क्लिक करें!",
@@ -63,7 +64,6 @@
   "Dialog_Update_CurrentVersion": "वर्तमान संस्करण:",
   "Dialog_Update_LatestVersion": "नवीनतम संस्करण:",
   "Dialog_Update_Footer": "क्या आप अभी अपडेट डाउनलोड और इंस्टॉल करना चाहेंगे?",
-  "Dialog_Update_Button_RemindLater": "बाद में याद दिलाएं",
   "Dialog_Update_Button_InstallNow": "अभी इंस्टॉल करें",
   "Dialog_Update_Status_Downloading": "अपडेट डाउनलोड हो रहा है...",
   "Dialog_Update_Status_Error": "अपडेट डाउनलोड करने में त्रुटि: {0}",
@@ -1473,5 +1473,11 @@
   "ExternalApps_WinGetUnavailable": "इंस्टॉलेशन स्थिति निर्धारित करने में असमर्थ। इंटरनेट से कनेक्ट करें और रिफ्रेश बटन पर क्लिक करें।",
   "Error_NoInternetConnection": "कोई इंटरनेट कनेक्शन नहीं। कृपया कनेक्ट करें और पुनः प्रयास करें।",
   "Error_WinGetInstallFailed": "WinGet इंस्टॉल करने में विफल। कृपया अपना इंटरनेट कनेक्शन जांचें।",
-  "Error_WinGetNotAvailable": "WinGet इस सिस्टम पर उपलब्ध नहीं है।"
+  "Error_WinGetNotAvailable": "WinGet इस सिस्टम पर उपलब्ध नहीं है।",
+  "App_Tagline": "अपने विंडोज अनुभव को बेहतर बनाएं",
+  "Loading_InitializingSettings": "सेटिंग्स प्रारंभ हो रही हैं...",
+  "Loading_CreatingRestorePoint": "सिस्टम पुनर्स्थापना बिंदु बनाया जा रहा है। कृपया प्रतीक्षा करें, इसमें कुछ समय लग सकता है...",
+  "Loading_MigratingScripts": "स्क्रिप्ट माइग्रेट हो रही हैं...",
+  "Loading_CheckingScripts": "स्क्रिप्ट अपडेट की जांच हो रही है...",
+  "Loading_PreparingApp": "एप्लिकेशन तैयार हो रहा है..."
 }

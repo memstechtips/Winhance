@@ -52,8 +52,9 @@
   "Dialog_ItemsWillBeInstalled": "Te elementy zostaną zainstalowane.\nCzy chcesz kontynuować?",
   "Dialog_ItemsWillBeRemoved": "Te elementy zostaną usunięte.\nCzy chcesz kontynuować?",
   "Dialog_ItemsWillBeProcessed": "Te elementy zostaną {0}.\nCzy chcesz kontynuować?",
+  "Dialog_SaveRemovalScripts": "Zapisz skrypty usuwania, aby zapewnić ciągłe usuwanie",
   "Dialog_Donation_Title": "Wsparcie Winhance",
-  "Dialog_Donation_Header_Title": "Dziękujemy za korzystanie z Winhance! ❤",
+  "Dialog_Donation_Header_Title": "Dziękujemy za korzystanie z Winhance!",
   "Dialog_Donation_Header_Message": "Jeśli to narzędzie okazało się pomocne, prosimy o rozważenie niewielkiej darowizny na wsparcie rozwoju.",
   "Dialog_Donation_SupportMessage": "Twoje wsparcie pomaga w utrzymaniu tego projektu!",
   "Dialog_Donation_Footer": "Kliknij 'Tak', aby okazać swoje wsparcie!",
@@ -63,7 +64,6 @@
   "Dialog_Update_CurrentVersion": "Aktualna wersja:",
   "Dialog_Update_LatestVersion": "Najnowsza wersja:",
   "Dialog_Update_Footer": "Czy chcesz pobrać i zainstalować aktualizację teraz?",
-  "Dialog_Update_Button_RemindLater": "Przypomnij później",
   "Dialog_Update_Button_InstallNow": "Zainstaluj teraz",
   "Dialog_Update_Status_Downloading": "Pobieranie aktualizacji...",
   "Dialog_Update_Status_Error": "Błąd pobierania aktualizacji: {0}",
@@ -1473,5 +1473,11 @@
   "ExternalApps_WinGetUnavailable": "Nie można określić stanu instalacji. Połącz się z internetem i kliknij przycisk Odśwież.",
   "Error_NoInternetConnection": "Brak połączenia z internetem. Połącz się i spróbuj ponownie.",
   "Error_WinGetInstallFailed": "Nie udało się zainstalować WinGet. Sprawdź połączenie z internetem.",
-  "Error_WinGetNotAvailable": "WinGet nie jest dostępny w tym systemie."
+  "Error_WinGetNotAvailable": "WinGet nie jest dostępny w tym systemie.",
+  "App_Tagline": "Ulepsz swoje doświadczenie z Windows",
+  "Loading_InitializingSettings": "Inicjalizowanie ustawień...",
+  "Loading_CreatingRestorePoint": "Tworzenie punktu przywracania systemu. Proszę czekać, to może chwilę potrwać...",
+  "Loading_MigratingScripts": "Migrowanie skryptów...",
+  "Loading_CheckingScripts": "Sprawdzanie aktualizacji skryptów...",
+  "Loading_PreparingApp": "Przygotowywanie aplikacji..."
 }

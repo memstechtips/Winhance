@@ -52,8 +52,9 @@
   "Dialog_ItemsWillBeInstalled": "Dessa objekt kommer att installeras.\nVill du fortsätta?",
   "Dialog_ItemsWillBeRemoved": "Dessa objekt kommer att tas bort.\nVill du fortsätta?",
   "Dialog_ItemsWillBeProcessed": "Dessa objekt kommer att {0}as.\nVill du fortsätta?",
+  "Dialog_SaveRemovalScripts": "Spara borttagningsskript för att säkerställa kontinuerlig borttagning",
   "Dialog_Donation_Title": "Stöd Winhance",
-  "Dialog_Donation_Header_Title": "Tack för att du använder Winhance! ❤",
+  "Dialog_Donation_Header_Title": "Tack för att du använder Winhance!",
   "Dialog_Donation_Header_Message": "Om du tyckte att det här verktyget var till hjälp, överväg att göra en liten donation för att stödja utvecklingen.",
   "Dialog_Donation_SupportMessage": "Ditt stöd hjälper till att hålla detta projekt igång!",
   "Dialog_Donation_Footer": "Klicka på 'Ja' för att visa ditt stöd!",
@@ -63,7 +64,6 @@
   "Dialog_Update_CurrentVersion": "Nuvarande version:",
   "Dialog_Update_LatestVersion": "Senaste version:",
   "Dialog_Update_Footer": "Vill du ladda ner och installera uppdateringen nu?",
-  "Dialog_Update_Button_RemindLater": "Påminn mig senare",
   "Dialog_Update_Button_InstallNow": "Installera nu",
   "Dialog_Update_Status_Downloading": "Laddar ner uppdatering...",
   "Dialog_Update_Status_Error": "Fel vid nedladdning av uppdatering: {0}",
@@ -1473,5 +1473,11 @@
   "ExternalApps_WinGetUnavailable": "Kan inte fastställa installationsstatus. Anslut till internet och klicka på knappen Uppdatera.",
   "Error_NoInternetConnection": "Ingen internetanslutning. Anslut och försök igen.",
   "Error_WinGetInstallFailed": "Misslyckades med att installera WinGet. Kontrollera din internetanslutning.",
-  "Error_WinGetNotAvailable": "WinGet är inte tillgängligt på detta system."
+  "Error_WinGetNotAvailable": "WinGet är inte tillgängligt på detta system.",
+  "App_Tagline": "Förbättra din Windows-upplevelse",
+  "Loading_InitializingSettings": "Initierar inställningar...",
+  "Loading_CreatingRestorePoint": "Skapar systemåterställningspunkt. Vänta, detta kan ta en stund...",
+  "Loading_MigratingScripts": "Migrerar skript...",
+  "Loading_CheckingScripts": "Söker efter skriptuppdateringar...",
+  "Loading_PreparingApp": "Förbereder programmet..."
 }

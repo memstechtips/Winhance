@@ -285,7 +285,8 @@ public abstract partial class BaseAppFeatureViewModel<T>(
 
     protected async Task<bool?> ShowConfirmItemsDialogAsync(string operation, IEnumerable<string> itemNames, int count)
     {
-        return await dialogService.ShowAppOperationConfirmationAsync(operation, itemNames, count);
+        var (confirmed, _) = await dialogService.ShowAppOperationConfirmationAsync(operation, itemNames, count);
+        return confirmed;
     }
 
 

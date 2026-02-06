@@ -52,6 +52,7 @@
   "Dialog_ItemsWillBeInstalled": "将安装这些项目。\n是否要继续？",
   "Dialog_ItemsWillBeRemoved": "将移除这些项目。\n是否要继续？",
   "Dialog_ItemsWillBeProcessed": "将 {0} 这些项目。\n是否要继续？",
+  "Dialog_SaveRemovalScripts": "保存移除脚本以确保持续移除",
   "Dialog_Donation_Title": "支持 Winhance",
   "Dialog_Donation_Header_Title": "感谢使用 Winhance！❤",
   "Dialog_Donation_Header_Message": "如果您觉得这个工具有用，请考虑进行小额捐赠以支持开发。",
@@ -63,7 +64,6 @@
   "Dialog_Update_CurrentVersion": "当前版本：",
   "Dialog_Update_LatestVersion": "最新版本：",
   "Dialog_Update_Footer": "您想立即下载并安装更新吗？",
-  "Dialog_Update_Button_RemindLater": "稍后提醒",
   "Dialog_Update_Button_InstallNow": "立即安装",
   "Dialog_Update_Status_Downloading": "正在下载更新...",
   "Dialog_Update_Status_Error": "下载更新时出错：{0}",
@@ -1473,5 +1473,11 @@
   "ExternalApps_WinGetUnavailable": "无法确定安装状态。请连接到互联网并点击刷新按钮。",
   "Error_NoInternetConnection": "无网络连接。请连接后重试。",
   "Error_WinGetInstallFailed": "安装 WinGet 失败。请检查您的网络连接。",
-  "Error_WinGetNotAvailable": "此系统上无法使用 WinGet。"
+  "Error_WinGetNotAvailable": "此系统上无法使用 WinGet。",
+  "App_Tagline": "提升您的 Windows 体验",
+  "Loading_InitializingSettings": "正在初始化设置...",
+  "Loading_CreatingRestorePoint": "正在创建系统还原点。请稍候，这可能需要一些时间...",
+  "Loading_MigratingScripts": "正在迁移脚本...",
+  "Loading_CheckingScripts": "正在检查脚本更新...",
+  "Loading_PreparingApp": "正在准备应用程序..."
 }

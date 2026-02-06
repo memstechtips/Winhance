@@ -52,8 +52,9 @@
   "Dialog_ItemsWillBeInstalled": "Ces éléments seront installés.\nVoulez-vous continuer ?",
   "Dialog_ItemsWillBeRemoved": "Ces éléments seront supprimés.\nVoulez-vous continuer ?",
   "Dialog_ItemsWillBeProcessed": "Ces éléments seront {0}.\nVoulez-vous continuer ?",
+  "Dialog_SaveRemovalScripts": "Enregistrer les scripts de suppression pour assurer une suppression continue",
   "Dialog_Donation_Title": "Soutenir Winhance",
-  "Dialog_Donation_Header_Title": "Merci d'utiliser Winhance ! ❤",
+  "Dialog_Donation_Header_Title": "Merci d'utiliser Winhance !",
   "Dialog_Donation_Header_Message": "Si cet outil vous a été utile, veuillez envisager de faire un petit don pour soutenir le développement.",
   "Dialog_Donation_SupportMessage": "Votre soutien aide à maintenir ce projet en vie !",
   "Dialog_Donation_Footer": "Cliquez sur 'Oui' pour montrer votre soutien !",
@@ -63,7 +64,6 @@
   "Dialog_Update_CurrentVersion": "Version actuelle :",
   "Dialog_Update_LatestVersion": "Dernière version :",
   "Dialog_Update_Footer": "Voulez-vous télécharger et installer la mise à jour maintenant ?",
-  "Dialog_Update_Button_RemindLater": "Me le rappeler plus tard",
   "Dialog_Update_Button_InstallNow": "Installer maintenant",
   "Dialog_Update_Status_Downloading": "Téléchargement de la mise à jour...",
   "Dialog_Update_Status_Error": "Erreur lors du téléchargement de la mise à jour : {0}",
@@ -1473,5 +1473,11 @@
   "ExternalApps_WinGetUnavailable": "Impossible de déterminer l'état de l'installation. Connectez-vous à Internet et cliquez sur le bouton Actualiser.",
   "Error_NoInternetConnection": "Pas de connexion Internet. Veuillez vous connecter et réessayer.",
   "Error_WinGetInstallFailed": "Échec de l'installation de WinGet. Veuillez vérifier votre connexion Internet.",
-  "Error_WinGetNotAvailable": "WinGet n'est pas disponible sur ce système."
+  "Error_WinGetNotAvailable": "WinGet n'est pas disponible sur ce système.",
+  "App_Tagline": "Améliorez votre expérience Windows",
+  "Loading_InitializingSettings": "Initialisation des paramètres...",
+  "Loading_CreatingRestorePoint": "Création du point de restauration système. Veuillez patienter, cela peut prendre un moment...",
+  "Loading_MigratingScripts": "Migration des scripts...",
+  "Loading_CheckingScripts": "Vérification des mises à jour des scripts...",
+  "Loading_PreparingApp": "Préparation de l'application..."
 }

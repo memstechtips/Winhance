@@ -341,7 +341,7 @@ public partial class ExternalAppsViewModel : BaseViewModel
         if (!skipConfirmation)
         {
             var itemNames = selectedItems.Select(a => a.Name).ToList();
-            var confirmed = await _dialogService.ShowAppOperationConfirmationAsync("install", itemNames, selectedItems.Count);
+            var (confirmed, _) = await _dialogService.ShowAppOperationConfirmationAsync("install", itemNames, selectedItems.Count);
             if (!confirmed) return;
         }
 
@@ -369,7 +369,7 @@ public partial class ExternalAppsViewModel : BaseViewModel
         }
 
         var itemNames = selectedItems.Select(a => a.Name).ToList();
-        var confirmed = await _dialogService.ShowAppOperationConfirmationAsync("install", itemNames, selectedItems.Count);
+        var (confirmed, _) = await _dialogService.ShowAppOperationConfirmationAsync("install", itemNames, selectedItems.Count);
         if (!confirmed) return;
 
         await InstallAppsInternalAsync(selectedItems);
@@ -383,7 +383,7 @@ public partial class ExternalAppsViewModel : BaseViewModel
 
         try
         {
-            _progressService.StartTask("Installing External Apps", false);
+            _progressService.StartTask(_localizationService.GetString("Progress_Task_InstallingExternalApps") ?? "Installing External Apps", false);
             var progress = _progressService.CreateDetailedProgress();
 
             int successCount = 0;
@@ -428,7 +428,7 @@ public partial class ExternalAppsViewModel : BaseViewModel
         }
 
         var itemNames = selectedItems.Select(a => a.Name).ToList();
-        var confirmed = await _dialogService.ShowAppOperationConfirmationAsync("uninstall", itemNames, selectedItems.Count);
+        var (confirmed, _) = await _dialogService.ShowAppOperationConfirmationAsync("uninstall", itemNames, selectedItems.Count);
         if (!confirmed) return;
 
         IsTaskRunning = true;
@@ -436,7 +436,7 @@ public partial class ExternalAppsViewModel : BaseViewModel
 
         try
         {
-            _progressService.StartTask("Uninstalling External Apps", false);
+            _progressService.StartTask(_localizationService.GetString("Progress_Task_UninstallingExternalApps") ?? "Uninstalling External Apps", false);
             var progress = _progressService.CreateDetailedProgress();
 
             int successCount = 0;

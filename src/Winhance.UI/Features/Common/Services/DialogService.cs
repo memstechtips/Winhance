@@ -1,5 +1,6 @@
 using Microsoft.UI.Xaml;
 using Microsoft.UI.Xaml.Controls;
+using Microsoft.UI.Xaml.Media;
 using Winhance.Core.Features.Common.Enums;
 using Winhance.Core.Features.Common.Interfaces;
 using Winhance.Core.Features.Common.Models;
@@ -269,27 +270,99 @@ public class DialogService : IDialogService
                 return (null, false);
             }
 
+            // Red heart icon matching the WPF DonationDialog
+            var heartIcon = new PathIcon
+            {
+                Data = (Geometry)Microsoft.UI.Xaml.Markup.XamlBindingHelper.ConvertValue(
+                    typeof(Geometry),
+                    "M12,21.35L10.55,20.03C5.4,15.36 2,12.27 2,8.5C2,5.41 4.42,3 7.5,3C9.24,3 10.91,3.81 12,5.08C13.09,3.81 14.76,3 16.5,3C19.58,3 22,5.41 22,8.5C22,12.27 18.6,15.36 13.45,20.03L12,21.35Z"),
+                Foreground = new SolidColorBrush(Windows.UI.Color.FromArgb(0xFF, 0xE8, 0x11, 0x23)),
+                Width = 40,
+                Height = 40,
+                VerticalAlignment = VerticalAlignment.Top,
+                Margin = new Thickness(0, 2, 0, 0)
+            };
+
+            // Header: icon + title/message
+            var headerTitle = new TextBlock
+            {
+                Text = _localization.GetString("Dialog_Donation_Header_Title"),
+                FontSize = 16,
+                FontWeight = Microsoft.UI.Text.FontWeights.SemiBold,
+                TextWrapping = TextWrapping.Wrap
+            };
+
+            var headerMessage = new TextBlock
+            {
+                Text = _localization.GetString("Dialog_Donation_Header_Message"),
+                FontSize = 14,
+                TextWrapping = TextWrapping.Wrap,
+                Opacity = 0.8
+            };
+
+            var headerTextPanel = new StackPanel
+            {
+                Spacing = 8,
+                VerticalAlignment = VerticalAlignment.Center,
+                Children = { headerTitle, headerMessage }
+            };
+
+            // Use Grid instead of horizontal StackPanel so text wraps properly
+            var headerPanel = new Grid
+            {
+                ColumnDefinitions =
+                {
+                    new ColumnDefinition { Width = GridLength.Auto },
+                    new ColumnDefinition { Width = new GridLength(1, GridUnitType.Star) }
+                },
+                ColumnSpacing = 10
+            };
+            Grid.SetColumn(heartIcon, 0);
+            Grid.SetColumn(headerTextPanel, 1);
+            headerPanel.Children.Add(heartIcon);
+            headerPanel.Children.Add(headerTextPanel);
+
+            // Support message
+            var supportText = new TextBlock
+            {
+                Text = supportMessage ?? _localization.GetString("Dialog_Donation_SupportMessage"),
+                FontSize = 14,
+                FontWeight = Microsoft.UI.Text.FontWeights.SemiBold,
+                TextWrapping = TextWrapping.Wrap,
+                Margin = new Thickness(0, 4, 0, 0)
+            };
+
+            // Footer
+            var footerText = new TextBlock
+            {
+                Text = _localization.GetString("Dialog_Donation_Footer"),
+                FontSize = 13,
+                TextWrapping = TextWrapping.Wrap,
+                Opacity = 0.7
+            };
+
+            // Don't show again checkbox
             var dontShowCheckBox = new CheckBox
             {
-                Content = _localization.GetString("Dialog_DontShowAgain")
+                Content = _localization.GetString("Dialog_Donation_Checkbox")
+            };
+
+            var contentPanel = new StackPanel
+            {
+                Spacing = 12,
+                Children =
+                {
+                    headerPanel,
+                    supportText,
+                    footerText,
+                    dontShowCheckBox
+                }
             };
 
             var dialog = new ContentDialog
             {
-                Title = title ?? _localization.GetString("Dialog_Support_Title"),
-                Content = new StackPanel
-                {
-                    Spacing = 12,
-                    Children =
-                    {
-                        new TextBlock
-                        {
-                            Text = supportMessage ?? _localization.GetString("Dialog_Support_Message"),
-                            TextWrapping = TextWrapping.Wrap
-                        },
-                        dontShowCheckBox
-                    }
-                },
+                Title = title ?? _localization.GetString("Dialog_Donation_Title"),
+                Content = contentPanel,
                 PrimaryButtonText = StringKeys.Localized.Button_Yes,
                 SecondaryButtonText = StringKeys.Localized.Button_No,
                 DefaultButton = ContentDialogButton.Primary,
@@ -495,18 +568,96 @@ public class DialogService : IDialogService
         }
     }
 
-    public async Task<bool> ShowAppOperationConfirmationAsync(
+    public async Task<(bool Confirmed, bool CheckboxChecked)> ShowAppOperationConfirmationAsync(
         string operationType,
         IEnumerable<string> itemNames,
-        int count)
+        int count,
+        string? checkboxText = null)
     {
-        var message = $"The following {count} item(s) will be {operationType.ToLower()}:\n\n" +
-                      string.Join("\n", itemNames.Take(10));
+        await _dialogSemaphore.WaitAsync();
+        try
+        {
+            if (XamlRoot == null)
+            {
+                _logService.LogWarning("XamlRoot not set, cannot show dialog");
+                return (false, false);
+            }
 
-        if (count > 10)
-            message += $"\n... and {count - 10} more";
+            bool isInstall = operationType.Equals("install", StringComparison.OrdinalIgnoreCase);
+            bool isRemove = operationType.Equals("remove", StringComparison.OrdinalIgnoreCase);
 
-        return await ShowConfirmationAsync(message, $"Confirm {operationType}");
+            string title = isInstall ? _localization.GetString("Dialog_ConfirmInstallation") :
+                          isRemove ? _localization.GetString("Dialog_ConfirmRemoval") :
+                          _localization.GetString("Dialog_ConfirmOperation", operationType);
+
+            string headerMessage = isInstall ? _localization.GetString("Dialog_ItemsWillBeInstalled") :
+                                  isRemove ? _localization.GetString("Dialog_ItemsWillBeRemoved") :
+                                  _localization.GetString("Dialog_ItemsWillBeProcessed", operationType.ToLower());
+
+            var itemContainerStyle = new Style(typeof(ListViewItem));
+            itemContainerStyle.Setters.Add(new Setter(ListViewItem.PaddingProperty, new Thickness(0)));
+            itemContainerStyle.Setters.Add(new Setter(ListViewItem.MinHeightProperty, 0d));
+
+            var listView = new ListView
+            {
+                ItemsSource = itemNames.ToList(),
+                MaxHeight = 300,
+                SelectionMode = ListViewSelectionMode.None,
+                ItemContainerStyle = itemContainerStyle
+            };
+
+            var listContainer = new Border
+            {
+                Child = listView,
+                CornerRadius = new CornerRadius(4),
+                Padding = new Thickness(8),
+                Background = (Microsoft.UI.Xaml.Media.Brush)Application.Current.Resources["CardBackgroundFillColorDefaultBrush"]
+            };
+
+            var contentPanel = new StackPanel { Spacing = 12 };
+            contentPanel.Children.Add(new TextBlock { Text = headerMessage, TextWrapping = TextWrapping.Wrap });
+            contentPanel.Children.Add(listContainer);
+
+            CheckBox? checkBox = null;
+            if (!string.IsNullOrEmpty(checkboxText))
+            {
+                checkBox = new CheckBox { Content = checkboxText, IsChecked = true };
+                contentPanel.Children.Add(checkBox);
+            }
+
+            // Get the current theme from the XamlRoot content
+            var currentTheme = ElementTheme.Default;
+            if (XamlRoot.Content is FrameworkElement rootElement)
+            {
+                currentTheme = rootElement.ActualTheme == Microsoft.UI.Xaml.ElementTheme.Dark
+                    ? ElementTheme.Dark
+                    : ElementTheme.Light;
+            }
+
+            var dialog = new ContentDialog
+            {
+                Title = title,
+                Content = contentPanel,
+                PrimaryButtonText = _localization.GetString("Button_Continue"),
+                CloseButtonText = _localization.GetString("Button_Cancel"),
+                DefaultButton = ContentDialogButton.Primary,
+                XamlRoot = XamlRoot,
+                RequestedTheme = currentTheme
+            };
+
+            // Apply the default ContentDialog style for proper theming
+            if (Application.Current.Resources.TryGetValue("DefaultContentDialogStyle", out var style) && style is Style dialogStyle)
+            {
+                dialog.Style = dialogStyle;
+            }
+
+            var result = await dialog.ShowAsync();
+            return (result == ContentDialogResult.Primary, checkBox?.IsChecked == true);
+        }
+        finally
+        {
+            _dialogSemaphore.Release();
+        }
     }
 
     public async Task<ConfirmationResponse> ShowConfirmationAsync(

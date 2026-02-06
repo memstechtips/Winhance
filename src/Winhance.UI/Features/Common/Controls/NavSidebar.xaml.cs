@@ -216,7 +216,7 @@ public sealed partial class NavSidebar : UserControl, INotifyPropertyChanged
                     _moreMenuViewModel.ReportBugCommand.Execute(null);
                     break;
                 case "CheckUpdates":
-                    _moreMenuViewModel.CheckForUpdatesCommand.Execute(null);
+                    ViewModel?.CheckForUpdatesCommand.Execute(null);
                     break;
                 case "OpenLogs":
                     _moreMenuViewModel.OpenLogsCommand.Execute(null);

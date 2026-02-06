@@ -9,7 +9,8 @@
 
     <Grid x:Name="RootGrid" Loaded="RootGrid_Loaded">
         <Grid.RowDefinitions>
-            <RowDefinition Height="48"/>  <!-- TitleBar -->
+            <RowDefinition Height="48"/>    <!-- TitleBar -->
+            <RowDefinition Height="Auto"/>  <!-- InfoBar -->
             <RowDefinition Height="*"/>
         </Grid.RowDefinitions>
 
@@ -106,8 +107,14 @@
             </StackPanel>
         </Grid>
 
+        <!-- Update InfoBar -->
+        <InfoBar x:Name="UpdateInfoBar"
+                 Grid.Row="1"
+                 IsClosable="True"
+                 Closed="UpdateInfoBar_Closed"/>
+
         <!-- Main Content Area -->
-        <Grid Grid.Row="1">
+        <Grid Grid.Row="2">
             <Grid.ColumnDefinitions>
                 <ColumnDefinition Width="Auto"/>  <!-- NavSidebar -->
                 <ColumnDefinition Width="*"/>     <!-- Content -->
@@ -118,21 +125,50 @@
                                  Grid.Column="0"
                                  ItemClicked="NavSidebar_ItemClicked"/>
 
-            <!-- Content Frame for Page Navigation -->
-            <Frame x:Name="ContentFrame" Grid.Column="1"/>
+            <!-- Content + Task Progress -->
+            <Grid Grid.Column="1">
+                <Grid.RowDefinitions>
+                    <RowDefinition Height="*"/>
+                    <RowDefinition Height="Auto"/>
+                </Grid.RowDefinitions>
+
+                <!-- Content Frame for Page Navigation -->
+                <Frame x:Name="ContentFrame" Grid.Row="0"/>
+
+                <!-- Task Progress Bar -->
+                <controls:TaskProgressControl x:Name="TaskProgressControl"
+                                               Grid.Row="1"
+                                               Margin="0,2,12,8"/>
+            </Grid>
         </Grid>
 
-        <!-- Loading Overlay (shown during initialization) -->
+        <!-- Loading Overlay (shown during startup initialization) -->
         <Grid x:Name="LoadingOverlay"
-              Grid.RowSpan="2"
-              Background="#80000000"
-              Visibility="Collapsed">
-            <StackPanel HorizontalAlignment="Center" VerticalAlignment="Center">
-                <ProgressRing IsActive="True" Width="60" Height="60"/>
-                <TextBlock Text="Loading..."
-                           Margin="0,16,0,0"
-                           HorizontalAlignment="Center"
-                           FontSize="20"/>
+              Grid.RowSpan="3"
+              Background="{ThemeResource SolidBackgroundFillColorBaseBrush}"
+              Visibility="Visible">
+            <StackPanel HorizontalAlignment="Center" VerticalAlignment="Center" Spacing="24">
+                <!-- Logo + Branding -->
+                <StackPanel Orientation="Horizontal" HorizontalAlignment="Center" Spacing="16">
+                    <Image x:Name="LoadingLogo" Width="128" Height="128" VerticalAlignment="Center"/>
+                    <StackPanel VerticalAlignment="Center" Spacing="-4">
+                        <TextBlock x:Name="LoadingTitleText"
+                                   FontSize="80"
+                                   FontWeight="Bold"/>
+                        <TextBlock x:Name="LoadingTaglineText"
+                                   FontSize="16"
+                                   Opacity="0.7"/>
+                    </StackPanel>
+                </StackPanel>
+
+                <!-- Status + Spinner -->
+                <StackPanel HorizontalAlignment="Center" Spacing="16">
+                    <TextBlock x:Name="LoadingStatusText"
+                               HorizontalAlignment="Center"
+                               FontSize="14"
+                               Opacity="0.6"/>
+                    <ProgressRing IsActive="True" Width="40" Height="40"/>
+                </StackPanel>
             </StackPanel>
         </Grid>
     </Grid>

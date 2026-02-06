@@ -52,8 +52,9 @@
   "Dialog_ItemsWillBeInstalled": "Ezek az elemek telepítésre kerülnek.\nFolytatni szeretné?",
   "Dialog_ItemsWillBeRemoved": "Ezeket az elemeket eltávolítjuk.\nFolytatni szeretné?",
   "Dialog_ItemsWillBeProcessed": "Ezek az elemek {0} feldolgozásra kerülnek.\nFolytatni szeretné?",
+  "Dialog_SaveRemovalScripts": "Eltávolítási szkriptek mentése a folyamatos eltávolítás biztosításához",
   "Dialog_Donation_Title": "Winhance támogatása",
-  "Dialog_Donation_Header_Title": "Köszönjük, hogy a Winhance-t használja! ❤",
+  "Dialog_Donation_Header_Title": "Köszönjük, hogy a Winhance-t használja!",
   "Dialog_Donation_Header_Message": "Ha hasznosnak találta ezt az eszközt, kérjük, fontolja meg egy kisebb adomány felajánlását a fejlesztés támogatására.",
   "Dialog_Donation_SupportMessage": "A támogatásod segít, hogy ez a projekt tovább működhessen!",
   "Dialog_Donation_Footer": "Kattintson az „Igen” gombra, hogy kifejezze támogatását!",
@@ -63,7 +64,6 @@
   "Dialog_Update_CurrentVersion": "Jelenlegi verzió:",
   "Dialog_Update_LatestVersion": "Legújabb verzió:",
   "Dialog_Update_Footer": "Szeretné most letölteni és telepíteni a frissítést?",
-  "Dialog_Update_Button_RemindLater": "Emlékeztessen később",
   "Dialog_Update_Button_InstallNow": "Telepítés most",
   "Dialog_Update_Status_Downloading": "Frissítés letöltése...",
   "Dialog_Update_Status_Error": "Hiba a frissítés letöltése során: {0}",
@@ -1473,5 +1473,11 @@
   "Button_Unlock": "Feloldás",
   "Common_ClickToUnlock": "Kattintson a feloldáshoz",
   "Setting_taskbar-copilot_Name": "Copilot Előnézet gomb",
-  "Setting_taskbar-copilot_Description": "A Copilot (Előnézet) gomb megjelenítése vagy elrejtése a tálcán"
+  "Setting_taskbar-copilot_Description": "A Copilot (Előnézet) gomb megjelenítése vagy elrejtése a tálcán",
+  "App_Tagline": "Javítsa Windows-élményét",
+  "Loading_InitializingSettings": "Beállítások inicializálása...",
+  "Loading_CreatingRestorePoint": "Rendszer-visszaállítási pont létrehozása. Kérjük, várjon, ez eltarthat egy ideig...",
+  "Loading_MigratingScripts": "Szkriptek migrálása...",
+  "Loading_CheckingScripts": "Szkriptfrissítések keresése...",
+  "Loading_PreparingApp": "Alkalmazás előkészítése..."
 }

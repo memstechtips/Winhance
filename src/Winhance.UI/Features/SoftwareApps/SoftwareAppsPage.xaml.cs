@@ -25,6 +25,11 @@ public sealed partial class SoftwareAppsPage : Page
     protected override async void OnNavigatedTo(NavigationEventArgs e)
     {
         base.OnNavigatedTo(e);
+
+        // During startup, MainWindow handles initialization with the loading overlay visible
+        if (e.Parameter as string == "startup")
+            return;
+
         await ViewModel.InitializeAsync();
     }
 

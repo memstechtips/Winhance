@@ -63,7 +63,6 @@
   "Dialog_Update_CurrentVersion": "当前版本：",
   "Dialog_Update_LatestVersion": "最新版本：",
   "Dialog_Update_Footer": "您想立即下载并安装更新吗？",
-  "Dialog_Update_Button_RemindLater": "稍后提醒",
   "Dialog_Update_Button_InstallNow": "立即安装",
   "Dialog_Update_Status_Downloading": "正在下载更新...",
   "Dialog_Update_Status_Error": "下载更新时出错：{0}",

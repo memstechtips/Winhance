@@ -52,8 +52,9 @@
   "Dialog_ItemsWillBeInstalled": "Estes itens serão instalados.\nDeseja continuar?",
   "Dialog_ItemsWillBeRemoved": "Estes itens serão removidos.\nDeseja continuar?",
   "Dialog_ItemsWillBeProcessed": "Estes itens serão {0}(s).\nDeseja continuar?",
+  "Dialog_SaveRemovalScripts": "Salvar scripts de remoção para garantir a remoção contínua",
   "Dialog_Donation_Title": "Apoie o Winhance",
-  "Dialog_Donation_Header_Title": "Obrigado por usar o Winhance! ❤",
+  "Dialog_Donation_Header_Title": "Obrigado por usar o Winhance!",
   "Dialog_Donation_Header_Message": "Se você achou esta ferramenta útil, por favor, considere fazer uma pequena doação para apoiar o desenvolvimento.",
   "Dialog_Donation_SupportMessage": "Seu apoio ajuda a manter este projeto ativo!",
   "Dialog_Donation_Footer": "Clique em 'Sim' para mostrar seu apoio!",
@@ -63,7 +64,6 @@
   "Dialog_Update_CurrentVersion": "Versão Atual:",
   "Dialog_Update_LatestVersion": "Última Versão:",
   "Dialog_Update_Footer": "Gostaria de baixar e instalar a atualização agora?",
-  "Dialog_Update_Button_RemindLater": "Lembrar Mais Tarde",
   "Dialog_Update_Button_InstallNow": "Instalar Agora",
   "Dialog_Update_Status_Downloading": "Baixando atualização...",
   "Dialog_Update_Status_Error": "Erro ao baixar atualização: {0}",
@@ -1473,5 +1473,11 @@
   "ExternalApps_WinGetUnavailable": "Não é possível determinar o status da instalação. Conecte-se à internet e clique no botão Atualizar.",
   "Error_NoInternetConnection": "Sem conexão com a internet. Por favor, conecte-se e tente novamente.",
   "Error_WinGetInstallFailed": "Falha ao instalar o WinGet. Verifique sua conexão com a internet.",
-  "Error_WinGetNotAvailable": "O WinGet não está disponível neste sistema."
+  "Error_WinGetNotAvailable": "O WinGet não está disponível neste sistema.",
+  "App_Tagline": "Melhore sua experiência no Windows",
+  "Loading_InitializingSettings": "Inicializando configurações...",
+  "Loading_CreatingRestorePoint": "Criando ponto de restauração do sistema. Por favor aguarde, isso pode demorar um pouco...",
+  "Loading_MigratingScripts": "Migrando scripts...",
+  "Loading_CheckingScripts": "Verificando atualizações de scripts...",
+  "Loading_PreparingApp": "Preparando o aplicativo..."
 }

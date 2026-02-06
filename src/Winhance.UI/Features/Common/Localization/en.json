@@ -52,8 +52,9 @@
   "Dialog_ItemsWillBeInstalled": "These items will be installed.\nDo you want to continue?",
   "Dialog_ItemsWillBeRemoved": "These items will be removed.\nDo you want to continue?",
   "Dialog_ItemsWillBeProcessed": "These items will be {0}ed.\nDo you want to continue?",
+  "Dialog_SaveRemovalScripts": "Save removal scripts to ensure continuous removal",
   "Dialog_Donation_Title": "Support Winhance",
-  "Dialog_Donation_Header_Title": "Thanks for using Winhance! ❤",
+  "Dialog_Donation_Header_Title": "Thanks for using Winhance!",
   "Dialog_Donation_Header_Message": "If you found this tool helpful, please consider making a small donation to support development.",
   "Dialog_Donation_SupportMessage": "Your support helps keep this project going!",
   "Dialog_Donation_Footer": "Click \u0027Yes\u0027 to show your support!",
@@ -63,7 +64,6 @@
   "Dialog_Update_CurrentVersion": "Current Version:",
   "Dialog_Update_LatestVersion": "Latest Version:",
   "Dialog_Update_Footer": "Would you like to download and install the update now?",
-  "Dialog_Update_Button_RemindLater": "Remind Later",
   "Dialog_Update_Button_InstallNow": "Install Now",
   "Dialog_Update_Status_Downloading": "Downloading update...",
   "Dialog_Update_Status_Error": "Error downloading update: {0}",
@@ -1473,5 +1473,11 @@
   "Button_Unlock": "Unlock",
   "Common_ClickToUnlock": "Click to unlock",
   "Setting_taskbar-copilot_Name": "Copilot Preview Button",
-  "Setting_taskbar-copilot_Description": "Show or hide the Copilot Preview button on the taskbar"
+  "Setting_taskbar-copilot_Description": "Show or hide the Copilot Preview button on the taskbar",
+  "App_Tagline": "Enhance Your Windows Experience",
+  "Loading_InitializingSettings": "Initializing settings...",
+  "Loading_CreatingRestorePoint": "Creating system restore point. Please wait, this might take a while...",
+  "Loading_MigratingScripts": "Migrating scripts...",
+  "Loading_CheckingScripts": "Checking for script updates...",
+  "Loading_PreparingApp": "Preparing application..."
 }

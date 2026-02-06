@@ -5,6 +5,7 @@ using Microsoft.UI.Xaml;
 using Microsoft.UI.Xaml.Controls;
 using Microsoft.UI.Xaml.Media;
 using Microsoft.UI.Xaml.Media.Imaging;
+using Winhance.Core.Features.Common.Constants;
 using Winhance.Core.Features.Common.Interfaces;
 using Winhance.UI.Features.AdvancedTools;
 using Winhance.UI.Features.Common.Controls;
@@ -14,10 +15,12 @@ using Winhance.UI.Features.Customize;
 using Winhance.UI.Features.Optimize;
 using Winhance.UI.Features.Settings;
 using Winhance.UI.Features.SoftwareApps;
+using Winhance.UI.Features.Common.Utilities;
 using Winhance.UI.ViewModels;
 using System;
 using System.Collections.Generic;
 using System.IO;
+using System.Threading.Tasks;
 using Windows.Foundation;
 using Windows.Graphics;
 
@@ -30,6 +33,8 @@ public sealed partial class MainWindow : Window
 {
     private static readonly string LogFile = Path.Combine(AppContext.BaseDirectory, "..", "..", "..", "..", "..", "startup-debug.log");
     private MainWindowViewModel? _viewModel;
+    private WindowSizeManager? _windowSizeManager;
+    private bool _isStartupLoading = true;
 
     private static void Log(string message)
     {
@@ -57,9 +62,8 @@ public sealed partial class MainWindow : Window
         RootGrid.ActualThemeChanged += (_, _) => ApplySystemThemeToCaptionButtons();
         RootGrid.Loaded += (_, _) => ApplySystemThemeToCaptionButtons();
 
-        // Set initial window size
-        var appWindow = this.AppWindow;
-        appWindow.Resize(new Windows.Graphics.SizeInt32(1280, 800));
+        // Initialize window size manager for position/size persistence
+        InitializeWindowSizeManager();
 
         // Apply Mica backdrop (Windows 11) with fallback to DesktopAcrylic (Windows 10)
         TrySetMicaBackdrop();
@@ -85,6 +89,13 @@ public sealed partial class MainWindow : Window
         // Subscribe to MoreMenuClosed to restore selection based on current page
         NavSidebar.MoreMenuClosed += NavSidebar_MoreMenuClosed;
 
+        // Skip auto-navigation during startup — CompleteStartup() will trigger it
+        if (_isStartupLoading)
+        {
+            Log("Startup loading in progress, deferring navigation");
+            return;
+        }
+
         // Navigate to SoftwareApps page by default
         Log("Navigating to SoftwareApps as default...");
         NavSidebar.SelectedTag = "SoftwareApps";
@@ -102,6 +113,46 @@ public sealed partial class MainWindow : Window
         if (!string.IsNullOrEmpty(currentTag))
         {
             NavSidebar.SelectedTag = currentTag;
+        }
+    }
+
+    /// <summary>
+    /// Initializes the WindowSizeManager for window position/size persistence
+    /// and wires up ApplicationCloseService for proper shutdown with donation dialog.
+    /// </summary>
+    private void InitializeWindowSizeManager()
+    {
+        try
+        {
+            var userPreferencesService = App.Services.GetRequiredService<IUserPreferencesService>();
+            var logService = App.Services.GetRequiredService<ILogService>();
+            _windowSizeManager = new WindowSizeManager(this.AppWindow, userPreferencesService, logService);
+
+            // Initialize async (restore saved position/size or set defaults)
+            _ = _windowSizeManager.InitializeAsync();
+
+            // Wire up ApplicationCloseService: saves window state, shows donation dialog, then exits
+            var applicationCloseService = App.Services.GetRequiredService<IApplicationCloseService>();
+            applicationCloseService.BeforeShutdown = async () =>
+            {
+                if (_windowSizeManager != null)
+                {
+                    await _windowSizeManager.SaveWindowSettingsAsync();
+                }
+            };
+
+            // Intercept window close — cancel the native close and delegate to ApplicationCloseService
+            this.AppWindow.Closing += async (sender, args) =>
+            {
+                args.Cancel = true;
+                await applicationCloseService.CheckOperationsAndCloseAsync();
+            };
+        }
+        catch (Exception ex)
+        {
+            // Fallback to a reasonable default if WindowSizeManager fails
+            this.AppWindow.Resize(new Windows.Graphics.SizeInt32(1280, 800));
+            System.Diagnostics.Debug.WriteLine($"Failed to initialize WindowSizeManager: {ex.Message}");
         }
     }
 
@@ -271,6 +322,201 @@ public sealed partial class MainWindow : Window
     }
 
     /// <summary>
+    /// Kicks off the async startup sequence. Called by App.xaml.cs after Activate + InitializeTheme.
+    /// </summary>
+    public void StartStartupOperations()
+    {
+        Log("StartStartupOperations called");
+        UpdateLoadingLogo();
+
+        // Set all overlay text from localization keys
+        try
+        {
+            var localizationService = App.Services.GetService<ILocalizationService>();
+            if (localizationService != null)
+            {
+                LoadingTitleText.Text = localizationService.GetString("App_Title");
+                LoadingTaglineText.Text = localizationService.GetString("App_Tagline");
+                LoadingStatusText.Text = localizationService.GetString("Loading_PreparingApp");
+            }
+        }
+        catch { }
+
+        _ = RunStartupSequenceAsync();
+    }
+
+    /// <summary>
+    /// Orchestrates all startup operations asynchronously while updating the loading overlay.
+    /// </summary>
+    private async Task RunStartupSequenceAsync()
+    {
+        try
+        {
+            // 1. Initialize settings registry (was blocking in App.xaml.cs before)
+            UpdateLoadingStatus("Loading_InitializingSettings");
+            Log("Startup: Initializing settings registry...");
+            try
+            {
+                var settingsRegistry = App.Services.GetRequiredService<ICompatibleSettingsRegistry>();
+                await settingsRegistry.InitializeAsync().ConfigureAwait(false);
+
+                var settingsPreloader = App.Services.GetRequiredService<IGlobalSettingsPreloader>();
+                await settingsPreloader.PreloadAllSettingsAsync().ConfigureAwait(false);
+                Log("Startup: Settings registry initialized");
+            }
+            catch (Exception ex)
+            {
+                Log($"Startup: Settings registry FAILED: {ex.Message}");
+                System.Diagnostics.Debug.WriteLine($"Failed to initialize settings registry: {ex.Message}");
+            }
+
+            // 2. System restore point (respects SkipSystemBackup preference)
+            try
+            {
+                var preferencesService = App.Services.GetRequiredService<IUserPreferencesService>();
+                var skipBackup = preferencesService.GetPreference(UserPreferenceKeys.SkipSystemBackup, "false");
+                if (!string.Equals(skipBackup, "true", StringComparison.OrdinalIgnoreCase))
+                {
+                    UpdateLoadingStatus("Loading_CreatingRestorePoint");
+                    Log("Startup: Creating system restore point...");
+                    var backupService = App.Services.GetRequiredService<ISystemBackupService>();
+                    await backupService.EnsureInitialBackupsAsync().ConfigureAwait(false);
+                    Log("Startup: System restore point done");
+                }
+                else
+                {
+                    Log("Startup: System backup skipped (user preference)");
+                }
+            }
+            catch (Exception ex)
+            {
+                Log($"Startup: System backup FAILED: {ex.Message}");
+                System.Diagnostics.Debug.WriteLine($"System backup failed: {ex.Message}");
+            }
+
+            // 3. Script migration
+            try
+            {
+                UpdateLoadingStatus("Loading_MigratingScripts");
+                Log("Startup: Migrating scripts...");
+                var migrationService = App.Services.GetRequiredService<IScriptMigrationService>();
+                await migrationService.MigrateFromOldPathsAsync().ConfigureAwait(false);
+                Log("Startup: Script migration done");
+            }
+            catch (Exception ex)
+            {
+                Log($"Startup: Script migration FAILED: {ex.Message}");
+                System.Diagnostics.Debug.WriteLine($"Script migration failed: {ex.Message}");
+            }
+
+            // 4. Script updates
+            try
+            {
+                UpdateLoadingStatus("Loading_CheckingScripts");
+                Log("Startup: Checking for script updates...");
+                var updateService = App.Services.GetRequiredService<IRemovalScriptUpdateService>();
+                await updateService.CheckAndUpdateScriptsAsync().ConfigureAwait(false);
+                Log("Startup: Script update check done");
+            }
+            catch (Exception ex)
+            {
+                Log($"Startup: Script update check FAILED: {ex.Message}");
+                System.Diagnostics.Debug.WriteLine($"Script update check failed: {ex.Message}");
+            }
+
+            // 5. Complete startup — navigate to SoftwareApps and wait for it to finish loading
+            UpdateLoadingStatus("Loading_PreparingApp");
+            Log("Startup: Completing startup...");
+            DispatcherQueue.TryEnqueue(() => _ = CompleteStartupAsync());
+        }
+        catch (Exception ex)
+        {
+            Log($"Startup: RunStartupSequenceAsync EXCEPTION: {ex}");
+            // Even on failure, try to complete startup so the app is usable
+            DispatcherQueue.TryEnqueue(() => _ = CompleteStartupAsync());
+        }
+    }
+
+    /// <summary>
+    /// Updates the loading status text on the UI thread.
+    /// </summary>
+    private void UpdateLoadingStatus(string localizationKey)
+    {
+        DispatcherQueue.TryEnqueue(() =>
+        {
+            try
+            {
+                var localizationService = App.Services.GetService<ILocalizationService>();
+                LoadingStatusText.Text = localizationService?.GetString(localizationKey) ?? localizationKey;
+            }
+            catch
+            {
+                LoadingStatusText.Text = localizationKey;
+            }
+        });
+    }
+
+    /// <summary>
+    /// Navigates to SoftwareApps, waits for its installation status checks to finish,
+    /// then hides the loading overlay so the UI is fully ready.
+    /// </summary>
+    private async Task CompleteStartupAsync()
+    {
+        Log("CompleteStartupAsync starting");
+
+        try
+        {
+            // Navigate to SoftwareApps with "startup" parameter to prevent double-init
+            NavSidebar.SelectedTag = "SoftwareApps";
+            ContentFrame.Navigate(typeof(SoftwareAppsPage), "startup");
+
+            // Wait for the SoftwareApps page to finish loading apps + installation status
+            var page = ContentFrame.Content as SoftwareAppsPage;
+            if (page != null)
+            {
+                Log("Awaiting SoftwareApps initialization...");
+                await page.ViewModel.InitializeAsync();
+                Log("SoftwareApps initialization complete");
+            }
+        }
+        catch (Exception ex)
+        {
+            Log($"SoftwareApps initialization failed: {ex.Message}");
+            System.Diagnostics.Debug.WriteLine($"SoftwareApps init failed: {ex.Message}");
+        }
+
+        // Hide overlay and mark startup complete
+        _isStartupLoading = false;
+        LoadingOverlay.Visibility = Visibility.Collapsed;
+        Log("Startup complete, overlay hidden");
+
+        // Check for updates silently (only shows InfoBar if update available)
+        if (_viewModel != null)
+        {
+            _ = _viewModel.CheckForUpdatesOnStartupAsync();
+        }
+    }
+
+    /// <summary>
+    /// Sets the loading overlay logo based on the current theme.
+    /// </summary>
+    private void UpdateLoadingLogo()
+    {
+        try
+        {
+            var isDark = RootGrid.ActualTheme != ElementTheme.Light;
+            var logoUri = isDark
+                ? "ms-appx:///Assets/AppIcons/winhance-rocket-white-transparent-bg.png"
+                : "ms-appx:///Assets/AppIcons/winhance-rocket-black-transparent-bg.png";
+            LoadingLogo.Source = new BitmapImage(new Uri(logoUri));
+        }
+        catch (Exception ex)
+        {
+            System.Diagnostics.Debug.WriteLine($"Failed to set loading logo: {ex.Message}");
+        }
+    }
+
+    /// <summary>
     /// Shows the loading overlay.
     /// </summary>
     public void ShowLoadingOverlay()
@@ -412,6 +658,10 @@ public sealed partial class MainWindow : Window
                 // Pass ViewModel to NavSidebar for localized nav button text
                 NavSidebar.ViewModel = _viewModel;
 
+                // Wire up Task Progress Control
+                TaskProgressControl.CancelCommand = _viewModel.CancelCommand;
+                TaskProgressControl.CancelText = _viewModel.CancelButtonLabel;
+
                 // Load filter preference asynchronously
                 _ = _viewModel.LoadFilterPreferenceAsync();
             }
@@ -463,6 +713,48 @@ public sealed partial class MainWindow : Window
         {
             DispatcherQueue.TryEnqueue(UpdateFilterButtonIcon);
         }
+        else if (e.PropertyName == nameof(MainWindowViewModel.IsLoading) && _viewModel != null)
+        {
+            DispatcherQueue.TryEnqueue(() =>
+            {
+                TaskProgressControl.IsProgressVisible = _viewModel.IsLoading ? Visibility.Visible : Visibility.Collapsed;
+                TaskProgressControl.CanCancel = _viewModel.IsLoading ? Visibility.Visible : Visibility.Collapsed;
+                TaskProgressControl.IsTaskRunning = _viewModel.IsLoading;
+            });
+        }
+        else if (e.PropertyName == nameof(MainWindowViewModel.AppName) && _viewModel != null)
+        {
+            DispatcherQueue.TryEnqueue(() => TaskProgressControl.AppName = _viewModel.AppName);
+        }
+        else if (e.PropertyName == nameof(MainWindowViewModel.LastTerminalLine) && _viewModel != null)
+        {
+            DispatcherQueue.TryEnqueue(() => TaskProgressControl.LastTerminalLine = _viewModel.LastTerminalLine);
+        }
+        else if (e.PropertyName == nameof(MainWindowViewModel.CancelButtonLabel) && _viewModel != null)
+        {
+            DispatcherQueue.TryEnqueue(() => TaskProgressControl.CancelText = _viewModel.CancelButtonLabel);
+        }
+        else if (e.PropertyName == nameof(MainWindowViewModel.IsUpdateInfoBarOpen) && _viewModel != null)
+        {
+            DispatcherQueue.TryEnqueue(() => UpdateInfoBar.IsOpen = _viewModel.IsUpdateInfoBarOpen);
+        }
+        else if (e.PropertyName == nameof(MainWindowViewModel.UpdateInfoBarTitle) && _viewModel != null)
+        {
+            DispatcherQueue.TryEnqueue(() => UpdateInfoBar.Title = _viewModel.UpdateInfoBarTitle);
+        }
+        else if (e.PropertyName == nameof(MainWindowViewModel.UpdateInfoBarMessage) && _viewModel != null)
+        {
+            DispatcherQueue.TryEnqueue(() => UpdateInfoBar.Message = _viewModel.UpdateInfoBarMessage);
+        }
+        else if (e.PropertyName == nameof(MainWindowViewModel.UpdateInfoBarSeverity) && _viewModel != null)
+        {
+            DispatcherQueue.TryEnqueue(() => UpdateInfoBar.Severity = _viewModel.UpdateInfoBarSeverity);
+        }
+        else if (e.PropertyName == nameof(MainWindowViewModel.IsUpdateActionButtonVisible) && _viewModel != null
+              || e.PropertyName == nameof(MainWindowViewModel.InstallNowButtonText) && _viewModel != null)
+        {
+            DispatcherQueue.TryEnqueue(UpdateInfoBarActionButton);
+        }
     }
 
     /// <summary>
@@ -484,6 +776,37 @@ public sealed partial class MainWindow : Window
         {
             System.Diagnostics.Debug.WriteLine($"Failed to update filter button icon: {ex.Message}");
         }
+    }
+
+    /// <summary>
+    /// Updates the InfoBar action button based on visibility state.
+    /// </summary>
+    private void UpdateInfoBarActionButton()
+    {
+        if (_viewModel == null) return;
+
+        if (_viewModel.IsUpdateActionButtonVisible)
+        {
+            var button = new Button
+            {
+                Content = _viewModel.InstallNowButtonText,
+                Command = _viewModel.InstallUpdateCommand,
+                Style = (Style)Application.Current.Resources["AccentButtonStyle"],
+            };
+            UpdateInfoBar.ActionButton = button;
+        }
+        else
+        {
+            UpdateInfoBar.ActionButton = null;
+        }
+    }
+
+    /// <summary>
+    /// Handles the InfoBar Closed event to sync ViewModel state.
+    /// </summary>
+    private void UpdateInfoBar_Closed(InfoBar sender, InfoBarClosedEventArgs args)
+    {
+        _viewModel?.DismissUpdateInfoBar();
     }
 
     /// <summary>

@@ -52,8 +52,9 @@
   "Dialog_ItemsWillBeInstalled": "即將安裝以下項目。\n您確定要繼續嗎？",
   "Dialog_ItemsWillBeRemoved": "即將移除以下項目。\n您確定要繼續嗎？",
   "Dialog_ItemsWillBeProcessed": "即將{0}以下項目。\n您確定要繼續嗎？",
+  "Dialog_SaveRemovalScripts": "儲存移除腳本以確保持續移除",
   "Dialog_Donation_Title": "支持 Winhance",
-  "Dialog_Donation_Header_Title": "感謝您使用 Winhance！ ❤",
+  "Dialog_Donation_Header_Title": "感謝您使用 Winhance！",
   "Dialog_Donation_Header_Message": "如果您覺得這個工具很有幫助，請考慮小額贊助以支持開發。",
   "Dialog_Donation_SupportMessage": "您的支持是這個專案持續下去的動力！",
   "Dialog_Donation_Footer": "點擊「是」以表達您的支持！",
@@ -63,7 +64,6 @@
   "Dialog_Update_CurrentVersion": "目前版本：",
   "Dialog_Update_LatestVersion": "最新版本：",
   "Dialog_Update_Footer": "您想要現在下載並安裝更新嗎？",
-  "Dialog_Update_Button_RemindLater": "稍後提醒",
   "Dialog_Update_Button_InstallNow": "立即安裝",
   "Dialog_Update_Status_Downloading": "正在下載更新...",
   "Dialog_Update_Status_Error": "下載更新時發生錯誤：{0}",
@@ -1473,5 +1473,11 @@
   "ExternalApps_WinGetUnavailable": "無法確定安裝狀態。請連接到網際網路並點擊重新整理按鈕。",
   "Error_NoInternetConnection": "無網路連線。請連接後重試。",
   "Error_WinGetInstallFailed": "安裝 WinGet 失敗。請檢查您的網路連線。",
-  "Error_WinGetNotAvailable": "此系統上無法使用 WinGet。"
+  "Error_WinGetNotAvailable": "此系統上無法使用 WinGet。",
+  "App_Tagline": "提升您的 Windows 體驗",
+  "Loading_InitializingSettings": "正在初始化設定...",
+  "Loading_CreatingRestorePoint": "正在建立系統還原點。請稍候，這可能需要一些時間...",
+  "Loading_MigratingScripts": "正在遷移腳本...",
+  "Loading_CheckingScripts": "正在檢查腳本更新...",
+  "Loading_PreparingApp": "正在準備應用程式..."
 }

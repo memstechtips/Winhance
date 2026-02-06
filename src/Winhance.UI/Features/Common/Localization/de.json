@@ -52,8 +52,9 @@
   "Dialog_ItemsWillBeInstalled": "Diese Elemente werden installiert.\nMöchten Sie fortfahren?",
   "Dialog_ItemsWillBeRemoved": "Diese Elemente werden entfernt.\nMöchten Sie fortfahren?",
   "Dialog_ItemsWillBeProcessed": "Diese Elemente werden {0}.\nMöchten Sie fortfahren?",
+  "Dialog_SaveRemovalScripts": "Entfernungsskripte speichern, um kontinuierliche Entfernung sicherzustellen",
   "Dialog_Donation_Title": "Winhance unterstützen",
-  "Dialog_Donation_Header_Title": "Danke, dass Sie Winhance verwenden! ❤",
+  "Dialog_Donation_Header_Title": "Danke, dass Sie Winhance verwenden!",
   "Dialog_Donation_Header_Message": "Wenn Sie dieses Tool hilfreich fanden, ziehen Sie bitte eine kleine Spende in Betracht, um die Entwicklung zu unterstützen.",
   "Dialog_Donation_SupportMessage": "Ihre Unterstützung hilft, dieses Projekt am Laufen zu halten!",
   "Dialog_Donation_Footer": "Klicken Sie auf 'Ja', um Ihre Unterstützung zu zeigen!",
@@ -63,7 +64,6 @@
   "Dialog_Update_CurrentVersion": "Aktuelle Version:",
   "Dialog_Update_LatestVersion": "Neueste Version:",
   "Dialog_Update_Footer": "Möchten Sie das Update jetzt herunterladen und installieren?",
-  "Dialog_Update_Button_RemindLater": "Später erinnern",
   "Dialog_Update_Button_InstallNow": "Jetzt installieren",
   "Dialog_Update_Status_Downloading": "Update wird heruntergeladen...",
   "Dialog_Update_Status_Error": "Fehler beim Herunterladen des Updates: {0}",
@@ -1473,5 +1473,11 @@
   "ExternalApps_WinGetUnavailable": "Installationsstatus kann nicht ermittelt werden. Verbinden Sie sich mit dem Internet und klicken Sie auf die Schaltfläche Aktualisieren.",
   "Error_NoInternetConnection": "Keine Internetverbindung. Bitte verbinden Sie sich und versuchen Sie es erneut.",
   "Error_WinGetInstallFailed": "WinGet konnte nicht installiert werden. Bitte überprüfen Sie Ihre Internetverbindung.",
-  "Error_WinGetNotAvailable": "WinGet ist auf diesem System nicht verfügbar."
+  "Error_WinGetNotAvailable": "WinGet ist auf diesem System nicht verfügbar.",
+  "App_Tagline": "Verbessern Sie Ihr Windows-Erlebnis",
+  "Loading_InitializingSettings": "Einstellungen werden initialisiert...",
+  "Loading_CreatingRestorePoint": "Systemwiederherstellungspunkt wird erstellt. Bitte warten, dies kann eine Weile dauern...",
+  "Loading_MigratingScripts": "Skripte werden migriert...",
+  "Loading_CheckingScripts": "Skriptaktualisierungen werden geprüft...",
+  "Loading_PreparingApp": "Anwendung wird vorbereitet..."
 }

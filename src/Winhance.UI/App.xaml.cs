@@ -151,13 +151,7 @@ public partial class App : Application
             InitializeLocalization();
             Log("Localization initialized");
 
-            // Initialize settings registry and preload settings (critical for Optimize/Customize pages)
-            // Run on thread pool to avoid deadlock (async code may try to capture UI context)
-            Log("Initializing settings registry...");
-            Task.Run(async () => await InitializeSettingsRegistryAsync()).GetAwaiter().GetResult();
-            Log("Settings registry initialized");
-
-            // Create and activate the main window
+            // Create and activate the main window (loading overlay is visible by default)
             Log("Creating MainWindow...");
             _mainWindow = new MainWindow();
             Log("MainWindow created, activating...");
@@ -167,7 +161,13 @@ public partial class App : Application
             // Initialize theme service after window is created
             Log("Initializing theme...");
             InitializeTheme();
-            Log("Theme initialized - OnLaunched complete");
+            Log("Theme initialized");
+
+            // Start async startup operations (settings init, backups, scripts)
+            // The loading overlay provides visual feedback while these run
+            Log("Starting startup operations...");
+            (_mainWindow as MainWindow)?.StartStartupOperations();
+            Log("Startup operations kicked off - OnLaunched complete");
         }
         catch (Exception ex)
         {
@@ -215,34 +215,4 @@ public partial class App : Application
         }
     }
 
-    /// <summary>
-    /// Initializes the compatible settings registry and preloads all settings.
-    /// This must be called before any pages that display settings are loaded.
-    /// </summary>
-    private async Task InitializeSettingsRegistryAsync()
-    {
-        try
-        {
-            Log("Getting ICompatibleSettingsRegistry from DI...");
-            // Initialize the compatible settings registry (discovers and filters settings by Windows version/hardware)
-            var settingsRegistry = Services.GetRequiredService<ICompatibleSettingsRegistry>();
-            Log("Got ICompatibleSettingsRegistry, calling InitializeAsync...");
-            await settingsRegistry.InitializeAsync().ConfigureAwait(false);
-            Log("ICompatibleSettingsRegistry initialized");
-
-            Log("Getting IGlobalSettingsPreloader from DI...");
-            // Preload global settings registry (maps settings to feature IDs)
-            var settingsPreloader = Services.GetRequiredService<IGlobalSettingsPreloader>();
-            Log("Got IGlobalSettingsPreloader, calling PreloadAllSettingsAsync...");
-            await settingsPreloader.PreloadAllSettingsAsync().ConfigureAwait(false);
-            Log("IGlobalSettingsPreloader completed");
-        }
-        catch (Exception ex)
-        {
-            Log($"Settings registry initialization FAILED: {ex}");
-            _logService?.LogError($"Failed to initialize settings registry: {ex.Message}", ex);
-            System.Diagnostics.Debug.WriteLine($"Failed to initialize settings registry: {ex.Message}");
-            // Don't crash - pages will show empty content but app will still run
-        }
-    }
 }

@@ -451,7 +451,7 @@
             Grid.Row="2"
             Background="{ThemeResource SystemFillColorNeutralBackgroundBrush}"
             CornerRadius="8"
-            Margin="0,0,0,12">
+            Margin="0,0,0,4">
             <Grid>
                 <!-- Tab Navigation Container -->
                 <Border Margin="12,12,12,0"

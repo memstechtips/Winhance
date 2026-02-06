@@ -38,6 +38,9 @@ public static class UIServicesExtensions
         // Requires XamlRoot to be set by MainWindow after content is loaded
         services.AddSingleton<IDialogService, DialogService>();
 
+        // Application Close Service (Singleton - Handles shutdown with donation dialog)
+        services.AddSingleton<IApplicationCloseService, ApplicationCloseService>();
+
         // Configuration Service (Singleton - Import/Export configuration files)
         services.AddSingleton<IConfigurationService, ConfigurationService>();
 

@@ -325,7 +325,7 @@ public partial class WindowsAppsViewModel : BaseViewModel
         }
 
         var itemNames = selectedItems.Select(a => a.Name).ToList();
-        var confirmed = await _dialogService.ShowAppOperationConfirmationAsync("install", itemNames, selectedItems.Count);
+        var (confirmed, _) = await _dialogService.ShowAppOperationConfirmationAsync("install", itemNames, selectedItems.Count);
         if (!confirmed) return;
 
         IsTaskRunning = true;
@@ -333,7 +333,7 @@ public partial class WindowsAppsViewModel : BaseViewModel
 
         try
         {
-            _progressService.StartTask("Installing Windows Apps", false);
+            _progressService.StartTask(_localizationService.GetString("Progress_Task_InstallingWindowsApps") ?? "Installing Windows Apps", false);
             var progress = _progressService.CreateDetailedProgress();
 
             int successCount = 0;
@@ -368,20 +368,22 @@ public partial class WindowsAppsViewModel : BaseViewModel
     /// <summary>
     /// Shows removal summary and asks for confirmation.
     /// </summary>
-    /// <returns>True if user confirmed, false otherwise.</returns>
-    public async Task<bool> ShowRemovalSummaryAndConfirm()
+    /// <returns>Tuple of (Confirmed, SaveScripts).</returns>
+    public async Task<(bool Confirmed, bool SaveScripts)> ShowRemovalSummaryAndConfirm()
     {
         var selectedItems = Items.Where(a => a.IsSelected).ToList();
-        if (!selectedItems.Any()) return true;
+        if (!selectedItems.Any()) return (true, true);
 
         var itemNames = selectedItems.Select(a => a.Name).ToList();
-        return await _dialogService.ShowAppOperationConfirmationAsync("remove", itemNames, selectedItems.Count);
+        var checkboxText = _localizationService.GetString("Dialog_SaveRemovalScripts");
+        var (confirmed, checkboxChecked) = await _dialogService.ShowAppOperationConfirmationAsync("remove", itemNames, selectedItems.Count, checkboxText);
+        return (confirmed, checkboxChecked);
     }
 
     /// <summary>
     /// Removes selected apps with optional confirmation skip (for ConfigurationService compatibility).
     /// </summary>
-    public async Task RemoveApps(bool skipConfirmation = false)
+    public async Task RemoveApps(bool skipConfirmation = false, bool saveRemovalScripts = true)
     {
         var selectedItems = Items.Where(a => a.IsSelected).ToList();
         if (!selectedItems.Any()) return;
@@ -389,11 +391,13 @@ public partial class WindowsAppsViewModel : BaseViewModel
         if (!skipConfirmation)
         {
             var itemNames = selectedItems.Select(a => a.Name).ToList();
-            var confirmed = await _dialogService.ShowAppOperationConfirmationAsync("remove", itemNames, selectedItems.Count);
+            var checkboxText = _localizationService.GetString("Dialog_SaveRemovalScripts");
+            var (confirmed, checkboxChecked) = await _dialogService.ShowAppOperationConfirmationAsync("remove", itemNames, selectedItems.Count, checkboxText);
             if (!confirmed) return;
+            saveRemovalScripts = checkboxChecked;
         }
 
-        await RemoveAppsInternalAsync(selectedItems);
+        await RemoveAppsInternalAsync(selectedItems, saveRemovalScripts);
     }
 
     [RelayCommand]
@@ -409,13 +413,14 @@ public partial class WindowsAppsViewModel : BaseViewModel
         }
 
         var itemNames = selectedItems.Select(a => a.Name).ToList();
-        var confirmed = await _dialogService.ShowAppOperationConfirmationAsync("remove", itemNames, selectedItems.Count);
+        var checkboxText = _localizationService.GetString("Dialog_SaveRemovalScripts");
+        var (confirmed, saveScripts) = await _dialogService.ShowAppOperationConfirmationAsync("remove", itemNames, selectedItems.Count, checkboxText);
         if (!confirmed) return;
 
-        await RemoveAppsInternalAsync(selectedItems);
+        await RemoveAppsInternalAsync(selectedItems, saveScripts);
     }
 
-    private async Task RemoveAppsInternalAsync(List<AppItemViewModel> selectedItems)
+    private async Task RemoveAppsInternalAsync(List<AppItemViewModel> selectedItems, bool saveRemovalScripts = true)
     {
 
         IsTaskRunning = true;
@@ -423,11 +428,11 @@ public partial class WindowsAppsViewModel : BaseViewModel
 
         try
         {
-            _progressService.StartTask("Removing Windows Apps", false);
+            _progressService.StartTask(_localizationService.GetString("Progress_Task_RemovingWindowsApps") ?? "Removing Windows Apps", false);
             var progress = _progressService.CreateDetailedProgress();
 
             var definitions = selectedItems.Select(a => a.Definition).ToList();
-            var result = await _appOperationService.UninstallAppsAsync(definitions, progress);
+            var result = await _appOperationService.UninstallAppsAsync(definitions, progress, saveRemovalScripts);
 
             if (result.Success)
             {
