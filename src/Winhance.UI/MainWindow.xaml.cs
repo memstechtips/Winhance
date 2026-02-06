@@ -85,11 +85,11 @@ public sealed partial class MainWindow : Window
         // Subscribe to MoreMenuClosed to restore selection based on current page
         NavSidebar.MoreMenuClosed += NavSidebar_MoreMenuClosed;
 
-        // Navigate to Settings page by default (for testing - has fewer dependencies)
-        Log("Navigating to Settings as default...");
-        NavSidebar.SelectedTag = "Settings";
-        NavigateToPage("Settings");
-        Log("Settings selected");
+        // Navigate to SoftwareApps page by default
+        Log("Navigating to SoftwareApps as default...");
+        NavSidebar.SelectedTag = "SoftwareApps";
+        NavigateToPage("SoftwareApps");
+        Log("SoftwareApps selected");
     }
 
     /// <summary>
