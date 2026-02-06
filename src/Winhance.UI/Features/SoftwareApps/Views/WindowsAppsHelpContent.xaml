@@ -105,7 +105,7 @@
         <Border Height="1" Background="{ThemeResource DividerStrokeColorDefaultBrush}"/>
 
         <!-- Help Text -->
-        <ScrollViewer MaxHeight="200" VerticalScrollBarVisibility="Auto">
+        <ScrollViewer MaxHeight="200" Padding="0,0,16,0" VerticalScrollBarVisibility="Auto">
             <TextBlock x:Name="HelpContentText"
                        TextWrapping="Wrap"
                        Style="{StaticResource CaptionTextBlockStyle}"
