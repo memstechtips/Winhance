@@ -10,17 +10,24 @@ public partial class SoftwareAppsViewModel : BaseViewModel
 {
     private readonly ILocalizationService _localizationService;
     private readonly ILogService _logService;
+    private readonly IUserPreferencesService _userPreferencesService;
 
     public SoftwareAppsViewModel(
         WindowsAppsViewModel windowsAppsViewModel,
         ExternalAppsViewModel externalAppsViewModel,
         ILocalizationService localizationService,
-        ILogService logService)
+        ILogService logService,
+        IUserPreferencesService userPreferencesService)
     {
         WindowsAppsViewModel = windowsAppsViewModel;
         ExternalAppsViewModel = externalAppsViewModel;
         _localizationService = localizationService;
         _logService = logService;
+        _userPreferencesService = userPreferencesService;
+
+        // Load saved view mode preference (default: Card)
+        var savedViewMode = _userPreferencesService.GetPreference("SoftwareAppsViewMode", "Card");
+        _isCardViewMode = savedViewMode == "Card";
 
         WindowsAppsViewModel.PropertyChanged += ChildViewModel_PropertyChanged;
         ExternalAppsViewModel.PropertyChanged += ChildViewModel_PropertyChanged;
@@ -44,6 +51,9 @@ public partial class SoftwareAppsViewModel : BaseViewModel
     private string _searchText = string.Empty;
 
     [ObservableProperty]
+    private bool _isCardViewMode = true;
+
+    [ObservableProperty]
     private bool _canInstallItems = false;
 
     [ObservableProperty]
@@ -59,6 +69,9 @@ public partial class SoftwareAppsViewModel : BaseViewModel
     public string RefreshButtonText => _localizationService.GetString("Button_Refresh");
     public string HelpButtonText => _localizationService.GetString("Button_Help");
 
+    public string ViewModeTableTooltip => _localizationService.GetString("ViewMode_Table");
+    public string ViewModeCardTooltip => _localizationService.GetString("ViewMode_Card");
+
     public string RemoveButtonText => IsWindowsAppsTabSelected
         ? _localizationService.GetString("SoftwareApps_Button_RemoveSelected")
         : _localizationService.GetString("SoftwareApps_Button_UninstallSelected");
@@ -66,6 +79,11 @@ public partial class SoftwareAppsViewModel : BaseViewModel
     public bool IsLoading => IsWindowsAppsTabSelected
         ? WindowsAppsViewModel.IsLoading
         : ExternalAppsViewModel.IsLoading;
+
+    partial void OnIsCardViewModeChanged(bool value)
+    {
+        _ = _userPreferencesService.SetPreferenceAsync("SoftwareAppsViewMode", value ? "Card" : "Table");
+    }
 
     partial void OnSearchTextChanged(string value)
     {
@@ -116,6 +134,8 @@ public partial class SoftwareAppsViewModel : BaseViewModel
         OnPropertyChanged(nameof(RemoveButtonText));
         OnPropertyChanged(nameof(RefreshButtonText));
         OnPropertyChanged(nameof(HelpButtonText));
+        OnPropertyChanged(nameof(ViewModeTableTooltip));
+        OnPropertyChanged(nameof(ViewModeCardTooltip));
     }
 
     private void ChildViewModel_PropertyChanged(object? sender, PropertyChangedEventArgs e)

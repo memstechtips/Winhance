@@ -54,7 +54,7 @@
                     Margin="0,0,0,8">
 
             <local:NavButton x:Name="AdvancedToolsButton"
-                             IconGlyph="{StaticResource AdvancedToolsIconGlyph}"
+                             IconPath="{StaticResource AdvancedToolsIconPath}"
                              Text="{x:Bind ViewModel.NavAdvancedToolsText, Mode=OneWay}"
                              NavigationTag="AdvancedTools"
                              IsCompact="{x:Bind IsCompact, Mode=OneWay}"

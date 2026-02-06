@@ -12,9 +12,9 @@ public class BoolToStatusBrushConverter : IValueConverter
     {
         if (value is bool isInstalled)
         {
-            // Green for installed, Gray for not installed
+            // Bright green for installed (matching WPF), Gray for not installed
             return isInstalled
-                ? new SolidColorBrush(Windows.UI.Color.FromArgb(255, 76, 175, 80))   // #4CAF50 - Green
+                ? new SolidColorBrush(Windows.UI.Color.FromArgb(255, 0, 255, 60))     // #00FF3C - Bright Green
                 : new SolidColorBrush(Windows.UI.Color.FromArgb(255, 158, 158, 158)); // #9E9E9E - Gray
         }
         return new SolidColorBrush(Windows.UI.Color.FromArgb(255, 158, 158, 158)); // Default gray

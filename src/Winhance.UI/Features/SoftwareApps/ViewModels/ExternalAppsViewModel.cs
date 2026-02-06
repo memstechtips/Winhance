@@ -13,6 +13,8 @@ using Winhance.UI.Features.Common.ViewModels;
 
 namespace Winhance.UI.Features.SoftwareApps.ViewModels;
 
+public record AppCategory(string GroupName, string DisplayName, string IconGlyph, IReadOnlyList<AppItemViewModel> Apps);
+
 /// <summary>
 /// ViewModel for the External Apps tab in the SoftwareApps feature.
 /// </summary>
@@ -56,6 +58,54 @@ public partial class ExternalAppsViewModel : BaseViewModel
     public ObservableCollection<AppItemViewModel> Items { get; }
     public AdvancedCollectionView ItemsView { get; }
 
+    private List<AppCategory> _categories = new();
+    public List<AppCategory> Categories
+    {
+        get => _categories;
+        private set => SetProperty(ref _categories, value);
+    }
+
+    private static readonly Dictionary<string, string> CategoryGlyphs = new()
+    {
+        ["Browsers"] = "\uE774",
+        ["Compression"] = "\uE8B7",
+        ["Customization Utilities"] = "\uE790",
+        ["Development Apps"] = "\uE943",
+        ["Document Viewers"] = "\uE8A5",
+        ["File & Disk Management"] = "\uEDA2",
+        ["Gaming"] = "\uE7FC",
+        ["Imaging"] = "\uE722",
+        ["Messaging, Email & Calendar"] = "\uE715",
+        ["Multimedia (Audio & Video)"] = "\uE8B2",
+        ["Online Storage & Backup"] = "\uE753",
+        ["Optical Disc Tools"] = "\uE958",
+        ["Other Utilities"] = "\uE74C",
+        ["Privacy & Security"] = "\uE72E",
+        ["Remote Access"] = "\uE8AF",
+        ["Runtimes & Dependencies"] = "\uE756",
+    };
+
+    private void RebuildCategories()
+    {
+        var filtered = Items.Where(a => FilterItem(a)).ToList();
+        var groups = filtered
+            .GroupBy(a => a.GroupName)
+            .Where(g => !string.IsNullOrEmpty(g.Key))
+            .OrderBy(g => g.Key);
+
+        var result = new List<AppCategory>();
+        foreach (var group in groups)
+        {
+            var glyph = CategoryGlyphs.GetValueOrDefault(group.Key, "\uE74C");
+            var locKey = "ExternalApps_Category_" + group.Key.Replace(" ", "").Replace("&", "").Replace(",", "").Replace("(", "").Replace(")", "");
+            var displayName = _localizationService.GetString(locKey);
+            if (string.IsNullOrEmpty(displayName))
+                displayName = group.Key;
+            result.Add(new AppCategory(group.Key, displayName, glyph, group.ToList()));
+        }
+        Categories = result;
+    }
+
     [ObservableProperty]
     private bool _isLoading;
 
@@ -87,6 +137,7 @@ public partial class ExternalAppsViewModel : BaseViewModel
     partial void OnSearchTextChanged(string value)
     {
         ItemsView.RefreshFilter();
+        RebuildCategories();
     }
 
     private bool FilterItem(object obj)
@@ -172,6 +223,7 @@ public partial class ExternalAppsViewModel : BaseViewModel
             IsAllSelected = false;
             IsInitialized = true;
             StatusText = $"Loaded {Items.Count} items";
+            RebuildCategories();
         }
         catch (Exception ex)
         {

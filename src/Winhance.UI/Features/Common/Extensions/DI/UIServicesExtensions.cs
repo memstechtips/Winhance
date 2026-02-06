@@ -1,5 +1,7 @@
 using Microsoft.Extensions.DependencyInjection;
 using Winhance.Core.Features.Common.Interfaces;
+using Winhance.Core.Features.AdvancedTools.Interfaces;
+using Winhance.UI.Features.AdvancedTools.Services;
 using Winhance.UI.Features.AdvancedTools.ViewModels;
 using Winhance.UI.Features.Common.Interfaces;
 using Winhance.UI.Features.Common.Services;
@@ -70,8 +72,13 @@ public static class UIServicesExtensions
         services.AddSingleton<TaskbarCustomizationsViewModel>();
         services.AddSingleton<WindowsThemeCustomizationsViewModel>();
 
-        // AdvancedTools ViewModels (Transient - created per page)
+        // AdvancedTools ViewModels
+        services.AddSingleton<AdvancedToolsViewModel>();
         services.AddTransient<WimUtilViewModel>();
+        services.AddTransient<AutounattendGeneratorViewModel>();
+
+        // AdvancedTools Services
+        services.AddSingleton<IAutounattendXmlGeneratorService, AutounattendXmlGeneratorService>();
 
         // SoftwareApps ViewModels (Transient - created per page)
         services.AddTransient<WindowsAppsViewModel>();

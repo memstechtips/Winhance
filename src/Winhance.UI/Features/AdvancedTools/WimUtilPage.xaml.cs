@@ -33,14 +33,6 @@ public sealed partial class WimUtilPage : Page
         await ViewModel.OnNavigatedToAsync();
     }
 
-    private void BackButton_Click(object sender, RoutedEventArgs e)
-    {
-        if (Frame.CanGoBack)
-        {
-            Frame.GoBack();
-        }
-    }
-
     private void Windows10Download_Click(object sender, RoutedEventArgs e)
     {
         ViewModel.OpenWindows10DownloadCommand.Execute(null);

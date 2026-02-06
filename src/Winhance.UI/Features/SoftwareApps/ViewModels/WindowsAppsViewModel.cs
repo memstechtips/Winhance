@@ -57,6 +57,29 @@ public partial class WindowsAppsViewModel : BaseViewModel
     public ObservableCollection<AppItemViewModel> Items { get; }
     public AdvancedCollectionView ItemsView { get; }
 
+    public IEnumerable<AppItemViewModel> WindowsAppsFiltered => Items
+        .Where(a =>
+            !string.IsNullOrEmpty(a.Definition.AppxPackageName) &&
+            string.IsNullOrEmpty(a.Definition.CapabilityName) &&
+            string.IsNullOrEmpty(a.Definition.OptionalFeatureName) &&
+            FilterItem(a))
+        .OrderByDescending(a => a.IsInstalled)
+        .ThenBy(a => a.Name);
+
+    public IEnumerable<AppItemViewModel> CapabilitiesFiltered => Items
+        .Where(a =>
+            !string.IsNullOrEmpty(a.Definition.CapabilityName) &&
+            FilterItem(a))
+        .OrderByDescending(a => a.IsInstalled)
+        .ThenBy(a => a.Name);
+
+    public IEnumerable<AppItemViewModel> OptionalFeaturesFiltered => Items
+        .Where(a =>
+            !string.IsNullOrEmpty(a.Definition.OptionalFeatureName) &&
+            FilterItem(a))
+        .OrderByDescending(a => a.IsInstalled)
+        .ThenBy(a => a.Name);
+
     [ObservableProperty]
     private bool _isLoading;
 
@@ -88,6 +111,14 @@ public partial class WindowsAppsViewModel : BaseViewModel
     partial void OnSearchTextChanged(string value)
     {
         ItemsView.RefreshFilter();
+        NotifyCardViewProperties();
+    }
+
+    private void NotifyCardViewProperties()
+    {
+        OnPropertyChanged(nameof(WindowsAppsFiltered));
+        OnPropertyChanged(nameof(CapabilitiesFiltered));
+        OnPropertyChanged(nameof(OptionalFeaturesFiltered));
     }
 
     private bool FilterItem(object obj)
@@ -177,6 +208,7 @@ public partial class WindowsAppsViewModel : BaseViewModel
             IsAllSelected = false;
             IsInitialized = true;
             StatusText = $"Loaded {Items.Count} items";
+            NotifyCardViewProperties();
         }
         catch (Exception ex)
         {

@@ -406,12 +406,39 @@
                     <TextBlock Text="{x:Bind ViewModel.RefreshButtonText}"/>
                 </StackPanel>
             </Button>
-            <Button>
+            <Button Click="HelpButton_Click">
                 <StackPanel Orientation="Horizontal" Spacing="8">
                     <FontIcon Glyph="&#xE897;" FontSize="14"/>
                     <TextBlock Text="{x:Bind ViewModel.HelpButtonText}"/>
                 </StackPanel>
             </Button>
+            <!-- View Mode Toggle -->
+            <Border CornerRadius="4"
+                    BorderBrush="{ThemeResource ControlStrokeColorDefaultBrush}"
+                    BorderThickness="1">
+                <StackPanel Orientation="Horizontal">
+                    <ToggleButton x:Name="TableViewToggle"
+                                  IsChecked="{x:Bind ViewModel.IsCardViewMode, Mode=OneWay, Converter={StaticResource InverseBooleanConverter}}"
+                                  Click="TableViewToggle_Click"
+                                  ToolTipService.ToolTip="{x:Bind ViewModel.ViewModeTableTooltip}"
+                                  Background="Transparent"
+                                  BorderThickness="0"
+                                  CornerRadius="4,0,0,4"
+                                  Padding="10,6">
+                        <FontIcon Glyph="&#xE80A;" FontSize="16"/>
+                    </ToggleButton>
+                    <ToggleButton x:Name="CardViewToggle"
+                                  IsChecked="{x:Bind ViewModel.IsCardViewMode, Mode=OneWay}"
+                                  Click="CardViewToggle_Click"
+                                  ToolTipService.ToolTip="{x:Bind ViewModel.ViewModeCardTooltip}"
+                                  Background="Transparent"
+                                  BorderThickness="0"
+                                  CornerRadius="0,4,4,0"
+                                  Padding="10,6">
+                        <FontIcon Glyph="&#xE8A9;" FontSize="16"/>
+                    </ToggleButton>
+                </StackPanel>
+            </Border>
             <AutoSuggestBox
                 PlaceholderText="{x:Bind ViewModel.SearchPlaceholder}"
                 QueryIcon="Find"
@@ -526,7 +553,9 @@
                 <Grid Margin="14,70,12,0">
                     <!-- Windows Apps Content -->
                     <Grid Visibility="{x:Bind ViewModel.IsWindowsAppsTabSelected, Mode=OneWay, Converter={StaticResource BooleanToVisibilityConverter}}">
+                        <!-- DataGrid View -->
                         <controls:DataGrid x:Name="WindowsAppsDataGrid"
+                                           Visibility="{x:Bind ViewModel.IsCardViewMode, Mode=OneWay, Converter={StaticResource InverseBooleanToVisibilityConverter}}"
                                            Loaded="WindowsAppsDataGrid_Loaded"
                                            ItemsSource="{x:Bind ViewModel.WindowsAppsViewModel.ItemsView, Mode=OneWay}"
                                            AutoGenerateColumns="False"
@@ -617,6 +646,102 @@
                             </controls:DataGrid.Columns>
                         </controls:DataGrid>
 
+                        <!-- Card View for Windows Apps -->
+                        <ScrollViewer Visibility="{x:Bind ViewModel.IsCardViewMode, Mode=OneWay, Converter={StaticResource BooleanToVisibilityConverter}}"
+                                      VerticalScrollBarVisibility="Auto"
+                                      HorizontalScrollBarVisibility="Disabled"
+                                      Padding="0,0,0,12">
+                            <StackPanel Spacing="16" Padding="4,8,4,8">
+                                <!-- Selection Checkboxes -->
+                                <StackPanel Orientation="Horizontal" Spacing="12">
+                                    <CheckBox Content="Select All" MinWidth="0"
+                                              IsChecked="{x:Bind ViewModel.WindowsAppsViewModel.IsAllSelected, Mode=TwoWay}"/>
+                                    <CheckBox Content="Select All Installed" MinWidth="0"
+                                              IsChecked="{x:Bind ViewModel.WindowsAppsViewModel.IsAllSelectedInstalled, Mode=TwoWay}"/>
+                                    <CheckBox Content="Select All Not Installed" MinWidth="0"
+                                              IsChecked="{x:Bind ViewModel.WindowsAppsViewModel.IsAllSelectedNotInstalled, Mode=TwoWay}"/>
+                                </StackPanel>
+
+                                <!-- Windows Apps Section -->
+                                <StackPanel Spacing="8">
+                                    <TextBlock Text="Windows Apps"
+                                               Style="{StaticResource SubtitleTextBlockStyle}"
+                                               FontWeight="SemiBold"/>
+                                    <ItemsRepeater ItemsSource="{x:Bind ViewModel.WindowsAppsViewModel.WindowsAppsFiltered, Mode=OneWay}">
+                                        <ItemsRepeater.Layout>
+                                            <UniformGridLayout MinItemWidth="260" MinColumnSpacing="8" MinRowSpacing="4"/>
+                                        </ItemsRepeater.Layout>
+                                        <ItemsRepeater.ItemTemplate>
+                                            <DataTemplate>
+                                                <CheckBox IsChecked="{Binding IsSelected, Mode=TwoWay}" MinWidth="0" Padding="8,4">
+                                                    <StackPanel Orientation="Horizontal" Spacing="8">
+                                                        <Ellipse Width="10" Height="10" VerticalAlignment="Center"
+                                                                 Fill="{Binding IsInstalled, Converter={StaticResource BoolToStatusBrushConverter}}"/>
+                                                        <FontIcon Glyph="{Binding CanBeReinstalled, Converter={StaticResource BoolToGlyphConverter}}"
+                                                                  FontSize="12" VerticalAlignment="Center"
+                                                                  Foreground="{Binding CanBeReinstalled, Converter={StaticResource BoolToReinstallBrushConverter}}"/>
+                                                        <TextBlock Text="{Binding Name}" VerticalAlignment="Center" TextTrimming="CharacterEllipsis"/>
+                                                    </StackPanel>
+                                                </CheckBox>
+                                            </DataTemplate>
+                                        </ItemsRepeater.ItemTemplate>
+                                    </ItemsRepeater>
+                                </StackPanel>
+
+                                <!-- Capabilities Section -->
+                                <StackPanel Spacing="8">
+                                    <TextBlock Text="Windows Capabilities"
+                                               Style="{StaticResource SubtitleTextBlockStyle}"
+                                               FontWeight="SemiBold"/>
+                                    <ItemsRepeater ItemsSource="{x:Bind ViewModel.WindowsAppsViewModel.CapabilitiesFiltered, Mode=OneWay}">
+                                        <ItemsRepeater.Layout>
+                                            <UniformGridLayout MinItemWidth="260" MinColumnSpacing="8" MinRowSpacing="4"/>
+                                        </ItemsRepeater.Layout>
+                                        <ItemsRepeater.ItemTemplate>
+                                            <DataTemplate>
+                                                <CheckBox IsChecked="{Binding IsSelected, Mode=TwoWay}" MinWidth="0" Padding="8,4">
+                                                    <StackPanel Orientation="Horizontal" Spacing="8">
+                                                        <Ellipse Width="10" Height="10" VerticalAlignment="Center"
+                                                                 Fill="{Binding IsInstalled, Converter={StaticResource BoolToStatusBrushConverter}}"/>
+                                                        <FontIcon Glyph="{Binding CanBeReinstalled, Converter={StaticResource BoolToGlyphConverter}}"
+                                                                  FontSize="12" VerticalAlignment="Center"
+                                                                  Foreground="{Binding CanBeReinstalled, Converter={StaticResource BoolToReinstallBrushConverter}}"/>
+                                                        <TextBlock Text="{Binding Name}" VerticalAlignment="Center" TextTrimming="CharacterEllipsis"/>
+                                                    </StackPanel>
+                                                </CheckBox>
+                                            </DataTemplate>
+                                        </ItemsRepeater.ItemTemplate>
+                                    </ItemsRepeater>
+                                </StackPanel>
+
+                                <!-- Optional Features Section -->
+                                <StackPanel Spacing="8">
+                                    <TextBlock Text="Windows Optional Features"
+                                               Style="{StaticResource SubtitleTextBlockStyle}"
+                                               FontWeight="SemiBold"/>
+                                    <ItemsRepeater ItemsSource="{x:Bind ViewModel.WindowsAppsViewModel.OptionalFeaturesFiltered, Mode=OneWay}">
+                                        <ItemsRepeater.Layout>
+                                            <UniformGridLayout MinItemWidth="260" MinColumnSpacing="8" MinRowSpacing="4"/>
+                                        </ItemsRepeater.Layout>
+                                        <ItemsRepeater.ItemTemplate>
+                                            <DataTemplate>
+                                                <CheckBox IsChecked="{Binding IsSelected, Mode=TwoWay}" MinWidth="0" Padding="8,4">
+                                                    <StackPanel Orientation="Horizontal" Spacing="8">
+                                                        <Ellipse Width="10" Height="10" VerticalAlignment="Center"
+                                                                 Fill="{Binding IsInstalled, Converter={StaticResource BoolToStatusBrushConverter}}"/>
+                                                        <FontIcon Glyph="{Binding CanBeReinstalled, Converter={StaticResource BoolToGlyphConverter}}"
+                                                                  FontSize="12" VerticalAlignment="Center"
+                                                                  Foreground="{Binding CanBeReinstalled, Converter={StaticResource BoolToReinstallBrushConverter}}"/>
+                                                        <TextBlock Text="{Binding Name}" VerticalAlignment="Center" TextTrimming="CharacterEllipsis"/>
+                                                    </StackPanel>
+                                                </CheckBox>
+                                            </DataTemplate>
+                                        </ItemsRepeater.ItemTemplate>
+                                    </ItemsRepeater>
+                                </StackPanel>
+                            </StackPanel>
+                        </ScrollViewer>
+
                         <!-- Loading overlay for Windows Apps -->
                         <Grid Visibility="{x:Bind ViewModel.WindowsAppsViewModel.IsLoading, Mode=OneWay, Converter={StaticResource BooleanToVisibilityConverter}}"
                               Background="{ThemeResource LayerFillColorDefaultBrush}">
@@ -630,7 +755,9 @@
 
                     <!-- External Apps Content -->
                     <Grid Visibility="{x:Bind ViewModel.IsExternalAppsTabSelected, Mode=OneWay, Converter={StaticResource BooleanToVisibilityConverter}}">
+                        <!-- DataGrid View -->
                         <controls:DataGrid x:Name="ExternalAppsDataGrid"
+                                           Visibility="{x:Bind ViewModel.IsCardViewMode, Mode=OneWay, Converter={StaticResource InverseBooleanToVisibilityConverter}}"
                                            Loaded="ExternalAppsDataGrid_Loaded"
                                            ItemsSource="{x:Bind ViewModel.ExternalAppsViewModel.ItemsView, Mode=OneWay}"
                                            AutoGenerateColumns="False"
@@ -716,6 +843,68 @@
                                 </controls:DataGridTemplateColumn>
                             </controls:DataGrid.Columns>
                         </controls:DataGrid>
+
+                        <!-- Card View for External Apps -->
+                        <ScrollViewer Visibility="{x:Bind ViewModel.IsCardViewMode, Mode=OneWay, Converter={StaticResource BooleanToVisibilityConverter}}"
+                                      VerticalScrollBarVisibility="Auto"
+                                      HorizontalScrollBarVisibility="Disabled"
+                                      Padding="0,0,0,12">
+                            <StackPanel Spacing="12" Padding="4,8,4,8">
+                                <!-- Selection Checkboxes -->
+                                <StackPanel Orientation="Horizontal" Spacing="12">
+                                    <CheckBox Content="Select All" MinWidth="0"
+                                              IsChecked="{x:Bind ViewModel.ExternalAppsViewModel.IsAllSelected, Mode=TwoWay}"/>
+                                    <CheckBox Content="Select All Installed" MinWidth="0"
+                                              IsChecked="{x:Bind ViewModel.ExternalAppsViewModel.IsAllSelectedInstalled, Mode=TwoWay}"/>
+                                    <CheckBox Content="Select All Not Installed" MinWidth="0"
+                                              IsChecked="{x:Bind ViewModel.ExternalAppsViewModel.IsAllSelectedNotInstalled, Mode=TwoWay}"/>
+                                </StackPanel>
+
+                                <!-- Categories -->
+                                <ItemsRepeater ItemsSource="{x:Bind ViewModel.ExternalAppsViewModel.Categories, Mode=OneWay}">
+                                    <ItemsRepeater.Layout>
+                                        <StackLayout Spacing="8"/>
+                                    </ItemsRepeater.Layout>
+                                    <ItemsRepeater.ItemTemplate>
+                                        <DataTemplate>
+                                            <Expander IsExpanded="True" HorizontalAlignment="Stretch" HorizontalContentAlignment="Stretch">
+                                                <Expander.Header>
+                                                    <StackPanel Orientation="Horizontal" Spacing="10">
+                                                        <FontIcon Glyph="{Binding IconGlyph}" FontSize="16"/>
+                                                        <TextBlock Text="{Binding DisplayName}"
+                                                                   FontWeight="SemiBold" FontSize="14"
+                                                                   VerticalAlignment="Center"/>
+                                                    </StackPanel>
+                                                </Expander.Header>
+                                                <Expander.Content>
+                                                    <ItemsRepeater ItemsSource="{Binding Apps}" Margin="0,4,0,4">
+                                                        <ItemsRepeater.Layout>
+                                                            <UniformGridLayout MinItemWidth="260" MinColumnSpacing="8" MinRowSpacing="4"/>
+                                                        </ItemsRepeater.Layout>
+                                                        <ItemsRepeater.ItemTemplate>
+                                                            <DataTemplate>
+                                                                <CheckBox IsChecked="{Binding IsSelected, Mode=TwoWay}" MinWidth="0" Padding="8,4">
+                                                                    <StackPanel Orientation="Horizontal" Spacing="8">
+                                                                        <Ellipse Width="10" Height="10" VerticalAlignment="Center"
+                                                                                 Fill="{Binding IsInstalled, Converter={StaticResource BoolToStatusBrushConverter}}"/>
+                                                                        <TextBlock Text="{Binding Name}" VerticalAlignment="Center" TextTrimming="CharacterEllipsis"/>
+                                                                        <HyperlinkButton NavigateUri="{Binding WebsiteUrl}"
+                                                                                         Padding="0" VerticalAlignment="Center"
+                                                                                         Visibility="{Binding WebsiteUrl, Converter={StaticResource NullToVisibilityConverter}}">
+                                                                            <FontIcon Glyph="&#xE71B;" FontSize="12"/>
+                                                                        </HyperlinkButton>
+                                                                    </StackPanel>
+                                                                </CheckBox>
+                                                            </DataTemplate>
+                                                        </ItemsRepeater.ItemTemplate>
+                                                    </ItemsRepeater>
+                                                </Expander.Content>
+                                            </Expander>
+                                        </DataTemplate>
+                                    </ItemsRepeater.ItemTemplate>
+                                </ItemsRepeater>
+                            </StackPanel>
+                        </ScrollViewer>
 
                         <!-- Loading overlay for External Apps -->
                         <Grid Visibility="{x:Bind ViewModel.ExternalAppsViewModel.IsLoading, Mode=OneWay, Converter={StaticResource BooleanToVisibilityConverter}}"

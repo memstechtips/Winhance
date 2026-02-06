@@ -6,62 +6,135 @@
     xmlns:local="using:Winhance.UI.Features.AdvancedTools"
     xmlns:controls="using:CommunityToolkit.WinUI.Controls"
     x:DefaultBindMode="OneWay"
-    NavigationCacheMode="Disabled">
+    NavigationCacheMode="Enabled">
 
-    <Grid Padding="24">
+    <Grid Padding="0,0,12,0">
         <Grid.RowDefinitions>
-            <RowDefinition Height="Auto"/>
-            <RowDefinition Height="*"/>
+            <RowDefinition Height="Auto"/>  <!-- Header -->
+            <RowDefinition Height="Auto"/>  <!-- NavRow -->
+            <RowDefinition Height="*"/>     <!-- Content -->
         </Grid.RowDefinitions>
 
-        <!-- Page Header -->
-        <Grid Grid.Row="0" Margin="0,0,0,24">
-            <StackPanel Orientation="Horizontal" Spacing="16">
+        <!-- Row 0: Page Header with Icon -->
+        <StackPanel Grid.Row="0" Orientation="Horizontal" Spacing="16">
+            <Viewbox Width="64" Height="64" Stretch="Uniform">
+                <PathIcon Data="{StaticResource AdvancedToolsIconPath}" Foreground="{ThemeResource TextFillColorPrimaryBrush}"/>
+            </Viewbox>
+            <StackPanel VerticalAlignment="Center">
+                <TextBlock
+                    Text="{x:Bind ViewModel.PageTitle}"
+                    Style="{StaticResource TitleTextBlockStyle}"
+                    FontWeight="Bold"
+                    FontSize="30"/>
+                <TextBlock
+                    Text="{x:Bind ViewModel.PageDescription}"
+                    Style="{StaticResource CaptionTextBlockStyle}"
+                    Foreground="{ThemeResource TextFillColorTertiaryBrush}"
+                    Margin="0,2,0,0"/>
+            </StackPanel>
+        </StackPanel>
+
+        <!-- Row 1: Navigation Bar (Breadcrumb only, no search) -->
+        <Grid Grid.Row="1" Margin="0,12,0,16">
+            <!-- Breadcrumb navigation -->
+            <StackPanel Orientation="Horizontal" VerticalAlignment="Center" Spacing="4">
+                <!-- Root button - navigates to overview -->
+                <Button
+                    x:Name="BreadcrumbRoot"
+                    Click="BreadcrumbOverview_Click"
+                    Padding="8,4">
+                    <StackPanel Orientation="Horizontal" Spacing="8">
+                        <Viewbox Width="16" Height="16" VerticalAlignment="Center" Margin="0,-2,0,0">
+                            <PathIcon Data="{StaticResource AdvancedToolsIconPath}" Foreground="{ThemeResource TextFillColorPrimaryBrush}"/>
+                        </Viewbox>
+                        <TextBlock Text="{x:Bind ViewModel.BreadcrumbRootText}" VerticalAlignment="Center"/>
+                    </StackPanel>
+                </Button>
+
+                <!-- Separator (visible only on detail pages) -->
                 <FontIcon
-                    Glyph="&#xE90F;"
-                    FontSize="48"
-                    FontFamily="Segoe MDL2 Assets"/>
-                <StackPanel VerticalAlignment="Center">
-                    <TextBlock
-                        Text="Advanced Tools"
-                        Style="{StaticResource TitleTextBlockStyle}"/>
-                    <TextBlock
-                        Text="Power tools for Windows customization"
-                        Style="{StaticResource CaptionTextBlockStyle}"
-                        Foreground="{ThemeResource TextFillColorSecondaryBrush}"/>
-                </StackPanel>
+                    x:Name="BreadcrumbSeparator"
+                    Glyph="&#xE76C;"
+                    FontSize="12"
+                    Foreground="{ThemeResource TextFillColorSecondaryBrush}"
+                    VerticalAlignment="Center"
+                    Visibility="Collapsed"/>
+
+                <!-- Current section dropdown with icon (visible only on detail pages) -->
+                <DropDownButton
+                    x:Name="BreadcrumbSection"
+                    Visibility="Collapsed"
+                    Padding="8,4">
+                    <DropDownButton.Content>
+                        <StackPanel Orientation="Horizontal" Spacing="8">
+                            <Viewbox x:Name="BreadcrumbSectionIconBox" Width="16" Height="16" VerticalAlignment="Center" Margin="0,-2,0,0">
+                                <PathIcon x:Name="BreadcrumbSectionIcon" Foreground="{ThemeResource TextFillColorPrimaryBrush}"/>
+                            </Viewbox>
+                            <TextBlock x:Name="BreadcrumbSectionText" VerticalAlignment="Center"/>
+                        </StackPanel>
+                    </DropDownButton.Content>
+                    <DropDownButton.Flyout>
+                        <MenuFlyout Placement="BottomEdgeAlignedLeft">
+                            <MenuFlyoutItem x:Name="MenuItemWimUtil" Click="NavigateWimUtil_Click">
+                                <MenuFlyoutItem.Icon>
+                                    <PathIcon Data="{StaticResource WimUtilIconPath}"/>
+                                </MenuFlyoutItem.Icon>
+                            </MenuFlyoutItem>
+                            <MenuFlyoutItem x:Name="MenuItemAutounattendXml" Click="NavigateAutounattendXml_Click">
+                                <MenuFlyoutItem.Icon>
+                                    <PathIcon Data="{StaticResource AutounattendXmlIconPath}"/>
+                                </MenuFlyoutItem.Icon>
+                            </MenuFlyoutItem>
+                        </MenuFlyout>
+                    </DropDownButton.Flyout>
+                </DropDownButton>
             </StackPanel>
         </Grid>
 
-        <!-- Main Content -->
-        <ScrollView Grid.Row="1">
-            <StackPanel Spacing="8" MaxWidth="900" HorizontalAlignment="Stretch">
+        <!-- Row 2: Content Container with rounded corners and lighter background -->
+        <Border
+            Grid.Row="2"
+            Background="{ThemeResource SystemFillColorNeutralBackgroundBrush}"
+            CornerRadius="8"
+            Margin="0,0,0,12">
+            <Grid>
+                <!-- Overview Content (visible when not on detail page) -->
+                <Grid x:Name="OverviewContent">
+                    <ScrollView>
+                        <StackPanel Spacing="8" MaxWidth="{StaticResource SettingsContentMaxWidth}" Margin="{StaticResource SettingsContentMargin}" HorizontalAlignment="Stretch" Padding="0,12,0,12">
 
-                <!-- WIM Utility Card -->
-                <controls:SettingsCard
-                    Header="WIM Utility"
-                    Description="Create custom Windows installation images"
-                    IsClickEnabled="True"
-                    Click="WimUtilCard_Click">
-                    <controls:SettingsCard.HeaderIcon>
-                        <FontIcon Glyph="&#xE958;" FontFamily="Segoe MDL2 Assets"/>
-                    </controls:SettingsCard.HeaderIcon>
-                    <FontIcon
-                        Glyph="&#xE76C;"
-                        FontFamily="Segoe MDL2 Assets"
-                        Foreground="{ThemeResource TextFillColorSecondaryBrush}"/>
-                </controls:SettingsCard>
+                            <!-- WIM Utility Card -->
+                            <controls:SettingsCard
+                                Header="{x:Bind ViewModel.WimUtilDisplayName}"
+                                Description="{x:Bind ViewModel.WimUtilDescription}"
+                                IsClickEnabled="True"
+                                Click="WimUtilCard_Click">
+                                <controls:SettingsCard.HeaderIcon>
+                                    <PathIcon Data="{StaticResource WimUtilIconPath}"/>
+                                </controls:SettingsCard.HeaderIcon>
+                            </controls:SettingsCard>
 
-                <!-- Placeholder for future tools -->
-                <InfoBar
-                    Title="More tools coming soon"
-                    Message="Additional advanced tools will be available in future updates."
-                    Severity="Informational"
-                    IsOpen="True"
-                    IsClosable="False"
-                    Margin="0,16,0,0"/>
+                            <!-- Autounattend XML Generator Card -->
+                            <controls:SettingsCard
+                                Header="{x:Bind ViewModel.AutounattendXmlDisplayName}"
+                                Description="{x:Bind ViewModel.AutounattendXmlDescription}"
+                                IsClickEnabled="True"
+                                Click="AutounattendXmlCard_Click">
+                                <controls:SettingsCard.HeaderIcon>
+                                    <PathIcon Data="{StaticResource AutounattendXmlIconPath}"/>
+                                </controls:SettingsCard.HeaderIcon>
+                            </controls:SettingsCard>
 
-            </StackPanel>
-        </ScrollView>
+                        </StackPanel>
+                    </ScrollView>
+                </Grid>
+
+                <!-- Detail Page Frame (visible when on detail page) -->
+                <Frame
+                    x:Name="InnerContentFrame"
+                    Visibility="Collapsed"
+                    Navigated="InnerContentFrame_Navigated"/>
+            </Grid>
+        </Border>
     </Grid>
 </Page>
