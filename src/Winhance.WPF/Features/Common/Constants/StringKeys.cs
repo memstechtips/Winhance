@@ -122,7 +122,6 @@ namespace Winhance.WPF.Features.Common.Constants
             {
                 { "af", "Afrikaans" },
                 { "ar", "العربية (Arabic)" },
-                { "de", "Deutsch (German)" },
                 { "en", "English" },
                 { "es", "Español (Spanish)" },
                 { "fr", "Français (French)" },
