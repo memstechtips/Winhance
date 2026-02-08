@@ -121,6 +121,7 @@ namespace Winhance.WPF.Features.Common.Constants
             public static readonly Dictionary<string, string> SupportedLanguages = new()
             {
                 { "af", "Afrikaans" },
+                { "ar", "العربية (Arabic)" },
                 { "en", "English" },
                 { "es", "Español (Spanish)" },
                 { "fr", "Français (French)" },
