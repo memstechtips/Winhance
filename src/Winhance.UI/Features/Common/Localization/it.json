@@ -1,4 +1,4 @@
-﻿{
+{
   "App_Title": "Winhance",
   "App_By": "di Memory",
   "Nav_SoftwareAndApps": "Software e App",
@@ -1470,7 +1470,6 @@
   "Common_ClickToUnlock": "Fai clic per sbloccare",
   "Setting_taskbar-copilot_Name": "Pulsante anteprima Copilot",
   "Setting_taskbar-copilot_Description": "Mostra o nascondi il pulsante di anteprima di Copilot sulla barra delle applicazioni",
-  "ExternalApps_WinGetUnavailable": "Impossibile determinare lo stato dell'installazione. Connettiti a Internet e fai clic sul pulsante Aggiorna.",
   "Error_NoInternetConnection": "Nessuna connessione Internet. Connettiti e riprova.",
   "Error_WinGetInstallFailed": "Impossibile installare WinGet. Controlla la tua connessione Internet.",
   "Error_WinGetNotAvailable": "WinGet non è disponibile su questo sistema.",

@@ -13,10 +13,6 @@ namespace Winhance.Core.Features.Common.Models
         public DateTime? RestorePointDate { get; set; }
         public List<string> Warnings { get; set; } = new();
         public string? ErrorMessage { get; set; }
-
-        public bool RegistryBackupCreated { get; set; }
-        public bool RegistryBackupExisted { get; set; }
-        public List<string> RegistryBackupPaths { get; set; } = new();
     }
 
     public class BackupStatus

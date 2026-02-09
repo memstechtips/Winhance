@@ -1,4 +1,5 @@
 using System.ComponentModel;
+using System.Linq;
 using CommunityToolkit.Mvvm.ComponentModel;
 using CommunityToolkit.Mvvm.Input;
 using Winhance.Core.Features.Common.Interfaces;
@@ -11,19 +12,22 @@ public partial class SoftwareAppsViewModel : BaseViewModel
     private readonly ILocalizationService _localizationService;
     private readonly ILogService _logService;
     private readonly IUserPreferencesService _userPreferencesService;
+    private readonly IConfigReviewService _configReviewService;
 
     public SoftwareAppsViewModel(
         WindowsAppsViewModel windowsAppsViewModel,
         ExternalAppsViewModel externalAppsViewModel,
         ILocalizationService localizationService,
         ILogService logService,
-        IUserPreferencesService userPreferencesService)
+        IUserPreferencesService userPreferencesService,
+        IConfigReviewService configReviewService)
     {
         WindowsAppsViewModel = windowsAppsViewModel;
         ExternalAppsViewModel = externalAppsViewModel;
         _localizationService = localizationService;
         _logService = logService;
         _userPreferencesService = userPreferencesService;
+        _configReviewService = configReviewService;
 
         // Load saved view mode preference (default: Card)
         var savedViewMode = _userPreferencesService.GetPreference("SoftwareAppsViewMode", "Card");
@@ -34,6 +38,7 @@ public partial class SoftwareAppsViewModel : BaseViewModel
         WindowsAppsViewModel.SelectedItemsChanged += ChildViewModel_SelectedItemsChanged;
         ExternalAppsViewModel.SelectedItemsChanged += ChildViewModel_SelectedItemsChanged;
         _localizationService.LanguageChanged += OnLanguageChanged;
+        _configReviewService.ReviewModeChanged += OnReviewModeChanged;
 
         UpdateButtonStates();
     }
@@ -54,10 +59,140 @@ public partial class SoftwareAppsViewModel : BaseViewModel
     private bool _isCardViewMode = true;
 
     [ObservableProperty]
+    private bool _isInReviewMode = false;
+
+    [ObservableProperty]
+    private int _windowsAppsSelectedCount = 0;
+
+    [ObservableProperty]
+    private int _externalAppsSelectedCount = 0;
+
+    // Action choice properties for review mode
+    [ObservableProperty]
+    private bool _isWindowsAppsInstallAction = false;
+
+    [ObservableProperty]
+    private bool _isWindowsAppsRemoveAction = false;
+
+    [ObservableProperty]
+    private bool _isExternalAppsInstallAction = false;
+
+    [ObservableProperty]
+    private bool _isExternalAppsRemoveAction = false;
+
+    [ObservableProperty]
     private bool _canInstallItems = false;
 
     [ObservableProperty]
     private bool _canRemoveItems = false;
+
+    public bool IsWindowsAppsActionChosen => IsWindowsAppsInstallAction || IsWindowsAppsRemoveAction;
+    public bool IsExternalAppsActionChosen => IsExternalAppsInstallAction || IsExternalAppsRemoveAction;
+
+    public bool HasWindowsAppsInConfig => _configReviewService.IsFeatureInConfig(
+        FeatureIds.WindowsApps);
+    public bool HasExternalAppsInConfig => _configReviewService.IsFeatureInConfig(
+        FeatureIds.ExternalApps);
+
+    /// <summary>
+    /// Whether all SoftwareApps sections have been reviewed.
+    /// A section is reviewed when:
+    /// - It's not in the config, OR
+    /// - No items are selected (user chose to apply nothing), OR
+    /// - An action button (Install/Remove) has been selected
+    /// </summary>
+    public bool IsSoftwareAppsReviewed
+    {
+        get
+        {
+            if (!IsInReviewMode) return false;
+            bool windowsOk = !HasWindowsAppsInConfig || WindowsAppsSelectedCount == 0 || IsWindowsAppsActionChosen;
+            bool externalOk = !HasExternalAppsInConfig || ExternalAppsSelectedCount == 0 || IsExternalAppsActionChosen;
+            return windowsOk && externalOk;
+        }
+    }
+
+    partial void OnIsWindowsAppsInstallActionChanged(bool value)
+    {
+        if (value && IsWindowsAppsRemoveAction) IsWindowsAppsRemoveAction = false;
+        OnPropertyChanged(nameof(IsWindowsAppsActionChosen));
+        OnPropertyChanged(nameof(IsSoftwareAppsReviewed));
+        OnPropertyChanged(nameof(ReviewWindowsAppsBannerText));
+        OnPropertyChanged(nameof(CurrentInstallAction));
+        OnPropertyChanged(nameof(CurrentRemoveAction));
+        SyncSoftwareAppsReviewedState();
+    }
+
+    partial void OnIsWindowsAppsRemoveActionChanged(bool value)
+    {
+        if (value && IsWindowsAppsInstallAction) IsWindowsAppsInstallAction = false;
+        OnPropertyChanged(nameof(IsWindowsAppsActionChosen));
+        OnPropertyChanged(nameof(IsSoftwareAppsReviewed));
+        OnPropertyChanged(nameof(ReviewWindowsAppsBannerText));
+        OnPropertyChanged(nameof(CurrentInstallAction));
+        OnPropertyChanged(nameof(CurrentRemoveAction));
+        SyncSoftwareAppsReviewedState();
+    }
+
+    partial void OnIsExternalAppsInstallActionChanged(bool value)
+    {
+        if (value && IsExternalAppsRemoveAction) IsExternalAppsRemoveAction = false;
+        OnPropertyChanged(nameof(IsExternalAppsActionChosen));
+        OnPropertyChanged(nameof(IsSoftwareAppsReviewed));
+        OnPropertyChanged(nameof(ReviewExternalAppsBannerText));
+        OnPropertyChanged(nameof(CurrentInstallAction));
+        OnPropertyChanged(nameof(CurrentRemoveAction));
+        SyncSoftwareAppsReviewedState();
+    }
+
+    partial void OnIsExternalAppsRemoveActionChanged(bool value)
+    {
+        if (value && IsExternalAppsInstallAction) IsExternalAppsInstallAction = false;
+        OnPropertyChanged(nameof(IsExternalAppsActionChosen));
+        OnPropertyChanged(nameof(IsSoftwareAppsReviewed));
+        OnPropertyChanged(nameof(ReviewExternalAppsBannerText));
+        OnPropertyChanged(nameof(CurrentInstallAction));
+        OnPropertyChanged(nameof(CurrentRemoveAction));
+        SyncSoftwareAppsReviewedState();
+    }
+
+    private void SyncSoftwareAppsReviewedState()
+    {
+        _configReviewService.IsSoftwareAppsReviewed = IsSoftwareAppsReviewed;
+        _configReviewService.NotifyBadgeStateChanged();
+    }
+
+    /// <summary>
+    /// Routes to the current tab's install action checkbox.
+    /// </summary>
+    public bool CurrentInstallAction
+    {
+        get => IsWindowsAppsTabSelected ? IsWindowsAppsInstallAction : IsExternalAppsInstallAction;
+        set
+        {
+            if (IsWindowsAppsTabSelected)
+                IsWindowsAppsInstallAction = value;
+            else
+                IsExternalAppsInstallAction = value;
+            OnPropertyChanged();
+        }
+    }
+
+    /// <summary>
+    /// Routes to the current tab's remove action checkbox.
+    /// </summary>
+    public bool CurrentRemoveAction
+    {
+        get => IsWindowsAppsTabSelected ? IsWindowsAppsRemoveAction : IsExternalAppsRemoveAction;
+        set
+        {
+            if (IsWindowsAppsTabSelected)
+                IsWindowsAppsRemoveAction = value;
+            else
+                IsExternalAppsRemoveAction = value;
+            OnPropertyChanged();
+        }
+    }
 
     // Localized text properties
     public string PageTitle => _localizationService.GetString("Category_SoftwareApps_Title");
@@ -71,6 +206,33 @@ public partial class SoftwareAppsViewModel : BaseViewModel
 
     public string ViewModeTableTooltip => _localizationService.GetString("ViewMode_Table");
     public string ViewModeCardTooltip => _localizationService.GetString("ViewMode_Card");
+
+    public string ReviewWindowsAppsBanner => ReviewWindowsAppsBannerText;
+    public string ReviewExternalAppsBanner => ReviewExternalAppsBannerText;
+
+    public string ReviewWindowsAppsBannerText
+    {
+        get
+        {
+            if (IsWindowsAppsInstallAction)
+                return _localizationService.GetString("Review_Mode_Action_Install") ?? "Checked apps will be installed when you apply the config";
+            if (IsWindowsAppsRemoveAction)
+                return _localizationService.GetString("Review_Mode_Action_Remove") ?? "Checked apps will be removed when you apply the config";
+            return _localizationService.GetString("Review_Mode_Select_Action") ?? "Select an action for checked apps using the checkboxes above";
+        }
+    }
+
+    public string ReviewExternalAppsBannerText
+    {
+        get
+        {
+            if (IsExternalAppsInstallAction)
+                return _localizationService.GetString("Review_Mode_Action_Install") ?? "Checked apps will be installed when you apply the config";
+            if (IsExternalAppsRemoveAction)
+                return _localizationService.GetString("Review_Mode_Action_Remove") ?? "Checked apps will be removed when you apply the config";
+            return _localizationService.GetString("Review_Mode_Select_Action") ?? "Select an action for checked apps using the checkboxes above";
+        }
+    }
 
     public string RemoveButtonText => IsWindowsAppsTabSelected
         ? _localizationService.GetString("SoftwareApps_Button_RemoveSelected")
@@ -107,6 +269,8 @@ public partial class SoftwareAppsViewModel : BaseViewModel
         }
         OnPropertyChanged(nameof(RemoveButtonText));
         OnPropertyChanged(nameof(IsLoading));
+        OnPropertyChanged(nameof(CurrentInstallAction));
+        OnPropertyChanged(nameof(CurrentRemoveAction));
         UpdateButtonStates();
     }
 
@@ -120,6 +284,8 @@ public partial class SoftwareAppsViewModel : BaseViewModel
         }
         OnPropertyChanged(nameof(RemoveButtonText));
         OnPropertyChanged(nameof(IsLoading));
+        OnPropertyChanged(nameof(CurrentInstallAction));
+        OnPropertyChanged(nameof(CurrentRemoveAction));
         UpdateButtonStates();
     }
 
@@ -157,13 +323,53 @@ public partial class SoftwareAppsViewModel : BaseViewModel
     private void ChildViewModel_SelectedItemsChanged(object? sender, EventArgs e)
     {
         UpdateButtonStates();
+        UpdateSelectedCounts();
+    }
+
+    private void OnReviewModeChanged(object? sender, EventArgs e)
+    {
+        IsInReviewMode = _configReviewService.IsInReviewMode;
+
+        if (!IsInReviewMode)
+        {
+            // Reset action choices when exiting review mode
+            IsWindowsAppsInstallAction = false;
+            IsWindowsAppsRemoveAction = false;
+            IsExternalAppsInstallAction = false;
+            IsExternalAppsRemoveAction = false;
+        }
+
+        UpdateButtonStates();
+        UpdateSelectedCounts();
+    }
+
+    private void UpdateSelectedCounts()
+    {
+        if (!IsInReviewMode)
+        {
+            WindowsAppsSelectedCount = 0;
+            ExternalAppsSelectedCount = 0;
+            return;
+        }
+
+        WindowsAppsSelectedCount = WindowsAppsViewModel.Items?.Count(a => a.IsSelected) ?? 0;
+        ExternalAppsSelectedCount = ExternalAppsViewModel.Items?.Count(a => a.IsSelected) ?? 0;
+
+        // Re-evaluate reviewed state since it depends on selected counts
+        OnPropertyChanged(nameof(IsSoftwareAppsReviewed));
+        SyncSoftwareAppsReviewedState();
     }
 
     private void UpdateButtonStates()
     {
         bool isAnyTaskRunning = WindowsAppsViewModel.IsTaskRunning || ExternalAppsViewModel.IsTaskRunning;
 
-        if (IsWindowsAppsTabSelected)
+        if (IsInReviewMode)
+        {
+            CanInstallItems = false;
+            CanRemoveItems = false;
+        }
+        else if (IsWindowsAppsTabSelected)
         {
             var hasSelected = WindowsAppsViewModel.HasSelectedItems;
             CanInstallItems = hasSelected && !isAnyTaskRunning;
@@ -271,6 +477,7 @@ public partial class SoftwareAppsViewModel : BaseViewModel
         if (disposing)
         {
             _localizationService.LanguageChanged -= OnLanguageChanged;
+            _configReviewService.ReviewModeChanged -= OnReviewModeChanged;
             WindowsAppsViewModel.PropertyChanged -= ChildViewModel_PropertyChanged;
             ExternalAppsViewModel.PropertyChanged -= ChildViewModel_PropertyChanged;
             WindowsAppsViewModel.SelectedItemsChanged -= ChildViewModel_SelectedItemsChanged;

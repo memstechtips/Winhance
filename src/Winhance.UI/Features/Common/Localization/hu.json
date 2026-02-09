@@ -1015,7 +1015,6 @@
   "ExternalApps_Category_PrivacySecurity": "Adatvédelem és biztonság",
   "ExternalApps_Category_RemoteAccess": "Távoli hozzáférés",
   "ExternalApps_Category_RuntimesDependencies": "Futási környezetek és függőségek",
-  "ExternalApps_WinGetUnavailable": "Nem lehet meghatározni a telepítés állapotát. Csatlakozzon az internethez, és kattintson a Frissítés gombra.",
   "Error_NoInternetConnection": "Nincs internetkapcsolat. Kérjük, csatlakozzon, majd próbálja újra.",
   "Error_WinGetInstallFailed": "Nem sikerült telepíteni a WinGet-et. Kérjük, ellenőrizze az internetkapcsolatát.",
   "Error_WinGetNotAvailable": "A WinGet nem érhető el ezen a rendszeren.",

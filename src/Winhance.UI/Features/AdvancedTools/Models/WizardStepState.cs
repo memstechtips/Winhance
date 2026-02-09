@@ -1,6 +1,5 @@
 using System.ComponentModel;
 using System.Runtime.CompilerServices;
-using Windows.UI;
 
 namespace Winhance.UI.Features.AdvancedTools.Models;
 
@@ -40,7 +39,6 @@ public class WizardStepState : INotifyPropertyChanged
             {
                 _isExpanded = value;
                 OnPropertyChanged();
-                OnPropertyChanged(nameof(HeaderIcon));
                 OnPropertyChanged(nameof(ChevronRotation));
             }
         }
@@ -56,8 +54,7 @@ public class WizardStepState : INotifyPropertyChanged
                 _isAvailable = value;
                 OnPropertyChanged();
                 OnPropertyChanged(nameof(IsLocked));
-                OnPropertyChanged(nameof(HeaderIcon));
-                OnPropertyChanged(nameof(HeaderIconColor));
+                OnPropertyChanged(nameof(ShowChevron));
             }
         }
     }
@@ -71,8 +68,7 @@ public class WizardStepState : INotifyPropertyChanged
             {
                 _isComplete = value;
                 OnPropertyChanged();
-                OnPropertyChanged(nameof(HeaderIcon));
-                OnPropertyChanged(nameof(HeaderIconColor));
+                OnPropertyChanged(nameof(ShowChevron));
             }
         }
     }
@@ -80,25 +76,14 @@ public class WizardStepState : INotifyPropertyChanged
     public bool IsLocked => !IsAvailable;
 
     /// <summary>
-    /// Gets the Segoe MDL2 Assets glyph for the header icon.
-    /// Lock = E72E, CheckMark = E73E, ChevronUp = E70E, ChevronDown = E70D
+    /// Whether the chevron should be visible (not locked and not complete).
     /// </summary>
-    public string HeaderIcon => IsLocked ? "\uE72E"
-                              : IsComplete ? "\uE73E"
-                              : "\uE70D"; // We'll rotate it with ChevronRotation
+    public bool ShowChevron => !IsLocked && !IsComplete;
 
     /// <summary>
     /// Rotation angle for the chevron icon.
     /// </summary>
     public double ChevronRotation => IsExpanded ? 180 : 0;
-
-    /// <summary>
-    /// Gets the color for the header icon.
-    /// Orange for locked, Green for complete, White for normal.
-    /// </summary>
-    public Color HeaderIconColor => IsLocked ? Color.FromArgb(255, 255, 165, 0)   // Orange
-                                  : IsComplete ? Color.FromArgb(255, 76, 175, 80)  // Green
-                                  : Color.FromArgb(255, 255, 255, 255);            // White
 
     public event PropertyChangedEventHandler? PropertyChanged;
 

@@ -84,6 +84,13 @@
 
                         <MenuFlyoutSeparator/>
 
+                        <!-- Documentation -->
+                        <MenuFlyoutItem x:Name="DocsMenuItem" Click="MoreMenuItem_Click" Tag="OpenDocs">
+                            <MenuFlyoutItem.Icon>
+                                <PathIcon Data="{StaticResource BookOpenVariantOutlineIconPath}"/>
+                            </MenuFlyoutItem.Icon>
+                        </MenuFlyoutItem>
+
                         <!-- Report a Bug -->
                         <MenuFlyoutItem x:Name="ReportBugMenuItem" Click="MoreMenuItem_Click" Tag="ReportBug">
                             <MenuFlyoutItem.Icon>

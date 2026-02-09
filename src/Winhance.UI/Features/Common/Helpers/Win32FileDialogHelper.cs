@@ -1,4 +1,5 @@
 using System;
+using System.IO;
 using System.Runtime.InteropServices;
 using Microsoft.UI.Xaml;
 using WinRT.Interop;
@@ -159,6 +160,43 @@ public static class Win32FileDialogHelper
         dialog.SetFileTypeIndex(1);
         dialog.SetOptions(FOS.FOS_FORCEFILESYSTEM | FOS.FOS_FILEMUSTEXIST | FOS.FOS_PATHMUSTEXIST);
         dialog.SetTitle(title);
+
+        var hwnd = WindowNative.GetWindowHandle(window);
+        if (dialog.Show(hwnd) != 0)
+            return null;
+
+        dialog.GetResult(out var item);
+        item.GetDisplayName(SIGDN.SIGDN_FILESYSPATH, out var path);
+        return path;
+    }
+
+    /// <summary>
+    /// Shows a file open dialog with an initial folder.
+    /// </summary>
+    /// <param name="window">The parent window.</param>
+    /// <param name="title">The dialog title.</param>
+    /// <param name="filterName">The filter display name (e.g., "Winhance Configuration Files").</param>
+    /// <param name="filterPattern">The filter pattern (e.g., "*.winhance").</param>
+    /// <param name="initialFolderPath">The initial folder to open the dialog in.</param>
+    /// <returns>The selected file path, or null if cancelled.</returns>
+    public static string? ShowOpenFilePicker(Window window, string title, string filterName, string filterPattern, string initialFolderPath)
+    {
+        var dialog = (IFileDialog)Activator.CreateInstance(Type.GetTypeFromCLSID(CLSID_FileOpenDialog)!)!;
+
+        var filters = new COMDLG_FILTERSPEC[]
+        {
+            new() { pszName = filterName, pszSpec = filterPattern },
+            new() { pszName = "All Files", pszSpec = "*.*" }
+        };
+        dialog.SetFileTypes((uint)filters.Length, filters);
+        dialog.SetFileTypeIndex(1);
+        dialog.SetOptions(FOS.FOS_FORCEFILESYSTEM | FOS.FOS_FILEMUSTEXIST | FOS.FOS_PATHMUSTEXIST);
+        dialog.SetTitle(title);
+
+        if (!string.IsNullOrEmpty(initialFolderPath) && Directory.Exists(initialFolderPath))
+        {
+            SetInitialFolder(dialog, initialFolderPath);
+        }
 
         var hwnd = WindowNative.GetWindowHandle(window);
         if (dialog.Show(hwnd) != 0)

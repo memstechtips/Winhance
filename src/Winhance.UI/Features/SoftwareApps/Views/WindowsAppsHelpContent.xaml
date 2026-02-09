@@ -112,5 +112,7 @@
                        Foreground="{ThemeResource TextFillColorSecondaryBrush}"/>
         </ScrollViewer>
 
+        <HyperlinkButton x:Name="LearnMoreLink" Padding="0" Margin="0,4,0,0"/>
+
     </StackPanel>
 </UserControl>

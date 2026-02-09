@@ -3,21 +3,23 @@ using System.Threading.Tasks;
 using Winhance.Core.Features.Common.Enums;
 using Winhance.Core.Features.Common.Interfaces;
 using Winhance.Core.Features.Common.Models;
-using Winhance.WPF.Features.Common.Views;
 
-namespace Winhance.WPF.Features.Common.Services
+namespace Winhance.UI.Features.Common.Services
 {
     public class StartupNotificationService : IStartupNotificationService
     {
+        private readonly IDialogService _dialogService;
         private readonly IUserPreferencesService _prefsService;
         private readonly ILogService _logService;
         private readonly ILocalizationService _localizationService;
 
         public StartupNotificationService(
+            IDialogService dialogService,
             IUserPreferencesService prefsService,
             ILogService logService,
             ILocalizationService localizationService)
         {
+            _dialogService = dialogService;
             _prefsService = prefsService;
             _logService = logService;
             _localizationService = localizationService;
@@ -37,6 +39,7 @@ namespace Winhance.WPF.Features.Common.Services
                 return;
             }
 
+            // Only show dialog when something new was actually created
             if (!result.RestorePointCreated)
                 return;
 
@@ -61,17 +64,15 @@ namespace Winhance.WPF.Features.Common.Services
 
                 var checkboxText = _localizationService.GetString("Startup_Backup_Checkbox_DontCreate");
 
-                var checkboxChecked = CustomDialog.ShowInformationWithCheckbox(
-                    _localizationService.GetString("Startup_Backup_Title"),
-                    _localizationService.GetString("Startup_Backup_SubTitle"),
+                var dialogResult = await _dialogService.ShowConfirmationWithCheckboxAsync(
                     messageText,
                     checkboxText,
-                    _localizationService.GetString("Button_OK"),
-                    DialogType.Information,
-                    titleBarIcon: "Shield"
-                );
+                    title: _localizationService.GetString("Startup_Backup_Title"),
+                    continueButtonText: _localizationService.GetString("Button_OK"),
+                    cancelButtonText: "",
+                    titleBarIcon: "Shield");
 
-                if (checkboxChecked)
+                if (dialogResult.CheckboxChecked)
                 {
                     await _prefsService.SetPreferenceAsync("SkipSystemBackup", true);
                     _logService.Log(LogLevel.Info, "User opted to skip system backup check in future launches");
@@ -87,44 +88,7 @@ namespace Winhance.WPF.Features.Common.Services
 
         public void ShowMigrationNotification(ScriptMigrationResult result)
         {
-            if (result == null || !result.MigrationPerformed)
-                return;
-
-            if (!result.Success)
-            {
-                _logService.Log(LogLevel.Info, "Migration was performed but encountered errors");
-                return;
-            }
-
-            try
-            {
-                var messageText = _localizationService.GetString("Startup_Migration_Intro") + "\n\n";
-
-                messageText += _localizationService.GetString("Startup_Migration_WhatChanged") + "\n";
-                messageText += _localizationService.GetString("Startup_Migration_OldLocation") + "\n";
-                messageText += _localizationService.GetString("Startup_Migration_NewLocation") + "\n";
-                messageText += _localizationService.GetString("Startup_Migration_TasksDeleted", result.TasksDeleted) + "\n";
-                messageText += _localizationService.GetString("Startup_Migration_ScriptsRenamed", result.ScriptsRenamed) + "\n\n";
-
-                messageText += _localizationService.GetString("Startup_Migration_ImportantInfo") + "\n";
-                messageText += _localizationService.GetString("Startup_Migration_AppsStayRemoved") + "\n";
-                messageText += _localizationService.GetString("Startup_Migration_MayReinstall") + "\n\n";
-
-                messageText += _localizationService.GetString("Startup_Migration_Recommendation");
-
-                CustomDialog.ShowInformation(
-                    _localizationService.GetString("Startup_Migration_Title"),
-                    _localizationService.GetString("Startup_Migration_SubTitle"),
-                    messageText,
-                    _localizationService.GetString("Startup_Migration_OneTime")
-                );
-
-                _logService.Log(LogLevel.Info, "Migration notification shown to user");
-            }
-            catch (Exception ex)
-            {
-                _logService.Log(LogLevel.Error, $"Error showing migration notification: {ex.Message}");
-            }
+            _logService.Log(LogLevel.Info, "ShowMigrationNotification called (not implemented in WinUI3)");
         }
     }
 }

@@ -10,8 +10,9 @@
     <Grid x:Name="RootGrid" Loaded="RootGrid_Loaded">
         <Grid.RowDefinitions>
             <RowDefinition Height="48"/>    <!-- TitleBar -->
-            <RowDefinition Height="Auto"/>  <!-- InfoBar -->
-            <RowDefinition Height="*"/>
+            <RowDefinition Height="Auto"/>  <!-- Update InfoBar -->
+            <RowDefinition Height="Auto"/>  <!-- Review Mode Bar -->
+            <RowDefinition Height="*"/>     <!-- Main Content -->
         </Grid.RowDefinitions>
 
         <!-- Title Bar Area -->
@@ -104,6 +105,15 @@
                         ToolTipService.ToolTip="Report a Bug">
                     <FontIcon Glyph="&#xEBE8;" FontSize="14"/>
                 </Button>
+
+                <!-- Documentation Button -->
+                <Button x:Name="DocsButton"
+                        Style="{StaticResource TitleBarButtonStyle}"
+                        ToolTipService.ToolTip="Documentation">
+                    <Viewbox Width="14" Height="14">
+                        <PathIcon Data="{StaticResource BookOpenVariantOutlineIconPath}" Foreground="{ThemeResource TextFillColorPrimaryBrush}"/>
+                    </Viewbox>
+                </Button>
             </StackPanel>
         </Grid>
 
@@ -113,8 +123,84 @@
                  IsClosable="True"
                  Closed="UpdateInfoBar_Closed"/>
 
+        <!-- Review Mode Bar (visible during config review) -->
+        <Grid x:Name="ReviewModeBar"
+              Grid.Row="2"
+              Background="{ThemeResource AccentFillColorDefaultBrush}"
+              Visibility="Collapsed"
+              Padding="16,10,16,10">
+            <Grid.ColumnDefinitions>
+                <ColumnDefinition Width="Auto"/>  <!-- Icon -->
+                <ColumnDefinition Width="Auto"/>  <!-- Title -->
+                <ColumnDefinition Width="Auto"/>  <!-- Description -->
+                <ColumnDefinition Width="*"/>     <!-- Status text -->
+                <ColumnDefinition Width="Auto"/>  <!-- Apply button -->
+                <ColumnDefinition Width="Auto"/>  <!-- Cancel button -->
+            </Grid.ColumnDefinitions>
+
+            <FontIcon Grid.Column="0"
+                      Glyph="&#xE7BE;"
+                      FontSize="16"
+                      Foreground="{ThemeResource TextOnAccentFillColorPrimaryBrush}"
+                      VerticalAlignment="Center"
+                      Margin="0,0,10,0"/>
+
+            <TextBlock Grid.Column="1"
+                       x:Name="ReviewModeTitleText"
+                       Text="Config Review Mode"
+                       FontWeight="SemiBold"
+                       FontSize="13"
+                       Foreground="{ThemeResource TextOnAccentFillColorPrimaryBrush}"
+                       VerticalAlignment="Center"
+                       Margin="0,0,12,0"/>
+
+            <TextBlock Grid.Column="2"
+                       x:Name="ReviewModeDescriptionText"
+                       FontSize="12"
+                       Foreground="{ThemeResource TextOnAccentFillColorSecondaryBrush}"
+                       VerticalAlignment="Center"
+                       Opacity="0.85"
+                       Margin="0,0,16,0"/>
+
+            <TextBlock Grid.Column="3"
+                       x:Name="ReviewModeStatusText"
+                       FontSize="12"
+                       Foreground="{ThemeResource TextOnAccentFillColorSecondaryBrush}"
+                       VerticalAlignment="Center"
+                       Opacity="0.9"/>
+
+            <Button Grid.Column="4"
+                    x:Name="ReviewModeApplyButton"
+                    Click="ReviewModeApplyButton_Click"
+                    Background="#40FFFFFF"
+                    Foreground="{ThemeResource TextOnAccentFillColorPrimaryBrush}"
+                    BorderThickness="0"
+                    VerticalAlignment="Center"
+                    Margin="8,0,4,0">
+                <StackPanel Orientation="Horizontal" Spacing="8">
+                    <FontIcon Glyph="&#xE73E;" FontSize="14"/>
+                    <TextBlock x:Name="ReviewModeApplyButtonText" Text="Apply Config"/>
+                </StackPanel>
+            </Button>
+
+            <Button Grid.Column="5"
+                    x:Name="ReviewModeCancelButton"
+                    Click="ReviewModeCancelButton_Click"
+                    Background="#40FFFFFF"
+                    Foreground="{ThemeResource TextOnAccentFillColorPrimaryBrush}"
+                    BorderThickness="0"
+                    ToolTipService.ToolTip="Cancel review"
+                    VerticalAlignment="Center"
+                    Margin="4,0,0,0">
+                <StackPanel Orientation="Horizontal" Spacing="8">
+                    <FontIcon Glyph="&#xE711;" FontSize="14"/>
+                    <TextBlock x:Name="ReviewModeCancelButtonText" Text="Cancel"/>
+                </StackPanel>
+            </Button>
+        </Grid>
+
         <!-- Main Content Area -->
-        <Grid Grid.Row="2">
+        <Grid Grid.Row="3">
             <Grid.ColumnDefinitions>
                 <ColumnDefinition Width="Auto"/>  <!-- NavSidebar -->
                 <ColumnDefinition Width="*"/>     <!-- Content -->
@@ -144,7 +230,7 @@
 
         <!-- Loading Overlay (shown during startup initialization) -->
         <Grid x:Name="LoadingOverlay"
-              Grid.RowSpan="3"
+              Grid.RowSpan="4"
               Background="{ThemeResource SolidBackgroundFillColorBaseBrush}"
               Visibility="Visible">
             <StackPanel HorizontalAlignment="Center" VerticalAlignment="Center" Spacing="24">

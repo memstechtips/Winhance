@@ -3,6 +3,8 @@ using Microsoft.Extensions.DependencyInjection;
 using Microsoft.UI.Xaml;
 using Microsoft.UI.Xaml.Controls;
 using Microsoft.UI.Xaml.Navigation;
+using Winhance.Core.Features.Common.Constants;
+using IConfigReviewService = Winhance.Core.Features.Common.Interfaces.IConfigReviewService;
 using Winhance.UI.Features.Optimize.Models;
 using Winhance.UI.Features.Optimize.Pages;
 using Winhance.UI.Features.Optimize.ViewModels;
@@ -25,6 +27,19 @@ public sealed partial class OptimizePage : Page
         { "Sound", "SoundIconGlyph" }
     };
 
+    // Maps section keys to feature IDs for badge tracking
+    private static readonly Dictionary<string, string> SectionFeatureIds = new()
+    {
+        { "Privacy", FeatureIds.Privacy },
+        { "Power", FeatureIds.Power },
+        { "Gaming", FeatureIds.GamingPerformance },
+        { "Update", FeatureIds.Update },
+        { "Notification", FeatureIds.Notifications },
+        { "Sound", FeatureIds.Sound }
+    };
+
+    private IConfigReviewService? _configReviewService;
+
     public OptimizeViewModel ViewModel { get; }
 
     public OptimizePage()
@@ -37,6 +52,14 @@ public sealed partial class OptimizePage : Page
             ViewModel = App.Services.GetRequiredService<OptimizeViewModel>();
             ViewModel.PropertyChanged += OnViewModelPropertyChanged;
             UpdateBreadcrumbMenuItems();
+
+            _configReviewService = App.Services.GetService<IConfigReviewService>();
+            if (_configReviewService != null)
+            {
+                _configReviewService.ReviewModeChanged += OnReviewModeChanged;
+                _configReviewService.BadgeStateChanged += OnBadgeStateChanged;
+            }
+
             Log("ViewModel obtained, constructor complete");
         }
         catch (Exception ex)
@@ -77,6 +100,11 @@ public sealed partial class OptimizePage : Page
 
             Log("Calling ViewModel.InitializeAsync...");
             await ViewModel.InitializeAsync();
+
+            // Update badges if already in review mode (events fired before page existed)
+            if (_configReviewService?.IsInReviewMode == true)
+                UpdateOverviewBadges();
+
             Log("OnNavigatedTo complete");
         }
         catch (Exception ex)
@@ -114,6 +142,13 @@ public sealed partial class OptimizePage : Page
             }
 
             InnerContentFrame.Navigate(pageType, searchText);
+
+            // Mark feature as visited when user actually navigates into it
+            if (_configReviewService?.IsInReviewMode == true &&
+                SectionFeatureIds.TryGetValue(sectionKey, out var featureId))
+            {
+                _configReviewService.MarkFeatureVisited(featureId);
+            }
         }
         else
         {
@@ -247,6 +282,77 @@ public sealed partial class OptimizePage : Page
     private void NavigateGaming_Click(object sender, RoutedEventArgs e)
     {
         NavigateToSection("Gaming");
+    }
+
+    // Review mode badge handlers
+    private void OnReviewModeChanged(object? sender, EventArgs e)
+    {
+        DispatcherQueue.TryEnqueue(UpdateOverviewBadges);
+    }
+
+    private void OnBadgeStateChanged(object? sender, EventArgs e)
+    {
+        DispatcherQueue.TryEnqueue(UpdateOverviewBadges);
+    }
+
+    private void UpdateOverviewBadges()
+    {
+        if (_configReviewService == null || !_configReviewService.IsInReviewMode)
+        {
+            PrivacyBadge.Visibility = Visibility.Collapsed;
+            PowerBadge.Visibility = Visibility.Collapsed;
+            GamingBadge.Visibility = Visibility.Collapsed;
+            UpdateBadge.Visibility = Visibility.Collapsed;
+            NotificationBadge.Visibility = Visibility.Collapsed;
+            SoundBadge.Visibility = Visibility.Collapsed;
+            return;
+        }
+
+        UpdateFeatureBadge(PrivacyBadge, FeatureIds.Privacy);
+        UpdateFeatureBadge(PowerBadge, FeatureIds.Power);
+        UpdateFeatureBadge(GamingBadge, FeatureIds.GamingPerformance);
+        UpdateFeatureBadge(UpdateBadge, FeatureIds.Update);
+        UpdateFeatureBadge(NotificationBadge, FeatureIds.Notifications);
+        UpdateFeatureBadge(SoundBadge, FeatureIds.Sound);
+    }
+
+    private void UpdateFeatureBadge(InfoBadge badge, string featureId)
+    {
+        var diffCount = _configReviewService!.GetFeatureDiffCount(featureId);
+        if (diffCount > 0)
+        {
+            badge.Visibility = Visibility.Visible;
+
+            if (_configReviewService.IsFeatureFullyReviewed(featureId))
+            {
+                // Fully reviewed: show checkmark icon only (no count number)
+                badge.Value = -1;
+                if (Application.Current.Resources.TryGetValue("SuccessIconInfoBadgeStyle", out var successStyle) && successStyle is Style ss)
+                    badge.Style = ss;
+            }
+            else
+            {
+                // Not fully reviewed: show attention badge with count
+                badge.Value = diffCount;
+                if (Application.Current.Resources.TryGetValue("AttentionValueInfoBadgeStyle", out var attentionStyle) && attentionStyle is Style ats)
+                    badge.Style = ats;
+            }
+        }
+        else if (_configReviewService.IsFeatureInConfig(featureId))
+        {
+            // Feature is in config but has 0 diffs - show success checkmark only
+            badge.Value = -1;
+            badge.Visibility = Visibility.Visible;
+
+            if (Application.Current.Resources.TryGetValue("SuccessIconInfoBadgeStyle", out var style) && style is Style badgeStyle)
+            {
+                badge.Style = badgeStyle;
+            }
+        }
+        else
+        {
+            badge.Visibility = Visibility.Collapsed;
+        }
     }
 
     // Search handlers

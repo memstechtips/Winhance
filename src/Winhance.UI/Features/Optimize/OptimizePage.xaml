@@ -178,6 +178,7 @@
                                 <controls:SettingsCard.HeaderIcon>
                                     <PathIcon Data="{StaticResource PrivacyIconPath}"/>
                                 </controls:SettingsCard.HeaderIcon>
+                                <InfoBadge x:Name="PrivacyBadge" Visibility="Collapsed"/>
                             </controls:SettingsCard>
 
                             <!-- Power Card -->
@@ -189,6 +190,7 @@
                                 <controls:SettingsCard.HeaderIcon>
                                     <PathIcon Data="{StaticResource PowerIconPath}"/>
                                 </controls:SettingsCard.HeaderIcon>
+                                <InfoBadge x:Name="PowerBadge" Visibility="Collapsed"/>
                             </controls:SettingsCard>
 
                             <!-- Gaming and Performance Card -->
@@ -200,6 +202,7 @@
                                 <controls:SettingsCard.HeaderIcon>
                                     <PathIcon Data="{StaticResource GamingIconPath}"/>
                                 </controls:SettingsCard.HeaderIcon>
+                                <InfoBadge x:Name="GamingBadge" Visibility="Collapsed"/>
                             </controls:SettingsCard>
 
                             <!-- Update Card -->
@@ -211,6 +214,7 @@
                                 <controls:SettingsCard.HeaderIcon>
                                     <FontIcon Glyph="{StaticResource UpdateIconGlyph}"/>
                                 </controls:SettingsCard.HeaderIcon>
+                                <InfoBadge x:Name="UpdateBadge" Visibility="Collapsed"/>
                             </controls:SettingsCard>
 
                             <!-- Notifications Card -->
@@ -222,6 +226,7 @@
                                 <controls:SettingsCard.HeaderIcon>
                                     <PathIcon Data="{StaticResource NotificationIconPath}"/>
                                 </controls:SettingsCard.HeaderIcon>
+                                <InfoBadge x:Name="NotificationBadge" Visibility="Collapsed"/>
                             </controls:SettingsCard>
 
                             <!-- Sound Card -->
@@ -233,6 +238,7 @@
                                 <controls:SettingsCard.HeaderIcon>
                                     <FontIcon Glyph="{StaticResource SoundIconGlyph}"/>
                                 </controls:SettingsCard.HeaderIcon>
+                                <InfoBadge x:Name="SoundBadge" Visibility="Collapsed"/>
                             </controls:SettingsCard>
 
                         </StackPanel>

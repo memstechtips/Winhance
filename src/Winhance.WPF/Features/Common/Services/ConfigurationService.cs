@@ -1255,5 +1255,11 @@ namespace Winhance.WPF.Features.Common.Services
 
             return filteredSection;
         }
+
+        public Task ApplyReviewedConfigAsync()
+        {
+            // Review mode is only implemented in the WinUI 3 project
+            return Task.CompletedTask;
+        }
     }
 }

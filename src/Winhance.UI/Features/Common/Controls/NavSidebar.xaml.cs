@@ -161,6 +161,7 @@ public sealed partial class NavSidebar : UserControl, INotifyPropertyChanged
                 var tag = menuItem.Tag as string;
                 menuItem.Text = tag switch
                 {
+                    "OpenDocs" => _moreMenuViewModel.MenuDocumentation,
                     "ReportBug" => _moreMenuViewModel.MenuReportBug,
                     "CheckUpdates" => _moreMenuViewModel.MenuCheckForUpdates,
                     "OpenLogs" => _moreMenuViewModel.MenuWinhanceLogs,
@@ -212,6 +213,9 @@ public sealed partial class NavSidebar : UserControl, INotifyPropertyChanged
         {
             switch (tag)
             {
+                case "OpenDocs":
+                    _moreMenuViewModel.OpenDocsCommand.Execute(null);
+                    break;
                 case "ReportBug":
                     _moreMenuViewModel.ReportBugCommand.Execute(null);
                     break;
@@ -330,6 +334,32 @@ public sealed partial class NavSidebar : UserControl, INotifyPropertyChanged
             return button;
         }
         return null;
+    }
+
+    /// <summary>
+    /// Sets badge value and status on the NavButton for the given tag.
+    /// </summary>
+    public void SetButtonBadge(string tag, int value, string status)
+    {
+        if (_navButtons != null && _navButtons.TryGetValue(tag, out var button))
+        {
+            button.BadgeValue = value;
+            button.BadgeStatus = status;
+        }
+    }
+
+    /// <summary>
+    /// Clears all badges from all nav buttons.
+    /// </summary>
+    public void ClearAllBadges()
+    {
+        if (_navButtons == null) return;
+
+        foreach (var button in _navButtons.Values)
+        {
+            button.BadgeValue = -1;
+            button.BadgeStatus = string.Empty;
+        }
     }
 
     #endregion

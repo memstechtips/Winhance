@@ -7,10 +7,13 @@
     xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
     mc:Ignorable="d">
 
-    <ScrollViewer MaxHeight="300" VerticalScrollBarVisibility="Auto">
-        <TextBlock x:Name="HelpContentText"
-                   TextWrapping="Wrap"
-                   Style="{StaticResource BodyTextBlockStyle}"
-                   Foreground="{ThemeResource TextFillColorSecondaryBrush}"/>
-    </ScrollViewer>
+    <StackPanel Spacing="12">
+        <ScrollViewer MaxHeight="300" VerticalScrollBarVisibility="Auto">
+            <TextBlock x:Name="HelpContentText"
+                       TextWrapping="Wrap"
+                       Style="{StaticResource BodyTextBlockStyle}"
+                       Foreground="{ThemeResource TextFillColorSecondaryBrush}"/>
+        </ScrollViewer>
+        <HyperlinkButton x:Name="LearnMoreLink" Padding="0"/>
+    </StackPanel>
 </UserControl>

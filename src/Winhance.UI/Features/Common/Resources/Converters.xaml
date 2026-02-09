@@ -37,6 +37,7 @@
     <!-- Icon Converters -->
     <converters:FluentIconConverter x:Key="FluentIconConverter"/>
     <converters:SettingIconConverter x:Key="SettingIconConverter"/>
+    <converters:StringToGeometryConverter x:Key="StringToGeometryConverter"/>
 
     <!-- SoftwareApps Converters -->
     <softwareConverters:BoolToColorConverter x:Key="BoolToColorConverter"/>

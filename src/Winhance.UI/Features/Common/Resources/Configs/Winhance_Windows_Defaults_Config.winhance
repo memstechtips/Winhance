@@ -1,0 +1,135 @@
+{
+  "Version": "2.0",
+  "CreatedAt": "2026-02-09T00:00:00Z",
+  "WindowsApps": {
+    "IsIncluded": false,
+    "Items": []
+  },
+  "ExternalApps": {
+    "IsIncluded": false,
+    "Items": []
+  },
+  "Optimize": {
+    "IsIncluded": true,
+    "Features": {
+      "Notifications": {
+        "IsIncluded": true,
+        "Items": [
+          { "Id": "windows-pushnotifications", "Name": "Push Notifications", "IsSelected": true, "RestoreDefault": true, "InputType": 0 },
+          { "Id": "notifications-sound", "Name": "Notification Sound", "IsSelected": true, "RestoreDefault": true, "InputType": 0 },
+          { "Id": "notifications-toast-above-lock", "Name": "Notifications on Lock Screen", "IsSelected": true, "RestoreDefault": true, "InputType": 0 },
+          { "Id": "notifications-critical-toast-above-lock", "Name": "Critical Notifications on Lock Screen", "IsSelected": true, "RestoreDefault": true, "InputType": 0 },
+          { "Id": "notifications-welcome-experience", "Name": "Welcome Experience", "IsSelected": true, "RestoreDefault": true, "InputType": 0 },
+          { "Id": "notifications-system-setting-engagement", "Name": "Settings Engagement Notifications", "IsSelected": true, "RestoreDefault": true, "InputType": 0 },
+          { "Id": "notifications-capability-access", "Name": "Capability Access Notifications", "IsSelected": true, "RestoreDefault": true, "InputType": 0 },
+          { "Id": "notifications-startup-app", "Name": "Startup App Notifications", "IsSelected": true, "RestoreDefault": true, "InputType": 0 },
+          { "Id": "notifications-clock-change", "Name": "Clock Change Notifications", "IsSelected": true, "RestoreDefault": true, "InputType": 0 },
+          { "Id": "notifications-windows-security", "Name": "Windows Security Notifications", "IsSelected": true, "RestoreDefault": true, "InputType": 0 },
+          { "Id": "notifications-security-maintenance", "Name": "Security and Maintenance Notifications", "IsSelected": true, "RestoreDefault": true, "InputType": 0 }
+        ]
+      },
+      "Sound": {
+        "IsIncluded": true,
+        "Items": [
+          { "Id": "sound-startup", "Name": "Startup Sound", "IsSelected": true, "RestoreDefault": true, "InputType": 0 },
+          { "Id": "sound-narrator-audio-ducking", "Name": "Narrator Audio Ducking", "IsSelected": true, "RestoreDefault": true, "InputType": 0 },
+          { "Id": "sound-voice-activation", "Name": "Voice Activation", "IsSelected": true, "RestoreDefault": true, "InputType": 0 },
+          { "Id": "sound-voice-activation-last-used", "Name": "Voice Activation Last Used", "IsSelected": true, "RestoreDefault": true, "InputType": 0 },
+          { "Id": "sound-accessibility-activation", "Name": "Accessibility Sound Activation", "IsSelected": true, "RestoreDefault": true, "InputType": 0 },
+          { "Id": "sound-accessibility-warnings", "Name": "Accessibility Sound Warnings", "IsSelected": true, "RestoreDefault": true, "InputType": 0 }
+        ]
+      },
+      "GamingPerformance": {
+        "IsIncluded": true,
+        "Items": [
+          { "Id": "gaming-game-mode", "Name": "Game Mode", "IsSelected": true, "RestoreDefault": true, "InputType": 0 },
+          { "Id": "gaming-background-apps", "Name": "Background Apps", "IsSelected": true, "RestoreDefault": true, "InputType": 0 },
+          { "Id": "gaming-storage-sense", "Name": "Storage Sense", "IsSelected": true, "RestoreDefault": true, "InputType": 0 },
+          { "Id": "gaming-gpu-scheduling", "Name": "GPU Hardware Scheduling", "IsSelected": true, "RestoreDefault": true, "InputType": 0 },
+          { "Id": "gaming-directx-flip-model", "Name": "DirectX Flip Model", "IsSelected": true, "RestoreDefault": true, "InputType": 0 },
+          { "Id": "gaming-performance-desktop-composition", "Name": "Desktop Composition", "IsSelected": true, "RestoreDefault": true, "InputType": 0 },
+          { "Id": "gaming-performance-wallpaper-compression", "Name": "Wallpaper Compression", "IsSelected": true, "RestoreDefault": true, "InputType": 0 },
+          { "Id": "gaming-game-bar-controller", "Name": "Game Bar Controller", "IsSelected": true, "RestoreDefault": true, "InputType": 0 },
+          { "Id": "gaming-game-bar-tips", "Name": "Game Bar Tips", "IsSelected": true, "RestoreDefault": true, "InputType": 0 },
+          { "Id": "gaming-narrator-hotkey", "Name": "Narrator Hotkey", "IsSelected": true, "RestoreDefault": true, "InputType": 0 }
+        ]
+      },
+      "Update": {
+        "IsIncluded": true,
+        "Items": [
+          { "Id": "updates-latest-updates", "Name": "Latest Updates", "IsSelected": true, "RestoreDefault": true, "InputType": 0 },
+          { "Id": "updates-store-auto-download", "Name": "Store Auto Download", "IsSelected": true, "RestoreDefault": true, "InputType": 0 },
+          { "Id": "updates-policy-mode", "Name": "Windows Update Policy", "IsSelected": false, "RestoreDefault": true, "InputType": 0 }
+        ]
+      },
+      "Power": {
+        "IsIncluded": true,
+        "Items": [
+          { "Id": "power-fast-startup", "Name": "Fast Startup", "IsSelected": true, "RestoreDefault": true, "InputType": 0 },
+          { "Id": "start-power-hibernate-option", "Name": "Hibernate Option", "IsSelected": true, "RestoreDefault": true, "InputType": 0 },
+          { "Id": "start-power-lock-option", "Name": "Lock Option", "IsSelected": true, "RestoreDefault": true, "InputType": 0 },
+          { "Id": "start-power-sleep-option", "Name": "Sleep Option", "IsSelected": true, "RestoreDefault": true, "InputType": 0 }
+        ]
+      },
+      "Privacy": {
+        "IsIncluded": true,
+        "Items": [
+          { "Id": "privacy-settings-notifications", "Name": "Settings Notifications", "IsSelected": true, "RestoreDefault": true, "InputType": 0 },
+          { "Id": "privacy-app-launch-tracking", "Name": "App Launch Tracking", "IsSelected": true, "RestoreDefault": true, "InputType": 0 },
+          { "Id": "privacy-language-list", "Name": "Language List", "IsSelected": true, "RestoreDefault": true, "InputType": 0 },
+          { "Id": "privacy-activity-history", "Name": "Activity History", "IsSelected": true, "RestoreDefault": true, "InputType": 0 },
+          { "Id": "privacy-feedback-frequency", "Name": "Feedback Frequency", "IsSelected": true, "RestoreDefault": true, "InputType": 0 },
+          { "Id": "privacy-allow-cortana", "Name": "Cortana", "IsSelected": true, "RestoreDefault": true, "InputType": 0 },
+          { "Id": "privacy-narrator-online-services", "Name": "Narrator Online Services", "IsSelected": true, "RestoreDefault": true, "InputType": 0 },
+          { "Id": "privacy-narrator-scripting", "Name": "Narrator Scripting", "IsSelected": true, "RestoreDefault": true, "InputType": 0 },
+          { "Id": "privacy-search-history", "Name": "Search History", "IsSelected": true, "RestoreDefault": true, "InputType": 0 },
+          { "Id": "privacy-search-highlights", "Name": "Search Highlights", "IsSelected": true, "RestoreDefault": true, "InputType": 0 },
+          { "Id": "privacy-search-msa-cloud", "Name": "MSA Cloud Search", "IsSelected": true, "RestoreDefault": true, "InputType": 0 },
+          { "Id": "privacy-search-aad-cloud", "Name": "AAD Cloud Search", "IsSelected": true, "RestoreDefault": true, "InputType": 0 }
+        ]
+      }
+    }
+  },
+  "Customize": {
+    "IsIncluded": true,
+    "Features": {
+      "StartMenu": {
+        "IsIncluded": true,
+        "Items": [
+          { "Id": "start-show-recently-added-apps", "Name": "Show Recently Added Apps", "IsSelected": true, "RestoreDefault": true, "InputType": 0 },
+          { "Id": "start-menu-recommendations", "Name": "Start Menu Recommendations", "IsSelected": true, "RestoreDefault": true, "InputType": 0 },
+          { "Id": "start-show-account-notifications", "Name": "Account Notifications", "IsSelected": true, "RestoreDefault": true, "InputType": 0 },
+          { "Id": "start-recommended-section", "Name": "Recommended Section", "IsSelected": true, "RestoreDefault": true, "InputType": 0 },
+          { "Id": "start-disable-bing-search-results", "Name": "Bing Search Results", "IsSelected": false, "RestoreDefault": true, "InputType": 0 }
+        ]
+      },
+      "Taskbar": {
+        "IsIncluded": true,
+        "Items": [
+          { "Id": "taskbar-task-view", "Name": "Task View", "IsSelected": true, "RestoreDefault": true, "InputType": 0 },
+          { "Id": "taskbar-copilot", "Name": "Copilot", "IsSelected": true, "RestoreDefault": true, "InputType": 0 },
+          { "Id": "taskbar-widgets", "Name": "Widgets", "IsSelected": true, "RestoreDefault": true, "InputType": 0 },
+          { "Id": "taskbar-news-and-interests", "Name": "News and Interests", "IsSelected": true, "RestoreDefault": true, "InputType": 0 },
+          { "Id": "taskbar-meet-now", "Name": "Meet Now", "IsSelected": false, "RestoreDefault": true, "InputType": 0 }
+        ]
+      },
+      "ExplorerCustomization": {
+        "IsIncluded": true,
+        "Items": [
+          { "Id": "explorer-context-menu-windows-terminal", "Name": "Windows Terminal in Context Menu", "IsSelected": true, "RestoreDefault": true, "InputType": 0 },
+          { "Id": "explorer-customization-disable-sync-provider-notifications", "Name": "Sync Provider Notifications", "IsSelected": true, "RestoreDefault": true, "InputType": 0 },
+          { "Id": "explorer-customization-folder-tips", "Name": "Folder Tips", "IsSelected": true, "RestoreDefault": true, "InputType": 0 },
+          { "Id": "explorer-customization-hide-empty-drives", "Name": "Hide Empty Drives", "IsSelected": true, "RestoreDefault": true, "InputType": 0 },
+          { "Id": "explorer-customization-hide-merge-conflicts", "Name": "Hide Merge Conflicts", "IsSelected": true, "RestoreDefault": true, "InputType": 0 },
+          { "Id": "explorer-customization-preview-handlers", "Name": "Preview Handlers", "IsSelected": true, "RestoreDefault": true, "InputType": 0 },
+          { "Id": "explorer-customization-sharing-wizard", "Name": "Sharing Wizard", "IsSelected": true, "RestoreDefault": true, "InputType": 0 },
+          { "Id": "explorer-customization-show-drive-letters", "Name": "Show Drive Letters", "IsSelected": true, "RestoreDefault": true, "InputType": 0 },
+          { "Id": "explorer-customization-show-frequent-folders", "Name": "Show Frequent Folders", "IsSelected": true, "RestoreDefault": true, "InputType": 0 },
+          { "Id": "explorer-customization-show-office-files", "Name": "Show Office Files", "IsSelected": true, "RestoreDefault": true, "InputType": 0 },
+          { "Id": "explorer-customization-show-recent-files", "Name": "Show Recent Files", "IsSelected": true, "RestoreDefault": true, "InputType": 0 },
+          { "Id": "devices-dynamic-lighting-foreground-app", "Name": "Dynamic Lighting Foreground App", "IsSelected": true, "RestoreDefault": true, "InputType": 0 }
+        ]
+      }
+    }
+  }
+}

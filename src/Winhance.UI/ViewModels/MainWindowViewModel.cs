@@ -1,3 +1,4 @@
+using System.Linq;
 using CommunityToolkit.Mvvm.ComponentModel;
 using CommunityToolkit.Mvvm.Input;
 using Microsoft.UI.Xaml;
@@ -5,6 +6,7 @@ using Microsoft.UI.Xaml.Controls;
 using Winhance.Core.Features.Common.Constants;
 using Winhance.Core.Features.Common.Interfaces;
 using Winhance.Core.Features.Common.Models;
+using Winhance.Core.Features.SoftwareApps.Interfaces;
 using Winhance.UI.Features.Common.Interfaces;
 
 namespace Winhance.UI.ViewModels;
@@ -33,6 +35,8 @@ public partial class MainWindowViewModel : ObservableObject
     private readonly ICompatibleSettingsRegistry _compatibleSettingsRegistry;
     private readonly ITaskProgressService _taskProgressService;
     private readonly IDispatcherService _dispatcherService;
+    private readonly IConfigReviewService _configReviewService;
+    private readonly IWinGetService _winGetService;
 
     [ObservableProperty]
     private string _appIconSource = "ms-appx:///Assets/AppIcons/winhance-rocket-white-transparent-bg.png";
@@ -72,6 +76,20 @@ public partial class MainWindowViewModel : ObservableObject
     [ObservableProperty]
     private bool _isUpdateCheckInProgress;
 
+    // Review mode properties
+    [ObservableProperty]
+    [NotifyPropertyChangedFor(nameof(IsWindowsFilterButtonEnabled))]
+    private bool _isInReviewMode;
+
+    [ObservableProperty]
+    private string _reviewModeStatusText = string.Empty;
+
+    [ObservableProperty]
+    private bool _canApplyReviewedConfig;
+
+    // Saved filter state for restoration after review mode
+    private bool _savedFilterStateBeforeReview;
+
     /// <summary>
     /// Event raised when the Windows version filter state changes.
     /// </summary>
@@ -87,7 +105,9 @@ public partial class MainWindowViewModel : ObservableObject
         IUserPreferencesService preferencesService,
         ICompatibleSettingsRegistry compatibleSettingsRegistry,
         ITaskProgressService taskProgressService,
-        IDispatcherService dispatcherService)
+        IDispatcherService dispatcherService,
+        IConfigReviewService configReviewService,
+        IWinGetService winGetService)
     {
         _themeService = themeService;
         _configurationService = configurationService;
@@ -99,6 +119,8 @@ public partial class MainWindowViewModel : ObservableObject
         _compatibleSettingsRegistry = compatibleSettingsRegistry;
         _taskProgressService = taskProgressService;
         _dispatcherService = dispatcherService;
+        _configReviewService = configReviewService;
+        _winGetService = winGetService;
 
         // Subscribe to theme changes
         _themeService.ThemeChanged += OnThemeChanged;
@@ -108,6 +130,11 @@ public partial class MainWindowViewModel : ObservableObject
 
         // Subscribe to task progress updates
         _taskProgressService.ProgressUpdated += OnProgressUpdated;
+
+        // Subscribe to review mode changes
+        _configReviewService.ReviewModeChanged += OnReviewModeChanged;
+        _configReviewService.ApprovalCountChanged += OnApprovalCountChanged;
+        _configReviewService.BadgeStateChanged += OnBadgeStateChangedForApplyButton;
 
         // Set initial icon based on current theme
         UpdateAppIconForTheme();
@@ -129,6 +156,7 @@ public partial class MainWindowViewModel : ObservableObject
         OnPropertyChanged(nameof(WindowsFilterTooltip));
         OnPropertyChanged(nameof(DonateTooltip));
         OnPropertyChanged(nameof(BugReportTooltip));
+        OnPropertyChanged(nameof(DocsTooltip));
 
         // Nav bar text
         OnPropertyChanged(nameof(NavSoftwareAppsText));
@@ -217,6 +245,9 @@ public partial class MainWindowViewModel : ObservableObject
     public string BugReportTooltip =>
         _localizationService.GetString("Tooltip_ReportBug") ?? "Report a Bug";
 
+    public string DocsTooltip =>
+        _localizationService.GetString("Tooltip_Documentation") ?? "Documentation";
+
     // Nav bar text
     public string NavSoftwareAppsText =>
         _localizationService.GetString("Nav_SoftwareAndApps") ?? "Software & Apps";
@@ -243,6 +274,19 @@ public partial class MainWindowViewModel : ObservableObject
     // Update InfoBar
     public string InstallNowButtonText =>
         _localizationService.GetString("Dialog_Update_Button_InstallNow") ?? "Install Now";
+
+    // Filter button enabled state
+    public bool IsWindowsFilterButtonEnabled => !IsInReviewMode;
+
+    // Review Mode
+    public string ReviewModeTitleText =>
+        _localizationService.GetString("Review_Mode_Title") ?? "Config Review Mode";
+    public string ReviewModeApplyButtonText =>
+        _localizationService.GetString("Review_Mode_Apply_Button") ?? "Apply Config";
+    public string ReviewModeCancelButtonText =>
+        _localizationService.GetString("Review_Mode_Cancel_Button") ?? "Cancel";
+    public string ReviewModeDescriptionText =>
+        _localizationService.GetString("Review_Mode_Description") ?? "Review the changes below across all sections, then click Apply Config when ready.";
 
     #endregion
 
@@ -286,6 +330,9 @@ public partial class MainWindowViewModel : ObservableObject
     [RelayCommand]
     private async Task ToggleWindowsFilterAsync()
     {
+        // Don't allow toggling during review mode
+        if (IsInReviewMode) return;
+
         try
         {
             // Check if we should show explanation dialog
@@ -395,6 +442,23 @@ public partial class MainWindowViewModel : ObservableObject
         catch (Exception ex)
         {
             System.Diagnostics.Debug.WriteLine($"Failed to open bug report page: {ex.Message}");
+        }
+    }
+
+    /// <summary>
+    /// Command to open the documentation page.
+    /// </summary>
+    [RelayCommand]
+    private async Task DocsAsync()
+    {
+        try
+        {
+            await Windows.System.Launcher.LaunchUriAsync(
+                new Uri("https://winhance.net/docs/index.html"));
+        }
+        catch (Exception ex)
+        {
+            System.Diagnostics.Debug.WriteLine($"Failed to open documentation page: {ex.Message}");
         }
     }
 
@@ -527,11 +591,194 @@ public partial class MainWindowViewModel : ObservableObject
     }
 
     /// <summary>
+    /// Ensures WinGet is installed and up to date on startup.
+    /// Runs silently if WinGet is ready; shows task progress if installation/update is needed.
+    /// </summary>
+    public async Task EnsureWinGetReadyOnStartupAsync()
+    {
+        try
+        {
+            _logService.Log(Core.Features.Common.Enums.LogLevel.Info, "Startup: Checking WinGet readiness...");
+
+            bool isReady = await _winGetService.EnsureWinGetReadyAsync();
+
+            if (isReady)
+            {
+                _logService.Log(Core.Features.Common.Enums.LogLevel.Info, "Startup: WinGet already ready");
+                return;
+            }
+
+            _logService.Log(Core.Features.Common.Enums.LogLevel.Info, "Startup: WinGet not ready, attempting to install/update...");
+
+            _taskProgressService.StartTask(
+                _localizationService.GetString("Progress_CheckingWinget") ?? "Checking for winget...",
+                isIndeterminate: true);
+
+            var progress = _taskProgressService.CreateDetailedProgress();
+            bool updated = await _winGetService.EnsureWinGetUpToDateAsync(progress);
+
+            if (updated)
+            {
+                _logService.Log(Core.Features.Common.Enums.LogLevel.Info, "Startup: WinGet successfully prepared");
+                _taskProgressService.CompleteTask();
+            }
+            else
+            {
+                _logService.Log(Core.Features.Common.Enums.LogLevel.Warning, "Startup: Could not prepare WinGet - likely no internet connection");
+                _taskProgressService.UpdateProgress(0,
+                    _localizationService.GetString("Error_WinGetInstallFailed") ?? "Failed to install WinGet. Please check your internet connection.");
+                await Task.Delay(7000);
+                _taskProgressService.CompleteTask();
+            }
+        }
+        catch (Exception ex)
+        {
+            _logService.Log(Core.Features.Common.Enums.LogLevel.Error, $"Startup: Error preparing WinGet: {ex.Message}");
+        }
+    }
+
+    /// <summary>
     /// Dismisses the update InfoBar (called from code-behind on InfoBar.Closed).
     /// </summary>
     public void DismissUpdateInfoBar()
     {
         IsUpdateInfoBarOpen = false;
+    }
+
+    #endregion
+
+    #region Review Mode
+
+    private void OnReviewModeChanged(object? sender, EventArgs e)
+    {
+        _dispatcherService.RunOnUIThread(() =>
+        {
+            var entering = _configReviewService.IsInReviewMode;
+            IsInReviewMode = entering;
+
+            if (entering)
+            {
+                // Save current filter state and force ON
+                _savedFilterStateBeforeReview = IsWindowsVersionFilterEnabled;
+                if (!IsWindowsVersionFilterEnabled)
+                {
+                    IsWindowsVersionFilterEnabled = true;
+                    _compatibleSettingsRegistry.SetFilterEnabled(true);
+                    FilterStateChanged?.Invoke(this, new FilterStateChangedEventArgs(true));
+                }
+            }
+            else
+            {
+                // Restore saved filter state
+                if (IsWindowsVersionFilterEnabled != _savedFilterStateBeforeReview)
+                {
+                    IsWindowsVersionFilterEnabled = _savedFilterStateBeforeReview;
+                    _compatibleSettingsRegistry.SetFilterEnabled(_savedFilterStateBeforeReview);
+                    FilterStateChanged?.Invoke(this, new FilterStateChangedEventArgs(_savedFilterStateBeforeReview));
+                }
+            }
+
+            UpdateReviewModeStatus();
+            UpdateCanApplyReviewedConfig();
+        });
+    }
+
+    private void OnApprovalCountChanged(object? sender, EventArgs e)
+    {
+        _dispatcherService.RunOnUIThread(() =>
+        {
+            UpdateReviewModeStatus();
+            UpdateCanApplyReviewedConfig();
+        });
+    }
+
+    private void OnBadgeStateChangedForApplyButton(object? sender, EventArgs e)
+    {
+        _dispatcherService.RunOnUIThread(UpdateCanApplyReviewedConfig);
+    }
+
+    private void UpdateCanApplyReviewedConfig()
+    {
+        if (!IsInReviewMode)
+        {
+            CanApplyReviewedConfig = false;
+            return;
+        }
+
+        // All Optimize/Customize settings must be explicitly reviewed (accept or reject)
+        bool allSettingsReviewed = _configReviewService.TotalChanges == 0
+            || _configReviewService.ReviewedChanges >= _configReviewService.TotalChanges;
+
+        // SoftwareApps action choices must be made for sections that have items
+        bool softwareAppsReviewed = _configReviewService.IsSoftwareAppsReviewed
+            || (!_configReviewService.IsFeatureInConfig(FeatureIds.WindowsApps)
+                && !_configReviewService.IsFeatureInConfig(FeatureIds.ExternalApps));
+
+        // All Optimize features must be fully reviewed
+        bool optimizeReviewed = _configReviewService.IsSectionFullyReviewed("Optimize")
+            || !FeatureDefinitions.OptimizeFeatures.Any(f => _configReviewService.IsFeatureInConfig(f));
+
+        // All Customize features must be fully reviewed
+        bool customizeReviewed = _configReviewService.IsSectionFullyReviewed("Customize")
+            || !FeatureDefinitions.CustomizeFeatures.Any(f => _configReviewService.IsFeatureInConfig(f));
+
+        CanApplyReviewedConfig = allSettingsReviewed && softwareAppsReviewed && optimizeReviewed && customizeReviewed;
+    }
+
+    private void UpdateReviewModeStatus()
+    {
+        if (!_configReviewService.IsInReviewMode)
+        {
+            ReviewModeStatusText = string.Empty;
+            return;
+        }
+
+        if (_configReviewService.TotalChanges > 0)
+        {
+            // Show reviewed/total count and how many will be applied
+            var format = _localizationService.GetString("Review_Mode_Status_Format") ?? "{0} of {1} reviewed ({2} will be applied)";
+            ReviewModeStatusText = string.Format(format,
+                _configReviewService.ReviewedChanges,
+                _configReviewService.TotalChanges,
+                _configReviewService.ApprovedChanges);
+        }
+        else if (_configReviewService.TotalConfigItems > 0)
+        {
+            // Config has items but all match current state
+            ReviewModeStatusText = _localizationService.GetString("Review_Mode_Status_AllMatch")
+                ?? "All settings already match config";
+        }
+        else
+        {
+            ReviewModeStatusText = _localizationService.GetString("Review_Mode_Status_NoItems")
+                ?? "No configuration items to apply";
+        }
+    }
+
+    [RelayCommand]
+    private async Task ApplyReviewedConfigAsync()
+    {
+        try
+        {
+            await _configurationService.ApplyReviewedConfigAsync();
+        }
+        catch (Exception ex)
+        {
+            _logService.Log(Core.Features.Common.Enums.LogLevel.Error, $"Failed to apply reviewed config: {ex.Message}");
+        }
+    }
+
+    [RelayCommand]
+    private async Task CancelReviewModeAsync()
+    {
+        var title = _localizationService.GetString("Review_Mode_Cancel_Confirmation_Title") ?? "Cancel Config Review";
+        var message = _localizationService.GetString("Review_Mode_Cancel_Confirmation") ?? "Are you sure you want to cancel? No changes will be applied.";
+
+        var confirmed = await _dialogService.ShowConfirmationAsync(message, title);
+        if (confirmed)
+        {
+            await _configurationService.CancelReviewModeAsync();
+        }
     }
 
     #endregion

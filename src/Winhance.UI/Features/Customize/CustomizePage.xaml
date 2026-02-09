@@ -165,6 +165,7 @@
                                 <controls:SettingsCard.HeaderIcon>
                                     <PathIcon Data="{StaticResource WindowsThemeIconPath}"/>
                                 </controls:SettingsCard.HeaderIcon>
+                                <InfoBadge x:Name="WindowsThemeBadge" Visibility="Collapsed"/>
                             </controls:SettingsCard>
 
                             <!-- Taskbar Card -->
@@ -176,6 +177,7 @@
                                 <controls:SettingsCard.HeaderIcon>
                                     <PathIcon Data="{StaticResource TaskbarIconPath}"/>
                                 </controls:SettingsCard.HeaderIcon>
+                                <InfoBadge x:Name="TaskbarBadge" Visibility="Collapsed"/>
                             </controls:SettingsCard>
 
                             <!-- Start Menu Card -->
@@ -187,6 +189,7 @@
                                 <controls:SettingsCard.HeaderIcon>
                                     <PathIcon Data="{StaticResource StartMenuIconPath}"/>
                                 </controls:SettingsCard.HeaderIcon>
+                                <InfoBadge x:Name="StartMenuBadge" Visibility="Collapsed"/>
                             </controls:SettingsCard>
 
                             <!-- Explorer Card -->
@@ -198,6 +201,7 @@
                                 <controls:SettingsCard.HeaderIcon>
                                     <PathIcon Data="{StaticResource ExplorerIconPath}"/>
                                 </controls:SettingsCard.HeaderIcon>
+                                <InfoBadge x:Name="ExplorerBadge" Visibility="Collapsed"/>
                             </controls:SettingsCard>
 
                         </StackPanel>

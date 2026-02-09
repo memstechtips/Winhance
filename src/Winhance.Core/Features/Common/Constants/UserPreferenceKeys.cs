@@ -10,6 +10,7 @@ namespace Winhance.Core.Features.Common.Constants
         public const string WindowTop = "WindowTop";
         public const string WindowMaximized = "WindowMaximized";
         public const string SkipSystemBackup = "SkipSystemBackup";
+        public const string InitialConfigBackupCompleted = "InitialConfigBackupCompleted";
     }
 
     public static class DebugFlags

@@ -13,6 +13,12 @@ public partial class WizardActionCard : ObservableObject
     private string _icon = string.Empty;
 
     [ObservableProperty]
+    private string _iconPath = string.Empty;
+
+    [ObservableProperty]
+    private bool _usePathIcon;
+
+    [ObservableProperty]
     private string _title = string.Empty;
 
     [ObservableProperty]
@@ -41,6 +47,11 @@ public partial class WizardActionCard : ObservableObject
 
     [ObservableProperty]
     private double _opacity = 1.0;
+
+    partial void OnIconPathChanged(string value)
+    {
+        UsePathIcon = !string.IsNullOrEmpty(value);
+    }
 
     partial void OnIsCompleteChanged(bool value)
     {

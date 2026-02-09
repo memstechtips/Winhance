@@ -32,7 +32,7 @@ namespace Winhance.Infrastructure.Features.Common.Services
         IWindowsCompatibilityFilter compatibilityFilter) : ISettingApplicationService
     {
 
-        public async Task ApplySettingAsync(string settingId, bool enable, object? value = null, bool checkboxResult = false, string? commandString = null, bool applyRecommended = false, bool skipValuePrerequisites = false)
+        public async Task ApplySettingAsync(string settingId, bool enable, object? value = null, bool checkboxResult = false, string? commandString = null, bool applyRecommended = false, bool skipValuePrerequisites = false, bool restoreDefault = false)
         {
             var valueDisplay = value is Dictionary<string, object?> dict
                 ? $"Dictionary[AC:{dict.GetValueOrDefault("ACValue")}, DC:{dict.GetValueOrDefault("DCValue")}]"
@@ -52,6 +52,46 @@ namespace Winhance.Infrastructure.Features.Common.Services
             if (!string.IsNullOrEmpty(commandString))
             {
                 await ExecuteActionCommand(domainService, commandString, applyRecommended, settingId);
+                return;
+            }
+
+            if (restoreDefault && setting.RegistrySettings?.Count > 0)
+            {
+                logService.Log(LogLevel.Info, $"[SettingApplicationService] Restoring default for '{settingId}' - deleting/resetting {setting.RegistrySettings.Count} registry values");
+
+                foreach (var regSetting in setting.RegistrySettings)
+                {
+                    if (regSetting.AbsenceMeansEnabled)
+                    {
+                        // True default is absence of the value
+                        if (regSetting.ValueName != null)
+                            registryService.DeleteValue(regSetting.KeyPath, regSetting.ValueName);
+                        else
+                            registryService.DeleteKey(regSetting.KeyPath);
+                    }
+                    else if (regSetting.KeyPath.Contains(@"\Policies\") &&
+                             (regSetting.EnabledValue == null || regSetting.DisabledValue == null))
+                    {
+                        // Policy key shouldn't exist on clean install
+                        if (regSetting.ValueName != null)
+                            registryService.DeleteValue(regSetting.KeyPath, regSetting.ValueName);
+                        else
+                            registryService.DeleteKey(regSetting.KeyPath);
+                    }
+                    else if (regSetting.DefaultValue != null)
+                    {
+                        registryService.ApplySetting(regSetting, true, regSetting.DefaultValue);
+                    }
+                    else
+                    {
+                        // Fallback: use normal apply with the IsSelected value
+                        registryService.ApplySetting(regSetting, enable);
+                    }
+                }
+
+                await HandleProcessAndServiceRestarts(setting);
+                eventBus.Publish(new SettingAppliedEvent(settingId, enable, value));
+                logService.Log(LogLevel.Info, $"[SettingApplicationService] Successfully restored default for '{settingId}'");
                 return;
             }
 

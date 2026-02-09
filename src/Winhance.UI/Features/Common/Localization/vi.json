@@ -1470,7 +1470,6 @@
   "Common_ClickToUnlock": "Nhấp để mở khóa",
   "Setting_taskbar-copilot_Name": "Nút Xem trước Copilot",
   "Setting_taskbar-copilot_Description": "Hiển thị hoặc ẩn nút Xem trước Copilot trên thanh tác vụ",
-  "ExternalApps_WinGetUnavailable": "Không thể xác định trạng thái cài đặt. Kết nối internet và nhấp vào nút Làm mới.",
   "Error_NoInternetConnection": "Không có kết nối internet. Vui lòng kết nối và thử lại.",
   "Error_WinGetInstallFailed": "Cài đặt WinGet thất bại. Vui lòng kiểm tra kết nối internet của bạn.",
   "Error_WinGetNotAvailable": "WinGet không có sẵn trên hệ thống này.",

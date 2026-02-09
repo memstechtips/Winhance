@@ -8,6 +8,9 @@ using Winhance.Core.Features.Common.Interfaces;
 using Winhance.Core.Features.Common.Models;
 using Winhance.Infrastructure.Features.Common.Services;
 using Winhance.UI.Features.Common.Helpers;
+using Winhance.UI.Features.Common.Interfaces;
+using Winhance.UI.Features.Customize.ViewModels;
+using Winhance.UI.Features.Optimize.ViewModels;
 using Winhance.UI.Features.SoftwareApps.ViewModels;
 
 namespace Winhance.UI.Features.Common.Services;
@@ -33,6 +36,8 @@ public class ConfigurationService : IConfigurationService
     private readonly IWindowsVersionService _windowsVersionService;
     private readonly IWindowsThemeQueryService _windowsThemeQueryService;
     private readonly ILocalizationService _localizationService;
+    private readonly IConfigImportOverlayService _overlayService;
+    private readonly IConfigReviewService _configReviewService;
     private bool _configImportSaveRemovalScripts = true;
 
     private static readonly JsonSerializerOptions JsonOptions = new()
@@ -54,7 +59,9 @@ public class ConfigurationService : IConfigurationService
         IWindowsUIManagementService windowsUIManagementService,
         IWindowsVersionService windowsVersionService,
         IWindowsThemeQueryService windowsThemeQueryService,
-        ILocalizationService localizationService)
+        ILocalizationService localizationService,
+        IConfigImportOverlayService overlayService,
+        IConfigReviewService configReviewService)
     {
         _serviceProvider = serviceProvider;
         _logService = logService;
@@ -68,6 +75,110 @@ public class ConfigurationService : IConfigurationService
         _windowsVersionService = windowsVersionService;
         _windowsThemeQueryService = windowsThemeQueryService;
         _localizationService = localizationService;
+        _overlayService = overlayService;
+        _configReviewService = configReviewService;
+
+        // Listen for review mode exit to clear review state from all loaded settings
+        _configReviewService.ReviewModeChanged += OnReviewModeChanged;
+    }
+
+    private void OnReviewModeChanged(object? sender, EventArgs e)
+    {
+        if (_configReviewService.IsInReviewMode)
+        {
+            // Review mode was entered - reapply diffs to any already-loaded singleton VMs
+            ReapplyReviewDiffsToExistingSettings();
+            return;
+        }
+
+        // Review mode was exited - clear review state from all loaded SettingItemViewModels
+        ClearReviewStateFromAllSettings();
+    }
+
+    private void ClearReviewStateFromAllSettings()
+    {
+        // Clear Optimize feature ViewModels
+        var optimizeVm = _serviceProvider.GetService<OptimizeViewModel>();
+        if (optimizeVm != null)
+        {
+            ClearReviewStateFromFeature(optimizeVm.SoundViewModel);
+            ClearReviewStateFromFeature(optimizeVm.UpdateViewModel);
+            ClearReviewStateFromFeature(optimizeVm.NotificationViewModel);
+            ClearReviewStateFromFeature(optimizeVm.PrivacyViewModel);
+            ClearReviewStateFromFeature(optimizeVm.PowerViewModel);
+            ClearReviewStateFromFeature(optimizeVm.GamingViewModel);
+        }
+
+        // Clear Customize feature ViewModels
+        var customizeVm = _serviceProvider.GetService<CustomizeViewModel>();
+        if (customizeVm != null)
+        {
+            ClearReviewStateFromFeature(customizeVm.ExplorerViewModel);
+            ClearReviewStateFromFeature(customizeVm.StartMenuViewModel);
+            ClearReviewStateFromFeature(customizeVm.TaskbarViewModel);
+            ClearReviewStateFromFeature(customizeVm.WindowsThemeViewModel);
+        }
+
+        _logService.Log(LogLevel.Info, "Cleared review state from all loaded settings");
+    }
+
+    private void ClearReviewStateFromFeature(ISettingsFeatureViewModel featureVm)
+    {
+        foreach (var setting in featureVm.Settings)
+        {
+            setting.ClearReviewState();
+        }
+    }
+
+    /// <summary>
+    /// Reapplies review diffs to all already-loaded SettingItemViewModels.
+    /// Called when entering review mode a second time in the same session,
+    /// since singleton VMs may still have settings loaded from the first import.
+    /// </summary>
+    private void ReapplyReviewDiffsToExistingSettings()
+    {
+        var settingsLoadingService = _serviceProvider.GetService<ISettingsLoadingService>();
+        if (settingsLoadingService == null) return;
+
+        void ReapplyToFeature(ISettingsFeatureViewModel featureVm)
+        {
+            foreach (var setting in featureVm.Settings)
+            {
+                // Clear any stale review state first
+                setting.ClearReviewState();
+                // Build currentState from the VM's actual displayed values
+                // so the fallback ComputeDiff sees accurate state, not defaults
+                var currentState = new SettingStateResult
+                {
+                    IsEnabled = setting.IsSelected,
+                    CurrentValue = setting.SelectedValue
+                };
+                // Re-apply the new diff
+                settingsLoadingService.ApplyReviewDiffToViewModel(setting, currentState);
+            }
+        }
+
+        var optimizeVm = _serviceProvider.GetService<OptimizeViewModel>();
+        if (optimizeVm != null)
+        {
+            ReapplyToFeature(optimizeVm.SoundViewModel);
+            ReapplyToFeature(optimizeVm.UpdateViewModel);
+            ReapplyToFeature(optimizeVm.NotificationViewModel);
+            ReapplyToFeature(optimizeVm.PrivacyViewModel);
+            ReapplyToFeature(optimizeVm.PowerViewModel);
+            ReapplyToFeature(optimizeVm.GamingViewModel);
+        }
+
+        var customizeVm = _serviceProvider.GetService<CustomizeViewModel>();
+        if (customizeVm != null)
+        {
+            ReapplyToFeature(customizeVm.ExplorerViewModel);
+            ReapplyToFeature(customizeVm.StartMenuViewModel);
+            ReapplyToFeature(customizeVm.TaskbarViewModel);
+            ReapplyToFeature(customizeVm.WindowsThemeViewModel);
+        }
+
+        _logService.Log(LogLevel.Info, "Reapplied review diffs to all existing loaded settings");
     }
 
     /// <summary>
@@ -157,7 +268,7 @@ public class ConfigurationService : IConfigurationService
         // Ensure registry is initialized before importing
         await EnsureRegistryInitializedAsync();
 
-        var selectedOption = await _dialogService.ShowConfigImportOptionsDialogAsync();
+        var (selectedOption, skipReview) = await _dialogService.ShowConfigImportOptionsDialogAsync();
         if (selectedOption == null)
         {
             _logService.Log(LogLevel.Info, "Import canceled by user");
@@ -166,22 +277,44 @@ public class ConfigurationService : IConfigurationService
 
         UnifiedConfigurationFile? config;
 
-        if (selectedOption == ImportOption.ImportOwn)
+        switch (selectedOption)
         {
-            config = await LoadAndValidateConfigurationFromFileAsync();
-            if (config == null)
-            {
-                _logService.Log(LogLevel.Info, "Import canceled");
+            case ImportOption.ImportOwn:
+                config = await LoadAndValidateConfigurationFromFileAsync();
+                if (config == null)
+                {
+                    _logService.Log(LogLevel.Info, "Import canceled");
+                    return;
+                }
+                break;
+
+            case ImportOption.ImportRecommended:
+                config = await LoadRecommendedConfigurationAsync();
+                if (config == null) return;
+                break;
+
+            case ImportOption.ImportBackup:
+                config = await LoadUserBackupConfigurationAsync();
+                if (config == null) return;
+                break;
+
+            case ImportOption.ImportWindowsDefaults:
+                config = await LoadWindowsDefaultsConfigurationAsync();
+                if (config == null) return;
+                break;
+
+            default:
                 return;
-            }
+        }
+
+        if (skipReview)
+        {
+            await ExecuteConfigImportAsync(config);
         }
         else
         {
-            config = await LoadRecommendedConfigurationAsync();
-            if (config == null) return;
+            await EnterReviewModeAsync(config);
         }
-
-        await ExecuteConfigImportAsync(config);
     }
 
     public async Task ImportRecommendedConfigurationAsync()
@@ -194,7 +327,8 @@ public class ConfigurationService : IConfigurationService
         var config = await LoadRecommendedConfigurationAsync();
         if (config == null) return;
 
-        await ExecuteConfigImportAsync(config);
+        // Recommended config always enters review mode so users can see what will change
+        await EnterReviewModeAsync(config);
     }
 
     private async Task ExecuteConfigImportAsync(UnifiedConfigurationFile config)
@@ -209,77 +343,153 @@ public class ConfigurationService : IConfigurationService
                 _logService.Log(LogLevel.Info, $"Silently filtered {incompatibleSettings.Count} incompatible settings from config");
             }
 
-            var selectionResult = await ShowSectionSelectionDialogAsync(config);
-            if (selectionResult == null)
+            // Build selected sections from what's available in the config
+            var selectedSections = new List<string>();
+
+            bool hasWindowsApps = config.WindowsApps.Items.Count > 0;
+            bool hasExternalApps = config.ExternalApps.Items.Count > 0;
+
+            if (hasWindowsApps) selectedSections.Add("WindowsApps");
+            if (hasExternalApps) selectedSections.Add("ExternalApps");
+
+            foreach (var feature in config.Optimize.Features)
             {
-                _logService.Log(LogLevel.Info, "Import canceled by user at section selection");
-                return;
+                if (feature.Value.Items.Any())
+                {
+                    if (!selectedSections.Contains("Optimize")) selectedSections.Add("Optimize");
+                    selectedSections.Add($"Optimize_{feature.Key}");
+                }
             }
 
-            var (sectionSelection, importOptions) = selectionResult.Value;
+            foreach (var feature in config.Customize.Features)
+            {
+                if (feature.Value.Items.Any())
+                {
+                    if (!selectedSections.Contains("Customize")) selectedSections.Add("Customize");
+                    selectedSections.Add($"Customize_{feature.Key}");
+                }
+            }
 
-            if (!sectionSelection.Any(kvp => kvp.Value))
+            if (!selectedSections.Any())
             {
                 _dialogService.ShowMessage(
-                    _localizationService.GetString("Config_Import_Error_NoSelection") ?? "Please select at least one section to import.",
-                    _localizationService.GetString("Config_Import_Error_NoSelection_Title") ?? "No Selection");
+                    _localizationService.GetString("Config_Import_Error_NoSelection") ?? "No changes to apply.",
+                    _localizationService.GetString("Config_Import_Error_NoSelection_Title") ?? "No Changes");
                 return;
             }
 
-            var selectedSections = sectionSelection.Where(kvp => kvp.Value).Select(kvp => kvp.Key).ToList();
-
-            if (selectedSections.Contains("WindowsApps"))
+            // Pre-select and confirm Windows Apps
+            if (hasWindowsApps)
             {
                 await SelectWindowsAppsFromConfigAsync(config.WindowsApps);
 
-                if (importOptions.ProcessWindowsAppsRemoval)
+                var shouldContinue = await ConfirmWindowsAppsRemovalAsync();
+                if (!shouldContinue)
                 {
-                    var shouldContinue = await ConfirmWindowsAppsRemovalAsync();
-                    if (!shouldContinue)
-                    {
-                        await ClearWindowsAppsSelectionAsync();
-                        selectedSections.Remove("WindowsApps");
-                        _logService.Log(LogLevel.Info, "User cancelled Windows Apps removal");
-                    }
-                }
-                else
-                {
-                    _logService.Log(LogLevel.Info, "Windows Apps selected for manual processing");
+                    await ClearWindowsAppsSelectionAsync();
+                    selectedSections.Remove("WindowsApps");
+                    _logService.Log(LogLevel.Info, "User cancelled Windows Apps removal");
                 }
             }
 
-            if (selectedSections.Contains("ExternalApps"))
+            // Pre-select External Apps
+            if (hasExternalApps)
             {
                 await SelectExternalAppsFromConfigAsync(config.ExternalApps);
-
-                if (!importOptions.ProcessExternalAppsInstallation)
-                {
-                    _logService.Log(LogLevel.Info, "External Apps selected for manual processing");
-                }
             }
 
+            var importOptions = new ImportOptions
+            {
+                ProcessWindowsAppsRemoval = hasWindowsApps && selectedSections.Contains("WindowsApps"),
+                ProcessExternalAppsInstallation = hasExternalApps,
+                ApplyThemeWallpaper = config.Customize.Features.Values
+                    .SelectMany(f => f.Items).Any(i => i.Id == "theme-mode-windows"),
+                ApplyCleanTaskbar = config.Customize.Features.Values
+                    .SelectMany(f => f.Items).Any(i => i.Id == "taskbar-clean"),
+                ApplyCleanStartMenu = config.Customize.Features.Values
+                    .SelectMany(f => f.Items).Any(i => i.Id == "start-menu-clean-10" || i.Id == "start-menu-clean-11"),
+            };
+
+            // Show overlay during config application
+            var overlayStatus = _localizationService.GetString("Config_Import_Status_Applying")
+                ?? "Sit back, relax and watch while Winhance enhances Windows with your desired settings...";
+            _overlayService.ShowOverlay(overlayStatus);
+
+            bool success = true;
             _windowsUIManagementService.IsConfigImportMode = true;
 
             try
             {
                 await ApplyConfigurationWithOptionsAsync(config, selectedSections, importOptions);
             }
+            catch (Exception ex)
+            {
+                success = false;
+                throw;
+            }
             finally
             {
                 _windowsUIManagementService.IsConfigImportMode = false;
+                _overlayService.HideOverlay();
             }
 
+            // Show success message and wait for user dismissal
             await ShowImportSuccessMessage(selectedSections);
 
-            if (selectedSections.Contains("ExternalApps") && importOptions.ProcessExternalAppsInstallation)
+            // Process External Apps installation AFTER success dialog dismissal (needs UI thread)
+            if (hasExternalApps && importOptions.ProcessExternalAppsInstallation)
             {
-                _ = Task.Run(async () => await ProcessExternalAppsInstallationAsync(config.ExternalApps));
+                await ProcessExternalAppsInstallationAsync(config.ExternalApps);
             }
         }
         catch (Exception ex)
         {
             _logService.Log(LogLevel.Error, $"Error importing configuration: {ex.Message}");
+            _overlayService.HideOverlay();
             _dialogService.ShowMessage($"Error importing configuration: {ex.Message}", "Error");
+        }
+    }
+
+    /// <summary>
+    /// Enters Config Review Mode: filters incompatible settings, pre-selects apps,
+    /// then activates review mode so the user can navigate the app and review diffs.
+    /// </summary>
+    private async Task EnterReviewModeAsync(UnifiedConfigurationFile config)
+    {
+        try
+        {
+            // Filter incompatible settings
+            var incompatibleSettings = DetectIncompatibleSettings(config);
+            if (incompatibleSettings.Any())
+            {
+                config = FilterConfigForCurrentSystem(config);
+                _logService.Log(LogLevel.Info, $"Silently filtered {incompatibleSettings.Count} incompatible settings from config");
+            }
+
+            // Enter review mode on the service (eagerly computes diffs and fires events)
+            await _configReviewService.EnterReviewModeAsync(config);
+
+            // Pre-select Windows Apps from config
+            if (config.WindowsApps.Items.Count > 0)
+            {
+                await SelectWindowsAppsFromConfigAsync(config.WindowsApps);
+                _logService.Log(LogLevel.Info, $"Pre-selected {config.WindowsApps.Items.Count} Windows Apps for review");
+            }
+
+            // Pre-select External Apps from config
+            if (config.ExternalApps.Items.Count > 0)
+            {
+                await SelectExternalAppsFromConfigAsync(config.ExternalApps);
+                _logService.Log(LogLevel.Info, $"Pre-selected {config.ExternalApps.Items.Count} External Apps for review");
+            }
+
+            _logService.Log(LogLevel.Info, "Review mode activated - user can now navigate and review changes");
+        }
+        catch (Exception ex)
+        {
+            _logService.Log(LogLevel.Error, $"Error entering review mode: {ex.Message}");
+            _configReviewService.ExitReviewMode();
+            _dialogService.ShowMessage($"Error entering review mode: {ex.Message}", "Error");
         }
     }
 
@@ -568,6 +778,36 @@ public class ConfigurationService : IConfigurationService
         return 0;
     }
 
+    public async Task CreateUserBackupConfigAsync()
+    {
+        try
+        {
+            _logService.Log(LogLevel.Info, "Creating user backup configuration from current system state");
+
+            await EnsureRegistryInitializedAsync();
+
+            var config = await CreateConfigurationFromSystemAsync();
+
+            var configDir = Path.Combine(
+                Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData),
+                "Winhance", "Backup");
+
+            Directory.CreateDirectory(configDir);
+
+            var fileName = $"UserBackup_{DateTime.Now:yyyyMMdd_HHmmss}{FileExtension}";
+            var filePath = Path.Combine(configDir, fileName);
+
+            var json = System.Text.Json.JsonSerializer.Serialize(config, JsonOptions);
+            await File.WriteAllTextAsync(filePath, json);
+
+            _logService.Log(LogLevel.Info, $"User backup configuration saved to {filePath}");
+        }
+        catch (Exception ex)
+        {
+            _logService.Log(LogLevel.Error, $"Error creating user backup configuration: {ex.Message}");
+        }
+    }
+
     private async Task<UnifiedConfigurationFile?> LoadAndValidateConfigurationFromFileAsync()
     {
         var window = GetMainWindow();
@@ -611,27 +851,6 @@ public class ConfigurationService : IConfigurationService
         return loadedConfig;
     }
 
-    private async Task<(Dictionary<string, bool> sections, ImportOptions options)?> ShowSectionSelectionDialogAsync(
-        UnifiedConfigurationFile config)
-    {
-        var sectionInfo = new Dictionary<string, (bool IsSelected, bool IsAvailable, int ItemCount)>
-        {
-            { "WindowsApps", (true, config.WindowsApps.Items.Count > 0, config.WindowsApps.Items.Count) },
-            { "ExternalApps", (true, config.ExternalApps.Items.Count > 0, config.ExternalApps.Items.Count) }
-        };
-
-        var optimizeCount = config.Optimize.Features.Values.Sum(f => f.Items.Count);
-        var customizeCount = config.Customize.Features.Values.Sum(f => f.Items.Count);
-
-        sectionInfo.Add("Optimize", (true, optimizeCount > 0, optimizeCount));
-        sectionInfo.Add("Customize", (true, customizeCount > 0, customizeCount));
-
-        return await _dialogService.ShowUnifiedConfigurationImportDialogAsync(
-            "",
-            _localizationService.GetString("Dialog_Unified_Description_Import") ?? "Select which sections to import:",
-            sectionInfo);
-    }
-
     private AppItemViewModel? FindMatchingWindowsApp(IEnumerable<AppItemViewModel> vmItems, ConfigurationItem configItem)
     {
         return vmItems.FirstOrDefault(i =>
@@ -667,7 +886,7 @@ public class ConfigurationService : IConfigurationService
             {
                 var vmItem = FindMatchingWindowsApp(vm.Items, configItem);
                 if (vmItem != null)
-                    vmItem.IsSelected = configItem.IsSelected ?? false;
+                    vmItem.IsSelected = true;
             }
         }
 
@@ -747,6 +966,31 @@ public class ConfigurationService : IConfigurationService
         if (selectedCount > 0)
         {
             _logService.Log(LogLevel.Info, "Starting external apps installation in background");
+            await vm.InstallApps(skipConfirmation: true);
+        }
+    }
+
+    /// <summary>
+    /// Installs external apps based on captured user selections from review mode.
+    /// Unlike ProcessExternalAppsInstallationAsync, this preserves the user's checkbox choices
+    /// instead of re-selecting from the config section.
+    /// </summary>
+    private async Task ProcessExternalAppsFromUserSelectionAsync(List<string> selectedAppIds)
+    {
+        var vm = _serviceProvider.GetService<ExternalAppsViewModel>();
+        if (vm == null) return;
+
+        if (!vm.IsInitialized)
+            await vm.LoadItemsAsync();
+
+        // Set VM selections to match captured user choices
+        foreach (var vmItem in vm.Items)
+            vmItem.IsSelected = selectedAppIds.Contains(vmItem.Id ?? vmItem.Name);
+
+        var selectedCount = vm.Items.Count(i => i.IsSelected);
+        if (selectedCount > 0)
+        {
+            _logService.Log(LogLevel.Info, $"Starting external apps installation for {selectedCount} user-selected apps");
             await vm.InstallApps(skipConfirmation: true);
         }
     }
@@ -1072,6 +1316,173 @@ public class ConfigurationService : IConfigurationService
         }
     }
 
+    private async Task WriteConfigApplicationLogAsync(
+        List<string> selectedSections,
+        ImportOptions options,
+        bool success)
+    {
+        try
+        {
+            var logDir = Path.Combine(
+                Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData),
+                "Winhance");
+            Directory.CreateDirectory(logDir);
+
+            var logPath = Path.Combine(logDir, $"ConfigImport_{DateTime.Now:yyyyMMdd_HHmmss}.log");
+
+            var lines = new List<string>
+            {
+                $"Winhance Config Import Log",
+                $"Date: {DateTime.Now:yyyy-MM-dd HH:mm:ss}",
+                $"Result: {(success ? "Success" : "Failed")}",
+                $"",
+                $"Sections Applied:",
+            };
+
+            foreach (var section in selectedSections)
+            {
+                lines.Add($"  - {section}");
+            }
+
+            lines.Add("");
+            lines.Add("Options:");
+            lines.Add($"  ProcessWindowsAppsRemoval: {options.ProcessWindowsAppsRemoval}");
+            lines.Add($"  ProcessExternalAppsInstallation: {options.ProcessExternalAppsInstallation}");
+            lines.Add($"  ApplyThemeWallpaper: {options.ApplyThemeWallpaper}");
+            lines.Add($"  ApplyCleanTaskbar: {options.ApplyCleanTaskbar}");
+            lines.Add($"  ApplyCleanStartMenu: {options.ApplyCleanStartMenu}");
+            lines.Add($"  ReviewBeforeApplying: {options.ReviewBeforeApplying}");
+
+            if (options.ActionOnlySubsections.Any())
+            {
+                lines.Add($"  ActionOnlySubsections: {string.Join(", ", options.ActionOnlySubsections)}");
+            }
+
+            await File.WriteAllLinesAsync(logPath, lines);
+            _logService.Log(LogLevel.Info, $"Config application log written to {logPath}");
+        }
+        catch (Exception ex)
+        {
+            _logService.Log(LogLevel.Warning, $"Failed to write config application log: {ex.Message}");
+        }
+    }
+
+    private async Task<UnifiedConfigurationFile?> LoadUserBackupConfigurationAsync()
+    {
+        try
+        {
+            var configDir = Path.Combine(
+                Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData),
+                "Winhance", "Backup");
+
+            if (!Directory.Exists(configDir))
+            {
+                _dialogService.ShowMessage(
+                    _localizationService.GetString("Config_Backup_NotFound") ?? "No backup configuration files found.",
+                    _localizationService.GetString("Config_Backup_NotFound_Title") ?? "No Backup Found");
+                return null;
+            }
+
+            var backupFiles = Directory.GetFiles(configDir, $"UserBackup_*{FileExtension}")
+                .OrderByDescending(f => f)
+                .ToArray();
+
+            if (backupFiles.Length == 0)
+            {
+                _dialogService.ShowMessage(
+                    _localizationService.GetString("Config_Backup_NotFound") ?? "No backup configuration files found.",
+                    _localizationService.GetString("Config_Backup_NotFound_Title") ?? "No Backup Found");
+                return null;
+            }
+
+            string filePath;
+
+            if (backupFiles.Length == 1)
+            {
+                // Single backup file - use directly
+                filePath = backupFiles[0];
+            }
+            else
+            {
+                // Multiple backup files - show file dialog
+                var window = GetMainWindow();
+                if (window == null)
+                {
+                    _logService.Log(LogLevel.Error, "Cannot show file dialog - no main window");
+                    await _dialogService.ShowErrorAsync("Cannot show file dialog.", "Error");
+                    return null;
+                }
+
+                var dialogTitle = _localizationService.GetString("Config_Backup_Select_Title")
+                    ?? "Select Backup File";
+                var selectedPath = Win32FileDialogHelper.ShowOpenFilePicker(
+                    window, dialogTitle, FileFilter, FilePattern, configDir);
+
+                if (string.IsNullOrEmpty(selectedPath))
+                {
+                    _logService.Log(LogLevel.Info, "Backup import canceled by user");
+                    return null;
+                }
+
+                filePath = selectedPath;
+            }
+            _logService.Log(LogLevel.Info, $"Loading user backup configuration from {filePath}");
+
+            var json = await File.ReadAllTextAsync(filePath);
+            var config = System.Text.Json.JsonSerializer.Deserialize<UnifiedConfigurationFile>(json, JsonOptions);
+
+            if (config == null)
+            {
+                _dialogService.ShowMessage("Failed to load backup configuration file.", "Error");
+                return null;
+            }
+
+            _logService.Log(LogLevel.Info, "Successfully loaded user backup configuration");
+            return config;
+        }
+        catch (Exception ex)
+        {
+            _logService.Log(LogLevel.Error, $"Error loading user backup configuration: {ex.Message}");
+            _dialogService.ShowMessage($"Error loading backup configuration: {ex.Message}", "Error");
+            return null;
+        }
+    }
+
+    private async Task<UnifiedConfigurationFile?> LoadWindowsDefaultsConfigurationAsync()
+    {
+        try
+        {
+            _logService.Log(LogLevel.Info, "Loading embedded Windows defaults configuration");
+
+            var assembly = System.Reflection.Assembly.GetExecutingAssembly();
+            var resourceName = "Winhance.UI.Resources.Configs.Winhance_Windows_Defaults_Config.winhance";
+
+            using var stream = assembly.GetManifestResourceStream(resourceName);
+
+            if (stream == null)
+            {
+                _logService.Log(LogLevel.Error, $"Embedded resource not found: {resourceName}");
+                _dialogService.ShowMessage(
+                    "The Windows defaults configuration file could not be found in the application.",
+                    "Resource Error");
+                return null;
+            }
+
+            using var reader = new StreamReader(stream);
+            var json = await reader.ReadToEndAsync();
+            var config = System.Text.Json.JsonSerializer.Deserialize<UnifiedConfigurationFile>(json, JsonOptions);
+
+            _logService.Log(LogLevel.Info, "Successfully loaded embedded Windows defaults configuration");
+            return config;
+        }
+        catch (Exception ex)
+        {
+            _logService.Log(LogLevel.Error, $"Error loading Windows defaults configuration: {ex.Message}");
+            _dialogService.ShowMessage($"Error loading configuration: {ex.Message}", "Error");
+            return null;
+        }
+    }
+
     private async Task RestartExplorerSilentlyAsync()
     {
         try
@@ -1275,5 +1686,243 @@ public class ConfigurationService : IConfigurationService
         }
 
         return filteredSection;
+    }
+
+    public async Task ApplyReviewedConfigAsync()
+    {
+        if (!_configReviewService.IsInReviewMode || _configReviewService.ActiveConfig == null)
+        {
+            _logService.Log(LogLevel.Warning, "ApplyReviewedConfigAsync called but not in review mode");
+            return;
+        }
+
+        var config = _configReviewService.ActiveConfig;
+        var approvedDiffs = _configReviewService.GetApprovedDiffs();
+
+        try
+        {
+            // Build the list of sections that have approved changes
+            var selectedSections = new List<string>();
+
+            // Check if any Windows Apps are selected and determine action
+            var softwareAppsVm = _serviceProvider.GetService<SoftwareAppsViewModel>();
+            var windowsAppsVm = _serviceProvider.GetService<WindowsAppsViewModel>();
+            bool hasWindowsApps = windowsAppsVm?.Items?.Any(a => a.IsSelected) == true;
+            bool windowsAppsInstall = softwareAppsVm?.IsWindowsAppsInstallAction == true;
+            bool windowsAppsRemove = softwareAppsVm?.IsWindowsAppsRemoveAction == true;
+            if (hasWindowsApps && (windowsAppsInstall || windowsAppsRemove))
+                selectedSections.Add("WindowsApps");
+
+            // Check if any External Apps are selected and determine action
+            var externalAppsVm = _serviceProvider.GetService<ExternalAppsViewModel>();
+            bool hasExternalApps = externalAppsVm?.Items?.Any(a => a.IsSelected) == true;
+            bool externalAppsInstall = softwareAppsVm?.IsExternalAppsInstallAction == true;
+            bool externalAppsRemove = softwareAppsVm?.IsExternalAppsRemoveAction == true;
+            if (hasExternalApps && (externalAppsInstall || externalAppsRemove))
+                selectedSections.Add("ExternalApps");
+
+            // Check approved Optimize/Customize diffs (including action settings)
+            var approvedSettingIds = new HashSet<string>(approvedDiffs.Select(d => d.SettingId));
+            var approvedActionSettingIds = new HashSet<string>(
+                approvedDiffs.Where(d => d.IsActionSetting).Select(d => d.SettingId));
+
+            if (config.Optimize.Features.Any(f => f.Value.Items.Any(i => approvedSettingIds.Contains(i.Id))))
+            {
+                selectedSections.Add("Optimize");
+                foreach (var feature in config.Optimize.Features)
+                {
+                    if (feature.Value.Items.Any(i => approvedSettingIds.Contains(i.Id)))
+                        selectedSections.Add($"Optimize_{feature.Key}");
+                }
+            }
+
+            if (config.Customize.Features.Any(f => f.Value.Items.Any(i => approvedSettingIds.Contains(i.Id))))
+            {
+                selectedSections.Add("Customize");
+                foreach (var feature in config.Customize.Features)
+                {
+                    if (feature.Value.Items.Any(i => approvedSettingIds.Contains(i.Id)))
+                        selectedSections.Add($"Customize_{feature.Key}");
+                }
+            }
+
+            // Build import options based on action choices
+            var importOptions = new ImportOptions
+            {
+                ProcessWindowsAppsRemoval = hasWindowsApps && windowsAppsRemove,
+                ProcessWindowsAppsInstallation = hasWindowsApps && windowsAppsInstall,
+                ProcessExternalAppsInstallation = hasExternalApps && externalAppsInstall,
+                ProcessExternalAppsRemoval = hasExternalApps && externalAppsRemove,
+                ApplyThemeWallpaper = approvedSettingIds.Contains("theme-mode-windows"),
+                ApplyCleanTaskbar = approvedSettingIds.Contains("taskbar-clean"),
+                ApplyCleanStartMenu = approvedSettingIds.Contains("start-menu-clean-10") || approvedSettingIds.Contains("start-menu-clean-11"),
+            };
+
+            // Ensure action settings add their parent feature sections even if no regular settings approved
+            if (importOptions.ApplyCleanTaskbar && !selectedSections.Contains($"Customize_{FeatureIds.Taskbar}"))
+            {
+                if (!selectedSections.Contains("Customize")) selectedSections.Add("Customize");
+                selectedSections.Add($"Customize_{FeatureIds.Taskbar}");
+                importOptions.ActionOnlySubsections.Add($"Customize_{FeatureIds.Taskbar}");
+            }
+            if (importOptions.ApplyCleanStartMenu && !selectedSections.Contains($"Customize_{FeatureIds.StartMenu}"))
+            {
+                if (!selectedSections.Contains("Customize")) selectedSections.Add("Customize");
+                selectedSections.Add($"Customize_{FeatureIds.StartMenu}");
+                importOptions.ActionOnlySubsections.Add($"Customize_{FeatureIds.StartMenu}");
+            }
+            if (importOptions.ApplyThemeWallpaper && !selectedSections.Contains($"Customize_{FeatureIds.WindowsTheme}"))
+            {
+                if (!selectedSections.Contains("Customize")) selectedSections.Add("Customize");
+                selectedSections.Add($"Customize_{FeatureIds.WindowsTheme}");
+                importOptions.ActionOnlySubsections.Add($"Customize_{FeatureIds.WindowsTheme}");
+            }
+
+            if (!selectedSections.Any())
+            {
+                _dialogService.ShowMessage(
+                    _localizationService.GetString("Config_Import_Error_NoSelection") ?? "No changes to apply.",
+                    _localizationService.GetString("Config_Import_Error_NoSelection_Title") ?? "No Changes");
+                return;
+            }
+
+            // Build a filtered config containing only approved settings
+            var filteredConfig = BuildFilteredConfigFromApprovals(config, approvedSettingIds);
+
+            // Capture current external app UI selections BEFORE exiting review mode
+            // This preserves user's checkbox changes made during review
+            List<string>? selectedExternalAppIds = null;
+            if (hasExternalApps && externalAppsVm?.Items != null)
+            {
+                selectedExternalAppIds = externalAppsVm.Items
+                    .Where(a => a.IsSelected)
+                    .Select(a => a.Id ?? a.Name)
+                    .ToList();
+            }
+
+            // Confirm Windows Apps removal if remove action is chosen
+            if (hasWindowsApps && windowsAppsRemove)
+            {
+                var shouldContinue = await ConfirmWindowsAppsRemovalAsync();
+                if (!shouldContinue)
+                {
+                    await ClearWindowsAppsSelectionAsync();
+                    selectedSections.Remove("WindowsApps");
+                    _logService.Log(LogLevel.Info, "User cancelled Windows Apps removal during review apply");
+                }
+            }
+
+            // Show overlay
+            var overlayStatus = _localizationService.GetString("Config_Import_Status_Applying")
+                ?? "Sit back, relax and watch while Winhance enhances Windows with your desired settings...";
+            _overlayService.ShowOverlay(overlayStatus);
+
+            bool success = true;
+            _windowsUIManagementService.IsConfigImportMode = true;
+
+            try
+            {
+                await ApplyConfigurationWithOptionsAsync(filteredConfig, selectedSections, importOptions);
+            }
+            catch (Exception ex)
+            {
+                success = false;
+                _logService.Log(LogLevel.Error, $"Error applying reviewed config: {ex.Message}");
+            }
+            finally
+            {
+                _windowsUIManagementService.IsConfigImportMode = false;
+                _overlayService.HideOverlay();
+            }
+
+            // Exit review mode after applying
+            _configReviewService.ExitReviewMode();
+
+            // Show success message and wait for user dismissal
+            await ShowImportSuccessMessage(selectedSections);
+
+            // Process External Apps installation AFTER success dialog dismissal (needs UI thread)
+            // Use captured user selections instead of config section to honor user's review choices
+            if (selectedExternalAppIds != null && selectedExternalAppIds.Count > 0)
+            {
+                await ProcessExternalAppsFromUserSelectionAsync(selectedExternalAppIds);
+            }
+        }
+        catch (Exception ex)
+        {
+            _logService.Log(LogLevel.Error, $"Error in ApplyReviewedConfigAsync: {ex.Message}");
+            _overlayService.HideOverlay();
+            _configReviewService.ExitReviewMode();
+            _dialogService.ShowMessage($"Error applying configuration: {ex.Message}", "Error");
+        }
+    }
+
+    public async Task CancelReviewModeAsync()
+    {
+        if (!_configReviewService.IsInReviewMode) return;
+
+        // Clear app selections that were set during EnterReviewModeAsync
+        await ClearWindowsAppsSelectionAsync();
+
+        var externalAppsVm = _serviceProvider.GetService<ExternalAppsViewModel>();
+        if (externalAppsVm != null)
+        {
+            foreach (var item in externalAppsVm.Items)
+                item.IsSelected = false;
+        }
+
+        _configReviewService.ExitReviewMode();
+        _logService.Log(LogLevel.Info, "Review mode cancelled - all selections cleared");
+    }
+
+    /// <summary>
+    /// Builds a filtered copy of the config containing only settings that were approved in review mode.
+    /// </summary>
+    private UnifiedConfigurationFile BuildFilteredConfigFromApprovals(
+        UnifiedConfigurationFile original,
+        HashSet<string> approvedSettingIds)
+    {
+        var filtered = new UnifiedConfigurationFile
+        {
+            Version = original.Version,
+            CreatedAt = original.CreatedAt,
+            WindowsApps = original.WindowsApps,   // Apps are filtered by checkbox selection, not diffs
+            ExternalApps = original.ExternalApps,  // Same - filtered by checkbox selection
+        };
+
+        // Filter Optimize features to only include approved settings
+        filtered.Optimize = FilterFeatureGroupByApprovals(original.Optimize, approvedSettingIds);
+        filtered.Customize = FilterFeatureGroupByApprovals(original.Customize, approvedSettingIds);
+
+        return filtered;
+    }
+
+    private FeatureGroupSection FilterFeatureGroupByApprovals(
+        FeatureGroupSection original,
+        HashSet<string> approvedSettingIds)
+    {
+        var filtered = new FeatureGroupSection
+        {
+            IsIncluded = original.IsIncluded,
+            Features = new Dictionary<string, ConfigSection>()
+        };
+
+        foreach (var feature in original.Features)
+        {
+            var approvedItems = feature.Value.Items
+                .Where(item => approvedSettingIds.Contains(item.Id))
+                .ToList();
+
+            if (approvedItems.Any())
+            {
+                filtered.Features[feature.Key] = new ConfigSection
+                {
+                    IsIncluded = feature.Value.IsIncluded,
+                    Items = approvedItems
+                };
+            }
+        }
+
+        return filtered;
     }
 }

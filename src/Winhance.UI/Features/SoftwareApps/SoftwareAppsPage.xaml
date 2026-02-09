@@ -382,20 +382,44 @@
 
         <!-- Row 1: Action Bar (right-aligned) -->
         <StackPanel Grid.Row="1" Orientation="Horizontal" Spacing="8" HorizontalAlignment="Right" Margin="0,12,0,16">
+            <!-- Normal mode: Install Button -->
             <Button Command="{x:Bind ViewModel.InstallSelectedItemsCommand}"
-                    IsEnabled="{x:Bind ViewModel.CanInstallItems, Mode=OneWay}">
+                    IsEnabled="{x:Bind ViewModel.CanInstallItems, Mode=OneWay}"
+                    Visibility="{x:Bind ViewModel.IsInReviewMode, Mode=OneWay, Converter={StaticResource InverseBooleanToVisibilityConverter}}">
                 <StackPanel Orientation="Horizontal" Spacing="8">
                     <FontIcon Glyph="&#xE896;" FontSize="14"/>
                     <TextBlock Text="{x:Bind ViewModel.InstallButtonText}"/>
                 </StackPanel>
             </Button>
+            <!-- Normal mode: Remove Button -->
             <Button Command="{x:Bind ViewModel.RemoveSelectedItemsCommand}"
-                    IsEnabled="{x:Bind ViewModel.CanRemoveItems, Mode=OneWay}">
+                    IsEnabled="{x:Bind ViewModel.CanRemoveItems, Mode=OneWay}"
+                    Visibility="{x:Bind ViewModel.IsInReviewMode, Mode=OneWay, Converter={StaticResource InverseBooleanToVisibilityConverter}}">
                 <StackPanel Orientation="Horizontal" Spacing="8">
                     <FontIcon Glyph="&#xE74D;" FontSize="14"/>
                     <TextBlock Text="{x:Bind ViewModel.RemoveButtonText, Mode=OneWay}"/>
                 </StackPanel>
             </Button>
+            <!-- Review mode: Install action toggle -->
+            <ToggleButton x:Name="InstallActionToggle"
+                          Visibility="{x:Bind ViewModel.IsInReviewMode, Mode=OneWay, Converter={StaticResource BooleanToVisibilityConverter}}"
+                          IsChecked="{x:Bind ViewModel.CurrentInstallAction, Mode=TwoWay}"
+                          Padding="10,6,12,6">
+                <StackPanel Orientation="Horizontal" Spacing="8">
+                    <FontIcon Glyph="&#xE896;" FontSize="14"/>
+                    <TextBlock Text="{x:Bind ViewModel.InstallButtonText}"/>
+                </StackPanel>
+            </ToggleButton>
+            <!-- Review mode: Remove action toggle -->
+            <ToggleButton x:Name="RemoveActionToggle"
+                          Visibility="{x:Bind ViewModel.IsInReviewMode, Mode=OneWay, Converter={StaticResource BooleanToVisibilityConverter}}"
+                          IsChecked="{x:Bind ViewModel.CurrentRemoveAction, Mode=TwoWay}"
+                          Padding="10,6,12,6">
+                <StackPanel Orientation="Horizontal" Spacing="8">
+                    <FontIcon Glyph="&#xE74D;" FontSize="14"/>
+                    <TextBlock Text="{x:Bind ViewModel.RemoveButtonText, Mode=OneWay}"/>
+                </StackPanel>
+            </ToggleButton>
             <AppBarSeparator/>
             <Button Command="{x:Bind ViewModel.RefreshInstallationStatusCommand}">
                 <Button.KeyboardAccelerators>
@@ -501,6 +525,13 @@
                                     <TextBlock Text="{x:Bind ViewModel.WindowsAppsTabText}" VerticalAlignment="Center"/>
                                 </StackPanel>
                             </Button>
+                            <!-- Review mode badge -->
+                            <InfoBadge x:Name="WindowsAppsTabBadge"
+                                       Value="{x:Bind ViewModel.WindowsAppsSelectedCount, Mode=OneWay}"
+                                       HorizontalAlignment="Right"
+                                       VerticalAlignment="Top"
+                                       Margin="0,2,8,0"
+                                       Visibility="Collapsed"/>
                         </Grid>
 
                         <!-- Separator -->
@@ -545,6 +576,13 @@
                                     <TextBlock Text="{x:Bind ViewModel.ExternalAppsTabText}" VerticalAlignment="Center"/>
                                 </StackPanel>
                             </Button>
+                            <!-- Review mode badge -->
+                            <InfoBadge x:Name="ExternalAppsTabBadge"
+                                       Value="{x:Bind ViewModel.ExternalAppsSelectedCount, Mode=OneWay}"
+                                       HorizontalAlignment="Right"
+                                       VerticalAlignment="Top"
+                                       Margin="0,2,8,0"
+                                       Visibility="Collapsed"/>
                         </Grid>
                     </Grid>
                 </Border>
@@ -553,8 +591,24 @@
                 <Grid Margin="14,70,12,0">
                     <!-- Windows Apps Content -->
                     <Grid Visibility="{x:Bind ViewModel.IsWindowsAppsTabSelected, Mode=OneWay, Converter={StaticResource BooleanToVisibilityConverter}}">
+                        <Grid.RowDefinitions>
+                            <RowDefinition Height="Auto"/>
+                            <RowDefinition Height="*"/>
+                        </Grid.RowDefinitions>
+
+                        <!-- Review Mode Banner for Windows Apps -->
+                        <InfoBar Grid.Row="0"
+                                 x:Name="WindowsAppsReviewBanner"
+                                 IsOpen="{x:Bind ViewModel.IsInReviewMode, Mode=OneWay}"
+                                 Severity="Warning"
+                                 IsClosable="False"
+                                 Message="{x:Bind ViewModel.ReviewWindowsAppsBannerText, Mode=OneWay}"
+                                 Margin="0,0,0,8"
+                                 Visibility="{x:Bind ViewModel.IsInReviewMode, Mode=OneWay, Converter={StaticResource BooleanToVisibilityConverter}}"/>
+
                         <!-- DataGrid View -->
                         <controls:DataGrid x:Name="WindowsAppsDataGrid"
+                                           Grid.Row="1"
                                            Visibility="{x:Bind ViewModel.IsCardViewMode, Mode=OneWay, Converter={StaticResource InverseBooleanToVisibilityConverter}}"
                                            Loaded="WindowsAppsDataGrid_Loaded"
                                            ItemsSource="{x:Bind ViewModel.WindowsAppsViewModel.ItemsView, Mode=OneWay}"
@@ -647,7 +701,8 @@
                         </controls:DataGrid>
 
                         <!-- Card View for Windows Apps -->
-                        <ScrollViewer Visibility="{x:Bind ViewModel.IsCardViewMode, Mode=OneWay, Converter={StaticResource BooleanToVisibilityConverter}}"
+                        <ScrollViewer Grid.Row="1"
+                                      Visibility="{x:Bind ViewModel.IsCardViewMode, Mode=OneWay, Converter={StaticResource BooleanToVisibilityConverter}}"
                                       VerticalScrollBarVisibility="Auto"
                                       HorizontalScrollBarVisibility="Disabled"
                                       Padding="0,0,0,12">
@@ -743,7 +798,8 @@
                         </ScrollViewer>
 
                         <!-- Loading overlay for Windows Apps -->
-                        <Grid Visibility="{x:Bind ViewModel.WindowsAppsViewModel.IsLoading, Mode=OneWay, Converter={StaticResource BooleanToVisibilityConverter}}"
+                        <Grid Grid.Row="1"
+                              Visibility="{x:Bind ViewModel.WindowsAppsViewModel.IsLoading, Mode=OneWay, Converter={StaticResource BooleanToVisibilityConverter}}"
                               Background="{ThemeResource LayerFillColorDefaultBrush}">
                             <StackPanel HorizontalAlignment="Center" VerticalAlignment="Center" Spacing="16">
                                 <ProgressRing IsActive="True" Width="48" Height="48"/>
@@ -755,8 +811,24 @@
 
                     <!-- External Apps Content -->
                     <Grid Visibility="{x:Bind ViewModel.IsExternalAppsTabSelected, Mode=OneWay, Converter={StaticResource BooleanToVisibilityConverter}}">
+                        <Grid.RowDefinitions>
+                            <RowDefinition Height="Auto"/>
+                            <RowDefinition Height="*"/>
+                        </Grid.RowDefinitions>
+
+                        <!-- Review Mode Banner for External Apps -->
+                        <InfoBar Grid.Row="0"
+                                 x:Name="ExternalAppsReviewBanner"
+                                 IsOpen="{x:Bind ViewModel.IsInReviewMode, Mode=OneWay}"
+                                 Severity="Warning"
+                                 IsClosable="False"
+                                 Message="{x:Bind ViewModel.ReviewExternalAppsBannerText, Mode=OneWay}"
+                                 Margin="0,0,0,8"
+                                 Visibility="{x:Bind ViewModel.IsInReviewMode, Mode=OneWay, Converter={StaticResource BooleanToVisibilityConverter}}"/>
+
                         <!-- DataGrid View -->
                         <controls:DataGrid x:Name="ExternalAppsDataGrid"
+                                           Grid.Row="1"
                                            Visibility="{x:Bind ViewModel.IsCardViewMode, Mode=OneWay, Converter={StaticResource InverseBooleanToVisibilityConverter}}"
                                            Loaded="ExternalAppsDataGrid_Loaded"
                                            ItemsSource="{x:Bind ViewModel.ExternalAppsViewModel.ItemsView, Mode=OneWay}"
@@ -845,7 +917,8 @@
                         </controls:DataGrid>
 
                         <!-- Card View for External Apps -->
-                        <ScrollViewer Visibility="{x:Bind ViewModel.IsCardViewMode, Mode=OneWay, Converter={StaticResource BooleanToVisibilityConverter}}"
+                        <ScrollViewer Grid.Row="1"
+                                      Visibility="{x:Bind ViewModel.IsCardViewMode, Mode=OneWay, Converter={StaticResource BooleanToVisibilityConverter}}"
                                       VerticalScrollBarVisibility="Auto"
                                       HorizontalScrollBarVisibility="Disabled"
                                       Padding="0,0,0,12">
@@ -907,7 +980,8 @@
                         </ScrollViewer>
 
                         <!-- Loading overlay for External Apps -->
-                        <Grid Visibility="{x:Bind ViewModel.ExternalAppsViewModel.IsLoading, Mode=OneWay, Converter={StaticResource BooleanToVisibilityConverter}}"
+                        <Grid Grid.Row="1"
+                              Visibility="{x:Bind ViewModel.ExternalAppsViewModel.IsLoading, Mode=OneWay, Converter={StaticResource BooleanToVisibilityConverter}}"
                               Background="{ThemeResource LayerFillColorDefaultBrush}">
                             <StackPanel HorizontalAlignment="Center" VerticalAlignment="Center" Spacing="16">
                                 <ProgressRing IsActive="True" Width="48" Height="48"/>

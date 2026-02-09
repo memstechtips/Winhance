@@ -1,4 +1,4 @@
-﻿{
+{
   "App_Title": "Winhance",
   "App_By": "sukurta Memory",
   "Nav_SoftwareAndApps": "Programinė įranga ir programos",
@@ -1470,7 +1470,6 @@
   "Common_ClickToUnlock": "Spustelėkite, kad atrakintumėte",
   "Setting_taskbar-copilot_Name": "Copilot peržiūros mygtukas",
   "Setting_taskbar-copilot_Description": "Rodyti arba slėpti Copilot peržiūros mygtuką užduočių juostoje",
-  "ExternalApps_WinGetUnavailable": "Nepavyko nustatyti diegimo būsenos. Prisijunkite prie interneto ir spustelėkite mygtuką Atnaujinti.",
   "Error_NoInternetConnection": "Nėra interneto ryšio. Prisijunkite ir bandykite dar kartą.",
   "Error_WinGetInstallFailed": "Nepavyko įdiegti „WinGet“. Patikrinkite interneto ryšį.",
   "Error_WinGetNotAvailable": "„WinGet“ šioje sistemoje nepasiekiama.",

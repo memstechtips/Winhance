@@ -271,16 +271,22 @@ public class DialogService : IDialogService
             }
 
             // Red heart icon matching the WPF DonationDialog
-            var heartIcon = new PathIcon
+            // Use Path inside Viewbox for proper scaling (PathIcon doesn't scale with Width/Height)
+            var heartPath = new Microsoft.UI.Xaml.Shapes.Path
             {
                 Data = (Geometry)Microsoft.UI.Xaml.Markup.XamlBindingHelper.ConvertValue(
                     typeof(Geometry),
                     "M12,21.35L10.55,20.03C5.4,15.36 2,12.27 2,8.5C2,5.41 4.42,3 7.5,3C9.24,3 10.91,3.81 12,5.08C13.09,3.81 14.76,3 16.5,3C19.58,3 22,5.41 22,8.5C22,12.27 18.6,15.36 13.45,20.03L12,21.35Z"),
-                Foreground = new SolidColorBrush(Windows.UI.Color.FromArgb(0xFF, 0xE8, 0x11, 0x23)),
-                Width = 40,
-                Height = 40,
+                Fill = new SolidColorBrush(Windows.UI.Color.FromArgb(0xFF, 0xE8, 0x11, 0x23)),
+                Stretch = Stretch.Uniform
+            };
+            var heartIcon = new Viewbox
+            {
+                Width = 30,
+                Height = 30,
+                Child = heartPath,
                 VerticalAlignment = VerticalAlignment.Top,
-                Margin = new Thickness(0, 2, 0, 0)
+                Margin = new Thickness(0, 20, 0, 0)
             };
 
             // Header: icon + title/message
@@ -378,7 +384,7 @@ public class DialogService : IDialogService
         }
     }
 
-    public async Task<ImportOption?> ShowConfigImportOptionsDialogAsync()
+    public async Task<(ImportOption? Option, bool SkipReview)> ShowConfigImportOptionsDialogAsync()
     {
         await _dialogSemaphore.WaitAsync();
         try
@@ -386,36 +392,134 @@ public class DialogService : IDialogService
             if (XamlRoot == null)
             {
                 _logService.LogWarning("XamlRoot not set, cannot show dialog");
-                return null;
+                return (null, false);
             }
 
-            var radioImportOwn = new RadioButton { Content = _localization.GetString("ImportOption_Own"), IsChecked = true };
-            var radioImportRecommended = new RadioButton { Content = _localization.GetString("ImportOption_Recommended") };
+            ImportOption? selectedOption = null;
+
+            // Get the current theme
+            var currentTheme = ElementTheme.Default;
+            bool isDark = true;
+            if (XamlRoot.Content is FrameworkElement rootElement)
+            {
+                isDark = rootElement.ActualTheme == ElementTheme.Dark;
+                currentTheme = isDark ? ElementTheme.Dark : ElementTheme.Light;
+            }
 
             var dialog = new ContentDialog
             {
-                Title = _localization.GetString("Dialog_ImportOptions_Title"),
-                Content = new StackPanel
-                {
-                    Spacing = 8,
-                    Children =
-                    {
-                        new TextBlock { Text = _localization.GetString("Dialog_ImportOptions_Message"), TextWrapping = TextWrapping.Wrap },
-                        radioImportOwn,
-                        radioImportRecommended
-                    }
-                },
-                PrimaryButtonText = StringKeys.Localized.Button_Continue,
+                Title = _localization.GetString("Dialog_ImportConfig_Title"),
                 CloseButtonText = StringKeys.Localized.Button_Cancel,
-                DefaultButton = ContentDialogButton.Primary,
-                XamlRoot = XamlRoot
+                DefaultButton = ContentDialogButton.None,
+                XamlRoot = XamlRoot,
+                RequestedTheme = currentTheme
             };
 
-            var result = await dialog.ShowAsync();
-            if (result != ContentDialogResult.Primary)
-                return null;
+            // Apply the default ContentDialog style for proper theming
+            if (Application.Current.Resources.TryGetValue("DefaultContentDialogStyle", out var style) && style is Style dialogStyle)
+            {
+                dialog.Style = dialogStyle;
+            }
 
-            return radioImportOwn.IsChecked == true ? ImportOption.ImportOwn : ImportOption.ImportRecommended;
+            // Helper to create option buttons
+            Button CreateOptionButton(UIElement icon, string titleKey, string descKey, ImportOption option, bool isLast = false)
+            {
+                var textPanel = new StackPanel { Spacing = 2, VerticalAlignment = VerticalAlignment.Center };
+                textPanel.Children.Add(new TextBlock
+                {
+                    Text = _localization.GetString(titleKey),
+                    FontWeight = Microsoft.UI.Text.FontWeights.SemiBold,
+                    FontSize = 14
+                });
+                textPanel.Children.Add(new TextBlock
+                {
+                    Text = _localization.GetString(descKey),
+                    FontSize = 12,
+                    Opacity = 0.7,
+                    TextWrapping = TextWrapping.Wrap
+                });
+
+                var panel = new StackPanel { Orientation = Orientation.Horizontal, Spacing = 14 };
+                panel.Children.Add(icon);
+                panel.Children.Add(textPanel);
+
+                var button = new Button
+                {
+                    Content = panel,
+                    HorizontalAlignment = HorizontalAlignment.Stretch,
+                    HorizontalContentAlignment = HorizontalAlignment.Left,
+                    Padding = new Thickness(16, 14, 16, 14),
+                    Margin = new Thickness(0, 0, 0, isLast ? 0 : 8)
+                };
+                button.Click += (_, _) =>
+                {
+                    selectedOption = option;
+                    dialog.Hide();
+                };
+                return button;
+            }
+
+            // Button 1: Import own config - FolderOpen icon
+            var ownIcon = new FontIcon { Glyph = "\uE838", FontSize = 24, VerticalAlignment = VerticalAlignment.Center };
+            var ownButton = CreateOptionButton(ownIcon,
+                "Dialog_ImportConfig_Option_Own_Title",
+                "Dialog_ImportConfig_Option_Own_Description",
+                ImportOption.ImportOwn);
+
+            // Button 2: Import recommended config - Winhance logo
+            var logoUri = isDark
+                ? "ms-appx:///Assets/AppIcons/winhance-rocket-white-transparent-bg.png"
+                : "ms-appx:///Assets/AppIcons/winhance-rocket-black-transparent-bg.png";
+            var recIcon = new Image
+            {
+                Source = new Microsoft.UI.Xaml.Media.Imaging.BitmapImage(new System.Uri(logoUri)),
+                Width = 24,
+                Height = 24,
+                VerticalAlignment = VerticalAlignment.Center
+            };
+            var recButton = CreateOptionButton(recIcon,
+                "Dialog_ImportConfig_Option_Recommended_Title",
+                "Dialog_ImportConfig_Option_Recommended_Description",
+                ImportOption.ImportRecommended);
+
+            // Button 3: Import backup config - History icon
+            var backupIcon = new FontIcon { Glyph = "\uE81C", FontSize = 24, VerticalAlignment = VerticalAlignment.Center };
+            var backupButton = CreateOptionButton(backupIcon,
+                "Dialog_ImportConfig_Option_Backup_Title",
+                "Dialog_ImportConfig_Option_Backup_Description",
+                ImportOption.ImportBackup);
+
+            // Button 4: Import Windows defaults - Refresh icon
+            var defaultsIcon = new FontIcon { Glyph = "\uE777", FontSize = 24, VerticalAlignment = VerticalAlignment.Center };
+            var defaultsButton = CreateOptionButton(defaultsIcon,
+                "Dialog_ImportConfig_Option_Defaults_Title",
+                "Dialog_ImportConfig_Option_Defaults_Description",
+                ImportOption.ImportWindowsDefaults, isLast: true);
+
+            var skipReviewCheckbox = new CheckBox
+            {
+                Content = _localization.GetString("Review_Mode_Skip_Checkbox") ?? "Skip review and apply immediately",
+                IsChecked = false,
+                Margin = new Thickness(0, 12, 0, 0)
+            };
+
+            var contentPanel = new StackPanel { Spacing = 0 };
+            contentPanel.Children.Add(new TextBlock
+            {
+                Text = _localization.GetString("Dialog_ImportOptions_Message"),
+                TextWrapping = TextWrapping.Wrap,
+                Margin = new Thickness(0, 0, 0, 16)
+            });
+            contentPanel.Children.Add(ownButton);
+            contentPanel.Children.Add(recButton);
+            contentPanel.Children.Add(backupButton);
+            contentPanel.Children.Add(defaultsButton);
+            contentPanel.Children.Add(skipReviewCheckbox);
+
+            dialog.Content = contentPanel;
+
+            await dialog.ShowAsync();
+            return (selectedOption, skipReviewCheckbox.IsChecked == true);
         }
         finally
         {

@@ -66,6 +66,14 @@
                 Background="{ThemeResource AccentFillColorDefaultBrush}"
                 Visibility="{x:Bind IndicatorVisibility, Mode=OneWay}"/>
 
+        <!-- InfoBadge Overlay -->
+        <InfoBadge x:Name="Badge"
+                   HorizontalAlignment="Right"
+                   VerticalAlignment="Top"
+                   Margin="0,2,-4,0"
+                   Visibility="{x:Bind BadgeVisibility, Mode=OneWay}"
+                   Value="{x:Bind BadgeValue, Mode=OneWay}"/>
+
         <!-- Loading Overlay -->
         <Border x:Name="LoadingOverlay"
                 Background="#80000000"

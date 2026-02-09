@@ -1470,7 +1470,6 @@
   "Common_ClickToUnlock": "Klicka för att låsa upp",
   "Setting_taskbar-copilot_Name": "Copilot-förhandsgranskningsknapp",
   "Setting_taskbar-copilot_Description": "Visa eller dölj Copilot-förhandsgranskningsknappen i aktivitetsfältet",
-  "ExternalApps_WinGetUnavailable": "Kan inte fastställa installationsstatus. Anslut till internet och klicka på knappen Uppdatera.",
   "Error_NoInternetConnection": "Ingen internetanslutning. Anslut och försök igen.",
   "Error_WinGetInstallFailed": "Misslyckades med att installera WinGet. Kontrollera din internetanslutning.",
   "Error_WinGetNotAvailable": "WinGet är inte tillgängligt på detta system.",

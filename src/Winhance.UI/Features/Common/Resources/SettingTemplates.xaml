@@ -84,16 +84,51 @@
                 </Grid>
             </Grid>
 
-            <!-- Warning/info banner below the settings card (wrapper collapses when not shown) -->
-            <Border Visibility="{x:Bind HasWarningMessage, Mode=OneWay, Converter={StaticResource BooleanToVisibilityConverter}}"
+            <!-- Status banner below the settings card (wrapper collapses when not shown) -->
+            <Border Visibility="{x:Bind HasStatusBanner, Mode=OneWay, Converter={StaticResource BooleanToVisibilityConverter}}"
                     Margin="0,0,0,8">
                 <InfoBar
-                    IsOpen="{x:Bind HasWarningMessage, Mode=OneWay}"
-                    Severity="{x:Bind WarningSeverity, Mode=OneWay}"
-                    Message="{x:Bind WarningText, Mode=OneWay}"
+                    IsOpen="{x:Bind HasStatusBanner, Mode=OneWay}"
+                    Severity="{x:Bind StatusBannerSeverity, Mode=OneWay}"
+                    Message="{x:Bind StatusBannerMessage, Mode=OneWay}"
                     IsClosable="False"
                     Margin="0,-1,0,0"
                     CornerRadius="0,0,4,4"/>
+            </Border>
+
+            <!-- Review mode diff banner (shown when a config diff exists for this setting) -->
+            <Border Visibility="{x:Bind HasReviewDiff, Mode=OneWay, Converter={StaticResource BooleanToVisibilityConverter}}"
+                    Margin="0,0,0,8">
+                <InfoBar
+                    IsOpen="{x:Bind HasReviewDiff, Mode=OneWay}"
+                    Severity="Warning"
+                    IsClosable="False"
+                    Margin="0,-1,0,0"
+                    CornerRadius="0,0,4,4">
+                    <InfoBar.Content>
+                        <Grid ColumnDefinitions="*,Auto,Auto" Margin="0,4,8,4">
+                            <TextBlock
+                                Grid.Column="0"
+                                Text="{x:Bind ReviewDiffMessage, Mode=OneWay}"
+                                TextWrapping="Wrap"
+                                VerticalAlignment="Center"/>
+                            <RadioButton
+                                Grid.Column="1"
+                                Content="Apply"
+                                IsChecked="{x:Bind IsReviewApproved, Mode=TwoWay}"
+                                Margin="8,0,0,0"
+                                MinWidth="0"
+                                VerticalAlignment="Center"/>
+                            <RadioButton
+                                Grid.Column="2"
+                                Content="Don't apply"
+                                IsChecked="{x:Bind IsReviewRejected, Mode=TwoWay}"
+                                Margin="8,0,0,0"
+                                MinWidth="0"
+                                VerticalAlignment="Center"/>
+                        </Grid>
+                    </InfoBar.Content>
+                </InfoBar>
             </Border>
         </StackPanel>
     </DataTemplate>

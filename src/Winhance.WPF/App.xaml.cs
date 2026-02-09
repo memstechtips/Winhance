@@ -441,9 +441,8 @@ namespace Winhance.WPF
                 LogStartupMessage("Checking system backup preferences");
                 var prefsService = _host.Services.GetRequiredService<IUserPreferencesService>();
                 var skipBackup = await prefsService.GetPreferenceAsync("SkipSystemBackup", false);
-                var registryBackupCompleted = await prefsService.GetPreferenceAsync("RegistryBackupCompleted", false);
 
-                if (!skipBackup || !registryBackupCompleted)
+                if (!skipBackup)
                 {
                     LogStartupMessage("Creating initial system backups");
                     var backupService = _host.Services.GetRequiredService<ISystemBackupService>();

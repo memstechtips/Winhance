@@ -83,6 +83,20 @@ public sealed partial class NavButton : UserControl, INotifyPropertyChanged
             typeof(NavButton),
             new PropertyMetadata(null));
 
+    public static readonly DependencyProperty BadgeValueProperty =
+        DependencyProperty.Register(
+            nameof(BadgeValue),
+            typeof(int),
+            typeof(NavButton),
+            new PropertyMetadata(-1, OnBadgePropertyChanged));
+
+    public static readonly DependencyProperty BadgeStatusProperty =
+        DependencyProperty.Register(
+            nameof(BadgeStatus),
+            typeof(string),
+            typeof(NavButton),
+            new PropertyMetadata(string.Empty, OnBadgePropertyChanged));
+
     #endregion
 
     #region Properties
@@ -162,6 +176,24 @@ public sealed partial class NavButton : UserControl, INotifyPropertyChanged
         set => SetValue(NavigationTagProperty, value);
     }
 
+    /// <summary>
+    /// Badge value to display. Set to -1 to hide the badge.
+    /// </summary>
+    public int BadgeValue
+    {
+        get => (int)GetValue(BadgeValueProperty);
+        set => SetValue(BadgeValueProperty, value);
+    }
+
+    /// <summary>
+    /// Badge status: "Attention", "Success", or "" (hidden).
+    /// </summary>
+    public string BadgeStatus
+    {
+        get => (string)GetValue(BadgeStatusProperty);
+        set => SetValue(BadgeStatusProperty, value);
+    }
+
     // Icon sizes (matching NavigationView)
     private const double ExpandedIconSize = 20;
     private const double CompactIconSize = 16;
@@ -177,6 +209,9 @@ public sealed partial class NavButton : UserControl, INotifyPropertyChanged
     // Icon type visibility - show FontIcon if IconGlyph is set, PathIcon if IconPath is set
     public Visibility FontIconVisibility => !string.IsNullOrEmpty(IconGlyph) ? Visibility.Visible : Visibility.Collapsed;
     public Visibility PathIconVisibility => !string.IsNullOrEmpty(IconPath) && string.IsNullOrEmpty(IconGlyph) ? Visibility.Visible : Visibility.Collapsed;
+
+    // Badge visibility
+    public Visibility BadgeVisibility => BadgeValue >= 0 || BadgeStatus == "SuccessIcon" ? Visibility.Visible : Visibility.Collapsed;
 
     #endregion
 
@@ -216,6 +251,47 @@ public sealed partial class NavButton : UserControl, INotifyPropertyChanged
             button.NotifyPropertyChanged(nameof(ActualButtonHeight));
             button.NotifyPropertyChanged(nameof(IconSize));
             button.NotifyPropertyChanged(nameof(TextVisibility));
+        }
+    }
+
+    private static void OnBadgePropertyChanged(DependencyObject d, DependencyPropertyChangedEventArgs e)
+    {
+        if (d is NavButton button)
+        {
+            button.NotifyPropertyChanged(nameof(BadgeVisibility));
+            button.ApplyBadgeStyle();
+        }
+    }
+
+    private void ApplyBadgeStyle()
+    {
+        try
+        {
+            if (Badge == null) return;
+
+            if (string.IsNullOrEmpty(BadgeStatus) || (BadgeValue < 0 && BadgeStatus != "SuccessIcon"))
+            {
+                Badge.Visibility = Visibility.Collapsed;
+                return;
+            }
+
+            Badge.Visibility = Visibility.Visible;
+            var styleKey = BadgeStatus switch
+            {
+                "Attention" => "AttentionValueInfoBadgeStyle",
+                "Success" => "InformationalValueInfoBadgeStyle",
+                "SuccessIcon" => "SuccessIconInfoBadgeStyle",
+                _ => "AttentionValueInfoBadgeStyle"
+            };
+
+            if (Application.Current.Resources.TryGetValue(styleKey, out var style) && style is Style badgeStyle)
+            {
+                Badge.Style = badgeStyle;
+            }
+        }
+        catch (Exception ex)
+        {
+            System.Diagnostics.Debug.WriteLine($"Failed to apply badge style: {ex.Message}");
         }
     }
 

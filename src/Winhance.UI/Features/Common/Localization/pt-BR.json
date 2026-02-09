@@ -1,4 +1,4 @@
-﻿{
+{
   "App_Title": "Winhance",
   "App_By": "por Memory",
   "Nav_SoftwareAndApps": "Software e Aplicativos",
@@ -1470,7 +1470,6 @@
   "Common_ClickToUnlock": "Clique para desbloquear",
   "Setting_taskbar-copilot_Name": "Botão de visualização do Copilot",
   "Setting_taskbar-copilot_Description": "Mostrar ou ocultar o botão de visualização do Copilot na barra de tarefas",
-  "ExternalApps_WinGetUnavailable": "Não é possível determinar o status da instalação. Conecte-se à internet e clique no botão Atualizar.",
   "Error_NoInternetConnection": "Sem conexão com a internet. Por favor, conecte-se e tente novamente.",
   "Error_WinGetInstallFailed": "Falha ao instalar o WinGet. Verifique sua conexão com a internet.",
   "Error_WinGetNotAvailable": "O WinGet não está disponível neste sistema.",

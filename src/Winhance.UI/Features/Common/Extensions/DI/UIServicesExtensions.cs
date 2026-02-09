@@ -41,8 +41,17 @@ public static class UIServicesExtensions
         // Application Close Service (Singleton - Handles shutdown with donation dialog)
         services.AddSingleton<IApplicationCloseService, ApplicationCloseService>();
 
+        // Startup Notification Service (Singleton - Shows backup notification after startup)
+        services.AddSingleton<IStartupNotificationService, StartupNotificationService>();
+
         // Configuration Service (Singleton - Import/Export configuration files)
         services.AddSingleton<IConfigurationService, ConfigurationService>();
+
+        // Config Import Overlay Service
+        services.AddSingleton<IConfigImportOverlayService, ConfigImportOverlayService>();
+
+        // Config Review Mode Service (Singleton - state persists across page navigation)
+        services.AddSingleton<IConfigReviewService, ConfigReviewService>();
 
         // Setting Localization Service (Singleton - Localizes setting definitions)
         services.AddSingleton<ISettingLocalizationService, SettingLocalizationService>();
@@ -77,16 +86,16 @@ public static class UIServicesExtensions
 
         // AdvancedTools ViewModels
         services.AddSingleton<AdvancedToolsViewModel>();
-        services.AddTransient<WimUtilViewModel>();
+        services.AddSingleton<WimUtilViewModel>();
         services.AddTransient<AutounattendGeneratorViewModel>();
 
         // AdvancedTools Services
         services.AddSingleton<IAutounattendXmlGeneratorService, AutounattendXmlGeneratorService>();
 
-        // SoftwareApps ViewModels (Transient - created per page)
-        services.AddTransient<WindowsAppsViewModel>();
-        services.AddTransient<ExternalAppsViewModel>();
-        services.AddTransient<SoftwareAppsViewModel>();
+        // SoftwareApps ViewModels (Singleton - shared between UI and ConfigurationService)
+        services.AddSingleton<WindowsAppsViewModel>();
+        services.AddSingleton<ExternalAppsViewModel>();
+        services.AddSingleton<SoftwareAppsViewModel>();
 
         return services;
     }

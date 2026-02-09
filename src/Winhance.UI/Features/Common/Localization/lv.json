@@ -1,4 +1,4 @@
-﻿{
+{
   "App_Title": "Winhance",
   "App_By": "izveidoja Memory",
   "Nav_SoftwareAndApps": "Programmatūra un lietotnes",
@@ -1470,7 +1470,6 @@
   "Common_ClickToUnlock": "Noklikšķiniet, lai atbloķētu",
   "Setting_taskbar-copilot_Name": "Copilot priekšskatījuma poga",
   "Setting_taskbar-copilot_Description": "Rādīt vai slēpt Copilot priekšskatījuma pogu uzdevumjoslā",
-  "ExternalApps_WinGetUnavailable": "Nevar noteikt instalēšanas statusu. Izveidojiet savienojumu ar internetu un noklikšķiniet uz pogas Atsvaidzināt.",
   "Error_NoInternetConnection": "Nav interneta savienojuma. Lūdzu, izveidojiet savienojumu un mēģiniet vēlre.",
   "Error_WinGetInstallFailed": "Neizdevās instalēt WinGet. Lūdzu, pārbaudiet interneta savienojumu.",
   "Error_WinGetNotAvailable": "WinGet šajā sistēmā nav pieejams.",

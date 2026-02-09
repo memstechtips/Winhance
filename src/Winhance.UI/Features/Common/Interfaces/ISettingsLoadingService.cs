@@ -27,4 +27,10 @@ public interface ISettingsLoadingService
         SettingDefinition setting,
         Dictionary<string, SettingStateResult> batchStates,
         ISettingsFeatureViewModel? parentViewModel);
+
+    /// <summary>
+    /// Applies review diff state to an existing ViewModel.
+    /// Used when re-entering review mode with already-loaded singleton VMs.
+    /// </summary>
+    void ApplyReviewDiffToViewModel(SettingItemViewModel viewModel, SettingStateResult currentState);
 }

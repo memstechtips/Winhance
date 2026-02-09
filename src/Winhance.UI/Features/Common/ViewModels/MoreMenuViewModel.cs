@@ -39,6 +39,7 @@ public partial class MoreMenuViewModel : ObservableObject
     /// </summary>
     private void OnLanguageChanged(object? sender, EventArgs e)
     {
+        OnPropertyChanged(nameof(MenuDocumentation));
         OnPropertyChanged(nameof(MenuReportBug));
         OnPropertyChanged(nameof(MenuCheckForUpdates));
         OnPropertyChanged(nameof(MenuWinhanceLogs));
@@ -61,6 +62,9 @@ public partial class MoreMenuViewModel : ObservableObject
 
     #region Localized Strings
 
+    public string MenuDocumentation =>
+        _localizationService.GetString("Menu_Documentation") ?? "Documentation";
+
     public string MenuReportBug =>
         _localizationService.GetString("Menu_ReportBug") ?? "Report a Bug";
 
@@ -79,6 +83,20 @@ public partial class MoreMenuViewModel : ObservableObject
     #endregion
 
     #region Commands
+
+    [RelayCommand]
+    private async Task OpenDocsAsync()
+    {
+        try
+        {
+            await Windows.System.Launcher.LaunchUriAsync(
+                new Uri("https://winhance.net/docs/index.html"));
+        }
+        catch (Exception ex)
+        {
+            _logService.LogError($"Failed to open documentation page: {ex.Message}", ex);
+        }
+    }
 
     [RelayCommand]
     private async Task ReportBugAsync()

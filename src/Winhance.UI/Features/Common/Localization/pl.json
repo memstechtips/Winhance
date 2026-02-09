@@ -1470,7 +1470,6 @@
   "Common_ClickToUnlock": "Kliknij, aby odblokować",
   "Setting_taskbar-copilot_Name": "Przycisk podglądu Copilot",
   "Setting_taskbar-copilot_Description": "Pokaż lub ukryj przycisk podglądu Copilot na pasku zadań",
-  "ExternalApps_WinGetUnavailable": "Nie można określić stanu instalacji. Połącz się z internetem i kliknij przycisk Odśwież.",
   "Error_NoInternetConnection": "Brak połączenia z internetem. Połącz się i spróbuj ponownie.",
   "Error_WinGetInstallFailed": "Nie udało się zainstalować WinGet. Sprawdź połączenie z internetem.",
   "Error_WinGetNotAvailable": "WinGet nie jest dostępny w tym systemie.",

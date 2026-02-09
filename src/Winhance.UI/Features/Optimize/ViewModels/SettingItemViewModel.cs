@@ -56,16 +56,16 @@ public partial class SettingItemViewModel : BaseViewModel
     private string _status = string.Empty;
 
     [ObservableProperty]
-    private string? _warningText;
+    private string? _statusBannerMessage;
 
     [ObservableProperty]
-    private InfoBarSeverity _warningSeverity = InfoBarSeverity.Informational;
+    private InfoBarSeverity _statusBannerSeverity = InfoBarSeverity.Informational;
 
-    public bool HasWarningMessage => !string.IsNullOrEmpty(WarningText);
+    public bool HasStatusBanner => !string.IsNullOrEmpty(StatusBannerMessage);
 
-    partial void OnWarningTextChanged(string? value)
+    partial void OnStatusBannerMessageChanged(string? value)
     {
-        OnPropertyChanged(nameof(HasWarningMessage));
+        OnPropertyChanged(nameof(HasStatusBanner));
     }
 
     [ObservableProperty]
@@ -110,6 +110,70 @@ public partial class SettingItemViewModel : BaseViewModel
     public string ClickToUnlockText => _localizationService.GetString("Common_ClickToUnlock") ?? "Click to unlock";
     public IAsyncRelayCommand UnlockCommand { get; }
 
+    // Review mode properties
+    [ObservableProperty]
+    private bool _isInReviewMode;
+
+    [ObservableProperty]
+    private bool _hasReviewDiff;
+
+    [ObservableProperty]
+    private string? _reviewDiffMessage;
+
+    [ObservableProperty]
+    private bool _isReviewApproved = false;
+
+    [ObservableProperty]
+    private bool _isReviewRejected = false;
+
+    public bool IsReviewDecisionMade => IsReviewApproved || IsReviewRejected;
+
+    partial void OnIsInReviewModeChanged(bool value)
+    {
+        OnPropertyChanged(nameof(EffectiveIsEnabled));
+    }
+
+    partial void OnIsReviewApprovedChanged(bool value)
+    {
+        if (value && IsReviewRejected)
+            IsReviewRejected = false;
+
+        OnPropertyChanged(nameof(IsReviewDecisionMade));
+        // Notify the ConfigReviewService when approval changes
+        ReviewApprovalChanged?.Invoke(this, value);
+    }
+
+    partial void OnIsReviewRejectedChanged(bool value)
+    {
+        if (value && IsReviewApproved)
+            IsReviewApproved = false;
+
+        OnPropertyChanged(nameof(IsReviewDecisionMade));
+        // When rejecting, notify with approved=false
+        if (value)
+            ReviewApprovalChanged?.Invoke(this, false);
+    }
+
+    /// <summary>
+    /// Raised when the user changes the review approval state for this setting.
+    /// The ConfigReviewService subscribes to this to update its approval counts.
+    /// </summary>
+    public event EventHandler<bool>? ReviewApprovalChanged;
+
+    /// <summary>
+    /// Clears all review mode state including event handlers.
+    /// Used when exiting review mode to ensure clean state for subsequent imports.
+    /// </summary>
+    public void ClearReviewState()
+    {
+        IsInReviewMode = false;
+        HasReviewDiff = false;
+        ReviewDiffMessage = null;
+        IsReviewApproved = false;
+        IsReviewRejected = false;
+        ReviewApprovalChanged = null;
+    }
+
     partial void OnIsEnabledChanged(bool value)
     {
         OnPropertyChanged(nameof(EffectiveIsEnabled));
@@ -123,7 +187,7 @@ public partial class SettingItemViewModel : BaseViewModel
         OnPropertyChanged(nameof(EffectiveIsEnabled));
     }
 
-    public bool EffectiveIsEnabled => IsEnabled && ParentIsEnabled;
+    public bool EffectiveIsEnabled => IsEnabled && ParentIsEnabled && !IsInReviewMode;
     public bool IsToggleType => InputType == InputType.Toggle;
     public bool IsSelectionType => InputType == InputType.Selection;
     public bool IsNumericType => InputType == InputType.NumericRange;
@@ -262,7 +326,7 @@ public partial class SettingItemViewModel : BaseViewModel
 
             IsSelected = newValue;
             _hasChangedThisSession = true;
-            ShowRestartWarningIfNeeded();
+            ShowRestartBannerIfNeeded();
             _logService.Log(LogLevel.Info, $"Successfully toggled setting {SettingId} to {newValue}");
         }
         catch (Exception ex)
@@ -318,8 +382,8 @@ public partial class SettingItemViewModel : BaseViewModel
                 NumericValue = intValue;
 
             _hasChangedThisSession = true;
-            UpdateWarningText(value);
-            ShowRestartWarningIfNeeded();
+            UpdateStatusBanner(value);
+            ShowRestartBannerIfNeeded();
 
             _logService.Log(LogLevel.Info, $"Successfully changed value for setting {SettingId}");
             LogToFile($"[SettingItemViewModel] SelectedValue set to {value} for {SettingId}");
@@ -451,29 +515,29 @@ public partial class SettingItemViewModel : BaseViewModel
 
     #endregion
 
-    #region Warning Messages
+    #region Status Banner Messages
 
-    // Initializes the compatibility warning from SettingDefinition (called once during loading)
-    public void InitializeCompatibilityWarning()
+    // Initializes the compatibility banner from SettingDefinition (called once during loading)
+    public void InitializeCompatibilityBanner()
     {
         if (SettingDefinition?.CustomProperties?.TryGetValue(
             CustomPropertyKeys.VersionCompatibilityMessage, out var compatMessage) == true &&
             compatMessage is string messageText)
         {
-            WarningText = messageText;
-            WarningSeverity = InfoBarSeverity.Informational;
+            StatusBannerMessage = messageText;
+            StatusBannerSeverity = InfoBarSeverity.Informational;
         }
     }
 
-    // Updates warning text based on selected value, option warnings, or cross-group settings
-    public void UpdateWarningText(object? value)
+    // Updates status banner based on selected value, option warnings, or cross-group settings
+    public void UpdateStatusBanner(object? value)
     {
         if (SettingDefinition == null || value is not int selectedIndex)
         {
-            // Keep existing compatibility warning if present, otherwise clear
+            // Keep existing compatibility banner if present, otherwise clear
             if (SettingDefinition?.CustomProperties?.ContainsKey(CustomPropertyKeys.VersionCompatibilityMessage) != true)
             {
-                ClearWarning();
+                ClearStatusBanner();
             }
             return;
         }
@@ -483,8 +547,8 @@ public partial class SettingItemViewModel : BaseViewModel
             warnings is Dictionary<int, string> warningDict &&
             warningDict.TryGetValue(selectedIndex, out var warning))
         {
-            WarningText = warning;
-            WarningSeverity = InfoBarSeverity.Error;
+            StatusBannerMessage = warning;
+            StatusBannerSeverity = InfoBarSeverity.Error;
             return;
         }
 
@@ -499,12 +563,12 @@ public partial class SettingItemViewModel : BaseViewModel
         if (SettingDefinition.CustomProperties?.TryGetValue(CustomPropertyKeys.VersionCompatibilityMessage, out var compatMessage) == true &&
             compatMessage is string messageText)
         {
-            WarningText = messageText;
-            WarningSeverity = InfoBarSeverity.Informational;
+            StatusBannerMessage = messageText;
+            StatusBannerSeverity = InfoBarSeverity.Informational;
         }
         else
         {
-            ClearWarning();
+            ClearStatusBanner();
         }
     }
 
@@ -517,7 +581,7 @@ public partial class SettingItemViewModel : BaseViewModel
 
         if (displayNames == null)
         {
-            ClearWarning();
+            ClearStatusBanner();
             return;
         }
 
@@ -527,15 +591,15 @@ public partial class SettingItemViewModel : BaseViewModel
 
         if (!isCustomState)
         {
-            ClearWarning();
+            ClearStatusBanner();
             return;
         }
 
         // Use the pre-built message if available (built during initialization with full grouping)
         if (!string.IsNullOrEmpty(CrossGroupInfoMessage))
         {
-            WarningText = CrossGroupInfoMessage;
-            WarningSeverity = InfoBarSeverity.Informational;
+            StatusBannerMessage = CrossGroupInfoMessage;
+            StatusBannerSeverity = InfoBarSeverity.Informational;
             return;
         }
 
@@ -543,28 +607,28 @@ public partial class SettingItemViewModel : BaseViewModel
         var header = _localizationService.GetString("Setting_CrossGroupWarning_Header");
         if (!string.IsNullOrEmpty(header))
         {
-            WarningText = header;
-            WarningSeverity = InfoBarSeverity.Informational;
+            StatusBannerMessage = header;
+            StatusBannerSeverity = InfoBarSeverity.Informational;
         }
     }
 
-    // Shows restart required warning after a setting that requires restart is changed
-    private void ShowRestartWarningIfNeeded()
+    // Shows restart required banner after a setting that requires restart is changed
+    private void ShowRestartBannerIfNeeded()
     {
         if (!_hasChangedThisSession)
             return;
 
         if (SettingDefinition?.RequiresRestart == true)
         {
-            WarningText = _localizationService.GetString("Common_RestartRequired");
-            WarningSeverity = InfoBarSeverity.Informational;
+            StatusBannerMessage = _localizationService.GetString("Common_RestartRequired");
+            StatusBannerSeverity = InfoBarSeverity.Informational;
         }
     }
 
-    private void ClearWarning()
+    private void ClearStatusBanner()
     {
-        WarningText = null;
-        WarningSeverity = InfoBarSeverity.Informational;
+        StatusBannerMessage = null;
+        StatusBannerSeverity = InfoBarSeverity.Informational;
     }
 
     #endregion

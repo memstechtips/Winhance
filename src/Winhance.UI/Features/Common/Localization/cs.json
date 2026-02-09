@@ -1,4 +1,4 @@
-﻿{
+{
   "App_Title": "Winhance",
   "App_By": "od Memory",
   "Nav_SoftwareAndApps": "Software a aplikace",
@@ -1470,7 +1470,6 @@
   "Common_ClickToUnlock": "Kliknutím odemknete",
   "Setting_taskbar-copilot_Name": "Tlačítko náhledu Copilota",
   "Setting_taskbar-copilot_Description": "Zobrazit nebo skrýt tlačítko náhledu Copilota na hlavním panelu",
-  "ExternalApps_WinGetUnavailable": "Nelze zjistit stav instalace. Připojte se k internetu a klikněte na tlačítko Obnovit.",
   "Error_NoInternetConnection": "Žádné připojení k internetu. Připojte se prosím a zkuste to znovu.",
   "Error_WinGetInstallFailed": "Nepodařilo se nainstalovat WinGet. Zkontrolujte prosím své připojení k internetu.",
   "Error_WinGetNotAvailable": "WinGet není v tomto systému k dispozici.",

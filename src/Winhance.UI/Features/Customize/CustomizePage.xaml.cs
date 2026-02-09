@@ -3,6 +3,8 @@ using Microsoft.Extensions.DependencyInjection;
 using Microsoft.UI.Xaml;
 using Microsoft.UI.Xaml.Controls;
 using Microsoft.UI.Xaml.Navigation;
+using Winhance.Core.Features.Common.Constants;
+using IConfigReviewService = Winhance.Core.Features.Common.Interfaces.IConfigReviewService;
 using Winhance.UI.Features.Customize.Models;
 using Winhance.UI.Features.Customize.Pages;
 using Winhance.UI.Features.Customize.ViewModels;
@@ -22,6 +24,17 @@ public sealed partial class CustomizePage : Page
         { "WindowsTheme", "WindowsThemeIconPath" }
     };
 
+    // Maps section keys to feature IDs for badge tracking
+    private static readonly Dictionary<string, string> SectionFeatureIds = new()
+    {
+        { "Explorer", FeatureIds.ExplorerCustomization },
+        { "StartMenu", FeatureIds.StartMenu },
+        { "Taskbar", FeatureIds.Taskbar },
+        { "WindowsTheme", FeatureIds.WindowsTheme }
+    };
+
+    private IConfigReviewService? _configReviewService;
+
     public CustomizeViewModel ViewModel { get; }
 
     public CustomizePage()
@@ -34,6 +47,14 @@ public sealed partial class CustomizePage : Page
             ViewModel = App.Services.GetRequiredService<CustomizeViewModel>();
             ViewModel.PropertyChanged += OnViewModelPropertyChanged;
             UpdateBreadcrumbMenuItems();
+
+            _configReviewService = App.Services.GetService<IConfigReviewService>();
+            if (_configReviewService != null)
+            {
+                _configReviewService.ReviewModeChanged += OnReviewModeChanged;
+                _configReviewService.BadgeStateChanged += OnBadgeStateChanged;
+            }
+
             Log("ViewModel obtained, constructor complete");
         }
         catch (Exception ex)
@@ -72,6 +93,11 @@ public sealed partial class CustomizePage : Page
 
             Log("Calling ViewModel.InitializeAsync...");
             await ViewModel.InitializeAsync();
+
+            // Update badges if already in review mode (events fired before page existed)
+            if (_configReviewService?.IsInReviewMode == true)
+                UpdateOverviewBadges();
+
             Log("OnNavigatedTo complete");
         }
         catch (Exception ex)
@@ -107,6 +133,13 @@ public sealed partial class CustomizePage : Page
             }
 
             InnerContentFrame.Navigate(pageType, searchText);
+
+            // Mark feature as visited when user actually navigates into it
+            if (_configReviewService?.IsInReviewMode == true &&
+                SectionFeatureIds.TryGetValue(sectionKey, out var featureId))
+            {
+                _configReviewService.MarkFeatureVisited(featureId);
+            }
         }
         else
         {
@@ -205,6 +238,73 @@ public sealed partial class CustomizePage : Page
     private void NavigateWindowsTheme_Click(object sender, RoutedEventArgs e)
     {
         NavigateToSection("WindowsTheme");
+    }
+
+    // Review mode badge handlers
+    private void OnReviewModeChanged(object? sender, EventArgs e)
+    {
+        DispatcherQueue.TryEnqueue(UpdateOverviewBadges);
+    }
+
+    private void OnBadgeStateChanged(object? sender, EventArgs e)
+    {
+        DispatcherQueue.TryEnqueue(UpdateOverviewBadges);
+    }
+
+    private void UpdateOverviewBadges()
+    {
+        if (_configReviewService == null || !_configReviewService.IsInReviewMode)
+        {
+            WindowsThemeBadge.Visibility = Visibility.Collapsed;
+            TaskbarBadge.Visibility = Visibility.Collapsed;
+            StartMenuBadge.Visibility = Visibility.Collapsed;
+            ExplorerBadge.Visibility = Visibility.Collapsed;
+            return;
+        }
+
+        UpdateFeatureBadge(WindowsThemeBadge, FeatureIds.WindowsTheme);
+        UpdateFeatureBadge(TaskbarBadge, FeatureIds.Taskbar);
+        UpdateFeatureBadge(StartMenuBadge, FeatureIds.StartMenu);
+        UpdateFeatureBadge(ExplorerBadge, FeatureIds.ExplorerCustomization);
+    }
+
+    private void UpdateFeatureBadge(InfoBadge badge, string featureId)
+    {
+        var diffCount = _configReviewService!.GetFeatureDiffCount(featureId);
+        if (diffCount > 0)
+        {
+            badge.Visibility = Visibility.Visible;
+
+            if (_configReviewService.IsFeatureFullyReviewed(featureId))
+            {
+                // Fully reviewed: show checkmark icon only (no count number)
+                badge.Value = -1;
+                if (Application.Current.Resources.TryGetValue("SuccessIconInfoBadgeStyle", out var successStyle) && successStyle is Style ss)
+                    badge.Style = ss;
+            }
+            else
+            {
+                // Not fully reviewed: show attention badge with count
+                badge.Value = diffCount;
+                if (Application.Current.Resources.TryGetValue("AttentionValueInfoBadgeStyle", out var attentionStyle) && attentionStyle is Style ats)
+                    badge.Style = ats;
+            }
+        }
+        else if (_configReviewService.IsFeatureInConfig(featureId))
+        {
+            // Feature is in config but has 0 diffs - show success checkmark only
+            badge.Value = -1;
+            badge.Visibility = Visibility.Visible;
+
+            if (Application.Current.Resources.TryGetValue("SuccessIconInfoBadgeStyle", out var style) && style is Style badgeStyle)
+            {
+                badge.Style = badgeStyle;
+            }
+        }
+        else
+        {
+            badge.Visibility = Visibility.Collapsed;
+        }
     }
 
     // Search handlers

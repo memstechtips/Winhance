@@ -1470,7 +1470,6 @@
   "Common_ClickToUnlock": "点击解锁",
   "Setting_taskbar-copilot_Name": "Copilot 预览按钮",
   "Setting_taskbar-copilot_Description": "在任务栏上显示或隐藏 Copilot 预览按钮",
-  "ExternalApps_WinGetUnavailable": "无法确定安装状态。请连接到互联网并点击刷新按钮。",
   "Error_NoInternetConnection": "无网络连接。请连接后重试。",
   "Error_WinGetInstallFailed": "安装 WinGet 失败。请检查您的网络连接。",
   "Error_WinGetNotAvailable": "此系统上无法使用 WinGet。",

@@ -20,6 +20,27 @@ public sealed partial class SoftwareAppsPage : Page
     {
         this.InitializeComponent();
         ViewModel = App.Services.GetRequiredService<SoftwareAppsViewModel>();
+        ViewModel.PropertyChanged += OnViewModelPropertyChanged;
+        UpdateTabBadges();
+    }
+
+    private void OnViewModelPropertyChanged(object? sender, PropertyChangedEventArgs e)
+    {
+        if (e.PropertyName == nameof(SoftwareAppsViewModel.WindowsAppsSelectedCount) ||
+            e.PropertyName == nameof(SoftwareAppsViewModel.ExternalAppsSelectedCount) ||
+            e.PropertyName == nameof(SoftwareAppsViewModel.IsInReviewMode))
+        {
+            DispatcherQueue.TryEnqueue(UpdateTabBadges);
+        }
+    }
+
+    private void UpdateTabBadges()
+    {
+        bool showBadges = ViewModel.IsInReviewMode;
+        WindowsAppsTabBadge.Visibility = showBadges && ViewModel.WindowsAppsSelectedCount > 0
+            ? Visibility.Visible : Visibility.Collapsed;
+        ExternalAppsTabBadge.Visibility = showBadges && ViewModel.ExternalAppsSelectedCount > 0
+            ? Visibility.Visible : Visibility.Collapsed;
     }
 
     protected override async void OnNavigatedTo(NavigationEventArgs e)
