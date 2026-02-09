@@ -6,6 +6,7 @@ using System;
 using System.Collections.Generic;
 using System.ComponentModel;
 using System.Runtime.CompilerServices;
+using Winhance.Core.Features.Common.Interfaces;
 using Winhance.UI.Features.Common.ViewModels;
 using Winhance.UI.ViewModels;
 
@@ -191,7 +192,7 @@ public sealed partial class NavSidebar : UserControl, INotifyPropertyChanged
         }
         catch (Exception ex)
         {
-            System.Diagnostics.Debug.WriteLine($"Error showing More menu flyout: {ex.Message}");
+            try { App.Services.GetService<ILogService>()?.LogDebug($"Error showing More menu flyout: {ex.Message}"); } catch { }
         }
     }
 

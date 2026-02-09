@@ -77,31 +77,64 @@
                                 <PathIcon x:Name="BreadcrumbSectionIcon" Foreground="{ThemeResource TextFillColorPrimaryBrush}"/>
                             </Viewbox>
                             <TextBlock x:Name="BreadcrumbSectionText" VerticalAlignment="Center"/>
+                            <InfoBadge x:Name="BreadcrumbSectionBadge" VerticalAlignment="Center" Visibility="Collapsed"/>
                         </StackPanel>
                     </DropDownButton.Content>
                     <DropDownButton.Flyout>
-                        <MenuFlyout Placement="BottomEdgeAlignedLeft">
-                            <MenuFlyoutItem x:Name="MenuItemWindowsTheme" Click="NavigateWindowsTheme_Click">
-                                <MenuFlyoutItem.Icon>
-                                    <PathIcon Data="{StaticResource WindowsThemeIconPath}"/>
-                                </MenuFlyoutItem.Icon>
-                            </MenuFlyoutItem>
-                            <MenuFlyoutItem x:Name="MenuItemTaskbar" Click="NavigateTaskbar_Click">
-                                <MenuFlyoutItem.Icon>
-                                    <PathIcon Data="{StaticResource TaskbarIconPath}"/>
-                                </MenuFlyoutItem.Icon>
-                            </MenuFlyoutItem>
-                            <MenuFlyoutItem x:Name="MenuItemStartMenu" Click="NavigateStartMenu_Click">
-                                <MenuFlyoutItem.Icon>
-                                    <PathIcon Data="{StaticResource StartMenuIconPath}"/>
-                                </MenuFlyoutItem.Icon>
-                            </MenuFlyoutItem>
-                            <MenuFlyoutItem x:Name="MenuItemExplorer" Click="NavigateExplorer_Click">
-                                <MenuFlyoutItem.Icon>
-                                    <PathIcon Data="{StaticResource ExplorerIconPath}"/>
-                                </MenuFlyoutItem.Icon>
-                            </MenuFlyoutItem>
-                        </MenuFlyout>
+                        <Flyout x:Name="BreadcrumbFlyout" Placement="BottomEdgeAlignedLeft">
+                            <Flyout.FlyoutPresenterStyle>
+                                <Style TargetType="FlyoutPresenter">
+                                    <Setter Property="Padding" Value="4"/>
+                                    <Setter Property="CornerRadius" Value="8"/>
+                                </Style>
+                            </Flyout.FlyoutPresenterStyle>
+                            <StackPanel Spacing="0" MinWidth="180">
+                                <Button Click="NavigateWindowsTheme_Click" HorizontalAlignment="Stretch"
+                                        HorizontalContentAlignment="Stretch"
+                                        Background="Transparent" BorderThickness="0" Padding="8,5">
+                                    <Grid ColumnDefinitions="Auto,*,Auto">
+                                        <Viewbox Grid.Column="0" Width="16" Height="16" Margin="0,0,8,0" VerticalAlignment="Center">
+                                            <PathIcon Data="{StaticResource WindowsThemeIconPath}"/>
+                                        </Viewbox>
+                                        <TextBlock x:Name="FlyoutTextWindowsTheme" Grid.Column="1" VerticalAlignment="Center"/>
+                                        <InfoBadge x:Name="FlyoutBadgeWindowsTheme" Grid.Column="2" Margin="8,0,0,0" VerticalAlignment="Center" Visibility="Collapsed"/>
+                                    </Grid>
+                                </Button>
+                                <Button Click="NavigateTaskbar_Click" HorizontalAlignment="Stretch"
+                                        HorizontalContentAlignment="Stretch"
+                                        Background="Transparent" BorderThickness="0" Padding="8,5">
+                                    <Grid ColumnDefinitions="Auto,*,Auto">
+                                        <Viewbox Grid.Column="0" Width="16" Height="16" Margin="0,0,8,0" VerticalAlignment="Center">
+                                            <PathIcon Data="{StaticResource TaskbarIconPath}"/>
+                                        </Viewbox>
+                                        <TextBlock x:Name="FlyoutTextTaskbar" Grid.Column="1" VerticalAlignment="Center"/>
+                                        <InfoBadge x:Name="FlyoutBadgeTaskbar" Grid.Column="2" Margin="8,0,0,0" VerticalAlignment="Center" Visibility="Collapsed"/>
+                                    </Grid>
+                                </Button>
+                                <Button Click="NavigateStartMenu_Click" HorizontalAlignment="Stretch"
+                                        HorizontalContentAlignment="Stretch"
+                                        Background="Transparent" BorderThickness="0" Padding="8,5">
+                                    <Grid ColumnDefinitions="Auto,*,Auto">
+                                        <Viewbox Grid.Column="0" Width="16" Height="16" Margin="0,0,8,0" VerticalAlignment="Center">
+                                            <PathIcon Data="{StaticResource StartMenuIconPath}"/>
+                                        </Viewbox>
+                                        <TextBlock x:Name="FlyoutTextStartMenu" Grid.Column="1" VerticalAlignment="Center"/>
+                                        <InfoBadge x:Name="FlyoutBadgeStartMenu" Grid.Column="2" Margin="8,0,0,0" VerticalAlignment="Center" Visibility="Collapsed"/>
+                                    </Grid>
+                                </Button>
+                                <Button Click="NavigateExplorer_Click" HorizontalAlignment="Stretch"
+                                        HorizontalContentAlignment="Stretch"
+                                        Background="Transparent" BorderThickness="0" Padding="8,5">
+                                    <Grid ColumnDefinitions="Auto,*,Auto">
+                                        <Viewbox Grid.Column="0" Width="16" Height="16" Margin="0,0,8,0" VerticalAlignment="Center">
+                                            <PathIcon Data="{StaticResource ExplorerIconPath}"/>
+                                        </Viewbox>
+                                        <TextBlock x:Name="FlyoutTextExplorer" Grid.Column="1" VerticalAlignment="Center"/>
+                                        <InfoBadge x:Name="FlyoutBadgeExplorer" Grid.Column="2" Margin="8,0,0,0" VerticalAlignment="Center" Visibility="Collapsed"/>
+                                    </Grid>
+                                </Button>
+                            </StackPanel>
+                        </Flyout>
                     </DropDownButton.Flyout>
                 </DropDownButton>
             </StackPanel>

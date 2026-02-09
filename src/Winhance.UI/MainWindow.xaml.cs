@@ -8,6 +8,7 @@ using Microsoft.UI.Xaml.Media;
 using Microsoft.UI.Xaml.Media.Imaging;
 using Winhance.Core.Features.Common.Constants;
 using Winhance.Core.Features.Common.Interfaces;
+using Winhance.Core.Features.Common.Services;
 using Winhance.UI.Features.AdvancedTools;
 using Winhance.UI.Features.Common.Controls;
 using Winhance.UI.Features.Common.Interfaces;
@@ -34,28 +35,19 @@ namespace Winhance.UI;
 /// </summary>
 public sealed partial class MainWindow : Window
 {
-    private static readonly string LogFile = Path.Combine(AppContext.BaseDirectory, "..", "..", "..", "..", "..", "startup-debug.log");
     private MainWindowViewModel? _viewModel;
     private WindowSizeManager? _windowSizeManager;
     private IConfigReviewService? _configReviewService;
+    private ILogService? _logService;
     private BackupResult? _backupResult;
     private bool _isStartupLoading = true;
     private bool _softwareAppsBadgeSubscribed;
 
-    private static void Log(string message)
-    {
-        try
-        {
-            File.AppendAllText(LogFile, $"[{DateTime.Now:HH:mm:ss.fff}] [MainWindow] {message}{Environment.NewLine}");
-        }
-        catch { }
-    }
-
     public MainWindow()
     {
-        Log("Constructor starting...");
+        StartupLogger.Log("MainWindow", "Constructor starting...");
         this.InitializeComponent();
-        Log("InitializeComponent completed");
+        StartupLogger.Log("MainWindow", "InitializeComponent completed");
 
         // Extend content into title bar for custom title bar experience
         ExtendsContentIntoTitleBar = true;
@@ -93,7 +85,7 @@ public sealed partial class MainWindow : Window
     /// </summary>
     private void NavSidebar_Loaded(object sender, RoutedEventArgs e)
     {
-        Log("NavSidebar_Loaded");
+        StartupLogger.Log("MainWindow", "NavSidebar_Loaded");
 
         // Subscribe to MoreMenuClosed to restore selection based on current page
         NavSidebar.MoreMenuClosed += NavSidebar_MoreMenuClosed;
@@ -101,15 +93,15 @@ public sealed partial class MainWindow : Window
         // Skip auto-navigation during startup — CompleteStartup() will trigger it
         if (_isStartupLoading)
         {
-            Log("Startup loading in progress, deferring navigation");
+            StartupLogger.Log("MainWindow", "Startup loading in progress, deferring navigation");
             return;
         }
 
         // Navigate to SoftwareApps page by default
-        Log("Navigating to SoftwareApps as default...");
+        StartupLogger.Log("MainWindow", "Navigating to SoftwareApps as default...");
         NavSidebar.SelectedTag = "SoftwareApps";
         NavigateToPage("SoftwareApps");
-        Log("SoftwareApps selected");
+        StartupLogger.Log("MainWindow", "SoftwareApps selected");
     }
 
     /// <summary>
@@ -134,8 +126,8 @@ public sealed partial class MainWindow : Window
         try
         {
             var userPreferencesService = App.Services.GetRequiredService<IUserPreferencesService>();
-            var logService = App.Services.GetRequiredService<ILogService>();
-            _windowSizeManager = new WindowSizeManager(this.AppWindow, userPreferencesService, logService);
+            _logService = App.Services.GetRequiredService<ILogService>();
+            _windowSizeManager = new WindowSizeManager(this.AppWindow, userPreferencesService, _logService);
 
             // Initialize async (restore saved position/size or set defaults)
             _ = _windowSizeManager.InitializeAsync();
@@ -161,7 +153,7 @@ public sealed partial class MainWindow : Window
         {
             // Fallback to a reasonable default if WindowSizeManager fails
             this.AppWindow.Resize(new Windows.Graphics.SizeInt32(1280, 800));
-            System.Diagnostics.Debug.WriteLine($"Failed to initialize WindowSizeManager: {ex.Message}");
+            _logService?.LogDebug($"Failed to initialize WindowSizeManager: {ex.Message}");
         }
     }
 
@@ -207,7 +199,7 @@ public sealed partial class MainWindow : Window
         catch (Exception ex)
         {
             // Backdrop not supported or failed - continue without it
-            System.Diagnostics.Debug.WriteLine($"Failed to set backdrop: {ex.Message}");
+            _logService?.LogDebug($"Failed to set backdrop: {ex.Message}");
         }
     }
 
@@ -231,7 +223,7 @@ public sealed partial class MainWindow : Window
         }
         catch (Exception ex)
         {
-            System.Diagnostics.Debug.WriteLine($"Failed to initialize FlowDirection: {ex.Message}");
+            _logService?.LogDebug($"Failed to initialize FlowDirection: {ex.Message}");
         }
     }
 
@@ -275,7 +267,7 @@ public sealed partial class MainWindow : Window
         }
         catch (Exception ex)
         {
-            System.Diagnostics.Debug.WriteLine($"Failed to initialize DispatcherService: {ex.Message}");
+            _logService?.LogDebug($"Failed to initialize DispatcherService: {ex.Message}");
         }
     }
 
@@ -294,7 +286,7 @@ public sealed partial class MainWindow : Window
         }
         catch (Exception ex)
         {
-            System.Diagnostics.Debug.WriteLine($"Failed to initialize DialogService: {ex.Message}");
+            _logService?.LogDebug($"Failed to initialize DialogService: {ex.Message}");
         }
     }
 
@@ -438,7 +430,7 @@ public sealed partial class MainWindow : Window
     private void NavSidebar_ItemClicked(object sender, NavButtonClickedEventArgs e)
     {
         var tag = e.NavigationTag?.ToString();
-        Log($"NavSidebar_ItemClicked - Tag: {tag}");
+        StartupLogger.Log("MainWindow", $"NavSidebar_ItemClicked - Tag: {tag}");
 
         // Special handling for More button - show flyout instead of navigating
         if (tag == "More")
@@ -463,7 +455,7 @@ public sealed partial class MainWindow : Window
     /// </summary>
     private void NavigateToPage(string? tag)
     {
-        Log($"NavigateToPage called with tag: {tag}");
+        StartupLogger.Log("MainWindow", $"NavigateToPage called with tag: {tag}");
         Type? pageType = tag switch
         {
             "Settings" => typeof(SettingsPage),
@@ -475,15 +467,15 @@ public sealed partial class MainWindow : Window
             _ => null
         };
 
-        Log($"Resolved page type: {pageType?.Name ?? "null"}");
+        StartupLogger.Log("MainWindow", $"Resolved page type: {pageType?.Name ?? "null"}");
 
         if (pageType != null && ContentFrame.CurrentSourcePageType != pageType)
         {
             try
             {
-                Log($"Navigating to {pageType.Name}...");
+                StartupLogger.Log("MainWindow", $"Navigating to {pageType.Name}...");
                 var result = ContentFrame.Navigate(pageType);
-                Log($"Navigate result: {result}");
+                StartupLogger.Log("MainWindow", $"Navigate result: {result}");
 
                 // Mark SoftwareApps features as visited when navigating to that page
                 if (tag == "SoftwareApps" && _configReviewService?.IsInReviewMode == true)
@@ -495,12 +487,12 @@ public sealed partial class MainWindow : Window
             }
             catch (Exception ex)
             {
-                Log($"Navigation EXCEPTION: {ex}");
+                StartupLogger.Log("MainWindow", $"Navigation EXCEPTION: {ex}");
             }
         }
         else
         {
-            Log($"Skipping navigation - pageType null or same page");
+            StartupLogger.Log("MainWindow", $"Skipping navigation - pageType null or same page");
         }
     }
 
@@ -509,7 +501,7 @@ public sealed partial class MainWindow : Window
     /// </summary>
     public void StartStartupOperations()
     {
-        Log("StartStartupOperations called");
+        StartupLogger.Log("MainWindow", "StartStartupOperations called");
         UpdateLoadingLogo();
 
         // Set all overlay text from localization keys
@@ -537,7 +529,7 @@ public sealed partial class MainWindow : Window
         {
             // 1. Initialize settings registry (was blocking in App.xaml.cs before)
             UpdateLoadingStatus("Loading_InitializingSettings");
-            Log("Startup: Initializing settings registry...");
+            StartupLogger.Log("MainWindow", "Startup: Initializing settings registry...");
             try
             {
                 var settingsRegistry = App.Services.GetRequiredService<ICompatibleSettingsRegistry>();
@@ -545,12 +537,12 @@ public sealed partial class MainWindow : Window
 
                 var settingsPreloader = App.Services.GetRequiredService<IGlobalSettingsPreloader>();
                 await settingsPreloader.PreloadAllSettingsAsync().ConfigureAwait(false);
-                Log("Startup: Settings registry initialized");
+                StartupLogger.Log("MainWindow", "Startup: Settings registry initialized");
             }
             catch (Exception ex)
             {
-                Log($"Startup: Settings registry FAILED: {ex.Message}");
-                System.Diagnostics.Debug.WriteLine($"Failed to initialize settings registry: {ex.Message}");
+                StartupLogger.Log("MainWindow", $"Startup: Settings registry FAILED: {ex.Message}");
+                _logService?.LogWarning($"Failed to initialize settings registry: {ex.Message}");
             }
 
             // 2. User backup config (first-run only)
@@ -561,21 +553,21 @@ public sealed partial class MainWindow : Window
                 if (!string.Equals(backupCompleted, "true", StringComparison.OrdinalIgnoreCase))
                 {
                     UpdateLoadingStatus("Loading_CreatingConfigBackup");
-                    Log("Startup: Creating user backup config...");
+                    StartupLogger.Log("MainWindow", "Startup: Creating user backup config...");
                     var configService = App.Services.GetRequiredService<IConfigurationService>();
                     await configService.CreateUserBackupConfigAsync().ConfigureAwait(false);
                     await preferencesService.SetPreferenceAsync(UserPreferenceKeys.InitialConfigBackupCompleted, "true");
-                    Log("Startup: User backup config done");
+                    StartupLogger.Log("MainWindow", "Startup: User backup config done");
                 }
                 else
                 {
-                    Log("Startup: User backup config already completed");
+                    StartupLogger.Log("MainWindow", "Startup: User backup config already completed");
                 }
             }
             catch (Exception ex)
             {
-                Log($"Startup: User backup config FAILED: {ex.Message}");
-                System.Diagnostics.Debug.WriteLine($"User backup config failed: {ex.Message}");
+                StartupLogger.Log("MainWindow", $"Startup: User backup config FAILED: {ex.Message}");
+                _logService?.LogWarning($"User backup config failed: {ex.Message}");
             }
 
             // 3. System restore point (respects SkipSystemBackup preference)
@@ -586,7 +578,7 @@ public sealed partial class MainWindow : Window
                 if (!string.Equals(skipBackup, "true", StringComparison.OrdinalIgnoreCase))
                 {
                     UpdateLoadingStatus("Loading_CheckingSystemProtection");
-                    Log("Startup: Checking system protection...");
+                    StartupLogger.Log("MainWindow", "Startup: Checking system protection...");
                     var backupService = App.Services.GetRequiredService<ISystemBackupService>();
                     var backupProgress = new Progress<Core.Features.Common.Models.TaskProgressDetail>(detail =>
                     {
@@ -599,57 +591,57 @@ public sealed partial class MainWindow : Window
                         }
                     });
                     _backupResult = await backupService.EnsureInitialBackupsAsync(backupProgress).ConfigureAwait(false);
-                    Log("Startup: System protection check done");
+                    StartupLogger.Log("MainWindow", "Startup: System protection check done");
                 }
                 else
                 {
-                    Log("Startup: System backup skipped (user preference)");
+                    StartupLogger.Log("MainWindow", "Startup: System backup skipped (user preference)");
                 }
             }
             catch (Exception ex)
             {
-                Log($"Startup: System backup FAILED: {ex.Message}");
-                System.Diagnostics.Debug.WriteLine($"System backup failed: {ex.Message}");
+                StartupLogger.Log("MainWindow", $"Startup: System backup FAILED: {ex.Message}");
+                _logService?.LogWarning($"System backup failed: {ex.Message}");
             }
 
             // 4. Script migration
             try
             {
                 UpdateLoadingStatus("Loading_MigratingScripts");
-                Log("Startup: Migrating scripts...");
+                StartupLogger.Log("MainWindow", "Startup: Migrating scripts...");
                 var migrationService = App.Services.GetRequiredService<IScriptMigrationService>();
                 await migrationService.MigrateFromOldPathsAsync().ConfigureAwait(false);
-                Log("Startup: Script migration done");
+                StartupLogger.Log("MainWindow", "Startup: Script migration done");
             }
             catch (Exception ex)
             {
-                Log($"Startup: Script migration FAILED: {ex.Message}");
-                System.Diagnostics.Debug.WriteLine($"Script migration failed: {ex.Message}");
+                StartupLogger.Log("MainWindow", $"Startup: Script migration FAILED: {ex.Message}");
+                _logService?.LogWarning($"Script migration failed: {ex.Message}");
             }
 
             // 5. Script updates
             try
             {
                 UpdateLoadingStatus("Loading_CheckingScripts");
-                Log("Startup: Checking for script updates...");
+                StartupLogger.Log("MainWindow", "Startup: Checking for script updates...");
                 var updateService = App.Services.GetRequiredService<IRemovalScriptUpdateService>();
                 await updateService.CheckAndUpdateScriptsAsync().ConfigureAwait(false);
-                Log("Startup: Script update check done");
+                StartupLogger.Log("MainWindow", "Startup: Script update check done");
             }
             catch (Exception ex)
             {
-                Log($"Startup: Script update check FAILED: {ex.Message}");
-                System.Diagnostics.Debug.WriteLine($"Script update check failed: {ex.Message}");
+                StartupLogger.Log("MainWindow", $"Startup: Script update check FAILED: {ex.Message}");
+                _logService?.LogWarning($"Script update check failed: {ex.Message}");
             }
 
             // 6. Complete startup — navigate to SoftwareApps and wait for it to finish loading
             UpdateLoadingStatus("Loading_PreparingApp");
-            Log("Startup: Completing startup...");
+            StartupLogger.Log("MainWindow", "Startup: Completing startup...");
             DispatcherQueue.TryEnqueue(() => _ = CompleteStartupAsync());
         }
         catch (Exception ex)
         {
-            Log($"Startup: RunStartupSequenceAsync EXCEPTION: {ex}");
+            StartupLogger.Log("MainWindow", $"Startup: RunStartupSequenceAsync EXCEPTION: {ex}");
             // Even on failure, try to complete startup so the app is usable
             DispatcherQueue.TryEnqueue(() => _ = CompleteStartupAsync());
         }
@@ -680,7 +672,7 @@ public sealed partial class MainWindow : Window
     /// </summary>
     private async Task CompleteStartupAsync()
     {
-        Log("CompleteStartupAsync starting");
+        StartupLogger.Log("MainWindow", "CompleteStartupAsync starting");
 
         try
         {
@@ -692,21 +684,21 @@ public sealed partial class MainWindow : Window
             var page = ContentFrame.Content as SoftwareAppsPage;
             if (page != null)
             {
-                Log("Awaiting SoftwareApps initialization...");
+                StartupLogger.Log("MainWindow", "Awaiting SoftwareApps initialization...");
                 await page.ViewModel.InitializeAsync();
-                Log("SoftwareApps initialization complete");
+                StartupLogger.Log("MainWindow", "SoftwareApps initialization complete");
             }
         }
         catch (Exception ex)
         {
-            Log($"SoftwareApps initialization failed: {ex.Message}");
-            System.Diagnostics.Debug.WriteLine($"SoftwareApps init failed: {ex.Message}");
+            StartupLogger.Log("MainWindow", $"SoftwareApps initialization failed: {ex.Message}");
+            _logService?.LogWarning($"SoftwareApps init failed: {ex.Message}");
         }
 
         // Hide overlay and mark startup complete
         _isStartupLoading = false;
         LoadingOverlay.Visibility = Visibility.Collapsed;
-        Log("Startup complete, overlay hidden");
+        StartupLogger.Log("MainWindow", "Startup complete, overlay hidden");
 
         // Show backup notification dialog if backups were created
         try
@@ -716,7 +708,7 @@ public sealed partial class MainWindow : Window
         }
         catch (Exception ex)
         {
-            Log($"Startup notification failed: {ex.Message}");
+            StartupLogger.Log("MainWindow", $"Startup notification failed: {ex.Message}");
         }
 
         // Check for updates silently (only shows InfoBar if update available)
@@ -743,7 +735,7 @@ public sealed partial class MainWindow : Window
         }
         catch (Exception ex)
         {
-            System.Diagnostics.Debug.WriteLine($"Failed to set loading logo: {ex.Message}");
+            _logService?.LogDebug($"Failed to set loading logo: {ex.Message}");
         }
     }
 
@@ -821,7 +813,7 @@ public sealed partial class MainWindow : Window
         }
         catch (Exception ex)
         {
-            System.Diagnostics.Debug.WriteLine($"Failed to set title bar passthrough regions: {ex.Message}");
+            _logService?.LogDebug($"Failed to set title bar passthrough regions: {ex.Message}");
         }
     }
 
@@ -844,7 +836,7 @@ public sealed partial class MainWindow : Window
         }
         catch (Exception ex)
         {
-            System.Diagnostics.Debug.WriteLine($"Failed to add passthrough rect for {element.Name}: {ex.Message}");
+            _logService?.LogDebug($"Failed to add passthrough rect for {element.Name}: {ex.Message}");
         }
     }
 
@@ -910,7 +902,7 @@ public sealed partial class MainWindow : Window
         }
         catch (Exception ex)
         {
-            System.Diagnostics.Debug.WriteLine($"Failed to initialize ViewModel: {ex.Message}");
+            _logService?.LogDebug($"Failed to initialize ViewModel: {ex.Message}");
         }
     }
 
@@ -1055,7 +1047,7 @@ public sealed partial class MainWindow : Window
         }
         catch (Exception ex)
         {
-            System.Diagnostics.Debug.WriteLine($"Failed to update filter button icon: {ex.Message}");
+            _logService?.LogDebug($"Failed to update filter button icon: {ex.Message}");
         }
     }
 
@@ -1122,7 +1114,7 @@ public sealed partial class MainWindow : Window
         }
         catch (Exception ex)
         {
-            System.Diagnostics.Debug.WriteLine($"Failed to update app icon: {ex.Message}");
+            _logService?.LogDebug($"Failed to update app icon: {ex.Message}");
         }
     }
 
@@ -1154,7 +1146,7 @@ public sealed partial class MainWindow : Window
         }
         catch (Exception ex)
         {
-            System.Diagnostics.Debug.WriteLine($"Failed to set title bar padding: {ex.Message}");
+            _logService?.LogDebug($"Failed to set title bar padding: {ex.Message}");
         }
     }
 
@@ -1191,7 +1183,7 @@ public sealed partial class MainWindow : Window
         }
         catch (Exception ex)
         {
-            System.Diagnostics.Debug.WriteLine($"Failed to apply caption button colors: {ex.Message}");
+            _logService?.LogDebug($"Failed to apply caption button colors: {ex.Message}");
         }
     }
 

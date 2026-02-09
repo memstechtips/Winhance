@@ -320,6 +320,13 @@ public partial class OptimizeViewModel : ObservableObject
         {
             SearchText = string.Empty;
         }
+        else
+        {
+            // SearchText is already empty, but the target ViewModel may have
+            // stale visibility state from a previous search. Reset it explicitly.
+            var targetViewModel = GetSectionViewModel(value);
+            targetViewModel?.ApplySearchFilter(string.Empty);
+        }
     }
 
     partial void OnSearchTextChanged(string value)

@@ -64,30 +64,25 @@ public sealed partial class SettingsCardItem : UserControl
             // Use default values if localization service is unavailable
         }
 
-        LogToFile($"[SettingsCardItem] Wiring up PowerPlanComboBox events for setting {settingVm.SettingId}");
+        LogDebug($"[SettingsCardItem] Wiring up PowerPlanComboBox events for setting {settingVm.SettingId}");
 
         // Wire up the DeleteRequested event to the parent ViewModel's command
         comboBox.DeleteRequested += (s, plan) =>
         {
-            LogToFile($"[SettingsCardItem] DeleteRequested fired for plan {plan?.DisplayName}");
+            LogDebug($"[SettingsCardItem] DeleteRequested fired for plan {plan?.DisplayName}");
             powerViewModel?.DeletePowerPlanCommand.Execute(plan);
         };
 
         // Wire up the DropDownClosed event to handle selection changes
         comboBox.DropDownClosed += (s, value) =>
         {
-            LogToFile($"[SettingsCardItem] DropDownClosed received, value={value}, calling ApplySelectionValue");
+            LogDebug($"[SettingsCardItem] DropDownClosed received, value={value}, calling ApplySelectionValue");
             settingVm.ApplySelectionValue(value);
         };
     }
 
-    private static void LogToFile(string message)
+    private static void LogDebug(string message)
     {
-        try
-        {
-            var logPath = @"C:\Winhance-UI\src\startup-debug.log";
-            System.IO.File.AppendAllText(logPath, $"{DateTime.Now:HH:mm:ss.fff} {message}{Environment.NewLine}");
-        }
-        catch { }
+        try { App.Services.GetService<ILogService>()?.LogDebug(message); } catch { }
     }
 }

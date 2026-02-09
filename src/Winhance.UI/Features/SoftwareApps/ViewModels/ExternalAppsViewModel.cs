@@ -127,6 +127,10 @@ public partial class ExternalAppsViewModel : BaseViewModel
     [ObservableProperty]
     private bool _isAllSelectedNotInstalled;
 
+    public string SelectAllLabel => _localizationService.GetString("Common_SelectAll") ?? "Select All";
+    public string SelectAllInstalledLabel => _localizationService.GetString("Common_SelectAll_Installed") ?? "Select All Installed";
+    public string SelectAllNotInstalledLabel => _localizationService.GetString("Common_SelectAll_NotInstalled") ?? "Select All Not Installed";
+
     [ObservableProperty]
     private bool _isTaskRunning;
 

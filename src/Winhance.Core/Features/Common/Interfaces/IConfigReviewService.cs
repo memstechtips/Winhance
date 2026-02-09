@@ -117,6 +117,12 @@ namespace Winhance.Core.Features.Common.Interfaces
         int GetFeatureDiffCount(string featureId);
 
         /// <summary>
+        /// Gets the number of unreviewed diffs for a specific feature.
+        /// This decreases as the user reviews (approves/rejects) individual settings.
+        /// </summary>
+        int GetFeaturePendingDiffCount(string featureId);
+
+        /// <summary>
         /// Returns true if the given feature ID is present in the active config.
         /// </summary>
         bool IsFeatureInConfig(string featureId);

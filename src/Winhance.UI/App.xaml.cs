@@ -3,6 +3,7 @@ using Microsoft.Extensions.Hosting;
 using Microsoft.UI.Xaml;
 using Winhance.Core.Features.Common.Enums;
 using Winhance.Core.Features.Common.Interfaces;
+using Winhance.Core.Features.Common.Services;
 using Winhance.UI.Features.Common.Constants;
 using Winhance.UI.Features.Common.Extensions.DI;
 using Winhance.UI.Features.Common.Interfaces;
@@ -17,16 +18,6 @@ public partial class App : Application
     private Window? _mainWindow;
     private IHost? _host;
     private ILogService? _logService;
-    private static readonly string LogFile = Path.Combine(AppContext.BaseDirectory, "..", "..", "..", "..", "..", "startup-debug.log");
-
-    private static void Log(string message)
-    {
-        try
-        {
-            File.AppendAllText(LogFile, $"[{DateTime.Now:HH:mm:ss.fff}] [App] {message}{Environment.NewLine}");
-        }
-        catch { }
-    }
 
     /// <summary>
     /// Gets the main window instance.
@@ -44,19 +35,19 @@ public partial class App : Application
     /// </summary>
     public App()
     {
-        Log("App constructor starting");
+        StartupLogger.Log("App", "App constructor starting");
         try
         {
             // Register exception handlers before any UI initialization
             RegisterExceptionHandlers();
-            Log("Exception handlers registered");
+            StartupLogger.Log("App", "Exception handlers registered");
 
             this.InitializeComponent();
-            Log("InitializeComponent completed");
+            StartupLogger.Log("App", "InitializeComponent completed");
         }
         catch (Exception ex)
         {
-            Log($"App constructor EXCEPTION: {ex}");
+            StartupLogger.Log("App", $"App constructor EXCEPTION: {ex}");
             throw;
         }
     }
@@ -82,7 +73,7 @@ public partial class App : Application
     private void OnAppDomainUnhandledException(object sender, System.UnhandledExceptionEventArgs e)
     {
         var ex = e.ExceptionObject as Exception;
-        Log($"[FATAL] AppDomain unhandled exception: {ex?.Message}\n{ex?.StackTrace}");
+        StartupLogger.Log("App", $"[FATAL] AppDomain unhandled exception: {ex?.Message}\n{ex?.StackTrace}");
         _logService?.LogError($"Fatal unhandled exception: {ex?.Message}", ex);
     }
 
@@ -91,7 +82,7 @@ public partial class App : Application
     /// </summary>
     private void OnAppUnhandledException(object sender, Microsoft.UI.Xaml.UnhandledExceptionEventArgs e)
     {
-        Log($"[CRASH] Unhandled UI exception: {e.Exception?.Message}\n{e.Exception?.StackTrace}\nInner: {e.Exception?.InnerException?.Message}\n{e.Exception?.InnerException?.StackTrace}");
+        StartupLogger.Log("App", $"[CRASH] Unhandled UI exception: {e.Exception?.Message}\n{e.Exception?.StackTrace}\nInner: {e.Exception?.InnerException?.Message}\n{e.Exception?.InnerException?.StackTrace}");
         _logService?.LogError($"Unhandled UI exception: {e.Exception?.Message}", e.Exception);
         e.Handled = true; // Prevent crash if possible
     }
@@ -101,7 +92,7 @@ public partial class App : Application
     /// </summary>
     private void OnUnobservedTaskException(object? sender, UnobservedTaskExceptionEventArgs e)
     {
-        Log($"[ERROR] Unobserved task exception: {e.Exception?.Message}\n{e.Exception?.StackTrace}");
+        StartupLogger.Log("App", $"[ERROR] Unobserved task exception: {e.Exception?.Message}\n{e.Exception?.StackTrace}");
         _logService?.LogError($"Unobserved task exception: {e.Exception?.Message}", e.Exception);
         e.SetObserved(); // Prevent crash
     }
@@ -112,66 +103,66 @@ public partial class App : Application
     /// <param name="args">Details about the launch request and process.</param>
     protected override void OnLaunched(Microsoft.UI.Xaml.LaunchActivatedEventArgs args)
     {
-        Log("OnLaunched starting");
+        StartupLogger.Log("App", "OnLaunched starting");
         try
         {
             // Build the host with DI container using CompositionRoot
-            Log("Building DI host...");
+            StartupLogger.Log("App", "Building DI host...");
             _host = CompositionRoot.CreateWinhanceHost().Build();
-            Log("DI host built successfully");
+            StartupLogger.Log("App", "DI host built successfully");
 
             // Initialize log service for exception handlers and file logging
             try
             {
                 _logService = Services.GetService<ILogService>();
-                Log("LogService obtained");
+                StartupLogger.Log("App", "LogService obtained");
 
                 // Start file logging to C:\ProgramData\Winhance\Logs
                 try
                 {
                     _logService?.StartLog();
-                    Log("LogService.StartLog() called - file logging initialized");
+                    StartupLogger.Log("App", "LogService.StartLog() called - file logging initialized");
                     var logPath = _logService?.GetLogPath();
-                    Log($"Log file path: {logPath}");
+                    StartupLogger.Log("App", $"Log file path: {logPath}");
                     _logService?.LogInformation("Winhance application starting...");
                 }
                 catch (Exception startLogEx)
                 {
-                    Log($"StartLog() FAILED: {startLogEx.Message}");
-                    Log($"StartLog() Stack: {startLogEx.StackTrace}");
+                    StartupLogger.Log("App", $"StartLog() FAILED: {startLogEx.Message}");
+                    StartupLogger.Log("App", $"StartLog() Stack: {startLogEx.StackTrace}");
                 }
             }
             catch (Exception ex)
             {
-                Log($"LogService unavailable: {ex.Message}");
+                StartupLogger.Log("App", $"LogService unavailable: {ex.Message}");
             }
 
             // Initialize localization before creating any UI
-            Log("Initializing localization...");
+            StartupLogger.Log("App", "Initializing localization...");
             InitializeLocalization();
-            Log("Localization initialized");
+            StartupLogger.Log("App", "Localization initialized");
 
             // Create and activate the main window (loading overlay is visible by default)
-            Log("Creating MainWindow...");
+            StartupLogger.Log("App", "Creating MainWindow...");
             _mainWindow = new MainWindow();
-            Log("MainWindow created, activating...");
+            StartupLogger.Log("App", "MainWindow created, activating...");
             _mainWindow.Activate();
-            Log("MainWindow activated");
+            StartupLogger.Log("App", "MainWindow activated");
 
             // Initialize theme service after window is created
-            Log("Initializing theme...");
+            StartupLogger.Log("App", "Initializing theme...");
             InitializeTheme();
-            Log("Theme initialized");
+            StartupLogger.Log("App", "Theme initialized");
 
             // Start async startup operations (settings init, backups, scripts)
             // The loading overlay provides visual feedback while these run
-            Log("Starting startup operations...");
+            StartupLogger.Log("App", "Starting startup operations...");
             (_mainWindow as MainWindow)?.StartStartupOperations();
-            Log("Startup operations kicked off - OnLaunched complete");
+            StartupLogger.Log("App", "Startup operations kicked off - OnLaunched complete");
         }
         catch (Exception ex)
         {
-            Log($"OnLaunched EXCEPTION: {ex}");
+            StartupLogger.Log("App", $"OnLaunched EXCEPTION: {ex}");
             throw;
         }
     }
@@ -194,7 +185,7 @@ public partial class App : Application
         catch (Exception ex)
         {
             // Log error but don't crash - app will show key names
-            System.Diagnostics.Debug.WriteLine($"Failed to initialize localization: {ex.Message}");
+            _logService?.LogDebug($"Failed to initialize localization: {ex.Message}");
         }
     }
 
@@ -211,7 +202,7 @@ public partial class App : Application
         catch (Exception ex)
         {
             // Log error but don't crash - app will use default theme
-            System.Diagnostics.Debug.WriteLine($"Failed to load theme: {ex.Message}");
+            _logService?.LogDebug($"Failed to load theme: {ex.Message}");
         }
     }
 

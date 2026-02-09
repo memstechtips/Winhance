@@ -280,18 +280,8 @@ public partial class SettingItemViewModel : BaseViewModel
 
     public void ApplySelectionValue(object value)
     {
-        LogToFile($"[SettingItemViewModel] ApplySelectionValue called with value={value}, SettingId={SettingId}");
+        _logService.LogDebug($"[SettingItemViewModel] ApplySelectionValue called with value={value}, SettingId={SettingId}");
         _ = HandleValueChangedAsync(value);
-    }
-
-    private static void LogToFile(string message)
-    {
-        try
-        {
-            var logPath = @"C:\Winhance-UI\src\startup-debug.log";
-            System.IO.File.AppendAllText(logPath, $"{DateTime.Now:HH:mm:ss.fff} {message}{Environment.NewLine}");
-        }
-        catch { }
     }
 
     public void OnNumberBoxValueChanged(NumberBox sender, NumberBoxValueChangedEventArgs e)
@@ -342,21 +332,21 @@ public partial class SettingItemViewModel : BaseViewModel
 
     private async Task HandleValueChangedAsync(object? value)
     {
-        LogToFile($"[SettingItemViewModel] HandleValueChangedAsync called: value={value}, IsApplying={IsApplying}, SettingDefinition={(SettingDefinition == null ? "null" : "not null")}, SelectedValue={SelectedValue}");
+        _logService.LogDebug($"[SettingItemViewModel] HandleValueChangedAsync called: value={value}, IsApplying={IsApplying}, SettingDefinition={(SettingDefinition == null ? "null" : "not null")}, SelectedValue={SelectedValue}");
 
         if (IsApplying || _isUpdatingFromEvent || SettingDefinition == null || value == null)
         {
-            LogToFile($"[SettingItemViewModel] HandleValueChangedAsync early return: IsApplying={IsApplying}, _isUpdatingFromEvent={_isUpdatingFromEvent}, SettingDefinition={(SettingDefinition == null ? "null" : "not null")}, value={(value == null ? "null" : "not null")}");
+            _logService.LogDebug($"[SettingItemViewModel] HandleValueChangedAsync early return: IsApplying={IsApplying}, _isUpdatingFromEvent={_isUpdatingFromEvent}, SettingDefinition={(SettingDefinition == null ? "null" : "not null")}, value={(value == null ? "null" : "not null")}");
             return;
         }
 
         if (Equals(value, SelectedValue))
         {
-            LogToFile($"[SettingItemViewModel] HandleValueChangedAsync: value equals SelectedValue, skipping");
+            _logService.LogDebug($"[SettingItemViewModel] HandleValueChangedAsync: value equals SelectedValue, skipping");
             return;
         }
 
-        LogToFile($"[SettingItemViewModel] HandleValueChangedAsync: proceeding with value change");
+        _logService.LogDebug($"[SettingItemViewModel] HandleValueChangedAsync: proceeding with value change");
         try
         {
             var (confirmed, checkboxChecked) = await HandleConfirmationIfNeededAsync(value);
@@ -369,11 +359,11 @@ public partial class SettingItemViewModel : BaseViewModel
 
             IsApplying = true;
             _logService.Log(LogLevel.Info, $"Changing value for setting: {SettingId} to {value}");
-            LogToFile($"[SettingItemViewModel] Calling ApplySettingAsync for {SettingId} with value={value}");
+            _logService.LogDebug($"[SettingItemViewModel] Calling ApplySettingAsync for {SettingId} with value={value}");
 
             await _settingApplicationService.ApplySettingAsync(SettingId, true, value, checkboxResult: checkboxChecked);
 
-            LogToFile($"[SettingItemViewModel] ApplySettingAsync completed for {SettingId}");
+            _logService.LogDebug($"[SettingItemViewModel] ApplySettingAsync completed for {SettingId}");
 
             _selectedValue = value;
             OnPropertyChanged(nameof(SelectedValue));
@@ -386,7 +376,7 @@ public partial class SettingItemViewModel : BaseViewModel
             ShowRestartBannerIfNeeded();
 
             _logService.Log(LogLevel.Info, $"Successfully changed value for setting {SettingId}");
-            LogToFile($"[SettingItemViewModel] SelectedValue set to {value} for {SettingId}");
+            _logService.LogDebug($"[SettingItemViewModel] SelectedValue set to {value} for {SettingId}");
         }
         catch (Exception ex)
         {
@@ -525,7 +515,7 @@ public partial class SettingItemViewModel : BaseViewModel
             compatMessage is string messageText)
         {
             StatusBannerMessage = messageText;
-            StatusBannerSeverity = InfoBarSeverity.Informational;
+            StatusBannerSeverity = InfoBarSeverity.Warning;
         }
     }
 
@@ -564,7 +554,7 @@ public partial class SettingItemViewModel : BaseViewModel
             compatMessage is string messageText)
         {
             StatusBannerMessage = messageText;
-            StatusBannerSeverity = InfoBarSeverity.Informational;
+            StatusBannerSeverity = InfoBarSeverity.Warning;
         }
         else
         {
@@ -599,7 +589,7 @@ public partial class SettingItemViewModel : BaseViewModel
         if (!string.IsNullOrEmpty(CrossGroupInfoMessage))
         {
             StatusBannerMessage = CrossGroupInfoMessage;
-            StatusBannerSeverity = InfoBarSeverity.Informational;
+            StatusBannerSeverity = InfoBarSeverity.Warning;
             return;
         }
 
@@ -608,7 +598,7 @@ public partial class SettingItemViewModel : BaseViewModel
         if (!string.IsNullOrEmpty(header))
         {
             StatusBannerMessage = header;
-            StatusBannerSeverity = InfoBarSeverity.Informational;
+            StatusBannerSeverity = InfoBarSeverity.Warning;
         }
     }
 
@@ -621,7 +611,7 @@ public partial class SettingItemViewModel : BaseViewModel
         if (SettingDefinition?.RequiresRestart == true)
         {
             StatusBannerMessage = _localizationService.GetString("Common_RestartRequired");
-            StatusBannerSeverity = InfoBarSeverity.Informational;
+            StatusBannerSeverity = InfoBarSeverity.Warning;
         }
     }
 

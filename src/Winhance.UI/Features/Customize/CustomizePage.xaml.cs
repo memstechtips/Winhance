@@ -4,6 +4,7 @@ using Microsoft.UI.Xaml;
 using Microsoft.UI.Xaml.Controls;
 using Microsoft.UI.Xaml.Navigation;
 using Winhance.Core.Features.Common.Constants;
+using Winhance.Core.Features.Common.Services;
 using IConfigReviewService = Winhance.Core.Features.Common.Interfaces.IConfigReviewService;
 using Winhance.UI.Features.Customize.Models;
 using Winhance.UI.Features.Customize.Pages;
@@ -13,9 +14,6 @@ namespace Winhance.UI.Features.Customize;
 
 public sealed partial class CustomizePage : Page
 {
-    private static readonly string LogFile = Path.Combine(AppContext.BaseDirectory, "..", "..", "..", "..", "..", "startup-debug.log");
-    private static void Log(string msg) { try { File.AppendAllText(LogFile, $"[{DateTime.Now:HH:mm:ss.fff}] [CustomizePage] {msg}{Environment.NewLine}"); } catch { } }
-
     private static readonly Dictionary<string, string> SectionIconResourceKeys = new()
     {
         { "Explorer", "ExplorerIconPath" },
@@ -34,6 +32,7 @@ public sealed partial class CustomizePage : Page
     };
 
     private IConfigReviewService? _configReviewService;
+    private Dictionary<string, InfoBadge>? _flyoutBadges;
 
     public CustomizeViewModel ViewModel { get; }
 
@@ -41,12 +40,20 @@ public sealed partial class CustomizePage : Page
     {
         try
         {
-            Log("Constructor starting...");
+            StartupLogger.Log("CustomizePage", "Constructor starting...");
             this.InitializeComponent();
-            Log("InitializeComponent done, getting ViewModel...");
+            StartupLogger.Log("CustomizePage", "InitializeComponent done, getting ViewModel...");
             ViewModel = App.Services.GetRequiredService<CustomizeViewModel>();
             ViewModel.PropertyChanged += OnViewModelPropertyChanged;
             UpdateBreadcrumbMenuItems();
+
+            _flyoutBadges = new()
+            {
+                { "WindowsTheme", FlyoutBadgeWindowsTheme },
+                { "Taskbar", FlyoutBadgeTaskbar },
+                { "StartMenu", FlyoutBadgeStartMenu },
+                { "Explorer", FlyoutBadgeExplorer }
+            };
 
             _configReviewService = App.Services.GetService<IConfigReviewService>();
             if (_configReviewService != null)
@@ -55,11 +62,11 @@ public sealed partial class CustomizePage : Page
                 _configReviewService.BadgeStateChanged += OnBadgeStateChanged;
             }
 
-            Log("ViewModel obtained, constructor complete");
+            StartupLogger.Log("CustomizePage", "ViewModel obtained, constructor complete");
         }
         catch (Exception ex)
         {
-            Log($"Constructor EXCEPTION: {ex}");
+            StartupLogger.Log("CustomizePage", $"Constructor EXCEPTION: {ex}");
             throw;
         }
     }
@@ -74,35 +81,38 @@ public sealed partial class CustomizePage : Page
 
     private void UpdateBreadcrumbMenuItems()
     {
-        MenuItemWindowsTheme.Text = ViewModel.GetSectionDisplayName("WindowsTheme");
-        MenuItemTaskbar.Text = ViewModel.GetSectionDisplayName("Taskbar");
-        MenuItemStartMenu.Text = ViewModel.GetSectionDisplayName("StartMenu");
-        MenuItemExplorer.Text = ViewModel.GetSectionDisplayName("Explorer");
+        FlyoutTextWindowsTheme.Text = ViewModel.GetSectionDisplayName("WindowsTheme");
+        FlyoutTextTaskbar.Text = ViewModel.GetSectionDisplayName("Taskbar");
+        FlyoutTextStartMenu.Text = ViewModel.GetSectionDisplayName("StartMenu");
+        FlyoutTextExplorer.Text = ViewModel.GetSectionDisplayName("Explorer");
     }
 
     protected override async void OnNavigatedTo(NavigationEventArgs e)
     {
         try
         {
-            Log("OnNavigatedTo starting...");
+            StartupLogger.Log("CustomizePage", "OnNavigatedTo starting...");
             base.OnNavigatedTo(e);
 
             // Ensure we're showing overview on initial navigation
             ViewModel.CurrentSectionKey = "Overview";
             UpdateContentVisibility();
 
-            Log("Calling ViewModel.InitializeAsync...");
+            StartupLogger.Log("CustomizePage", "Calling ViewModel.InitializeAsync...");
             await ViewModel.InitializeAsync();
 
             // Update badges if already in review mode (events fired before page existed)
             if (_configReviewService?.IsInReviewMode == true)
+            {
                 UpdateOverviewBadges();
+                UpdateBreadcrumbBadges();
+            }
 
-            Log("OnNavigatedTo complete");
+            StartupLogger.Log("CustomizePage", "OnNavigatedTo complete");
         }
         catch (Exception ex)
         {
-            Log($"OnNavigatedTo EXCEPTION: {ex}");
+            StartupLogger.Log("CustomizePage", $"OnNavigatedTo EXCEPTION: {ex}");
         }
     }
 
@@ -190,6 +200,8 @@ public sealed partial class CustomizePage : Page
                     typeof(Microsoft.UI.Xaml.Media.Geometry), pathData);
                 BreadcrumbSectionIcon.Data = geometry;
             }
+
+            UpdateBreadcrumbBadges();
         }
     }
 
@@ -222,33 +234,37 @@ public sealed partial class CustomizePage : Page
 
     private void NavigateExplorer_Click(object sender, RoutedEventArgs e)
     {
+        BreadcrumbFlyout.Hide();
         NavigateToSection("Explorer");
     }
 
     private void NavigateStartMenu_Click(object sender, RoutedEventArgs e)
     {
+        BreadcrumbFlyout.Hide();
         NavigateToSection("StartMenu");
     }
 
     private void NavigateTaskbar_Click(object sender, RoutedEventArgs e)
     {
+        BreadcrumbFlyout.Hide();
         NavigateToSection("Taskbar");
     }
 
     private void NavigateWindowsTheme_Click(object sender, RoutedEventArgs e)
     {
+        BreadcrumbFlyout.Hide();
         NavigateToSection("WindowsTheme");
     }
 
     // Review mode badge handlers
     private void OnReviewModeChanged(object? sender, EventArgs e)
     {
-        DispatcherQueue.TryEnqueue(UpdateOverviewBadges);
+        DispatcherQueue.TryEnqueue(() => { UpdateOverviewBadges(); UpdateBreadcrumbBadges(); });
     }
 
     private void OnBadgeStateChanged(object? sender, EventArgs e)
     {
-        DispatcherQueue.TryEnqueue(UpdateOverviewBadges);
+        DispatcherQueue.TryEnqueue(() => { UpdateOverviewBadges(); UpdateBreadcrumbBadges(); });
     }
 
     private void UpdateOverviewBadges()
@@ -268,6 +284,36 @@ public sealed partial class CustomizePage : Page
         UpdateFeatureBadge(ExplorerBadge, FeatureIds.ExplorerCustomization);
     }
 
+    private void UpdateBreadcrumbBadges()
+    {
+        if (_configReviewService == null || !_configReviewService.IsInReviewMode)
+        {
+            BreadcrumbSectionBadge.Visibility = Visibility.Collapsed;
+            if (_flyoutBadges != null)
+            {
+                foreach (var badge in _flyoutBadges.Values)
+                    badge.Visibility = Visibility.Collapsed;
+            }
+            return;
+        }
+
+        // Update all flyout item badges
+        if (_flyoutBadges != null)
+        {
+            foreach (var (sectionKey, badge) in _flyoutBadges)
+            {
+                if (SectionFeatureIds.TryGetValue(sectionKey, out var featureId))
+                    UpdateFeatureBadge(badge, featureId);
+            }
+        }
+
+        // Update current section badge on DropDownButton
+        if (SectionFeatureIds.TryGetValue(ViewModel.CurrentSectionKey, out var currentFeatureId))
+            UpdateFeatureBadge(BreadcrumbSectionBadge, currentFeatureId);
+        else
+            BreadcrumbSectionBadge.Visibility = Visibility.Collapsed;
+    }
+
     private void UpdateFeatureBadge(InfoBadge badge, string featureId)
     {
         var diffCount = _configReviewService!.GetFeatureDiffCount(featureId);
@@ -284,8 +330,9 @@ public sealed partial class CustomizePage : Page
             }
             else
             {
-                // Not fully reviewed: show attention badge with count
-                badge.Value = diffCount;
+                // Not fully reviewed: show attention badge with pending (unreviewed) count
+                var pendingCount = _configReviewService.GetFeaturePendingDiffCount(featureId);
+                badge.Value = pendingCount;
                 if (Application.Current.Resources.TryGetValue("AttentionValueInfoBadgeStyle", out var attentionStyle) && attentionStyle is Style ats)
                     badge.Style = ats;
             }

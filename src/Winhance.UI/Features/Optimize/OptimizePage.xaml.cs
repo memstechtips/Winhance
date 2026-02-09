@@ -4,6 +4,7 @@ using Microsoft.UI.Xaml;
 using Microsoft.UI.Xaml.Controls;
 using Microsoft.UI.Xaml.Navigation;
 using Winhance.Core.Features.Common.Constants;
+using Winhance.Core.Features.Common.Services;
 using IConfigReviewService = Winhance.Core.Features.Common.Interfaces.IConfigReviewService;
 using Winhance.UI.Features.Optimize.Models;
 using Winhance.UI.Features.Optimize.Pages;
@@ -13,9 +14,6 @@ namespace Winhance.UI.Features.Optimize;
 
 public sealed partial class OptimizePage : Page
 {
-    private static readonly string LogFile = Path.Combine(AppContext.BaseDirectory, "..", "..", "..", "..", "..", "startup-debug.log");
-    private static void Log(string msg) { try { File.AppendAllText(LogFile, $"[{DateTime.Now:HH:mm:ss.fff}] [OptimizePage] {msg}{Environment.NewLine}"); } catch { } }
-
     // Maps section keys to their icon resource keys (PathIcon paths end with "Path", FontIcon glyphs end with "Glyph")
     private static readonly Dictionary<string, string> SectionIconResourceKeys = new()
     {
@@ -39,6 +37,7 @@ public sealed partial class OptimizePage : Page
     };
 
     private IConfigReviewService? _configReviewService;
+    private Dictionary<string, InfoBadge>? _flyoutBadges;
 
     public OptimizeViewModel ViewModel { get; }
 
@@ -46,12 +45,22 @@ public sealed partial class OptimizePage : Page
     {
         try
         {
-            Log("Constructor starting...");
+            StartupLogger.Log("OptimizePage", "Constructor starting...");
             this.InitializeComponent();
-            Log("InitializeComponent done, getting ViewModel...");
+            StartupLogger.Log("OptimizePage", "InitializeComponent done, getting ViewModel...");
             ViewModel = App.Services.GetRequiredService<OptimizeViewModel>();
             ViewModel.PropertyChanged += OnViewModelPropertyChanged;
             UpdateBreadcrumbMenuItems();
+
+            _flyoutBadges = new()
+            {
+                { "Privacy", FlyoutBadgePrivacy },
+                { "Power", FlyoutBadgePower },
+                { "Gaming", FlyoutBadgeGaming },
+                { "Update", FlyoutBadgeUpdate },
+                { "Notification", FlyoutBadgeNotification },
+                { "Sound", FlyoutBadgeSound }
+            };
 
             _configReviewService = App.Services.GetService<IConfigReviewService>();
             if (_configReviewService != null)
@@ -60,11 +69,11 @@ public sealed partial class OptimizePage : Page
                 _configReviewService.BadgeStateChanged += OnBadgeStateChanged;
             }
 
-            Log("ViewModel obtained, constructor complete");
+            StartupLogger.Log("OptimizePage", "ViewModel obtained, constructor complete");
         }
         catch (Exception ex)
         {
-            Log($"Constructor EXCEPTION: {ex}");
+            StartupLogger.Log("OptimizePage", $"Constructor EXCEPTION: {ex}");
             throw;
         }
     }
@@ -79,37 +88,40 @@ public sealed partial class OptimizePage : Page
 
     private void UpdateBreadcrumbMenuItems()
     {
-        MenuItemSound.Text = ViewModel.GetSectionDisplayName("Sound");
-        MenuItemUpdate.Text = ViewModel.GetSectionDisplayName("Update");
-        MenuItemNotification.Text = ViewModel.GetSectionDisplayName("Notification");
-        MenuItemPrivacy.Text = ViewModel.GetSectionDisplayName("Privacy");
-        MenuItemPower.Text = ViewModel.GetSectionDisplayName("Power");
-        MenuItemGaming.Text = ViewModel.GetSectionDisplayName("Gaming");
+        FlyoutTextSound.Text = ViewModel.GetSectionDisplayName("Sound");
+        FlyoutTextUpdate.Text = ViewModel.GetSectionDisplayName("Update");
+        FlyoutTextNotification.Text = ViewModel.GetSectionDisplayName("Notification");
+        FlyoutTextPrivacy.Text = ViewModel.GetSectionDisplayName("Privacy");
+        FlyoutTextPower.Text = ViewModel.GetSectionDisplayName("Power");
+        FlyoutTextGaming.Text = ViewModel.GetSectionDisplayName("Gaming");
     }
 
     protected override async void OnNavigatedTo(NavigationEventArgs e)
     {
         try
         {
-            Log("OnNavigatedTo starting...");
+            StartupLogger.Log("OptimizePage", "OnNavigatedTo starting...");
             base.OnNavigatedTo(e);
 
             // Ensure we're showing overview on initial navigation
             ViewModel.CurrentSectionKey = "Overview";
             UpdateContentVisibility();
 
-            Log("Calling ViewModel.InitializeAsync...");
+            StartupLogger.Log("OptimizePage", "Calling ViewModel.InitializeAsync...");
             await ViewModel.InitializeAsync();
 
             // Update badges if already in review mode (events fired before page existed)
             if (_configReviewService?.IsInReviewMode == true)
+            {
                 UpdateOverviewBadges();
+                UpdateBreadcrumbBadges();
+            }
 
-            Log("OnNavigatedTo complete");
+            StartupLogger.Log("OptimizePage", "OnNavigatedTo complete");
         }
         catch (Exception ex)
         {
-            Log($"OnNavigatedTo EXCEPTION: {ex}");
+            StartupLogger.Log("OptimizePage", $"OnNavigatedTo EXCEPTION: {ex}");
         }
     }
 
@@ -214,6 +226,8 @@ public sealed partial class OptimizePage : Page
                     BreadcrumbSectionIcon.Data = geometry;
                 }
             }
+
+            UpdateBreadcrumbBadges();
         }
     }
 
@@ -256,43 +270,49 @@ public sealed partial class OptimizePage : Page
 
     private void NavigateSound_Click(object sender, RoutedEventArgs e)
     {
+        BreadcrumbFlyout.Hide();
         NavigateToSection("Sound");
     }
 
     private void NavigateUpdate_Click(object sender, RoutedEventArgs e)
     {
+        BreadcrumbFlyout.Hide();
         NavigateToSection("Update");
     }
 
     private void NavigateNotification_Click(object sender, RoutedEventArgs e)
     {
+        BreadcrumbFlyout.Hide();
         NavigateToSection("Notification");
     }
 
     private void NavigatePrivacy_Click(object sender, RoutedEventArgs e)
     {
+        BreadcrumbFlyout.Hide();
         NavigateToSection("Privacy");
     }
 
     private void NavigatePower_Click(object sender, RoutedEventArgs e)
     {
+        BreadcrumbFlyout.Hide();
         NavigateToSection("Power");
     }
 
     private void NavigateGaming_Click(object sender, RoutedEventArgs e)
     {
+        BreadcrumbFlyout.Hide();
         NavigateToSection("Gaming");
     }
 
     // Review mode badge handlers
     private void OnReviewModeChanged(object? sender, EventArgs e)
     {
-        DispatcherQueue.TryEnqueue(UpdateOverviewBadges);
+        DispatcherQueue.TryEnqueue(() => { UpdateOverviewBadges(); UpdateBreadcrumbBadges(); });
     }
 
     private void OnBadgeStateChanged(object? sender, EventArgs e)
     {
-        DispatcherQueue.TryEnqueue(UpdateOverviewBadges);
+        DispatcherQueue.TryEnqueue(() => { UpdateOverviewBadges(); UpdateBreadcrumbBadges(); });
     }
 
     private void UpdateOverviewBadges()
@@ -316,6 +336,36 @@ public sealed partial class OptimizePage : Page
         UpdateFeatureBadge(SoundBadge, FeatureIds.Sound);
     }
 
+    private void UpdateBreadcrumbBadges()
+    {
+        if (_configReviewService == null || !_configReviewService.IsInReviewMode)
+        {
+            BreadcrumbSectionBadge.Visibility = Visibility.Collapsed;
+            if (_flyoutBadges != null)
+            {
+                foreach (var badge in _flyoutBadges.Values)
+                    badge.Visibility = Visibility.Collapsed;
+            }
+            return;
+        }
+
+        // Update all flyout item badges
+        if (_flyoutBadges != null)
+        {
+            foreach (var (sectionKey, badge) in _flyoutBadges)
+            {
+                if (SectionFeatureIds.TryGetValue(sectionKey, out var featureId))
+                    UpdateFeatureBadge(badge, featureId);
+            }
+        }
+
+        // Update current section badge on DropDownButton
+        if (SectionFeatureIds.TryGetValue(ViewModel.CurrentSectionKey, out var currentFeatureId))
+            UpdateFeatureBadge(BreadcrumbSectionBadge, currentFeatureId);
+        else
+            BreadcrumbSectionBadge.Visibility = Visibility.Collapsed;
+    }
+
     private void UpdateFeatureBadge(InfoBadge badge, string featureId)
     {
         var diffCount = _configReviewService!.GetFeatureDiffCount(featureId);
@@ -332,8 +382,9 @@ public sealed partial class OptimizePage : Page
             }
             else
             {
-                // Not fully reviewed: show attention badge with count
-                badge.Value = diffCount;
+                // Not fully reviewed: show attention badge with pending (unreviewed) count
+                var pendingCount = _configReviewService.GetFeaturePendingDiffCount(featureId);
+                badge.Value = pendingCount;
                 if (Application.Current.Resources.TryGetValue("AttentionValueInfoBadgeStyle", out var attentionStyle) && attentionStyle is Style ats)
                     badge.Style = ats;
             }

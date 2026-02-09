@@ -105,8 +105,7 @@ public partial class MainWindowViewModel : ObservableObject
     [ObservableProperty]
     private bool _canApplyReviewedConfig;
 
-    // Saved filter state for restoration after review mode
-    private bool _savedFilterStateBeforeReview;
+
 
     /// <summary>
     /// Event raised when the Windows version filter state changes.
@@ -330,7 +329,7 @@ public partial class MainWindowViewModel : ObservableObject
         }
         catch (Exception ex)
         {
-            System.Diagnostics.Debug.WriteLine($"Failed to save configuration: {ex.Message}");
+            _logService.LogWarning($"Failed to save configuration: {ex.Message}");
         }
     }
 
@@ -346,7 +345,7 @@ public partial class MainWindowViewModel : ObservableObject
         }
         catch (Exception ex)
         {
-            System.Diagnostics.Debug.WriteLine($"Failed to import configuration: {ex.Message}");
+            _logService.LogWarning($"Failed to import configuration: {ex.Message}");
         }
     }
 
@@ -450,7 +449,7 @@ public partial class MainWindowViewModel : ObservableObject
         }
         catch (Exception ex)
         {
-            System.Diagnostics.Debug.WriteLine($"Failed to open donation page: {ex.Message}");
+            _logService.LogDebug($"Failed to open donation page: {ex.Message}");
         }
     }
 
@@ -467,7 +466,7 @@ public partial class MainWindowViewModel : ObservableObject
         }
         catch (Exception ex)
         {
-            System.Diagnostics.Debug.WriteLine($"Failed to open bug report page: {ex.Message}");
+            _logService.LogDebug($"Failed to open bug report page: {ex.Message}");
         }
     }
 
@@ -484,7 +483,7 @@ public partial class MainWindowViewModel : ObservableObject
         }
         catch (Exception ex)
         {
-            System.Diagnostics.Debug.WriteLine($"Failed to open documentation page: {ex.Message}");
+            _logService.LogDebug($"Failed to open documentation page: {ex.Message}");
         }
     }
 
@@ -504,7 +503,7 @@ public partial class MainWindowViewModel : ObservableObject
             var latestVersion = await _versionService.CheckForUpdateAsync();
             var currentVersion = _versionService.GetCurrentVersion();
 
-            if (latestVersion != null && latestVersion.Version != currentVersion.Version)
+            if (latestVersion != null && latestVersion.IsUpdateAvailable)
             {
                 _logService.Log(Core.Features.Common.Enums.LogLevel.Info, $"Update available: {latestVersion.Version}");
 
@@ -581,7 +580,7 @@ public partial class MainWindowViewModel : ObservableObject
             var latestVersion = await _versionService.CheckForUpdateAsync();
             var currentVersion = _versionService.GetCurrentVersion();
 
-            if (latestVersion != null && latestVersion.Version != currentVersion.Version)
+            if (latestVersion != null && latestVersion.IsUpdateAvailable)
             {
                 _logService.Log(Core.Features.Common.Enums.LogLevel.Info, $"Startup: Update available: {latestVersion.Version}");
 
@@ -699,15 +698,14 @@ public partial class MainWindowViewModel : ObservableObject
 
     private void OnReviewModeChanged(object? sender, EventArgs e)
     {
-        _dispatcherService.RunOnUIThread(() =>
+        _ = _dispatcherService.RunOnUIThreadAsync(async () =>
         {
             var entering = _configReviewService.IsInReviewMode;
             IsInReviewMode = entering;
 
             if (entering)
             {
-                // Save current filter state and force ON
-                _savedFilterStateBeforeReview = IsWindowsVersionFilterEnabled;
+                // Force filter ON during review mode
                 if (!IsWindowsVersionFilterEnabled)
                 {
                     IsWindowsVersionFilterEnabled = true;
@@ -717,12 +715,15 @@ public partial class MainWindowViewModel : ObservableObject
             }
             else
             {
-                // Restore saved filter state
-                if (IsWindowsVersionFilterEnabled != _savedFilterStateBeforeReview)
+                // Restore filter state from persisted user preference (default ON)
+                var savedPreference = await _preferencesService.GetPreferenceAsync(
+                    UserPreferenceKeys.EnableWindowsVersionFilter, defaultValue: true);
+
+                if (IsWindowsVersionFilterEnabled != savedPreference)
                 {
-                    IsWindowsVersionFilterEnabled = _savedFilterStateBeforeReview;
-                    _compatibleSettingsRegistry.SetFilterEnabled(_savedFilterStateBeforeReview);
-                    FilterStateChanged?.Invoke(this, new FilterStateChangedEventArgs(_savedFilterStateBeforeReview));
+                    IsWindowsVersionFilterEnabled = savedPreference;
+                    _compatibleSettingsRegistry.SetFilterEnabled(savedPreference);
+                    FilterStateChanged?.Invoke(this, new FilterStateChangedEventArgs(savedPreference));
                 }
             }
 

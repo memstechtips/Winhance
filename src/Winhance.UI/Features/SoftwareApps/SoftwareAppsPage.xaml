@@ -931,11 +931,11 @@
                             <StackPanel Spacing="12" Padding="4,8,4,8">
                                 <!-- Selection Checkboxes -->
                                 <StackPanel Orientation="Horizontal" Spacing="12">
-                                    <CheckBox Content="Select All" MinWidth="0"
+                                    <CheckBox Content="{x:Bind ViewModel.ExternalAppsViewModel.SelectAllLabel, Mode=OneWay}" MinWidth="0"
                                               IsChecked="{x:Bind ViewModel.ExternalAppsViewModel.IsAllSelected, Mode=TwoWay}"/>
-                                    <CheckBox Content="Select All Installed" MinWidth="0"
+                                    <CheckBox Content="{x:Bind ViewModel.ExternalAppsViewModel.SelectAllInstalledLabel, Mode=OneWay}" MinWidth="0"
                                               IsChecked="{x:Bind ViewModel.ExternalAppsViewModel.IsAllSelectedInstalled, Mode=TwoWay}"/>
-                                    <CheckBox Content="Select All Not Installed" MinWidth="0"
+                                    <CheckBox Content="{x:Bind ViewModel.ExternalAppsViewModel.SelectAllNotInstalledLabel, Mode=OneWay}" MinWidth="0"
                                               IsChecked="{x:Bind ViewModel.ExternalAppsViewModel.IsAllSelectedNotInstalled, Mode=TwoWay}"/>
                                 </StackPanel>
 

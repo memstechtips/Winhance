@@ -178,9 +178,9 @@ public class ConfigReviewService : IConfigReviewService
             "SoftwareApps" => GetFeatureConfigItemCount(FeatureIds.WindowsApps)
                             + GetFeatureConfigItemCount(FeatureIds.ExternalApps),
             "Optimize" => FeatureDefinitions.OptimizeFeatures
-                .Sum(f => GetFeatureDiffCount(f)),
+                .Sum(f => GetFeaturePendingDiffCount(f)),
             "Customize" => FeatureDefinitions.CustomizeFeatures
-                .Sum(f => GetFeatureDiffCount(f)),
+                .Sum(f => GetFeaturePendingDiffCount(f)),
             _ => 0
         };
     }
@@ -193,6 +193,11 @@ public class ConfigReviewService : IConfigReviewService
     public int GetFeatureDiffCount(string featureId)
     {
         return _diffs.Values.Count(d => d.FeatureModuleId == featureId);
+    }
+
+    public int GetFeaturePendingDiffCount(string featureId)
+    {
+        return _diffs.Values.Count(d => d.FeatureModuleId == featureId && !d.IsReviewed);
     }
 
     public bool IsFeatureInConfig(string featureId)

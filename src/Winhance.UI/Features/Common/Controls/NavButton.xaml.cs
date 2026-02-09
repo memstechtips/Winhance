@@ -1,3 +1,4 @@
+using Microsoft.Extensions.DependencyInjection;
 using Microsoft.UI.Xaml;
 using Microsoft.UI.Xaml.Controls;
 using Microsoft.UI.Xaml.Input;
@@ -5,6 +6,7 @@ using Microsoft.UI.Xaml.Media;
 using System;
 using System.ComponentModel;
 using System.Runtime.CompilerServices;
+using Winhance.Core.Features.Common.Interfaces;
 
 namespace Winhance.UI.Features.Common.Controls;
 
@@ -291,7 +293,7 @@ public sealed partial class NavButton : UserControl, INotifyPropertyChanged
         }
         catch (Exception ex)
         {
-            System.Diagnostics.Debug.WriteLine($"Failed to apply badge style: {ex.Message}");
+            LogDebug($"Failed to apply badge style: {ex.Message}");
         }
     }
 
@@ -313,7 +315,7 @@ public sealed partial class NavButton : UserControl, INotifyPropertyChanged
                 }
                 catch (Exception ex)
                 {
-                    System.Diagnostics.Debug.WriteLine($"Failed to convert IconPath to Geometry: {ex.Message}");
+                    LogDebug($"Failed to convert IconPath to Geometry: {ex.Message}");
                 }
             }
         }
@@ -382,6 +384,11 @@ public sealed partial class NavButton : UserControl, INotifyPropertyChanged
     }
 
     #endregion
+
+    private static void LogDebug(string message)
+    {
+        try { App.Services.GetService<ILogService>()?.LogDebug(message); } catch { }
+    }
 
     private void NotifyPropertyChanged([CallerMemberName] string? propertyName = null)
     {

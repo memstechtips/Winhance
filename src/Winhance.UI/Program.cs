@@ -2,6 +2,7 @@ using System.Diagnostics;
 using System.Runtime.InteropServices;
 using Microsoft.UI.Dispatching;
 using Microsoft.Windows.AppLifecycle;
+using Winhance.Core.Features.Common.Services;
 using Windows.Win32;
 using Windows.Win32.UI.WindowsAndMessaging;
 
@@ -14,57 +15,47 @@ namespace Winhance.UI;
 public static class Program
 {
     private const string AppKey = "Winhance-SingleInstance-Key";
-    private static readonly string LogFile = Path.Combine(AppContext.BaseDirectory, "..", "..", "..", "..", "..", "startup-debug.log");
-
-    private static void Log(string message)
-    {
-        try
-        {
-            File.AppendAllText(LogFile, $"[{DateTime.Now:HH:mm:ss.fff}] {message}{Environment.NewLine}");
-        }
-        catch { }
-    }
 
     [STAThread]
     public static void Main(string[] args)
     {
         try
         {
-            Log("=== Application Starting ===");
-            Log($"Args: {string.Join(", ", args)}");
-            Log($"CurrentDirectory: {Environment.CurrentDirectory}");
-            Log($"BaseDirectory: {AppContext.BaseDirectory}");
+            StartupLogger.Log("Program", "=== Application Starting ===");
+            StartupLogger.Log("Program", $"Args: {string.Join(", ", args)}");
+            StartupLogger.Log("Program", $"CurrentDirectory: {Environment.CurrentDirectory}");
+            StartupLogger.Log("Program", $"BaseDirectory: {AppContext.BaseDirectory}");
 
             // Handle single-instance BEFORE any WinUI 3 initialization
-            Log("Checking single instance...");
+            StartupLogger.Log("Program", "Checking single instance...");
             if (!HandleSingleInstance())
             {
-                Log("Another instance detected - exiting");
+                StartupLogger.Log("Program", "Another instance detected - exiting");
                 return;
             }
-            Log("Single instance check passed");
+            StartupLogger.Log("Program", "Single instance check passed");
 
             // This is the first (or only) instance - proceed with normal WinUI 3 startup
-            Log("Initializing COM wrappers...");
+            StartupLogger.Log("Program", "Initializing COM wrappers...");
             WinRT.ComWrappersSupport.InitializeComWrappers();
-            Log("COM wrappers initialized");
+            StartupLogger.Log("Program", "COM wrappers initialized");
 
             // Initialize the WinUI 3 application
-            Log("Starting WinUI 3 Application.Start...");
+            StartupLogger.Log("Program", "Starting WinUI 3 Application.Start...");
             Microsoft.UI.Xaml.Application.Start(p =>
             {
-                Log("Inside Application.Start callback");
+                StartupLogger.Log("Program", "Inside Application.Start callback");
                 var context = new DispatcherQueueSynchronizationContext(DispatcherQueue.GetForCurrentThread());
                 SynchronizationContext.SetSynchronizationContext(context);
-                Log("Creating App instance...");
+                StartupLogger.Log("Program", "Creating App instance...");
                 _ = new App();
-                Log("App instance created");
+                StartupLogger.Log("Program", "App instance created");
             });
-            Log("Application.Start completed (app closed)");
+            StartupLogger.Log("Program", "Application.Start completed (app closed)");
         }
         catch (Exception ex)
         {
-            Log($"FATAL EXCEPTION: {ex}");
+            StartupLogger.Log("Program", $"FATAL EXCEPTION: {ex}");
             throw;
         }
     }

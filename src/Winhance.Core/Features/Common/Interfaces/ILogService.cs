@@ -39,6 +39,12 @@ namespace Winhance.Core.Features.Common.Interfaces
         void LogError(string message, Exception? exception = null);
 
         /// <summary>
+        /// Logs a debug message.
+        /// </summary>
+        /// <param name="message">The message to log.</param>
+        void LogDebug(string message);
+
+        /// <summary>
         /// Logs a success message.
         /// </summary>
         /// <param name="message">The message to log.</param>

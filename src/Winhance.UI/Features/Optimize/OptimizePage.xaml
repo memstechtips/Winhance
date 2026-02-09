@@ -80,41 +80,82 @@
                             <!-- FontIcon for glyph-based icons (Update, Sound) -->
                             <FontIcon x:Name="BreadcrumbSectionGlyph" FontSize="16" VerticalAlignment="Center" Foreground="{ThemeResource TextFillColorPrimaryBrush}" Visibility="Collapsed"/>
                             <TextBlock x:Name="BreadcrumbSectionText" VerticalAlignment="Center"/>
+                            <InfoBadge x:Name="BreadcrumbSectionBadge" VerticalAlignment="Center" Visibility="Collapsed"/>
                         </StackPanel>
                     </DropDownButton.Content>
                     <DropDownButton.Flyout>
-                        <MenuFlyout Placement="BottomEdgeAlignedLeft">
-                            <MenuFlyoutItem x:Name="MenuItemPrivacy" Click="NavigatePrivacy_Click">
-                                <MenuFlyoutItem.Icon>
-                                    <PathIcon Data="{StaticResource PrivacyIconPath}"/>
-                                </MenuFlyoutItem.Icon>
-                            </MenuFlyoutItem>
-                            <MenuFlyoutItem x:Name="MenuItemPower" Click="NavigatePower_Click">
-                                <MenuFlyoutItem.Icon>
-                                    <PathIcon Data="{StaticResource PowerIconPath}"/>
-                                </MenuFlyoutItem.Icon>
-                            </MenuFlyoutItem>
-                            <MenuFlyoutItem x:Name="MenuItemGaming" Click="NavigateGaming_Click">
-                                <MenuFlyoutItem.Icon>
-                                    <PathIcon Data="{StaticResource GamingIconPath}"/>
-                                </MenuFlyoutItem.Icon>
-                            </MenuFlyoutItem>
-                            <MenuFlyoutItem x:Name="MenuItemUpdate" Click="NavigateUpdate_Click">
-                                <MenuFlyoutItem.Icon>
-                                    <FontIcon Glyph="{StaticResource UpdateIconGlyph}"/>
-                                </MenuFlyoutItem.Icon>
-                            </MenuFlyoutItem>
-                            <MenuFlyoutItem x:Name="MenuItemNotification" Click="NavigateNotification_Click">
-                                <MenuFlyoutItem.Icon>
-                                    <PathIcon Data="{StaticResource NotificationIconPath}"/>
-                                </MenuFlyoutItem.Icon>
-                            </MenuFlyoutItem>
-                            <MenuFlyoutItem x:Name="MenuItemSound" Click="NavigateSound_Click">
-                                <MenuFlyoutItem.Icon>
-                                    <FontIcon Glyph="{StaticResource SoundIconGlyph}"/>
-                                </MenuFlyoutItem.Icon>
-                            </MenuFlyoutItem>
-                        </MenuFlyout>
+                        <Flyout x:Name="BreadcrumbFlyout" Placement="BottomEdgeAlignedLeft">
+                            <Flyout.FlyoutPresenterStyle>
+                                <Style TargetType="FlyoutPresenter">
+                                    <Setter Property="Padding" Value="4"/>
+                                    <Setter Property="CornerRadius" Value="8"/>
+                                </Style>
+                            </Flyout.FlyoutPresenterStyle>
+                            <StackPanel Spacing="0" MinWidth="180">
+                                <Button Click="NavigatePrivacy_Click" HorizontalAlignment="Stretch"
+                                        HorizontalContentAlignment="Stretch"
+                                        Background="Transparent" BorderThickness="0" Padding="8,5">
+                                    <Grid ColumnDefinitions="Auto,*,Auto">
+                                        <Viewbox Grid.Column="0" Width="16" Height="16" Margin="0,0,8,0" VerticalAlignment="Center">
+                                            <PathIcon Data="{StaticResource PrivacyIconPath}"/>
+                                        </Viewbox>
+                                        <TextBlock x:Name="FlyoutTextPrivacy" Grid.Column="1" VerticalAlignment="Center"/>
+                                        <InfoBadge x:Name="FlyoutBadgePrivacy" Grid.Column="2" Margin="8,0,0,0" VerticalAlignment="Center" Visibility="Collapsed"/>
+                                    </Grid>
+                                </Button>
+                                <Button Click="NavigatePower_Click" HorizontalAlignment="Stretch"
+                                        HorizontalContentAlignment="Stretch"
+                                        Background="Transparent" BorderThickness="0" Padding="8,5">
+                                    <Grid ColumnDefinitions="Auto,*,Auto">
+                                        <Viewbox Grid.Column="0" Width="16" Height="16" Margin="0,0,8,0" VerticalAlignment="Center">
+                                            <PathIcon Data="{StaticResource PowerIconPath}"/>
+                                        </Viewbox>
+                                        <TextBlock x:Name="FlyoutTextPower" Grid.Column="1" VerticalAlignment="Center"/>
+                                        <InfoBadge x:Name="FlyoutBadgePower" Grid.Column="2" Margin="8,0,0,0" VerticalAlignment="Center" Visibility="Collapsed"/>
+                                    </Grid>
+                                </Button>
+                                <Button Click="NavigateGaming_Click" HorizontalAlignment="Stretch"
+                                        HorizontalContentAlignment="Stretch"
+                                        Background="Transparent" BorderThickness="0" Padding="8,5">
+                                    <Grid ColumnDefinitions="Auto,*,Auto">
+                                        <Viewbox Grid.Column="0" Width="16" Height="16" Margin="0,0,8,0" VerticalAlignment="Center">
+                                            <PathIcon Data="{StaticResource GamingIconPath}"/>
+                                        </Viewbox>
+                                        <TextBlock x:Name="FlyoutTextGaming" Grid.Column="1" VerticalAlignment="Center"/>
+                                        <InfoBadge x:Name="FlyoutBadgeGaming" Grid.Column="2" Margin="8,0,0,0" VerticalAlignment="Center" Visibility="Collapsed"/>
+                                    </Grid>
+                                </Button>
+                                <Button Click="NavigateUpdate_Click" HorizontalAlignment="Stretch"
+                                        HorizontalContentAlignment="Stretch"
+                                        Background="Transparent" BorderThickness="0" Padding="8,5">
+                                    <Grid ColumnDefinitions="Auto,*,Auto">
+                                        <FontIcon Grid.Column="0" Glyph="{StaticResource UpdateIconGlyph}" FontSize="16" Margin="0,0,8,0" VerticalAlignment="Center"/>
+                                        <TextBlock x:Name="FlyoutTextUpdate" Grid.Column="1" VerticalAlignment="Center"/>
+                                        <InfoBadge x:Name="FlyoutBadgeUpdate" Grid.Column="2" Margin="8,0,0,0" VerticalAlignment="Center" Visibility="Collapsed"/>
+                                    </Grid>
+                                </Button>
+                                <Button Click="NavigateNotification_Click" HorizontalAlignment="Stretch"
+                                        HorizontalContentAlignment="Stretch"
+                                        Background="Transparent" BorderThickness="0" Padding="8,5">
+                                    <Grid ColumnDefinitions="Auto,*,Auto">
+                                        <Viewbox Grid.Column="0" Width="16" Height="16" Margin="0,0,8,0" VerticalAlignment="Center">
+                                            <PathIcon Data="{StaticResource NotificationIconPath}"/>
+                                        </Viewbox>
+                                        <TextBlock x:Name="FlyoutTextNotification" Grid.Column="1" VerticalAlignment="Center"/>
+                                        <InfoBadge x:Name="FlyoutBadgeNotification" Grid.Column="2" Margin="8,0,0,0" VerticalAlignment="Center" Visibility="Collapsed"/>
+                                    </Grid>
+                                </Button>
+                                <Button Click="NavigateSound_Click" HorizontalAlignment="Stretch"
+                                        HorizontalContentAlignment="Stretch"
+                                        Background="Transparent" BorderThickness="0" Padding="8,5">
+                                    <Grid ColumnDefinitions="Auto,*,Auto">
+                                        <FontIcon Grid.Column="0" Glyph="{StaticResource SoundIconGlyph}" FontSize="16" Margin="0,0,8,0" VerticalAlignment="Center"/>
+                                        <TextBlock x:Name="FlyoutTextSound" Grid.Column="1" VerticalAlignment="Center"/>
+                                        <InfoBadge x:Name="FlyoutBadgeSound" Grid.Column="2" Margin="8,0,0,0" VerticalAlignment="Center" Visibility="Collapsed"/>
+                                    </Grid>
+                                </Button>
+                            </StackPanel>
+                        </Flyout>
                     </DropDownButton.Flyout>
                 </DropDownButton>
             </StackPanel>

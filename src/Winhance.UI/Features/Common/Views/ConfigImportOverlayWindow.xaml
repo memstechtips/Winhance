@@ -5,7 +5,7 @@
     xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
     Title="Winhance">
 
-    <Grid x:Name="RootGrid" Background="#E6000000">
+    <Grid x:Name="RootGrid" Background="Black">
         <StackPanel HorizontalAlignment="Center" VerticalAlignment="Center" Spacing="24">
             <!-- Logo + Branding -->
             <StackPanel Orientation="Horizontal" HorizontalAlignment="Center" Spacing="16">

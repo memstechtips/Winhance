@@ -1,5 +1,6 @@
 using System.Collections.ObjectModel;
 using System.Collections.Specialized;
+using Microsoft.Extensions.DependencyInjection;
 using Microsoft.UI.Xaml;
 using Microsoft.UI.Xaml.Controls;
 using Microsoft.UI.Xaml.Media;
@@ -31,11 +32,11 @@ public sealed partial class PowerPlanComboBox : UserControl
     {
         if (d is PowerPlanComboBox control && e.NewValue is ObservableCollection<ComboBoxOption> newCollection)
         {
-            LogToFile($"[PowerPlanComboBox] ItemsSourceProperty changed, count={newCollection.Count}");
+            LogDebug($"[PowerPlanComboBox] ItemsSourceProperty changed, count={newCollection.Count}");
             // Subscribe to collection changes to re-apply selection after items are added
             newCollection.CollectionChanged += (s, args) =>
             {
-                LogToFile($"[PowerPlanComboBox] CollectionChanged: Action={args.Action}, SelectedValue={control.SelectedValue}");
+                LogDebug($"[PowerPlanComboBox] CollectionChanged: Action={args.Action}, SelectedValue={control.SelectedValue}");
                 if (args.Action == NotifyCollectionChangedAction.Add)
                 {
                     // Defer to next frame to ensure binding has updated
@@ -43,9 +44,9 @@ public sealed partial class PowerPlanComboBox : UserControl
                     {
                         if (control.SelectedValue != null && control.PowerPlanSelector != null)
                         {
-                            LogToFile($"[PowerPlanComboBox] CollectionChanged Add: Re-applying SelectedValue={control.SelectedValue}");
+                            LogDebug($"[PowerPlanComboBox] CollectionChanged Add: Re-applying SelectedValue={control.SelectedValue}");
                             control.PowerPlanSelector.SelectedValue = control.SelectedValue;
-                            LogToFile($"[PowerPlanComboBox] CollectionChanged Add: PowerPlanSelector.SelectedValue is now {control.PowerPlanSelector.SelectedValue}");
+                            LogDebug($"[PowerPlanComboBox] CollectionChanged Add: PowerPlanSelector.SelectedValue is now {control.PowerPlanSelector.SelectedValue}");
                         }
                     });
                 }
@@ -64,17 +65,17 @@ public sealed partial class PowerPlanComboBox : UserControl
     {
         if (d is PowerPlanComboBox control)
         {
-            LogToFile($"[PowerPlanComboBox] SelectedValueProperty changed: old={e.OldValue}, new={e.NewValue}");
+            LogDebug($"[PowerPlanComboBox] SelectedValueProperty changed: old={e.OldValue}, new={e.NewValue}");
             // Sync the inner ComboBox - defer to allow ItemsSource binding to update first
             if (control.PowerPlanSelector != null)
             {
                 var newValue = e.NewValue;
-                LogToFile($"[PowerPlanComboBox] Deferring PowerPlanSelector.SelectedValue to {newValue}");
+                LogDebug($"[PowerPlanComboBox] Deferring PowerPlanSelector.SelectedValue to {newValue}");
                 control.DispatcherQueue.TryEnqueue(() =>
                 {
-                    LogToFile($"[PowerPlanComboBox] Deferred: Setting PowerPlanSelector.SelectedValue to {newValue}");
+                    LogDebug($"[PowerPlanComboBox] Deferred: Setting PowerPlanSelector.SelectedValue to {newValue}");
                     control.PowerPlanSelector.SelectedValue = newValue;
-                    LogToFile($"[PowerPlanComboBox] Deferred: PowerPlanSelector.SelectedValue is now {control.PowerPlanSelector.SelectedValue}");
+                    LogDebug($"[PowerPlanComboBox] Deferred: PowerPlanSelector.SelectedValue is now {control.PowerPlanSelector.SelectedValue}");
                 });
             }
         }
@@ -252,26 +253,21 @@ public sealed partial class PowerPlanComboBox : UserControl
     /// </summary>
     private void OnDropDownClosed(object sender, object e)
     {
-        LogToFile($"[PowerPlanComboBox] OnDropDownClosed fired, SelectedValue={PowerPlanSelector.SelectedValue}");
+        LogDebug($"[PowerPlanComboBox] OnDropDownClosed fired, SelectedValue={PowerPlanSelector.SelectedValue}");
         if (PowerPlanSelector.SelectedValue is { } value)
         {
-            LogToFile($"[PowerPlanComboBox] Invoking DropDownClosed event with value={value}");
+            LogDebug($"[PowerPlanComboBox] Invoking DropDownClosed event with value={value}");
             DropDownClosed?.Invoke(this, value);
         }
         else
         {
-            LogToFile($"[PowerPlanComboBox] SelectedValue is null, not invoking event");
+            LogDebug($"[PowerPlanComboBox] SelectedValue is null, not invoking event");
         }
     }
 
-    private static void LogToFile(string message)
+    private static void LogDebug(string message)
     {
-        try
-        {
-            var logPath = @"C:\Winhance-UI\src\startup-debug.log";
-            System.IO.File.AppendAllText(logPath, $"{DateTime.Now:HH:mm:ss.fff} {message}{Environment.NewLine}");
-        }
-        catch { }
+        try { App.Services.GetService<ILogService>()?.LogDebug(message); } catch { }
     }
 
     /// <summary>

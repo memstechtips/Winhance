@@ -90,10 +90,10 @@ public partial class PowerOptimizationsViewModel : BaseSettingsFeatureViewModel
 
             _dispatcherService.RunOnUIThread(() =>
             {
-                LogToFile($"[RefreshPowerPlanComboBox] Starting refresh, currentIndex={currentIndex}, current SelectedValue={powerPlanSetting.SelectedValue}");
+                _logService.LogDebug($"[RefreshPowerPlanComboBox] Starting refresh, currentIndex={currentIndex}, current SelectedValue={powerPlanSetting.SelectedValue}");
 
                 powerPlanSetting.ComboBoxOptions.Clear();
-                LogToFile($"[RefreshPowerPlanComboBox] After Clear, SelectedValue={powerPlanSetting.SelectedValue}");
+                _logService.LogDebug($"[RefreshPowerPlanComboBox] After Clear, SelectedValue={powerPlanSetting.SelectedValue}");
 
                 for (int i = 0; i < options.Count; i++)
                 {
@@ -112,9 +112,9 @@ public partial class PowerOptimizationsViewModel : BaseSettingsFeatureViewModel
                     });
                 }
 
-                LogToFile($"[RefreshPowerPlanComboBox] After repopulate, SelectedValue={powerPlanSetting.SelectedValue}, setting to {currentIndex}");
+                _logService.LogDebug($"[RefreshPowerPlanComboBox] After repopulate, SelectedValue={powerPlanSetting.SelectedValue}, setting to {currentIndex}");
                 powerPlanSetting.SelectedValue = currentIndex;
-                LogToFile($"[RefreshPowerPlanComboBox] After setting SelectedValue={powerPlanSetting.SelectedValue}");
+                _logService.LogDebug($"[RefreshPowerPlanComboBox] After setting SelectedValue={powerPlanSetting.SelectedValue}");
             });
         }
         catch (Exception ex)
@@ -185,16 +185,6 @@ public partial class PowerOptimizationsViewModel : BaseSettingsFeatureViewModel
                 $"An error occurred while deleting the power plan: {ex.Message}",
                 "Error");
         }
-    }
-
-    private static void LogToFile(string message)
-    {
-        try
-        {
-            var logPath = @"C:\Winhance-UI\src\startup-debug.log";
-            System.IO.File.AppendAllText(logPath, $"{DateTime.Now:HH:mm:ss.fff} {message}{Environment.NewLine}");
-        }
-        catch { }
     }
 
     protected override void Dispose(bool disposing)

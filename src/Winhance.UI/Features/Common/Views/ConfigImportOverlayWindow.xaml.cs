@@ -1,16 +1,36 @@
 using System;
+using System.Runtime.InteropServices;
+using Microsoft.Extensions.DependencyInjection;
 using Microsoft.UI.Windowing;
 using Microsoft.UI.Xaml;
 using Microsoft.UI.Xaml.Media.Imaging;
+using Winhance.Core.Features.Common.Interfaces;
+using WinRT.Interop;
 
 namespace Winhance.UI.Features.Common.Views;
 
 /// <summary>
 /// A fullscreen overlay window shown during config application.
-/// Uses FullScreenPresenter for clean fullscreen coverage with a solid dark background.
+/// Uses Win32 interop for semi-transparency and borderless maximized presentation.
 /// </summary>
 public sealed partial class ConfigImportOverlayWindow : Window
 {
+    [DllImport("user32.dll")]
+    private static extern int GetWindowLong(IntPtr hWnd, int nIndex);
+
+    [DllImport("user32.dll")]
+    private static extern int SetWindowLong(IntPtr hWnd, int nIndex, int dwNewLong);
+
+    [DllImport("user32.dll")]
+    private static extern bool SetLayeredWindowAttributes(IntPtr hwnd, uint crKey, byte bAlpha, uint dwFlags);
+
+    private const int GWL_EXSTYLE = -20;
+    private const int WS_EX_LAYERED = 0x80000;
+    private const int WS_EX_TOOLWINDOW = 0x80;
+    private const uint LWA_ALPHA = 0x2;
+
+    private bool _configured;
+
     public ConfigImportOverlayWindow(string statusText, string? detailText = null)
     {
         this.InitializeComponent();
@@ -25,8 +45,7 @@ public sealed partial class ConfigImportOverlayWindow : Window
 
         try
         {
-            var localizationService = App.Services.GetService(typeof(Winhance.Core.Features.Common.Interfaces.ILocalizationService))
-                as Winhance.Core.Features.Common.Interfaces.ILocalizationService;
+            var localizationService = App.Services.GetService<ILocalizationService>();
             OverlayTitleText.Text = localizationService?.GetString("App_Title") ?? "Winhance";
             OverlayTaglineText.Text = localizationService?.GetString("App_Tagline") ?? "";
         }
@@ -40,8 +59,6 @@ public sealed partial class ConfigImportOverlayWindow : Window
         this.Activated += OnActivated;
     }
 
-    private bool _configured;
-
     private void OnActivated(object sender, WindowActivatedEventArgs args)
     {
         if (_configured) return;
@@ -52,12 +69,30 @@ public sealed partial class ConfigImportOverlayWindow : Window
             // Remove title bar
             ExtendsContentIntoTitleBar = true;
 
-            // Use FullScreenPresenter for clean fullscreen coverage
-            AppWindow.SetPresenter(AppWindowPresenterKind.FullScreen);
+            var hwnd = WindowNative.GetWindowHandle(this);
+
+            // Add WS_EX_LAYERED (for opacity) and WS_EX_TOOLWINDOW (hides from taskbar)
+            var exStyle = GetWindowLong(hwnd, GWL_EXSTYLE);
+            SetWindowLong(hwnd, GWL_EXSTYLE, exStyle | WS_EX_LAYERED | WS_EX_TOOLWINDOW);
+
+            // Set window opacity to ~90% (0xE6 = 230) — matches WPF's #E6000000
+            SetLayeredWindowAttributes(hwnd, 0, 230, LWA_ALPHA);
+
+            // Borderless, always-on-top, maximized
+            if (AppWindow.Presenter is OverlappedPresenter presenter)
+            {
+                presenter.SetBorderAndTitleBar(false, false);
+                presenter.IsAlwaysOnTop = true;
+                presenter.Maximize();
+            }
         }
         catch (Exception ex)
         {
-            System.Diagnostics.Debug.WriteLine($"Failed to configure overlay window: {ex.Message}");
+            try
+            {
+                App.Services.GetService<ILogService>()?.LogDebug($"Failed to configure overlay window: {ex.Message}");
+            }
+            catch { }
         }
     }
 

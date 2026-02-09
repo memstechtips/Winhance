@@ -15,27 +15,11 @@
     <converters:BooleanToVisibilityConverter x:Key="BooleanToVisibilityConverter"/>
     <converters:InverseBooleanToVisibilityConverter x:Key="InverseBooleanToVisibilityConverter"/>
     <converters:InverseBooleanConverter x:Key="InverseBooleanConverter"/>
-    <converters:BooleanToOpacityConverter x:Key="BooleanToOpacityConverter"/>
-    <converters:BooleanToValueConverter x:Key="BooleanToValueConverter"/>
-    <converters:BooleanToRotationConverter x:Key="BooleanToRotationConverter"/>
 
     <!-- Null/Empty Converters -->
     <converters:NullToVisibilityConverter x:Key="NullToVisibilityConverter"/>
-    <converters:InverseNullToVisibilityConverter x:Key="InverseNullToVisibilityConverter"/>
-    <converters:CoalesceConverter x:Key="CoalesceConverter"/>
-
-    <!-- Count/Number Converters -->
-    <converters:CountToVisibilityConverter x:Key="CountToVisibilityConverter"/>
-    <converters:InverseCountToVisibilityConverter x:Key="InverseCountToVisibilityConverter"/>
-    <converters:IntToVisibilityConverter x:Key="IntToVisibilityConverter"/>
-    <converters:GreaterThanZeroConverter x:Key="GreaterThanZeroConverter"/>
-
-    <!-- String/Enum Converters -->
-    <converters:StringEqualityConverter x:Key="StringEqualityConverter"/>
-    <converters:EnumMatchToVisibilityConverter x:Key="EnumMatchToVisibilityConverter"/>
 
     <!-- Icon Converters -->
-    <converters:FluentIconConverter x:Key="FluentIconConverter"/>
     <converters:SettingIconConverter x:Key="SettingIconConverter"/>
     <converters:StringToGeometryConverter x:Key="StringToGeometryConverter"/>
 
