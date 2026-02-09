@@ -110,8 +110,8 @@ public partial class AutounattendGeneratorViewModel : ObservableObject
                 _localizationService.GetString("AdvancedTools_Msg_XmlGenSuccess") ?? "XML generated at {0}",
                 outputPath);
             var successTitle = _localizationService.GetString("Dialog_Success") ?? "Success";
-            var yesText = _localizationService.GetString("Dialog_Button_Yes") ?? "Yes";
-            var noText = _localizationService.GetString("Dialog_Button_No") ?? "No";
+            var yesText = _localizationService.GetString("Button_Yes") ?? "Yes";
+            var noText = _localizationService.GetString("Button_No") ?? "No";
             var openWimUtil = await _dialogService.ShowConfirmationAsync(successMsg, successTitle, yesText, noText);
 
             if (openWimUtil)

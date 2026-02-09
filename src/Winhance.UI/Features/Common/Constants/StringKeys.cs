@@ -164,6 +164,7 @@ public static class StringKeys
     public static class Settings
     {
         public const string Title = "Settings_Title";
+        public const string Description = "Settings_Description";
         public const string Language = "Settings_Menu_Language";
         public const string LanguageDescription = "Settings_Language_Description";
         public const string ThemeTitle = "Settings_Theme_Title";

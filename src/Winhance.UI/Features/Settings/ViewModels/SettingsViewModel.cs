@@ -155,6 +155,7 @@ public partial class SettingsViewModel : ObservableObject
 
         // Notify UI to refresh all localized strings
         OnPropertyChanged(nameof(PageTitle));
+        OnPropertyChanged(nameof(PageDescription));
         OnPropertyChanged(nameof(GeneralLabel));
         OnPropertyChanged(nameof(LanguageHeader));
         OnPropertyChanged(nameof(LanguageDescription));
@@ -169,6 +170,7 @@ public partial class SettingsViewModel : ObservableObject
 
     // Localized string properties for x:Bind
     public string PageTitle => _localizationService.GetString(StringKeys.Settings.Title) ?? "Settings";
+    public string PageDescription => _localizationService.GetString(StringKeys.Settings.Description) ?? "Configure Winhance Application Preferences";
     public string GeneralLabel => _localizationService.GetString(StringKeys.Categories.General) ?? "General";
     public string LanguageHeader => _localizationService.GetString(StringKeys.Settings.Language) ?? "Language";
     public string LanguageDescription => _localizationService.GetString(StringKeys.Settings.LanguageDescription) ?? "Select your preferred language";

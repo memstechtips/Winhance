@@ -709,17 +709,17 @@
                             <StackPanel Spacing="16" Padding="4,8,4,8">
                                 <!-- Selection Checkboxes -->
                                 <StackPanel Orientation="Horizontal" Spacing="12">
-                                    <CheckBox Content="Select All" MinWidth="0"
+                                    <CheckBox Content="{x:Bind ViewModel.WindowsAppsViewModel.SelectAllLabel, Mode=OneWay}" MinWidth="0"
                                               IsChecked="{x:Bind ViewModel.WindowsAppsViewModel.IsAllSelected, Mode=TwoWay}"/>
-                                    <CheckBox Content="Select All Installed" MinWidth="0"
+                                    <CheckBox Content="{x:Bind ViewModel.WindowsAppsViewModel.SelectAllInstalledLabel, Mode=OneWay}" MinWidth="0"
                                               IsChecked="{x:Bind ViewModel.WindowsAppsViewModel.IsAllSelectedInstalled, Mode=TwoWay}"/>
-                                    <CheckBox Content="Select All Not Installed" MinWidth="0"
+                                    <CheckBox Content="{x:Bind ViewModel.WindowsAppsViewModel.SelectAllNotInstalledLabel, Mode=OneWay}" MinWidth="0"
                                               IsChecked="{x:Bind ViewModel.WindowsAppsViewModel.IsAllSelectedNotInstalled, Mode=TwoWay}"/>
                                 </StackPanel>
 
                                 <!-- Windows Apps Section -->
                                 <StackPanel Spacing="8">
-                                    <TextBlock Text="Windows Apps"
+                                    <TextBlock Text="{x:Bind ViewModel.WindowsAppsViewModel.SectionAppsHeader, Mode=OneWay}"
                                                Style="{StaticResource SubtitleTextBlockStyle}"
                                                FontWeight="SemiBold"/>
                                     <ItemsRepeater ItemsSource="{x:Bind ViewModel.WindowsAppsViewModel.WindowsAppsFiltered, Mode=OneWay}">
@@ -731,10 +731,12 @@
                                                 <CheckBox IsChecked="{Binding IsSelected, Mode=TwoWay}" MinWidth="0" Padding="8,4">
                                                     <StackPanel Orientation="Horizontal" Spacing="8">
                                                         <Ellipse Width="10" Height="10" VerticalAlignment="Center"
-                                                                 Fill="{Binding IsInstalled, Converter={StaticResource BoolToStatusBrushConverter}}"/>
+                                                                 Fill="{Binding IsInstalled, Converter={StaticResource BoolToStatusBrushConverter}}"
+                                                                 ToolTipService.ToolTip="{Binding InstalledStatusText}"/>
                                                         <FontIcon Glyph="{Binding CanBeReinstalled, Converter={StaticResource BoolToGlyphConverter}}"
                                                                   FontSize="12" VerticalAlignment="Center"
-                                                                  Foreground="{Binding CanBeReinstalled, Converter={StaticResource BoolToReinstallBrushConverter}}"/>
+                                                                  Foreground="{Binding CanBeReinstalled, Converter={StaticResource BoolToReinstallBrushConverter}}"
+                                                                  ToolTipService.ToolTip="{Binding ReinstallableStatusText}"/>
                                                         <TextBlock Text="{Binding Name}" VerticalAlignment="Center" TextTrimming="CharacterEllipsis"/>
                                                     </StackPanel>
                                                 </CheckBox>
@@ -745,7 +747,7 @@
 
                                 <!-- Capabilities Section -->
                                 <StackPanel Spacing="8">
-                                    <TextBlock Text="Windows Capabilities"
+                                    <TextBlock Text="{x:Bind ViewModel.WindowsAppsViewModel.SectionCapabilitiesHeader, Mode=OneWay}"
                                                Style="{StaticResource SubtitleTextBlockStyle}"
                                                FontWeight="SemiBold"/>
                                     <ItemsRepeater ItemsSource="{x:Bind ViewModel.WindowsAppsViewModel.CapabilitiesFiltered, Mode=OneWay}">
@@ -757,10 +759,12 @@
                                                 <CheckBox IsChecked="{Binding IsSelected, Mode=TwoWay}" MinWidth="0" Padding="8,4">
                                                     <StackPanel Orientation="Horizontal" Spacing="8">
                                                         <Ellipse Width="10" Height="10" VerticalAlignment="Center"
-                                                                 Fill="{Binding IsInstalled, Converter={StaticResource BoolToStatusBrushConverter}}"/>
+                                                                 Fill="{Binding IsInstalled, Converter={StaticResource BoolToStatusBrushConverter}}"
+                                                                 ToolTipService.ToolTip="{Binding InstalledStatusText}"/>
                                                         <FontIcon Glyph="{Binding CanBeReinstalled, Converter={StaticResource BoolToGlyphConverter}}"
                                                                   FontSize="12" VerticalAlignment="Center"
-                                                                  Foreground="{Binding CanBeReinstalled, Converter={StaticResource BoolToReinstallBrushConverter}}"/>
+                                                                  Foreground="{Binding CanBeReinstalled, Converter={StaticResource BoolToReinstallBrushConverter}}"
+                                                                  ToolTipService.ToolTip="{Binding ReinstallableStatusText}"/>
                                                         <TextBlock Text="{Binding Name}" VerticalAlignment="Center" TextTrimming="CharacterEllipsis"/>
                                                     </StackPanel>
                                                 </CheckBox>
@@ -771,7 +775,7 @@
 
                                 <!-- Optional Features Section -->
                                 <StackPanel Spacing="8">
-                                    <TextBlock Text="Windows Optional Features"
+                                    <TextBlock Text="{x:Bind ViewModel.WindowsAppsViewModel.SectionOptionalFeaturesHeader, Mode=OneWay}"
                                                Style="{StaticResource SubtitleTextBlockStyle}"
                                                FontWeight="SemiBold"/>
                                     <ItemsRepeater ItemsSource="{x:Bind ViewModel.WindowsAppsViewModel.OptionalFeaturesFiltered, Mode=OneWay}">
@@ -783,10 +787,12 @@
                                                 <CheckBox IsChecked="{Binding IsSelected, Mode=TwoWay}" MinWidth="0" Padding="8,4">
                                                     <StackPanel Orientation="Horizontal" Spacing="8">
                                                         <Ellipse Width="10" Height="10" VerticalAlignment="Center"
-                                                                 Fill="{Binding IsInstalled, Converter={StaticResource BoolToStatusBrushConverter}}"/>
+                                                                 Fill="{Binding IsInstalled, Converter={StaticResource BoolToStatusBrushConverter}}"
+                                                                 ToolTipService.ToolTip="{Binding InstalledStatusText}"/>
                                                         <FontIcon Glyph="{Binding CanBeReinstalled, Converter={StaticResource BoolToGlyphConverter}}"
                                                                   FontSize="12" VerticalAlignment="Center"
-                                                                  Foreground="{Binding CanBeReinstalled, Converter={StaticResource BoolToReinstallBrushConverter}}"/>
+                                                                  Foreground="{Binding CanBeReinstalled, Converter={StaticResource BoolToReinstallBrushConverter}}"
+                                                                  ToolTipService.ToolTip="{Binding ReinstallableStatusText}"/>
                                                         <TextBlock Text="{Binding Name}" VerticalAlignment="Center" TextTrimming="CharacterEllipsis"/>
                                                     </StackPanel>
                                                 </CheckBox>

@@ -20,8 +20,8 @@
     "Tooltip_ToggleTheme": "تبديل سمة Winhance",
     "Tooltip_Donate": "تبرع لدعم التطوير",
     "Tooltip_ReportBug": "الإبلاغ عن خطأ",
-    "Menu_ReportBug": "الإبلاغ عن خطأ",
     "Settings_Title": "إعدادات Winhance",
+    "Settings_Description": "تكوين تفضيلات تطبيق Winhance",
     "Settings_Menu_Language": "اللغة",
     "Settings_Language_Description": "حدد لغة عرض التطبيق",
     "Settings_Theme_Title": "سمة Winhance",
@@ -40,7 +40,6 @@
     "Dialog_Warning": "تحذير",
     "Dialog_Error": "خطأ",
     "Dialog_Confirmation": "تأكيد",
-    "Dialog_Question": "سؤال",
     "Dialog_ConfirmInstallation": "تأكيد التثبيت",
     "Dialog_ConfirmRemoval": "تأكيد الإزالة",
     "Dialog_ConfirmOperation": "تأكيد {0}",
@@ -58,7 +57,6 @@
     "Dialog_Update_CurrentVersion": "الإصدار الحالي:",
     "Dialog_Update_LatestVersion": "أحدث إصدار:",
     "Dialog_Update_Footer": "هل ترغب في تنزيل التحديث وتثبيته الآن؟",
-    "Dialog_Update_Button_RemindLater": "ذكرني لاحقًا",
     "Dialog_Update_Button_InstallNow": "تثبيت الآن",
     "Dialog_Update_Status_Downloading": "جارٍ تنزيل التحديث...",
     "Dialog_Update_Status_Error": "خطأ أثناء تنزيل التحديث: {0}",
@@ -67,15 +65,6 @@
     "Dialog_ImportConfig_Option_Own_Description": "حدد ملف إعدادات من جهازك",
     "Dialog_ImportConfig_Option_Recommended_Title": "استيراد الإعدادات الموصى بها",
     "Dialog_ImportConfig_Option_Recommended_Description": "تحميل ملف إعدادات Winhance الموصى به",
-    "Dialog_Button_Yes": "نعم",
-    "Dialog_Button_No": "لا",
-    "Dialog_Button_OK": "موافق",
-    "Dialog_Button_Cancel": "إلغاء",
-    "Dialog_Button_Continue": "متابعة",
-    "Dialog_Button_Close": "إغلاق",
-    "Dialog_Button_Apply": "تطبيق",
-    "Dialog_Button_Refresh": "تحديث",
-    "Dialog_Button_Help": "مساعدة",
     "Dialog_Unified_Section_SoftwareAndApps": "البرامج والتطبيقات",
     "Dialog_Unified_Description_SoftwareAndApps": "اختيارات حزم Windows والبرامج الخارجية",
     "Dialog_Unified_Section_WindowsApps": "تطبيقات Windows",
@@ -118,6 +107,7 @@
     "Button_Apply": "تطبيق",
     "Button_Refresh": "تحديث",
     "Button_Help": "مساعدة",
+    "Button_Download": "تنزيل",
     "Common_On": "تشغيل",
     "Common_Off": "إيقاف",
     "Common_Search_Placeholder": "اكتب هنا للبحث...",
@@ -994,7 +984,6 @@
     "ExternalApps_Category_PrivacySecurity": "الخصوصية والأمان",
     "ExternalApps_Category_RemoteAccess": "الوصول عن بُعد",
     "ExternalApps_Category_RuntimesDependencies": "وقت التشغيل والتبعيات",
-    "ExternalApps_WinGetUnavailable": "تعذر تحديد حالة التثبيت. اتصل بالإنترنت وانقر زر التحديث.",
     "Error_NoInternetConnection": "لا يوجد اتصال بالإنترنت. يرجى الاتصال والمحاولة مرة أخرى.",
     "Error_WinGetInstallFailed": "فشل تثبيت WinGet. يرجى التحقق من اتصالك بالإنترنت.",
     "Error_WinGetNotAvailable": "WinGet غير متوفر على هذا النظام.",
@@ -1070,7 +1059,6 @@
     "WIMUtil_Status_NoIsoSelected": "لم يتم تحديد ISO",
     "WIMUtil_Status_WaitForConversion": "🔒 انتظر حتى يكتمل التحويل",
     "WIMUtil_Status_CompleteStep1": "🔒 أكمل الخطوة 1",
-    "WIMUtil_Status_ReadyToAddXml": "جاهز لإضافة XML",
     "WIMUtil_Status_XmlAdded": "✓ تم إضافة XML",
     "WIMUtil_Status_NoXmlAdded": "لم تتم إضافة XML (اختياري)",
     "WIMUtil_Status_DriversAdded": "✓ تم إضافة برامج التشغيل",
@@ -1130,18 +1118,10 @@
     "Startup_Backup_Intro": "قام Winhance بحماية نظامك عبر النسخ الاحتياطي.",
     "Startup_Backup_RestoreEnabled": "تم تعطيل استعادة النظام وتم تمكينها الآن.",
     "Startup_Backup_Created": "تم الإنشاء:",
-    "Startup_Backup_RegistryBackups": "• نسخ احتياطية للسجل ({0} خلايا) في:",
-    "Startup_Backup_RegistryPath": "  C:\\ProgramData\\Winhance\\Backups",
     "Startup_Backup_RestorePoint": "• نقطة استعادة النظام: 'Winhance Initial Restore Point'",
     "Startup_Backup_ToRestore": "لاستعادة:",
-    "Startup_Backup_RestoreInstructions_System": "• النظام: افتح \"Create a restore point\" في الإعدادات > استعادة النظام",
-    "Startup_Backup_RestoreInstructions_Registry": "• السجل: انقر مرتين على ملفات .reg في مجلد النسخ الاحتياطي",
-    "Startup_Backup_RestoreInstructions_RestoreOnly": "للاستعادة: ابحث عن \"restore point\" في إعدادات Windows",
-    "Startup_Backup_RestoreInstructions_RegistryOnly": "للاستعادة: انقر مرتين على ملفات .reg في مجلد النسخ الاحتياطي",
     "Startup_Backup_Note": "ملاحظة: استعادة النظام لن تعيد التطبيقات التي تمت إزالتها.",
-    "Startup_Backup_Note_AdminRights": "نسخ السجل الاحتياطية تتم مرة واحدة وتتطلب صلاحيات المسؤول.",
     "Startup_Backup_Checkbox_DontCreate": "لا تنشئ نقاط استعادة في المستقبل",
-    "Startup_Backup_Checkbox_DontShow": "لا تعرض هذا مرة أخرى",
     "Startup_Migration_Title": "تم تحديث موقع السكربت",
     "Startup_Migration_SubTitle": "ترحيل Winhance",
     "Startup_Migration_Intro": "قام Winhance بتحديث موقع سكربتات إزالة تطبيقات Windows.",
@@ -1269,14 +1249,10 @@
     "AdvancedTools_Msg_InvalidFilename": "يجب تسمية الملف بـ 'autounattend.xml' ليعمل بشكل صحيح مع تثبيت Windows.\n\nيرجى حفظ الملف بالاسم الدقيق: autounattend.xml",
     "AdvancedTools_Msg_XmlGenSuccess": "تم إنشاء ملف autounattend.xml!\n\nالموقع: {0}\n\nالخطوات التالية:\n1. استخدم ميزة WIMUtil لإضافة هذا الملف إلى Windows ISO\n2. أو انسخه يدويًا إلى جذر وسائط تثبيت Windows\n3. ثبّت Windows باستخدام الوسائط المعدلة\n\nهل ترغب في استخدام WIMUtil الآن لإنشاء Windows ISO للتثبيت مع هذا الملف؟",
     "AdvancedTools_Msg_XmlGenError": "فشل إنشاء ملف autounattend.xml.\n\nالخطأ: {0}\n\nيرجى التحقق من ملف السجل لمزيد من التفاصيل.",
-    "Button_OpenWIMUtil": "فتح WIMUtil",
-    "Button_DoItLater": "سأفعل ذلك لاحقًا",
     "Dialog_FallbackDownload": "طريقة تنزيل بديلة",
-    "Dialog_Button_Download": "تنزيل",
     "WindowsApps_Msg_FallbackDownload": "تعذر العثور على الحزمة '{0}' عبر WinGet، غالبًا بسبب قيود السوق الجغرافية.\n\nيمكن لـ Winhance تنزيل هذه الحزمة مباشرةً من خوادم Microsoft باستخدام طريقة بديلة (store.rg-adguard.net).\n\n• ملفات الحزمة تأتي مباشرة من CDN الرسمي لـ Microsoft\n• هذه الطريقة قانونية وآمنة تمامًا\n• تتجاوز القيود الإقليمية فقط\n\nهل ترغب في المتابعة بطريقة التنزيل البديلة؟",
     "WindowsApps_Checkbox_DontAskAgain": "لا تسألني مرة أخرى للتثبيتات المستقبلية",
     "Progress_RemovingOldFile": "جارٍ إزالة ملف الصورة القديم...",
-    "Progress_WarningCouldNotDeleteFile": "تحذير: تعذر حذف الملف القديم",
     "Progress_ConversionCompleted": "اكتمل التحويل بنجاح",
     "Progress_ConversionFailed": "فشل التحويل",
     "Progress_PreparingInstallAdk": "جارٍ التحضير لتثبيت Windows ADK...",
@@ -1316,13 +1292,11 @@
     "Progress_CheckingRestoreStatus": "جارٍ التحقق من حالة استعادة النظام...",
     "Progress_EnablingRestore": "جارٍ تمكين استعادة النظام...",
     "Progress_CreatingRestorePoint": "جارٍ إنشاء نقطة استعادة النظام...",
-    "Progress_BackingUpRegistry": "جارٍ نسخ خلية السجل {0} احتياطيًا...",
     "Progress_CheckingInstallStatus": "جارٍ التحقق من حالة التثبيت...",
     "Progress_WaitForInitialLoad": "يرجى انتظار اكتمال التحميل الأولي",
     "Progress_RefreshingStatus": "جارٍ تحديث حالة التثبيت...",
     "Progress_SelectionsCleared": "تم مسح جميع الاختيارات",
     "Progress_NoInternetConnection": "لا يتوفر اتصال بالإنترنت. لا يمكن متابعة التثبيت.",
-    "Progress_WingetInstalledSuccess": "تم تثبيت WinGet بنجاح",
     "Progress_ConvertingFormat": "جارٍ تحويل {0} إلى {1}...",
     "Progress_ConvertingEdition": "جارٍ تحويل الإصدار {0} من {1}...",
     "Progress_CopyingFile": "جارٍ النسخ: {0}",
@@ -1335,10 +1309,6 @@
     "Progress_WinGet_FailedInstallManager": "فشل تثبيت WinGet. لا يمكن تثبيت {0}.",
     "Progress_WinGet_StartingInstallation": "جارٍ بدء تثبيت {0}...",
     "Progress_WinGet_InstalledSuccess": "تم تثبيت {0} بنجاح",
-    "Progress_WinGet_RepairingInstallation": "جارٍ إصلاح تثبيت WinGet...",
-    "Progress_WinGet_FailedRepair": "فشل إصلاح WinGet. لا يمكن تثبيت {0}.",
-    "Progress_WinGet_FailedLocateAfterRepair": "فشل العثور على WinGet بعد الإصلاح. لا يمكن تثبيت {0}.",
-    "Progress_WinGet_RetryingInstallation": "جارٍ إعادة محاولة تثبيت {0}...",
     "Progress_WinGet_InstallationCancelled": "تم إلغاء تثبيت {0}",
     "Progress_WinGet_NetworkError": "خطأ في الشبكة أثناء تثبيت {0}. يرجى التحقق من اتصالك بالإنترنت والمحاولة مرة أخرى.",
     "Progress_WinGet_InstallationError": "خطأ أثناء تثبيت {0}: {1}",
@@ -1352,8 +1322,6 @@
     "Progress_WinGet_InstallFailed": "فشل تثبيت WinGet",
     "Progress_WinGet_VerifyingInstallation": "جارٍ التحقق من تثبيت WinGet...",
     "Progress_WinGet_VerificationFailed": "فشل التحقق من تثبيت WinGet",
-    "Progress_WinGet_InstalledNotAccessible": "تم تثبيت WinGet لكنه غير متاح. يرجى إعادة تشغيل التطبيق.",
-    "Progress_WinGet_InitializingSources": "جارٍ تهيئة مصادر WinGet...",
     "Progress_WinGet_InstalledSuccessfully": "تم تثبيت WinGet بنجاح",
     "Progress_WinGet_InstallError": "خطأ أثناء تثبيت WinGet: {0}",
     "Progress_Store_FetchingLinks": "جارٍ جلب روابط التنزيل لـ {0}...",
@@ -1362,8 +1330,6 @@
     "Progress_Store_FailedInstall": "فشل تثبيت {0}",
     "Progress_Store_DownloadCancelled": "تم إلغاء تنزيل {0}",
     "Progress_Store_InstallError": "خطأ أثناء تثبيت {0}: {1}",
-    "Progress_Store_RequestingPackageInfo": "جارٍ طلب معلومات الحزمة لـ {0}...",
-    "Progress_Store_DownloadingMainPackage": "جارٍ تنزيل الحزمة الرئيسية لـ {0}...",
     "Progress_Store_DownloadingDependencies": "جارٍ تنزيل الحزم التابعة المطلوبة لـ {0}...",
     "Progress_Store_InstallingWithDependencies": "جارٍ تثبيت {0} مع {1} من التبعيات...",
     "Progress_Store_Installing": "جارٍ تثبيت {0}...",
@@ -1372,14 +1338,8 @@
     "Progress_Store_NonRecoverableError": "فشل التثبيت: {0}",
     "Progress_WinGet_CheckingUpdates": "جارٍ التحقق من تحديثات WinGet...",
     "Progress_WinGet_Updating": "جارٍ تحديث WinGet...",
-    "Progress_WinGet_CheckingVersion": "جارٍ التحقق من إصدار WinGet...",
-    "Progress_WinGet_UpdateInitiated": "تم بدء تحديث WinGet عبر المتجر، جارٍ التحقق من الاكتمال...",
-    "Progress_WinGet_WaitingForUpdate": "جارٍ انتظار اكتمال تحديث WinGet...",
-    "Progress_WinGet_Reinstalling": "جارٍ إعادة تثبيت WinGet...",
     "Progress_WinGet_UpdateSuccess": "تم تحديث WinGet بنجاح",
-    "Progress_WinGet_UpdateCompleted": "اكتمل تحديث WinGet",
     "Progress_WinGet_AlreadyUpToDate": "WinGet محدث بالفعل",
-    "Progress_WinGet_InstalledLatest": "WinGet مثبت بالفعل بأحدث إصدار",
     "Progress_WinGet_Ready": "WinGet جاهز",
     "Progress_DeletingImageFile": "جارٍ حذف ملف الصورة...",
     "Progress_ImageFileDeleted": "تم حذف ملف الصورة بنجاح",
@@ -1402,6 +1362,125 @@
     "Button_Unlock": "إلغاء القفل",
     "Common_ClickToUnlock": "انقر لإلغاء القفل",
     "Setting_taskbar-copilot_Name": "زر معاينة Copilot",
-    "Setting_taskbar-copilot_Description": "إظهار أو إخفاء زر معاينة Copilot على شريط المهام"
+    "Setting_taskbar-copilot_Description": "إظهار أو إخفاء زر معاينة Copilot على شريط المهام",
+    "Theme_System": "النظام",
+    "Theme_LightNative": "فاتح",
+    "Theme_DarkNative": "داكن",
+    "Theme_LegacyWhite": "فاتح كلاسيكي",
+    "Theme_LegacyDark": "داكن كلاسيكي",
+    "Dialog_SaveRemovalScripts": "حفظ سكربتات الإزالة لضمان الإزالة المستمرة",
+    "Dialog_Update_NoUpdates_Title": "لا توجد تحديثات متاحة",
+    "Dialog_Update_NoUpdates_Message": "لديك أحدث إصدار من Winhance.",
+    "Dialog_Update_CheckError_Title": "خطأ في التحقق من التحديثات",
+    "Dialog_Update_CheckError_Message": "حدث خطأ أثناء التحقق من التحديثات: {0}",
+    "Dialog_ImportOptions_Message": "اختر كيف تريد استيراد التكوين:",
+    "Button_Delete": "حذف",
+    "Category_AdvancedTools_StatusText": "أدوات متقدمة لتخصيص Windows",
+    "SettingGroup_Frequently_Used_Items": "العناصر المستخدمة بكثرة",
+    "SettingGroup_Theme_Mode": "وضع السمة",
+    "SettingGroup_Transparency": "الشفافية",
+    "SettingGroup_Other": "أخرى",
+    "ViewMode_Table": "عرض الجدول",
+    "ViewMode_Card": "عرض البطاقات",
+    "PowerPlan_Active_Badge": "[نشط]",
+    "PowerPlan_Status_Exists": "مثبت على النظام",
+    "PowerPlan_Status_NotExists": "خطة محددة مسبقاً (انقر للتثبيت)",
+    "PowerPlan_Delete_Tooltip": "حذف خطة الطاقة هذه",
+    "Dialog_DeletePowerPlan_Title": "حذف خطة الطاقة",
+    "Dialog_DeletePowerPlan_Message": "هل أنت متأكد أنك تريد حذف خطة الطاقة التالية؟\n\n{0}",
+    "Dialog_CannotDeleteActivePlan_Title": "لا يمكن حذف الخطة النشطة",
+    "Dialog_CannotDeleteActivePlan_Message": "لا يمكنك حذف خطة الطاقة النشطة حالياً. يرجى التبديل إلى خطة مختلفة أولاً.",
+    "Dialog_CannotDeletePlan_Title": "لا يمكن حذف الخطة",
+    "Dialog_CannotDeletePlan_Message": "هذه الخطة غير موجودة على النظام ولا يمكن حذفها.",
+    "Dialog_DeleteFailed_Title": "فشل الحذف",
+    "Dialog_DeleteFailed_Message": "فشل حذف خطة الطاقة '{0}'. تحقق من السجلات لمزيد من التفاصيل.",
+    "AdvancedTools_GenerateCard_Description": "إنشاء ملف autounattend.xml بناءً على اختياراتك الحالية في Winhance لتخصيص Windows أثناء التثبيت.",
+    "AdvancedTools_InfoBar_MoreOptionsTitle": "المزيد من خيارات الإنشاء قادمة قريباً",
+    "AdvancedTools_InfoBar_MoreOptionsMessage": "ستتوفر خيارات تخصيص XML إضافية في التحديثات المستقبلية.",
+    "Progress_WinGet_CheckingExisting": "جارٍ التحقق من حزمة WinGet الموجودة...",
+    "Progress_WinGet_ProvisioningExisting": "جارٍ توفير حزمة WinGet الموجودة...",
+    "Progress_WinGet_WaitingForRegistration": "جارٍ انتظار تسجيل WinGet COM...",
+    "Progress_Uninstalling": "جارٍ إلغاء تثبيت {0}...",
+    "Progress_Finalizing": "جارٍ الإنهاء...",
+    "Progress_Processing": "جارٍ معالجة {0}...",
+    "Progress_WinGet_DownloadingDependencies": "جارٍ تنزيل تبعيات WinGet...",
+    "Progress_WinGet_DownloadingInstaller": "جارٍ تنزيل مثبّت WinGet...",
+    "Progress_WinGet_DownloadingLicense": "جارٍ تنزيل الترخيص...",
+    "Progress_WinGet_ExtractingDependencies": "جارٍ استخراج التبعيات...",
+    "Progress_WinGet_InstallingMachineWide": "جارٍ تثبيت WinGet (على مستوى الجهاز)...",
+    "Progress_WinGet_InstallCancelled": "تم إلغاء التثبيت",
+    "Progress_WinGet_OpeningDismSession": "جارٍ فتح جلسة DISM...",
+    "Progress_WinGet_Provisioning": "جارٍ توفير حزمة WinGet...",
+    "Progress_WinGet_ProvisionedSuccessfully": "تم توفير WinGet بنجاح",
+    "Progress_WinGet_Error_BlockedByPolicy": "تم حظر تثبيت '{0}' بواسطة سياسة النظام.",
+    "Progress_WinGet_Error_CatalogError": "خطأ في الكتالوج أثناء تثبيت '{0}'. يرجى المحاولة مرة أخرى.",
+    "Progress_WinGet_Error_InternalError": "خطأ داخلي أثناء تثبيت '{0}'. يرجى المحاولة مرة أخرى.",
+    "Progress_WinGet_Error_InvalidOptions": "خيارات غير صالحة محددة لتثبيت '{0}'.",
+    "Progress_WinGet_Error_DownloadError": "خطأ في التنزيل أثناء تثبيت '{0}'. يرجى التحقق من اتصالك بالإنترنت.",
+    "Progress_WinGet_Error_InstallError": "خطأ في تثبيت '{0}'. رمز الخطأ: {1}",
+    "Progress_WinGet_Error_ManifestError": "خطأ في بيان الحزمة لـ '{0}'.",
+    "Progress_WinGet_Error_NoApplicableInstallers": "لم يتم العثور على مثبّتات مناسبة لـ '{0}' على هذا النظام.",
+    "Progress_WinGet_Error_NoApplicableUpgrade": "لم يتم العثور على ترقية مناسبة لـ '{0}'.",
+    "Progress_WinGet_Error_AgreementsNotAccepted": "لم يتم قبول اتفاقيات الحزمة لـ '{0}'.",
+    "Progress_WinGet_Error_InstallFailed": "فشل تثبيت '{0}'. الحالة: {1}",
+    "Progress_WinGet_Error_UninstallBlockedByPolicy": "تم حظر إلغاء تثبيت '{0}' بواسطة سياسة النظام.",
+    "Progress_WinGet_Error_UninstallCatalogError": "خطأ في الكتالوج أثناء إلغاء تثبيت '{0}'.",
+    "Progress_WinGet_Error_UninstallInternalError": "خطأ داخلي أثناء إلغاء تثبيت '{0}'.",
+    "Progress_WinGet_Error_UninstallInvalidOptions": "خيارات غير صالحة محددة لإلغاء تثبيت '{0}'.",
+    "Progress_WinGet_Error_UninstallError": "خطأ في إلغاء تثبيت '{0}'. رمز الخطأ: {1}",
+    "Progress_WinGet_Error_UninstallFailed": "فشل إلغاء تثبيت '{0}'. الحالة: {1}",
+    "Progress_WinGet_PackageNotFound": "لم يتم العثور على الحزمة '{0}' في المستودعات.",
+    "Progress_WinGet_FoundPackage": "تم العثور على الحزمة: {0}",
+    "Progress_WinGet_PackageNotInstalled": "الحزمة '{0}' غير موجودة أو غير مثبتة.",
+    "App_Tagline": "عزّز تجربتك في Windows",
+    "Loading_InitializingSettings": "جارٍ تهيئة الإعدادات...",
+    "Loading_MigratingScripts": "جارٍ ترحيل السكربتات...",
+    "Loading_CheckingScripts": "جارٍ التحقق من تحديثات السكربتات...",
+    "Loading_PreparingApp": "جارٍ تحميل التطبيقات والتحقق من حالة التثبيت...",
+    "Tooltip_Documentation": "التوثيق",
+  "Tooltip_ToggleNavigation": "\u062A\u0628\u062F\u064A\u0644 \u0627\u0644\u062A\u0646\u0642\u0644",
+    "Dialog_ImportConfig_Option_Backup_Title": "استيراد نسخة احتياطية للتكوين",
+    "Dialog_ImportConfig_Option_Backup_Description": "استعادة تكوين النسخة الاحتياطية للنظام",
+    "Dialog_ImportConfig_Option_Defaults_Title": "استعادة إعدادات Windows الافتراضية",
+    "Dialog_ImportConfig_Option_Defaults_Description": "إعادة تعيين جميع الإعدادات إلى إعدادات المصنع الافتراضية لـ Windows",
+    "Loading_CreatingConfigBackup": "جارٍ إنشاء نسخة احتياطية للتكوين...",
+    "Config_Backup_NotFound": "لم يتم العثور على ملفات نسخ احتياطي للتكوين. يتم إنشاء نسخة احتياطية تلقائياً عند أول تشغيل للتطبيق.",
+    "Config_Backup_NotFound_Title": "لم يتم العثور على نسخة احتياطية",
+    "Config_Backup_Select_Title": "اختيار ملف النسخة الاحتياطية",
+    "Review_Mode_Title": "وضع مراجعة التكوين",
+    "Review_Mode_Description": "راجع التغييرات في جميع الأقسام، ثم انقر على تطبيق التكوين عندما تكون جاهزاً.",
+    "Review_Mode_Status_Format": "{0} من {1} تمت مراجعتها ({2} سيتم تطبيقها)",
+    "Review_Mode_Apply_Button": "تطبيق التكوين",
+    "Review_Mode_Cancel_Button": "إلغاء",
+    "Review_Mode_Cancel_Confirmation_Title": "إلغاء مراجعة التكوين",
+    "Review_Mode_Cancel_Confirmation": "هل أنت متأكد أنك تريد الإلغاء؟ لن يتم تطبيق أي تغييرات.",
+    "Review_Mode_Diff_Toggle": "الحالي: {0} → التكوين: {1}",
+    "Review_Mode_Select_Action": "حدد إجراءً (تثبيت أو إلغاء تثبيت) للتطبيقات المحددة باستخدام الأزرار أعلاه",
+    "Review_Mode_Action_Install": "سيتم تثبيت التطبيقات المحددة عند تطبيق التكوين",
+    "Review_Mode_Action_Remove": "سيتم إزالة التطبيقات المحددة عند تطبيق التكوين",
+    "Review_Mode_Skip_Checkbox": "تخطي المراجعة والتطبيق فوراً",
+    "Review_Mode_Status_AllMatch": "جميع الإعدادات تتطابق مع التكوين",
+    "Review_Mode_Status_NoItems": "لا توجد عناصر تكوين للتطبيق",
+    "Review_Mode_Action_ThemeWallpaper": "هل تريد تطبيق خلفية الشاشة الافتراضية لهذه السمة؟",
+    "Review_Mode_Action_CleanTaskbar": "هل تريد تنظيف شريط المهام كجزء من هذا التكوين؟",
+    "Review_Mode_Action_CleanStartMenu": "هل تريد تنظيف قائمة ابدأ كجزء من هذا التكوين؟",
+    "Startup_Backup_ConfigBackup": "• نسخة احتياطية للتكوين: لقطة من إعدادات Windows الحالية",
+    "Startup_Backup_RestoreInstructions_RestorePoint": "• استعادة النظام: ابحث عن 'إنشاء نقطة استعادة' في إعدادات Windows",
+    "Startup_Backup_RestoreInstructions_ConfigBackup": "• نسخة التكوين الاحتياطية: استخدم استيراد التكوين في شريط العنوان واختر 'استيراد نسخة احتياطية للتكوين'",
+    "Help_LearnMore_WindowsApps": "تعرف على المزيد حول تطبيقات Windows",
+    "Help_LearnMore_ExternalApps": "تعرف على المزيد حول التطبيقات الخارجية",
+    "WIMUtil_Tooltip_DownloadWindows10": "تنزيل Windows 10 ISO",
+    "WIMUtil_Tooltip_DownloadWindows11": "تنزيل Windows 11 ISO",
+    "WIMUtil_Tooltip_Schneegans": "فتح مولّد Schneegans XML",
+    "WIMUtil_Card_SelectDirectory_Description_Default": "الافتراضي: {0}",
+    "WIMUtil_Msg_DeleteWimConfirm": "هل أنت متأكد أنك تريد حذف ملف صورة WIM؟ لا يمكن التراجع عن هذا الإجراء.",
+    "WIMUtil_Msg_DeleteEsdConfirm": "هل أنت متأكد أنك تريد حذف ملف صورة ESD؟ لا يمكن التراجع عن هذا الإجراء.",
+    "WIMUtil_Msg_DeleteWimSuccess": "تم حذف ملف WIM بنجاح.",
+    "WIMUtil_Msg_DeleteEsdSuccess": "تم حذف ملف ESD بنجاح.",
+    "WIMUtil_Msg_DeleteFailed": "فشل حذف ملف الصورة.",
+    "WIMUtil_Msg_DeleteError": "خطأ في حذف ملف الصورة: {0}",
+    "WIMUtil_Status_ConvertingToFormat": "جارٍ تحويل {0} إلى {1}...",
+    "WIMUtil_Status_CreatingIso": "جارٍ إنشاء ISO",
+    "WIMUtil_Button_OpenFolder": "فتح المجلد",
+    "Loading_CheckingSystemProtection": "جارٍ التحقق من حماية النظام..."
   }
-  

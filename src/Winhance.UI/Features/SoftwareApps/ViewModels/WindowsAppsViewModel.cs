@@ -92,6 +92,14 @@ public partial class WindowsAppsViewModel : BaseViewModel
     [ObservableProperty]
     private string _searchText = string.Empty;
 
+    public string SectionAppsHeader => _localizationService.GetString("WindowsApps_Section_Apps") ?? "Windows Apps";
+    public string SectionCapabilitiesHeader => _localizationService.GetString("WindowsApps_Section_Capabilities") ?? "Windows Capabilities";
+    public string SectionOptionalFeaturesHeader => _localizationService.GetString("WindowsApps_Section_OptionalFeatures") ?? "Windows Optional Features";
+
+    public string SelectAllLabel => _localizationService.GetString("Common_SelectAll") ?? "Select All";
+    public string SelectAllInstalledLabel => _localizationService.GetString("Common_SelectAll_Installed") ?? "Select All Installed";
+    public string SelectAllNotInstalledLabel => _localizationService.GetString("Common_SelectAll_NotInstalled") ?? "Select All Not Installed";
+
     [ObservableProperty]
     private bool _isAllSelected;
 

@@ -871,6 +871,7 @@ public sealed partial class MainWindow : Window
                 UpdateFilterButtonIcon();
 
                 // Wire up tooltips
+                ToolTipService.SetToolTip(PaneToggleButton, _viewModel.ToggleNavigationTooltip);
                 ToolTipService.SetToolTip(SaveConfigButton, _viewModel.SaveConfigTooltip);
                 ToolTipService.SetToolTip(ImportConfigButton, _viewModel.ImportConfigTooltip);
                 ToolTipService.SetToolTip(WindowsFilterButton, _viewModel.WindowsFilterTooltip);
@@ -929,6 +930,10 @@ public sealed partial class MainWindow : Window
         else if (e.PropertyName == nameof(MainWindowViewModel.AppSubtitle) && _viewModel != null)
         {
             DispatcherQueue.TryEnqueue(() => AppSubtitleTextBlock.Text = _viewModel.AppSubtitle);
+        }
+        else if (e.PropertyName == nameof(MainWindowViewModel.ToggleNavigationTooltip) && _viewModel != null)
+        {
+            DispatcherQueue.TryEnqueue(() => ToolTipService.SetToolTip(PaneToggleButton, _viewModel.ToggleNavigationTooltip));
         }
         else if (e.PropertyName == nameof(MainWindowViewModel.SaveConfigTooltip) && _viewModel != null)
         {

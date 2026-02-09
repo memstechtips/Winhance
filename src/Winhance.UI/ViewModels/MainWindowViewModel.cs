@@ -12,6 +12,18 @@ using Winhance.UI.Features.Common.Interfaces;
 namespace Winhance.UI.ViewModels;
 
 /// <summary>
+/// Tracks the current state of the update InfoBar for language-change re-rendering.
+/// </summary>
+internal enum UpdateInfoBarState
+{
+    None,
+    UpdateAvailable,
+    NoUpdates,
+    CheckError,
+    Downloading
+}
+
+/// <summary>
 /// Event arguments for filter state changes.
 /// </summary>
 public class FilterStateChangedEventArgs : EventArgs
@@ -66,6 +78,12 @@ public partial class MainWindowViewModel : ObservableObject
 
     [ObservableProperty]
     private string _updateInfoBarMessage = string.Empty;
+
+    // Tracks InfoBar state for re-rendering on language change
+    private UpdateInfoBarState _updateInfoBarState = UpdateInfoBarState.None;
+    private string _cachedCurrentVersion = string.Empty;
+    private string _cachedLatestVersion = string.Empty;
+    private string _cachedErrorMessage = string.Empty;
 
     [ObservableProperty]
     private InfoBarSeverity _updateInfoBarSeverity;
@@ -154,6 +172,7 @@ public partial class MainWindowViewModel : ObservableObject
         OnPropertyChanged(nameof(SaveConfigTooltip));
         OnPropertyChanged(nameof(ImportConfigTooltip));
         OnPropertyChanged(nameof(WindowsFilterTooltip));
+        OnPropertyChanged(nameof(ToggleNavigationTooltip));
         OnPropertyChanged(nameof(DonateTooltip));
         OnPropertyChanged(nameof(BugReportTooltip));
         OnPropertyChanged(nameof(DocsTooltip));
@@ -171,6 +190,10 @@ public partial class MainWindowViewModel : ObservableObject
 
         // Update InfoBar
         OnPropertyChanged(nameof(InstallNowButtonText));
+        if (IsUpdateInfoBarOpen)
+        {
+            RefreshUpdateInfoBarText();
+        }
     }
 
     /// <summary>
@@ -238,6 +261,9 @@ public partial class MainWindowViewModel : ObservableObject
             return Application.Current.Resources[resourceKey] as string ?? string.Empty;
         }
     }
+
+    public string ToggleNavigationTooltip =>
+        _localizationService.GetString("Tooltip_ToggleNavigation") ?? "Toggle Navigation";
 
     public string DonateTooltip =>
         _localizationService.GetString("Tooltip_Donate") ?? "Donate";
@@ -482,13 +508,10 @@ public partial class MainWindowViewModel : ObservableObject
             {
                 _logService.Log(Core.Features.Common.Enums.LogLevel.Info, $"Update available: {latestVersion.Version}");
 
-                var message = _localizationService.GetString("Dialog_Update_Message") ?? "Good News! A New Version of Winhance is available.";
-                var currentVersionLabel = _localizationService.GetString("Dialog_Update_CurrentVersion") ?? "Current Version:";
-                var latestVersionLabel = _localizationService.GetString("Dialog_Update_LatestVersion") ?? "Latest Version:";
-                var title = _localizationService.GetString("Dialog_Update_Title") ?? "Update Available";
-
-                UpdateInfoBarTitle = title;
-                UpdateInfoBarMessage = $"{message}  {currentVersionLabel} {currentVersion.Version}  →  {latestVersionLabel} {latestVersion.Version}";
+                _cachedCurrentVersion = currentVersion.Version;
+                _cachedLatestVersion = latestVersion.Version;
+                _updateInfoBarState = UpdateInfoBarState.UpdateAvailable;
+                RefreshUpdateInfoBarText();
                 UpdateInfoBarSeverity = InfoBarSeverity.Success;
                 IsUpdateActionButtonVisible = true;
                 IsUpdateInfoBarOpen = true;
@@ -497,11 +520,8 @@ public partial class MainWindowViewModel : ObservableObject
             {
                 _logService.Log(Core.Features.Common.Enums.LogLevel.Info, "No updates available");
 
-                var noUpdatesTitle = _localizationService.GetString("Dialog_Update_NoUpdates_Title") ?? "No Updates Available";
-                var noUpdatesMessage = _localizationService.GetString("Dialog_Update_NoUpdates_Message") ?? "You have the latest version of Winhance.";
-
-                UpdateInfoBarTitle = noUpdatesTitle;
-                UpdateInfoBarMessage = noUpdatesMessage;
+                _updateInfoBarState = UpdateInfoBarState.NoUpdates;
+                RefreshUpdateInfoBarText();
                 UpdateInfoBarSeverity = InfoBarSeverity.Success;
                 IsUpdateActionButtonVisible = false;
                 IsUpdateInfoBarOpen = true;
@@ -511,12 +531,9 @@ public partial class MainWindowViewModel : ObservableObject
         {
             _logService.Log(Core.Features.Common.Enums.LogLevel.Error, $"Error checking for updates: {ex.Message}");
 
-            var errorTitle = _localizationService.GetString("Dialog_Update_CheckError_Title") ?? "Update Check Error";
-            var errorMessageTemplate = _localizationService.GetString("Dialog_Update_CheckError_Message") ?? "An error occurred while checking for updates: {0}";
-            var errorMessage = string.Format(errorMessageTemplate, ex.Message);
-
-            UpdateInfoBarTitle = errorTitle;
-            UpdateInfoBarMessage = errorMessage;
+            _cachedErrorMessage = ex.Message;
+            _updateInfoBarState = UpdateInfoBarState.CheckError;
+            RefreshUpdateInfoBarText();
             UpdateInfoBarSeverity = InfoBarSeverity.Error;
             IsUpdateActionButtonVisible = false;
             IsUpdateInfoBarOpen = true;
@@ -532,8 +549,8 @@ public partial class MainWindowViewModel : ObservableObject
     {
         try
         {
-            var downloadingMessage = _localizationService.GetString("Dialog_Update_Status_Downloading") ?? "Downloading update...";
-            UpdateInfoBarMessage = downloadingMessage;
+            _updateInfoBarState = UpdateInfoBarState.Downloading;
+            RefreshUpdateInfoBarText();
             IsUpdateActionButtonVisible = false;
 
             await _versionService.DownloadAndInstallUpdateAsync();
@@ -568,13 +585,10 @@ public partial class MainWindowViewModel : ObservableObject
             {
                 _logService.Log(Core.Features.Common.Enums.LogLevel.Info, $"Startup: Update available: {latestVersion.Version}");
 
-                var message = _localizationService.GetString("Dialog_Update_Message") ?? "Good News! A New Version of Winhance is available.";
-                var currentVersionLabel = _localizationService.GetString("Dialog_Update_CurrentVersion") ?? "Current Version:";
-                var latestVersionLabel = _localizationService.GetString("Dialog_Update_LatestVersion") ?? "Latest Version:";
-                var title = _localizationService.GetString("Dialog_Update_Title") ?? "Update Available";
-
-                UpdateInfoBarTitle = title;
-                UpdateInfoBarMessage = $"{message}  {currentVersionLabel} {currentVersion.Version}  →  {latestVersionLabel} {latestVersion.Version}";
+                _cachedCurrentVersion = currentVersion.Version;
+                _cachedLatestVersion = latestVersion.Version;
+                _updateInfoBarState = UpdateInfoBarState.UpdateAvailable;
+                RefreshUpdateInfoBarText();
                 UpdateInfoBarSeverity = InfoBarSeverity.Success;
                 IsUpdateActionButtonVisible = true;
                 IsUpdateInfoBarOpen = true;
@@ -643,6 +657,40 @@ public partial class MainWindowViewModel : ObservableObject
     public void DismissUpdateInfoBar()
     {
         IsUpdateInfoBarOpen = false;
+        _updateInfoBarState = UpdateInfoBarState.None;
+    }
+
+    /// <summary>
+    /// Re-resolves InfoBar title/message from localization based on the current state.
+    /// Called when the InfoBar state is first set and on language change.
+    /// </summary>
+    private void RefreshUpdateInfoBarText()
+    {
+        switch (_updateInfoBarState)
+        {
+            case UpdateInfoBarState.UpdateAvailable:
+                var message = _localizationService.GetString("Dialog_Update_Message") ?? "Good News! A New Version of Winhance is available.";
+                var currentVersionLabel = _localizationService.GetString("Dialog_Update_CurrentVersion") ?? "Current Version:";
+                var latestVersionLabel = _localizationService.GetString("Dialog_Update_LatestVersion") ?? "Latest Version:";
+                UpdateInfoBarTitle = _localizationService.GetString("Dialog_Update_Title") ?? "Update Available";
+                UpdateInfoBarMessage = $"{message}  {currentVersionLabel} {_cachedCurrentVersion}  →  {latestVersionLabel} {_cachedLatestVersion}";
+                break;
+
+            case UpdateInfoBarState.NoUpdates:
+                UpdateInfoBarTitle = _localizationService.GetString("Dialog_Update_NoUpdates_Title") ?? "No Updates Available";
+                UpdateInfoBarMessage = _localizationService.GetString("Dialog_Update_NoUpdates_Message") ?? "You have the latest version of Winhance.";
+                break;
+
+            case UpdateInfoBarState.CheckError:
+                UpdateInfoBarTitle = _localizationService.GetString("Dialog_Update_CheckError_Title") ?? "Update Check Error";
+                var errorTemplate = _localizationService.GetString("Dialog_Update_CheckError_Message") ?? "An error occurred while checking for updates: {0}";
+                UpdateInfoBarMessage = string.Format(errorTemplate, _cachedErrorMessage);
+                break;
+
+            case UpdateInfoBarState.Downloading:
+                UpdateInfoBarMessage = _localizationService.GetString("Dialog_Update_Status_Downloading") ?? "Downloading update...";
+                break;
+        }
     }
 
     #endregion

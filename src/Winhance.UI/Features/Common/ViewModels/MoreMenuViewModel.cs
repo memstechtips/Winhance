@@ -15,6 +15,7 @@ public partial class MoreMenuViewModel : ObservableObject
     private readonly ILocalizationService _localizationService;
     private readonly IVersionService _versionService;
     private readonly ILogService _logService;
+    private readonly IApplicationCloseService _applicationCloseService;
 
     [ObservableProperty]
     private string _versionInfo = "Winhance";
@@ -22,11 +23,13 @@ public partial class MoreMenuViewModel : ObservableObject
     public MoreMenuViewModel(
         ILocalizationService localizationService,
         IVersionService versionService,
-        ILogService logService)
+        ILogService logService,
+        IApplicationCloseService applicationCloseService)
     {
         _localizationService = localizationService;
         _versionService = versionService;
         _logService = logService;
+        _applicationCloseService = applicationCloseService;
 
         // Subscribe to language changes
         _localizationService.LanguageChanged += OnLanguageChanged;
@@ -63,10 +66,10 @@ public partial class MoreMenuViewModel : ObservableObject
     #region Localized Strings
 
     public string MenuDocumentation =>
-        _localizationService.GetString("Menu_Documentation") ?? "Documentation";
+        _localizationService.GetString("Tooltip_Documentation") ?? "Documentation";
 
     public string MenuReportBug =>
-        _localizationService.GetString("Menu_ReportBug") ?? "Report a Bug";
+        _localizationService.GetString("Tooltip_ReportBug") ?? "Report a Bug";
 
     public string MenuCheckForUpdates =>
         _localizationService.GetString("Menu_CheckForUpdates") ?? "Check for Updates";
@@ -166,12 +169,12 @@ public partial class MoreMenuViewModel : ObservableObject
     }
 
     [RelayCommand]
-    private void CloseApplication()
+    private async Task CloseApplicationAsync()
     {
         try
         {
             _logService.LogInformation("User requested application close from More menu");
-            Application.Current.Exit();
+            await _applicationCloseService.CheckOperationsAndCloseAsync();
         }
         catch (Exception ex)
         {
