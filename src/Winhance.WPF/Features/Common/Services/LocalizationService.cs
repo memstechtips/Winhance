@@ -31,6 +31,8 @@ namespace Winhance.WPF.Features.Common.Services
 
         public string CurrentLanguage => _currentLanguageCode;
 
+        public bool IsRightToLeft => _currentCulture.TextInfo.IsRightToLeft;
+
         public string GetString(string key)
         {
             if (_currentStrings.TryGetValue(key, out var value) && !string.IsNullOrEmpty(value))

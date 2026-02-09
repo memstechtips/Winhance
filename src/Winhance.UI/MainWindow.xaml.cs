@@ -1,3 +1,4 @@
+using System.Linq;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.UI.Composition.SystemBackdrops;
 using Microsoft.UI.Input;
@@ -15,12 +16,14 @@ using Winhance.UI.Features.Customize;
 using Winhance.UI.Features.Optimize;
 using Winhance.UI.Features.Settings;
 using Winhance.UI.Features.SoftwareApps;
+using Winhance.UI.Features.SoftwareApps.ViewModels;
 using Winhance.UI.Features.Common.Utilities;
 using Winhance.UI.ViewModels;
 using System;
 using System.Collections.Generic;
 using System.IO;
 using System.Threading.Tasks;
+using Winhance.Core.Features.Common.Models;
 using Windows.Foundation;
 using Windows.Graphics;
 
@@ -34,7 +37,10 @@ public sealed partial class MainWindow : Window
     private static readonly string LogFile = Path.Combine(AppContext.BaseDirectory, "..", "..", "..", "..", "..", "startup-debug.log");
     private MainWindowViewModel? _viewModel;
     private WindowSizeManager? _windowSizeManager;
+    private IConfigReviewService? _configReviewService;
+    private BackupResult? _backupResult;
     private bool _isStartupLoading = true;
+    private bool _softwareAppsBadgeSubscribed;
 
     private static void Log(string message)
     {
@@ -71,6 +77,9 @@ public sealed partial class MainWindow : Window
         // Initialize DispatcherService - MUST be done before any service uses it
         // This is required because DispatcherQueue is only available after window creation
         InitializeDispatcherService();
+
+        // Apply initial FlowDirection for RTL languages and subscribe to language changes
+        InitializeFlowDirection();
 
         // Set up title bar after loaded
         AppTitleBar.Loaded += AppTitleBar_Loaded;
@@ -203,6 +212,46 @@ public sealed partial class MainWindow : Window
     }
 
     /// <summary>
+    /// Sets the initial FlowDirection based on the current language and subscribes
+    /// to language changes so RTL languages (e.g. Arabic) mirror the entire UI.
+    /// </summary>
+    private void InitializeFlowDirection()
+    {
+        try
+        {
+            var localizationService = App.Services.GetService<ILocalizationService>();
+            if (localizationService != null)
+            {
+                ApplyFlowDirection(localizationService.IsRightToLeft);
+                localizationService.LanguageChanged += (_, _) =>
+                {
+                    DispatcherQueue.TryEnqueue(() => ApplyFlowDirection(localizationService.IsRightToLeft));
+                };
+            }
+        }
+        catch (Exception ex)
+        {
+            System.Diagnostics.Debug.WriteLine($"Failed to initialize FlowDirection: {ex.Message}");
+        }
+    }
+
+    /// <summary>
+    /// Applies the appropriate FlowDirection to the root grid and refreshes title bar padding.
+    /// </summary>
+    private void ApplyFlowDirection(bool isRightToLeft)
+    {
+        RootGrid.FlowDirection = isRightToLeft
+            ? FlowDirection.RightToLeft
+            : FlowDirection.LeftToRight;
+
+        // Re-apply title bar padding since column positions flip with FlowDirection
+        if (AppTitleBar.IsLoaded)
+        {
+            SetTitleBarPadding();
+        }
+    }
+
+    /// <summary>
     /// Called when the root grid is loaded. Sets up services that need XamlRoot.
     /// </summary>
     private void RootGrid_Loaded(object sender, RoutedEventArgs e)
@@ -257,6 +306,132 @@ public sealed partial class MainWindow : Window
         NavSidebar.TogglePane();
     }
 
+    #region Review Mode Badges
+
+    private void OnReviewModeBadgeChanged(object? sender, EventArgs e)
+    {
+        DispatcherQueue.TryEnqueue(() =>
+        {
+            if (_configReviewService?.IsInReviewMode == true)
+            {
+                SubscribeToSoftwareAppsChanges();
+                UpdateNavBadges();
+            }
+            else
+            {
+                NavSidebar.ClearAllBadges();
+                UnsubscribeFromSoftwareAppsChanges();
+            }
+        });
+    }
+
+    private void OnBadgeStateChanged(object? sender, EventArgs e)
+    {
+        DispatcherQueue.TryEnqueue(UpdateNavBadges);
+    }
+
+    private void UpdateNavBadges()
+    {
+        if (_configReviewService == null || !_configReviewService.IsInReviewMode) return;
+
+        foreach (var tag in new[] { "SoftwareApps", "Optimize", "Customize" })
+        {
+            // For SoftwareApps in review mode, use actual VM selections for reactive badge
+            var count = tag == "SoftwareApps" && _softwareAppsBadgeSubscribed
+                ? GetSoftwareAppsSelectedCount()
+                : _configReviewService.GetNavBadgeCount(tag);
+
+            if (count > 0)
+            {
+                if (_configReviewService.IsSectionFullyReviewed(tag))
+                {
+                    // Fully reviewed: show checkmark only (no count number)
+                    NavSidebar.SetButtonBadge(tag, -1, "SuccessIcon");
+                }
+                else
+                {
+                    // Not fully reviewed: show attention badge with count
+                    NavSidebar.SetButtonBadge(tag, count, "Attention");
+                }
+            }
+            else
+            {
+                // Check if this section has any features in the config (0 diffs = all match)
+                bool sectionInConfig = tag switch
+                {
+                    "SoftwareApps" => _configReviewService.IsFeatureInConfig(FeatureIds.WindowsApps)
+                                   || _configReviewService.IsFeatureInConfig(FeatureIds.ExternalApps),
+                    "Optimize" => FeatureDefinitions.OptimizeFeatures.Any(f => _configReviewService.IsFeatureInConfig(f)),
+                    "Customize" => FeatureDefinitions.CustomizeFeatures.Any(f => _configReviewService.IsFeatureInConfig(f)),
+                    _ => false
+                };
+
+                if (sectionInConfig)
+                {
+                    // Show success checkmark badge only (no count number)
+                    NavSidebar.SetButtonBadge(tag, -1, "SuccessIcon");
+                }
+                else
+                {
+                    NavSidebar.SetButtonBadge(tag, -1, string.Empty);
+                }
+            }
+        }
+    }
+
+    private void SubscribeToSoftwareAppsChanges()
+    {
+        if (_softwareAppsBadgeSubscribed) return;
+
+        var windowsAppsVm = App.Services.GetService<WindowsAppsViewModel>();
+        var externalAppsVm = App.Services.GetService<ExternalAppsViewModel>();
+
+        if (windowsAppsVm != null)
+            windowsAppsVm.PropertyChanged += OnSoftwareAppsPropertyChanged;
+        if (externalAppsVm != null)
+            externalAppsVm.PropertyChanged += OnSoftwareAppsPropertyChanged;
+
+        _softwareAppsBadgeSubscribed = true;
+    }
+
+    private void UnsubscribeFromSoftwareAppsChanges()
+    {
+        if (!_softwareAppsBadgeSubscribed) return;
+
+        var windowsAppsVm = App.Services.GetService<WindowsAppsViewModel>();
+        var externalAppsVm = App.Services.GetService<ExternalAppsViewModel>();
+
+        if (windowsAppsVm != null)
+            windowsAppsVm.PropertyChanged -= OnSoftwareAppsPropertyChanged;
+        if (externalAppsVm != null)
+            externalAppsVm.PropertyChanged -= OnSoftwareAppsPropertyChanged;
+
+        _softwareAppsBadgeSubscribed = false;
+    }
+
+    private void OnSoftwareAppsPropertyChanged(object? sender, System.ComponentModel.PropertyChangedEventArgs e)
+    {
+        if ((e.PropertyName == "HasSelectedItems" || e.PropertyName == "IsSelected") && _configReviewService?.IsInReviewMode == true)
+        {
+            DispatcherQueue.TryEnqueue(UpdateNavBadges);
+        }
+    }
+
+    private int GetSoftwareAppsSelectedCount()
+    {
+        var windowsAppsVm = App.Services.GetService<WindowsAppsViewModel>();
+        var externalAppsVm = App.Services.GetService<ExternalAppsViewModel>();
+
+        int count = 0;
+        if (windowsAppsVm?.Items != null)
+            count += windowsAppsVm.Items.Count(a => a.IsSelected);
+        if (externalAppsVm?.Items != null)
+            count += externalAppsVm.Items.Count(a => a.IsSelected);
+        return count;
+    }
+
+    #endregion
+
     /// <summary>
     /// Handles navigation when a NavButton is clicked in the sidebar.
     /// </summary>
@@ -309,6 +484,14 @@ public sealed partial class MainWindow : Window
                 Log($"Navigating to {pageType.Name}...");
                 var result = ContentFrame.Navigate(pageType);
                 Log($"Navigate result: {result}");
+
+                // Mark SoftwareApps features as visited when navigating to that page
+                if (tag == "SoftwareApps" && _configReviewService?.IsInReviewMode == true)
+                {
+                    _configReviewService.MarkFeatureVisited(FeatureIds.WindowsApps);
+                    _configReviewService.MarkFeatureVisited(FeatureIds.ExternalApps);
+                    SubscribeToSoftwareAppsChanges();
+                }
             }
             catch (Exception ex)
             {
@@ -370,18 +553,53 @@ public sealed partial class MainWindow : Window
                 System.Diagnostics.Debug.WriteLine($"Failed to initialize settings registry: {ex.Message}");
             }
 
-            // 2. System restore point (respects SkipSystemBackup preference)
+            // 2. User backup config (first-run only)
+            try
+            {
+                var preferencesService = App.Services.GetRequiredService<IUserPreferencesService>();
+                var backupCompleted = preferencesService.GetPreference(UserPreferenceKeys.InitialConfigBackupCompleted, "false");
+                if (!string.Equals(backupCompleted, "true", StringComparison.OrdinalIgnoreCase))
+                {
+                    UpdateLoadingStatus("Loading_CreatingConfigBackup");
+                    Log("Startup: Creating user backup config...");
+                    var configService = App.Services.GetRequiredService<IConfigurationService>();
+                    await configService.CreateUserBackupConfigAsync().ConfigureAwait(false);
+                    await preferencesService.SetPreferenceAsync(UserPreferenceKeys.InitialConfigBackupCompleted, "true");
+                    Log("Startup: User backup config done");
+                }
+                else
+                {
+                    Log("Startup: User backup config already completed");
+                }
+            }
+            catch (Exception ex)
+            {
+                Log($"Startup: User backup config FAILED: {ex.Message}");
+                System.Diagnostics.Debug.WriteLine($"User backup config failed: {ex.Message}");
+            }
+
+            // 3. System restore point (respects SkipSystemBackup preference)
             try
             {
                 var preferencesService = App.Services.GetRequiredService<IUserPreferencesService>();
                 var skipBackup = preferencesService.GetPreference(UserPreferenceKeys.SkipSystemBackup, "false");
                 if (!string.Equals(skipBackup, "true", StringComparison.OrdinalIgnoreCase))
                 {
-                    UpdateLoadingStatus("Loading_CreatingRestorePoint");
-                    Log("Startup: Creating system restore point...");
+                    UpdateLoadingStatus("Loading_CheckingSystemProtection");
+                    Log("Startup: Checking system protection...");
                     var backupService = App.Services.GetRequiredService<ISystemBackupService>();
-                    await backupService.EnsureInitialBackupsAsync().ConfigureAwait(false);
-                    Log("Startup: System restore point done");
+                    var backupProgress = new Progress<Core.Features.Common.Models.TaskProgressDetail>(detail =>
+                    {
+                        if (!string.IsNullOrEmpty(detail.StatusText))
+                        {
+                            DispatcherQueue.TryEnqueue(() =>
+                            {
+                                try { LoadingStatusText.Text = detail.StatusText; } catch { }
+                            });
+                        }
+                    });
+                    _backupResult = await backupService.EnsureInitialBackupsAsync(backupProgress).ConfigureAwait(false);
+                    Log("Startup: System protection check done");
                 }
                 else
                 {
@@ -394,7 +612,7 @@ public sealed partial class MainWindow : Window
                 System.Diagnostics.Debug.WriteLine($"System backup failed: {ex.Message}");
             }
 
-            // 3. Script migration
+            // 4. Script migration
             try
             {
                 UpdateLoadingStatus("Loading_MigratingScripts");
@@ -409,7 +627,7 @@ public sealed partial class MainWindow : Window
                 System.Diagnostics.Debug.WriteLine($"Script migration failed: {ex.Message}");
             }
 
-            // 4. Script updates
+            // 5. Script updates
             try
             {
                 UpdateLoadingStatus("Loading_CheckingScripts");
@@ -424,7 +642,7 @@ public sealed partial class MainWindow : Window
                 System.Diagnostics.Debug.WriteLine($"Script update check failed: {ex.Message}");
             }
 
-            // 5. Complete startup — navigate to SoftwareApps and wait for it to finish loading
+            // 6. Complete startup — navigate to SoftwareApps and wait for it to finish loading
             UpdateLoadingStatus("Loading_PreparingApp");
             Log("Startup: Completing startup...");
             DispatcherQueue.TryEnqueue(() => _ = CompleteStartupAsync());
@@ -490,10 +708,23 @@ public sealed partial class MainWindow : Window
         LoadingOverlay.Visibility = Visibility.Collapsed;
         Log("Startup complete, overlay hidden");
 
+        // Show backup notification dialog if backups were created
+        try
+        {
+            var startupNotifications = App.Services.GetRequiredService<IStartupNotificationService>();
+            await startupNotifications.ShowBackupNotificationAsync(_backupResult);
+        }
+        catch (Exception ex)
+        {
+            Log($"Startup notification failed: {ex.Message}");
+        }
+
         // Check for updates silently (only shows InfoBar if update available)
+        // Ensure WinGet is ready (shows task progress if installation/update needed)
         if (_viewModel != null)
         {
             _ = _viewModel.CheckForUpdatesOnStartupAsync();
+            _ = _viewModel.EnsureWinGetReadyOnStartupAsync();
         }
     }
 
@@ -634,6 +865,7 @@ public sealed partial class MainWindow : Window
                 WindowsFilterButton.Command = _viewModel.ToggleWindowsFilterCommand;
                 DonateButton.Command = _viewModel.DonateCommand;
                 BugReportButton.Command = _viewModel.BugReportCommand;
+                DocsButton.Command = _viewModel.DocsCommand;
 
                 // Set initial filter button icon
                 UpdateFilterButtonIcon();
@@ -644,6 +876,7 @@ public sealed partial class MainWindow : Window
                 ToolTipService.SetToolTip(WindowsFilterButton, _viewModel.WindowsFilterTooltip);
                 ToolTipService.SetToolTip(DonateButton, _viewModel.DonateTooltip);
                 ToolTipService.SetToolTip(BugReportButton, _viewModel.BugReportTooltip);
+                ToolTipService.SetToolTip(DocsButton, _viewModel.DocsTooltip);
 
                 // Subscribe to icon changes
                 _viewModel.PropertyChanged += ViewModel_PropertyChanged;
@@ -664,6 +897,14 @@ public sealed partial class MainWindow : Window
 
                 // Load filter preference asynchronously
                 _ = _viewModel.LoadFilterPreferenceAsync();
+
+                // Subscribe to review mode badge events
+                _configReviewService = App.Services.GetService<IConfigReviewService>();
+                if (_configReviewService != null)
+                {
+                    _configReviewService.ReviewModeChanged += OnReviewModeBadgeChanged;
+                    _configReviewService.BadgeStateChanged += OnBadgeStateChanged;
+                }
             }
         }
         catch (Exception ex)
@@ -708,6 +949,10 @@ public sealed partial class MainWindow : Window
         else if (e.PropertyName == nameof(MainWindowViewModel.BugReportTooltip) && _viewModel != null)
         {
             DispatcherQueue.TryEnqueue(() => ToolTipService.SetToolTip(BugReportButton, _viewModel.BugReportTooltip));
+        }
+        else if (e.PropertyName == nameof(MainWindowViewModel.DocsTooltip) && _viewModel != null)
+        {
+            DispatcherQueue.TryEnqueue(() => ToolTipService.SetToolTip(DocsButton, _viewModel.DocsTooltip));
         }
         else if (e.PropertyName == nameof(MainWindowViewModel.WindowsFilterIcon) && _viewModel != null)
         {
@@ -754,6 +999,37 @@ public sealed partial class MainWindow : Window
               || e.PropertyName == nameof(MainWindowViewModel.InstallNowButtonText) && _viewModel != null)
         {
             DispatcherQueue.TryEnqueue(UpdateInfoBarActionButton);
+        }
+        else if (e.PropertyName == nameof(MainWindowViewModel.IsWindowsFilterButtonEnabled) && _viewModel != null)
+        {
+            DispatcherQueue.TryEnqueue(() =>
+            {
+                WindowsFilterButton.IsEnabled = _viewModel.IsWindowsFilterButtonEnabled;
+                WindowsFilterIcon.Opacity = _viewModel.IsWindowsFilterButtonEnabled ? 1.0 : 0.4;
+            });
+        }
+        else if (e.PropertyName == nameof(MainWindowViewModel.IsInReviewMode) && _viewModel != null)
+        {
+            DispatcherQueue.TryEnqueue(() =>
+            {
+                ReviewModeBar.Visibility = _viewModel.IsInReviewMode ? Visibility.Visible : Visibility.Collapsed;
+                if (_viewModel.IsInReviewMode)
+                {
+                    ReviewModeTitleText.Text = _viewModel.ReviewModeTitleText;
+                    ReviewModeDescriptionText.Text = _viewModel.ReviewModeDescriptionText;
+                    ReviewModeApplyButtonText.Text = _viewModel.ReviewModeApplyButtonText;
+                    ReviewModeCancelButtonText.Text = _viewModel.ReviewModeCancelButtonText;
+                    ReviewModeApplyButton.IsEnabled = _viewModel.CanApplyReviewedConfig;
+                }
+            });
+        }
+        else if (e.PropertyName == nameof(MainWindowViewModel.ReviewModeStatusText) && _viewModel != null)
+        {
+            DispatcherQueue.TryEnqueue(() => ReviewModeStatusText.Text = _viewModel.ReviewModeStatusText);
+        }
+        else if (e.PropertyName == nameof(MainWindowViewModel.CanApplyReviewedConfig) && _viewModel != null)
+        {
+            DispatcherQueue.TryEnqueue(() => ReviewModeApplyButton.IsEnabled = _viewModel.CanApplyReviewedConfig);
         }
     }
 
@@ -810,6 +1086,24 @@ public sealed partial class MainWindow : Window
     }
 
     /// <summary>
+    /// Handles the Review Mode Apply button click.
+    /// </summary>
+    private void ReviewModeApplyButton_Click(object sender, RoutedEventArgs e)
+    {
+        if (_viewModel?.ApplyReviewedConfigCommand.CanExecute(null) == true)
+            _viewModel.ApplyReviewedConfigCommand.Execute(null);
+    }
+
+    /// <summary>
+    /// Handles the Review Mode Cancel button click.
+    /// </summary>
+    private void ReviewModeCancelButton_Click(object sender, RoutedEventArgs e)
+    {
+        if (_viewModel?.CancelReviewModeCommand.CanExecute(null) == true)
+            _viewModel.CancelReviewModeCommand.Execute(null);
+    }
+
+    /// <summary>
     /// Updates the app icon from the ViewModel.
     /// </summary>
     private void UpdateAppIcon()
@@ -837,9 +1131,21 @@ public sealed partial class MainWindow : Window
             var titleBar = this.AppWindow.TitleBar;
             var scale = AppTitleBar.XamlRoot?.RasterizationScale ?? 1.0;
 
-            // Account for caption buttons (minimize, maximize, close)
-            RightPaddingColumn.Width = new GridLength(titleBar.RightInset / scale);
-            LeftPaddingColumn.Width = new GridLength(titleBar.LeftInset / scale);
+            // When FlowDirection is RTL, the grid columns are visually mirrored:
+            // LeftPaddingColumn (Column 0) renders on the physical right,
+            // RightPaddingColumn (last column) renders on the physical left.
+            // The system caption buttons remain physically on the right regardless of FlowDirection,
+            // so we swap the inset assignments to keep padding aligned with the caption buttons.
+            if (RootGrid.FlowDirection == FlowDirection.RightToLeft)
+            {
+                LeftPaddingColumn.Width = new GridLength(titleBar.RightInset / scale);
+                RightPaddingColumn.Width = new GridLength(titleBar.LeftInset / scale);
+            }
+            else
+            {
+                RightPaddingColumn.Width = new GridLength(titleBar.RightInset / scale);
+                LeftPaddingColumn.Width = new GridLength(titleBar.LeftInset / scale);
+            }
         }
         catch (Exception ex)
         {
