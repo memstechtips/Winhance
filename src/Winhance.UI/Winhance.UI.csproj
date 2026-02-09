@@ -1,0 +1,111 @@
+<Project Sdk="Microsoft.NET.Sdk">
+  <PropertyGroup>
+    <OutputType>WinExe</OutputType>
+    <TargetFramework>net10.0-windows10.0.19041.0</TargetFramework>
+    <!-- Windows SDK package version - aligns SDK.NET projections with packages -->
+    <WindowsSdkPackageVersion>10.0.26100.48</WindowsSdkPackageVersion>
+    <TargetPlatformMinVersion>10.0.17763.0</TargetPlatformMinVersion>
+    <RootNamespace>Winhance.UI</RootNamespace>
+    <AssemblyName>Winhance</AssemblyName>
+    <ApplicationManifest>app.manifest</ApplicationManifest>
+    <!-- x64 only - ARM64 Windows can run x64 apps via emulation -->
+    <Platforms>x64</Platforms>
+    <RuntimeIdentifiers>win-x64</RuntimeIdentifiers>
+    <UseWinUI>true</UseWinUI>
+    <!-- Unpackaged deployment (no MSIX) -->
+    <WindowsPackageType>None</WindowsPackageType>
+    <!-- Note: SelfContained=false for CLI builds; set to true for release builds in VS -->
+    <WindowsAppSDKSelfContained>false</WindowsAppSDKSelfContained>
+    <EnableMsixTooling>false</EnableMsixTooling>
+    <Nullable>enable</Nullable>
+    <ImplicitUsings>enable</ImplicitUsings>
+    <!-- MRT/PRI generation - requires Visual Studio MSBuild -->
+    <GenerateAppxPackageOnBuild>false</GenerateAppxPackageOnBuild>
+    <AppxPackage>false</AppxPackage>
+    <!-- Application icon -->
+    <ApplicationIcon>Assets\AppIcons\winhance-rocket.ico</ApplicationIcon>
+    <!-- Use custom Program.cs entry point for single-instance enforcement -->
+    <DefineConstants>DISABLE_XAML_GENERATED_MAIN</DefineConstants>
+    <StartupObject>Winhance.UI.Program</StartupObject>
+    <!-- Version information -->
+    <Version>25.02.08</Version>
+    <FileVersion>25.02.08</FileVersion>
+    <AssemblyVersion>25.02.08</AssemblyVersion>
+    <InformationalVersion>v25.02.08</InformationalVersion>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <!-- Windows App SDK - Use 1.7.x for stability -->
+    <PackageReference Include="Microsoft.WindowsAppSDK" Version="1.7.250401001" />
+    <PackageReference Include="Microsoft.Windows.SDK.BuildTools" Version="10.0.26100.1742" />
+    <!-- CsWinRT - WinRT projections for .NET (needed for CommunityToolkit.WinUI 8.2+) -->
+    <PackageReference Include="Microsoft.Windows.CsWinRT" Version="2.2.0" />
+
+    <!-- MVVM -->
+    <PackageReference Include="CommunityToolkit.Mvvm" Version="8.4.0" />
+
+    <!-- Icons - Material Design Icons for WinUI3 -->
+    <PackageReference Include="Material.Icons.WinUI3" Version="2.4.1" />
+    <!-- Icons - Microsoft Fluent System Icons (4000+ icons) -->
+    <PackageReference Include="FluentIcons.WinUI" Version="1.1.271" />
+
+    <!-- WinUI Controls - Use 8.2.x for Windows App SDK 1.6+ compatibility -->
+    <PackageReference Include="CommunityToolkit.WinUI.Controls.SettingsControls" Version="8.2.250402" />
+    <PackageReference Include="CommunityToolkit.WinUI.Behaviors" Version="8.2.250402" />
+
+    <!-- XAML Behaviors for WinUI 3 - Custom behaviors (Behavior<T> base class) -->
+    <PackageReference Include="Microsoft.Xaml.Behaviors.WinUI.Managed" Version="3.0.0" />
+    <PackageReference Include="CommunityToolkit.WinUI.Collections" Version="8.2.250402" />
+    <PackageReference Include="CommunityToolkit.WinUI.Triggers" Version="8.2.250402" />
+    <PackageReference Include="CommunityToolkit.WinUI.Extensions" Version="8.2.250402" />
+
+    <!-- DataGrid - Still on 7.x in the toolkit (separate package structure) -->
+    <PackageReference Include="CommunityToolkit.WinUI.UI.Controls.DataGrid" Version="7.1.2" />
+
+    <!-- Win32 Interop - Type-safe P/Invoke for single-instance activation and file dialogs -->
+    <PackageReference Include="Microsoft.Windows.CsWin32" Version="0.3.183">
+      <PrivateAssets>all</PrivateAssets>
+    </PackageReference>
+
+    <!-- DI -->
+    <PackageReference Include="Microsoft.Extensions.DependencyInjection" Version="8.0.0" />
+    <PackageReference Include="Microsoft.Extensions.Hosting" Version="8.0.0" />
+
+    <!-- Additional packages from WPF project that are UI framework agnostic -->
+    <PackageReference Include="Microsoft.Win32.Registry" Version="5.0.0" />
+    <PackageReference Include="System.Text.Json" Version="9.0.2" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <ProjectReference Include="..\Winhance.Core\Winhance.Core.csproj" />
+    <ProjectReference Include="..\Winhance.Infrastructure\Winhance.Infrastructure.csproj" />
+  </ItemGroup>
+
+  <!-- Content files (localization) - uses local UI project files -->
+  <ItemGroup>
+    <Content Include="Features\Common\Localization\*.json">
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+      <Link>Localization\%(Filename)%(Extension)</Link>
+    </Content>
+  </ItemGroup>
+
+  <!-- Embedded resources - uses local UI project files -->
+  <ItemGroup>
+    <EmbeddedResource Include="Features\Common\Resources\Configs\Winhance_Recommended_Config.winhance">
+      <LogicalName>Winhance.UI.Resources.Configs.Winhance_Recommended_Config.winhance</LogicalName>
+    </EmbeddedResource>
+    <EmbeddedResource Include="Features\Common\Resources\AdvancedTools\autounattend-template.xml">
+      <LogicalName>Winhance.UI.Resources.AdvancedTools.autounattend-template.xml</LogicalName>
+    </EmbeddedResource>
+    <EmbeddedResource Include="Features\Common\Resources\Configs\Winhance_Windows_Defaults_Config.winhance">
+      <LogicalName>Winhance.UI.Resources.Configs.Winhance_Windows_Defaults_Config.winhance</LogicalName>
+    </EmbeddedResource>
+  </ItemGroup>
+
+  <!-- CsWin32 NativeMethods.txt for P/Invoke generation -->
+  <ItemGroup>
+    <AdditionalFiles Include="NativeMethods.txt" />
+  </ItemGroup>
+</Project>
+
+

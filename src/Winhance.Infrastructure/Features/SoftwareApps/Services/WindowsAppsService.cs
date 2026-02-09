@@ -96,8 +96,8 @@ public class WindowsAppsService(
                                      $"• It bypasses regional restrictions only\n\n" +
                                      $"Would you like to proceed with the alternative download method?";
                         var checkboxText = localizationService?.GetString("WindowsApps_Checkbox_DontAskAgain") ?? "Don't ask me again for future installations";
-                        var downloadButton = localizationService?.GetString("Dialog_Button_Download") ?? "Download";
-                        var cancelButton = localizationService?.GetString("Dialog_Button_Cancel") ?? "Cancel";
+                        var downloadButton = localizationService?.GetString("Button_Download") ?? "Download";
+                        var cancelButton = localizationService?.GetString("Button_Cancel") ?? "Cancel";
 
                         var (confirmed, dontShowAgain) = await dialogService.ShowConfirmationWithCheckboxAsync(
                             message: message,

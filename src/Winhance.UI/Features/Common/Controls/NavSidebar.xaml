@@ -1,0 +1,137 @@
+<?xml version="1.0" encoding="utf-8"?>
+<UserControl
+    x:Class="Winhance.UI.Features.Common.Controls.NavSidebar"
+    xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+    xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+    xmlns:primitives="using:Microsoft.UI.Xaml.Controls.Primitives"
+    xmlns:local="using:Winhance.UI.Features.Common.Controls">
+
+    <Grid x:Name="SidebarGrid"
+          Width="{x:Bind ActualSidebarWidth, Mode=OneWay}"
+          Background="Transparent">
+
+        <Grid.RowDefinitions>
+            <RowDefinition Height="Auto"/>  <!-- Top Nav Buttons -->
+            <RowDefinition Height="*"/>     <!-- Spacer -->
+            <RowDefinition Height="Auto"/>  <!-- Bottom Nav Buttons -->
+        </Grid.RowDefinitions>
+
+        <!-- Top Navigation Buttons -->
+        <StackPanel x:Name="TopNavPanel"
+                    Grid.Row="0"
+                    Spacing="4"
+                    Padding="{x:Bind NavPanelPadding, Mode=OneWay}"
+                    Margin="0,8,0,0">
+
+            <local:NavButton x:Name="SoftwareAppsButton"
+                             IconPath="{StaticResource SoftwareAppsIconPath}"
+                             Text="{x:Bind ViewModel.NavSoftwareAppsText, Mode=OneWay}"
+                             NavigationTag="SoftwareApps"
+                             IsCompact="{x:Bind IsCompact, Mode=OneWay}"
+                             Clicked="NavButton_Clicked"/>
+
+            <local:NavButton x:Name="OptimizeButton"
+                             IconPath="{StaticResource OptimizeIconPath}"
+                             Text="{x:Bind ViewModel.NavOptimizeText, Mode=OneWay}"
+                             NavigationTag="Optimize"
+                             IsCompact="{x:Bind IsCompact, Mode=OneWay}"
+                             Clicked="NavButton_Clicked"/>
+
+            <local:NavButton x:Name="CustomizeButton"
+                             IconPath="{StaticResource CustomizeIconPath}"
+                             IconMargin="-3,0,0,0"
+                             Text="{x:Bind ViewModel.NavCustomizeText, Mode=OneWay}"
+                             NavigationTag="Customize"
+                             IsCompact="{x:Bind IsCompact, Mode=OneWay}"
+                             Clicked="NavButton_Clicked"/>
+        </StackPanel>
+
+        <!-- Bottom Navigation Buttons -->
+        <StackPanel x:Name="BottomNavPanel"
+                    Grid.Row="2"
+                    Spacing="4"
+                    Padding="{x:Bind NavPanelPadding, Mode=OneWay}"
+                    Margin="0,0,0,8">
+
+            <local:NavButton x:Name="AdvancedToolsButton"
+                             IconPath="{StaticResource AdvancedToolsIconPath}"
+                             Text="{x:Bind ViewModel.NavAdvancedToolsText, Mode=OneWay}"
+                             NavigationTag="AdvancedTools"
+                             IsCompact="{x:Bind IsCompact, Mode=OneWay}"
+                             Clicked="NavButton_Clicked"/>
+
+            <local:NavButton x:Name="SettingsButton"
+                             IconGlyph="{StaticResource SettingsIconGlyph}"
+                             Text="{x:Bind ViewModel.NavSettingsText, Mode=OneWay}"
+                             NavigationTag="Settings"
+                             IsCompact="{x:Bind IsCompact, Mode=OneWay}"
+                             Clicked="NavButton_Clicked"/>
+
+            <local:NavButton x:Name="MoreButton"
+                             IconGlyph="{StaticResource MoreIconGlyph}"
+                             Text="{x:Bind ViewModel.NavMoreText, Mode=OneWay}"
+                             NavigationTag="More"
+                             IsCompact="{x:Bind IsCompact, Mode=OneWay}"
+                             Clicked="NavButton_Clicked">
+                <primitives:FlyoutBase.AttachedFlyout>
+                    <MenuFlyout x:Name="MoreMenuFlyout" Placement="RightEdgeAlignedBottom">
+                        <!-- Version Info (disabled, for display only) -->
+                        <MenuFlyoutItem x:Name="VersionMenuItem" IsEnabled="False">
+                            <MenuFlyoutItem.Icon>
+                                <FontIcon Glyph="&#xE946;"/>
+                            </MenuFlyoutItem.Icon>
+                        </MenuFlyoutItem>
+
+                        <MenuFlyoutSeparator/>
+
+                        <!-- Documentation -->
+                        <MenuFlyoutItem x:Name="DocsMenuItem" Click="MoreMenuItem_Click" Tag="OpenDocs">
+                            <MenuFlyoutItem.Icon>
+                                <PathIcon Data="{StaticResource BookOpenVariantOutlineIconPath}"/>
+                            </MenuFlyoutItem.Icon>
+                        </MenuFlyoutItem>
+
+                        <!-- Report a Bug -->
+                        <MenuFlyoutItem x:Name="ReportBugMenuItem" Click="MoreMenuItem_Click" Tag="ReportBug">
+                            <MenuFlyoutItem.Icon>
+                                <FontIcon Glyph="&#xEBE8;"/>
+                            </MenuFlyoutItem.Icon>
+                        </MenuFlyoutItem>
+
+                        <!-- Check for Updates -->
+                        <MenuFlyoutItem x:Name="CheckUpdatesMenuItem" Click="MoreMenuItem_Click" Tag="CheckUpdates">
+                            <MenuFlyoutItem.Icon>
+                                <FontIcon Glyph="&#xE896;"/>
+                            </MenuFlyoutItem.Icon>
+                        </MenuFlyoutItem>
+
+                        <MenuFlyoutSeparator/>
+
+                        <!-- Winhance Logs -->
+                        <MenuFlyoutItem x:Name="OpenLogsMenuItem" Click="MoreMenuItem_Click" Tag="OpenLogs">
+                            <MenuFlyoutItem.Icon>
+                                <FontIcon Glyph="&#xE8B7;"/>
+                            </MenuFlyoutItem.Icon>
+                        </MenuFlyoutItem>
+
+                        <!-- Winhance Scripts -->
+                        <MenuFlyoutItem x:Name="OpenScriptsMenuItem" Click="MoreMenuItem_Click" Tag="OpenScripts">
+                            <MenuFlyoutItem.Icon>
+                                <FontIcon Glyph="&#xE756;"/>
+                            </MenuFlyoutItem.Icon>
+                        </MenuFlyoutItem>
+
+                        <MenuFlyoutSeparator/>
+
+                        <!-- Close Winhance -->
+                        <MenuFlyoutItem x:Name="CloseAppMenuItem" Click="MoreMenuItem_Click" Tag="CloseApp">
+                            <MenuFlyoutItem.Icon>
+                                <FontIcon Glyph="&#xE711;"/>
+                            </MenuFlyoutItem.Icon>
+                        </MenuFlyoutItem>
+                    </MenuFlyout>
+                </primitives:FlyoutBase.AttachedFlyout>
+            </local:NavButton>
+        </StackPanel>
+    </Grid>
+</UserControl>

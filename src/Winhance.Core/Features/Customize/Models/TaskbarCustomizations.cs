@@ -25,13 +25,6 @@ public static class TaskbarCustomizations
                     Icon = "Broom",
                     RequiresConfirmation = true,
                     RestartProcess = "Explorer",
-                    DialogTitleIcon = "Broom",
-                    ConfirmationTitle = "Taskbar Cleaning",
-                    ConfirmationMessage =
-                        "You are about to clean the Taskbar for the current user.\n\n"
-                        + "This will remove all pinned items from the Taskbar.\n\n"
-                        + "Do you want to continue?",
-                    ConfirmationCheckboxText = "Also apply recommended Taskbar settings",
                     ActionCommand = "CleanTaskbarAsync",
                 },
                 new SettingDefinition
@@ -181,7 +174,7 @@ public static class TaskbarCustomizations
                     Description = "Controls Meet Now button visibility in the system tray",
                     GroupName = "Taskbar Icons",
                     InputType = InputType.Toggle,
-                    IconPack = "Lucide",
+                    IconPack = "Fluent",
                     Icon = "Video",
                     IsWindows10Only = true,
                     RestartProcess = "Explorer",
@@ -274,7 +267,7 @@ public static class TaskbarCustomizations
                     Description = "Show or hide the Copilot Preview button on the taskbar",
                     GroupName = "Taskbar Icons",
                     InputType = InputType.Toggle,
-                    IconPack = "Lucide",
+                    IconPack = "Fluent",
                     Icon = "Bot",
                     IsWindows11Only = true,
                     SupportedBuildRanges = new List<(int, int)>
@@ -304,8 +297,7 @@ public static class TaskbarCustomizations
                     Description = "Show the Widgets button that displays personalized news, weather, calendar, and other information",
                     GroupName = "Taskbar Icons",
                     InputType = InputType.Toggle,
-                    IconPack = "MaterialDesign",
-                    Icon = "WidgetsRound",
+                    Icon = "Widgets",
                     IsWindows11Only = true,
                     RestartProcess = "Explorer",
                     RegistrySettings = new List<RegistrySetting>

@@ -11,6 +11,8 @@ namespace Winhance.Core.Features.Common.Interfaces
 
         string CurrentLanguage { get; }
 
+        bool IsRightToLeft { get; }
+
         bool SetLanguage(string languageCode);
 
         IEnumerable<string> GetAvailableLanguages();

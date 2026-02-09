@@ -6,7 +6,7 @@
 #define MyAppPublisher "Marco du Plessis"
 #define MyAppURL "https://www.winhance.net/"
 #define MyAppExeName "Winhance.exe"
-#define DotNetRuntimeVersion "9.0.10"
+#define DotNetRuntimeVersion "10.0.2"
 #define DotNetRuntimeInstallerName "windowsdesktop-runtime-" + DotNetRuntimeVersion + "-win-x64.exe"
 #define MyAppAssocName MyAppName + " File"
 #define MyAppAssocExt ".winhance"
@@ -42,7 +42,7 @@ LicenseFile=C:\Winhance\LICENSE.txt
 PrivilegesRequiredOverridesAllowed=dialog
 OutputDir=C:\Winhance\installer-output
 OutputBaseFilename=Winhance.Installer
-SetupIconFile=C:\Winhance\src\Winhance.WPF\Resources\AppIcons\winhance-rocket.ico
+SetupIconFile=C:\Winhance\src\Winhance.UI\Assets\AppIcons\winhance-rocket.ico
 SolidCompression=yes
 WizardStyle=modern
 ; Allow user to select installation type
@@ -180,35 +180,41 @@ end;
 
 [Tasks]
 Name: "portableinstall"; Description: "Perform a portable installation"; GroupDescription: "Installation type:"; Flags: unchecked exclusive
-Name: "portableinstall\dotnetruntime"; Description: "Install .NET 9 Runtime (recommended)"; GroupDescription: "Portable options:"; Flags: unchecked
+Name: "portableinstall\dotnetruntime"; Description: "Install .NET 10 Runtime (recommended)"; GroupDescription: "Portable options:"; Flags: unchecked
 Name: "regularinstall"; Description: "Perform a regular installation"; GroupDescription: "Installation type:"; Flags: exclusive
 Name: "regularinstall\desktopicon"; Description: "Create a shortcut on the Desktop"; GroupDescription: "Additional shortcuts:"; Flags: unchecked
 Name: "regularinstall\startmenuicon"; Description: "Create a shortcut in the Start menu"; GroupDescription: "Additional shortcuts:"; Flags: unchecked
 
 [Files]
-Source: "C:\Winhance\src\Winhance.WPF\bin\Release\net9.0-windows\win-x64\{#MyAppExeName}"; DestDir: "{app}"; Flags: ignoreversion
-Source: "C:\Winhance\src\Winhance.WPF\bin\Release\net9.0-windows\win-x64\*.dll"; DestDir: "{app}"; Flags: ignoreversion
-Source: "C:\Winhance\src\Winhance.WPF\bin\Release\net9.0-windows\win-x64\*.json"; DestDir: "{app}"; Flags: ignoreversion
-Source: "C:\Winhance\src\Winhance.WPF\bin\Release\net9.0-windows\win-x64\*.pdb"; DestDir: "{app}"; Flags: ignoreversion
-Source: "C:\Winhance\src\Winhance.WPF\bin\Release\net9.0-windows\win-x64\Localization\*"; DestDir: "{app}\Localization"; Flags: ignoreversion recursesubdirs createallsubdirs
+Source: "C:\Winhance\src\Winhance.UI\bin\x64\Release\net10.0-windows10.0.19041.0\{#MyAppExeName}"; DestDir: "{app}"; Flags: ignoreversion
+Source: "C:\Winhance\src\Winhance.UI\bin\x64\Release\net10.0-windows10.0.19041.0\*.dll"; DestDir: "{app}"; Flags: ignoreversion
+Source: "C:\Winhance\src\Winhance.UI\bin\x64\Release\net10.0-windows10.0.19041.0\*.json"; DestDir: "{app}"; Flags: ignoreversion
+Source: "C:\Winhance\src\Winhance.UI\bin\x64\Release\net10.0-windows10.0.19041.0\*.pdb"; DestDir: "{app}"; Flags: ignoreversion
+; WinUI3-specific files
+Source: "C:\Winhance\src\Winhance.UI\bin\x64\Release\net10.0-windows10.0.19041.0\*.xbf"; DestDir: "{app}"; Flags: ignoreversion
+Source: "C:\Winhance\src\Winhance.UI\bin\x64\Release\net10.0-windows10.0.19041.0\*.pri"; DestDir: "{app}"; Flags: ignoreversion
+Source: "C:\Winhance\src\Winhance.UI\bin\x64\Release\net10.0-windows10.0.19041.0\Assets\*"; DestDir: "{app}\Assets"; Flags: ignoreversion recursesubdirs createallsubdirs
+Source: "C:\Winhance\src\Winhance.UI\bin\x64\Release\net10.0-windows10.0.19041.0\Features\*"; DestDir: "{app}\Features"; Flags: ignoreversion recursesubdirs createallsubdirs
+Source: "C:\Winhance\src\Winhance.UI\bin\x64\Release\net10.0-windows10.0.19041.0\FluentIcons.WinUI\*"; DestDir: "{app}\FluentIcons.WinUI"; Flags: ignoreversion recursesubdirs createallsubdirs
+Source: "C:\Winhance\src\Winhance.UI\bin\x64\Release\net10.0-windows10.0.19041.0\Localization\*"; DestDir: "{app}\Localization"; Flags: ignoreversion recursesubdirs createallsubdirs
 ; Copy only necessary Windows x64 runtime files
-Source: "C:\Winhance\src\Winhance.WPF\bin\Release\net9.0-windows\win-x64\runtimes\win\*"; DestDir: "{app}\runtimes\win"; Flags: ignoreversion recursesubdirs createallsubdirs
-Source: "C:\Winhance\src\Winhance.WPF\bin\Release\net9.0-windows\win-x64\runtimes\win-x64\*"; DestDir: "{app}\runtimes\win-x64"; Flags: ignoreversion recursesubdirs createallsubdirs
+Source: "C:\Winhance\src\Winhance.UI\bin\x64\Release\net10.0-windows10.0.19041.0\runtimes\win\*"; DestDir: "{app}\runtimes\win"; Flags: ignoreversion recursesubdirs createallsubdirs
+Source: "C:\Winhance\src\Winhance.UI\bin\x64\Release\net10.0-windows10.0.19041.0\runtimes\win-x64\*"; DestDir: "{app}\runtimes\win-x64"; Flags: ignoreversion recursesubdirs createallsubdirs
 ; Copy language folders for internationalization
-Source: "C:\Winhance\src\Winhance.WPF\bin\Release\net9.0-windows\win-x64\cs\*"; DestDir: "{app}\cs"; Flags: ignoreversion recursesubdirs createallsubdirs
-Source: "C:\Winhance\src\Winhance.WPF\bin\Release\net9.0-windows\win-x64\de\*"; DestDir: "{app}\de"; Flags: ignoreversion recursesubdirs createallsubdirs
-Source: "C:\Winhance\src\Winhance.WPF\bin\Release\net9.0-windows\win-x64\es\*"; DestDir: "{app}\es"; Flags: ignoreversion recursesubdirs createallsubdirs
-Source: "C:\Winhance\src\Winhance.WPF\bin\Release\net9.0-windows\win-x64\fr\*"; DestDir: "{app}\fr"; Flags: ignoreversion recursesubdirs createallsubdirs
-Source: "C:\Winhance\src\Winhance.WPF\bin\Release\net9.0-windows\win-x64\it\*"; DestDir: "{app}\it"; Flags: ignoreversion recursesubdirs createallsubdirs
-Source: "C:\Winhance\src\Winhance.WPF\bin\Release\net9.0-windows\win-x64\ja\*"; DestDir: "{app}\ja"; Flags: ignoreversion recursesubdirs createallsubdirs
-Source: "C:\Winhance\src\Winhance.WPF\bin\Release\net9.0-windows\win-x64\ko\*"; DestDir: "{app}\ko"; Flags: ignoreversion recursesubdirs createallsubdirs
-Source: "C:\Winhance\src\Winhance.WPF\bin\Release\net9.0-windows\win-x64\pl\*"; DestDir: "{app}\pl"; Flags: ignoreversion recursesubdirs createallsubdirs
-Source: "C:\Winhance\src\Winhance.WPF\bin\Release\net9.0-windows\win-x64\pt-BR\*"; DestDir: "{app}\pt-BR"; Flags: ignoreversion recursesubdirs createallsubdirs
-Source: "C:\Winhance\src\Winhance.WPF\bin\Release\net9.0-windows\win-x64\ru\*"; DestDir: "{app}\ru"; Flags: ignoreversion recursesubdirs createallsubdirs
-Source: "C:\Winhance\src\Winhance.WPF\bin\Release\net9.0-windows\win-x64\tr\*"; DestDir: "{app}\tr"; Flags: ignoreversion recursesubdirs createallsubdirs
-Source: "C:\Winhance\src\Winhance.WPF\bin\Release\net9.0-windows\win-x64\zh-Hans\*"; DestDir: "{app}\zh-Hans"; Flags: ignoreversion recursesubdirs createallsubdirs
-Source: "C:\Winhance\src\Winhance.WPF\bin\Release\net9.0-windows\win-x64\zh-Hant\*"; DestDir: "{app}\zh-Hant"; Flags: ignoreversion recursesubdirs createallsubdirs
-; Include .NET 9 Runtime installer
+Source: "C:\Winhance\src\Winhance.UI\bin\x64\Release\net10.0-windows10.0.19041.0\cs\*"; DestDir: "{app}\cs"; Flags: ignoreversion recursesubdirs createallsubdirs
+Source: "C:\Winhance\src\Winhance.UI\bin\x64\Release\net10.0-windows10.0.19041.0\de\*"; DestDir: "{app}\de"; Flags: ignoreversion recursesubdirs createallsubdirs
+Source: "C:\Winhance\src\Winhance.UI\bin\x64\Release\net10.0-windows10.0.19041.0\es\*"; DestDir: "{app}\es"; Flags: ignoreversion recursesubdirs createallsubdirs
+Source: "C:\Winhance\src\Winhance.UI\bin\x64\Release\net10.0-windows10.0.19041.0\fr\*"; DestDir: "{app}\fr"; Flags: ignoreversion recursesubdirs createallsubdirs
+Source: "C:\Winhance\src\Winhance.UI\bin\x64\Release\net10.0-windows10.0.19041.0\it\*"; DestDir: "{app}\it"; Flags: ignoreversion recursesubdirs createallsubdirs
+Source: "C:\Winhance\src\Winhance.UI\bin\x64\Release\net10.0-windows10.0.19041.0\ja\*"; DestDir: "{app}\ja"; Flags: ignoreversion recursesubdirs createallsubdirs
+Source: "C:\Winhance\src\Winhance.UI\bin\x64\Release\net10.0-windows10.0.19041.0\ko\*"; DestDir: "{app}\ko"; Flags: ignoreversion recursesubdirs createallsubdirs
+Source: "C:\Winhance\src\Winhance.UI\bin\x64\Release\net10.0-windows10.0.19041.0\pl\*"; DestDir: "{app}\pl"; Flags: ignoreversion recursesubdirs createallsubdirs
+Source: "C:\Winhance\src\Winhance.UI\bin\x64\Release\net10.0-windows10.0.19041.0\pt-BR\*"; DestDir: "{app}\pt-BR"; Flags: ignoreversion recursesubdirs createallsubdirs
+Source: "C:\Winhance\src\Winhance.UI\bin\x64\Release\net10.0-windows10.0.19041.0\ru\*"; DestDir: "{app}\ru"; Flags: ignoreversion recursesubdirs createallsubdirs
+Source: "C:\Winhance\src\Winhance.UI\bin\x64\Release\net10.0-windows10.0.19041.0\tr\*"; DestDir: "{app}\tr"; Flags: ignoreversion recursesubdirs createallsubdirs
+Source: "C:\Winhance\src\Winhance.UI\bin\x64\Release\net10.0-windows10.0.19041.0\zh-Hans\*"; DestDir: "{app}\zh-Hans"; Flags: ignoreversion recursesubdirs createallsubdirs
+Source: "C:\Winhance\src\Winhance.UI\bin\x64\Release\net10.0-windows10.0.19041.0\zh-Hant\*"; DestDir: "{app}\zh-Hant"; Flags: ignoreversion recursesubdirs createallsubdirs
+; Include .NET 10 Runtime installer
 Source: "C:\Winhance\extras\prerequisites\{#DotNetRuntimeInstallerName}"; DestDir: "{tmp}"; Flags: ignoreversion deleteafterinstall
 ; Create a marker file for portable installations
 Source: "C:\Winhance\extras\prerequisites\{#DotNetRuntimeInstallerName}"; DestDir: "{app}"; DestName: "portable.marker"; Flags: ignoreversion; Tasks: portableinstall
@@ -228,8 +234,8 @@ Name: "{autoprograms}\{#MyAppName}"; Filename: "{app}\{#MyAppExeName}"; Tasks: r
 Name: "{autodesktop}\{#MyAppName}"; Filename: "{app}\{#MyAppExeName}"; Tasks: regularinstall\desktopicon
 
 [Run]
-; Install .NET 9 Runtime (always for regular installation, optional for portable)
-Filename: "{tmp}\{#DotNetRuntimeInstallerName}"; Parameters: "/install /quiet /norestart"; StatusMsg: "Installing .NET 9 Runtime..."; Flags: waituntilterminated; Check: ShouldInstallDotNetRuntime
+; Install .NET 10 Runtime (always for regular installation, optional for portable)
+Filename: "{tmp}\{#DotNetRuntimeInstallerName}"; Parameters: "/install /quiet /norestart"; StatusMsg: "Installing .NET 10 Runtime..."; Flags: waituntilterminated; Check: ShouldInstallDotNetRuntime
 
 ; Launch application after installation
 Filename: "{app}\{#MyAppExeName}"; Description: "{cm:LaunchProgram,{#StringChange(MyAppName, '&', '&&')}}"; Flags: nowait postinstall skipifsilent

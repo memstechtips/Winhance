@@ -1,0 +1,32 @@
+<?xml version="1.0" encoding="utf-8"?>
+<ResourceDictionary
+    xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+    xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+    xmlns:converters="using:Winhance.UI.Features.Common.Converters"
+    xmlns:softwareConverters="using:Winhance.UI.Features.SoftwareApps.Converters">
+
+    <!--
+    Converters.xaml
+    Registers all value converters for use throughout the application.
+    Use these converters with {StaticResource ConverterName} in XAML.
+    -->
+
+    <!-- Boolean Converters -->
+    <converters:BooleanToVisibilityConverter x:Key="BooleanToVisibilityConverter"/>
+    <converters:InverseBooleanToVisibilityConverter x:Key="InverseBooleanToVisibilityConverter"/>
+    <converters:InverseBooleanConverter x:Key="InverseBooleanConverter"/>
+
+    <!-- Null/Empty Converters -->
+    <converters:NullToVisibilityConverter x:Key="NullToVisibilityConverter"/>
+
+    <!-- Icon Converters -->
+    <converters:SettingIconConverter x:Key="SettingIconConverter"/>
+    <converters:StringToGeometryConverter x:Key="StringToGeometryConverter"/>
+
+    <!-- SoftwareApps Converters -->
+    <softwareConverters:BoolToColorConverter x:Key="BoolToColorConverter"/>
+    <softwareConverters:BoolToGlyphConverter x:Key="BoolToGlyphConverter"/>
+    <softwareConverters:BoolToReinstallBrushConverter x:Key="BoolToReinstallBrushConverter"/>
+    <softwareConverters:BoolToStatusBrushConverter x:Key="BoolToStatusBrushConverter"/>
+
+</ResourceDictionary>

@@ -1,0 +1,19 @@
+<?xml version="1.0" encoding="utf-8"?>
+<UserControl
+    x:Class="Winhance.UI.Features.SoftwareApps.Views.ExternalAppsHelpContent"
+    xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+    xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+    xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
+    xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
+    mc:Ignorable="d">
+
+    <StackPanel Spacing="12">
+        <ScrollViewer MaxHeight="300" VerticalScrollBarVisibility="Auto">
+            <TextBlock x:Name="HelpContentText"
+                       TextWrapping="Wrap"
+                       Style="{StaticResource BodyTextBlockStyle}"
+                       Foreground="{ThemeResource TextFillColorSecondaryBrush}"/>
+        </ScrollViewer>
+        <HyperlinkButton x:Name="LearnMoreLink" Padding="0"/>
+    </StackPanel>
+</UserControl>

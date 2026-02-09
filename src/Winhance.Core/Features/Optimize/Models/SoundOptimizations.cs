@@ -104,8 +104,7 @@ public static class SoundOptimizations
                     Name = "Narrator Audio Ducking",
                     Description = "Allow Narrator to automatically lower the volume of other applications when it speaks",
                     GroupName = "System Sounds",
-                    IconPack = "MaterialDesign",
-                    Icon = "VolumeOffRound",
+                    Icon = "VolumeOff",
                     InputType = InputType.Toggle,
                     RegistrySettings = new List<RegistrySetting>
                     {
@@ -174,8 +173,7 @@ public static class SoundOptimizations
                     Name = "Accessibility Activation Sounds",
                     Description = "Play sounds when accessibility features like StickyKeys or FilterKeys are activated",
                     GroupName = "System Sounds",
-                    IconPack = "MaterialDesign",
-                    Icon = "KeyboardRound",
+                    Icon = "Keyboard",
                     InputType = InputType.Toggle,
                     RegistrySettings = new List<RegistrySetting>
                     {
@@ -198,8 +196,8 @@ public static class SoundOptimizations
                     Name = "Accessibility Warning Sounds",
                     Description = "Play warning sounds when attempting to activate accessibility features or when accessibility-related events occur",
                     GroupName = "System Sounds",
-                    IconPack = "Lucide",
-                    Icon = "BellElectric",
+                    IconPack = "Fluent",
+                    Icon = "AlertBadge",
                     InputType = InputType.Toggle,
                     RegistrySettings = new List<RegistrySetting>
                     {

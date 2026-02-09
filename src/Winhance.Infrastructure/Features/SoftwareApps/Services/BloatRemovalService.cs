@@ -24,16 +24,32 @@ public class BloatRemovalService(
     public async Task<bool> RemoveAppsAsync(
         List<ItemDefinition> selectedApps,
         IProgress<TaskProgressDetail>? progress = null,
-        CancellationToken cancellationToken = default)
+        CancellationToken cancellationToken = default,
+        bool saveRemovalScripts = true)
     {
         try
         {
-            var scriptPath = await CreateOrUpdateBloatRemovalScript(selectedApps, progress, cancellationToken);
+            var scriptPath = await CreateOrUpdateBloatRemovalScript(selectedApps, progress, cancellationToken, saveRemovalScripts);
 
             if (!string.IsNullOrEmpty(scriptPath))
             {
                 var success = await ExecuteRemovalScriptAsync(scriptPath, progress, cancellationToken);
-                await RegisterStartupTaskAsync(scriptPath);
+
+                if (saveRemovalScripts)
+                {
+                    await RegisterStartupTaskAsync(scriptPath);
+                }
+                else
+                {
+                    // Delete the script after execution — no trace left on disk
+                    try { File.Delete(scriptPath); }
+                    catch (Exception ex) { logService.LogError($"Failed to delete temporary script: {ex.Message}"); }
+
+                    // Also remove any pre-existing scheduled task for BloatRemoval
+                    // Task is registered under script.Name ("BloatRemoval"), not TargetScheduledTaskName
+                    await CleanupExistingScheduledTaskAsync("BloatRemoval", scriptPath);
+                }
+
                 return success;
             }
             else
@@ -143,10 +159,33 @@ public class BloatRemovalService(
         }
     }
 
+    private async Task CleanupExistingScheduledTaskAsync(string taskName, string scriptPath)
+    {
+        try
+        {
+            if (await scheduledTaskService.IsTaskRegisteredAsync(taskName))
+            {
+                await scheduledTaskService.UnregisterScheduledTaskAsync(taskName);
+                logService.LogInformation($"Unregistered existing scheduled task: {taskName}");
+            }
+
+            if (File.Exists(scriptPath))
+            {
+                File.Delete(scriptPath);
+                logService.LogInformation($"Deleted existing script: {scriptPath}");
+            }
+        }
+        catch (Exception ex)
+        {
+            logService.LogError($"Error cleaning up existing script/task '{taskName}': {ex.Message}");
+        }
+    }
+
     private async Task<string> CreateOrUpdateBloatRemovalScript(
         List<ItemDefinition> apps,
         IProgress<TaskProgressDetail>? progress = null,
-        CancellationToken cancellationToken = default)
+        CancellationToken cancellationToken = default,
+        bool saveRemovalScripts = true)
     {
         Directory.CreateDirectory(ScriptPaths.ScriptsDirectory);
         var scriptPath = Path.Combine(ScriptPaths.ScriptsDirectory, "BloatRemoval.ps1");
@@ -160,7 +199,7 @@ public class BloatRemovalService(
         var appsWithScripts = apps.Where(a => a.RemovalScript != null).ToList();
         for (int i = 0; i < appsWithScripts.Count; i++)
         {
-            await CreateDedicatedRemovalScript(appsWithScripts[i], i, appsWithScripts.Count, progress, cancellationToken);
+            await CreateDedicatedRemovalScript(appsWithScripts[i], i, appsWithScripts.Count, progress, cancellationToken, saveRemovalScripts);
         }
 
         // Handle regular apps (including OneNote)
@@ -226,7 +265,8 @@ public class BloatRemovalService(
         int currentIndex,
         int totalCount,
         IProgress<TaskProgressDetail>? progress = null,
-        CancellationToken cancellationToken = default)
+        CancellationToken cancellationToken = default,
+        bool saveRemovalScripts = true)
     {
         var scriptName = CreateScriptName(app.Id);
         var scriptPath = Path.Combine(ScriptPaths.ScriptsDirectory, scriptName);
@@ -242,18 +282,32 @@ public class BloatRemovalService(
         var executionSuccess = await ExecuteRemovalScriptAsync(scriptPath, progress, cancellationToken);
         logService.LogInformation($"Script execution result: {executionSuccess}");
 
-        var runOnStartup = scriptName.Equals("EdgeRemoval.ps1", StringComparison.OrdinalIgnoreCase);
-
-        var script = new RemovalScript
+        if (saveRemovalScripts)
         {
-            Name = scriptName.Replace(".ps1", ""),
-            Content = scriptContent,
-            TargetScheduledTaskName = scriptName.Replace(".ps1", ""),
-            RunOnStartup = runOnStartup,
-            ActualScriptPath = scriptPath
-        };
+            var runOnStartup = scriptName.Equals("EdgeRemoval.ps1", StringComparison.OrdinalIgnoreCase);
 
-        await scheduledTaskService.RegisterScheduledTaskAsync(script);
+            var script = new RemovalScript
+            {
+                Name = scriptName.Replace(".ps1", ""),
+                Content = scriptContent,
+                TargetScheduledTaskName = scriptName.Replace(".ps1", ""),
+                RunOnStartup = runOnStartup,
+                ActualScriptPath = scriptPath
+            };
+
+            await scheduledTaskService.RegisterScheduledTaskAsync(script);
+        }
+        else
+        {
+            var taskName = scriptName.Replace(".ps1", "");
+
+            // Delete the dedicated script after execution — no trace left on disk
+            try { File.Delete(scriptPath); }
+            catch (Exception ex) { logService.LogError($"Failed to delete temporary dedicated script: {ex.Message}"); }
+
+            // Also remove any pre-existing scheduled task for this dedicated script
+            await CleanupExistingScheduledTaskAsync(taskName, scriptPath);
+        }
     }
 
     private async Task<string> MergeWithExistingScript(string scriptPath, List<string> packages, List<string> capabilities, List<string> optionalFeatures, List<string> specialApps)

@@ -44,8 +44,8 @@ public static class ExplorerCustomizations
                     Description = "Use the Windows 10-style right-click menu with all options visible instead of the simplified Windows 11 menu",
                     GroupName = "Context Menu",
                     InputType = InputType.Toggle,
-                    IconPack = "Lucide",
-                    Icon = "SquareMenu",
+                    IconPack = "Fluent",
+                    Icon = "Navigation",
                     IsWindows11Only = true,
                     RestartProcess = "Explorer",
                     RegistrySettings = new List<RegistrySetting>
@@ -149,8 +149,8 @@ public static class ExplorerCustomizations
                     Description = "Adds a right-click menu option to quickly toggle file extension visibility in File Explorer (only visible on the Classic Context Menu or Show More Options Menu in Windows 11)",
                     GroupName = "Context Menu",
                     InputType = InputType.Toggle,
-                    IconPack = "Lucide",
-                    Icon = "FileType2",
+                    IconPack = "Fluent",
+                    Icon = "DocumentText",
                     RegistrySettings = new List<RegistrySetting>
                     {
                         new RegistrySetting
@@ -290,7 +290,7 @@ public static class ExplorerCustomizations
                     Description = "Choose what happens when File Explorer is opened",
                     GroupName = "General",
                     InputType = InputType.Selection,
-                    IconPack = "Lucide",
+                    IconPack = "Fluent",
                     Icon = "FolderOpen",
                     RegistrySettings = new List<RegistrySetting>
                     {
@@ -334,8 +334,8 @@ public static class ExplorerCustomizations
                     Description = "Choose whether each folder opens in the same window or in its own window",
                     GroupName = "General",
                     InputType = InputType.Selection,
-                    IconPack = "Lucide",
-                    Icon = "Folders",
+                    IconPack = "Fluent",
+                    Icon = "Folder",
                     RestartProcess = "Explorer",
                     RegistrySettings = new List<RegistrySetting>
                     {
@@ -377,8 +377,8 @@ public static class ExplorerCustomizations
                     Description = "Choose whether to open files and folders with a single click (like web links) or double-click (traditional)",
                     GroupName = "General",
                     InputType = InputType.Selection,
-                    IconPack = "Lucide",
-                    Icon = "MousePointerClick",
+                    IconPack = "Fluent",
+                    Icon = "CursorClick",
                     RestartProcess = "Explorer",
                     RegistrySettings = new List<RegistrySetting>
                     {
@@ -436,8 +436,8 @@ public static class ExplorerCustomizations
                     Description = "Displays recently accessed files and recommendations in Quick Access",
                     GroupName = "General",
                     InputType = InputType.Toggle,
-                    IconPack = "Lucide",
-                    Icon = "FileClock",
+                    IconPack = "Fluent",
+                    Icon = "DocumentClock",
                     RegistrySettings = new List<RegistrySetting>
                     {
                         new RegistrySetting
@@ -540,8 +540,8 @@ public static class ExplorerCustomizations
                     Description = "Shows the Menu bar (File, Edit etc.) on all windows that support it",
                     GroupName = "Files and Folders",
                     InputType = InputType.Toggle,
-                    IconPack = "Lucide",
-                    Icon = "AppWindowMac",
+                    IconPack = "Fluent",
+                    Icon = "Window",
                     IsWindows10Only = true,
                     RegistrySettings = new List<RegistrySetting>
                     {
@@ -587,8 +587,7 @@ public static class ExplorerCustomizations
                     Description = "Shows file type icon overlay on bottom-right corner of thumbnail previews",
                     GroupName = "Files and Folders",
                     InputType = InputType.Toggle,
-                    IconPack = "MaterialDesign",
-                    Icon = "TypeSpecimenRound",
+                    Icon = "FileDocumentOutline",
                     RegistrySettings = new List<RegistrySetting>
                     {
                         new RegistrySetting
@@ -610,8 +609,8 @@ public static class ExplorerCustomizations
                     Description = "Shows total size and file count when hovering over folders",
                     GroupName = "Files and Folders",
                     InputType = InputType.Toggle,
-                    IconPack = "Lucide",
-                    Icon = "FileDigit",
+                    IconPack = "Fluent",
+                    Icon = "DocumentNumber",
                     RegistrySettings = new List<RegistrySetting>
                     {
                         new RegistrySetting
@@ -634,7 +633,7 @@ public static class ExplorerCustomizations
                     Description = "Shows complete directory path in window title instead of folder name only",
                     GroupName = "Files and Folders",
                     InputType = InputType.Toggle,
-                    IconPack = "Lucide",
+                    IconPack = "Fluent",
                     Icon = "PanelTop",
                     RegistrySettings = new List<RegistrySetting>
                     {
@@ -702,8 +701,8 @@ public static class ExplorerCustomizations
                     Description = "Displays file type extensions (like .txt, .pdf) after file names",
                     GroupName = "Files and Folders",
                     InputType = InputType.Toggle,
-                    IconPack = "Lucide",
-                    Icon = "FileType2",
+                    IconPack = "Fluent",
+                    Icon = "DocumentText",
                     RegistrySettings = new List<RegistrySetting>
                     {
                         new RegistrySetting
@@ -938,8 +937,8 @@ public static class ExplorerCustomizations
                     Description = "Reopens Explorer windows that were open when you last shut down or logged off",
                     GroupName = "Files and Folders",
                     InputType = InputType.Toggle,
-                    IconPack = "Lucide",
-                    Icon = "AppWindow",
+                    IconPack = "Fluent",
+                    Icon = "WindowNew",
                     RegistrySettings = new List<RegistrySetting>
                     {
                         new RegistrySetting
@@ -984,8 +983,8 @@ public static class ExplorerCustomizations
                     Description = "Displays encrypted files in green and compressed files in blue",
                     GroupName = "Files and Folders",
                     InputType = InputType.Toggle,
-                    IconPack = "Lucide",
-                    Icon = "FileLock2",
+                    IconPack = "Fluent",
+                    Icon = "DocumentLock",
                     RegistrySettings = new List<RegistrySetting>
                     {
                         new RegistrySetting
@@ -1119,7 +1118,7 @@ public static class ExplorerCustomizations
                     Description = "Shows simplified sharing dialog instead of advanced security permissions",
                     GroupName = "Files and Folders",
                     InputType = InputType.Toggle,
-                    IconPack = "Lucide",
+                    IconPack = "Fluent",
                     Icon = "Share",
                     RegistrySettings = new List<RegistrySetting>
                     {
@@ -1265,8 +1264,7 @@ public static class ExplorerCustomizations
                     Description = "Shows cloud sync status icons for OneDrive files in navigation pane",
                     GroupName = "Navigation Pane",
                     InputType = InputType.Toggle,
-                    IconPack = "MaterialDesign",
-                    Icon = "CloudSyncOutline",
+                    Icon = "CloudSync",
                     RegistrySettings = new List<RegistrySetting>
                     {
                         new RegistrySetting
@@ -1288,7 +1286,7 @@ public static class ExplorerCustomizations
                     Description = "Automatically expands navigation tree to highlight current folder location",
                     GroupName = "Navigation Pane",
                     InputType = InputType.Toggle,
-                    IconPack = "Lucide",
+                    IconPack = "Fluent",
                     Icon = "FolderTree",
                     RegistrySettings = new List<RegistrySetting>
                     {

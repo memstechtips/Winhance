@@ -1,0 +1,91 @@
+<?xml version="1.0" encoding="utf-8"?>
+<UserControl
+    x:Class="Winhance.UI.Features.Common.Controls.SettingsCardItem"
+    xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+    xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+    xmlns:viewModels="using:Winhance.UI.Features.Optimize.ViewModels"
+    xmlns:selectors="using:Winhance.UI.Features.Common.TemplateSelectors"
+    xmlns:local="using:Winhance.UI.Features.Common.Controls">
+
+    <!--
+    This UserControl handles selecting and displaying the appropriate input control
+    based on the Setting's InputType. It should be placed INSIDE a SettingsCard,
+    not used as a standalone item in SettingsExpander.ItemTemplate.
+    -->
+
+    <UserControl.Resources>
+        <!-- ComboBoxEx needs explicit style inheritance to maintain rounded corners -->
+        <Style TargetType="local:ComboBoxEx" BasedOn="{StaticResource DefaultComboBoxStyle}"/>
+
+        <!-- Template for Toggle settings -->
+        <DataTemplate x:Key="ToggleSettingTemplate" x:DataType="viewModels:SettingItemViewModel">
+            <ToggleSwitch
+                IsOn="{x:Bind IsSelected, Mode=OneWay}"
+                Toggled="{x:Bind OnToggleSwitchToggled}"
+                OnContent="{x:Bind OnText}"
+                OffContent="{x:Bind OffText}"/>
+        </DataTemplate>
+
+        <!-- Template for Selection settings - uses ComboBoxEx to fix dropdown positioning issues -->
+        <DataTemplate x:Key="SelectionSettingTemplate" x:DataType="viewModels:SettingItemViewModel">
+            <local:ComboBoxEx
+                ItemsSource="{x:Bind ComboBoxOptions}"
+                SelectedValue="{x:Bind SelectedValue, Mode=OneWay}"
+                DropDownClosed="{x:Bind OnComboBoxDropDownClosed}"
+                SelectedValuePath="Value"
+                DisplayMemberPath="DisplayText"/>
+        </DataTemplate>
+
+        <!-- Template for PowerPlan selection settings -->
+        <DataTemplate x:Key="PowerPlanSettingTemplate" x:DataType="viewModels:SettingItemViewModel">
+            <local:PowerPlanComboBox
+                ItemsSource="{x:Bind ComboBoxOptions}"
+                SelectedValue="{x:Bind SelectedValue, Mode=OneWay}"
+                Loaded="OnPowerPlanComboBoxLoaded"
+                Tag="{x:Bind}"/>
+        </DataTemplate>
+
+        <!-- Template for NumericRange settings -->
+        <DataTemplate x:Key="NumericSettingTemplate" x:DataType="viewModels:SettingItemViewModel">
+            <NumberBox
+                Value="{x:Bind NumericValue, Mode=OneWay}"
+                ValueChanged="{x:Bind OnNumberBoxValueChanged}"
+                Minimum="{x:Bind MinValue}"
+                Maximum="{x:Bind MaxValue}"
+                SpinButtonPlacementMode="Inline"
+                SmallChange="1"
+                LargeChange="10"
+                MinWidth="120"/>
+        </DataTemplate>
+
+        <!-- Template for Action settings -->
+        <DataTemplate x:Key="ActionSettingTemplate" x:DataType="viewModels:SettingItemViewModel">
+            <Button
+                Content="{x:Bind ActionButtonText}"
+                Command="{x:Bind ExecuteActionCommand}"/>
+        </DataTemplate>
+
+        <!-- Template for CheckBox settings -->
+        <DataTemplate x:Key="CheckBoxSettingTemplate" x:DataType="viewModels:SettingItemViewModel">
+            <CheckBox
+                IsChecked="{x:Bind IsSelected, Mode=OneWay}"
+                Click="{x:Bind OnCheckBoxClick}"/>
+        </DataTemplate>
+
+        <!-- Template Selector -->
+        <selectors:SettingTemplateSelector
+            x:Key="SettingTemplateSelector"
+            ToggleTemplate="{StaticResource ToggleSettingTemplate}"
+            SelectionTemplate="{StaticResource SelectionSettingTemplate}"
+            PowerPlanTemplate="{StaticResource PowerPlanSettingTemplate}"
+            NumericTemplate="{StaticResource NumericSettingTemplate}"
+            ActionTemplate="{StaticResource ActionSettingTemplate}"
+            CheckBoxTemplate="{StaticResource CheckBoxSettingTemplate}"/>
+    </UserControl.Resources>
+
+    <!-- Just the content control that selects the appropriate input control -->
+    <ContentControl
+        Content="{x:Bind Setting, Mode=OneWay}"
+        ContentTemplateSelector="{StaticResource SettingTemplateSelector}"
+        HorizontalContentAlignment="Stretch"/>
+</UserControl>

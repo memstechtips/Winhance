@@ -225,7 +225,7 @@ public class AppOperationService(
         }
     }
 
-    public async Task<OperationResult<int>> UninstallAppsAsync(List<ItemDefinition> apps, IProgress<TaskProgressDetail>? progress = null)
+    public async Task<OperationResult<int>> UninstallAppsAsync(List<ItemDefinition> apps, IProgress<TaskProgressDetail>? progress = null, bool saveRemovalScripts = true)
     {
         var cancellationToken = GetCurrentCancellationToken();
 
@@ -234,7 +234,7 @@ public class AppOperationService(
             if (apps == null || !apps.Any())
                 return OperationResult<int>.Failed("No apps provided");
 
-            var success = await bloatRemovalService.RemoveAppsAsync(apps, progress, cancellationToken);
+            var success = await bloatRemovalService.RemoveAppsAsync(apps, progress, cancellationToken, saveRemovalScripts);
 
             if (success)
             {

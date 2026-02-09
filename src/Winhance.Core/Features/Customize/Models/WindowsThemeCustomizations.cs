@@ -43,16 +43,10 @@ namespace Winhance.Core.Features.Customize.Models
                         Id = "theme-mode-windows",
                         Name = "Choose your mode",
                         Description = "Choose between Light and Dark mode for Windows and apps",
-                        GroupName = "Windows Theme",
+                        GroupName = "Theme Mode",
                         InputType = InputType.Selection,
                         Icon = "BrushVariant",
                         RequiresConfirmation = true,
-                        DialogTitleIcon = "Palette",
-                        ConfirmationTitle = "Windows Theme Change",
-                        ConfirmationMessage =
-                            "You are about to apply {themeMode} to Windows and apps.\nDo you want to continue?",
-                        ConfirmationCheckboxText =
-                            "Apply default Windows wallpaper for {themeMode}",
                         RegistrySettings = new List<RegistrySetting>
                         {
                             new RegistrySetting
@@ -107,7 +101,7 @@ namespace Winhance.Core.Features.Customize.Models
                         Id = "theme-transparency",
                         Name = "Transparency effects",
                         Description = "Enable translucent effects for the Start Menu, taskbar, and other Windows interface elements",
-                        GroupName = "Windows Theme",
+                        GroupName = "Transparency",
                         InputType = InputType.Toggle,
                         Icon = "Opacity",
                         RegistrySettings = new List<RegistrySetting>

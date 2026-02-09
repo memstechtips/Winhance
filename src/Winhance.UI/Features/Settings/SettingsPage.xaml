@@ -1,0 +1,125 @@
+<?xml version="1.0" encoding="utf-8"?>
+<Page
+    x:Class="Winhance.UI.Features.Settings.SettingsPage"
+    xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+    xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+    xmlns:local="using:Winhance.UI.Features.Settings"
+    xmlns:viewModels="using:Winhance.UI.Features.Settings.ViewModels"
+    xmlns:controls="using:CommunityToolkit.WinUI.Controls">
+
+    <!-- Resources are now defined in SettingTemplates.xaml -->
+
+    <Grid Padding="0,0,12,0">
+        <Grid.RowDefinitions>
+            <RowDefinition Height="Auto"/>  <!-- Header -->
+            <RowDefinition Height="*"/>     <!-- Content -->
+        </Grid.RowDefinitions>
+
+        <!-- Row 0: Page Header with Icon -->
+        <StackPanel Grid.Row="0" Orientation="Horizontal" Spacing="16">
+            <Viewbox Width="64" Height="64" Stretch="Uniform">
+                <FontIcon Glyph="{StaticResource SettingsIconGlyph}" FontFamily="Segoe MDL2 Assets" Foreground="{ThemeResource TextFillColorPrimaryBrush}"/>
+            </Viewbox>
+            <StackPanel VerticalAlignment="Center">
+                <TextBlock
+                    Text="{x:Bind ViewModel.PageTitle, Mode=OneWay}"
+                    Style="{StaticResource TitleTextBlockStyle}"
+                    FontWeight="Bold"
+                    FontSize="30"/>
+                <TextBlock
+                    Text="{x:Bind ViewModel.PageDescription, Mode=OneWay}"
+                    Style="{StaticResource CaptionTextBlockStyle}"
+                    Foreground="{ThemeResource TextFillColorTertiaryBrush}"
+                    Margin="0,2,0,0"/>
+            </StackPanel>
+        </StackPanel>
+
+        <!-- Row 1: Content Container with rounded corners -->
+        <Border
+            Grid.Row="1"
+            Background="{ThemeResource SystemFillColorNeutralBackgroundBrush}"
+            CornerRadius="8"
+            Margin="0,16,0,12">
+            <ScrollViewer
+                Padding="0,24,0,24"
+                VerticalScrollBarVisibility="Auto"
+                HorizontalScrollBarVisibility="Disabled">
+                <Grid>
+                    <StackPanel
+                        HorizontalAlignment="Stretch"
+                        MaxWidth="{StaticResource SettingsContentMaxWidth}"
+                        Margin="{StaticResource SettingsContentMargin}"
+                        Spacing="{StaticResource SettingsCardSpacing}">
+
+                        <!-- General Settings Group -->
+                        <TextBlock
+                            Text="{x:Bind ViewModel.GeneralLabel, Mode=OneWay}"
+                            Style="{StaticResource SettingsSectionHeaderTextBlockStyle}"/>
+
+                        <!-- Language Setting -->
+                        <controls:SettingsCard
+                            Header="{x:Bind ViewModel.LanguageHeader, Mode=OneWay}"
+                            Description="{x:Bind ViewModel.LanguageDescription, Mode=OneWay}">
+                            <controls:SettingsCard.HeaderIcon>
+                                <FontIcon Glyph="&#xF2B7;" FontFamily="Segoe MDL2 Assets"/>
+                            </controls:SettingsCard.HeaderIcon>
+                            <ComboBox
+                                x:Name="LanguageComboBox"
+                                MinWidth="200"
+                                ItemsSource="{x:Bind ViewModel.Languages, Mode=OneWay}"
+                                SelectedValue="{x:Bind ViewModel.SelectedLanguage, Mode=TwoWay}"
+                                DisplayMemberPath="DisplayText"
+                                SelectedValuePath="Value"/>
+                        </controls:SettingsCard>
+
+                        <!-- Theme Setting -->
+                        <controls:SettingsCard
+                            Header="{x:Bind ViewModel.ThemeHeader, Mode=OneWay}"
+                            Description="{x:Bind ViewModel.ThemeDescription, Mode=OneWay}">
+                            <controls:SettingsCard.HeaderIcon>
+                                <FontIcon Glyph="&#xE790;" FontFamily="Segoe MDL2 Assets"/>
+                            </controls:SettingsCard.HeaderIcon>
+                            <ComboBox
+                                x:Name="ThemeComboBox"
+                                MinWidth="200"
+                                ItemsSource="{x:Bind ViewModel.Themes, Mode=OneWay}"
+                                SelectedItem="{x:Bind ViewModel.SelectedThemeOption, Mode=TwoWay}"
+                                DisplayMemberPath="DisplayText"/>
+                        </controls:SettingsCard>
+
+                        <!-- Configuration Group -->
+                        <TextBlock
+                            Text="{x:Bind ViewModel.ConfigurationLabel, Mode=OneWay}"
+                            Style="{StaticResource SettingsSectionHeaderTextBlockStyle}"/>
+
+                        <!-- Import/Export Configuration -->
+                        <controls:SettingsCard
+                            Header="{x:Bind ViewModel.BackupRestoreHeader, Mode=OneWay}"
+                            Description="{x:Bind ViewModel.BackupRestoreDescription, Mode=OneWay}">
+                            <controls:SettingsCard.HeaderIcon>
+                                <FontIcon Glyph="&#xE8F1;" FontFamily="Segoe MDL2 Assets"/>
+                            </controls:SettingsCard.HeaderIcon>
+                            <StackPanel Orientation="Horizontal" Spacing="8">
+                                <Button
+                                    Content="{x:Bind ViewModel.ImportButtonText, Mode=OneWay}"
+                                    Command="{x:Bind ViewModel.ImportConfigCommand}">
+                                    <Button.KeyboardAccelerators>
+                                        <KeyboardAccelerator Key="I" Modifiers="Control"/>
+                                    </Button.KeyboardAccelerators>
+                                </Button>
+                                <Button
+                                    Content="{x:Bind ViewModel.ExportButtonText, Mode=OneWay}"
+                                    Command="{x:Bind ViewModel.ExportConfigCommand}">
+                                    <Button.KeyboardAccelerators>
+                                        <KeyboardAccelerator Key="E" Modifiers="Control"/>
+                                    </Button.KeyboardAccelerators>
+                                </Button>
+                            </StackPanel>
+                        </controls:SettingsCard>
+
+                    </StackPanel>
+                </Grid>
+            </ScrollViewer>
+        </Border>
+    </Grid>
+</Page>

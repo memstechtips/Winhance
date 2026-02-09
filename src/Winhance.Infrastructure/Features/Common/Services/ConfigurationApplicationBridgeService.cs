@@ -283,7 +283,8 @@ public class ConfigurationApplicationBridgeService
                     item.IsSelected ?? false,
                     valueToApply,
                     checkboxResult,
-                    skipValuePrerequisites: true);
+                    skipValuePrerequisites: true,
+                    restoreDefault: item.RestoreDefault == true);
             }
 
             _logService.Log(LogLevel.Debug, $"Applied setting: {item.Name}");

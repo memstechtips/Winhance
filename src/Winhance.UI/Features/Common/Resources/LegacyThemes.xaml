@@ -1,0 +1,54 @@
+<?xml version="1.0" encoding="utf-8"?>
+<ResourceDictionary
+    xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+    xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml">
+
+    <!--
+    LegacyThemes.xaml
+    Contains color definitions for Winhance's original custom themes.
+    These are only used when LegacyWhite or LegacyDark themes are selected.
+    Native themes (System, LightNative, DarkNative) use pure WinUI 3 styling.
+    -->
+
+    <!-- Legacy Dark Theme Colors (Yellow Accent) -->
+    <Color x:Key="LegacyDarkAccent">#FFDE00</Color>
+    <Color x:Key="LegacyDarkAccentHover">#FFE433</Color>
+    <Color x:Key="LegacyDarkAccentPressed">#E5C800</Color>
+    <Color x:Key="LegacyDarkBackground">#202020</Color>
+    <Color x:Key="LegacyDarkContentSection">#1F2022</Color>
+    <Color x:Key="LegacyDarkSurface">#252628</Color>
+    <Color x:Key="LegacyDarkSurfaceHover">#2D2E30</Color>
+    <Color x:Key="LegacyDarkBorder">#3C3C3C</Color>
+    <Color x:Key="LegacyDarkPrimaryText">#FFFFFF</Color>
+    <Color x:Key="LegacyDarkSecondaryText">#AAAAAA</Color>
+    <Color x:Key="LegacyDarkDisabledText">#666666</Color>
+
+    <!-- Legacy Light Theme Colors (Blue Accent) -->
+    <Color x:Key="LegacyLightAccent">#0078D4</Color>
+    <Color x:Key="LegacyLightAccentHover">#1A86D9</Color>
+    <Color x:Key="LegacyLightAccentPressed">#006CBE</Color>
+    <Color x:Key="LegacyLightBackground">#F6F8FC</Color>
+    <Color x:Key="LegacyLightContentSection">#EAECF2</Color>
+    <Color x:Key="LegacyLightSurface">#FFFFFF</Color>
+    <Color x:Key="LegacyLightSurfaceHover">#F0F0F0</Color>
+    <Color x:Key="LegacyLightBorder">#E0E0E0</Color>
+    <Color x:Key="LegacyLightPrimaryText">#202124</Color>
+    <Color x:Key="LegacyLightSecondaryText">#666666</Color>
+    <Color x:Key="LegacyLightDisabledText">#999999</Color>
+
+    <!-- SolidColorBrush resources for legacy themes -->
+    <!-- These are applied dynamically by ThemeService when legacy themes are active -->
+
+    <SolidColorBrush x:Key="LegacyDarkAccentBrush" Color="{StaticResource LegacyDarkAccent}"/>
+    <SolidColorBrush x:Key="LegacyDarkBackgroundBrush" Color="{StaticResource LegacyDarkBackground}"/>
+    <SolidColorBrush x:Key="LegacyDarkSurfaceBrush" Color="{StaticResource LegacyDarkSurface}"/>
+    <SolidColorBrush x:Key="LegacyDarkPrimaryTextBrush" Color="{StaticResource LegacyDarkPrimaryText}"/>
+    <SolidColorBrush x:Key="LegacyDarkSecondaryTextBrush" Color="{StaticResource LegacyDarkSecondaryText}"/>
+
+    <SolidColorBrush x:Key="LegacyLightAccentBrush" Color="{StaticResource LegacyLightAccent}"/>
+    <SolidColorBrush x:Key="LegacyLightBackgroundBrush" Color="{StaticResource LegacyLightBackground}"/>
+    <SolidColorBrush x:Key="LegacyLightSurfaceBrush" Color="{StaticResource LegacyLightSurface}"/>
+    <SolidColorBrush x:Key="LegacyLightPrimaryTextBrush" Color="{StaticResource LegacyLightPrimaryText}"/>
+    <SolidColorBrush x:Key="LegacyLightSecondaryTextBrush" Color="{StaticResource LegacyLightSecondaryText}"/>
+
+</ResourceDictionary>

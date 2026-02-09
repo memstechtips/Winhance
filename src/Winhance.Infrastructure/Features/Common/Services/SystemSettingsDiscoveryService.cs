@@ -170,6 +170,7 @@ namespace Winhance.Infrastructure.Features.Common.Services
                 var rawValues = new Dictionary<string, object?>();
                 var activePlan = availablePlans.FirstOrDefault(p => p.IsActive);
                 rawValues["ActivePowerPlan"] = activePlan?.Name;
+                rawValues["ActivePowerPlanGuid"] = activePlan?.Guid;
                 results[setting.Id] = rawValues;
             }
 
