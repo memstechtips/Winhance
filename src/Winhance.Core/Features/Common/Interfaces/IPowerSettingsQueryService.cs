@@ -3,7 +3,7 @@ using Winhance.Core.Features.Optimize.Models;
 
 namespace Winhance.Core.Features.Common.Interfaces;
 
-public interface IPowerCfgQueryService
+public interface IPowerSettingsQueryService
 {
     Task<List<PowerPlan>> GetAvailablePowerPlansAsync();
     Task<PowerPlan> GetActivePowerPlanAsync();

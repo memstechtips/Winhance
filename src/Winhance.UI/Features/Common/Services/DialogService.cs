@@ -384,7 +384,7 @@ public class DialogService : IDialogService
         }
     }
 
-    public async Task<(ImportOption? Option, bool SkipReview)> ShowConfigImportOptionsDialogAsync()
+    public async Task<(ImportOption? Option, ImportOptions Options)> ShowConfigImportOptionsDialogAsync()
     {
         await _dialogSemaphore.WaitAsync();
         try
@@ -392,7 +392,7 @@ public class DialogService : IDialogService
             if (XamlRoot == null)
             {
                 _logService.LogWarning("XamlRoot not set, cannot show dialog");
-                return (null, false);
+                return (null, new ImportOptions { ReviewBeforeApplying = true });
             }
 
             ImportOption? selectedOption = null;
@@ -412,7 +412,8 @@ public class DialogService : IDialogService
                 CloseButtonText = StringKeys.Localized.Button_Cancel,
                 DefaultButton = ContentDialogButton.None,
                 XamlRoot = XamlRoot,
-                RequestedTheme = currentTheme
+                RequestedTheme = currentTheme,
+                MinWidth = 500
             };
 
             // Apply the default ContentDialog style for proper theming
@@ -448,8 +449,8 @@ public class DialogService : IDialogService
                     Content = panel,
                     HorizontalAlignment = HorizontalAlignment.Stretch,
                     HorizontalContentAlignment = HorizontalAlignment.Left,
-                    Padding = new Thickness(16, 14, 16, 14),
-                    Margin = new Thickness(0, 0, 0, isLast ? 0 : 8)
+                    Padding = new Thickness(12, 8, 12, 8),
+                    Margin = new Thickness(0, 0, 0, isLast ? 0 : 6)
                 };
                 button.Click += (_, _) =>
                 {
@@ -503,23 +504,230 @@ public class DialogService : IDialogService
                 Margin = new Thickness(0, 12, 0, 0)
             };
 
-            var contentPanel = new StackPanel { Spacing = 0 };
+            // --- Import options panel (disabled unless skip review is checked) ---
+            // Use a Grid so label and radio columns align across both rows
+            var appsGrid = new Grid
+            {
+                Margin = new Thickness(0, 3, 0, 0),
+                RowSpacing = 0,
+                ColumnSpacing = 2
+            };
+            appsGrid.ColumnDefinitions.Add(new ColumnDefinition { Width = GridLength.Auto });
+            appsGrid.ColumnDefinitions.Add(new ColumnDefinition { Width = GridLength.Auto });
+            appsGrid.ColumnDefinitions.Add(new ColumnDefinition { Width = GridLength.Auto });
+            appsGrid.ColumnDefinitions.Add(new ColumnDefinition { Width = GridLength.Auto });
+            appsGrid.RowDefinitions.Add(new RowDefinition { Height = GridLength.Auto });
+            appsGrid.RowDefinitions.Add(new RowDefinition { Height = GridLength.Auto });
+
+            // Row 0: Windows Apps
+            var winAppsLabel = new TextBlock
+            {
+                Text = _localization.GetString("Config_Import_Options_WindowsApps") ?? "Windows Apps:",
+                FontWeight = Microsoft.UI.Text.FontWeights.SemiBold,
+                FontSize = 12,
+                VerticalAlignment = VerticalAlignment.Center
+            };
+            Grid.SetRow(winAppsLabel, 0);
+            Grid.SetColumn(winAppsLabel, 0);
+
+            var winAppsInstallRadio = new RadioButton
+            {
+                Content = new TextBlock { Text = _localization.GetString("Config_Import_Options_Install") ?? "Install", FontSize = 12, VerticalAlignment = VerticalAlignment.Center },
+                GroupName = "WindowsApps",
+                VerticalContentAlignment = VerticalAlignment.Center,
+                IsEnabled = false,
+                MinWidth = 0, MinHeight = 0,
+                Padding = new Thickness(4, 0, 4, 0)
+            };
+            Grid.SetRow(winAppsInstallRadio, 0);
+            Grid.SetColumn(winAppsInstallRadio, 1);
+
+            var winAppsUninstallRadio = new RadioButton
+            {
+                Content = new TextBlock { Text = _localization.GetString("Config_Import_Options_Uninstall") ?? "Uninstall", FontSize = 12, VerticalAlignment = VerticalAlignment.Center },
+                GroupName = "WindowsApps",
+                VerticalContentAlignment = VerticalAlignment.Center,
+                IsChecked = true,
+                IsEnabled = false,
+                MinWidth = 0, MinHeight = 0,
+                Padding = new Thickness(4, 0, 4, 0)
+            };
+            Grid.SetRow(winAppsUninstallRadio, 0);
+            Grid.SetColumn(winAppsUninstallRadio, 2);
+
+            var winAppsSelectOnlyRadio = new RadioButton
+            {
+                Content = new TextBlock { Text = _localization.GetString("Config_Import_Options_SelectOnly") ?? "Select Only", FontSize = 12, VerticalAlignment = VerticalAlignment.Center },
+                GroupName = "WindowsApps",
+                VerticalContentAlignment = VerticalAlignment.Center,
+                IsEnabled = false,
+                MinWidth = 0, MinHeight = 0,
+                Padding = new Thickness(4, 0, 4, 0)
+            };
+            Grid.SetRow(winAppsSelectOnlyRadio, 0);
+            Grid.SetColumn(winAppsSelectOnlyRadio, 3);
+
+            // Row 1: External Apps
+            var extAppsLabel = new TextBlock
+            {
+                Text = _localization.GetString("Config_Import_Options_ExternalApps") ?? "External Apps:",
+                FontWeight = Microsoft.UI.Text.FontWeights.SemiBold,
+                FontSize = 12,
+                VerticalAlignment = VerticalAlignment.Center
+            };
+            Grid.SetRow(extAppsLabel, 1);
+            Grid.SetColumn(extAppsLabel, 0);
+
+            var extAppsInstallRadio = new RadioButton
+            {
+                Content = new TextBlock { Text = _localization.GetString("Config_Import_Options_Install") ?? "Install", FontSize = 12, VerticalAlignment = VerticalAlignment.Center },
+                GroupName = "ExternalApps",
+                VerticalContentAlignment = VerticalAlignment.Center,
+                IsChecked = true,
+                IsEnabled = false,
+                MinWidth = 0, MinHeight = 0,
+                Padding = new Thickness(4, 0, 4, 0)
+            };
+            Grid.SetRow(extAppsInstallRadio, 1);
+            Grid.SetColumn(extAppsInstallRadio, 1);
+
+            var extAppsUninstallRadio = new RadioButton
+            {
+                Content = new TextBlock { Text = _localization.GetString("Config_Import_Options_Uninstall") ?? "Uninstall", FontSize = 12, VerticalAlignment = VerticalAlignment.Center },
+                GroupName = "ExternalApps",
+                VerticalContentAlignment = VerticalAlignment.Center,
+                IsEnabled = false,
+                MinWidth = 0, MinHeight = 0,
+                Padding = new Thickness(4, 0, 4, 0)
+            };
+            Grid.SetRow(extAppsUninstallRadio, 1);
+            Grid.SetColumn(extAppsUninstallRadio, 2);
+
+            var extAppsSelectOnlyRadio = new RadioButton
+            {
+                Content = new TextBlock { Text = _localization.GetString("Config_Import_Options_SelectOnly") ?? "Select Only", FontSize = 12, VerticalAlignment = VerticalAlignment.Center },
+                GroupName = "ExternalApps",
+                VerticalContentAlignment = VerticalAlignment.Center,
+                IsEnabled = false,
+                MinWidth = 0, MinHeight = 0,
+                Padding = new Thickness(4, 0, 4, 0)
+            };
+            Grid.SetRow(extAppsSelectOnlyRadio, 1);
+            Grid.SetColumn(extAppsSelectOnlyRadio, 3);
+
+            appsGrid.Children.Add(winAppsLabel);
+            appsGrid.Children.Add(winAppsInstallRadio);
+            appsGrid.Children.Add(winAppsUninstallRadio);
+            appsGrid.Children.Add(winAppsSelectOnlyRadio);
+            appsGrid.Children.Add(extAppsLabel);
+            appsGrid.Children.Add(extAppsInstallRadio);
+            appsGrid.Children.Add(extAppsUninstallRadio);
+            appsGrid.Children.Add(extAppsSelectOnlyRadio);
+
+            // Customize action checkboxes
+            var themeWallpaperCheckbox = new CheckBox
+            {
+                Content = _localization.GetString("Config_Import_Options_ThemeWallpaper") ?? "Apply default wallpaper for theme",
+                IsChecked = true,
+                IsEnabled = false,
+                MinHeight = 0,
+                Padding = new Thickness(4, 2, 4, 2),
+                Margin = new Thickness(0, 2, 0, 0)
+            };
+            var cleanTaskbarCheckbox = new CheckBox
+            {
+                Content = _localization.GetString("Config_Import_Options_CleanTaskbar") ?? "Clean Taskbar",
+                IsChecked = true,
+                IsEnabled = false,
+                MinHeight = 0,
+                Padding = new Thickness(4, 2, 4, 2)
+            };
+            var cleanStartMenuCheckbox = new CheckBox
+            {
+                Content = _localization.GetString("Config_Import_Options_CleanStartMenu") ?? "Clean Start Menu",
+                IsChecked = true,
+                IsEnabled = false,
+                MinHeight = 0,
+                Padding = new Thickness(4, 2, 4, 2)
+            };
+
+            var optionsPanel = new StackPanel
+            {
+                Spacing = 0,
+                Opacity = 0.4
+            };
+            optionsPanel.Children.Add(appsGrid);
+            optionsPanel.Children.Add(themeWallpaperCheckbox);
+            optionsPanel.Children.Add(cleanTaskbarCheckbox);
+            optionsPanel.Children.Add(cleanStartMenuCheckbox);
+
+            // Enable/disable options panel based on skip review checkbox
+            skipReviewCheckbox.Checked += (_, _) =>
+            {
+                optionsPanel.Opacity = 1.0;
+                winAppsInstallRadio.IsEnabled = true;
+                winAppsUninstallRadio.IsEnabled = true;
+                winAppsSelectOnlyRadio.IsEnabled = true;
+                extAppsInstallRadio.IsEnabled = true;
+                extAppsUninstallRadio.IsEnabled = true;
+                extAppsSelectOnlyRadio.IsEnabled = true;
+                themeWallpaperCheckbox.IsEnabled = true;
+                cleanTaskbarCheckbox.IsEnabled = true;
+                cleanStartMenuCheckbox.IsEnabled = true;
+            };
+            skipReviewCheckbox.Unchecked += (_, _) =>
+            {
+                optionsPanel.Opacity = 0.4;
+                winAppsInstallRadio.IsEnabled = false;
+                winAppsUninstallRadio.IsEnabled = false;
+                winAppsSelectOnlyRadio.IsEnabled = false;
+                extAppsInstallRadio.IsEnabled = false;
+                extAppsUninstallRadio.IsEnabled = false;
+                extAppsSelectOnlyRadio.IsEnabled = false;
+                themeWallpaperCheckbox.IsEnabled = false;
+                cleanTaskbarCheckbox.IsEnabled = false;
+                cleanStartMenuCheckbox.IsEnabled = false;
+            };
+
+            var contentPanel = new StackPanel { Spacing = 0, Margin = new Thickness(0, 0, 14, 0) };
             contentPanel.Children.Add(new TextBlock
             {
                 Text = _localization.GetString("Dialog_ImportOptions_Message"),
                 TextWrapping = TextWrapping.Wrap,
-                Margin = new Thickness(0, 0, 0, 16)
+                Margin = new Thickness(0, 0, 0, 12)
             });
             contentPanel.Children.Add(ownButton);
             contentPanel.Children.Add(recButton);
             contentPanel.Children.Add(backupButton);
             contentPanel.Children.Add(defaultsButton);
             contentPanel.Children.Add(skipReviewCheckbox);
+            contentPanel.Children.Add(optionsPanel);
 
-            dialog.Content = contentPanel;
+            var scrollViewer = new ScrollViewer
+            {
+                Content = contentPanel,
+                VerticalScrollBarVisibility = ScrollBarVisibility.Auto,
+                MaxHeight = 480
+            };
+
+            dialog.Content = scrollViewer;
 
             await dialog.ShowAsync();
-            return (selectedOption, skipReviewCheckbox.IsChecked == true);
+
+            bool skipReview = skipReviewCheckbox.IsChecked == true;
+            var importOptions = new ImportOptions
+            {
+                ReviewBeforeApplying = !skipReview,
+                ProcessWindowsAppsInstallation = skipReview && winAppsInstallRadio.IsChecked == true,
+                ProcessWindowsAppsRemoval = skipReview && winAppsUninstallRadio.IsChecked == true,
+                // Select Only: neither Install nor Uninstall flag is set — apps get pre-selected only
+                ProcessExternalAppsInstallation = skipReview && extAppsInstallRadio.IsChecked == true,
+                ProcessExternalAppsRemoval = skipReview && extAppsUninstallRadio.IsChecked == true,
+                ApplyThemeWallpaper = skipReview && themeWallpaperCheckbox.IsChecked == true,
+                ApplyCleanTaskbar = skipReview && cleanTaskbarCheckbox.IsChecked == true,
+                ApplyCleanStartMenu = skipReview && cleanStartMenuCheckbox.IsChecked == true,
+            };
+            return (selectedOption, importOptions);
         }
         finally
         {

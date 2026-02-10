@@ -4,9 +4,6 @@
 using System;
 using System.IO;
 using System.IO.Compression;
-using System.Linq;
-using System.Management.Automation;
-using System.Management.Automation.Runspaces;
 using System.Text;
 using System.Text.RegularExpressions;
 using System.Threading;
@@ -82,7 +79,7 @@ function Get-FileFromWeb {
         $progressBar = $(''.PadRight($BarSize * $percent, '#').PadRight($BarSize, '-'))
         $progressMessage = ""$ProgressText [$progressBar] $($percentComplete.ToString('##0.0').PadLeft(5))%""
         
-        # Use Write-Host for real-time progress (gets captured by PowerShellExecutionService)
+        # Use Write-Host for real-time progress (gets captured by PowerShellRunner)
         Write-Host $progressMessage
         
         # Log completion to file
@@ -243,16 +240,6 @@ finally {
             CancellationToken cancellationToken = default
         )
         {
-            return await InstallWinGetAsync(null, progress, logger, cancellationToken);
-        }
-
-        public static async Task<(bool Success, string Message)> InstallWinGetAsync(
-            IPowerShellExecutionService powerShellService,
-            IProgress<TaskProgressDetail> progress = null,
-            ILogService logger = null,
-            CancellationToken cancellationToken = default
-        )
-        {
             logger?.LogInformation("Starting WinGet installation from GitHub");
 
             string tempDir = Path.Combine(Path.GetTempPath(), "WinhanceTemp");
@@ -262,40 +249,8 @@ finally {
 
             try
             {
-                if (powerShellService != null)
-                {
-                    // Use PowerShellExecutionService for proper console output capture
-                    await powerShellService.ExecuteScriptFileWithProgressAsync(scriptPath, "", progress, cancellationToken);
-                }
-                else
-                {
-                    // Fallback to direct PowerShell execution with execution policy bypass
-                    var sessionState = InitialSessionState.CreateDefault();
-                    sessionState.ExecutionPolicy = Microsoft.PowerShell.ExecutionPolicy.Bypass;
-                    using var runspace = RunspaceFactory.CreateRunspace(sessionState);
-                    runspace.Open();
-
-                    using var powerShell = PowerShell.Create();
-                    powerShell.Runspace = runspace;
-                    powerShell.AddScript($". '{scriptPath}'");
-
-                    var outputCollection = new PSDataCollection<PSObject>();
-                    outputCollection.DataAdded += (sender, e) =>
-                    {
-                        var output = ((PSDataCollection<PSObject>)sender)[e.Index].ToString();
-                        logger?.LogInformation($"WinGet: {output}");
-                        ProcessOutputLine(output, progress);
-                    };
-
-                    await Task.Run(() => powerShell.Invoke(null, outputCollection), cancellationToken);
-
-                    if (powerShell.HadErrors)
-                    {
-                        var errors = string.Join("\n", powerShell.Streams.Error.Select(e => e.Exception.Message));
-                        logger?.LogError($"WinGet installation failed: {errors}");
-                        return (false, $"Installation failed: {errors}");
-                    }
-                }
+                await Winhance.Infrastructure.Features.Common.Utilities.PowerShellRunner.RunScriptFileAsync(
+                    scriptPath, progress: progress, ct: cancellationToken);
 
                 logger?.LogInformation("WinGet installation completed successfully");
                 return (true, "WinGet installed successfully");
@@ -308,7 +263,6 @@ finally {
             }
             finally
             {
-                // Clean up the temporary script file
                 try
                 {
                     if (File.Exists(scriptPath))

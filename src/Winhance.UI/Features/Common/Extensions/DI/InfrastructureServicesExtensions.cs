@@ -22,8 +22,6 @@ public static class InfrastructureServicesExtensions
         // Core Infrastructure Services (Singleton - Cross-cutting concerns)
         services.AddSingleton<ILogService, Winhance.Core.Features.Common.Services.LogService>();
         services.AddSingleton<IWindowsRegistryService, WindowsRegistryService>();
-        services.AddSingleton<ICommandService, CommandService>();
-
         // Dependency Manager
         services.AddSingleton<IDependencyManager, Winhance.Core.Features.Common.Services.DependencyManager>();
 
@@ -69,9 +67,8 @@ public static class InfrastructureServicesExtensions
         services.AddSingleton<IHardwareCompatibilityFilter, HardwareCompatibilityFilter>();
         services.AddSingleton<IHardwareDetectionService, HardwareDetectionService>();
 
-        // PowerShell and Script Services
-        services.AddSingleton<IPowerShellExecutionService, PowerShellExecutionService>();
-        services.AddSingleton<IPowerCfgQueryService, PowerCfgQueryService>();
+        // Script Services
+        services.AddSingleton<IPowerSettingsQueryService, PowerSettingsQueryService>();
         services.AddSingleton<IPowerSettingsValidationService, PowerSettingsValidationService>();
 
         // Internet Connectivity

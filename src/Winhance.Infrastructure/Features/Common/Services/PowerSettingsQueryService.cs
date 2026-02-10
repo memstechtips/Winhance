@@ -1,14 +1,13 @@
 using Winhance.Core.Features.Common.Enums;
 using Winhance.Core.Features.Common.Interfaces;
 using Winhance.Core.Features.Common.Models;
-using Winhance.Core.Features.Common.Utils;
 using Winhance.Core.Features.Common.Native;
 using Winhance.Core.Features.Optimize.Models;
 using System.Runtime.InteropServices;
 
 namespace Winhance.Infrastructure.Features.Common.Services;
 
-public class PowerCfgQueryService(ICommandService commandService, ILogService logService) : IPowerCfgQueryService
+public class PowerSettingsQueryService(ILogService logService) : IPowerSettingsQueryService
 {
     private List<PowerPlan>? _cachedPlans;
     private DateTime _cacheTime;
@@ -19,13 +18,13 @@ public class PowerCfgQueryService(ICommandService commandService, ILogService lo
     {
         if (_cachedPlans != null && DateTime.UtcNow - _cacheTime < _cacheTimeout)
         {
-            logService.Log(LogLevel.Debug, $"[PowerCfgQueryService] Using cached power plans ({_cachedPlans.Count} plans)");
+            logService.Log(LogLevel.Debug, $"[PowerSettingsQueryService] Using cached power plans ({_cachedPlans.Count} plans)");
             return _cachedPlans;
         }
 
         try
         {
-            logService.Log(LogLevel.Info, "[PowerCfgQueryService] Enumerating power plans via Native API");
+            logService.Log(LogLevel.Info, "[PowerSettingsQueryService] Enumerating power plans via Native API");
             
             var plans = new List<PowerPlan>();
             var activeGuid = GetActivePowerSchemeGuid();
@@ -72,13 +71,13 @@ public class PowerCfgQueryService(ICommandService commandService, ILogService lo
             _cacheTime = DateTime.UtcNow;
 
             var activePlan = _cachedPlans.FirstOrDefault(p => p.IsActive);
-            logService.Log(LogLevel.Info, $"[PowerCfgQueryService] Discovered {_cachedPlans.Count} system power plans. Active: {activePlan?.Name ?? "None"} ({activePlan?.Guid ?? "N/A"})");
+            logService.Log(LogLevel.Info, $"[PowerSettingsQueryService] Discovered {_cachedPlans.Count} system power plans. Active: {activePlan?.Name ?? "None"} ({activePlan?.Guid ?? "N/A"})");
             
             return _cachedPlans;
         }
         catch (Exception ex)
         {
-            logService.Log(LogLevel.Warning, $"[PowerCfgQueryService] Error getting available power plans: {ex.Message}");
+            logService.Log(LogLevel.Warning, $"[PowerSettingsQueryService] Error getting available power plans: {ex.Message}");
             return new List<PowerPlan>();
         }
     }
@@ -206,13 +205,19 @@ public class PowerCfgQueryService(ICommandService commandService, ILogService lo
     {
         try
         {
-            var command = $"powercfg /query SCHEME_CURRENT {powerCfgSetting.SubgroupGuid} {powerCfgSetting.SettingGuid}";
-            var result = await commandService.ExecuteCommandAsync(command);
+            return await Task.Run(() =>
+            {
+                var schemeGuid = GetActivePowerSchemeGuid();
+                if (schemeGuid == Guid.Empty) return (int?)null;
 
-            if (!result.Success || string.IsNullOrEmpty(result.Output))
+                var subGuid = Guid.Parse(powerCfgSetting.SubgroupGuid);
+                var setGuid = Guid.Parse(powerCfgSetting.SettingGuid);
+
+                if (PowerProf.PowerReadACValueIndex(IntPtr.Zero, ref schemeGuid, ref subGuid, ref setGuid, out uint acIndex) == PowerProf.ERROR_SUCCESS)
+                    return (int?)acIndex;
+
                 return null;
-
-            return OutputParser.PowerCfg.ParsePowerSettingValue(result.Output, "Current AC Power Setting Index:");
+            });
         }
         catch (Exception ex)
         {
@@ -360,22 +365,26 @@ public class PowerCfgQueryService(ICommandService commandService, ILogService lo
 
         try
         {
-            var command = $"powercfg /query SCHEME_CURRENT {powerCfgSetting.SubgroupGuid} {powerCfgSetting.SettingGuid}";
-            logService.Log(LogLevel.Debug, $"Querying power setting capabilities: {command}");
-
-            var result = await commandService.ExecuteCommandAsync(command);
-
-            if (!result.Success || string.IsNullOrEmpty(result.Output))
+            var capabilities = await Task.Run(() =>
             {
-                logService.Log(LogLevel.Warning, $"Failed to query capabilities for {powerCfgSetting.SettingGUIDAlias ?? cacheKey}");
-                return (null, null);
-            }
+                var subGuid = Guid.Parse(powerCfgSetting.SubgroupGuid);
+                var setGuid = Guid.Parse(powerCfgSetting.SettingGuid);
 
-            var capabilities = OutputParser.PowerCfg.ParsePowerSettingMinMax(result.Output);
+                int? min = null, max = null;
+
+                if (PowerProf.PowerReadValueMin(IntPtr.Zero, ref subGuid, ref setGuid, out uint minVal) == PowerProf.ERROR_SUCCESS)
+                    min = (int)minVal;
+
+                if (PowerProf.PowerReadValueMax(IntPtr.Zero, ref subGuid, ref setGuid, out uint maxVal) == PowerProf.ERROR_SUCCESS)
+                    max = (int)maxVal;
+
+                return (min, max);
+            });
+
             _capabilityCache[cacheKey] = capabilities;
 
             logService.Log(LogLevel.Info,
-                $"Power setting '{powerCfgSetting.SettingGUIDAlias ?? cacheKey}' capabilities: Min={capabilities.minValue}, Max={capabilities.maxValue}");
+                $"Power setting '{powerCfgSetting.SettingGUIDAlias ?? cacheKey}' capabilities: Min={capabilities.min}, Max={capabilities.max}");
 
             return capabilities;
         }

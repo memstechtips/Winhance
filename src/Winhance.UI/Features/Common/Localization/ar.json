@@ -1057,8 +1057,8 @@
     "WIMUtil_Status_Extracting": "جارٍ استخراج محتويات ISO...",
     "WIMUtil_Status_IsoSelected": "تم تحديد ISO، جاهز لبدء الاستخراج",
     "WIMUtil_Status_NoIsoSelected": "لم يتم تحديد ISO",
-    "WIMUtil_Status_WaitForConversion": "🔒 انتظر حتى يكتمل التحويل",
-    "WIMUtil_Status_CompleteStep1": "🔒 أكمل الخطوة 1",
+    "WIMUtil_Status_WaitForConversion": "انتظر حتى يكتمل التحويل",
+    "WIMUtil_Status_CompleteStep1": "أكمل الخطوة 1",
     "WIMUtil_Status_XmlAdded": "✓ تم إضافة XML",
     "WIMUtil_Status_NoXmlAdded": "لم تتم إضافة XML (اختياري)",
     "WIMUtil_Status_DriversAdded": "✓ تم إضافة برامج التشغيل",
@@ -1459,6 +1459,14 @@
     "Review_Mode_Action_Install": "سيتم تثبيت التطبيقات المحددة عند تطبيق التكوين",
     "Review_Mode_Action_Remove": "سيتم إزالة التطبيقات المحددة عند تطبيق التكوين",
     "Review_Mode_Skip_Checkbox": "تخطي المراجعة والتطبيق فوراً",
+    "Config_Import_Options_WindowsApps": "تطبيقات Windows:",
+    "Config_Import_Options_ExternalApps": "تطبيقات خارجية:",
+    "Config_Import_Options_Install": "تثبيت",
+    "Config_Import_Options_Uninstall": "إلغاء التثبيت",
+    "Config_Import_Options_SelectOnly": "تحديد فقط",
+    "Config_Import_Options_ThemeWallpaper": "تطبيق الخلفية الافتراضية للسمة",
+    "Config_Import_Options_CleanTaskbar": "تنظيف شريط المهام",
+    "Config_Import_Options_CleanStartMenu": "تنظيف قائمة ابدأ",
     "Review_Mode_Status_AllMatch": "جميع الإعدادات تتطابق مع التكوين",
     "Review_Mode_Status_NoItems": "لا توجد عناصر تكوين للتطبيق",
     "Review_Mode_Action_ThemeWallpaper": "هل تريد تطبيق خلفية الشاشة الافتراضية لهذه السمة؟",

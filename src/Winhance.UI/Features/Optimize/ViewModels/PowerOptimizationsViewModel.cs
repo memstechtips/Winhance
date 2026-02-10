@@ -70,6 +70,9 @@ public partial class PowerOptimizationsViewModel : BaseSettingsFeatureViewModel
 
             if (powerPlanSetting == null) return;
 
+            // Invalidate the cache to ensure we get fresh data from the OS
+            _powerPlanComboBoxService.InvalidateCache();
+
             var options = await _powerPlanComboBoxService.GetPowerPlanOptionsAsync();
             var powerService = _domainServiceRouter.GetDomainService(ModuleId) as IPowerService;
             var activePlan = await powerService?.GetActivePowerPlanAsync()!;
@@ -88,33 +91,41 @@ public partial class PowerOptimizationsViewModel : BaseSettingsFeatureViewModel
                 }
             }
 
-            _dispatcherService.RunOnUIThread(() =>
+            // Build the new ComboBoxOption list before touching the UI
+            var newItems = new List<ComboBoxOption>(options.Count);
+            for (int i = 0; i < options.Count; i++)
+            {
+                var displayName = options[i].DisplayName;
+                if (displayName.StartsWith("PowerPlan_"))
+                {
+                    displayName = _localizationService.GetString(displayName);
+                }
+
+                newItems.Add(new ComboBoxOption
+                {
+                    DisplayText = displayName,
+                    Value = options[i].Index,
+                    Description = options[i].ExistsOnSystem ? "Installed on system" : "Not installed",
+                    Tag = options[i]
+                });
+            }
+
+            // Await the UI update to ensure it completes before returning
+            await _dispatcherService.RunOnUIThreadAsync(() =>
             {
                 _logService.LogDebug($"[RefreshPowerPlanComboBox] Starting refresh, currentIndex={currentIndex}, current SelectedValue={powerPlanSetting.SelectedValue}");
 
                 powerPlanSetting.ComboBoxOptions.Clear();
-                _logService.LogDebug($"[RefreshPowerPlanComboBox] After Clear, SelectedValue={powerPlanSetting.SelectedValue}");
 
-                for (int i = 0; i < options.Count; i++)
+                foreach (var item in newItems)
                 {
-                    var displayName = options[i].DisplayName;
-                    if (displayName.StartsWith("PowerPlan_"))
-                    {
-                        displayName = _localizationService.GetString(displayName);
-                    }
-
-                    powerPlanSetting.ComboBoxOptions.Add(new ComboBoxOption
-                    {
-                        DisplayText = displayName,
-                        Value = options[i].Index,
-                        Description = options[i].ExistsOnSystem ? "Installed on system" : "Not installed",
-                        Tag = options[i]
-                    });
+                    powerPlanSetting.ComboBoxOptions.Add(item);
                 }
 
-                _logService.LogDebug($"[RefreshPowerPlanComboBox] After repopulate, SelectedValue={powerPlanSetting.SelectedValue}, setting to {currentIndex}");
+                _logService.LogDebug($"[RefreshPowerPlanComboBox] After repopulate ({newItems.Count} items), setting SelectedValue to {currentIndex}");
                 powerPlanSetting.SelectedValue = currentIndex;
-                _logService.LogDebug($"[RefreshPowerPlanComboBox] After setting SelectedValue={powerPlanSetting.SelectedValue}");
+
+                return Task.CompletedTask;
             });
         }
         catch (Exception ex)

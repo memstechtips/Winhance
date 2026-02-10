@@ -27,7 +27,7 @@ namespace Winhance.Core.Features.Common.Interfaces
 
         Task<(bool? Result, bool DontShowAgain)> ShowDonationDialogAsync(string title = null, string supportMessage = null);
 
-        Task<(ImportOption? Option, bool SkipReview)> ShowConfigImportOptionsDialogAsync();
+        Task<(ImportOption? Option, ImportOptions Options)> ShowConfigImportOptionsDialogAsync();
 
         Task<(bool Confirmed, bool CheckboxChecked)> ShowConfirmationWithCheckboxAsync(
             string message,

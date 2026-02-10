@@ -19,7 +19,6 @@ namespace Winhance.Infrastructure.Features.AdvancedTools.Services
 {
     public class WimUtilService : IWimUtilService
     {
-        private readonly IPowerShellExecutionService _powerShellService;
         private readonly ILogService _logService;
         private readonly HttpClient _httpClient;
         private readonly IWinGetService _winGetService;
@@ -34,13 +33,11 @@ namespace Winhance.Infrastructure.Features.AdvancedTools.Services
         private const string UnattendedWinstallXmlUrl = "https://raw.githubusercontent.com/memstechtips/UnattendedWinstall/main/autounattend.xml";
 
         public WimUtilService(
-            IPowerShellExecutionService powerShellService,
             ILogService logService,
             HttpClient httpClient,
             IWinGetService winGetService,
             ILocalizationService localization)
         {
-            _powerShellService = powerShellService;
             _logService = logService;
             _httpClient = httpClient;
             _winGetService = winGetService;
@@ -243,54 +240,23 @@ namespace Winhance.Infrastructure.Features.AdvancedTools.Services
                     FileSizeBytes = fileInfo.Length
                 };
 
-                var script = $@"
-$ErrorActionPreference = 'Stop'
-$imagePath = '{imagePath.Replace("'", "''")}'
-
-try {{
-    $images = Get-WindowsImage -ImagePath $imagePath
-    $imageCount = ($images | Measure-Object).Count
-
-    Write-Host ""ImageCount:$imageCount""
-
-    foreach ($img in $images) {{
-        Write-Host ""Edition:$($img.ImageName)""
-    }}
-
-    exit 0
-}}
-catch {{
-    Write-Host ""Error: $($_.Exception.Message)"" -ForegroundColor Red
-    exit 1
-}}
-";
-
-                var output = new System.Text.StringBuilder();
-                var progress = new Progress<TaskProgressDetail>(detail =>
+                await Task.Run(() =>
                 {
-                    if (!string.IsNullOrEmpty(detail.TerminalOutput))
+                    Microsoft.Dism.DismApi.Initialize(Microsoft.Dism.DismLogLevel.LogErrors);
+                    try
                     {
-                        output.AppendLine(detail.TerminalOutput);
-                    }
-                });
-
-                await _powerShellService.ExecuteScriptFromContentAsync(script, progress, CancellationToken.None);
-
-                var outputText = output.ToString();
-                foreach (var line in outputText.Split('\n'))
-                {
-                    if (line.StartsWith("ImageCount:"))
-                    {
-                        if (int.TryParse(line.Substring(11).Trim(), out int count))
+                        var imageInfos = Microsoft.Dism.DismApi.GetImageInfo(imagePath);
+                        info.ImageCount = imageInfos.Count;
+                        foreach (var imageInfo in imageInfos)
                         {
-                            info.ImageCount = count;
+                            info.EditionNames.Add(imageInfo.ImageName);
                         }
                     }
-                    else if (line.StartsWith("Edition:"))
+                    finally
                     {
-                        info.EditionNames.Add(line.Substring(8).Trim());
+                        Microsoft.Dism.DismApi.Shutdown();
                     }
-                }
+                });
 
                 _logService.LogInformation($"Image: {format}, {info.ImageCount} editions, {info.FileSizeBytes:N0} bytes");
                 return info;
@@ -307,6 +273,71 @@ catch {{
                     ImageCount = 1
                 };
             }
+        }
+
+        private static readonly System.Text.RegularExpressions.Regex ProgressRegex =
+            new(@"(\d+\.?\d*)\s*%", System.Text.RegularExpressions.RegexOptions.Compiled);
+
+        private async Task<(int ExitCode, string Output)> RunProcessWithProgressAsync(
+            string fileName,
+            string arguments,
+            IProgress<TaskProgressDetail>? progress,
+            CancellationToken cancellationToken)
+        {
+            var output = new StringBuilder();
+
+            using var process = new Process();
+            process.StartInfo = new ProcessStartInfo
+            {
+                FileName = fileName,
+                Arguments = arguments,
+                UseShellExecute = false,
+                CreateNoWindow = true,
+                RedirectStandardOutput = true,
+                RedirectStandardError = true
+            };
+
+            process.Start();
+
+            using var registration = cancellationToken.Register(() =>
+            {
+                try { process.Kill(); } catch { }
+            });
+
+            var readOutput = Task.Run(async () =>
+            {
+                while (await process.StandardOutput.ReadLineAsync() is { } line)
+                {
+                    output.AppendLine(line);
+                    var match = ProgressRegex.Match(line);
+                    if (match.Success && double.TryParse(match.Groups[1].Value, out var pct))
+                    {
+                        progress?.Report(new TaskProgressDetail
+                        {
+                            TerminalOutput = line,
+                            Progress = pct
+                        });
+                    }
+                    else
+                    {
+                        progress?.Report(new TaskProgressDetail { TerminalOutput = line });
+                    }
+                }
+            }, CancellationToken.None);
+
+            var readError = Task.Run(async () =>
+            {
+                while (await process.StandardError.ReadLineAsync() is { } line)
+                {
+                    output.AppendLine(line);
+                    progress?.Report(new TaskProgressDetail { TerminalOutput = line });
+                }
+            }, CancellationToken.None);
+
+            await Task.WhenAll(readOutput, readError);
+            await process.WaitForExitAsync(cancellationToken);
+
+            return (process.ExitCode, output.ToString());
         }
 
         private void KillDismProcesses()
@@ -400,44 +431,15 @@ catch {{
                             : $"Index {i}"
                     });
 
-                    var script = $@"
-$ErrorActionPreference = 'Stop'
-$sourceFile = '{sourceFile.Replace("'", "''")}'
-$targetFile = '{targetFile.Replace("'", "''")}'
-$index = {i}
-$compressionType = '{compressionType}'
-$isFirstIndex = {(i == 1 ? "$true" : "$false")}
+                    var arguments = $"/Export-Image /SourceImageFile:\"{sourceFile}\" /SourceIndex:{i} /DestinationImageFile:\"{targetFile}\" /Compress:{compressionType} /CheckIntegrity";
 
-try {{
-    Write-Host ""Exporting index $index...""
-    Write-Host ""Source: $sourceFile""
-    Write-Host ""Target: $targetFile""
-    Write-Host ""Compression: $compressionType""
-    Write-Host ""First index: $isFirstIndex""
+                    _logService.LogInformation($"Exporting index {i}: dism.exe {arguments}");
 
-    if ($isFirstIndex) {{
-        Write-Host ""Creating new image file...""
-        dism /Export-Image /SourceImageFile:""$sourceFile"" /SourceIndex:$index /DestinationImageFile:""$targetFile"" /Compress:$compressionType /CheckIntegrity
-    }} else {{
-        Write-Host ""Appending to existing image file...""
-        dism /Export-Image /SourceImageFile:""$sourceFile"" /SourceIndex:$index /DestinationImageFile:""$targetFile"" /Compress:$compressionType /CheckIntegrity
-    }}
-
-    if ($LASTEXITCODE -ne 0) {{
-        throw ""DISM failed with exit code: $LASTEXITCODE""
-    }}
-
-    Write-Host ""Successfully exported index $index""
-    exit 0
-}}
-catch {{
-    Write-Host ""Error: $($_.Exception.Message)"" -ForegroundColor Red
-    Write-Host ""Full error: $($_)"" -ForegroundColor Red
-    exit 1
-}}
-";
-
-                    await _powerShellService.ExecuteScriptFromContentAsync(script, progress, cancellationToken);
+                    var (exitCode, _) = await RunProcessWithProgressAsync("dism.exe", arguments, progress, cancellationToken);
+                    if (exitCode != 0)
+                    {
+                        throw new Exception($"DISM failed with exit code: {exitCode}");
+                    }
                 }
 
                 await Task.Delay(2000, cancellationToken);
@@ -666,41 +668,18 @@ catch {{
                 });
 
                 var logPath = Path.Combine(Path.GetTempPath(), "adk_install.log");
-                var installScript = $@"
-$ErrorActionPreference = 'Stop'
-$adkSetup = '{adkSetupPath.Replace("'", "''")}'
-$logPath = '{logPath.Replace("'", "''")}'
+                var arguments = $"/quiet /norestart /features OptionId.DeploymentTools /ceip off /log \"{logPath}\"";
 
-try {{
-    Write-Host 'Starting ADK Deployment Tools installation...'
+                progress?.Report(new TaskProgressDetail
+                {
+                    TerminalOutput = "Starting ADK Deployment Tools installation..."
+                });
 
-    $arguments = @(
-        '/quiet',
-        '/norestart',
-        '/features', 'OptionId.DeploymentTools',
-        '/ceip', 'off',
-        '/log', $logPath
-    )
-
-    $process = Start-Process -FilePath $adkSetup -ArgumentList $arguments -NoNewWindow -Wait -PassThru
-
-    if ($process.ExitCode -eq 0) {{
-        Write-Host 'ADK Deployment Tools installed successfully!'
-        exit 0
-    }} else {{
-        throw ""Installation failed with exit code: $($process.ExitCode)""
-    }}
-}}
-catch {{
-    Write-Host ""Error: $($_.Exception.Message)"" -ForegroundColor Red
-    if (Test-Path $logPath) {{
-        Get-Content $logPath | Select-Object -Last 20
-    }}
-    exit 1
-}}
-";
-
-                await _powerShellService.ExecuteScriptAsync(installScript, progress, cancellationToken);
+                var (exitCode, _) = await RunProcessWithProgressAsync(adkSetupPath, arguments, progress, cancellationToken);
+                if (exitCode != 0)
+                {
+                    throw new Exception($"ADK installation failed with exit code: {exitCode}");
+                }
 
                 if (await IsOscdimgAvailableAsync())
                 {
@@ -767,35 +746,18 @@ catch {{
                 });
 
                 var logPath = Path.Combine(Path.GetTempPath(), "adk_winget_install.log");
-                var installScript = $@"
-$ErrorActionPreference = 'Stop'
-$logPath = '{logPath.Replace("'", "''")}'
+                var arguments = $"install Microsoft.WindowsADK --exact --silent --accept-package-agreements --accept-source-agreements --override \"/quiet /norestart /features OptionId.DeploymentTools /ceip off\" --log \"{logPath}\"";
 
-try {{
-    Write-Host 'Starting ADK installation via winget...'
+                progress?.Report(new TaskProgressDetail
+                {
+                    TerminalOutput = "Starting ADK installation via winget..."
+                });
 
-    $arguments = '/quiet /norestart /features OptionId.DeploymentTools /ceip off'
-
-    winget install Microsoft.WindowsADK --exact --silent --accept-package-agreements --accept-source-agreements --override $arguments --log $logPath
-
-    if ($LASTEXITCODE -eq 0) {{
-        Write-Host 'ADK installed successfully via winget!'
-        exit 0
-    }} else {{
-        throw ""winget install failed with exit code: $LASTEXITCODE""
-    }}
-}}
-catch {{
-    Write-Host ""Error: $($_.Exception.Message)"" -ForegroundColor Red
-    if (Test-Path $logPath) {{
-        Write-Host 'Installation log:'
-        Get-Content $logPath | Select-Object -Last 20
-    }}
-    exit 1
-}}
-";
-
-                await _powerShellService.ExecuteScriptAsync(installScript, progress, cancellationToken);
+                var (exitCode, _) = await RunProcessWithProgressAsync("winget", arguments, progress, cancellationToken);
+                if (exitCode != 0)
+                {
+                    throw new Exception($"winget install failed with exit code: {exitCode}");
+                }
 
                 if (await IsOscdimgAvailableAsync())
                 {
@@ -1257,30 +1219,21 @@ catch {{
                     var tempDriverPath = Path.Combine(Path.GetTempPath(), $"WinhanceDrivers_{Guid.NewGuid()}");
                     Directory.CreateDirectory(tempDriverPath);
 
-                    string script = $@"
-$ErrorActionPreference = 'Stop'
-$destPath = '{tempDriverPath.Replace("'", "''")}'
-
-try {{
-    Write-Host 'Exporting drivers from current system...'
-    Write-Host 'This operation may take several minutes...'
-
-    $result = Export-WindowsDriver -Online -Destination $destPath
-
-    $driverCount = ($result | Measure-Object).Count
-    Write-Host ""Successfully exported $driverCount driver packages""
-
-    exit 0
-}}
-catch {{
-    Write-Host ""Error: $($_.Exception.Message)"" -ForegroundColor Red
-    exit 1
-}}
-";
-
                     try
                     {
-                        await _powerShellService.ExecuteScriptAsync(script, progress, cancellationToken);
+                        var arguments = $"/Online /Export-Driver /Destination:\"{tempDriverPath}\"";
+
+                        progress?.Report(new TaskProgressDetail
+                        {
+                            TerminalOutput = "Exporting drivers from current system..."
+                        });
+
+                        var (exitCode, _) = await RunProcessWithProgressAsync("dism.exe", arguments, progress, cancellationToken);
+                        if (exitCode != 0)
+                        {
+                            throw new Exception($"DISM Export-Driver failed with exit code: {exitCode}");
+                        }
+
                         sourceDirectory = tempDriverPath;
                     }
                     catch (Exception ex)
@@ -1440,64 +1393,34 @@ exit
                 var efisysPath = Path.Combine(workingDirectory, "efi", "microsoft", "boot", "efisys.bin");
                 var etfsbootPath = Path.Combine(workingDirectory, "boot", "etfsboot.com");
 
-                var script = $@"
-$ErrorActionPreference = 'Stop'
-$oscdimgPath = '{oscdimgPath.Replace("'", "''")}'
-$workingDir = '{workingDirectory.Replace("'", "''")}'
-$outputPath = '{outputPath.Replace("'", "''")}'
-$etfsbootPath = '{etfsbootPath.Replace("'", "''")}'
-$efisysPath = '{efisysPath.Replace("'", "''")}'
+                if (!File.Exists(etfsbootPath))
+                    throw new FileNotFoundException($"Boot file not found: {etfsbootPath}");
 
-try {{
-    Write-Host 'Creating bootable ISO with oscdimg.exe...'
-    Write-Host ""Source: $workingDir""
-    Write-Host ""Output: $outputPath""
+                if (!File.Exists(efisysPath))
+                    throw new FileNotFoundException($"UEFI boot file not found: {efisysPath}");
 
-    if (!(Test-Path $etfsbootPath)) {{
-        throw 'Boot file not found: $etfsbootPath'
-    }}
+                var outputDir = Path.GetDirectoryName(outputPath);
+                if (!string.IsNullOrEmpty(outputDir) && !Directory.Exists(outputDir))
+                    Directory.CreateDirectory(outputDir);
 
-    if (!(Test-Path $efisysPath)) {{
-        throw 'UEFI boot file not found: $efisysPath'
-    }}
+                if (File.Exists(outputPath))
+                {
+                    File.Delete(outputPath);
+                    _logService.LogInformation("Removed existing ISO file");
+                }
 
-    $outputDir = Split-Path $outputPath -Parent
-    if (!(Test-Path $outputDir)) {{
-        New-Item -ItemType Directory -Path $outputDir -Force | Out-Null
-    }}
+                var arguments = $"-m -o -u2 -udfver102 -bootdata:2#p0,e,b\"{etfsbootPath}\"#pEF,e,b\"{efisysPath}\" \"{workingDirectory}\" \"{outputPath}\"";
 
-    if (Test-Path $outputPath) {{
-        Remove-Item $outputPath -Force
-        Write-Host 'Removed existing ISO file'
-    }}
+                progress?.Report(new TaskProgressDetail
+                {
+                    TerminalOutput = "Running oscdimg.exe...\nThis may take several minutes..."
+                });
 
-    $arguments = ""-m -o -u2 -udfver102 -bootdata:2#p0,e,b""""$etfsbootPath""""#pEF,e,b""""$efisysPath"""" """"$workingDir"""" """"$outputPath""""""
-
-    Write-Host 'Running oscdimg.exe...'
-    Write-Host 'This may take several minutes...'
-
-    $process = Start-Process -FilePath $oscdimgPath -ArgumentList $arguments -NoNewWindow -Wait -PassThru
-
-    if ($process.ExitCode -eq 0) {{
-        Write-Host 'ISO created successfully!'
-        if (Test-Path $outputPath) {{
-            $fileInfo = Get-Item $outputPath
-            Write-Host ""ISO Size: $($fileInfo.Length / 1MB) MB""
-            exit 0
-        }} else {{
-            throw 'ISO file was not created'
-        }}
-    }} else {{
-        throw ""oscdimg.exe failed with exit code: $($process.ExitCode)""
-    }}
-}}
-catch {{
-    Write-Host ""Error: $($_.Exception.Message)"" -ForegroundColor Red
-    exit 1
-}}
-";
-
-                await _powerShellService.ExecuteScriptFromContentAsync(script, progress, cancellationToken);
+                var (exitCode, _) = await RunProcessWithProgressAsync(oscdimgPath, arguments, progress, cancellationToken);
+                if (exitCode != 0)
+                {
+                    throw new Exception($"oscdimg.exe failed with exit code: {exitCode}");
+                }
 
                 // Verify ISO was created
                 if (!File.Exists(outputPath))

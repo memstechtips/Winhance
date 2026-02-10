@@ -27,9 +27,9 @@ namespace Winhance.Infrastructure.Features.Common.Services
             {
                 return rawValues.Values.FirstOrDefault();
             }
-            else if (setting.CommandSettings?.Count > 0)
+            else if (setting.ScheduledTaskSettings?.Count > 0)
             {
-                return rawValues.TryGetValue("CommandEnabled", out var commandEnabled) ? commandEnabled : null;
+                return rawValues.TryGetValue("ScheduledTaskEnabled", out var taskEnabled) ? taskEnabled : null;
             }
 
             return null;

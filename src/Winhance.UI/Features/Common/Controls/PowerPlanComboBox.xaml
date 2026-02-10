@@ -59,14 +59,16 @@
                             Visibility="Collapsed"/>
                     </StackPanel>
 
-                    <!-- Delete Button -->
+                    <!-- Delete Button - sized to fit within default ComboBoxItem height -->
                     <Button
                         x:Name="DeleteButton"
                         Grid.Column="2"
-                        Width="30"
-                        Height="30"
+                        Width="20"
+                        Height="20"
+                        MinWidth="20"
+                        MinHeight="20"
                         Padding="0"
-                        Margin="8,0,0,0"
+                        Margin="4,0,0,0"
                         Background="Transparent"
                         BorderThickness="0"
                         VerticalAlignment="Center"
@@ -80,7 +82,7 @@
                         <ToolTipService.ToolTip>
                             <ToolTip x:Name="DeleteTooltip"/>
                         </ToolTipService.ToolTip>
-                        <Viewbox Width="18" Height="18" Margin="0,0,5,2">
+                        <Viewbox Width="14" Height="14" Margin="-5,-2,0,0">
                             <PathIcon Data="{StaticResource DeleteForeverIconPath}" Foreground="{ThemeResource TextFillColorPrimaryBrush}"/>
                         </Viewbox>
                     </Button>

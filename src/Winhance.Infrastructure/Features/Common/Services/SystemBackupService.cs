@@ -1,4 +1,7 @@
 using System;
+using System.Diagnostics;
+using System.Management;
+using System.Runtime.InteropServices;
 using System.Threading;
 using System.Threading.Tasks;
 using Winhance.Core.Features.Common.Enums;
@@ -9,19 +12,16 @@ namespace Winhance.Infrastructure.Features.Common.Services
 {
     public class SystemBackupService : ISystemBackupService
     {
-        private readonly IPowerShellExecutionService _psService;
         private readonly ILogService _logService;
         private readonly ILocalizationService _localization;
 
         private const string RestorePointName = "Winhance Initial Restore Point";
 
         public SystemBackupService(
-            IPowerShellExecutionService psService,
             ILogService logService,
             IUserPreferencesService prefsService,
             ILocalizationService localization)
         {
-            _psService = psService;
             _logService = logService;
             _localization = localization;
         }
@@ -154,83 +154,150 @@ namespace Winhance.Infrastructure.Features.Common.Services
 
         private async Task<bool> CheckSystemRestoreEnabledAsync()
         {
-            var script = "Get-ComputerRestorePoint -ErrorAction SilentlyContinue | Select-Object -First 1";
-            try
+            return await Task.Run(() =>
             {
-                var output = await _psService.ExecuteScriptAsync(script);
-                return !string.IsNullOrWhiteSpace(output);
-            }
-            catch
-            {
-                return false;
-            }
+                try
+                {
+                    using var searcher = new ManagementObjectSearcher(
+                        @"root\default",
+                        "SELECT * FROM SystemRestore");
+                    using var results = searcher.Get();
+                    return results.Count > 0;
+                }
+                catch
+                {
+                    return false;
+                }
+            });
         }
 
         private async Task<DateTime?> FindRestorePointAsync(string description)
         {
-            var script = $@"
-$rp = Get-ComputerRestorePoint -ErrorAction SilentlyContinue | Where-Object {{ $_.Description -eq '{description}' }} | Select-Object -First 1
-if ($rp) {{ 'EXISTS' }} else {{ 'NOT_FOUND' }}";
-
-            try
+            return await Task.Run(() =>
             {
-                _logService.Log(LogLevel.Info, $"Querying for restore point: '{description}'");
-                var output = await _psService.ExecuteScriptAsync(script);
-
-                if (string.IsNullOrWhiteSpace(output) || output.Trim() == "NOT_FOUND")
+                try
                 {
+                    _logService.Log(LogLevel.Info, $"Querying for restore point: '{description}'");
+
+                    var escapedDescription = description.Replace("'", "\\'");
+                    using var searcher = new ManagementObjectSearcher(
+                        @"root\default",
+                        $"SELECT * FROM SystemRestore WHERE Description = '{escapedDescription}'");
+                    using var results = searcher.Get();
+
+                    foreach (ManagementObject obj in results)
+                    {
+                        _logService.Log(LogLevel.Info, $"Found existing restore point: '{description}'");
+                        return (DateTime?)DateTime.Now;
+                    }
+
                     _logService.Log(LogLevel.Info, $"No restore point found with description: '{description}'");
-                    return null;
+                    return (DateTime?)null;
                 }
-
-                if (output.Trim() == "EXISTS")
+                catch (Exception ex)
                 {
-                    _logService.Log(LogLevel.Info, $"Found existing restore point: '{description}'");
-                    return DateTime.Now;
+                    _logService.Log(LogLevel.Error, $"Error querying restore point: {ex.Message}");
+                    return (DateTime?)null;
                 }
-
-                _logService.Log(LogLevel.Warning, $"Unexpected output from restore point query: '{output.Trim()}'");
-                return null;
-            }
-            catch (Exception ex)
-            {
-                _logService.Log(LogLevel.Error, $"Error querying restore point: {ex.Message}");
-                return null;
-            }
+            });
         }
+
+        [DllImport("SrClient.dll", CharSet = CharSet.Unicode)]
+        private static extern bool SRSetRestorePointW(
+            ref RESTOREPOINTINFO pRestorePtSpec,
+            out STATEMGRSTATUS pSMgrStatus);
+
+        [StructLayout(LayoutKind.Sequential, CharSet = CharSet.Unicode)]
+        private struct RESTOREPOINTINFO
+        {
+            public int dwEventType;
+            public int dwRestorePtType;
+            public long llSequenceNumber;
+            [MarshalAs(UnmanagedType.ByValTStr, SizeConst = 256)]
+            public string szDescription;
+        }
+
+        [StructLayout(LayoutKind.Sequential)]
+        private struct STATEMGRSTATUS
+        {
+            public int nStatus;
+            public long llSequenceNumber;
+        }
+
+        private const int BEGIN_SYSTEM_CHANGE = 100;
+        private const int MODIFY_SETTINGS = 12;
 
         private async Task<bool> CreateRestorePointAsync(string description)
         {
-            var script = $"Checkpoint-Computer -Description '{description}' -RestorePointType MODIFY_SETTINGS -ErrorAction Stop";
-            try
+            return await Task.Run(() =>
             {
-                await _psService.ExecuteScriptAsync(script);
-                return true;
-            }
-            catch (Exception ex)
-            {
-                _logService.Log(LogLevel.Error, $"Failed to create restore point: {ex.Message}");
-                return false;
-            }
+                try
+                {
+                    var restorePointInfo = new RESTOREPOINTINFO
+                    {
+                        dwEventType = BEGIN_SYSTEM_CHANGE,
+                        dwRestorePtType = MODIFY_SETTINGS,
+                        llSequenceNumber = 0,
+                        szDescription = description
+                    };
+
+                    var success = SRSetRestorePointW(ref restorePointInfo, out var status);
+                    if (!success)
+                    {
+                        _logService.Log(LogLevel.Error, $"Failed to create restore point. Status: {status.nStatus}");
+                    }
+                    return success;
+                }
+                catch (Exception ex)
+                {
+                    _logService.Log(LogLevel.Error, $"Failed to create restore point: {ex.Message}");
+                    return false;
+                }
+            });
         }
 
         private async Task<bool> EnableSystemRestoreAsync()
         {
-            var script = @"
-$systemDrive = $env:SystemDrive
-Enable-ComputerRestore -Drive $systemDrive -ErrorAction Stop
-vssadmin Resize ShadowStorage /For=$systemDrive /On=$systemDrive /MaxSize=10GB | Out-Null";
+            return await Task.Run(() =>
+            {
+                try
+                {
+                    var systemDrive = Environment.GetEnvironmentVariable("SystemDrive") ?? "C:";
 
-            try
-            {
-                await _psService.ExecuteScriptAsync(script);
-                return true;
-            }
-            catch (Exception ex)
-            {
-                _logService.Log(LogLevel.Error, $"Failed to enable System Restore: {ex.Message}");
-                return false;
-            }
+                    // Enable System Restore via WMI
+                    using var restoreClass = new ManagementClass(
+                        new ManagementScope(@"\\.\root\default"),
+                        new ManagementPath("SystemRestore"),
+                        new ObjectGetOptions());
+
+                    var inParams = restoreClass.GetMethodParameters("Enable");
+                    inParams["Drive"] = systemDrive + "\\";
+                    restoreClass.InvokeMethod("Enable", inParams, null);
+
+                    _logService.Log(LogLevel.Info, "System Restore enabled via WMI");
+
+                    // Resize shadow storage
+                    using var process = new Process();
+                    process.StartInfo = new ProcessStartInfo
+                    {
+                        FileName = "vssadmin",
+                        Arguments = $"Resize ShadowStorage /For={systemDrive} /On={systemDrive} /MaxSize=10GB",
+                        UseShellExecute = false,
+                        CreateNoWindow = true,
+                        RedirectStandardOutput = true
+                    };
+                    process.Start();
+                    process.WaitForExit(30000);
+
+                    _logService.Log(LogLevel.Info, "Shadow storage resized");
+                    return true;
+                }
+                catch (Exception ex)
+                {
+                    _logService.Log(LogLevel.Error, $"Failed to enable System Restore: {ex.Message}");
+                    return false;
+                }
+            });
         }
     }
 }

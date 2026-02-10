@@ -1,5 +1,6 @@
 using System;
 using System.Collections.Generic;
+using System.Diagnostics;
 using System.Linq;
 using System.Threading;
 using System.Threading.Tasks;
@@ -14,9 +15,9 @@ namespace Winhance.Infrastructure.Features.SoftwareApps.Services;
 
 public class WindowsAppsService(
     ILogService logService,
-    IPowerShellExecutionService powerShellService,
     IWinGetService winGetService,
     IAppStatusDiscoveryService appStatusDiscoveryService,
+    IBloatRemovalService bloatRemovalService,
     IStoreDownloadService storeDownloadService = null,
     IDialogService dialogService = null,
     IUserPreferencesService userPreferencesService = null,
@@ -176,10 +177,21 @@ public class WindowsAppsService(
             if (string.IsNullOrEmpty(item.AppxPackageName))
                 return OperationResult<bool>.Failed("No package name specified");
 
-            var script = $"Get-AppxPackage '*{item.AppxPackageName}*' | Remove-AppxPackage";
             try
             {
-                var output = await powerShellService.ExecuteScriptAsync(script);
+                var packageManager = new Windows.Management.Deployment.PackageManager();
+                var packages = packageManager.FindPackagesForUser("")
+                    .Where(p => p.Id.Name.Contains(item.AppxPackageName, StringComparison.OrdinalIgnoreCase))
+                    .ToList();
+
+                if (packages.Count == 0)
+                    return OperationResult<bool>.Failed($"Package '{item.AppxPackageName}' not found");
+
+                foreach (var package in packages)
+                {
+                    await packageManager.RemovePackageAsync(package.Id.FullName);
+                }
+
                 return OperationResult<bool>.Succeeded(true);
             }
             catch (Exception ex)
@@ -206,16 +218,20 @@ public class WindowsAppsService(
             if (string.IsNullOrEmpty(item.CapabilityName))
                 return OperationResult<bool>.Failed("No capability name specified");
 
-            var script = $"Add-WindowsCapability -Online -Name '{item.CapabilityName}'";
-            try
+            var psCommand = $"Add-WindowsCapability -Online -Name '{item.CapabilityName}'";
+            var process = new Process
             {
-                var output = await powerShellService.ExecuteScriptAsync(script);
-                return OperationResult<bool>.Succeeded(true);
-            }
-            catch (Exception ex)
-            {
-                return OperationResult<bool>.Failed(ex.Message);
-            }
+                StartInfo = new ProcessStartInfo
+                {
+                    FileName = "powershell.exe",
+                    Arguments = $"-NoProfile -Command \"& {{ {psCommand}; pause }}\"",
+                    UseShellExecute = true,
+                    CreateNoWindow = false
+                }
+            };
+            process.Start();
+
+            return OperationResult<bool>.Succeeded(true);
         }
         catch (OperationCanceledException)
         {
@@ -236,16 +252,15 @@ public class WindowsAppsService(
             if (string.IsNullOrEmpty(item.CapabilityName))
                 return OperationResult<bool>.Failed("No capability name specified");
 
-            var script = $"Remove-WindowsCapability -Online -Name '{item.CapabilityName}'";
-            try
-            {
-                var output = await powerShellService.ExecuteScriptAsync(script);
-                return OperationResult<bool>.Succeeded(true);
-            }
-            catch (Exception ex)
-            {
-                return OperationResult<bool>.Failed(ex.Message);
-            }
+            var cancellationToken = GetCurrentCancellationToken();
+            var success = await bloatRemovalService.RemoveAppsAsync(
+                new List<ItemDefinition> { item },
+                null,
+                cancellationToken);
+
+            return success
+                ? OperationResult<bool>.Succeeded(true)
+                : OperationResult<bool>.Failed("Capability removal failed");
         }
         catch (OperationCanceledException)
         {
@@ -266,16 +281,20 @@ public class WindowsAppsService(
             if (string.IsNullOrEmpty(item.OptionalFeatureName))
                 return OperationResult<bool>.Failed("No feature name specified");
 
-            var script = $"Enable-WindowsOptionalFeature -Online -FeatureName '{item.OptionalFeatureName}' -All";
-            try
+            var psCommand = $"Enable-WindowsOptionalFeature -Online -FeatureName '{item.OptionalFeatureName}' -All -NoRestart";
+            var process = new Process
             {
-                var output = await powerShellService.ExecuteScriptAsync(script);
-                return OperationResult<bool>.Succeeded(true);
-            }
-            catch (Exception ex)
-            {
-                return OperationResult<bool>.Failed(ex.Message);
-            }
+                StartInfo = new ProcessStartInfo
+                {
+                    FileName = "powershell.exe",
+                    Arguments = $"-NoProfile -Command \"& {{ {psCommand}; pause }}\"",
+                    UseShellExecute = true,
+                    CreateNoWindow = false
+                }
+            };
+            process.Start();
+
+            return OperationResult<bool>.Succeeded(true);
         }
         catch (OperationCanceledException)
         {
@@ -296,16 +315,15 @@ public class WindowsAppsService(
             if (string.IsNullOrEmpty(item.OptionalFeatureName))
                 return OperationResult<bool>.Failed("No feature name specified");
 
-            var script = $"Disable-WindowsOptionalFeature -Online -FeatureName '{item.OptionalFeatureName}'";
-            try
-            {
-                var output = await powerShellService.ExecuteScriptAsync(script);
-                return OperationResult<bool>.Succeeded(true);
-            }
-            catch (Exception ex)
-            {
-                return OperationResult<bool>.Failed(ex.Message);
-            }
+            var cancellationToken = GetCurrentCancellationToken();
+            var success = await bloatRemovalService.RemoveAppsAsync(
+                new List<ItemDefinition> { item },
+                null,
+                cancellationToken);
+
+            return success
+                ? OperationResult<bool>.Succeeded(true)
+                : OperationResult<bool>.Failed("Feature removal failed");
         }
         catch (OperationCanceledException)
         {

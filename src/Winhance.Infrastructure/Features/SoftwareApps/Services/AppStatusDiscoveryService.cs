@@ -3,16 +3,17 @@ using System.Collections.Generic;
 using System.Linq;
 using System.Management;
 using System.Threading.Tasks;
+using Microsoft.Dism;
 using Microsoft.Win32;
 using Winhance.Core.Features.Common.Interfaces;
 using Winhance.Core.Features.SoftwareApps.Interfaces;
 using Winhance.Core.Features.SoftwareApps.Models;
+using Winhance.Infrastructure.Features.Common.Utilities;
 
 namespace Winhance.Infrastructure.Features.SoftwareApps.Services;
 
 public class AppStatusDiscoveryService(
     ILogService logService,
-    IPowerShellExecutionService powerShellExecutionService,
     IWinGetService winGetService) : IAppStatusDiscoveryService
 {
 
@@ -126,26 +127,19 @@ public class AppStatusDiscoveryService(
 
         try
         {
-            var script = "Get-WindowsCapability -Online | Where-Object State -eq 'Installed' | Select-Object -ExpandProperty Name";
-            var scriptOutput = await powerShellExecutionService.ExecuteScriptAsync(script);
-
-            if (!string.IsNullOrEmpty(scriptOutput))
+            var installedCapabilities = await DismSessionManager.ExecuteAsync<HashSet<string>>(session =>
             {
-                var installedCapabilities = scriptOutput
-                    .Split(['\r', '\n'], StringSplitOptions.RemoveEmptyEntries)
-                    .Where(line => !string.IsNullOrWhiteSpace(line))
-                    .ToHashSet(StringComparer.OrdinalIgnoreCase);
+                var allCaps = DismApi.GetCapabilities(session);
+                return new HashSet<string>(
+                    allCaps.Where(c => c.State == DismPackageFeatureState.Installed)
+                           .Select(c => c.Name),
+                    StringComparer.OrdinalIgnoreCase);
+            });
 
-                foreach (var capability in capabilities)
-                {
-                    result[capability] = installedCapabilities.Any(c =>
-                        c.StartsWith(capability, StringComparison.OrdinalIgnoreCase));
-                }
-            }
-            else
+            foreach (var capability in capabilities)
             {
-                foreach (var capability in capabilities)
-                    result[capability] = false;
+                result[capability] = installedCapabilities.Any(c =>
+                    c.StartsWith(capability, StringComparison.OrdinalIgnoreCase));
             }
         }
         catch (Exception ex)
@@ -164,25 +158,18 @@ public class AppStatusDiscoveryService(
 
         try
         {
-            var script = "Get-WindowsOptionalFeature -Online | Where-Object State -eq 'Enabled' | Select-Object -ExpandProperty FeatureName";
-            var scriptOutput = await powerShellExecutionService.ExecuteScriptAsync(script);
-
-            if (!string.IsNullOrEmpty(scriptOutput))
+            var enabledFeatures = await DismSessionManager.ExecuteAsync<HashSet<string>>(session =>
             {
-                var enabledFeatures = scriptOutput
-                    .Split(['\r', '\n'], StringSplitOptions.RemoveEmptyEntries)
-                    .Where(line => !string.IsNullOrWhiteSpace(line))
-                    .ToHashSet(StringComparer.OrdinalIgnoreCase);
+                var allFeatures = DismApi.GetFeatures(session);
+                return new HashSet<string>(
+                    allFeatures.Where(f => f.State == DismPackageFeatureState.Installed)
+                               .Select(f => f.FeatureName),
+                    StringComparer.OrdinalIgnoreCase);
+            });
 
-                foreach (var feature in features)
-                {
-                    result[feature] = enabledFeatures.Contains(feature);
-                }
-            }
-            else
+            foreach (var feature in features)
             {
-                foreach (var feature in features)
-                    result[feature] = false;
+                result[feature] = enabledFeatures.Contains(feature);
             }
         }
         catch (Exception ex)

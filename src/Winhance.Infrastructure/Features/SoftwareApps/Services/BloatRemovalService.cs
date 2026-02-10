@@ -13,13 +13,13 @@ using Winhance.Core.Features.Common.Models;
 using Winhance.Core.Features.SoftwareApps.Interfaces;
 using Winhance.Core.Features.SoftwareApps.Models;
 using Winhance.Core.Features.SoftwareApps.Utilities;
+using Winhance.Infrastructure.Features.Common.Utilities;
 
 namespace Winhance.Infrastructure.Features.SoftwareApps.Services;
 
 public class BloatRemovalService(
     ILogService logService,
-    IScheduledTaskService scheduledTaskService,
-    IPowerShellExecutionService powerShellService) : IBloatRemovalService
+    IScheduledTaskService scheduledTaskService) : IBloatRemovalService
 {
     public async Task<bool> RemoveAppsAsync(
         List<ItemDefinition> selectedApps,
@@ -122,7 +122,7 @@ public class BloatRemovalService(
         {
             logService.LogInformation($"Executing removal script: {scriptPath}");
 
-            await powerShellService.ExecuteScriptFileWithProgressAsync(scriptPath, "", progress, cancellationToken);
+            await PowerShellRunner.RunScriptFileAsync(scriptPath, progress: progress, ct: cancellationToken);
             return true;
         }
         catch (OperationCanceledException)

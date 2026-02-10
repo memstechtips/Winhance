@@ -268,7 +268,7 @@ public class ConfigurationService : IConfigurationService
         // Ensure registry is initialized before importing
         await EnsureRegistryInitializedAsync();
 
-        var (selectedOption, skipReview) = await _dialogService.ShowConfigImportOptionsDialogAsync();
+        var (selectedOption, importOptions) = await _dialogService.ShowConfigImportOptionsDialogAsync();
         if (selectedOption == null)
         {
             _logService.Log(LogLevel.Info, "Import canceled by user");
@@ -307,9 +307,9 @@ public class ConfigurationService : IConfigurationService
                 return;
         }
 
-        if (skipReview)
+        if (!importOptions.ReviewBeforeApplying)
         {
-            await ExecuteConfigImportAsync(config);
+            await ExecuteConfigImportAsync(config, importOptions);
         }
         else
         {
@@ -331,7 +331,7 @@ public class ConfigurationService : IConfigurationService
         await EnterReviewModeAsync(config);
     }
 
-    private async Task ExecuteConfigImportAsync(UnifiedConfigurationFile config)
+    private async Task ExecuteConfigImportAsync(UnifiedConfigurationFile config, ImportOptions dialogOptions)
     {
         try
         {
@@ -378,37 +378,61 @@ public class ConfigurationService : IConfigurationService
                 return;
             }
 
-            // Pre-select and confirm Windows Apps
+            // Pre-select Windows Apps from config
             if (hasWindowsApps)
             {
                 await SelectWindowsAppsFromConfigAsync(config.WindowsApps);
 
-                var shouldContinue = await ConfirmWindowsAppsRemovalAsync();
-                if (!shouldContinue)
+                // Only confirm removal when uninstall is selected
+                if (dialogOptions.ProcessWindowsAppsRemoval)
                 {
-                    await ClearWindowsAppsSelectionAsync();
-                    selectedSections.Remove("WindowsApps");
-                    _logService.Log(LogLevel.Info, "User cancelled Windows Apps removal");
+                    var shouldContinue = await ConfirmWindowsAppsRemovalAsync();
+                    if (!shouldContinue)
+                    {
+                        await ClearWindowsAppsSelectionAsync();
+                        selectedSections.Remove("WindowsApps");
+                        _logService.Log(LogLevel.Info, "User cancelled Windows Apps removal");
+                    }
                 }
             }
 
-            // Pre-select External Apps
+            // Pre-select External Apps from config
             if (hasExternalApps)
             {
                 await SelectExternalAppsFromConfigAsync(config.ExternalApps);
             }
 
+            // Use the user's dialog choices, validated against config availability
             var importOptions = new ImportOptions
             {
-                ProcessWindowsAppsRemoval = hasWindowsApps && selectedSections.Contains("WindowsApps"),
-                ProcessExternalAppsInstallation = hasExternalApps,
-                ApplyThemeWallpaper = config.Customize.Features.Values
-                    .SelectMany(f => f.Items).Any(i => i.Id == "theme-mode-windows"),
-                ApplyCleanTaskbar = config.Customize.Features.Values
-                    .SelectMany(f => f.Items).Any(i => i.Id == "taskbar-clean"),
-                ApplyCleanStartMenu = config.Customize.Features.Values
-                    .SelectMany(f => f.Items).Any(i => i.Id == "start-menu-clean-10" || i.Id == "start-menu-clean-11"),
+                ProcessWindowsAppsRemoval = hasWindowsApps && selectedSections.Contains("WindowsApps") && dialogOptions.ProcessWindowsAppsRemoval,
+                ProcessWindowsAppsInstallation = hasWindowsApps && selectedSections.Contains("WindowsApps") && dialogOptions.ProcessWindowsAppsInstallation,
+                ProcessExternalAppsInstallation = hasExternalApps && dialogOptions.ProcessExternalAppsInstallation,
+                ProcessExternalAppsRemoval = hasExternalApps && dialogOptions.ProcessExternalAppsRemoval,
+                ApplyThemeWallpaper = dialogOptions.ApplyThemeWallpaper,
+                ApplyCleanTaskbar = dialogOptions.ApplyCleanTaskbar,
+                ApplyCleanStartMenu = dialogOptions.ApplyCleanStartMenu,
             };
+
+            // Add action-only subsections for Customize actions that the user enabled
+            if (importOptions.ApplyCleanTaskbar && !selectedSections.Contains($"Customize_{FeatureIds.Taskbar}"))
+            {
+                if (!selectedSections.Contains("Customize")) selectedSections.Add("Customize");
+                selectedSections.Add($"Customize_{FeatureIds.Taskbar}");
+                importOptions.ActionOnlySubsections.Add($"Customize_{FeatureIds.Taskbar}");
+            }
+            if (importOptions.ApplyCleanStartMenu && !selectedSections.Contains($"Customize_{FeatureIds.StartMenu}"))
+            {
+                if (!selectedSections.Contains("Customize")) selectedSections.Add("Customize");
+                selectedSections.Add($"Customize_{FeatureIds.StartMenu}");
+                importOptions.ActionOnlySubsections.Add($"Customize_{FeatureIds.StartMenu}");
+            }
+            if (importOptions.ApplyThemeWallpaper && !selectedSections.Contains($"Customize_{FeatureIds.WindowsTheme}"))
+            {
+                if (!selectedSections.Contains("Customize")) selectedSections.Add("Customize");
+                selectedSections.Add($"Customize_{FeatureIds.WindowsTheme}");
+                importOptions.ActionOnlySubsections.Add($"Customize_{FeatureIds.WindowsTheme}");
+            }
 
             // Show overlay during config application
             var overlayStatus = _localizationService.GetString("Config_Import_Status_Applying")
@@ -436,10 +460,14 @@ public class ConfigurationService : IConfigurationService
             // Show success message and wait for user dismissal
             await ShowImportSuccessMessage(selectedSections);
 
-            // Process External Apps installation AFTER success dialog dismissal (needs UI thread)
+            // Process External Apps AFTER success dialog dismissal (needs UI thread)
             if (hasExternalApps && importOptions.ProcessExternalAppsInstallation)
             {
                 await ProcessExternalAppsInstallationAsync(config.ExternalApps);
+            }
+            else if (hasExternalApps && importOptions.ProcessExternalAppsRemoval)
+            {
+                await ProcessExternalAppsRemovalAsync(config.ExternalApps);
             }
         }
         catch (Exception ex)
@@ -970,6 +998,35 @@ public class ConfigurationService : IConfigurationService
         }
     }
 
+    private async Task ProcessExternalAppsRemovalAsync(ConfigSection externalAppsSection)
+    {
+        var vm = _serviceProvider.GetService<ExternalAppsViewModel>();
+        if (vm == null) return;
+
+        if (!vm.IsInitialized)
+            await vm.LoadItemsAsync();
+
+        foreach (var vmItem in vm.Items)
+            vmItem.IsSelected = false;
+
+        if (externalAppsSection?.Items != null)
+        {
+            foreach (var configItem in externalAppsSection.Items)
+            {
+                var vmItem = FindMatchingExternalApp(vm.Items, configItem);
+                if (vmItem != null)
+                    vmItem.IsSelected = true;
+            }
+        }
+
+        var selectedCount = vm.Items.Count(i => i.IsSelected);
+        if (selectedCount > 0)
+        {
+            _logService.Log(LogLevel.Info, "Starting external apps uninstallation");
+            await vm.UninstallAppsAsync();
+        }
+    }
+
     /// <summary>
     /// Installs external apps based on captured user selections from review mode.
     /// Unlike ProcessExternalAppsInstallationAsync, this preserves the user's checkbox choices
@@ -1011,6 +1068,16 @@ public class ConfigurationService : IConfigurationService
             {
                 _logService.Log(LogLevel.Info, "Processing Windows Apps removal");
                 await vm.RemoveApps(skipConfirmation: true, saveRemovalScripts: _configImportSaveRemovalScripts);
+            }
+        }
+
+        if (selectedSections.Contains("WindowsApps") && options.ProcessWindowsAppsInstallation)
+        {
+            var vm = _serviceProvider.GetService<WindowsAppsViewModel>();
+            if (vm != null)
+            {
+                _logService.Log(LogLevel.Info, "Processing Windows Apps installation");
+                await vm.InstallAppsAsync();
             }
         }
 

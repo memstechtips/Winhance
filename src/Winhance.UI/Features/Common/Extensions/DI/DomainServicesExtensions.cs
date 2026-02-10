@@ -83,12 +83,12 @@ public static class DomainServicesExtensions
         // Register PowerService
         services.AddSingleton<PowerService>(sp => new PowerService(
             sp.GetRequiredService<ILogService>(),
-            sp.GetRequiredService<ICommandService>(),
-            sp.GetRequiredService<IPowerCfgQueryService>(),
+            sp.GetRequiredService<IPowerSettingsQueryService>(),
             sp.GetRequiredService<ICompatibleSettingsRegistry>(),
             sp.GetRequiredService<IEventBus>(),
             sp.GetRequiredService<IWindowsRegistryService>(),
-            sp.GetRequiredService<IPowerPlanComboBoxService>()
+            sp.GetRequiredService<IPowerPlanComboBoxService>(),
+            sp.GetRequiredService<IScheduledTaskService>()
         ));
         services.AddSingleton<IDomainService>(sp => sp.GetRequiredService<PowerService>());
         // Register as IPowerService for ViewModels that still use direct injection
@@ -126,10 +126,9 @@ public static class DomainServicesExtensions
         services.AddSingleton<UpdateService>(sp => new UpdateService(
             sp.GetRequiredService<ILogService>(),
             sp.GetRequiredService<IWindowsRegistryService>(),
-            sp.GetRequiredService<ICommandService>(),
-            sp.GetRequiredService<IPowerShellExecutionService>(),
             sp.GetRequiredService<IServiceProvider>(),
-            sp.GetRequiredService<ICompatibleSettingsRegistry>()
+            sp.GetRequiredService<ICompatibleSettingsRegistry>(),
+            sp.GetRequiredService<IScheduledTaskService>()
         ));
         services.AddSingleton<IDomainService>(sp => sp.GetRequiredService<UpdateService>());
 
@@ -167,11 +166,11 @@ public static class DomainServicesExtensions
         // Legacy Capability and Optional Feature Services
         services.AddSingleton<ILegacyCapabilityService>(provider => new LegacyCapabilityService(
             provider.GetRequiredService<ILogService>(),
-            provider.GetRequiredService<IPowerShellExecutionService>()
+            provider.GetRequiredService<IBloatRemovalService>()
         ));
         services.AddSingleton<IOptionalFeatureService>(provider => new OptionalFeatureService(
             provider.GetRequiredService<ILogService>(),
-            provider.GetRequiredService<IPowerShellExecutionService>()
+            provider.GetRequiredService<IBloatRemovalService>()
         ));
 
         // Script Detection Service (Singleton - Expensive operation)

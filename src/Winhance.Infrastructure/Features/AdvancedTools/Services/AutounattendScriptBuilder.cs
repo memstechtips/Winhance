@@ -61,8 +61,8 @@ public class AutounattendScriptBuilder
 
         // 2b. Power settings
         var powerPlanSetting = FindPowerPlanSetting(config, allSettings);
-        var powerCfgQueryService = _serviceProvider.GetRequiredService<IPowerCfgQueryService>();
-        var activePowerPlan = await powerCfgQueryService.GetActivePowerPlanAsync();
+        var powerSettingsQueryService = _serviceProvider.GetRequiredService<IPowerSettingsQueryService>();
+        var activePowerPlan = await powerSettingsQueryService.GetActivePowerPlanAsync();
         var powerSettings = await ExtractPowerSettingsAsync(activePowerPlan.Guid, allSettings);
         if (powerPlanSetting != null || powerSettings.Any())
         {
@@ -236,11 +236,11 @@ public class AutounattendScriptBuilder
             return powerSettings;
 
         var hardwareService = _serviceProvider.GetRequiredService<IHardwareDetectionService>();
-        var powerCfgQueryService = _serviceProvider.GetRequiredService<IPowerCfgQueryService>();
+        var powerSettingsQueryService = _serviceProvider.GetRequiredService<IPowerSettingsQueryService>();
 
         bool hasBattery = await hardwareService.HasBatteryAsync();
 
-        var bulkQueryResults = await powerCfgQueryService.GetAllPowerSettingsACDCAsync(activePowerPlanGuid);
+        var bulkQueryResults = await powerSettingsQueryService.GetAllPowerSettingsACDCAsync(activePowerPlanGuid);
 
         foreach (var settingDef in settingDefinitions)
         {
@@ -338,10 +338,6 @@ public class AutounattendScriptBuilder
         sb.AppendLine($"{indent}        Write-Log \"Failed to create power plan\" \"ERROR\"");
         sb.AppendLine($"{indent}    }}");
         sb.AppendLine($"{indent}}}");
-        sb.AppendLine();
-        sb.AppendLine($"{indent}Write-Log \"Disabling hibernation...\" \"INFO\"");
-        sb.AppendLine($"{indent}powercfg /hibernate off 2>$null");
-        sb.AppendLine($"{indent}Write-Log \"Hibernation disabled\" \"SUCCESS\"");
         sb.AppendLine();
     }
 
@@ -462,7 +458,12 @@ public class AutounattendScriptBuilder
                     }
                 }
 
-                if (!isHkcu && settingDef.CommandSettings?.Count > 0)
+                if (!isHkcu && settingDef.ScheduledTaskSettings?.Count > 0)
+                {
+                    hasEntriesForCurrentHive = true;
+                }
+
+                if (!isHkcu && settingDef.Id == "power-hibernation-enable")
                 {
                     hasEntriesForCurrentHive = true;
                 }
@@ -508,36 +509,33 @@ public class AutounattendScriptBuilder
 
             if (!isHkcu)
             {
-                var commandSettingsToApply = new List<(string TaskName, string Action, string Description)>();
+                var scheduledTasksToApply = new List<(string TaskName, string Action, string Description)>();
 
                 foreach (var configItem in configSection.Items)
                 {
                     var settingDef = settingDefinitions.FirstOrDefault(s => s.Id == configItem.Id);
-                    if (settingDef?.CommandSettings?.Count > 0)
+                    if (settingDef?.ScheduledTaskSettings?.Count > 0)
                     {
-                        foreach (var cmdSetting in settingDef.CommandSettings)
+                        foreach (var taskSetting in settingDef.ScheduledTaskSettings)
                         {
-                            var commandToExecute = configItem.IsSelected == true
-                                ? cmdSetting.EnabledCommand
-                                : cmdSetting.DisabledCommand;
-
-                            if (string.IsNullOrWhiteSpace(commandToExecute))
-                                continue;
-
-                            var taskName = ExtractTaskNameFromCommand(commandToExecute);
-                            var action = commandToExecute.Contains("/Enable") ? "/Enable" : "/Disable";
-
-                            if (!string.IsNullOrEmpty(taskName))
-                            {
-                                commandSettingsToApply.Add((taskName, action, settingDef.Description));
-                            }
+                            var action = configItem.IsSelected == true ? "/Enable" : "/Disable";
+                            scheduledTasksToApply.Add((taskSetting.TaskPath, action, settingDef.Description));
                         }
+                    }
+
+                    if (settingDef?.Id == "power-hibernation-enable")
+                    {
+                        var hibernateState = configItem.IsSelected == true ? "on" : "off";
+                        sb.AppendLine();
+                        sb.AppendLine($"{indent}Write-Log \"Setting hibernation to {hibernateState}...\" \"INFO\"");
+                        sb.AppendLine($"{indent}powercfg /hibernate {hibernateState} 2>$null");
+                        sb.AppendLine($"{indent}Write-Log \"Hibernation set to {hibernateState}\" \"SUCCESS\"");
                     }
                 }
 
-                if (commandSettingsToApply.Any())
+                if (scheduledTasksToApply.Any())
                 {
-                    AppendScheduledTaskBatch(sb, commandSettingsToApply, indent);
+                    AppendScheduledTaskBatch(sb, scheduledTasksToApply, indent);
                 }
             }
 
@@ -1501,25 +1499,7 @@ try {
         return name.Replace("-", "_");
     }
 
-    private string ExtractTaskNameFromCommand(string command)
-    {
-        var tnIndex = command.IndexOf("/TN", StringComparison.OrdinalIgnoreCase);
-        if (tnIndex == -1)
-            return string.Empty;
-
-        var afterTN = command.Substring(tnIndex + 3).Trim();
-        var startQuote = afterTN.IndexOf('"');
-        if (startQuote == -1)
-            return string.Empty;
-
-        var endQuote = afterTN.IndexOf('"', startQuote + 1);
-        if (endQuote == -1)
-            return string.Empty;
-
-        return afterTN.Substring(startQuote + 1, endQuote - startQuote - 1);
-    }
-
-    private string EscapePowerShellString(string input)
+private string EscapePowerShellString(string input)
     {
         if (string.IsNullOrEmpty(input))
             return input;

@@ -48,6 +48,8 @@ public partial class ExternalAppsViewModel : BaseViewModel
         _connectivityService = connectivityService;
         _dispatcherService = dispatcherService;
 
+        _localizationService.LanguageChanged += OnLanguageChanged;
+
         Items = new ObservableCollection<AppItemViewModel>();
         ItemsView = new AdvancedCollectionView(Items, true);
         ItemsView.Filter = FilterItem;
@@ -494,10 +496,19 @@ public partial class ExternalAppsViewModel : BaseViewModel
         OnPropertyChanged(nameof(HasSelectedItems));
     }
 
+    private void OnLanguageChanged(object? sender, EventArgs e)
+    {
+        OnPropertyChanged(nameof(SelectAllLabel));
+        OnPropertyChanged(nameof(SelectAllInstalledLabel));
+        OnPropertyChanged(nameof(SelectAllNotInstalledLabel));
+        RebuildCategories();
+    }
+
     protected override void Dispose(bool disposing)
     {
         if (disposing)
         {
+            _localizationService.LanguageChanged -= OnLanguageChanged;
             foreach (var item in Items)
             {
                 item.PropertyChanged -= Item_PropertyChanged;

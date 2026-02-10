@@ -274,6 +274,115 @@ public class ScheduledTaskService(ILogService logService) : IScheduledTaskServic
     }
 
 
+    public async Task<bool> EnableTaskAsync(string taskPath)
+    {
+        return await Task.Run(() => SetTaskEnabled(taskPath, true));
+    }
+
+    public async Task<bool> DisableTaskAsync(string taskPath)
+    {
+        return await Task.Run(() => SetTaskEnabled(taskPath, false));
+    }
+
+    public async Task<bool> IsTaskEnabledAsync(string taskPath)
+    {
+        return await Task.Run(() =>
+        {
+            try
+            {
+                var taskService = CreateTaskService();
+                var (folderPath, taskName) = SplitTaskPath(taskPath);
+                dynamic folder = taskService.GetFolder(folderPath);
+                dynamic task = folder.GetTask(taskName);
+                // State: 1 = Disabled, 3 = Ready, 4 = Running
+                int state = (int)task.State;
+                return state != 1;
+            }
+            catch (Exception ex)
+            {
+                logService.Log(Core.Features.Common.Enums.LogLevel.Warning,
+                    $"Failed to query task state for {taskPath}: {ex.Message}");
+                return false;
+            }
+        });
+    }
+
+    public async Task<bool> EnableTasksByFolderAsync(string folderPath)
+    {
+        return await Task.Run(() => SetFolderTasksEnabled(folderPath, true));
+    }
+
+    public async Task<bool> DisableTasksByFolderAsync(string folderPath)
+    {
+        return await Task.Run(() => SetFolderTasksEnabled(folderPath, false));
+    }
+
+    private bool SetTaskEnabled(string taskPath, bool enabled)
+    {
+        try
+        {
+            var taskService = CreateTaskService();
+            var (folderPath, taskName) = SplitTaskPath(taskPath);
+            dynamic folder = taskService.GetFolder(folderPath);
+            dynamic task = folder.GetTask(taskName);
+            task.Enabled = enabled;
+            logService.LogInformation($"{(enabled ? "Enabled" : "Disabled")} task: {taskPath}");
+            return true;
+        }
+        catch (Exception ex)
+        {
+            logService.Log(Core.Features.Common.Enums.LogLevel.Warning,
+                $"Failed to {(enabled ? "enable" : "disable")} task {taskPath}: {ex.Message}");
+            return false;
+        }
+    }
+
+    private bool SetFolderTasksEnabled(string folderPath, bool enabled)
+    {
+        try
+        {
+            var taskService = CreateTaskService();
+            // Remove trailing backslash/wildcard for folder navigation
+            var cleanPath = folderPath.TrimEnd('\\', '*');
+            dynamic folder = taskService.GetFolder(cleanPath);
+            dynamic tasks = folder.GetTasks(0); // 0 = include hidden tasks
+
+            int count = 0;
+            foreach (dynamic task in tasks)
+            {
+                try
+                {
+                    task.Enabled = enabled;
+                    logService.LogInformation($"{(enabled ? "Enabled" : "Disabled")}: {cleanPath}\\{task.Name}");
+                    count++;
+                }
+                catch (Exception ex)
+                {
+                    logService.Log(Core.Features.Common.Enums.LogLevel.Warning,
+                        $"Skipped: {cleanPath}\\{task.Name} - {ex.Message}");
+                }
+            }
+
+            logService.LogInformation($"{(enabled ? "Enabled" : "Disabled")} {count} tasks in {cleanPath}");
+            return true;
+        }
+        catch (Exception ex)
+        {
+            logService.Log(Core.Features.Common.Enums.LogLevel.Warning,
+                $"Failed to process tasks in {folderPath}: {ex.Message}");
+            return false;
+        }
+    }
+
+    private static (string FolderPath, string TaskName) SplitTaskPath(string taskPath)
+    {
+        var lastSep = taskPath.LastIndexOf('\\');
+        if (lastSep <= 0)
+            return ("\\", taskPath.TrimStart('\\'));
+
+        return (taskPath.Substring(0, lastSep), taskPath.Substring(lastSep + 1));
+    }
+
     private void EnsureScriptFileExists(RemovalScript script)
     {
         if (!File.Exists(script.ActualScriptPath) && !string.IsNullOrEmpty(script.Content))

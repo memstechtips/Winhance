@@ -1905,14 +1905,12 @@ public static class GamingandPerformanceOptimizations
                     GroupName = "Scheduled Tasks",
                     Icon = "FileDocumentCheck",
                     InputType = InputType.Toggle,
-                    CommandSettings = new List<CommandSetting>
+                    ScheduledTaskSettings = new List<ScheduledTaskSetting>
                     {
-                        new CommandSetting
+                        new ScheduledTaskSetting
                         {
                             Id = "CompatibilityAppraiserTask",
-                            EnabledCommand = "schtasks /Change /TN \"\\Microsoft\\Windows\\Application Experience\\Microsoft Compatibility Appraiser\" /Enable",
-                            DisabledCommand = "schtasks /Change /TN \"\\Microsoft\\Windows\\Application Experience\\Microsoft Compatibility Appraiser\" /Disable",
-                            RequiresElevation = true,
+                            TaskPath = @"\Microsoft\Windows\Application Experience\Microsoft Compatibility Appraiser",
                             RecommendedState = false
                         }
                     }
@@ -1925,14 +1923,12 @@ public static class GamingandPerformanceOptimizations
                     GroupName = "Scheduled Tasks",
                     Icon = "DatabaseSync",
                     InputType = InputType.Toggle,
-                    CommandSettings = new List<CommandSetting>
+                    ScheduledTaskSettings = new List<ScheduledTaskSetting>
                     {
-                        new CommandSetting
+                        new ScheduledTaskSetting
                         {
                             Id = "ProgramDataUpdaterTask",
-                            EnabledCommand = "schtasks /Change /TN \"\\Microsoft\\Windows\\Application Experience\\ProgramDataUpdater\" /Enable",
-                            DisabledCommand = "schtasks /Change /TN \"\\Microsoft\\Windows\\Application Experience\\ProgramDataUpdater\" /Disable",
-                            RequiresElevation = true,
+                            TaskPath = @"\Microsoft\Windows\Application Experience\ProgramDataUpdater",
                             RecommendedState = false
                         }
                     }
@@ -1945,14 +1941,12 @@ public static class GamingandPerformanceOptimizations
                     GroupName = "Scheduled Tasks",
                     Icon = "ChartLine",
                     InputType = InputType.Toggle,
-                    CommandSettings = new List<CommandSetting>
+                    ScheduledTaskSettings = new List<ScheduledTaskSetting>
                     {
-                        new CommandSetting
+                        new ScheduledTaskSetting
                         {
                             Id = "CEIPConsolidatorTask",
-                            EnabledCommand = "schtasks /Change /TN \"\\Microsoft\\Windows\\Customer Experience Improvement Program\\Consolidator\" /Enable",
-                            DisabledCommand = "schtasks /Change /TN \"\\Microsoft\\Windows\\Customer Experience Improvement Program\\Consolidator\" /Disable",
-                            RequiresElevation = true,
+                            TaskPath = @"\Microsoft\Windows\Customer Experience Improvement Program\Consolidator",
                             RecommendedState = false
                         }
                     }
@@ -1965,14 +1959,12 @@ public static class GamingandPerformanceOptimizations
                     GroupName = "Scheduled Tasks",
                     Icon = "Usb",
                     InputType = InputType.Toggle,
-                    CommandSettings = new List<CommandSetting>
+                    ScheduledTaskSettings = new List<ScheduledTaskSetting>
                     {
-                        new CommandSetting
+                        new ScheduledTaskSetting
                         {
                             Id = "UsbCeipTask",
-                            EnabledCommand = "schtasks /Change /TN \"\\Microsoft\\Windows\\Customer Experience Improvement Program\\UsbCeip\" /Enable",
-                            DisabledCommand = "schtasks /Change /TN \"\\Microsoft\\Windows\\Customer Experience Improvement Program\\UsbCeip\" /Disable",
-                            RequiresElevation = true,
+                            TaskPath = @"\Microsoft\Windows\Customer Experience Improvement Program\UsbCeip",
                             RecommendedState = false
                         }
                     }
@@ -1985,14 +1977,12 @@ public static class GamingandPerformanceOptimizations
                     GroupName = "Scheduled Tasks",
                     Icon = "Harddisk",
                     InputType = InputType.Toggle,
-                    CommandSettings = new List<CommandSetting>
+                    ScheduledTaskSettings = new List<ScheduledTaskSetting>
                     {
-                        new CommandSetting
+                        new ScheduledTaskSetting
                         {
                             Id = "DiskDiagnosticTask",
-                            EnabledCommand = "schtasks /Change /TN \"\\Microsoft\\Windows\\DiskDiagnostic\\Microsoft-Windows-DiskDiagnosticDataCollector\" /Enable",
-                            DisabledCommand = "schtasks /Change /TN \"\\Microsoft\\Windows\\DiskDiagnostic\\Microsoft-Windows-DiskDiagnosticDataCollector\" /Disable",
-                            RequiresElevation = true,
+                            TaskPath = @"\Microsoft\Windows\DiskDiagnostic\Microsoft-Windows-DiskDiagnosticDataCollector",
                             RecommendedState = false
                         }
                     }
@@ -2005,14 +1995,12 @@ public static class GamingandPerformanceOptimizations
                     GroupName = "Scheduled Tasks",
                     Icon = "MessageAlert",
                     InputType = InputType.Toggle,
-                    CommandSettings = new List<CommandSetting>
+                    ScheduledTaskSettings = new List<ScheduledTaskSetting>
                     {
-                        new CommandSetting
+                        new ScheduledTaskSetting
                         {
                             Id = "FeedbackDmClientTask",
-                            EnabledCommand = "schtasks /Change /TN \"\\Microsoft\\Windows\\Feedback\\Siuf\\DmClient\" /Enable",
-                            DisabledCommand = "schtasks /Change /TN \"\\Microsoft\\Windows\\Feedback\\Siuf\\DmClient\" /Disable",
-                            RequiresElevation = true,
+                            TaskPath = @"\Microsoft\Windows\Feedback\Siuf\DmClient",
                             RecommendedState = false
                         }
                     }
@@ -2025,14 +2013,12 @@ public static class GamingandPerformanceOptimizations
                     GroupName = "Scheduled Tasks",
                     Icon = "Download",
                     InputType = InputType.Toggle,
-                    CommandSettings = new List<CommandSetting>
+                    ScheduledTaskSettings = new List<ScheduledTaskSetting>
                     {
-                        new CommandSetting
+                        new ScheduledTaskSetting
                         {
                             Id = "FeedbackDmClientDownloadTask",
-                            EnabledCommand = "schtasks /Change /TN \"\\Microsoft\\Windows\\Feedback\\Siuf\\DmClientOnScenarioDownload\" /Enable",
-                            DisabledCommand = "schtasks /Change /TN \"\\Microsoft\\Windows\\Feedback\\Siuf\\DmClientOnScenarioDownload\" /Disable",
-                            RequiresElevation = true,
+                            TaskPath = @"\Microsoft\Windows\Feedback\Siuf\DmClientOnScenarioDownload",
                             RecommendedState = false
                         }
                     }
@@ -2045,14 +2031,12 @@ public static class GamingandPerformanceOptimizations
                     GroupName = "Scheduled Tasks",
                     Icon = "AlertOctagon",
                     InputType = InputType.Toggle,
-                    CommandSettings = new List<CommandSetting>
+                    ScheduledTaskSettings = new List<ScheduledTaskSetting>
                     {
-                        new CommandSetting
+                        new ScheduledTaskSetting
                         {
                             Id = "ErrorReportingQueueTask",
-                            EnabledCommand = "schtasks /Change /TN \"\\Microsoft\\Windows\\Windows Error Reporting\\QueueReporting\" /Enable",
-                            DisabledCommand = "schtasks /Change /TN \"\\Microsoft\\Windows\\Windows Error Reporting\\QueueReporting\" /Disable",
-                            RequiresElevation = true,
+                            TaskPath = @"\Microsoft\Windows\Windows Error Reporting\QueueReporting",
                             RecommendedState = false
                         }
                     }
@@ -2065,14 +2049,12 @@ public static class GamingandPerformanceOptimizations
                     GroupName = "Scheduled Tasks",
                     Icon = "ChartBar",
                     InputType = InputType.Toggle,
-                    CommandSettings = new List<CommandSetting>
+                    ScheduledTaskSettings = new List<ScheduledTaskSetting>
                     {
-                        new CommandSetting
+                        new ScheduledTaskSetting
                         {
                             Id = "SqmTask",
-                            EnabledCommand = "schtasks /Change /TN \"\\Microsoft\\Windows\\PI\\Sqm-Tasks\" /Enable",
-                            DisabledCommand = "schtasks /Change /TN \"\\Microsoft\\Windows\\PI\\Sqm-Tasks\" /Disable",
-                            RequiresElevation = true,
+                            TaskPath = @"\Microsoft\Windows\PI\Sqm-Tasks",
                             RecommendedState = false
                         }
                     }
@@ -2086,14 +2068,12 @@ public static class GamingandPerformanceOptimizations
                     GroupName = "Scheduled Tasks",
                     Icon = "BackupRestore",
                     InputType = InputType.Toggle,
-                    CommandSettings = new List<CommandSetting>
+                    ScheduledTaskSettings = new List<ScheduledTaskSetting>
                     {
-                        new CommandSetting
+                        new ScheduledTaskSetting
                         {
                             Id = "MareBackupTask",
-                            EnabledCommand = "schtasks /Change /TN \"\\Microsoft\\Windows\\Application Experience\\MareBackup\" /Enable",
-                            DisabledCommand = "schtasks /Change /TN \"\\Microsoft\\Windows\\Application Experience\\MareBackup\" /Disable",
-                            RequiresElevation = true,
+                            TaskPath = @"\Microsoft\Windows\Application Experience\MareBackup",
                             RecommendedState = false
                         }
                     }
@@ -2106,14 +2086,12 @@ public static class GamingandPerformanceOptimizations
                     GroupName = "Scheduled Tasks",
                     Icon = "RocketLaunch",
                     InputType = InputType.Toggle,
-                    CommandSettings = new List<CommandSetting>
+                    ScheduledTaskSettings = new List<ScheduledTaskSetting>
                     {
-                        new CommandSetting
+                        new ScheduledTaskSetting
                         {
                             Id = "StartupAppTask",
-                            EnabledCommand = "schtasks /Change /TN \"\\Microsoft\\Windows\\Application Experience\\StartupAppTask\" /Enable",
-                            DisabledCommand = "schtasks /Change /TN \"\\Microsoft\\Windows\\Application Experience\\StartupAppTask\" /Disable",
-                            RequiresElevation = true,
+                            TaskPath = @"\Microsoft\Windows\Application Experience\StartupAppTask",
                             RecommendedState = false
                         }
                     }
@@ -2126,14 +2104,12 @@ public static class GamingandPerformanceOptimizations
                     GroupName = "Scheduled Tasks",
                     Icon = "Update",
                     InputType = InputType.Toggle,
-                    CommandSettings = new List<CommandSetting>
+                    ScheduledTaskSettings = new List<ScheduledTaskSetting>
                     {
-                        new CommandSetting
+                        new ScheduledTaskSetting
                         {
                             Id = "PcaPatchTask",
-                            EnabledCommand = "schtasks /Change /TN \"\\Microsoft\\Windows\\Application Experience\\PcaPatchDbTask\" /Enable",
-                            DisabledCommand = "schtasks /Change /TN \"\\Microsoft\\Windows\\Application Experience\\PcaPatchDbTask\" /Disable",
-                            RequiresElevation = true,
+                            TaskPath = @"\Microsoft\Windows\Application Experience\PcaPatchDbTask",
                             RecommendedState = false
                         }
                     }
@@ -2147,14 +2123,12 @@ public static class GamingandPerformanceOptimizations
                     GroupName = "Scheduled Tasks",
                     Icon = "MapOutline",
                     InputType = InputType.Toggle,
-                    CommandSettings = new List<CommandSetting>
+                    ScheduledTaskSettings = new List<ScheduledTaskSetting>
                     {
-                        new CommandSetting
+                        new ScheduledTaskSetting
                         {
                             Id = "MapsUpdateTask",
-                            EnabledCommand = "schtasks /Change /TN \"\\Microsoft\\Windows\\Maps\\MapsUpdateTask\" /Enable",
-                            DisabledCommand = "schtasks /Change /TN \"\\Microsoft\\Windows\\Maps\\MapsUpdateTask\" /Disable",
-                            RequiresElevation = true,
+                            TaskPath = @"\Microsoft\Windows\Maps\MapsUpdateTask",
                             RecommendedState = false
                         }
                     }
@@ -2167,14 +2141,12 @@ public static class GamingandPerformanceOptimizations
                     GroupName = "Scheduled Tasks",
                     Icon = "HarddiskPlus",
                     InputType = InputType.Toggle,
-                    CommandSettings = new List<CommandSetting>
+                    ScheduledTaskSettings = new List<ScheduledTaskSetting>
                     {
-                        new CommandSetting
+                        new ScheduledTaskSetting
                         {
                             Id = "AutochkProxyTask",
-                            EnabledCommand = "schtasks /Change /TN \"\\Microsoft\\Windows\\Autochk\\Proxy\" /Enable",
-                            DisabledCommand = "schtasks /Change /TN \"\\Microsoft\\Windows\\Autochk\\Proxy\" /Disable",
-                            RequiresElevation = true,
+                            TaskPath = @"\Microsoft\Windows\Autochk\Proxy",
                             RecommendedState = null
                         }
                     }
@@ -2187,14 +2159,12 @@ public static class GamingandPerformanceOptimizations
                     GroupName = "Scheduled Tasks",
                     Icon = "AccountSupervisor",
                     InputType = InputType.Toggle,
-                    CommandSettings = new List<CommandSetting>
+                    ScheduledTaskSettings = new List<ScheduledTaskSetting>
                     {
-                        new CommandSetting
+                        new ScheduledTaskSetting
                         {
                             Id = "FamilySafetyTask",
-                            EnabledCommand = "schtasks /Change /TN \"\\Microsoft\\Windows\\Shell\\FamilySafetyMonitor\" /Enable",
-                            DisabledCommand = "schtasks /Change /TN \"\\Microsoft\\Windows\\Shell\\FamilySafetyMonitor\" /Disable",
-                            RequiresElevation = true,
+                            TaskPath = @"\Microsoft\Windows\Shell\FamilySafetyMonitor",
                             RecommendedState = false
                         }
                     }
@@ -2207,14 +2177,12 @@ public static class GamingandPerformanceOptimizations
                     GroupName = "Scheduled Tasks",
                     Icon = "LightningBolt",
                     InputType = InputType.Toggle,
-                    CommandSettings = new List<CommandSetting>
+                    ScheduledTaskSettings = new List<ScheduledTaskSetting>
                     {
-                        new CommandSetting
+                        new ScheduledTaskSetting
                         {
                             Id = "PowerEfficiencyTask",
-                            EnabledCommand = "schtasks /Change /TN \"\\Microsoft\\Windows\\Power Efficiency Diagnostics\\AnalyzeSystem\" /Enable",
-                            DisabledCommand = "schtasks /Change /TN \"\\Microsoft\\Windows\\Power Efficiency Diagnostics\\AnalyzeSystem\" /Disable",
-                            RequiresElevation = true,
+                            TaskPath = @"\Microsoft\Windows\Power Efficiency Diagnostics\AnalyzeSystem",
                             RecommendedState = false
                         }
                     }

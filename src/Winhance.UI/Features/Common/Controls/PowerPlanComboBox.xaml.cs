@@ -1,6 +1,7 @@
 using System.Collections.ObjectModel;
 using System.Collections.Specialized;
 using Microsoft.Extensions.DependencyInjection;
+using Microsoft.UI.Dispatching;
 using Microsoft.UI.Xaml;
 using Microsoft.UI.Xaml.Controls;
 using Microsoft.UI.Xaml.Media;
@@ -28,29 +29,50 @@ public sealed partial class PowerPlanComboBox : UserControl
             typeof(PowerPlanComboBox),
             new PropertyMetadata(null, OnItemsSourceChanged));
 
+    // Tracks the last CollectionChanged handler so we can unsubscribe when the collection changes
+    private NotifyCollectionChangedEventHandler? _collectionChangedHandler;
+
     private static void OnItemsSourceChanged(DependencyObject d, DependencyPropertyChangedEventArgs e)
     {
-        if (d is PowerPlanComboBox control && e.NewValue is ObservableCollection<ComboBoxOption> newCollection)
+        if (d is not PowerPlanComboBox control) return;
+
+        // Unsubscribe from the old collection
+        if (e.OldValue is ObservableCollection<ComboBoxOption> oldCollection && control._collectionChangedHandler != null)
+        {
+            oldCollection.CollectionChanged -= control._collectionChangedHandler;
+            control._collectionChangedHandler = null;
+        }
+
+        if (e.NewValue is ObservableCollection<ComboBoxOption> newCollection)
         {
             LogDebug($"[PowerPlanComboBox] ItemsSourceProperty changed, count={newCollection.Count}");
-            // Subscribe to collection changes to re-apply selection after items are added
-            newCollection.CollectionChanged += (s, args) =>
+
+            // Debounced handler: only re-apply SelectedValue once after all items are added,
+            // instead of on every individual Add (which caused redundant deferred tasks during refresh)
+            DispatcherQueueTimer? debounceTimer = null;
+
+            control._collectionChangedHandler = (s, args) =>
             {
-                LogDebug($"[PowerPlanComboBox] CollectionChanged: Action={args.Action}, SelectedValue={control.SelectedValue}");
                 if (args.Action == NotifyCollectionChangedAction.Add)
                 {
-                    // Defer to next frame to ensure binding has updated
-                    control.DispatcherQueue.TryEnqueue(Microsoft.UI.Dispatching.DispatcherQueuePriority.Low, () =>
+                    debounceTimer?.Stop();
+                    debounceTimer = control.DispatcherQueue.CreateTimer();
+                    debounceTimer.Interval = TimeSpan.FromMilliseconds(50);
+                    debounceTimer.IsRepeating = false;
+                    debounceTimer.Tick += (t, _) =>
                     {
+                        debounceTimer.Stop();
                         if (control.SelectedValue != null && control.PowerPlanSelector != null)
                         {
-                            LogDebug($"[PowerPlanComboBox] CollectionChanged Add: Re-applying SelectedValue={control.SelectedValue}");
+                            LogDebug($"[PowerPlanComboBox] Debounced: Re-applying SelectedValue={control.SelectedValue}");
                             control.PowerPlanSelector.SelectedValue = control.SelectedValue;
-                            LogDebug($"[PowerPlanComboBox] CollectionChanged Add: PowerPlanSelector.SelectedValue is now {control.PowerPlanSelector.SelectedValue}");
                         }
-                    });
+                    };
+                    debounceTimer.Start();
                 }
             };
+
+            newCollection.CollectionChanged += control._collectionChangedHandler;
         }
     }
 

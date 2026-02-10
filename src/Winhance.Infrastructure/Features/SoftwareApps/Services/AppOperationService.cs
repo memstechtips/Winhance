@@ -140,37 +140,17 @@ public class AppOperationService(
             if (app == null)
                 return OperationResult<bool>.Failed("App not found");
 
-            if (!string.IsNullOrEmpty(app.CapabilityName))
-            {
-                var success = await capabilityService.DisableCapabilityAsync(app.CapabilityName, app.Name);
-                if (success)
-                {
-                    eventBus.Publish(new AppRemovedEvent(appId));
-                    logService.Log(LogLevel.Success, $"Successfully removed capability '{appId}'");
-                }
-                return success ? OperationResult<bool>.Succeeded(true) : OperationResult<bool>.Failed("Capability removal failed");
-            }
-
-            if (!string.IsNullOrEmpty(app.OptionalFeatureName))
-            {
-                var success = await featureService.DisableFeatureAsync(app.OptionalFeatureName, app.Name);
-                if (success)
-                {
-                    eventBus.Publish(new AppRemovedEvent(appId));
-                    logService.Log(LogLevel.Success, $"Successfully removed feature '{appId}'");
-                }
-                return success ? OperationResult<bool>.Succeeded(true) : OperationResult<bool>.Failed("Feature removal failed");
-            }
-
-            if (!string.IsNullOrEmpty(app.AppxPackageName))
+            if (!string.IsNullOrEmpty(app.CapabilityName) ||
+                !string.IsNullOrEmpty(app.OptionalFeatureName) ||
+                !string.IsNullOrEmpty(app.AppxPackageName))
             {
                 var success = await bloatRemovalService.RemoveAppsAsync(new[] { app }.ToList(), progress, cancellationToken);
                 if (success)
                 {
                     eventBus.Publish(new AppRemovedEvent(appId));
-                    logService.Log(LogLevel.Success, $"Successfully removed app '{appId}'");
+                    logService.Log(LogLevel.Success, $"Successfully removed '{appId}'");
                 }
-                return success ? OperationResult<bool>.Succeeded(true) : OperationResult<bool>.Failed("App removal failed");
+                return success ? OperationResult<bool>.Succeeded(true) : OperationResult<bool>.Failed("Removal failed");
             }
 
             return OperationResult<bool>.Failed($"App '{appId}' not supported for removal");

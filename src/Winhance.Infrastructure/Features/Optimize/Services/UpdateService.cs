@@ -2,12 +2,17 @@ using System;
 using System.Collections.Generic;
 using System.IO;
 using System.Linq;
+using System.Runtime.InteropServices;
+using System.Security.AccessControl;
+using System.Security.Principal;
+using System.ServiceProcess;
 using System.Threading.Tasks;
 using Microsoft.Extensions.DependencyInjection;
 using Winhance.Core.Features.Common.Constants;
 using Winhance.Core.Features.Common.Enums;
 using Winhance.Core.Features.Common.Interfaces;
 using Winhance.Core.Features.Common.Models;
+using Winhance.Core.Features.Common.Native;
 using Winhance.Core.Features.Optimize.Models;
 
 namespace Winhance.Infrastructure.Features.Optimize.Services
@@ -15,10 +20,9 @@ namespace Winhance.Infrastructure.Features.Optimize.Services
     public class UpdateService(
         ILogService logService,
         IWindowsRegistryService registryService,
-        ICommandService commandService,
-        IPowerShellExecutionService powerShellService,
         IServiceProvider serviceProvider,
-        ICompatibleSettingsRegistry compatibleSettingsRegistry) : IDomainService
+        ICompatibleSettingsRegistry compatibleSettingsRegistry,
+        IScheduledTaskService scheduledTaskService) : IDomainService
     {
         public string DomainName => FeatureIds.Update;
 
@@ -156,9 +160,9 @@ namespace Winhance.Infrastructure.Features.Optimize.Services
             {
                 try
                 {
-                    await commandService.ExecuteCommandAsync($"net stop {service}");
-                    await commandService.ExecuteCommandAsync($"sc config {service} start= disabled");
-                    await commandService.ExecuteCommandAsync($"sc failure {service} reset= 0 actions= \"\"");
+                    await StopServiceAsync(service);
+                    SetServiceStartType(service, Advapi32.SERVICE_DISABLED);
+                    ClearServiceFailureActions(service);
                     logService.Log(LogLevel.Info, $"Disabled service: {service}");
                 }
                 catch (Exception ex)
@@ -172,17 +176,17 @@ namespace Winhance.Infrastructure.Features.Optimize.Services
         {
             var services = new[]
             {
-                ("wuauserv", "auto"),
-                ("UsoSvc", "auto"),
-                ("WaaSMedicSvc", "demand")
+                ("wuauserv", Advapi32.SERVICE_AUTO_START),
+                ("UsoSvc", Advapi32.SERVICE_AUTO_START),
+                ("WaaSMedicSvc", Advapi32.SERVICE_DEMAND_START)
             };
 
             foreach (var (service, startType) in services)
             {
                 try
                 {
-                    await commandService.ExecuteCommandAsync($"sc config {service} start= {startType}");
-                    await commandService.ExecuteCommandAsync($"net start {service}");
+                    SetServiceStartType(service, startType);
+                    await StartServiceAsync(service);
                     logService.Log(LogLevel.Info, $"Enabled service: {service}");
                 }
                 catch (Exception ex)
@@ -192,7 +196,7 @@ namespace Winhance.Infrastructure.Features.Optimize.Services
             }
         }
 
-        private async Task SetUpdateServicesManualAsync()
+        private Task SetUpdateServicesManualAsync()
         {
             var services = new[] { "wuauserv", "UsoSvc", "WaaSMedicSvc" };
 
@@ -200,7 +204,7 @@ namespace Winhance.Infrastructure.Features.Optimize.Services
             {
                 try
                 {
-                    await commandService.ExecuteCommandAsync($"sc config {service} start= demand");
+                    SetServiceStartType(service, Advapi32.SERVICE_DEMAND_START);
                     logService.Log(LogLevel.Info, $"Set {service} to manual");
                 }
                 catch (Exception ex)
@@ -208,86 +212,56 @@ namespace Winhance.Infrastructure.Features.Optimize.Services
                     logService.Log(LogLevel.Warning, $"Failed to set {service} to manual: {ex.Message}");
                 }
             }
+
+            return Task.CompletedTask;
         }
 
         private async Task DisableUpdateTasksAsync()
         {
-            var taskPaths = new[]
+            var folderPaths = new[]
             {
-                @"\Microsoft\Windows\InstallService\*",
-                @"\Microsoft\Windows\UpdateOrchestrator\*",
-                @"\Microsoft\Windows\UpdateAssistant\*",
-                @"\Microsoft\Windows\WaaSMedic\*",
-                @"\Microsoft\Windows\WindowsUpdate\*",
+                @"\Microsoft\Windows\InstallService\",
+                @"\Microsoft\Windows\UpdateOrchestrator\",
+                @"\Microsoft\Windows\UpdateAssistant\",
+                @"\Microsoft\Windows\WaaSMedic\",
+                @"\Microsoft\Windows\WindowsUpdate\",
             };
 
-            foreach (var taskPath in taskPaths)
+            foreach (var folderPath in folderPaths)
             {
                 try
                 {
-                    var script = $@"
-                        $tasks = Get-ScheduledTask -TaskPath '{taskPath}' -ErrorAction SilentlyContinue
-                        foreach ($task in $tasks) {{
-                            try {{
-                                Disable-ScheduledTask -TaskName $task.TaskName -TaskPath $task.TaskPath -ErrorAction Stop | Out-Null
-                                Write-Output ""Disabled: $($task.TaskPath)$($task.TaskName)""
-                            }} catch {{
-                                Write-Output ""Skipped: $($task.TaskPath)$($task.TaskName) - $($_.Exception.Message)""
-                            }}
-                        }}
-                    ";
-
-                    var result = await powerShellService.ExecuteScriptAsync(script);
-                    if (!string.IsNullOrWhiteSpace(result))
-                    {
-                        logService.Log(LogLevel.Info, $"Tasks in {taskPath}:\n{result}");
-                    }
+                    await scheduledTaskService.DisableTasksByFolderAsync(folderPath);
                 }
                 catch (Exception ex)
                 {
-                    logService.Log(LogLevel.Warning, $"Failed to process tasks in {taskPath}: {ex.Message}");
+                    logService.Log(LogLevel.Warning, $"Failed to process tasks in {folderPath}: {ex.Message}");
                 }
             }
         }
 
         private async Task EnableUpdateTasksAsync()
         {
-            var taskPaths = new[]
+            var folderPaths = new[]
             {
-                @"\Microsoft\Windows\UpdateOrchestrator\*",
-                @"\Microsoft\Windows\WindowsUpdate\*",
+                @"\Microsoft\Windows\UpdateOrchestrator\",
+                @"\Microsoft\Windows\WindowsUpdate\",
             };
 
-            foreach (var taskPath in taskPaths)
+            foreach (var folderPath in folderPaths)
             {
                 try
                 {
-                    var script = $@"
-                        $tasks = Get-ScheduledTask -TaskPath '{taskPath}' -ErrorAction SilentlyContinue
-                        foreach ($task in $tasks) {{
-                            try {{
-                                Enable-ScheduledTask -TaskName $task.TaskName -TaskPath $task.TaskPath -ErrorAction Stop | Out-Null
-                                Write-Output ""Enabled: $($task.TaskPath)$($task.TaskName)""
-                            }} catch {{
-                                Write-Output ""Skipped: $($task.TaskPath)$($task.TaskName) - $($_.Exception.Message)""
-                            }}
-                        }}
-                    ";
-
-                    var result = await powerShellService.ExecuteScriptAsync(script);
-                    if (!string.IsNullOrWhiteSpace(result))
-                    {
-                        logService.Log(LogLevel.Info, $"Tasks in {taskPath}:\n{result}");
-                    }
+                    await scheduledTaskService.EnableTasksByFolderAsync(folderPath);
                 }
                 catch (Exception ex)
                 {
-                    logService.Log(LogLevel.Warning, $"Failed to process tasks in {taskPath}: {ex.Message}");
+                    logService.Log(LogLevel.Warning, $"Failed to process tasks in {folderPath}: {ex.Message}");
                 }
             }
         }
 
-        private async Task RenameCriticalDllsAsync()
+        private Task RenameCriticalDllsAsync()
         {
             var dlls = new[] { "WaaSMedicSvc.dll", "wuaueng.dll" };
 
@@ -303,8 +277,7 @@ namespace Winhance.Infrastructure.Features.Optimize.Services
                         if (File.Exists(dllPath))
                         {
                             logService.Log(LogLevel.Info, $"Conflict detected for {dll}. Deleting stale backup.");
-                            await commandService.ExecuteCommandAsync($"takeown /f \"{backupPath}\"");
-                            await commandService.ExecuteCommandAsync($"icacls \"{backupPath}\" /grant *S-1-1-0:F");
+                            TakeOwnershipAndGrantFullControl(backupPath);
                             File.Delete(backupPath);
                         }
                         else
@@ -316,8 +289,7 @@ namespace Winhance.Infrastructure.Features.Optimize.Services
                     if (!File.Exists(dllPath) || File.Exists(backupPath))
                         continue;
 
-                    await commandService.ExecuteCommandAsync($"takeown /f \"{dllPath}\"");
-                    await commandService.ExecuteCommandAsync($"icacls \"{dllPath}\" /grant *S-1-1-0:F");
+                    TakeOwnershipAndGrantFullControl(dllPath);
 
                     File.Move(dllPath, backupPath);
                     logService.Log(LogLevel.Info, $"Renamed {dll} to backup");
@@ -327,9 +299,11 @@ namespace Winhance.Infrastructure.Features.Optimize.Services
                     logService.Log(LogLevel.Warning, $"Failed to rename {dll}: {ex.Message}");
                 }
             }
+
+            return Task.CompletedTask;
         }
 
-        private async Task RestoreCriticalDllsAsync()
+        private Task RestoreCriticalDllsAsync()
         {
             var dlls = new[] { "WaaSMedicSvc.dll", "wuaueng.dll" };
 
@@ -345,14 +319,12 @@ namespace Winhance.Infrastructure.Features.Optimize.Services
                         if (File.Exists(dllPath))
                         {
                             logService.Log(LogLevel.Info, $"System already restored {dll}. Removing backup.");
-                            await commandService.ExecuteCommandAsync($"takeown /f \"{backupPath}\"");
-                            await commandService.ExecuteCommandAsync($"icacls \"{backupPath}\" /grant *S-1-1-0:F");
+                            TakeOwnershipAndGrantFullControl(backupPath);
                             File.Delete(backupPath);
                         }
                         else
                         {
-                            await commandService.ExecuteCommandAsync($"takeown /f \"{backupPath}\"");
-                            await commandService.ExecuteCommandAsync($"icacls \"{backupPath}\" /grant *S-1-1-0:F");
+                            TakeOwnershipAndGrantFullControl(backupPath);
 
                             File.Move(backupPath, dllPath);
                             logService.Log(LogLevel.Info, $"Restored {dll} from backup");
@@ -364,6 +336,8 @@ namespace Winhance.Infrastructure.Features.Optimize.Services
                     logService.Log(LogLevel.Warning, $"Failed to restore {dll}: {ex.Message}");
                 }
             }
+
+            return Task.CompletedTask;
         }
 
         private async Task CleanupUpdateFilesAsync()
@@ -374,8 +348,19 @@ namespace Winhance.Infrastructure.Features.Optimize.Services
 
                 if (Directory.Exists(softwareDistPath))
                 {
-                    await powerShellService.ExecuteScriptAsync(
-                        $"Remove-Item '{softwareDistPath}\\*' -Recurse -Force -ErrorAction SilentlyContinue");
+                    await Task.Run(() =>
+                    {
+                        foreach (var dir in Directory.GetDirectories(softwareDistPath))
+                        {
+                            try { Directory.Delete(dir, true); }
+                            catch { }
+                        }
+                        foreach (var file in Directory.GetFiles(softwareDistPath))
+                        {
+                            try { File.Delete(file); }
+                            catch { }
+                        }
+                    });
 
                     logService.Log(LogLevel.Info, "Cleaned SoftwareDistribution folder");
                 }
@@ -450,6 +435,148 @@ namespace Winhance.Infrastructure.Features.Optimize.Services
             }
 
             return false;
+        }
+
+        private static async Task StopServiceAsync(string serviceName)
+        {
+            try
+            {
+                using var sc = new ServiceController(serviceName);
+                if (sc.Status != ServiceControllerStatus.Stopped)
+                {
+                    sc.Stop();
+                    sc.WaitForStatus(ServiceControllerStatus.Stopped, TimeSpan.FromSeconds(30));
+                }
+            }
+            catch (InvalidOperationException)
+            {
+                // Service doesn't exist or can't be controlled
+            }
+
+            await Task.CompletedTask;
+        }
+
+        private static async Task StartServiceAsync(string serviceName)
+        {
+            try
+            {
+                using var sc = new ServiceController(serviceName);
+                if (sc.Status != ServiceControllerStatus.Running)
+                {
+                    sc.Start();
+                    sc.WaitForStatus(ServiceControllerStatus.Running, TimeSpan.FromSeconds(30));
+                }
+            }
+            catch (InvalidOperationException)
+            {
+                // Service doesn't exist or can't be controlled
+            }
+
+            await Task.CompletedTask;
+        }
+
+        private void SetServiceStartType(string serviceName, uint startType)
+        {
+            var scmHandle = Advapi32.OpenSCManager(null, null, Advapi32.SC_MANAGER_ALL_ACCESS);
+            if (scmHandle == IntPtr.Zero)
+            {
+                logService.Log(LogLevel.Warning, $"Failed to open SCManager for {serviceName}: {Marshal.GetLastWin32Error()}");
+                return;
+            }
+
+            try
+            {
+                var svcHandle = Advapi32.OpenService(scmHandle, serviceName, Advapi32.SERVICE_CHANGE_CONFIG);
+                if (svcHandle == IntPtr.Zero)
+                {
+                    logService.Log(LogLevel.Warning, $"Failed to open service {serviceName}: {Marshal.GetLastWin32Error()}");
+                    return;
+                }
+
+                try
+                {
+                    Advapi32.ChangeServiceConfig(svcHandle,
+                        Advapi32.SERVICE_NO_CHANGE,
+                        startType,
+                        Advapi32.SERVICE_NO_CHANGE,
+                        null, null, IntPtr.Zero, null, null, null, null);
+                }
+                finally
+                {
+                    Advapi32.CloseServiceHandle(svcHandle);
+                }
+            }
+            finally
+            {
+                Advapi32.CloseServiceHandle(scmHandle);
+            }
+        }
+
+        private void ClearServiceFailureActions(string serviceName)
+        {
+            var scmHandle = Advapi32.OpenSCManager(null, null, Advapi32.SC_MANAGER_ALL_ACCESS);
+            if (scmHandle == IntPtr.Zero) return;
+
+            try
+            {
+                var svcHandle = Advapi32.OpenService(scmHandle, serviceName, Advapi32.SERVICE_ALL_ACCESS);
+                if (svcHandle == IntPtr.Zero) return;
+
+                try
+                {
+                    var action = new Advapi32.SC_ACTION { Type = Advapi32.SC_ACTION_NONE, Delay = 0 };
+                    var actionPtr = Marshal.AllocHGlobal(Marshal.SizeOf(action));
+
+                    try
+                    {
+                        Marshal.StructureToPtr(action, actionPtr, false);
+
+                        var failureActions = new Advapi32.SERVICE_FAILURE_ACTIONS
+                        {
+                            dwResetPeriod = 0,
+                            lpRebootMsg = null,
+                            lpCommand = null,
+                            cActions = 1,
+                            lpsaActions = actionPtr
+                        };
+
+                        Advapi32.ChangeServiceConfig2(svcHandle, Advapi32.SERVICE_CONFIG_FAILURE_ACTIONS, ref failureActions);
+                    }
+                    finally
+                    {
+                        Marshal.FreeHGlobal(actionPtr);
+                    }
+                }
+                finally
+                {
+                    Advapi32.CloseServiceHandle(svcHandle);
+                }
+            }
+            finally
+            {
+                Advapi32.CloseServiceHandle(scmHandle);
+            }
+        }
+
+        private void TakeOwnershipAndGrantFullControl(string filePath)
+        {
+            var fileInfo = new FileInfo(filePath);
+            var security = fileInfo.GetAccessControl();
+
+            // Take ownership
+            security.SetOwner(WindowsIdentity.GetCurrent().User!);
+            fileInfo.SetAccessControl(security);
+
+            // Reload after ownership change
+            security = fileInfo.GetAccessControl();
+
+            // Grant full control to Everyone (S-1-1-0)
+            var everyone = new SecurityIdentifier(WellKnownSidType.WorldSid, null);
+            security.AddAccessRule(new FileSystemAccessRule(
+                everyone,
+                FileSystemRights.FullControl,
+                AccessControlType.Allow));
+            fileInfo.SetAccessControl(security);
         }
 
         private bool IsUpdatesPaused()

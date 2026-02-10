@@ -8,6 +8,7 @@ using System.Runtime.InteropServices;
 using System.Text.Json;
 using System.Threading;
 using System.Threading.Tasks;
+using System.IO.Compression;
 using Winhance.Core.Features.Common.Interfaces;
 using Winhance.Core.Features.Common.Models;
 using Winhance.Core.Features.SoftwareApps.Interfaces;
@@ -18,17 +19,14 @@ namespace Winhance.Infrastructure.Features.SoftwareApps.Services;
 public class DirectDownloadService : IDirectDownloadService
 {
     private readonly ILogService _logService;
-    private readonly IPowerShellExecutionService _powerShellService;
     private readonly HttpClient _httpClient;
     private readonly ILocalizationService _localization;
 
     public DirectDownloadService(
         ILogService logService,
-        IPowerShellExecutionService powerShellService,
         ILocalizationService localization)
     {
         _logService = logService;
-        _powerShellService = powerShellService;
         _localization = localization;
         _httpClient = new HttpClient
         {
@@ -359,17 +357,23 @@ public class DirectDownloadService : IDirectDownloadService
         {
             _logService?.LogInformation($"Installing MSI: {msiPath}");
 
-            var escapedPath = msiPath.Replace("'", "''");
-            var script = $@"
-$process = Start-Process msiexec.exe -ArgumentList '/i', '{escapedPath}', '/quiet', '/norestart' -Wait -NoNewWindow -PassThru
-if ($process.ExitCode -eq 0) {{
-    Write-Output 'Installation completed successfully'
-}} else {{
-    throw ""Installation failed with exit code $($process.ExitCode)""
-}}
-";
+            var process = Process.Start(new ProcessStartInfo
+            {
+                FileName = "msiexec.exe",
+                Arguments = $"/i \"{msiPath}\" /quiet /norestart",
+                UseShellExecute = false,
+                CreateNoWindow = true
+            });
 
-            await _powerShellService.ExecuteScriptAsync(script, progress, cancellationToken);
+            if (process != null)
+            {
+                await process.WaitForExitAsync(cancellationToken);
+                if (process.ExitCode != 0)
+                {
+                    _logService?.LogError($"MSI installation failed with exit code {process.ExitCode}");
+                    return false;
+                }
+            }
 
             progress?.Report(new TaskProgressDetail
             {
@@ -403,7 +407,6 @@ if ($process.ExitCode -eq 0) {{
         {
             _logService?.LogInformation($"Installing EXE: {exePath}");
 
-            var escapedPath = exePath.Replace("'", "''");
             var silentArgs = new[] { "/S", "/SILENT /NORESTART", "/VERYSILENT /NORESTART", "/quiet /norestart" };
 
             foreach (var args in silentArgs)
@@ -412,25 +415,29 @@ if ($process.ExitCode -eq 0) {{
                 {
                     _logService?.LogInformation($"Trying silent install with args: {args}");
 
-                    var script = $@"
-$process = Start-Process '{escapedPath}' -ArgumentList '{args}' -Wait -NoNewWindow -PassThru
-if ($process.ExitCode -eq 0) {{
-    Write-Output 'Installation completed successfully'
-    exit 0
-}}
-";
-
-                    await _powerShellService.ExecuteScriptAsync(script, progress, cancellationToken);
-
-                    progress?.Report(new TaskProgressDetail
+                    var process = Process.Start(new ProcessStartInfo
                     {
-                        Progress = 95,
-                        StatusText = _localization.GetString("Progress_Installing", displayName),
-                        TerminalOutput = "EXE installation completed",
-                        IsActive = true
+                        FileName = exePath,
+                        Arguments = args,
+                        UseShellExecute = false,
+                        CreateNoWindow = true
                     });
 
-                    return true;
+                    if (process != null)
+                    {
+                        await process.WaitForExitAsync(cancellationToken);
+                        if (process.ExitCode == 0)
+                        {
+                            progress?.Report(new TaskProgressDetail
+                            {
+                                Progress = 95,
+                                StatusText = _localization.GetString("Progress_Installing", displayName),
+                                TerminalOutput = "EXE installation completed",
+                                IsActive = true
+                            });
+                            return true;
+                        }
+                    }
                 }
                 catch (Exception ex)
                 {
@@ -486,19 +493,14 @@ if ($process.ExitCode -eq 0) {{
                 displayName
             );
 
-            var escapedZipPath = zipPath.Replace("'", "''");
-            var escapedExtractPath = extractPath.Replace("'", "''");
+            await Task.Run(() =>
+            {
+                if (Directory.Exists(extractPath))
+                    Directory.Delete(extractPath, true);
 
-            var script = $@"
-if (Test-Path '{escapedExtractPath}') {{
-    Remove-Item -Path '{escapedExtractPath}' -Recurse -Force
-}}
-New-Item -ItemType Directory -Path '{escapedExtractPath}' -Force | Out-Null
-Expand-Archive -Path '{escapedZipPath}' -DestinationPath '{escapedExtractPath}' -Force
-Write-Output 'Extracted to {extractPath}'
-";
-
-            await _powerShellService.ExecuteScriptAsync(script, progress, cancellationToken);
+                Directory.CreateDirectory(extractPath);
+                ZipFile.ExtractToDirectory(zipPath, extractPath, overwriteFiles: true);
+            }, cancellationToken);
 
             progress?.Report(new TaskProgressDetail
             {

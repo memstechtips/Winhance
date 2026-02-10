@@ -10,7 +10,7 @@ public record SettingDefinition : BaseDefinition, ISettingItem
     public bool RequiresConfirmation { get; init; } = false;
     public string? ActionCommand { get; init; }
     public List<(int MinBuild, int MaxBuild)> SupportedBuildRanges { get; init; } = new();
-    public List<CommandSetting> CommandSettings { get; init; } = new();
+    public List<ScheduledTaskSetting> ScheduledTaskSettings { get; init; } = new();
     public List<PowerShellScriptSetting> PowerShellScripts { get; init; } = new();
     public List<RegContentSetting> RegContents { get; init; } = new();
     public List<PowerCfgSetting>? PowerCfgSettings { get; set; }

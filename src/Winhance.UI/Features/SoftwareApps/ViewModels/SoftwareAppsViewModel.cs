@@ -302,6 +302,8 @@ public partial class SoftwareAppsViewModel : BaseViewModel
         OnPropertyChanged(nameof(HelpButtonText));
         OnPropertyChanged(nameof(ViewModeTableTooltip));
         OnPropertyChanged(nameof(ViewModeCardTooltip));
+        OnPropertyChanged(nameof(ReviewWindowsAppsBannerText));
+        OnPropertyChanged(nameof(ReviewExternalAppsBannerText));
     }
 
     private void ChildViewModel_PropertyChanged(object? sender, PropertyChangedEventArgs e)

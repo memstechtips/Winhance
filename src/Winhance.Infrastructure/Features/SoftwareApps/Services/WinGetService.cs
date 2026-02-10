@@ -55,11 +55,14 @@ namespace Winhance.Infrastructure.Features.SoftwareApps.Services
                     bool isAdmin = IsRunningAsAdministrator();
                     _logService?.LogInformation($"Initializing WinGet COM API (Admin: {isAdmin})");
 
-                    if (isAdmin)
+                    // Windows 10 (build < 22000): ElevatedFactory causes a hard process crash
+                    // via winrtact.dll when WindowsPackageManagerServer.exe can't be resolved.
+                    // Use StandardFactory with lower trust registration instead.
+                    bool isWindows11OrLater = Environment.OSVersion.Version.Build >= 22000;
+
+                    if (isAdmin && isWindows11OrLater)
                     {
-                        // For admin scenarios, try ElevatedFactory (uses winrtact.dll)
-                        // This is the recommended approach for elevated processes
-                        // The WinGet COM server may need a moment to initialize, so we retry
+                        // For admin on Windows 11+, try ElevatedFactory (uses winrtact.dll)
                         const int maxRetries = 3;
                         Exception? lastException = null;
 
@@ -81,13 +84,12 @@ namespace Winhance.Infrastructure.Features.SoftwareApps.Services
 
                                 if (attempt < maxRetries)
                                 {
-                                    // Wait before retrying - WinGet COM server may need time to start
                                     Thread.Sleep(1000);
                                 }
                             }
                         }
 
-                        // All ElevatedFactory attempts failed, try StandardFactory as last resort
+                        // All ElevatedFactory attempts failed, fall back to StandardFactory
                         _logService?.LogWarning($"All ElevatedFactory attempts failed, trying StandardFactory with lower trust registration...");
                         try
                         {
@@ -108,8 +110,13 @@ namespace Winhance.Infrastructure.Features.SoftwareApps.Services
                     }
                     else
                     {
-                        // For non-admin, use StandardFactory without lower trust registration
-                        _winGetFactory = new WindowsPackageManagerStandardFactory();
+                        // Windows 10 admin or any non-admin: use StandardFactory
+                        // allowLowerTrustRegistration needed for unpackaged apps running elevated
+                        bool lowerTrust = isAdmin;
+                        _logService?.LogInformation($"Using StandardFactory (lowerTrust: {lowerTrust}, Windows11+: {isWindows11OrLater})");
+                        _winGetFactory = new WindowsPackageManagerStandardFactory(
+                            ClsidContext.Prod,
+                            allowLowerTrustRegistration: lowerTrust);
                         _packageManager = _winGetFactory.CreatePackageManager();
                         _isInitialized = true;
                         _logService?.LogInformation("WinGet COM API initialized successfully with StandardFactory");

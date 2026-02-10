@@ -300,16 +300,6 @@ namespace Winhance.Core.Features.Optimize.Models
                         GroupName = "Sleep",
                         Icon = "PowerSleep",
                         InputType = InputType.Toggle,
-                        CommandSettings = new List<CommandSetting>
-                        {
-                            new CommandSetting
-                            {
-                                Id = "hibernation-toggle",
-                                EnabledCommand = "powercfg /hibernate on",
-                                DisabledCommand = "powercfg /hibernate off",
-                                RecommendedState = false
-                            }
-                        },
                     },
 
                     new SettingDefinition

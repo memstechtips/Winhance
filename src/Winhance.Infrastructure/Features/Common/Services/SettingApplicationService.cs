@@ -1,16 +1,21 @@
 using System;
 using System.Collections.Generic;
+using System.Diagnostics;
 using System.IO;
 using System.Linq;
+using System.Text;
 using System.Threading.Tasks;
 using Winhance.Core.Features.Common.Enums;
 using Winhance.Core.Features.Common.Events;
 using Winhance.Core.Features.Common.Events.Settings;
 using Winhance.Core.Features.Common.Interfaces;
 using Winhance.Core.Features.Common.Models;
+using Winhance.Core.Features.Common.Native;
 using Winhance.Core.Features.Customize.Interfaces;
 using Winhance.Infrastructure.Features.Customize.Services;
 using Winhance.Core.Features.Common.Constants;
+using Winhance.Infrastructure.Features.Common.Utilities;
+using System.ServiceProcess;
 
 namespace Winhance.Infrastructure.Features.Common.Services
 {
@@ -18,7 +23,6 @@ namespace Winhance.Infrastructure.Features.Common.Services
         IDomainServiceRouter domainServiceRouter,
         IWindowsRegistryService registryService,
         IComboBoxResolver comboBoxResolver,
-        ICommandService commandService,
         ILogService logService,
         IDependencyManager dependencyManager,
         IGlobalSettingsRegistry globalSettingsRegistry,
@@ -26,10 +30,10 @@ namespace Winhance.Infrastructure.Features.Common.Services
         ISystemSettingsDiscoveryService discoveryService,
         IRecommendedSettingsService recommendedSettingsService,
         IWindowsUIManagementService uiManagementService,
-        IPowerCfgQueryService powerCfgQueryService,
+        IPowerSettingsQueryService powerSettingsQueryService,
         IHardwareDetectionService hardwareDetectionService,
-        IPowerShellExecutionService powerShellService,
-        IWindowsCompatibilityFilter compatibilityFilter) : ISettingApplicationService
+        IWindowsCompatibilityFilter compatibilityFilter,
+        IScheduledTaskService scheduledTaskService) : ISettingApplicationService
     {
 
         public async Task ApplySettingAsync(string settingId, bool enable, object? value = null, bool checkboxResult = false, string? commandString = null, bool applyRecommended = false, bool skipValuePrerequisites = false, bool restoreDefault = false)
@@ -334,36 +338,30 @@ namespace Winhance.Infrastructure.Features.Common.Services
                 }
             }
 
-            if (setting.CommandSettings?.Count > 0)
+            if (setting.ScheduledTaskSettings?.Count > 0)
             {
-                logService.Log(LogLevel.Info, $"[SettingApplicationService] Executing {setting.CommandSettings.Count} commands for '{setting.Id}'");
+                logService.Log(LogLevel.Info, $"[SettingApplicationService] Applying {setting.ScheduledTaskSettings.Count} scheduled task settings for '{setting.Id}'");
 
-                foreach (var commandSetting in setting.CommandSettings)
+                foreach (var taskSetting in setting.ScheduledTaskSettings)
                 {
-                    if (setting.InputType == InputType.Toggle)
-                    {
-                        var command = enable ? commandSetting.EnabledCommand : commandSetting.DisabledCommand;
-                        await commandService.ExecuteCommandAsync(command);
-                    }
-                    else if (setting.InputType == InputType.Selection && value is int index)
-                    {
-                        var valueToApply = comboBoxResolver.GetValueFromIndex(setting, index);
-                        var command = valueToApply != 0 ? commandSetting.EnabledCommand : commandSetting.DisabledCommand;
-
-                        if (!string.IsNullOrEmpty(command) && command.Contains("{value}"))
-                        {
-                            command = command.Replace("{value}", valueToApply.ToString());
-                        }
-
-                        await commandService.ExecuteCommandAsync(command);
-                    }
-                    else if (setting.InputType == InputType.NumericRange && value != null)
-                    {
-                        var numericValue = ConvertNumericValue(value);
-                        var command = commandSetting.EnabledCommand.Replace("{value}", numericValue.ToString());
-                        await commandService.ExecuteCommandAsync(command);
-                    }
+                    if (enable)
+                        await scheduledTaskService.EnableTaskAsync(taskSetting.TaskPath);
+                    else
+                        await scheduledTaskService.DisableTaskAsync(taskSetting.TaskPath);
                 }
+            }
+
+            if (setting.Id == "power-hibernation-enable")
+            {
+                byte hibValue = enable ? (byte)1 : (byte)0;
+                var result = PowerProf.CallNtPowerInformation(
+                    PowerProf.SystemReserveHiberFile,
+                    ref hibValue, 1, IntPtr.Zero, 0);
+
+                if (result == 0)
+                    logService.Log(LogLevel.Info, $"[SettingApplicationService] Hibernation {(enable ? "enabled" : "disabled")} via CallNtPowerInformation");
+                else
+                    logService.Log(LogLevel.Warning, $"[SettingApplicationService] CallNtPowerInformation failed with status {result}");
             }
 
             if (setting.PowerShellScripts?.Count > 0)
@@ -376,7 +374,7 @@ namespace Winhance.Infrastructure.Features.Common.Services
 
                     if (!string.IsNullOrEmpty(script))
                     {
-                        await powerShellService.ExecuteScriptAsync(script);
+                        await PowerShellRunner.RunScriptAsync(script);
                     }
                 }
             }
@@ -397,7 +395,7 @@ namespace Winhance.Infrastructure.Features.Common.Services
                             await File.WriteAllTextAsync(tempFile, regContent);
                             logService.Log(LogLevel.Debug, $"[SettingApplicationService] Wrote registry content to temp file: {tempFile}");
 
-                            var result = await commandService.ExecuteCommandAsync($"reg import \"{tempFile}\"");
+                            await RunCommandAsync($"reg import \"{tempFile}\"");
 
                             logService.Log(LogLevel.Info, $"[SettingApplicationService] Registry import completed for '{setting.Id}'");
                         }
@@ -520,11 +518,44 @@ namespace Winhance.Infrastructure.Features.Common.Services
                 logService.Log(LogLevel.Info, $"[SettingApplicationService] Restarting service '{setting.RestartService}' for setting '{setting.Id}'");
                 try
                 {
-                    var script = setting.RestartService.Contains("*")
-                        ? $"Get-Service -Name '{setting.RestartService}' | Restart-Service -Force -ErrorAction SilentlyContinue"
-                        : $"Restart-Service -Name '{setting.RestartService}' -Force -ErrorAction SilentlyContinue";
+                    if (setting.RestartService.Contains("*"))
+                    {
+                        // Wildcard service names require enumeration
+                        var pattern = setting.RestartService.Replace("*", "");
+                        var allServices = ServiceController.GetServices();
+                        var matchingServices = allServices.Where(s =>
+                            s.ServiceName.Contains(pattern, StringComparison.OrdinalIgnoreCase)).ToList();
 
-                    await powerShellService.ExecuteScriptAsync(script);
+                        foreach (var svc in matchingServices)
+                        {
+                            using (svc)
+                            {
+                                try
+                                {
+                                    if (svc.Status == ServiceControllerStatus.Running)
+                                    {
+                                        svc.Stop();
+                                        svc.WaitForStatus(ServiceControllerStatus.Stopped, TimeSpan.FromSeconds(30));
+                                        svc.Start();
+                                    }
+                                }
+                                catch (Exception svcEx)
+                                {
+                                    logService.Log(LogLevel.Warning, $"[SettingApplicationService] Failed to restart service '{svc.ServiceName}': {svcEx.Message}");
+                                }
+                            }
+                        }
+                    }
+                    else
+                    {
+                        using var sc = new ServiceController(setting.RestartService);
+                        if (sc.Status == ServiceControllerStatus.Running)
+                        {
+                            sc.Stop();
+                            sc.WaitForStatus(ServiceControllerStatus.Stopped, TimeSpan.FromSeconds(30));
+                            sc.Start();
+                        }
+                    }
                 }
                 catch (Exception ex)
                 {
@@ -559,42 +590,66 @@ namespace Winhance.Infrastructure.Features.Common.Services
 
         private async Task ExecutePowerCfgSettings(List<PowerCfgSetting> powerCfgSettings, object valueToApply, bool hasBattery = true)
         {
-            var commands = new List<string>();
+            // Get active scheme GUID
+            var activeSchemeResult = PowerProf.PowerGetActiveScheme(IntPtr.Zero, out var activeSchemePtr);
+            if (activeSchemeResult != PowerProf.ERROR_SUCCESS)
+            {
+                logService.Log(LogLevel.Error, "[SettingApplicationService] Failed to get active power scheme");
+                return;
+            }
+
+            var activeSchemeGuid = System.Runtime.InteropServices.Marshal.PtrToStructure<Guid>(activeSchemePtr);
+            PowerProf.LocalFree(activeSchemePtr);
+
+            int changeCount = 0;
 
             foreach (var powerCfgSetting in powerCfgSettings)
             {
-                var (currentAc, currentDc) = await powerCfgQueryService.GetPowerSettingACDCValuesAsync(powerCfgSetting);
+                var (currentAc, currentDc) = await powerSettingsQueryService.GetPowerSettingACDCValuesAsync(powerCfgSetting);
+                var subgroupGuid = Guid.Parse(powerCfgSetting.SubgroupGuid);
+                var settingGuid = Guid.Parse(powerCfgSetting.SettingGuid);
 
                 switch (powerCfgSetting.PowerModeSupport)
                 {
                     case PowerModeSupport.Both:
                         var singleValue = ExtractSingleValue(valueToApply);
-                        
+
                         if (currentAc != singleValue)
-                            commands.Add($"powercfg /setacvalueindex SCHEME_CURRENT {powerCfgSetting.SubgroupGuid} {powerCfgSetting.SettingGuid} {singleValue}");
+                        {
+                            PowerProf.PowerWriteACValueIndex(IntPtr.Zero, ref activeSchemeGuid, ref subgroupGuid, ref settingGuid, (uint)singleValue);
+                            changeCount++;
+                        }
 
                         if (hasBattery && currentDc != singleValue)
                         {
-                            commands.Add($"powercfg /setdcvalueindex SCHEME_CURRENT {powerCfgSetting.SubgroupGuid} {powerCfgSetting.SettingGuid} {singleValue}");
+                            PowerProf.PowerWriteDCValueIndex(IntPtr.Zero, ref activeSchemeGuid, ref subgroupGuid, ref settingGuid, (uint)singleValue);
+                            changeCount++;
                         }
                         break;
 
                     case PowerModeSupport.Separate:
                         var (acValue, dcValue) = ExtractACDCValues(valueToApply);
-                        
+
                         if (currentAc != acValue)
-                            commands.Add($"powercfg /setacvalueindex SCHEME_CURRENT {powerCfgSetting.SubgroupGuid} {powerCfgSetting.SettingGuid} {acValue}");
+                        {
+                            PowerProf.PowerWriteACValueIndex(IntPtr.Zero, ref activeSchemeGuid, ref subgroupGuid, ref settingGuid, (uint)acValue);
+                            changeCount++;
+                        }
 
                         if (hasBattery && currentDc != dcValue)
                         {
-                            commands.Add($"powercfg /setdcvalueindex SCHEME_CURRENT {powerCfgSetting.SubgroupGuid} {powerCfgSetting.SettingGuid} {dcValue}");
+                            PowerProf.PowerWriteDCValueIndex(IntPtr.Zero, ref activeSchemeGuid, ref subgroupGuid, ref settingGuid, (uint)dcValue);
+                            changeCount++;
                         }
                         break;
 
                     case PowerModeSupport.ACOnly:
                         var acOnlyValue = ExtractSingleValue(valueToApply);
                         if (currentAc != acOnlyValue)
-                            commands.Add($"powercfg /setacvalueindex SCHEME_CURRENT {powerCfgSetting.SubgroupGuid} {powerCfgSetting.SettingGuid} {acOnlyValue}");
+                        {
+                            PowerProf.PowerWriteACValueIndex(IntPtr.Zero, ref activeSchemeGuid, ref subgroupGuid, ref settingGuid, (uint)acOnlyValue);
+                            changeCount++;
+                        }
                         break;
 
                     case PowerModeSupport.DCOnly:
@@ -602,24 +657,58 @@ namespace Winhance.Infrastructure.Features.Common.Services
                         {
                             var dcOnlyValue = ExtractSingleValue(valueToApply);
                             if (currentDc != dcOnlyValue)
-                                commands.Add($"powercfg /setdcvalueindex SCHEME_CURRENT {powerCfgSetting.SubgroupGuid} {powerCfgSetting.SettingGuid} {dcOnlyValue}");
+                            {
+                                PowerProf.PowerWriteDCValueIndex(IntPtr.Zero, ref activeSchemeGuid, ref subgroupGuid, ref settingGuid, (uint)dcOnlyValue);
+                                changeCount++;
+                            }
                         }
                         break;
                 }
             }
 
-            if (commands.Count == 0)
+            if (changeCount == 0)
             {
-                logService.Log(LogLevel.Info, "[SettingApplicationService] No powercfg commands needed (values already match)");
+                logService.Log(LogLevel.Info, "[SettingApplicationService] No powercfg changes needed (values already match)");
                 return;
             }
 
-            commands.Add("powercfg /setactive SCHEME_CURRENT");
+            // Activate the scheme to apply changes
+            PowerProf.PowerSetActiveScheme(IntPtr.Zero, ref activeSchemeGuid);
 
-            var batchScript = string.Join(" && ", commands);
-            await commandService.ExecuteCommandAsync(batchScript);
+            logService.Log(LogLevel.Info, $"[SettingApplicationService] Applied {changeCount} powercfg changes via P/Invoke");
+        }
 
-            logService.Log(LogLevel.Info, $"[SettingApplicationService] Executed {commands.Count} powercfg commands in batch");
+        private async Task RunCommandAsync(string command)
+        {
+            try
+            {
+                var startInfo = new ProcessStartInfo
+                {
+                    FileName = "cmd.exe",
+                    Arguments = $"/c {command}",
+                    RedirectStandardOutput = true,
+                    RedirectStandardError = true,
+                    UseShellExecute = false,
+                    CreateNoWindow = true,
+                    StandardOutputEncoding = Encoding.UTF8,
+                    StandardErrorEncoding = Encoding.UTF8
+                };
+
+                using var process = Process.Start(startInfo);
+                if (process == null) return;
+
+                await process.WaitForExitAsync();
+
+                if (process.ExitCode != 0)
+                {
+                    var error = await process.StandardError.ReadToEndAsync();
+                    logService.Log(LogLevel.Warning, $"[SettingApplicationService] Command failed: {command} - {error}");
+                }
+            }
+            catch (Exception ex)
+            {
+                logService.Log(LogLevel.Error, $"[SettingApplicationService] Command execution failed: {command} - {ex.Message}");
+            }
         }
 
         private int ExtractSingleValue(object value)
