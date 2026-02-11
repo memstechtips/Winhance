@@ -234,7 +234,10 @@
                                 <Border x:Name="WindowsAppsTab"
                                         Cursor="Hand"
                                         Background="Transparent"
-                                        CornerRadius="5">
+                                        CornerRadius="5"
+                                        Focusable="True"
+                                        FocusVisualStyle="{StaticResource AccessibleFocusVisual}"
+                                        AutomationProperties.Name="{loc:Localize Accessibility_WindowsAppsTab}">
                                     <Border.Resources>
                                         <Style x:Key="TabHoverStyle"
                                                 TargetType="Border">
@@ -299,6 +302,12 @@
                                         <MouseBinding MouseAction="LeftClick"
                                                 Command="{Binding SelectTabCommand}"
                                                 CommandParameter="True" />
+                                        <KeyBinding Key="Enter"
+                                                Command="{Binding SelectTabCommand}"
+                                                CommandParameter="True" />
+                                        <KeyBinding Key="Space"
+                                                Command="{Binding SelectTabCommand}"
+                                                CommandParameter="True" />
                                     </Border.InputBindings>
                                 </Border>
                             </Grid>
@@ -328,7 +337,10 @@
                                 <Border x:Name="ExternalAppsTab"
                                         Cursor="Hand"
                                         Background="Transparent"
-                                        CornerRadius="5">
+                                        CornerRadius="5"
+                                        Focusable="True"
+                                        FocusVisualStyle="{StaticResource AccessibleFocusVisual}"
+                                        AutomationProperties.Name="{loc:Localize Accessibility_ExternalAppsTab}">
                                     <Border.Resources>
                                         <Style x:Key="TabHoverStyle"
                                                 TargetType="Border">
@@ -391,6 +403,12 @@
                                     </Grid>
                                     <Border.InputBindings>
                                         <MouseBinding MouseAction="LeftClick"
+                                                Command="{Binding SelectTabCommand}"
+                                                CommandParameter="False" />
+                                        <KeyBinding Key="Enter"
+                                                Command="{Binding SelectTabCommand}"
+                                                CommandParameter="False" />
+                                        <KeyBinding Key="Space"
                                                 Command="{Binding SelectTabCommand}"
                                                 CommandParameter="False" />
                                     </Border.InputBindings>

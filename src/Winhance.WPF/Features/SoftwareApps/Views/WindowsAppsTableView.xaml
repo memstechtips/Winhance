@@ -9,6 +9,7 @@
     xmlns:controls="clr-namespace:Winhance.WPF.Features.Common.Controls"
     xmlns:behaviors="clr-namespace:Winhance.WPF.Features.Common.Behaviors" 
     xmlns:i="http://schemas.microsoft.com/xaml/behaviors"
+    xmlns:loc="clr-namespace:Winhance.WPF.Features.Common.Extensions"
     d:DataContext="{d:DesignInstance Type=viewModels:WindowsAppsViewModel}" mc:Ignorable="d">
 
     
@@ -19,6 +20,8 @@
             <DataGrid x:Name="AppsDataGrid"
                       ItemsSource="{Binding AllItemsView}"
                       Style="{StaticResource ThemedDataGrid}"
+                      AutomationProperties.Name="{loc:Localize Accessibility_WindowsAppsTable}"
+                      KeyboardNavigation.DirectionalNavigation="Contained"
                       Margin="10,0,10,10"
                       Width="Auto"
                       HorizontalAlignment="Stretch"
@@ -56,13 +59,14 @@
                         </DataGridTemplateColumn.HeaderStyle>
                         <DataGridTemplateColumn.HeaderTemplate>
                             <DataTemplate>
-                                <CheckBox Style="{StaticResource CustomCheckBox}" IsChecked="{Binding DataContext.IsAllSelected, RelativeSource={RelativeSource AncestorType=UserControl}, Mode=TwoWay}" VerticalAlignment="Center" HorizontalAlignment="Center"/>
+                                <CheckBox Style="{StaticResource CustomCheckBox}" IsChecked="{Binding DataContext.IsAllSelected, RelativeSource={RelativeSource AncestorType=UserControl}, Mode=TwoWay}" VerticalAlignment="Center" HorizontalAlignment="Center" AutomationProperties.Name="{loc:Localize Accessibility_SelectAll}"/>
                             </DataTemplate>
                         </DataGridTemplateColumn.HeaderTemplate>
                         <DataGridTemplateColumn.CellTemplate>
                             <DataTemplate>
                                 <CheckBox Style="{StaticResource CustomCheckBox}" 
                                          IsChecked="{Binding IsSelected, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}" 
+                                         AutomationProperties.Name="{Binding Name}"
                                          VerticalAlignment="Center" 
                                          HorizontalAlignment="Center">
                                     <i:Interaction.Behaviors>

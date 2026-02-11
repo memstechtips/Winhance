@@ -1,4 +1,4 @@
-{
+﻿{
   "App_Title": "Winhance",
   "App_By": "bởi Memory",
   "Nav_SoftwareAndApps": "Phần mềm & Ứng dụng",
@@ -1402,5 +1402,31 @@
   "ExternalApps_WinGetUnavailable": "Không thể xác định trạng thái cài đặt. Kết nối internet và nhấp vào nút Làm mới.",
   "Error_NoInternetConnection": "Không có kết nối internet. Vui lòng kết nối và thử lại.",
   "Error_WinGetInstallFailed": "Cài đặt WinGet thất bại. Vui lòng kiểm tra kết nối internet của bạn.",
-  "Error_WinGetNotAvailable": "WinGet không có sẵn trên hệ thống này."
+  "Error_WinGetNotAvailable": "WinGet không có sẵn trên hệ thống này.",
+  "Accessibility_SaveConfiguration": "Lưu cấu hình",
+  "Accessibility_ImportConfiguration": "Nhập cấu hình",
+  "Accessibility_WindowsVersionFilter": "Bộ lọc phiên bản Windows",
+  "Accessibility_Donate": "Ủng hộ",
+  "Accessibility_ReportBug": "Báo lỗi",
+  "Accessibility_MinimizeWindow": "Thu nhỏ cửa sổ",
+  "Accessibility_MaximizeWindow": "Phóng to cửa sổ",
+  "Accessibility_RestoreWindow": "Khôi phục cửa sổ",
+  "Accessibility_CloseWindow": "Đóng cửa sổ",
+  "Accessibility_CloseDialog": "Đóng hộp thoại",
+  "Accessibility_SearchSettings": "Tìm kiếm cài đặt",
+  "Accessibility_ClearSearch": "Xóa tìm kiếm",
+  "Accessibility_NavigateToSection": "Chuyển đến {0}",
+  "Accessibility_TaskProgress": "Đang thực hiện tác vụ",
+  "Accessibility_CancelTask": "Hủy tác vụ",
+  "Accessibility_SelectAll": "Chọn tất cả",
+  "Accessibility_SelectApp": "Chọn {0}",
+  "Accessibility_WindowsAppsTable": "Danh sách ứng dụng Windows",
+  "Accessibility_ExternalAppsTable": "Danh sách ứng dụng bên ngoài",
+  "Accessibility_VisitWebsite": "Truy cập trang web của {0}",
+  "Accessibility_ImportOwnConfig": "Nhập tệp cấu hình của bạn",
+  "Accessibility_ImportRecommendedConfig": "Nhập cấu hình được đề xuất",
+  "Accessibility_UnlockSetting": "Mở khóa cài đặt nâng cao",
+  "Accessibility_WindowsAppsTab": "Tab ứng dụng Windows",
+  "Accessibility_ExternalAppsTab": "Tab ứng dụng bên ngoài",
+  "Accessibility_Loading": "Đang tải"
 }

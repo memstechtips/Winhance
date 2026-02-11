@@ -3,6 +3,7 @@
              xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
              xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
              xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
+             xmlns:loc="clr-namespace:Winhance.WPF.Features.Common.Extensions"
              mc:Ignorable="d"
              d:DesignHeight="60"
         d:DesignWidth="400">
@@ -36,7 +37,8 @@
                                FontWeight="Bold"
                                Foreground="{DynamicResource PrimaryTextColor}"
                                VerticalAlignment="Center"
-                               Margin="0,0,10,0"/>
+                               Margin="0,0,10,0"
+                               AutomationProperties.LiveSetting="Assertive"/>
 
                     <Border Grid.Column="1"
                             Background="{DynamicResource MainContainerBorderBrush}"
@@ -48,7 +50,8 @@
                                    Foreground="{DynamicResource PrimaryTextColor}"
                                    VerticalAlignment="Center"
                                    TextTrimming="CharacterEllipsis"
-                                   Margin="5,0"/>
+                                   Margin="5,0"
+                                   AutomationProperties.LiveSetting="Polite"/>
                     </Border>
 
                     <Button Grid.Column="2"
@@ -56,6 +59,7 @@
                             Command="{Binding CancelCommand, RelativeSource={RelativeSource AncestorType=UserControl}}"
                             IsEnabled="{Binding IsTaskRunning, RelativeSource={RelativeSource AncestorType=UserControl}}"
                             VerticalAlignment="Center"
+                            AutomationProperties.Name="{loc:Localize Accessibility_CancelTask}"
                             Visibility="{Binding CanCancel, RelativeSource={RelativeSource AncestorType=UserControl}, Converter={StaticResource BooleanToVisibilityConverter}}"/>
                 </Grid>
 
@@ -64,7 +68,8 @@
                              Style="{StaticResource StandardProgressBar}"
                              Height="3"
                              BorderThickness="0"
-                             IsIndeterminate="True"/>
+                             IsIndeterminate="True"
+                             AutomationProperties.Name="{loc:Localize Accessibility_TaskProgress}"/>
             </Grid>
         </Border>
     </Grid>

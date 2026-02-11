@@ -76,6 +76,10 @@
                                                                     Margin="0,5,0,5"
                                                                     Effect="{StaticResource ShadowEffect}"
                                                                     Cursor="Hand"
+                                                                    Focusable="True"
+                                                                    FocusVisualStyle="{StaticResource AccessibleFocusVisual}"
+                                                                    AutomationProperties.Name="{Binding DisplayName}"
+                                                                    AutomationProperties.ItemStatus="{Binding IsExpanded, Converter={StaticResource BooleanToValueConverter}, ConverterParameter='Expanded|Collapsed'}"
                                                                     Tag="{Binding Name}">
                                                                 <DockPanel VerticalAlignment="Center"
                                                                            HorizontalAlignment="Stretch">
@@ -141,6 +145,7 @@
                                                                                         <Button Cursor="Hand"
                                                                                                 Command="{Binding OpenWebsiteCommand}"
                                                                                                 ToolTip="{loc:Localize Tooltip_VisitWebsite}"
+                                                                                                AutomationProperties.Name="{Binding Name, StringFormat='Visit website for {0}'}"
                                                                                                 Margin="4,0,0,0"
                                                                                                 Padding="2"
                                                                                                 VerticalAlignment="Center"

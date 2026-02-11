@@ -1,4 +1,4 @@
-{
+﻿{
   "App_Title": "Winhance",
   "App_By": "by Memory",
   "Nav_SoftwareAndApps": "软件和应用",
@@ -1402,5 +1402,31 @@
   "ExternalApps_WinGetUnavailable": "无法确定安装状态。请连接到互联网并点击刷新按钮。",
   "Error_NoInternetConnection": "无网络连接。请连接后重试。",
   "Error_WinGetInstallFailed": "安装 WinGet 失败。请检查您的网络连接。",
-  "Error_WinGetNotAvailable": "此系统上无法使用 WinGet。"
+  "Error_WinGetNotAvailable": "此系统上无法使用 WinGet。",
+  "Accessibility_SaveConfiguration": "保存配置",
+  "Accessibility_ImportConfiguration": "导入配置",
+  "Accessibility_WindowsVersionFilter": "Windows 版本过滤器",
+  "Accessibility_Donate": "捐赠",
+  "Accessibility_ReportBug": "报告错误",
+  "Accessibility_MinimizeWindow": "最小化窗口",
+  "Accessibility_MaximizeWindow": "最大化窗口",
+  "Accessibility_RestoreWindow": "还原窗口",
+  "Accessibility_CloseWindow": "关闭窗口",
+  "Accessibility_CloseDialog": "关闭对话框",
+  "Accessibility_SearchSettings": "搜索设置",
+  "Accessibility_ClearSearch": "清除搜索",
+  "Accessibility_NavigateToSection": "导航到{0}",
+  "Accessibility_TaskProgress": "任务进行中",
+  "Accessibility_CancelTask": "取消任务",
+  "Accessibility_SelectAll": "全选",
+  "Accessibility_SelectApp": "选择 {0}",
+  "Accessibility_WindowsAppsTable": "Windows 应用列表",
+  "Accessibility_ExternalAppsTable": "外部应用列表",
+  "Accessibility_VisitWebsite": "访问 {0} 的网站",
+  "Accessibility_ImportOwnConfig": "导入您自己的配置文件",
+  "Accessibility_ImportRecommendedConfig": "导入推荐配置",
+  "Accessibility_UnlockSetting": "解锁高级设置",
+  "Accessibility_WindowsAppsTab": "Windows 应用选项卡",
+  "Accessibility_ExternalAppsTab": "外部应用选项卡",
+  "Accessibility_Loading": "加载中"
 }

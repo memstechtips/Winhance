@@ -11,6 +11,20 @@ namespace Winhance.WPF.Features.Common.Resources.Theme
     public partial class ThemeManager : ObservableObject, IThemeManager, IDisposable
     {
         private bool _isDarkTheme = true;
+        private bool _isHighContrast;
+
+        public bool IsHighContrast
+        {
+            get => _isHighContrast;
+            private set
+            {
+                if (_isHighContrast != value)
+                {
+                    _isHighContrast = value;
+                    OnPropertyChanged(nameof(IsHighContrast));
+                }
+            }
+        }
 
         public bool IsDarkTheme
         {
@@ -95,10 +109,48 @@ namespace Winhance.WPF.Features.Common.Resources.Theme
             { "ScrollBarThumbPressedColor", Color.FromRgb(34, 34, 34) },
         };
 
+        private static Dictionary<string, Color> GetHighContrastColors()
+        {
+            return new Dictionary<string, Color>
+            {
+                { "PrimaryTextColor", SystemColors.WindowTextColor },
+                { "SecondaryTextColor", SystemColors.GrayTextColor },
+                { "TertiaryTextColor", SystemColors.GrayTextColor },
+                { "HelpIconColor", SystemColors.WindowTextColor },
+                { "TooltipBackgroundColor", SystemColors.InfoColor },
+                { "TooltipForegroundColor", SystemColors.InfoTextColor },
+                { "TooltipBorderColor", SystemColors.WindowFrameColor },
+                { "ControlForegroundColor", SystemColors.WindowTextColor },
+                { "ControlFillColor", SystemColors.HighlightColor },
+                { "ControlBorderColor", SystemColors.WindowFrameColor },
+                { "ToggleKnobColor", SystemColors.WindowColor },
+                { "ToggleKnobCheckedColor", SystemColors.HighlightColor },
+                { "ContentSectionBorderColor", SystemColors.ActiveBorderColor },
+                { "MainContainerBorderColor", SystemColors.ActiveBorderColor },
+                { "SettingsItemBackgroundColor", SystemColors.WindowColor },
+                { "PrimaryButtonForegroundColor", SystemColors.HighlightTextColor },
+                { "AccentColor", SystemColors.HighlightColor },
+                { "ButtonHoverTextColor", SystemColors.HighlightTextColor },
+                { "ButtonDisabledForegroundColor", SystemColors.GrayTextColor },
+                { "ButtonDisabledBorderColor", SystemColors.InactiveBorderColor },
+                { "NavigationButtonBackgroundColor", SystemColors.ControlColor },
+                { "NavigationButtonForegroundColor", SystemColors.ControlTextColor },
+                { "SliderTrackColor", SystemColors.ControlDarkColor },
+                { "BackgroundColor", SystemColors.WindowColor },
+                { "ContentSectionBackgroundColor", SystemColors.WindowColor },
+                { "ElevatedBackgroundColor", SystemColors.ControlColor },
+                { "ScrollBarThumbColor", SystemColors.ControlDarkColor },
+                { "ScrollBarThumbHoverColor", SystemColors.ControlDarkDarkColor },
+                { "ScrollBarThumbPressedColor", SystemColors.HighlightColor },
+            };
+        }
+
         public ThemeManager(INavigationService navigationService, IWindowsThemeQueryService windowsThemeQueryService)
         {
             _navigationService = navigationService ?? throw new ArgumentNullException(nameof(navigationService));
             _windowsThemeQueryService = windowsThemeQueryService ?? throw new ArgumentNullException(nameof(windowsThemeQueryService));
+
+            SystemParameters.StaticPropertyChanged += OnSystemParametersChanged;
 
             LoadThemePreference();
             ApplyTheme();
@@ -115,7 +167,9 @@ namespace Winhance.WPF.Features.Common.Resources.Theme
         {
             try
             {
-                var themeColors = IsDarkTheme ? DarkThemeColors : LightThemeColors;
+                var themeColors = IsHighContrast
+                    ? GetHighContrastColors()
+                    : (IsDarkTheme ? DarkThemeColors : LightThemeColors);
 
                 var brushes = new List<(string key, SolidColorBrush brush)>
                 {
@@ -203,6 +257,8 @@ namespace Winhance.WPF.Features.Common.Resources.Theme
         {
             try
             {
+                IsHighContrast = SystemParameters.HighContrast;
+
                 if (!Settings.Default.ThemeSetByUser)
                 {
                     IsDarkTheme = _windowsThemeQueryService.IsDarkModeEnabled();
@@ -220,6 +276,21 @@ namespace Winhance.WPF.Features.Common.Resources.Theme
 
         public void Dispose()
         {
+            SystemParameters.StaticPropertyChanged -= OnSystemParametersChanged;
+        }
+
+        private void OnSystemParametersChanged(object? sender, System.ComponentModel.PropertyChangedEventArgs e)
+        {
+            if (e.PropertyName == nameof(SystemParameters.HighContrast))
+            {
+                IsHighContrast = SystemParameters.HighContrast;
+                ApplyTheme();
+
+                Application.Current.Dispatcher.BeginInvoke(() =>
+                {
+                    NotifyWindowsOfThemeChange();
+                }, System.Windows.Threading.DispatcherPriority.Background);
+            }
         }
 
         public void ResetThemePreference()

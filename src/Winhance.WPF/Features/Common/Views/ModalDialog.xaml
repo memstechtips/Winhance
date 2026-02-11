@@ -1,11 +1,13 @@
 <Window x:Class="Winhance.WPF.Features.Common.Views.ModalDialog"
         xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
         xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
-        xmlns:iconPacks="http://metro.mahapps.com/winfx/xaml/iconpacks">
+        xmlns:iconPacks="http://metro.mahapps.com/winfx/xaml/iconpacks"
+        xmlns:loc="clr-namespace:Winhance.WPF.Features.Common.Extensions">
 
     <Border Background="{DynamicResource MainContainerBorderBrush}"
             BorderThickness="0"
-            CornerRadius="8">
+            CornerRadius="8"
+            KeyboardNavigation.TabNavigation="Cycle">
         <Grid>
             <Grid.RowDefinitions>
                 <RowDefinition Height="40"/>
@@ -40,6 +42,7 @@
                         BorderThickness="0"
                         FontSize="12"
                         Cursor="Hand"
+                        AutomationProperties.Name="{loc:Localize Accessibility_CloseDialog}"
                         Click="CloseButton_Click">
                     <Button.Style>
                         <Style TargetType="Button">

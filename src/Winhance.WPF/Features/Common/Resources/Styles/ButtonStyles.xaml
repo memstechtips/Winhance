@@ -4,6 +4,20 @@
                     xmlns:iconPacks="http://metro.mahapps.com/winfx/xaml/iconpacks"
                     xmlns:utilities="clr-namespace:Winhance.WPF.Features.Common.Utilities">
 
+    <!-- Keyboard focus indicator for custom-templated controls -->
+    <Style x:Key="AccessibleFocusVisual">
+        <Setter Property="Control.Template">
+            <Setter.Value>
+                <ControlTemplate>
+                    <Border BorderBrush="{DynamicResource ButtonHoverBackground}"
+                            BorderThickness="2"
+                            CornerRadius="4"
+                            Margin="-2"/>
+                </ControlTemplate>
+            </Setter.Value>
+        </Setter>
+    </Style>
+
     <!-- Primary Button Style -->
     <Style x:Key="PrimaryButtonStyle" TargetType="Button">
         <Setter Property="Background" Value="Transparent" />
@@ -16,6 +30,7 @@
         <Setter Property="FontWeight" Value="SemiBold" />
         <Setter Property="Padding" Value="15,15" />
         <Setter Property="Cursor" Value="Hand" />
+        <Setter Property="FocusVisualStyle" Value="{StaticResource AccessibleFocusVisual}" />
         <Setter Property="Template">
             <Setter.Value>
                 <ControlTemplate TargetType="Button">
@@ -51,6 +66,7 @@
         <Setter Property="Background" Value="{DynamicResource NavigationButtonBackground}" />
         <Setter Property="Foreground" Value="{DynamicResource NavigationButtonForeground}" />
         <Setter Property="Tag" Value="{Binding CommandParameter, RelativeSource={RelativeSource Self}}" />
+        <Setter Property="FocusVisualStyle" Value="{StaticResource AccessibleFocusVisual}" />
         <Setter Property="Template">
             <Setter.Value>
                 <ControlTemplate TargetType="Button">
@@ -142,6 +158,7 @@
         <Setter Property="FontFamily" Value="Segoe MDL2 Assets" />
         <Setter Property="FontSize" Value="12" />
         <Setter Property="Foreground" Value="{DynamicResource PrimaryTextColor}" />
+        <Setter Property="FocusVisualStyle" Value="{StaticResource AccessibleFocusVisual}" />
         <Setter Property="Template">
             <Setter.Value>
                 <ControlTemplate TargetType="Button">
@@ -411,6 +428,7 @@
         <Setter Property="BorderThickness" Value="0" />
         <Setter Property="Cursor" Value="Hand" />
         <Setter Property="Padding" Value="0" />
+        <Setter Property="FocusVisualStyle" Value="{StaticResource AccessibleFocusVisual}" />
         <Setter Property="Template">
             <Setter.Value>
                 <ControlTemplate TargetType="Button">
@@ -441,6 +459,7 @@
         <Setter Property="Cursor" Value="Hand" />
         <Setter Property="Padding" Value="4" />
         <Setter Property="Foreground" Value="{DynamicResource PrimaryTextColor}" />
+        <Setter Property="FocusVisualStyle" Value="{StaticResource AccessibleFocusVisual}" />
         <Setter Property="Template">
             <Setter.Value>
                 <ControlTemplate TargetType="Button">

@@ -81,7 +81,8 @@
 
         <Border CornerRadius="10"
                 BorderBrush="Transparent"
-                Background="{DynamicResource WindowBackground}">
+                Background="{DynamicResource WindowBackground}"
+                KeyboardNavigation.TabNavigation="Cycle">
             <Grid>
                 <Grid.RowDefinitions>
                     <RowDefinition Height="Auto"/>
@@ -98,6 +99,7 @@
                     <Button Grid.Column="1"
                             Style="{StaticResource WindowCloseButton}"
                             Click="CloseButton_Click"
+                            AutomationProperties.Name="{loc:Localize Accessibility_CloseDialog}"
                             Width="32"
                             Height="32"
                             Margin="0,0,0,0"
@@ -128,7 +130,12 @@
                             BorderBrush="Transparent" 
                             Margin="10,0,10,0"
                             Style="{StaticResource OptionButtonStyle}"
-                            MouseLeftButtonDown="ImportOwnConfig_Click">
+                            Focusable="True"
+                            FocusVisualStyle="{StaticResource AccessibleFocusVisual}"
+                            AutomationProperties.Name="{loc:Localize Accessibility_ImportOwnConfig}"
+                            MouseLeftButtonDown="ImportOwnConfig_Click"
+                            KeyDown="OptionCard_KeyDown"
+                            Tag="Own">
                         <Grid>
                             <Grid.RowDefinitions>
                                 <RowDefinition Height="Auto"/>
@@ -164,7 +171,12 @@
                             BorderBrush="Transparent"
                             Margin="10,0,10,0"
                             Style="{StaticResource OptionButtonStyle}"
-                            MouseLeftButtonDown="ImportRecommendedConfig_Click">
+                            Focusable="True"
+                            FocusVisualStyle="{StaticResource AccessibleFocusVisual}"
+                            AutomationProperties.Name="{loc:Localize Accessibility_ImportRecommendedConfig}"
+                            MouseLeftButtonDown="ImportRecommendedConfig_Click"
+                            KeyDown="OptionCard_KeyDown"
+                            Tag="Recommended">
                         <Grid>
                             <Grid.RowDefinitions>
                                 <RowDefinition Height="Auto"/>

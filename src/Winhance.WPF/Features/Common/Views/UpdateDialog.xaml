@@ -40,7 +40,8 @@
         <Border CornerRadius="10"
                 BorderThickness="0"
                 BorderBrush="Transparent"
-                Background="{DynamicResource WindowBackground}">
+                Background="{DynamicResource WindowBackground}"
+                KeyboardNavigation.TabNavigation="Cycle">
 
             <Grid Margin="20">
             <Grid.RowDefinitions>

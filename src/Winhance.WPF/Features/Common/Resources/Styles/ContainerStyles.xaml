@@ -90,9 +90,11 @@
     <!-- FEATURE SECTION TEMPLATES -->
     <!-- Collapsible Header Template -->
     <ControlTemplate x:Key="CollapsibleHeaderTemplate" TargetType="ContentControl">
-        <Border x:Name="HeaderBorder" Background="{DynamicResource ContentSectionBorderBrush}" CornerRadius="5" Margin="0,5,0,5" Effect="{StaticResource ShadowEffect}" Cursor="Hand" ClipToBounds="False" Panel.ZIndex="100">
+        <Border x:Name="HeaderBorder" Background="{DynamicResource ContentSectionBorderBrush}" CornerRadius="5" Margin="0,5,0,5" Effect="{StaticResource ShadowEffect}" Cursor="Hand" ClipToBounds="False" Panel.ZIndex="100" Focusable="True" FocusVisualStyle="{StaticResource AccessibleFocusVisual}" AutomationProperties.Name="{Binding DisplayName}" AutomationProperties.ItemStatus="{Binding IsExpanded, Converter={StaticResource BooleanToValueConverter}, ConverterParameter='Expanded|Collapsed'}">
             <Border.InputBindings>
                 <MouseBinding MouseAction="LeftClick" Command="{Binding ToggleExpandCommand}"/>
+                <KeyBinding Key="Enter" Command="{Binding ToggleExpandCommand}"/>
+                <KeyBinding Key="Space" Command="{Binding ToggleExpandCommand}"/>
             </Border.InputBindings>
             <Grid x:Name="Header" Height="40">
                 <Grid.ColumnDefinitions>
@@ -122,7 +124,7 @@
     <DataTemplate x:Key="ModernSettingsItemTemplate">
         <Grid>
             <!-- Setting Card Wrapper -->
-            <Border Background="{DynamicResource SettingsItemBackground}" CornerRadius="4" Visibility="{Binding IsVisible, Converter={StaticResource BooleanToVisibilityConverter}}" Margin="{Binding IsSubSetting, Converter={StaticResource SubSettingMarginConverter}}" Opacity="{Binding EffectiveIsEnabled, Converter={StaticResource BooleanToOpacityConverter}}" Cursor="Hand">
+            <Border Background="{DynamicResource SettingsItemBackground}" CornerRadius="4" Visibility="{Binding IsVisible, Converter={StaticResource BooleanToVisibilityConverter}}" Margin="{Binding IsSubSetting, Converter={StaticResource SubSettingMarginConverter}}" Opacity="{Binding EffectiveIsEnabled, Converter={StaticResource BooleanToOpacityConverter}}" Cursor="Hand" AutomationProperties.Name="{Binding Name}" AutomationProperties.HelpText="{Binding Description}">
                 <Border.Style>
                     <Style TargetType="Border">
                         <Setter Property="Effect" Value="{StaticResource UltraLightShadowEffect}"/>
@@ -268,7 +270,8 @@
                               HorizontalAlignment="Right"
                               VerticalAlignment="Center"
                               Panel.ZIndex="10"
-                              IsEnabled="{Binding EffectiveIsEnabled}">
+                              IsEnabled="{Binding EffectiveIsEnabled}"
+                              AutomationProperties.Name="{Binding Name}">
                         <ComboBox.Visibility>
                             <MultiBinding Converter="{StaticResource PowerModeVisibilityConverter}" ConverterParameter="ComboBox">
                                 <Binding Path="InputType"/>
@@ -384,7 +387,7 @@
                     </StackPanel>
 
                     <!-- Toggle for binary settings -->
-                    <ToggleButton Grid.Column="1" Style="{StaticResource MaterialToggleSwitch}" IsChecked="{Binding IsSelected, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}" Margin="15,10,15,10" HorizontalAlignment="Right" VerticalAlignment="Center" Visibility="{Binding InputType, Converter={StaticResource ToggleInputTypeToVisibilityConverter}}" Content="" IsEnabled="{Binding EffectiveIsEnabled}">
+                    <ToggleButton Grid.Column="1" Style="{StaticResource MaterialToggleSwitch}" IsChecked="{Binding IsSelected, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}" Margin="15,10,15,10" HorizontalAlignment="Right" VerticalAlignment="Center" Visibility="{Binding InputType, Converter={StaticResource ToggleInputTypeToVisibilityConverter}}" Content="" IsEnabled="{Binding EffectiveIsEnabled}" AutomationProperties.Name="{Binding Name}" AutomationProperties.HelpText="{Binding Description}">
                         <ToggleButton.ToolTip>
                             <ToolTip Background="Transparent" BorderThickness="0" Padding="0" HasDropShadow="False">
                                 <ContentPresenter Content="{Binding TooltipData}" ContentTemplate="{StaticResource UnifiedSettingsTooltipTemplate}"/>
@@ -393,7 +396,7 @@
                     </ToggleButton>
 
                     <!-- NumericUpDown for non-power numeric settings -->
-                    <controls:NumericUpDown Grid.Column="1" Value="{Binding NumericValue, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}" Minimum="{Binding MinValue}" Maximum="{Binding MaxValue}" Units="{Binding Units}" Width="175" Margin="15,10,15,10" HorizontalAlignment="Right" VerticalAlignment="Center" IsEnabled="{Binding EffectiveIsEnabled}">
+                    <controls:NumericUpDown Grid.Column="1" Value="{Binding NumericValue, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}" Minimum="{Binding MinValue}" Maximum="{Binding MaxValue}" Units="{Binding Units}" Width="175" Margin="15,10,15,10" HorizontalAlignment="Right" VerticalAlignment="Center" IsEnabled="{Binding EffectiveIsEnabled}" AutomationProperties.Name="{Binding Name}">
                         <controls:NumericUpDown.Visibility>
                             <MultiBinding Converter="{StaticResource PowerModeVisibilityConverter}" ConverterParameter="NumericUpDown">
                                 <Binding Path="InputType"/>
@@ -578,9 +581,14 @@
                             Visibility="{Binding IsLocked, Converter={StaticResource BooleanToVisibilityConverter}}"
                             Background="#80000000"
                             CornerRadius="4"
-                            Cursor="Hand">
+                            Cursor="Hand"
+                            Focusable="True"
+                            FocusVisualStyle="{StaticResource AccessibleFocusVisual}"
+                            AutomationProperties.Name="{loc:Localize Accessibility_UnlockSetting}">
                         <Border.InputBindings>
                             <MouseBinding Command="{Binding UnlockCommand}" MouseAction="LeftClick"/>
+                            <KeyBinding Key="Enter" Command="{Binding UnlockCommand}"/>
+                            <KeyBinding Key="Space" Command="{Binding UnlockCommand}"/>
                         </Border.InputBindings>
                         <StackPanel VerticalAlignment="Center" HorizontalAlignment="Center">
                             <iconPacks:PackIconMaterial Kind="LockOutline"

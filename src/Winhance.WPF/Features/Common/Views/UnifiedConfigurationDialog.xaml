@@ -48,7 +48,8 @@
 
         <Border CornerRadius="10"
                 BorderBrush="Transparent"
-                Background="{DynamicResource WindowBackground}">
+                Background="{DynamicResource WindowBackground}"
+                KeyboardNavigation.TabNavigation="Cycle">
             <Grid>
                 <Grid.RowDefinitions>
                     <RowDefinition Height="Auto"/>
@@ -73,6 +74,7 @@
                     <Button Grid.Column="1"
                             Style="{StaticResource WindowCloseButton}"
                             Click="CloseButton_Click"
+                            AutomationProperties.Name="{loc:Localize Accessibility_CloseDialog}"
                             Width="32"
                             Height="32"
                             Margin="0,0,0,0"

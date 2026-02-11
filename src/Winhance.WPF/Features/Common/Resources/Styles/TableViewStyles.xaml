@@ -218,13 +218,26 @@
         </Style.Triggers>
     </Style>
 
+    <!-- Focus visual for DataGrid cells -->
+    <Style x:Key="DataGridCellFocusVisual">
+        <Setter Property="Control.Template">
+            <Setter.Value>
+                <ControlTemplate>
+                    <Border BorderBrush="{DynamicResource ButtonHoverBackground}"
+                            BorderThickness="1"
+                            Margin="-1"/>
+                </ControlTemplate>
+            </Setter.Value>
+        </Setter>
+    </Style>
+
     <!-- Simplified DataGrid cell style - foreground inherited from row via TextElement -->
     <Style x:Key="ThemedDataGridCell" TargetType="{x:Type DataGridCell}">
         <Setter Property="Background" Value="Transparent" />
         <Setter Property="BorderBrush" Value="Transparent" />
         <Setter Property="BorderThickness" Value="0" />
         <Setter Property="Padding" Value="8" />
-        <Setter Property="FocusVisualStyle" Value="{x:Null}" />
+        <Setter Property="FocusVisualStyle" Value="{StaticResource DataGridCellFocusVisual}" />
     </Style>
 
     <!-- DataGridColumnHeadersPresenter with rounded corner clipping -->

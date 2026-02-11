@@ -1,4 +1,4 @@
-{
+﻿{
   "App_Title": "Winhance",
   "App_By": "av Memory",
   "Nav_SoftwareAndApps": "Programvara och appar",
@@ -1402,5 +1402,31 @@
   "ExternalApps_WinGetUnavailable": "Kan inte fastställa installationsstatus. Anslut till internet och klicka på knappen Uppdatera.",
   "Error_NoInternetConnection": "Ingen internetanslutning. Anslut och försök igen.",
   "Error_WinGetInstallFailed": "Misslyckades med att installera WinGet. Kontrollera din internetanslutning.",
-  "Error_WinGetNotAvailable": "WinGet är inte tillgängligt på detta system."
+  "Error_WinGetNotAvailable": "WinGet är inte tillgängligt på detta system.",
+  "Accessibility_SaveConfiguration": "Spara konfiguration",
+  "Accessibility_ImportConfiguration": "Importera konfiguration",
+  "Accessibility_WindowsVersionFilter": "Windows-versionsfilter",
+  "Accessibility_Donate": "Donera",
+  "Accessibility_ReportBug": "Rapportera en bugg",
+  "Accessibility_MinimizeWindow": "Minimera fönster",
+  "Accessibility_MaximizeWindow": "Maximera fönster",
+  "Accessibility_RestoreWindow": "Återställ fönster",
+  "Accessibility_CloseWindow": "Stäng fönster",
+  "Accessibility_CloseDialog": "Stäng dialog",
+  "Accessibility_SearchSettings": "Sök inställningar",
+  "Accessibility_ClearSearch": "Rensa sökning",
+  "Accessibility_NavigateToSection": "Navigera till {0}",
+  "Accessibility_TaskProgress": "Uppgift pågår",
+  "Accessibility_CancelTask": "Avbryt uppgift",
+  "Accessibility_SelectAll": "Välj alla",
+  "Accessibility_SelectApp": "Välj {0}",
+  "Accessibility_WindowsAppsTable": "Windows-applista",
+  "Accessibility_ExternalAppsTable": "Externa appar-lista",
+  "Accessibility_VisitWebsite": "Besök webbplatsen för {0}",
+  "Accessibility_ImportOwnConfig": "Importera din egen konfigurationsfil",
+  "Accessibility_ImportRecommendedConfig": "Importera rekommenderad konfiguration",
+  "Accessibility_UnlockSetting": "Lås upp avancerad inställning",
+  "Accessibility_WindowsAppsTab": "Windows-appar flik",
+  "Accessibility_ExternalAppsTab": "Externa appar flik",
+  "Accessibility_Loading": "Laddar"
 }

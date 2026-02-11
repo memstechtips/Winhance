@@ -20,6 +20,8 @@
             <DataGrid x:Name="AppsDataGrid"
                       ItemsSource="{Binding AllItemsView}"
                       Style="{StaticResource ThemedDataGrid}"
+                      AutomationProperties.Name="{loc:Localize Accessibility_ExternalAppsTable}"
+                      KeyboardNavigation.DirectionalNavigation="Contained"
                       Margin="10,0,10,10"
                       Width="Auto"
                       HorizontalAlignment="Stretch"
@@ -57,13 +59,14 @@
                         </DataGridTemplateColumn.HeaderStyle>
                         <DataGridTemplateColumn.HeaderTemplate>
                             <DataTemplate>
-                                <CheckBox Style="{StaticResource CustomCheckBox}" IsChecked="{Binding DataContext.IsAllSelected, RelativeSource={RelativeSource AncestorType=UserControl}, Mode=TwoWay}" VerticalAlignment="Center" HorizontalAlignment="Center"/>
+                                <CheckBox Style="{StaticResource CustomCheckBox}" IsChecked="{Binding DataContext.IsAllSelected, RelativeSource={RelativeSource AncestorType=UserControl}, Mode=TwoWay}" VerticalAlignment="Center" HorizontalAlignment="Center" AutomationProperties.Name="{loc:Localize Accessibility_SelectAll}"/>
                             </DataTemplate>
                         </DataGridTemplateColumn.HeaderTemplate>
                         <DataGridTemplateColumn.CellTemplate>
                             <DataTemplate>
                                 <CheckBox Style="{StaticResource CustomCheckBox}" 
                                          IsChecked="{Binding IsSelected, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}" 
+                                         AutomationProperties.Name="{Binding Name}"
                                          VerticalAlignment="Center" 
                                          HorizontalAlignment="Center">
                                     <i:Interaction.Behaviors>
@@ -97,6 +100,7 @@
                                             Cursor="Hand"
                                             Command="{Binding OpenWebsiteCommand}"
                                             ToolTip="{loc:Localize Tooltip_VisitWebsite}"
+                                            AutomationProperties.Name="{Binding Name, StringFormat='Visit website for {0}'}"
                                             Margin="6,0,0,0"
                                             Padding="2"
                                             VerticalAlignment="Center"

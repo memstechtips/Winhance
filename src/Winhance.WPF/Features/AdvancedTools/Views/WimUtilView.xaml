@@ -62,9 +62,17 @@
 
                     <!-- STEP 1: Select ISO -->
                     <ContentControl Content="{Binding Step1State}"
-                                  ContentTemplate="{StaticResource WizardStepHeaderTemplate}">
+                                  ContentTemplate="{StaticResource WizardStepHeaderTemplate}"
+                                  Focusable="True"
+                                  FocusVisualStyle="{StaticResource AccessibleFocusVisual}">
                         <ContentControl.InputBindings>
                             <MouseBinding MouseAction="LeftClick"
+                                        Command="{Binding NavigateToStepCommand}"
+                                        CommandParameter="1"/>
+                            <KeyBinding Key="Enter"
+                                        Command="{Binding NavigateToStepCommand}"
+                                        CommandParameter="1"/>
+                            <KeyBinding Key="Space"
                                         Command="{Binding NavigateToStepCommand}"
                                         CommandParameter="1"/>
                         </ContentControl.InputBindings>
@@ -276,9 +284,17 @@
 
                     <!-- STEP 2: Add XML File -->
                     <ContentControl Content="{Binding Step2State}"
-                                  ContentTemplate="{StaticResource WizardStepHeaderTemplate}">
+                                  ContentTemplate="{StaticResource WizardStepHeaderTemplate}"
+                                  Focusable="True"
+                                  FocusVisualStyle="{StaticResource AccessibleFocusVisual}">
                         <ContentControl.InputBindings>
                             <MouseBinding MouseAction="LeftClick"
+                                        Command="{Binding NavigateToStepCommand}"
+                                        CommandParameter="2"/>
+                            <KeyBinding Key="Enter"
+                                        Command="{Binding NavigateToStepCommand}"
+                                        CommandParameter="2"/>
+                            <KeyBinding Key="Space"
                                         Command="{Binding NavigateToStepCommand}"
                                         CommandParameter="2"/>
                         </ContentControl.InputBindings>
@@ -396,9 +412,17 @@
 
                     <!-- STEP 3: Add Drivers -->
                     <ContentControl Content="{Binding Step3State}"
-                                  ContentTemplate="{StaticResource WizardStepHeaderTemplate}">
+                                  ContentTemplate="{StaticResource WizardStepHeaderTemplate}"
+                                  Focusable="True"
+                                  FocusVisualStyle="{StaticResource AccessibleFocusVisual}">
                         <ContentControl.InputBindings>
                             <MouseBinding MouseAction="LeftClick"
+                                        Command="{Binding NavigateToStepCommand}"
+                                        CommandParameter="3"/>
+                            <KeyBinding Key="Enter"
+                                        Command="{Binding NavigateToStepCommand}"
+                                        CommandParameter="3"/>
+                            <KeyBinding Key="Space"
                                         Command="{Binding NavigateToStepCommand}"
                                         CommandParameter="3"/>
                         </ContentControl.InputBindings>
@@ -429,9 +453,17 @@
 
                     <!-- STEP 4: Create New ISO -->
                     <ContentControl Content="{Binding Step4State}"
-                                  ContentTemplate="{StaticResource WizardStepHeaderTemplate}">
+                                  ContentTemplate="{StaticResource WizardStepHeaderTemplate}"
+                                  Focusable="True"
+                                  FocusVisualStyle="{StaticResource AccessibleFocusVisual}">
                         <ContentControl.InputBindings>
                             <MouseBinding MouseAction="LeftClick"
+                                        Command="{Binding NavigateToStepCommand}"
+                                        CommandParameter="4"/>
+                            <KeyBinding Key="Enter"
+                                        Command="{Binding NavigateToStepCommand}"
+                                        CommandParameter="4"/>
+                            <KeyBinding Key="Space"
                                         Command="{Binding NavigateToStepCommand}"
                                         CommandParameter="4"/>
                         </ContentControl.InputBindings>

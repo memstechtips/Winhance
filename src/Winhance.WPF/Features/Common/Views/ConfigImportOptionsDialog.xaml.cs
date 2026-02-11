@@ -59,5 +59,20 @@ namespace Winhance.WPF.Features.Common.Views
             this.DialogResult = true;
             this.Close();
         }
+
+        private void OptionCard_KeyDown(object sender, KeyEventArgs e)
+        {
+            if (e.Key == Key.Enter || e.Key == Key.Space)
+            {
+                if (sender is FrameworkElement element && element.Tag is string tag)
+                {
+                    if (tag == "Own")
+                        ImportOwnConfig_Click(sender, e);
+                    else if (tag == "Recommended")
+                        ImportRecommendedConfig_Click(sender, e);
+                }
+                e.Handled = true;
+            }
+        }
     }
 }

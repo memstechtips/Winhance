@@ -147,6 +147,7 @@
                                                 Margin="0,0,0,0"
                                                 Command="{Binding SaveUnifiedConfigCommand}"
                                                 ToolTip="{loc:Localize Tooltip_SaveConfiguration}"
+                                                AutomationProperties.Name="{loc:Localize Accessibility_SaveConfiguration}"
                                                 Style="{StaticResource WindowControlButton}"
                                                 WindowChrome.IsHitTestVisibleInChrome="True">
                                             <iconPacks:PackIconMaterial Kind="ContentSave"
@@ -160,6 +161,7 @@
                                                 Margin="0,0,0,0"
                                                 Command="{Binding ImportUnifiedConfigCommand}"
                                                 ToolTip="{loc:Localize Tooltip_ImportConfig}"
+                                                AutomationProperties.Name="{loc:Localize Accessibility_ImportConfiguration}"
                                                 Style="{StaticResource WindowControlButton}"
                                                 WindowChrome.IsHitTestVisibleInChrome="True">
                                             <iconPacks:PackIconMaterial Kind="FolderOpen"
@@ -172,6 +174,7 @@
                                                 Height="28"
                                                 Margin="0,0,0,0"
                                                 Command="{Binding ToggleWindowsVersionFilterCommand}"
+                                                AutomationProperties.Name="{loc:Localize Accessibility_WindowsVersionFilter}"
                                                 Style="{StaticResource WindowControlButton}"
                                                 WindowChrome.IsHitTestVisibleInChrome="True">
                                             <Button.ToolTip>
@@ -188,6 +191,7 @@
                                                 Margin="0,0,0,0"
                                                 Command="{Binding OpenDonateCommand}"
                                                 ToolTip="{loc:Localize Tooltip_Donate}"
+                                                AutomationProperties.Name="{loc:Localize Accessibility_Donate}"
                                                 Style="{StaticResource WindowControlButton}"
                                                 WindowChrome.IsHitTestVisibleInChrome="True">
                                             <iconPacks:PackIconMaterial Kind="Heart"
@@ -202,6 +206,7 @@
                                                 Margin="0,0,0,0"
                                                 Command="{Binding OpenBugReportCommand}"
                                                 ToolTip="{loc:Localize Tooltip_ReportBug}"
+                                                AutomationProperties.Name="{loc:Localize Accessibility_ReportBug}"
                                                 Style="{StaticResource WindowControlButton}"
                                                 WindowChrome.IsHitTestVisibleInChrome="True">
                                             <iconPacks:PackIconMaterial Kind="Bug"
@@ -215,6 +220,7 @@
                                                 Style="{StaticResource WindowControlButton}"
                                                 WindowChrome.IsHitTestVisibleInChrome="True"
                                                 Margin="0,0,0,0"
+                                                AutomationProperties.Name="{loc:Localize Accessibility_MinimizeWindow}"
                                                 Command="{Binding MinimizeWindowCommand}">
                                                 <iconPacks:PackIconMaterial Kind="WindowMinimize"
                                                                          Width="12"
@@ -224,6 +230,7 @@
                                                 Style="{StaticResource WindowControlButton}"
                                                 WindowChrome.IsHitTestVisibleInChrome="True"
                                                 Margin="0,0,0,0"
+                                                AutomationProperties.Name="{loc:Localize Accessibility_MaximizeWindow}"
                                                 Command="{Binding MaximizeRestoreWindowCommand}">
                                                 <iconPacks:PackIconMaterial Kind="{Binding MaximizeButtonContent, Converter={StaticResource StringToMaximizeIconConverter}, FallbackValue=WindowMaximize}"
                                                                          Width="12"
@@ -232,6 +239,7 @@
                                         <Button x:Name="CloseButton"
                                                 Style="{StaticResource WindowCloseButton}"
                                                 WindowChrome.IsHitTestVisibleInChrome="True"
+                                                AutomationProperties.Name="{loc:Localize Accessibility_CloseWindow}"
                                                 Command="{Binding CloseWindowCommand}">
                                                 <iconPacks:PackIconMaterial Kind="Close"
                                                                          Width="12"
@@ -249,7 +257,8 @@
 
                                 <!-- Navigation -->
                                 <Grid Grid.Column="0"
-                                      Margin="10,24,0,10">
+                                      Margin="10,24,0,10"
+                                      KeyboardNavigation.TabNavigation="Cycle">
                                         <Grid.RowDefinitions>
                                                 <RowDefinition Height="Auto"/>
                                                 <!-- Top navigation buttons -->

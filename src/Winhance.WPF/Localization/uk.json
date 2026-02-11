@@ -1,4 +1,4 @@
-{
+﻿{
   "App_Title": "Winhance",
   "App_By": "від Memory",
   "Nav_SoftwareAndApps": "Програми та додатки",
@@ -1402,5 +1402,31 @@
   "ExternalApps_WinGetUnavailable": "Неможливо визначити статус встановлення. Підключіться до Інтернету та натисніть кнопку Оновити.",
   "Error_NoInternetConnection": "Немає підключення до Інтернету. Будь ласка, підключіться та спробуйте ще раз.",
   "Error_WinGetInstallFailed": "Не вдалося встановити WinGet. Будь ласка, перевірте підключення до Інтернету.",
-  "Error_WinGetNotAvailable": "WinGet недоступний у цій системі."
+  "Error_WinGetNotAvailable": "WinGet недоступний у цій системі.",
+  "Accessibility_SaveConfiguration": "Зберегти конфігурацію",
+  "Accessibility_ImportConfiguration": "Імпортувати конфігурацію",
+  "Accessibility_WindowsVersionFilter": "Фільтр версії Windows",
+  "Accessibility_Donate": "Пожертвувати",
+  "Accessibility_ReportBug": "Повідомити про помилку",
+  "Accessibility_MinimizeWindow": "Згорнути вікно",
+  "Accessibility_MaximizeWindow": "Розгорнути вікно",
+  "Accessibility_RestoreWindow": "Відновити вікно",
+  "Accessibility_CloseWindow": "Закрити вікно",
+  "Accessibility_CloseDialog": "Закрити діалог",
+  "Accessibility_SearchSettings": "Пошук налаштувань",
+  "Accessibility_ClearSearch": "Очистити пошук",
+  "Accessibility_NavigateToSection": "Перейти до {0}",
+  "Accessibility_TaskProgress": "Завдання виконується",
+  "Accessibility_CancelTask": "Скасувати завдання",
+  "Accessibility_SelectAll": "Вибрати все",
+  "Accessibility_SelectApp": "Вибрати {0}",
+  "Accessibility_WindowsAppsTable": "Список програм Windows",
+  "Accessibility_ExternalAppsTable": "Список зовнішніх програм",
+  "Accessibility_VisitWebsite": "Відвідати веб-сайт {0}",
+  "Accessibility_ImportOwnConfig": "Імпортувати власний файл конфігурації",
+  "Accessibility_ImportRecommendedConfig": "Імпортувати рекомендовану конфігурацію",
+  "Accessibility_UnlockSetting": "Розблокувати розширене налаштування",
+  "Accessibility_WindowsAppsTab": "Вкладка програм Windows",
+  "Accessibility_ExternalAppsTab": "Вкладка зовнішніх програм",
+  "Accessibility_Loading": "Завантаження"
 }

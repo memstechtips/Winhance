@@ -1,4 +1,4 @@
-{
+﻿{
   "App_Title": "Winhance",
   "App_By": "由 Memory 開發",
   "Nav_SoftwareAndApps": "軟體與應用程式",
@@ -1402,5 +1402,31 @@
   "ExternalApps_WinGetUnavailable": "無法確定安裝狀態。請連接到網際網路並點擊重新整理按鈕。",
   "Error_NoInternetConnection": "無網路連線。請連接後重試。",
   "Error_WinGetInstallFailed": "安裝 WinGet 失敗。請檢查您的網路連線。",
-  "Error_WinGetNotAvailable": "此系統上無法使用 WinGet。"
+  "Error_WinGetNotAvailable": "此系統上無法使用 WinGet。",
+  "Accessibility_SaveConfiguration": "儲存設定",
+  "Accessibility_ImportConfiguration": "匯入設定",
+  "Accessibility_WindowsVersionFilter": "Windows 版本篩選器",
+  "Accessibility_Donate": "捐款",
+  "Accessibility_ReportBug": "回報錯誤",
+  "Accessibility_MinimizeWindow": "最小化視窗",
+  "Accessibility_MaximizeWindow": "最大化視窗",
+  "Accessibility_RestoreWindow": "還原視窗",
+  "Accessibility_CloseWindow": "關閉視窗",
+  "Accessibility_CloseDialog": "關閉對話方塊",
+  "Accessibility_SearchSettings": "搜尋設定",
+  "Accessibility_ClearSearch": "清除搜尋",
+  "Accessibility_NavigateToSection": "導覽至{0}",
+  "Accessibility_TaskProgress": "工作進行中",
+  "Accessibility_CancelTask": "取消工作",
+  "Accessibility_SelectAll": "全選",
+  "Accessibility_SelectApp": "選擇 {0}",
+  "Accessibility_WindowsAppsTable": "Windows 應用程式清單",
+  "Accessibility_ExternalAppsTable": "外部應用程式清單",
+  "Accessibility_VisitWebsite": "造訪 {0} 的網站",
+  "Accessibility_ImportOwnConfig": "匯入您自己的組態檔",
+  "Accessibility_ImportRecommendedConfig": "匯入建議的組態",
+  "Accessibility_UnlockSetting": "解鎖進階設定",
+  "Accessibility_WindowsAppsTab": "Windows 應用程式索引標籤",
+  "Accessibility_ExternalAppsTab": "外部應用程式索引標籤",
+  "Accessibility_Loading": "載入中"
 }

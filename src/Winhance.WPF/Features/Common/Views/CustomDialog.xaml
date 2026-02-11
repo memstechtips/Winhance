@@ -4,6 +4,7 @@
         xmlns:converters="clr-namespace:Winhance.WPF.Features.Common.Converters"
         xmlns:controls="clr-namespace:Winhance.WPF.Features.Common.Controls"
         xmlns:iconPacks="http://metro.mahapps.com/winfx/xaml/iconpacks"
+        xmlns:loc="clr-namespace:Winhance.WPF.Features.Common.Extensions"
         x:Name="DialogWindow"
         Title="{Binding Title}"
         MinWidth="500"
@@ -35,7 +36,8 @@
 
         <Border CornerRadius="10"
                 BorderBrush="Transparent"
-                Background="{DynamicResource WindowBackground}">
+                Background="{DynamicResource WindowBackground}"
+                KeyboardNavigation.TabNavigation="Cycle">
             <Grid>
             <Grid.RowDefinitions>
                 <RowDefinition Height="Auto"/>
@@ -76,6 +78,7 @@
                     Style="{StaticResource WindowCloseButton}"
                     Click="CloseButton_Click"
                     ToolTip="Close"
+                    AutomationProperties.Name="{loc:Localize Accessibility_CloseDialog}"
                     Width="32"
                     Height="32"
                     Margin="0,0,0,0"

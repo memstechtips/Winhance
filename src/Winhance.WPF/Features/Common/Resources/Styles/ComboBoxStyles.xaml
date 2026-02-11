@@ -58,6 +58,7 @@
         <Setter Property="behaviors:ComboBoxDropdownBehavior.StayWithParent" Value="True"/>
         <Setter Property="SnapsToDevicePixels" Value="True"/>
         <Setter Property="OverridesDefaultStyle" Value="True"/>
+        <Setter Property="FocusVisualStyle" Value="{StaticResource AccessibleFocusVisual}"/>
         <Setter Property="MinWidth" Value="120"/>
         <Setter Property="MinHeight" Value="30"/>
         <Setter Property="Foreground" Value="{DynamicResource PrimaryTextColor}"/>

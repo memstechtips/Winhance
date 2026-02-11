@@ -44,6 +44,7 @@
                             x:Name="CloseButton"
                             Style="{StaticResource FlyOutCloseButtonStyle}"
                             ToolTip="{loc:Localize Help_CloseHelp}"
+                            AutomationProperties.Name="{loc:Localize Accessibility_CloseDialog}"
                             Command="{Binding CloseHelpCommand}">
                         <iconPacks:PackIconMaterial Kind="Close" Width="12" Height="12"/>
                     </Button>

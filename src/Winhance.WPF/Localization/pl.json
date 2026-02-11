@@ -1,4 +1,4 @@
-{
+﻿{
   "App_Title": "Winhance",
   "App_By": "od Memory",
   "Nav_SoftwareAndApps": "Oprogramowanie i Aplikacje",
@@ -1402,5 +1402,31 @@
   "ExternalApps_WinGetUnavailable": "Nie można określić stanu instalacji. Połącz się z internetem i kliknij przycisk Odśwież.",
   "Error_NoInternetConnection": "Brak połączenia z internetem. Połącz się i spróbuj ponownie.",
   "Error_WinGetInstallFailed": "Nie udało się zainstalować WinGet. Sprawdź połączenie z internetem.",
-  "Error_WinGetNotAvailable": "WinGet nie jest dostępny w tym systemie."
+  "Error_WinGetNotAvailable": "WinGet nie jest dostępny w tym systemie.",
+  "Accessibility_SaveConfiguration": "Zapisz konfigurację",
+  "Accessibility_ImportConfiguration": "Importuj konfigurację",
+  "Accessibility_WindowsVersionFilter": "Filtr wersji Windows",
+  "Accessibility_Donate": "Wspomóż",
+  "Accessibility_ReportBug": "Zgłoś błąd",
+  "Accessibility_MinimizeWindow": "Minimalizuj okno",
+  "Accessibility_MaximizeWindow": "Maksymalizuj okno",
+  "Accessibility_RestoreWindow": "Przywróć okno",
+  "Accessibility_CloseWindow": "Zamknij okno",
+  "Accessibility_CloseDialog": "Zamknij okno dialogowe",
+  "Accessibility_SearchSettings": "Szukaj ustawień",
+  "Accessibility_ClearSearch": "Wyczyść wyszukiwanie",
+  "Accessibility_NavigateToSection": "Przejdź do {0}",
+  "Accessibility_TaskProgress": "Zadanie w toku",
+  "Accessibility_CancelTask": "Anuluj zadanie",
+  "Accessibility_SelectAll": "Zaznacz wszystko",
+  "Accessibility_SelectApp": "Zaznacz {0}",
+  "Accessibility_WindowsAppsTable": "Lista aplikacji Windows",
+  "Accessibility_ExternalAppsTable": "Lista aplikacji zewnętrznych",
+  "Accessibility_VisitWebsite": "Odwiedź stronę {0}",
+  "Accessibility_ImportOwnConfig": "Importuj własny plik konfiguracyjny",
+  "Accessibility_ImportRecommendedConfig": "Importuj zalecaną konfigurację",
+  "Accessibility_UnlockSetting": "Odblokuj zaawansowane ustawienie",
+  "Accessibility_WindowsAppsTab": "Karta aplikacji Windows",
+  "Accessibility_ExternalAppsTab": "Karta aplikacji zewnętrznych",
+  "Accessibility_Loading": "Ładowanie"
 }
