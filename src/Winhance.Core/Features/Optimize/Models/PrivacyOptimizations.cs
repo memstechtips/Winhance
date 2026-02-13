@@ -127,7 +127,8 @@ public static class PrivacyAndSecurityOptimizations
                     Description = "Prevents Windows from automatically encrypting your device with BitLocker without user consent",
                     GroupName = "Security",
                     InputType = InputType.Toggle,
-                    Icon = "ShieldLock",
+                    IconPack = "Fluent",
+                    Icon = "LockClosedKey",
                     IsWindows11Only = true,
                     RegistrySettings = new List<RegistrySetting>
                     {
@@ -409,11 +410,9 @@ public static class PrivacyAndSecurityOptimizations
                             KeyPath = @"HKEY_CURRENT_USER\Software\Microsoft\Windows\CurrentVersion\ContentDeliveryManager",
                             ValueName = "SubscribedContentEnabled",
                             RecommendedValue = 0,
-                            EnabledValue = 1,
+                            EnabledValue = null,
                             DisabledValue = 0,
-                            DefaultValue = 1,
                             ValueType = RegistryValueKind.DWord,
-                            AbsenceMeansEnabled = true,
                         },
                     },
                 },
@@ -570,11 +569,9 @@ public static class PrivacyAndSecurityOptimizations
                             KeyPath = @"HKEY_CURRENT_USER\Software\Microsoft\Windows\CurrentVersion\ContentDeliveryManager",
                             ValueName = "PreInstalledAppsEverEnabled",
                             RecommendedValue = 0,
-                            EnabledValue = 1,
+                            EnabledValue = null,
                             DisabledValue = 0,
-                            DefaultValue = 1,
                             ValueType = RegistryValueKind.DWord,
-                            AbsenceMeansEnabled = true,
                         },
                     },
                 },
@@ -639,7 +636,7 @@ public static class PrivacyAndSecurityOptimizations
                     Description = "Displays rotating Windows Spotlight images on your lock screen instead of a static background",
                     GroupName = "Lock Screen",
                     IconPack = "Fluent",
-                    Icon = "Wallpaper",
+                    Icon = "ImageCircle",
                     InputType = InputType.Toggle,
                     ParentSettingId = "privacy-lock-screen",
                     Dependencies = new List<SettingDependency>
@@ -705,8 +702,7 @@ public static class PrivacyAndSecurityOptimizations
                     Name = "Lock Screen Slideshow",
                     Description = "Enables slideshow option for lock screen background",
                     GroupName = "Lock Screen",
-                    IconPack = "Fluent",
-                    Icon = "DesktopPulse",
+                    Icon = "TelevisionPlay",
                     InputType = InputType.Toggle,
                     ParentSettingId = "privacy-lock-screen",
                     Dependencies = new List<SettingDependency>
@@ -726,11 +722,9 @@ public static class PrivacyAndSecurityOptimizations
                             KeyPath = @"HKEY_CURRENT_USER\Software\Microsoft\Windows\CurrentVersion\ContentDeliveryManager",
                             ValueName = "SlideshowEnabled",
                             RecommendedValue = 0,
-                            EnabledValue = 1,
+                            EnabledValue = null,
                             DisabledValue = 0,
-                            DefaultValue = 0,
                             ValueType = RegistryValueKind.DWord,
-                            AbsenceMeansEnabled = true,
                         },
                     },
                 },
@@ -761,8 +755,7 @@ public static class PrivacyAndSecurityOptimizations
                             ValueName = "DisabledByGroupPolicy",
                             RecommendedValue = 1,
                             EnabledValue = 0,
-                            DisabledValue = 1,
-                            DefaultValue = 0,
+                            DisabledValue = null,
                             ValueType = RegistryValueKind.DWord,
                         },
                         new RegistrySetting
@@ -772,8 +765,7 @@ public static class PrivacyAndSecurityOptimizations
                             ValueName = "DisabledByGroupPolicy",
                             RecommendedValue = 1,
                             EnabledValue = 0,
-                            DisabledValue = 1,
-                            DefaultValue = 0,
+                            DisabledValue = null,
                             ValueType = RegistryValueKind.DWord,
                         },
                     },
@@ -793,11 +785,9 @@ public static class PrivacyAndSecurityOptimizations
                             KeyPath = @"HKEY_CURRENT_USER\Control Panel\International\User Profile",
                             ValueName = "HttpAcceptLanguageOptOut",
                             RecommendedValue = 0,
-                            EnabledValue = 0, // When toggle is ON, language list access is enabled
+                            EnabledValue = null, // When toggle is ON, language list access is enabled
                             DisabledValue = 1, // When toggle is OFF, language list access is disabled
-                            DefaultValue = 0, // Default value when registry key exists but no value is set
                             ValueType = RegistryValueKind.DWord,
-                            AbsenceMeansEnabled = true,
                         },
                     },
                 },
@@ -816,11 +806,9 @@ public static class PrivacyAndSecurityOptimizations
                             KeyPath = @"HKEY_CURRENT_USER\Software\Microsoft\Windows\CurrentVersion\Explorer\Advanced",
                             ValueName = "Start_TrackProgs",
                             RecommendedValue = 0,
-                            EnabledValue = 1, // When toggle is ON, app launch tracking is enabled
+                            EnabledValue = null, // When toggle is ON, app launch tracking is enabled
                             DisabledValue = 0, // When toggle is OFF, app launch tracking is disabled
-                            DefaultValue = 1, // Default value when registry key exists but no value is set
                             ValueType = RegistryValueKind.DWord,
-                            AbsenceMeansEnabled = true,
                         },
                     },
                 },
@@ -849,33 +837,27 @@ public static class PrivacyAndSecurityOptimizations
                             KeyPath = @"HKEY_CURRENT_USER\Software\Microsoft\Windows\CurrentVersion\ContentDeliveryManager",
                             ValueName = "SubscribedContent-338393Enabled",
                             RecommendedValue = 0,
-                            EnabledValue = 1,
+                            EnabledValue = null,
                             DisabledValue = 0,
-                            DefaultValue = 1,
                             ValueType = RegistryValueKind.DWord,
-                            AbsenceMeansEnabled = true,
                         },
                         new RegistrySetting
                         {
                             KeyPath = @"HKEY_CURRENT_USER\Software\Microsoft\Windows\CurrentVersion\ContentDeliveryManager",
                             ValueName = "SubscribedContent-353694Enabled",
                             RecommendedValue = 0,
-                            EnabledValue = 1,
+                            EnabledValue = null,
                             DisabledValue = 0,
-                            DefaultValue = 1,
                             ValueType = RegistryValueKind.DWord,
-                            AbsenceMeansEnabled = true,
                         },
                         new RegistrySetting
                         {
                             KeyPath = @"HKEY_CURRENT_USER\Software\Microsoft\Windows\CurrentVersion\ContentDeliveryManager",
                             ValueName = "SubscribedContent-353696Enabled",
                             RecommendedValue = 0,
-                            EnabledValue = 1,
+                            EnabledValue = null,
                             DisabledValue = 0,
-                            DefaultValue = 1,
                             ValueType = RegistryValueKind.DWord,
-                            AbsenceMeansEnabled = true,
                         },
                     },
                 },
@@ -895,11 +877,9 @@ public static class PrivacyAndSecurityOptimizations
                             KeyPath = @"HKEY_CURRENT_USER\Software\Microsoft\Windows\CurrentVersion\SystemSettings\AccountNotifications",
                             ValueName = "EnableAccountNotifications",
                             RecommendedValue = 0,
-                            EnabledValue = 1, // When toggle is ON, account notifications are enabled
+                            EnabledValue = null, // When toggle is ON, account notifications are enabled
                             DisabledValue = 0, // When toggle is OFF, account notifications are disabled
-                            DefaultValue = 1, // Default value when registry key exists but no value is set
                             ValueType = RegistryValueKind.DWord,
-                            AbsenceMeansEnabled = true,
                         },
                     },
                 },
@@ -929,8 +909,7 @@ public static class PrivacyAndSecurityOptimizations
                             ValueName = "AllowInputPersonalization",
                             RecommendedValue = 0,
                             EnabledValue = 1,
-                            DisabledValue = 0,
-                            DefaultValue = 1,
+                            DisabledValue = null,
                             ValueType = RegistryValueKind.DWord,
                         },
                         new RegistrySetting
@@ -939,8 +918,7 @@ public static class PrivacyAndSecurityOptimizations
                             ValueName = "AllowInputPersonalization",
                             RecommendedValue = 0,
                             EnabledValue = 1,
-                            DisabledValue = 0,
-                            DefaultValue = 1,
+                            DisabledValue = null,
                             ValueType = RegistryValueKind.DWord,
                         },
                     },
@@ -960,11 +938,9 @@ public static class PrivacyAndSecurityOptimizations
                             KeyPath = @"HKEY_CURRENT_USER\Software\Microsoft\Narrator\NoRoam",
                             ValueName = "OnlineServicesEnabled",
                             RecommendedValue = 0,
-                            EnabledValue = 1,
+                            EnabledValue = null,
                             DisabledValue = 0,
-                            DefaultValue = 1,
                             ValueType = RegistryValueKind.DWord,
-                            AbsenceMeansEnabled = true,
                         },
                     },
                 },
@@ -983,11 +959,9 @@ public static class PrivacyAndSecurityOptimizations
                             KeyPath = @"HKEY_CURRENT_USER\Software\Microsoft\Narrator\NoRoam",
                             ValueName = "ScriptingEnabled",
                             RecommendedValue = 0,
-                            EnabledValue = 1,
+                            EnabledValue = null,
                             DisabledValue = 0,
-                            DefaultValue = 1,
                             ValueType = RegistryValueKind.DWord,
-                            AbsenceMeansEnabled = true,
                         },
                     },
                 },
@@ -998,7 +972,7 @@ public static class PrivacyAndSecurityOptimizations
                     Description = "Uses your typing history and handwriting patterns to create a custom dictionary (turning off will clear all words in your custom dictionary)",
                     GroupName = "Inking and typing personalization",
                     IconPack = "Fluent",
-                    Icon = "BookOpen",
+                    Icon = "BookDefault",
                     InputType = InputType.Toggle,
                     RegistrySettings = new List<RegistrySetting>
                     {
@@ -1071,8 +1045,7 @@ public static class PrivacyAndSecurityOptimizations
                             ValueName = "AllowTelemetry",
                             RecommendedValue = 1,
                             EnabledValue = 3,
-                            DisabledValue = 0,
-                            DefaultValue = 3,
+                            DisabledValue = null,
                             ValueType = RegistryValueKind.DWord,
                         },
                         new RegistrySetting
@@ -1121,8 +1094,7 @@ public static class PrivacyAndSecurityOptimizations
                             ValueName = "AllowTelemetry",
                             RecommendedValue = 1,
                             EnabledValue = 3,
-                            DisabledValue = 0,
-                            DefaultValue = 3,
+                            DisabledValue = null,
                             ValueType = RegistryValueKind.DWord,
                         },
                     },
@@ -1135,7 +1107,7 @@ public static class PrivacyAndSecurityOptimizations
                     Description = "Send optional inking and typing diagnostic data to Microsoft",
                     GroupName = "Diagnostics & Feedback",
                     IconPack = "Fluent",
-                    Icon = "Pen",
+                    Icon = "PenSparkle",
                     InputType = InputType.Toggle,
                     Dependencies = new List<SettingDependency>
                     {
@@ -1196,8 +1168,7 @@ public static class PrivacyAndSecurityOptimizations
                             ValueName = "DisableTailoredExperiencesWithDiagnosticData",
                             RecommendedValue = 1,
                             EnabledValue = 0,
-                            DisabledValue = 1,
-                            DefaultValue = 0,
+                            DisabledValue = null,
                             ValueType = RegistryValueKind.DWord,
                         },
                         new RegistrySetting
@@ -1206,8 +1177,7 @@ public static class PrivacyAndSecurityOptimizations
                             ValueName = "DisableTailoredExperiencesWithDiagnosticData",
                             RecommendedValue = 1,
                             EnabledValue = 0,
-                            DisabledValue = 1,
-                            DefaultValue = 0,
+                            DisabledValue = null,
                             ValueType = RegistryValueKind.DWord,
                         },
                     },
@@ -1218,7 +1188,8 @@ public static class PrivacyAndSecurityOptimizations
                     Name = "Allow Windows to ask you for feedback",
                     Description = "Let Windows ask you to provide feedback on experiences in Windows",
                     GroupName = "Diagnostics & Feedback",
-                    Icon = "AccountQuestion",
+                    IconPack = "Fluent",
+                    Icon = "PersonFeedback",
                     InputType = InputType.Toggle,
                     RegistrySettings = new List<RegistrySetting>
                     {
@@ -1229,9 +1200,7 @@ public static class PrivacyAndSecurityOptimizations
                             RecommendedValue = 1,
                             EnabledValue = null,
                             DisabledValue = 1,
-                            DefaultValue = null,
                             ValueType = RegistryValueKind.DWord,
-                            AbsenceMeansEnabled = true,
                         },
                         new RegistrySetting
                         {
@@ -1240,9 +1209,7 @@ public static class PrivacyAndSecurityOptimizations
                             RecommendedValue = 1,
                             EnabledValue = null,
                             DisabledValue = 1,
-                            DefaultValue = null,
                             ValueType = RegistryValueKind.DWord,
-                            AbsenceMeansEnabled = true,
                         },
                     },
                 },
@@ -1252,7 +1219,8 @@ public static class PrivacyAndSecurityOptimizations
                     Name = "Activity History",
                     Description = "Allows you to jump back into what you were doing with apps, docs, or other activities on startup",
                     GroupName = "Activity History",
-                    Icon = "History",
+                    IconPack = "Fluent",
+                    Icon = "Timeline",
                     InputType = InputType.Toggle,
                     IsWindows10Only = true,
                     RegistrySettings = new List<RegistrySetting>
@@ -1262,22 +1230,18 @@ public static class PrivacyAndSecurityOptimizations
                             KeyPath = @"HKEY_CURRENT_USER\SOFTWARE\Policies\Microsoft\Windows\System",
                             ValueName = "PublishUserActivities",
                             RecommendedValue = 0,
-                            EnabledValue = 1,
-                            DisabledValue = 0,
-                            DefaultValue = 1,
+                            EnabledValue = null,
+                            DisabledValue = null,
                             ValueType = RegistryValueKind.DWord,
-                            AbsenceMeansEnabled = true,
                         },
                         new RegistrySetting
                         {
                             KeyPath = @"HKEY_LOCAL_MACHINE\SOFTWARE\Policies\Microsoft\Windows\System",
                             ValueName = "PublishUserActivities",
                             RecommendedValue = 0,
-                            EnabledValue = 1,
-                            DisabledValue = 0,
-                            DefaultValue = 1,
+                            EnabledValue = null,
+                            DisabledValue = null,
                             ValueType = RegistryValueKind.DWord,
-                            AbsenceMeansEnabled = true,
                         },
                     },
                 },
@@ -1307,11 +1271,9 @@ public static class PrivacyAndSecurityOptimizations
                             KeyPath = @"HKEY_CURRENT_USER\Software\Microsoft\Windows\CurrentVersion\ContentDeliveryManager",
                             ValueName = "SubscribedContent-353698Enabled",
                             RecommendedValue = 0,
-                            EnabledValue = 1,
+                            EnabledValue = null,
                             DisabledValue = 0,
-                            DefaultValue = 1,
                             ValueType = RegistryValueKind.DWord,
-                            AbsenceMeansEnabled = true,
                         },
                     },
                 },
@@ -1330,11 +1292,9 @@ public static class PrivacyAndSecurityOptimizations
                             KeyPath = @"HKEY_CURRENT_USER\Software\Microsoft\Windows\CurrentVersion\SearchSettings",
                             ValueName = "IsDeviceSearchHistoryEnabled",
                             RecommendedValue = 0,
-                            EnabledValue = 1, // When toggle is ON, history is enabled
+                            EnabledValue = null, // When toggle is ON, history is enabled
                             DisabledValue = 0, // When toggle is OFF, history is disabled
-                            DefaultValue = 1, // Default value when registry key exists but no value is set
                             ValueType = RegistryValueKind.DWord,
-                            AbsenceMeansEnabled = true,
                         },
                     },
                 },
@@ -1344,7 +1304,8 @@ public static class PrivacyAndSecurityOptimizations
                     Name = "Show search highlights",
                     Description = "See content suggestions in search",
                     GroupName = "Search permissions",
-                    Icon = "TextBoxSearch",
+                    IconPack = "Fluent",
+                    Icon = "SearchSparkle",
                     InputType = InputType.Toggle,
                     RegistrySettings = new List<RegistrySetting>
                     {
@@ -1353,11 +1314,9 @@ public static class PrivacyAndSecurityOptimizations
                             KeyPath = @"HKEY_CURRENT_USER\Software\Microsoft\Windows\CurrentVersion\SearchSettings",
                             ValueName = "IsDynamicSearchBoxEnabled",
                             RecommendedValue = 0,
-                            EnabledValue = 1, // When toggle is ON, search highlights is enabled
+                            EnabledValue = null, // When toggle is ON, search highlights is enabled
                             DisabledValue = 0, // When toggle is OFF, search highlights is disabled
-                            DefaultValue = 1,
                             ValueType = RegistryValueKind.DWord,
-                            AbsenceMeansEnabled = true,
                         },
                     },
                 },
@@ -1376,11 +1335,9 @@ public static class PrivacyAndSecurityOptimizations
                             KeyPath = @"HKEY_CURRENT_USER\Software\Microsoft\Windows\CurrentVersion\SearchSettings",
                             ValueName = "IsMSACloudSearchEnabled",
                             RecommendedValue = 0,
-                            EnabledValue = 1, // When toggle is ON, cloud search is enabled
+                            EnabledValue = null, // When toggle is ON, cloud search is enabled
                             DisabledValue = 0, // When toggle is OFF, cloud search is disabled
-                            DefaultValue = 1, // Default value when registry key exists but no value is set
                             ValueType = RegistryValueKind.DWord,
-                            AbsenceMeansEnabled = true,
                         },
                     },
                 },
@@ -1399,11 +1356,9 @@ public static class PrivacyAndSecurityOptimizations
                             KeyPath = @"HKEY_CURRENT_USER\Software\Microsoft\Windows\CurrentVersion\SearchSettings",
                             ValueName = "IsAADCloudSearchEnabled",
                             RecommendedValue = 0,
-                            EnabledValue = 1,
+                            EnabledValue = null,
                             DisabledValue = 0,
-                            DefaultValue = 1,
                             ValueType = RegistryValueKind.DWord,
-                            AbsenceMeansEnabled = true,
                         },
                     },
                 },
@@ -1415,7 +1370,7 @@ public static class PrivacyAndSecurityOptimizations
                     GroupName = "Search permissions",
                     InputType = InputType.Toggle,
                     IconPack = "Fluent",
-                    Icon = "Bot",
+                    Icon = "BotSparkle",
                     RegistrySettings = new List<RegistrySetting>
                     {
                         new RegistrySetting
@@ -1425,9 +1380,7 @@ public static class PrivacyAndSecurityOptimizations
                             RecommendedValue = 0,
                             EnabledValue = null,
                             DisabledValue = 0,
-                            DefaultValue = null,
                             ValueType = RegistryValueKind.DWord,
-                            AbsenceMeansEnabled = true,
                         },
                         new RegistrySetting
                         {
@@ -1436,9 +1389,7 @@ public static class PrivacyAndSecurityOptimizations
                             RecommendedValue = 0,
                             EnabledValue = null,
                             DisabledValue = 0,
-                            DefaultValue = null,
                             ValueType = RegistryValueKind.DWord,
-                            AbsenceMeansEnabled = true,
                         },
                     },
                 },
@@ -1468,8 +1419,7 @@ public static class PrivacyAndSecurityOptimizations
                             ValueName = "DisableLocation",
                             RecommendedValue = 1,
                             EnabledValue = 0,
-                            DisabledValue = 1,
-                            DefaultValue = 0,
+                            DisabledValue = null,
                             ValueType = RegistryValueKind.DWord,
                         },
                         new RegistrySetting
@@ -1478,8 +1428,7 @@ public static class PrivacyAndSecurityOptimizations
                             ValueName = "DisableLocation",
                             RecommendedValue = 1,
                             EnabledValue = 0,
-                            DisabledValue = 1,
-                            DefaultValue = 0,
+                            DisabledValue = null,
                             ValueType = RegistryValueKind.DWord,
                         },
                     },

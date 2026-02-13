@@ -1,21 +1,176 @@
-MIT License
+PolyForm Shield License 1.0.0
 
 Copyright (c) 2025 Marco du Plessis
 
-Permission is hereby granted, free of charge, to any person obtaining a copy
-of this software and associated documentation files (the "Software"), to deal
-in the Software without restriction, including without limitation the rights
-to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
-copies of the Software, and to permit persons to whom the Software is
-furnished to do so, subject to the following conditions:
+<https://polyformproject.org/licenses/shield/1.0.0>
 
-The above copyright notice and this permission notice shall be included in all
-copies or substantial portions of the Software.
+## Acceptance
 
-THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
-IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
-FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
-AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
-LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
-OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
-SOFTWARE.
+In order to get any license under these terms, you must agree to them
+as both strict obligations and conditions to all your licenses.
+
+## Copyright License
+
+The licensor grants you a copyright license for the software to do
+everything you might do with the software that would otherwise infringe
+the licensor's copyright in it for any permitted purpose. However, you
+may only distribute the software according to Distribution License and
+make changes or new works based on the software according to Changes
+and New Works License.
+
+## Distribution License
+
+The licensor grants you an additional copyright license to distribute
+copies of the software. Your license to distribute covers distributing
+the software with changes and new works permitted by Changes and New
+Works License.
+
+## Notices
+
+You must ensure that anyone who gets a copy of any part of the software
+from you also gets a copy of these terms or the URL for them above, as
+well as copies of any plain-text lines beginning with `Required Notice:`
+that the licensor provided with the software.
+
+Required Notice: Copyright (c) 2025 Marco du Plessis (https://github.com/Jeyloh/Winhance)
+
+## Changes and New Works License
+
+The licensor grants you an additional copyright license to make changes
+and new works based on the software for any permitted purpose.
+
+## Patent License
+
+The licensor grants you a patent license for the software that covers
+patent claims the licensor can license, or becomes able to license,
+that you would infringe by using the software.
+
+## Noncompete
+
+Any purpose is a permitted purpose, except for providing any product
+that competes with the software or any product the licensor or any of
+its affiliates provides using the software.
+
+## Competition
+
+Goods and services compete even when they provide functionality through
+different kinds of interfaces or for different technical platforms.
+Applications can compete with services, libraries with plugins,
+frameworks with development tools, and so on, even if they're written
+in different programming languages or for different computer
+architectures. Goods and services compete even when provided free of
+charge. If you market a product as a practical substitute for the
+software or another product, it definitely competes.
+
+## New Products
+
+If you are using the software to provide a product that does not
+compete, but the licensor or any of its affiliates brings your product
+into competition by providing a new version of the software or another
+product using the software, you may continue using versions of the
+software available under these terms beforehand to provide your
+competing product, but not any later versions.
+
+## Discontinued Products
+
+You may begin using the software to compete with a product or service
+that the licensor or any of its affiliates has stopped providing,
+unless the licensor includes a plain-text line beginning with
+`Licensor Line of Business:` with the software that mentions that line
+of business.
+
+## Sales of Business
+
+If the licensor or any of its affiliates sells a line of business
+developing the software or using the software to provide a product,
+the buyer can also enforce Noncompete for that product.
+
+## Fair Use
+
+You may have "fair use" rights for the software under the law. These
+terms do not limit them.
+
+## No Other Rights
+
+These terms do not allow you to sublicense or transfer any of your
+licenses to anyone else, or prevent the licensor from granting licenses
+to anyone else. These terms do not imply any other licenses.
+
+## Patent Defense
+
+If you make any written claim that the software infringes or
+contributes to infringement of any patent, your patent license for the
+software granted under these terms ends immediately. If your company
+makes such a claim, your patent license ends immediately for work on
+behalf of your company.
+
+## Violations
+
+The first time you are notified in writing that you have violated any
+of these terms, or done anything with the software not covered by your
+licenses, your licenses can nonetheless continue if you come into full
+compliance with these terms, and take practical steps to correct past
+violations, within 32 days of receiving notice. Otherwise, all your
+licenses end immediately.
+
+## No Liability
+
+AS FAR AS THE LAW ALLOWS, THE SOFTWARE COMES AS IS, WITHOUT ANY
+WARRANTY OR CONDITION, AND THE LICENSOR WILL NOT BE LIABLE TO YOU FOR
+ANY DAMAGES ARISING OUT OF THESE TERMS OR THE USE OR NATURE OF THE
+SOFTWARE, UNDER ANY KIND OF LEGAL CLAIM.
+
+## Definitions
+
+The "licensor" is the individual or entity offering these terms, and
+the "software" is the software the licensor makes available under
+these terms.
+
+A "product" can be a good or service, or a combination of them.
+
+"You" refers to the individual or entity agreeing to these terms.
+
+"Your company" is any legal entity, sole proprietorship, or other kind
+of organization that you work for, plus all its affiliates.
+
+"Affiliates" means the other organizations than an organization has
+control over, is under the control of, or is under common control with.
+
+"Control" means ownership of substantially all the assets of an entity,
+or the power to direct its management and policies by vote, contract,
+or otherwise. Control can be direct or indirect.
+
+"Your licenses" are all the licenses granted to you for the software
+under these terms.
+
+"Use" means anything you do with the software requiring one of your
+licenses.
+
+---
+
+## Plain-Language Summary (Not Part of the License)
+
+The following is an informal summary provided by the author to help
+everyday users understand the license above. This summary is NOT a
+legal document, has no legal effect, and does not modify the PolyForm
+Shield License 1.0.0 in any way. If there is any conflict between this
+summary and the license above, the license governs.
+
+**You CAN:**
+- Use Winhance for free, for any purpose -- personal, educational,
+  or business.
+- Use Winhance as part of your IT consulting or repair services to
+  help customers.
+- Study, modify, and learn from the source code.
+- Share copies of Winhance with others (with this license included).
+
+**You CANNOT:**
+- Fork or rebrand Winhance and sell or distribute it as a competing
+  product (free or paid).
+- Redistribute a modified version of Winhance as a substitute for
+  the original.
+
+In short: use it, share it, build a business with it -- just don't
+turn it into a competing product.
+
+-- Marco du Plessis, Creator of Winhance

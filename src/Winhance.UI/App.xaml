@@ -10,8 +10,6 @@
             <ResourceDictionary.MergedDictionaries>
                 <!-- WinUI 3 native controls resources -->
                 <XamlControlsResources xmlns="using:Microsoft.UI.Xaml.Controls" />
-                <!-- Legacy theme colors for Winhance custom themes -->
-                <ResourceDictionary Source="ms-appx:///Features/Common/Resources/LegacyThemes.xaml" />
                 <!-- Value converters -->
                 <ResourceDictionary Source="ms-appx:///Features/Common/Resources/Converters.xaml" />
                 <!-- Shared setting templates and styles (code-behind enabled for x:Bind) -->

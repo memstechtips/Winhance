@@ -1290,6 +1290,18 @@ public partial class WimUtilViewModel : ObservableObject
 
     partial void OnIsExtractionCompleteChanged(bool value)
     {
-        if (value) Task.Run(DetectImageFormatAsync);
+        if (value) _ = SafeDetectImageFormatAsync();
+    }
+
+    private async Task SafeDetectImageFormatAsync()
+    {
+        try
+        {
+            await DetectImageFormatAsync();
+        }
+        catch (Exception ex)
+        {
+            _logService.LogError($"Unhandled error in image format detection: {ex.Message}", ex);
+        }
     }
 }

@@ -171,6 +171,24 @@ public sealed partial class SoftwareAppsPage : Page
             DefaultButton = ContentDialogButton.Close,
         };
 
+        // Set theme and semi-transparent background so Mica/Acrylic backdrop shows through
+        if (this.XamlRoot?.Content is FrameworkElement rootElement)
+        {
+            dialog.RequestedTheme = rootElement.ActualTheme == ElementTheme.Dark
+                ? ElementTheme.Dark
+                : ElementTheme.Light;
+        }
+        var baseColor = dialog.RequestedTheme == ElementTheme.Dark
+            ? Windows.UI.Color.FromArgb(255, 44, 44, 44)
+            : Windows.UI.Color.FromArgb(255, 243, 243, 243);
+        dialog.Background = new AcrylicBrush
+        {
+            TintColor = baseColor,
+            TintOpacity = 0.65,
+            TintLuminosityOpacity = 0.75,
+            FallbackColor = baseColor
+        };
+
         if (ViewModel.IsWindowsAppsTabSelected)
         {
             dialog.Title = localization.GetString("Help_WindowsApps_Title");

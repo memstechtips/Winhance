@@ -1,11 +1,14 @@
-// Native C# WinGet installer using ManagedDism API for machine-wide provisioning
+// Native C# WinGet installer using PowerShell Add-AppxProvisionedPackage for machine-wide provisioning,
+// with PackageManager WinRT API fallback.
 using System.IO;
 using System.IO.Compression;
 using System.Net.Http;
 using System.Runtime.InteropServices;
-using Microsoft.Dism;
+using System.Text;
+using Windows.Management.Deployment;
 using Winhance.Core.Features.Common.Interfaces;
 using Winhance.Core.Features.Common.Models;
+using Winhance.Infrastructure.Features.Common.Utilities;
 
 namespace Winhance.Infrastructure.Features.SoftwareApps.Services.WinGet.Utilities;
 
@@ -53,24 +56,23 @@ public class WinGetInstaller
             var installerPath = Path.Combine(tempDir, InstallerFileName);
             var licensePath = Path.Combine(tempDir, LicenseFileName);
 
-            // Download files (0-45%)
-            ReportProgress(progress, 0, GetString("Progress_WinGet_DownloadingDependencies"));
-            await DownloadFileAsync($"{GitHubBaseUrl}/{DependenciesFileName}", dependenciesPath, "Dependencies", progress, 0, 15, cancellationToken);
-
-            ReportProgress(progress, 15, GetString("Progress_WinGet_DownloadingInstaller"));
-            await DownloadFileAsync($"{GitHubBaseUrl}/{InstallerFileName}", installerPath, "WinGet Installer", progress, 15, 35, cancellationToken);
-
-            ReportProgress(progress, 35, GetString("Progress_WinGet_DownloadingLicense"));
-            await DownloadFileAsync($"{GitHubBaseUrl}/{LicenseFileName}", licensePath, "License", progress, 35, 45, cancellationToken);
+            // Download all files in parallel (0-45%)
+            // Only the installer (largest file) drives the progress bar; deps & license download silently alongside it.
+            ReportProgress(progress, 0, GetString("Progress_WinGet_DownloadingComponents"));
+            await Task.WhenAll(
+                DownloadFileAsync($"{GitHubBaseUrl}/{DependenciesFileName}", dependenciesPath, "Dependencies", null, 0, 0, cancellationToken),
+                DownloadFileAsync($"{GitHubBaseUrl}/{InstallerFileName}", installerPath, "WinGet Installer", progress, 0, 45, cancellationToken),
+                DownloadFileAsync($"{GitHubBaseUrl}/{LicenseFileName}", licensePath, "License", null, 0, 0, cancellationToken)
+            );
 
             // Extract dependencies (45-55%)
             ReportProgress(progress, 45, GetString("Progress_WinGet_ExtractingDependencies"));
             var extractPath = Path.Combine(tempDir, "Dependencies");
             await ExtractDependenciesAsync(dependenciesPath, extractPath);
 
-            // Install using DISM API (55-100%)
+            // Provision for all users (55-100%)
             ReportProgress(progress, 55, GetString("Progress_WinGet_InstallingMachineWide"));
-            await InstallWithDismAsync(installerPath, extractPath, licensePath, progress, cancellationToken);
+            await InstallProvisionedAsync(installerPath, extractPath, licensePath, progress, cancellationToken);
 
             ReportProgress(progress, 100, GetString("Progress_WinGet_InstalledSuccessfully"));
             _logService?.LogInformation("WinGet installation completed successfully");
@@ -117,32 +119,11 @@ public class WinGetInstaller
             _logService?.LogInformation($"Found existing App Installer package: {existingPackagePath}");
             ReportProgress(progress, 50, GetString("Progress_WinGet_ProvisioningExisting"));
 
-            // Provision the existing package using DISM (no dependencies needed for re-provisioning)
-            await Task.Run(() =>
-            {
-                cancellationToken.ThrowIfCancellationRequested();
+            _logService?.LogInformation($"Provisioning existing package: {existingPackagePath}");
 
-                DismApi.Initialize(DismLogLevel.LogErrors);
-                try
-                {
-                    using var session = DismApi.OpenOnlineSession();
+            await ProvisionWithPowerShellAsync(existingPackagePath, null, null, cancellationToken);
 
-                    _logService?.LogInformation($"Provisioning existing package: {existingPackagePath}");
-
-                    DismApi.AddProvisionedAppxPackage(
-                        session,
-                        existingPackagePath,
-                        new List<string>(), // No additional dependencies needed
-                        null, // No license file needed for existing package
-                        customDataPath: null);
-
-                    _logService?.LogInformation("Existing App Installer package provisioned successfully");
-                }
-                finally
-                {
-                    DismApi.Shutdown();
-                }
-            }, cancellationToken);
+            _logService?.LogInformation("Existing App Installer package provisioned successfully");
 
             ReportProgress(progress, 100, GetString("Progress_WinGet_InstalledSuccessfully"));
             return (true, GetString("Progress_WinGet_InstalledSuccessfully"));
@@ -238,7 +219,12 @@ public class WinGetInstaller
             {
                 var downloadProgress = (double)downloadedBytes / totalBytes;
                 var overallProgress = progressStart + (int)((progressEnd - progressStart) * downloadProgress);
-                ReportProgress(progress, overallProgress, $"Downloading {displayName}... {downloadProgress:P0}");
+                progress?.Report(new TaskProgressDetail
+                {
+                    Progress = overallProgress,
+                    StatusText = GetString("Progress_WinGet_DownloadingComponents"),
+                    TerminalOutput = $"{overallProgress}%"
+                });
                 lastReportTime = DateTime.UtcNow;
             }
         }
@@ -258,54 +244,120 @@ public class WinGetInstaller
         });
     }
 
-    private Task InstallWithDismAsync(
+    private async Task InstallProvisionedAsync(
         string installerPath,
         string dependenciesPath,
         string licensePath,
         IProgress<TaskProgressDetail>? progress,
         CancellationToken cancellationToken)
     {
-        return Task.Run(() =>
+        cancellationToken.ThrowIfCancellationRequested();
+
+        // Get architecture-specific dependencies
+        var arch = GetCurrentArchitecture();
+        var allAppxFiles = Directory.GetFiles(dependenciesPath, "*.appx", SearchOption.AllDirectories);
+        var dependencyPackages = allAppxFiles
+            .Where(f => IsRelevantForArchitecture(f, arch))
+            .ToArray();
+
+        _logService?.LogInformation($"Found {dependencyPackages.Length} dependencies for {arch} architecture");
+
+        var licensePaths = !string.IsNullOrEmpty(licensePath)
+            ? new[] { licensePath }
+            : null;
+
+        // Try PowerShell Add-AppxProvisionedPackage first, fall back to PackageManager WinRT API
+        try
         {
-            cancellationToken.ThrowIfCancellationRequested();
+            ReportProgress(progress, 60, GetString("Progress_WinGet_Provisioning"));
+            await ProvisionWithPowerShellAsync(installerPath, dependencyPackages, licensePaths, cancellationToken);
+            _logService?.LogInformation("WinGet provisioned successfully for all users");
+        }
+        catch (Exception ex) when (ex is not OperationCanceledException)
+        {
+            _logService?.LogWarning($"PowerShell provisioning failed ({ex.Message}), falling back to PackageManager");
+            ReportProgress(progress, 70, GetString("Progress_WinGet_Provisioning"));
+            await InstallWithPackageManagerAsync(installerPath, dependencyPackages, cancellationToken);
+            _logService?.LogInformation("WinGet installed successfully via PackageManager");
+        }
 
-            // Get architecture-specific dependencies
-            var arch = GetCurrentArchitecture();
-            var allAppxFiles = Directory.GetFiles(dependenciesPath, "*.appx", SearchOption.AllDirectories);
-            var dependencyPackages = allAppxFiles
-                .Where(f => IsRelevantForArchitecture(f, arch))
-                .ToList();
+        ReportProgress(progress, 95, GetString("Progress_WinGet_ProvisionedSuccessfully"));
+    }
 
-            _logService?.LogInformation($"Found {dependencyPackages.Count} dependencies for {arch} architecture");
+    /// <summary>
+    /// Provisions an AppX package machine-wide using the PowerShell Add-AppxProvisionedPackage cmdlet.
+    /// </summary>
+    private async Task ProvisionWithPowerShellAsync(
+        string packagePath,
+        string[]? dependencyPackages,
+        string[]? licensePaths,
+        CancellationToken cancellationToken)
+    {
+        var script = new StringBuilder();
+        script.AppendLine("$ErrorActionPreference = 'Stop'");
+        script.Append($"Add-AppxProvisionedPackage -Online -PackagePath '{packagePath.Replace("'", "''")}'");
 
-            // Initialize DISM
-            DismApi.Initialize(DismLogLevel.LogErrors);
+        if (dependencyPackages is { Length: > 0 })
+        {
+            var deps = string.Join(",", dependencyPackages.Select(p => $"'{p.Replace("'", "''")}'"));
+            script.Append($" -DependencyPackagePath {deps}");
+        }
 
-            try
+        if (licensePaths is { Length: > 0 })
+        {
+            script.Append($" -LicensePath '{licensePaths[0].Replace("'", "''")}'");
+        }
+        else
+        {
+            script.Append(" -SkipLicense");
+        }
+
+        script.AppendLine();
+        script.AppendLine("Write-Host 'Package provisioned successfully for all users'");
+
+        _logService?.LogInformation($"Provisioning via PowerShell: {packagePath}");
+
+        await PowerShellRunner.RunScriptAsync(script.ToString(), ct: cancellationToken);
+    }
+
+    /// <summary>
+    /// Installs an AppX package for the current user using the PackageManager WinRT API.
+    /// Used as a fallback when DismAddProvisionedAppxPackage is unavailable.
+    /// </summary>
+    private async Task InstallWithPackageManagerAsync(
+        string packagePath,
+        string[]? dependencyPackages,
+        CancellationToken cancellationToken)
+    {
+        var packageManager = new PackageManager();
+        var packageUri = new Uri(packagePath);
+
+        List<Uri>? dependencyUris = null;
+        if (dependencyPackages is { Length: > 0 })
+        {
+            dependencyUris = dependencyPackages.Select(p => new Uri(p)).ToList();
+
+            // Install dependencies first individually (some may already be installed)
+            foreach (var depUri in dependencyUris)
             {
-                ReportProgress(progress, 60, GetString("Progress_WinGet_OpeningDismSession"));
-                using var session = DismApi.OpenOnlineSession();
-
-                cancellationToken.ThrowIfCancellationRequested();
-
-                ReportProgress(progress, 70, GetString("Progress_WinGet_Provisioning"));
-                _logService?.LogInformation($"Installing WinGet from {installerPath} with license {licensePath}");
-
-                DismApi.AddProvisionedAppxPackage(
-                    session,
-                    installerPath,
-                    dependencyPackages,
-                    licensePath,
-                    customDataPath: null);
-
-                _logService?.LogInformation("WinGet provisioned successfully for all users");
-                ReportProgress(progress, 95, GetString("Progress_WinGet_ProvisionedSuccessfully"));
+                try
+                {
+                    _logService?.LogInformation($"Installing dependency: {depUri.LocalPath}");
+                    await packageManager.AddPackageAsync(
+                        depUri, null,
+                        DeploymentOptions.ForceApplicationShutdown);
+                }
+                catch (Exception ex)
+                {
+                    _logService?.LogWarning($"Dependency install failed (may already be installed): {ex.Message}");
+                }
             }
-            finally
-            {
-                DismApi.Shutdown();
-            }
-        }, cancellationToken);
+        }
+
+        _logService?.LogInformation($"Installing package via PackageManager: {packagePath}");
+        await packageManager.AddPackageAsync(
+            packageUri, dependencyUris,
+            DeploymentOptions.ForceApplicationShutdown);
     }
 
     private static string GetCurrentArchitecture()
@@ -338,7 +390,8 @@ public class WinGetInstaller
         progress?.Report(new TaskProgressDetail
         {
             Progress = percent,
-            StatusText = status
+            StatusText = status,
+            TerminalOutput = percent > 0 && percent < 100 ? $"{percent}%" : null
         });
     }
 

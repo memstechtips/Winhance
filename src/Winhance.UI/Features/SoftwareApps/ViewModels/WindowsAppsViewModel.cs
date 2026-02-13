@@ -27,6 +27,7 @@ public partial class WindowsAppsViewModel : BaseViewModel
     private readonly ILocalizationService _localizationService;
     private readonly IInternetConnectivityService _connectivityService;
     private readonly IDispatcherService _dispatcherService;
+    private readonly IWinGetService _winGetService;
 
     public WindowsAppsViewModel(
         IWindowsAppsService windowsAppsService,
@@ -36,7 +37,8 @@ public partial class WindowsAppsViewModel : BaseViewModel
         IDialogService dialogService,
         ILocalizationService localizationService,
         IInternetConnectivityService connectivityService,
-        IDispatcherService dispatcherService)
+        IDispatcherService dispatcherService,
+        IWinGetService winGetService)
     {
         _windowsAppsService = windowsAppsService;
         _appOperationService = appOperationService;
@@ -46,8 +48,10 @@ public partial class WindowsAppsViewModel : BaseViewModel
         _localizationService = localizationService;
         _connectivityService = connectivityService;
         _dispatcherService = dispatcherService;
+        _winGetService = winGetService;
 
         _localizationService.LanguageChanged += OnLanguageChanged;
+        _winGetService.WinGetInstalled += OnWinGetInstalled;
 
         Items = new ObservableCollection<AppItemViewModel>();
         ItemsView = new AdvancedCollectionView(Items, true);
@@ -120,7 +124,10 @@ public partial class WindowsAppsViewModel : BaseViewModel
 
     partial void OnSearchTextChanged(string value)
     {
-        ItemsView.RefreshFilter();
+        using (ItemsView.DeferRefresh())
+        {
+            ItemsView.RefreshFilter();
+        }
         NotifyCardViewProperties();
     }
 
@@ -211,10 +218,25 @@ public partial class WindowsAppsViewModel : BaseViewModel
             var features = allItems.Where(x => !string.IsNullOrEmpty(x.OptionalFeatureName));
 
             await LoadAppsIntoItemsAsync(apps.Concat(capabilities).Concat(features));
+        }
+        catch (Exception ex)
+        {
+            _logService.LogError("[WindowsAppsViewModel] Error loading app definitions", ex);
+            StatusText = $"Error loading apps: {ex.Message}";
+        }
 
+        try
+        {
             StatusText = _localizationService.GetString("Progress_CheckingInstallStatus");
             await CheckInstallationStatusAsync();
+        }
+        catch (Exception ex)
+        {
+            _logService.LogWarning($"[WindowsAppsViewModel] Install status check failed, items loaded without status: {ex.Message}");
+        }
 
+        try
+        {
             IsAllSelected = false;
             IsInitialized = true;
             StatusText = $"Loaded {Items.Count} items";
@@ -222,8 +244,7 @@ public partial class WindowsAppsViewModel : BaseViewModel
         }
         catch (Exception ex)
         {
-            _logService.LogError("[WindowsAppsViewModel] Error loading apps", ex);
-            StatusText = $"Error loading apps: {ex.Message}";
+            _logService.LogWarning($"[WindowsAppsViewModel] Error finalizing: {ex.Message}");
         }
         finally
         {
@@ -269,15 +290,16 @@ public partial class WindowsAppsViewModel : BaseViewModel
             var definitions = Items.Select(item => item.Definition).ToList();
             var statusResults = await _windowsAppsService.CheckBatchInstalledAsync(definitions);
 
-            foreach (var item in Items)
+            using (ItemsView.DeferRefresh())
             {
-                if (statusResults.TryGetValue(item.Definition.Id, out bool isInstalled))
+                foreach (var item in Items)
                 {
-                    item.IsInstalled = isInstalled;
+                    if (statusResults.TryGetValue(item.Definition.Id, out bool isInstalled))
+                    {
+                        item.IsInstalled = isInstalled;
+                    }
                 }
             }
-
-            ItemsView.RefreshSorting();
         }
         catch (Exception ex)
         {
@@ -301,6 +323,7 @@ public partial class WindowsAppsViewModel : BaseViewModel
         try
         {
             await CheckInstallationStatusAsync();
+            NotifyCardViewProperties();
             StatusText = $"Refreshed status for {Items.Count} items";
         }
         catch (Exception ex)
@@ -312,6 +335,19 @@ public partial class WindowsAppsViewModel : BaseViewModel
         {
             IsLoading = false;
         }
+    }
+
+    private void OnWinGetInstalled(object? sender, EventArgs e)
+    {
+        _ = _dispatcherService.RunOnUIThreadAsync(async () =>
+        {
+            if (IsInitialized)
+            {
+                _logService.LogInformation("WinGet installed — refreshing Windows Apps installation status");
+                await CheckInstallationStatusAsync();
+                NotifyCardViewProperties();
+            }
+        });
     }
 
     [RelayCommand]
@@ -347,8 +383,21 @@ public partial class WindowsAppsViewModel : BaseViewModel
             var progress = _progressService.CreateDetailedProgress();
 
             int successCount = 0;
-            foreach (var app in selectedItems)
+            for (int i = 0; i < selectedItems.Count; i++)
             {
+                if (_progressService.ConsumeSkipNextRequest())
+                    continue;
+
+                var app = selectedItems[i];
+                var nextName = i + 1 < selectedItems.Count ? selectedItems[i + 1].Name : null;
+                progress.Report(new TaskProgressDetail
+                {
+                    StatusText = _localizationService.GetString("Progress_Installing", app.Name),
+                    QueueTotal = selectedItems.Count,
+                    QueueCurrent = i + 1,
+                    QueueNextItemName = nextName
+                });
+
                 var result = await _appOperationService.InstallAppAsync(app.Definition, progress, shouldRemoveFromBloatScript: true);
                 if (result.Success && result.Result)
                 {
@@ -358,7 +407,6 @@ public partial class WindowsAppsViewModel : BaseViewModel
             }
 
             StatusText = $"Installed {successCount} of {selectedItems.Count} items";
-            await RefreshAfterOperationAsync();
         }
         catch (Exception ex)
         {
@@ -373,6 +421,8 @@ public partial class WindowsAppsViewModel : BaseViewModel
             }
             IsTaskRunning = false;
         }
+
+        await RefreshAfterOperationAsync();
     }
 
     /// <summary>
@@ -432,17 +482,13 @@ public partial class WindowsAppsViewModel : BaseViewModel
 
     private async Task RemoveAppsInternalAsync(List<AppItemViewModel> selectedItems, bool saveRemovalScripts = true)
     {
-
         IsTaskRunning = true;
         StatusText = _localizationService.GetString("Progress_Task_RemovingWindowsApps");
 
         try
         {
-            _progressService.StartTask(_localizationService.GetString("Progress_Task_RemovingWindowsApps") ?? "Removing Windows Apps", false);
-            var progress = _progressService.CreateDetailedProgress();
-
             var definitions = selectedItems.Select(a => a.Definition).ToList();
-            var result = await _appOperationService.UninstallAppsAsync(definitions, progress, saveRemovalScripts);
+            var result = await _appOperationService.UninstallAppsInParallelAsync(definitions, saveRemovalScripts);
 
             if (result.Success)
             {
@@ -456,8 +502,6 @@ public partial class WindowsAppsViewModel : BaseViewModel
             {
                 StatusText = result.ErrorMessage ?? "Removal failed";
             }
-
-            await RefreshAfterOperationAsync();
         }
         catch (Exception ex)
         {
@@ -466,17 +510,16 @@ public partial class WindowsAppsViewModel : BaseViewModel
         }
         finally
         {
-            if (_progressService.IsTaskRunning)
-            {
-                _progressService.CompleteTask();
-            }
             IsTaskRunning = false;
         }
+
+        await RefreshAfterOperationAsync();
     }
 
     private async Task RefreshAfterOperationAsync()
     {
         await CheckInstallationStatusAsync();
+        NotifyCardViewProperties();
         ClearSelections();
     }
 

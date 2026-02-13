@@ -92,7 +92,7 @@ public partial class SettingsViewModel : ObservableObject
         // Initialize languages from StringKeys
         InitializeLanguages();
 
-        // Initialize themes (5-theme system)
+        // Initialize themes
         InitializeThemes();
 
         // Load current selections
@@ -117,7 +117,7 @@ public partial class SettingsViewModel : ObservableObject
     }
 
     /// <summary>
-    /// Initializes the 5-theme options.
+    /// Initializes the theme options.
     /// </summary>
     private void InitializeThemes()
     {
@@ -125,8 +125,6 @@ public partial class SettingsViewModel : ObservableObject
         Themes.Add(new ThemeOption(WinhanceTheme.System, GetThemeDisplayName(WinhanceTheme.System)));
         Themes.Add(new ThemeOption(WinhanceTheme.LightNative, GetThemeDisplayName(WinhanceTheme.LightNative)));
         Themes.Add(new ThemeOption(WinhanceTheme.DarkNative, GetThemeDisplayName(WinhanceTheme.DarkNative)));
-        Themes.Add(new ThemeOption(WinhanceTheme.LegacyWhite, GetThemeDisplayName(WinhanceTheme.LegacyWhite)));
-        Themes.Add(new ThemeOption(WinhanceTheme.LegacyDark, GetThemeDisplayName(WinhanceTheme.LegacyDark)));
     }
 
     /// <summary>
@@ -137,8 +135,6 @@ public partial class SettingsViewModel : ObservableObject
         WinhanceTheme.System => _localizationService.GetString(StringKeys.Themes.System) ?? "System",
         WinhanceTheme.LightNative => _localizationService.GetString(StringKeys.Themes.LightNative) ?? "Light",
         WinhanceTheme.DarkNative => _localizationService.GetString(StringKeys.Themes.DarkNative) ?? "Dark",
-        WinhanceTheme.LegacyWhite => _localizationService.GetString(StringKeys.Themes.LegacyWhite) ?? "Legacy Light",
-        WinhanceTheme.LegacyDark => _localizationService.GetString(StringKeys.Themes.LegacyDark) ?? "Legacy Dark",
         _ => theme.ToString()
     };
 

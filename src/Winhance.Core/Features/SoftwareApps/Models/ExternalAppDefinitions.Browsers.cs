@@ -22,6 +22,7 @@ namespace Winhance.Core.Features.SoftwareApps.Models
                             Description = "WebView2 runtime for Windows applications",
                             GroupName = "Browsers",
                             WinGetPackageId = ["Microsoft.EdgeWebView2Runtime"],
+                            ChocoPackageId = "webview2-runtime",
                             WebsiteUrl = "https://developer.microsoft.com/en-us/microsoft-edge/webview2/"
                         },
                         new ItemDefinition
@@ -49,6 +50,7 @@ namespace Winhance.Core.Features.SoftwareApps.Models
                             Description = "Compiler optimized, private Firefox fork",
                             GroupName = "Browsers",
                             WinGetPackageId = ["Alex313031.Mercury"],
+                            ChocoPackageId = "mercury",
                             WebsiteUrl = "https://thorium.rocks/mercury"
                         },
                         new ItemDefinition
@@ -58,6 +60,7 @@ namespace Winhance.Core.Features.SoftwareApps.Models
                             Description = "Popular web browser known for privacy and customization",
                             GroupName = "Browsers",
                             WinGetPackageId = ["Mozilla.Firefox"],
+                            ChocoPackageId = "firefox",
                             WebsiteUrl = "https://www.mozilla.org/firefox/"
                         },
                         new ItemDefinition
@@ -67,6 +70,7 @@ namespace Winhance.Core.Features.SoftwareApps.Models
                             Description = "Google's web browser with sync and extension support",
                             GroupName = "Browsers",
                             WinGetPackageId = ["Google.Chrome", "Google.Chrome.EXE"],
+                            ChocoPackageId = "googlechrome",
                             WebsiteUrl = "https://www.google.com/chrome/"
                         },
                         new ItemDefinition
@@ -76,6 +80,7 @@ namespace Winhance.Core.Features.SoftwareApps.Models
                             Description = "Chromium-based browser with privacy enhancements",
                             GroupName = "Browsers",
                             WinGetPackageId = ["Eloston.Ungoogled-Chromium"],
+                            ChocoPackageId = "ungoogled-chromium",
                             WebsiteUrl = "https://ungoogled-software.github.io/"
                         },
                         new ItemDefinition
@@ -85,6 +90,7 @@ namespace Winhance.Core.Features.SoftwareApps.Models
                             Description = "Privacy-focused browser with built-in ad blocking",
                             GroupName = "Browsers",
                             WinGetPackageId = ["Brave.Brave"],
+                            ChocoPackageId = "brave",
                             WebsiteUrl = "https://brave.com/"
                         },
                         new ItemDefinition
@@ -94,6 +100,7 @@ namespace Winhance.Core.Features.SoftwareApps.Models
                             Description = "Feature-rich web browser with built-in VPN and ad blocker",
                             GroupName = "Browsers",
                             WinGetPackageId = ["Opera.Opera"],
+                            ChocoPackageId = "opera",
                             WebsiteUrl = "https://www.opera.com/"
                         },
                         new ItemDefinition
@@ -103,6 +110,7 @@ namespace Winhance.Core.Features.SoftwareApps.Models
                             Description = "Gaming-oriented version of Opera with unique features",
                             GroupName = "Browsers",
                             WinGetPackageId = ["Opera.OperaGX"],
+                            ChocoPackageId = "opera-gx",
                             WebsiteUrl = "https://www.opera.com/gx"
                         },
                         new ItemDefinition
@@ -121,6 +129,7 @@ namespace Winhance.Core.Features.SoftwareApps.Models
                             Description = "Privacy-focused browser that routes traffic through the Tor network",
                             GroupName = "Browsers",
                             WinGetPackageId = ["TorProject.TorBrowser"],
+                            ChocoPackageId = "tor-browser",
                             WebsiteUrl = "https://www.torproject.org/"
                         },
                         new ItemDefinition
@@ -130,6 +139,7 @@ namespace Winhance.Core.Features.SoftwareApps.Models
                             Description = "Highly customizable browser with a focus on user control",
                             GroupName = "Browsers",
                             WinGetPackageId = ["Vivaldi.Vivaldi"],
+                            ChocoPackageId = "vivaldi",
                             WebsiteUrl = "https://vivaldi.com/"
                         },
                         new ItemDefinition
@@ -139,6 +149,7 @@ namespace Winhance.Core.Features.SoftwareApps.Models
                             Description = "Firefox-based browser with a focus on privacy and customization",
                             GroupName = "Browsers",
                             WinGetPackageId = ["Waterfox.Waterfox"],
+                            ChocoPackageId = "waterfox",
                             WebsiteUrl = "https://www.waterfox.net/"
                         },
                         new ItemDefinition
@@ -166,6 +177,7 @@ namespace Winhance.Core.Features.SoftwareApps.Models
                             Description = "Open Source, Goanna-based web browser focusing on efficiency and customization",
                             GroupName = "Browsers",
                             WinGetPackageId = ["MoonchildProductions.PaleMoon"],
+                            ChocoPackageId = "palemoon",
                             WebsiteUrl = "https://www.palemoon.org/"
                         },
                         new ItemDefinition
@@ -175,6 +187,7 @@ namespace Winhance.Core.Features.SoftwareApps.Models
                             Description = "Privacy focused browser with built-in ad blocking and VPN",
                             GroupName = "Browsers",
                             WinGetPackageId = ["Maxthon.Maxthon"],
+                            ChocoPackageId = "maxthon",
                             WebsiteUrl = "https://www.maxthon.com/"
                         },
                         new ItemDefinition
@@ -184,6 +197,7 @@ namespace Winhance.Core.Features.SoftwareApps.Models
                             Description = "Privacy focused browser with strong tracking protection",
                             GroupName = "Browsers",
                             WinGetPackageId = ["Ablaze.Floorp"],
+                            ChocoPackageId = "floorp",
                             WebsiteUrl = "https://floorp.app/"
                         },
                         new ItemDefinition
@@ -202,6 +216,7 @@ namespace Winhance.Core.Features.SoftwareApps.Models
                             Description = "A custom version of Firefox, focused on privacy, security and freedom",
                             GroupName = "Browsers",
                             WinGetPackageId = ["LibreWolf.LibreWolf"],
+                            ChocoPackageId = "librewolf",
                             WebsiteUrl = "https://librewolf.net/"
                         }
                     }

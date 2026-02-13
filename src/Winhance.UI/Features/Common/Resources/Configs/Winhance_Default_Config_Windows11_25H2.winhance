@@ -1,0 +1,2073 @@
+{
+  "Version": "2.0",
+  "CreatedAt": "2026-02-08T20:09:34.1561631Z",
+  "WindowsApps": {
+    "IsIncluded": true,
+    "Items": [
+      {
+        "Id": "windows-app-bing-search",
+        "Name": "Bing Search",
+        "IsSelected": true,
+        "InputType": 0,
+        "AppxPackageName": "Microsoft.BingSearch"
+      },
+      {
+        "Id": "windows-app-microsoft-news",
+        "Name": "Microsoft News",
+        "IsSelected": true,
+        "InputType": 0,
+        "AppxPackageName": "Microsoft.BingNews"
+      },
+      {
+        "Id": "windows-app-msn-weather",
+        "Name": "MSN Weather",
+        "IsSelected": true,
+        "InputType": 0,
+        "AppxPackageName": "Microsoft.BingWeather"
+      },
+      {
+        "Id": "windows-app-camera",
+        "Name": "Camera",
+        "IsSelected": true,
+        "InputType": 0,
+        "AppxPackageName": "Microsoft.WindowsCamera"
+      },
+      {
+        "Id": "windows-app-clipchamp",
+        "Name": "Clipchamp",
+        "IsSelected": true,
+        "InputType": 0,
+        "AppxPackageName": "Clipchamp.Clipchamp"
+      },
+      {
+        "Id": "windows-app-alarms-clock",
+        "Name": "Alarms & Clock",
+        "IsSelected": true,
+        "InputType": 0,
+        "AppxPackageName": "Microsoft.WindowsAlarms"
+      },
+      {
+        "Id": "windows-app-get-help",
+        "Name": "Get Help",
+        "IsSelected": true,
+        "InputType": 0,
+        "AppxPackageName": "Microsoft.GetHelp"
+      },
+      {
+        "Id": "windows-app-calculator",
+        "Name": "Calculator",
+        "IsSelected": true,
+        "InputType": 0,
+        "AppxPackageName": "Microsoft.WindowsCalculator"
+      },
+      {
+        "Id": "windows-app-dev-home",
+        "Name": "Dev Home",
+        "IsSelected": true,
+        "InputType": 0,
+        "AppxPackageName": "Microsoft.Windows.DevHome"
+      },
+      {
+        "Id": "windows-app-family-safety",
+        "Name": "Microsoft Family Safety",
+        "IsSelected": true,
+        "InputType": 0,
+        "AppxPackageName": "MicrosoftCorporationII.MicrosoftFamily"
+      },
+      {
+        "Id": "windows-app-teams",
+        "Name": "Microsoft Teams",
+        "IsSelected": true,
+        "InputType": 0,
+        "AppxPackageName": "MSTeams"
+      },
+      {
+        "Id": "windows-app-feedback-hub",
+        "Name": "Feedback Hub",
+        "IsSelected": true,
+        "InputType": 0,
+        "AppxPackageName": "Microsoft.WindowsFeedbackHub"
+      },
+      {
+        "Id": "windows-app-terminal",
+        "Name": "Terminal",
+        "IsSelected": true,
+        "InputType": 0,
+        "AppxPackageName": "Microsoft.WindowsTerminal"
+      },
+      {
+        "Id": "windows-app-outlook",
+        "Name": "Outlook for Windows",
+        "IsSelected": true,
+        "InputType": 0,
+        "AppxPackageName": "Microsoft.OutlookForWindows"
+      },
+      {
+        "Id": "windows-app-snipping-tool",
+        "Name": "Snipping Tool",
+        "IsSelected": true,
+        "InputType": 0,
+        "AppxPackageName": "Microsoft.ScreenSketch"
+      },
+      {
+        "Id": "windows-app-power-automate",
+        "Name": "Power Automate",
+        "IsSelected": true,
+        "InputType": 0,
+        "AppxPackageName": "Microsoft.PowerAutomateDesktop"
+      },
+      {
+        "Id": "windows-app-quick-assist",
+        "Name": "Quick Assist",
+        "IsSelected": true,
+        "InputType": 0,
+        "AppxPackageName": "MicrosoftCorporationII.QuickAssist"
+      },
+      {
+        "Id": "windows-app-solitaire",
+        "Name": "Solitaire Collection",
+        "IsSelected": true,
+        "InputType": 0,
+        "AppxPackageName": "Microsoft.MicrosoftSolitaireCollection"
+      },
+      {
+        "Id": "windows-app-xbox",
+        "Name": "Xbox",
+        "IsSelected": true,
+        "InputType": 0,
+        "AppxPackageName": "Microsoft.GamingApp",
+        "SubPackages": [
+          "Microsoft.XboxApp"
+        ]
+      },
+      {
+        "Id": "windows-app-xbox-identity-provider",
+        "Name": "Xbox Identity Provider",
+        "IsSelected": true,
+        "InputType": 0,
+        "AppxPackageName": "Microsoft.XboxIdentityProvider"
+      },
+      {
+        "Id": "windows-app-xbox-live-ingame",
+        "Name": "Xbox Live In-Game Experience",
+        "IsSelected": true,
+        "InputType": 0,
+        "AppxPackageName": "Microsoft.Xbox.TCUI"
+      },
+      {
+        "Id": "windows-app-xbox-game-bar",
+        "Name": "Xbox Game Bar",
+        "IsSelected": true,
+        "InputType": 0,
+        "AppxPackageName": "Microsoft.XboxGamingOverlay"
+      },
+      {
+        "Id": "windows-app-store",
+        "Name": "Microsoft Store",
+        "IsSelected": true,
+        "InputType": 0,
+        "AppxPackageName": "Microsoft.WindowsStore"
+      },
+      {
+        "Id": "windows-app-media-player",
+        "Name": "Media Player",
+        "IsSelected": true,
+        "InputType": 0,
+        "AppxPackageName": "Microsoft.ZuneMusic"
+      },
+      {
+        "Id": "windows-app-sound-recorder",
+        "Name": "Sound Recorder",
+        "IsSelected": true,
+        "InputType": 0,
+        "AppxPackageName": "Microsoft.WindowsSoundRecorder"
+      },
+      {
+        "Id": "windows-app-sticky-notes",
+        "Name": "Sticky Notes",
+        "IsSelected": true,
+        "InputType": 0,
+        "AppxPackageName": "Microsoft.MicrosoftStickyNotes"
+      },
+      {
+        "Id": "windows-app-todo",
+        "Name": "To Do: Lists, Tasks & Reminders",
+        "IsSelected": true,
+        "InputType": 0,
+        "AppxPackageName": "Microsoft.Todos"
+      },
+      {
+        "Id": "windows-app-notepad",
+        "Name": "Notepad",
+        "IsSelected": true,
+        "InputType": 0,
+        "AppxPackageName": "Microsoft.WindowsNotepad"
+      },
+      {
+        "Id": "windows-app-phone-link",
+        "Name": "Phone Link",
+        "IsSelected": true,
+        "InputType": 0,
+        "AppxPackageName": "Microsoft.YourPhone"
+      },
+      {
+        "Id": "windows-app-copilot",
+        "Name": "Copilot",
+        "IsSelected": true,
+        "InputType": 0,
+        "AppxPackageName": "Microsoft.Copilot",
+        "SubPackages": [
+          "Microsoft.Windows.Ai.Copilot.Provider",
+          "Microsoft.Copilot_8wekyb3d8bbwe"
+        ]
+      },
+      {
+        "Id": "windows-app-edge",
+        "Name": "Microsoft Edge",
+        "IsSelected": true,
+        "InputType": 0,
+        "AppxPackageName": "Microsoft.MicrosoftEdge.Stable"
+      },
+      {
+        "Id": "windows-app-onedrive",
+        "Name": "OneDrive",
+        "IsSelected": true,
+        "InputType": 0,
+        "AppxPackageName": "Microsoft.OneDriveSync"
+      },
+      {
+        "Id": "capability-internet-explorer",
+        "Name": "Internet Explorer",
+        "IsSelected": true,
+        "InputType": 0,
+        "CapabilityName": "Browser.InternetExplorer"
+      },
+      {
+        "Id": "capability-powershell-ise",
+        "Name": "PowerShell ISE",
+        "IsSelected": true,
+        "InputType": 0,
+        "CapabilityName": "Microsoft.Windows.PowerShell.ISE"
+      },
+      {
+        "Id": "capability-steps-recorder",
+        "Name": "Steps Recorder",
+        "IsSelected": true,
+        "InputType": 0,
+        "CapabilityName": "App.StepsRecorder"
+      },
+      {
+        "Id": "capability-windows-media-player",
+        "Name": "Windows Media Player",
+        "IsSelected": true,
+        "InputType": 0,
+        "CapabilityName": "Media.WindowsMediaPlayer"
+      },
+      {
+        "Id": "capability-notepad",
+        "Name": "Notepad (Legacy)",
+        "IsSelected": true,
+        "InputType": 0,
+        "CapabilityName": "Microsoft.Windows.Notepad"
+      },
+      {
+        "Id": "capability-openssh-client",
+        "Name": "OpenSSH Client",
+        "IsSelected": true,
+        "InputType": 0,
+        "CapabilityName": "OpenSSH.Client"
+      }
+    ]
+  },
+  "ExternalApps": {
+    "IsIncluded": false,
+    "Items": []
+  },
+  "Customize": {
+    "IsIncluded": true,
+    "Features": {
+      "ExplorerCustomization": {
+        "IsIncluded": true,
+        "Items": [
+          {
+            "Id": "explorer-customization-shortcut-suffix",
+            "Name": "Remove '- Shortcut' suffix from new shortcuts",
+            "IsSelected": false,
+            "InputType": 0
+          },
+          {
+            "Id": "explorer-customization-context-menu",
+            "Name": "Use Classic Context Menu",
+            "IsSelected": false,
+            "InputType": 0
+          },
+          {
+            "Id": "explorer-take-ownership",
+            "Name": "Add 'Take Ownership' to Context Menu",
+            "IsSelected": false,
+            "InputType": 0
+          },
+          {
+            "Id": "explorer-context-menu-toggle-extensions",
+            "Name": "Add 'Show/Hide Extensions' to Context Menu",
+            "IsSelected": false,
+            "InputType": 0
+          },
+          {
+            "Id": "explorer-context-menu-windows-terminal",
+            "Name": "Show 'Open in Windows Terminal' in Context Menu",
+            "IsSelected": true,
+            "InputType": 0
+          },
+          {
+            "Id": "devices-dynamic-lighting-ambient",
+            "Name": "Use Dynamic Lighting on my devices",
+            "IsSelected": true,
+            "InputType": 0
+          },
+          {
+            "Id": "devices-dynamic-lighting-foreground-app",
+            "Name": "Compatible apps in the foreground always control lighting",
+            "IsSelected": true,
+            "InputType": 0
+          },
+          {
+            "Id": "devices-default-printer-management",
+            "Name": "Disable Automatic Default Printer Management",
+            "IsSelected": false,
+            "InputType": 0
+          },
+          {
+            "Id": "explorer-customization-launch-to",
+            "Name": "Open File Explorer to",
+            "InputType": 1,
+            "SelectedIndex": 0
+          },
+          {
+            "Id": "explorer-customization-browse-folders",
+            "Name": "Browse folders",
+            "InputType": 1,
+            "SelectedIndex": 0
+          },
+          {
+            "Id": "explorer-customization-click-items",
+            "Name": "Click items as follows",
+            "InputType": 1,
+            "SelectedIndex": 0
+          },
+          {
+            "Id": "explorer-customization-show-recent-files",
+            "Name": "Show recently used files",
+            "IsSelected": true,
+            "InputType": 0
+          },
+          {
+            "Id": "explorer-customization-show-frequent-folders",
+            "Name": "Show frequently used folders",
+            "IsSelected": true,
+            "InputType": 0
+          },
+          {
+            "Id": "explorer-customization-show-office-files",
+            "Name": "Show files from Office.com",
+            "IsSelected": true,
+            "InputType": 0
+          },
+          {
+            "Id": "explorer-customization-show-thumbnails",
+            "Name": "Always show icons, never thumbnails",
+            "IsSelected": false,
+            "InputType": 0
+          },
+          {
+            "Id": "explorer-customization-item-space",
+            "Name": "Decrease space between items (compact view)",
+            "IsSelected": false,
+            "InputType": 0
+          },
+          {
+            "Id": "explorer-customization-icon-thumbnails",
+            "Name": "Display file icon on thumbnails",
+            "IsSelected": true,
+            "InputType": 0
+          },
+          {
+            "Id": "explorer-customization-folder-tips",
+            "Name": "Display file size information in folder tips",
+            "IsSelected": true,
+            "InputType": 0
+          },
+          {
+            "Id": "explorer-customization-full-path",
+            "Name": "Display the full path in the title bar",
+            "IsSelected": false,
+            "InputType": 0
+          },
+          {
+            "Id": "explorer-customization-show-hidden-files",
+            "Name": "Show hidden files, folders & drives",
+            "IsSelected": false,
+            "InputType": 0
+          },
+          {
+            "Id": "explorer-customization-hide-empty-drives",
+            "Name": "Hide empty drives",
+            "IsSelected": true,
+            "InputType": 0
+          },
+          {
+            "Id": "explorer-customization-show-file-ext",
+            "Name": "Show file extensions",
+            "IsSelected": false,
+            "InputType": 0
+          },
+          {
+            "Id": "explorer-enable-photo-viewer",
+            "Name": "Enable Windows Photo Viewer",
+            "IsSelected": false,
+            "InputType": 0
+          },
+          {
+            "Id": "explorer-customization-hide-merge-conflicts",
+            "Name": "Hide folder merge conflicts",
+            "IsSelected": true,
+            "InputType": 0
+          },
+          {
+            "Id": "explorer-customization-hide-protected-files",
+            "Name": "Show protected operating system files",
+            "IsSelected": false,
+            "InputType": 0
+          },
+          {
+            "Id": "explorer-customization-separate-process",
+            "Name": "Launch folder windows in a separate process",
+            "IsSelected": false,
+            "InputType": 0
+          },
+          {
+            "Id": "explorer-customization-persist-browsers",
+            "Name": "Restore previous folder windows at logon",
+            "IsSelected": false,
+            "InputType": 0
+          },
+          {
+            "Id": "explorer-customization-show-drive-letters",
+            "Name": "Show drive letters",
+            "IsSelected": true,
+            "InputType": 0
+          },
+          {
+            "Id": "explorer-customization-compressed-color",
+            "Name": "Show encrypted or compressed NTFS files in color",
+            "IsSelected": false,
+            "InputType": 0
+          },
+          {
+            "Id": "explorer-customization-popup-descriptions",
+            "Name": "Show pop-up description for folder and desktop items",
+            "IsSelected": true,
+            "InputType": 0
+          },
+          {
+            "Id": "explorer-customization-preview-handlers",
+            "Name": "Show preview handlers in preview pane",
+            "IsSelected": true,
+            "InputType": 0
+          },
+          {
+            "Id": "explorer-customization-status-bar",
+            "Name": "Show status bar",
+            "IsSelected": true,
+            "InputType": 0
+          },
+          {
+            "Id": "explorer-customization-disable-sync-provider-notifications",
+            "Name": "Show sync provider notifications",
+            "IsSelected": true,
+            "InputType": 0
+          },
+          {
+            "Id": "explorer-customization-checkbox-select",
+            "Name": "Use check boxes to select items",
+            "IsSelected": false,
+            "InputType": 0
+          },
+          {
+            "Id": "explorer-customization-sharing-wizard",
+            "Name": "Use sharing wizard",
+            "IsSelected": true,
+            "InputType": 0
+          },
+          {
+            "Id": "explorer-customization-typing-behavior",
+            "Name": "When typing into list view",
+            "InputType": 1,
+            "SelectedIndex": 0
+          },
+          {
+            "Id": "explorer-customization-home-folder",
+            "Name": "Show Home Folder",
+            "IsSelected": true,
+            "InputType": 0
+          },
+          {
+            "Id": "explorer-customization-gallery",
+            "Name": "Show Gallery",
+            "IsSelected": true,
+            "InputType": 0
+          },
+          {
+            "Id": "explorer-customization-show-availability-status",
+            "Name": "Always show availability status",
+            "IsSelected": false,
+            "InputType": 0
+          },
+          {
+            "Id": "explorer-customization-nav-expand-current",
+            "Name": "Expand to open folder",
+            "IsSelected": false,
+            "InputType": 0
+          },
+          {
+            "Id": "explorer-customization-nav-show-all-folders",
+            "Name": "Show all folders",
+            "IsSelected": false,
+            "InputType": 0
+          },
+          {
+            "Id": "explorer-customization-nav-show-libraries",
+            "Name": "Show libraries",
+            "IsSelected": false,
+            "InputType": 0
+          },
+          {
+            "Id": "explorer-long-file-paths",
+            "Name": "Enable Long File Paths",
+            "IsSelected": false,
+            "InputType": 0
+          }
+        ]
+      },
+      "StartMenu": {
+        "IsIncluded": true,
+        "Items": [
+          {
+            "Id": "start-menu-clean-11",
+            "Name": "Clean Start Menu",
+            "InputType": 3
+          },
+          {
+            "Id": "start-recommended-section",
+            "Name": "Recommended section",
+            "InputType": 1,
+            "SelectedIndex": 0
+          },
+          {
+            "Id": "start-show-all-pins-by-default",
+            "Name": "Show all pins by default",
+            "IsSelected": false,
+            "InputType": 0
+          },
+          {
+            "Id": "start-show-recently-added-apps",
+            "Name": "Show recently added apps",
+            "IsSelected": true,
+            "InputType": 0
+          },
+          {
+            "Id": "start-show-frequent-list",
+            "Name": "Show most used apps",
+            "IsSelected": false,
+            "InputType": 0
+          },
+          {
+            "Id": "start-show-recommended-files",
+            "Name": "Show recommended files and recently opened items",
+            "IsSelected": true,
+            "InputType": 0
+          },
+          {
+            "Id": "start-menu-recommendations",
+            "Name": "Show recommendations for tips, shortcuts, new apps, and more",
+            "IsSelected": true,
+            "InputType": 0
+          },
+          {
+            "Id": "start-show-account-notifications",
+            "Name": "Show account-related notifications",
+            "IsSelected": true,
+            "InputType": 0
+          },
+          {
+            "Id": "start-disable-bing-search-results",
+            "Name": "Disable Bing search results",
+            "IsSelected": false,
+            "InputType": 0
+          }
+        ]
+      },
+      "Taskbar": {
+        "IsIncluded": true,
+        "Items": [
+          {
+            "Id": "taskbar-clean",
+            "Name": "Clean Taskbar",
+            "InputType": 3
+          },
+          {
+            "Id": "taskbar-search-box-11",
+            "Name": "Search in taskbar",
+            "InputType": 1,
+            "SelectedIndex": 3
+          },
+          {
+            "Id": "taskbar-alignment",
+            "Name": "Taskbar alignment",
+            "InputType": 1,
+            "SelectedIndex": 1
+          },
+          {
+            "Id": "taskbar-task-view",
+            "Name": "Show Task View button",
+            "IsSelected": true,
+            "InputType": 0
+          },
+          {
+            "Id": "taskbar-widgets",
+            "Name": "Show Widgets",
+            "IsSelected": true,
+            "InputType": 0
+          },
+          {
+            "Id": "taskbar-end-task",
+            "Name": "Enable 'End Task' in Taskbar",
+            "IsSelected": false,
+            "InputType": 0
+          }
+        ]
+      },
+      "WindowsTheme": {
+        "IsIncluded": true,
+        "Items": [
+          {
+            "Id": "theme-mode-windows",
+            "Name": "Choose your mode",
+            "InputType": 1,
+            "SelectedIndex": 0
+          },
+          {
+            "Id": "theme-transparency",
+            "Name": "Transparency effects",
+            "IsSelected": true,
+            "InputType": 0
+          }
+        ]
+      }
+    }
+  },
+  "Optimize": {
+    "IsIncluded": true,
+    "Features": {
+      "GamingPerformance": {
+        "IsIncluded": true,
+        "Items": [
+          {
+            "Id": "gaming-game-mode",
+            "Name": "Game Mode",
+            "IsSelected": true,
+            "InputType": 0
+          },
+          {
+            "Id": "gaming-performance-explorer-mouse-precision",
+            "Name": "Enhance Pointer Precision",
+            "IsSelected": true,
+            "InputType": 0
+          },
+          {
+            "Id": "gaming-performance-autostart-delay",
+            "Name": "Startup Delay for Apps",
+            "IsSelected": false,
+            "InputType": 0
+          },
+          {
+            "Id": "gaming-background-apps",
+            "Name": "Let Apps Run in Background",
+            "IsSelected": true,
+            "InputType": 0
+          },
+          {
+            "Id": "gaming-storage-sense",
+            "Name": "Storage Sense",
+            "IsSelected": true,
+            "InputType": 0
+          },
+          {
+            "Id": "gaming-performance-explorer-search",
+            "Name": "Search Entire File System",
+            "IsSelected": false,
+            "InputType": 0
+          },
+          {
+            "Id": "gaming-performance-wallpaper-compression",
+            "Name": "Allow Desktop Wallpaper Compression",
+            "IsSelected": true,
+            "InputType": 0
+          },
+          {
+            "Id": "gaming-performance-explorer-menu-show-delay",
+            "Name": "Enable Menu Show Delay",
+            "IsSelected": false,
+            "InputType": 0
+          },
+          {
+            "Id": "gaming-explorer-alt-tab-filter",
+            "Name": "Alt+Tab Filter",
+            "IsSelected": false,
+            "InputType": 0
+          },
+          {
+            "Id": "gaming-win32-priority",
+            "Name": "Adjust processor for best performance of",
+            "InputType": 1,
+            "SelectedIndex": 0
+          },
+          {
+            "Id": "gaming-system-responsiveness",
+            "Name": "System Responsiveness for Games",
+            "IsSelected": false,
+            "InputType": 0
+          },
+          {
+            "Id": "gaming-cpu-priority",
+            "Name": "CPU Priority for Gaming",
+            "IsSelected": false,
+            "InputType": 0
+          },
+          {
+            "Id": "gaming-scheduling-category",
+            "Name": "High Scheduling Category for Gaming",
+            "IsSelected": false,
+            "InputType": 0
+          },
+          {
+            "Id": "gaming-gpu-priority",
+            "Name": "GPU Priority for Gaming",
+            "IsSelected": true,
+            "InputType": 0
+          },
+          {
+            "Id": "gaming-gpu-scheduling",
+            "Name": "Hardware-Accelerated GPU Scheduling",
+            "IsSelected": true,
+            "InputType": 0
+          },
+          {
+            "Id": "gaming-directx-flip-model",
+            "Name": "Optimizations for windowed games",
+            "IsSelected": true,
+            "InputType": 0
+          },
+          {
+            "Id": "gaming-directx-vrr-optimizations",
+            "Name": "Variable Refresh Rate Optimizations",
+            "IsSelected": false,
+            "InputType": 0
+          },
+          {
+            "Id": "gaming-nvidia-sharpening",
+            "Name": "Legacy NVIDIA Sharpening",
+            "IsSelected": false,
+            "InputType": 0
+          },
+          {
+            "Id": "gaming-fullscreen-optimizations",
+            "Name": "Fullscreen Optimizations",
+            "IsSelected": true,
+            "InputType": 0
+          },
+          {
+            "Id": "gaming-performance-desktop-composition",
+            "Name": "Desktop Composition Effects",
+            "IsSelected": true,
+            "InputType": 0
+          },
+          {
+            "Id": "gaming-network-throttling",
+            "Name": "Disable Network Throttling for Gaming",
+            "IsSelected": true,
+            "InputType": 0
+          },
+          {
+            "Id": "gaming-nagle-algorithm",
+            "Name": "Enable Nagle's Algorithm",
+            "IsSelected": false,
+            "InputType": 0
+          },
+          {
+            "Id": "gaming-xbox-game-dvr",
+            "Name": "Xbox Game DVR",
+            "IsSelected": true,
+            "InputType": 0
+          },
+          {
+            "Id": "gaming-game-bar-controller",
+            "Name": "Game Bar Controller Access",
+            "IsSelected": true,
+            "InputType": 0
+          },
+          {
+            "Id": "gaming-game-bar-tips",
+            "Name": "Game Bar Tips and Hints",
+            "IsSelected": true,
+            "InputType": 0
+          },
+          {
+            "Id": "gaming-performance-background-services",
+            "Name": "Optimize Background Services",
+            "IsSelected": false,
+            "InputType": 0
+          },
+          {
+            "Id": "gaming-sysmain-service",
+            "Name": "SysMain Service (Superfetch)",
+            "InputType": 1,
+            "SelectedIndex": 2
+          },
+          {
+            "Id": "gaming-performance-prefetch",
+            "Name": "Prefetch Feature",
+            "IsSelected": true,
+            "InputType": 0
+          },
+          {
+            "Id": "gaming-windows-search-service",
+            "Name": "Windows Search Indexing Service",
+            "InputType": 1,
+            "SelectedIndex": 2
+          },
+          {
+            "Id": "gaming-print-spooler-service",
+            "Name": "Print Spooler Service",
+            "InputType": 1,
+            "SelectedIndex": 2
+          },
+          {
+            "Id": "gaming-telemetry-service",
+            "Name": "Connected User Experiences and Telemetry Service",
+            "InputType": 1,
+            "SelectedIndex": 2
+          },
+          {
+            "Id": "gaming-compatibility-assistant-service",
+            "Name": "Program Compatibility Assistant Service",
+            "InputType": 1,
+            "SelectedIndex": 2
+          },
+          {
+            "Id": "gaming-error-reporting-service",
+            "Name": "Windows Error Reporting Service",
+            "InputType": 1,
+            "SelectedIndex": 1
+          },
+          {
+            "Id": "gaming-geolocation-service",
+            "Name": "Geolocation Service",
+            "InputType": 1,
+            "SelectedIndex": 1
+          },
+          {
+            "Id": "gaming-retail-demo-service",
+            "Name": "Retail Demo Service",
+            "InputType": 1,
+            "SelectedIndex": 1
+          },
+          {
+            "Id": "gaming-insider-service",
+            "Name": "Windows Insider Service",
+            "InputType": 1,
+            "SelectedIndex": 1
+          },
+          {
+            "Id": "gaming-phone-service",
+            "Name": "Phone Service",
+            "InputType": 1,
+            "SelectedIndex": 1
+          },
+          {
+            "Id": "gaming-wallet-service",
+            "Name": "Wallet Service",
+            "InputType": 1,
+            "SelectedIndex": 1
+          },
+          {
+            "Id": "gaming-smart-card-services",
+            "Name": "Smart Card Services",
+            "InputType": 1,
+            "SelectedIndex": 1
+          },
+          {
+            "Id": "gaming-maps-broker-service",
+            "Name": "Downloaded Maps Manager",
+            "InputType": 1,
+            "SelectedIndex": 2
+          },
+          {
+            "Id": "gaming-fax-service",
+            "Name": "Fax Service",
+            "InputType": 1,
+            "SelectedIndex": 0
+          },
+          {
+            "Id": "gaming-wmp-network-service",
+            "Name": "Windows Media Player Network Sharing Service",
+            "InputType": 1,
+            "SelectedIndex": 1
+          },
+          {
+            "Id": "gaming-mixed-reality-service",
+            "Name": "Windows Mixed Reality OpenXR Service",
+            "InputType": 1,
+            "SelectedIndex": 0
+          },
+          {
+            "Id": "gaming-mobile-hotspot-service",
+            "Name": "Windows Mobile Hotspot Service",
+            "InputType": 1,
+            "SelectedIndex": 1
+          },
+          {
+            "Id": "gaming-sms-router-service",
+            "Name": "Microsoft Windows SMS Router Service",
+            "InputType": 1,
+            "SelectedIndex": 1
+          },
+          {
+            "Id": "gaming-parental-controls-service",
+            "Name": "Parental Controls Service",
+            "InputType": 1,
+            "SelectedIndex": 1
+          },
+          {
+            "Id": "gaming-payments-nfc-service",
+            "Name": "Payments and NFC/SE Manager",
+            "InputType": 1,
+            "SelectedIndex": 1
+          },
+          {
+            "Id": "gaming-spot-verifier-service",
+            "Name": "Spot Verifier Service",
+            "InputType": 1,
+            "SelectedIndex": 1
+          },
+          {
+            "Id": "gaming-remote-access-manager",
+            "Name": "Remote Access Connection Manager",
+            "InputType": 1,
+            "SelectedIndex": 1
+          },
+          {
+            "Id": "gaming-remote-access-auto",
+            "Name": "Remote Access Auto Connection Manager",
+            "InputType": 1,
+            "SelectedIndex": 1
+          },
+          {
+            "Id": "gaming-remote-desktop-services",
+            "Name": "Remote Desktop Services",
+            "InputType": 1,
+            "SelectedIndex": 1
+          },
+          {
+            "Id": "gaming-remote-desktop-configuration",
+            "Name": "Remote Desktop Configuration",
+            "InputType": 1,
+            "SelectedIndex": 1
+          },
+          {
+            "Id": "gaming-remote-desktop-port-redirector",
+            "Name": "Remote Desktop Services UserMode Port Redirector",
+            "InputType": 1,
+            "SelectedIndex": 1
+          },
+          {
+            "Id": "gaming-bits-service",
+            "Name": "Background Intelligent Transfer Service (BITS)",
+            "InputType": 1,
+            "SelectedIndex": 1
+          },
+          {
+            "Id": "gaming-xbox-auth-manager",
+            "Name": "Xbox Live Auth Manager",
+            "InputType": 1,
+            "SelectedIndex": 1
+          },
+          {
+            "Id": "gaming-xbox-game-save",
+            "Name": "Xbox Live Game Save",
+            "InputType": 1,
+            "SelectedIndex": 1
+          },
+          {
+            "Id": "gaming-xbox-networking",
+            "Name": "Xbox Live Networking Service",
+            "InputType": 1,
+            "SelectedIndex": 1
+          },
+          {
+            "Id": "gaming-biometric-service",
+            "Name": "Windows Biometric Service",
+            "InputType": 1,
+            "SelectedIndex": 1
+          },
+          {
+            "Id": "gaming-touch-keyboard-service",
+            "Name": "Touch Keyboard and Handwriting Panel Service",
+            "InputType": 1,
+            "SelectedIndex": 0
+          },
+          {
+            "Id": "gaming-sensor-monitoring-service",
+            "Name": "Sensor Monitoring Service",
+            "InputType": 1,
+            "SelectedIndex": 1
+          },
+          {
+            "Id": "gaming-sensor-data-service",
+            "Name": "Sensor Data Service",
+            "InputType": 1,
+            "SelectedIndex": 1
+          },
+          {
+            "Id": "gaming-task-compatibility-appraiser",
+            "Name": "Microsoft Compatibility Appraiser Task",
+            "IsSelected": false,
+            "InputType": 0
+          },
+          {
+            "Id": "gaming-task-program-data-updater",
+            "Name": "Program Data Updater Task",
+            "IsSelected": false,
+            "InputType": 0
+          },
+          {
+            "Id": "gaming-task-ceip-consolidator",
+            "Name": "Customer Experience Improvement Program Consolidator",
+            "IsSelected": true,
+            "InputType": 0
+          },
+          {
+            "Id": "gaming-task-usb-ceip",
+            "Name": "USB CEIP Task",
+            "IsSelected": true,
+            "InputType": 0
+          },
+          {
+            "Id": "gaming-task-disk-diagnostic",
+            "Name": "Disk Diagnostic Data Collector Task",
+            "IsSelected": true,
+            "InputType": 0
+          },
+          {
+            "Id": "gaming-task-feedback-dmclient",
+            "Name": "Feedback DmClient Task",
+            "IsSelected": true,
+            "InputType": 0
+          },
+          {
+            "Id": "gaming-task-feedback-dmclient-download",
+            "Name": "Feedback DmClient Scenario Download Task",
+            "IsSelected": true,
+            "InputType": 0
+          },
+          {
+            "Id": "gaming-task-error-reporting-queue",
+            "Name": "Windows Error Reporting Queue Task",
+            "IsSelected": true,
+            "InputType": 0
+          },
+          {
+            "Id": "gaming-task-sqm",
+            "Name": "Software Quality Metrics Task",
+            "IsSelected": true,
+            "InputType": 0
+          },
+          {
+            "Id": "gaming-task-mare-backup",
+            "Name": "MAR (Malicious Software Removal) Backup Task",
+            "IsSelected": true,
+            "InputType": 0
+          },
+          {
+            "Id": "gaming-task-startup-app",
+            "Name": "Startup App Task",
+            "IsSelected": true,
+            "InputType": 0
+          },
+          {
+            "Id": "gaming-task-pca-patch",
+            "Name": "Program Compatibility Assistant Patch Task",
+            "IsSelected": true,
+            "InputType": 0
+          },
+          {
+            "Id": "gaming-task-maps-update",
+            "Name": "Maps Update Task",
+            "IsSelected": false,
+            "InputType": 0
+          },
+          {
+            "Id": "gaming-task-autochk-proxy",
+            "Name": "AutoChk Proxy Task",
+            "IsSelected": true,
+            "InputType": 0
+          },
+          {
+            "Id": "gaming-task-family-safety",
+            "Name": "Family Safety Monitor Task",
+            "IsSelected": true,
+            "InputType": 0
+          },
+          {
+            "Id": "gaming-task-power-efficiency",
+            "Name": "Power Efficiency Diagnostics Task",
+            "IsSelected": true,
+            "InputType": 0
+          },
+          {
+            "Id": "visual-effects-mode",
+            "Name": "Visual Effects",
+            "InputType": 1,
+            "SelectedIndex": 0
+          },
+          {
+            "Id": "ui-effects",
+            "Name": "Animate controls and elements inside windows",
+            "IsSelected": true,
+            "InputType": 0
+          },
+          {
+            "Id": "window-animation",
+            "Name": "Animate windows when minimizing and maximizing",
+            "IsSelected": true,
+            "InputType": 0
+          },
+          {
+            "Id": "taskbar-animations",
+            "Name": "Animations in the taskbar",
+            "IsSelected": true,
+            "InputType": 0
+          },
+          {
+            "Id": "enable-peek",
+            "Name": "Enable Peek",
+            "IsSelected": true,
+            "InputType": 0
+          },
+          {
+            "Id": "menu-animation",
+            "Name": "Fade or slide menus into view",
+            "IsSelected": true,
+            "InputType": 0
+          },
+          {
+            "Id": "fade-tooltip",
+            "Name": "Fade or slide ToolTips into view",
+            "IsSelected": true,
+            "InputType": 0
+          },
+          {
+            "Id": "fade-menu-items",
+            "Name": "Fade out menu items after clicking",
+            "IsSelected": true,
+            "InputType": 0
+          },
+          {
+            "Id": "taskbar-thumbnails",
+            "Name": "Save taskbar thumbnail previews",
+            "IsSelected": false,
+            "InputType": 0
+          },
+          {
+            "Id": "mouse-shadow",
+            "Name": "Show shadows under mouse pointer",
+            "IsSelected": false,
+            "InputType": 0
+          },
+          {
+            "Id": "window-shadows",
+            "Name": "Show shadows under windows",
+            "IsSelected": true,
+            "InputType": 0
+          },
+          {
+            "Id": "show-thumbnails",
+            "Name": "Show thumbnails instead of icons",
+            "IsSelected": true,
+            "InputType": 0
+          },
+          {
+            "Id": "translucent-selection",
+            "Name": "Show translucent selection rectangle",
+            "IsSelected": true,
+            "InputType": 0
+          },
+          {
+            "Id": "drag-full-windows",
+            "Name": "Show window contents while dragging",
+            "IsSelected": true,
+            "InputType": 0
+          },
+          {
+            "Id": "combo-box-animation",
+            "Name": "Slide open combo boxes",
+            "IsSelected": true,
+            "InputType": 0
+          },
+          {
+            "Id": "font-smoothing",
+            "Name": "Smooth edges of screen fonts",
+            "IsSelected": true,
+            "InputType": 0
+          },
+          {
+            "Id": "smooth-scroll-listboxes",
+            "Name": "Smooth-scroll list boxes",
+            "IsSelected": true,
+            "InputType": 0
+          },
+          {
+            "Id": "drop-shadows",
+            "Name": "Use drop shadows for icon labels on the desktop",
+            "IsSelected": true,
+            "InputType": 0
+          },
+          {
+            "Id": "gaming-narrator-hotkey",
+            "Name": "Narrator Win+Ctrl+Enter Hotkey",
+            "IsSelected": true,
+            "InputType": 0
+          },
+          {
+            "Id": "accessibility-stickykeys-hotkey",
+            "Name": "StickyKeys Hotkey (Shift×5)",
+            "IsSelected": true,
+            "InputType": 0
+          },
+          {
+            "Id": "accessibility-filterkeys-hotkey",
+            "Name": "FilterKeys Hotkey (Right Shift 8s)",
+            "IsSelected": true,
+            "InputType": 0
+          },
+          {
+            "Id": "accessibility-togglekeys-hotkey",
+            "Name": "ToggleKeys Hotkey (Num Lock 5s)",
+            "IsSelected": true,
+            "InputType": 0
+          },
+          {
+            "Id": "accessibility-mousekeys-hotkey",
+            "Name": "MouseKeys Hotkey (Alt+Shift+NumLock)",
+            "IsSelected": false,
+            "InputType": 0
+          },
+          {
+            "Id": "accessibility-highcontrast-hotkey",
+            "Name": "High Contrast Hotkey (Alt+Shift+PrtScn)",
+            "IsSelected": true,
+            "InputType": 0
+          }
+        ]
+      },
+      "Notifications": {
+        "IsIncluded": true,
+        "Items": [
+          {
+            "Id": "windows-pushnotifications",
+            "Name": "Show Notifications",
+            "IsSelected": true,
+            "InputType": 0
+          },
+          {
+            "Id": "notifications-sound",
+            "Name": "Allow notifications to play sounds",
+            "IsSelected": true,
+            "InputType": 0
+          },
+          {
+            "Id": "notifications-toast-above-lock",
+            "Name": "Show notifications on the lock screen",
+            "IsSelected": true,
+            "InputType": 0
+          },
+          {
+            "Id": "notifications-critical-toast-above-lock",
+            "Name": "Show reminders and incoming VoIP calls on the lock screen",
+            "IsSelected": true,
+            "InputType": 0
+          },
+          {
+            "Id": "notifications-show-bell-icon",
+            "Name": "Show notification bell icon",
+            "IsSelected": false,
+            "InputType": 0
+          },
+          {
+            "Id": "notifications-welcome-experience",
+            "Name": "Show the Windows welcome experience after updates",
+            "IsSelected": true,
+            "InputType": 0
+          },
+          {
+            "Id": "notifications-system-setting-engagement",
+            "Name": "Suggest ways to get the most out of Windows and finish setting up this device",
+            "IsSelected": true,
+            "InputType": 0
+          },
+          {
+            "Id": "notifications-tips-suggestions",
+            "Name": "Get tips and suggestions when using Windows",
+            "IsSelected": true,
+            "InputType": 0
+          },
+          {
+            "Id": "notifications-system-pane-suggestions",
+            "Name": "Show suggestions in Notification Center",
+            "IsSelected": true,
+            "InputType": 0
+          },
+          {
+            "Id": "notifications-capability-access",
+            "Name": "Capability Access Notifications",
+            "IsSelected": true,
+            "InputType": 0
+          },
+          {
+            "Id": "notifications-startup-app",
+            "Name": "Startup App Notifications",
+            "IsSelected": false,
+            "InputType": 0
+          },
+          {
+            "Id": "notifications-app-location-request",
+            "Name": "Notify when apps request location",
+            "IsSelected": false,
+            "InputType": 0
+          },
+          {
+            "Id": "notifications-clock-change",
+            "Name": "Clock Change Notifications",
+            "IsSelected": true,
+            "InputType": 0
+          },
+          {
+            "Id": "notifications-windows-security",
+            "Name": "Windows Security Notifications",
+            "IsSelected": true,
+            "InputType": 0
+          },
+          {
+            "Id": "notifications-security-maintenance",
+            "Name": "Security and Maintenance Notifications",
+            "IsSelected": true,
+            "InputType": 0
+          }
+        ]
+      },
+      "Power": {
+        "IsIncluded": true,
+        "Items": [
+          {
+            "Id": "power-plan-selection",
+            "Name": "Power Plan",
+            "InputType": 1,
+            "PowerPlanGuid": "381b4222-f694-41f0-9685-ff5bb260df2e",
+            "PowerPlanName": "Balanced"
+          },
+          {
+            "Id": "power-display-timeout",
+            "Name": "Turn off the display",
+            "InputType": 1,
+            "PowerSettings": {
+              "ACIndex": 0,
+              "DCIndex": 3
+            }
+          },
+          {
+            "Id": "power-harddisk-timeout",
+            "Name": "Turn off hard disk after",
+            "InputType": 2,
+            "PowerSettings": {
+              "ACValue": 1200,
+              "DCValue": 600
+            }
+          },
+          {
+            "Id": "internet-explorer-javascript-timer",
+            "Name": "JavaScript Timer Frequency",
+            "InputType": 1,
+            "PowerSettings": {
+              "ACIndex": 0,
+              "DCIndex": 1
+            }
+          },
+          {
+            "Id": "desktop-slideshow",
+            "Name": "Desktop Background Slide Show",
+            "InputType": 1,
+            "PowerSettings": {
+              "ACIndex": 0,
+              "DCIndex": 1
+            }
+          },
+          {
+            "Id": "wireless-power-mode",
+            "Name": "Power Saving Mode",
+            "InputType": 1,
+            "PowerSettings": {
+              "ACIndex": 0,
+              "DCIndex": 2
+            }
+          },
+          {
+            "Id": "power-sleep-timeout",
+            "Name": "Put the computer to sleep",
+            "InputType": 1,
+            "PowerSettings": {
+              "ACIndex": 6,
+              "DCIndex": 5
+            }
+          },
+          {
+            "Id": "power-wake-timers",
+            "Name": "Allow wake timers",
+            "InputType": 1,
+            "PowerSettings": {
+              "ACIndex": 1,
+              "DCIndex": 1
+            }
+          },
+          {
+            "Id": "power-hibernation-enable",
+            "Name": "Hibernation",
+            "IsSelected": false,
+            "InputType": 0
+          },
+          {
+            "Id": "power-hibernate-timeout",
+            "Name": "Hibernate after",
+            "InputType": 1,
+            "PowerSettings": {
+              "ACIndex": 0,
+              "DCIndex": 0
+            }
+          },
+          {
+            "Id": "power-hybrid-sleep",
+            "Name": "Allow hybrid sleep",
+            "IsSelected": true,
+            "InputType": 0
+          },
+          {
+            "Id": "power-fast-startup",
+            "Name": "Fast Startup",
+            "IsSelected": true,
+            "InputType": 0
+          },
+          {
+            "Id": "start-power-hibernate-option",
+            "Name": "Show Hibernate Option",
+            "IsSelected": true,
+            "InputType": 0
+          },
+          {
+            "Id": "usb-hub-selective-suspend-timeout",
+            "Name": "USB Hub Selective Suspend Timeout",
+            "InputType": 2,
+            "PowerSettings": {
+              "ACValue": 50,
+              "DCValue": 50
+            }
+          },
+          {
+            "Id": "usb-selective-suspend",
+            "Name": "USB selective suspend setting",
+            "InputType": 1,
+            "PowerSettings": {
+              "ACIndex": 0,
+              "DCIndex": 0
+            }
+          },
+          {
+            "Id": "usb3-link-power-management",
+            "Name": "USB 3 Link Power Management",
+            "InputType": 1,
+            "PowerSettings": {
+              "ACIndex": 2,
+              "DCIndex": 2
+            }
+          },
+          {
+            "Id": "power-button-action",
+            "Name": "Power button action",
+            "InputType": 1,
+            "PowerSettings": {
+              "ACIndex": 3,
+              "DCIndex": 3
+            }
+          },
+          {
+            "Id": "sleep-button-action",
+            "Name": "Sleep button action",
+            "InputType": 1,
+            "PowerSettings": {
+              "ACIndex": 1,
+              "DCIndex": 1
+            }
+          },
+          {
+            "Id": "pci-link-state-power-management",
+            "Name": "Link State Power Management",
+            "InputType": 1,
+            "PowerSettings": {
+              "ACIndex": 1,
+              "DCIndex": 2
+            }
+          },
+          {
+            "Id": "processor-min-state",
+            "Name": "Minimum processor state",
+            "InputType": 2,
+            "PowerSettings": {
+              "ACValue": 0,
+              "DCValue": 5
+            }
+          },
+          {
+            "Id": "processor-max-state",
+            "Name": "Maximum processor state",
+            "InputType": 2,
+            "PowerSettings": {
+              "ACValue": 100,
+              "DCValue": 100
+            }
+          },
+          {
+            "Id": "system-cooling-policy",
+            "Name": "System cooling policy",
+            "InputType": 1,
+            "PowerSettings": {
+              "ACIndex": 1,
+              "DCIndex": 0
+            }
+          },
+          {
+            "Id": "processor-performance-boost-mode",
+            "Name": "Processor performance boost mode",
+            "InputType": 1,
+            "PowerSettings": {
+              "ACIndex": 2,
+              "DCIndex": 2
+            }
+          },
+          {
+            "Id": "processor-performance-increase-policy",
+            "Name": "Processor Performance Increase Policy",
+            "InputType": 1,
+            "PowerSettings": {
+              "ACIndex": 2,
+              "DCIndex": 0
+            }
+          },
+          {
+            "Id": "processor-performance-decrease-policy",
+            "Name": "Processor Performance Decrease Policy",
+            "InputType": 1,
+            "PowerSettings": {
+              "ACIndex": 1,
+              "DCIndex": 0
+            }
+          },
+          {
+            "Id": "processor-core-parking-min-cores",
+            "Name": "CPU Core Parking Minimum Cores",
+            "InputType": 2,
+            "PowerSettings": {
+              "ACValue": 100,
+              "DCValue": 10
+            }
+          },
+          {
+            "Id": "processor-core-parking-max-cores",
+            "Name": "CPU Core Parking Maximum Cores",
+            "InputType": 2,
+            "PowerSettings": {
+              "ACValue": 100,
+              "DCValue": 100
+            }
+          },
+          {
+            "Id": "processor-energy-performance-preference",
+            "Name": "Processor Energy Performance Preference",
+            "InputType": 2,
+            "PowerSettings": {
+              "ACValue": 25,
+              "DCValue": 50
+            }
+          },
+          {
+            "Id": "processor-performance-increase-threshold",
+            "Name": "Processor Performance Increase Threshold",
+            "InputType": 2,
+            "PowerSettings": {
+              "ACValue": 30,
+              "DCValue": 90
+            }
+          },
+          {
+            "Id": "processor-performance-decrease-threshold",
+            "Name": "Processor Performance Decrease Threshold",
+            "InputType": 2,
+            "PowerSettings": {
+              "ACValue": 10,
+              "DCValue": 30
+            }
+          },
+          {
+            "Id": "power-throttling",
+            "Name": "Disable Power Throttling",
+            "IsSelected": false,
+            "InputType": 0
+          },
+          {
+            "Id": "multimedia-when-sharing-media",
+            "Name": "When Sharing Media",
+            "InputType": 1,
+            "PowerSettings": {
+              "ACIndex": 1,
+              "DCIndex": 0
+            }
+          },
+          {
+            "Id": "multimedia-video-playback-quality-bias",
+            "Name": "Video Playback Quality Bias",
+            "InputType": 1,
+            "PowerSettings": {
+              "ACIndex": 1,
+              "DCIndex": 0
+            }
+          },
+          {
+            "Id": "multimedia-when-playing-video",
+            "Name": "When Playing Video",
+            "InputType": 1,
+            "PowerSettings": {
+              "ACIndex": 0,
+              "DCIndex": 1
+            }
+          },
+          {
+            "Id": "start-power-lock-option",
+            "Name": "Show Lock Option",
+            "IsSelected": true,
+            "InputType": 0
+          },
+          {
+            "Id": "start-power-sleep-option",
+            "Name": "Show Sleep Option",
+            "IsSelected": true,
+            "InputType": 0
+          }
+        ]
+      },
+      "Privacy": {
+        "IsIncluded": true,
+        "Items": [
+          {
+            "Id": "security-uac-level",
+            "Name": "User Account Control Level",
+            "InputType": 1,
+            "SelectedIndex": 2
+          },
+          {
+            "Id": "security-workplace-join-messages",
+            "Name": "Block Workplace Join Messages",
+            "IsSelected": false,
+            "InputType": 0
+          },
+          {
+            "Id": "security-bitlocker-auto-encryption",
+            "Name": "Prevent BitLocker Auto Encryption",
+            "IsSelected": false,
+            "InputType": 0
+          },
+          {
+            "Id": "security-wifi-sense",
+            "Name": "WiFi-Sense",
+            "IsSelected": true,
+            "InputType": 0
+          },
+          {
+            "Id": "security-automatic-maintenance",
+            "Name": "Automatic Maintenance",
+            "IsSelected": false,
+            "InputType": 0
+          },
+          {
+            "Id": "security-error-reporting",
+            "Name": "Windows Error Reporting",
+            "IsSelected": false,
+            "InputType": 0
+          },
+          {
+            "Id": "security-remote-assistance",
+            "Name": "Remote Assistance",
+            "IsSelected": true,
+            "InputType": 0
+          },
+          {
+            "Id": "privacy-ads-promotional-master",
+            "Name": "Ads, Suggestions and Promotional Content",
+            "InputType": 1,
+            "SelectedIndex": 2
+          },
+          {
+            "Id": "privacy-content-delivery-allowed",
+            "Name": "Content Delivery",
+            "IsSelected": true,
+            "InputType": 0
+          },
+          {
+            "Id": "privacy-subscribed-content",
+            "Name": "Subscribed Content",
+            "IsSelected": true,
+            "InputType": 0
+          },
+          {
+            "Id": "privacy-feature-management",
+            "Name": "Feature Management",
+            "IsSelected": false,
+            "InputType": 0
+          },
+          {
+            "Id": "privacy-soft-landing",
+            "Name": "Soft Landing Experiences",
+            "IsSelected": true,
+            "InputType": 0
+          },
+          {
+            "Id": "privacy-oem-preinstalled-apps",
+            "Name": "OEM Pre-installed Apps",
+            "IsSelected": true,
+            "InputType": 0
+          },
+          {
+            "Id": "privacy-preinstalled-apps",
+            "Name": "Pre-installed Suggested Apps",
+            "IsSelected": true,
+            "InputType": 0
+          },
+          {
+            "Id": "privacy-preinstalled-apps-ever",
+            "Name": "Pre-installed Apps History Tracking",
+            "IsSelected": true,
+            "InputType": 0
+          },
+          {
+            "Id": "privacy-silent-installed-apps",
+            "Name": "Silent App Installation",
+            "IsSelected": true,
+            "InputType": 0
+          },
+          {
+            "Id": "privacy-lock-screen",
+            "Name": "Lock Screen",
+            "IsSelected": true,
+            "InputType": 0
+          },
+          {
+            "Id": "privacy-rotating-lock-screen",
+            "Name": "Windows Spotlight on Lock Screen",
+            "IsSelected": true,
+            "InputType": 0
+          },
+          {
+            "Id": "privacy-lock-screen-overlay",
+            "Name": "Lock Screen Fun Facts and Tips",
+            "IsSelected": true,
+            "InputType": 0
+          },
+          {
+            "Id": "privacy-lock-screen-slideshow",
+            "Name": "Lock Screen Slideshow",
+            "IsSelected": true,
+            "InputType": 0
+          },
+          {
+            "Id": "privacy-advertising-id",
+            "Name": "Let apps show me personalized ads by using my advertising ID",
+            "IsSelected": false,
+            "InputType": 0
+          },
+          {
+            "Id": "privacy-language-list",
+            "Name": "Let websites show me locally relevant content by accessing my language list",
+            "IsSelected": true,
+            "InputType": 0
+          },
+          {
+            "Id": "privacy-app-launch-tracking",
+            "Name": "Let Windows improve Start and search results by tracking app launches",
+            "IsSelected": true,
+            "InputType": 0
+          },
+          {
+            "Id": "privacy-settings-content",
+            "Name": "Show me suggested content in the Settings app",
+            "IsSelected": true,
+            "InputType": 0
+          },
+          {
+            "Id": "privacy-settings-notifications",
+            "Name": "Settings App Notifications",
+            "IsSelected": true,
+            "InputType": 0
+          },
+          {
+            "Id": "privacy-speech-recognition",
+            "Name": "Online Speech Recognition",
+            "IsSelected": false,
+            "InputType": 0
+          },
+          {
+            "Id": "privacy-narrator-online-services",
+            "Name": "Narrator Online Services",
+            "IsSelected": true,
+            "InputType": 0
+          },
+          {
+            "Id": "privacy-narrator-scripting",
+            "Name": "Narrator Scripting Support",
+            "IsSelected": true,
+            "InputType": 0
+          },
+          {
+            "Id": "privacy-inking-typing-dictionary",
+            "Name": "Custom Inking and Typing Dictionary",
+            "IsSelected": true,
+            "InputType": 0
+          },
+          {
+            "Id": "privacy-diagnostics",
+            "Name": "Send Diagnostic Data",
+            "IsSelected": false,
+            "InputType": 0
+          },
+          {
+            "Id": "privacy-improve-inking-typing",
+            "Name": "Improve inking and typing",
+            "IsSelected": false,
+            "InputType": 0
+          },
+          {
+            "Id": "privacy-tailored-experiences",
+            "Name": "Tailored Experiences",
+            "IsSelected": false,
+            "InputType": 0
+          },
+          {
+            "Id": "privacy-feedback-frequency",
+            "Name": "Allow Windows to ask you for feedback",
+            "IsSelected": true,
+            "InputType": 0
+          },
+          {
+            "Id": "privacy-search-history",
+            "Name": "Search history on this device",
+            "IsSelected": true,
+            "InputType": 0
+          },
+          {
+            "Id": "privacy-search-highlights",
+            "Name": "Show search highlights",
+            "IsSelected": true,
+            "InputType": 0
+          },
+          {
+            "Id": "privacy-search-msa-cloud",
+            "Name": "Cloud Content Search for Microsoft account",
+            "IsSelected": true,
+            "InputType": 0
+          },
+          {
+            "Id": "privacy-search-aad-cloud",
+            "Name": "Cloud Content Search for Work or School account",
+            "IsSelected": true,
+            "InputType": 0
+          },
+          {
+            "Id": "privacy-allow-cortana",
+            "Name": "Allow Cortana",
+            "IsSelected": true,
+            "InputType": 0
+          },
+          {
+            "Id": "privacy-location-services",
+            "Name": "Location Services",
+            "IsSelected": false,
+            "InputType": 0
+          },
+          {
+            "Id": "privacy-camera-access",
+            "Name": "Camera Access",
+            "IsSelected": true,
+            "InputType": 0
+          },
+          {
+            "Id": "privacy-microphone-access",
+            "Name": "Microphone Access",
+            "IsSelected": true,
+            "InputType": 0
+          },
+          {
+            "Id": "privacy-account-info-access",
+            "Name": "Account Info Access",
+            "IsSelected": true,
+            "InputType": 0
+          },
+          {
+            "Id": "privacy-app-diagnostic-access",
+            "Name": "App Diagnostic Access",
+            "IsSelected": true,
+            "InputType": 0
+          },
+          {
+            "Id": "privacy-onedrive-auto-backup",
+            "Name": "Disable OneDrive Automatic Backups",
+            "IsSelected": false,
+            "InputType": 0
+          }
+        ]
+      },
+      "Sound": {
+        "IsIncluded": true,
+        "Items": [
+          {
+            "Id": "sound-startup",
+            "Name": "Startup Sound During Boot",
+            "IsSelected": true,
+            "InputType": 0
+          },
+          {
+            "Id": "sound-communication-ducking",
+            "Name": "Sound Ducking Preference",
+            "InputType": 1,
+            "SelectedIndex": 1
+          },
+          {
+            "Id": "sound-narrator-audio-ducking",
+            "Name": "Narrator Audio Ducking",
+            "IsSelected": true,
+            "InputType": 0
+          },
+          {
+            "Id": "sound-voice-activation",
+            "Name": "Voice Activation for Apps",
+            "IsSelected": true,
+            "InputType": 0
+          },
+          {
+            "Id": "sound-voice-activation-last-used",
+            "Name": "Last Used Voice Activation Setting",
+            "IsSelected": true,
+            "InputType": 0
+          },
+          {
+            "Id": "sound-accessibility-activation",
+            "Name": "Accessibility Activation Sounds",
+            "IsSelected": true,
+            "InputType": 0
+          },
+          {
+            "Id": "sound-accessibility-warnings",
+            "Name": "Accessibility Warning Sounds",
+            "IsSelected": true,
+            "InputType": 0
+          }
+        ]
+      },
+      "Update": {
+        "IsIncluded": true,
+        "Items": [
+          {
+            "Id": "updates-policy-mode",
+            "Name": "Windows Update Policy",
+            "InputType": 1,
+            "SelectedIndex": 2
+          },
+          {
+            "Id": "updates-delivery-optimization",
+            "Name": "Delivery Optimization",
+            "InputType": 1,
+            "SelectedIndex": 0
+          },
+          {
+            "Id": "updates-latest-updates",
+            "Name": "Get the latest updates as soon as they're available",
+            "IsSelected": true,
+            "InputType": 0
+          },
+          {
+            "Id": "updates-other-products",
+            "Name": "Receive updates for other Microsoft products",
+            "IsSelected": false,
+            "InputType": 0
+          },
+          {
+            "Id": "updates-restart-asap",
+            "Name": "Get me up to date",
+            "IsSelected": false,
+            "InputType": 0
+          },
+          {
+            "Id": "updates-restart-options",
+            "Name": "Prevent Automatic Restarts",
+            "IsSelected": false,
+            "InputType": 0
+          },
+          {
+            "Id": "updates-notification-level",
+            "Name": "Update Notifications",
+            "IsSelected": false,
+            "InputType": 0
+          },
+          {
+            "Id": "updates-restart-notification",
+            "Name": "Notify me when a restart is required to finish updating",
+            "IsSelected": false,
+            "InputType": 0
+          },
+          {
+            "Id": "updates-metered-connection",
+            "Name": "Download updates over metered connections",
+            "IsSelected": false,
+            "InputType": 0
+          },
+          {
+            "Id": "updates-driver-controls",
+            "Name": "Do Not Include Drivers with Updates",
+            "IsSelected": false,
+            "InputType": 0
+          },
+          {
+            "Id": "updates-store-auto-download",
+            "Name": "Auto Update Microsoft Store Apps",
+            "IsSelected": true,
+            "InputType": 0
+          }
+        ]
+      }
+    }
+  }
+}

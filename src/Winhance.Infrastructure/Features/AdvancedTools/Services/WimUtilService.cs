@@ -230,49 +230,69 @@ namespace Winhance.Infrastructure.Features.AdvancedTools.Services
 
         private async Task<ImageFormatInfo> GetImageInfoAsync(string imagePath, ImageFormat format)
         {
+            var fileInfo = new FileInfo(imagePath);
+            var info = new ImageFormatInfo
+            {
+                Format = format,
+                FilePath = imagePath,
+                FileSizeBytes = fileInfo.Length
+            };
+
             try
             {
-                var fileInfo = new FileInfo(imagePath);
-                var info = new ImageFormatInfo
+                var arguments = $"/Get-ImageInfo /ImageFile:\"{imagePath}\"";
+                _logService.LogInformation($"Running: dism.exe {arguments}");
+
+                using var process = new Process();
+                process.StartInfo = new ProcessStartInfo
                 {
-                    Format = format,
-                    FilePath = imagePath,
-                    FileSizeBytes = fileInfo.Length
+                    FileName = "dism.exe",
+                    Arguments = arguments,
+                    UseShellExecute = false,
+                    CreateNoWindow = true,
+                    RedirectStandardOutput = true,
+                    RedirectStandardError = true
                 };
 
-                await Task.Run(() =>
-                {
-                    Microsoft.Dism.DismApi.Initialize(Microsoft.Dism.DismLogLevel.LogErrors);
-                    try
-                    {
-                        var imageInfos = Microsoft.Dism.DismApi.GetImageInfo(imagePath);
-                        info.ImageCount = imageInfos.Count;
-                        foreach (var imageInfo in imageInfos)
-                        {
-                            info.EditionNames.Add(imageInfo.ImageName);
-                        }
-                    }
-                    finally
-                    {
-                        Microsoft.Dism.DismApi.Shutdown();
-                    }
-                });
+                process.Start();
+                var stdout = await process.StandardOutput.ReadToEndAsync();
+                await process.WaitForExitAsync();
 
+                if (process.ExitCode != 0)
+                {
+                    _logService.LogWarning($"dism.exe /Get-ImageInfo exited with code {process.ExitCode}");
+                    info.ImageCount = 1;
+                    return info;
+                }
+
+                int imageCount = 0;
+                foreach (var line in stdout.Split('\n'))
+                {
+                    var trimmed = line.Trim();
+                    if (trimmed.StartsWith("Index :", StringComparison.OrdinalIgnoreCase) ||
+                        trimmed.StartsWith("Index:", StringComparison.OrdinalIgnoreCase))
+                    {
+                        imageCount++;
+                    }
+                    else if (trimmed.StartsWith("Name :", StringComparison.OrdinalIgnoreCase) ||
+                             trimmed.StartsWith("Name:", StringComparison.OrdinalIgnoreCase))
+                    {
+                        var name = trimmed.Substring(trimmed.IndexOf(':') + 1).Trim();
+                        if (!string.IsNullOrEmpty(name))
+                            info.EditionNames.Add(name);
+                    }
+                }
+
+                info.ImageCount = imageCount > 0 ? imageCount : 1;
                 _logService.LogInformation($"Image: {format}, {info.ImageCount} editions, {info.FileSizeBytes:N0} bytes");
-                return info;
             }
             catch (Exception ex)
             {
                 _logService.LogWarning($"Could not get detailed image info: {ex.Message}");
-                var fileInfo = new FileInfo(imagePath);
-                return new ImageFormatInfo
-                {
-                    Format = format,
-                    FilePath = imagePath,
-                    FileSizeBytes = fileInfo.Length,
-                    ImageCount = 1
-                };
+                info.ImageCount = 1;
             }
+
+            return info;
         }
 
         private static readonly System.Text.RegularExpressions.Regex ProgressRegex =

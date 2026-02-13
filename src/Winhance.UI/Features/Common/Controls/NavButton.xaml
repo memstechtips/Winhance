@@ -3,7 +3,10 @@
     x:Class="Winhance.UI.Features.Common.Controls.NavButton"
     xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
     xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
-    xmlns:local="using:Winhance.UI.Features.Common.Controls">
+    xmlns:local="using:Winhance.UI.Features.Common.Controls"
+    IsTabStop="True"
+    UseSystemFocusVisuals="True"
+    AutomationProperties.Name="{x:Bind Text, Mode=OneWay}">
 
     <Grid x:Name="RootGrid"
           Width="{x:Bind ActualButtonWidth, Mode=OneWay}"

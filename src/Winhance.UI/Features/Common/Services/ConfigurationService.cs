@@ -1,3 +1,4 @@
+using System.Threading;
 using System.Text.Json;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.UI.Xaml;
@@ -460,6 +461,17 @@ public class ConfigurationService : IConfigurationService
             // Show success message and wait for user dismissal
             await ShowImportSuccessMessage(selectedSections);
 
+            // Process Windows Apps installation AFTER overlay is hidden (shows confirmation dialog)
+            if (hasWindowsApps && importOptions.ProcessWindowsAppsInstallation)
+            {
+                var vm = _serviceProvider.GetService<WindowsAppsViewModel>();
+                if (vm != null)
+                {
+                    _logService.Log(LogLevel.Info, "Processing Windows Apps installation");
+                    await vm.InstallAppsAsync();
+                }
+            }
+
             // Process External Apps AFTER success dialog dismissal (needs UI thread)
             if (hasExternalApps && importOptions.ProcessExternalAppsInstallation)
             {
@@ -521,7 +533,7 @@ public class ConfigurationService : IConfigurationService
         }
     }
 
-    private async Task<UnifiedConfigurationFile> CreateConfigurationFromSystemAsync()
+    private async Task<UnifiedConfigurationFile> CreateConfigurationFromSystemAsync(bool isBackup = false)
     {
         var config = new UnifiedConfigurationFile
         {
@@ -530,7 +542,7 @@ public class ConfigurationService : IConfigurationService
         };
 
         await PopulateFeatureBasedSections(config);
-        await PopulateAppsSections(config);
+        await PopulateAppsSections(config, isBackup);
 
         return config;
     }
@@ -676,7 +688,7 @@ public class ConfigurationService : IConfigurationService
         _logService.Log(LogLevel.Info, $"Total exported: {totalOptimizeSettings} Optimize settings, {totalCustomizeSettings} Customize settings");
     }
 
-    private async Task PopulateAppsSections(UnifiedConfigurationFile config)
+    private async Task PopulateAppsSections(UnifiedConfigurationFile config, bool useInstalledStatus = false)
     {
         var windowsAppsVM = _serviceProvider.GetService<WindowsAppsViewModel>();
         if (windowsAppsVM != null)
@@ -686,7 +698,7 @@ public class ConfigurationService : IConfigurationService
 
             config.WindowsApps.IsIncluded = true;
             config.WindowsApps.Items = windowsAppsVM.Items
-                .Where(item => item.IsSelected)
+                .Where(item => useInstalledStatus ? item.IsInstalled : item.IsSelected)
                 .Select(item =>
                 {
                     var configItem = new ConfigurationItem
@@ -711,35 +723,38 @@ public class ConfigurationService : IConfigurationService
                     return configItem;
                 }).ToList();
 
-            _logService.Log(LogLevel.Info, $"Exported {config.WindowsApps.Items.Count} checked Windows Apps");
+            _logService.Log(LogLevel.Info, $"Exported {config.WindowsApps.Items.Count} {(useInstalledStatus ? "installed" : "checked")} Windows Apps");
         }
 
-        var externalAppsVM = _serviceProvider.GetService<ExternalAppsViewModel>();
-        if (externalAppsVM != null)
+        if (!useInstalledStatus)
         {
-            if (!externalAppsVM.IsInitialized)
-                await externalAppsVM.LoadItemsAsync();
+            var externalAppsVM = _serviceProvider.GetService<ExternalAppsViewModel>();
+            if (externalAppsVM != null)
+            {
+                if (!externalAppsVM.IsInitialized)
+                    await externalAppsVM.LoadItemsAsync();
 
-            config.ExternalApps.IsIncluded = true;
-            config.ExternalApps.Items = externalAppsVM.Items
-                .Where(item => item.IsSelected)
-                .Select(item =>
-                {
-                    var configItem = new ConfigurationItem
+                config.ExternalApps.IsIncluded = true;
+                config.ExternalApps.Items = externalAppsVM.Items
+                    .Where(item => item.IsSelected)
+                    .Select(item =>
                     {
-                        Id = item.Id,
-                        Name = item.Name,
-                        IsSelected = true,
-                        InputType = InputType.Toggle
-                    };
+                        var configItem = new ConfigurationItem
+                        {
+                            Id = item.Id,
+                            Name = item.Name,
+                            IsSelected = true,
+                            InputType = InputType.Toggle
+                        };
 
-                    if (item.Definition.WinGetPackageId != null && item.Definition.WinGetPackageId.Any())
-                        configItem.WinGetPackageId = item.Definition.WinGetPackageId[0];
+                        if (item.Definition.WinGetPackageId != null && item.Definition.WinGetPackageId.Any())
+                            configItem.WinGetPackageId = item.Definition.WinGetPackageId[0];
 
-                    return configItem;
-                }).ToList();
+                        return configItem;
+                    }).ToList();
 
-            _logService.Log(LogLevel.Info, $"Exported {config.ExternalApps.Items.Count} checked External Apps");
+                _logService.Log(LogLevel.Info, $"Exported {config.ExternalApps.Items.Count} checked External Apps");
+            }
         }
     }
 
@@ -814,7 +829,7 @@ public class ConfigurationService : IConfigurationService
 
             await EnsureRegistryInitializedAsync();
 
-            var config = await CreateConfigurationFromSystemAsync();
+            var config = await CreateConfigurationFromSystemAsync(isBackup: true);
 
             var configDir = Path.Combine(
                 Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData),
@@ -914,7 +929,7 @@ public class ConfigurationService : IConfigurationService
             {
                 var vmItem = FindMatchingWindowsApp(vm.Items, configItem);
                 if (vmItem != null)
-                    vmItem.IsSelected = true;
+                    vmItem.IsSelected = configItem.IsSelected ?? true;
             }
         }
 
@@ -1059,41 +1074,37 @@ public class ConfigurationService : IConfigurationService
     {
         _logService.Log(LogLevel.Info, $"Applying configuration to: {string.Join(", ", selectedSections)}");
 
-        bool hasCustomizations = selectedSections.Any(s => s == "Customize" || s.StartsWith("Customize_"));
+        bool shouldRemoveApps = selectedSections.Contains("WindowsApps") && options.ProcessWindowsAppsRemoval;
+        bool hasOptimize = selectedSections.Any(s => s == "Optimize" || s.StartsWith("Optimize_"));
+        bool hasCustomize = selectedSections.Any(s => s == "Customize" || s.StartsWith("Customize_"));
 
-        if (selectedSections.Contains("WindowsApps") && options.ProcessWindowsAppsRemoval)
+        var parallelTasks = new List<Task>();
+
+        // Branch 1: Bloat removal (no Task.Run — ViewModel needs UI thread for property change notifications)
+        if (shouldRemoveApps)
         {
             var vm = _serviceProvider.GetService<WindowsAppsViewModel>();
             if (vm != null)
             {
-                _logService.Log(LogLevel.Info, "Processing Windows Apps removal");
-                await vm.RemoveApps(skipConfirmation: true, saveRemovalScripts: _configImportSaveRemovalScripts);
+                _logService.Log(LogLevel.Info, "Processing Windows Apps removal (parallel branch)");
+                parallelTasks.Add(vm.RemoveApps(skipConfirmation: true, saveRemovalScripts: _configImportSaveRemovalScripts));
             }
         }
 
-        if (selectedSections.Contains("WindowsApps") && options.ProcessWindowsAppsInstallation)
+        // Branch 2: All settings (Optimize + Customize in parallel within)
+        if (hasOptimize || hasCustomize)
         {
-            var vm = _serviceProvider.GetService<WindowsAppsViewModel>();
-            if (vm != null)
-            {
-                _logService.Log(LogLevel.Info, "Processing Windows Apps installation");
-                await vm.InstallAppsAsync();
-            }
+            parallelTasks.Add(ApplyAllSettingsGroupsAsync(config, selectedSections, options, hasOptimize, hasCustomize));
         }
 
-        if (selectedSections.Any(s => s == "Optimize" || s.StartsWith("Optimize_")))
-        {
-            var success = await ApplyFeatureGroupWithOptionsAsync(config.Optimize, "Optimize", options, selectedSections);
-            _logService.Log(LogLevel.Info, $"  Optimize: {(success ? "Success" : "Failed")}");
-        }
-
-        if (hasCustomizations)
-        {
-            var success = await ApplyFeatureGroupWithOptionsAsync(config.Customize, "Customize", options, selectedSections);
-            _logService.Log(LogLevel.Info, $"  Customize: {(success ? "Success" : "Failed")}");
-        }
+        await Task.WhenAll(parallelTasks);
 
         // Always restart explorer at the end to apply all changes
+        _overlayService.UpdateStatus(
+            _localizationService.GetString("Config_Import_Status_Applying")
+                ?? "Sit back, relax and watch while Winhance enhances Windows with your desired settings...",
+            _localizationService.GetString("Config_Import_Status_RestartingExplorer")
+                ?? "Restarting Explorer...");
         await Task.Run(async () =>
         {
             if (_windowsUIManagementService.IsProcessRunning("explorer"))
@@ -1111,11 +1122,91 @@ public class ConfigurationService : IConfigurationService
         });
     }
 
+    private async Task ApplyAllSettingsGroupsAsync(
+        UnifiedConfigurationFile config,
+        List<string> selectedSections,
+        ImportOptions options,
+        bool hasOptimize,
+        bool hasCustomize)
+    {
+        // Count total features across both groups for progress reporting
+        int totalFeatures = 0;
+        if (hasOptimize && config.Optimize?.Features != null)
+        {
+            totalFeatures += config.Optimize.Features
+                .Count(f => selectedSections.Contains($"Optimize_{f.Key}"));
+        }
+        if (hasCustomize && config.Customize?.Features != null)
+        {
+            totalFeatures += config.Customize.Features
+                .Count(f => selectedSections.Contains($"Customize_{f.Key}"));
+        }
+        // Count action-only subsections that aren't already in the feature groups
+        var actionOnlyExtras = options.ActionOnlySubsections
+            .Where(s =>
+            {
+                if (s.StartsWith("Optimize_"))
+                {
+                    var featureName = s.Substring("Optimize_".Length);
+                    return config.Optimize?.Features?.ContainsKey(featureName) != true;
+                }
+                if (s.StartsWith("Customize_"))
+                {
+                    var featureName = s.Substring("Customize_".Length);
+                    return config.Customize?.Features?.ContainsKey(featureName) != true;
+                }
+                return false;
+            })
+            .ToList();
+        totalFeatures += actionOnlyExtras.Count;
+
+        if (totalFeatures == 0)
+            totalFeatures = 1; // Avoid division by zero in display
+
+        int completedFeatures = 0;
+
+        var statusText = _localizationService.GetString("Config_Import_Status_Applying")
+            ?? "Sit back, relax and watch while Winhance enhances Windows with your desired settings...";
+        _overlayService.UpdateStatus(statusText, $"0/{totalFeatures} features applied");
+
+        Action<string> onFeatureCompleted = featureName =>
+        {
+            var completed = Interlocked.Increment(ref completedFeatures);
+            _overlayService.UpdateStatus(statusText, $"{completed}/{totalFeatures} features applied");
+            _logService.Log(LogLevel.Info, $"Feature completed: {featureName} ({completed}/{totalFeatures})");
+        };
+
+        var groupTasks = new List<Task>();
+
+        if (hasOptimize)
+        {
+            groupTasks.Add(Task.Run(async () =>
+            {
+                var success = await ApplyFeatureGroupWithOptionsAsync(
+                    config.Optimize, "Optimize", options, selectedSections, onFeatureCompleted);
+                _logService.Log(LogLevel.Info, $"  Optimize group: {(success ? "Success" : "Failed")}");
+            }));
+        }
+
+        if (hasCustomize)
+        {
+            groupTasks.Add(Task.Run(async () =>
+            {
+                var success = await ApplyFeatureGroupWithOptionsAsync(
+                    config.Customize, "Customize", options, selectedSections, onFeatureCompleted);
+                _logService.Log(LogLevel.Info, $"  Customize group: {(success ? "Success" : "Failed")}");
+            }));
+        }
+
+        await Task.WhenAll(groupTasks);
+    }
+
     private async Task<bool> ApplyFeatureGroupWithOptionsAsync(
         FeatureGroupSection featureGroup,
         string groupName,
         ImportOptions options,
-        List<string> selectedSections)
+        List<string> selectedSections,
+        Action<string>? onFeatureCompleted = null)
     {
         bool hasActionOnlySubsections = selectedSections.Any(s =>
             s.StartsWith($"{groupName}_") &&
@@ -1127,16 +1218,35 @@ public class ConfigurationService : IConfigurationService
             return false;
         }
 
-        bool overallSuccess = true;
-        var processedFeatureKeys = new HashSet<string>();
+        // Build confirmation handler ONCE — identical for all features during import
+        Func<string, object?, SettingDefinition, Task<(bool confirmed, bool checkboxResult)>> confirmationHandler =
+            (settingId, value, setting) =>
+            {
+                if (settingId == "power-plan-selection" || settingId == "updates-policy-mode")
+                    return Task.FromResult((true, true));
 
+                if (settingId == "theme-mode-windows")
+                    return Task.FromResult((true, options?.ApplyThemeWallpaper ?? false));
+
+                if (settingId == "taskbar-clean")
+                    return Task.FromResult((true, options?.ApplyCleanTaskbar ?? false));
+
+                if (settingId == "start-menu-clean-10" || settingId == "start-menu-clean-11")
+                    return Task.FromResult((true, options?.ApplyCleanStartMenu ?? false));
+
+                return Task.FromResult((true, true));
+            };
+
+        var processedFeatureKeys = new HashSet<string>();
+        var featureTasks = new List<Task<bool>>();
+
+        // Phase 1: Features from the config file
         if (featureGroup?.Features != null)
         {
             foreach (var feature in featureGroup.Features)
             {
                 var featureName = feature.Key;
                 var section = feature.Value;
-
                 var featureKey = $"{groupName}_{featureName}";
                 processedFeatureKeys.Add(featureKey);
 
@@ -1147,99 +1257,63 @@ public class ConfigurationService : IConfigurationService
                 }
 
                 bool isActionOnly = options.ActionOnlySubsections.Contains(featureKey);
+                var actionItems = BuildActionItems(options, featureName);
 
-                Func<string, object?, SettingDefinition, Task<(bool confirmed, bool checkboxResult)>> confirmationHandler =
-                    async (settingId, value, setting) =>
-                    {
-                        if (settingId == "power-plan-selection" || settingId == "updates-policy-mode")
-                        {
-                            return (true, true);
-                        }
+                // Capture for closure
+                var capturedFeatureName = featureName;
+                var capturedSection = section;
 
-                        if (settingId == "theme-mode-windows")
-                        {
-                            return (true, options?.ApplyThemeWallpaper ?? false);
-                        }
-                        else if (settingId == "taskbar-clean")
-                        {
-                            return (true, options?.ApplyCleanTaskbar ?? false);
-                        }
-                        else if (settingId == "start-menu-clean-10" || settingId == "start-menu-clean-11")
-                        {
-                            return (true, options?.ApplyCleanStartMenu ?? false);
-                        }
-
-                        return (true, true);
-                    };
-
-                // Build action commands if any are requested
-                var itemsToExecute = new List<ConfigurationItem>();
-
-                if (options?.ApplyCleanTaskbar == true && featureName == FeatureIds.Taskbar)
+                featureTasks.Add(Task.Run(async () =>
                 {
-                    itemsToExecute.Add(new ConfigurationItem
+                    bool featureSuccess = true;
+
+                    // Execute action commands first if any
+                    if (actionItems.Any())
                     {
-                        Id = "taskbar-clean",
-                        Name = "Clean Taskbar",
-                        IsSelected = true,
-                        InputType = InputType.Toggle
-                    });
-                }
+                        var actionSection = new ConfigSection
+                        {
+                            IsIncluded = true,
+                            Items = actionItems
+                        };
 
-                if (options?.ApplyCleanStartMenu == true && featureName == FeatureIds.StartMenu)
-                {
-                    var settingId = _windowsVersionService.IsWindows11() ? "start-menu-clean-11" : "start-menu-clean-10";
-                    itemsToExecute.Add(new ConfigurationItem
-                    {
-                        Id = settingId,
-                        Name = "Clean Start Menu",
-                        IsSelected = true,
-                        InputType = InputType.Toggle
-                    });
-                }
+                        _logService.Log(LogLevel.Info, $"Executing {actionItems.Count} action command(s) for {capturedFeatureName}");
 
-                // Execute action commands if any
-                if (itemsToExecute.Any())
-                {
-                    var actionSection = new ConfigSection
-                    {
-                        IsIncluded = true,
-                        Items = itemsToExecute
-                    };
+                        var success = await _bridgeService.ApplyConfigurationSectionAsync(
+                            actionSection,
+                            $"{groupName}.{capturedFeatureName}",
+                            confirmationHandler);
 
-                    _logService.Log(LogLevel.Info, $"Executing {itemsToExecute.Count} action command(s) for {featureName}");
-
-                    var success = await _bridgeService.ApplyConfigurationSectionAsync(
-                        actionSection,
-                        $"{groupName}.{featureName}",
-                        confirmationHandler);
-
-                    if (!success)
-                    {
-                        overallSuccess = false;
-                        _logService.Log(LogLevel.Warning, $"Failed to apply action commands for {featureName}");
+                        if (!success)
+                        {
+                            featureSuccess = false;
+                            _logService.Log(LogLevel.Warning, $"Failed to apply action commands for {capturedFeatureName}");
+                        }
                     }
-                }
 
-                // Apply regular settings if not action-only
-                if (!isActionOnly)
-                {
-                    _logService.Log(LogLevel.Info, $"Applying {section.Items.Count} settings from {groupName} > {featureName}");
-
-                    var success = await _bridgeService.ApplyConfigurationSectionAsync(
-                        section,
-                        $"{groupName}.{featureName}",
-                        confirmationHandler);
-
-                    if (!success)
+                    // Apply regular settings if not action-only
+                    if (!isActionOnly)
                     {
-                        overallSuccess = false;
-                        _logService.Log(LogLevel.Warning, $"Failed to apply some settings from {groupName} > {featureName}");
+                        _logService.Log(LogLevel.Info, $"Applying {capturedSection.Items.Count} settings from {groupName} > {capturedFeatureName}");
+
+                        var success = await _bridgeService.ApplyConfigurationSectionAsync(
+                            capturedSection,
+                            $"{groupName}.{capturedFeatureName}",
+                            confirmationHandler);
+
+                        if (!success)
+                        {
+                            featureSuccess = false;
+                            _logService.Log(LogLevel.Warning, $"Failed to apply some settings from {groupName} > {capturedFeatureName}");
+                        }
                     }
-                }
+
+                    onFeatureCompleted?.Invoke(capturedFeatureName);
+                    return featureSuccess;
+                }));
             }
         }
 
+        // Phase 2: Action-only subsections not already in the config features
         var unprocessedActionOnly = selectedSections
             .Where(s => s.StartsWith($"{groupName}_") &&
                        options.ActionOnlySubsections.Contains(s) &&
@@ -1249,59 +1323,12 @@ public class ConfigurationService : IConfigurationService
         foreach (var featureKey in unprocessedActionOnly)
         {
             var featureName = featureKey.Substring(groupName.Length + 1);
+            var actionItems = BuildActionItems(options, featureName);
 
-            Func<string, object?, SettingDefinition, Task<(bool confirmed, bool checkboxResult)>> confirmationHandler =
-                async (settingId, value, setting) =>
-                {
-                    if (settingId == "power-plan-selection" || settingId == "updates-policy-mode")
-                    {
-                        return (true, true);
-                    }
-
-                    if (settingId == "theme-mode-windows")
-                    {
-                        return (true, options?.ApplyThemeWallpaper ?? false);
-                    }
-                    else if (settingId == "taskbar-clean")
-                    {
-                        return (true, options?.ApplyCleanTaskbar ?? false);
-                    }
-                    else if (settingId == "start-menu-clean-10" || settingId == "start-menu-clean-11")
-                    {
-                        return (true, options?.ApplyCleanStartMenu ?? false);
-                    }
-
-                    return (true, true);
-                };
-
-            var itemsToExecute = new List<ConfigurationItem>();
-
-            if (options?.ApplyCleanTaskbar == true && featureName == FeatureIds.Taskbar)
-            {
-                itemsToExecute.Add(new ConfigurationItem
-                {
-                    Id = "taskbar-clean",
-                    Name = "Clean Taskbar",
-                    IsSelected = true,
-                    InputType = InputType.Toggle
-                });
-            }
-
-            if (options?.ApplyCleanStartMenu == true && featureName == FeatureIds.StartMenu)
-            {
-                var settingId = _windowsVersionService.IsWindows11() ? "start-menu-clean-11" : "start-menu-clean-10";
-                itemsToExecute.Add(new ConfigurationItem
-                {
-                    Id = settingId,
-                    Name = "Clean Start Menu",
-                    IsSelected = true,
-                    InputType = InputType.Toggle
-                });
-            }
-
+            // Handle WindowsTheme action-only case
             if (options?.ApplyThemeWallpaper == true && featureName == FeatureIds.WindowsTheme)
             {
-                itemsToExecute.Add(new ConfigurationItem
+                actionItems.Add(new ConfigurationItem
                 {
                     Id = "theme-mode-windows",
                     Name = "Windows Theme",
@@ -1311,34 +1338,76 @@ public class ConfigurationService : IConfigurationService
                 });
             }
 
-            if (itemsToExecute.Any())
+            var capturedFeatureName = featureName;
+            var capturedActionItems = actionItems;
+
+            featureTasks.Add(Task.Run(async () =>
             {
-                var actionSection = new ConfigSection
+                if (capturedActionItems.Any())
                 {
-                    IsIncluded = true,
-                    Items = itemsToExecute
-                };
+                    var actionSection = new ConfigSection
+                    {
+                        IsIncluded = true,
+                        Items = capturedActionItems
+                    };
 
-                _logService.Log(LogLevel.Info, $"Executing {itemsToExecute.Count} action command(s) for {featureName} (not in config file)");
+                    _logService.Log(LogLevel.Info, $"Executing {capturedActionItems.Count} action command(s) for {capturedFeatureName} (not in config file)");
 
-                var success = await _bridgeService.ApplyConfigurationSectionAsync(
-                    actionSection,
-                    $"{groupName}.{featureName}",
-                    confirmationHandler);
+                    var success = await _bridgeService.ApplyConfigurationSectionAsync(
+                        actionSection,
+                        $"{groupName}.{capturedFeatureName}",
+                        confirmationHandler);
 
-                if (!success)
-                {
-                    overallSuccess = false;
-                    _logService.Log(LogLevel.Warning, $"Failed to apply action commands for {featureName}");
+                    if (!success)
+                    {
+                        _logService.Log(LogLevel.Warning, $"Failed to apply action commands for {capturedFeatureName}");
+                        onFeatureCompleted?.Invoke(capturedFeatureName);
+                        return false;
+                    }
                 }
-            }
-            else
-            {
-                _logService.Log(LogLevel.Info, $"No action commands to execute for {featureName}");
-            }
+                else
+                {
+                    _logService.Log(LogLevel.Info, $"No action commands to execute for {capturedFeatureName}");
+                }
+
+                onFeatureCompleted?.Invoke(capturedFeatureName);
+                return true;
+            }));
         }
 
-        return overallSuccess;
+        // Run all features in the group in parallel
+        var results = await Task.WhenAll(featureTasks);
+        return results.All(r => r);
+    }
+
+    private List<ConfigurationItem> BuildActionItems(ImportOptions options, string featureName)
+    {
+        var items = new List<ConfigurationItem>();
+
+        if (options?.ApplyCleanTaskbar == true && featureName == FeatureIds.Taskbar)
+        {
+            items.Add(new ConfigurationItem
+            {
+                Id = "taskbar-clean",
+                Name = "Clean Taskbar",
+                IsSelected = true,
+                InputType = InputType.Toggle
+            });
+        }
+
+        if (options?.ApplyCleanStartMenu == true && featureName == FeatureIds.StartMenu)
+        {
+            var settingId = _windowsVersionService.IsWindows11() ? "start-menu-clean-11" : "start-menu-clean-10";
+            items.Add(new ConfigurationItem
+            {
+                Id = settingId,
+                Name = "Clean Start Menu",
+                IsSelected = true,
+                InputType = InputType.Toggle
+            });
+        }
+
+        return items;
     }
 
     private async Task ShowImportSuccessMessage(List<string> selectedSections)
@@ -1519,11 +1588,14 @@ public class ConfigurationService : IConfigurationService
     {
         try
         {
-            _logService.Log(LogLevel.Info, "Loading embedded Windows defaults configuration");
+            var isWindows11 = _windowsVersionService.IsWindows11();
+            var resourceName = isWindows11
+                ? "Winhance.UI.Resources.Configs.Winhance_Default_Config_Windows11_25H2.winhance"
+                : "Winhance.UI.Resources.Configs.Winhance_Default_Config_Windows10_22H2.winhance";
+
+            _logService.Log(LogLevel.Info, $"Loading embedded Windows defaults configuration for {(isWindows11 ? "Windows 11" : "Windows 10")}: {resourceName}");
 
             var assembly = System.Reflection.Assembly.GetExecutingAssembly();
-            var resourceName = "Winhance.UI.Resources.Configs.Winhance_Windows_Defaults_Config.winhance";
-
             using var stream = assembly.GetManifestResourceStream(resourceName);
 
             if (stream == null)

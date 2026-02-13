@@ -4,8 +4,10 @@
 
 **Winhance** features most of the same enhancements as [UnattendedWinstall](https://github.com/memstechtips/UnattendedWinstall) without needing to do a clean install of Windows.
 
-<img width="1920" height="1080" alt="Winhance-UI" src="https://github.com/user-attachments/assets/6adedef9-6587-4f29-9bb2-d907965b7a03" />
+> [!NOTE]
+> Winhance is an independent, open-source project and is **not affiliated with, endorsed by, or associated with Microsoft** in any way. "Windows" is a registered trademark of Microsoft Corporation. Any similarities to Windows Settings or other Microsoft interfaces are a natural result of building a Windows enhancement tool using native Windows UI frameworks.
 
+<img width="1920" height="1080" alt="Winhance-UI" src="https://github.com/user-attachments/assets/6adedef9-6587-4f29-9bb2-d907965b7a03" />
 
 ## Requirements 💻
 - Windows 10/11
@@ -78,17 +80,15 @@ It really does make a big difference, and is very much appreciated. Thanks<br>
    - Save settings currently applied in Winhance to a config file for easy importing on a new system or after a fresh Windows install.
 - Toggle Winhance's theme (Light/Dark Mode)
 
+## License
+
+Except where otherwise stated (see [THIRD-PARTY-NOTICES.txt](THIRD-PARTY-NOTICES.txt)), the content of this repository is provided under the [PolyForm Shield 1.0.0](https://polyformproject.org/licenses/shield/1.0.0/) license by Marco du Plessis.
+
+**In plain language:** Winhance is free to use for everyone -- individuals, businesses, and IT professionals. You can use it to service and consult for clients. You just can't fork or rebrand it and redistribute it as a competing product. See the full [LICENSE.txt](LICENSE.txt) for details.
+
 ## Feedback and Community
 
 If you have feedback, suggestions, or need help with Winhance, please join the discussion on GitHub or our Discord community:
 
 [![Join the Discussion](https://img.shields.io/badge/Join-the%20Discussion-2D9F2D?style=for-the-badge&logo=github&logoColor=white)](https://github.com/memstechtips/Winhance/discussions/183)
 [![Join Discord Community](https://img.shields.io/badge/Join-Discord%20Community-5865F2?style=for-the-badge&logo=discord&logoColor=white)](https://www.discord.gg/zWGANV8QAX)
-
-## Localization 🌐
-
-I used AI (Gemini 2.5 Pro) to generate initial translations for Winhance, so it's available in multiple languages right out of the gate. That said, AI isn't perfect, and there are probably some mistakes or awkward phrasings in there.
-
-If you spot any translation errors or have suggestions to make things sound more natural, I'd love your help! Feel free to open a Pull Request with corrections or create an Issue to let me know what needs fixing. The localization files can be found in the `src/Winhance.WPF/Localization` directory.
-
-Want to see Winhance in a language that's not currently supported? Open an Issue with the "feature request" label and I'll see what I can do!

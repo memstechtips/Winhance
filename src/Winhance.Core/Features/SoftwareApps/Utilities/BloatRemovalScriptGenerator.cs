@@ -1,24 +1,60 @@
 using System.Text;
+using System.Text.RegularExpressions;
 
 namespace Winhance.Core.Features.SoftwareApps.Utilities;
 
 public static class BloatRemovalScriptGenerator
 {
+    public const string ScriptVersion = "2.0";
+
     public static string GenerateScript(
         List<string> packages,
         List<string> capabilities,
         List<string> optionalFeatures,
         List<string> specialApps,
-        bool includeXboxRegistryFix = false)
+        bool includeXboxRegistryFix = false,
+        bool includeTeamsProcessKill = false)
     {
         var sb = new StringBuilder();
 
         AppendHeader(sb);
         AppendLoggingSetup(sb);
+        AppendRunspaceHelper(sb);
         AppendArrays(sb, packages, capabilities, optionalFeatures, specialApps);
-        sb.Append(GetMainRemovalLogic(includeXboxRegistryFix));
+        sb.Append(GetMainRemovalLogic(includeXboxRegistryFix, includeTeamsProcessKill));
 
         return sb.ToString();
+    }
+
+    public static List<string> ExtractArrayFromScript(string content, string arrayName)
+    {
+        var pattern = $@"\${arrayName}\s*=\s*@\(\s*(.*?)\s*\)";
+        var match = Regex.Match(content, pattern, RegexOptions.Singleline | RegexOptions.IgnoreCase);
+
+        if (!match.Success) return new List<string>();
+
+        var arrayContent = match.Groups[1].Value;
+        var items = arrayContent
+            .Split('\n')
+            .Select(line => line.Trim().Trim(',').Trim('\'', '"'))
+            .Where(item => !string.IsNullOrWhiteSpace(item))
+            .ToList();
+
+        return items;
+    }
+
+    public static string UpdateScriptTemplate(string existingContent)
+    {
+        var packages = ExtractArrayFromScript(existingContent, "packages");
+        var capabilities = ExtractArrayFromScript(existingContent, "capabilities");
+        var optionalFeatures = ExtractArrayFromScript(existingContent, "optionalFeatures");
+        var specialApps = ExtractArrayFromScript(existingContent, "specialApps");
+
+        var xboxPackages = new[] { "Microsoft.GamingApp", "Microsoft.XboxGamingOverlay", "Microsoft.XboxGameOverlay" };
+        var includeXboxRegistryFix = packages.Any(p => xboxPackages.Contains(p, StringComparer.OrdinalIgnoreCase));
+        var includeTeamsProcessKill = packages.Any(p => p.Equals("MSTeams", StringComparison.OrdinalIgnoreCase));
+
+        return GenerateScript(packages, capabilities, optionalFeatures, specialApps, includeXboxRegistryFix, includeTeamsProcessKill);
     }
 
     private static void AppendHeader(StringBuilder sb)
@@ -26,6 +62,7 @@ public static class BloatRemovalScriptGenerator
         sb.AppendLine("<#");
         sb.AppendLine("  .SYNOPSIS");
         sb.AppendLine("      Removes Windows bloatware apps, legacy capabilities, and optional features from Windows 10/11 systems.");
+        sb.AppendLine("      Script Version: " + ScriptVersion);
         sb.AppendLine();
         sb.AppendLine("  .DESCRIPTION");
         sb.AppendLine("      This script removes selected Windows components including:");
@@ -34,7 +71,7 @@ public static class BloatRemovalScriptGenerator
         sb.AppendLine("      - Optional Windows features");
         sb.AppendLine("      - Special apps requiring custom uninstall procedures (e.g., OneNote)");
         sb.AppendLine();
-        sb.AppendLine("      The script includes retry logic and verification to ensure complete removal.");
+        sb.AppendLine("      Provisioned packages are removed first to ensure Remove-AppxPackage -AllUsers succeeds on Win10.");
         sb.AppendLine("      This script is designed to run in any context: user sessions, SYSTEM account, or scheduled tasks.");
         sb.AppendLine();
         sb.AppendLine("  .NOTES");
@@ -66,52 +103,68 @@ public static class BloatRemovalScriptGenerator
         sb.AppendLine("$logFolder = \"C:\\ProgramData\\Winhance\\Logs\"");
         sb.AppendLine("$logFile = \"$logFolder\\BloatRemovalLog.txt\"");
         sb.AppendLine();
-        sb.AppendLine("# Create log directory if it doesn't exist");
         sb.AppendLine("if (!(Test-Path $logFolder)) {");
         sb.AppendLine("    New-Item -ItemType Directory -Path $logFolder -Force | Out-Null");
         sb.AppendLine("}");
         sb.AppendLine();
-        sb.AppendLine("# Function to write to log file");
         sb.AppendLine("function Write-Log {");
-        sb.AppendLine("    param (");
-        sb.AppendLine("        [string]$Message");
-        sb.AppendLine("    )");
-        sb.AppendLine("    ");
-        sb.AppendLine("    # Check if log file exists and is over 500KB (512000 bytes)");
+        sb.AppendLine("    param ([string]$Message)");
         sb.AppendLine("    if ((Test-Path $logFile) -and (Get-Item $logFile).Length -gt 512000) {");
         sb.AppendLine("        Remove-Item $logFile -Force -ErrorAction SilentlyContinue");
-        sb.AppendLine("        $timestamp = Get-Date -Format \"yyyy-MM-dd HH:mm:ss\"");
-        sb.AppendLine("        \"$timestamp - Log rotated - previous log exceeded 500KB\" | Out-File -FilePath $logFile");
+        sb.AppendLine("        \"$(Get-Date -Format 'yyyy-MM-dd HH:mm:ss') - Log rotated - previous log exceeded 500KB\" | Out-File -FilePath $logFile");
         sb.AppendLine("    }");
-        sb.AppendLine("    ");
-        sb.AppendLine("    $timestamp = Get-Date -Format \"yyyy-MM-dd HH:mm:ss\"");
-        sb.AppendLine("    \"$timestamp - $Message\" | Out-File -FilePath $logFile -Append");
-        sb.AppendLine("    ");
-        sb.AppendLine("    # Also output to console for real-time progress");
+        sb.AppendLine("    \"$(Get-Date -Format 'yyyy-MM-dd HH:mm:ss') - $Message\" | Out-File -FilePath $logFile -Append");
         sb.AppendLine("    Write-Host $Message");
         sb.AppendLine("}");
-        sb.AppendLine("Write-Log \"Starting bloat removal process\"");
         sb.AppendLine();
-        sb.AppendLine("# Enable Remove-AppX -AllUsers compatibility aliases for this session");
-        sb.AppendLine("Write-Log \"Setting up AppX compatibility aliases for this session...\"");
-        sb.AppendLine("try {");
-        sb.AppendLine("    Set-Alias Get-AppPackageAutoUpdateSettings Get-AppxPackageAutoUpdateSettings -Scope Global -Force");
-        sb.AppendLine("    Set-Alias Remove-AppPackageAutoUpdateSettings Remove-AppxPackageAutoUpdateSettings -Scope Global -Force");
-        sb.AppendLine("    Set-Alias Set-AppPackageAutoUpdateSettings Set-AppxPackageAutoUpdateSettings -Scope Global -Force");
-        sb.AppendLine("    Set-Alias Reset-AppPackage Reset-AppxPackage -Scope Global -Force");
-        sb.AppendLine("    Set-Alias Add-MsixPackage Add-AppxPackage -Scope Global -Force");
-        sb.AppendLine("    Set-Alias Get-MsixPackage Get-AppxPackage -Scope Global -Force");
-        sb.AppendLine("    Set-Alias Remove-MsixPackage Remove-AppxPackage -Scope Global -Force");
-        sb.AppendLine("    Write-Log \"AppX compatibility aliases created successfully\"");
-        sb.AppendLine("} catch {");
-        sb.AppendLine("    Write-Log \"Warning: Could not create some AppX aliases: $($_.Exception.Message)\"");
+    }
+
+    private static void AppendRunspaceHelper(StringBuilder sb)
+    {
+        sb.AppendLine("function Invoke-RunspacePool {");
+        sb.AppendLine("    param (");
+        sb.AppendLine("        [array]$Items,");
+        sb.AppendLine("        [scriptblock]$ScriptBlock,");
+        sb.AppendLine("        [int]$MaxThreads = 10,");
+        sb.AppendLine("        [string]$Label,");
+        sb.AppendLine("        [string]$SuccessFormat,");
+        sb.AppendLine("        [string]$FailFormat");
+        sb.AppendLine("    )");
+        sb.AppendLine("    if ($Items.Count -eq 0) { return }");
+        sb.AppendLine();
+        sb.AppendLine("    $threadCount = [Math]::Min($Items.Count, $MaxThreads)");
+        sb.AppendLine("    Write-Log \"Removing $($Items.Count) $Label via runspace pool (threads=$threadCount)...\"");
+        sb.AppendLine("    $pool = [RunspaceFactory]::CreateRunspacePool(1, $threadCount)");
+        sb.AppendLine("    $pool.Open()");
+        sb.AppendLine("    $jobs = [System.Collections.Generic.List[object]]::new()");
+        sb.AppendLine();
+        sb.AppendLine("    foreach ($item in $Items) {");
+        sb.AppendLine("        $ps = [PowerShell]::Create().AddScript($ScriptBlock).AddArgument($item)");
+        sb.AppendLine("        $ps.RunspacePool = $pool");
+        sb.AppendLine("        $jobs.Add(@{ Pipe = $ps; Handle = $ps.BeginInvoke() })");
+        sb.AppendLine("    }");
+        sb.AppendLine();
+        sb.AppendLine("    foreach ($job in $jobs) {");
+        sb.AppendLine("        $result = $job.Pipe.EndInvoke($job.Handle)");
+        sb.AppendLine("        foreach ($r in $result) {");
+        sb.AppendLine("            if ($r.Success) { Write-Log ($SuccessFormat -f $r.Name) }");
+        sb.AppendLine("            else { Write-Log ($FailFormat -f $r.Name, $r.Error) }");
+        sb.AppendLine("        }");
+        sb.AppendLine("        $job.Pipe.Dispose()");
+        sb.AppendLine("    }");
+        sb.AppendLine("    $pool.Close()");
+        sb.AppendLine("    $pool.Dispose()");
+        sb.AppendLine("    Write-Log \"Parallel $Label removal completed\"");
         sb.AppendLine("}");
         sb.AppendLine();
     }
 
     private static void AppendArrays(StringBuilder sb, List<string> packages, List<string> capabilities, List<string> optionalFeatures, List<string> specialApps)
     {
-        sb.AppendLine("# Packages to remove");
+        sb.AppendLine("# ============================================================================");
+        sb.AppendLine("# DATA");
+        sb.AppendLine("# ============================================================================");
+        sb.AppendLine();
         sb.AppendLine("$packages = @(");
         foreach (var package in packages)
         {
@@ -120,7 +173,6 @@ public static class BloatRemovalScriptGenerator
         sb.AppendLine(")");
         sb.AppendLine();
 
-        sb.AppendLine("# Capabilities to remove");
         sb.AppendLine("$capabilities = @(");
         foreach (var capability in capabilities)
         {
@@ -129,7 +181,6 @@ public static class BloatRemovalScriptGenerator
         sb.AppendLine(")");
         sb.AppendLine();
 
-        sb.AppendLine("# Optional Features to disable");
         sb.AppendLine("$optionalFeatures = @(");
         foreach (var feature in optionalFeatures)
         {
@@ -138,7 +189,6 @@ public static class BloatRemovalScriptGenerator
         sb.AppendLine(")");
         sb.AppendLine();
 
-        sb.AppendLine("# Special apps requiring uninstall string execution");
         sb.AppendLine("$specialApps = @(");
         foreach (var app in specialApps)
         {
@@ -148,10 +198,15 @@ public static class BloatRemovalScriptGenerator
         sb.AppendLine();
     }
 
-    private static string GetMainRemovalLogic(bool includeXboxRegistryFix)
+    private static string GetMainRemovalLogic(bool includeXboxRegistryFix, bool includeTeamsProcessKill)
     {
-        var xboxRegistryFix = includeXboxRegistryFix ? @"
+        var teamsProcessKill = includeTeamsProcessKill ? @"
+# Stop Microsoft Teams process before removal to avoid long removal delays
+Get-Process | Where-Object { $_.Name -like '*teams*' } | Stop-Process -Force -ErrorAction SilentlyContinue
 
+" : "";
+
+        var xboxRegistryFix = includeXboxRegistryFix ? @"
 # ============================================================================
 # REGISTRY SETTINGS TO PREVENT ISSUES AND BUGS
 # ============================================================================
@@ -174,10 +229,8 @@ if ($hasXboxPackages) {
                 try {
                     $sid = (New-Object System.Security.Principal.NTAccount($username)).Translate([System.Security.Principal.SecurityIdentifier]).Value
                     Write-Log ""Applying settings for user: $username (SID: $sid)""
-
                     reg add ""HKU\$sid\SOFTWARE\Microsoft\Windows\CurrentVersion\GameDVR"" /f /t REG_DWORD /v ""AppCaptureEnabled"" /d 0 2>$null | Out-Null
                     reg add ""HKU\$sid\System\GameConfigStore"" /f /t REG_DWORD /v ""GameDVR_Enabled"" /d 0 2>$null | Out-Null
-
                     Write-Log ""Xbox Game DVR registry settings applied successfully""
                 } catch {
                     Write-Log ""Warning: Could not apply Xbox Game DVR registry settings: $($_.Exception.Message)""
@@ -198,318 +251,159 @@ if ($hasXboxPackages) {
 
 " : "";
 
-        return @"$maxRetries = 3
-$retryCount = 0
+        return @"# ============================================================================
+# MAIN
+# ============================================================================
 
-do {
-    $retryCount++
-    Write-Log ""Standard removal attempt $retryCount of $maxRetries""
+Write-Log ""Starting bloat removal process""
+" + teamsProcessKill + @"# Discover all packages upfront (single query each)
+Write-Log ""Discovering all packages...""
+$allInstalled = Get-AppxPackage -AllUsers -ErrorAction SilentlyContinue
+$allProvisioned = Get-AppxProvisionedPackage -Online -ErrorAction SilentlyContinue
 
-    Write-Log ""Discovering all packages...""
-    $allInstalledPackages = Get-AppxPackage -AllUsers -ErrorAction SilentlyContinue
-    $allProvisionedPackages = Get-AppxProvisionedPackage -Online -ErrorAction SilentlyContinue
+$packagesToRemove = @()
+$provisionedToRemove = @()
+$notFound = @()
 
-    Write-Log ""Processing packages...""
-    $packagesToRemove = @()
-    $provisionedPackagesToRemove = @()
-    $notFoundPackages = @()
+foreach ($package in $packages) {
+    $installed = @($allInstalled | Where-Object Name -eq $package)
+    $provisioned = @($allProvisioned | Where-Object DisplayName -eq $package)
 
-    foreach ($package in $packages) {
-        $foundAny = $false
-
-        $installedPackages = $allInstalledPackages | Where-Object { $_.Name -eq $package }
-        if ($installedPackages) {
-            Write-Log ""Found installed package: $package""
-            foreach ($pkg in $installedPackages) {
-                Write-Log ""Queuing installed package for removal: $($pkg.PackageFullName)""
-                $packagesToRemove += $pkg.PackageFullName
-            }
-            $foundAny = $true
-        }
-
-        $provisionedPackages = $allProvisionedPackages | Where-Object { $_.DisplayName -eq $package }
-        if ($provisionedPackages) {
-            Write-Log ""Found provisioned package: $package""
-            foreach ($pkg in $provisionedPackages) {
-                Write-Log ""Queuing provisioned package for removal: $($pkg.PackageName)""
-                $provisionedPackagesToRemove += $pkg.PackageName
-            }
-            $foundAny = $true
-        }
-
-        if (-not $foundAny) {
-            $notFoundPackages += $package
-        }
+    if ($installed) {
+        foreach ($pkg in $installed) { Write-Log ""Queuing installed package: $($pkg.PackageFullName)"" }
+        $packagesToRemove += $installed.PackageFullName
+    }
+    if ($provisioned) {
+        foreach ($pkg in $provisioned) { Write-Log ""Queuing provisioned package: $($pkg.PackageName)"" }
+        $provisionedToRemove += $provisioned.PackageName
     }
 
-    if ($notFoundPackages.Count -gt 0) {
-        Write-Log ""Packages not found: $($notFoundPackages -join ', ')""
-    }
+    if (-not $installed -and -not $provisioned) { $notFound += $package }
+}
 
-    if ($packagesToRemove.Count -gt 0) {
-        Write-Log ""Removing $($packagesToRemove.Count) installed packages in batch...""
+if ($notFound.Count -gt 0) { Write-Log ""Packages not found: $($notFound -join ', ')"" }
+
+# Deprovision first — critical for Win10 (Remove-AppxPackage -AllUsers fails with 0x80070002 otherwise)
+Invoke-RunspacePool -Items $provisionedToRemove -MaxThreads 10 -Label ""provisioned packages"" `
+    -ScriptBlock {
+        param($p)
         try {
-            $packagesToRemove | ForEach-Object {
-                Write-Log ""Removing installed package: $_""
-                Remove-AppxPackage -Package $_ -AllUsers -ErrorAction SilentlyContinue
-            }
-            Write-Log ""Batch removal of installed packages completed""
+            Remove-AppxProvisionedPackage -Online -PackageName $p -ErrorAction Stop | Out-Null
+            @{ Name = $p; Success = $true; Error = $null }
         } catch {
-            Write-Log ""Error in batch removal of installed packages: $($_.Exception.Message)""
+            @{ Name = $p; Success = $false; Error = $_.Exception.Message }
         }
-    }
+    } `
+    -SuccessFormat ""Deprovisioned: {0}"" `
+    -FailFormat ""Failed to deprovision {0}: {1}""
 
-    if ($provisionedPackagesToRemove.Count -gt 0) {
-        Write-Log ""Removing $($provisionedPackagesToRemove.Count) provisioned packages...""
-        foreach ($pkgName in $provisionedPackagesToRemove) {
-            try {
-                Write-Log ""Removing provisioned package: $pkgName""
-                Remove-AppxProvisionedPackage -Online -PackageName $pkgName -ErrorAction SilentlyContinue
-            } catch {
-                Write-Log ""Error removing provisioned package $pkgName : $($_.Exception.Message)""
-            }
-        }
-        Write-Log ""Provisioned packages removal completed""
-    }
-
-    Write-Log ""Processing capabilities...""
-    foreach ($capability in $capabilities) {
-        Write-Log ""Checking capability: $capability""
+# Remove installed packages (for all users)
+Invoke-RunspacePool -Items $packagesToRemove -MaxThreads 10 -Label ""installed packages"" `
+    -ScriptBlock {
+        param($p)
         try {
-            $matchingCapabilities = Get-WindowsCapability -Online | Where-Object { $_.Name -like ""$capability*"" -or $_.Name -like ""$capability~~~~*"" }
-
-            if ($matchingCapabilities) {
-                $foundInstalled = $false
-                foreach ($existingCapability in $matchingCapabilities) {
-                    if ($existingCapability.State -eq ""Installed"") {
-                        $foundInstalled = $true
-                        Write-Log ""Removing capability: $($existingCapability.Name)""
-                        Remove-WindowsCapability -Online -Name $existingCapability.Name -ErrorAction SilentlyContinue | Out-Null
-                    }
-                }
-
-                if (-not $foundInstalled) {
-                    Write-Log ""Found capability $capability but it is not installed""
-                }
-            }
-            else {
-                Write-Log ""No matching capabilities found for: $capability""
-            }
+            Remove-AppxPackage -Package $p -AllUsers -ErrorAction Stop
+            @{ Name = $p; Success = $true; Error = $null }
+        } catch {
+            @{ Name = $p; Success = $false; Error = $_.Exception.Message }
         }
-        catch {
-            Write-Log ""Error checking capability: $capability - $($_.Exception.Message)""
-        }
-    }
+    } `
+    -SuccessFormat ""Removed installed package: {0}"" `
+    -FailFormat ""Failed to remove installed package {0}: {1}""
 
-    Write-Log ""Processing optional features...""
-    if ($optionalFeatures.Count -gt 0) {
-        $enabledFeatures = @()
-        foreach ($feature in $optionalFeatures) {
-            Write-Log ""Checking feature: $feature""
-            $existingFeature = Get-WindowsOptionalFeature -Online -FeatureName $feature -ErrorAction SilentlyContinue
-            if ($existingFeature -and $existingFeature.State -eq ""Enabled"") {
-                $enabledFeatures += $feature
-            } else {
-                Write-Log ""Feature not found or not enabled: $feature""
-            }
-        }
+# Capabilities — single DISM enumeration, then parallel removal
+Write-Log ""Processing capabilities...""
+$allCaps = Get-WindowsCapability -Online -ErrorAction SilentlyContinue
+$capNamesToRemove = @()
 
-        if ($enabledFeatures.Count -gt 0) {
-            Write-Log ""Disabling features: $($enabledFeatures -join ', ')""
-            Disable-WindowsOptionalFeature -Online -FeatureName $enabledFeatures -NoRestart -ErrorAction SilentlyContinue | Out-Null
-        }
-    }
-
-    Write-Log ""Verifying removal results...""
-    $remainingItems = @()
-
-    $currentPackages = Get-AppxPackage -AllUsers -ErrorAction SilentlyContinue
-    foreach ($package in $packages) {
-        if ($currentPackages | Where-Object { $_.Name -eq $package }) {
-            $remainingItems += $package
-            Write-Log ""Package still installed: $package""
-        }
-    }
-
-    $currentCapabilities = Get-WindowsCapability -Online -ErrorAction SilentlyContinue | Where-Object State -eq 'Installed'
-    foreach ($capability in $capabilities) {
-        if ($currentCapabilities | Where-Object { $_.Name -like ""$capability*"" }) {
-            $remainingItems += $capability
-            Write-Log ""Capability still installed: $capability""
-        }
-    }
-
-    $currentFeatures = Get-WindowsOptionalFeature -Online -ErrorAction SilentlyContinue | Where-Object State -eq 'Enabled'
-    foreach ($feature in $optionalFeatures) {
-        if ($currentFeatures | Where-Object { $_.FeatureName -eq $feature }) {
-            $remainingItems += $feature
-            Write-Log ""Feature still enabled: $feature""
-        }
-    }
-
-    if ($remainingItems.Count -eq 0) {
-        Write-Log ""All standard items successfully removed!""
-        break
+foreach ($capability in $capabilities) {
+    $matching = @($allCaps | Where-Object { $_.Name -like ""$capability*"" -and $_.State -eq ""Installed"" })
+    if ($matching) {
+        $matching | ForEach-Object { Write-Log ""Queuing capability: $($_.Name)"" }
+        $capNamesToRemove += $matching.Name
     } else {
-        Write-Log ""Retry needed. $($remainingItems.Count) items remain: $($remainingItems -join ', ')""
-        if ($retryCount -lt $maxRetries) {
-            Write-Log ""Waiting 2 seconds before retry...""
-            Start-Sleep -Seconds 2
-        }
+        Write-Log ""Capability not found or not installed: $capability""
     }
-
-} while ($retryCount -lt $maxRetries -and $remainingItems.Count -gt 0)
-
-if ($remainingItems.Count -gt 0) {
-    Write-Log ""Warning: $($remainingItems.Count) standard items could not be removed after $maxRetries attempts: $($remainingItems -join ', ')""
 }
 
+Invoke-RunspacePool -Items $capNamesToRemove -MaxThreads 5 -Label ""capabilities"" `
+    -ScriptBlock {
+        param($name)
+        try {
+            Remove-WindowsCapability -Online -Name $name -ErrorAction Stop | Out-Null
+            @{ Name = $name; Success = $true; Error = $null }
+        } catch {
+            @{ Name = $name; Success = $false; Error = $_.Exception.Message }
+        }
+    } `
+    -SuccessFormat ""Removed capability: {0}"" `
+    -FailFormat ""Failed to remove capability {0}: {1}""
+
+# Optional features — batch disable
+Write-Log ""Processing optional features...""
+$enabledFeatures = @()
+foreach ($feature in $optionalFeatures) {
+    $existing = Get-WindowsOptionalFeature -Online -FeatureName $feature -ErrorAction SilentlyContinue
+    if ($existing -and $existing.State -eq ""Enabled"") {
+        $enabledFeatures += $feature
+    } else {
+        Write-Log ""Feature not found or not enabled: $feature""
+    }
+}
+
+if ($enabledFeatures.Count -gt 0) {
+    Write-Log ""Disabling features: $($enabledFeatures -join ', ')""
+    Disable-WindowsOptionalFeature -Online -FeatureName $enabledFeatures -NoRestart -ErrorAction SilentlyContinue | Out-Null
+}
+
+# Special apps — registry-based uninstall
 if ($specialApps.Count -gt 0) {
-    Write-Log ""Processing special apps that require custom uninstall procedures...""
+    Write-Log ""Processing special apps...""
 
-    $maxSpecialRetries = 2
-    $specialRetryCount = 0
-    $specialAppsRemaining = @()
+    $uninstallPaths = @(
+        'HKLM:\SOFTWARE\Microsoft\Windows\CurrentVersion\Uninstall',
+        'HKCU:\SOFTWARE\Microsoft\Windows\CurrentVersion\Uninstall'
+    )
 
-    do {
-        $specialRetryCount++
-        if ($specialRetryCount -gt 1) {
-            Write-Log ""Special apps retry attempt $specialRetryCount of $maxSpecialRetries""
+    foreach ($specialApp in $specialApps) {
+        Write-Log ""Processing special app: $specialApp""
+
+        $processNames = switch ($specialApp) {
+            'OneNote' { @('OneNote', 'ONENOTE', 'ONENOTEM') }
+            default { Write-Log ""Unknown special app: $specialApp""; continue }
         }
 
-        $uninstallBasePaths = @(
-            'HKLM:\SOFTWARE\Microsoft\Windows\CurrentVersion\Uninstall',
-            'HKCU:\SOFTWARE\Microsoft\Windows\CurrentVersion\Uninstall'
-        )
+        foreach ($name in $processNames) {
+            Get-Process -Name $name -ErrorAction SilentlyContinue | Stop-Process -Force -ErrorAction SilentlyContinue
+        }
 
-        foreach ($specialApp in $specialApps) {
-            Write-Log ""Processing special app: $specialApp""
+        $uninstalled = $false
+        foreach ($basePath in $uninstallPaths) {
+            $keys = Get-ChildItem -Path $basePath -ErrorAction SilentlyContinue |
+                    Where-Object { $_.PSChildName -like ""$specialApp*"" }
 
-            switch ($specialApp) {
-                'OneNote' {
-                    $processesToStop = @('OneNote', 'ONENOTE', 'ONENOTEM')
-                    $searchPattern = 'OneNote*'
-                    $packagePattern = '*OneNote*'
+            foreach ($key in $keys) {
+                $uninstallString = (Get-ItemProperty -Path $key.PSPath -ErrorAction SilentlyContinue).UninstallString
+                if (-not $uninstallString) { continue }
+
+                Write-Log ""Found uninstall string: $uninstallString""
+                $silent = if ($uninstallString -like '*OfficeClickToRun.exe*') { 'DisplayLevel=False' } else { '/silent' }
+
+                if ($uninstallString -match '^""([^""]+)""(.*)$') {
+                    Start-Process -FilePath $matches[1] -ArgumentList ""$($matches[2].Trim()) $silent"" -NoNewWindow -Wait -ErrorAction SilentlyContinue
+                } else {
+                    Start-Process -FilePath $uninstallString -ArgumentList $silent -NoNewWindow -Wait -ErrorAction SilentlyContinue
                 }
-                default {
-                    Write-Log ""Unknown or unsupported special app: $specialApp""
-                    continue
-                }
-            }
 
-            foreach ($processName in $processesToStop) {
-                $processes = Get-Process -Name $processName -ErrorAction SilentlyContinue
-                if ($processes) {
-                    $processes | Stop-Process -Force -ErrorAction SilentlyContinue
-                    Write-Log ""Stopped process: $processName""
-                }
-            }
-
-            $uninstallExecuted = $false
-            foreach ($uninstallBasePath in $uninstallBasePaths) {
-                try {
-                    Write-Log ""Searching for $searchPattern in $uninstallBasePath""
-                    $uninstallKeys = Get-ChildItem -Path $uninstallBasePath -ErrorAction SilentlyContinue |
-                                    Where-Object { $_.PSChildName -like $searchPattern }
-
-                    foreach ($key in $uninstallKeys) {
-                        try {
-                            $uninstallString = (Get-ItemProperty -Path $key.PSPath -ErrorAction SilentlyContinue).UninstallString
-                            if ($uninstallString) {
-                                Write-Log ""Found uninstall string: $uninstallString""
-
-                                if ($uninstallString -match '^\""([^\""]+)\""(.*)$') {
-                                    $exePath = $matches[1]
-                                    $args = $matches[2].Trim()
-
-                                    if ($exePath -like '*OfficeClickToRun.exe') {
-                                        $args += ' DisplayLevel=False'
-                                    } else {
-                                        $args += ' /silent'
-                                    }
-
-                                    Write-Log ""Executing: $exePath with args: $args""
-                                    Start-Process -FilePath $exePath -ArgumentList $args -NoNewWindow -Wait -ErrorAction SilentlyContinue
-                                } else {
-                                    if ($uninstallString -like '*OfficeClickToRun.exe*') {
-                                        Start-Process -FilePath $uninstallString -ArgumentList 'DisplayLevel=False' -NoNewWindow -Wait -ErrorAction SilentlyContinue
-                                    } else {
-                                        Start-Process -FilePath $uninstallString -ArgumentList '/silent' -NoNewWindow -Wait -ErrorAction SilentlyContinue
-                                    }
-                                }
-
-                                $uninstallExecuted = $true
-                                Write-Log ""Completed uninstall execution for $specialApp""
-                            }
-                        }
-                        catch {
-                            Write-Log ""Error processing uninstall key: $($_.Exception.Message)""
-                        }
-                    }
-                }
-                catch {
-                    Write-Log ""Error searching for uninstall keys: $($_.Exception.Message)""
-                }
-            }
-
-            if (-not $uninstallExecuted) {
-                Write-Log ""No uninstall strings found for $specialApp""
+                $uninstalled = $true
+                Write-Log ""Completed uninstall for $specialApp""
             }
         }
 
-        if ($specialRetryCount -eq 1) {
-            Write-Log ""Waiting 3 seconds for uninstallers to complete...""
-            Start-Sleep -Seconds 3
-        }
-
-        Write-Log ""Verifying special apps removal...""
-        $specialAppsRemaining = @()
-
-        foreach ($specialApp in $specialApps) {
-            $stillExists = $false
-
-            switch ($specialApp) {
-                'OneNote' {
-                    $appxPackage = Get-AppxPackage -AllUsers -ErrorAction SilentlyContinue |
-                                   Where-Object { $_.Name -like '*OneNote*' }
-                    if ($appxPackage) {
-                        $stillExists = $true
-                        Write-Log ""OneNote AppxPackage still exists: $($appxPackage.PackageFullName)""
-                    }
-
-                    $uninstallKeys = Get-ChildItem -Path 'HKLM:\SOFTWARE\Microsoft\Windows\CurrentVersion\Uninstall' -ErrorAction SilentlyContinue |
-                                     Where-Object { $_.PSChildName -like 'OneNote*' }
-                    if ($uninstallKeys) {
-                        $stillExists = $true
-                        Write-Log ""OneNote registry uninstall keys still exist""
-                    }
-                }
-            }
-
-            if ($stillExists) {
-                $specialAppsRemaining += $specialApp
-            }
-        }
-
-        if ($specialAppsRemaining.Count -eq 0) {
-            Write-Log ""All special apps successfully removed!""
-            break
-        } else {
-            Write-Log ""$($specialAppsRemaining.Count) special apps remain: $($specialAppsRemaining -join ', ')""
-            if ($specialRetryCount -lt $maxSpecialRetries) {
-                Write-Log ""Waiting 3 seconds before retry...""
-                Start-Sleep -Seconds 3
-            }
-        }
-
-    } while ($specialRetryCount -lt $maxSpecialRetries -and $specialAppsRemaining.Count -gt 0)
-
-    if ($specialAppsRemaining.Count -gt 0) {
-        Write-Log ""Warning: $($specialAppsRemaining.Count) special apps could not be removed after $maxSpecialRetries attempts: $($specialAppsRemaining -join ', ')""
+        if (-not $uninstalled) { Write-Log ""No uninstall strings found for $specialApp"" }
     }
 }
-" + xboxRegistryFix + @"
-Write-Log ""Bloat removal process completed""
+" + xboxRegistryFix + @"Write-Log ""Bloat removal process completed""
 ";
     }
 

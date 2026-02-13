@@ -1,11 +1,15 @@
 using System.ComponentModel;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.UI.Xaml;
+using Microsoft.UI.Xaml.Automation;
+using Microsoft.UI.Xaml.Automation.Peers;
 using Microsoft.UI.Xaml.Controls;
 using Microsoft.UI.Xaml.Navigation;
 using Winhance.Core.Features.Common.Constants;
 using Winhance.Core.Features.Common.Services;
 using IConfigReviewService = Winhance.Core.Features.Common.Interfaces.IConfigReviewService;
+using ILocalizationService = Winhance.Core.Features.Common.Interfaces.ILocalizationService;
+using IUserPreferencesService = Winhance.Core.Features.Common.Interfaces.IUserPreferencesService;
 using Winhance.UI.Features.Optimize.Models;
 using Winhance.UI.Features.Optimize.Pages;
 using Winhance.UI.Features.Optimize.ViewModels;
@@ -14,15 +18,17 @@ namespace Winhance.UI.Features.Optimize;
 
 public sealed partial class OptimizePage : Page
 {
-    // Maps section keys to their icon resource keys (PathIcon paths end with "Path", FontIcon glyphs end with "Glyph")
+    // Maps section keys to their icon resource keys:
+    // - "Path" suffix = Material Design SVG path for PathIcon
+    // - "Symbol" suffix = FluentIcons.Common.Symbol enum name for SymbolIcon
     private static readonly Dictionary<string, string> SectionIconResourceKeys = new()
     {
         { "Privacy", "PrivacyIconPath" },
         { "Power", "PowerIconPath" },
         { "Gaming", "GamingIconPath" },
-        { "Update", "UpdateIconGlyph" },
+        { "Update", "UpdateIconSymbol" },
         { "Notification", "NotificationIconPath" },
-        { "Sound", "SoundIconGlyph" }
+        { "Sound", "SoundIconSymbol" }
     };
 
     // Maps section keys to feature IDs for badge tracking
@@ -37,7 +43,10 @@ public sealed partial class OptimizePage : Page
     };
 
     private IConfigReviewService? _configReviewService;
+    private IUserPreferencesService? _userPreferencesService;
+    private ILocalizationService? _localizationService;
     private Dictionary<string, InfoBadge>? _flyoutBadges;
+    private bool _isTechnicalDetailsVisible;
 
     public OptimizeViewModel ViewModel { get; }
 
@@ -69,6 +78,9 @@ public sealed partial class OptimizePage : Page
                 _configReviewService.BadgeStateChanged += OnBadgeStateChanged;
             }
 
+            _userPreferencesService = App.Services.GetService<IUserPreferencesService>();
+            _localizationService = App.Services.GetService<ILocalizationService>();
+
             StartupLogger.Log("OptimizePage", "ViewModel obtained, constructor complete");
         }
         catch (Exception ex)
@@ -88,12 +100,19 @@ public sealed partial class OptimizePage : Page
 
     private void UpdateBreadcrumbMenuItems()
     {
-        FlyoutTextSound.Text = ViewModel.GetSectionDisplayName("Sound");
-        FlyoutTextUpdate.Text = ViewModel.GetSectionDisplayName("Update");
-        FlyoutTextNotification.Text = ViewModel.GetSectionDisplayName("Notification");
-        FlyoutTextPrivacy.Text = ViewModel.GetSectionDisplayName("Privacy");
-        FlyoutTextPower.Text = ViewModel.GetSectionDisplayName("Power");
-        FlyoutTextGaming.Text = ViewModel.GetSectionDisplayName("Gaming");
+        SetFlyoutButtonText(FlyoutTextSound, FlyoutButtonSound, "Sound");
+        SetFlyoutButtonText(FlyoutTextUpdate, FlyoutButtonUpdate, "Update");
+        SetFlyoutButtonText(FlyoutTextNotification, FlyoutButtonNotification, "Notification");
+        SetFlyoutButtonText(FlyoutTextPrivacy, FlyoutButtonPrivacy, "Privacy");
+        SetFlyoutButtonText(FlyoutTextPower, FlyoutButtonPower, "Power");
+        SetFlyoutButtonText(FlyoutTextGaming, FlyoutButtonGaming, "Gaming");
+    }
+
+    private void SetFlyoutButtonText(TextBlock textBlock, Button button, string sectionKey)
+    {
+        var displayName = ViewModel.GetSectionDisplayName(sectionKey);
+        textBlock.Text = displayName;
+        AutomationProperties.SetName(button, displayName);
     }
 
     protected override async void OnNavigatedTo(NavigationEventArgs e)
@@ -109,6 +128,9 @@ public sealed partial class OptimizePage : Page
 
             StartupLogger.Log("OptimizePage", "Calling ViewModel.InitializeAsync...");
             await ViewModel.InitializeAsync();
+
+            // Initialize technical details toggle state
+            await InitializeTechnicalDetailsToggleAsync();
 
             // Update badges if already in review mode (events fired before page existed)
             if (_configReviewService?.IsInReviewMode == true)
@@ -204,20 +226,24 @@ public sealed partial class OptimizePage : Page
         if (isInDetailPage)
         {
             BreadcrumbSectionText.Text = ViewModel.CurrentSectionName;
+            AutomationProperties.SetName(BreadcrumbSection, ViewModel.CurrentSectionName);
 
             if (SectionIconResourceKeys.TryGetValue(ViewModel.CurrentSectionKey, out var resourceKey) &&
                 Application.Current.Resources.TryGetValue(resourceKey, out var resourceValue) &&
                 resourceValue is string iconData)
             {
-                // Check if this is a glyph icon or a path icon based on the resource key naming convention
-                bool isGlyph = resourceKey.EndsWith("Glyph");
+                // Check icon type based on the resource key naming convention
+                bool isSymbol = resourceKey.EndsWith("Symbol");
 
-                BreadcrumbSectionIconBox.Visibility = isGlyph ? Visibility.Collapsed : Visibility.Visible;
-                BreadcrumbSectionGlyph.Visibility = isGlyph ? Visibility.Visible : Visibility.Collapsed;
+                BreadcrumbSectionIconBox.Visibility = isSymbol ? Visibility.Collapsed : Visibility.Visible;
+                BreadcrumbSectionSymbol.Visibility = isSymbol ? Visibility.Visible : Visibility.Collapsed;
 
-                if (isGlyph)
+                if (isSymbol)
                 {
-                    BreadcrumbSectionGlyph.Glyph = iconData;
+                    if (Enum.TryParse<FluentIcons.Common.Symbol>(iconData, ignoreCase: true, out var symbol))
+                    {
+                        BreadcrumbSectionSymbol.Symbol = symbol;
+                    }
                 }
                 else
                 {
@@ -404,6 +430,97 @@ public sealed partial class OptimizePage : Page
         {
             badge.Visibility = Visibility.Collapsed;
         }
+    }
+
+    // Technical Details toggle
+    private async Task InitializeTechnicalDetailsToggleAsync()
+    {
+        if (_userPreferencesService != null)
+        {
+            _isTechnicalDetailsVisible = await _userPreferencesService.GetPreferenceAsync(
+                UserPreferenceKeys.ShowTechnicalDetails, false);
+        }
+
+        // Sync all settings (handles cross-page toggle changes)
+        foreach (var section in OptimizeViewModel.Sections)
+        {
+            var sectionVm = ViewModel.GetSectionViewModel(section.Key);
+            if (sectionVm == null) continue;
+            foreach (var setting in sectionVm.Settings)
+            {
+                setting.IsTechnicalDetailsGloballyVisible = _isTechnicalDetailsVisible;
+            }
+        }
+
+        UpdateTechnicalDetailsToggleVisual();
+    }
+
+    private async void TechnicalDetailsToggle_Click(object sender, RoutedEventArgs e)
+    {
+        _isTechnicalDetailsVisible = !_isTechnicalDetailsVisible;
+
+        // Update all settings across all sections
+        foreach (var section in OptimizeViewModel.Sections)
+        {
+            var sectionVm = ViewModel.GetSectionViewModel(section.Key);
+            if (sectionVm == null) continue;
+            foreach (var setting in sectionVm.Settings)
+            {
+                setting.IsTechnicalDetailsGloballyVisible = _isTechnicalDetailsVisible;
+            }
+        }
+
+        UpdateTechnicalDetailsToggleVisual();
+
+        // Persist preference
+        if (_userPreferencesService != null)
+        {
+            await _userPreferencesService.SetPreferenceAsync(
+                UserPreferenceKeys.ShowTechnicalDetails, _isTechnicalDetailsVisible);
+        }
+    }
+
+    private void UpdateTechnicalDetailsToggleVisual()
+    {
+        try
+        {
+            var resourceKey = _isTechnicalDetailsVisible ? "InformationIconPath" : "InformationOffIconPath";
+            if (Application.Current.Resources.TryGetValue(resourceKey, out var pathData) && pathData is string iconData)
+            {
+                var geometry = (Microsoft.UI.Xaml.Media.Geometry)Microsoft.UI.Xaml.Markup.XamlBindingHelper.ConvertValue(
+                    typeof(Microsoft.UI.Xaml.Media.Geometry), iconData);
+                TechnicalDetailsIcon.Data = geometry;
+            }
+
+            if (_isTechnicalDetailsVisible)
+            {
+                TechnicalDetailsToggleBorder.BorderBrush =
+                    (Microsoft.UI.Xaml.Media.Brush)Application.Current.Resources["AccentFillColorDefaultBrush"];
+                TechnicalDetailsToggleBorder.BorderThickness = new Thickness(2);
+            }
+            else
+            {
+                TechnicalDetailsToggleBorder.BorderThickness = new Thickness(0);
+                TechnicalDetailsToggleBorder.BorderBrush = null;
+            }
+
+            var tooltip = _localizationService?.GetString("TechnicalDetails_ToggleTooltip") ?? "Toggle Technical Details";
+            ToolTipService.SetToolTip(TechnicalDetailsToggle, tooltip);
+            AutomationProperties.SetName(TechnicalDetailsToggle, tooltip);
+
+            // Announce state change to Narrator
+            var stateText = _isTechnicalDetailsVisible
+                ? _localizationService?.GetString("TechnicalDetails_On") ?? "Technical Details: On"
+                : _localizationService?.GetString("TechnicalDetails_Off") ?? "Technical Details: Off";
+            var peer = FrameworkElementAutomationPeer.FromElement(TechnicalDetailsToggle)
+                       ?? FrameworkElementAutomationPeer.CreatePeerForElement(TechnicalDetailsToggle);
+            peer?.RaiseNotificationEvent(
+                AutomationNotificationKind.ActionCompleted,
+                AutomationNotificationProcessing.ImportantMostRecent,
+                stateText,
+                "TechnicalDetailsToggle");
+        }
+        catch { }
     }
 
     // Search handlers

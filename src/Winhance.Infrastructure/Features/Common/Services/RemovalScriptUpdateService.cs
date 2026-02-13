@@ -5,6 +5,7 @@ using System.Threading.Tasks;
 using Winhance.Core.Features.Common.Constants;
 using Winhance.Core.Features.Common.Interfaces;
 using Winhance.Core.Features.SoftwareApps.Models;
+using Winhance.Core.Features.SoftwareApps.Utilities;
 
 namespace Winhance.Infrastructure.Features.Common.Services
 {
@@ -15,8 +16,11 @@ namespace Winhance.Infrastructure.Features.Common.Services
 
         private static readonly ScriptInfo[] Scripts =
         {
-            new("EdgeRemoval", EdgeRemovalScript.ScriptVersion, EdgeRemovalScript.GetScript),
-            new("OneDriveRemoval", OneDriveRemovalScript.ScriptVersion, OneDriveRemovalScript.GetScript)
+            new("EdgeRemoval", EdgeRemovalScript.ScriptVersion, GetContent: EdgeRemovalScript.GetScript),
+            new("OneDriveRemoval", OneDriveRemovalScript.ScriptVersion, GetContent: OneDriveRemovalScript.GetScript),
+            new("BloatRemoval", BloatRemovalScriptGenerator.ScriptVersion,
+                UpdateContent: BloatRemovalScriptGenerator.UpdateScriptTemplate,
+                RunAfterUpdate: false)
         };
 
         public RemovalScriptUpdateService(ILogService logService, IScheduledTaskService scheduledTaskService)
@@ -54,11 +58,23 @@ namespace Winhance.Infrastructure.Features.Common.Services
 
             try
             {
-                File.WriteAllText(scriptPath, script.GetContent());
+                if (script.UpdateContent != null)
+                {
+                    var existingContent = File.ReadAllText(scriptPath);
+                    File.WriteAllText(scriptPath, script.UpdateContent(existingContent));
+                }
+                else
+                {
+                    File.WriteAllText(scriptPath, script.GetContent!());
+                }
+
                 _logService.LogInformation($"{script.Name} script file updated");
 
-                await _scheduledTaskService.RunScheduledTaskAsync(script.Name);
-                _logService.LogInformation($"{script.Name} scheduled task executed");
+                if (script.RunAfterUpdate)
+                {
+                    await _scheduledTaskService.RunScheduledTaskAsync(script.Name);
+                    _logService.LogInformation($"{script.Name} scheduled task executed");
+                }
             }
             catch (Exception ex)
             {
@@ -80,6 +96,11 @@ namespace Winhance.Infrastructure.Features.Common.Services
             }
         }
 
-        private record ScriptInfo(string Name, string CurrentVersion, Func<string> GetContent);
+        private record ScriptInfo(
+            string Name,
+            string CurrentVersion,
+            Func<string>? GetContent = null,
+            Func<string, string>? UpdateContent = null,
+            bool RunAfterUpdate = true);
     }
 }

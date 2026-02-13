@@ -8,6 +8,7 @@ using Winhance.Infrastructure.Features.Common.Services;
 using Winhance.Infrastructure.Features.Customize.Services;
 using Winhance.Infrastructure.Features.Optimize.Services;
 using Winhance.Infrastructure.Features.SoftwareApps.Services;
+using Winhance.UI.Features.SoftwareApps.Services;
 using Winhance.Core.Features.Common.Events;
 
 namespace Winhance.UI.Features.Common.Extensions.DI;
@@ -127,8 +128,7 @@ public static class DomainServicesExtensions
             sp.GetRequiredService<ILogService>(),
             sp.GetRequiredService<IWindowsRegistryService>(),
             sp.GetRequiredService<IServiceProvider>(),
-            sp.GetRequiredService<ICompatibleSettingsRegistry>(),
-            sp.GetRequiredService<IScheduledTaskService>()
+            sp.GetRequiredService<ICompatibleSettingsRegistry>()
         ));
         services.AddSingleton<IDomainService>(sp => sp.GetRequiredService<UpdateService>());
 
@@ -154,6 +154,10 @@ public static class DomainServicesExtensions
         // WinGet Service
         services.AddSingleton<IWinGetService, WinGetService>();
 
+        // Chocolatey Services (Fallback package manager)
+        services.AddSingleton<IChocolateyService, ChocolateyService>();
+        services.AddSingleton<IChocolateyConsentService, ChocolateyConsentService>();
+
         // App Uninstall Service
         services.AddScoped<IAppUninstallService, AppUninstallService>();
 
@@ -163,14 +167,14 @@ public static class DomainServicesExtensions
         // Direct Download Service (For non-WinGet apps)
         services.AddSingleton<IDirectDownloadService, DirectDownloadService>();
 
-        // Legacy Capability and Optional Feature Services
-        services.AddSingleton<ILegacyCapabilityService>(provider => new LegacyCapabilityService(
+        // Legacy Capability and Optional Feature Services (Scoped - depends on Scoped IWindowsAppsService)
+        services.AddScoped<ILegacyCapabilityService>(provider => new LegacyCapabilityService(
             provider.GetRequiredService<ILogService>(),
-            provider.GetRequiredService<IBloatRemovalService>()
+            provider.GetRequiredService<IWindowsAppsService>()
         ));
-        services.AddSingleton<IOptionalFeatureService>(provider => new OptionalFeatureService(
+        services.AddScoped<IOptionalFeatureService>(provider => new OptionalFeatureService(
             provider.GetRequiredService<ILogService>(),
-            provider.GetRequiredService<IBloatRemovalService>()
+            provider.GetRequiredService<IWindowsAppsService>()
         ));
 
         // Script Detection Service (Singleton - Expensive operation)

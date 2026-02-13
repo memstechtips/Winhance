@@ -6,6 +6,7 @@
     xmlns:local="using:Winhance.UI.Features.AdvancedTools"
     xmlns:models="using:Winhance.UI.Features.AdvancedTools.Models"
     xmlns:viewmodels="using:Winhance.UI.Features.AdvancedTools.ViewModels"
+    xmlns:fluentIcons="using:FluentIcons.WinUI"
     x:DefaultBindMode="OneWay"
     NavigationCacheMode="Disabled">
 
@@ -65,16 +66,14 @@
                                       Width="20" Height="20"
                                       Visibility="{x:Bind IsProcessing, Mode=OneWay}"/>
                         <!-- Complete checkmark -->
-                        <FontIcon Glyph="&#xE73E;"
-                                  FontFamily="Segoe MDL2 Assets"
+                        <fluentIcons:SymbolIcon Symbol="Checkmark" IconVariant="Regular"
                                   FontSize="20"
                                   Foreground="#4CAF50"
                                   Visibility="{x:Bind IsComplete, Mode=OneWay}"
                                   HorizontalAlignment="Center"
                                   VerticalAlignment="Center"/>
                         <!-- Failed X -->
-                        <FontIcon Glyph="&#xE711;"
-                                  FontFamily="Segoe MDL2 Assets"
+                        <fluentIcons:SymbolIcon Symbol="Dismiss" IconVariant="Regular"
                                   FontSize="20"
                                   Foreground="#F44336"
                                   Visibility="{x:Bind HasFailed, Mode=OneWay}"
@@ -118,9 +117,8 @@
                                 <ColumnDefinition Width="Auto"/>
                             </Grid.ColumnDefinitions>
 
-                            <FontIcon Grid.Column="0"
-                                      Glyph="&#xE958;"
-                                      FontFamily="Segoe MDL2 Assets"
+                            <fluentIcons:SymbolIcon Grid.Column="0"
+                                      Symbol="HardDrive" IconVariant="Regular"
                                       FontSize="24"
                                       VerticalAlignment="Center"
                                       Margin="0,0,16,0"/>
@@ -151,17 +149,16 @@
                                       Stretch="Uniform"/>
                             </Viewbox>
                             <!-- Normal: chevron -->
-                            <FontIcon Grid.Column="2"
-                                      Glyph="&#xE70D;"
-                                      FontFamily="Segoe MDL2 Assets"
+                            <fluentIcons:SymbolIcon Grid.Column="2"
+                                      Symbol="ChevronDown" IconVariant="Regular"
                                       FontSize="12"
                                       VerticalAlignment="Center"
                                       Visibility="{x:Bind ViewModel.Step1State.ShowChevron, Mode=OneWay}"
                                       RenderTransformOrigin="0.5,0.5">
-                                <FontIcon.RenderTransform>
+                                <fluentIcons:SymbolIcon.RenderTransform>
                                     <RotateTransform Angle="{x:Bind ViewModel.Step1State.ChevronRotation, Mode=OneWay}"/>
-                                </FontIcon.RenderTransform>
-                            </FontIcon>
+                                </fluentIcons:SymbolIcon.RenderTransform>
+                            </fluentIcons:SymbolIcon>
                         </Grid>
                     </Border>
 
@@ -314,13 +311,13 @@
                                        VerticalAlignment="Center"/>
                             <Button Click="Windows10Download_Click" ToolTipService.ToolTip="{x:Bind ViewModel.TooltipDownloadWindows10}">
                                 <StackPanel Orientation="Horizontal" Spacing="6">
-                                    <FontIcon Glyph="&#xE896;" FontSize="14"/>
+                                    <fluentIcons:SymbolIcon Symbol="ArrowDownload" IconVariant="Regular" FontSize="14"/>
                                     <TextBlock Text="{x:Bind ViewModel.ButtonWindows10Text}"/>
                                 </StackPanel>
                             </Button>
                             <Button Click="Windows11Download_Click" ToolTipService.ToolTip="{x:Bind ViewModel.TooltipDownloadWindows11}">
                                 <StackPanel Orientation="Horizontal" Spacing="6">
-                                    <FontIcon Glyph="&#xE896;" FontSize="14"/>
+                                    <fluentIcons:SymbolIcon Symbol="ArrowDownload" IconVariant="Regular" FontSize="14"/>
                                     <TextBlock Text="{x:Bind ViewModel.ButtonWindows11Text}"/>
                                 </StackPanel>
                             </Button>
@@ -385,17 +382,16 @@
                                           Stretch="Uniform"/>
                                 </Viewbox>
                                 <!-- Normal: chevron -->
-                                <FontIcon Grid.Column="2"
-                                          Glyph="&#xE70D;"
-                                          FontFamily="Segoe MDL2 Assets"
+                                <fluentIcons:SymbolIcon Grid.Column="2"
+                                          Symbol="ChevronDown" IconVariant="Regular"
                                           FontSize="12"
                                           VerticalAlignment="Center"
                                           Visibility="{x:Bind ViewModel.Step2State.ShowChevron, Mode=OneWay}"
                                           RenderTransformOrigin="0.5,0.5">
-                                    <FontIcon.RenderTransform>
+                                    <fluentIcons:SymbolIcon.RenderTransform>
                                         <RotateTransform Angle="{x:Bind ViewModel.Step2State.ChevronRotation, Mode=OneWay}"/>
-                                    </FontIcon.RenderTransform>
-                                </FontIcon>
+                                    </fluentIcons:SymbolIcon.RenderTransform>
+                                </fluentIcons:SymbolIcon>
                             </Grid>
                         </Border>
 
@@ -441,15 +437,13 @@
                                     </StackPanel>
 
                                     <Grid Grid.Column="2" Width="32" Height="32" Margin="8,0,8,0" VerticalAlignment="Center">
-                                        <FontIcon Glyph="&#xE73E;"
-                                                  FontFamily="Segoe MDL2 Assets"
+                                        <fluentIcons:SymbolIcon Symbol="Checkmark" IconVariant="Regular"
                                                   FontSize="20"
                                                   Foreground="#4CAF50"
                                                   Visibility="{x:Bind ViewModel.GenerateWinhanceXmlCard.IsComplete, Mode=OneWay}"
                                                   HorizontalAlignment="Center"
                                                   VerticalAlignment="Center"/>
-                                        <FontIcon Glyph="&#xE711;"
-                                                  FontFamily="Segoe MDL2 Assets"
+                                        <fluentIcons:SymbolIcon Symbol="Dismiss" IconVariant="Regular"
                                                   FontSize="20"
                                                   Foreground="#F44336"
                                                   Visibility="{x:Bind ViewModel.GenerateWinhanceXmlCard.HasFailed, Mode=OneWay}"
@@ -482,7 +476,7 @@
                                            VerticalAlignment="Center"/>
                                 <Button Click="SchneegansLink_Click" ToolTipService.ToolTip="{x:Bind ViewModel.TooltipSchneegans}">
                                     <StackPanel Orientation="Horizontal" Spacing="6">
-                                        <FontIcon Glyph="&#xE71B;" FontSize="14"/>
+                                        <fluentIcons:SymbolIcon Symbol="Open" IconVariant="Regular" FontSize="14"/>
                                         <TextBlock Text="{x:Bind ViewModel.ButtonSchneegansText}"/>
                                     </StackPanel>
                                 </Button>
@@ -518,9 +512,8 @@
                                     <ColumnDefinition Width="Auto"/>
                                 </Grid.ColumnDefinitions>
 
-                                <FontIcon Grid.Column="0"
-                                          Glyph="&#xE964;"
-                                          FontFamily="Segoe MDL2 Assets"
+                                <fluentIcons:SymbolIcon Grid.Column="0"
+                                          Symbol="PlugConnected" IconVariant="Regular"
                                           FontSize="24"
                                           VerticalAlignment="Center"
                                           Margin="0,0,16,0"/>
@@ -551,17 +544,16 @@
                                           Stretch="Uniform"/>
                                 </Viewbox>
                                 <!-- Normal: chevron -->
-                                <FontIcon Grid.Column="2"
-                                          Glyph="&#xE70D;"
-                                          FontFamily="Segoe MDL2 Assets"
+                                <fluentIcons:SymbolIcon Grid.Column="2"
+                                          Symbol="ChevronDown" IconVariant="Regular"
                                           FontSize="12"
                                           VerticalAlignment="Center"
                                           Visibility="{x:Bind ViewModel.Step3State.ShowChevron, Mode=OneWay}"
                                           RenderTransformOrigin="0.5,0.5">
-                                    <FontIcon.RenderTransform>
+                                    <fluentIcons:SymbolIcon.RenderTransform>
                                         <RotateTransform Angle="{x:Bind ViewModel.Step3State.ChevronRotation, Mode=OneWay}"/>
-                                    </FontIcon.RenderTransform>
-                                </FontIcon>
+                                    </fluentIcons:SymbolIcon.RenderTransform>
+                                </fluentIcons:SymbolIcon>
                             </Grid>
                         </Border>
 
@@ -641,17 +633,16 @@
                                           Stretch="Uniform"/>
                                 </Viewbox>
                                 <!-- Normal: chevron -->
-                                <FontIcon Grid.Column="2"
-                                          Glyph="&#xE70D;"
-                                          FontFamily="Segoe MDL2 Assets"
+                                <fluentIcons:SymbolIcon Grid.Column="2"
+                                          Symbol="ChevronDown" IconVariant="Regular"
                                           FontSize="12"
                                           VerticalAlignment="Center"
                                           Visibility="{x:Bind ViewModel.Step4State.ShowChevron, Mode=OneWay}"
                                           RenderTransformOrigin="0.5,0.5">
-                                    <FontIcon.RenderTransform>
+                                    <fluentIcons:SymbolIcon.RenderTransform>
                                         <RotateTransform Angle="{x:Bind ViewModel.Step4State.ChevronRotation, Mode=OneWay}"/>
-                                    </FontIcon.RenderTransform>
-                                </FontIcon>
+                                    </fluentIcons:SymbolIcon.RenderTransform>
+                                </fluentIcons:SymbolIcon>
                             </Grid>
                         </Border>
 

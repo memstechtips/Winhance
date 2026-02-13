@@ -5,6 +5,7 @@ using System.IO;
 using System.Linq;
 using System.Net.Http;
 using System.Runtime.InteropServices;
+using System.Text;
 using System.Text.Json;
 using System.Threading;
 using System.Threading.Tasks;
@@ -18,6 +19,16 @@ namespace Winhance.Infrastructure.Features.SoftwareApps.Services;
 
 public class DirectDownloadService : IDirectDownloadService
 {
+    // P/Invoke for reading ProductCode from MSI files (msi.dll is always present on Windows)
+    [DllImport("msi.dll", CharSet = CharSet.Unicode)]
+    private static extern uint MsiOpenPackageEx(string szPackagePath, uint dwOptions, out IntPtr hProduct);
+
+    [DllImport("msi.dll", CharSet = CharSet.Unicode)]
+    private static extern uint MsiGetProductProperty(IntPtr hProduct, string szProperty, StringBuilder lpValueBuf, ref uint pcchValueBuf);
+
+    [DllImport("msi.dll")]
+    private static extern uint MsiCloseHandle(IntPtr hAny);
+
     private readonly ILogService _logService;
     private readonly HttpClient _httpClient;
     private readonly ILocalizationService _localization;
@@ -153,18 +164,9 @@ public class DirectDownloadService : IDirectDownloadService
         }
         finally
         {
-            try
-            {
-                if (Directory.Exists(tempPath))
-                {
-                    Directory.Delete(tempPath, true);
-                    _logService?.LogInformation($"Cleaned up temporary directory: {tempPath}");
-                }
-            }
-            catch (Exception ex)
-            {
-                _logService?.LogWarning($"Failed to cleanup temporary directory {tempPath}: {ex.Message}");
-            }
+            // Leave temp files in place — the Windows Installer service may still
+            // reference the MSI source after msiexec.exe returns, and the OS will
+            // clean up %TEMP% on its own schedule.
         }
     }
 
@@ -298,8 +300,8 @@ public class DirectDownloadService : IDirectDownloadService
                         progress?.Report(new TaskProgressDetail
                         {
                             Progress = progressPercent,
-                            StatusText = _localization.GetString("Progress_DownloadProgress", displayName, downloadedMB.ToString("F2"), totalMB.ToString("F2")),
-                            TerminalOutput = $"{downloadedMB:F2} MB of {totalMB:F2} MB",
+                            StatusText = _localization.GetString("Progress_Downloading", displayName),
+                            TerminalOutput = $"{downloadedMB:F2} / {totalMB:F2} MB",
                             IsActive = true,
                             IsIndeterminate = false
                         });
@@ -355,24 +357,57 @@ public class DirectDownloadService : IDirectDownloadService
     {
         try
         {
-            _logService?.LogInformation($"Installing MSI: {msiPath}");
+            var logPath = Path.Combine(Path.GetTempPath(), $"Winhance_MSI_{Guid.NewGuid():N}.log");
+            _logService?.LogInformation($"Installing MSI: {msiPath} (log: {logPath})");
 
-            var process = Process.Start(new ProcessStartInfo
-            {
-                FileName = "msiexec.exe",
-                Arguments = $"/i \"{msiPath}\" /quiet /norestart",
-                UseShellExecute = false,
-                CreateNoWindow = true
-            });
+            var exitCode = await RunMsiExecAsync(
+                $"/i \"{msiPath}\" /qn /norestart /l*v \"{logPath}\"",
+                cancellationToken);
 
-            if (process != null)
+            // 1612 = "Installation source not available" — stale registration from a previous
+            // install whose temp directory was cleaned up. Uninstall the stale entry using
+            // the ProductCode GUID (which doesn't need source files), then retry fresh.
+            if (exitCode == 1612)
             {
-                await process.WaitForExitAsync(cancellationToken);
-                if (process.ExitCode != 0)
+                _logService?.LogInformation($"MSI returned 1612 (stale source). Removing old registration and retrying...");
+                progress?.Report(new TaskProgressDetail
                 {
-                    _logService?.LogError($"MSI installation failed with exit code {process.ExitCode}");
-                    return false;
+                    Progress = 85,
+                    StatusText = _localization.GetString("Progress_Installing", displayName),
+                    TerminalOutput = "Removing stale registration...",
+                    IsActive = true
+                });
+
+                // Read the ProductCode from the new MSI so we can uninstall by GUID.
+                // Uninstalling by GUID bypasses the stale source check entirely.
+                var productCode = GetProductCodeFromMsi(msiPath);
+                if (!string.IsNullOrEmpty(productCode))
+                {
+                    _logService?.LogInformation($"Found ProductCode {productCode}, uninstalling stale registration by GUID...");
+                    await RunMsiExecAsync($"/x {productCode} /qn /norestart", cancellationToken);
                 }
+                else
+                {
+                    _logService?.LogWarning("Could not read ProductCode from MSI, falling back to file-based uninstall");
+                    await RunMsiExecAsync($"/x \"{msiPath}\" /qn /norestart", cancellationToken);
+                }
+
+                logPath = Path.Combine(Path.GetTempPath(), $"Winhance_MSI_{Guid.NewGuid():N}.log");
+                exitCode = await RunMsiExecAsync(
+                    $"/i \"{msiPath}\" /qn /norestart /l*v \"{logPath}\"",
+                    cancellationToken);
+            }
+
+            // Exit code 0 = success, 3010 = success but reboot required
+            if (exitCode != 0 && exitCode != 3010)
+            {
+                _logService?.LogError($"MSI installation failed with exit code {exitCode}. See log: {logPath}");
+                return false;
+            }
+
+            if (exitCode == 3010)
+            {
+                _logService?.LogInformation($"MSI installed successfully (reboot required). Log: {logPath}");
             }
 
             progress?.Report(new TaskProgressDetail
@@ -394,6 +429,48 @@ public class DirectDownloadService : IDirectDownloadService
         {
             _logService?.LogError($"Failed to install MSI {displayName}: {ex.Message}");
             return false;
+        }
+    }
+
+    private static async Task<int> RunMsiExecAsync(string arguments, CancellationToken cancellationToken)
+    {
+        var process = Process.Start(new ProcessStartInfo
+        {
+            FileName = "msiexec.exe",
+            Arguments = arguments,
+            UseShellExecute = false,
+            CreateNoWindow = true
+        });
+
+        if (process == null)
+            return -1;
+
+        await process.WaitForExitAsync(cancellationToken);
+        return process.ExitCode;
+    }
+
+    /// <summary>
+    /// Reads the ProductCode GUID from an MSI file using the Windows Installer API.
+    /// Opens the package in query-only mode (IGNOREMACHINESTATE) so no install logic runs.
+    /// </summary>
+    private static string? GetProductCodeFromMsi(string msiPath)
+    {
+        const uint MSIOPENPACKAGEFLAGS_IGNOREMACHINESTATE = 1;
+
+        uint result = MsiOpenPackageEx(msiPath, MSIOPENPACKAGEFLAGS_IGNOREMACHINESTATE, out var hProduct);
+        if (result != 0)
+            return null;
+
+        try
+        {
+            var buffer = new StringBuilder(39); // GUID format {xxxxxxxx-xxxx-xxxx-xxxx-xxxxxxxxxxxx} = 38 chars + null
+            uint bufferSize = 39;
+            result = MsiGetProductProperty(hProduct, "ProductCode", buffer, ref bufferSize);
+            return result == 0 ? buffer.ToString() : null;
+        }
+        finally
+        {
+            MsiCloseHandle(hProduct);
         }
     }
 

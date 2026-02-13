@@ -5,6 +5,7 @@
     xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
     xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
     xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
+    xmlns:fluentIcons="using:FluentIcons.WinUI"
     mc:Ignorable="d">
 
     <StackPanel Spacing="16" MaxWidth="520">
@@ -32,11 +33,11 @@
 
             <!-- Can be Reinstalled -->
             <StackPanel Grid.Row="0" Grid.Column="1" Orientation="Horizontal" Spacing="8" Margin="0,0,0,6">
-                <FontIcon Glyph="&#xE73E;" FontSize="14" VerticalAlignment="Center">
-                    <FontIcon.Foreground>
+                <fluentIcons:SymbolIcon Symbol="Checkmark" IconVariant="Regular" FontSize="14" VerticalAlignment="Center">
+                    <fluentIcons:SymbolIcon.Foreground>
                         <SolidColorBrush Color="#2196F3"/>
-                    </FontIcon.Foreground>
-                </FontIcon>
+                    </fluentIcons:SymbolIcon.Foreground>
+                </fluentIcons:SymbolIcon>
                 <TextBlock x:Name="CanReinstallText" VerticalAlignment="Center" Style="{StaticResource CaptionTextBlockStyle}"/>
             </StackPanel>
 
@@ -52,11 +53,11 @@
 
             <!-- Cannot Reinstall -->
             <StackPanel Grid.Row="1" Grid.Column="1" Orientation="Horizontal" Spacing="8">
-                <FontIcon Glyph="&#xE711;" FontSize="14" VerticalAlignment="Center">
-                    <FontIcon.Foreground>
+                <fluentIcons:SymbolIcon Symbol="Dismiss" IconVariant="Regular" FontSize="14" VerticalAlignment="Center">
+                    <fluentIcons:SymbolIcon.Foreground>
                         <SolidColorBrush Color="#F44336"/>
-                    </FontIcon.Foreground>
-                </FontIcon>
+                    </fluentIcons:SymbolIcon.Foreground>
+                </fluentIcons:SymbolIcon>
                 <TextBlock x:Name="CannotReinstallText" VerticalAlignment="Center" Style="{StaticResource CaptionTextBlockStyle}"/>
             </StackPanel>
         </Grid>

@@ -28,6 +28,7 @@ public partial class ExternalAppsViewModel : BaseViewModel
     private readonly ILocalizationService _localizationService;
     private readonly IInternetConnectivityService _connectivityService;
     private readonly IDispatcherService _dispatcherService;
+    private readonly IWinGetService _winGetService;
 
     public ExternalAppsViewModel(
         IExternalAppsService externalAppsService,
@@ -37,7 +38,8 @@ public partial class ExternalAppsViewModel : BaseViewModel
         IDialogService dialogService,
         ILocalizationService localizationService,
         IInternetConnectivityService connectivityService,
-        IDispatcherService dispatcherService)
+        IDispatcherService dispatcherService,
+        IWinGetService winGetService)
     {
         _externalAppsService = externalAppsService;
         _appOperationService = appOperationService;
@@ -47,8 +49,10 @@ public partial class ExternalAppsViewModel : BaseViewModel
         _localizationService = localizationService;
         _connectivityService = connectivityService;
         _dispatcherService = dispatcherService;
+        _winGetService = winGetService;
 
         _localizationService.LanguageChanged += OnLanguageChanged;
+        _winGetService.WinGetInstalled += OnWinGetInstalled;
 
         Items = new ObservableCollection<AppItemViewModel>();
         ItemsView = new AdvancedCollectionView(Items, true);
@@ -142,7 +146,10 @@ public partial class ExternalAppsViewModel : BaseViewModel
 
     partial void OnSearchTextChanged(string value)
     {
-        ItemsView.RefreshFilter();
+        using (ItemsView.DeferRefresh())
+        {
+            ItemsView.RefreshFilter();
+        }
         RebuildCategories();
     }
 
@@ -222,10 +229,25 @@ public partial class ExternalAppsViewModel : BaseViewModel
 
             var allItems = await _externalAppsService.GetAppsAsync();
             await LoadAppsIntoItemsAsync(allItems);
+        }
+        catch (Exception ex)
+        {
+            _logService.LogError("[ExternalAppsViewModel] Error loading app definitions", ex);
+            StatusText = $"Error loading apps: {ex.Message}";
+        }
 
+        try
+        {
             StatusText = _localizationService.GetString("Progress_CheckingInstallStatus");
             await CheckInstallationStatusAsync();
+        }
+        catch (Exception ex)
+        {
+            _logService.LogWarning($"[ExternalAppsViewModel] Install status check failed, items loaded without status: {ex.Message}");
+        }
 
+        try
+        {
             IsAllSelected = false;
             IsInitialized = true;
             StatusText = $"Loaded {Items.Count} items";
@@ -233,8 +255,7 @@ public partial class ExternalAppsViewModel : BaseViewModel
         }
         catch (Exception ex)
         {
-            _logService.LogError("[ExternalAppsViewModel] Error loading apps", ex);
-            StatusText = $"Error loading apps: {ex.Message}";
+            _logService.LogWarning($"[ExternalAppsViewModel] Error finalizing: {ex.Message}");
         }
         finally
         {
@@ -280,15 +301,16 @@ public partial class ExternalAppsViewModel : BaseViewModel
             var definitions = Items.Select(item => item.Definition).ToList();
             var statusResults = await _externalAppsService.CheckBatchInstalledAsync(definitions);
 
-            foreach (var item in Items)
+            using (ItemsView.DeferRefresh())
             {
-                if (statusResults.TryGetValue(item.Definition.Id, out bool isInstalled))
+                foreach (var item in Items)
                 {
-                    item.IsInstalled = isInstalled;
+                    if (statusResults.TryGetValue(item.Definition.Id, out bool isInstalled))
+                    {
+                        item.IsInstalled = isInstalled;
+                    }
                 }
             }
-
-            ItemsView.RefreshSorting();
         }
         catch (Exception ex)
         {
@@ -323,6 +345,18 @@ public partial class ExternalAppsViewModel : BaseViewModel
         {
             IsLoading = false;
         }
+    }
+
+    private void OnWinGetInstalled(object? sender, EventArgs e)
+    {
+        _ = _dispatcherService.RunOnUIThreadAsync(async () =>
+        {
+            if (IsInitialized)
+            {
+                _logService.LogInformation("WinGet installed — refreshing External Apps installation status");
+                await CheckInstallationStatusAsync();
+            }
+        });
     }
 
     /// <summary>
@@ -393,8 +427,21 @@ public partial class ExternalAppsViewModel : BaseViewModel
             var progress = _progressService.CreateDetailedProgress();
 
             int successCount = 0;
-            foreach (var app in selectedItems)
+            for (int i = 0; i < selectedItems.Count; i++)
             {
+                if (_progressService.ConsumeSkipNextRequest())
+                    continue;
+
+                var app = selectedItems[i];
+                var nextName = i + 1 < selectedItems.Count ? selectedItems[i + 1].Name : null;
+                progress.Report(new TaskProgressDetail
+                {
+                    StatusText = _localizationService.GetString("Progress_Installing", app.Name),
+                    QueueTotal = selectedItems.Count,
+                    QueueCurrent = i + 1,
+                    QueueNextItemName = nextName
+                });
+
                 var result = await _externalAppsService.InstallAppAsync(app.Definition, progress);
                 if (result.Success && result.Result)
                 {
@@ -404,7 +451,6 @@ public partial class ExternalAppsViewModel : BaseViewModel
             }
 
             StatusText = $"Installed {successCount} of {selectedItems.Count} apps";
-            await RefreshAfterOperationAsync();
         }
         catch (Exception ex)
         {
@@ -419,6 +465,8 @@ public partial class ExternalAppsViewModel : BaseViewModel
             }
             IsTaskRunning = false;
         }
+
+        await RefreshAfterOperationAsync();
     }
 
     [RelayCommand]
@@ -446,8 +494,21 @@ public partial class ExternalAppsViewModel : BaseViewModel
             var progress = _progressService.CreateDetailedProgress();
 
             int successCount = 0;
-            foreach (var app in selectedItems)
+            for (int i = 0; i < selectedItems.Count; i++)
             {
+                if (_progressService.ConsumeSkipNextRequest())
+                    continue;
+
+                var app = selectedItems[i];
+                var nextName = i + 1 < selectedItems.Count ? selectedItems[i + 1].Name : null;
+                progress.Report(new TaskProgressDetail
+                {
+                    StatusText = _localizationService.GetString("Progress_Uninstalling", app.Name),
+                    QueueTotal = selectedItems.Count,
+                    QueueCurrent = i + 1,
+                    QueueNextItemName = nextName
+                });
+
                 var result = await _externalAppsService.UninstallAppAsync(app.Definition, progress);
                 if (result.Success && result.Result)
                 {
@@ -457,7 +518,6 @@ public partial class ExternalAppsViewModel : BaseViewModel
             }
 
             StatusText = $"Uninstalled {successCount} of {selectedItems.Count} apps";
-            await RefreshAfterOperationAsync();
         }
         catch (Exception ex)
         {
@@ -472,6 +532,8 @@ public partial class ExternalAppsViewModel : BaseViewModel
             }
             IsTaskRunning = false;
         }
+
+        await RefreshAfterOperationAsync();
     }
 
     private async Task RefreshAfterOperationAsync()

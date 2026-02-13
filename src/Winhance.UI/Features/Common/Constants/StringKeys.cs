@@ -85,6 +85,11 @@ public static class StringKeys
         public const string ItemsWillBeRemoved = "Dialog_ItemsWillBeRemoved";
         public const string ItemsWillBeProcessed = "Dialog_ItemsWillBeProcessed";
 
+        // Chocolatey consent dialogs
+        public const string Choco_ConsentTitle = "Dialog_Choco_ConsentTitle";
+        public const string Choco_ConsentMessage = "Dialog_Choco_ConsentMessage";
+        public const string Choco_DontAskAgain = "Dialog_Choco_DontAskAgain";
+
         // Power-related dialogs
         public const string CannotDeleteActivePlan_Title = "Dialog_CannotDeleteActivePlan_Title";
         public const string CannotDeleteActivePlan_Message = "Dialog_CannotDeleteActivePlan_Message";
@@ -150,6 +155,35 @@ public static class StringKeys
     }
 
     /// <summary>
+    /// Accessibility labels for screen readers
+    /// </summary>
+    public static class Accessibility
+    {
+        public const string NavigationLandmark = "Accessibility_NavigationLandmark";
+        public const string ToggleTechnicalDetails = "Accessibility_ToggleTechnicalDetails";
+        public const string ImportInProgress = "Accessibility_ImportInProgress";
+        public const string TableView = "Accessibility_TableView";
+        public const string CardView = "Accessibility_CardView";
+        public const string ProgressUpdate = "Accessibility_ProgressUpdate";
+        public const string ToggleNavigation = "Accessibility_ToggleNavigation";
+        public const string ApplyingSetting = "Accessibility_ApplyingSetting";
+        public const string Selected = "Accessibility_Selected";
+        public const string Checked = "Accessibility_Checked";
+        public const string Unchecked = "Accessibility_Unchecked";
+    }
+
+    /// <summary>
+    /// Chocolatey progress strings
+    /// </summary>
+    public static class ChocolateyProgress
+    {
+        public const string Installing = "Progress_Choco_Installing";
+        public const string Installed = "Progress_Choco_Installed";
+        public const string InstallingPackage = "Progress_Choco_InstallingPackage";
+        public const string FallbackAttempt = "Progress_Choco_FallbackAttempt";
+    }
+
+    /// <summary>
     /// Setting group names
     /// </summary>
     public static class SettingGroups
@@ -190,8 +224,6 @@ public static class StringKeys
         public const string System = "Theme_System";
         public const string LightNative = "Theme_LightNative";
         public const string DarkNative = "Theme_DarkNative";
-        public const string LegacyWhite = "Theme_LegacyWhite";
-        public const string LegacyDark = "Theme_LegacyDark";
     }
 
     /// <summary>
@@ -320,8 +352,6 @@ public static class StringKeys
         public static string Theme_System => Get(Themes.System);
         public static string Theme_LightNative => Get(Themes.LightNative);
         public static string Theme_DarkNative => Get(Themes.DarkNative);
-        public static string Theme_LegacyWhite => Get(Themes.LegacyWhite);
-        public static string Theme_LegacyDark => Get(Themes.LegacyDark);
 
         /// <summary>
         /// Dynamic string getter for keys not pre-defined as properties.

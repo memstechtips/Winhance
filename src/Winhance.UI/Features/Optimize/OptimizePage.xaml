@@ -6,6 +6,7 @@
     xmlns:local="using:Winhance.UI.Features.Optimize"
     xmlns:models="using:Winhance.UI.Features.Optimize.Models"
     xmlns:controls="using:CommunityToolkit.WinUI.Controls"
+    xmlns:fluentIcons="using:FluentIcons.WinUI"
     x:DefaultBindMode="OneWay"
     NavigationCacheMode="Enabled">
 
@@ -26,7 +27,8 @@
                     Text="{x:Bind ViewModel.PageTitle}"
                     Style="{StaticResource TitleTextBlockStyle}"
                     FontWeight="Bold"
-                    FontSize="30"/>
+                    FontSize="30"
+                    AutomationProperties.HeadingLevel="Level1"/>
                 <TextBlock
                     Text="{x:Bind ViewModel.PageDescription}"
                     Style="{StaticResource CaptionTextBlockStyle}"
@@ -39,6 +41,7 @@
         <Grid Grid.Row="1" Margin="0,12,0,16">
             <Grid.ColumnDefinitions>
                 <ColumnDefinition Width="*"/>     <!-- Breadcrumb -->
+                <ColumnDefinition Width="Auto"/>  <!-- Technical Details toggle -->
                 <ColumnDefinition Width="Auto"/>  <!-- Search -->
             </Grid.ColumnDefinitions>
 
@@ -48,6 +51,7 @@
                 <Button
                     x:Name="BreadcrumbRoot"
                     Click="BreadcrumbOverview_Click"
+                    AutomationProperties.Name="{x:Bind ViewModel.BreadcrumbRootText}"
                     Padding="8,4">
                     <StackPanel Orientation="Horizontal" Spacing="8">
                         <Viewbox Width="16" Height="16" VerticalAlignment="Center" Margin="0,-2,0,0">
@@ -58,9 +62,10 @@
                 </Button>
 
                 <!-- Separator (visible only on detail pages) -->
-                <FontIcon
+                <fluentIcons:SymbolIcon
                     x:Name="BreadcrumbSeparator"
-                    Glyph="&#xE76C;"
+                    Symbol="ChevronRight"
+                    IconVariant="Regular"
                     FontSize="12"
                     Foreground="{ThemeResource TextFillColorSecondaryBrush}"
                     VerticalAlignment="Center"
@@ -77,8 +82,8 @@
                             <Viewbox x:Name="BreadcrumbSectionIconBox" Width="16" Height="16" VerticalAlignment="Center" Margin="0,-2,0,0">
                                 <PathIcon x:Name="BreadcrumbSectionIcon" Foreground="{ThemeResource TextFillColorPrimaryBrush}"/>
                             </Viewbox>
-                            <!-- FontIcon for glyph-based icons (Update, Sound) -->
-                            <FontIcon x:Name="BreadcrumbSectionGlyph" FontSize="16" VerticalAlignment="Center" Foreground="{ThemeResource TextFillColorPrimaryBrush}" Visibility="Collapsed"/>
+                            <!-- SymbolIcon for FluentIcons-based icons (Update, Sound) -->
+                            <fluentIcons:SymbolIcon x:Name="BreadcrumbSectionSymbol" IconVariant="Regular" FontSize="16" VerticalAlignment="Center" Foreground="{ThemeResource TextFillColorPrimaryBrush}" Visibility="Collapsed"/>
                             <TextBlock x:Name="BreadcrumbSectionText" VerticalAlignment="Center"/>
                             <InfoBadge x:Name="BreadcrumbSectionBadge" VerticalAlignment="Center" Visibility="Collapsed"/>
                         </StackPanel>
@@ -92,7 +97,7 @@
                                 </Style>
                             </Flyout.FlyoutPresenterStyle>
                             <StackPanel Spacing="0" MinWidth="180">
-                                <Button Click="NavigatePrivacy_Click" HorizontalAlignment="Stretch"
+                                <Button x:Name="FlyoutButtonPrivacy" Click="NavigatePrivacy_Click" HorizontalAlignment="Stretch"
                                         HorizontalContentAlignment="Stretch"
                                         Background="Transparent" BorderThickness="0" Padding="8,5">
                                     <Grid ColumnDefinitions="Auto,*,Auto">
@@ -103,7 +108,7 @@
                                         <InfoBadge x:Name="FlyoutBadgePrivacy" Grid.Column="2" Margin="8,0,0,0" VerticalAlignment="Center" Visibility="Collapsed"/>
                                     </Grid>
                                 </Button>
-                                <Button Click="NavigatePower_Click" HorizontalAlignment="Stretch"
+                                <Button x:Name="FlyoutButtonPower" Click="NavigatePower_Click" HorizontalAlignment="Stretch"
                                         HorizontalContentAlignment="Stretch"
                                         Background="Transparent" BorderThickness="0" Padding="8,5">
                                     <Grid ColumnDefinitions="Auto,*,Auto">
@@ -114,7 +119,7 @@
                                         <InfoBadge x:Name="FlyoutBadgePower" Grid.Column="2" Margin="8,0,0,0" VerticalAlignment="Center" Visibility="Collapsed"/>
                                     </Grid>
                                 </Button>
-                                <Button Click="NavigateGaming_Click" HorizontalAlignment="Stretch"
+                                <Button x:Name="FlyoutButtonGaming" Click="NavigateGaming_Click" HorizontalAlignment="Stretch"
                                         HorizontalContentAlignment="Stretch"
                                         Background="Transparent" BorderThickness="0" Padding="8,5">
                                     <Grid ColumnDefinitions="Auto,*,Auto">
@@ -125,16 +130,16 @@
                                         <InfoBadge x:Name="FlyoutBadgeGaming" Grid.Column="2" Margin="8,0,0,0" VerticalAlignment="Center" Visibility="Collapsed"/>
                                     </Grid>
                                 </Button>
-                                <Button Click="NavigateUpdate_Click" HorizontalAlignment="Stretch"
+                                <Button x:Name="FlyoutButtonUpdate" Click="NavigateUpdate_Click" HorizontalAlignment="Stretch"
                                         HorizontalContentAlignment="Stretch"
                                         Background="Transparent" BorderThickness="0" Padding="8,5">
                                     <Grid ColumnDefinitions="Auto,*,Auto">
-                                        <FontIcon Grid.Column="0" Glyph="{StaticResource UpdateIconGlyph}" FontSize="16" Margin="0,0,8,0" VerticalAlignment="Center"/>
+                                        <fluentIcons:SymbolIcon Grid.Column="0" Symbol="ArrowSync" IconVariant="Regular" FontSize="16" Margin="0,0,8,0" VerticalAlignment="Center"/>
                                         <TextBlock x:Name="FlyoutTextUpdate" Grid.Column="1" VerticalAlignment="Center"/>
                                         <InfoBadge x:Name="FlyoutBadgeUpdate" Grid.Column="2" Margin="8,0,0,0" VerticalAlignment="Center" Visibility="Collapsed"/>
                                     </Grid>
                                 </Button>
-                                <Button Click="NavigateNotification_Click" HorizontalAlignment="Stretch"
+                                <Button x:Name="FlyoutButtonNotification" Click="NavigateNotification_Click" HorizontalAlignment="Stretch"
                                         HorizontalContentAlignment="Stretch"
                                         Background="Transparent" BorderThickness="0" Padding="8,5">
                                     <Grid ColumnDefinitions="Auto,*,Auto">
@@ -145,11 +150,11 @@
                                         <InfoBadge x:Name="FlyoutBadgeNotification" Grid.Column="2" Margin="8,0,0,0" VerticalAlignment="Center" Visibility="Collapsed"/>
                                     </Grid>
                                 </Button>
-                                <Button Click="NavigateSound_Click" HorizontalAlignment="Stretch"
+                                <Button x:Name="FlyoutButtonSound" Click="NavigateSound_Click" HorizontalAlignment="Stretch"
                                         HorizontalContentAlignment="Stretch"
                                         Background="Transparent" BorderThickness="0" Padding="8,5">
                                     <Grid ColumnDefinitions="Auto,*,Auto">
-                                        <FontIcon Grid.Column="0" Glyph="{StaticResource SoundIconGlyph}" FontSize="16" Margin="0,0,8,0" VerticalAlignment="Center"/>
+                                        <fluentIcons:SymbolIcon Grid.Column="0" Symbol="Speaker2" IconVariant="Regular" FontSize="16" Margin="0,0,8,0" VerticalAlignment="Center"/>
                                         <TextBlock x:Name="FlyoutTextSound" Grid.Column="1" VerticalAlignment="Center"/>
                                         <InfoBadge x:Name="FlyoutBadgeSound" Grid.Column="2" Margin="8,0,0,0" VerticalAlignment="Center" Visibility="Collapsed"/>
                                     </Grid>
@@ -160,8 +165,27 @@
                 </DropDownButton>
             </StackPanel>
 
+            <!-- Technical Details toggle -->
+            <Border x:Name="TechnicalDetailsToggleBorder"
+                    Grid.Column="1"
+                    CornerRadius="4"
+                    BorderThickness="0"
+                    VerticalAlignment="Center"
+                    Margin="0,0,8,0">
+                <Button x:Name="TechnicalDetailsToggle"
+                        Click="TechnicalDetailsToggle_Click"
+                        Padding="6"
+                        Background="Transparent"
+                        BorderThickness="0">
+                    <Viewbox Width="16" Height="16">
+                        <PathIcon x:Name="TechnicalDetailsIcon"
+                                  Foreground="{ThemeResource TextFillColorPrimaryBrush}"/>
+                    </Viewbox>
+                </Button>
+            </Border>
+
             <!-- Search box with suggestions -->
-            <Grid Grid.Column="1" Width="220">
+            <Grid Grid.Column="2" Width="220">
                 <AutoSuggestBox
                     x:Name="SearchBox"
                     PlaceholderText="{x:Bind ViewModel.SearchPlaceholder}"
@@ -255,7 +279,7 @@
                                 IsClickEnabled="True"
                                 Click="UpdateCard_Click">
                                 <controls:SettingsCard.HeaderIcon>
-                                    <FontIcon Glyph="{StaticResource UpdateIconGlyph}"/>
+                                    <fluentIcons:SymbolIcon Symbol="ArrowSync" IconVariant="Regular"/>
                                 </controls:SettingsCard.HeaderIcon>
                                 <InfoBadge x:Name="UpdateBadge" Visibility="Collapsed"/>
                             </controls:SettingsCard>
@@ -279,7 +303,7 @@
                                 IsClickEnabled="True"
                                 Click="SoundCard_Click">
                                 <controls:SettingsCard.HeaderIcon>
-                                    <FontIcon Glyph="{StaticResource SoundIconGlyph}"/>
+                                    <fluentIcons:SymbolIcon Symbol="Speaker2" IconVariant="Regular"/>
                                 </controls:SettingsCard.HeaderIcon>
                                 <InfoBadge x:Name="SoundBadge" Visibility="Collapsed"/>
                             </controls:SettingsCard>

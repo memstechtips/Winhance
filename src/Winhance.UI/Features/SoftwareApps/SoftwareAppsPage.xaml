@@ -9,6 +9,7 @@
     xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
     x:DefaultBindMode="OneWay"
     NavigationCacheMode="Enabled"
+    xmlns:fluentIcons="using:FluentIcons.WinUI"
     mc:Ignorable="d">
 
     <Page.Resources>
@@ -205,12 +206,13 @@
             </Setter>
         </Style>
 
-        <!-- Spacer column header: transparent -->
+        <!-- Spacer column header: right-rounded corners with card background -->
         <Style x:Key="SpacerColumnHeaderStyle" TargetType="primitives:DataGridColumnHeader">
             <Setter Property="Template">
                 <Setter.Value>
                     <ControlTemplate TargetType="primitives:DataGridColumnHeader">
-                        <Border Background="Transparent"/>
+                        <Border Background="{ThemeResource CardBackgroundFillColorDefaultBrush}"
+                                CornerRadius="0,4,4,0"/>
                     </ControlTemplate>
                 </Setter.Value>
             </Setter>
@@ -371,7 +373,8 @@
                     Text="{x:Bind ViewModel.PageTitle}"
                     Style="{StaticResource TitleTextBlockStyle}"
                     FontWeight="Bold"
-                    FontSize="30"/>
+                    FontSize="30"
+                    AutomationProperties.HeadingLevel="Level1"/>
                 <TextBlock
                     Text="{x:Bind ViewModel.PageDescription}"
                     Style="{StaticResource CaptionTextBlockStyle}"
@@ -385,18 +388,20 @@
             <!-- Normal mode: Install Button -->
             <Button Command="{x:Bind ViewModel.InstallSelectedItemsCommand}"
                     IsEnabled="{x:Bind ViewModel.CanInstallItems, Mode=OneWay}"
+                    AutomationProperties.Name="{x:Bind ViewModel.InstallButtonText}"
                     Visibility="{x:Bind ViewModel.IsInReviewMode, Mode=OneWay, Converter={StaticResource InverseBooleanToVisibilityConverter}}">
                 <StackPanel Orientation="Horizontal" Spacing="8">
-                    <FontIcon Glyph="&#xE896;" FontSize="14"/>
+                    <fluentIcons:SymbolIcon Symbol="ArrowDownload" IconVariant="Regular" FontSize="18"/>
                     <TextBlock Text="{x:Bind ViewModel.InstallButtonText}"/>
                 </StackPanel>
             </Button>
             <!-- Normal mode: Remove Button -->
             <Button Command="{x:Bind ViewModel.RemoveSelectedItemsCommand}"
                     IsEnabled="{x:Bind ViewModel.CanRemoveItems, Mode=OneWay}"
+                    AutomationProperties.Name="{x:Bind ViewModel.RemoveButtonText, Mode=OneWay}"
                     Visibility="{x:Bind ViewModel.IsInReviewMode, Mode=OneWay, Converter={StaticResource InverseBooleanToVisibilityConverter}}">
                 <StackPanel Orientation="Horizontal" Spacing="8">
-                    <FontIcon Glyph="&#xE74D;" FontSize="14"/>
+                    <fluentIcons:SymbolIcon Symbol="Delete" IconVariant="Regular" FontSize="18"/>
                     <TextBlock Text="{x:Bind ViewModel.RemoveButtonText, Mode=OneWay}"/>
                 </StackPanel>
             </Button>
@@ -404,9 +409,10 @@
             <ToggleButton x:Name="InstallActionToggle"
                           Visibility="{x:Bind ViewModel.IsInReviewMode, Mode=OneWay, Converter={StaticResource BooleanToVisibilityConverter}}"
                           IsChecked="{x:Bind ViewModel.CurrentInstallAction, Mode=TwoWay}"
+                          AutomationProperties.Name="{x:Bind ViewModel.InstallButtonText}"
                           Padding="10,6,12,6">
                 <StackPanel Orientation="Horizontal" Spacing="8">
-                    <FontIcon Glyph="&#xE896;" FontSize="14"/>
+                    <fluentIcons:SymbolIcon Symbol="ArrowDownload" IconVariant="Regular" FontSize="18"/>
                     <TextBlock Text="{x:Bind ViewModel.InstallButtonText}"/>
                 </StackPanel>
             </ToggleButton>
@@ -414,25 +420,28 @@
             <ToggleButton x:Name="RemoveActionToggle"
                           Visibility="{x:Bind ViewModel.IsInReviewMode, Mode=OneWay, Converter={StaticResource BooleanToVisibilityConverter}}"
                           IsChecked="{x:Bind ViewModel.CurrentRemoveAction, Mode=TwoWay}"
+                          AutomationProperties.Name="{x:Bind ViewModel.RemoveButtonText, Mode=OneWay}"
                           Padding="10,6,12,6">
                 <StackPanel Orientation="Horizontal" Spacing="8">
-                    <FontIcon Glyph="&#xE74D;" FontSize="14"/>
+                    <fluentIcons:SymbolIcon Symbol="Delete" IconVariant="Regular" FontSize="18"/>
                     <TextBlock Text="{x:Bind ViewModel.RemoveButtonText, Mode=OneWay}"/>
                 </StackPanel>
             </ToggleButton>
             <AppBarSeparator/>
-            <Button Command="{x:Bind ViewModel.RefreshInstallationStatusCommand}">
+            <Button Command="{x:Bind ViewModel.RefreshInstallationStatusCommand}"
+                    AutomationProperties.Name="{x:Bind ViewModel.RefreshButtonText}">
                 <Button.KeyboardAccelerators>
                     <KeyboardAccelerator Key="F5"/>
                 </Button.KeyboardAccelerators>
                 <StackPanel Orientation="Horizontal" Spacing="8">
-                    <FontIcon Glyph="&#xE72C;" FontSize="14"/>
+                    <fluentIcons:SymbolIcon Symbol="ArrowSync" IconVariant="Regular" FontSize="18"/>
                     <TextBlock Text="{x:Bind ViewModel.RefreshButtonText}"/>
                 </StackPanel>
             </Button>
-            <Button Click="HelpButton_Click">
+            <Button Click="HelpButton_Click"
+                    AutomationProperties.Name="{x:Bind ViewModel.HelpButtonText}">
                 <StackPanel Orientation="Horizontal" Spacing="8">
-                    <FontIcon Glyph="&#xE897;" FontSize="14"/>
+                    <fluentIcons:SymbolIcon Symbol="QuestionCircle" IconVariant="Regular" FontSize="18"/>
                     <TextBlock Text="{x:Bind ViewModel.HelpButtonText}"/>
                 </StackPanel>
             </Button>
@@ -445,21 +454,23 @@
                                   IsChecked="{x:Bind ViewModel.IsCardViewMode, Mode=OneWay, Converter={StaticResource InverseBooleanConverter}}"
                                   Click="TableViewToggle_Click"
                                   ToolTipService.ToolTip="{x:Bind ViewModel.ViewModeTableTooltip}"
+                                  AutomationProperties.Name="{x:Bind ViewModel.ViewModeTableTooltip}"
                                   Background="Transparent"
                                   BorderThickness="0"
                                   CornerRadius="4,0,0,4"
                                   Padding="10,6">
-                        <FontIcon Glyph="&#xE80A;" FontSize="16"/>
+                        <fluentIcons:SymbolIcon Symbol="TableSimple" IconVariant="Regular" FontSize="18"/>
                     </ToggleButton>
                     <ToggleButton x:Name="CardViewToggle"
                                   IsChecked="{x:Bind ViewModel.IsCardViewMode, Mode=OneWay}"
                                   Click="CardViewToggle_Click"
                                   ToolTipService.ToolTip="{x:Bind ViewModel.ViewModeCardTooltip}"
+                                  AutomationProperties.Name="{x:Bind ViewModel.ViewModeCardTooltip}"
                                   Background="Transparent"
                                   BorderThickness="0"
                                   CornerRadius="0,4,4,0"
                                   Padding="10,6">
-                        <FontIcon Glyph="&#xE8A9;" FontSize="16"/>
+                        <fluentIcons:SymbolIcon Symbol="Grid" IconVariant="Regular" FontSize="18"/>
                     </ToggleButton>
                 </StackPanel>
             </Border>
@@ -513,6 +524,7 @@
                             <!-- Tab button (transparent) -->
                             <Button x:Name="WindowsAppsTab"
                                     Command="{x:Bind ViewModel.SelectWindowsAppsTabCommand}"
+                                    AutomationProperties.Name="{x:Bind ViewModel.WindowsAppsTabText}"
                                     HorizontalAlignment="Stretch"
                                     HorizontalContentAlignment="Center"
                                     Background="Transparent"
@@ -564,6 +576,7 @@
                             <!-- Tab button (transparent) -->
                             <Button x:Name="ExternalAppsTab"
                                     Command="{x:Bind ViewModel.SelectExternalAppsTabCommand}"
+                                    AutomationProperties.Name="{x:Bind ViewModel.ExternalAppsTabText}"
                                     HorizontalAlignment="Stretch"
                                     HorizontalContentAlignment="Center"
                                     Background="Transparent"
@@ -637,6 +650,7 @@
                                     <controls:DataGridTemplateColumn.CellTemplate>
                                         <DataTemplate>
                                             <CheckBox IsChecked="{Binding IsSelected, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}"
+                                                      AutomationProperties.Name="{Binding Name}"
                                                       MinWidth="20"
                                                       HorizontalAlignment="Center"/>
                                         </DataTemplate>
@@ -644,6 +658,7 @@
                                     <controls:DataGridTemplateColumn.CellEditingTemplate>
                                         <DataTemplate>
                                             <CheckBox IsChecked="{Binding IsSelected, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}"
+                                                      AutomationProperties.Name="{Binding Name}"
                                                       MinWidth="20"
                                                       HorizontalAlignment="Center"/>
                                         </DataTemplate>
@@ -728,7 +743,8 @@
                                         </ItemsRepeater.Layout>
                                         <ItemsRepeater.ItemTemplate>
                                             <DataTemplate>
-                                                <CheckBox IsChecked="{Binding IsSelected, Mode=TwoWay}" MinWidth="0" Padding="8,4">
+                                                <CheckBox IsChecked="{Binding IsSelected, Mode=TwoWay}" MinWidth="0" Padding="8,4"
+                                                         AutomationProperties.Name="{Binding Name}">
                                                     <StackPanel Orientation="Horizontal" Spacing="8">
                                                         <Ellipse Width="10" Height="10" VerticalAlignment="Center"
                                                                  Fill="{Binding IsInstalled, Converter={StaticResource BoolToStatusBrushConverter}}"
@@ -756,7 +772,8 @@
                                         </ItemsRepeater.Layout>
                                         <ItemsRepeater.ItemTemplate>
                                             <DataTemplate>
-                                                <CheckBox IsChecked="{Binding IsSelected, Mode=TwoWay}" MinWidth="0" Padding="8,4">
+                                                <CheckBox IsChecked="{Binding IsSelected, Mode=TwoWay}" MinWidth="0" Padding="8,4"
+                                                         AutomationProperties.Name="{Binding Name}">
                                                     <StackPanel Orientation="Horizontal" Spacing="8">
                                                         <Ellipse Width="10" Height="10" VerticalAlignment="Center"
                                                                  Fill="{Binding IsInstalled, Converter={StaticResource BoolToStatusBrushConverter}}"
@@ -784,7 +801,8 @@
                                         </ItemsRepeater.Layout>
                                         <ItemsRepeater.ItemTemplate>
                                             <DataTemplate>
-                                                <CheckBox IsChecked="{Binding IsSelected, Mode=TwoWay}" MinWidth="0" Padding="8,4">
+                                                <CheckBox IsChecked="{Binding IsSelected, Mode=TwoWay}" MinWidth="0" Padding="8,4"
+                                                         AutomationProperties.Name="{Binding Name}">
                                                     <StackPanel Orientation="Horizontal" Spacing="8">
                                                         <Ellipse Width="10" Height="10" VerticalAlignment="Center"
                                                                  Fill="{Binding IsInstalled, Converter={StaticResource BoolToStatusBrushConverter}}"
@@ -863,6 +881,7 @@
                                     <controls:DataGridTemplateColumn.CellTemplate>
                                         <DataTemplate>
                                             <CheckBox IsChecked="{Binding IsSelected, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}"
+                                                      AutomationProperties.Name="{Binding Name}"
                                                       MinWidth="20"
                                                       HorizontalAlignment="Center"/>
                                         </DataTemplate>
@@ -870,6 +889,7 @@
                                     <controls:DataGridTemplateColumn.CellEditingTemplate>
                                         <DataTemplate>
                                             <CheckBox IsChecked="{Binding IsSelected, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}"
+                                                      AutomationProperties.Name="{Binding Name}"
                                                       MinWidth="20"
                                                       HorizontalAlignment="Center"/>
                                         </DataTemplate>
@@ -896,9 +916,8 @@
                                     </controls:DataGridTemplateColumn.CellTemplate>
                                 </controls:DataGridTemplateColumn>
 
-                                <!-- Status Column (last visible) -->
-                                <controls:DataGridTemplateColumn Header="Status" Width="140" Tag="IsInstalled"
-                                                                  HeaderStyle="{StaticResource LastColumnHeaderStyle}">
+                                <!-- Status Column -->
+                                <controls:DataGridTemplateColumn Header="Status" Width="140" Tag="IsInstalled">
                                     <controls:DataGridTemplateColumn.CellTemplate>
                                         <DataTemplate>
                                             <StackPanel Orientation="Horizontal" Spacing="8" VerticalAlignment="Center">
@@ -940,13 +959,16 @@
                                 </StackPanel>
 
                                 <!-- Categories -->
-                                <ItemsRepeater ItemsSource="{x:Bind ViewModel.ExternalAppsViewModel.Categories, Mode=OneWay}">
-                                    <ItemsRepeater.Layout>
-                                        <StackLayout Spacing="8"/>
-                                    </ItemsRepeater.Layout>
-                                    <ItemsRepeater.ItemTemplate>
+                                <ItemsControl ItemsSource="{x:Bind ViewModel.ExternalAppsViewModel.Categories, Mode=OneWay}">
+                                    <ItemsControl.ItemsPanel>
+                                        <ItemsPanelTemplate>
+                                            <StackPanel Spacing="8"/>
+                                        </ItemsPanelTemplate>
+                                    </ItemsControl.ItemsPanel>
+                                    <ItemsControl.ItemTemplate>
                                         <DataTemplate>
-                                            <Expander IsExpanded="True" HorizontalAlignment="Stretch" HorizontalContentAlignment="Stretch">
+                                            <Expander IsExpanded="True" HorizontalAlignment="Stretch" HorizontalContentAlignment="Stretch"
+                                                     AutomationProperties.Name="{Binding DisplayName}">
                                                 <Expander.Header>
                                                     <StackPanel Orientation="Horizontal" Spacing="10">
                                                         <FontIcon Glyph="{Binding IconGlyph}" FontSize="16"/>
@@ -962,7 +984,8 @@
                                                         </ItemsRepeater.Layout>
                                                         <ItemsRepeater.ItemTemplate>
                                                             <DataTemplate>
-                                                                <CheckBox IsChecked="{Binding IsSelected, Mode=TwoWay}" MinWidth="0" Padding="8,4">
+                                                                <CheckBox IsChecked="{Binding IsSelected, Mode=TwoWay}" MinWidth="0" Padding="8,4"
+                                                                         AutomationProperties.Name="{Binding Name}">
                                                                     <StackPanel Orientation="Horizontal" Spacing="8">
                                                                         <Ellipse Width="10" Height="10" VerticalAlignment="Center"
                                                                                  Fill="{Binding IsInstalled, Converter={StaticResource BoolToStatusBrushConverter}}"/>
@@ -970,7 +993,7 @@
                                                                         <HyperlinkButton NavigateUri="{Binding WebsiteUrl}"
                                                                                          Padding="0" VerticalAlignment="Center"
                                                                                          Visibility="{Binding WebsiteUrl, Converter={StaticResource NullToVisibilityConverter}}">
-                                                                            <FontIcon Glyph="&#xE71B;" FontSize="12"/>
+                                                                            <fluentIcons:SymbolIcon Symbol="Open" IconVariant="Regular" FontSize="12"/>
                                                                         </HyperlinkButton>
                                                                     </StackPanel>
                                                                 </CheckBox>
@@ -980,8 +1003,8 @@
                                                 </Expander.Content>
                                             </Expander>
                                         </DataTemplate>
-                                    </ItemsRepeater.ItemTemplate>
-                                </ItemsRepeater>
+                                    </ItemsControl.ItemTemplate>
+                                </ItemsControl>
                             </StackPanel>
                         </ScrollViewer>
 

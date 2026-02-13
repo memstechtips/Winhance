@@ -22,6 +22,7 @@ namespace Winhance.Core.Features.SoftwareApps.Models
                             Description = "Fast Open-Source Remote Access and Support Software",
                             GroupName = "Remote Access",
                             WinGetPackageId = ["RustDesk.RustDesk"],
+                            ChocoPackageId = "rustdesk",
                             WebsiteUrl = "https://rustdesk.com/"
                         },
                         new ItemDefinition
@@ -31,6 +32,7 @@ namespace Winhance.Core.Features.SoftwareApps.Models
                             Description = "Remote desktop software for remote access and support",
                             GroupName = "Remote Access",
                             WinGetPackageId = ["AnyDesk.AnyDesk"],
+                            ChocoPackageId = "anydesk",
                             WebsiteUrl = "https://anydesk.com/"
                         },
                         new ItemDefinition
@@ -40,6 +42,7 @@ namespace Winhance.Core.Features.SoftwareApps.Models
                             Description = "Remote control, desktop sharing, online meetings, web conferencing and file transfer",
                             GroupName = "Remote Access",
                             WinGetPackageId = ["TeamViewer.TeamViewer"],
+                            ChocoPackageId = "teamviewer",
                             WebsiteUrl = "https://www.teamviewer.com/"
                         },
                         new ItemDefinition
@@ -49,6 +52,7 @@ namespace Winhance.Core.Features.SoftwareApps.Models
                             Description = "Helps you control your partner's computer to support them as if you were sitting in front of their screen",
                             GroupName = "Remote Access",
                             WinGetPackageId = ["DucFabulous.UltraViewer"],
+                            ChocoPackageId = "ultraviewer",
                             WebsiteUrl = "https://www.ultraviewer.net/"
                         },
                         new ItemDefinition
@@ -58,6 +62,7 @@ namespace Winhance.Core.Features.SoftwareApps.Models
                             Description = "Remote access software",
                             GroupName = "Remote Access",
                             WinGetPackageId = ["RealVNC.VNCServer"],
+                            ChocoPackageId = "vnc-connect",
                             WebsiteUrl = "https://www.realvnc.com/"
                         },
                         new ItemDefinition
@@ -67,6 +72,7 @@ namespace Winhance.Core.Features.SoftwareApps.Models
                             Description = "Remote access software",
                             GroupName = "Remote Access",
                             WinGetPackageId = ["RealVNC.VNCViewer"],
+                            ChocoPackageId = "vnc-viewer",
                             WebsiteUrl = "https://www.realvnc.com/"
                         },
                         new ItemDefinition
@@ -76,6 +82,7 @@ namespace Winhance.Core.Features.SoftwareApps.Models
                             Description = "Remote access to your computer through Chrome browser",
                             GroupName = "Remote Access",
                             WinGetPackageId = ["Google.ChromeRemoteDesktopHost"],
+                            ChocoPackageId = "chrome-remote-desktop-host",
                             WebsiteUrl = "https://remotedesktop.google.com/"
                         },
                         new ItemDefinition
@@ -85,6 +92,7 @@ namespace Winhance.Core.Features.SoftwareApps.Models
                             Description = "Remote desktop reimagined. Secure, flexible, effortless access to whatever you do, at any time, from wherever you go",
                             GroupName = "Remote Access",
                             WinGetPackageId = ["Parsec.Parsec"],
+                            ChocoPackageId = "parsec",
                             WebsiteUrl = "https://parsec.app/"
                         },
                         new ItemDefinition
@@ -112,6 +120,7 @@ namespace Winhance.Core.Features.SoftwareApps.Models
                             Description = "Open-source KVM software for sharing mouse and keyboard between computers",
                             GroupName = "Remote Access",
                             WinGetPackageId = ["input-leap.input-leap"],
+                            ChocoPackageId = "input-leap",
                             WebsiteUrl = "https://github.com/input-leap/input-leap"
                         },
                         new ItemDefinition
@@ -121,6 +130,7 @@ namespace Winhance.Core.Features.SoftwareApps.Models
                             Description = "Share a single keyboard and mouse between multiple computers",
                             GroupName = "Remote Access",
                             WinGetPackageId = ["Deskflow.Deskflow"],
+                            ChocoPackageId = "deskflow",
                             WebsiteUrl = "https://github.com/deskflow/deskflow"
                         }
                     }

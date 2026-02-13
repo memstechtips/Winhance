@@ -50,7 +50,7 @@ public static class StartMenuCustomizations
                     InputType = InputType.Selection,
                     IsWindows11Only = true,
                     IconPack = "Fluent",
-                    Icon = "PanelLeft",
+                    Icon = "LayoutRowTwoFocusTopSettings",
                     MinimumBuildNumber = 22000, // Windows 11 24H2 starts around build 26100
                     MaximumBuildNumber = 26120, // Removed in build 26120.4250, so max 26120
                     RegistrySettings = new List<RegistrySetting>
@@ -162,7 +162,7 @@ public static class StartMenuCustomizations
                     GroupName = "Start Menu Settings",
                     InputType = InputType.Toggle,
                     IconPack = "Fluent",
-                    Icon = "Pin",
+                    Icon = "PinOff",
                     IsWindows11Only = true,
                     SupportedBuildRanges = new List<(int, int)>
                     {
@@ -198,11 +198,9 @@ public static class StartMenuCustomizations
                             KeyPath = @"HKEY_CURRENT_USER\Software\Microsoft\Windows\CurrentVersion\Start",
                             ValueName = "ShowRecentList",
                             RecommendedValue = 0,
-                            EnabledValue = 1, // When toggle is ON, recently added apps are shown
+                            EnabledValue = null, // When toggle is ON, recently added apps are shown
                             DisabledValue = 0, // When toggle is OFF, recently added apps are hidden
-                            DefaultValue = 1,
                             ValueType = RegistryValueKind.DWord,
-                            AbsenceMeansEnabled = true,
                         },
                     },
                 },
@@ -211,10 +209,10 @@ public static class StartMenuCustomizations
                     Id = "start-show-frequent-list",
                     Name = "Show most used apps",
                     Description = "Display your frequently launched applications at the top of the All Apps list for quick access",
-                    GroupName = "Frequently Used Items",
+                    GroupName = "Start Menu Settings",
                     InputType = InputType.Toggle,
                     IconPack = "Fluent",
-                    Icon = "BoxMultiple",
+                    Icon = "Apps",
                     IsWindows11Only = true,
                     RegistrySettings = new List<RegistrySetting>
                     {
@@ -235,10 +233,10 @@ public static class StartMenuCustomizations
                     Id = "start-track-progs",
                     Name = "Show most used apps",
                     Description = "Display your frequently launched applications at the top of the All Apps list for quick access",
-                    GroupName = "Frequently Used Items",
+                    GroupName = "Start Menu Settings",
                     InputType = InputType.Toggle,
                     IconPack = "Fluent",
-                    Icon = "BoxMultiple",
+                    Icon = "Apps",
                     IsWindows10Only = true,
                     RegistrySettings = new List<RegistrySetting>
                     {
@@ -313,11 +311,9 @@ public static class StartMenuCustomizations
                             KeyPath = @"HKEY_CURRENT_USER\Software\Microsoft\Windows\CurrentVersion\Explorer\Advanced",
                             ValueName = "Start_TrackDocs",
                             RecommendedValue = 0,
-                            EnabledValue = 1, // When toggle is ON, recommended files are shown
+                            EnabledValue = null, // When toggle is ON, recommended files are shown
                             DisabledValue = 0, // When toggle is OFF, recommended files are hidden
-                            DefaultValue = 1,
                             ValueType = RegistryValueKind.DWord,
-                            AbsenceMeansEnabled = true,
                         },
                     },
                 },
@@ -337,11 +333,9 @@ public static class StartMenuCustomizations
                             KeyPath = @"HKEY_CURRENT_USER\Software\Microsoft\Windows\CurrentVersion\Explorer\Advanced",
                             ValueName = "Start_IrisRecommendations",
                             RecommendedValue = 0,
-                            EnabledValue = 1,
+                            EnabledValue = null,
                             DisabledValue = 0,
-                            DefaultValue = 1,
                             ValueType = RegistryValueKind.DWord,
-                            AbsenceMeansEnabled = true,
                         },
                     },
                 },
@@ -361,11 +355,9 @@ public static class StartMenuCustomizations
                             KeyPath = @"HKEY_CURRENT_USER\Software\Microsoft\Windows\CurrentVersion\Explorer\Advanced",
                             ValueName = "Start_AccountNotifications",
                             RecommendedValue = 0,
-                            EnabledValue = 1, // When toggle is ON, account notifications are shown
+                            EnabledValue = null, // When toggle is ON, account notifications are shown
                             DisabledValue = 0, // When toggle is OFF, account notifications are hidden
-                            DefaultValue = 1,
                             ValueType = RegistryValueKind.DWord,
-                            AbsenceMeansEnabled = true,
                         },
                     },
                 },

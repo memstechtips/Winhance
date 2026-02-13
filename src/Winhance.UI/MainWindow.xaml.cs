@@ -4,11 +4,15 @@ using Microsoft.UI.Composition.SystemBackdrops;
 using Microsoft.UI.Input;
 using Microsoft.UI.Xaml;
 using Microsoft.UI.Xaml.Controls;
+using Microsoft.UI.Xaml.Automation;
+using Microsoft.UI.Xaml.Input;
 using Microsoft.UI.Xaml.Media;
 using Microsoft.UI.Xaml.Media.Imaging;
+using Windows.System;
 using Winhance.Core.Features.Common.Constants;
 using Winhance.Core.Features.Common.Interfaces;
 using Winhance.Core.Features.Common.Services;
+using Winhance.Infrastructure.Features.Common.EventHandlers;
 using Winhance.UI.Features.AdvancedTools;
 using Winhance.UI.Features.Common.Controls;
 using Winhance.UI.Features.Common.Interfaces;
@@ -538,6 +542,12 @@ public sealed partial class MainWindow : Window
                 var settingsPreloader = App.Services.GetRequiredService<IGlobalSettingsPreloader>();
                 await settingsPreloader.PreloadAllSettingsAsync().ConfigureAwait(false);
                 StartupLogger.Log("MainWindow", "Startup: Settings registry initialized");
+
+                // Initialize tooltip event handler (constructor subscribes to EventBus)
+                App.Services.GetRequiredService<TooltipRefreshEventHandler>();
+
+                // Pre-cache regedit icon for Technical Details panel
+                _ = RegeditIconProvider.GetIconAsync();
             }
             catch (Exception ex)
             {
@@ -765,6 +775,106 @@ public sealed partial class MainWindow : Window
         NavSidebar.SetButtonLoading(tag, isLoading);
     }
 
+    #region Keyboard Accelerators
+
+    /// <summary>
+    /// Handles Ctrl+1 through Ctrl+5 keyboard shortcuts to navigate between sections.
+    /// </summary>
+    private void NavigateAccelerator_Invoked(KeyboardAccelerator sender, KeyboardAcceleratorInvokedEventArgs args)
+    {
+        var tag = sender.Key switch
+        {
+            VirtualKey.Number1 => "SoftwareApps",
+            VirtualKey.Number2 => "Optimize",
+            VirtualKey.Number3 => "Customize",
+            VirtualKey.Number4 => "AdvancedTools",
+            VirtualKey.Number5 => "Settings",
+            _ => null
+        };
+
+        if (tag != null)
+        {
+            NavSidebar.SelectedTag = tag;
+            NavigateToPage(tag);
+
+            // Focus the NavButton so Narrator announces the page name
+            var navButton = NavSidebar.GetButton(tag);
+            navButton?.Focus(FocusState.Keyboard);
+
+            args.Handled = true;
+        }
+    }
+
+    /// <summary>
+    /// Handles Ctrl+S keyboard shortcut to save configuration.
+    /// </summary>
+    private void SaveConfigAccelerator_Invoked(KeyboardAccelerator sender, KeyboardAcceleratorInvokedEventArgs args)
+    {
+        if (_viewModel?.SaveConfigCommand.CanExecute(null) == true)
+        {
+            _viewModel.SaveConfigCommand.Execute(null);
+        }
+        args.Handled = true;
+    }
+
+    /// <summary>
+    /// Handles Ctrl+6 keyboard shortcut to open the More menu.
+    /// </summary>
+    private void MoreMenuAccelerator_Invoked(KeyboardAccelerator sender, KeyboardAcceleratorInvokedEventArgs args)
+    {
+        ShowMoreMenuFlyout();
+        args.Handled = true;
+    }
+
+    /// <summary>
+    /// Handles Ctrl+Shift+1 through Ctrl+Shift+6 keyboard shortcuts for title bar action buttons.
+    /// Announces the button name to Narrator after execution.
+    /// </summary>
+    private void TitleBarAccelerator_Invoked(KeyboardAccelerator sender, KeyboardAcceleratorInvokedEventArgs args)
+    {
+        var button = sender.Key switch
+        {
+            VirtualKey.Number1 => SaveConfigButton,
+            VirtualKey.Number2 => ImportConfigButton,
+            VirtualKey.Number3 => WindowsFilterButton,
+            VirtualKey.Number4 => DonateButton,
+            VirtualKey.Number5 => BugReportButton,
+            VirtualKey.Number6 => DocsButton,
+            _ => (Button?)null
+        };
+
+        if (button == null)
+        {
+            args.Handled = true;
+            return;
+        }
+
+        if (button.Command?.CanExecute(null) == true)
+        {
+            button.Command.Execute(null);
+        }
+
+        // Announce after a short delay so async state changes (e.g. filter toggle) are reflected
+        DispatcherQueue.TryEnqueue(() =>
+        {
+            var name = AutomationProperties.GetName(button);
+            if (!string.IsNullOrEmpty(name))
+            {
+                var peer = Microsoft.UI.Xaml.Automation.Peers.FrameworkElementAutomationPeer.FromElement(button)
+                           ?? Microsoft.UI.Xaml.Automation.Peers.FrameworkElementAutomationPeer.CreatePeerForElement(button);
+                peer?.RaiseNotificationEvent(
+                    Microsoft.UI.Xaml.Automation.Peers.AutomationNotificationKind.ActionCompleted,
+                    Microsoft.UI.Xaml.Automation.Peers.AutomationNotificationProcessing.ImportantMostRecent,
+                    name,
+                    "TitleBarAction");
+            }
+        });
+
+        args.Handled = true;
+    }
+
+    #endregion
+
     #region Title Bar
 
     /// <summary>
@@ -862,14 +972,21 @@ public sealed partial class MainWindow : Window
                 // Set initial filter button icon
                 UpdateFilterButtonIcon();
 
-                // Wire up tooltips
+                // Wire up tooltips and accessible names
                 ToolTipService.SetToolTip(PaneToggleButton, _viewModel.ToggleNavigationTooltip);
+                AutomationProperties.SetName(PaneToggleButton, _viewModel.ToggleNavigationTooltip);
                 ToolTipService.SetToolTip(SaveConfigButton, _viewModel.SaveConfigTooltip);
+                AutomationProperties.SetName(SaveConfigButton, _viewModel.SaveConfigTooltip);
                 ToolTipService.SetToolTip(ImportConfigButton, _viewModel.ImportConfigTooltip);
+                AutomationProperties.SetName(ImportConfigButton, _viewModel.ImportConfigTooltip);
                 ToolTipService.SetToolTip(WindowsFilterButton, _viewModel.WindowsFilterTooltip);
+                AutomationProperties.SetName(WindowsFilterButton, _viewModel.WindowsFilterTooltip);
                 ToolTipService.SetToolTip(DonateButton, _viewModel.DonateTooltip);
+                AutomationProperties.SetName(DonateButton, _viewModel.DonateTooltip);
                 ToolTipService.SetToolTip(BugReportButton, _viewModel.BugReportTooltip);
+                AutomationProperties.SetName(BugReportButton, _viewModel.BugReportTooltip);
                 ToolTipService.SetToolTip(DocsButton, _viewModel.DocsTooltip);
+                AutomationProperties.SetName(DocsButton, _viewModel.DocsTooltip);
 
                 // Subscribe to icon changes
                 _viewModel.PropertyChanged += ViewModel_PropertyChanged;
@@ -887,6 +1004,9 @@ public sealed partial class MainWindow : Window
                 // Wire up Task Progress Control
                 TaskProgressControl.CancelCommand = _viewModel.CancelCommand;
                 TaskProgressControl.CancelText = _viewModel.CancelButtonLabel;
+
+                // Subscribe to multi-script progress updates
+                _viewModel.ScriptProgressReceived += OnScriptProgressReceived;
 
                 // Load filter preference asynchronously
                 _ = _viewModel.LoadFilterPreferenceAsync();
@@ -925,31 +1045,69 @@ public sealed partial class MainWindow : Window
         }
         else if (e.PropertyName == nameof(MainWindowViewModel.ToggleNavigationTooltip) && _viewModel != null)
         {
-            DispatcherQueue.TryEnqueue(() => ToolTipService.SetToolTip(PaneToggleButton, _viewModel.ToggleNavigationTooltip));
+            DispatcherQueue.TryEnqueue(() =>
+            {
+                ToolTipService.SetToolTip(PaneToggleButton, _viewModel.ToggleNavigationTooltip);
+                AutomationProperties.SetName(PaneToggleButton, _viewModel.ToggleNavigationTooltip);
+            });
         }
         else if (e.PropertyName == nameof(MainWindowViewModel.SaveConfigTooltip) && _viewModel != null)
         {
-            DispatcherQueue.TryEnqueue(() => ToolTipService.SetToolTip(SaveConfigButton, _viewModel.SaveConfigTooltip));
+            DispatcherQueue.TryEnqueue(() =>
+            {
+                ToolTipService.SetToolTip(SaveConfigButton, _viewModel.SaveConfigTooltip);
+                AutomationProperties.SetName(SaveConfigButton, _viewModel.SaveConfigTooltip);
+            });
         }
         else if (e.PropertyName == nameof(MainWindowViewModel.ImportConfigTooltip) && _viewModel != null)
         {
-            DispatcherQueue.TryEnqueue(() => ToolTipService.SetToolTip(ImportConfigButton, _viewModel.ImportConfigTooltip));
+            DispatcherQueue.TryEnqueue(() =>
+            {
+                ToolTipService.SetToolTip(ImportConfigButton, _viewModel.ImportConfigTooltip);
+                AutomationProperties.SetName(ImportConfigButton, _viewModel.ImportConfigTooltip);
+            });
         }
         else if (e.PropertyName == nameof(MainWindowViewModel.WindowsFilterTooltip) && _viewModel != null)
         {
-            DispatcherQueue.TryEnqueue(() => ToolTipService.SetToolTip(WindowsFilterButton, _viewModel.WindowsFilterTooltip));
+            DispatcherQueue.TryEnqueue(() =>
+            {
+                var tooltip = _viewModel.WindowsFilterTooltip;
+                ToolTipService.SetToolTip(WindowsFilterButton, tooltip);
+                AutomationProperties.SetName(WindowsFilterButton, tooltip);
+
+                // Announce the new filter state so Narrator reports ON/OFF after toggle
+                var peer = Microsoft.UI.Xaml.Automation.Peers.FrameworkElementAutomationPeer.FromElement(WindowsFilterButton)
+                           ?? Microsoft.UI.Xaml.Automation.Peers.FrameworkElementAutomationPeer.CreatePeerForElement(WindowsFilterButton);
+                peer?.RaiseNotificationEvent(
+                    Microsoft.UI.Xaml.Automation.Peers.AutomationNotificationKind.ActionCompleted,
+                    Microsoft.UI.Xaml.Automation.Peers.AutomationNotificationProcessing.ImportantMostRecent,
+                    tooltip,
+                    "FilterStateChanged");
+            });
         }
         else if (e.PropertyName == nameof(MainWindowViewModel.DonateTooltip) && _viewModel != null)
         {
-            DispatcherQueue.TryEnqueue(() => ToolTipService.SetToolTip(DonateButton, _viewModel.DonateTooltip));
+            DispatcherQueue.TryEnqueue(() =>
+            {
+                ToolTipService.SetToolTip(DonateButton, _viewModel.DonateTooltip);
+                AutomationProperties.SetName(DonateButton, _viewModel.DonateTooltip);
+            });
         }
         else if (e.PropertyName == nameof(MainWindowViewModel.BugReportTooltip) && _viewModel != null)
         {
-            DispatcherQueue.TryEnqueue(() => ToolTipService.SetToolTip(BugReportButton, _viewModel.BugReportTooltip));
+            DispatcherQueue.TryEnqueue(() =>
+            {
+                ToolTipService.SetToolTip(BugReportButton, _viewModel.BugReportTooltip);
+                AutomationProperties.SetName(BugReportButton, _viewModel.BugReportTooltip);
+            });
         }
         else if (e.PropertyName == nameof(MainWindowViewModel.DocsTooltip) && _viewModel != null)
         {
-            DispatcherQueue.TryEnqueue(() => ToolTipService.SetToolTip(DocsButton, _viewModel.DocsTooltip));
+            DispatcherQueue.TryEnqueue(() =>
+            {
+                ToolTipService.SetToolTip(DocsButton, _viewModel.DocsTooltip);
+                AutomationProperties.SetName(DocsButton, _viewModel.DocsTooltip);
+            });
         }
         else if (e.PropertyName == nameof(MainWindowViewModel.WindowsFilterIcon) && _viewModel != null)
         {
@@ -959,6 +1117,9 @@ public sealed partial class MainWindow : Window
         {
             DispatcherQueue.TryEnqueue(() =>
             {
+                // Skip single-task IsLoading updates when multi-script mode is active
+                if (_viewModel.ActiveScriptCount > 0) return;
+
                 TaskProgressControl.IsProgressVisible = _viewModel.IsLoading ? Visibility.Visible : Visibility.Collapsed;
                 TaskProgressControl.CanCancel = _viewModel.IsLoading ? Visibility.Visible : Visibility.Collapsed;
                 TaskProgressControl.IsTaskRunning = _viewModel.IsLoading;
@@ -975,6 +1136,23 @@ public sealed partial class MainWindow : Window
         else if (e.PropertyName == nameof(MainWindowViewModel.CancelButtonLabel) && _viewModel != null)
         {
             DispatcherQueue.TryEnqueue(() => TaskProgressControl.CancelText = _viewModel.CancelButtonLabel);
+        }
+        else if (e.PropertyName == nameof(MainWindowViewModel.QueueStatusText) && _viewModel != null)
+        {
+            DispatcherQueue.TryEnqueue(() => TaskProgressControl.QueueStatusText = _viewModel.QueueStatusText);
+        }
+        else if (e.PropertyName == nameof(MainWindowViewModel.QueueNextItemName) && _viewModel != null)
+        {
+            DispatcherQueue.TryEnqueue(() => TaskProgressControl.QueueNextItemName = _viewModel.QueueNextItemName);
+        }
+        else if (e.PropertyName == nameof(MainWindowViewModel.IsQueueVisible) && _viewModel != null)
+        {
+            DispatcherQueue.TryEnqueue(() =>
+                TaskProgressControl.IsQueueInfoVisible = _viewModel.IsQueueVisible ? Visibility.Visible : Visibility.Collapsed);
+        }
+        else if (e.PropertyName == nameof(MainWindowViewModel.ActiveScriptCount) && _viewModel != null)
+        {
+            DispatcherQueue.TryEnqueue(() => UpdateMultiScriptControls(_viewModel.ActiveScriptCount));
         }
         else if (e.PropertyName == nameof(MainWindowViewModel.IsUpdateInfoBarOpen) && _viewModel != null)
         {
@@ -1017,7 +1195,46 @@ public sealed partial class MainWindow : Window
                     ReviewModeApplyButtonText.Text = _viewModel.ReviewModeApplyButtonText;
                     ReviewModeCancelButtonText.Text = _viewModel.ReviewModeCancelButtonText;
                     ReviewModeApplyButton.IsEnabled = _viewModel.CanApplyReviewedConfig;
+
+                    // Update accessible names on review mode buttons from localized text
+                    AutomationProperties.SetName(ReviewModeApplyButton, _viewModel.ReviewModeApplyButtonText);
+                    AutomationProperties.SetName(ReviewModeCancelButton, _viewModel.ReviewModeCancelButtonText);
+
+                    // Announce review mode entry to Narrator
+                    var announcement = $"{_viewModel.ReviewModeTitleText}. {_viewModel.ReviewModeDescriptionText}";
+                    var peer = Microsoft.UI.Xaml.Automation.Peers.FrameworkElementAutomationPeer.FromElement(ReviewModeBar)
+                               ?? Microsoft.UI.Xaml.Automation.Peers.FrameworkElementAutomationPeer.CreatePeerForElement(ReviewModeBar);
+                    peer?.RaiseNotificationEvent(
+                        Microsoft.UI.Xaml.Automation.Peers.AutomationNotificationKind.ActionCompleted,
+                        Microsoft.UI.Xaml.Automation.Peers.AutomationNotificationProcessing.ImportantMostRecent,
+                        announcement,
+                        "ReviewModeEntered");
                 }
+                else
+                {
+                    // Announce review mode exit to Narrator
+                    var peer = Microsoft.UI.Xaml.Automation.Peers.FrameworkElementAutomationPeer.FromElement(RootGrid)
+                               ?? Microsoft.UI.Xaml.Automation.Peers.FrameworkElementAutomationPeer.CreatePeerForElement(RootGrid);
+                    peer?.RaiseNotificationEvent(
+                        Microsoft.UI.Xaml.Automation.Peers.AutomationNotificationKind.ActionCompleted,
+                        Microsoft.UI.Xaml.Automation.Peers.AutomationNotificationProcessing.ImportantMostRecent,
+                        "Config Review Mode ended",
+                        "ReviewModeExited");
+                }
+            });
+        }
+        else if ((e.PropertyName == nameof(MainWindowViewModel.ReviewModeTitleText)
+              || e.PropertyName == nameof(MainWindowViewModel.ReviewModeDescriptionText)
+              || e.PropertyName == nameof(MainWindowViewModel.ReviewModeApplyButtonText)
+              || e.PropertyName == nameof(MainWindowViewModel.ReviewModeCancelButtonText))
+             && _viewModel?.IsInReviewMode == true)
+        {
+            DispatcherQueue.TryEnqueue(() =>
+            {
+                ReviewModeTitleText.Text = _viewModel.ReviewModeTitleText;
+                ReviewModeDescriptionText.Text = _viewModel.ReviewModeDescriptionText;
+                ReviewModeApplyButtonText.Text = _viewModel.ReviewModeApplyButtonText;
+                ReviewModeCancelButtonText.Text = _viewModel.ReviewModeCancelButtonText;
             });
         }
         else if (e.PropertyName == nameof(MainWindowViewModel.ReviewModeStatusText) && _viewModel != null)
@@ -1028,6 +1245,63 @@ public sealed partial class MainWindow : Window
         {
             DispatcherQueue.TryEnqueue(() => ReviewModeApplyButton.IsEnabled = _viewModel.CanApplyReviewedConfig);
         }
+    }
+
+    /// <summary>
+    /// Routes multi-script progress updates to the correct TaskProgressControl.
+    /// Hides the control when its slot completes (Progress == 100).
+    /// </summary>
+    private void OnScriptProgressReceived(int slotIndex, TaskProgressDetail detail)
+    {
+        var control = slotIndex switch
+        {
+            0 => TaskProgressControl,
+            1 => TaskProgressControl2,
+            2 => TaskProgressControl3,
+            _ => null
+        };
+        if (control == null) return;
+
+        // Slot completed — hide this control only on intentional completion signal
+        if (detail.IsCompletion)
+        {
+            control.IsProgressVisible = Visibility.Collapsed;
+            control.IsTaskRunning = false;
+            return;
+        }
+
+        if (!string.IsNullOrEmpty(detail.StatusText))
+            control.AppName = detail.StatusText;
+        control.LastTerminalLine = detail.TerminalOutput ?? "";
+        if (detail.QueueTotal > 1)
+        {
+            control.IsQueueInfoVisible = Visibility.Visible;
+            control.QueueStatusText = $"{detail.QueueCurrent} / {detail.QueueTotal}";
+            control.QueueNextItemName = !string.IsNullOrEmpty(detail.QueueNextItemName)
+                ? $"Next: {detail.QueueNextItemName}" : "";
+        }
+    }
+
+    /// <summary>
+    /// Shows/hides multi-script progress controls based on active slot count.
+    /// No cancel buttons in multi-script mode.
+    /// </summary>
+    private void UpdateMultiScriptControls(int activeCount)
+    {
+        // Control 1
+        TaskProgressControl.IsProgressVisible = activeCount >= 1 ? Visibility.Visible : Visibility.Collapsed;
+        TaskProgressControl.IsTaskRunning = activeCount >= 1;
+        TaskProgressControl.CanCancel = Visibility.Collapsed;
+
+        // Control 2
+        TaskProgressControl2.IsProgressVisible = activeCount >= 2 ? Visibility.Visible : Visibility.Collapsed;
+        TaskProgressControl2.IsTaskRunning = activeCount >= 2;
+        TaskProgressControl2.CanCancel = Visibility.Collapsed;
+
+        // Control 3
+        TaskProgressControl3.IsProgressVisible = activeCount >= 3 ? Visibility.Visible : Visibility.Collapsed;
+        TaskProgressControl3.IsTaskRunning = activeCount >= 3;
+        TaskProgressControl3.CanCancel = Visibility.Collapsed;
     }
 
     /// <summary>

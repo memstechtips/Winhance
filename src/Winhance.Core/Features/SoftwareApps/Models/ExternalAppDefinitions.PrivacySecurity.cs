@@ -22,6 +22,7 @@ namespace Winhance.Core.Features.SoftwareApps.Models
                             Description = "Anti-malware software for Windows",
                             GroupName = "Privacy & Security",
                             WinGetPackageId = ["Malwarebytes.Malwarebytes"],
+                            ChocoPackageId = "malwarebytes",
                             WebsiteUrl = "https://www.malwarebytes.com/"
                         },
                         new ItemDefinition
@@ -31,6 +32,7 @@ namespace Winhance.Core.Features.SoftwareApps.Models
                             Description = "Adware removal tool for Windows",
                             GroupName = "Privacy & Security",
                             WinGetPackageId = ["Malwarebytes.AdwCleaner"],
+                            ChocoPackageId = "adwcleaner",
                             WebsiteUrl = "https://www.malwarebytes.com/adwcleaner"
                         },
                         new ItemDefinition
@@ -40,6 +42,7 @@ namespace Winhance.Core.Features.SoftwareApps.Models
                             Description = "Malwarebytes Windows Firewall Control application",
                             GroupName = "Privacy & Security",
                             WinGetPackageId = ["BiniSoft.WindowsFirewallControl"],
+                            ChocoPackageId = "windowsfirewallcontrol",
                             WebsiteUrl = "https://www.binisoft.org/wfc"
                         },
                         new ItemDefinition
@@ -49,6 +52,7 @@ namespace Winhance.Core.Features.SoftwareApps.Models
                             Description = "Securely and anonymously share files, host websites, and chat via Tor network",
                             GroupName = "Privacy & Security",
                             WinGetPackageId = ["OnionShare.OnionShare"],
+                            ChocoPackageId = "onionshare",
                             WebsiteUrl = "https://onionshare.org/"
                         },
                         new ItemDefinition
@@ -86,6 +90,7 @@ namespace Winhance.Core.Features.SoftwareApps.Models
                             Description = "Free antispy tool for Windows 10 and 11",
                             GroupName = "Privacy & Security",
                             WinGetPackageId = ["OO-Software.ShutUp10"],
+                            ChocoPackageId = "shutup10",
                             WebsiteUrl = "https://www.oo-software.com/en/shutup10"
                         }
                     }

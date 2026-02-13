@@ -22,6 +22,7 @@ namespace Winhance.Core.Features.SoftwareApps.Models
                             Description = "Instant messaging and voice calling app",
                             GroupName = "Messaging, Email & Calendar",
                             WinGetPackageId = ["Telegram.TelegramDesktop"],
+                            ChocoPackageId = "telegram",
                             WebsiteUrl = "https://telegram.org/"
                         },
                         new ItemDefinition
@@ -40,6 +41,7 @@ namespace Winhance.Core.Features.SoftwareApps.Models
                             Description = "Video conferencing and messaging platform",
                             GroupName = "Messaging, Email & Calendar",
                             WinGetPackageId = ["Zoom.Zoom"],
+                            ChocoPackageId = "zoom",
                             WebsiteUrl = "https://zoom.us/"
                         },
                         new ItemDefinition
@@ -49,6 +51,7 @@ namespace Winhance.Core.Features.SoftwareApps.Models
                             Description = "Voice, video and text communication service",
                             GroupName = "Messaging, Email & Calendar",
                             WinGetPackageId = ["Discord.Discord"],
+                            ChocoPackageId = "discord",
                             WebsiteUrl = "https://discord.com/"
                         },
                         new ItemDefinition
@@ -58,6 +61,7 @@ namespace Winhance.Core.Features.SoftwareApps.Models
                             Description = "Multi-protocol instant messaging client",
                             GroupName = "Messaging, Email & Calendar",
                             WinGetPackageId = ["Pidgin.Pidgin"],
+                            ChocoPackageId = "pidgin",
                             WebsiteUrl = "https://pidgin.im/"
                         },
                         new ItemDefinition
@@ -67,6 +71,7 @@ namespace Winhance.Core.Features.SoftwareApps.Models
                             Description = "Free email application",
                             GroupName = "Messaging, Email & Calendar",
                             WinGetPackageId = ["Mozilla.Thunderbird"],
+                            ChocoPackageId = "thunderbird",
                             WebsiteUrl = "https://www.thunderbird.net/"
                         },
                         new ItemDefinition
@@ -76,6 +81,7 @@ namespace Winhance.Core.Features.SoftwareApps.Models
                             Description = "Email client with calendar, tasks, and chat",
                             GroupName = "Messaging, Email & Calendar",
                             WinGetPackageId = ["eMClient.eMClient"],
+                            ChocoPackageId = "em-client",
                             WebsiteUrl = "https://www.emclient.com/"
                         },
                         new ItemDefinition
@@ -85,6 +91,7 @@ namespace Winhance.Core.Features.SoftwareApps.Models
                             Description = "Secure email service with end-to-end encryption",
                             GroupName = "Messaging, Email & Calendar",
                             WinGetPackageId = ["Proton.ProtonMail"],
+                            ChocoPackageId = "protonmail",
                             WebsiteUrl = "https://proton.me/mail"
                         },
                         new ItemDefinition
@@ -94,6 +101,7 @@ namespace Winhance.Core.Features.SoftwareApps.Models
                             Description = "Instant messaging application",
                             GroupName = "Messaging, Email & Calendar",
                             WinGetPackageId = ["CeruleanStudios.Trillian"],
+                            ChocoPackageId = "trillian",
                             WebsiteUrl = "https://www.trillian.im/"
                         },
                         new ItemDefinition
@@ -103,6 +111,7 @@ namespace Winhance.Core.Features.SoftwareApps.Models
                             Description = "Secure and decentralized messaging app built on Matrix protocol",
                             GroupName = "Messaging, Email & Calendar",
                             WinGetPackageId = ["Element.Element"],
+                            ChocoPackageId = "element-desktop",
                             WebsiteUrl = "https://element.io/"
                         }
                     }

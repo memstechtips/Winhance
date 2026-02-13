@@ -20,7 +20,8 @@ public class WindowSizeManager
 
     private const int MinWidth = 800;
     private const int MinHeight = 600;
-    private const double ScreenPercentage = 0.70;
+    private const double ScreenWidthPercentage = 0.70;
+    private const double ScreenHeightPercentage = 0.80;
 
     // Tracked "normal" bounds (WinUI 3 has no RestoreBounds equivalent)
     private int _normalX;
@@ -159,8 +160,8 @@ public class WindowSizeManager
             var displayArea = DisplayArea.GetFromWindowId(_appWindow.Id, DisplayAreaFallback.Nearest);
             var workArea = displayArea.WorkArea;
 
-            int windowWidth = (int)(workArea.Width * ScreenPercentage);
-            int windowHeight = (int)(workArea.Height * ScreenPercentage);
+            int windowWidth = (int)(workArea.Width * ScreenWidthPercentage);
+            int windowHeight = (int)(workArea.Height * ScreenHeightPercentage);
 
             windowWidth = Math.Max(windowWidth, MinWidth);
             windowHeight = Math.Max(windowHeight, MinHeight);

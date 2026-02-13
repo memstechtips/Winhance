@@ -9,6 +9,7 @@ using Winhance.Core.Features.Common.Models;
 using Winhance.Core.Features.Optimize.Interfaces;
 using Winhance.Core.Features.SoftwareApps.Models;
 using Winhance.Core.Features.SoftwareApps.Utilities;
+using Winhance.Infrastructure.Features.Common.Utilities;
 
 namespace Winhance.Infrastructure.Features.AdvancedTools.Services;
 
@@ -212,7 +213,21 @@ public class AutounattendScriptBuilder
         // 4. Completion block
         AppendCompletionBlock(sb);
 
-        return sb.ToString();
+        var scriptContent = sb.ToString();
+
+        // Validate the generated script has no PowerShell syntax errors
+        try
+        {
+            await PowerShellRunner.ValidateScriptSyntaxAsync(scriptContent);
+            _logService.Log(LogLevel.Info, "Winhancements.ps1 script passed PowerShell syntax validation");
+        }
+        catch (Exception ex)
+        {
+            _logService.Log(LogLevel.Error, $"Winhancements.ps1 script failed PowerShell syntax validation: {ex.Message}");
+            throw;
+        }
+
+        return scriptContent;
     }
 
     private ConfigurationItem? FindPowerPlanSetting(

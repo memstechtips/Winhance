@@ -6,6 +6,7 @@
     xmlns:local="using:Winhance.UI.Features.Customize"
     xmlns:models="using:Winhance.UI.Features.Customize.Models"
     xmlns:controls="using:CommunityToolkit.WinUI.Controls"
+    xmlns:fluentIcons="using:FluentIcons.WinUI"
     x:DefaultBindMode="OneWay"
     NavigationCacheMode="Enabled">
 
@@ -26,7 +27,8 @@
                     Text="{x:Bind ViewModel.PageTitle}"
                     Style="{StaticResource TitleTextBlockStyle}"
                     FontWeight="Bold"
-                    FontSize="30"/>
+                    FontSize="30"
+                    AutomationProperties.HeadingLevel="Level1"/>
                 <TextBlock
                     Text="{x:Bind ViewModel.PageDescription}"
                     Style="{StaticResource CaptionTextBlockStyle}"
@@ -39,6 +41,7 @@
         <Grid Grid.Row="1" Margin="0,12,0,16">
             <Grid.ColumnDefinitions>
                 <ColumnDefinition Width="*"/>     <!-- Breadcrumb -->
+                <ColumnDefinition Width="Auto"/>  <!-- Technical Details toggle -->
                 <ColumnDefinition Width="Auto"/>  <!-- Search -->
             </Grid.ColumnDefinitions>
 
@@ -48,6 +51,7 @@
                 <Button
                     x:Name="BreadcrumbRoot"
                     Click="BreadcrumbOverview_Click"
+                    AutomationProperties.Name="{x:Bind ViewModel.BreadcrumbRootText}"
                     Padding="8,4">
                     <StackPanel Orientation="Horizontal" Spacing="8">
                         <Viewbox Width="16" Height="16" VerticalAlignment="Center" Margin="0,-2,0,0">
@@ -58,9 +62,10 @@
                 </Button>
 
                 <!-- Separator (visible only on detail pages) -->
-                <FontIcon
+                <fluentIcons:SymbolIcon
                     x:Name="BreadcrumbSeparator"
-                    Glyph="&#xE76C;"
+                    Symbol="ChevronRight"
+                    IconVariant="Regular"
                     FontSize="12"
                     Foreground="{ThemeResource TextFillColorSecondaryBrush}"
                     VerticalAlignment="Center"
@@ -89,7 +94,7 @@
                                 </Style>
                             </Flyout.FlyoutPresenterStyle>
                             <StackPanel Spacing="0" MinWidth="180">
-                                <Button Click="NavigateWindowsTheme_Click" HorizontalAlignment="Stretch"
+                                <Button x:Name="FlyoutButtonWindowsTheme" Click="NavigateWindowsTheme_Click" HorizontalAlignment="Stretch"
                                         HorizontalContentAlignment="Stretch"
                                         Background="Transparent" BorderThickness="0" Padding="8,5">
                                     <Grid ColumnDefinitions="Auto,*,Auto">
@@ -100,7 +105,7 @@
                                         <InfoBadge x:Name="FlyoutBadgeWindowsTheme" Grid.Column="2" Margin="8,0,0,0" VerticalAlignment="Center" Visibility="Collapsed"/>
                                     </Grid>
                                 </Button>
-                                <Button Click="NavigateTaskbar_Click" HorizontalAlignment="Stretch"
+                                <Button x:Name="FlyoutButtonTaskbar" Click="NavigateTaskbar_Click" HorizontalAlignment="Stretch"
                                         HorizontalContentAlignment="Stretch"
                                         Background="Transparent" BorderThickness="0" Padding="8,5">
                                     <Grid ColumnDefinitions="Auto,*,Auto">
@@ -111,7 +116,7 @@
                                         <InfoBadge x:Name="FlyoutBadgeTaskbar" Grid.Column="2" Margin="8,0,0,0" VerticalAlignment="Center" Visibility="Collapsed"/>
                                     </Grid>
                                 </Button>
-                                <Button Click="NavigateStartMenu_Click" HorizontalAlignment="Stretch"
+                                <Button x:Name="FlyoutButtonStartMenu" Click="NavigateStartMenu_Click" HorizontalAlignment="Stretch"
                                         HorizontalContentAlignment="Stretch"
                                         Background="Transparent" BorderThickness="0" Padding="8,5">
                                     <Grid ColumnDefinitions="Auto,*,Auto">
@@ -122,7 +127,7 @@
                                         <InfoBadge x:Name="FlyoutBadgeStartMenu" Grid.Column="2" Margin="8,0,0,0" VerticalAlignment="Center" Visibility="Collapsed"/>
                                     </Grid>
                                 </Button>
-                                <Button Click="NavigateExplorer_Click" HorizontalAlignment="Stretch"
+                                <Button x:Name="FlyoutButtonExplorer" Click="NavigateExplorer_Click" HorizontalAlignment="Stretch"
                                         HorizontalContentAlignment="Stretch"
                                         Background="Transparent" BorderThickness="0" Padding="8,5">
                                     <Grid ColumnDefinitions="Auto,*,Auto">
@@ -139,8 +144,27 @@
                 </DropDownButton>
             </StackPanel>
 
+            <!-- Technical Details toggle -->
+            <Border x:Name="TechnicalDetailsToggleBorder"
+                    Grid.Column="1"
+                    CornerRadius="4"
+                    BorderThickness="0"
+                    VerticalAlignment="Center"
+                    Margin="0,0,8,0">
+                <Button x:Name="TechnicalDetailsToggle"
+                        Click="TechnicalDetailsToggle_Click"
+                        Padding="6"
+                        Background="Transparent"
+                        BorderThickness="0">
+                    <Viewbox Width="16" Height="16">
+                        <PathIcon x:Name="TechnicalDetailsIcon"
+                                  Foreground="{ThemeResource TextFillColorPrimaryBrush}"/>
+                    </Viewbox>
+                </Button>
+            </Border>
+
             <!-- Search box with suggestions -->
-            <Grid Grid.Column="1" Width="220">
+            <Grid Grid.Column="2" Width="220">
                 <AutoSuggestBox
                     x:Name="SearchBox"
                     PlaceholderText="{x:Bind ViewModel.SearchPlaceholder}"

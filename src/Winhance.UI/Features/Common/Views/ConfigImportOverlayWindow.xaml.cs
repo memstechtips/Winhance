@@ -3,6 +3,7 @@ using System.Runtime.InteropServices;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.UI.Windowing;
 using Microsoft.UI.Xaml;
+using Microsoft.UI.Xaml.Automation.Peers;
 using Microsoft.UI.Xaml.Media.Imaging;
 using Winhance.Core.Features.Common.Interfaces;
 using WinRT.Interop;
@@ -94,6 +95,9 @@ public sealed partial class ConfigImportOverlayWindow : Window
             }
             catch { }
         }
+
+        // Announce initial status text to Narrator
+        AnnounceStatus(OverlayStatusText.Text);
     }
 
     /// <summary>
@@ -105,6 +109,18 @@ public sealed partial class ConfigImportOverlayWindow : Window
         {
             OverlayStatusText.Text = status;
             OverlayDetailText.Text = detail ?? string.Empty;
+            AnnounceStatus(status);
         });
+    }
+
+    private void AnnounceStatus(string text)
+    {
+        var peer = FrameworkElementAutomationPeer.FromElement(OverlayStatusText)
+                   ?? FrameworkElementAutomationPeer.CreatePeerForElement(OverlayStatusText);
+        peer?.RaiseNotificationEvent(
+            AutomationNotificationKind.ActionCompleted,
+            AutomationNotificationProcessing.ImportantMostRecent,
+            text,
+            "OverlayStatus");
     }
 }

@@ -184,6 +184,7 @@ namespace Winhance.Infrastructure.Features.Common.Services
                     var rawValues = new Dictionary<string, object?>();
                     var isEnabled = await scheduledTaskService.IsTaskEnabledAsync(setting.ScheduledTaskSettings[0].TaskPath);
                     rawValues["ScheduledTaskEnabled"] = isEnabled;
+                    rawValues["ScheduledTaskExists"] = isEnabled != null;
                     results[setting.Id] = rawValues;
                 }
                 catch (Exception ex)
@@ -250,9 +251,24 @@ namespace Winhance.Infrastructure.Features.Common.Services
             {
                 try
                 {
-                    var settingRawValues = allRawValues.TryGetValue(setting.Id, out var values) 
-                        ? values 
+                    var settingRawValues = allRawValues.TryGetValue(setting.Id, out var values)
+                        ? values
                         : new Dictionary<string, object?>();
+
+                    // Skip scheduled-task settings whose task doesn't exist on this system
+                    if (setting.ScheduledTaskSettings?.Count > 0 &&
+                        settingRawValues.TryGetValue("ScheduledTaskExists", out var existsObj) &&
+                        existsObj is false)
+                    {
+                        logService.Log(LogLevel.Info,
+                            $"[SystemSettingsDiscoveryService] Scheduled task not found for '{setting.Id}', marking as unavailable");
+                        results[setting.Id] = new SettingStateResult
+                        {
+                            Success = false,
+                            ErrorMessage = "Scheduled task does not exist on this system"
+                        };
+                        continue;
+                    }
 
                     bool isEnabled = DetermineIfSettingIsEnabled(setting, settingRawValues);
                     object? currentValue = null;

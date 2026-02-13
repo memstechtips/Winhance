@@ -5,9 +5,27 @@
     xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
     xmlns:local="using:Winhance.UI"
     xmlns:controls="using:Winhance.UI.Features.Common.Controls"
+    xmlns:fluentIcons="using:FluentIcons.WinUI"
     Title="Winhance">
 
-    <Grid x:Name="RootGrid" Loaded="RootGrid_Loaded">
+    <Grid x:Name="RootGrid" Loaded="RootGrid_Loaded" KeyboardAcceleratorPlacementMode="Hidden">
+        <Grid.KeyboardAccelerators>
+            <!-- Ctrl+1-5: Navigate to sections, Ctrl+6: More menu -->
+            <KeyboardAccelerator Key="Number1" Modifiers="Control" Invoked="NavigateAccelerator_Invoked"/>
+            <KeyboardAccelerator Key="Number2" Modifiers="Control" Invoked="NavigateAccelerator_Invoked"/>
+            <KeyboardAccelerator Key="Number3" Modifiers="Control" Invoked="NavigateAccelerator_Invoked"/>
+            <KeyboardAccelerator Key="Number4" Modifiers="Control" Invoked="NavigateAccelerator_Invoked"/>
+            <KeyboardAccelerator Key="Number5" Modifiers="Control" Invoked="NavigateAccelerator_Invoked"/>
+            <KeyboardAccelerator Key="Number6" Modifiers="Control" Invoked="MoreMenuAccelerator_Invoked"/>
+            <KeyboardAccelerator Key="S" Modifiers="Control" Invoked="SaveConfigAccelerator_Invoked"/>
+            <!-- Ctrl+Shift+1-6: Title bar action buttons -->
+            <KeyboardAccelerator Key="Number1" Modifiers="Control,Shift" Invoked="TitleBarAccelerator_Invoked"/>
+            <KeyboardAccelerator Key="Number2" Modifiers="Control,Shift" Invoked="TitleBarAccelerator_Invoked"/>
+            <KeyboardAccelerator Key="Number3" Modifiers="Control,Shift" Invoked="TitleBarAccelerator_Invoked"/>
+            <KeyboardAccelerator Key="Number4" Modifiers="Control,Shift" Invoked="TitleBarAccelerator_Invoked"/>
+            <KeyboardAccelerator Key="Number5" Modifiers="Control,Shift" Invoked="TitleBarAccelerator_Invoked"/>
+            <KeyboardAccelerator Key="Number6" Modifiers="Control,Shift" Invoked="TitleBarAccelerator_Invoked"/>
+        </Grid.KeyboardAccelerators>
         <Grid.RowDefinitions>
             <RowDefinition Height="48"/>    <!-- TitleBar -->
             <RowDefinition Height="Auto"/>  <!-- Update InfoBar -->
@@ -33,8 +51,9 @@
                     Click="PaneToggleButton_Click"
                     Style="{StaticResource TitleBarButtonStyle}"
                     ToolTipService.ToolTip="Toggle Navigation"
+                    AutomationProperties.Name="Toggle Navigation"
                     Margin="4,0,0,0">
-                <FontIcon Glyph="&#xE700;" FontSize="16"/>
+                <fluentIcons:SymbolIcon Symbol="Navigation" IconVariant="Regular" FontSize="16"/>
             </Button>
 
             <!-- App Icon -->
@@ -72,22 +91,25 @@
                 <!-- Save Configuration Button -->
                 <Button x:Name="SaveConfigButton"
                         Style="{StaticResource TitleBarButtonStyle}"
-                        ToolTipService.ToolTip="Save Configuration">
-                    <FontIcon Glyph="&#xE74E;" FontSize="14"/>
+                        ToolTipService.ToolTip="Save Configuration"
+                        AutomationProperties.Name="Save Configuration">
+                    <fluentIcons:SymbolIcon Symbol="DocumentSave" IconVariant="Regular" FontSize="20"/>
                 </Button>
 
                 <!-- Import Configuration Button -->
                 <Button x:Name="ImportConfigButton"
                         Style="{StaticResource TitleBarButtonStyle}"
-                        ToolTipService.ToolTip="Import Configuration">
-                    <FontIcon Glyph="&#xE8B7;" FontSize="14"/>
+                        ToolTipService.ToolTip="Import Configuration"
+                        AutomationProperties.Name="Import Configuration">
+                    <fluentIcons:SymbolIcon Symbol="DocumentSettings" IconVariant="Regular" FontSize="20"/>
                 </Button>
 
                 <!-- Windows Version Filter Button -->
                 <Button x:Name="WindowsFilterButton"
                         Style="{StaticResource TitleBarButtonStyle}"
-                        ToolTipService.ToolTip="Windows Version Filter">
-                    <Viewbox Width="14" Height="14">
+                        ToolTipService.ToolTip="Windows Version Filter"
+                        AutomationProperties.Name="Windows Version Filter">
+                    <Viewbox Width="18" Height="18">
                         <PathIcon x:Name="WindowsFilterIcon" Data="{StaticResource FilterCheckIconPath}" Foreground="{ThemeResource TextFillColorPrimaryBrush}"/>
                     </Viewbox>
                 </Button>
@@ -95,24 +117,25 @@
                 <!-- Donate Button -->
                 <Button x:Name="DonateButton"
                         Style="{StaticResource TitleBarButtonStyle}"
-                        ToolTipService.ToolTip="Donate">
-                    <FontIcon Glyph="&#xE00B;" FontSize="14" Foreground="#FFE74C3C"/>
+                        ToolTipService.ToolTip="Donate"
+                        AutomationProperties.Name="Donate">
+                    <fluentIcons:SymbolIcon Symbol="Heart" IconVariant="Filled" FontSize="20" Foreground="#FFE74C3C"/>
                 </Button>
 
                 <!-- Bug Report Button -->
                 <Button x:Name="BugReportButton"
                         Style="{StaticResource TitleBarButtonStyle}"
-                        ToolTipService.ToolTip="Report a Bug">
-                    <FontIcon Glyph="&#xEBE8;" FontSize="14"/>
+                        ToolTipService.ToolTip="Report a Bug"
+                        AutomationProperties.Name="Report a Bug">
+                    <fluentIcons:SymbolIcon Symbol="Bug" IconVariant="Regular" FontSize="20"/>
                 </Button>
 
                 <!-- Documentation Button -->
                 <Button x:Name="DocsButton"
                         Style="{StaticResource TitleBarButtonStyle}"
-                        ToolTipService.ToolTip="Documentation">
-                    <Viewbox Width="14" Height="14">
-                        <PathIcon Data="{StaticResource BookOpenVariantOutlineIconPath}" Foreground="{ThemeResource TextFillColorPrimaryBrush}"/>
-                    </Viewbox>
+                        ToolTipService.ToolTip="Documentation"
+                        AutomationProperties.Name="Documentation">
+                    <fluentIcons:SymbolIcon Symbol="BookQuestionMark" IconVariant="Regular" FontSize="20"/>
                 </Button>
             </StackPanel>
         </Grid>
@@ -138,8 +161,8 @@
                 <ColumnDefinition Width="Auto"/>  <!-- Cancel button -->
             </Grid.ColumnDefinitions>
 
-            <FontIcon Grid.Column="0"
-                      Glyph="&#xE7BE;"
+            <fluentIcons:SymbolIcon Grid.Column="0"
+                      Symbol="ShieldCheckmark" IconVariant="Regular"
                       FontSize="16"
                       Foreground="{ThemeResource TextOnAccentFillColorPrimaryBrush}"
                       VerticalAlignment="Center"
@@ -172,13 +195,14 @@
             <Button Grid.Column="4"
                     x:Name="ReviewModeApplyButton"
                     Click="ReviewModeApplyButton_Click"
+                    AutomationProperties.Name="Apply Config"
                     Background="#40FFFFFF"
                     Foreground="{ThemeResource TextOnAccentFillColorPrimaryBrush}"
                     BorderThickness="0"
                     VerticalAlignment="Center"
                     Margin="8,0,4,0">
                 <StackPanel Orientation="Horizontal" Spacing="8">
-                    <FontIcon Glyph="&#xE73E;" FontSize="14"/>
+                    <fluentIcons:SymbolIcon Symbol="Checkmark" IconVariant="Regular" FontSize="14"/>
                     <TextBlock x:Name="ReviewModeApplyButtonText" Text="Apply Config"/>
                 </StackPanel>
             </Button>
@@ -186,6 +210,7 @@
             <Button Grid.Column="5"
                     x:Name="ReviewModeCancelButton"
                     Click="ReviewModeCancelButton_Click"
+                    AutomationProperties.Name="Cancel review"
                     Background="#40FFFFFF"
                     Foreground="{ThemeResource TextOnAccentFillColorPrimaryBrush}"
                     BorderThickness="0"
@@ -193,7 +218,7 @@
                     VerticalAlignment="Center"
                     Margin="4,0,0,0">
                 <StackPanel Orientation="Horizontal" Spacing="8">
-                    <FontIcon Glyph="&#xE711;" FontSize="14"/>
+                    <fluentIcons:SymbolIcon Symbol="Dismiss" IconVariant="Regular" FontSize="14"/>
                     <TextBlock x:Name="ReviewModeCancelButtonText" Text="Cancel"/>
                 </StackPanel>
             </Button>
@@ -221,10 +246,12 @@
                 <!-- Content Frame for Page Navigation -->
                 <Frame x:Name="ContentFrame" Grid.Row="0"/>
 
-                <!-- Task Progress Bar -->
-                <controls:TaskProgressControl x:Name="TaskProgressControl"
-                                               Grid.Row="1"
-                                               Margin="0,2,12,8"/>
+                <!-- Task Progress Bars (up to 3 for parallel script removal) -->
+                <StackPanel Grid.Row="1" Margin="0,2,12,8" Spacing="4">
+                    <controls:TaskProgressControl x:Name="TaskProgressControl"/>
+                    <controls:TaskProgressControl x:Name="TaskProgressControl2"/>
+                    <controls:TaskProgressControl x:Name="TaskProgressControl3"/>
+                </StackPanel>
             </Grid>
         </Grid>
 
@@ -232,7 +259,8 @@
         <Grid x:Name="LoadingOverlay"
               Grid.RowSpan="4"
               Background="{ThemeResource SolidBackgroundFillColorBaseBrush}"
-              Visibility="Visible">
+              Visibility="Visible"
+              AutomationProperties.LiveSetting="Polite">
             <StackPanel HorizontalAlignment="Center" VerticalAlignment="Center" Spacing="24">
                 <!-- Logo + Branding -->
                 <StackPanel Orientation="Horizontal" HorizontalAlignment="Center" Spacing="16">

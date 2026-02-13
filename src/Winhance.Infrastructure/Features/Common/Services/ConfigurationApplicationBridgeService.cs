@@ -97,8 +97,8 @@ public class ConfigurationApplicationBridgeService
             item.PowerSettings.ContainsKey("ACIndex") &&
             item.PowerSettings.ContainsKey("DCIndex"))
         {
-            var acIndex = Convert.ToInt32(item.PowerSettings["ACIndex"]);
-            var dcIndex = Convert.ToInt32(item.PowerSettings["DCIndex"]);
+            var acIndex = Convert.ToInt32(UnwrapJsonElement(item.PowerSettings["ACIndex"]));
+            var dcIndex = Convert.ToInt32(UnwrapJsonElement(item.PowerSettings["DCIndex"]));
             return (acIndex, dcIndex);
         }
 
@@ -137,17 +137,35 @@ public class ConfigurationApplicationBridgeService
         {
             return new Dictionary<string, object?>
             {
-                ["ACValue"] = acVal,
-                ["DCValue"] = dcVal ?? acVal
+                ["ACValue"] = UnwrapJsonElement(acVal),
+                ["DCValue"] = UnwrapJsonElement(dcVal ?? acVal)
             };
         }
 
         if (item.PowerSettings.TryGetValue("Value", out var singleVal))
         {
-            return singleVal;
+            return UnwrapJsonElement(singleVal);
         }
 
         return null;
+    }
+
+    private static object? UnwrapJsonElement(object? value)
+    {
+        if (value is System.Text.Json.JsonElement je)
+        {
+            return je.ValueKind switch
+            {
+                System.Text.Json.JsonValueKind.Number when je.TryGetInt32(out var i) => i,
+                System.Text.Json.JsonValueKind.Number when je.TryGetInt64(out var l) => l,
+                System.Text.Json.JsonValueKind.Number when je.TryGetDouble(out var d) => d,
+                System.Text.Json.JsonValueKind.String => je.GetString(),
+                System.Text.Json.JsonValueKind.True => true,
+                System.Text.Json.JsonValueKind.False => false,
+                _ => value
+            };
+        }
+        return value;
     }
 
     private enum ApplyStatus
@@ -283,8 +301,7 @@ public class ConfigurationApplicationBridgeService
                     item.IsSelected ?? false,
                     valueToApply,
                     checkboxResult,
-                    skipValuePrerequisites: true,
-                    restoreDefault: item.RestoreDefault == true);
+                    skipValuePrerequisites: true);
             }
 
             _logService.Log(LogLevel.Debug, $"Applied setting: {item.Name}");

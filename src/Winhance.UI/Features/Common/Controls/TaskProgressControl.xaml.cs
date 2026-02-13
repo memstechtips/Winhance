@@ -1,4 +1,5 @@
 using Microsoft.UI.Xaml;
+using Microsoft.UI.Xaml.Automation.Peers;
 using Microsoft.UI.Xaml.Controls;
 using System.Windows.Input;
 
@@ -17,7 +18,7 @@ public sealed partial class TaskProgressControl : UserControl
             nameof(AppName),
             typeof(string),
             typeof(TaskProgressControl),
-            new PropertyMetadata(string.Empty));
+            new PropertyMetadata(string.Empty, OnAppNameChanged));
 
     public static readonly DependencyProperty LastTerminalLineProperty =
         DependencyProperty.Register(
@@ -31,7 +32,7 @@ public sealed partial class TaskProgressControl : UserControl
             nameof(IsProgressVisible),
             typeof(Visibility),
             typeof(TaskProgressControl),
-            new PropertyMetadata(Visibility.Collapsed));
+            new PropertyMetadata(Visibility.Collapsed, OnIsProgressVisibleChanged));
 
     public static readonly DependencyProperty CanCancelProperty =
         DependencyProperty.Register(
@@ -60,6 +61,27 @@ public sealed partial class TaskProgressControl : UserControl
             typeof(string),
             typeof(TaskProgressControl),
             new PropertyMetadata("Cancel"));
+
+    public static readonly DependencyProperty QueueStatusTextProperty =
+        DependencyProperty.Register(
+            nameof(QueueStatusText),
+            typeof(string),
+            typeof(TaskProgressControl),
+            new PropertyMetadata(string.Empty));
+
+    public static readonly DependencyProperty QueueNextItemNameProperty =
+        DependencyProperty.Register(
+            nameof(QueueNextItemName),
+            typeof(string),
+            typeof(TaskProgressControl),
+            new PropertyMetadata(string.Empty));
+
+    public static readonly DependencyProperty IsQueueInfoVisibleProperty =
+        DependencyProperty.Register(
+            nameof(IsQueueInfoVisible),
+            typeof(Visibility),
+            typeof(TaskProgressControl),
+            new PropertyMetadata(Visibility.Collapsed));
 
     #endregion
 
@@ -107,10 +129,66 @@ public sealed partial class TaskProgressControl : UserControl
         set => SetValue(CancelTextProperty, value);
     }
 
+    public string QueueStatusText
+    {
+        get => (string)GetValue(QueueStatusTextProperty);
+        set => SetValue(QueueStatusTextProperty, value);
+    }
+
+    public string QueueNextItemName
+    {
+        get => (string)GetValue(QueueNextItemNameProperty);
+        set => SetValue(QueueNextItemNameProperty, value);
+    }
+
+    public Visibility IsQueueInfoVisible
+    {
+        get => (Visibility)GetValue(IsQueueInfoVisibleProperty);
+        set => SetValue(IsQueueInfoVisibleProperty, value);
+    }
+
     #endregion
 
     public TaskProgressControl()
     {
         this.InitializeComponent();
+    }
+
+    private static void OnIsProgressVisibleChanged(DependencyObject d, DependencyPropertyChangedEventArgs e)
+    {
+        if (d is not TaskProgressControl control) return;
+
+        if (e.NewValue is Visibility.Visible)
+        {
+            var name = control.AppName;
+            if (!string.IsNullOrEmpty(name))
+                control.AnnounceStatus($"Applying: {name}");
+        }
+        else
+        {
+            control.AnnounceStatus("Operation complete");
+        }
+    }
+
+    private static void OnAppNameChanged(DependencyObject d, DependencyPropertyChangedEventArgs e)
+    {
+        if (d is not TaskProgressControl control) return;
+        if (control.IsProgressVisible != Visibility.Visible) return;
+
+        var name = e.NewValue as string;
+        if (!string.IsNullOrEmpty(name))
+            control.AnnounceStatus($"Applying: {name}");
+    }
+
+    private void AnnounceStatus(string message)
+    {
+        var peer = FrameworkElementAutomationPeer.FromElement(this)
+                   ?? FrameworkElementAutomationPeer.CreatePeerForElement(this);
+
+        peer?.RaiseNotificationEvent(
+            AutomationNotificationKind.ActionCompleted,
+            AutomationNotificationProcessing.ImportantMostRecent,
+            message,
+            "TaskProgress");
     }
 }

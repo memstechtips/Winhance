@@ -69,5 +69,18 @@ namespace Winhance.Core.Features.Common.Models
         /// Custom InfoBar message for action settings that need user confirmation.
         /// </summary>
         public string? ActionConfirmationMessage { get; set; }
+
+        /// <summary>
+        /// Raw (pre-localization) key for CurrentValueDisplay, used for re-localization on language change.
+        /// For toggle settings this is "Common_On"/"Common_Off"; for combo boxes it's the raw display key
+        /// (e.g. "ServiceOption_Disabled"); for power plans it's the plan's localization key.
+        /// Null when no re-localization is needed (e.g. numeric values).
+        /// </summary>
+        public string? CurrentDisplayKey { get; set; }
+
+        /// <summary>
+        /// Raw (pre-localization) key for ConfigValueDisplay, used for re-localization on language change.
+        /// </summary>
+        public string? ConfigDisplayKey { get; set; }
     }
 }

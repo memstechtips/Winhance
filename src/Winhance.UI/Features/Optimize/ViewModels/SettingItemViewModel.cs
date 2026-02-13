@@ -2,13 +2,19 @@ using System.Collections.ObjectModel;
 using System.Linq;
 using CommunityToolkit.Mvvm.ComponentModel;
 using CommunityToolkit.Mvvm.Input;
+using Microsoft.UI.Xaml.Automation.Peers;
 using Microsoft.UI.Xaml.Controls;
+using Microsoft.Win32;
 using Winhance.Core.Features.Common.Constants;
 using Winhance.Core.Features.Common.Enums;
+using Winhance.Core.Features.Common.Events;
+using Winhance.Core.Features.Common.Events.UI;
 using Winhance.Core.Features.Common.Interfaces;
 using Winhance.Core.Features.Common.Models;
 using Winhance.Infrastructure.Features.Common.Services;
 using Winhance.UI.Features.Common.Interfaces;
+using Winhance.UI.Features.Common.Models;
+using Winhance.UI.Features.Common.Utilities;
 using Winhance.UI.Features.Common.ViewModels;
 
 namespace Winhance.UI.Features.Optimize.ViewModels;
@@ -21,6 +27,8 @@ public partial class SettingItemViewModel : BaseViewModel
     private readonly IDialogService _dialogService;
     private readonly ILocalizationService _localizationService;
     private readonly IUserPreferencesService? _userPreferencesService;
+    private readonly IEventBus? _eventBus;
+    private ISubscriptionToken? _tooltipUpdatedSubscription;
     private bool _isUpdatingFromEvent;
     private bool _hasChangedThisSession;
 
@@ -92,6 +100,51 @@ public partial class SettingItemViewModel : BaseViewModel
     public string OnText { get; set; } = "On";
     public string OffText { get; set; } = "Off";
     public string ActionButtonText { get; set; } = "Apply";
+
+    // Technical Details panel
+    [ObservableProperty]
+    private bool _isTechnicalDetailsExpanded;
+
+    [ObservableProperty]
+    private bool _isTechnicalDetailsGloballyVisible;
+
+    [ObservableProperty]
+    private ObservableCollection<TechnicalDetailRow> _technicalDetails = new();
+
+    public bool HasTechnicalDetails => TechnicalDetails.Count > 0;
+
+    /// <summary>
+    /// Controls visibility of the toggle bar: requires data AND global toggle to be on.
+    /// </summary>
+    public bool ShowTechnicalDetailsBar => HasTechnicalDetails && IsTechnicalDetailsGloballyVisible;
+
+    /// <summary>
+    /// Bottom corners rounded only when the expandable content is collapsed;
+    /// when expanded, the content panel below carries the rounded corners.
+    /// </summary>
+    public Microsoft.UI.Xaml.CornerRadius TechnicalDetailsToggleCornerRadius =>
+        IsTechnicalDetailsExpanded
+            ? new Microsoft.UI.Xaml.CornerRadius(0)
+            : new Microsoft.UI.Xaml.CornerRadius(0, 0, 4, 4);
+
+    partial void OnIsTechnicalDetailsExpandedChanged(bool value)
+    {
+        OnPropertyChanged(nameof(TechnicalDetailsToggleCornerRadius));
+    }
+
+    partial void OnIsTechnicalDetailsGloballyVisibleChanged(bool value)
+    {
+        OnPropertyChanged(nameof(ShowTechnicalDetailsBar));
+        if (!value) IsTechnicalDetailsExpanded = false;
+    }
+
+    public string TechnicalDetailsLabel =>
+        _localizationService.GetString("TechnicalDetails_Toggle") ?? "Technical Details";
+
+    public string OpenRegeditTooltip =>
+        _localizationService.GetString("TechnicalDetails_OpenRegedit") ?? "Open in Registry Editor";
+
+    public IRelayCommand<string> OpenRegeditCommand { get; }
 
     [ObservableProperty]
     private bool _isVisible = true;
@@ -205,6 +258,7 @@ public partial class SettingItemViewModel : BaseViewModel
         IDispatcherService dispatcherService,
         IDialogService dialogService,
         ILocalizationService localizationService,
+        IEventBus? eventBus = null,
         IUserPreferencesService? userPreferencesService = null)
     {
         _settingApplicationService = settingApplicationService;
@@ -212,10 +266,17 @@ public partial class SettingItemViewModel : BaseViewModel
         _dispatcherService = dispatcherService;
         _dialogService = dialogService;
         _localizationService = localizationService;
+        _eventBus = eventBus;
         _userPreferencesService = userPreferencesService;
 
         ExecuteActionCommand = new AsyncRelayCommand(HandleActionAsync);
         UnlockCommand = new AsyncRelayCommand(HandleUnlockAsync);
+        OpenRegeditCommand = new RelayCommand<string>(OpenRegeditAtPath);
+
+        if (_eventBus != null)
+        {
+            _tooltipUpdatedSubscription = _eventBus.Subscribe<TooltipUpdatedEvent>(OnTooltipUpdated);
+        }
     }
 
     public void UpdateVisibility(string searchText)
@@ -269,6 +330,25 @@ public partial class SettingItemViewModel : BaseViewModel
     {
         if (sender is CheckBox checkBox)
             _ = HandleToggleAsync(checkBox.IsChecked == true);
+    }
+
+    // Announce ComboBox option changes for screen readers (arrow key navigation on closed ComboBox)
+    public void OnComboBoxSelectionChanged(object sender, SelectionChangedEventArgs e)
+    {
+        // Only announce when the user is actively interacting (keyboard-focused), not during init
+        if (sender is not ComboBox comboBox || comboBox.FocusState == Microsoft.UI.Xaml.FocusState.Unfocused)
+            return;
+
+        if (e.AddedItems.Count > 0 && e.AddedItems[0] is ComboBoxOption option)
+        {
+            var peer = FrameworkElementAutomationPeer.FromElement(comboBox)
+                       ?? FrameworkElementAutomationPeer.CreatePeerForElement(comboBox);
+            peer?.RaiseNotificationEvent(
+                AutomationNotificationKind.ActionCompleted,
+                AutomationNotificationProcessing.CurrentThenMostRecent,
+                option.DisplayText,
+                "ComboBoxSelection");
+        }
     }
 
     // Using DropDownClosed instead of SelectionChanged because SelectionChanged fires during initialization
@@ -619,6 +699,87 @@ public partial class SettingItemViewModel : BaseViewModel
     {
         StatusBannerMessage = null;
         StatusBannerSeverity = InfoBarSeverity.Informational;
+    }
+
+    #endregion
+
+    #region Technical Details
+
+    public void ToggleTechnicalDetails() => IsTechnicalDetailsExpanded = !IsTechnicalDetailsExpanded;
+
+    private void OnTooltipUpdated(TooltipUpdatedEvent evt)
+    {
+        if (evt.SettingId != SettingId) return;
+        _dispatcherService.RunOnUIThread(() => UpdateTechnicalDetails(evt.TooltipData));
+    }
+
+    private void UpdateTechnicalDetails(SettingTooltipData tooltipData)
+    {
+        TechnicalDetails.Clear();
+
+        // Registry rows
+        foreach (var kvp in tooltipData.IndividualRegistryValues)
+        {
+            var reg = kvp.Key;
+            TechnicalDetails.Add(new TechnicalDetailRow
+            {
+                RowType = DetailRowType.Registry,
+                RegistryPath = reg.KeyPath,
+                ValueName = reg.ValueName ?? "(Default)",
+                ValueType = reg.ValueType.ToString(),
+                CurrentValue = kvp.Value ?? "(not set)",
+                RecommendedValue = reg.RecommendedValue?.ToString() ?? "",
+                OpenRegeditCommand = OpenRegeditCommand,
+                RegeditIconSource = RegeditIconProvider.CachedIcon,
+                CanOpenRegedit = RegeditLauncher.KeyExists(reg.KeyPath)
+            });
+        }
+
+        // Scheduled task rows
+        foreach (var task in tooltipData.ScheduledTaskSettings)
+        {
+            TechnicalDetails.Add(new TechnicalDetailRow
+            {
+                RowType = DetailRowType.ScheduledTask,
+                TaskPath = task.TaskPath,
+                RecommendedState = task.RecommendedState == true ? "Enabled" : "Disabled"
+            });
+        }
+
+        // Power config rows
+        foreach (var pcfg in tooltipData.PowerCfgSettings)
+        {
+            TechnicalDetails.Add(new TechnicalDetailRow
+            {
+                RowType = DetailRowType.PowerConfig,
+                SubgroupGuid = pcfg.SubgroupGuid,
+                SettingGuid = pcfg.SettingGuid,
+                SubgroupAlias = pcfg.SubgroupGUIDAlias ?? "",
+                SettingAlias = pcfg.SettingGUIDAlias,
+                PowerUnits = pcfg.Units ?? "",
+                RecommendedAC = pcfg.RecommendedValueAC?.ToString() ?? "",
+                RecommendedDC = pcfg.RecommendedValueDC?.ToString() ?? ""
+            });
+        }
+
+        OnPropertyChanged(nameof(HasTechnicalDetails));
+        OnPropertyChanged(nameof(ShowTechnicalDetailsBar));
+    }
+
+    private void OpenRegeditAtPath(string? path)
+    {
+        if (!string.IsNullOrEmpty(path))
+            RegeditLauncher.OpenAtPath(path);
+    }
+
+    protected override void Dispose(bool disposing)
+    {
+        if (disposing)
+        {
+            _tooltipUpdatedSubscription?.Dispose();
+            _tooltipUpdatedSubscription = null;
+        }
+        base.Dispose(disposing);
     }
 
     #endregion

@@ -1,5 +1,4 @@
 using System;
-using System.Collections.Generic;
 using System.Diagnostics;
 using System.Threading;
 using System.Threading.Tasks;
@@ -12,7 +11,7 @@ namespace Winhance.Infrastructure.Features.SoftwareApps.Services;
 
 public class LegacyCapabilityService(
     ILogService logService,
-    IBloatRemovalService bloatRemovalService) : ILegacyCapabilityService
+    IWindowsAppsService windowsAppsService) : ILegacyCapabilityService
 {
     public async Task<bool> EnableCapabilityAsync(
         string capabilityName,
@@ -88,21 +87,18 @@ public class LegacyCapabilityService(
                 CapabilityName = capabilityName
             };
 
-            var success = await bloatRemovalService.RemoveAppsAsync(
-                new List<ItemDefinition> { item },
-                progress,
-                cancellationToken);
+            var result = await windowsAppsService.RemoveCapabilityAsync(item, cancellationToken);
 
-            if (success)
+            if (result.Success)
             {
-                logService?.LogInformation($"Capability '{capabilityName}' removed successfully via BloatRemovalService.");
+                logService?.LogInformation($"Capability '{capabilityName}' removed successfully via DISM.");
             }
             else
             {
-                logService?.LogError($"BloatRemovalService failed to remove capability '{capabilityName}'.");
+                logService?.LogError($"DISM failed to remove capability '{capabilityName}': {result.ErrorMessage}");
             }
 
-            return success;
+            return result.Success;
         }
         catch (Exception ex)
         {

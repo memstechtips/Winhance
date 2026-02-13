@@ -36,7 +36,7 @@ namespace Winhance.Infrastructure.Features.Common.Services
         IScheduledTaskService scheduledTaskService) : ISettingApplicationService
     {
 
-        public async Task ApplySettingAsync(string settingId, bool enable, object? value = null, bool checkboxResult = false, string? commandString = null, bool applyRecommended = false, bool skipValuePrerequisites = false, bool restoreDefault = false)
+        public async Task ApplySettingAsync(string settingId, bool enable, object? value = null, bool checkboxResult = false, string? commandString = null, bool applyRecommended = false, bool skipValuePrerequisites = false)
         {
             var valueDisplay = value is Dictionary<string, object?> dict
                 ? $"Dictionary[AC:{dict.GetValueOrDefault("ACValue")}, DC:{dict.GetValueOrDefault("DCValue")}]"
@@ -56,46 +56,6 @@ namespace Winhance.Infrastructure.Features.Common.Services
             if (!string.IsNullOrEmpty(commandString))
             {
                 await ExecuteActionCommand(domainService, commandString, applyRecommended, settingId);
-                return;
-            }
-
-            if (restoreDefault && setting.RegistrySettings?.Count > 0)
-            {
-                logService.Log(LogLevel.Info, $"[SettingApplicationService] Restoring default for '{settingId}' - deleting/resetting {setting.RegistrySettings.Count} registry values");
-
-                foreach (var regSetting in setting.RegistrySettings)
-                {
-                    if (regSetting.AbsenceMeansEnabled)
-                    {
-                        // True default is absence of the value
-                        if (regSetting.ValueName != null)
-                            registryService.DeleteValue(regSetting.KeyPath, regSetting.ValueName);
-                        else
-                            registryService.DeleteKey(regSetting.KeyPath);
-                    }
-                    else if (regSetting.KeyPath.Contains(@"\Policies\") &&
-                             (regSetting.EnabledValue == null || regSetting.DisabledValue == null))
-                    {
-                        // Policy key shouldn't exist on clean install
-                        if (regSetting.ValueName != null)
-                            registryService.DeleteValue(regSetting.KeyPath, regSetting.ValueName);
-                        else
-                            registryService.DeleteKey(regSetting.KeyPath);
-                    }
-                    else if (regSetting.DefaultValue != null)
-                    {
-                        registryService.ApplySetting(regSetting, true, regSetting.DefaultValue);
-                    }
-                    else
-                    {
-                        // Fallback: use normal apply with the IsSelected value
-                        registryService.ApplySetting(regSetting, enable);
-                    }
-                }
-
-                await HandleProcessAndServiceRestarts(setting);
-                eventBus.Publish(new SettingAppliedEvent(settingId, enable, value));
-                logService.Log(LogLevel.Info, $"[SettingApplicationService] Successfully restored default for '{settingId}'");
                 return;
             }
 
@@ -486,7 +446,7 @@ namespace Winhance.Infrastructure.Features.Common.Services
                     {
                         InputType.Toggle => enable ? 1 : 0,
                         InputType.Selection when value is int index => comboBoxResolver.GetValueFromIndex(setting, index),
-                        InputType.NumericRange when value != null => ConvertToSystemUnits(ConvertNumericValue(value), setting.PowerCfgSettings[0].Units),
+                        InputType.NumericRange when value != null => ConvertToSystemUnits(ConvertNumericValue(value), GetDisplayUnits(setting)),
                         _ => throw new NotSupportedException($"Input type '{setting.InputType}' not supported for PowerCfg operations")
                     };
 
@@ -573,6 +533,7 @@ namespace Winhance.Infrastructure.Features.Common.Services
                 double doubleVal => (int)doubleVal,
                 float floatVal => (int)floatVal,
                 string stringVal when int.TryParse(stringVal, out int parsed) => parsed,
+                System.Text.Json.JsonElement je when je.TryGetInt32(out int jsonInt) => jsonInt,
                 _ => throw new ArgumentException($"Cannot convert '{value}' (type: {value?.GetType().Name ?? "null"}) to numeric value")
             };
         }
@@ -586,6 +547,13 @@ namespace Winhance.Infrastructure.Features.Common.Services
                 "milliseconds" => displayValue / 1000,
                 _ => displayValue
             };
+        }
+
+        private string GetDisplayUnits(SettingDefinition setting)
+        {
+            if (setting.CustomProperties?.TryGetValue("Units", out var units) == true && units is string unitsStr)
+                return unitsStr;
+            return setting.PowerCfgSettings?[0]?.Units ?? string.Empty;
         }
 
         private async Task ExecutePowerCfgSettings(List<PowerCfgSetting> powerCfgSettings, object valueToApply, bool hasBattery = true)
@@ -721,6 +689,7 @@ namespace Winhance.Infrastructure.Features.Common.Services
                 float floatVal => (int)floatVal,
                 string stringVal when int.TryParse(stringVal, out int parsed) => parsed,
                 ValueTuple<int, int> tuple => tuple.Item1,
+                System.Text.Json.JsonElement je when je.TryGetInt32(out int jsonInt) => jsonInt,
                 _ => throw new ArgumentException($"Cannot convert '{value}' (type: {value?.GetType().Name ?? "null"}) to single numeric value")
             };
         }
@@ -760,6 +729,9 @@ namespace Winhance.Infrastructure.Features.Common.Services
 
             if (value is int directInt)
                 return directInt;
+
+            if (value is System.Text.Json.JsonElement je)
+                return je.TryGetInt32(out int jsonInt) ? jsonInt : 0;
 
             if (int.TryParse(value.ToString(), out int parsed))
                 return parsed;

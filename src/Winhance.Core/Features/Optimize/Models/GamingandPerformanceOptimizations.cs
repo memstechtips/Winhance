@@ -20,7 +20,8 @@ public static class GamingandPerformanceOptimizations
                     Id = "gaming-game-mode",
                     Name = "Game Mode",
                     Description = "Optimize your PC for play by turning things off in the background",
-                    Icon = "Speedometer",
+                    IconPack = "Fluent",
+                    Icon = "TopSpeed",
                     InputType = InputType.Toggle,
                     RegistrySettings = new List<RegistrySetting>
                     {
@@ -29,11 +30,9 @@ public static class GamingandPerformanceOptimizations
                             KeyPath = @"HKEY_CURRENT_USER\Software\Microsoft\GameBar",
                             ValueName = "AutoGameModeEnabled",
                             RecommendedValue = 1,
-                            EnabledValue = 1, // When toggle is ON, Game Mode is enabled
+                            EnabledValue = null, // When toggle is ON, Game Mode is enabled
                             DisabledValue = 0, // When toggle is OFF, Game Mode is disabled
-                            DefaultValue = 1, // Default value when registry key exists but no value is set
                             ValueType = RegistryValueKind.DWord,
-                            AbsenceMeansEnabled = true,
                         },
                     },
                 },
@@ -94,22 +93,18 @@ public static class GamingandPerformanceOptimizations
                             KeyPath = @"HKEY_CURRENT_USER\SOFTWARE\Policies\Microsoft\Windows\AppPrivacy",
                             ValueName = "LetAppsRunInBackground",
                             RecommendedValue = 0,
-                            EnabledValue = 1,
+                            EnabledValue = null,
                             DisabledValue = 0,
-                            DefaultValue = 1,
                             ValueType = RegistryValueKind.DWord,
-                            AbsenceMeansEnabled = true,
                         },
                         new RegistrySetting
                         {
                             KeyPath = @"HKEY_LOCAL_MACHINE\SOFTWARE\Policies\Microsoft\Windows\AppPrivacy",
                             ValueName = "LetAppsRunInBackground",
                             RecommendedValue = 0,
-                            EnabledValue = 1,
+                            EnabledValue = null,
                             DisabledValue = 0,
-                            DefaultValue = 1,
                             ValueType = RegistryValueKind.DWord,
-                            AbsenceMeansEnabled = true,
                         },
                     },
                 },
@@ -127,22 +122,18 @@ public static class GamingandPerformanceOptimizations
                             KeyPath = @"HKEY_CURRENT_USER\SOFTWARE\Policies\Microsoft\Windows\StorageSense",
                             ValueName = "AllowStorageSenseGlobal",
                             RecommendedValue = 0,
-                            EnabledValue = 1,
+                            EnabledValue = null,
                             DisabledValue = 0,
-                            DefaultValue = 1,
                             ValueType = RegistryValueKind.DWord,
-                            AbsenceMeansEnabled = true,
                         },
                         new RegistrySetting
                         {
                             KeyPath = @"HKEY_LOCAL_MACHINE\SOFTWARE\Policies\Microsoft\Windows\StorageSense",
                             ValueName = "AllowStorageSenseGlobal",
                             RecommendedValue = 0,
-                            EnabledValue = 1,
+                            EnabledValue = null,
                             DisabledValue = 0,
-                            DefaultValue = 1,
                             ValueType = RegistryValueKind.DWord,
-                            AbsenceMeansEnabled = true,
                         },
                     },
                 },
@@ -174,7 +165,7 @@ public static class GamingandPerformanceOptimizations
                     Description = "Allow Windows to compress wallpapers to save disk space and improve performance. Only affects images in JPEG format.",
                     InputType = InputType.Toggle,
                     IconPack = "Fluent",
-                    Icon = "Wallpaper",
+                    Icon = "ResizeImage",
                     RestartProcess = "Explorer",
                     RegistrySettings = new List<RegistrySetting>
                     {
@@ -183,11 +174,9 @@ public static class GamingandPerformanceOptimizations
                             KeyPath = @"HKEY_CURRENT_USER\Control Panel\Desktop",
                             ValueName = "JPEGImportQuality",
                             RecommendedValue = 100,
-                            EnabledValue = 0,
+                            EnabledValue = null,
                             DisabledValue = 100,
-                            DefaultValue = 0,
                             ValueType = RegistryValueKind.DWord,
-                            AbsenceMeansEnabled = true,
                         },
                     },
                 },
@@ -379,11 +368,9 @@ public static class GamingandPerformanceOptimizations
                             KeyPath = @"HKEY_LOCAL_MACHINE\System\CurrentControlSet\Control\GraphicsDrivers",
                             ValueName = "HwSchMode",
                             RecommendedValue = 2,
-                            EnabledValue = 2,
+                            EnabledValue = null,
                             DisabledValue = 1,
-                            DefaultValue = 1,
                             ValueType = RegistryValueKind.DWord,
-                            AbsenceMeansEnabled = true,
                         },
                     },
                 },
@@ -402,11 +389,9 @@ public static class GamingandPerformanceOptimizations
                             KeyPath = @"HKEY_CURRENT_USER\Software\Microsoft\DirectX\UserGpuPreferences",
                             ValueName = "DirectXUserGlobalSettings",
                             RecommendedValue = "SwapEffectUpgradeEnable=1;",
-                            EnabledValue = "SwapEffectUpgradeEnable=1;",
+                            EnabledValue = null,
                             DisabledValue = "",
-                            DefaultValue = "",
                             ValueType = RegistryValueKind.String,
-                            AbsenceMeansEnabled = true,
                         },
                     },
                 },
@@ -491,11 +476,9 @@ public static class GamingandPerformanceOptimizations
                             KeyPath = @"HKEY_CURRENT_USER\Software\Microsoft\Windows\DWM",
                             ValueName = "CompositionPolicy",
                             RecommendedValue = 0,
-                            EnabledValue = 1, // When toggle is ON, desktop composition is enabled
+                            EnabledValue = null, // When toggle is ON, desktop composition is enabled
                             DisabledValue = 0, // When toggle is OFF, desktop composition is disabled
-                            DefaultValue = 1, // Default value when registry key exists but no value is set
                             ValueType = RegistryValueKind.DWord,
-                            AbsenceMeansEnabled = true,
                         },
                     },
                 },
@@ -593,7 +576,8 @@ public static class GamingandPerformanceOptimizations
                     Name = "Game Bar Controller Access",
                     Description = "Allow your Xbox/compatible controller to open Game Bar by pressing the Xbox button. Disable to prevent accidental Game Bar activation during gaming",
                     GroupName = "Xbox",
-                    Icon = "MicrosoftXboxController",
+                    IconPack = "Fluent",
+                    Icon = "XboxControllerError",
                     InputType = InputType.Toggle,
                     RegistrySettings = new List<RegistrySetting>
                     {
@@ -602,11 +586,9 @@ public static class GamingandPerformanceOptimizations
                             KeyPath = @"HKEY_CURRENT_USER\Software\Microsoft\GameBar",
                             ValueName = "UseNexusForGameBarEnabled",
                             RecommendedValue = 0,
-                            EnabledValue = 1, // When toggle is ON, controller access is enabled
+                            EnabledValue = null, // When toggle is ON, controller access is enabled
                             DisabledValue = 0, // When toggle is OFF, controller access is disabled
-                            DefaultValue = 1, // Default value when registry key exists but no value is set
                             ValueType = RegistryValueKind.DWord,
-                            AbsenceMeansEnabled = true,
                         },
                     },
                 },
@@ -625,11 +607,9 @@ public static class GamingandPerformanceOptimizations
                             KeyPath = @"HKEY_CURRENT_USER\Software\Microsoft\GameBar",
                             ValueName = "ShowStartupPanel",
                             RecommendedValue = 0,
-                            EnabledValue = 1,
+                            EnabledValue = null,
                             DisabledValue = 0,
-                            DefaultValue = 1,
                             ValueType = RegistryValueKind.DWord,
-                            AbsenceMeansEnabled = true,
                         },
                     },
                 },
@@ -2517,7 +2497,7 @@ public static class GamingandPerformanceOptimizations
                     GroupName = "Visual Effects",
                     InputType = InputType.Toggle,
                     IconPack = "Fluent",
-                    Icon = "CursorClick",
+                    Icon = "SlideTextCursor",
                     RequiresRestart = true,
                     Dependencies = new List<SettingDependency>
                     {
@@ -2657,7 +2637,7 @@ public static class GamingandPerformanceOptimizations
                     GroupName = "Visual Effects",
                     InputType = InputType.Toggle,
                     IconPack = "Fluent",
-                    Icon = "Image",
+                    Icon = "ImageStack",
                     RequiresRestart = true,
                     Dependencies = new List<SettingDependency>
                     {
@@ -2690,8 +2670,7 @@ public static class GamingandPerformanceOptimizations
                     Description = "Display a semi-transparent selection box when dragging to select multiple files or items",
                     GroupName = "Visual Effects",
                     InputType = InputType.Toggle,
-                    IconPack = "Fluent",
-                    Icon = "SelectObject",
+                    Icon = "Select",
                     RequiresRestart = true,
                     Dependencies = new List<SettingDependency>
                     {
@@ -2902,11 +2881,9 @@ public static class GamingandPerformanceOptimizations
                             KeyPath = @"HKEY_CURRENT_USER\Software\Microsoft\Narrator\NoRoam",
                             ValueName = "WinEnterLaunchEnabled",
                             RecommendedValue = 0,
-                            EnabledValue = 1,
+                            EnabledValue = null,
                             DisabledValue = 0,
-                            DefaultValue = 1,
                             ValueType = RegistryValueKind.DWord,
-                            AbsenceMeansEnabled = true,
                         },
                     },
                 },

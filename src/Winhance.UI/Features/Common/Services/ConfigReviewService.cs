@@ -55,6 +55,8 @@ public class ConfigReviewService : IConfigReviewService
         _comboBoxResolver = comboBoxResolver;
         _localizationService = localizationService;
         _windowsVersionService = windowsVersionService;
+
+        _localizationService.LanguageChanged += OnLanguageChanged;
     }
 
     public bool IsInReviewMode { get; private set; }
@@ -367,7 +369,7 @@ public class ConfigReviewService : IConfigReviewService
                     continue;
 
                 // Compute diff
-                var (hasDiff, currentDisplay, configDisplay) = ComputeEagerDiff(
+                var (hasDiff, currentDisplay, configDisplay, currentKey, configKey) = ComputeEagerDiff(
                     settingDef, configItem, currentState, onText, offText);
 
                 if (hasDiff || isActionSetting)
@@ -379,6 +381,8 @@ public class ConfigReviewService : IConfigReviewService
                         FeatureModuleId = featureId,
                         CurrentValueDisplay = currentDisplay,
                         ConfigValueDisplay = configDisplay,
+                        CurrentDisplayKey = currentKey,
+                        ConfigDisplayKey = configKey,
                         ConfigItem = configItem,
                         IsApproved = false,
                         IsReviewed = false,
@@ -424,8 +428,9 @@ public class ConfigReviewService : IConfigReviewService
     /// <summary>
     /// Computes diff between current system state and config value for a setting definition.
     /// Works with SettingDefinition + SettingStateResult (no ViewModel required).
+    /// Returns display strings, plus raw keys for re-localization on language change.
     /// </summary>
-    private (bool hasDiff, string currentDisplay, string configDisplay) ComputeEagerDiff(
+    private (bool hasDiff, string currentDisplay, string configDisplay, string? currentKey, string? configKey) ComputeEagerDiff(
         SettingDefinition settingDef,
         ConfigurationItem configItem,
         SettingStateResult currentState,
@@ -441,9 +446,11 @@ public class ConfigReviewService : IConfigReviewService
                 var configBool = configItem.IsSelected ?? false;
                 if (currentBool != configBool)
                 {
-                    return (true, currentBool ? onText : offText, configBool ? onText : offText);
+                    var currentKey = currentBool ? "Common_On" : "Common_Off";
+                    var configKey = configBool ? "Common_On" : "Common_Off";
+                    return (true, currentBool ? onText : offText, configBool ? onText : offText, currentKey, configKey);
                 }
-                return (false, string.Empty, string.Empty);
+                return (false, string.Empty, string.Empty, null, null);
             }
 
             case InputType.Selection:
@@ -452,8 +459,6 @@ public class ConfigReviewService : IConfigReviewService
                 var comboResult = _comboBoxSetupService.SetupComboBoxOptions(settingDef, currentState.CurrentValue);
                 var currentIndex = comboResult.SelectedValue is int resolvedIdx ? resolvedIdx
                     : (currentState.CurrentValue is int idx ? idx : -1);
-                var isPowerPlanSetting = settingDef.CustomProperties?.ContainsKey("LoadDynamicOptions") == true;
-
                 // Special handling: PowerPlan - compare by GUID from RawValues (locale-independent)
                 if (configItem.PowerPlanGuid != null)
                 {
@@ -477,7 +482,7 @@ public class ConfigReviewService : IConfigReviewService
                     if (guidsMatch)
                     {
                         _logService.Log(LogLevel.Debug, "[ConfigReviewService] PowerPlan: GUIDs match directly");
-                        return (false, string.Empty, string.Empty);
+                        return (false, string.Empty, string.Empty, null, null);
                     }
 
                     // Fallback: check if both plans resolve to the same known predefined plan
@@ -493,8 +498,12 @@ public class ConfigReviewService : IConfigReviewService
                         NormalizeGuid(currentPredefined.Guid) == NormalizeGuid(configPredefined.Guid))
                     {
                         _logService.Log(LogLevel.Debug, "[ConfigReviewService] PowerPlan: Both resolve to same predefined plan");
-                        return (false, string.Empty, string.Empty);
+                        return (false, string.Empty, string.Empty, null, null);
                     }
+
+                    // Get raw keys for re-localization (localization key for predefined plans, plain name for custom)
+                    var currentRawKey = GetPowerPlanLocalizationKey(currentGuid) ?? currentPlanName ?? "Unknown";
+                    var configRawKey = GetPowerPlanLocalizationKey(configItem.PowerPlanGuid) ?? configPlanName ?? "Custom";
 
                     var currentDisplayName = LocalizePowerPlanByGuid(currentGuid)
                         ?? currentPlanName ?? "Unknown";
@@ -503,36 +512,40 @@ public class ConfigReviewService : IConfigReviewService
 
                     _logService.Log(LogLevel.Debug,
                         $"[ConfigReviewService] PowerPlan: Diff detected - '{currentDisplayName}' -> '{configDisplayName}'");
-                    return (true, currentDisplayName, configDisplayName);
+                    return (true, currentDisplayName, configDisplayName, currentRawKey, configRawKey);
                 }
 
                 // Special handling: CustomStateValues
                 if (configItem.CustomStateValues != null)
                 {
-                    var currentDisplayName = currentIndex >= 0 && currentIndex < comboResult.Options.Count
-                        ? LocalizeComboBoxDisplayText(comboResult.Options[currentIndex].DisplayText, isPowerPlanSetting)
+                    var currentRawKey = currentIndex >= 0 && currentIndex < comboResult.Options.Count
+                        ? comboResult.Options[currentIndex].DisplayText : null;
+                    var currentDisplayName = currentRawKey != null
+                        ? LocalizeComboBoxDisplayText(currentRawKey)
                         : GetComboBoxDisplayNameFromDef(settingDef, currentIndex, currentState);
                     var configDisplayName = configItem.PowerPlanName ?? "Custom";
                     if (!string.Equals(currentDisplayName, configDisplayName, StringComparison.OrdinalIgnoreCase))
-                        return (true, currentDisplayName, configDisplayName);
-                    return (false, string.Empty, string.Empty);
+                        return (true, currentDisplayName, configDisplayName, currentRawKey, configDisplayName);
+                    return (false, string.Empty, string.Empty, null, null);
                 }
 
                 if (configItem.SelectedIndex == null)
-                    return (false, string.Empty, string.Empty);
+                    return (false, string.Empty, string.Empty, null, null);
 
                 var configIndex = configItem.SelectedIndex.Value;
                 if (currentIndex != configIndex)
                 {
-                    var currentDisplayName = currentIndex >= 0 && currentIndex < comboResult.Options.Count
-                        ? LocalizeComboBoxDisplayText(comboResult.Options[currentIndex].DisplayText, isPowerPlanSetting)
-                        : currentIndex.ToString();
-                    var configDisplayName = configIndex >= 0 && configIndex < comboResult.Options.Count
-                        ? LocalizeComboBoxDisplayText(comboResult.Options[configIndex].DisplayText, isPowerPlanSetting)
-                        : configIndex.ToString();
-                    return (true, currentDisplayName, configDisplayName);
+                    var rawCurrentKey = currentIndex >= 0 && currentIndex < comboResult.Options.Count
+                        ? comboResult.Options[currentIndex].DisplayText : null;
+                    var rawConfigKey = configIndex >= 0 && configIndex < comboResult.Options.Count
+                        ? comboResult.Options[configIndex].DisplayText : null;
+                    var currentDisplayName = rawCurrentKey != null
+                        ? LocalizeComboBoxDisplayText(rawCurrentKey) : currentIndex.ToString();
+                    var configDisplayName = rawConfigKey != null
+                        ? LocalizeComboBoxDisplayText(rawConfigKey) : configIndex.ToString();
+                    return (true, currentDisplayName, configDisplayName, rawCurrentKey, rawConfigKey);
                 }
-                return (false, string.Empty, string.Empty);
+                return (false, string.Empty, string.Empty, null, null);
             }
 
             case InputType.NumericRange:
@@ -543,14 +556,14 @@ public class ConfigReviewService : IConfigReviewService
                     if (configItem.PowerSettings.TryGetValue("ACValue", out var acVal) && acVal is int acInt)
                     {
                         if (currentVal != acInt)
-                            return (true, currentVal.ToString(), acInt.ToString());
+                            return (true, currentVal.ToString(), acInt.ToString(), null, null);
                     }
                 }
-                return (false, string.Empty, string.Empty);
+                return (false, string.Empty, string.Empty, null, null);
             }
 
             default:
-                return (false, string.Empty, string.Empty);
+                return (false, string.Empty, string.Empty, null, null);
         }
     }
 
@@ -565,17 +578,16 @@ public class ConfigReviewService : IConfigReviewService
         try
         {
             var result = _comboBoxSetupService.SetupComboBoxOptions(settingDef, currentState.CurrentValue);
-            var isPowerPlan = settingDef.CustomProperties?.ContainsKey("LoadDynamicOptions") == true;
             if (index >= 0 && index < result.Options.Count)
             {
-                return LocalizeComboBoxDisplayText(result.Options[index].DisplayText ?? index.ToString(), isPowerPlan);
+                return LocalizeComboBoxDisplayText(result.Options[index].DisplayText ?? index.ToString());
             }
 
             // If index is negative, try to use the resolved selected value from the combo box setup
             if (index < 0 && result.SelectedValue is int resolvedIndex &&
                 resolvedIndex >= 0 && resolvedIndex < result.Options.Count)
             {
-                return LocalizeComboBoxDisplayText(result.Options[resolvedIndex].DisplayText ?? resolvedIndex.ToString(), isPowerPlan);
+                return LocalizeComboBoxDisplayText(result.Options[resolvedIndex].DisplayText ?? resolvedIndex.ToString());
             }
         }
         catch (Exception ex)
@@ -587,21 +599,59 @@ public class ConfigReviewService : IConfigReviewService
     }
 
     /// <summary>
-    /// Localizes combo box display text. Power plan options use localization keys
-    /// (e.g. "PowerPlan_Balanced_Name") as DisplayText that need to be resolved.
+    /// Localizes combo box display text by attempting resolution through the localization service.
+    /// Keys like "PowerPlan_Balanced_Name" or "ServiceOption_Disabled" resolve to localized strings;
+    /// plain text like "Programs" passes through unchanged (GetString returns "[key]" for missing keys).
     /// </summary>
-    private string LocalizeComboBoxDisplayText(string displayText, bool isPowerPlanSetting)
+    private string LocalizeComboBoxDisplayText(string displayText)
     {
         if (string.IsNullOrEmpty(displayText))
             return "Unknown";
 
-        if (isPowerPlanSetting && displayText.StartsWith("PowerPlan_", StringComparison.Ordinal))
-        {
-            var localized = _localizationService.GetString(displayText);
-            return !string.IsNullOrEmpty(localized) ? localized : displayText;
-        }
+        var localized = _localizationService.GetString(displayText);
+        if (!string.IsNullOrEmpty(localized) && !(localized.StartsWith("[") && localized.EndsWith("]")))
+            return localized;
 
         return displayText;
+    }
+
+    /// <summary>
+    /// Handles language changes by re-localizing all diff display strings.
+    /// Runs synchronously so updated diffs are ready before ViewModels reload settings.
+    /// </summary>
+    private void OnLanguageChanged(object? sender, EventArgs e)
+    {
+        if (!IsInReviewMode) return;
+        RelocalizeDisplayStrings();
+    }
+
+    /// <summary>
+    /// Re-localizes all diff display strings using stored raw keys.
+    /// Called when the UI language changes during active review mode.
+    /// </summary>
+    private void RelocalizeDisplayStrings()
+    {
+        foreach (var diff in _diffs.Values)
+        {
+            if (diff.CurrentDisplayKey != null)
+                diff.CurrentValueDisplay = LocalizeComboBoxDisplayText(diff.CurrentDisplayKey);
+            if (diff.ConfigDisplayKey != null)
+                diff.ConfigValueDisplay = LocalizeComboBoxDisplayText(diff.ConfigDisplayKey);
+            if (diff.IsActionSetting)
+                diff.ActionConfirmationMessage = GetActionConfirmationMessage(diff.SettingId);
+        }
+    }
+
+    /// <summary>
+    /// Gets the localization key for a predefined power plan by GUID, or null if not predefined.
+    /// </summary>
+    private static string? GetPowerPlanLocalizationKey(string? guid)
+    {
+        if (string.IsNullOrEmpty(guid)) return null;
+        var normalizedGuid = NormalizeGuid(guid);
+        var predefined = PowerPlanDefinitions.BuiltInPowerPlans.FirstOrDefault(
+            p => NormalizeGuid(p.Guid) == normalizedGuid);
+        return predefined?.LocalizationKey;
     }
 
     /// <summary>

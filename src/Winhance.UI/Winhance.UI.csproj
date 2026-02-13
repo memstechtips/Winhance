@@ -28,10 +28,10 @@
     <DefineConstants>DISABLE_XAML_GENERATED_MAIN</DefineConstants>
     <StartupObject>Winhance.UI.Program</StartupObject>
     <!-- Version information -->
-    <Version>25.02.08</Version>
-    <FileVersion>25.02.08</FileVersion>
-    <AssemblyVersion>25.02.08</AssemblyVersion>
-    <InformationalVersion>v25.02.08</InformationalVersion>
+    <Version>26.02.13</Version>
+    <FileVersion>26.02.13</FileVersion>
+    <AssemblyVersion>26.02.13</AssemblyVersion>
+    <InformationalVersion>v26.02.13</InformationalVersion>
   </PropertyGroup>
 
   <ItemGroup>
@@ -97,8 +97,11 @@
     <EmbeddedResource Include="Features\Common\Resources\AdvancedTools\autounattend-template.xml">
       <LogicalName>Winhance.UI.Resources.AdvancedTools.autounattend-template.xml</LogicalName>
     </EmbeddedResource>
-    <EmbeddedResource Include="Features\Common\Resources\Configs\Winhance_Windows_Defaults_Config.winhance">
-      <LogicalName>Winhance.UI.Resources.Configs.Winhance_Windows_Defaults_Config.winhance</LogicalName>
+    <EmbeddedResource Include="Features\Common\Resources\Configs\Winhance_Default_Config_Windows10_22H2.winhance">
+      <LogicalName>Winhance.UI.Resources.Configs.Winhance_Default_Config_Windows10_22H2.winhance</LogicalName>
+    </EmbeddedResource>
+    <EmbeddedResource Include="Features\Common\Resources\Configs\Winhance_Default_Config_Windows11_25H2.winhance">
+      <LogicalName>Winhance.UI.Resources.Configs.Winhance_Default_Config_Windows11_25H2.winhance</LogicalName>
     </EmbeddedResource>
   </ItemGroup>
 
@@ -107,5 +110,23 @@
     <AdditionalFiles Include="NativeMethods.txt" />
   </ItemGroup>
 </Project>
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
 

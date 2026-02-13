@@ -2,6 +2,7 @@ using CommunityToolkit.Mvvm.ComponentModel;
 using CommunityToolkit.Mvvm.Input;
 using Microsoft.UI.Xaml;
 using System.Diagnostics;
+using System.Runtime.InteropServices;
 using Winhance.Core.Features.Common.Constants;
 using Winhance.Core.Features.Common.Interfaces;
 
@@ -12,6 +13,17 @@ namespace Winhance.UI.Features.Common.ViewModels;
 /// </summary>
 public partial class MoreMenuViewModel : ObservableObject
 {
+    [DllImport("user32.dll")]
+    private static extern bool SetForegroundWindow(IntPtr hWnd);
+
+    [DllImport("user32.dll")]
+    private static extern bool ShowWindow(IntPtr hWnd, int nCmdShow);
+
+    [DllImport("user32.dll")]
+    private static extern bool IsIconic(IntPtr hWnd);
+
+    private const int SW_RESTORE = 9;
+
     private readonly ILocalizationService _localizationService;
     private readonly IVersionService _versionService;
     private readonly ILogService _logService;
@@ -130,12 +142,7 @@ public partial class MoreMenuViewModel : ObservableObject
                 Directory.CreateDirectory(logsFolder);
             }
 
-            Process.Start(new ProcessStartInfo
-            {
-                FileName = "explorer.exe",
-                Arguments = logsFolder,
-                UseShellExecute = true
-            });
+            OpenFolderOrBringToForeground(logsFolder);
         }
         catch (Exception ex)
         {
@@ -155,17 +162,70 @@ public partial class MoreMenuViewModel : ObservableObject
                 Directory.CreateDirectory(scriptsFolder);
             }
 
-            Process.Start(new ProcessStartInfo
-            {
-                FileName = "explorer.exe",
-                Arguments = scriptsFolder,
-                UseShellExecute = true
-            });
+            OpenFolderOrBringToForeground(scriptsFolder);
         }
         catch (Exception ex)
         {
             _logService.LogError($"Error opening scripts folder: {ex.Message}", ex);
         }
+    }
+
+    private void OpenFolderOrBringToForeground(string folderPath)
+    {
+        string normalizedPath = Path.GetFullPath(folderPath)
+            .TrimEnd(Path.DirectorySeparatorChar, Path.AltDirectorySeparatorChar)
+            .ToLowerInvariant();
+
+        try
+        {
+            Type? shellType = Type.GetTypeFromProgID("Shell.Application");
+            if (shellType != null)
+            {
+                dynamic shell = Activator.CreateInstance(shellType)!;
+                dynamic windows = shell.Windows();
+
+                foreach (dynamic window in windows)
+                {
+                    try
+                    {
+                        string? locationUrl = window.LocationURL;
+                        if (string.IsNullOrEmpty(locationUrl))
+                            continue;
+
+                        Uri uri = new Uri(locationUrl);
+                        string windowPath = Path.GetFullPath(uri.LocalPath)
+                            .TrimEnd(Path.DirectorySeparatorChar, Path.AltDirectorySeparatorChar)
+                            .ToLowerInvariant();
+
+                        if (windowPath == normalizedPath)
+                        {
+                            IntPtr handle = new IntPtr(window.HWND);
+                            if (IsIconic(handle))
+                            {
+                                ShowWindow(handle, SW_RESTORE);
+                            }
+                            SetForegroundWindow(handle);
+                            return;
+                        }
+                    }
+                    catch
+                    {
+                        // Skip windows that can't be inspected
+                    }
+                }
+            }
+        }
+        catch (Exception ex)
+        {
+            _logService.LogWarning($"Error checking for existing Explorer windows: {ex.Message}");
+        }
+
+        Process.Start(new ProcessStartInfo
+        {
+            FileName = "explorer.exe",
+            Arguments = folderPath,
+            UseShellExecute = true
+        });
     }
 
     [RelayCommand]

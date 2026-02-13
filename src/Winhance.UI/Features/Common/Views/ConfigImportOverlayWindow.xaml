@@ -5,7 +5,8 @@
     xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
     Title="Winhance">
 
-    <Grid x:Name="RootGrid" Background="Black">
+    <Grid x:Name="RootGrid" Background="Black"
+          AutomationProperties.LiveSetting="Assertive">
         <StackPanel HorizontalAlignment="Center" VerticalAlignment="Center" Spacing="24">
             <!-- Logo + Branding -->
             <StackPanel Orientation="Horizontal" HorizontalAlignment="Center" Spacing="16">
@@ -37,7 +38,8 @@
                 <ProgressRing x:Name="OverlayProgressRing"
                               IsActive="True"
                               Width="40" Height="40"
-                              Foreground="White"/>
+                              Foreground="White"
+                              AutomationProperties.Name="Import in progress"/>
             </StackPanel>
         </StackPanel>
     </Grid>

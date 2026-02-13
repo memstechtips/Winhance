@@ -13,5 +13,11 @@ namespace Winhance.Core.Features.Common.Models
         public Dictionary<string, string> AdditionalInfo { get; set; } = new Dictionary<string, string>();
         public string TerminalOutput { get; set; }
         public bool IsActive { get; set; }
+        public int QueueTotal { get; set; }
+        public int QueueCurrent { get; set; }
+        public string? QueueNextItemName { get; set; }
+        public int ScriptSlotIndex { get; set; } = -1;  // -1 = single-mode (existing behavior)
+        public int ScriptSlotCount { get; set; }         // 0 = single-mode
+        public bool IsCompletion { get; set; }           // true = intentional task completion signal
     }
 }

@@ -97,9 +97,9 @@ public partial class OptimizeViewModel : ObservableObject
         new("Privacy", "PrivacyIconPath", "Privacy & Security"),
         new("Power", "PowerIconPath", "Power"),
         new("Gaming", "GamingIconPath", "Gaming and Performance"),
-        new("Update", "UpdateIconGlyph", "Updates"),
+        new("Update", "UpdateIconSymbol", "Updates"),
         new("Notification", "NotificationIconPath", "Notifications"),
-        new("Sound", "SoundIconGlyph", "Sound"),
+        new("Sound", "SoundIconSymbol", "Sound"),
     };
 
     /// <summary>

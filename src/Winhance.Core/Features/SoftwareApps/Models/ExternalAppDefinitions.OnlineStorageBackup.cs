@@ -22,6 +22,7 @@ namespace Winhance.Core.Features.SoftwareApps.Models
                             Description = "Cloud storage and file synchronization service",
                             GroupName = "Online Storage & Backup",
                             WinGetPackageId = ["Google.GoogleDrive"],
+                            ChocoPackageId = "googledrive",
                             WebsiteUrl = "https://www.google.com/drive/"
                         },
                         new ItemDefinition
@@ -31,6 +32,7 @@ namespace Winhance.Core.Features.SoftwareApps.Models
                             Description = "File hosting service that offers cloud storage, file synchronization, personal cloud",
                             GroupName = "Online Storage & Backup",
                             WinGetPackageId = ["Dropbox.Dropbox"],
+                            ChocoPackageId = "dropbox",
                             WebsiteUrl = "https://www.dropbox.com/"
                         },
                         new ItemDefinition
@@ -40,6 +42,7 @@ namespace Winhance.Core.Features.SoftwareApps.Models
                             Description = "Automatically access and share your photos, videos, and files in any folder",
                             GroupName = "Online Storage & Backup",
                             WinGetPackageId = ["IPVanish.SugarSync"],
+                            ChocoPackageId = "sugarsync",
                             WebsiteUrl = "https://www.sugarsync.com/"
                         },
                         new ItemDefinition
@@ -49,6 +52,7 @@ namespace Winhance.Core.Features.SoftwareApps.Models
                             Description = "Access, share and protect your files, calendars, contacts, communication & more at home and in your organization",
                             GroupName = "Online Storage & Backup",
                             WinGetPackageId = ["Nextcloud.NextcloudDesktop"],
+                            ChocoPackageId = "nextcloud-client",
                             WebsiteUrl = "https://nextcloud.com/"
                         },
                         new ItemDefinition
@@ -58,6 +62,7 @@ namespace Winhance.Core.Features.SoftwareApps.Models
                             Description = "Secure cloud storage with end-to-end encryption",
                             GroupName = "Online Storage & Backup",
                             WinGetPackageId = ["Proton.ProtonDrive"],
+                            ChocoPackageId = "protondrive",
                             WebsiteUrl = "https://proton.me/drive"
                         },
                         new ItemDefinition

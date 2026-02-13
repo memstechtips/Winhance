@@ -12,11 +12,7 @@ public enum WinhanceTheme
     /// <summary>Pure WinUI 3 light mode with Windows accent color.</summary>
     LightNative,
     /// <summary>Pure WinUI 3 dark mode with Windows accent color.</summary>
-    DarkNative,
-    /// <summary>Custom light theme with blue accent (original Winhance light theme).</summary>
-    LegacyWhite,
-    /// <summary>Custom dark theme with yellow accent (original Winhance dark theme).</summary>
-    LegacyDark
+    DarkNative
 }
 
 /// <summary>

@@ -3,6 +3,7 @@ using Microsoft.Extensions.DependencyInjection.Extensions;
 using Winhance.Core.Features.Common.Events;
 using Winhance.Core.Features.Common.Interfaces;
 using Winhance.Infrastructure.Features.Common.Events;
+using Winhance.Infrastructure.Features.Common.EventHandlers;
 using Winhance.Infrastructure.Features.Common.Services;
 
 namespace Winhance.UI.Features.Common.Extensions.DI;
@@ -86,6 +87,10 @@ public static class InfrastructureServicesExtensions
 
         // Task Progress Service
         services.AddSingleton<ITaskProgressService, TaskProgressService>();
+
+        // Tooltip Services
+        services.AddSingleton<ITooltipDataService, TooltipDataService>();
+        services.AddSingleton<TooltipRefreshEventHandler>();
 
         // Configuration Application Bridge (for config import/export)
         services.AddSingleton<ConfigurationApplicationBridgeService>();

@@ -5,16 +5,19 @@
     xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
     xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
     xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
+    xmlns:fluentIcons="using:FluentIcons.WinUI"
     mc:Ignorable="d"
     d:DesignHeight="60"
     d:DesignWidth="400">
 
-    <Grid Visibility="{x:Bind IsProgressVisible, Mode=OneWay}">
+    <Grid Visibility="{x:Bind IsProgressVisible, Mode=OneWay}"
+          AutomationProperties.LiveSetting="Assertive">
         <Border Background="{ThemeResource CardBackgroundFillColorDefaultBrush}"
                 CornerRadius="4"
                 Padding="12,8">
             <Grid>
                 <Grid.RowDefinitions>
+                    <RowDefinition Height="Auto"/>
                     <RowDefinition Height="Auto"/>
                     <RowDefinition Height="Auto"/>
                 </Grid.RowDefinitions>
@@ -52,17 +55,44 @@
                             Command="{x:Bind CancelCommand, Mode=OneWay}"
                             IsEnabled="{x:Bind IsTaskRunning, Mode=OneWay}"
                             Visibility="{x:Bind CanCancel, Mode=OneWay}"
+                            AutomationProperties.Name="{x:Bind CancelText, Mode=OneWay}"
                             VerticalAlignment="Center"
                             Padding="8,4">
                         <StackPanel Orientation="Horizontal" Spacing="6">
-                            <FontIcon Glyph="&#xE711;" FontSize="12"/>
+                            <fluentIcons:SymbolIcon Symbol="Dismiss" IconVariant="Regular" FontSize="12"/>
                             <TextBlock Text="{x:Bind CancelText, Mode=OneWay}" FontSize="12"/>
                         </StackPanel>
                     </Button>
                 </Grid>
 
-                <!-- Row 1: Indeterminate progress bar -->
-                <ProgressBar Grid.Row="1"
+                <!-- Row 1: Queue info (Next item | Queue counter) -->
+                <Grid Grid.Row="1"
+                      Visibility="{x:Bind IsQueueInfoVisible, Mode=OneWay}"
+                      Margin="0,0,0,6">
+                    <Grid.ColumnDefinitions>
+                        <ColumnDefinition Width="Auto"/>
+                        <ColumnDefinition Width="*"/>
+                        <ColumnDefinition Width="Auto"/>
+                    </Grid.ColumnDefinitions>
+
+                    <TextBlock Grid.Column="0"
+                               Text="{x:Bind QueueNextItemName, Mode=OneWay}"
+                               FontSize="12"
+                               Foreground="{ThemeResource TextFillColorSecondaryBrush}"
+                               VerticalAlignment="Center"
+                               TextTrimming="CharacterEllipsis"
+                               Margin="0,0,10,0"/>
+
+                    <TextBlock Grid.Column="2"
+                               Text="{x:Bind QueueStatusText, Mode=OneWay}"
+                               FontSize="12"
+                               FontFamily="Consolas, 'Courier New', monospace"
+                               Foreground="{ThemeResource TextFillColorSecondaryBrush}"
+                               VerticalAlignment="Center"/>
+                </Grid>
+
+                <!-- Row 2: Indeterminate progress bar -->
+                <ProgressBar Grid.Row="2"
                              Height="3"
                              IsIndeterminate="True"/>
             </Grid>

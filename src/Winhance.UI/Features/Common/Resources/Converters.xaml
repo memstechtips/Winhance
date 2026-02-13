@@ -20,7 +20,7 @@
     <converters:NullToVisibilityConverter x:Key="NullToVisibilityConverter"/>
 
     <!-- Icon Converters -->
-    <converters:SettingIconConverter x:Key="SettingIconConverter"/>
+    <converters:IconConverter x:Key="IconConverter"/>
     <converters:StringToGeometryConverter x:Key="StringToGeometryConverter"/>
 
     <!-- SoftwareApps Converters -->

@@ -31,6 +31,7 @@
             <local:ComboBoxEx
                 ItemsSource="{x:Bind ComboBoxOptions}"
                 SelectedValue="{x:Bind SelectedValue, Mode=OneWay}"
+                SelectionChanged="{x:Bind OnComboBoxSelectionChanged}"
                 DropDownClosed="{x:Bind OnComboBoxDropDownClosed}"
                 SelectedValuePath="Value"
                 DisplayMemberPath="DisplayText"/>
@@ -87,5 +88,6 @@
     <ContentControl
         Content="{x:Bind Setting, Mode=OneWay}"
         ContentTemplateSelector="{StaticResource SettingTemplateSelector}"
+        IsTabStop="False"
         HorizontalContentAlignment="Stretch"/>
 </UserControl>

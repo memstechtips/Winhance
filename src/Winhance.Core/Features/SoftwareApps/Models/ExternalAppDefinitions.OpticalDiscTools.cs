@@ -22,6 +22,7 @@ namespace Winhance.Core.Features.SoftwareApps.Models
                             Description = "Lightweight CD / DVD / HD DVD / Blu-ray burning application",
                             GroupName = "Optical Disc Tools",
                             WinGetPackageId = ["LIGHTNINGUK.ImgBurn"],
+                            ChocoPackageId = "imgburn",
                             WebsiteUrl = "https://www.imgburn.com/"
                         },
                         new ItemDefinition
@@ -40,6 +41,7 @@ namespace Winhance.Core.Features.SoftwareApps.Models
                             Description = "DVD and Blu-ray to MKV converter and streaming tool",
                             GroupName = "Optical Disc Tools",
                             WinGetPackageId = ["GuinpinSoft.MakeMKV"],
+                            ChocoPackageId = "makemkv",
                             WebsiteUrl = "https://www.makemkv.com/"
                         }
                     }

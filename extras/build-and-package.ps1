@@ -23,7 +23,11 @@
 #    Place at: extras\prerequisites\windowsdesktop-runtime-10.0.2-win-x64.exe
 #    Download: https://dotnet.microsoft.com/download/dotnet/10.0
 #
-# 5. Windows SDK (only required for code signing)
+# 5. Windows App SDK 1.7 Runtime installer (bundled into the installer for end users)
+#    Place at: extras\prerequisites\WindowsAppRuntimeInstall-x64-1.7.exe
+#    Download: https://learn.microsoft.com/en-us/windows/apps/windows-app-sdk/downloads
+#
+# 6. Windows SDK (only required for code signing)
 #    Provides signtool.exe. Install via VS Installer or standalone SDK installer.
 #
 # EXAMPLES:
@@ -185,6 +189,7 @@ function Set-FileSignature {
 $publishOutputPath = "$solutionDir\src\Winhance.UI\bin\x64\Release\net10.0-windows10.0.19041.0"
 $innoSetupScript = "$scriptRoot\Winhance.Installer.iss"
 $dotNetRuntimePath = "$scriptRoot\prerequisites\windowsdesktop-runtime-10.0.2-win-x64.exe"
+$winAppSdkRuntimePath = "$scriptRoot\prerequisites\WindowsAppRuntimeInstall-x64-1.7.exe"
 $tempInnoScript = "$env:TEMP\Winhance.Installer.temp.iss"
 
 # Declare certificate variable at script scope so it's accessible throughout
@@ -194,6 +199,18 @@ $shouldSign = $false
 # Ensure output directory exists
 if (-not (Test-Path $OutputDir)) {
     New-Item -ItemType Directory -Path $OutputDir -Force | Out-Null
+}
+
+# Check for prerequisite installer files
+if (-not (Test-Path $dotNetRuntimePath)) {
+    Write-Host ".NET 10 Desktop Runtime installer not found at: $dotNetRuntimePath" -ForegroundColor Red
+    Write-Host "Download from: https://dotnet.microsoft.com/download/dotnet/10.0" -ForegroundColor Yellow
+    exit 1
+}
+if (-not (Test-Path $winAppSdkRuntimePath)) {
+    Write-Host "Windows App SDK Runtime installer not found at: $winAppSdkRuntimePath" -ForegroundColor Red
+    Write-Host "Download from: https://learn.microsoft.com/en-us/windows/apps/windows-app-sdk/downloads" -ForegroundColor Yellow
+    exit 1
 }
 
 Write-Host "Building Winhance v$Version..." -ForegroundColor Cyan
@@ -268,7 +285,7 @@ if ($LASTEXITCODE -ne 0) {
 
 # Step 2: Build the solution (WinUI3 - no separate publish step needed)
 Write-Host "Building solution..." -ForegroundColor Green
-& $msbuildPath "$projectPath" /p:Configuration=Release /p:Platform=x64 /p:WindowsAppSDKSelfContained=true -restore
+& $msbuildPath "$projectPath" /p:Configuration=Release /p:Platform=x64 /p:WindowsAppSDKSelfContained=false -restore
 if ($LASTEXITCODE -ne 0) {
     Write-Host "Failed to build solution" -ForegroundColor Red
     exit 1

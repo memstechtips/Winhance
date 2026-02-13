@@ -144,7 +144,7 @@ jobs:
         with:
           draft: true
           prerelease: false
-          name: "Winhance Release #${{ steps.release_number.outputs.next_number }} ${GITHUB_REF#refs/tags/}"
+          name: "Winhance Release #${{ steps.release_number.outputs.next_number }} ${{ github.ref_name }}"
           body: ${{ steps.notes.outputs.BODY }}
           generate_release_notes: false
         env:

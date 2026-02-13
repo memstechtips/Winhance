@@ -5,6 +5,7 @@
     xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
     xmlns:local="using:Winhance.UI.Features.AdvancedTools"
     xmlns:controls="using:CommunityToolkit.WinUI.Controls"
+    xmlns:fluentIcons="using:FluentIcons.WinUI"
     x:DefaultBindMode="OneWay"
     NavigationCacheMode="Enabled">
 
@@ -25,7 +26,8 @@
                     Text="{x:Bind ViewModel.PageTitle}"
                     Style="{StaticResource TitleTextBlockStyle}"
                     FontWeight="Bold"
-                    FontSize="30"/>
+                    FontSize="30"
+                    AutomationProperties.HeadingLevel="Level1"/>
                 <TextBlock
                     Text="{x:Bind ViewModel.PageDescription}"
                     Style="{StaticResource CaptionTextBlockStyle}"
@@ -52,9 +54,10 @@
                 </Button>
 
                 <!-- Separator (visible only on detail pages) -->
-                <FontIcon
+                <fluentIcons:SymbolIcon
                     x:Name="BreadcrumbSeparator"
-                    Glyph="&#xE76C;"
+                    Symbol="ChevronRight"
+                    IconVariant="Regular"
                     FontSize="12"
                     Foreground="{ThemeResource TextFillColorSecondaryBrush}"
                     VerticalAlignment="Center"

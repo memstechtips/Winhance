@@ -1,5 +1,4 @@
 using System;
-using System.Collections.Generic;
 using System.Diagnostics;
 using System.Threading;
 using System.Threading.Tasks;
@@ -12,7 +11,7 @@ namespace Winhance.Infrastructure.Features.SoftwareApps.Services;
 
 public class OptionalFeatureService(
     ILogService logService,
-    IBloatRemovalService bloatRemovalService) : IOptionalFeatureService
+    IWindowsAppsService windowsAppsService) : IOptionalFeatureService
 {
     public async Task<bool> EnableFeatureAsync(
         string featureName,
@@ -88,21 +87,18 @@ public class OptionalFeatureService(
                 OptionalFeatureName = featureName
             };
 
-            var success = await bloatRemovalService.RemoveAppsAsync(
-                new List<ItemDefinition> { item },
-                progress,
-                cancellationToken);
+            var result = await windowsAppsService.DisableOptionalFeatureNativeAsync(item, cancellationToken);
 
-            if (success)
+            if (result.Success)
             {
-                logService?.LogInformation($"Feature '{featureName}' disabled successfully via BloatRemovalService.");
+                logService?.LogInformation($"Feature '{featureName}' disabled successfully via DISM.");
             }
             else
             {
-                logService?.LogError($"BloatRemovalService failed to disable feature '{featureName}'.");
+                logService?.LogError($"DISM failed to disable feature '{featureName}': {result.ErrorMessage}");
             }
 
-            return success;
+            return result.Success;
         }
         catch (Exception ex)
         {

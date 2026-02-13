@@ -11,11 +11,13 @@ public record ItemDefinition : BaseDefinition
     public string[]? WinGetPackageId { get; init; }
     public string? CapabilityName { get; init; }
     public string? OptionalFeatureName { get; init; }
-    public string? ScoopPackageName { get; init; }
+    public string? ChocoPackageId { get; init; }
     public bool CanBeReinstalled { get; init; } = true;
     public bool RequiresReboot { get; init; }
     public Func<string>? RemovalScript { get; init; }
     public string[]? SubPackages { get; init; }
+    public string? RegistryUninstallSearchPattern { get; init; }
+    public string[]? ProcessesToStop { get; init; }
     public string? WebsiteUrl { get; init; }
     public bool IsInstalled { get; set; }
     public bool IsSelected { get; set; }

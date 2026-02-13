@@ -583,7 +583,9 @@ namespace Winhance.Core.Features.SoftwareApps.Models
                         GroupName = "Office",
                         AppxPackageName = "Microsoft.Office.OneNote",
                         WinGetPackageId = ["XPFFZHVGQWWLHB"],
-                        CanBeReinstalled = true
+                        CanBeReinstalled = true,
+                        RegistryUninstallSearchPattern = "OneNote*",
+                        ProcessesToStop = ["OneNote", "ONENOTE", "ONENOTEM"]
                     }
                 }
             };

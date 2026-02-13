@@ -13,4 +13,5 @@ public interface IAppOperationService
     Task<OperationResult<int>> UninstallAppsAsync(List<ItemDefinition> apps, IProgress<TaskProgressDetail>? progress = null, bool saveRemovalScripts = true);
     Task<OperationResult<bool>> UninstallExternalAppAsync(string packageId, string displayName, IProgress<TaskProgressDetail>? progress = null);
     Task<OperationResult<int>> UninstallExternalAppsAsync(List<ItemDefinition> apps, IProgress<TaskProgressDetail>? progress = null);
+    Task<OperationResult<int>> UninstallAppsInParallelAsync(List<ItemDefinition> apps, bool saveRemovalScripts = true);
 }

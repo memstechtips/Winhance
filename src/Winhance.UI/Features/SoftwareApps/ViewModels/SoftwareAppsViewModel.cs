@@ -234,9 +234,7 @@ public partial class SoftwareAppsViewModel : BaseViewModel
         }
     }
 
-    public string RemoveButtonText => IsWindowsAppsTabSelected
-        ? _localizationService.GetString("SoftwareApps_Button_RemoveSelected")
-        : _localizationService.GetString("SoftwareApps_Button_UninstallSelected");
+    public string RemoveButtonText => _localizationService.GetString("SoftwareApps_Button_UninstallSelected");
 
     public bool IsLoading => IsWindowsAppsTabSelected
         ? WindowsAppsViewModel.IsLoading
@@ -417,7 +415,6 @@ public partial class SoftwareAppsViewModel : BaseViewModel
         catch (Exception ex)
         {
             _logService.LogError($"[SoftwareAppsViewModel] Error in InitializeAsync: {ex.Message}", ex);
-            throw;
         }
     }
 

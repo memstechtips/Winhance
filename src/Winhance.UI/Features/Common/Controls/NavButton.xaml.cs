@@ -1,8 +1,10 @@
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.UI.Xaml;
 using Microsoft.UI.Xaml.Controls;
+using Microsoft.UI.Xaml.Automation;
 using Microsoft.UI.Xaml.Input;
 using Microsoft.UI.Xaml.Media;
+using Windows.System;
 using System;
 using System.ComponentModel;
 using System.Runtime.CompilerServices;
@@ -218,10 +220,39 @@ public sealed partial class NavButton : UserControl, INotifyPropertyChanged
     #endregion
 
     private bool _isPointerOver;
+    private bool _isFocused;
 
     public NavButton()
     {
         this.InitializeComponent();
+        UpdateVisualState();
+
+        // Keyboard and focus accessibility
+        KeyDown += NavButton_KeyDown;
+        GotFocus += NavButton_GotFocus;
+        LostFocus += NavButton_LostFocus;
+    }
+
+    private void NavButton_KeyDown(object sender, KeyRoutedEventArgs e)
+    {
+        if (IsLoading) return;
+
+        if (e.Key == VirtualKey.Enter || e.Key == VirtualKey.Space)
+        {
+            Clicked?.Invoke(this, new NavButtonClickedEventArgs(NavigationTag));
+            e.Handled = true;
+        }
+    }
+
+    private void NavButton_GotFocus(object sender, RoutedEventArgs e)
+    {
+        _isFocused = true;
+        UpdateVisualState();
+    }
+
+    private void NavButton_LostFocus(object sender, RoutedEventArgs e)
+    {
+        _isFocused = false;
         UpdateVisualState();
     }
 
@@ -371,9 +402,9 @@ public sealed partial class NavButton : UserControl, INotifyPropertyChanged
             // Selected state: use tertiary fill
             BackgroundBorder.Background = (Brush)Application.Current.Resources["SubtleFillColorTertiaryBrush"];
         }
-        else if (_isPointerOver && !IsLoading)
+        else if ((_isPointerOver || _isFocused) && !IsLoading)
         {
-            // Hover state: use secondary fill
+            // Hover/Focus state: use secondary fill
             BackgroundBorder.Background = (Brush)Application.Current.Resources["SubtleFillColorSecondaryBrush"];
         }
         else

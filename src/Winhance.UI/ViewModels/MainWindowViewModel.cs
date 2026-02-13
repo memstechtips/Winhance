@@ -71,6 +71,18 @@ public partial class MainWindowViewModel : ObservableObject
     private string _lastTerminalLine = string.Empty;
 
     [ObservableProperty]
+    private string _queueStatusText = string.Empty;
+
+    [ObservableProperty]
+    private string _queueNextItemName = string.Empty;
+
+    [ObservableProperty]
+    private bool _isQueueVisible;
+
+    [ObservableProperty]
+    private int _activeScriptCount;
+
+    [ObservableProperty]
     private bool _isUpdateInfoBarOpen;
 
     [ObservableProperty]
@@ -111,6 +123,12 @@ public partial class MainWindowViewModel : ObservableObject
     /// Event raised when the Windows version filter state changes.
     /// </summary>
     public event EventHandler<FilterStateChangedEventArgs>? FilterStateChanged;
+
+    /// <summary>
+    /// Event raised when a multi-script progress update is received.
+    /// Parameters: (slotIndex, detail).
+    /// </summary>
+    public event Action<int, TaskProgressDetail>? ScriptProgressReceived;
 
     public MainWindowViewModel(
         IThemeService themeService,
@@ -192,6 +210,16 @@ public partial class MainWindowViewModel : ObservableObject
         if (IsUpdateInfoBarOpen)
         {
             RefreshUpdateInfoBarText();
+        }
+
+        // Review Mode bar
+        if (IsInReviewMode)
+        {
+            OnPropertyChanged(nameof(ReviewModeTitleText));
+            OnPropertyChanged(nameof(ReviewModeDescriptionText));
+            OnPropertyChanged(nameof(ReviewModeApplyButtonText));
+            OnPropertyChanged(nameof(ReviewModeCancelButtonText));
+            UpdateReviewModeStatus();
         }
     }
 
@@ -838,10 +866,41 @@ public partial class MainWindowViewModel : ObservableObject
     {
         _dispatcherService.RunOnUIThread(() =>
         {
-            IsLoading = _taskProgressService.IsTaskRunning;
-            if (!string.IsNullOrEmpty(detail.StatusText))
-                AppName = detail.StatusText;
-            LastTerminalLine = detail.TerminalOutput ?? string.Empty;
+            if (detail.ScriptSlotCount > 0)
+            {
+                // Multi-script mode: update slot count and raise per-slot event
+                ActiveScriptCount = detail.ScriptSlotCount;
+                ScriptProgressReceived?.Invoke(detail.ScriptSlotIndex, detail);
+            }
+            else if (ActiveScriptCount > 0 && detail.ScriptSlotIndex == -1)
+            {
+                // Multi-script task completed (ScriptSlotCount went to 0)
+                ActiveScriptCount = 0;
+            }
+            else
+            {
+                // Existing single-task mode (unchanged)
+                IsLoading = _taskProgressService.IsTaskRunning;
+                if (!string.IsNullOrEmpty(detail.StatusText))
+                    AppName = detail.StatusText;
+                LastTerminalLine = detail.TerminalOutput ?? string.Empty;
+
+                // Queue display
+                if (detail.QueueTotal > 1)
+                {
+                    IsQueueVisible = true;
+                    QueueStatusText = $"{detail.QueueCurrent} / {detail.QueueTotal}";
+                    QueueNextItemName = !string.IsNullOrEmpty(detail.QueueNextItemName)
+                        ? $"Next: {detail.QueueNextItemName}"
+                        : string.Empty;
+                }
+                else
+                {
+                    IsQueueVisible = false;
+                    QueueStatusText = string.Empty;
+                    QueueNextItemName = string.Empty;
+                }
+            }
         });
     }
 

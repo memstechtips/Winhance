@@ -65,23 +65,20 @@ function Write-Log {
         Remove-Item $logFile -Force -ErrorAction SilentlyContinue
         $timestamp = Get-Date -Format ""yyyy-MM-dd HH:mm:ss""
         ""$timestamp - Log rotated - previous log exceeded 500KB"" | Out-File -FilePath $logFile
-
-        # Also output to console for real-time progress
-        Write-Host $Message
     }
 
     $timestamp = Get-Date -Format ""yyyy-MM-dd HH:mm:ss""
     ""$timestamp - $Message"" | Out-File -FilePath $logFile -Append
+
+    # Also output to console for real-time progress
+    Write-Host $Message
 }
 
 # Function to schedule file for deletion on reboot
 function Schedule-DeleteOnReboot {
     param([string]$Path)
 
-    $code = @'
-[DllImport(""kernel32.dll"", SetLastError=true, CharSet=CharSet.Unicode)]
-public static extern bool MoveFileEx(string lpExistingFileName, string lpNewFileName, int dwFlags);
-'@
+    $code = '[DllImport(""kernel32.dll"", SetLastError=true, CharSet=CharSet.Unicode)] public static extern bool MoveFileEx(string lpExistingFileName, string lpNewFileName, int dwFlags);'
     if (-not ([System.Management.Automation.PSTypeName]'Win32.Kernel32').Type) {
         Add-Type -MemberDefinition $code -Name 'Kernel32' -Namespace 'Win32' -ErrorAction SilentlyContinue
     }

@@ -1,11 +1,15 @@
 using System.ComponentModel;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.UI.Xaml;
+using Microsoft.UI.Xaml.Automation;
+using Microsoft.UI.Xaml.Automation.Peers;
 using Microsoft.UI.Xaml.Controls;
 using Microsoft.UI.Xaml.Navigation;
 using Winhance.Core.Features.Common.Constants;
 using Winhance.Core.Features.Common.Services;
 using IConfigReviewService = Winhance.Core.Features.Common.Interfaces.IConfigReviewService;
+using ILocalizationService = Winhance.Core.Features.Common.Interfaces.ILocalizationService;
+using IUserPreferencesService = Winhance.Core.Features.Common.Interfaces.IUserPreferencesService;
 using Winhance.UI.Features.Customize.Models;
 using Winhance.UI.Features.Customize.Pages;
 using Winhance.UI.Features.Customize.ViewModels;
@@ -32,7 +36,10 @@ public sealed partial class CustomizePage : Page
     };
 
     private IConfigReviewService? _configReviewService;
+    private IUserPreferencesService? _userPreferencesService;
+    private ILocalizationService? _localizationService;
     private Dictionary<string, InfoBadge>? _flyoutBadges;
+    private bool _isTechnicalDetailsVisible;
 
     public CustomizeViewModel ViewModel { get; }
 
@@ -62,6 +69,9 @@ public sealed partial class CustomizePage : Page
                 _configReviewService.BadgeStateChanged += OnBadgeStateChanged;
             }
 
+            _userPreferencesService = App.Services.GetService<IUserPreferencesService>();
+            _localizationService = App.Services.GetService<ILocalizationService>();
+
             StartupLogger.Log("CustomizePage", "ViewModel obtained, constructor complete");
         }
         catch (Exception ex)
@@ -81,10 +91,17 @@ public sealed partial class CustomizePage : Page
 
     private void UpdateBreadcrumbMenuItems()
     {
-        FlyoutTextWindowsTheme.Text = ViewModel.GetSectionDisplayName("WindowsTheme");
-        FlyoutTextTaskbar.Text = ViewModel.GetSectionDisplayName("Taskbar");
-        FlyoutTextStartMenu.Text = ViewModel.GetSectionDisplayName("StartMenu");
-        FlyoutTextExplorer.Text = ViewModel.GetSectionDisplayName("Explorer");
+        SetFlyoutButtonText(FlyoutTextWindowsTheme, FlyoutButtonWindowsTheme, "WindowsTheme");
+        SetFlyoutButtonText(FlyoutTextTaskbar, FlyoutButtonTaskbar, "Taskbar");
+        SetFlyoutButtonText(FlyoutTextStartMenu, FlyoutButtonStartMenu, "StartMenu");
+        SetFlyoutButtonText(FlyoutTextExplorer, FlyoutButtonExplorer, "Explorer");
+    }
+
+    private void SetFlyoutButtonText(TextBlock textBlock, Button button, string sectionKey)
+    {
+        var displayName = ViewModel.GetSectionDisplayName(sectionKey);
+        textBlock.Text = displayName;
+        AutomationProperties.SetName(button, displayName);
     }
 
     protected override async void OnNavigatedTo(NavigationEventArgs e)
@@ -100,6 +117,9 @@ public sealed partial class CustomizePage : Page
 
             StartupLogger.Log("CustomizePage", "Calling ViewModel.InitializeAsync...");
             await ViewModel.InitializeAsync();
+
+            // Initialize technical details toggle state
+            await InitializeTechnicalDetailsToggleAsync();
 
             // Update badges if already in review mode (events fired before page existed)
             if (_configReviewService?.IsInReviewMode == true)
@@ -191,6 +211,7 @@ public sealed partial class CustomizePage : Page
         if (isInDetailPage)
         {
             BreadcrumbSectionText.Text = ViewModel.CurrentSectionName;
+            AutomationProperties.SetName(BreadcrumbSection, ViewModel.CurrentSectionName);
 
             if (SectionIconResourceKeys.TryGetValue(ViewModel.CurrentSectionKey, out var resourceKey) &&
                 Application.Current.Resources.TryGetValue(resourceKey, out var pathDataObj) &&
@@ -352,6 +373,97 @@ public sealed partial class CustomizePage : Page
         {
             badge.Visibility = Visibility.Collapsed;
         }
+    }
+
+    // Technical Details toggle
+    private async Task InitializeTechnicalDetailsToggleAsync()
+    {
+        if (_userPreferencesService != null)
+        {
+            _isTechnicalDetailsVisible = await _userPreferencesService.GetPreferenceAsync(
+                UserPreferenceKeys.ShowTechnicalDetails, false);
+        }
+
+        // Sync all settings (handles cross-page toggle changes)
+        foreach (var section in CustomizeViewModel.Sections)
+        {
+            var sectionVm = ViewModel.GetSectionViewModel(section.Key);
+            if (sectionVm == null) continue;
+            foreach (var setting in sectionVm.Settings)
+            {
+                setting.IsTechnicalDetailsGloballyVisible = _isTechnicalDetailsVisible;
+            }
+        }
+
+        UpdateTechnicalDetailsToggleVisual();
+    }
+
+    private async void TechnicalDetailsToggle_Click(object sender, RoutedEventArgs e)
+    {
+        _isTechnicalDetailsVisible = !_isTechnicalDetailsVisible;
+
+        // Update all settings across all sections
+        foreach (var section in CustomizeViewModel.Sections)
+        {
+            var sectionVm = ViewModel.GetSectionViewModel(section.Key);
+            if (sectionVm == null) continue;
+            foreach (var setting in sectionVm.Settings)
+            {
+                setting.IsTechnicalDetailsGloballyVisible = _isTechnicalDetailsVisible;
+            }
+        }
+
+        UpdateTechnicalDetailsToggleVisual();
+
+        // Persist preference
+        if (_userPreferencesService != null)
+        {
+            await _userPreferencesService.SetPreferenceAsync(
+                UserPreferenceKeys.ShowTechnicalDetails, _isTechnicalDetailsVisible);
+        }
+    }
+
+    private void UpdateTechnicalDetailsToggleVisual()
+    {
+        try
+        {
+            var resourceKey = _isTechnicalDetailsVisible ? "InformationIconPath" : "InformationOffIconPath";
+            if (Application.Current.Resources.TryGetValue(resourceKey, out var pathData) && pathData is string iconData)
+            {
+                var geometry = (Microsoft.UI.Xaml.Media.Geometry)Microsoft.UI.Xaml.Markup.XamlBindingHelper.ConvertValue(
+                    typeof(Microsoft.UI.Xaml.Media.Geometry), iconData);
+                TechnicalDetailsIcon.Data = geometry;
+            }
+
+            if (_isTechnicalDetailsVisible)
+            {
+                TechnicalDetailsToggleBorder.BorderBrush =
+                    (Microsoft.UI.Xaml.Media.Brush)Application.Current.Resources["AccentFillColorDefaultBrush"];
+                TechnicalDetailsToggleBorder.BorderThickness = new Thickness(2);
+            }
+            else
+            {
+                TechnicalDetailsToggleBorder.BorderThickness = new Thickness(0);
+                TechnicalDetailsToggleBorder.BorderBrush = null;
+            }
+
+            var tooltip = _localizationService?.GetString("TechnicalDetails_ToggleTooltip") ?? "Toggle Technical Details";
+            ToolTipService.SetToolTip(TechnicalDetailsToggle, tooltip);
+            AutomationProperties.SetName(TechnicalDetailsToggle, tooltip);
+
+            // Announce state change to Narrator
+            var stateText = _isTechnicalDetailsVisible
+                ? _localizationService?.GetString("TechnicalDetails_On") ?? "Technical Details: On"
+                : _localizationService?.GetString("TechnicalDetails_Off") ?? "Technical Details: Off";
+            var peer = FrameworkElementAutomationPeer.FromElement(TechnicalDetailsToggle)
+                       ?? FrameworkElementAutomationPeer.CreatePeerForElement(TechnicalDetailsToggle);
+            peer?.RaiseNotificationEvent(
+                AutomationNotificationKind.ActionCompleted,
+                AutomationNotificationProcessing.ImportantMostRecent,
+                stateText,
+                "TechnicalDetailsToggle");
+        }
+        catch { }
     }
 
     // Search handlers

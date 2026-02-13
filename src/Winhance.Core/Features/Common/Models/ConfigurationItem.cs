@@ -46,9 +46,6 @@ namespace Winhance.Core.Features.Common.Models
         public string PowerPlanName { get; set; }
 
         [JsonProperty(NullValueHandling = NullValueHandling.Ignore)]
-        public bool? RestoreDefault { get; set; }
-
-        [JsonProperty(NullValueHandling = NullValueHandling.Ignore)]
         [Obsolete("SelectedValue is only used for backward compatibility during migration. Use SelectedIndex instead.")]
         public string SelectedValue { get; set; }
 

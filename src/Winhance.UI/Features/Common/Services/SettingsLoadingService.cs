@@ -79,6 +79,10 @@ public class SettingsLoadingService : ISettingsLoadingService
 
             var settingViewModels = new ObservableCollection<object>();
 
+            // Read technical details preference once for all settings
+            var showTechnicalDetails = await _userPreferencesService.GetPreferenceAsync(
+                Core.Features.Common.Constants.UserPreferenceKeys.ShowTechnicalDetails, false);
+
             _logService.Log(LogLevel.Debug, $"Getting batch states for {settingsList.Count} settings in {featureModuleId}");
             var batchStates = await _discoveryService.GetSettingStatesAsync(settingsList);
             var comboBoxTasks = new Dictionary<string, Task<(SettingItemViewModel viewModel, bool success)>>();
@@ -100,10 +104,17 @@ public class SettingsLoadingService : ISettingsLoadingService
                 }
             }
 
-            // Create ViewModels for all settings
+            // Create ViewModels for all settings (skip settings whose backing resource doesn't exist)
             foreach (var setting in settingsList)
             {
+                if (batchStates.TryGetValue(setting.Id, out var settingState) && !settingState.Success)
+                {
+                    _logService.Log(LogLevel.Debug, $"Skipping setting '{setting.Id}': {settingState.ErrorMessage}");
+                    continue;
+                }
+
                 var viewModel = await CreateSettingViewModelAsync(setting, batchStates, parentViewModel);
+                viewModel.IsTechnicalDetailsGloballyVisible = showTechnicalDetails;
                 settingViewModels.Add(viewModel);
             }
 
@@ -134,6 +145,7 @@ public class SettingsLoadingService : ISettingsLoadingService
             _dispatcherService,
             _dialogService,
             _localizationService,
+            _eventBus,
             _userPreferencesService)
         {
             SettingDefinition = setting,
@@ -172,7 +184,7 @@ public class SettingsLoadingService : ISettingsLoadingService
 
             if (currentState.CurrentValue is int intValue)
             {
-                viewModel.NumericValue = intValue;
+                viewModel.NumericValue = ConvertFromSystemUnits(intValue, setting);
             }
         }
 
@@ -420,5 +432,24 @@ public class SettingsLoadingService : ISettingsLoadingService
             return viewModel.ComboBoxOptions[index].DisplayText ?? index.ToString();
         }
         return index.ToString();
+    }
+
+    /// <summary>
+    /// Converts a raw powercfg API value to display units based on the setting's CustomProperties.
+    /// For example, converts 1200 seconds to 20 minutes when display units are "Minutes".
+    /// </summary>
+    private static int ConvertFromSystemUnits(int systemValue, SettingDefinition setting)
+    {
+        var displayUnits = setting.CustomProperties?.TryGetValue("Units", out var units) == true && units is string unitsStr
+            ? unitsStr
+            : null;
+
+        return displayUnits?.ToLowerInvariant() switch
+        {
+            "minutes" => systemValue / 60,
+            "hours" => systemValue / 3600,
+            "milliseconds" => systemValue * 1000,
+            _ => systemValue
+        };
     }
 }

@@ -10,6 +10,7 @@ using Winhance.Core.Features.Common.Interfaces;
 using Winhance.Core.Features.Common.Models;
 using Winhance.Infrastructure.Features.AdvancedTools.Services;
 using Winhance.Infrastructure.Features.Common.Services;
+using Winhance.Infrastructure.Features.Common.Utilities;
 using Winhance.UI.Features.SoftwareApps.ViewModels;
 
 namespace Winhance.UI.Features.AdvancedTools.Services;
@@ -51,6 +52,18 @@ public class AutounattendXmlGeneratorService : IAutounattendXmlGeneratorService
             var xmlTemplate = LoadEmbeddedTemplate();
 
             var finalXml = InjectScriptIntoTemplate(xmlTemplate, scriptContent);
+
+            // Validate the final XML is well-formed
+            try
+            {
+                await PowerShellRunner.ValidateXmlSyntaxAsync(finalXml);
+                _logService.Log(LogLevel.Info, "autounattend.xml passed XML well-formedness validation");
+            }
+            catch (Exception ex)
+            {
+                _logService.Log(LogLevel.Error, $"autounattend.xml failed XML well-formedness validation: {ex.Message}");
+                throw;
+            }
 
             // Write without BOM (Byte Order Mark) - Windows Setup requires UTF-8 without BOM
             var utf8WithoutBom = new UTF8Encoding(false);

@@ -1,4 +1,5 @@
 using System.Collections.Generic;
+using System.Threading;
 using System.Threading.Tasks;
 using Winhance.Core.Features.Common.Models;
 using Winhance.Core.Features.SoftwareApps.Models;
@@ -16,4 +17,29 @@ public interface IWindowsAppsService : IAppDomainService
     Task<OperationResult<bool>> DisableCapabilityAsync(ItemDefinition item);
     Task<OperationResult<bool>> EnableOptionalFeatureAsync(ItemDefinition item, IProgress<TaskProgressDetail>? progress = null);
     Task<OperationResult<bool>> DisableOptionalFeatureAsync(ItemDefinition item);
+
+    Task<OperationResult<int>> RemoveAppxPackagesAsync(
+        List<ItemDefinition> packages,
+        IProgress<TaskProgressDetail>? progress = null,
+        CancellationToken ct = default);
+
+    Task<OperationResult<bool>> RemoveCapabilityAsync(
+        ItemDefinition item, CancellationToken ct = default);
+
+    Task<OperationResult<int>> RemoveCapabilitiesBatchAsync(
+        List<ItemDefinition> capabilities,
+        IProgress<TaskProgressDetail>? progress = null,
+        CancellationToken ct = default);
+
+    Task<OperationResult<bool>> DisableOptionalFeatureNativeAsync(
+        ItemDefinition item, CancellationToken ct = default);
+
+    Task<OperationResult<int>> DisableOptionalFeaturesBatchAsync(
+        List<ItemDefinition> features,
+        IProgress<TaskProgressDetail>? progress = null,
+        CancellationToken ct = default);
+
+    Task<OperationResult<bool>> UninstallViaRegistryAsync(
+        ItemDefinition item, IProgress<TaskProgressDetail>? progress = null,
+        CancellationToken ct = default);
 }

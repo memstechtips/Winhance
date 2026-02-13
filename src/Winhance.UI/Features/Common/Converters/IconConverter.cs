@@ -8,76 +8,10 @@ namespace Winhance.UI.Features.Common.Converters;
 /// <summary>
 /// Converts icon names and icon packs to IconElement controls.
 /// Supports Material, MaterialDesign, and Fluent icon packs.
-/// Returns IconElement types (PathIcon, FontIcon) that are compatible with SettingsCard.HeaderIcon.
+/// Returns IconElement types (PathIcon, FontIcon, SymbolIcon) that are compatible with SettingsCard.HeaderIcon.
 /// </summary>
-public class SettingIconConverter : IValueConverter
+public class IconConverter : IValueConverter
 {
-    /// <summary>
-    /// Fallback Segoe MDL2 glyph mappings for Fluent icons.
-    /// </summary>
-    private static readonly Dictionary<string, string> FluentIconMap = new(StringComparer.OrdinalIgnoreCase)
-    {
-        // Navigation
-        ["Navigation"] = "\uE700",
-        ["PanelLeft"] = "\uE89F",
-        ["PanelTop"] = "\uE745",
-        ["WindowNew"] = "\uE8A7",
-        ["Window"] = "\uE737",
-
-        // Files/Documents
-        ["DocumentText"] = "\uE8A5",
-        ["Document"] = "\uE8A5",
-        ["DocumentClock"] = "\uE823",
-        ["DocumentNumber"] = "\uE8A5",
-        ["DocumentLock"] = "\uE8A7",
-        ["File"] = "\uE7C3",
-
-        // Folders
-        ["Folder"] = "\uE8B7",
-        ["FolderOpen"] = "\uE838",
-        ["FolderTree"] = "\uE8D4",
-
-        // Cursors/Pointers
-        ["CursorClick"] = "\uE8B0",
-        ["SelectObject"] = "\uEF20",
-
-        // Boxes/Containers
-        ["BoxMultiple"] = "\uF133",
-
-        // Media
-        ["Video"] = "\uE714",
-        ["Image"] = "\uE8B9",
-        ["ImageMultiple"] = "\uE8B9",
-
-        // AI/Bot
-        ["Bot"] = "\uE99A",
-
-        // Store
-        ["StoreMicrosoft"] = "\uE719",
-
-        // Alerts
-        ["AlertBadge"] = "\uE7BA",
-        ["ShieldError"] = "\uEA39",
-
-        // Battery/Power
-        ["BatteryCharge"] = "\uE83E",
-        ["DesktopOff"] = "\uE7F4",
-        ["DesktopPulse"] = "\uE7F4",
-
-        // Sharing
-        ["Share"] = "\uE72D",
-
-        // Misc
-        ["Bug"] = "\uEBE8",
-        ["Wallpaper"] = "\uE771",
-        ["BookOpen"] = "\uE82D",
-        ["PulseSquare"] = "\uE9D9",
-        ["Pen"] = "\uE70F",
-        ["Pin"] = "\uE718",
-
-        // Default
-        ["Info"] = "\uE946",
-    };
 
     public object? Convert(object value, Type targetType, object parameter, string language)
     {
@@ -136,7 +70,8 @@ public class SettingIconConverter : IValueConverter
 
                     return new PathIcon
                     {
-                        Data = geometry
+                        Data = geometry,
+                        Margin = new Microsoft.UI.Xaml.Thickness(0, 0, 0, 1)
                     };
                 }
                 catch
@@ -150,16 +85,16 @@ public class SettingIconConverter : IValueConverter
     }
 
     /// <summary>
-    /// Creates a FontIcon from Segoe MDL2 Assets for Fluent icons.
+    /// Creates a SymbolIcon from FluentIcons.WinUI for Fluent icons.
     /// </summary>
     private static IconElement? CreateFluentIcon(string iconName)
     {
-        if (FluentIconMap.TryGetValue(iconName, out var glyph))
+        if (Enum.TryParse<FluentIcons.Common.Symbol>(iconName, ignoreCase: true, out var symbol))
         {
-            return new FontIcon
+            return new FluentIcons.WinUI.SymbolIcon
             {
-                Glyph = glyph,
-                FontFamily = new FontFamily("Segoe MDL2 Assets")
+                Symbol = symbol,
+                IconVariant = FluentIcons.Common.IconVariant.Regular
             };
         }
 

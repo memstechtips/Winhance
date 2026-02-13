@@ -7,6 +7,7 @@ using Microsoft.Management.Deployment;
 using Winhance.Core.Features.Common.Interfaces;
 using Winhance.Core.Features.Common.Models;
 using Winhance.Core.Features.SoftwareApps.Interfaces;
+using Winhance.Core.Features.SoftwareApps.Models;
 using Winhance.Infrastructure.Features.SoftwareApps.Services.WinGet.Utilities;
 using WindowsPackageManager.Interop;
 
@@ -22,6 +23,8 @@ namespace Winhance.Infrastructure.Features.SoftwareApps.Services
         private PackageManager? _packageManager;
         private readonly object _factoryLock = new();
         private bool _isInitialized;
+
+        public event EventHandler? WinGetInstalled;
 
         public WinGetService(
             ITaskProgressService taskProgressService,
@@ -55,73 +58,70 @@ namespace Winhance.Infrastructure.Features.SoftwareApps.Services
                     bool isAdmin = IsRunningAsAdministrator();
                     _logService?.LogInformation($"Initializing WinGet COM API (Admin: {isAdmin})");
 
-                    // Windows 10 (build < 22000): ElevatedFactory causes a hard process crash
-                    // via winrtact.dll when WindowsPackageManagerServer.exe can't be resolved.
-                    // Use StandardFactory with lower trust registration instead.
-                    bool isWindows11OrLater = Environment.OSVersion.Version.Build >= 22000;
+                    // Strategy: ElevatedFactory first (works on both Win10 and Win11 when running
+                    // as admin with framework-dependent deployment), then StandardFactory as fallback.
 
-                    if (isAdmin && isWindows11OrLater)
+                    // 1. ElevatedFactory via winrtact.dll — bypasses COM registry, works on
+                    //    both Win10 and Win11 for elevated unpackaged apps.
+                    if (isAdmin)
                     {
-                        // For admin on Windows 11+, try ElevatedFactory (uses winrtact.dll)
-                        const int maxRetries = 3;
-                        Exception? lastException = null;
-
-                        for (int attempt = 1; attempt <= maxRetries; attempt++)
-                        {
-                            try
-                            {
-                                _logService?.LogInformation($"Trying ElevatedFactory for admin context (attempt {attempt}/{maxRetries})...");
-                                _winGetFactory = new WindowsPackageManagerElevatedFactory();
-                                _packageManager = _winGetFactory.CreatePackageManager();
-                                _isInitialized = true;
-                                _logService?.LogInformation("WinGet COM API initialized successfully with ElevatedFactory");
-                                return true;
-                            }
-                            catch (Exception ex)
-                            {
-                                lastException = ex;
-                                _logService?.LogWarning($"ElevatedFactory attempt {attempt} failed: {ex.Message}");
-
-                                if (attempt < maxRetries)
-                                {
-                                    Thread.Sleep(1000);
-                                }
-                            }
-                        }
-
-                        // All ElevatedFactory attempts failed, fall back to StandardFactory
-                        _logService?.LogWarning($"All ElevatedFactory attempts failed, trying StandardFactory with lower trust registration...");
                         try
                         {
+                            _logService?.LogInformation("Using ElevatedFactory for admin context");
+                            _winGetFactory = new WindowsPackageManagerElevatedFactory();
+                            _packageManager = _winGetFactory.CreatePackageManager();
+                            _isInitialized = true;
+                            _logService?.LogInformation("WinGet COM API initialized successfully with ElevatedFactory");
+                            return true;
+                        }
+                        catch (Exception ex)
+                        {
+                            _logService?.LogWarning($"ElevatedFactory failed: {ex.Message}");
+                        }
+                    }
+
+                    // 2. StandardFactory with lower trust (CoCreateInstance-based, Win11+)
+                    if (isAdmin)
+                    {
+                        try
+                        {
+                            _logService?.LogInformation("Using StandardFactory (lowerTrust: True)");
                             _winGetFactory = new WindowsPackageManagerStandardFactory(
                                 ClsidContext.Prod,
                                 allowLowerTrustRegistration: true);
                             _packageManager = _winGetFactory.CreatePackageManager();
                             _isInitialized = true;
-                            _logService?.LogInformation("WinGet COM API initialized successfully with StandardFactory (lower trust)");
+                            _logService?.LogInformation("WinGet COM API initialized successfully with StandardFactory (lowerTrust)");
                             return true;
                         }
-                        catch (Exception standardEx)
+                        catch (Exception ex)
                         {
-                            _logService?.LogError($"StandardFactory also failed: {standardEx.Message}");
-                            throw new AggregateException("Both ElevatedFactory and StandardFactory failed",
-                                lastException ?? new Exception("Unknown error"), standardEx);
+                            _logService?.LogWarning($"StandardFactory (lowerTrust) failed: {ex.Message}");
                         }
                     }
-                    else
+
+                    // 3. StandardFactory without lower trust (last resort)
+                    try
                     {
-                        // Windows 10 admin or any non-admin: use StandardFactory
-                        // allowLowerTrustRegistration needed for unpackaged apps running elevated
-                        bool lowerTrust = isAdmin;
-                        _logService?.LogInformation($"Using StandardFactory (lowerTrust: {lowerTrust}, Windows11+: {isWindows11OrLater})");
+                        _logService?.LogInformation("Using StandardFactory (lowerTrust: False)");
                         _winGetFactory = new WindowsPackageManagerStandardFactory(
                             ClsidContext.Prod,
-                            allowLowerTrustRegistration: lowerTrust);
+                            allowLowerTrustRegistration: false);
                         _packageManager = _winGetFactory.CreatePackageManager();
                         _isInitialized = true;
                         _logService?.LogInformation("WinGet COM API initialized successfully with StandardFactory");
                         return true;
                     }
+                    catch (Exception ex)
+                    {
+                        _logService?.LogWarning($"StandardFactory failed: {ex.Message}");
+                    }
+
+                    _logService?.LogError("All WinGet COM API initialization methods failed");
+                    _isInitialized = false;
+                    _packageManager = null;
+                    _winGetFactory = null;
+                    return false;
                 }
                 catch (Exception ex)
                 {
@@ -148,7 +148,18 @@ namespace Winhance.Infrastructure.Features.SoftwareApps.Services
         {
             try
             {
-                return await Task.Run(() => EnsureInitialized(), cancellationToken);
+                // Use a timeout to prevent the app from hanging indefinitely
+                // if COM activation blocks (e.g. due to self-contained SDK conflicts).
+                using var timeoutCts = new CancellationTokenSource(TimeSpan.FromSeconds(30));
+                using var linkedCts = CancellationTokenSource.CreateLinkedTokenSource(
+                    cancellationToken, timeoutCts.Token);
+
+                return await Task.Run(() => EnsureInitialized(), linkedCts.Token);
+            }
+            catch (OperationCanceledException) when (!cancellationToken.IsCancellationRequested)
+            {
+                _logService?.LogError("WinGet COM API initialization timed out after 30 seconds");
+                return false;
             }
             catch (Exception ex)
             {
@@ -157,7 +168,7 @@ namespace Winhance.Infrastructure.Features.SoftwareApps.Services
             }
         }
 
-        public async Task<bool> InstallPackageAsync(string packageId, string? displayName = null, CancellationToken cancellationToken = default)
+        public async Task<PackageInstallResult> InstallPackageAsync(string packageId, string? displayName = null, CancellationToken cancellationToken = default)
         {
             if (string.IsNullOrWhiteSpace(packageId))
                 throw new ArgumentException("Package ID cannot be null or empty", nameof(packageId));
@@ -172,7 +183,7 @@ namespace Winhance.Infrastructure.Features.SoftwareApps.Services
                 if (!await InstallWinGetAsync(cancellationToken))
                 {
                     _taskProgressService?.UpdateProgress(0, _localization.GetString("Progress_WinGet_FailedInstallManager", displayName));
-                    return false;
+                    return PackageInstallResult.Failed(InstallFailureReason.WinGetNotAvailable, "Failed to install WinGet");
                 }
 
                 // Re-initialize after installing WinGet
@@ -180,7 +191,7 @@ namespace Winhance.Infrastructure.Features.SoftwareApps.Services
                 if (!EnsureInitialized())
                 {
                     _taskProgressService?.UpdateProgress(0, _localization.GetString("Progress_WinGet_FailedInstallManager", displayName));
-                    return false;
+                    return PackageInstallResult.Failed(InstallFailureReason.WinGetNotAvailable, "Failed to initialize WinGet after installation");
                 }
             }
 
@@ -193,7 +204,7 @@ namespace Winhance.Infrastructure.Features.SoftwareApps.Services
                 if (package == null)
                 {
                     _taskProgressService?.UpdateProgress(0, _localization.GetString("Progress_WinGet_PackageNotFound", packageId));
-                    return false;
+                    return PackageInstallResult.Failed(InstallFailureReason.PackageNotFound, $"Package '{packageId}' not found");
                 }
 
                 _taskProgressService?.UpdateProgress(40, _localization.GetString("Progress_WinGet_FoundPackage", package.Name));
@@ -238,13 +249,13 @@ namespace Winhance.Infrastructure.Features.SoftwareApps.Services
                 if (installResult.Status == InstallResultStatus.Ok)
                 {
                     _taskProgressService?.UpdateProgress(100, _localization.GetString("Progress_WinGet_InstalledSuccess", displayName));
-                    return true;
+                    return PackageInstallResult.Succeeded();
                 }
 
                 var errorMessage = GetInstallErrorMessage(packageId, installResult);
                 _logService?.LogError($"Installation failed for {packageId}: {errorMessage}");
                 _taskProgressService?.UpdateProgress(0, errorMessage);
-                return false;
+                return PackageInstallResult.Failed(MapInstallStatus(installResult.Status), errorMessage);
             }
             catch (OperationCanceledException)
             {
@@ -255,14 +266,27 @@ namespace Winhance.Infrastructure.Features.SoftwareApps.Services
             {
                 _logService?.LogError($"Error installing {packageId}: {ex.Message}");
 
-                var errorMessage = IsNetworkRelatedError(ex.Message)
+                var isNetwork = IsNetworkRelatedError(ex.Message);
+                var errorMessage = isNetwork
                     ? _localization.GetString("Progress_WinGet_NetworkError", displayName)
                     : _localization.GetString("Progress_WinGet_InstallationError", displayName, ex.Message);
 
                 _taskProgressService?.UpdateProgress(0, errorMessage);
-                return false;
+                return PackageInstallResult.Failed(
+                    isNetwork ? InstallFailureReason.NetworkError : InstallFailureReason.Other,
+                    errorMessage);
             }
         }
+
+        private static InstallFailureReason MapInstallStatus(InstallResultStatus status) => status switch
+        {
+            InstallResultStatus.BlockedByPolicy => InstallFailureReason.BlockedByPolicy,
+            InstallResultStatus.DownloadError => InstallFailureReason.DownloadError,
+            InstallResultStatus.InstallError => InstallFailureReason.HashMismatchOrInstallError,
+            InstallResultStatus.NoApplicableInstallers => InstallFailureReason.NoApplicableInstallers,
+            InstallResultStatus.PackageAgreementsNotAccepted => InstallFailureReason.AgreementsNotAccepted,
+            _ => InstallFailureReason.Other
+        };
 
         public async Task<bool> UninstallPackageAsync(string packageId, string? displayName = null, CancellationToken cancellationToken = default)
         {
@@ -388,6 +412,7 @@ namespace Winhance.Infrastructure.Features.SoftwareApps.Services
                     {
                         _logService?.LogInformation($"WinGet COM API ready after {attempt} attempt(s)");
                         _taskProgressService?.UpdateProgress(100, _localization.GetString("Progress_WinGet_InstalledSuccessfully"));
+                        WinGetInstalled?.Invoke(this, EventArgs.Empty);
                         return true;
                     }
 

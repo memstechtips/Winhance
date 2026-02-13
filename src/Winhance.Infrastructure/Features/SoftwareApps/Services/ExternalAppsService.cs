@@ -19,7 +19,9 @@ public class ExternalAppsService(
     IAppStatusDiscoveryService appStatusDiscoveryService,
     IAppUninstallService appUninstallService,
     IDirectDownloadService directDownloadService,
-    ITaskProgressService taskProgressService) : IExternalAppsService
+    ITaskProgressService taskProgressService,
+    IChocolateyService chocolateyService,
+    IChocolateyConsentService chocolateyConsentService) : IExternalAppsService
 {
     public string DomainName => FeatureIds.ExternalApps;
 
@@ -56,14 +58,47 @@ public class ExternalAppsService(
             var installerType = await winGetService.GetInstallerTypeAsync(primaryPackageId, cancellationToken);
             var isPortable = IsPortableInstallerType(installerType);
 
-            var wingetSuccess = await winGetService.InstallPackageAsync(primaryPackageId, item.Name, cancellationToken);
+            var wingetResult = await winGetService.InstallPackageAsync(primaryPackageId, item.Name, cancellationToken);
 
-            if (wingetSuccess && isPortable)
+            if (wingetResult.Success)
             {
-                await CreateStartMenuShortcutForPortableAppAsync(item);
+                if (isPortable)
+                    await CreateStartMenuShortcutForPortableAppAsync(item);
+
+                return OperationResult<bool>.Succeeded(true);
             }
 
-            return wingetSuccess ? OperationResult<bool>.Succeeded(true) : OperationResult<bool>.Failed("Installation failed");
+            // Chocolatey fallback: only for eligible failures when a ChocoPackageId is defined
+            if (wingetResult.IsChocolateyFallbackCandidate && !string.IsNullOrEmpty(item.ChocoPackageId))
+            {
+                logService.LogInformation($"WinGet install failed for '{item.Name}' ({wingetResult.FailureReason}), attempting Chocolatey fallback with '{item.ChocoPackageId}'");
+
+                var consented = await chocolateyConsentService.RequestConsentAsync();
+                if (consented)
+                {
+                    if (!await chocolateyService.IsChocolateyInstalledAsync(cancellationToken))
+                    {
+                        if (!await chocolateyService.InstallChocolateyAsync(cancellationToken))
+                        {
+                            logService.LogError("Failed to install Chocolatey, cannot proceed with fallback");
+                            return OperationResult<bool>.Failed(wingetResult.ErrorMessage ?? "Installation failed");
+                        }
+                    }
+
+                    var chocoSuccess = await chocolateyService.InstallPackageAsync(item.ChocoPackageId, item.Name, cancellationToken);
+                    if (chocoSuccess)
+                    {
+                        if (IsChocoPortablePackage(item.ChocoPackageId))
+                            await CreateStartMenuShortcutForChocoPortableAppAsync(item);
+
+                        return OperationResult<bool>.Succeeded(true);
+                    }
+
+                    logService.LogWarning($"Chocolatey fallback also failed for '{item.Name}'");
+                }
+            }
+
+            return OperationResult<bool>.Failed(wingetResult.ErrorMessage ?? "Installation failed");
         }
         catch (OperationCanceledException)
         {
@@ -124,6 +159,81 @@ public class ExternalAppsService(
         {
             logService.LogWarning($"Error creating Start Menu shortcuts for {item.Name}: {ex.Message}");
         }
+    }
+
+    private static bool IsChocoPortablePackage(string chocoPackageId)
+    {
+        return chocoPackageId.EndsWith(".portable", StringComparison.OrdinalIgnoreCase)
+            || chocoPackageId.Contains(".portable.", StringComparison.OrdinalIgnoreCase);
+    }
+
+    private async Task CreateStartMenuShortcutForChocoPortableAppAsync(ItemDefinition item)
+    {
+        try
+        {
+            var installDir = FindChocoPackageDirectory(item.ChocoPackageId!);
+            if (string.IsNullOrEmpty(installDir))
+            {
+                logService.LogWarning($"Could not find Chocolatey install directory for {item.Name}");
+                return;
+            }
+
+            var exeFiles = Directory.GetFiles(installDir, "*.exe", SearchOption.AllDirectories)
+                .Where(f => !Path.GetFileName(f).Equals("ChocolateyInstall.ps1", StringComparison.OrdinalIgnoreCase))
+                .ToList();
+
+            if (!exeFiles.Any())
+            {
+                logService.LogWarning($"No executables found in Chocolatey package for {item.Name}");
+                return;
+            }
+
+            var startMenuFolder = Path.Combine(
+                Environment.GetFolderPath(Environment.SpecialFolder.Programs),
+                item.Name);
+
+            Directory.CreateDirectory(startMenuFolder);
+
+            foreach (var exePath in exeFiles)
+            {
+                var exeName = Path.GetFileNameWithoutExtension(exePath);
+                var shortcutPath = Path.Combine(startMenuFolder, $"{exeName}.lnk");
+                await CreateShortcutAsync(shortcutPath, exePath, Path.GetDirectoryName(exePath)!, item.Name);
+            }
+
+            logService.LogInformation($"Created Start Menu folder with {exeFiles.Count} shortcuts for {item.Name} (Chocolatey portable)");
+        }
+        catch (Exception ex)
+        {
+            logService.LogWarning($"Error creating Start Menu shortcuts for Chocolatey package {item.Name}: {ex.Message}");
+        }
+    }
+
+    private static string? FindChocoPackageDirectory(string chocoPackageId)
+    {
+        var searchPaths = new[]
+        {
+            @"C:\ProgramData\chocolatey\lib",
+            Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData),
+                "UniGetUI", "Chocolatey", "lib")
+        };
+
+        foreach (var basePath in searchPaths)
+        {
+            if (!Directory.Exists(basePath))
+                continue;
+
+            var packageDir = Path.Combine(basePath, chocoPackageId, "tools");
+            if (Directory.Exists(packageDir))
+                return packageDir;
+
+            // Also check without "tools" subfolder
+            packageDir = Path.Combine(basePath, chocoPackageId);
+            if (Directory.Exists(packageDir))
+                return packageDir;
+        }
+
+        return null;
     }
 
     private string? FindPortableAppDirectory(ItemDefinition item)

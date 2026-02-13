@@ -22,6 +22,7 @@ namespace Winhance.Core.Features.SoftwareApps.Models
                             Description = "Digital distribution platform for PC gaming",
                             GroupName = "Gaming",
                             WinGetPackageId = ["Valve.Steam"],
+                            ChocoPackageId = "steam",
                             WebsiteUrl = "https://store.steampowered.com/"
                         },
                         new ItemDefinition
@@ -31,6 +32,7 @@ namespace Winhance.Core.Features.SoftwareApps.Models
                             Description = "Digital distribution platform for PC gaming",
                             GroupName = "Gaming",
                             WinGetPackageId = ["EpicGames.EpicGamesLauncher"],
+                            ChocoPackageId = "epicgameslauncher",
                             WebsiteUrl = "https://www.epicgames.com/"
                         },
                         new ItemDefinition
@@ -40,6 +42,7 @@ namespace Winhance.Core.Features.SoftwareApps.Models
                             Description = "Digital distribution platform for PC gaming",
                             GroupName = "Gaming",
                             WinGetPackageId = ["GOG.Galaxy"],
+                            ChocoPackageId = "goggalaxy",
                             WebsiteUrl = "https://www.gogalaxy.com/en/"
                         }
                     }
