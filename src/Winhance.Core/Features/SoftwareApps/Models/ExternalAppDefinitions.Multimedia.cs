@@ -22,6 +22,7 @@ namespace Winhance.Core.Features.SoftwareApps.Models
                             Description = "Open-source multimedia player and framework",
                             GroupName = "Multimedia (Audio & Video)",
                             WinGetPackageId = ["VideoLAN.VLC"],
+                            ChocoPackageId = "vlc",
                             WebsiteUrl = "https://www.videolan.org/vlc/"
                         },
                         new ItemDefinition
@@ -31,6 +32,7 @@ namespace Winhance.Core.Features.SoftwareApps.Models
                             Description = "Media player and library",
                             GroupName = "Multimedia (Audio & Video)",
                             WinGetPackageId = ["Apple.iTunes"],
+                            ChocoPackageId = "itunes",
                             WebsiteUrl = "https://www.apple.com/itunes/"
                         },
                         new ItemDefinition
@@ -40,6 +42,7 @@ namespace Winhance.Core.Features.SoftwareApps.Models
                             Description = "Audio player with support for various formats",
                             GroupName = "Multimedia (Audio & Video)",
                             WinGetPackageId = ["AIMP.AIMP"],
+                            ChocoPackageId = "aimp",
                             WebsiteUrl = "https://www.aimp.ru/"
                         },
                         new ItemDefinition
@@ -49,6 +52,7 @@ namespace Winhance.Core.Features.SoftwareApps.Models
                             Description = "Advanced audio player for Windows",
                             GroupName = "Multimedia (Audio & Video)",
                             WinGetPackageId = ["PeterPawlowski.foobar2000"],
+                            ChocoPackageId = "foobar2000",
                             WebsiteUrl = "https://www.foobar2000.org/"
                         },
                         new ItemDefinition
@@ -58,6 +62,7 @@ namespace Winhance.Core.Features.SoftwareApps.Models
                             Description = "Music manager and player",
                             GroupName = "Multimedia (Audio & Video)",
                             WinGetPackageId = ["9P4CLT2RJ1RS"],
+                            ChocoPackageId = "musicbee",
                             WebsiteUrl = "https://www.getmusicbee.com/"
                         },
                         new ItemDefinition
@@ -67,6 +72,7 @@ namespace Winhance.Core.Features.SoftwareApps.Models
                             Description = "Audio editor and recorder",
                             GroupName = "Multimedia (Audio & Video)",
                             WinGetPackageId = ["Audacity.Audacity"],
+                            ChocoPackageId = "audacity",
                             WebsiteUrl = "https://www.audacityteam.org/"
                         },
                         new ItemDefinition
@@ -76,6 +82,7 @@ namespace Winhance.Core.Features.SoftwareApps.Models
                             Description = "Media player for Windows",
                             GroupName = "Multimedia (Audio & Video)",
                             WinGetPackageId = ["GOMLab.GOMPlayer"],
+                            ChocoPackageId = "gom-player",
                             WebsiteUrl = "https://www.gomlab.com/"
                         },
                         new ItemDefinition
@@ -85,6 +92,7 @@ namespace Winhance.Core.Features.SoftwareApps.Models
                             Description = "Music streaming service",
                             GroupName = "Multimedia (Audio & Video)",
                             WinGetPackageId = ["Spotify.Spotify"],
+                            ChocoPackageId = "spotify",
                             WebsiteUrl = "https://www.spotify.com/"
                         },
                         new ItemDefinition
@@ -94,6 +102,7 @@ namespace Winhance.Core.Features.SoftwareApps.Models
                             Description = "Media manager and player",
                             GroupName = "Multimedia (Audio & Video)",
                             WinGetPackageId = ["VentisMedia.MediaMonkey.5"],
+                            ChocoPackageId = "mediamonkey",
                             WebsiteUrl = "https://www.mediamonkey.com/"
                         },
                         new ItemDefinition
@@ -103,6 +112,7 @@ namespace Winhance.Core.Features.SoftwareApps.Models
                             Description = "Open-source video transcoder",
                             GroupName = "Multimedia (Audio & Video)",
                             WinGetPackageId = ["HandBrake.HandBrake"],
+                            ChocoPackageId = "handbrake",
                             WebsiteUrl = "https://handbrake.fr/"
                         },
                         new ItemDefinition
@@ -112,6 +122,7 @@ namespace Winhance.Core.Features.SoftwareApps.Models
                             Description = "Free and open source software for video recording and live streaming",
                             GroupName = "Multimedia (Audio & Video)",
                             WinGetPackageId = ["OBSProject.OBSStudio"],
+                            ChocoPackageId = "obs-studio",
                             WebsiteUrl = "https://obsproject.com/"
                         },
                         new ItemDefinition
@@ -121,6 +132,7 @@ namespace Winhance.Core.Features.SoftwareApps.Models
                             Description = "Streaming software built on OBS with additional features for streamers",
                             GroupName = "Multimedia (Audio & Video)",
                             WinGetPackageId = ["Streamlabs.StreamlabsOBS"],
+                            ChocoPackageId = "streamlabs-obs",
                             WebsiteUrl = "https://streamlabs.com/"
                         },
                         new ItemDefinition
@@ -130,6 +142,7 @@ namespace Winhance.Core.Features.SoftwareApps.Models
                             Description = "Media Player Classic - Black Edition",
                             GroupName = "Multimedia (Audio & Video)",
                             WinGetPackageId = ["MPC-BE.MPC-BE"],
+                            ChocoPackageId = "mpc-be",
                             WebsiteUrl = "https://sourceforge.net/projects/mpcbe/"
                         },
                         new ItemDefinition
@@ -139,6 +152,7 @@ namespace Winhance.Core.Features.SoftwareApps.Models
                             Description = "Collection of codecs and related tools",
                             GroupName = "Multimedia (Audio & Video)",
                             WinGetPackageId = ["CodecGuide.K-LiteCodecPack.Mega"],
+                            ChocoPackageId = "k-litecodecpackmega",
                             WebsiteUrl = "https://codecguide.com/"
                         },
                         new ItemDefinition
@@ -157,7 +171,8 @@ namespace Winhance.Core.Features.SoftwareApps.Models
                             Description = "Comprehensive multimedia player for Windows",
                             GroupName = "Multimedia (Audio & Video)",
                             WinGetPackageId = ["Daum.PotPlayer"],
-                            WebsiteUrl = "https://potplayer.daum.net/"
+                            ChocoPackageId = "potplayer",
+                            WebsiteUrl = "https://potplayer.tv/"
                         },
                         new ItemDefinition
                         {
@@ -166,6 +181,7 @@ namespace Winhance.Core.Features.SoftwareApps.Models
                             Description = "Free and open-source video editing software",
                             GroupName = "Multimedia (Audio & Video)",
                             WinGetPackageId = ["KDE.Kdenlive"],
+                            ChocoPackageId = "kdenlive",
                             WebsiteUrl = "https://kdenlive.org/"
                         },
                         new ItemDefinition
@@ -175,6 +191,7 @@ namespace Winhance.Core.Features.SoftwareApps.Models
                             Description = "Technical information display tool for multimedia files",
                             GroupName = "Multimedia (Audio & Video)",
                             WinGetPackageId = ["MediaArea.MediaInfo.GUI"],
+                            ChocoPackageId = "mediainfo",
                             WebsiteUrl = "https://mediaarea.net/en/MediaInfo"
                         },
                         new ItemDefinition
@@ -184,6 +201,7 @@ namespace Winhance.Core.Features.SoftwareApps.Models
                             Description = "Free audio converter and CD ripper",
                             GroupName = "Multimedia (Audio & Video)",
                             WinGetPackageId = ["9P1XD8ZQJ7JD"],
+                            ChocoPackageId = "freac",
                             WebsiteUrl = "https://www.freac.org/"
                         },
                         new ItemDefinition
@@ -193,6 +211,7 @@ namespace Winhance.Core.Features.SoftwareApps.Models
                             Description = "Media Player with built-in codecs that can play virtually all video and audio formats",
                             GroupName = "Multimedia (Audio & Video)",
                             WinGetPackageId = ["SMPlayer.SMPlayer"],
+                            ChocoPackageId = "smplayer",
                             WebsiteUrl = "https://www.smplayer.info/"
                         },
                         new ItemDefinition
@@ -202,6 +221,7 @@ namespace Winhance.Core.Features.SoftwareApps.Models
                             Description = "Advanced Windows volume control",
                             GroupName = "Multimedia (Audio & Video)",
                             WinGetPackageId = ["irzyxa.Volume2Portable"],
+                            ChocoPackageId = "volume2",
                             WebsiteUrl = "https://github.com/irzyxa/Volume2"
                         }
                     }

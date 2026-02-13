@@ -16,7 +16,6 @@ using Winhance.Core.Features.SoftwareApps.Models;
 namespace Winhance.Infrastructure.Features.SoftwareApps.Services;
 
 public class AppOperationService(
-    IWinGetService winGetService,
     ILegacyCapabilityService capabilityService,
     IOptionalFeatureService featureService,
     IAppLoadingService appLoadingService,
@@ -133,47 +132,41 @@ public class AppOperationService(
     public async Task<OperationResult<bool>> UninstallAppAsync(string appId, IProgress<TaskProgressDetail>? progress = null)
     {
         var cancellationToken = GetCurrentCancellationToken();
-        
+
         try
         {
+            logService.LogInformation($"[UninstallApp] START: appId='{appId}'");
             var app = await windowsAppsService.GetAppByIdAsync(appId);
             if (app == null)
+            {
+                logService.LogInformation($"[UninstallApp] App '{appId}' not found in definitions");
                 return OperationResult<bool>.Failed("App not found");
-
-            if (!string.IsNullOrEmpty(app.CapabilityName))
-            {
-                var success = await capabilityService.DisableCapabilityAsync(app.CapabilityName, app.Name);
-                if (success)
-                {
-                    eventBus.Publish(new AppRemovedEvent(appId));
-                    logService.Log(LogLevel.Success, $"Successfully removed capability '{appId}'");
-                }
-                return success ? OperationResult<bool>.Succeeded(true) : OperationResult<bool>.Failed("Capability removal failed");
             }
 
-            if (!string.IsNullOrEmpty(app.OptionalFeatureName))
+            logService.LogInformation($"[UninstallApp] Found: '{app.Name}' AppX={app.AppxPackageName ?? "null"} Cap={app.CapabilityName ?? "null"} Feat={app.OptionalFeatureName ?? "null"}");
+
+            bool success;
+
+            if (app.RemovalScript != null)
             {
-                var success = await featureService.DisableFeatureAsync(app.OptionalFeatureName, app.Name);
-                if (success)
-                {
-                    eventBus.Publish(new AppRemovedEvent(appId));
-                    logService.Log(LogLevel.Success, $"Successfully removed feature '{appId}'");
-                }
-                return success ? OperationResult<bool>.Succeeded(true) : OperationResult<bool>.Failed("Feature removal failed");
+                // Edge/OneDrive: use dedicated script execution via PowerShellRunner
+                logService.LogInformation($"[UninstallApp] Routing to ExecuteDedicatedScriptAsync for '{app.Name}'");
+                success = await bloatRemovalService.ExecuteDedicatedScriptAsync(app, progress, cancellationToken);
+            }
+            else
+            {
+                // Everything else (AppX, capability, feature, OneNote): use BloatRemoval script
+                logService.LogInformation($"[UninstallApp] Routing to ExecuteBloatRemovalAsync for '{app.Name}'");
+                success = await bloatRemovalService.ExecuteBloatRemovalAsync([app], progress, cancellationToken);
             }
 
-            if (!string.IsNullOrEmpty(app.AppxPackageName))
+            if (success)
             {
-                var success = await bloatRemovalService.RemoveAppsAsync(new[] { app }.ToList(), progress, cancellationToken);
-                if (success)
-                {
-                    eventBus.Publish(new AppRemovedEvent(appId));
-                    logService.Log(LogLevel.Success, $"Successfully removed app '{appId}'");
-                }
-                return success ? OperationResult<bool>.Succeeded(true) : OperationResult<bool>.Failed("App removal failed");
+                eventBus.Publish(new AppRemovedEvent(appId));
+                logService.Log(LogLevel.Success, $"Successfully removed '{appId}'");
             }
 
-            return OperationResult<bool>.Failed($"App '{appId}' not supported for removal");
+            return success ? OperationResult<bool>.Succeeded(true) : OperationResult<bool>.Failed("Removal failed");
         }
         catch (OperationCanceledException)
         {
@@ -225,7 +218,7 @@ public class AppOperationService(
         }
     }
 
-    public async Task<OperationResult<int>> UninstallAppsAsync(List<ItemDefinition> apps, IProgress<TaskProgressDetail>? progress = null)
+    public async Task<OperationResult<int>> UninstallAppsAsync(List<ItemDefinition> apps, IProgress<TaskProgressDetail>? progress = null, bool saveRemovalScripts = true)
     {
         var cancellationToken = GetCurrentCancellationToken();
 
@@ -234,19 +227,57 @@ public class AppOperationService(
             if (apps == null || !apps.Any())
                 return OperationResult<int>.Failed("No apps provided");
 
-            var success = await bloatRemovalService.RemoveAppsAsync(apps, progress, cancellationToken);
+            logService.LogInformation($"[UninstallApps] START: {apps.Count} total apps to process");
 
-            if (success)
+            // Step 1: Categorize into script apps (Edge/OneDrive) and regular apps
+            var scriptApps = apps.Where(a => a.RemovalScript != null).ToList();
+            var regularApps = apps.Where(a => a.RemovalScript == null).ToList();
+
+            logService.LogInformation($"[UninstallApps] Categorization: ScriptApps={scriptApps.Count}, RegularApps={regularApps.Count}");
+            foreach (var a in apps)
+                logService.LogInformation($"[UninstallApps]   Item: '{a.Name}' Id={a.Id} AppX={a.AppxPackageName ?? "null"} Cap={a.CapabilityName ?? "null"} Feat={a.OptionalFeatureName ?? "null"} IsInstalled={a.IsInstalled}");
+
+            // Step 2: Execute dedicated scripts (Edge, OneDrive) sequentially via PowerShellRunner
+            if (scriptApps.Count > 0)
             {
-                foreach (var app in apps)
+                logService.LogInformation($"[UninstallApps] Step 2: Executing {scriptApps.Count} dedicated scripts...");
+                foreach (var app in scriptApps)
                 {
-                    eventBus.Publish(new AppRemovedEvent(app.Id));
+                    await bloatRemovalService.ExecuteDedicatedScriptAsync(app, progress, cancellationToken);
                 }
-                logService.Log(LogLevel.Success, $"Successfully removed {apps.Count} apps");
-                return OperationResult<int>.Succeeded(apps.Count);
+                logService.LogInformation("[UninstallApps] Step 2 DONE");
             }
 
-            return OperationResult<int>.Failed("Bulk removal failed");
+            // Step 3: Execute BloatRemoval via PowerShellRunner (all regular apps)
+            if (regularApps.Count > 0)
+            {
+                logService.LogInformation($"[UninstallApps] Step 3: Executing BloatRemoval for {regularApps.Count} regular apps...");
+                await bloatRemovalService.ExecuteBloatRemovalAsync(regularApps, progress, cancellationToken);
+                logService.LogInformation("[UninstallApps] Step 3 DONE");
+            }
+
+            // Step 4: Save or cleanup
+            if (saveRemovalScripts)
+            {
+                logService.LogInformation("[UninstallApps] Step 4: Persisting removal scripts...");
+                await bloatRemovalService.PersistRemovalScriptsAsync(apps);
+            }
+            else
+            {
+                logService.LogInformation("[UninstallApps] Step 4: Cleaning up all removal artifacts...");
+                await bloatRemovalService.CleanupAllRemovalArtifactsAsync();
+            }
+            logService.LogInformation("[UninstallApps] Step 4 DONE");
+
+            // Step 5: Publish events for all removed apps
+            logService.LogInformation($"[UninstallApps] Publishing AppRemovedEvent for {apps.Count} apps...");
+            foreach (var app in apps)
+            {
+                eventBus.Publish(new AppRemovedEvent(app.Id));
+            }
+
+            logService.Log(LogLevel.Success, $"[UninstallApps] DONE: Successfully removed {apps.Count} apps");
+            return OperationResult<int>.Succeeded(apps.Count);
         }
         catch (OperationCanceledException)
         {
@@ -361,6 +392,115 @@ public class AppOperationService(
         catch (Exception ex)
         {
             logService.LogError($"Failed to uninstall apps: {ex.Message}");
+            return OperationResult<int>.Failed(ex.Message);
+        }
+    }
+
+    public async Task<OperationResult<int>> UninstallAppsInParallelAsync(List<ItemDefinition> apps, bool saveRemovalScripts = true)
+    {
+        try
+        {
+            if (apps == null || !apps.Any())
+                return OperationResult<int>.Failed("No apps provided");
+
+            logService.LogInformation($"[UninstallAppsParallel] START: {apps.Count} total apps to process");
+
+            // Step 1: Categorize into script apps (Edge/OneDrive) and regular apps
+            var scriptApps = apps.Where(a => a.RemovalScript != null).ToList();
+            var regularApps = apps.Where(a => a.RemovalScript == null).ToList();
+
+            logService.LogInformation($"[UninstallAppsParallel] ScriptApps={scriptApps.Count}, RegularApps={regularApps.Count}");
+
+            // Step 2: Build slot names
+            var slotNames = new List<string>();
+            foreach (var app in scriptApps)
+                slotNames.Add(app.Name);
+            if (regularApps.Count > 0)
+                slotNames.Add("Removing Apps");
+
+            // Step 3: Start multi-script task
+            var cts = taskProgressService.StartMultiScriptTask(slotNames.ToArray());
+            var cancellationToken = cts.Token;
+
+            try
+            {
+                // Step 4: Create progress reporters ON THE CALLER'S THREAD (UI thread)
+                // This captures the DispatcherQueueSynchronizationContext in Progress<T>
+                var progressReporters = new List<IProgress<TaskProgressDetail>>();
+                for (int i = 0; i < slotNames.Count; i++)
+                    progressReporters.Add(taskProgressService.CreateScriptProgress(i));
+
+                // Step 5: Launch parallel tasks
+                var tasks = new List<Task<bool>>();
+                int slotIndex = 0;
+
+                foreach (var app in scriptApps)
+                {
+                    var progress = progressReporters[slotIndex];
+                    var ct = cancellationToken;
+                    var appName = app.Name;
+                    tasks.Add(Task.Run(async () =>
+                    {
+                        var result = await bloatRemovalService.ExecuteDedicatedScriptAsync(app, progress, ct);
+                        progress.Report(new TaskProgressDetail { Progress = 100, StatusText = appName, IsCompletion = true });
+                        return result;
+                    }, ct));
+                    slotIndex++;
+                }
+
+                if (regularApps.Count > 0)
+                {
+                    var progress = progressReporters[slotIndex];
+                    var ct = cancellationToken;
+                    tasks.Add(Task.Run(async () =>
+                    {
+                        var result = await bloatRemovalService.ExecuteBloatRemovalAsync(regularApps, progress, ct);
+                        progress.Report(new TaskProgressDetail { Progress = 100, StatusText = "Removing Apps", IsCompletion = true });
+                        return result;
+                    }, ct));
+                }
+
+                // Step 6: Wait for all
+                var results = await Task.WhenAll(tasks);
+
+                // Step 7: Save or cleanup (sequential)
+                if (saveRemovalScripts)
+                {
+                    logService.LogInformation("[UninstallAppsParallel] Persisting removal scripts...");
+                    await bloatRemovalService.PersistRemovalScriptsAsync(apps);
+                }
+                else
+                {
+                    logService.LogInformation("[UninstallAppsParallel] Cleaning up all removal artifacts...");
+                    await bloatRemovalService.CleanupAllRemovalArtifactsAsync();
+                }
+
+                // Step 8: Publish events
+                foreach (var app in apps)
+                    eventBus.Publish(new AppRemovedEvent(app.Id));
+
+                logService.Log(LogLevel.Success, $"[UninstallAppsParallel] DONE: Successfully removed {apps.Count} apps");
+                return OperationResult<int>.Succeeded(apps.Count);
+            }
+            catch (OperationCanceledException)
+            {
+                logService.Log(LogLevel.Info, "Parallel removal was cancelled");
+                return OperationResult<int>.Cancelled("Operation was cancelled");
+            }
+            catch (Exception ex)
+            {
+                logService.LogError($"Failed to remove apps in parallel: {ex.Message}");
+                return OperationResult<int>.Failed(ex.Message);
+            }
+            finally
+            {
+                // Step 9: Always complete multi-script task
+                taskProgressService.CompleteMultiScriptTask();
+            }
+        }
+        catch (Exception ex)
+        {
+            logService.LogError($"Failed to remove apps in parallel: {ex.Message}");
             return OperationResult<int>.Failed(ex.Message);
         }
     }

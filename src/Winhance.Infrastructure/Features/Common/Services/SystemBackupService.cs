@@ -1,5 +1,7 @@
 using System;
-using System.IO;
+using System.Diagnostics;
+using System.Management;
+using System.Runtime.InteropServices;
 using System.Threading;
 using System.Threading.Tasks;
 using Winhance.Core.Features.Common.Enums;
@@ -10,24 +12,17 @@ namespace Winhance.Infrastructure.Features.Common.Services
 {
     public class SystemBackupService : ISystemBackupService
     {
-        private readonly IPowerShellExecutionService _psService;
         private readonly ILogService _logService;
-        private readonly IUserPreferencesService _prefsService;
         private readonly ILocalizationService _localization;
 
         private const string RestorePointName = "Winhance Initial Restore Point";
-        private const string BackupDirectory = @"C:\ProgramData\Winhance\Backups";
-        private const long MinimumFreeSpaceBytes = 2L * 1024 * 1024 * 1024;
 
         public SystemBackupService(
-            IPowerShellExecutionService psService,
             ILogService logService,
             IUserPreferencesService prefsService,
             ILocalizationService localization)
         {
-            _psService = psService;
             _logService = logService;
-            _prefsService = prefsService;
             _localization = localization;
         }
 
@@ -39,30 +34,6 @@ namespace Winhance.Infrastructure.Features.Common.Services
 
             try
             {
-                var registryBackupCompleted = await _prefsService.GetPreferenceAsync("RegistryBackupCompleted", false);
-
-                if (!registryBackupCompleted)
-                {
-                    _logService.Log(LogLevel.Info, "Starting first-run registry backup...");
-
-                    if (!await CheckDiskSpaceAsync())
-                    {
-                        result.Warnings.Add("Insufficient disk space for registry backup (2GB required)");
-                        _logService.Log(LogLevel.Warning, "Insufficient disk space for registry backup");
-                    }
-                    else
-                    {
-                        await CreateRegistryBackupsAsync(result, progress, cancellationToken);
-                        await _prefsService.SetPreferenceAsync("RegistryBackupCompleted", true);
-                        _logService.Log(LogLevel.Info, "Registry backup completed and marked as done");
-                    }
-                }
-                else
-                {
-                    _logService.Log(LogLevel.Info, "Registry backup already completed previously");
-                    await CheckExistingRegistryBackupsAsync(result);
-                }
-
                 _logService.Log(LogLevel.Info, "Starting backup process - checking for existing restore point...");
 
                 // Report: Checking restore point
@@ -183,208 +154,150 @@ namespace Winhance.Infrastructure.Features.Common.Services
 
         private async Task<bool> CheckSystemRestoreEnabledAsync()
         {
-            var script = "Get-ComputerRestorePoint -ErrorAction SilentlyContinue | Select-Object -First 1";
-            try
+            return await Task.Run(() =>
             {
-                var output = await _psService.ExecuteScriptAsync(script);
-                return !string.IsNullOrWhiteSpace(output);
-            }
-            catch
-            {
-                return false;
-            }
+                try
+                {
+                    using var searcher = new ManagementObjectSearcher(
+                        @"root\default",
+                        "SELECT * FROM SystemRestore");
+                    using var results = searcher.Get();
+                    return results.Count > 0;
+                }
+                catch
+                {
+                    return false;
+                }
+            });
         }
 
         private async Task<DateTime?> FindRestorePointAsync(string description)
         {
-            var script = $@"
-$rp = Get-ComputerRestorePoint -ErrorAction SilentlyContinue | Where-Object {{ $_.Description -eq '{description}' }} | Select-Object -First 1
-if ($rp) {{ 'EXISTS' }} else {{ 'NOT_FOUND' }}";
-
-            try
+            return await Task.Run(() =>
             {
-                _logService.Log(LogLevel.Info, $"Querying for restore point: '{description}'");
-                var output = await _psService.ExecuteScriptAsync(script);
-
-                if (string.IsNullOrWhiteSpace(output) || output.Trim() == "NOT_FOUND")
+                try
                 {
+                    _logService.Log(LogLevel.Info, $"Querying for restore point: '{description}'");
+
+                    var escapedDescription = description.Replace("'", "\\'");
+                    using var searcher = new ManagementObjectSearcher(
+                        @"root\default",
+                        $"SELECT * FROM SystemRestore WHERE Description = '{escapedDescription}'");
+                    using var results = searcher.Get();
+
+                    foreach (ManagementObject obj in results)
+                    {
+                        _logService.Log(LogLevel.Info, $"Found existing restore point: '{description}'");
+                        return (DateTime?)DateTime.Now;
+                    }
+
                     _logService.Log(LogLevel.Info, $"No restore point found with description: '{description}'");
-                    return null;
+                    return (DateTime?)null;
                 }
-
-                if (output.Trim() == "EXISTS")
+                catch (Exception ex)
                 {
-                    _logService.Log(LogLevel.Info, $"Found existing restore point: '{description}'");
-                    return DateTime.Now;
+                    _logService.Log(LogLevel.Error, $"Error querying restore point: {ex.Message}");
+                    return (DateTime?)null;
                 }
-
-                _logService.Log(LogLevel.Warning, $"Unexpected output from restore point query: '{output.Trim()}'");
-                return null;
-            }
-            catch (Exception ex)
-            {
-                _logService.Log(LogLevel.Error, $"Error querying restore point: {ex.Message}");
-                return null;
-            }
+            });
         }
+
+        [DllImport("SrClient.dll", CharSet = CharSet.Unicode)]
+        private static extern bool SRSetRestorePointW(
+            ref RESTOREPOINTINFO pRestorePtSpec,
+            out STATEMGRSTATUS pSMgrStatus);
+
+        [StructLayout(LayoutKind.Sequential, CharSet = CharSet.Unicode)]
+        private struct RESTOREPOINTINFO
+        {
+            public int dwEventType;
+            public int dwRestorePtType;
+            public long llSequenceNumber;
+            [MarshalAs(UnmanagedType.ByValTStr, SizeConst = 256)]
+            public string szDescription;
+        }
+
+        [StructLayout(LayoutKind.Sequential)]
+        private struct STATEMGRSTATUS
+        {
+            public int nStatus;
+            public long llSequenceNumber;
+        }
+
+        private const int BEGIN_SYSTEM_CHANGE = 100;
+        private const int MODIFY_SETTINGS = 12;
 
         private async Task<bool> CreateRestorePointAsync(string description)
         {
-            var script = $"Checkpoint-Computer -Description '{description}' -RestorePointType MODIFY_SETTINGS -ErrorAction Stop";
-            try
+            return await Task.Run(() =>
             {
-                await _psService.ExecuteScriptAsync(script);
-                return true;
-            }
-            catch (Exception ex)
-            {
-                _logService.Log(LogLevel.Error, $"Failed to create restore point: {ex.Message}");
-                return false;
-            }
+                try
+                {
+                    var restorePointInfo = new RESTOREPOINTINFO
+                    {
+                        dwEventType = BEGIN_SYSTEM_CHANGE,
+                        dwRestorePtType = MODIFY_SETTINGS,
+                        llSequenceNumber = 0,
+                        szDescription = description
+                    };
+
+                    var success = SRSetRestorePointW(ref restorePointInfo, out var status);
+                    if (!success)
+                    {
+                        _logService.Log(LogLevel.Error, $"Failed to create restore point. Status: {status.nStatus}");
+                    }
+                    return success;
+                }
+                catch (Exception ex)
+                {
+                    _logService.Log(LogLevel.Error, $"Failed to create restore point: {ex.Message}");
+                    return false;
+                }
+            });
         }
 
         private async Task<bool> EnableSystemRestoreAsync()
         {
-            var script = @"
-$systemDrive = $env:SystemDrive
-Enable-ComputerRestore -Drive $systemDrive -ErrorAction Stop
-vssadmin Resize ShadowStorage /For=$systemDrive /On=$systemDrive /MaxSize=10GB | Out-Null";
-
-            try
+            return await Task.Run(() =>
             {
-                await _psService.ExecuteScriptAsync(script);
-                return true;
-            }
-            catch (Exception ex)
-            {
-                _logService.Log(LogLevel.Error, $"Failed to enable System Restore: {ex.Message}");
-                return false;
-            }
-        }
-
-        private async Task<bool> CheckDiskSpaceAsync()
-        {
-            var script = @"
-$systemDrive = $env:SystemDrive
-$drive = Get-PSDrive ($systemDrive -replace ':', '')
-$freeSpace = $drive.Free
-$freeSpace";
-
-            try
-            {
-                var output = await _psService.ExecuteScriptAsync(script);
-                if (long.TryParse(output?.Trim(), out long freeSpace))
+                try
                 {
-                    _logService.Log(LogLevel.Info, $"Available disk space: {freeSpace / 1024 / 1024 / 1024:F2} GB");
-                    return freeSpace >= MinimumFreeSpaceBytes;
-                }
-                return true;
-            }
-            catch (Exception ex)
-            {
-                _logService.Log(LogLevel.Warning, $"Could not check disk space: {ex.Message}");
-                return true;
-            }
-        }
+                    var systemDrive = Environment.GetEnvironmentVariable("SystemDrive") ?? "C:";
 
-        private async Task CreateRegistryBackupsAsync(
-            BackupResult result,
-            IProgress<TaskProgressDetail>? progress,
-            CancellationToken cancellationToken)
-        {
-            try
-            {
-                var createDirScript = $@"
-if (-not (Test-Path '{BackupDirectory}')) {{
-    New-Item -ItemType Directory -Path '{BackupDirectory}' -Force | Out-Null
-}}";
-                await _psService.ExecuteScriptAsync(createDirScript);
+                    // Enable System Restore via WMI
+                    using var restoreClass = new ManagementClass(
+                        new ManagementScope(@"\\.\root\default"),
+                        new ManagementPath("SystemRestore"),
+                        new ObjectGetOptions());
 
-                var backups = new[]
-                {
-                    ("HKLM", "Winhance_HKLM_Backup.reg"),
-                    ("HKCU", "Winhance_HKCU_Backup.reg"),
-                    ("HKCR", "Winhance_HKCR_Backup.reg")
-                };
+                    var inParams = restoreClass.GetMethodParameters("Enable");
+                    inParams["Drive"] = systemDrive + "\\";
+                    restoreClass.InvokeMethod("Enable", inParams, null);
 
-                foreach (var (hive, fileName) in backups)
-                {
-                    cancellationToken.ThrowIfCancellationRequested();
+                    _logService.Log(LogLevel.Info, "System Restore enabled via WMI");
 
-                    var filePath = Path.Combine(BackupDirectory, fileName);
-
-                    progress?.Report(new TaskProgressDetail
+                    // Resize shadow storage
+                    using var process = new Process();
+                    process.StartInfo = new ProcessStartInfo
                     {
-                        StatusText = _localization.GetString("Progress_BackingUpRegistry", hive),
-                        IsIndeterminate = true
-                    });
+                        FileName = "vssadmin",
+                        Arguments = $"Resize ShadowStorage /For={systemDrive} /On={systemDrive} /MaxSize=10GB",
+                        UseShellExecute = false,
+                        CreateNoWindow = true,
+                        RedirectStandardOutput = true
+                    };
+                    process.Start();
+                    process.WaitForExit(30000);
 
-                    var success = await ExportRegistryHiveAsync(hive, filePath);
-
-                    if (success)
-                    {
-                        result.RegistryBackupPaths.Add(filePath);
-                        _logService.Log(LogLevel.Info, $"Successfully exported {hive} to {filePath}");
-                    }
-                    else
-                    {
-                        result.Warnings.Add($"Failed to export {hive} registry hive");
-                        _logService.Log(LogLevel.Warning, $"Failed to export {hive}");
-                    }
+                    _logService.Log(LogLevel.Info, "Shadow storage resized");
+                    return true;
                 }
-
-                result.RegistryBackupCreated = result.RegistryBackupPaths.Count > 0;
-            }
-            catch (Exception ex)
-            {
-                result.Warnings.Add($"Registry backup error: {ex.Message}");
-                _logService.Log(LogLevel.Error, $"Error creating registry backups: {ex.Message}");
-            }
-        }
-
-        private async Task<bool> ExportRegistryHiveAsync(string hive, string outputPath)
-        {
-            var script = $@"
-$result = & reg.exe export {hive} '{outputPath}' /y 2>&1
-if ($LASTEXITCODE -eq 0) {{ 'SUCCESS' }} else {{ $result }}";
-
-            try
-            {
-                var output = await _psService.ExecuteScriptAsync(script);
-                return output?.Trim() == "SUCCESS";
-            }
-            catch (Exception ex)
-            {
-                _logService.Log(LogLevel.Error, $"Failed to export {hive}: {ex.Message}");
-                return false;
-            }
-        }
-
-        private async Task CheckExistingRegistryBackupsAsync(BackupResult result)
-        {
-            var script = $@"
-$files = @(
-    '{BackupDirectory}\Winhance_HKLM_Backup.reg',
-    '{BackupDirectory}\Winhance_HKCU_Backup.reg',
-    '{BackupDirectory}\Winhance_HKCR_Backup.reg'
-)
-$existing = $files | Where-Object {{ Test-Path $_ }}
-$existing -join '|'";
-
-            try
-            {
-                var output = await _psService.ExecuteScriptAsync(script);
-                if (!string.IsNullOrWhiteSpace(output))
+                catch (Exception ex)
                 {
-                    var paths = output.Split('|', StringSplitOptions.RemoveEmptyEntries);
-                    result.RegistryBackupPaths.AddRange(paths);
-                    result.RegistryBackupExisted = paths.Length > 0;
+                    _logService.Log(LogLevel.Error, $"Failed to enable System Restore: {ex.Message}");
+                    return false;
                 }
-            }
-            catch (Exception ex)
-            {
-                _logService.Log(LogLevel.Warning, $"Error checking existing registry backups: {ex.Message}");
-            }
+            });
         }
     }
 }

@@ -8,5 +8,6 @@ namespace Winhance.Core.Features.Common.Interfaces
         Task<List<PowerPlanComboBoxOption>> GetPowerPlanOptionsAsync();
         int ResolveIndexFromRawValues(SettingDefinition setting, Dictionary<string, object?> rawValues);
         Task<PowerPlanResolutionResult> ResolvePowerPlanByIndexAsync(int index);
+        void InvalidateCache();
     }
 }

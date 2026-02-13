@@ -22,6 +22,7 @@ namespace Winhance.Core.Features.SoftwareApps.Models
                             Description = "Open-source file archiver with a high compression ratio",
                             GroupName = "Compression",
                             WinGetPackageId = ["7zip.7zip"],
+                            ChocoPackageId = "7zip",
                             WebsiteUrl = "https://www.7-zip.org/"
                         },
                         new ItemDefinition
@@ -31,6 +32,7 @@ namespace Winhance.Core.Features.SoftwareApps.Models
                             Description = "File archiver with a high compression ratio",
                             GroupName = "Compression",
                             WinGetPackageId = ["RARLab.WinRAR"],
+                            ChocoPackageId = "winrar",
                             WebsiteUrl = "https://www.win-rar.com/"
                         },
                         new ItemDefinition
@@ -40,6 +42,7 @@ namespace Winhance.Core.Features.SoftwareApps.Models
                             Description = "Free file archiver utility. Open and extract RAR, TAR, ZIP files and more",
                             GroupName = "Compression",
                             WinGetPackageId = ["Giorgiotani.Peazip"],
+                            ChocoPackageId = "peazip",
                             WebsiteUrl = "https://peazip.github.io/"
                         },
                         new ItemDefinition
@@ -49,6 +52,7 @@ namespace Winhance.Core.Features.SoftwareApps.Models
                             Description = "Open source fork of 7-zip intended for the modern Windows experience",
                             GroupName = "Compression",
                             WinGetPackageId = ["M2Team.NanaZip"],
+                            ChocoPackageId = "nanazip",
                             WebsiteUrl = "https://github.com/M2Team/NanaZip"
                         }
                     }

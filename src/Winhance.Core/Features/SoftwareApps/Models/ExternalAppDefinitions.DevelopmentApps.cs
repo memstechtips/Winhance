@@ -22,6 +22,7 @@ namespace Winhance.Core.Features.SoftwareApps.Models
                             Description = "Python programming language",
                             GroupName = "Development Apps",
                             WinGetPackageId = ["Python.Python.3.13"],
+                            ChocoPackageId = "python3",
                             WebsiteUrl = "https://www.python.org/"
                         },
                         new ItemDefinition
@@ -31,6 +32,7 @@ namespace Winhance.Core.Features.SoftwareApps.Models
                             Description = "Free source code editor and Notepad replacement",
                             GroupName = "Development Apps",
                             WinGetPackageId = ["Notepad++.Notepad++"],
+                            ChocoPackageId = "notepadplusplus",
                             WebsiteUrl = "https://notepad-plus-plus.org/"
                         },
                         new ItemDefinition
@@ -40,6 +42,7 @@ namespace Winhance.Core.Features.SoftwareApps.Models
                             Description = "Free SFTP, SCP, Amazon S3, WebDAV, and FTP client",
                             GroupName = "Development Apps",
                             WinGetPackageId = ["WinSCP.WinSCP"],
+                            ChocoPackageId = "winscp",
                             WebsiteUrl = "https://winscp.net/"
                         },
                         new ItemDefinition
@@ -49,6 +52,7 @@ namespace Winhance.Core.Features.SoftwareApps.Models
                             Description = "Free SSH and telnet client",
                             GroupName = "Development Apps",
                             WinGetPackageId = ["PuTTY.PuTTY"],
+                            ChocoPackageId = "putty",
                             WebsiteUrl = "https://www.putty.org/"
                         },
                         new ItemDefinition
@@ -58,6 +62,7 @@ namespace Winhance.Core.Features.SoftwareApps.Models
                             Description = "Open source differencing and merging tool",
                             GroupName = "Development Apps",
                             WinGetPackageId = ["WinMerge.WinMerge"],
+                            ChocoPackageId = "winmerge",
                             WebsiteUrl = "https://winmerge.org/"
                         },
                         new ItemDefinition
@@ -67,6 +72,7 @@ namespace Winhance.Core.Features.SoftwareApps.Models
                             Description = "Java IDE and development platform",
                             GroupName = "Development Apps",
                             WinGetPackageId = ["EclipseFoundation.EclipseIDEforJavaDevelopers"],
+                            ChocoPackageId = "eclipse-java-oxygen",
                             WebsiteUrl = "https://www.eclipse.org/"
                         },
                         new ItemDefinition
@@ -76,6 +82,7 @@ namespace Winhance.Core.Features.SoftwareApps.Models
                             Description = "Code editor with support for development operations",
                             GroupName = "Development Apps",
                             WinGetPackageId = ["Microsoft.VisualStudioCode"],
+                            ChocoPackageId = "vscode",
                             WebsiteUrl = "https://code.visualstudio.com/"
                         },
                         new ItemDefinition
@@ -85,6 +92,7 @@ namespace Winhance.Core.Features.SoftwareApps.Models
                             Description = "Distributed version control system",
                             GroupName = "Development Apps",
                             WinGetPackageId = ["Git.Git"],
+                            ChocoPackageId = "git",
                             WebsiteUrl = "https://git-scm.com/"
                         },
                         new ItemDefinition
@@ -94,6 +102,7 @@ namespace Winhance.Core.Features.SoftwareApps.Models
                             Description = "GitHub desktop client",
                             GroupName = "Development Apps",
                             WinGetPackageId = ["GitHub.GitHubDesktop"],
+                            ChocoPackageId = "github-desktop",
                             WebsiteUrl = "https://desktop.github.com/"
                         },
                         new ItemDefinition
@@ -103,6 +112,7 @@ namespace Winhance.Core.Features.SoftwareApps.Models
                             Description = "Visual diff and merge tool",
                             GroupName = "Development Apps",
                             WinGetPackageId = ["Meld.Meld"],
+                            ChocoPackageId = "meld",
                             WebsiteUrl = "https://meldmerge.org/"
                         }
                     }

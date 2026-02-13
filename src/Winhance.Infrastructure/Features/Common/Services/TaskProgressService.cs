@@ -21,6 +21,17 @@ namespace Winhance.Infrastructure.Features.Common.Services
         private List<string> _logMessages = new List<string>();
         private CancellationTokenSource _cancellationSource;
 
+        // Queue sticky state
+        private int _queueTotal;
+        private int _queueCurrent;
+        private string? _queueNextItemName;
+
+        // Multi-script slot state
+        private int _activeScriptSlotCount;
+
+        // Skip-next flag
+        private volatile bool _skipNextRequested;
+
         /// <summary>
         /// Gets whether a task is currently running.
         /// </summary>
@@ -45,6 +56,11 @@ namespace Winhance.Infrastructure.Features.Common.Services
         /// Gets the cancellation token source for the current task.
         /// </summary>
         public CancellationTokenSource? CurrentTaskCancellationSource => _cancellationSource;
+
+        /// <summary>
+        /// Gets the number of active script slots in multi-script mode.
+        /// </summary>
+        public int ActiveScriptSlotCount => _activeScriptSlotCount;
 
         /// <summary>
         /// Event raised when progress changes.
@@ -96,6 +112,10 @@ namespace Winhance.Infrastructure.Features.Common.Services
             _isTaskRunning = true;
             _isIndeterminate = isIndeterminate;
             _logMessages.Clear();
+            _queueTotal = 0;
+            _queueCurrent = 0;
+            _queueNextItemName = null;
+            _skipNextRequested = false;
 
             _logService.Log(LogLevel.Info, $"[TASKPROGRESSSERVICE] Task started: {taskName}"); // Corrected Log call
             AddLogMessage($"[TASKPROGRESSSERVICE] Task started: {taskName}");
@@ -151,6 +171,9 @@ namespace Winhance.Infrastructure.Features.Common.Services
                 {
                     Progress = progressPercentage,
                     StatusText = _currentStatusText,
+                    TerminalOutput = progressPercentage > 0 && progressPercentage < 100
+                        ? $"{progressPercentage}%"
+                        : null,
                 }
             );
         }
@@ -207,6 +230,10 @@ namespace Winhance.Infrastructure.Features.Common.Services
 
             _isTaskRunning = false;
             _isIndeterminate = false;
+            _queueTotal = 0;
+            _queueCurrent = 0;
+            _queueNextItemName = null;
+            _skipNextRequested = false;
 
             _logService.Log(LogLevel.Info, $"Task completed: {_currentStatusText}"); // Corrected Log call
             AddLogMessage($"Task completed: {_currentStatusText}");
@@ -318,10 +345,136 @@ namespace Winhance.Infrastructure.Features.Common.Services
         }
 
         /// <summary>
-        /// Raises the ProgressUpdated event.
+        /// Starts a multi-script task with the specified script names.
+        /// </summary>
+        public CancellationTokenSource StartMultiScriptTask(string[] scriptNames)
+        {
+            CancelCurrentTask();
+
+            if (scriptNames == null || scriptNames.Length == 0)
+                throw new ArgumentException("At least one script name is required.", nameof(scriptNames));
+
+            _cancellationSource = new CancellationTokenSource();
+            _isTaskRunning = true;
+            _activeScriptSlotCount = scriptNames.Length;
+            _currentProgress = 0;
+            _currentStatusText = string.Empty;
+            _logMessages.Clear();
+            _queueTotal = 0;
+            _queueCurrent = 0;
+            _queueNextItemName = null;
+            _skipNextRequested = false;
+
+            _logService.Log(LogLevel.Info, $"[TASKPROGRESSSERVICE] Multi-script task started with {scriptNames.Length} slots");
+
+            // Fire initial progress for each slot
+            for (int i = 0; i < scriptNames.Length; i++)
+            {
+                ProgressUpdated?.Invoke(this, new TaskProgressDetail
+                {
+                    ScriptSlotIndex = i,
+                    ScriptSlotCount = scriptNames.Length,
+                    StatusText = scriptNames[i],
+                    IsIndeterminate = true,
+                    IsActive = true
+                });
+            }
+
+            return _cancellationSource;
+        }
+
+        /// <summary>
+        /// Creates a progress reporter for a specific script slot.
+        /// Must be called on the UI thread so Progress&lt;T&gt; captures the SynchronizationContext.
+        /// </summary>
+        public IProgress<TaskProgressDetail> CreateScriptProgress(int slotIndex)
+        {
+            var slotCount = _activeScriptSlotCount;
+            return new Progress<TaskProgressDetail>(detail =>
+            {
+                detail.ScriptSlotIndex = slotIndex;
+                detail.ScriptSlotCount = slotCount;
+                // Fire directly without sticky queue logic
+                ProgressUpdated?.Invoke(this, detail);
+            });
+        }
+
+        /// <summary>
+        /// Completes the multi-script task and resets slot state.
+        /// </summary>
+        public void CompleteMultiScriptTask()
+        {
+            _isTaskRunning = false;
+            _activeScriptSlotCount = 0;
+            _queueTotal = 0;
+            _queueCurrent = 0;
+            _queueNextItemName = null;
+            _skipNextRequested = false;
+
+            _logService.Log(LogLevel.Info, "[TASKPROGRESSSERVICE] Multi-script task completed");
+
+            // Signal completion: ScriptSlotCount=0 tells UI to hide all controls
+            ProgressUpdated?.Invoke(this, new TaskProgressDetail
+            {
+                ScriptSlotIndex = -1,
+                ScriptSlotCount = 0,
+                Progress = 100,
+                StatusText = "Completed",
+                DetailedMessage = "Multi-script task completed"
+            });
+
+            _cancellationSource?.Dispose();
+            _cancellationSource = null;
+        }
+
+        /// <summary>
+        /// Requests that the next queued item be skipped.
+        /// </summary>
+        public void RequestSkipNext()
+        {
+            _skipNextRequested = true;
+        }
+
+        /// <summary>
+        /// Checks and clears the skip-next flag (atomic check-and-clear).
+        /// </summary>
+        /// <returns>True if a skip was requested since the last call.</returns>
+        public bool ConsumeSkipNextRequest()
+        {
+            if (!_skipNextRequested) return false;
+            _skipNextRequested = false;
+            return true;
+        }
+
+        /// <summary>
+        /// Raises the ProgressUpdated event, applying sticky queue state.
+        /// Multi-script updates (ScriptSlotCount &gt; 0) bypass sticky queue logic.
         /// </summary>
         protected virtual void OnProgressChanged(TaskProgressDetail detail)
         {
+            // Multi-script updates bypass sticky queue logic entirely
+            if (detail.ScriptSlotCount > 0)
+            {
+                ProgressUpdated?.Invoke(this, detail);
+                return;
+            }
+
+            // Update sticky queue state if incoming detail has queue info
+            if (detail.QueueTotal > 0)
+            {
+                _queueTotal = detail.QueueTotal;
+                _queueCurrent = detail.QueueCurrent;
+                _queueNextItemName = detail.QueueNextItemName;
+            }
+
+            // Always populate queue info from sticky state if we're in a queue
+            if (_queueTotal > 1)
+            {
+                detail.QueueTotal = _queueTotal;
+                detail.QueueCurrent = _queueCurrent;
+                detail.QueueNextItemName = _queueNextItemName;
+            }
+
             ProgressUpdated?.Invoke(this, detail);
             ProgressChanged?.Invoke(
                 this,

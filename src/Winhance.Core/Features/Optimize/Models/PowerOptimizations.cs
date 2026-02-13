@@ -21,8 +21,8 @@ namespace Winhance.Core.Features.Optimize.Models
                         Id = "power-plan-selection",
                         Name = "Power Plan",
                         Description = "Select the active power plan for your system",
-                        Icon = "DatabaseZap",
-                        IconPack = "Lucide",
+                        IconPack = "Fluent",
+                        Icon = "NotebookLightning",
                         InputType = InputType.Selection,
                         CustomProperties = new Dictionary<string, object>
                         {
@@ -37,8 +37,7 @@ namespace Winhance.Core.Features.Optimize.Models
                         Name = "Turn off the display",
                         Description = "Specifies the period of inactivity before Windows turns off the display",
                         GroupName = "Display",
-                        IconPack = "Lucide",
-                        Icon = "MonitorX",
+                        Icon = "MonitorOff",
                         InputType = InputType.Selection,
                         PowerCfgSettings = new List<PowerCfgSetting>
                         {
@@ -300,16 +299,6 @@ namespace Winhance.Core.Features.Optimize.Models
                         GroupName = "Sleep",
                         Icon = "PowerSleep",
                         InputType = InputType.Toggle,
-                        CommandSettings = new List<CommandSetting>
-                        {
-                            new CommandSetting
-                            {
-                                Id = "hibernation-toggle",
-                                EnabledCommand = "powercfg /hibernate on",
-                                DisabledCommand = "powercfg /hibernate off",
-                                RecommendedState = false
-                            }
-                        },
                     },
 
                     new SettingDefinition
@@ -391,11 +380,9 @@ namespace Winhance.Core.Features.Optimize.Models
                                 KeyPath = @"HKEY_LOCAL_MACHINE\SYSTEM\ControlSet001\Control\Session Manager\Power",
                                 ValueName = "HiberbootEnabled",
                                 RecommendedValue = 0,
-                                EnabledValue = 1,
+                                EnabledValue = null,
                                 DisabledValue = 0,
-                                DefaultValue = 1,
                                 ValueType = RegistryValueKind.DWord,
-                                AbsenceMeansEnabled = true,
                             },
                         },
                     },
@@ -425,11 +412,9 @@ namespace Winhance.Core.Features.Optimize.Models
                                 KeyPath = @"HKEY_LOCAL_MACHINE\SOFTWARE\Microsoft\Windows\CurrentVersion\Explorer\FlyoutMenuSettings",
                                 ValueName = "ShowHibernateOption",
                                 RecommendedValue = 0,
-                                EnabledValue = 1,
+                                EnabledValue = null,
                                 DisabledValue = 0,
-                                DefaultValue = 1,
                                 ValueType = RegistryValueKind.DWord,
-                                AbsenceMeansEnabled = true,
                             },
                         },
                     },
@@ -1090,8 +1075,7 @@ namespace Winhance.Core.Features.Optimize.Models
                         Name = "Disable Power Throttling",
                         Description = "Automatically reduces CPU performance for background processes to improve battery life and reduce heat generation",
                         GroupName = "Processor Power Management",
-                        IconPack = "MaterialDesign",
-                        Icon = "DeselectRound",
+                        Icon = "SelectOff",
                         InputType = InputType.Toggle,
                         RegistrySettings = new List<RegistrySetting>
                         {
@@ -1485,11 +1469,9 @@ namespace Winhance.Core.Features.Optimize.Models
                                 KeyPath = @"HKEY_LOCAL_MACHINE\SOFTWARE\Microsoft\Windows\CurrentVersion\Explorer\FlyoutMenuSettings",
                                 ValueName = "ShowLockOption",
                                 RecommendedValue = 0,
-                                EnabledValue = 1,
+                                EnabledValue = null,
                                 DisabledValue = 0,
-                                DefaultValue = 1,
                                 ValueType = RegistryValueKind.DWord,
-                                AbsenceMeansEnabled = true,
                             },
                         },
                     },
@@ -1509,11 +1491,9 @@ namespace Winhance.Core.Features.Optimize.Models
                                 KeyPath = @"HKEY_LOCAL_MACHINE\SOFTWARE\Microsoft\Windows\CurrentVersion\Explorer\FlyoutMenuSettings",
                                 ValueName = "ShowSleepOption",
                                 RecommendedValue = 0,
-                                EnabledValue = 1,
+                                EnabledValue = null,
                                 DisabledValue = 0,
-                                DefaultValue = 1,
                                 ValueType = RegistryValueKind.DWord,
-                                AbsenceMeansEnabled = true,
                             },
                         },
                     },

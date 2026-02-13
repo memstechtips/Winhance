@@ -170,12 +170,12 @@ namespace Winhance.Infrastructure.Features.Common.Services
 
                 if (!KeyExists(setting.KeyPath))
                 {
-                    return setting.AbsenceMeansEnabled;
+                    return setting.EnabledValue == null;
                 }
 
                 if (!ValueExists(setting.KeyPath, setting.ValueName))
                 {
-                    return setting.AbsenceMeansEnabled;
+                    return setting.EnabledValue == null;
                 }
 
                 if (setting.BitMask.HasValue && setting.BinaryByteIndex.HasValue)
@@ -201,15 +201,21 @@ namespace Winhance.Infrastructure.Features.Common.Services
 
                 var currentValue = GetValue(setting.KeyPath, setting.ValueName);
 
-                // Check if current value matches EnabledValue (only if EnabledValue is not null)
-                if (setting.EnabledValue != null && CompareValues(currentValue, setting.EnabledValue))
+                // When EnabledValue is null, absence is the enabled state.
+                // If value exists but doesn't match DisabledValue, treat as enabled.
+                if (setting.EnabledValue == null)
+                {
+                    if (setting.DisabledValue != null && CompareValues(currentValue, setting.DisabledValue))
+                        return false;
+                    return true; // Value exists but isn't disabled → enabled
+                }
+
+                if (CompareValues(currentValue, setting.EnabledValue))
                     return true;
 
-                // Check if current value matches DisabledValue (only if DisabledValue is not null)
                 if (setting.DisabledValue != null && CompareValues(currentValue, setting.DisabledValue))
                     return false;
 
-                // Value doesn't match either EnabledValue or DisabledValue
                 return false;
             }
             catch (Exception)

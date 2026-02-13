@@ -13,7 +13,6 @@ public record RegistrySetting
     public object? EnabledValue { get; init; }
     public object? DisabledValue { get; init; }
     public required RegistryValueKind ValueType { get; init; }
-    public bool AbsenceMeansEnabled { get; init; } = false;
     public bool IsPrimary { get; init; } = false;
     public Dictionary<string, object>? CustomProperties { get; set; }
     public int? BinaryByteIndex { get; init; }

@@ -2,7 +2,7 @@ namespace Winhance.Core.Features.SoftwareApps.Models;
 
 public static class EdgeRemovalScript
 {
-    public const string ScriptVersion = "1.0";
+    public const string ScriptVersion = "1.1";
 
     public static string GetScript()
     {
@@ -356,6 +356,8 @@ function Remove-ChromiumEdge {
             $uninstallString = (Get-ItemProperty $key.PSPath).UninstallString
             if ($uninstallString) {
                 $edgeUninstallCount++
+                # Kill any Edge processes that may have respawned since initial stop
+                Stop-EdgeProcesses
                 if ($uninstallString -like ""*msiexec*"") {
                     # Uninstalls Enterprise MSI version
                     Write-Log ""Executing MSI uninstaller for Edge""

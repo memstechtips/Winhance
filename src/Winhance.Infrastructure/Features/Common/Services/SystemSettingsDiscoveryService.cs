@@ -1,3 +1,5 @@
+using System.Diagnostics;
+using System.Text;
 using Winhance.Core.Features.Common.Enums;
 using Winhance.Core.Features.Common.Interfaces;
 using Winhance.Core.Features.Common.Models;
@@ -9,11 +11,11 @@ namespace Winhance.Infrastructure.Features.Common.Services
 {
     public class SystemSettingsDiscoveryService(
         IWindowsRegistryService registryService,
-        ICommandService commandService,
         ILogService logService,
-        IPowerCfgQueryService powerCfgQueryService,
+        IPowerSettingsQueryService powerSettingsQueryService,
         IPowerSettingsValidationService powerSettingsValidationService,
-        IDomainServiceRouter domainServiceRouter) : ISystemSettingsDiscoveryService
+        IDomainServiceRouter domainServiceRouter,
+        IScheduledTaskService scheduledTaskService) : ISystemSettingsDiscoveryService
     {
         public async Task<Dictionary<string, Dictionary<string, object?>>> GetRawSettingsValuesAsync(IEnumerable<SettingDefinition> settings)
         {
@@ -23,7 +25,8 @@ namespace Winhance.Infrastructure.Features.Common.Services
             var settingsList = settings.ToList();
             var powerCfgSettings = settingsList.Where(s => s.PowerCfgSettings?.Count > 0 && s.Id != "power-plan-selection").ToList();
             var registrySettings = settingsList.Where(s => s.RegistrySettings?.Count > 0).ToList();
-            var commandSettings = settingsList.Where(s => s.CommandSettings?.Count > 0).ToList();
+            var scheduledTaskSettings = settingsList.Where(s => s.ScheduledTaskSettings?.Count > 0).ToList();
+            var hibernationSettings = settingsList.Where(s => s.Id == "power-hibernation-enable").ToList();
             var powerPlanSettings = settingsList.Where(s => s.Id == "power-plan-selection").ToList();
 
             List<PowerPlan> availablePlans = new();
@@ -36,14 +39,14 @@ namespace Winhance.Infrastructure.Features.Common.Services
 
                 if (powerCfgSetting.PowerModeSupport == PowerModeSupport.Separate)
                 {
-                    var (acValue, dcValue) = await powerCfgQueryService.GetPowerSettingACDCValuesAsync(powerCfgSetting);
+                    var (acValue, dcValue) = await powerSettingsQueryService.GetPowerSettingACDCValuesAsync(powerCfgSetting);
                     rawValues["ACValue"] = acValue;
                     rawValues["DCValue"] = dcValue;
                     rawValues["PowerCfgValue"] = acValue;
                 }
                 else
                 {
-                    var powerValue = await powerCfgQueryService.GetPowerSettingValueAsync(powerCfgSetting);
+                    var powerValue = await powerSettingsQueryService.GetPowerSettingValueAsync(powerCfgSetting);
                     rawValues["PowerCfgValue"] = powerValue;
                 }
 
@@ -51,11 +54,11 @@ namespace Winhance.Infrastructure.Features.Common.Services
             }
             else if (powerCfgSettings.Count > 1 || powerPlanSettings.Any())
             {
-                var allPowerSettingsACDC = await powerCfgQueryService.GetAllPowerSettingsACDCAsync("SCHEME_CURRENT");
+                var allPowerSettingsACDC = await powerSettingsQueryService.GetAllPowerSettingsACDCAsync("SCHEME_CURRENT");
 
                 if (powerPlanSettings.Any())
                 {
-                    availablePlans = await powerCfgQueryService.GetAvailablePowerPlansAsync();
+                    availablePlans = await powerSettingsQueryService.GetAvailablePowerPlansAsync();
                 }
 
                 foreach (var setting in powerCfgSettings)
@@ -170,24 +173,38 @@ namespace Winhance.Infrastructure.Features.Common.Services
                 var rawValues = new Dictionary<string, object?>();
                 var activePlan = availablePlans.FirstOrDefault(p => p.IsActive);
                 rawValues["ActivePowerPlan"] = activePlan?.Name;
+                rawValues["ActivePowerPlanGuid"] = activePlan?.Guid;
                 results[setting.Id] = rawValues;
             }
 
-            foreach (var setting in commandSettings)
+            foreach (var setting in scheduledTaskSettings)
             {
                 try
                 {
                     var rawValues = new Dictionary<string, object?>();
-                    var commandSetting = setting.CommandSettings[0];
-                    var isEnabled = setting.Id == "power-hibernation-enable"
-                        ? await powerSettingsValidationService.IsHibernationEnabledAsync()
-                        : await commandService.IsCommandSettingEnabledAsync(commandSetting);
-                    rawValues["CommandEnabled"] = isEnabled;
+                    var isEnabled = await scheduledTaskService.IsTaskEnabledAsync(setting.ScheduledTaskSettings[0].TaskPath);
+                    rawValues["ScheduledTaskEnabled"] = isEnabled;
+                    rawValues["ScheduledTaskExists"] = isEnabled != null;
                     results[setting.Id] = rawValues;
                 }
                 catch (Exception ex)
                 {
-                    logService.Log(LogLevel.Warning, $"Exception getting command value for '{setting.Id}': {ex.Message}");
+                    logService.Log(LogLevel.Warning, $"Exception getting scheduled task state for '{setting.Id}': {ex.Message}");
+                    results[setting.Id] = new Dictionary<string, object?>();
+                }
+            }
+
+            foreach (var setting in hibernationSettings)
+            {
+                try
+                {
+                    var rawValues = new Dictionary<string, object?>();
+                    rawValues["HibernationEnabled"] = await powerSettingsValidationService.IsHibernationEnabledAsync();
+                    results[setting.Id] = rawValues;
+                }
+                catch (Exception ex)
+                {
+                    logService.Log(LogLevel.Warning, $"Exception checking hibernation state: {ex.Message}");
                     results[setting.Id] = new Dictionary<string, object?>();
                 }
             }
@@ -218,7 +235,7 @@ namespace Winhance.Infrastructure.Features.Common.Services
             }
 
             var queryType = powerCfgSettings.Count == 1 ? "Individual" : "Bulk";
-            logService.Log(LogLevel.Info, $"Completed processing {results.Count} settings ({queryType}): Registry({registrySettings.Count}), PowerCfg({powerCfgSettings.Count}), Commands({commandSettings.Count}), PowerPlan({powerPlanSettings.Count}), DomainSpecial({settingsByDomain.Count()} domains)");
+            logService.Log(LogLevel.Info, $"Completed processing {results.Count} settings ({queryType}): Registry({registrySettings.Count}), PowerCfg({powerCfgSettings.Count}), ScheduledTasks({scheduledTaskSettings.Count}), PowerPlan({powerPlanSettings.Count}), DomainSpecial({settingsByDomain.Count()} domains)");
             return results;
         }
 
@@ -234,9 +251,24 @@ namespace Winhance.Infrastructure.Features.Common.Services
             {
                 try
                 {
-                    var settingRawValues = allRawValues.TryGetValue(setting.Id, out var values) 
-                        ? values 
+                    var settingRawValues = allRawValues.TryGetValue(setting.Id, out var values)
+                        ? values
                         : new Dictionary<string, object?>();
+
+                    // Skip scheduled-task settings whose task doesn't exist on this system
+                    if (setting.ScheduledTaskSettings?.Count > 0 &&
+                        settingRawValues.TryGetValue("ScheduledTaskExists", out var existsObj) &&
+                        existsObj is false)
+                    {
+                        logService.Log(LogLevel.Info,
+                            $"[SystemSettingsDiscoveryService] Scheduled task not found for '{setting.Id}', marking as unavailable");
+                        results[setting.Id] = new SettingStateResult
+                        {
+                            Success = false,
+                            ErrorMessage = "Scheduled task does not exist on this system"
+                        };
+                        continue;
+                    }
 
                     bool isEnabled = DetermineIfSettingIsEnabled(setting, settingRawValues);
                     object? currentValue = null;
@@ -255,9 +287,9 @@ namespace Winhance.Infrastructure.Features.Common.Services
                         {
                             currentValue = settingRawValues.Values.FirstOrDefault();
                         }
-                        else if (setting.CommandSettings?.Count > 0)
+                        else if (setting.ScheduledTaskSettings?.Count > 0)
                         {
-                            currentValue = settingRawValues.TryGetValue("CommandEnabled", out var commandEnabled) ? commandEnabled : null;
+                            currentValue = settingRawValues.TryGetValue("ScheduledTaskEnabled", out var taskEnabled) ? taskEnabled : null;
                         }
                     }
 
@@ -310,9 +342,9 @@ namespace Winhance.Infrastructure.Features.Common.Services
                 }
                 return false;
             }
-            else if (setting.CommandSettings?.Count > 0)
+            else if (setting.ScheduledTaskSettings?.Count > 0)
             {
-                if (rawValues.TryGetValue("CommandEnabled", out var value))
+                if (rawValues.TryGetValue("ScheduledTaskEnabled", out var value))
                 {
                     return value is bool boolValue && boolValue;
                 }

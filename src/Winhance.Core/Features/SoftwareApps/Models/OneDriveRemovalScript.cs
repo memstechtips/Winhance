@@ -2,7 +2,7 @@ namespace Winhance.Core.Features.SoftwareApps.Models;
 
 public static class OneDriveRemovalScript
 {
-    public const string ScriptVersion = "1.0";
+    public const string ScriptVersion = "1.1";
 
     public static string GetScript()
     {
@@ -65,13 +65,24 @@ function Write-Log {
         Remove-Item $logFile -Force -ErrorAction SilentlyContinue
         $timestamp = Get-Date -Format ""yyyy-MM-dd HH:mm:ss""
         ""$timestamp - Log rotated - previous log exceeded 500KB"" | Out-File -FilePath $logFile
-
-        # Also output to console for real-time progress
-        Write-Host $Message
     }
 
     $timestamp = Get-Date -Format ""yyyy-MM-dd HH:mm:ss""
     ""$timestamp - $Message"" | Out-File -FilePath $logFile -Append
+
+    # Also output to console for real-time progress
+    Write-Host $Message
+}
+
+# Function to schedule file for deletion on reboot
+function Schedule-DeleteOnReboot {
+    param([string]$Path)
+
+    $code = '[DllImport(""kernel32.dll"", SetLastError=true, CharSet=CharSet.Unicode)] public static extern bool MoveFileEx(string lpExistingFileName, string lpNewFileName, int dwFlags);'
+    if (-not ([System.Management.Automation.PSTypeName]'Win32.Kernel32').Type) {
+        Add-Type -MemberDefinition $code -Name 'Kernel32' -Namespace 'Win32' -ErrorAction SilentlyContinue
+    }
+    return [Win32.Kernel32]::MoveFileEx($Path, $null, 4)  # 4 = MOVEFILE_DELAY_UNTIL_REBOOT
 }
 
 Write-Host ""Starting OneDrive removal process. See $logFile for details.""
@@ -375,44 +386,16 @@ foreach ($path in $systemPaths) {
 
 $remaining = $systemPaths | Where-Object { Test-Path $_ }
 if ($remaining) {
-    Write-Log ""Stopping explorer to release file locks""
-    Stop-Process -Name explorer -Force -ErrorAction SilentlyContinue
-
-    if (Test-Path ""C:\Program Files\Microsoft OneDrive"") {
-        Write-Log ""Unregistering OneDrive DLLs""
-        Get-ChildItem ""C:\Program Files\Microsoft OneDrive"" -Filter ""*.dll"" -Recurse -ErrorAction SilentlyContinue | ForEach-Object {
-            regsvr32.exe /s /u $_.FullName 2>&1 | Out-Null
-        }
-    }
-
-    $maxRetries = 3
-    $retryCount = 0
-
-    do {
-        $retryCount++
-        Write-Log ""Removal retry $retryCount/$maxRetries""
-
-        foreach ($path in $remaining) {
-            if (Test-Path $path) {
-                if (Test-Path $path -PathType Container) {
-                    takeown /f $path /r /d y 2>&1 | Out-Null
-                    icacls $path /grant ""${env:USERNAME}:F"" /t 2>&1 | Out-Null
-                } else {
-                    takeown /f $path 2>&1 | Out-Null
-                    icacls $path /grant ""${env:USERNAME}:F"" 2>&1 | Out-Null
-                }
-                Remove-Item $path -Recurse -Force -ErrorAction SilentlyContinue
+    Write-Log ""Some files locked, scheduling for deletion on reboot""
+    foreach ($path in $remaining) {
+        if (Test-Path $path -PathType Container) {
+            Get-ChildItem $path -Recurse -File -Force -ErrorAction SilentlyContinue | ForEach-Object {
+                Schedule-DeleteOnReboot $_.FullName | Out-Null
             }
+        } else {
+            Schedule-DeleteOnReboot $path | Out-Null
         }
-
-        $remaining = $systemPaths | Where-Object { Test-Path $_ }
-        if ($remaining.Count -eq 0) { break }
-        if ($retryCount -lt $maxRetries) { Start-Sleep -Seconds 2 }
-
-    } while ($retryCount -lt $maxRetries -and $remaining.Count -gt 0)
-
-    if ($remaining.Count -gt 0) {
-        Write-Log ""Warning: Could not remove: $($remaining -join ', ')""
+        Write-Log ""Scheduled for reboot deletion: $path""
     }
 }
 

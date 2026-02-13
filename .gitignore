@@ -11,6 +11,8 @@ GEMINI.md
 .plans/
 # Custom Prompts
 .prompts/
+# Agent Skills
+.agent/
 
 # User-specific files
 *.rsuser

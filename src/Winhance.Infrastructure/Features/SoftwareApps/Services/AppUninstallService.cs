@@ -14,8 +14,7 @@ namespace Winhance.Infrastructure.Features.SoftwareApps.Services;
 
 public class AppUninstallService(
     IWinGetService winGetService,
-    ILogService logService,
-    IPowerShellExecutionService powerShellService) : IAppUninstallService
+    ILogService logService) : IAppUninstallService
 {
     public async Task<OperationResult<bool>> UninstallAsync(
         ItemDefinition item,
@@ -86,15 +85,17 @@ public class AppUninstallService(
 
             var (fileName, arguments) = ParseUninstallString(uninstallString);
 
-            var escapedFileName = fileName.Replace("'", "''");
-            var escapedArguments = arguments.Replace("'", "''");
+            var process = Process.Start(new ProcessStartInfo
+            {
+                FileName = fileName,
+                Arguments = arguments,
+                UseShellExecute = true
+            });
 
-            var script = $@"
-$process = Start-Process -FilePath '{escapedFileName}' -ArgumentList '{escapedArguments}' -PassThru -Wait
-exit $process.ExitCode
-";
-
-            await powerShellService.ExecuteScriptAsync(script, null, cancellationToken);
+            if (process != null)
+            {
+                await process.WaitForExitAsync(cancellationToken);
+            }
 
             logService.LogInformation($"Uninstall process for {item.Name} completed successfully");
 

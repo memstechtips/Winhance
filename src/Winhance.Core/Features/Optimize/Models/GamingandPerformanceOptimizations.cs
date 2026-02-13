@@ -20,7 +20,8 @@ public static class GamingandPerformanceOptimizations
                     Id = "gaming-game-mode",
                     Name = "Game Mode",
                     Description = "Optimize your PC for play by turning things off in the background",
-                    Icon = "Speedometer",
+                    IconPack = "Fluent",
+                    Icon = "TopSpeed",
                     InputType = InputType.Toggle,
                     RegistrySettings = new List<RegistrySetting>
                     {
@@ -29,11 +30,9 @@ public static class GamingandPerformanceOptimizations
                             KeyPath = @"HKEY_CURRENT_USER\Software\Microsoft\GameBar",
                             ValueName = "AutoGameModeEnabled",
                             RecommendedValue = 1,
-                            EnabledValue = 1, // When toggle is ON, Game Mode is enabled
+                            EnabledValue = null, // When toggle is ON, Game Mode is enabled
                             DisabledValue = 0, // When toggle is OFF, Game Mode is disabled
-                            DefaultValue = 1, // Default value when registry key exists but no value is set
                             ValueType = RegistryValueKind.DWord,
-                            AbsenceMeansEnabled = true,
                         },
                     },
                 },
@@ -94,22 +93,18 @@ public static class GamingandPerformanceOptimizations
                             KeyPath = @"HKEY_CURRENT_USER\SOFTWARE\Policies\Microsoft\Windows\AppPrivacy",
                             ValueName = "LetAppsRunInBackground",
                             RecommendedValue = 0,
-                            EnabledValue = 1,
+                            EnabledValue = null,
                             DisabledValue = 0,
-                            DefaultValue = 1,
                             ValueType = RegistryValueKind.DWord,
-                            AbsenceMeansEnabled = true,
                         },
                         new RegistrySetting
                         {
                             KeyPath = @"HKEY_LOCAL_MACHINE\SOFTWARE\Policies\Microsoft\Windows\AppPrivacy",
                             ValueName = "LetAppsRunInBackground",
                             RecommendedValue = 0,
-                            EnabledValue = 1,
+                            EnabledValue = null,
                             DisabledValue = 0,
-                            DefaultValue = 1,
                             ValueType = RegistryValueKind.DWord,
-                            AbsenceMeansEnabled = true,
                         },
                     },
                 },
@@ -127,22 +122,18 @@ public static class GamingandPerformanceOptimizations
                             KeyPath = @"HKEY_CURRENT_USER\SOFTWARE\Policies\Microsoft\Windows\StorageSense",
                             ValueName = "AllowStorageSenseGlobal",
                             RecommendedValue = 0,
-                            EnabledValue = 1,
+                            EnabledValue = null,
                             DisabledValue = 0,
-                            DefaultValue = 1,
                             ValueType = RegistryValueKind.DWord,
-                            AbsenceMeansEnabled = true,
                         },
                         new RegistrySetting
                         {
                             KeyPath = @"HKEY_LOCAL_MACHINE\SOFTWARE\Policies\Microsoft\Windows\StorageSense",
                             ValueName = "AllowStorageSenseGlobal",
                             RecommendedValue = 0,
-                            EnabledValue = 1,
+                            EnabledValue = null,
                             DisabledValue = 0,
-                            DefaultValue = 1,
                             ValueType = RegistryValueKind.DWord,
-                            AbsenceMeansEnabled = true,
                         },
                     },
                 },
@@ -173,8 +164,8 @@ public static class GamingandPerformanceOptimizations
                     Name = "Allow Desktop Wallpaper Compression",
                     Description = "Allow Windows to compress wallpapers to save disk space and improve performance. Only affects images in JPEG format.",
                     InputType = InputType.Toggle,
-                    IconPack = "Lucide",
-                    Icon = "Wallpaper",
+                    IconPack = "Fluent",
+                    Icon = "ResizeImage",
                     RestartProcess = "Explorer",
                     RegistrySettings = new List<RegistrySetting>
                     {
@@ -183,11 +174,9 @@ public static class GamingandPerformanceOptimizations
                             KeyPath = @"HKEY_CURRENT_USER\Control Panel\Desktop",
                             ValueName = "JPEGImportQuality",
                             RecommendedValue = 100,
-                            EnabledValue = 0,
+                            EnabledValue = null,
                             DisabledValue = 100,
-                            DefaultValue = 0,
                             ValueType = RegistryValueKind.DWord,
-                            AbsenceMeansEnabled = true,
                         },
                     },
                 },
@@ -379,11 +368,9 @@ public static class GamingandPerformanceOptimizations
                             KeyPath = @"HKEY_LOCAL_MACHINE\System\CurrentControlSet\Control\GraphicsDrivers",
                             ValueName = "HwSchMode",
                             RecommendedValue = 2,
-                            EnabledValue = 2,
+                            EnabledValue = null,
                             DisabledValue = 1,
-                            DefaultValue = 1,
                             ValueType = RegistryValueKind.DWord,
-                            AbsenceMeansEnabled = true,
                         },
                     },
                 },
@@ -402,11 +389,9 @@ public static class GamingandPerformanceOptimizations
                             KeyPath = @"HKEY_CURRENT_USER\Software\Microsoft\DirectX\UserGpuPreferences",
                             ValueName = "DirectXUserGlobalSettings",
                             RecommendedValue = "SwapEffectUpgradeEnable=1;",
-                            EnabledValue = "SwapEffectUpgradeEnable=1;",
+                            EnabledValue = null,
                             DisabledValue = "",
-                            DefaultValue = "",
                             ValueType = RegistryValueKind.String,
-                            AbsenceMeansEnabled = true,
                         },
                     },
                 },
@@ -491,11 +476,9 @@ public static class GamingandPerformanceOptimizations
                             KeyPath = @"HKEY_CURRENT_USER\Software\Microsoft\Windows\DWM",
                             ValueName = "CompositionPolicy",
                             RecommendedValue = 0,
-                            EnabledValue = 1, // When toggle is ON, desktop composition is enabled
+                            EnabledValue = null, // When toggle is ON, desktop composition is enabled
                             DisabledValue = 0, // When toggle is OFF, desktop composition is disabled
-                            DefaultValue = 1, // Default value when registry key exists but no value is set
                             ValueType = RegistryValueKind.DWord,
-                            AbsenceMeansEnabled = true,
                         },
                     },
                 },
@@ -593,7 +576,8 @@ public static class GamingandPerformanceOptimizations
                     Name = "Game Bar Controller Access",
                     Description = "Allow your Xbox/compatible controller to open Game Bar by pressing the Xbox button. Disable to prevent accidental Game Bar activation during gaming",
                     GroupName = "Xbox",
-                    Icon = "MicrosoftXboxController",
+                    IconPack = "Fluent",
+                    Icon = "XboxControllerError",
                     InputType = InputType.Toggle,
                     RegistrySettings = new List<RegistrySetting>
                     {
@@ -602,11 +586,9 @@ public static class GamingandPerformanceOptimizations
                             KeyPath = @"HKEY_CURRENT_USER\Software\Microsoft\GameBar",
                             ValueName = "UseNexusForGameBarEnabled",
                             RecommendedValue = 0,
-                            EnabledValue = 1, // When toggle is ON, controller access is enabled
+                            EnabledValue = null, // When toggle is ON, controller access is enabled
                             DisabledValue = 0, // When toggle is OFF, controller access is disabled
-                            DefaultValue = 1, // Default value when registry key exists but no value is set
                             ValueType = RegistryValueKind.DWord,
-                            AbsenceMeansEnabled = true,
                         },
                     },
                 },
@@ -625,11 +607,9 @@ public static class GamingandPerformanceOptimizations
                             KeyPath = @"HKEY_CURRENT_USER\Software\Microsoft\GameBar",
                             ValueName = "ShowStartupPanel",
                             RecommendedValue = 0,
-                            EnabledValue = 1,
+                            EnabledValue = null,
                             DisabledValue = 0,
-                            DefaultValue = 1,
                             ValueType = RegistryValueKind.DWord,
-                            AbsenceMeansEnabled = true,
                         },
                     },
                 },
@@ -1672,7 +1652,7 @@ public static class GamingandPerformanceOptimizations
                         },
                         [CustomPropertyKeys.OptionWarnings] = new Dictionary<int, string>
                         {
-                            [0] = "⚠️ Disabling will prevent Xbox Game Pass and Microsoft Store games from working",
+                            [0] = "Disabling will prevent Xbox Game Pass and Microsoft Store games from working",
                         },
                     },
                     RegistrySettings = new List<RegistrySetting>
@@ -1905,14 +1885,12 @@ public static class GamingandPerformanceOptimizations
                     GroupName = "Scheduled Tasks",
                     Icon = "FileDocumentCheck",
                     InputType = InputType.Toggle,
-                    CommandSettings = new List<CommandSetting>
+                    ScheduledTaskSettings = new List<ScheduledTaskSetting>
                     {
-                        new CommandSetting
+                        new ScheduledTaskSetting
                         {
                             Id = "CompatibilityAppraiserTask",
-                            EnabledCommand = "schtasks /Change /TN \"\\Microsoft\\Windows\\Application Experience\\Microsoft Compatibility Appraiser\" /Enable",
-                            DisabledCommand = "schtasks /Change /TN \"\\Microsoft\\Windows\\Application Experience\\Microsoft Compatibility Appraiser\" /Disable",
-                            RequiresElevation = true,
+                            TaskPath = @"\Microsoft\Windows\Application Experience\Microsoft Compatibility Appraiser",
                             RecommendedState = false
                         }
                     }
@@ -1925,14 +1903,12 @@ public static class GamingandPerformanceOptimizations
                     GroupName = "Scheduled Tasks",
                     Icon = "DatabaseSync",
                     InputType = InputType.Toggle,
-                    CommandSettings = new List<CommandSetting>
+                    ScheduledTaskSettings = new List<ScheduledTaskSetting>
                     {
-                        new CommandSetting
+                        new ScheduledTaskSetting
                         {
                             Id = "ProgramDataUpdaterTask",
-                            EnabledCommand = "schtasks /Change /TN \"\\Microsoft\\Windows\\Application Experience\\ProgramDataUpdater\" /Enable",
-                            DisabledCommand = "schtasks /Change /TN \"\\Microsoft\\Windows\\Application Experience\\ProgramDataUpdater\" /Disable",
-                            RequiresElevation = true,
+                            TaskPath = @"\Microsoft\Windows\Application Experience\ProgramDataUpdater",
                             RecommendedState = false
                         }
                     }
@@ -1945,14 +1921,12 @@ public static class GamingandPerformanceOptimizations
                     GroupName = "Scheduled Tasks",
                     Icon = "ChartLine",
                     InputType = InputType.Toggle,
-                    CommandSettings = new List<CommandSetting>
+                    ScheduledTaskSettings = new List<ScheduledTaskSetting>
                     {
-                        new CommandSetting
+                        new ScheduledTaskSetting
                         {
                             Id = "CEIPConsolidatorTask",
-                            EnabledCommand = "schtasks /Change /TN \"\\Microsoft\\Windows\\Customer Experience Improvement Program\\Consolidator\" /Enable",
-                            DisabledCommand = "schtasks /Change /TN \"\\Microsoft\\Windows\\Customer Experience Improvement Program\\Consolidator\" /Disable",
-                            RequiresElevation = true,
+                            TaskPath = @"\Microsoft\Windows\Customer Experience Improvement Program\Consolidator",
                             RecommendedState = false
                         }
                     }
@@ -1965,14 +1939,12 @@ public static class GamingandPerformanceOptimizations
                     GroupName = "Scheduled Tasks",
                     Icon = "Usb",
                     InputType = InputType.Toggle,
-                    CommandSettings = new List<CommandSetting>
+                    ScheduledTaskSettings = new List<ScheduledTaskSetting>
                     {
-                        new CommandSetting
+                        new ScheduledTaskSetting
                         {
                             Id = "UsbCeipTask",
-                            EnabledCommand = "schtasks /Change /TN \"\\Microsoft\\Windows\\Customer Experience Improvement Program\\UsbCeip\" /Enable",
-                            DisabledCommand = "schtasks /Change /TN \"\\Microsoft\\Windows\\Customer Experience Improvement Program\\UsbCeip\" /Disable",
-                            RequiresElevation = true,
+                            TaskPath = @"\Microsoft\Windows\Customer Experience Improvement Program\UsbCeip",
                             RecommendedState = false
                         }
                     }
@@ -1985,14 +1957,12 @@ public static class GamingandPerformanceOptimizations
                     GroupName = "Scheduled Tasks",
                     Icon = "Harddisk",
                     InputType = InputType.Toggle,
-                    CommandSettings = new List<CommandSetting>
+                    ScheduledTaskSettings = new List<ScheduledTaskSetting>
                     {
-                        new CommandSetting
+                        new ScheduledTaskSetting
                         {
                             Id = "DiskDiagnosticTask",
-                            EnabledCommand = "schtasks /Change /TN \"\\Microsoft\\Windows\\DiskDiagnostic\\Microsoft-Windows-DiskDiagnosticDataCollector\" /Enable",
-                            DisabledCommand = "schtasks /Change /TN \"\\Microsoft\\Windows\\DiskDiagnostic\\Microsoft-Windows-DiskDiagnosticDataCollector\" /Disable",
-                            RequiresElevation = true,
+                            TaskPath = @"\Microsoft\Windows\DiskDiagnostic\Microsoft-Windows-DiskDiagnosticDataCollector",
                             RecommendedState = false
                         }
                     }
@@ -2005,14 +1975,12 @@ public static class GamingandPerformanceOptimizations
                     GroupName = "Scheduled Tasks",
                     Icon = "MessageAlert",
                     InputType = InputType.Toggle,
-                    CommandSettings = new List<CommandSetting>
+                    ScheduledTaskSettings = new List<ScheduledTaskSetting>
                     {
-                        new CommandSetting
+                        new ScheduledTaskSetting
                         {
                             Id = "FeedbackDmClientTask",
-                            EnabledCommand = "schtasks /Change /TN \"\\Microsoft\\Windows\\Feedback\\Siuf\\DmClient\" /Enable",
-                            DisabledCommand = "schtasks /Change /TN \"\\Microsoft\\Windows\\Feedback\\Siuf\\DmClient\" /Disable",
-                            RequiresElevation = true,
+                            TaskPath = @"\Microsoft\Windows\Feedback\Siuf\DmClient",
                             RecommendedState = false
                         }
                     }
@@ -2025,14 +1993,12 @@ public static class GamingandPerformanceOptimizations
                     GroupName = "Scheduled Tasks",
                     Icon = "Download",
                     InputType = InputType.Toggle,
-                    CommandSettings = new List<CommandSetting>
+                    ScheduledTaskSettings = new List<ScheduledTaskSetting>
                     {
-                        new CommandSetting
+                        new ScheduledTaskSetting
                         {
                             Id = "FeedbackDmClientDownloadTask",
-                            EnabledCommand = "schtasks /Change /TN \"\\Microsoft\\Windows\\Feedback\\Siuf\\DmClientOnScenarioDownload\" /Enable",
-                            DisabledCommand = "schtasks /Change /TN \"\\Microsoft\\Windows\\Feedback\\Siuf\\DmClientOnScenarioDownload\" /Disable",
-                            RequiresElevation = true,
+                            TaskPath = @"\Microsoft\Windows\Feedback\Siuf\DmClientOnScenarioDownload",
                             RecommendedState = false
                         }
                     }
@@ -2045,14 +2011,12 @@ public static class GamingandPerformanceOptimizations
                     GroupName = "Scheduled Tasks",
                     Icon = "AlertOctagon",
                     InputType = InputType.Toggle,
-                    CommandSettings = new List<CommandSetting>
+                    ScheduledTaskSettings = new List<ScheduledTaskSetting>
                     {
-                        new CommandSetting
+                        new ScheduledTaskSetting
                         {
                             Id = "ErrorReportingQueueTask",
-                            EnabledCommand = "schtasks /Change /TN \"\\Microsoft\\Windows\\Windows Error Reporting\\QueueReporting\" /Enable",
-                            DisabledCommand = "schtasks /Change /TN \"\\Microsoft\\Windows\\Windows Error Reporting\\QueueReporting\" /Disable",
-                            RequiresElevation = true,
+                            TaskPath = @"\Microsoft\Windows\Windows Error Reporting\QueueReporting",
                             RecommendedState = false
                         }
                     }
@@ -2065,14 +2029,12 @@ public static class GamingandPerformanceOptimizations
                     GroupName = "Scheduled Tasks",
                     Icon = "ChartBar",
                     InputType = InputType.Toggle,
-                    CommandSettings = new List<CommandSetting>
+                    ScheduledTaskSettings = new List<ScheduledTaskSetting>
                     {
-                        new CommandSetting
+                        new ScheduledTaskSetting
                         {
                             Id = "SqmTask",
-                            EnabledCommand = "schtasks /Change /TN \"\\Microsoft\\Windows\\PI\\Sqm-Tasks\" /Enable",
-                            DisabledCommand = "schtasks /Change /TN \"\\Microsoft\\Windows\\PI\\Sqm-Tasks\" /Disable",
-                            RequiresElevation = true,
+                            TaskPath = @"\Microsoft\Windows\PI\Sqm-Tasks",
                             RecommendedState = false
                         }
                     }
@@ -2086,14 +2048,12 @@ public static class GamingandPerformanceOptimizations
                     GroupName = "Scheduled Tasks",
                     Icon = "BackupRestore",
                     InputType = InputType.Toggle,
-                    CommandSettings = new List<CommandSetting>
+                    ScheduledTaskSettings = new List<ScheduledTaskSetting>
                     {
-                        new CommandSetting
+                        new ScheduledTaskSetting
                         {
                             Id = "MareBackupTask",
-                            EnabledCommand = "schtasks /Change /TN \"\\Microsoft\\Windows\\Application Experience\\MareBackup\" /Enable",
-                            DisabledCommand = "schtasks /Change /TN \"\\Microsoft\\Windows\\Application Experience\\MareBackup\" /Disable",
-                            RequiresElevation = true,
+                            TaskPath = @"\Microsoft\Windows\Application Experience\MareBackup",
                             RecommendedState = false
                         }
                     }
@@ -2106,14 +2066,12 @@ public static class GamingandPerformanceOptimizations
                     GroupName = "Scheduled Tasks",
                     Icon = "RocketLaunch",
                     InputType = InputType.Toggle,
-                    CommandSettings = new List<CommandSetting>
+                    ScheduledTaskSettings = new List<ScheduledTaskSetting>
                     {
-                        new CommandSetting
+                        new ScheduledTaskSetting
                         {
                             Id = "StartupAppTask",
-                            EnabledCommand = "schtasks /Change /TN \"\\Microsoft\\Windows\\Application Experience\\StartupAppTask\" /Enable",
-                            DisabledCommand = "schtasks /Change /TN \"\\Microsoft\\Windows\\Application Experience\\StartupAppTask\" /Disable",
-                            RequiresElevation = true,
+                            TaskPath = @"\Microsoft\Windows\Application Experience\StartupAppTask",
                             RecommendedState = false
                         }
                     }
@@ -2126,14 +2084,12 @@ public static class GamingandPerformanceOptimizations
                     GroupName = "Scheduled Tasks",
                     Icon = "Update",
                     InputType = InputType.Toggle,
-                    CommandSettings = new List<CommandSetting>
+                    ScheduledTaskSettings = new List<ScheduledTaskSetting>
                     {
-                        new CommandSetting
+                        new ScheduledTaskSetting
                         {
                             Id = "PcaPatchTask",
-                            EnabledCommand = "schtasks /Change /TN \"\\Microsoft\\Windows\\Application Experience\\PcaPatchDbTask\" /Enable",
-                            DisabledCommand = "schtasks /Change /TN \"\\Microsoft\\Windows\\Application Experience\\PcaPatchDbTask\" /Disable",
-                            RequiresElevation = true,
+                            TaskPath = @"\Microsoft\Windows\Application Experience\PcaPatchDbTask",
                             RecommendedState = false
                         }
                     }
@@ -2147,14 +2103,12 @@ public static class GamingandPerformanceOptimizations
                     GroupName = "Scheduled Tasks",
                     Icon = "MapOutline",
                     InputType = InputType.Toggle,
-                    CommandSettings = new List<CommandSetting>
+                    ScheduledTaskSettings = new List<ScheduledTaskSetting>
                     {
-                        new CommandSetting
+                        new ScheduledTaskSetting
                         {
                             Id = "MapsUpdateTask",
-                            EnabledCommand = "schtasks /Change /TN \"\\Microsoft\\Windows\\Maps\\MapsUpdateTask\" /Enable",
-                            DisabledCommand = "schtasks /Change /TN \"\\Microsoft\\Windows\\Maps\\MapsUpdateTask\" /Disable",
-                            RequiresElevation = true,
+                            TaskPath = @"\Microsoft\Windows\Maps\MapsUpdateTask",
                             RecommendedState = false
                         }
                     }
@@ -2167,14 +2121,12 @@ public static class GamingandPerformanceOptimizations
                     GroupName = "Scheduled Tasks",
                     Icon = "HarddiskPlus",
                     InputType = InputType.Toggle,
-                    CommandSettings = new List<CommandSetting>
+                    ScheduledTaskSettings = new List<ScheduledTaskSetting>
                     {
-                        new CommandSetting
+                        new ScheduledTaskSetting
                         {
                             Id = "AutochkProxyTask",
-                            EnabledCommand = "schtasks /Change /TN \"\\Microsoft\\Windows\\Autochk\\Proxy\" /Enable",
-                            DisabledCommand = "schtasks /Change /TN \"\\Microsoft\\Windows\\Autochk\\Proxy\" /Disable",
-                            RequiresElevation = true,
+                            TaskPath = @"\Microsoft\Windows\Autochk\Proxy",
                             RecommendedState = null
                         }
                     }
@@ -2187,14 +2139,12 @@ public static class GamingandPerformanceOptimizations
                     GroupName = "Scheduled Tasks",
                     Icon = "AccountSupervisor",
                     InputType = InputType.Toggle,
-                    CommandSettings = new List<CommandSetting>
+                    ScheduledTaskSettings = new List<ScheduledTaskSetting>
                     {
-                        new CommandSetting
+                        new ScheduledTaskSetting
                         {
                             Id = "FamilySafetyTask",
-                            EnabledCommand = "schtasks /Change /TN \"\\Microsoft\\Windows\\Shell\\FamilySafetyMonitor\" /Enable",
-                            DisabledCommand = "schtasks /Change /TN \"\\Microsoft\\Windows\\Shell\\FamilySafetyMonitor\" /Disable",
-                            RequiresElevation = true,
+                            TaskPath = @"\Microsoft\Windows\Shell\FamilySafetyMonitor",
                             RecommendedState = false
                         }
                     }
@@ -2207,14 +2157,12 @@ public static class GamingandPerformanceOptimizations
                     GroupName = "Scheduled Tasks",
                     Icon = "LightningBolt",
                     InputType = InputType.Toggle,
-                    CommandSettings = new List<CommandSetting>
+                    ScheduledTaskSettings = new List<ScheduledTaskSetting>
                     {
-                        new CommandSetting
+                        new ScheduledTaskSetting
                         {
                             Id = "PowerEfficiencyTask",
-                            EnabledCommand = "schtasks /Change /TN \"\\Microsoft\\Windows\\Power Efficiency Diagnostics\\AnalyzeSystem\" /Enable",
-                            DisabledCommand = "schtasks /Change /TN \"\\Microsoft\\Windows\\Power Efficiency Diagnostics\\AnalyzeSystem\" /Disable",
-                            RequiresElevation = true,
+                            TaskPath = @"\Microsoft\Windows\Power Efficiency Diagnostics\AnalyzeSystem",
                             RecommendedState = false
                         }
                     }
@@ -2478,8 +2426,7 @@ public static class GamingandPerformanceOptimizations
                     Description = "Animates menus when they appear using fade or slide effects",
                     GroupName = "Visual Effects",
                     InputType = InputType.Toggle,
-                    IconPack = "MaterialDesign",
-                    Icon = "MenuOpenRound",
+                    Icon = "MenuOpen",
                     RequiresRestart = true,
                     Dependencies = new List<SettingDependency>
                     {
@@ -2549,8 +2496,8 @@ public static class GamingandPerformanceOptimizations
                     Description = "Fades menu items after selection before closing the menu",
                     GroupName = "Visual Effects",
                     InputType = InputType.Toggle,
-                    IconPack = "Lucide",
-                    Icon = "SquareMousePointer",
+                    IconPack = "Fluent",
+                    Icon = "SlideTextCursor",
                     RequiresRestart = true,
                     Dependencies = new List<SettingDependency>
                     {
@@ -2585,8 +2532,8 @@ public static class GamingandPerformanceOptimizations
                     Description = "Saves thumbnail previews of taskbar windows for faster display",
                     GroupName = "Visual Effects",
                     InputType = InputType.Toggle,
-                    IconPack = "Lucide",
-                    Icon = "GalleryThumbnails",
+                    IconPack = "Fluent",
+                    Icon = "ImageMultiple",
                     RequiresRestart = true,
                     Dependencies = new List<SettingDependency>
                     {
@@ -2689,8 +2636,8 @@ public static class GamingandPerformanceOptimizations
                     Description = "Displays image and document previews instead of generic file icons",
                     GroupName = "Visual Effects",
                     InputType = InputType.Toggle,
-                    IconPack = "Lucide",
-                    Icon = "Image",
+                    IconPack = "Fluent",
+                    Icon = "ImageStack",
                     RequiresRestart = true,
                     Dependencies = new List<SettingDependency>
                     {
@@ -2723,8 +2670,7 @@ public static class GamingandPerformanceOptimizations
                     Description = "Display a semi-transparent selection box when dragging to select multiple files or items",
                     GroupName = "Visual Effects",
                     InputType = InputType.Toggle,
-                    IconPack = "Lucide",
-                    Icon = "SquareDashedMousePointer",
+                    Icon = "Select",
                     RequiresRestart = true,
                     Dependencies = new List<SettingDependency>
                     {
@@ -2935,11 +2881,9 @@ public static class GamingandPerformanceOptimizations
                             KeyPath = @"HKEY_CURRENT_USER\Software\Microsoft\Narrator\NoRoam",
                             ValueName = "WinEnterLaunchEnabled",
                             RecommendedValue = 0,
-                            EnabledValue = 1,
+                            EnabledValue = null,
                             DisabledValue = 0,
-                            DefaultValue = 1,
                             ValueType = RegistryValueKind.DWord,
-                            AbsenceMeansEnabled = true,
                         },
                     },
                 },

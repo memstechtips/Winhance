@@ -1,7 +1,9 @@
 using System;
 using System.Collections.Generic;
+using System.Diagnostics;
 using System.IO;
 using System.Linq;
+using System.Text;
 using System.Threading.Tasks;
 using Microsoft.Extensions.DependencyInjection;
 using Winhance.Core.Features.Common.Constants;
@@ -9,14 +11,13 @@ using Winhance.Core.Features.Common.Enums;
 using Winhance.Core.Features.Common.Interfaces;
 using Winhance.Core.Features.Common.Models;
 using Winhance.Core.Features.Optimize.Models;
+using Winhance.Infrastructure.Features.Common.Utilities;
 
 namespace Winhance.Infrastructure.Features.Optimize.Services
 {
     public class UpdateService(
         ILogService logService,
         IWindowsRegistryService registryService,
-        ICommandService commandService,
-        IPowerShellExecutionService powerShellService,
         IServiceProvider serviceProvider,
         ICompatibleSettingsRegistry compatibleSettingsRegistry) : IDomainService
     {
@@ -148,6 +149,35 @@ namespace Winhance.Infrastructure.Features.Optimize.Services
             ApplyRegistrySettingsForIndex(setting, 3);
         }
 
+        private async Task<(bool Success, string Output, string Error)> RunCommandAsync(string command)
+        {
+            try
+            {
+                var psi = new ProcessStartInfo
+                {
+                    FileName = "cmd.exe",
+                    Arguments = $"/c chcp 65001 && {command}",
+                    UseShellExecute = false,
+                    RedirectStandardOutput = true,
+                    RedirectStandardError = true,
+                    CreateNoWindow = true,
+                    StandardOutputEncoding = Encoding.UTF8,
+                    StandardErrorEncoding = Encoding.UTF8
+                };
+
+                using var process = Process.Start(psi)!;
+                var output = await process.StandardOutput.ReadToEndAsync();
+                var error = await process.StandardError.ReadToEndAsync();
+                await process.WaitForExitAsync();
+
+                return (process.ExitCode == 0, output, error);
+            }
+            catch (Exception ex)
+            {
+                return (false, string.Empty, ex.Message);
+            }
+        }
+
         private async Task DisableUpdateServicesAsync()
         {
             var services = new[] { "wuauserv", "UsoSvc", "WaaSMedicSvc" };
@@ -156,9 +186,9 @@ namespace Winhance.Infrastructure.Features.Optimize.Services
             {
                 try
                 {
-                    await commandService.ExecuteCommandAsync($"net stop {service}");
-                    await commandService.ExecuteCommandAsync($"sc config {service} start= disabled");
-                    await commandService.ExecuteCommandAsync($"sc failure {service} reset= 0 actions= \"\"");
+                    await RunCommandAsync($"net stop {service}");
+                    await RunCommandAsync($"sc config {service} start= disabled");
+                    await RunCommandAsync($"sc failure {service} reset= 0 actions= \"\"");
                     logService.Log(LogLevel.Info, $"Disabled service: {service}");
                 }
                 catch (Exception ex)
@@ -181,8 +211,8 @@ namespace Winhance.Infrastructure.Features.Optimize.Services
             {
                 try
                 {
-                    await commandService.ExecuteCommandAsync($"sc config {service} start= {startType}");
-                    await commandService.ExecuteCommandAsync($"net start {service}");
+                    await RunCommandAsync($"sc config {service} start= {startType}");
+                    await RunCommandAsync($"net start {service}");
                     logService.Log(LogLevel.Info, $"Enabled service: {service}");
                 }
                 catch (Exception ex)
@@ -200,7 +230,7 @@ namespace Winhance.Infrastructure.Features.Optimize.Services
             {
                 try
                 {
-                    await commandService.ExecuteCommandAsync($"sc config {service} start= demand");
+                    await RunCommandAsync($"sc config {service} start= demand");
                     logService.Log(LogLevel.Info, $"Set {service} to manual");
                 }
                 catch (Exception ex)
@@ -212,77 +242,47 @@ namespace Winhance.Infrastructure.Features.Optimize.Services
 
         private async Task DisableUpdateTasksAsync()
         {
-            var taskPaths = new[]
+            var folderPaths = new[]
             {
-                @"\Microsoft\Windows\InstallService\*",
-                @"\Microsoft\Windows\UpdateOrchestrator\*",
-                @"\Microsoft\Windows\UpdateAssistant\*",
-                @"\Microsoft\Windows\WaaSMedic\*",
-                @"\Microsoft\Windows\WindowsUpdate\*",
+                @"\Microsoft\Windows\InstallService\",
+                @"\Microsoft\Windows\UpdateOrchestrator\",
+                @"\Microsoft\Windows\UpdateAssistant\",
+                @"\Microsoft\Windows\WaaSMedic\",
+                @"\Microsoft\Windows\WindowsUpdate\",
             };
 
-            foreach (var taskPath in taskPaths)
+            foreach (var folderPath in folderPaths)
             {
                 try
                 {
-                    var script = $@"
-                        $tasks = Get-ScheduledTask -TaskPath '{taskPath}' -ErrorAction SilentlyContinue
-                        foreach ($task in $tasks) {{
-                            try {{
-                                Disable-ScheduledTask -TaskName $task.TaskName -TaskPath $task.TaskPath -ErrorAction Stop | Out-Null
-                                Write-Output ""Disabled: $($task.TaskPath)$($task.TaskName)""
-                            }} catch {{
-                                Write-Output ""Skipped: $($task.TaskPath)$($task.TaskName) - $($_.Exception.Message)""
-                            }}
-                        }}
-                    ";
-
-                    var result = await powerShellService.ExecuteScriptAsync(script);
-                    if (!string.IsNullOrWhiteSpace(result))
-                    {
-                        logService.Log(LogLevel.Info, $"Tasks in {taskPath}:\n{result}");
-                    }
+                    var script = $"Get-ScheduledTask -TaskPath '{folderPath}' -ErrorAction SilentlyContinue | Disable-ScheduledTask -ErrorAction SilentlyContinue";
+                    await PowerShellRunner.RunScriptAsync(script);
                 }
                 catch (Exception ex)
                 {
-                    logService.Log(LogLevel.Warning, $"Failed to process tasks in {taskPath}: {ex.Message}");
+                    logService.Log(LogLevel.Warning, $"Failed to process tasks in {folderPath}: {ex.Message}");
                 }
             }
         }
 
         private async Task EnableUpdateTasksAsync()
         {
-            var taskPaths = new[]
+            var folderPaths = new[]
             {
-                @"\Microsoft\Windows\UpdateOrchestrator\*",
-                @"\Microsoft\Windows\WindowsUpdate\*",
+                @"\Microsoft\Windows\UpdateOrchestrator\",
+                @"\Microsoft\Windows\WindowsUpdate\",
             };
 
-            foreach (var taskPath in taskPaths)
+            foreach (var folderPath in folderPaths)
             {
                 try
                 {
-                    var script = $@"
-                        $tasks = Get-ScheduledTask -TaskPath '{taskPath}' -ErrorAction SilentlyContinue
-                        foreach ($task in $tasks) {{
-                            try {{
-                                Enable-ScheduledTask -TaskName $task.TaskName -TaskPath $task.TaskPath -ErrorAction Stop | Out-Null
-                                Write-Output ""Enabled: $($task.TaskPath)$($task.TaskName)""
-                            }} catch {{
-                                Write-Output ""Skipped: $($task.TaskPath)$($task.TaskName) - $($_.Exception.Message)""
-                            }}
-                        }}
-                    ";
-
-                    var result = await powerShellService.ExecuteScriptAsync(script);
-                    if (!string.IsNullOrWhiteSpace(result))
-                    {
-                        logService.Log(LogLevel.Info, $"Tasks in {taskPath}:\n{result}");
-                    }
+                    var script = $"Get-ScheduledTask -TaskPath '{folderPath}' -ErrorAction SilentlyContinue | Enable-ScheduledTask -ErrorAction SilentlyContinue";
+                    await PowerShellRunner.RunScriptAsync(script);
                 }
                 catch (Exception ex)
                 {
-                    logService.Log(LogLevel.Warning, $"Failed to process tasks in {taskPath}: {ex.Message}");
+                    logService.Log(LogLevel.Warning, $"Failed to process tasks in {folderPath}: {ex.Message}");
                 }
             }
         }
@@ -303,8 +303,8 @@ namespace Winhance.Infrastructure.Features.Optimize.Services
                         if (File.Exists(dllPath))
                         {
                             logService.Log(LogLevel.Info, $"Conflict detected for {dll}. Deleting stale backup.");
-                            await commandService.ExecuteCommandAsync($"takeown /f \"{backupPath}\"");
-                            await commandService.ExecuteCommandAsync($"icacls \"{backupPath}\" /grant *S-1-1-0:F");
+                            await RunCommandAsync($"takeown /f \"{backupPath}\"");
+                            await RunCommandAsync($"icacls \"{backupPath}\" /grant *S-1-1-0:F");
                             File.Delete(backupPath);
                         }
                         else
@@ -316,8 +316,8 @@ namespace Winhance.Infrastructure.Features.Optimize.Services
                     if (!File.Exists(dllPath) || File.Exists(backupPath))
                         continue;
 
-                    await commandService.ExecuteCommandAsync($"takeown /f \"{dllPath}\"");
-                    await commandService.ExecuteCommandAsync($"icacls \"{dllPath}\" /grant *S-1-1-0:F");
+                    await RunCommandAsync($"takeown /f \"{dllPath}\"");
+                    await RunCommandAsync($"icacls \"{dllPath}\" /grant *S-1-1-0:F");
 
                     File.Move(dllPath, backupPath);
                     logService.Log(LogLevel.Info, $"Renamed {dll} to backup");
@@ -345,14 +345,14 @@ namespace Winhance.Infrastructure.Features.Optimize.Services
                         if (File.Exists(dllPath))
                         {
                             logService.Log(LogLevel.Info, $"System already restored {dll}. Removing backup.");
-                            await commandService.ExecuteCommandAsync($"takeown /f \"{backupPath}\"");
-                            await commandService.ExecuteCommandAsync($"icacls \"{backupPath}\" /grant *S-1-1-0:F");
+                            await RunCommandAsync($"takeown /f \"{backupPath}\"");
+                            await RunCommandAsync($"icacls \"{backupPath}\" /grant *S-1-1-0:F");
                             File.Delete(backupPath);
                         }
                         else
                         {
-                            await commandService.ExecuteCommandAsync($"takeown /f \"{backupPath}\"");
-                            await commandService.ExecuteCommandAsync($"icacls \"{backupPath}\" /grant *S-1-1-0:F");
+                            await RunCommandAsync($"takeown /f \"{backupPath}\"");
+                            await RunCommandAsync($"icacls \"{backupPath}\" /grant *S-1-1-0:F");
 
                             File.Move(backupPath, dllPath);
                             logService.Log(LogLevel.Info, $"Restored {dll} from backup");
@@ -370,15 +370,9 @@ namespace Winhance.Infrastructure.Features.Optimize.Services
         {
             try
             {
-                var softwareDistPath = @"C:\Windows\SoftwareDistribution";
-
-                if (Directory.Exists(softwareDistPath))
-                {
-                    await powerShellService.ExecuteScriptAsync(
-                        $"Remove-Item '{softwareDistPath}\\*' -Recurse -Force -ErrorAction SilentlyContinue");
-
-                    logService.Log(LogLevel.Info, "Cleaned SoftwareDistribution folder");
-                }
+                var script = "Remove-Item 'C:\\Windows\\SoftwareDistribution\\*' -Recurse -Force -ErrorAction SilentlyContinue";
+                await PowerShellRunner.RunScriptAsync(script);
+                logService.Log(LogLevel.Info, "Cleaned SoftwareDistribution folder");
             }
             catch (Exception ex)
             {

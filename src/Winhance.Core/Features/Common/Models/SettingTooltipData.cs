@@ -9,7 +9,7 @@ namespace Winhance.Core.Features.Common.Models
         public RegistrySetting? RegistrySetting { get; set; }
         public string DisplayValue { get; set; } = string.Empty;
         public Dictionary<RegistrySetting, string?> IndividualRegistryValues { get; set; } = new Dictionary<RegistrySetting, string?>();
-        public List<CommandSetting> CommandSettings { get; set; } = new List<CommandSetting>();
+        public List<ScheduledTaskSetting> ScheduledTaskSettings { get; set; } = new List<ScheduledTaskSetting>();
         public List<PowerCfgSetting> PowerCfgSettings { get; set; } = new List<PowerCfgSetting>();
     }
 }

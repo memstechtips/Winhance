@@ -20,7 +20,6 @@ namespace Winhance.Infrastructure.Features.SoftwareApps.Services;
 public class StoreDownloadService : IStoreDownloadService
 {
     private readonly ITaskProgressService _taskProgressService;
-    private readonly IPowerShellExecutionService _powerShellService;
     private readonly ILogService _logService;
     private readonly ILocalizationService _localization;
     private readonly HttpClient _httpClient;
@@ -30,12 +29,10 @@ public class StoreDownloadService : IStoreDownloadService
 
     public StoreDownloadService(
         ITaskProgressService taskProgressService,
-        IPowerShellExecutionService powerShellService,
         ILocalizationService localization,
         ILogService logService = null)
     {
         _taskProgressService = taskProgressService;
-        _powerShellService = powerShellService;
         _localization = localization;
         _logService = logService;
         _httpClient = new HttpClient
@@ -480,11 +477,10 @@ public class StoreDownloadService : IStoreDownloadService
         {
             _logService?.LogInformation($"Installing package: {packagePath}");
 
-            // Use PowerShell to install the package
-            var escapedPath = packagePath.Replace("'", "''");
-            var script = $"Add-AppxPackage -Path '{escapedPath}' -ErrorAction Stop";
+            var packageManager = new Windows.Management.Deployment.PackageManager();
+            var packageUri = new Uri(packagePath);
+            await packageManager.AddPackageAsync(packageUri, null, Windows.Management.Deployment.DeploymentOptions.None);
 
-            await _powerShellService.ExecuteScriptAsync(script);
             _logService?.LogInformation($"Successfully installed {displayName}");
             return (true, string.Empty);
         }
@@ -511,16 +507,12 @@ public class StoreDownloadService : IStoreDownloadService
         {
             _logService?.LogInformation($"Installing package with {dependencyPaths.Count} dependencies: {packagePath}");
 
-            // Build dependency path array for PowerShell
-            var depPathsEscaped = string.Join(", ", dependencyPaths.Select(p => $"'{p.Replace("'", "''")}'"));
-            var mainPathEscaped = packagePath.Replace("'", "''");
+            var packageManager = new Windows.Management.Deployment.PackageManager();
+            var packageUri = new Uri(packagePath);
+            var dependencyUris = dependencyPaths.Select(p => new Uri(p)).ToList();
 
-            var script = $@"
-$dependencies = @({depPathsEscaped})
-Add-AppxPackage -Path '{mainPathEscaped}' -DependencyPath $dependencies -ErrorAction Stop
-";
+            await packageManager.AddPackageAsync(packageUri, dependencyUris, Windows.Management.Deployment.DeploymentOptions.None);
 
-            await _powerShellService.ExecuteScriptAsync(script);
             _logService?.LogInformation($"Successfully installed {displayName} with dependencies");
             return (true, string.Empty);
         }

@@ -68,41 +68,67 @@ namespace Winhance.Infrastructure.Features.Common.Services
 
         public async Task<VersionInfo> CheckForUpdateAsync()
         {
-            try
+            const int maxRetries = 3;
+            int delayMs = 2000;
+
+            for (int attempt = 1; attempt <= maxRetries; attempt++)
             {
-                _logService.Log(LogLevel.Info, "Checking for updates...");
+                try
+                {
+                    _logService.Log(LogLevel.Info, attempt == 1
+                        ? "Checking for updates..."
+                        : $"Checking for updates (attempt {attempt}/{maxRetries})...");
 
-                // Get the latest release information from GitHub API
-                HttpResponseMessage response = await _httpClient.GetAsync(_latestReleaseApiUrl);
-                response.EnsureSuccessStatusCode();
+                    // Get the latest release information from GitHub API
+                    HttpResponseMessage response = await _httpClient.GetAsync(_latestReleaseApiUrl);
+                    response.EnsureSuccessStatusCode();
 
-                string responseBody = await response.Content.ReadAsStringAsync();
-                using JsonDocument doc = JsonDocument.Parse(responseBody);
+                    string responseBody = await response.Content.ReadAsStringAsync();
+                    using JsonDocument doc = JsonDocument.Parse(responseBody);
 
-                // Extract the tag name (version) from the response
-                string tagName = doc.RootElement.GetProperty("tag_name").GetString() ?? "v0.0.0";
-                string htmlUrl = doc.RootElement.GetProperty("html_url").GetString() ?? string.Empty;
-                DateTime publishedAt = doc.RootElement.TryGetProperty("published_at", out JsonElement publishedElement) &&
-                                      DateTime.TryParse(publishedElement.GetString(), out DateTime published)
-                                      ? published
-                                      : DateTime.MinValue;
+                    // Extract the tag name (version) from the response
+                    string tagName = doc.RootElement.GetProperty("tag_name").GetString() ?? "v0.0.0";
+                    string htmlUrl = doc.RootElement.GetProperty("html_url").GetString() ?? string.Empty;
+                    DateTime publishedAt = doc.RootElement.TryGetProperty("published_at", out JsonElement publishedElement) &&
+                                          DateTime.TryParse(publishedElement.GetString(), out DateTime published)
+                                          ? published
+                                          : DateTime.MinValue;
 
-                VersionInfo latestVersion = VersionInfo.FromTag(tagName);
-                latestVersion.DownloadUrl = _latestReleaseDownloadUrl;
+                    VersionInfo latestVersion = VersionInfo.FromTag(tagName);
+                    latestVersion.DownloadUrl = _latestReleaseDownloadUrl;
 
-                // Compare with current version
-                VersionInfo currentVersion = GetCurrentVersion();
-                latestVersion.IsUpdateAvailable = latestVersion.IsNewerThan(currentVersion);
+                    // Compare with current version
+                    VersionInfo currentVersion = GetCurrentVersion();
+                    latestVersion.IsUpdateAvailable = latestVersion.IsNewerThan(currentVersion);
 
-                _logService.Log(LogLevel.Info, $"Current version: {currentVersion.Version}, Latest version: {latestVersion.Version}, Update available: {latestVersion.IsUpdateAvailable}");
+                    _logService.Log(LogLevel.Info, $"Current version: {currentVersion.Version}, Latest version: {latestVersion.Version}, Update available: {latestVersion.IsUpdateAvailable}");
 
-                return latestVersion;
+                    return latestVersion;
+                }
+                catch (Exception ex) when (attempt < maxRetries && IsTransientError(ex))
+                {
+                    _logService.Log(LogLevel.Warning, $"Update check attempt {attempt}/{maxRetries} failed: {ex.Message}. Retrying in {delayMs / 1000}s...");
+                    await Task.Delay(delayMs);
+                    delayMs *= 2;
+                }
+                catch (Exception ex)
+                {
+                    _logService.Log(LogLevel.Error, $"Error checking for updates: {ex.Message}", ex);
+                    return new VersionInfo { IsUpdateAvailable = false };
+                }
             }
-            catch (Exception ex)
-            {
-                _logService.Log(LogLevel.Error, $"Error checking for updates: {ex.Message}", ex);
-                return new VersionInfo { IsUpdateAvailable = false };
-            }
+
+            return new VersionInfo { IsUpdateAvailable = false };
+        }
+
+        private static bool IsTransientError(Exception ex)
+        {
+            // DNS resolution failures, timeouts, and connection refused are transient
+            if (ex is HttpRequestException)
+                return true;
+            if (ex is TaskCanceledException)
+                return true;
+            return false;
         }
 
         public async Task DownloadAndInstallUpdateAsync()

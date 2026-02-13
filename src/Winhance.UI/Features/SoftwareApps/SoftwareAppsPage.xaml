@@ -1,0 +1,1026 @@
+<?xml version="1.0" encoding="utf-8"?>
+<Page
+    x:Class="Winhance.UI.Features.SoftwareApps.SoftwareAppsPage"
+    xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+    xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+    xmlns:controls="using:CommunityToolkit.WinUI.UI.Controls"
+    xmlns:primitives="using:CommunityToolkit.WinUI.UI.Controls.Primitives"
+    xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
+    xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
+    x:DefaultBindMode="OneWay"
+    NavigationCacheMode="Enabled"
+    xmlns:fluentIcons="using:FluentIcons.WinUI"
+    mc:Ignorable="d">
+
+    <Page.Resources>
+        <!-- First column header: left-rounded corners with select-all checkbox -->
+        <Style x:Key="FirstColumnHeaderStyle" TargetType="primitives:DataGridColumnHeader">
+            <Setter Property="Template">
+                <Setter.Value>
+                    <ControlTemplate TargetType="primitives:DataGridColumnHeader">
+                        <Grid>
+                            <VisualStateManager.VisualStateGroups>
+                                <VisualStateGroup x:Name="CommonStates">
+                                    <VisualState x:Name="Normal"/>
+                                    <VisualState x:Name="PointerOver">
+                                        <Storyboard>
+                                            <ObjectAnimationUsingKeyFrames Storyboard.TargetName="HeaderBackground" Storyboard.TargetProperty="Background">
+                                                <DiscreteObjectKeyFrame KeyTime="0" Value="{ThemeResource SubtleFillColorTertiaryBrush}"/>
+                                            </ObjectAnimationUsingKeyFrames>
+                                        </Storyboard>
+                                    </VisualState>
+                                    <VisualState x:Name="Pressed">
+                                        <Storyboard>
+                                            <ObjectAnimationUsingKeyFrames Storyboard.TargetName="HeaderBackground" Storyboard.TargetProperty="Background">
+                                                <DiscreteObjectKeyFrame KeyTime="0" Value="{ThemeResource SubtleFillColorDisabledBrush}"/>
+                                            </ObjectAnimationUsingKeyFrames>
+                                        </Storyboard>
+                                    </VisualState>
+                                </VisualStateGroup>
+                            </VisualStateManager.VisualStateGroups>
+                            <Border x:Name="HeaderBackground"
+                                    Background="{ThemeResource CardBackgroundFillColorDefaultBrush}"
+                                    CornerRadius="4,0,0,4"/>
+                            <CheckBox Tag="SelectAll"
+                                      MinWidth="20"
+                                      Margin="8,4,4,4"
+                                      HorizontalAlignment="Center"
+                                      VerticalAlignment="Center"/>
+                        </Grid>
+                    </ControlTemplate>
+                </Setter.Value>
+            </Setter>
+        </Style>
+
+        <!-- Middle column headers: no rounding, with sort indicators -->
+        <Style x:Key="ColumnHeaderStyle" TargetType="primitives:DataGridColumnHeader">
+            <Setter Property="FontWeight" Value="SemiBold"/>
+            <Setter Property="FontSize" Value="14"/>
+            <Setter Property="Padding" Value="12,8,12,8"/>
+            <Setter Property="Template">
+                <Setter.Value>
+                    <ControlTemplate TargetType="primitives:DataGridColumnHeader">
+                        <Grid>
+                            <VisualStateManager.VisualStateGroups>
+                                <VisualStateGroup x:Name="CommonStates">
+                                    <VisualState x:Name="Normal"/>
+                                    <VisualState x:Name="PointerOver">
+                                        <Storyboard>
+                                            <ObjectAnimationUsingKeyFrames Storyboard.TargetName="HeaderBackground" Storyboard.TargetProperty="Background">
+                                                <DiscreteObjectKeyFrame KeyTime="0" Value="{ThemeResource SubtleFillColorTertiaryBrush}"/>
+                                            </ObjectAnimationUsingKeyFrames>
+                                        </Storyboard>
+                                    </VisualState>
+                                    <VisualState x:Name="Pressed">
+                                        <Storyboard>
+                                            <ObjectAnimationUsingKeyFrames Storyboard.TargetName="HeaderBackground" Storyboard.TargetProperty="Background">
+                                                <DiscreteObjectKeyFrame KeyTime="0" Value="{ThemeResource SubtleFillColorDisabledBrush}"/>
+                                            </ObjectAnimationUsingKeyFrames>
+                                        </Storyboard>
+                                    </VisualState>
+                                </VisualStateGroup>
+                                <VisualStateGroup x:Name="SortStates">
+                                    <VisualState x:Name="Unsorted"/>
+                                    <VisualState x:Name="SortAscending">
+                                        <Storyboard>
+                                            <ObjectAnimationUsingKeyFrames Storyboard.TargetName="SortIcon" Storyboard.TargetProperty="Visibility">
+                                                <DiscreteObjectKeyFrame KeyTime="0" Value="Visible"/>
+                                            </ObjectAnimationUsingKeyFrames>
+                                            <ObjectAnimationUsingKeyFrames Storyboard.TargetName="SortIcon" Storyboard.TargetProperty="Glyph">
+                                                <DiscreteObjectKeyFrame KeyTime="0" Value="&#xE70E;"/>
+                                            </ObjectAnimationUsingKeyFrames>
+                                        </Storyboard>
+                                    </VisualState>
+                                    <VisualState x:Name="SortDescending">
+                                        <Storyboard>
+                                            <ObjectAnimationUsingKeyFrames Storyboard.TargetName="SortIcon" Storyboard.TargetProperty="Visibility">
+                                                <DiscreteObjectKeyFrame KeyTime="0" Value="Visible"/>
+                                            </ObjectAnimationUsingKeyFrames>
+                                            <ObjectAnimationUsingKeyFrames Storyboard.TargetName="SortIcon" Storyboard.TargetProperty="Glyph">
+                                                <DiscreteObjectKeyFrame KeyTime="0" Value="&#xE70D;"/>
+                                            </ObjectAnimationUsingKeyFrames>
+                                        </Storyboard>
+                                    </VisualState>
+                                </VisualStateGroup>
+                            </VisualStateManager.VisualStateGroups>
+                            <Border x:Name="HeaderBackground"
+                                    Background="{ThemeResource CardBackgroundFillColorDefaultBrush}"
+                                    CornerRadius="0"/>
+                            <Grid Padding="{TemplateBinding Padding}">
+                                <Grid.ColumnDefinitions>
+                                    <ColumnDefinition Width="*"/>
+                                    <ColumnDefinition Width="Auto"/>
+                                </Grid.ColumnDefinitions>
+                                <ContentPresenter Grid.Column="0"
+                                                  Content="{TemplateBinding Content}"
+                                                  HorizontalAlignment="Left"
+                                                  VerticalAlignment="Center"/>
+                                <FontIcon x:Name="SortIcon"
+                                          Grid.Column="1"
+                                          Glyph="&#xE70E;"
+                                          FontSize="10"
+                                          Margin="4,0,0,0"
+                                          VerticalAlignment="Center"
+                                          Visibility="Collapsed"/>
+                            </Grid>
+                        </Grid>
+                    </ControlTemplate>
+                </Setter.Value>
+            </Setter>
+        </Style>
+
+        <!-- Last column header: right-rounded corners, with sort indicators -->
+        <Style x:Key="LastColumnHeaderStyle" TargetType="primitives:DataGridColumnHeader">
+            <Setter Property="FontWeight" Value="SemiBold"/>
+            <Setter Property="FontSize" Value="14"/>
+            <Setter Property="Padding" Value="12,8,12,8"/>
+            <Setter Property="Template">
+                <Setter.Value>
+                    <ControlTemplate TargetType="primitives:DataGridColumnHeader">
+                        <Grid>
+                            <VisualStateManager.VisualStateGroups>
+                                <VisualStateGroup x:Name="CommonStates">
+                                    <VisualState x:Name="Normal"/>
+                                    <VisualState x:Name="PointerOver">
+                                        <Storyboard>
+                                            <ObjectAnimationUsingKeyFrames Storyboard.TargetName="HeaderBackground" Storyboard.TargetProperty="Background">
+                                                <DiscreteObjectKeyFrame KeyTime="0" Value="{ThemeResource SubtleFillColorTertiaryBrush}"/>
+                                            </ObjectAnimationUsingKeyFrames>
+                                        </Storyboard>
+                                    </VisualState>
+                                    <VisualState x:Name="Pressed">
+                                        <Storyboard>
+                                            <ObjectAnimationUsingKeyFrames Storyboard.TargetName="HeaderBackground" Storyboard.TargetProperty="Background">
+                                                <DiscreteObjectKeyFrame KeyTime="0" Value="{ThemeResource SubtleFillColorDisabledBrush}"/>
+                                            </ObjectAnimationUsingKeyFrames>
+                                        </Storyboard>
+                                    </VisualState>
+                                </VisualStateGroup>
+                                <VisualStateGroup x:Name="SortStates">
+                                    <VisualState x:Name="Unsorted"/>
+                                    <VisualState x:Name="SortAscending">
+                                        <Storyboard>
+                                            <ObjectAnimationUsingKeyFrames Storyboard.TargetName="SortIcon" Storyboard.TargetProperty="Visibility">
+                                                <DiscreteObjectKeyFrame KeyTime="0" Value="Visible"/>
+                                            </ObjectAnimationUsingKeyFrames>
+                                            <ObjectAnimationUsingKeyFrames Storyboard.TargetName="SortIcon" Storyboard.TargetProperty="Glyph">
+                                                <DiscreteObjectKeyFrame KeyTime="0" Value="&#xE70E;"/>
+                                            </ObjectAnimationUsingKeyFrames>
+                                        </Storyboard>
+                                    </VisualState>
+                                    <VisualState x:Name="SortDescending">
+                                        <Storyboard>
+                                            <ObjectAnimationUsingKeyFrames Storyboard.TargetName="SortIcon" Storyboard.TargetProperty="Visibility">
+                                                <DiscreteObjectKeyFrame KeyTime="0" Value="Visible"/>
+                                            </ObjectAnimationUsingKeyFrames>
+                                            <ObjectAnimationUsingKeyFrames Storyboard.TargetName="SortIcon" Storyboard.TargetProperty="Glyph">
+                                                <DiscreteObjectKeyFrame KeyTime="0" Value="&#xE70D;"/>
+                                            </ObjectAnimationUsingKeyFrames>
+                                        </Storyboard>
+                                    </VisualState>
+                                </VisualStateGroup>
+                            </VisualStateManager.VisualStateGroups>
+                            <Border x:Name="HeaderBackground"
+                                    Background="{ThemeResource CardBackgroundFillColorDefaultBrush}"
+                                    CornerRadius="0,4,4,0"/>
+                            <Grid Padding="{TemplateBinding Padding}">
+                                <Grid.ColumnDefinitions>
+                                    <ColumnDefinition Width="*"/>
+                                    <ColumnDefinition Width="Auto"/>
+                                </Grid.ColumnDefinitions>
+                                <ContentPresenter Grid.Column="0"
+                                                  Content="{TemplateBinding Content}"
+                                                  HorizontalAlignment="Left"
+                                                  VerticalAlignment="Center"/>
+                                <FontIcon x:Name="SortIcon"
+                                          Grid.Column="1"
+                                          Glyph="&#xE70E;"
+                                          FontSize="10"
+                                          Margin="4,0,0,0"
+                                          VerticalAlignment="Center"
+                                          Visibility="Collapsed"/>
+                            </Grid>
+                        </Grid>
+                    </ControlTemplate>
+                </Setter.Value>
+            </Setter>
+        </Style>
+
+        <!-- Spacer column header: right-rounded corners with card background -->
+        <Style x:Key="SpacerColumnHeaderStyle" TargetType="primitives:DataGridColumnHeader">
+            <Setter Property="Template">
+                <Setter.Value>
+                    <ControlTemplate TargetType="primitives:DataGridColumnHeader">
+                        <Border Background="{ThemeResource CardBackgroundFillColorDefaultBrush}"
+                                CornerRadius="0,4,4,0"/>
+                    </ControlTemplate>
+                </Setter.Value>
+            </Setter>
+        </Style>
+
+        <!-- Fix 2: Remove header-to-row separator line -->
+        <SolidColorBrush x:Key="GridLinesBrush" Color="Transparent"/>
+
+        <!-- Fix 3A: Remove cell focus visuals (white/black rectangles on click) -->
+        <SolidColorBrush x:Key="DataGridCellFocusVisualPrimaryBrush" Color="Transparent"/>
+        <SolidColorBrush x:Key="DataGridCellFocusVisualSecondaryBrush" Color="Transparent"/>
+        <SolidColorBrush x:Key="DataGridCurrencyVisualPrimaryBrush" Color="Transparent"/>
+
+        <!-- Fix 3B: Custom DataGridRow style with accent selection border.
+             Uses standard WinUI 3 brushes instead of DataGrid-internal theme resources
+             (DataGridRow*BackgroundColor etc. are not in scope at page level). -->
+        <Style x:Key="SelectionRowStyle" TargetType="controls:DataGridRow">
+            <Setter Property="IsTabStop" Value="False"/>
+            <Setter Property="Template">
+                <Setter.Value>
+                    <ControlTemplate TargetType="controls:DataGridRow">
+                        <primitives:DataGridFrozenGrid x:Name="RowRoot">
+                            <VisualStateManager.VisualStateGroups>
+                                <VisualStateGroup x:Name="CommonStates">
+                                    <VisualState x:Name="Normal"/>
+                                    <VisualState x:Name="NormalAlternatingRow"/>
+                                    <VisualState x:Name="PointerOver">
+                                        <Storyboard>
+                                            <ObjectAnimationUsingKeyFrames Storyboard.TargetName="BackgroundRectangle"
+                                                                           Storyboard.TargetProperty="Fill">
+                                                <DiscreteObjectKeyFrame KeyTime="0" Value="{ThemeResource SubtleFillColorSecondaryBrush}"/>
+                                            </ObjectAnimationUsingKeyFrames>
+                                        </Storyboard>
+                                    </VisualState>
+                                    <VisualState x:Name="NormalSelected">
+                                        <Storyboard>
+                                            <ObjectAnimationUsingKeyFrames Storyboard.TargetName="BackgroundRectangle"
+                                                                           Storyboard.TargetProperty="Fill">
+                                                <DiscreteObjectKeyFrame KeyTime="0" Value="{ThemeResource SubtleFillColorTertiaryBrush}"/>
+                                            </ObjectAnimationUsingKeyFrames>
+                                            <ObjectAnimationUsingKeyFrames Storyboard.TargetName="SelectionBorder"
+                                                                           Storyboard.TargetProperty="BorderBrush">
+                                                <DiscreteObjectKeyFrame KeyTime="0" Value="{ThemeResource AccentFillColorDefaultBrush}"/>
+                                            </ObjectAnimationUsingKeyFrames>
+                                        </Storyboard>
+                                    </VisualState>
+                                    <VisualState x:Name="PointerOverSelected">
+                                        <Storyboard>
+                                            <ObjectAnimationUsingKeyFrames Storyboard.TargetName="BackgroundRectangle"
+                                                                           Storyboard.TargetProperty="Fill">
+                                                <DiscreteObjectKeyFrame KeyTime="0" Value="{ThemeResource SubtleFillColorSecondaryBrush}"/>
+                                            </ObjectAnimationUsingKeyFrames>
+                                            <ObjectAnimationUsingKeyFrames Storyboard.TargetName="SelectionBorder"
+                                                                           Storyboard.TargetProperty="BorderBrush">
+                                                <DiscreteObjectKeyFrame KeyTime="0" Value="{ThemeResource AccentFillColorDefaultBrush}"/>
+                                            </ObjectAnimationUsingKeyFrames>
+                                        </Storyboard>
+                                    </VisualState>
+                                    <VisualState x:Name="PointerOverUnfocusedSelected">
+                                        <Storyboard>
+                                            <ObjectAnimationUsingKeyFrames Storyboard.TargetName="BackgroundRectangle"
+                                                                           Storyboard.TargetProperty="Fill">
+                                                <DiscreteObjectKeyFrame KeyTime="0" Value="{ThemeResource SubtleFillColorSecondaryBrush}"/>
+                                            </ObjectAnimationUsingKeyFrames>
+                                            <ObjectAnimationUsingKeyFrames Storyboard.TargetName="SelectionBorder"
+                                                                           Storyboard.TargetProperty="BorderBrush">
+                                                <DiscreteObjectKeyFrame KeyTime="0" Value="{ThemeResource AccentFillColorDefaultBrush}"/>
+                                            </ObjectAnimationUsingKeyFrames>
+                                        </Storyboard>
+                                    </VisualState>
+                                    <VisualState x:Name="UnfocusedSelected">
+                                        <Storyboard>
+                                            <ObjectAnimationUsingKeyFrames Storyboard.TargetName="BackgroundRectangle"
+                                                                           Storyboard.TargetProperty="Fill">
+                                                <DiscreteObjectKeyFrame KeyTime="0" Value="{ThemeResource SubtleFillColorTertiaryBrush}"/>
+                                            </ObjectAnimationUsingKeyFrames>
+                                            <ObjectAnimationUsingKeyFrames Storyboard.TargetName="SelectionBorder"
+                                                                           Storyboard.TargetProperty="BorderBrush">
+                                                <DiscreteObjectKeyFrame KeyTime="0" Value="{ThemeResource AccentFillColorDefaultBrush}"/>
+                                            </ObjectAnimationUsingKeyFrames>
+                                        </Storyboard>
+                                    </VisualState>
+                                </VisualStateGroup>
+                                <VisualStateGroup x:Name="ValidationStates">
+                                    <VisualState x:Name="Valid"/>
+                                    <VisualState x:Name="Invalid">
+                                        <Storyboard>
+                                            <ObjectAnimationUsingKeyFrames Duration="0"
+                                                                           Storyboard.TargetName="BackgroundRectangle"
+                                                                           Storyboard.TargetProperty="Visibility">
+                                                <DiscreteObjectKeyFrame KeyTime="0" Value="Collapsed"/>
+                                            </ObjectAnimationUsingKeyFrames>
+                                            <DoubleAnimation Storyboard.TargetName="InvalidVisualElement"
+                                                             Storyboard.TargetProperty="Opacity"
+                                                             Duration="0"
+                                                             To="0.4"/>
+                                        </Storyboard>
+                                    </VisualState>
+                                </VisualStateGroup>
+                            </VisualStateManager.VisualStateGroups>
+
+                            <Grid.RowDefinitions>
+                                <RowDefinition Height="*"/>
+                                <RowDefinition Height="Auto"/>
+                                <RowDefinition Height="Auto"/>
+                            </Grid.RowDefinitions>
+                            <Grid.ColumnDefinitions>
+                                <ColumnDefinition Width="Auto"/>
+                                <ColumnDefinition Width="*"/>
+                            </Grid.ColumnDefinitions>
+
+                            <Rectangle x:Name="BackgroundRectangle" Grid.ColumnSpan="2"
+                                       Fill="Transparent"/>
+                            <Rectangle x:Name="InvalidVisualElement" Grid.ColumnSpan="2"
+                                       Opacity="0"
+                                       Fill="{ThemeResource SystemFillColorCriticalBrush}"/>
+
+                            <!-- Accent selection border overlay -->
+                            <Border x:Name="SelectionBorder"
+                                    Grid.ColumnSpan="2"
+                                    BorderThickness="2"
+                                    CornerRadius="4"
+                                    Margin="0,0,4,0"
+                                    BorderBrush="Transparent"/>
+
+                            <primitives:DataGridRowHeader x:Name="RowHeader" Grid.RowSpan="3"
+                                                          primitives:DataGridFrozenGrid.IsFrozen="True"/>
+                            <primitives:DataGridCellsPresenter x:Name="CellsPresenter" Grid.Column="1"
+                                                                primitives:DataGridFrozenGrid.IsFrozen="True"
+                                                                MinHeight="32"
+                                                                AutomationProperties.AccessibilityView="Raw"/>
+                            <primitives:DataGridDetailsPresenter x:Name="DetailsPresenter" Grid.Row="1" Grid.Column="1"
+                                                                  Background="Transparent"
+                                                                  AutomationProperties.AccessibilityView="Raw"/>
+                            <Rectangle x:Name="BottomGridLine" Grid.Row="2" Grid.Column="1"
+                                       HorizontalAlignment="Stretch" Height="1"/>
+                        </primitives:DataGridFrozenGrid>
+                    </ControlTemplate>
+                </Setter.Value>
+            </Setter>
+        </Style>
+    </Page.Resources>
+
+    <Grid Padding="0,0,12,0">
+        <Grid.RowDefinitions>
+            <RowDefinition Height="Auto"/>  <!-- Header -->
+            <RowDefinition Height="Auto"/>  <!-- Action Bar -->
+            <RowDefinition Height="*"/>     <!-- Content -->
+        </Grid.RowDefinitions>
+
+        <!-- Row 0: Page Header with Icon -->
+        <StackPanel Grid.Row="0" Orientation="Horizontal" Spacing="16">
+            <Viewbox Width="64" Height="64" Stretch="Uniform">
+                <PathIcon Data="{StaticResource SoftwareAppsIconPath}" Foreground="{ThemeResource TextFillColorPrimaryBrush}"/>
+            </Viewbox>
+            <StackPanel VerticalAlignment="Center">
+                <TextBlock
+                    Text="{x:Bind ViewModel.PageTitle}"
+                    Style="{StaticResource TitleTextBlockStyle}"
+                    FontWeight="Bold"
+                    FontSize="30"
+                    AutomationProperties.HeadingLevel="Level1"/>
+                <TextBlock
+                    Text="{x:Bind ViewModel.PageDescription}"
+                    Style="{StaticResource CaptionTextBlockStyle}"
+                    Foreground="{ThemeResource TextFillColorTertiaryBrush}"
+                    Margin="0,2,0,0"/>
+            </StackPanel>
+        </StackPanel>
+
+        <!-- Row 1: Action Bar (right-aligned) -->
+        <StackPanel Grid.Row="1" Orientation="Horizontal" Spacing="8" HorizontalAlignment="Right" Margin="0,12,0,16">
+            <!-- Normal mode: Install Button -->
+            <Button Command="{x:Bind ViewModel.InstallSelectedItemsCommand}"
+                    IsEnabled="{x:Bind ViewModel.CanInstallItems, Mode=OneWay}"
+                    AutomationProperties.Name="{x:Bind ViewModel.InstallButtonText}"
+                    Visibility="{x:Bind ViewModel.IsInReviewMode, Mode=OneWay, Converter={StaticResource InverseBooleanToVisibilityConverter}}">
+                <StackPanel Orientation="Horizontal" Spacing="8">
+                    <fluentIcons:SymbolIcon Symbol="ArrowDownload" IconVariant="Regular" FontSize="18"/>
+                    <TextBlock Text="{x:Bind ViewModel.InstallButtonText}"/>
+                </StackPanel>
+            </Button>
+            <!-- Normal mode: Remove Button -->
+            <Button Command="{x:Bind ViewModel.RemoveSelectedItemsCommand}"
+                    IsEnabled="{x:Bind ViewModel.CanRemoveItems, Mode=OneWay}"
+                    AutomationProperties.Name="{x:Bind ViewModel.RemoveButtonText, Mode=OneWay}"
+                    Visibility="{x:Bind ViewModel.IsInReviewMode, Mode=OneWay, Converter={StaticResource InverseBooleanToVisibilityConverter}}">
+                <StackPanel Orientation="Horizontal" Spacing="8">
+                    <fluentIcons:SymbolIcon Symbol="Delete" IconVariant="Regular" FontSize="18"/>
+                    <TextBlock Text="{x:Bind ViewModel.RemoveButtonText, Mode=OneWay}"/>
+                </StackPanel>
+            </Button>
+            <!-- Review mode: Install action toggle -->
+            <ToggleButton x:Name="InstallActionToggle"
+                          Visibility="{x:Bind ViewModel.IsInReviewMode, Mode=OneWay, Converter={StaticResource BooleanToVisibilityConverter}}"
+                          IsChecked="{x:Bind ViewModel.CurrentInstallAction, Mode=TwoWay}"
+                          AutomationProperties.Name="{x:Bind ViewModel.InstallButtonText}"
+                          Padding="10,6,12,6">
+                <StackPanel Orientation="Horizontal" Spacing="8">
+                    <fluentIcons:SymbolIcon Symbol="ArrowDownload" IconVariant="Regular" FontSize="18"/>
+                    <TextBlock Text="{x:Bind ViewModel.InstallButtonText}"/>
+                </StackPanel>
+            </ToggleButton>
+            <!-- Review mode: Remove action toggle -->
+            <ToggleButton x:Name="RemoveActionToggle"
+                          Visibility="{x:Bind ViewModel.IsInReviewMode, Mode=OneWay, Converter={StaticResource BooleanToVisibilityConverter}}"
+                          IsChecked="{x:Bind ViewModel.CurrentRemoveAction, Mode=TwoWay}"
+                          AutomationProperties.Name="{x:Bind ViewModel.RemoveButtonText, Mode=OneWay}"
+                          Padding="10,6,12,6">
+                <StackPanel Orientation="Horizontal" Spacing="8">
+                    <fluentIcons:SymbolIcon Symbol="Delete" IconVariant="Regular" FontSize="18"/>
+                    <TextBlock Text="{x:Bind ViewModel.RemoveButtonText, Mode=OneWay}"/>
+                </StackPanel>
+            </ToggleButton>
+            <AppBarSeparator/>
+            <Button Command="{x:Bind ViewModel.RefreshInstallationStatusCommand}"
+                    AutomationProperties.Name="{x:Bind ViewModel.RefreshButtonText}">
+                <Button.KeyboardAccelerators>
+                    <KeyboardAccelerator Key="F5"/>
+                </Button.KeyboardAccelerators>
+                <StackPanel Orientation="Horizontal" Spacing="8">
+                    <fluentIcons:SymbolIcon Symbol="ArrowSync" IconVariant="Regular" FontSize="18"/>
+                    <TextBlock Text="{x:Bind ViewModel.RefreshButtonText}"/>
+                </StackPanel>
+            </Button>
+            <Button Click="HelpButton_Click"
+                    AutomationProperties.Name="{x:Bind ViewModel.HelpButtonText}">
+                <StackPanel Orientation="Horizontal" Spacing="8">
+                    <fluentIcons:SymbolIcon Symbol="QuestionCircle" IconVariant="Regular" FontSize="18"/>
+                    <TextBlock Text="{x:Bind ViewModel.HelpButtonText}"/>
+                </StackPanel>
+            </Button>
+            <!-- View Mode Toggle -->
+            <Border CornerRadius="4"
+                    BorderBrush="{ThemeResource ControlStrokeColorDefaultBrush}"
+                    BorderThickness="1">
+                <StackPanel Orientation="Horizontal">
+                    <ToggleButton x:Name="TableViewToggle"
+                                  IsChecked="{x:Bind ViewModel.IsCardViewMode, Mode=OneWay, Converter={StaticResource InverseBooleanConverter}}"
+                                  Click="TableViewToggle_Click"
+                                  ToolTipService.ToolTip="{x:Bind ViewModel.ViewModeTableTooltip}"
+                                  AutomationProperties.Name="{x:Bind ViewModel.ViewModeTableTooltip}"
+                                  Background="Transparent"
+                                  BorderThickness="0"
+                                  CornerRadius="4,0,0,4"
+                                  Padding="10,6">
+                        <fluentIcons:SymbolIcon Symbol="TableSimple" IconVariant="Regular" FontSize="18"/>
+                    </ToggleButton>
+                    <ToggleButton x:Name="CardViewToggle"
+                                  IsChecked="{x:Bind ViewModel.IsCardViewMode, Mode=OneWay}"
+                                  Click="CardViewToggle_Click"
+                                  ToolTipService.ToolTip="{x:Bind ViewModel.ViewModeCardTooltip}"
+                                  AutomationProperties.Name="{x:Bind ViewModel.ViewModeCardTooltip}"
+                                  Background="Transparent"
+                                  BorderThickness="0"
+                                  CornerRadius="0,4,4,0"
+                                  Padding="10,6">
+                        <fluentIcons:SymbolIcon Symbol="Grid" IconVariant="Regular" FontSize="18"/>
+                    </ToggleButton>
+                </StackPanel>
+            </Border>
+            <AutoSuggestBox
+                PlaceholderText="{x:Bind ViewModel.SearchPlaceholder}"
+                QueryIcon="Find"
+                Width="220"
+                Text="{x:Bind ViewModel.SearchText, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}"/>
+        </StackPanel>
+
+        <!-- Row 2: Content Container with rounded corners and background -->
+        <Border
+            Grid.Row="2"
+            Background="{ThemeResource SystemFillColorNeutralBackgroundBrush}"
+            CornerRadius="8"
+            Margin="0,0,0,4">
+            <Grid>
+                <!-- Tab Navigation Container -->
+                <Border Margin="12,12,12,0"
+                        VerticalAlignment="Top"
+                        Background="{ThemeResource CardBackgroundFillColorDefaultBrush}"
+                        CornerRadius="6"
+                        Padding="4">
+                    <Grid>
+                        <Grid.ColumnDefinitions>
+                            <ColumnDefinition Width="*"/>
+                            <ColumnDefinition Width="Auto"/>
+                            <ColumnDefinition Width="*"/>
+                        </Grid.ColumnDefinitions>
+
+                        <!-- Windows Apps Tab -->
+                        <Grid Grid.Column="0">
+                            <!-- Selection background (visible when selected) -->
+                            <Border CornerRadius="4"
+                                    Margin="2"
+                                    Background="{ThemeResource ControlFillColorDefaultBrush}"
+                                    BorderThickness="1"
+                                    BorderBrush="{ThemeResource ControlStrokeColorDefaultBrush}"
+                                    IsHitTestVisible="False"
+                                    Visibility="{x:Bind ViewModel.IsWindowsAppsTabSelected, Mode=OneWay, Converter={StaticResource BooleanToVisibilityConverter}}"/>
+                            <!-- Accent indicator on left -->
+                            <Border Width="3"
+                                    Height="18"
+                                    CornerRadius="1.5"
+                                    HorizontalAlignment="Left"
+                                    VerticalAlignment="Center"
+                                    Margin="6,0,0,0"
+                                    Background="{ThemeResource AccentFillColorDefaultBrush}"
+                                    IsHitTestVisible="False"
+                                    Visibility="{x:Bind ViewModel.IsWindowsAppsTabSelected, Mode=OneWay, Converter={StaticResource BooleanToVisibilityConverter}}"/>
+                            <!-- Tab button (transparent) -->
+                            <Button x:Name="WindowsAppsTab"
+                                    Command="{x:Bind ViewModel.SelectWindowsAppsTabCommand}"
+                                    AutomationProperties.Name="{x:Bind ViewModel.WindowsAppsTabText}"
+                                    HorizontalAlignment="Stretch"
+                                    HorizontalContentAlignment="Center"
+                                    Background="Transparent"
+                                    BorderThickness="0"
+                                    Padding="12,10">
+                                <StackPanel Orientation="Horizontal" Spacing="8">
+                                    <Viewbox Width="18" Height="18">
+                                        <PathIcon Data="{StaticResource WindowsLogoIconPath}" Foreground="{ThemeResource TextFillColorPrimaryBrush}"/>
+                                    </Viewbox>
+                                    <TextBlock Text="{x:Bind ViewModel.WindowsAppsTabText}" VerticalAlignment="Center"/>
+                                </StackPanel>
+                            </Button>
+                            <!-- Review mode badge -->
+                            <InfoBadge x:Name="WindowsAppsTabBadge"
+                                       Value="{x:Bind ViewModel.WindowsAppsSelectedCount, Mode=OneWay}"
+                                       HorizontalAlignment="Right"
+                                       VerticalAlignment="Top"
+                                       Margin="0,2,8,0"
+                                       Visibility="Collapsed"/>
+                        </Grid>
+
+                        <!-- Separator -->
+                        <Border Grid.Column="1"
+                                Width="1"
+                                Margin="4,8"
+                                VerticalAlignment="Stretch"
+                                Background="{ThemeResource ControlStrokeColorDefaultBrush}"/>
+
+                        <!-- External Apps Tab -->
+                        <Grid Grid.Column="2">
+                            <!-- Selection background (visible when selected) -->
+                            <Border CornerRadius="4"
+                                    Margin="2"
+                                    Background="{ThemeResource ControlFillColorDefaultBrush}"
+                                    BorderThickness="1"
+                                    BorderBrush="{ThemeResource ControlStrokeColorDefaultBrush}"
+                                    IsHitTestVisible="False"
+                                    Visibility="{x:Bind ViewModel.IsExternalAppsTabSelected, Mode=OneWay, Converter={StaticResource BooleanToVisibilityConverter}}"/>
+                            <!-- Accent indicator on left -->
+                            <Border Width="3"
+                                    Height="18"
+                                    CornerRadius="1.5"
+                                    HorizontalAlignment="Left"
+                                    VerticalAlignment="Center"
+                                    Margin="6,0,0,0"
+                                    Background="{ThemeResource AccentFillColorDefaultBrush}"
+                                    IsHitTestVisible="False"
+                                    Visibility="{x:Bind ViewModel.IsExternalAppsTabSelected, Mode=OneWay, Converter={StaticResource BooleanToVisibilityConverter}}"/>
+                            <!-- Tab button (transparent) -->
+                            <Button x:Name="ExternalAppsTab"
+                                    Command="{x:Bind ViewModel.SelectExternalAppsTabCommand}"
+                                    AutomationProperties.Name="{x:Bind ViewModel.ExternalAppsTabText}"
+                                    HorizontalAlignment="Stretch"
+                                    HorizontalContentAlignment="Center"
+                                    Background="Transparent"
+                                    BorderThickness="0"
+                                    Padding="12,10">
+                                <StackPanel Orientation="Horizontal" Spacing="8">
+                                    <Viewbox Width="18" Height="18">
+                                        <PathIcon Data="{StaticResource ExternalAppsIconPath}" Foreground="{ThemeResource TextFillColorPrimaryBrush}"/>
+                                    </Viewbox>
+                                    <TextBlock Text="{x:Bind ViewModel.ExternalAppsTabText}" VerticalAlignment="Center"/>
+                                </StackPanel>
+                            </Button>
+                            <!-- Review mode badge -->
+                            <InfoBadge x:Name="ExternalAppsTabBadge"
+                                       Value="{x:Bind ViewModel.ExternalAppsSelectedCount, Mode=OneWay}"
+                                       HorizontalAlignment="Right"
+                                       VerticalAlignment="Top"
+                                       Margin="0,2,8,0"
+                                       Visibility="Collapsed"/>
+                        </Grid>
+                    </Grid>
+                </Border>
+
+                <!-- Content Area (below tabs) -->
+                <Grid Margin="14,70,12,0">
+                    <!-- Windows Apps Content -->
+                    <Grid Visibility="{x:Bind ViewModel.IsWindowsAppsTabSelected, Mode=OneWay, Converter={StaticResource BooleanToVisibilityConverter}}">
+                        <Grid.RowDefinitions>
+                            <RowDefinition Height="Auto"/>
+                            <RowDefinition Height="*"/>
+                        </Grid.RowDefinitions>
+
+                        <!-- Review Mode Banner for Windows Apps -->
+                        <InfoBar Grid.Row="0"
+                                 x:Name="WindowsAppsReviewBanner"
+                                 IsOpen="{x:Bind ViewModel.IsInReviewMode, Mode=OneWay}"
+                                 Severity="Warning"
+                                 IsClosable="False"
+                                 Message="{x:Bind ViewModel.ReviewWindowsAppsBannerText, Mode=OneWay}"
+                                 Margin="0,0,0,8"
+                                 Visibility="{x:Bind ViewModel.IsInReviewMode, Mode=OneWay, Converter={StaticResource BooleanToVisibilityConverter}}"/>
+
+                        <!-- DataGrid View -->
+                        <controls:DataGrid x:Name="WindowsAppsDataGrid"
+                                           Grid.Row="1"
+                                           Visibility="{x:Bind ViewModel.IsCardViewMode, Mode=OneWay, Converter={StaticResource InverseBooleanToVisibilityConverter}}"
+                                           Loaded="WindowsAppsDataGrid_Loaded"
+                                           ItemsSource="{x:Bind ViewModel.WindowsAppsViewModel.ItemsView, Mode=OneWay}"
+                                           AutoGenerateColumns="False"
+                                           CanUserSortColumns="True"
+                                           CanUserReorderColumns="False"
+                                           CanUserResizeColumns="True"
+                                           GridLinesVisibility="None"
+                                           HeadersVisibility="Column"
+                                           SelectionMode="Extended"
+                                           IsReadOnly="True"
+                                           VerticalScrollBarVisibility="Auto"
+                                           HorizontalScrollBarVisibility="Disabled"
+                                           Background="Transparent"
+                                           RowBackground="Transparent"
+                                           AlternatingRowBackground="Transparent"
+                                           BorderThickness="0"
+                                           Padding="0,0,0,0"
+                                           ColumnHeaderStyle="{StaticResource ColumnHeaderStyle}"
+                                           RowStyle="{StaticResource SelectionRowStyle}"
+                                           Sorting="DataGrid_Sorting">
+                            <controls:DataGrid.Columns>
+                                <!-- Selection Column with Select All header -->
+                                <controls:DataGridTemplateColumn Width="40" CanUserResize="False" IsReadOnly="False"
+                                                                  HeaderStyle="{StaticResource FirstColumnHeaderStyle}">
+                                    <controls:DataGridTemplateColumn.CellTemplate>
+                                        <DataTemplate>
+                                            <CheckBox IsChecked="{Binding IsSelected, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}"
+                                                      AutomationProperties.Name="{Binding Name}"
+                                                      MinWidth="20"
+                                                      HorizontalAlignment="Center"/>
+                                        </DataTemplate>
+                                    </controls:DataGridTemplateColumn.CellTemplate>
+                                    <controls:DataGridTemplateColumn.CellEditingTemplate>
+                                        <DataTemplate>
+                                            <CheckBox IsChecked="{Binding IsSelected, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}"
+                                                      AutomationProperties.Name="{Binding Name}"
+                                                      MinWidth="20"
+                                                      HorizontalAlignment="Center"/>
+                                        </DataTemplate>
+                                    </controls:DataGridTemplateColumn.CellEditingTemplate>
+                                </controls:DataGridTemplateColumn>
+
+                                <!-- Name Column -->
+                                <controls:DataGridTemplateColumn Header="Name" Width="*" Tag="Name">
+                                    <controls:DataGridTemplateColumn.CellTemplate>
+                                        <DataTemplate>
+                                            <TextBlock Text="{Binding Name}" VerticalAlignment="Center"
+                                                       Foreground="{ThemeResource TextFillColorPrimaryBrush}"/>
+                                        </DataTemplate>
+                                    </controls:DataGridTemplateColumn.CellTemplate>
+                                </controls:DataGridTemplateColumn>
+
+                                <!-- Type Column -->
+                                <controls:DataGridTemplateColumn Header="Type" Width="*" Tag="ItemTypeDescription">
+                                    <controls:DataGridTemplateColumn.CellTemplate>
+                                        <DataTemplate>
+                                            <TextBlock Text="{Binding ItemTypeDescription}" VerticalAlignment="Center"
+                                                       Foreground="{ThemeResource TextFillColorPrimaryBrush}"/>
+                                        </DataTemplate>
+                                    </controls:DataGridTemplateColumn.CellTemplate>
+                                </controls:DataGridTemplateColumn>
+
+                                <!-- Status Column -->
+                                <controls:DataGridTemplateColumn Header="Status" Width="*" Tag="IsInstalled">
+                                    <controls:DataGridTemplateColumn.CellTemplate>
+                                        <DataTemplate>
+                                            <StackPanel Orientation="Horizontal" Spacing="8" VerticalAlignment="Center">
+                                                <Ellipse Width="10" Height="10"
+                                                         Fill="{Binding IsInstalled, Converter={StaticResource BoolToStatusBrushConverter}}"/>
+                                                <TextBlock Text="{Binding InstalledStatusText}" VerticalAlignment="Center"/>
+                                            </StackPanel>
+                                        </DataTemplate>
+                                    </controls:DataGridTemplateColumn.CellTemplate>
+                                </controls:DataGridTemplateColumn>
+
+                                <!-- Reinstallable Column (last visible) -->
+                                <controls:DataGridTemplateColumn Header="Installable" Width="*" Tag="CanBeReinstalled"
+                                                                  HeaderStyle="{StaticResource LastColumnHeaderStyle}">
+                                    <controls:DataGridTemplateColumn.CellTemplate>
+                                        <DataTemplate>
+                                            <StackPanel Orientation="Horizontal" Spacing="8" VerticalAlignment="Center">
+                                                <FontIcon Glyph="{Binding CanBeReinstalled, Converter={StaticResource BoolToGlyphConverter}}"
+                                                          FontSize="14"
+                                                          Foreground="{Binding CanBeReinstalled, Converter={StaticResource BoolToReinstallBrushConverter}}"/>
+                                                <TextBlock Text="{Binding ReinstallableStatusText}" VerticalAlignment="Center"/>
+                                            </StackPanel>
+                                        </DataTemplate>
+                                    </controls:DataGridTemplateColumn.CellTemplate>
+                                </controls:DataGridTemplateColumn>
+                            </controls:DataGrid.Columns>
+                        </controls:DataGrid>
+
+                        <!-- Card View for Windows Apps -->
+                        <ScrollViewer Grid.Row="1"
+                                      Visibility="{x:Bind ViewModel.IsCardViewMode, Mode=OneWay, Converter={StaticResource BooleanToVisibilityConverter}}"
+                                      VerticalScrollBarVisibility="Auto"
+                                      HorizontalScrollBarVisibility="Disabled"
+                                      Padding="0,0,0,12">
+                            <StackPanel Spacing="16" Padding="4,8,4,8">
+                                <!-- Selection Checkboxes -->
+                                <StackPanel Orientation="Horizontal" Spacing="12">
+                                    <CheckBox Content="{x:Bind ViewModel.WindowsAppsViewModel.SelectAllLabel, Mode=OneWay}" MinWidth="0"
+                                              IsChecked="{x:Bind ViewModel.WindowsAppsViewModel.IsAllSelected, Mode=TwoWay}"/>
+                                    <CheckBox Content="{x:Bind ViewModel.WindowsAppsViewModel.SelectAllInstalledLabel, Mode=OneWay}" MinWidth="0"
+                                              IsChecked="{x:Bind ViewModel.WindowsAppsViewModel.IsAllSelectedInstalled, Mode=TwoWay}"/>
+                                    <CheckBox Content="{x:Bind ViewModel.WindowsAppsViewModel.SelectAllNotInstalledLabel, Mode=OneWay}" MinWidth="0"
+                                              IsChecked="{x:Bind ViewModel.WindowsAppsViewModel.IsAllSelectedNotInstalled, Mode=TwoWay}"/>
+                                </StackPanel>
+
+                                <!-- Windows Apps Section -->
+                                <StackPanel Spacing="8">
+                                    <TextBlock Text="{x:Bind ViewModel.WindowsAppsViewModel.SectionAppsHeader, Mode=OneWay}"
+                                               Style="{StaticResource SubtitleTextBlockStyle}"
+                                               FontWeight="SemiBold"/>
+                                    <ItemsRepeater ItemsSource="{x:Bind ViewModel.WindowsAppsViewModel.WindowsAppsFiltered, Mode=OneWay}">
+                                        <ItemsRepeater.Layout>
+                                            <UniformGridLayout MinItemWidth="260" MinColumnSpacing="8" MinRowSpacing="4"/>
+                                        </ItemsRepeater.Layout>
+                                        <ItemsRepeater.ItemTemplate>
+                                            <DataTemplate>
+                                                <CheckBox IsChecked="{Binding IsSelected, Mode=TwoWay}" MinWidth="0" Padding="8,4"
+                                                         AutomationProperties.Name="{Binding Name}">
+                                                    <StackPanel Orientation="Horizontal" Spacing="8">
+                                                        <Ellipse Width="10" Height="10" VerticalAlignment="Center"
+                                                                 Fill="{Binding IsInstalled, Converter={StaticResource BoolToStatusBrushConverter}}"
+                                                                 ToolTipService.ToolTip="{Binding InstalledStatusText}"/>
+                                                        <FontIcon Glyph="{Binding CanBeReinstalled, Converter={StaticResource BoolToGlyphConverter}}"
+                                                                  FontSize="12" VerticalAlignment="Center"
+                                                                  Foreground="{Binding CanBeReinstalled, Converter={StaticResource BoolToReinstallBrushConverter}}"
+                                                                  ToolTipService.ToolTip="{Binding ReinstallableStatusText}"/>
+                                                        <TextBlock Text="{Binding Name}" VerticalAlignment="Center" TextTrimming="CharacterEllipsis"/>
+                                                    </StackPanel>
+                                                </CheckBox>
+                                            </DataTemplate>
+                                        </ItemsRepeater.ItemTemplate>
+                                    </ItemsRepeater>
+                                </StackPanel>
+
+                                <!-- Capabilities Section -->
+                                <StackPanel Spacing="8">
+                                    <TextBlock Text="{x:Bind ViewModel.WindowsAppsViewModel.SectionCapabilitiesHeader, Mode=OneWay}"
+                                               Style="{StaticResource SubtitleTextBlockStyle}"
+                                               FontWeight="SemiBold"/>
+                                    <ItemsRepeater ItemsSource="{x:Bind ViewModel.WindowsAppsViewModel.CapabilitiesFiltered, Mode=OneWay}">
+                                        <ItemsRepeater.Layout>
+                                            <UniformGridLayout MinItemWidth="260" MinColumnSpacing="8" MinRowSpacing="4"/>
+                                        </ItemsRepeater.Layout>
+                                        <ItemsRepeater.ItemTemplate>
+                                            <DataTemplate>
+                                                <CheckBox IsChecked="{Binding IsSelected, Mode=TwoWay}" MinWidth="0" Padding="8,4"
+                                                         AutomationProperties.Name="{Binding Name}">
+                                                    <StackPanel Orientation="Horizontal" Spacing="8">
+                                                        <Ellipse Width="10" Height="10" VerticalAlignment="Center"
+                                                                 Fill="{Binding IsInstalled, Converter={StaticResource BoolToStatusBrushConverter}}"
+                                                                 ToolTipService.ToolTip="{Binding InstalledStatusText}"/>
+                                                        <FontIcon Glyph="{Binding CanBeReinstalled, Converter={StaticResource BoolToGlyphConverter}}"
+                                                                  FontSize="12" VerticalAlignment="Center"
+                                                                  Foreground="{Binding CanBeReinstalled, Converter={StaticResource BoolToReinstallBrushConverter}}"
+                                                                  ToolTipService.ToolTip="{Binding ReinstallableStatusText}"/>
+                                                        <TextBlock Text="{Binding Name}" VerticalAlignment="Center" TextTrimming="CharacterEllipsis"/>
+                                                    </StackPanel>
+                                                </CheckBox>
+                                            </DataTemplate>
+                                        </ItemsRepeater.ItemTemplate>
+                                    </ItemsRepeater>
+                                </StackPanel>
+
+                                <!-- Optional Features Section -->
+                                <StackPanel Spacing="8">
+                                    <TextBlock Text="{x:Bind ViewModel.WindowsAppsViewModel.SectionOptionalFeaturesHeader, Mode=OneWay}"
+                                               Style="{StaticResource SubtitleTextBlockStyle}"
+                                               FontWeight="SemiBold"/>
+                                    <ItemsRepeater ItemsSource="{x:Bind ViewModel.WindowsAppsViewModel.OptionalFeaturesFiltered, Mode=OneWay}">
+                                        <ItemsRepeater.Layout>
+                                            <UniformGridLayout MinItemWidth="260" MinColumnSpacing="8" MinRowSpacing="4"/>
+                                        </ItemsRepeater.Layout>
+                                        <ItemsRepeater.ItemTemplate>
+                                            <DataTemplate>
+                                                <CheckBox IsChecked="{Binding IsSelected, Mode=TwoWay}" MinWidth="0" Padding="8,4"
+                                                         AutomationProperties.Name="{Binding Name}">
+                                                    <StackPanel Orientation="Horizontal" Spacing="8">
+                                                        <Ellipse Width="10" Height="10" VerticalAlignment="Center"
+                                                                 Fill="{Binding IsInstalled, Converter={StaticResource BoolToStatusBrushConverter}}"
+                                                                 ToolTipService.ToolTip="{Binding InstalledStatusText}"/>
+                                                        <FontIcon Glyph="{Binding CanBeReinstalled, Converter={StaticResource BoolToGlyphConverter}}"
+                                                                  FontSize="12" VerticalAlignment="Center"
+                                                                  Foreground="{Binding CanBeReinstalled, Converter={StaticResource BoolToReinstallBrushConverter}}"
+                                                                  ToolTipService.ToolTip="{Binding ReinstallableStatusText}"/>
+                                                        <TextBlock Text="{Binding Name}" VerticalAlignment="Center" TextTrimming="CharacterEllipsis"/>
+                                                    </StackPanel>
+                                                </CheckBox>
+                                            </DataTemplate>
+                                        </ItemsRepeater.ItemTemplate>
+                                    </ItemsRepeater>
+                                </StackPanel>
+                            </StackPanel>
+                        </ScrollViewer>
+
+                        <!-- Loading overlay for Windows Apps -->
+                        <Grid Grid.Row="1"
+                              Visibility="{x:Bind ViewModel.WindowsAppsViewModel.IsLoading, Mode=OneWay, Converter={StaticResource BooleanToVisibilityConverter}}"
+                              Background="{ThemeResource LayerFillColorDefaultBrush}">
+                            <StackPanel HorizontalAlignment="Center" VerticalAlignment="Center" Spacing="16">
+                                <ProgressRing IsActive="True" Width="48" Height="48"/>
+                                <TextBlock Text="{x:Bind ViewModel.WindowsAppsViewModel.StatusText, Mode=OneWay}"
+                                           Style="{StaticResource BodyTextBlockStyle}"/>
+                            </StackPanel>
+                        </Grid>
+                    </Grid>
+
+                    <!-- External Apps Content -->
+                    <Grid Visibility="{x:Bind ViewModel.IsExternalAppsTabSelected, Mode=OneWay, Converter={StaticResource BooleanToVisibilityConverter}}">
+                        <Grid.RowDefinitions>
+                            <RowDefinition Height="Auto"/>
+                            <RowDefinition Height="*"/>
+                        </Grid.RowDefinitions>
+
+                        <!-- Review Mode Banner for External Apps -->
+                        <InfoBar Grid.Row="0"
+                                 x:Name="ExternalAppsReviewBanner"
+                                 IsOpen="{x:Bind ViewModel.IsInReviewMode, Mode=OneWay}"
+                                 Severity="Warning"
+                                 IsClosable="False"
+                                 Message="{x:Bind ViewModel.ReviewExternalAppsBannerText, Mode=OneWay}"
+                                 Margin="0,0,0,8"
+                                 Visibility="{x:Bind ViewModel.IsInReviewMode, Mode=OneWay, Converter={StaticResource BooleanToVisibilityConverter}}"/>
+
+                        <!-- DataGrid View -->
+                        <controls:DataGrid x:Name="ExternalAppsDataGrid"
+                                           Grid.Row="1"
+                                           Visibility="{x:Bind ViewModel.IsCardViewMode, Mode=OneWay, Converter={StaticResource InverseBooleanToVisibilityConverter}}"
+                                           Loaded="ExternalAppsDataGrid_Loaded"
+                                           ItemsSource="{x:Bind ViewModel.ExternalAppsViewModel.ItemsView, Mode=OneWay}"
+                                           AutoGenerateColumns="False"
+                                           CanUserSortColumns="True"
+                                           CanUserReorderColumns="False"
+                                           CanUserResizeColumns="True"
+                                           GridLinesVisibility="None"
+                                           HeadersVisibility="Column"
+                                           SelectionMode="Extended"
+                                           IsReadOnly="True"
+                                           VerticalScrollBarVisibility="Auto"
+                                           HorizontalScrollBarVisibility="Disabled"
+                                           Background="Transparent"
+                                           RowBackground="Transparent"
+                                           AlternatingRowBackground="Transparent"
+                                           BorderThickness="0"
+                                           Padding="0,0,0,12"
+                                           ColumnHeaderStyle="{StaticResource ColumnHeaderStyle}"
+                                           RowStyle="{StaticResource SelectionRowStyle}"
+                                           Sorting="DataGrid_Sorting">
+                            <controls:DataGrid.Columns>
+                                <!-- Selection Column with Select All header -->
+                                <controls:DataGridTemplateColumn Width="40" CanUserResize="False" IsReadOnly="False"
+                                                                  HeaderStyle="{StaticResource FirstColumnHeaderStyle}">
+                                    <controls:DataGridTemplateColumn.CellTemplate>
+                                        <DataTemplate>
+                                            <CheckBox IsChecked="{Binding IsSelected, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}"
+                                                      AutomationProperties.Name="{Binding Name}"
+                                                      MinWidth="20"
+                                                      HorizontalAlignment="Center"/>
+                                        </DataTemplate>
+                                    </controls:DataGridTemplateColumn.CellTemplate>
+                                    <controls:DataGridTemplateColumn.CellEditingTemplate>
+                                        <DataTemplate>
+                                            <CheckBox IsChecked="{Binding IsSelected, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}"
+                                                      AutomationProperties.Name="{Binding Name}"
+                                                      MinWidth="20"
+                                                      HorizontalAlignment="Center"/>
+                                        </DataTemplate>
+                                    </controls:DataGridTemplateColumn.CellEditingTemplate>
+                                </controls:DataGridTemplateColumn>
+
+                                <!-- Name Column -->
+                                <controls:DataGridTemplateColumn Header="Name" Width="*" Tag="Name">
+                                    <controls:DataGridTemplateColumn.CellTemplate>
+                                        <DataTemplate>
+                                            <TextBlock Text="{Binding Name}" VerticalAlignment="Center"
+                                                       Foreground="{ThemeResource TextFillColorPrimaryBrush}"/>
+                                        </DataTemplate>
+                                    </controls:DataGridTemplateColumn.CellTemplate>
+                                </controls:DataGridTemplateColumn>
+
+                                <!-- Description Column -->
+                                <controls:DataGridTemplateColumn Header="Description" Width="2*" Tag="Description">
+                                    <controls:DataGridTemplateColumn.CellTemplate>
+                                        <DataTemplate>
+                                            <TextBlock Text="{Binding Description}" VerticalAlignment="Center"
+                                                       Foreground="{ThemeResource TextFillColorPrimaryBrush}"/>
+                                        </DataTemplate>
+                                    </controls:DataGridTemplateColumn.CellTemplate>
+                                </controls:DataGridTemplateColumn>
+
+                                <!-- Status Column -->
+                                <controls:DataGridTemplateColumn Header="Status" Width="140" Tag="IsInstalled">
+                                    <controls:DataGridTemplateColumn.CellTemplate>
+                                        <DataTemplate>
+                                            <StackPanel Orientation="Horizontal" Spacing="8" VerticalAlignment="Center">
+                                                <Ellipse Width="10" Height="10"
+                                                         Fill="{Binding IsInstalled, Converter={StaticResource BoolToStatusBrushConverter}}"/>
+                                                <TextBlock Text="{Binding InstalledStatusText}" VerticalAlignment="Center"/>
+                                            </StackPanel>
+                                        </DataTemplate>
+                                    </controls:DataGridTemplateColumn.CellTemplate>
+                                </controls:DataGridTemplateColumn>
+
+                                <!-- Scrollbar spacer column -->
+                                <controls:DataGridTemplateColumn Width="16" CanUserResize="False" CanUserSort="False"
+                                                                  HeaderStyle="{StaticResource SpacerColumnHeaderStyle}">
+                                    <controls:DataGridTemplateColumn.CellTemplate>
+                                        <DataTemplate>
+                                            <Border/>
+                                        </DataTemplate>
+                                    </controls:DataGridTemplateColumn.CellTemplate>
+                                </controls:DataGridTemplateColumn>
+                            </controls:DataGrid.Columns>
+                        </controls:DataGrid>
+
+                        <!-- Card View for External Apps -->
+                        <ScrollViewer Grid.Row="1"
+                                      Visibility="{x:Bind ViewModel.IsCardViewMode, Mode=OneWay, Converter={StaticResource BooleanToVisibilityConverter}}"
+                                      VerticalScrollBarVisibility="Auto"
+                                      HorizontalScrollBarVisibility="Disabled"
+                                      Padding="0,0,0,12">
+                            <StackPanel Spacing="12" Padding="4,8,4,8">
+                                <!-- Selection Checkboxes -->
+                                <StackPanel Orientation="Horizontal" Spacing="12">
+                                    <CheckBox Content="{x:Bind ViewModel.ExternalAppsViewModel.SelectAllLabel, Mode=OneWay}" MinWidth="0"
+                                              IsChecked="{x:Bind ViewModel.ExternalAppsViewModel.IsAllSelected, Mode=TwoWay}"/>
+                                    <CheckBox Content="{x:Bind ViewModel.ExternalAppsViewModel.SelectAllInstalledLabel, Mode=OneWay}" MinWidth="0"
+                                              IsChecked="{x:Bind ViewModel.ExternalAppsViewModel.IsAllSelectedInstalled, Mode=TwoWay}"/>
+                                    <CheckBox Content="{x:Bind ViewModel.ExternalAppsViewModel.SelectAllNotInstalledLabel, Mode=OneWay}" MinWidth="0"
+                                              IsChecked="{x:Bind ViewModel.ExternalAppsViewModel.IsAllSelectedNotInstalled, Mode=TwoWay}"/>
+                                </StackPanel>
+
+                                <!-- Categories -->
+                                <ItemsControl ItemsSource="{x:Bind ViewModel.ExternalAppsViewModel.Categories, Mode=OneWay}">
+                                    <ItemsControl.ItemsPanel>
+                                        <ItemsPanelTemplate>
+                                            <StackPanel Spacing="8"/>
+                                        </ItemsPanelTemplate>
+                                    </ItemsControl.ItemsPanel>
+                                    <ItemsControl.ItemTemplate>
+                                        <DataTemplate>
+                                            <Expander IsExpanded="True" HorizontalAlignment="Stretch" HorizontalContentAlignment="Stretch"
+                                                     AutomationProperties.Name="{Binding DisplayName}">
+                                                <Expander.Header>
+                                                    <StackPanel Orientation="Horizontal" Spacing="10">
+                                                        <FontIcon Glyph="{Binding IconGlyph}" FontSize="16"/>
+                                                        <TextBlock Text="{Binding DisplayName}"
+                                                                   FontWeight="SemiBold" FontSize="14"
+                                                                   VerticalAlignment="Center"/>
+                                                    </StackPanel>
+                                                </Expander.Header>
+                                                <Expander.Content>
+                                                    <ItemsRepeater ItemsSource="{Binding Apps}" Margin="0,4,0,4">
+                                                        <ItemsRepeater.Layout>
+                                                            <UniformGridLayout MinItemWidth="260" MinColumnSpacing="8" MinRowSpacing="4"/>
+                                                        </ItemsRepeater.Layout>
+                                                        <ItemsRepeater.ItemTemplate>
+                                                            <DataTemplate>
+                                                                <CheckBox IsChecked="{Binding IsSelected, Mode=TwoWay}" MinWidth="0" Padding="8,4"
+                                                                         AutomationProperties.Name="{Binding Name}">
+                                                                    <StackPanel Orientation="Horizontal" Spacing="8">
+                                                                        <Ellipse Width="10" Height="10" VerticalAlignment="Center"
+                                                                                 Fill="{Binding IsInstalled, Converter={StaticResource BoolToStatusBrushConverter}}"/>
+                                                                        <TextBlock Text="{Binding Name}" VerticalAlignment="Center" TextTrimming="CharacterEllipsis"/>
+                                                                        <HyperlinkButton NavigateUri="{Binding WebsiteUrl}"
+                                                                                         Padding="0" VerticalAlignment="Center"
+                                                                                         Visibility="{Binding WebsiteUrl, Converter={StaticResource NullToVisibilityConverter}}">
+                                                                            <fluentIcons:SymbolIcon Symbol="Open" IconVariant="Regular" FontSize="12"/>
+                                                                        </HyperlinkButton>
+                                                                    </StackPanel>
+                                                                </CheckBox>
+                                                            </DataTemplate>
+                                                        </ItemsRepeater.ItemTemplate>
+                                                    </ItemsRepeater>
+                                                </Expander.Content>
+                                            </Expander>
+                                        </DataTemplate>
+                                    </ItemsControl.ItemTemplate>
+                                </ItemsControl>
+                            </StackPanel>
+                        </ScrollViewer>
+
+                        <!-- Loading overlay for External Apps -->
+                        <Grid Grid.Row="1"
+                              Visibility="{x:Bind ViewModel.ExternalAppsViewModel.IsLoading, Mode=OneWay, Converter={StaticResource BooleanToVisibilityConverter}}"
+                              Background="{ThemeResource LayerFillColorDefaultBrush}">
+                            <StackPanel HorizontalAlignment="Center" VerticalAlignment="Center" Spacing="16">
+                                <ProgressRing IsActive="True" Width="48" Height="48"/>
+                                <TextBlock Text="{x:Bind ViewModel.ExternalAppsViewModel.StatusText, Mode=OneWay}"
+                                           Style="{StaticResource BodyTextBlockStyle}"/>
+                            </StackPanel>
+                        </Grid>
+                    </Grid>
+                </Grid>
+            </Grid>
+        </Border>
+    </Grid>
+</Page>
