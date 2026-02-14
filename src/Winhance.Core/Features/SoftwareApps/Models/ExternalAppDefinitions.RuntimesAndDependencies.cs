@@ -21,7 +21,8 @@ namespace Winhance.Core.Features.SoftwareApps.Models
                             Name = "Microsoft .NET Runtime 3.1",
                             Description = ".NET Runtime 3.1 for running applications",
                             GroupName = "Runtimes & Dependencies",
-                            WinGetPackageId = "Microsoft.DotNet.Runtime.3_1",
+                            WinGetPackageId = ["Microsoft.DotNet.Runtime.3_1"],
+                            ChocoPackageId = "dotnetcore-3.1-runtime",
                             WebsiteUrl = "https://dotnet.microsoft.com/"
                         },
                         new ItemDefinition
@@ -30,7 +31,8 @@ namespace Winhance.Core.Features.SoftwareApps.Models
                             Name = "Microsoft .NET Runtime 5.0",
                             Description = ".NET Runtime 5.0 for running applications",
                             GroupName = "Runtimes & Dependencies",
-                            WinGetPackageId = "Microsoft.DotNet.Runtime.5",
+                            WinGetPackageId = ["Microsoft.DotNet.Runtime.5"],
+                            ChocoPackageId = "dotnet-5.0-runtime",
                             WebsiteUrl = "https://dotnet.microsoft.com/"
                         },
                         new ItemDefinition
@@ -39,7 +41,8 @@ namespace Winhance.Core.Features.SoftwareApps.Models
                             Name = "Microsoft .NET Runtime 6.0",
                             Description = ".NET Runtime 6.0 LTS for running applications",
                             GroupName = "Runtimes & Dependencies",
-                            WinGetPackageId = "Microsoft.DotNet.Runtime.6",
+                            WinGetPackageId = ["Microsoft.DotNet.Runtime.6"],
+                            ChocoPackageId = "dotnet-6.0-runtime",
                             WebsiteUrl = "https://dotnet.microsoft.com/"
                         },
                         new ItemDefinition
@@ -48,7 +51,8 @@ namespace Winhance.Core.Features.SoftwareApps.Models
                             Name = "Microsoft .NET Runtime 7.0",
                             Description = ".NET Runtime 7.0 for running applications",
                             GroupName = "Runtimes & Dependencies",
-                            WinGetPackageId = "Microsoft.DotNet.Runtime.7",
+                            WinGetPackageId = ["Microsoft.DotNet.Runtime.7"],
+                            ChocoPackageId = "dotnet-7.0-runtime",
                             WebsiteUrl = "https://dotnet.microsoft.com/"
                         },
                         new ItemDefinition
@@ -57,7 +61,8 @@ namespace Winhance.Core.Features.SoftwareApps.Models
                             Name = "Microsoft .NET Runtime 8.0",
                             Description = ".NET Runtime 8.0 LTS for running applications",
                             GroupName = "Runtimes & Dependencies",
-                            WinGetPackageId = "Microsoft.DotNet.Runtime.8",
+                            WinGetPackageId = ["Microsoft.DotNet.Runtime.8"],
+                            ChocoPackageId = "dotnet-8.0-runtime",
                             WebsiteUrl = "https://dotnet.microsoft.com/"
                         },
                         new ItemDefinition
@@ -66,7 +71,8 @@ namespace Winhance.Core.Features.SoftwareApps.Models
                             Name = ".NET Framework 4.8.1",
                             Description = ".NET Framework Developer Pack",
                             GroupName = "Runtimes & Dependencies",
-                            WinGetPackageId = "Microsoft.DotNet.Framework.DeveloperPack_4",
+                            WinGetPackageId = ["Microsoft.DotNet.Framework.DeveloperPack_4"],
+                            ChocoPackageId = "netfx-4.8.1-devpack",
                             WebsiteUrl = "https://dotnet.microsoft.com/download/dotnet-framework"
                         },
                         new ItemDefinition
@@ -75,7 +81,8 @@ namespace Winhance.Core.Features.SoftwareApps.Models
                             Name = "DirectX End-User Runtime",
                             Description = "DirectX runtime components for running games and multimedia applications",
                             GroupName = "Runtimes & Dependencies",
-                            WinGetPackageId = "Microsoft.DirectX",
+                            WinGetPackageId = ["Microsoft.DirectX"],
+                            ChocoPackageId = "directx",
                             WebsiteUrl = "https://www.microsoft.com/en-us/download/details.aspx?id=35"
                         },
                         new ItemDefinition
@@ -84,7 +91,8 @@ namespace Winhance.Core.Features.SoftwareApps.Models
                             Name = "Java Runtime Environment",
                             Description = "Java runtime environment for running Java applications",
                             GroupName = "Runtimes & Dependencies",
-                            WinGetPackageId = "Oracle.JavaRuntimeEnvironment",
+                            WinGetPackageId = ["Oracle.JavaRuntimeEnvironment"],
+                            ChocoPackageId = "jre8",
                             WebsiteUrl = "https://www.oracle.com/java/technologies/downloads/"
                         },
                         new ItemDefinition
@@ -93,7 +101,8 @@ namespace Winhance.Core.Features.SoftwareApps.Models
                             Name = "Visual C++ 2005 (x86)",
                             Description = "Visual C++ 2005 runtime components",
                             GroupName = "Runtimes & Dependencies",
-                            WinGetPackageId = "Microsoft.VCRedist.2005.x86",
+                            WinGetPackageId = ["Microsoft.VCRedist.2005.x86"],
+                            ChocoPackageId = "vcredist2005",
                             WebsiteUrl = "https://learn.microsoft.com/en-us/cpp/windows/latest-supported-vc-redist"
                         },
                         new ItemDefinition
@@ -102,7 +111,8 @@ namespace Winhance.Core.Features.SoftwareApps.Models
                             Name = "Visual C++ 2005 (x64)",
                             Description = "Visual C++ 2005 runtime components",
                             GroupName = "Runtimes & Dependencies",
-                            WinGetPackageId = "Microsoft.VCRedist.2005.x64",
+                            WinGetPackageId = ["Microsoft.VCRedist.2005.x64"],
+                            ChocoPackageId = "vcredist2005",
                             WebsiteUrl = "https://learn.microsoft.com/en-us/cpp/windows/latest-supported-vc-redist"
                         },
                         new ItemDefinition
@@ -111,7 +121,8 @@ namespace Winhance.Core.Features.SoftwareApps.Models
                             Name = "Visual C++ 2008 (x86)",
                             Description = "Visual C++ 2008 runtime components",
                             GroupName = "Runtimes & Dependencies",
-                            WinGetPackageId = "Microsoft.VCRedist.2008.x86",
+                            WinGetPackageId = ["Microsoft.VCRedist.2008.x86"],
+                            ChocoPackageId = "vcredist2008",
                             WebsiteUrl = "https://learn.microsoft.com/en-us/cpp/windows/latest-supported-vc-redist"
                         },
                         new ItemDefinition
@@ -120,7 +131,8 @@ namespace Winhance.Core.Features.SoftwareApps.Models
                             Name = "Visual C++ 2008 (x64)",
                             Description = "Visual C++ 2008 runtime components",
                             GroupName = "Runtimes & Dependencies",
-                            WinGetPackageId = "Microsoft.VCRedist.2008.x64",
+                            WinGetPackageId = ["Microsoft.VCRedist.2008.x64"],
+                            ChocoPackageId = "vcredist2008",
                             WebsiteUrl = "https://learn.microsoft.com/en-us/cpp/windows/latest-supported-vc-redist"
                         },
                         new ItemDefinition
@@ -129,7 +141,8 @@ namespace Winhance.Core.Features.SoftwareApps.Models
                             Name = "Visual C++ 2010 (x86)",
                             Description = "Visual C++ 2010 runtime components",
                             GroupName = "Runtimes & Dependencies",
-                            WinGetPackageId = "Microsoft.VCRedist.2010.x86",
+                            WinGetPackageId = ["Microsoft.VCRedist.2010.x86"],
+                            ChocoPackageId = "vcredist2010",
                             WebsiteUrl = "https://learn.microsoft.com/en-us/cpp/windows/latest-supported-vc-redist"
                         },
                         new ItemDefinition
@@ -138,7 +151,8 @@ namespace Winhance.Core.Features.SoftwareApps.Models
                             Name = "Visual C++ 2010 (x64)",
                             Description = "Visual C++ 2010 runtime components",
                             GroupName = "Runtimes & Dependencies",
-                            WinGetPackageId = "Microsoft.VCRedist.2010.x64",
+                            WinGetPackageId = ["Microsoft.VCRedist.2010.x64"],
+                            ChocoPackageId = "vcredist2010",
                             WebsiteUrl = "https://learn.microsoft.com/en-us/cpp/windows/latest-supported-vc-redist"
                         },
                         new ItemDefinition
@@ -147,7 +161,8 @@ namespace Winhance.Core.Features.SoftwareApps.Models
                             Name = "Visual C++ 2012 (x86)",
                             Description = "Visual C++ 2012 runtime components",
                             GroupName = "Runtimes & Dependencies",
-                            WinGetPackageId = "Microsoft.VCRedist.2012.x86",
+                            WinGetPackageId = ["Microsoft.VCRedist.2012.x86"],
+                            ChocoPackageId = "vcredist2012",
                             WebsiteUrl = "https://learn.microsoft.com/en-us/cpp/windows/latest-supported-vc-redist"
                         },
                         new ItemDefinition
@@ -156,7 +171,8 @@ namespace Winhance.Core.Features.SoftwareApps.Models
                             Name = "Visual C++ 2012 (x64)",
                             Description = "Visual C++ 2012 runtime components",
                             GroupName = "Runtimes & Dependencies",
-                            WinGetPackageId = "Microsoft.VCRedist.2012.x64",
+                            WinGetPackageId = ["Microsoft.VCRedist.2012.x64"],
+                            ChocoPackageId = "vcredist2012",
                             WebsiteUrl = "https://learn.microsoft.com/en-us/cpp/windows/latest-supported-vc-redist"
                         },
                         new ItemDefinition
@@ -165,7 +181,8 @@ namespace Winhance.Core.Features.SoftwareApps.Models
                             Name = "Visual C++ 2013 (x86)",
                             Description = "Visual C++ 2013 runtime components",
                             GroupName = "Runtimes & Dependencies",
-                            WinGetPackageId = "Microsoft.VCRedist.2013.x86",
+                            WinGetPackageId = ["Microsoft.VCRedist.2013.x86"],
+                            ChocoPackageId = "vcredist2013",
                             WebsiteUrl = "https://learn.microsoft.com/en-us/cpp/windows/latest-supported-vc-redist"
                         },
                         new ItemDefinition
@@ -174,7 +191,8 @@ namespace Winhance.Core.Features.SoftwareApps.Models
                             Name = "Visual C++ 2013 (x64)",
                             Description = "Visual C++ 2013 runtime components",
                             GroupName = "Runtimes & Dependencies",
-                            WinGetPackageId = "Microsoft.VCRedist.2013.x64",
+                            WinGetPackageId = ["Microsoft.VCRedist.2013.x64"],
+                            ChocoPackageId = "vcredist2013",
                             WebsiteUrl = "https://learn.microsoft.com/en-us/cpp/windows/latest-supported-vc-redist"
                         },
                         new ItemDefinition
@@ -183,7 +201,8 @@ namespace Winhance.Core.Features.SoftwareApps.Models
                             Name = "Visual C++ 2015-2022 (x86)",
                             Description = "Visual C++ 2015-2022 runtime components",
                             GroupName = "Runtimes & Dependencies",
-                            WinGetPackageId = "Microsoft.VCRedist.2015+.x86",
+                            WinGetPackageId = ["Microsoft.VCRedist.2015+.x86"],
+                            ChocoPackageId = "vcredist140",
                             WebsiteUrl = "https://learn.microsoft.com/en-us/cpp/windows/latest-supported-vc-redist"
                         },
                         new ItemDefinition
@@ -192,7 +211,8 @@ namespace Winhance.Core.Features.SoftwareApps.Models
                             Name = "Visual C++ 2015-2022 (x64)",
                             Description = "Visual C++ 2015-2022 runtime components",
                             GroupName = "Runtimes & Dependencies",
-                            WinGetPackageId = "Microsoft.VCRedist.2015+.x64",
+                            WinGetPackageId = ["Microsoft.VCRedist.2015+.x64"],
+                            ChocoPackageId = "vcredist140",
                             WebsiteUrl = "https://learn.microsoft.com/en-us/cpp/windows/latest-supported-vc-redist"
                         },
                         new ItemDefinition
@@ -201,7 +221,8 @@ namespace Winhance.Core.Features.SoftwareApps.Models
                             Name = "Visual C++ 2022 (ARM64)",
                             Description = "Visual C++ 2022 runtime components for ARM64",
                             GroupName = "Runtimes & Dependencies",
-                            WinGetPackageId = "Microsoft.VCRedist.2015+.arm64",
+                            WinGetPackageId = ["Microsoft.VCRedist.2015+.arm64"],
+                            ChocoPackageId = "vcredist140",
                             WebsiteUrl = "https://learn.microsoft.com/en-us/cpp/windows/latest-supported-vc-redist"
                         }
                     }

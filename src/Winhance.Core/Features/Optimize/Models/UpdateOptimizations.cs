@@ -234,8 +234,8 @@ public static class UpdateOptimizations
                         },
                         [CustomPropertyKeys.OptionWarnings] = new Dictionary<int, string>
                         {
-                            [2] = "⚠️ WARNING: Pausing updates for a long time leaves your system vulnerable to security threats. Use at your own risk.",
-                            [3] = "⚠️ WARNING: Disabling updates leaves your system vulnerable to security threats. Use at your own risk."
+                            [2] = "WARNING: Pausing updates for a long time leaves your system vulnerable to security threats. Use at your own risk.",
+                            [3] = "WARNING: Disabling updates leaves your system vulnerable to security threats and will prevent app installations from the Microsoft Store from completing until updates are enabled. Use at your own risk."
                         },
                         [CustomPropertyKeys.OptionTooltips] = new string[]
                         {
@@ -421,11 +421,9 @@ public static class UpdateOptimizations
                             KeyPath = @"HKEY_LOCAL_MACHINE\SOFTWARE\Microsoft\WindowsUpdate\UX\Settings",
                             ValueName = "IsContinuousInnovationOptedIn",
                             RecommendedValue = 0,
-                            EnabledValue = 1,
+                            EnabledValue = null,
                             DisabledValue = 0,
-                            DefaultValue = null,
                             ValueType = RegistryValueKind.DWord,
-                            AbsenceMeansEnabled = true,
                         },
                     },
                 },
@@ -489,8 +487,7 @@ public static class UpdateOptimizations
                             ValueName = "NoAutoRebootWithLoggedOnUsers",
                             RecommendedValue = 1,
                             EnabledValue = 1,
-                            DisabledValue = 0,
-                            DefaultValue = 0,
+                            DisabledValue = null,
                             ValueType = RegistryValueKind.DWord,
                         },
                         new RegistrySetting
@@ -499,8 +496,7 @@ public static class UpdateOptimizations
                             ValueName = "NoAutoRebootWithLoggedOnUsers",
                             RecommendedValue = 1,
                             EnabledValue = 1,
-                            DisabledValue = 0,
-                            DefaultValue = 0,
+                            DisabledValue = null,
                             ValueType = RegistryValueKind.DWord,
                         },
                     },
@@ -521,8 +517,7 @@ public static class UpdateOptimizations
                             ValueName = "SetUpdateNotificationLevel",
                             RecommendedValue = 1,
                             EnabledValue = 2,
-                            DisabledValue = 1,
-                            DefaultValue = 2,
+                            DisabledValue = null,
                             ValueType = RegistryValueKind.DWord,
                         },
                         new RegistrySetting
@@ -531,8 +526,7 @@ public static class UpdateOptimizations
                             ValueName = "SetUpdateNotificationLevel",
                             RecommendedValue = 1,
                             EnabledValue = 2,
-                            DisabledValue = 1,
-                            DefaultValue = 2,
+                            DisabledValue = null,
                             ValueType = RegistryValueKind.DWord,
                         },
                     },
@@ -586,7 +580,7 @@ public static class UpdateOptimizations
                     Id = "updates-driver-controls",
                     Name = "Do Not Include Drivers with Updates",
                     Description = "Prevent Windows from automatically downloading and installing hardware driver updates",
-                    GroupName = "Update Content",
+                    GroupName = "Update Behavior",
                     Icon = "PackageVariantClosedMinus",
                     InputType = InputType.Toggle,
                     RegistrySettings = new List<RegistrySetting>
@@ -597,8 +591,7 @@ public static class UpdateOptimizations
                             ValueName = "ExcludeWUDriversInQualityUpdate",
                             RecommendedValue = 1,
                             EnabledValue = 1,
-                            DisabledValue = 0,
-                            DefaultValue = 0,
+                            DisabledValue = null,
                             ValueType = RegistryValueKind.DWord,
                         },
                         new RegistrySetting
@@ -607,8 +600,7 @@ public static class UpdateOptimizations
                             ValueName = "ExcludeWUDriversInQualityUpdate",
                             RecommendedValue = 1,
                             EnabledValue = 1,
-                            DisabledValue = 0,
-                            DefaultValue = 0,
+                            DisabledValue = null,
                             ValueType = RegistryValueKind.DWord,
                         },
                     },
@@ -619,8 +611,8 @@ public static class UpdateOptimizations
                     Name = "Auto Update Microsoft Store Apps",
                     Description = "Automatically download and install updates for apps from the Microsoft Store",
                     GroupName = "Delivery & Store",
-                    IconPack = "Lucide",
-                    Icon = "Store",
+                    IconPack = "Fluent",
+                    Icon = "StoreMicrosoft",
                     InputType = InputType.Toggle,
                     RegistrySettings = new List<RegistrySetting>
                     {
@@ -629,22 +621,18 @@ public static class UpdateOptimizations
                             KeyPath = @"HKEY_CURRENT_USER\SOFTWARE\Policies\Microsoft\WindowsStore",
                             ValueName = "AutoDownload",
                             RecommendedValue = 2,
-                            EnabledValue = 4,
+                            EnabledValue = null,
                             DisabledValue = 2,
-                            DefaultValue = 2,
                             ValueType = RegistryValueKind.DWord,
-                            AbsenceMeansEnabled = true,
                         },
                         new RegistrySetting
                         {
                             KeyPath = @"HKEY_LOCAL_MACHINE\SOFTWARE\Policies\Microsoft\WindowsStore",
                             ValueName = "AutoDownload",
                             RecommendedValue = 2,
-                            EnabledValue = 4,
+                            EnabledValue = null,
                             DisabledValue = 2,
-                            DefaultValue = 2,
                             ValueType = RegistryValueKind.DWord,
-                            AbsenceMeansEnabled = true,
                         },
                     },
                 },

@@ -1,0 +1,324 @@
+<?xml version="1.0" encoding="utf-8"?>
+<Page
+    x:Class="Winhance.UI.Features.Optimize.OptimizePage"
+    xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+    xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+    xmlns:local="using:Winhance.UI.Features.Optimize"
+    xmlns:models="using:Winhance.UI.Features.Optimize.Models"
+    xmlns:controls="using:CommunityToolkit.WinUI.Controls"
+    xmlns:fluentIcons="using:FluentIcons.WinUI"
+    x:DefaultBindMode="OneWay"
+    NavigationCacheMode="Enabled">
+
+    <Grid Padding="0,0,12,0">
+        <Grid.RowDefinitions>
+            <RowDefinition Height="Auto"/>  <!-- Header -->
+            <RowDefinition Height="Auto"/>  <!-- NavRow -->
+            <RowDefinition Height="*"/>     <!-- Content -->
+        </Grid.RowDefinitions>
+
+        <!-- Row 0: Page Header with Icon -->
+        <StackPanel Grid.Row="0" Orientation="Horizontal" Spacing="16">
+            <Viewbox Width="64" Height="64" Stretch="Uniform">
+                <PathIcon Data="{StaticResource OptimizeIconPath}" Foreground="{ThemeResource TextFillColorPrimaryBrush}"/>
+            </Viewbox>
+            <StackPanel VerticalAlignment="Center">
+                <TextBlock
+                    Text="{x:Bind ViewModel.PageTitle}"
+                    Style="{StaticResource TitleTextBlockStyle}"
+                    FontWeight="Bold"
+                    FontSize="30"
+                    AutomationProperties.HeadingLevel="Level1"/>
+                <TextBlock
+                    Text="{x:Bind ViewModel.PageDescription}"
+                    Style="{StaticResource CaptionTextBlockStyle}"
+                    Foreground="{ThemeResource TextFillColorTertiaryBrush}"
+                    Margin="0,2,0,0"/>
+            </StackPanel>
+        </StackPanel>
+
+        <!-- Row 1: Navigation Bar -->
+        <Grid Grid.Row="1" Margin="0,12,0,16">
+            <Grid.ColumnDefinitions>
+                <ColumnDefinition Width="*"/>     <!-- Breadcrumb -->
+                <ColumnDefinition Width="Auto"/>  <!-- Technical Details toggle -->
+                <ColumnDefinition Width="Auto"/>  <!-- Search -->
+            </Grid.ColumnDefinitions>
+
+            <!-- Breadcrumb navigation -->
+            <StackPanel Grid.Column="0" Orientation="Horizontal" VerticalAlignment="Center" Spacing="4">
+                <!-- "Optimize" root button - navigates to overview -->
+                <Button
+                    x:Name="BreadcrumbRoot"
+                    Click="BreadcrumbOverview_Click"
+                    AutomationProperties.Name="{x:Bind ViewModel.BreadcrumbRootText}"
+                    Padding="8,4">
+                    <StackPanel Orientation="Horizontal" Spacing="8">
+                        <Viewbox Width="16" Height="16" VerticalAlignment="Center" Margin="0,-2,0,0">
+                            <PathIcon Data="{StaticResource OptimizeIconPath}" Foreground="{ThemeResource TextFillColorPrimaryBrush}"/>
+                        </Viewbox>
+                        <TextBlock Text="{x:Bind ViewModel.BreadcrumbRootText}" VerticalAlignment="Center"/>
+                    </StackPanel>
+                </Button>
+
+                <!-- Separator (visible only on detail pages) -->
+                <fluentIcons:SymbolIcon
+                    x:Name="BreadcrumbSeparator"
+                    Symbol="ChevronRight"
+                    IconVariant="Regular"
+                    FontSize="12"
+                    Foreground="{ThemeResource TextFillColorSecondaryBrush}"
+                    VerticalAlignment="Center"
+                    Visibility="Collapsed"/>
+
+                <!-- Current section dropdown with icon (visible only on detail pages) -->
+                <DropDownButton
+                    x:Name="BreadcrumbSection"
+                    Visibility="Collapsed"
+                    Padding="8,4">
+                    <DropDownButton.Content>
+                        <StackPanel Orientation="Horizontal" Spacing="8">
+                            <!-- PathIcon for SVG-based icons -->
+                            <Viewbox x:Name="BreadcrumbSectionIconBox" Width="16" Height="16" VerticalAlignment="Center" Margin="0,-2,0,0">
+                                <PathIcon x:Name="BreadcrumbSectionIcon" Foreground="{ThemeResource TextFillColorPrimaryBrush}"/>
+                            </Viewbox>
+                            <!-- SymbolIcon for FluentIcons-based icons (Update, Sound) -->
+                            <fluentIcons:SymbolIcon x:Name="BreadcrumbSectionSymbol" IconVariant="Regular" FontSize="16" VerticalAlignment="Center" Foreground="{ThemeResource TextFillColorPrimaryBrush}" Visibility="Collapsed"/>
+                            <TextBlock x:Name="BreadcrumbSectionText" VerticalAlignment="Center"/>
+                            <InfoBadge x:Name="BreadcrumbSectionBadge" VerticalAlignment="Center" Visibility="Collapsed"/>
+                        </StackPanel>
+                    </DropDownButton.Content>
+                    <DropDownButton.Flyout>
+                        <Flyout x:Name="BreadcrumbFlyout" Placement="BottomEdgeAlignedLeft">
+                            <Flyout.FlyoutPresenterStyle>
+                                <Style TargetType="FlyoutPresenter">
+                                    <Setter Property="Padding" Value="4"/>
+                                    <Setter Property="CornerRadius" Value="8"/>
+                                </Style>
+                            </Flyout.FlyoutPresenterStyle>
+                            <StackPanel Spacing="0" MinWidth="180">
+                                <Button x:Name="FlyoutButtonPrivacy" Click="NavigatePrivacy_Click" HorizontalAlignment="Stretch"
+                                        HorizontalContentAlignment="Stretch"
+                                        Background="Transparent" BorderThickness="0" Padding="8,5">
+                                    <Grid ColumnDefinitions="Auto,*,Auto">
+                                        <Viewbox Grid.Column="0" Width="16" Height="16" Margin="0,0,8,0" VerticalAlignment="Center">
+                                            <PathIcon Data="{StaticResource PrivacyIconPath}"/>
+                                        </Viewbox>
+                                        <TextBlock x:Name="FlyoutTextPrivacy" Grid.Column="1" VerticalAlignment="Center"/>
+                                        <InfoBadge x:Name="FlyoutBadgePrivacy" Grid.Column="2" Margin="8,0,0,0" VerticalAlignment="Center" Visibility="Collapsed"/>
+                                    </Grid>
+                                </Button>
+                                <Button x:Name="FlyoutButtonPower" Click="NavigatePower_Click" HorizontalAlignment="Stretch"
+                                        HorizontalContentAlignment="Stretch"
+                                        Background="Transparent" BorderThickness="0" Padding="8,5">
+                                    <Grid ColumnDefinitions="Auto,*,Auto">
+                                        <Viewbox Grid.Column="0" Width="16" Height="16" Margin="0,0,8,0" VerticalAlignment="Center">
+                                            <PathIcon Data="{StaticResource PowerIconPath}"/>
+                                        </Viewbox>
+                                        <TextBlock x:Name="FlyoutTextPower" Grid.Column="1" VerticalAlignment="Center"/>
+                                        <InfoBadge x:Name="FlyoutBadgePower" Grid.Column="2" Margin="8,0,0,0" VerticalAlignment="Center" Visibility="Collapsed"/>
+                                    </Grid>
+                                </Button>
+                                <Button x:Name="FlyoutButtonGaming" Click="NavigateGaming_Click" HorizontalAlignment="Stretch"
+                                        HorizontalContentAlignment="Stretch"
+                                        Background="Transparent" BorderThickness="0" Padding="8,5">
+                                    <Grid ColumnDefinitions="Auto,*,Auto">
+                                        <Viewbox Grid.Column="0" Width="16" Height="16" Margin="0,0,8,0" VerticalAlignment="Center">
+                                            <PathIcon Data="{StaticResource GamingIconPath}"/>
+                                        </Viewbox>
+                                        <TextBlock x:Name="FlyoutTextGaming" Grid.Column="1" VerticalAlignment="Center"/>
+                                        <InfoBadge x:Name="FlyoutBadgeGaming" Grid.Column="2" Margin="8,0,0,0" VerticalAlignment="Center" Visibility="Collapsed"/>
+                                    </Grid>
+                                </Button>
+                                <Button x:Name="FlyoutButtonUpdate" Click="NavigateUpdate_Click" HorizontalAlignment="Stretch"
+                                        HorizontalContentAlignment="Stretch"
+                                        Background="Transparent" BorderThickness="0" Padding="8,5">
+                                    <Grid ColumnDefinitions="Auto,*,Auto">
+                                        <fluentIcons:SymbolIcon Grid.Column="0" Symbol="ArrowSync" IconVariant="Regular" FontSize="16" Margin="0,0,8,0" VerticalAlignment="Center"/>
+                                        <TextBlock x:Name="FlyoutTextUpdate" Grid.Column="1" VerticalAlignment="Center"/>
+                                        <InfoBadge x:Name="FlyoutBadgeUpdate" Grid.Column="2" Margin="8,0,0,0" VerticalAlignment="Center" Visibility="Collapsed"/>
+                                    </Grid>
+                                </Button>
+                                <Button x:Name="FlyoutButtonNotification" Click="NavigateNotification_Click" HorizontalAlignment="Stretch"
+                                        HorizontalContentAlignment="Stretch"
+                                        Background="Transparent" BorderThickness="0" Padding="8,5">
+                                    <Grid ColumnDefinitions="Auto,*,Auto">
+                                        <Viewbox Grid.Column="0" Width="16" Height="16" Margin="0,0,8,0" VerticalAlignment="Center">
+                                            <PathIcon Data="{StaticResource NotificationIconPath}"/>
+                                        </Viewbox>
+                                        <TextBlock x:Name="FlyoutTextNotification" Grid.Column="1" VerticalAlignment="Center"/>
+                                        <InfoBadge x:Name="FlyoutBadgeNotification" Grid.Column="2" Margin="8,0,0,0" VerticalAlignment="Center" Visibility="Collapsed"/>
+                                    </Grid>
+                                </Button>
+                                <Button x:Name="FlyoutButtonSound" Click="NavigateSound_Click" HorizontalAlignment="Stretch"
+                                        HorizontalContentAlignment="Stretch"
+                                        Background="Transparent" BorderThickness="0" Padding="8,5">
+                                    <Grid ColumnDefinitions="Auto,*,Auto">
+                                        <fluentIcons:SymbolIcon Grid.Column="0" Symbol="Speaker2" IconVariant="Regular" FontSize="16" Margin="0,0,8,0" VerticalAlignment="Center"/>
+                                        <TextBlock x:Name="FlyoutTextSound" Grid.Column="1" VerticalAlignment="Center"/>
+                                        <InfoBadge x:Name="FlyoutBadgeSound" Grid.Column="2" Margin="8,0,0,0" VerticalAlignment="Center" Visibility="Collapsed"/>
+                                    </Grid>
+                                </Button>
+                            </StackPanel>
+                        </Flyout>
+                    </DropDownButton.Flyout>
+                </DropDownButton>
+            </StackPanel>
+
+            <!-- Technical Details toggle -->
+            <Border x:Name="TechnicalDetailsToggleBorder"
+                    Grid.Column="1"
+                    CornerRadius="4"
+                    BorderThickness="0"
+                    VerticalAlignment="Center"
+                    Margin="0,0,8,0">
+                <Button x:Name="TechnicalDetailsToggle"
+                        Click="TechnicalDetailsToggle_Click"
+                        Padding="6"
+                        Background="Transparent"
+                        BorderThickness="0">
+                    <Viewbox Width="16" Height="16">
+                        <PathIcon x:Name="TechnicalDetailsIcon"
+                                  Foreground="{ThemeResource TextFillColorPrimaryBrush}"/>
+                    </Viewbox>
+                </Button>
+            </Border>
+
+            <!-- Search box with suggestions -->
+            <Grid Grid.Column="2" Width="220">
+                <AutoSuggestBox
+                    x:Name="SearchBox"
+                    PlaceholderText="{x:Bind ViewModel.SearchPlaceholder}"
+                    QueryIcon="Find"
+                    Text="{x:Bind ViewModel.SearchText, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}"
+                    ItemsSource="{x:Bind ViewModel.SearchSuggestions}"
+                    SuggestionChosen="SearchBox_SuggestionChosen"
+                    QuerySubmitted="SearchBox_QuerySubmitted">
+                    <AutoSuggestBox.ItemTemplate>
+                        <DataTemplate x:DataType="models:SearchSuggestionItem">
+                            <Grid Padding="4,2">
+                                <Grid.ColumnDefinitions>
+                                    <ColumnDefinition Width="Auto"/>
+                                    <ColumnDefinition Width="*"/>
+                                </Grid.ColumnDefinitions>
+                                <StackPanel Grid.Column="1">
+                                    <TextBlock Text="{x:Bind SettingName}" Style="{StaticResource BodyTextBlockStyle}"/>
+                                    <TextBlock Text="{x:Bind SectionDisplayName}" Style="{StaticResource CaptionTextBlockStyle}" Foreground="{ThemeResource TextFillColorSecondaryBrush}"/>
+                                </StackPanel>
+                            </Grid>
+                        </DataTemplate>
+                    </AutoSuggestBox.ItemTemplate>
+                </AutoSuggestBox>
+            </Grid>
+        </Grid>
+
+        <!-- Row 2: Content Container with rounded corners and lighter background -->
+        <Border
+            Grid.Row="2"
+            Background="{ThemeResource SystemFillColorNeutralBackgroundBrush}"
+            CornerRadius="8"
+            Margin="0,0,0,12">
+            <Grid>
+                <!-- Overview Content (visible when not on detail page) -->
+                <Grid x:Name="OverviewContent">
+                    <!-- Loading State -->
+                    <ProgressRing
+                        IsActive="{x:Bind ViewModel.IsLoading}"
+                        Visibility="{x:Bind ViewModel.IsLoading}"
+                        Width="48"
+                        Height="48"
+                        HorizontalAlignment="Center"
+                        VerticalAlignment="Center"/>
+
+                    <!-- Overview Cards -->
+                    <ScrollView Visibility="{x:Bind ViewModel.IsNotLoading}">
+                        <!-- Wrap StackPanel in Grid to avoid visual glitches with MaxWidth -->
+                        <Grid>
+                        <StackPanel Spacing="8" MaxWidth="{StaticResource SettingsContentMaxWidth}" Margin="{StaticResource SettingsContentMargin}" HorizontalAlignment="Stretch" Padding="0,12,0,12">
+
+                            <!-- Privacy & Security Card -->
+                            <controls:SettingsCard
+                                Header="{x:Bind ViewModel.PrivacyViewModel.DisplayName}"
+                                Description="{x:Bind ViewModel.PrivacyViewModel.GroupDescriptionText}"
+                                IsClickEnabled="True"
+                                Click="PrivacyCard_Click">
+                                <controls:SettingsCard.HeaderIcon>
+                                    <PathIcon Data="{StaticResource PrivacyIconPath}"/>
+                                </controls:SettingsCard.HeaderIcon>
+                                <InfoBadge x:Name="PrivacyBadge" Visibility="Collapsed"/>
+                            </controls:SettingsCard>
+
+                            <!-- Power Card -->
+                            <controls:SettingsCard
+                                Header="{x:Bind ViewModel.PowerViewModel.DisplayName}"
+                                Description="{x:Bind ViewModel.PowerViewModel.GroupDescriptionText}"
+                                IsClickEnabled="True"
+                                Click="PowerCard_Click">
+                                <controls:SettingsCard.HeaderIcon>
+                                    <PathIcon Data="{StaticResource PowerIconPath}"/>
+                                </controls:SettingsCard.HeaderIcon>
+                                <InfoBadge x:Name="PowerBadge" Visibility="Collapsed"/>
+                            </controls:SettingsCard>
+
+                            <!-- Gaming and Performance Card -->
+                            <controls:SettingsCard
+                                Header="{x:Bind ViewModel.GamingViewModel.DisplayName}"
+                                Description="{x:Bind ViewModel.GamingViewModel.GroupDescriptionText}"
+                                IsClickEnabled="True"
+                                Click="GamingCard_Click">
+                                <controls:SettingsCard.HeaderIcon>
+                                    <PathIcon Data="{StaticResource GamingIconPath}"/>
+                                </controls:SettingsCard.HeaderIcon>
+                                <InfoBadge x:Name="GamingBadge" Visibility="Collapsed"/>
+                            </controls:SettingsCard>
+
+                            <!-- Update Card -->
+                            <controls:SettingsCard
+                                Header="{x:Bind ViewModel.UpdateViewModel.DisplayName}"
+                                Description="{x:Bind ViewModel.UpdateViewModel.GroupDescriptionText}"
+                                IsClickEnabled="True"
+                                Click="UpdateCard_Click">
+                                <controls:SettingsCard.HeaderIcon>
+                                    <fluentIcons:SymbolIcon Symbol="ArrowSync" IconVariant="Regular"/>
+                                </controls:SettingsCard.HeaderIcon>
+                                <InfoBadge x:Name="UpdateBadge" Visibility="Collapsed"/>
+                            </controls:SettingsCard>
+
+                            <!-- Notifications Card -->
+                            <controls:SettingsCard
+                                Header="{x:Bind ViewModel.NotificationViewModel.DisplayName}"
+                                Description="{x:Bind ViewModel.NotificationViewModel.GroupDescriptionText}"
+                                IsClickEnabled="True"
+                                Click="NotificationCard_Click">
+                                <controls:SettingsCard.HeaderIcon>
+                                    <PathIcon Data="{StaticResource NotificationIconPath}"/>
+                                </controls:SettingsCard.HeaderIcon>
+                                <InfoBadge x:Name="NotificationBadge" Visibility="Collapsed"/>
+                            </controls:SettingsCard>
+
+                            <!-- Sound Card -->
+                            <controls:SettingsCard
+                                Header="{x:Bind ViewModel.SoundViewModel.DisplayName}"
+                                Description="{x:Bind ViewModel.SoundViewModel.GroupDescriptionText}"
+                                IsClickEnabled="True"
+                                Click="SoundCard_Click">
+                                <controls:SettingsCard.HeaderIcon>
+                                    <fluentIcons:SymbolIcon Symbol="Speaker2" IconVariant="Regular"/>
+                                </controls:SettingsCard.HeaderIcon>
+                                <InfoBadge x:Name="SoundBadge" Visibility="Collapsed"/>
+                            </controls:SettingsCard>
+
+                        </StackPanel>
+                        </Grid>
+                    </ScrollView>
+                </Grid>
+
+                <!-- Detail Page Frame (visible when on detail page) -->
+                <Frame
+                    x:Name="InnerContentFrame"
+                    Visibility="Collapsed"
+                    Navigated="InnerContentFrame_Navigated"/>
+            </Grid>
+        </Border>
+    </Grid>
+</Page>

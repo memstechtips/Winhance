@@ -1,0 +1,9 @@
+<Project>
+  <!--
+    Simplified targets file for CLI builds without Visual Studio.
+    The EnablePriGenTooling=false in Directory.Build.props should skip
+    MrtCore.PriGen.targets entirely, so we don't need overrides here.
+
+    This file is kept for any future overrides that may be needed.
+  -->
+</Project>

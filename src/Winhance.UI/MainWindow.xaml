@@ -1,0 +1,289 @@
+<?xml version="1.0" encoding="utf-8"?>
+<Window
+    x:Class="Winhance.UI.MainWindow"
+    xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+    xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+    xmlns:local="using:Winhance.UI"
+    xmlns:controls="using:Winhance.UI.Features.Common.Controls"
+    xmlns:fluentIcons="using:FluentIcons.WinUI"
+    Title="Winhance">
+
+    <Grid x:Name="RootGrid" Loaded="RootGrid_Loaded" KeyboardAcceleratorPlacementMode="Hidden">
+        <Grid.KeyboardAccelerators>
+            <!-- Ctrl+1-5: Navigate to sections, Ctrl+6: More menu -->
+            <KeyboardAccelerator Key="Number1" Modifiers="Control" Invoked="NavigateAccelerator_Invoked"/>
+            <KeyboardAccelerator Key="Number2" Modifiers="Control" Invoked="NavigateAccelerator_Invoked"/>
+            <KeyboardAccelerator Key="Number3" Modifiers="Control" Invoked="NavigateAccelerator_Invoked"/>
+            <KeyboardAccelerator Key="Number4" Modifiers="Control" Invoked="NavigateAccelerator_Invoked"/>
+            <KeyboardAccelerator Key="Number5" Modifiers="Control" Invoked="NavigateAccelerator_Invoked"/>
+            <KeyboardAccelerator Key="Number6" Modifiers="Control" Invoked="MoreMenuAccelerator_Invoked"/>
+            <KeyboardAccelerator Key="S" Modifiers="Control" Invoked="SaveConfigAccelerator_Invoked"/>
+            <!-- Ctrl+Shift+1-6: Title bar action buttons -->
+            <KeyboardAccelerator Key="Number1" Modifiers="Control,Shift" Invoked="TitleBarAccelerator_Invoked"/>
+            <KeyboardAccelerator Key="Number2" Modifiers="Control,Shift" Invoked="TitleBarAccelerator_Invoked"/>
+            <KeyboardAccelerator Key="Number3" Modifiers="Control,Shift" Invoked="TitleBarAccelerator_Invoked"/>
+            <KeyboardAccelerator Key="Number4" Modifiers="Control,Shift" Invoked="TitleBarAccelerator_Invoked"/>
+            <KeyboardAccelerator Key="Number5" Modifiers="Control,Shift" Invoked="TitleBarAccelerator_Invoked"/>
+            <KeyboardAccelerator Key="Number6" Modifiers="Control,Shift" Invoked="TitleBarAccelerator_Invoked"/>
+        </Grid.KeyboardAccelerators>
+        <Grid.RowDefinitions>
+            <RowDefinition Height="48"/>    <!-- TitleBar -->
+            <RowDefinition Height="Auto"/>  <!-- Update InfoBar -->
+            <RowDefinition Height="Auto"/>  <!-- Review Mode Bar -->
+            <RowDefinition Height="*"/>     <!-- Main Content -->
+        </Grid.RowDefinitions>
+
+        <!-- Title Bar Area -->
+        <Grid x:Name="AppTitleBar" Height="48" Grid.Row="0">
+            <Grid.ColumnDefinitions>
+                <ColumnDefinition x:Name="LeftPaddingColumn" Width="0"/>
+                <ColumnDefinition x:Name="ToggleColumn" Width="Auto"/>
+                <ColumnDefinition x:Name="IconColumn" Width="Auto"/>
+                <ColumnDefinition x:Name="TitleColumn" Width="Auto"/>
+                <ColumnDefinition x:Name="DragColumn" Width="*"/>
+                <ColumnDefinition x:Name="ButtonsColumn" Width="Auto"/>
+                <ColumnDefinition x:Name="RightPaddingColumn" Width="0"/>
+            </Grid.ColumnDefinitions>
+
+            <!-- Navigation Toggle Button (Hamburger) -->
+            <Button x:Name="PaneToggleButton"
+                    Grid.Column="1"
+                    Click="PaneToggleButton_Click"
+                    Style="{StaticResource TitleBarButtonStyle}"
+                    ToolTipService.ToolTip="Toggle Navigation"
+                    AutomationProperties.Name="Toggle Navigation"
+                    Margin="4,0,0,0">
+                <fluentIcons:SymbolIcon Symbol="Navigation" IconVariant="Regular" FontSize="16"/>
+            </Button>
+
+            <!-- App Icon -->
+            <Image x:Name="AppIcon"
+                   Grid.Column="2"
+                   Width="20" Height="20"
+                   Margin="8,0,8,0"
+                   VerticalAlignment="Center"/>
+
+            <!-- App Title and Subtitle -->
+            <StackPanel Grid.Column="3"
+                        Orientation="Horizontal"
+                        VerticalAlignment="Center"
+                        Spacing="6">
+                <TextBlock x:Name="AppTitleTextBlock"
+                           Text="Winhance"
+                           FontSize="12"
+                           FontWeight="SemiBold"
+                           VerticalAlignment="Center"/>
+                <TextBlock x:Name="AppSubtitleTextBlock"
+                           Text="by Memory"
+                           FontSize="11"
+                           Opacity="0.6"
+                           VerticalAlignment="Center"/>
+            </StackPanel>
+
+            <!-- Title Bar Action Buttons -->
+            <StackPanel x:Name="TitleBarButtons"
+                        Grid.Column="5"
+                        Orientation="Horizontal"
+                        VerticalAlignment="Center"
+                        Margin="0,0,8,0"
+                        Spacing="2">
+
+                <!-- Save Configuration Button -->
+                <Button x:Name="SaveConfigButton"
+                        Style="{StaticResource TitleBarButtonStyle}"
+                        ToolTipService.ToolTip="Save Configuration"
+                        AutomationProperties.Name="Save Configuration">
+                    <fluentIcons:SymbolIcon Symbol="DocumentSave" IconVariant="Regular" FontSize="20"/>
+                </Button>
+
+                <!-- Import Configuration Button -->
+                <Button x:Name="ImportConfigButton"
+                        Style="{StaticResource TitleBarButtonStyle}"
+                        ToolTipService.ToolTip="Import Configuration"
+                        AutomationProperties.Name="Import Configuration">
+                    <fluentIcons:SymbolIcon Symbol="DocumentSettings" IconVariant="Regular" FontSize="20"/>
+                </Button>
+
+                <!-- Windows Version Filter Button -->
+                <Button x:Name="WindowsFilterButton"
+                        Style="{StaticResource TitleBarButtonStyle}"
+                        ToolTipService.ToolTip="Windows Version Filter"
+                        AutomationProperties.Name="Windows Version Filter">
+                    <Viewbox Width="18" Height="18">
+                        <PathIcon x:Name="WindowsFilterIcon" Data="{StaticResource FilterCheckIconPath}" Foreground="{ThemeResource TextFillColorPrimaryBrush}"/>
+                    </Viewbox>
+                </Button>
+
+                <!-- Donate Button -->
+                <Button x:Name="DonateButton"
+                        Style="{StaticResource TitleBarButtonStyle}"
+                        ToolTipService.ToolTip="Donate"
+                        AutomationProperties.Name="Donate">
+                    <fluentIcons:SymbolIcon Symbol="Heart" IconVariant="Filled" FontSize="20" Foreground="#FFE74C3C"/>
+                </Button>
+
+                <!-- Bug Report Button -->
+                <Button x:Name="BugReportButton"
+                        Style="{StaticResource TitleBarButtonStyle}"
+                        ToolTipService.ToolTip="Report a Bug"
+                        AutomationProperties.Name="Report a Bug">
+                    <fluentIcons:SymbolIcon Symbol="Bug" IconVariant="Regular" FontSize="20"/>
+                </Button>
+
+                <!-- Documentation Button -->
+                <Button x:Name="DocsButton"
+                        Style="{StaticResource TitleBarButtonStyle}"
+                        ToolTipService.ToolTip="Documentation"
+                        AutomationProperties.Name="Documentation">
+                    <fluentIcons:SymbolIcon Symbol="BookQuestionMark" IconVariant="Regular" FontSize="20"/>
+                </Button>
+            </StackPanel>
+        </Grid>
+
+        <!-- Update InfoBar -->
+        <InfoBar x:Name="UpdateInfoBar"
+                 Grid.Row="1"
+                 IsClosable="True"
+                 Closed="UpdateInfoBar_Closed"/>
+
+        <!-- Review Mode Bar (visible during config review) -->
+        <Grid x:Name="ReviewModeBar"
+              Grid.Row="2"
+              Background="{ThemeResource AccentFillColorDefaultBrush}"
+              Visibility="Collapsed"
+              Padding="16,10,16,10">
+            <Grid.ColumnDefinitions>
+                <ColumnDefinition Width="Auto"/>  <!-- Icon -->
+                <ColumnDefinition Width="Auto"/>  <!-- Title -->
+                <ColumnDefinition Width="Auto"/>  <!-- Description -->
+                <ColumnDefinition Width="*"/>     <!-- Status text -->
+                <ColumnDefinition Width="Auto"/>  <!-- Apply button -->
+                <ColumnDefinition Width="Auto"/>  <!-- Cancel button -->
+            </Grid.ColumnDefinitions>
+
+            <fluentIcons:SymbolIcon Grid.Column="0"
+                      Symbol="ShieldCheckmark" IconVariant="Regular"
+                      FontSize="16"
+                      Foreground="{ThemeResource TextOnAccentFillColorPrimaryBrush}"
+                      VerticalAlignment="Center"
+                      Margin="0,0,10,0"/>
+
+            <TextBlock Grid.Column="1"
+                       x:Name="ReviewModeTitleText"
+                       Text="Config Review Mode"
+                       FontWeight="SemiBold"
+                       FontSize="13"
+                       Foreground="{ThemeResource TextOnAccentFillColorPrimaryBrush}"
+                       VerticalAlignment="Center"
+                       Margin="0,0,12,0"/>
+
+            <TextBlock Grid.Column="2"
+                       x:Name="ReviewModeDescriptionText"
+                       FontSize="12"
+                       Foreground="{ThemeResource TextOnAccentFillColorSecondaryBrush}"
+                       VerticalAlignment="Center"
+                       Opacity="0.85"
+                       Margin="0,0,16,0"/>
+
+            <TextBlock Grid.Column="3"
+                       x:Name="ReviewModeStatusText"
+                       FontSize="12"
+                       Foreground="{ThemeResource TextOnAccentFillColorSecondaryBrush}"
+                       VerticalAlignment="Center"
+                       Opacity="0.9"/>
+
+            <Button Grid.Column="4"
+                    x:Name="ReviewModeApplyButton"
+                    Click="ReviewModeApplyButton_Click"
+                    AutomationProperties.Name="Apply Config"
+                    Background="#40FFFFFF"
+                    Foreground="{ThemeResource TextOnAccentFillColorPrimaryBrush}"
+                    BorderThickness="0"
+                    VerticalAlignment="Center"
+                    Margin="8,0,4,0">
+                <StackPanel Orientation="Horizontal" Spacing="8">
+                    <fluentIcons:SymbolIcon Symbol="Checkmark" IconVariant="Regular" FontSize="14"/>
+                    <TextBlock x:Name="ReviewModeApplyButtonText" Text="Apply Config"/>
+                </StackPanel>
+            </Button>
+
+            <Button Grid.Column="5"
+                    x:Name="ReviewModeCancelButton"
+                    Click="ReviewModeCancelButton_Click"
+                    AutomationProperties.Name="Cancel review"
+                    Background="#40FFFFFF"
+                    Foreground="{ThemeResource TextOnAccentFillColorPrimaryBrush}"
+                    BorderThickness="0"
+                    ToolTipService.ToolTip="Cancel review"
+                    VerticalAlignment="Center"
+                    Margin="4,0,0,0">
+                <StackPanel Orientation="Horizontal" Spacing="8">
+                    <fluentIcons:SymbolIcon Symbol="Dismiss" IconVariant="Regular" FontSize="14"/>
+                    <TextBlock x:Name="ReviewModeCancelButtonText" Text="Cancel"/>
+                </StackPanel>
+            </Button>
+        </Grid>
+
+        <!-- Main Content Area -->
+        <Grid Grid.Row="3">
+            <Grid.ColumnDefinitions>
+                <ColumnDefinition Width="Auto"/>  <!-- NavSidebar -->
+                <ColumnDefinition Width="*"/>     <!-- Content -->
+            </Grid.ColumnDefinitions>
+
+            <!-- Custom Navigation Sidebar -->
+            <controls:NavSidebar x:Name="NavSidebar"
+                                 Grid.Column="0"
+                                 ItemClicked="NavSidebar_ItemClicked"/>
+
+            <!-- Content + Task Progress -->
+            <Grid Grid.Column="1">
+                <Grid.RowDefinitions>
+                    <RowDefinition Height="*"/>
+                    <RowDefinition Height="Auto"/>
+                </Grid.RowDefinitions>
+
+                <!-- Content Frame for Page Navigation -->
+                <Frame x:Name="ContentFrame" Grid.Row="0"/>
+
+                <!-- Task Progress Bars (up to 3 for parallel script removal) -->
+                <StackPanel Grid.Row="1" Margin="0,2,12,8" Spacing="4">
+                    <controls:TaskProgressControl x:Name="TaskProgressControl"/>
+                    <controls:TaskProgressControl x:Name="TaskProgressControl2"/>
+                    <controls:TaskProgressControl x:Name="TaskProgressControl3"/>
+                </StackPanel>
+            </Grid>
+        </Grid>
+
+        <!-- Loading Overlay (shown during startup initialization) -->
+        <Grid x:Name="LoadingOverlay"
+              Grid.RowSpan="4"
+              Background="{ThemeResource SolidBackgroundFillColorBaseBrush}"
+              Visibility="Visible"
+              AutomationProperties.LiveSetting="Polite">
+            <StackPanel HorizontalAlignment="Center" VerticalAlignment="Center" Spacing="24">
+                <!-- Logo + Branding -->
+                <StackPanel Orientation="Horizontal" HorizontalAlignment="Center" Spacing="16">
+                    <Image x:Name="LoadingLogo" Width="128" Height="128" VerticalAlignment="Center"/>
+                    <StackPanel VerticalAlignment="Center" Spacing="-4">
+                        <TextBlock x:Name="LoadingTitleText"
+                                   FontSize="80"
+                                   FontWeight="Bold"/>
+                        <TextBlock x:Name="LoadingTaglineText"
+                                   FontSize="16"
+                                   Opacity="0.7"/>
+                    </StackPanel>
+                </StackPanel>
+
+                <!-- Status + Spinner -->
+                <StackPanel HorizontalAlignment="Center" Spacing="16">
+                    <TextBlock x:Name="LoadingStatusText"
+                               HorizontalAlignment="Center"
+                               FontSize="14"
+                               Opacity="0.6"/>
+                    <ProgressRing IsActive="True" Width="40" Height="40"/>
+                </StackPanel>
+            </StackPanel>
+        </Grid>
+    </Grid>
+</Window>

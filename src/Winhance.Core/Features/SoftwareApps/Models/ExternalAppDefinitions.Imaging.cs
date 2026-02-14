@@ -21,7 +21,8 @@ namespace Winhance.Core.Features.SoftwareApps.Models
                             Name = "IrfanView",
                             Description = "Fast and compact image viewer and converter",
                             GroupName = "Imaging",
-                            WinGetPackageId = "IrfanSkiljan.IrfanView",
+                            WinGetPackageId = ["IrfanSkiljan.IrfanView"],
+                            ChocoPackageId = "irfanview",
                             WebsiteUrl = "https://www.irfanview.com/"
                         },
                         new ItemDefinition
@@ -30,7 +31,8 @@ namespace Winhance.Core.Features.SoftwareApps.Models
                             Name = "Krita",
                             Description = "Digital painting and illustration software",
                             GroupName = "Imaging",
-                            WinGetPackageId = "KDE.Krita",
+                            WinGetPackageId = ["KDE.Krita"],
+                            ChocoPackageId = "krita",
                             WebsiteUrl = "https://krita.org/"
                         },
                         new ItemDefinition
@@ -39,7 +41,8 @@ namespace Winhance.Core.Features.SoftwareApps.Models
                             Name = "Blender",
                             Description = "3D creation suite",
                             GroupName = "Imaging",
-                            WinGetPackageId = "BlenderFoundation.Blender",
+                            WinGetPackageId = ["BlenderFoundation.Blender"],
+                            ChocoPackageId = "blender",
                             WebsiteUrl = "https://www.blender.org/"
                         },
                         new ItemDefinition
@@ -48,7 +51,8 @@ namespace Winhance.Core.Features.SoftwareApps.Models
                             Name = "Paint.NET",
                             Description = "Image and photo editing software",
                             GroupName = "Imaging",
-                            WinGetPackageId = "dotPDN.PaintDotNet",
+                            WinGetPackageId = ["dotPDN.PaintDotNet"],
+                            ChocoPackageId = "paint.net",
                             WebsiteUrl = "https://www.getpaint.net/"
                         },
                         new ItemDefinition
@@ -57,7 +61,8 @@ namespace Winhance.Core.Features.SoftwareApps.Models
                             Name = "GIMP",
                             Description = "GNU Image Manipulation Program",
                             GroupName = "Imaging",
-                            WinGetPackageId = "GIMP.GIMP.3",
+                            WinGetPackageId = ["GIMP.GIMP.3"],
+                            ChocoPackageId = "gimp",
                             WebsiteUrl = "https://www.gimp.org/"
                         },
                         new ItemDefinition
@@ -66,7 +71,8 @@ namespace Winhance.Core.Features.SoftwareApps.Models
                             Name = "XnViewMP",
                             Description = "Image viewer, browser and converter",
                             GroupName = "Imaging",
-                            WinGetPackageId = "XnSoft.XnViewMP",
+                            WinGetPackageId = ["XnSoft.XnViewMP"],
+                            ChocoPackageId = "xnviewmp",
                             WebsiteUrl = "https://www.xnview.com/en/xnviewmp/"
                         },
                         new ItemDefinition
@@ -75,7 +81,8 @@ namespace Winhance.Core.Features.SoftwareApps.Models
                             Name = "XnView Classic",
                             Description = "Image viewer, browser and converter (Classic Version)",
                             GroupName = "Imaging",
-                            WinGetPackageId = "XnSoft.XnView.Classic",
+                            WinGetPackageId = ["XnSoft.XnView.Classic"],
+                            ChocoPackageId = "xnview",
                             WebsiteUrl = "https://www.xnview.com/en/xnview/"
                         },
                         new ItemDefinition
@@ -84,7 +91,8 @@ namespace Winhance.Core.Features.SoftwareApps.Models
                             Name = "Inkscape",
                             Description = "Vector graphics editor",
                             GroupName = "Imaging",
-                            WinGetPackageId = "Inkscape.Inkscape",
+                            WinGetPackageId = ["Inkscape.Inkscape"],
+                            ChocoPackageId = "inkscape",
                             WebsiteUrl = "https://inkscape.org/"
                         },
                         new ItemDefinition
@@ -93,7 +101,8 @@ namespace Winhance.Core.Features.SoftwareApps.Models
                             Name = "Greenshot",
                             Description = "Screenshot tool with annotation features",
                             GroupName = "Imaging",
-                            WinGetPackageId = "Greenshot.Greenshot",
+                            WinGetPackageId = ["Greenshot.Greenshot"],
+                            ChocoPackageId = "greenshot",
                             WebsiteUrl = "https://getgreenshot.org/"
                         },
                         new ItemDefinition
@@ -102,7 +111,8 @@ namespace Winhance.Core.Features.SoftwareApps.Models
                             Name = "ShareX",
                             Description = "Screen capture, file sharing and productivity tool",
                             GroupName = "Imaging",
-                            WinGetPackageId = "ShareX.ShareX",
+                            WinGetPackageId = ["ShareX.ShareX"],
+                            ChocoPackageId = "sharex",
                             WebsiteUrl = "https://getsharex.com/"
                         },
                         new ItemDefinition
@@ -111,7 +121,8 @@ namespace Winhance.Core.Features.SoftwareApps.Models
                             Name = "Flameshot",
                             Description = "Powerful yet simple to use screenshot software",
                             GroupName = "Imaging",
-                            WinGetPackageId = "Flameshot.Flameshot",
+                            WinGetPackageId = ["Flameshot.Flameshot"],
+                            ChocoPackageId = "flameshot",
                             WebsiteUrl = "https://flameshot.org/"
                         },
                         new ItemDefinition
@@ -120,7 +131,8 @@ namespace Winhance.Core.Features.SoftwareApps.Models
                             Name = "FastStone",
                             Description = "Image browser, converter and editor",
                             GroupName = "Imaging",
-                            WinGetPackageId = "FastStone.Viewer",
+                            WinGetPackageId = ["FastStone.Viewer"],
+                            ChocoPackageId = "fsviewer",
                             WebsiteUrl = "https://www.faststone.org/"
                         },
                         new ItemDefinition
@@ -129,7 +141,8 @@ namespace Winhance.Core.Features.SoftwareApps.Models
                             Name = "ImageGlass",
                             Description = "Lightweight, versatile image viewer",
                             GroupName = "Imaging",
-                            WinGetPackageId = "DuongDieuPhap.ImageGlass",
+                            WinGetPackageId = ["DuongDieuPhap.ImageGlass"],
+                            ChocoPackageId = "imageglass",
                             WebsiteUrl = "https://imageglass.org/"
                         }
                     }

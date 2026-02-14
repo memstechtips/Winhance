@@ -1,0 +1,18 @@
+// Single-instance window activation
+SetForegroundWindow
+ShowWindow
+IsIconic
+FindWindow
+GetWindowThreadProcessId
+AllowSetForegroundWindow
+
+// File dialogs (WinRT pickers fail with admin elevation)
+IFileDialog
+IFileOpenDialog
+IFileSaveDialog
+IShellItem
+IShellItemArray
+COMDLG_FILTERSPEC
+SHCreateItemFromParsingName
+SIGDN
+FILEOPENDIALOGOPTIONS

@@ -47,6 +47,9 @@ namespace Winhance.Core.Features.Common.Services
                 case LogLevel.Success:
                     LogSuccess(message);
                     break;
+                case LogLevel.Debug:
+                    LogDebug(message);
+                    break;
                 default:
                     LogInformation(message);
                     break;
@@ -54,13 +57,6 @@ namespace Winhance.Core.Features.Common.Services
 
             // Raise event for subscribers
             LogMessageGenerated?.Invoke(this, new LogMessageEventArgs(level, message, exception));
-        }
-
-        // This method should be removed, but it might still be used in some places
-        // Redirecting to the standard method with correct parameter order
-        public void Log(string message, LogLevel level)
-        {
-            Log(level, message);
         }
 
         public void StartLog()
@@ -103,7 +99,8 @@ namespace Winhance.Core.Features.Common.Services
             }
             catch (Exception ex)
             {
-                // Fallback if file write fails
+                // Re-throw so caller can handle/log the error
+                throw new InvalidOperationException($"Failed to start log at '{_logPath}': {ex.Message}", ex);
             }
         }
 
@@ -140,6 +137,11 @@ namespace Winhance.Core.Features.Common.Services
                 ? $"{message} - Exception: {exception.Message}\n{exception.StackTrace}"
                 : message;
             WriteLog(fullMessage, "ERROR");
+        }
+
+        public void LogDebug(string message)
+        {
+            WriteLog(message, "DEBUG");
         }
 
         public void LogSuccess(string message)

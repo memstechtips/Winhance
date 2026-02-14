@@ -2,6 +2,17 @@
 extras/prerequisites/
 installer-output/
 .config/
+# Claude folder
+.claude/
+# Gemini stuff
+GEMINI.md
+.gemini/
+# Plans
+.plans/
+# Custom Prompts
+.prompts/
+# Agent Skills
+.agent/
 
 # User-specific files
 *.rsuser
@@ -231,13 +242,3 @@ $RECYCLE.BIN/
 
 # Windows shortcuts
 *.lnk
-
-# Claude folder
-.claude/
-
-# Gemini stuff
-GEMINI.md
-.gemini/
-
-# Plans
-.plans/

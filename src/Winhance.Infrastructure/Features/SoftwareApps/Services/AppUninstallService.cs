@@ -14,8 +14,7 @@ namespace Winhance.Infrastructure.Features.SoftwareApps.Services;
 
 public class AppUninstallService(
     IWinGetService winGetService,
-    ILogService logService,
-    IPowerShellExecutionService powerShellService) : IAppUninstallService
+    ILogService logService) : IAppUninstallService
 {
     public async Task<OperationResult<bool>> UninstallAsync(
         ItemDefinition item,
@@ -34,7 +33,7 @@ public class AppUninstallService(
 
     public async Task<UninstallMethod> DetermineUninstallMethodAsync(ItemDefinition item)
     {
-        if (!string.IsNullOrEmpty(item.WinGetPackageId))
+        if (item.WinGetPackageId != null && item.WinGetPackageId.Any())
             return UninstallMethod.WinGet;
 
         var (found, _) = await GetUninstallStringAsync(item.Name);
@@ -48,7 +47,8 @@ public class AppUninstallService(
     {
         try
         {
-            var success = await winGetService.UninstallPackageAsync(item.WinGetPackageId, item.Name, cancellationToken);
+            var primaryPackageId = item.WinGetPackageId?[0];
+            var success = await winGetService.UninstallPackageAsync(primaryPackageId!, item.Name, cancellationToken);
 
             if (!success)
             {
@@ -85,15 +85,17 @@ public class AppUninstallService(
 
             var (fileName, arguments) = ParseUninstallString(uninstallString);
 
-            var escapedFileName = fileName.Replace("'", "''");
-            var escapedArguments = arguments.Replace("'", "''");
+            var process = Process.Start(new ProcessStartInfo
+            {
+                FileName = fileName,
+                Arguments = arguments,
+                UseShellExecute = true
+            });
 
-            var script = $@"
-$process = Start-Process -FilePath '{escapedFileName}' -ArgumentList '{escapedArguments}' -PassThru -Wait
-exit $process.ExitCode
-";
-
-            await powerShellService.ExecuteScriptAsync(script, null, cancellationToken);
+            if (process != null)
+            {
+                await process.WaitForExitAsync(cancellationToken);
+            }
 
             logService.LogInformation($"Uninstall process for {item.Name} completed successfully");
 

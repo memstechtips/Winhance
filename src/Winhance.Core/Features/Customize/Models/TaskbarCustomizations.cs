@@ -25,13 +25,6 @@ public static class TaskbarCustomizations
                     Icon = "Broom",
                     RequiresConfirmation = true,
                     RestartProcess = "Explorer",
-                    DialogTitleIcon = "Broom",
-                    ConfirmationTitle = "Taskbar Cleaning",
-                    ConfirmationMessage =
-                        "You are about to clean the Taskbar for the current user.\n\n"
-                        + "This will remove all pinned items from the Taskbar.\n\n"
-                        + "Do you want to continue?",
-                    ConfirmationCheckboxText = "Also apply recommended Taskbar settings",
                     ActionCommand = "CleanTaskbarAsync",
                 },
                 new SettingDefinition
@@ -79,11 +72,11 @@ public static class TaskbarCustomizations
                             },
                             [2] = new Dictionary<string, object?> // Search icon and label
                             {
-                                ["SearchboxTaskbarMode"] = 2,
+                                ["SearchboxTaskbarMode"] = 3,
                             },
                             [3] = new Dictionary<string, object?> // Search box
                             {
-                                ["SearchboxTaskbarMode"] = 3,
+                                ["SearchboxTaskbarMode"] = 2,
                             },
                         },
                     },
@@ -181,7 +174,7 @@ public static class TaskbarCustomizations
                     Description = "Controls Meet Now button visibility in the system tray",
                     GroupName = "Taskbar Icons",
                     InputType = InputType.Toggle,
-                    IconPack = "Lucide",
+                    IconPack = "Fluent",
                     Icon = "Video",
                     IsWindows10Only = true,
                     RestartProcess = "Explorer",
@@ -259,11 +252,9 @@ public static class TaskbarCustomizations
                             KeyPath = @"HKEY_CURRENT_USER\Software\Microsoft\Windows\CurrentVersion\Explorer\Advanced",
                             ValueName = "ShowTaskViewButton",
                             RecommendedValue = 0,
-                            EnabledValue = 1, // When toggle is ON, Task View button is shown
+                            EnabledValue = null, // When toggle is ON, Task View button is shown
                             DisabledValue = 0, // When toggle is OFF, Task View button is hidden
-                            DefaultValue = 1, // Default value when registry key exists but no value is set
                             ValueType = RegistryValueKind.DWord,
-                            AbsenceMeansEnabled = true,
                         },
                     },
                 },
@@ -274,8 +265,8 @@ public static class TaskbarCustomizations
                     Description = "Show or hide the Copilot Preview button on the taskbar",
                     GroupName = "Taskbar Icons",
                     InputType = InputType.Toggle,
-                    IconPack = "Lucide",
-                    Icon = "Bot",
+                    IconPack = "Fluent",
+                    Icon = "BrainCircuit",
                     IsWindows11Only = true,
                     SupportedBuildRanges = new List<(int, int)>
                     {
@@ -289,11 +280,9 @@ public static class TaskbarCustomizations
                             KeyPath = @"HKEY_CURRENT_USER\Software\Microsoft\Windows\CurrentVersion\Explorer\Advanced",
                             ValueName = "ShowCopilotButton",
                             RecommendedValue = 0, // Hidden
-                            EnabledValue = 1,     // Show
+                            EnabledValue = null,  // Show
                             DisabledValue = 0,    // Hide
-                            DefaultValue = 1,
                             ValueType = RegistryValueKind.DWord,
-                            AbsenceMeansEnabled = true,
                         },
                     },
                 },
@@ -304,8 +293,7 @@ public static class TaskbarCustomizations
                     Description = "Show the Widgets button that displays personalized news, weather, calendar, and other information",
                     GroupName = "Taskbar Icons",
                     InputType = InputType.Toggle,
-                    IconPack = "MaterialDesign",
-                    Icon = "WidgetsRound",
+                    Icon = "Widgets",
                     IsWindows11Only = true,
                     RestartProcess = "Explorer",
                     RegistrySettings = new List<RegistrySetting>
@@ -315,22 +303,18 @@ public static class TaskbarCustomizations
                             KeyPath = @"HKEY_CURRENT_USER\Software\Policies\Microsoft\Dsh",
                             ValueName = "AllowNewsAndInterests",
                             RecommendedValue = 0,
-                            EnabledValue = 1,
+                            EnabledValue = null,
                             DisabledValue = 0,
-                            DefaultValue = null,
                             ValueType = RegistryValueKind.DWord,
-                            AbsenceMeansEnabled = true,
                         },
                         new RegistrySetting
                         {
                             KeyPath = @"HKEY_LOCAL_MACHINE\Software\Policies\Microsoft\Dsh",
                             ValueName = "AllowNewsAndInterests",
                             RecommendedValue = 0,
-                            EnabledValue = 1,
+                            EnabledValue = null,
                             DisabledValue = 0,
-                            DefaultValue = null,
                             ValueType = RegistryValueKind.DWord,
-                            AbsenceMeansEnabled = true,
                         },
                     },
                 },
@@ -351,22 +335,18 @@ public static class TaskbarCustomizations
                             KeyPath = @"HKEY_CURRENT_USER\Software\Policies\Microsoft\Windows\Windows Feeds",
                             ValueName = "EnableFeeds",
                             RecommendedValue = 0,
-                            EnabledValue = 1,
-                            DisabledValue = 0,
-                            DefaultValue = null,
+                            EnabledValue = null,
+                            DisabledValue = null,
                             ValueType = RegistryValueKind.DWord,
-                            AbsenceMeansEnabled = true,
                         },
                         new RegistrySetting
                         {
                             KeyPath = @"HKEY_LOCAL_MACHINE\Software\Policies\Microsoft\Windows\Windows Feeds",
                             ValueName = "EnableFeeds",
                             RecommendedValue = 0,
-                            EnabledValue = 1,
-                            DisabledValue = 0,
-                            DefaultValue = null,
+                            EnabledValue = null,
+                            DisabledValue = null,
                             ValueType = RegistryValueKind.DWord,
-                            AbsenceMeansEnabled = true,
                         },
                     },
                 },

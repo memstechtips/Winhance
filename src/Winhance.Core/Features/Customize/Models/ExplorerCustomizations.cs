@@ -44,8 +44,8 @@ public static class ExplorerCustomizations
                     Description = "Use the Windows 10-style right-click menu with all options visible instead of the simplified Windows 11 menu",
                     GroupName = "Context Menu",
                     InputType = InputType.Toggle,
-                    IconPack = "Lucide",
-                    Icon = "SquareMenu",
+                    IconPack = "Fluent",
+                    Icon = "Navigation",
                     IsWindows11Only = true,
                     RestartProcess = "Explorer",
                     RegistrySettings = new List<RegistrySetting>
@@ -149,8 +149,8 @@ public static class ExplorerCustomizations
                     Description = "Adds a right-click menu option to quickly toggle file extension visibility in File Explorer (only visible on the Classic Context Menu or Show More Options Menu in Windows 11)",
                     GroupName = "Context Menu",
                     InputType = InputType.Toggle,
-                    IconPack = "Lucide",
-                    Icon = "FileType2",
+                    IconPack = "Fluent",
+                    Icon = "DocumentQuestionMark",
                     RegistrySettings = new List<RegistrySetting>
                     {
                         new RegistrySetting
@@ -208,9 +208,7 @@ public static class ExplorerCustomizations
                             RecommendedValue = null,
                             EnabledValue = null,
                             DisabledValue = "",
-                            DefaultValue = null,
                             ValueType = RegistryValueKind.String,
-                            AbsenceMeansEnabled = true,
                         },
                     },
                 },
@@ -253,11 +251,9 @@ public static class ExplorerCustomizations
                             KeyPath = @"HKEY_CURRENT_USER\Software\Microsoft\Lighting",
                             ValueName = "ControlledByForegroundApp",
                             RecommendedValue = 0,
-                            EnabledValue = 1,
+                            EnabledValue = null,
                             DisabledValue = 0,
-                            DefaultValue = 1,
                             ValueType = RegistryValueKind.DWord,
-                            AbsenceMeansEnabled = true,
                         },
                     },
                 },
@@ -290,7 +286,7 @@ public static class ExplorerCustomizations
                     Description = "Choose what happens when File Explorer is opened",
                     GroupName = "General",
                     InputType = InputType.Selection,
-                    IconPack = "Lucide",
+                    IconPack = "Fluent",
                     Icon = "FolderOpen",
                     RegistrySettings = new List<RegistrySetting>
                     {
@@ -334,8 +330,8 @@ public static class ExplorerCustomizations
                     Description = "Choose whether each folder opens in the same window or in its own window",
                     GroupName = "General",
                     InputType = InputType.Selection,
-                    IconPack = "Lucide",
-                    Icon = "Folders",
+                    IconPack = "Fluent",
+                    Icon = "FolderList",
                     RestartProcess = "Explorer",
                     RegistrySettings = new List<RegistrySetting>
                     {
@@ -377,8 +373,8 @@ public static class ExplorerCustomizations
                     Description = "Choose whether to open files and folders with a single click (like web links) or double-click (traditional)",
                     GroupName = "General",
                     InputType = InputType.Selection,
-                    IconPack = "Lucide",
-                    Icon = "MousePointerClick",
+                    IconPack = "Fluent",
+                    Icon = "CursorClick",
                     RestartProcess = "Explorer",
                     RegistrySettings = new List<RegistrySetting>
                     {
@@ -436,8 +432,8 @@ public static class ExplorerCustomizations
                     Description = "Displays recently accessed files and recommendations in Quick Access",
                     GroupName = "General",
                     InputType = InputType.Toggle,
-                    IconPack = "Lucide",
-                    Icon = "FileClock",
+                    IconPack = "Fluent",
+                    Icon = "DocumentTextClock",
                     RegistrySettings = new List<RegistrySetting>
                     {
                         new RegistrySetting
@@ -445,22 +441,18 @@ public static class ExplorerCustomizations
                             KeyPath = @"HKEY_CURRENT_USER\Software\Microsoft\Windows\CurrentVersion\Explorer",
                             ValueName = "ShowRecent",
                             RecommendedValue = 0,
-                            EnabledValue = 1,
+                            EnabledValue = null,
                             DisabledValue = 0,
-                            DefaultValue = 1,
                             ValueType = RegistryValueKind.DWord,
-                            AbsenceMeansEnabled = true,
                         },
                         new RegistrySetting
                         {
                             KeyPath = @"HKEY_CURRENT_USER\Software\Microsoft\Windows\CurrentVersion\Explorer",
                             ValueName = "ShowRecommendations",
                             RecommendedValue = 0,
-                            EnabledValue = 1,
+                            EnabledValue = null,
                             DisabledValue = 0,
-                            DefaultValue = 1,
                             ValueType = RegistryValueKind.DWord,
-                            AbsenceMeansEnabled = true,
                         },
                     },
                 },
@@ -479,11 +471,9 @@ public static class ExplorerCustomizations
                             KeyPath = @"HKEY_CURRENT_USER\Software\Microsoft\Windows\CurrentVersion\Explorer",
                             ValueName = "ShowFrequent",
                             RecommendedValue = 0,
-                            EnabledValue = 1,
+                            EnabledValue = null,
                             DisabledValue = 0,
-                            DefaultValue = 1,
                             ValueType = RegistryValueKind.DWord,
-                            AbsenceMeansEnabled = true,
                         },
                     },
                 },
@@ -503,11 +493,9 @@ public static class ExplorerCustomizations
                             KeyPath = @"HKEY_CURRENT_USER\Software\Microsoft\Windows\CurrentVersion\Explorer",
                             ValueName = "ShowCloudFilesInQuickAccess",
                             RecommendedValue = 0,
-                            EnabledValue = 1,
+                            EnabledValue = null,
                             DisabledValue = 0,
-                            DefaultValue = 1,
                             ValueType = RegistryValueKind.DWord,
-                            AbsenceMeansEnabled = true,
                         },
                     },
                 },
@@ -540,8 +528,8 @@ public static class ExplorerCustomizations
                     Description = "Shows the Menu bar (File, Edit etc.) on all windows that support it",
                     GroupName = "Files and Folders",
                     InputType = InputType.Toggle,
-                    IconPack = "Lucide",
-                    Icon = "AppWindowMac",
+                    IconPack = "Fluent",
+                    Icon = "WindowApps",
                     IsWindows10Only = true,
                     RegistrySettings = new List<RegistrySetting>
                     {
@@ -587,8 +575,8 @@ public static class ExplorerCustomizations
                     Description = "Shows file type icon overlay on bottom-right corner of thumbnail previews",
                     GroupName = "Files and Folders",
                     InputType = InputType.Toggle,
-                    IconPack = "MaterialDesign",
-                    Icon = "TypeSpecimenRound",
+                    IconPack = "Fluent",
+                    Icon = "DocumentImage",
                     RegistrySettings = new List<RegistrySetting>
                     {
                         new RegistrySetting
@@ -610,8 +598,8 @@ public static class ExplorerCustomizations
                     Description = "Shows total size and file count when hovering over folders",
                     GroupName = "Files and Folders",
                     InputType = InputType.Toggle,
-                    IconPack = "Lucide",
-                    Icon = "FileDigit",
+                    IconPack = "Fluent",
+                    Icon = "DocumentEndnote",
                     RegistrySettings = new List<RegistrySetting>
                     {
                         new RegistrySetting
@@ -619,11 +607,9 @@ public static class ExplorerCustomizations
                             KeyPath = @"HKEY_CURRENT_USER\Software\Microsoft\Windows\CurrentVersion\Explorer\Advanced",
                             ValueName = "FolderContentsInfoTip",
                             RecommendedValue = 0,
-                            EnabledValue = 1,
+                            EnabledValue = null,
                             DisabledValue = 0,
-                            DefaultValue = 1,
                             ValueType = RegistryValueKind.DWord,
-                            AbsenceMeansEnabled = true,
                         },
                     },
                 },
@@ -634,8 +620,8 @@ public static class ExplorerCustomizations
                     Description = "Shows complete directory path in window title instead of folder name only",
                     GroupName = "Files and Folders",
                     InputType = InputType.Toggle,
-                    IconPack = "Lucide",
-                    Icon = "PanelTop",
+                    IconPack = "Fluent",
+                    Icon = "PanelTopExpand",
                     RegistrySettings = new List<RegistrySetting>
                     {
                         new RegistrySetting
@@ -687,11 +673,9 @@ public static class ExplorerCustomizations
                             KeyPath = @"HKEY_CURRENT_USER\Software\Microsoft\Windows\CurrentVersion\Explorer\Advanced",
                             ValueName = "HideDrivesWithNoMedia",
                             RecommendedValue = 1,
-                            EnabledValue = 1,
+                            EnabledValue = null,
                             DisabledValue = 0,
-                            DefaultValue = 0,
                             ValueType = RegistryValueKind.DWord,
-                            AbsenceMeansEnabled = true,
                         },
                     },
                 },
@@ -702,8 +686,8 @@ public static class ExplorerCustomizations
                     Description = "Displays file type extensions (like .txt, .pdf) after file names",
                     GroupName = "Files and Folders",
                     InputType = InputType.Toggle,
-                    IconPack = "Lucide",
-                    Icon = "FileType2",
+                    IconPack = "Fluent",
+                    Icon = "DocumentQuestionMark",
                     RegistrySettings = new List<RegistrySetting>
                     {
                         new RegistrySetting
@@ -879,11 +863,9 @@ public static class ExplorerCustomizations
                             KeyPath = @"HKEY_CURRENT_USER\Software\Microsoft\Windows\CurrentVersion\Explorer\Advanced",
                             ValueName = "HideMergeConflicts",
                             RecommendedValue = 0,
-                            EnabledValue = 1,
+                            EnabledValue = null,
                             DisabledValue = 0,
-                            DefaultValue = 0,
                             ValueType = RegistryValueKind.DWord,
-                            AbsenceMeansEnabled = true,
                         },
                     },
                 },
@@ -938,8 +920,8 @@ public static class ExplorerCustomizations
                     Description = "Reopens Explorer windows that were open when you last shut down or logged off",
                     GroupName = "Files and Folders",
                     InputType = InputType.Toggle,
-                    IconPack = "Lucide",
-                    Icon = "AppWindow",
+                    IconPack = "Fluent",
+                    Icon = "WindowAd",
                     RegistrySettings = new List<RegistrySetting>
                     {
                         new RegistrySetting
@@ -961,7 +943,7 @@ public static class ExplorerCustomizations
                     Description = "Displays drive letters (C:, D:) before drive names in This PC",
                     GroupName = "Files and Folders",
                     InputType = InputType.Toggle,
-                    Icon = "AlphaC",
+                    Icon = "AlphaCBox",
                     RegistrySettings = new List<RegistrySetting>
                     {
                         new RegistrySetting
@@ -969,11 +951,9 @@ public static class ExplorerCustomizations
                             KeyPath = @"HKEY_CURRENT_USER\Software\Microsoft\Windows\CurrentVersion\Explorer\Advanced",
                             ValueName = "ShowDriveLettersFirst",
                             RecommendedValue = 4,
-                            EnabledValue = 4,
+                            EnabledValue = null,
                             DisabledValue = 2,
-                            DefaultValue = 4,
                             ValueType = RegistryValueKind.DWord,
-                            AbsenceMeansEnabled = true,
                         },
                     },
                 },
@@ -984,8 +964,8 @@ public static class ExplorerCustomizations
                     Description = "Displays encrypted files in green and compressed files in blue",
                     GroupName = "Files and Folders",
                     InputType = InputType.Toggle,
-                    IconPack = "Lucide",
-                    Icon = "FileLock2",
+                    IconPack = "Fluent",
+                    Icon = "DocumentLock",
                     RegistrySettings = new List<RegistrySetting>
                     {
                         new RegistrySetting
@@ -1037,11 +1017,9 @@ public static class ExplorerCustomizations
                             KeyPath = @"HKEY_CURRENT_USER\Software\Microsoft\Windows\CurrentVersion\Explorer\Advanced",
                             ValueName = "ShowPreviewHandlers",
                             RecommendedValue = 0,
-                            EnabledValue = 1,
+                            EnabledValue = null,
                             DisabledValue = 0,
-                            DefaultValue = 1,
                             ValueType = RegistryValueKind.DWord,
-                            AbsenceMeansEnabled = true,
                         },
                     },
                 },
@@ -1082,11 +1060,9 @@ public static class ExplorerCustomizations
                             KeyPath = @"HKEY_CURRENT_USER\Software\Microsoft\Windows\CurrentVersion\Explorer\Advanced",
                             ValueName = "ShowSyncProviderNotifications",
                             RecommendedValue = 0,
-                            EnabledValue = 1,
+                            EnabledValue = null,
                             DisabledValue = 0,
-                            DefaultValue = 1,
                             ValueType = RegistryValueKind.DWord,
-                            AbsenceMeansEnabled = true,
                         },
                     },
                 },
@@ -1119,8 +1095,8 @@ public static class ExplorerCustomizations
                     Description = "Shows simplified sharing dialog instead of advanced security permissions",
                     GroupName = "Files and Folders",
                     InputType = InputType.Toggle,
-                    IconPack = "Lucide",
-                    Icon = "Share",
+                    IconPack = "Fluent",
+                    Icon = "ShareAndroid",
                     RegistrySettings = new List<RegistrySetting>
                     {
                         new RegistrySetting
@@ -1128,11 +1104,9 @@ public static class ExplorerCustomizations
                             KeyPath = @"HKEY_CURRENT_USER\Software\Microsoft\Windows\CurrentVersion\Explorer\Advanced",
                             ValueName = "SharingWizardOn",
                             RecommendedValue = 0,
-                            EnabledValue = 1,
+                            EnabledValue = null,
                             DisabledValue = 0,
-                            DefaultValue = 1,
                             ValueType = RegistryValueKind.DWord,
-                            AbsenceMeansEnabled = true,
                         },
                     },
                 },
@@ -1265,8 +1239,7 @@ public static class ExplorerCustomizations
                     Description = "Shows cloud sync status icons for OneDrive files in navigation pane",
                     GroupName = "Navigation Pane",
                     InputType = InputType.Toggle,
-                    IconPack = "MaterialDesign",
-                    Icon = "CloudSyncOutline",
+                    Icon = "ArchiveSync",
                     RegistrySettings = new List<RegistrySetting>
                     {
                         new RegistrySetting
@@ -1288,8 +1261,7 @@ public static class ExplorerCustomizations
                     Description = "Automatically expands navigation tree to highlight current folder location",
                     GroupName = "Navigation Pane",
                     InputType = InputType.Toggle,
-                    IconPack = "Lucide",
-                    Icon = "FolderTree",
+                    Icon = "FileTree",
                     RegistrySettings = new List<RegistrySetting>
                     {
                         new RegistrySetting

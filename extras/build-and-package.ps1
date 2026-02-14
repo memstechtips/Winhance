@@ -2,8 +2,33 @@
 # Script to automate the build and installer creation process for Winhance
 #
 # SYNOPSIS:
-# This script builds the Winhance application and creates an installer.
-# It also supports code signing using certificates from the Windows certificate store.
+# This script builds the WinUI3 Winhance application using MSBuild and creates
+# an Inno Setup installer. It also supports code signing using certificates
+# from the Windows certificate store.
+#
+# PREREQUISITES:
+# 1. Visual Studio 2022 (or later) with the following workloads:
+#    - ".NET desktop development"
+#    - "Desktop development with C++" (MSVC tools required by WindowsAppSDK XAML compiler)
+#    The script finds MSBuild via vswhere.exe and requires both MSBuild and MSVC components.
+#
+# 2. .NET 10 SDK (net10.0-windows10.0.19041.0 target)
+#    Download: https://dotnet.microsoft.com/download/dotnet/10.0
+#
+# 3. Inno Setup 6
+#    Download: https://jrsoftware.org/isdl.php
+#    Expected at: "C:\Program Files (x86)\Inno Setup 6\ISCC.exe"
+#
+# 4. .NET 10 Desktop Runtime installer (bundled into the installer for end users)
+#    Place at: extras\prerequisites\windowsdesktop-runtime-10.0.2-win-x64.exe
+#    Download: https://dotnet.microsoft.com/download/dotnet/10.0
+#
+# 5. Windows App SDK 1.7 Runtime installer (bundled into the installer for end users)
+#    Place at: extras\prerequisites\WindowsAppRuntimeInstall-x64-1.7.exe
+#    Download: https://learn.microsoft.com/en-us/windows/apps/windows-app-sdk/downloads
+#
+# 6. Windows SDK (only required for code signing)
+#    Provides signtool.exe. Install via VS Installer or standalone SDK installer.
 #
 # EXAMPLES:
 # # Basic usage (will prompt for signing)
@@ -32,7 +57,7 @@ param (
 $ErrorActionPreference = "Stop"
 $scriptRoot = $PSScriptRoot
 $solutionDir = Resolve-Path "$scriptRoot\.."
-$projectPath = "$solutionDir\src\Winhance.WPF\Winhance.WPF.csproj"
+$projectPath = "$solutionDir\src\Winhance.UI\Winhance.UI.csproj"
 
 # Function to find and select a code signing certificate
 function Get-SigningCertificate {
@@ -161,9 +186,10 @@ function Set-FileSignature {
     }
 }
 
-$publishOutputPath = "$solutionDir\src\Winhance.WPF\bin\Release\net9.0-windows"
+$publishOutputPath = "$solutionDir\src\Winhance.UI\bin\x64\Release\net10.0-windows10.0.19041.0"
 $innoSetupScript = "$scriptRoot\Winhance.Installer.iss"
-$dotNetRuntimePath = "$scriptRoot\prerequisites\windowsdesktop-runtime-9.0.10-win-x64.exe"
+$dotNetRuntimePath = "$scriptRoot\prerequisites\windowsdesktop-runtime-10.0.2-win-x64.exe"
+$winAppSdkRuntimePath = "$scriptRoot\prerequisites\WindowsAppRuntimeInstall-x64-1.7.exe"
 $tempInnoScript = "$env:TEMP\Winhance.Installer.temp.iss"
 
 # Declare certificate variable at script scope so it's accessible throughout
@@ -173,6 +199,18 @@ $shouldSign = $false
 # Ensure output directory exists
 if (-not (Test-Path $OutputDir)) {
     New-Item -ItemType Directory -Path $OutputDir -Force | Out-Null
+}
+
+# Check for prerequisite installer files
+if (-not (Test-Path $dotNetRuntimePath)) {
+    Write-Host ".NET 10 Desktop Runtime installer not found at: $dotNetRuntimePath" -ForegroundColor Red
+    Write-Host "Download from: https://dotnet.microsoft.com/download/dotnet/10.0" -ForegroundColor Yellow
+    exit 1
+}
+if (-not (Test-Path $winAppSdkRuntimePath)) {
+    Write-Host "Windows App SDK Runtime installer not found at: $winAppSdkRuntimePath" -ForegroundColor Red
+    Write-Host "Download from: https://learn.microsoft.com/en-us/windows/apps/windows-app-sdk/downloads" -ForegroundColor Yellow
+    exit 1
 }
 
 Write-Host "Building Winhance v$Version..." -ForegroundColor Cyan
@@ -191,7 +229,7 @@ else {
 
 # Update version in csproj file
 Write-Host "Updating version in project file..." -ForegroundColor Green
-$csprojPath = "$solutionDir\src\Winhance.WPF\Winhance.WPF.csproj"
+$csprojPath = "$solutionDir\src\Winhance.UI\Winhance.UI.csproj"
 $csprojContent = Get-Content -Path $csprojPath -Raw
 
 # Update version properties in csproj
@@ -204,27 +242,52 @@ $csprojContent = $csprojContent -replace '<InformationalVersion>.*?</Information
 # Write updated csproj content
 Set-Content -Path $csprojPath -Value $csprojContent
 
+# Find MSBuild.exe (required for WinUI3/WindowsAppSDK projects)
+Write-Host "Locating MSBuild..." -ForegroundColor Green
+$msbuildPath = $null
+
+# Try vswhere.exe first (ships with VS2022+ installer)
+# Require both MSBuild and MSVC C++ tools — the WindowsAppSDK XAML compiler needs MSVC
+$vswherePath = "${env:ProgramFiles(x86)}\Microsoft Visual Studio\Installer\vswhere.exe"
+if (Test-Path $vswherePath) {
+    $msbuildPath = & $vswherePath -latest -requires Microsoft.Component.MSBuild -requires Microsoft.VisualStudio.Component.VC.Tools.x86.x64 -find "MSBuild\**\Bin\MSBuild.exe" | Select-Object -First 1
+}
+
+# Fallback to well-known VS2022 paths
+if (-not $msbuildPath -or -not (Test-Path $msbuildPath)) {
+    $fallbackPaths = @(
+        "C:\Program Files\Microsoft Visual Studio\2022\Community\MSBuild\Current\Bin\MSBuild.exe",
+        "C:\Program Files\Microsoft Visual Studio\2022\Professional\MSBuild\Current\Bin\MSBuild.exe",
+        "C:\Program Files\Microsoft Visual Studio\2022\Enterprise\MSBuild\Current\Bin\MSBuild.exe"
+    )
+    foreach ($path in $fallbackPaths) {
+        if (Test-Path $path) {
+            $msbuildPath = $path
+            break
+        }
+    }
+}
+
+if (-not $msbuildPath -or -not (Test-Path $msbuildPath)) {
+    Write-Host "MSBuild.exe not found. Please install Visual Studio 2022 with the '.NET desktop development' workload." -ForegroundColor Red
+    exit 1
+}
+
+Write-Host "Using MSBuild: $msbuildPath" -ForegroundColor Green
+
 # Step 1: Clean the solution
 Write-Host "Cleaning solution..." -ForegroundColor Green
-dotnet clean "$projectPath" --configuration Release
+& $msbuildPath "$projectPath" /t:Clean /p:Configuration=Release /p:Platform=x64
 if ($LASTEXITCODE -ne 0) {
     Write-Host "Failed to clean solution" -ForegroundColor Red
     exit 1
 }
 
-# Step 2: Build the solution
+# Step 2: Build the solution (WinUI3 - no separate publish step needed)
 Write-Host "Building solution..." -ForegroundColor Green
-dotnet build "$projectPath" --configuration Release
+& $msbuildPath "$projectPath" /p:Configuration=Release /p:Platform=x64 /p:WindowsAppSDKSelfContained=false -restore
 if ($LASTEXITCODE -ne 0) {
     Write-Host "Failed to build solution" -ForegroundColor Red
-    exit 1
-}
-
-# Step 3: Publish the application
-Write-Host "Publishing application..." -ForegroundColor Green
-dotnet publish "$projectPath" --configuration Release --runtime win-x64 --self-contained false -p:PublishSingleFile=false -p:PublishReadyToRun=true
-if ($LASTEXITCODE -ne 0) {
-    Write-Host "Failed to publish application" -ForegroundColor Red
     exit 1
 }
 
@@ -271,12 +334,12 @@ $innoContent = $innoContent -replace 'AppVerName=Winhance', "AppVerName=Winhance
 $publishPath = $publishOutputPath.Replace("\", "\\")
 $outputPath = $OutputDir.Replace("\", "\\")
 $licensePath = "$solutionDir\LICENSE.txt".Replace("\", "\\")
-$iconPath = "$solutionDir\src\Winhance.WPF\Resources\AppIcons\winhance-rocket.ico".Replace("\", "\\")
+$iconPath = "$solutionDir\src\Winhance.UI\Assets\AppIcons\winhance-rocket.ico".Replace("\", "\\")
 
 $innoContent = $innoContent -replace 'LicenseFile=C:\\Winhance\\LICENSE.txt', "LicenseFile=$licensePath"
 $innoContent = $innoContent -replace 'OutputDir=C:\\Winhance\\installer-output', "OutputDir=$outputPath"
-$innoContent = $innoContent -replace 'SetupIconFile=C:\\Winhance\\src\\Winhance.WPF\\Resources\\AppIcons\\winhance-rocket.ico', "SetupIconFile=$iconPath"
-$innoContent = $innoContent -replace 'Source: "C:\\Winhance\\src\\Winhance.WPF\\bin\\Release\\net9.0-windows\\win-x64\\', "Source: `"$publishPath\\"
+$innoContent = $innoContent -replace 'SetupIconFile=C:\\Winhance\\src\\Winhance\.UI\\Assets\\AppIcons\\winhance-rocket\.ico', "SetupIconFile=$iconPath"
+$innoContent = $innoContent -replace 'Source: "C:\\Winhance\\src\\Winhance\.UI\\bin\\x64\\Release\\net10\.0-windows10\.0\.19041\.0\\', "Source: `"$publishPath\\"
 $innoContent = $innoContent -replace 'Source: "C:\\Winhance\\extras\\prerequisites\\', "Source: `"$scriptRoot\\prerequisites\\"
 
 # Write the updated script to a temporary file

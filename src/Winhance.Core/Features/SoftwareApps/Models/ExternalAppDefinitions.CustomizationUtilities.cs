@@ -21,7 +21,8 @@ namespace Winhance.Core.Features.SoftwareApps.Models
                             Name = "Nilesoft Shell",
                             Description = "Windows context menu customization tool",
                             GroupName = "Customization Utilities",
-                            WinGetPackageId = "Nilesoft.Shell",
+                            WinGetPackageId = ["Nilesoft.Shell"],
+                            ChocoPackageId = "nilesoft-shell",
                             WebsiteUrl = "https://nilesoft.org/"
                         },
                         new ItemDefinition
@@ -30,7 +31,8 @@ namespace Winhance.Core.Features.SoftwareApps.Models
                             Name = "StartAllBack",
                             Description = "Windows 11 Start menu and taskbar customization",
                             GroupName = "Customization Utilities",
-                            WinGetPackageId = "StartIsBack.StartAllBack",
+                            WinGetPackageId = ["StartIsBack.StartAllBack"],
+                            ChocoPackageId = "startallback",
                             WebsiteUrl = "https://www.startallback.com/"
                         },
                         new ItemDefinition
@@ -39,7 +41,8 @@ namespace Winhance.Core.Features.SoftwareApps.Models
                             Name = "Open-Shell",
                             Description = "Classic style Start Menu for Windows",
                             GroupName = "Customization Utilities",
-                            WinGetPackageId = "Open-Shell.Open-Shell-Menu",
+                            WinGetPackageId = ["Open-Shell.Open-Shell-Menu"],
+                            ChocoPackageId = "open-shell",
                             WebsiteUrl = "https://open-shell.github.io/Open-Shell-Menu/"
                         },
                         new ItemDefinition
@@ -48,7 +51,8 @@ namespace Winhance.Core.Features.SoftwareApps.Models
                             Name = "Windhawk",
                             Description = "Customization platform for Windows",
                             GroupName = "Customization Utilities",
-                            WinGetPackageId = "RamenSoftware.Windhawk",
+                            WinGetPackageId = ["RamenSoftware.Windhawk"],
+                            ChocoPackageId = "windhawk",
                             WebsiteUrl = "https://windhawk.net/"
                         },
                         new ItemDefinition
@@ -57,7 +61,8 @@ namespace Winhance.Core.Features.SoftwareApps.Models
                             Name = "Lively Wallpaper",
                             Description = "Free and open-source animated desktop wallpaper application",
                             GroupName = "Customization Utilities",
-                            WinGetPackageId = "rocksdanister.LivelyWallpaper",
+                            WinGetPackageId = ["rocksdanister.LivelyWallpaper"],
+                            ChocoPackageId = "lively",
                             WebsiteUrl = "https://www.rocksdanister.com/lively/"
                         },
                         new ItemDefinition
@@ -66,7 +71,8 @@ namespace Winhance.Core.Features.SoftwareApps.Models
                             Name = "Sucrose Wallpaper Engine",
                             Description = "Free and open-source animated desktop wallpaper application",
                             GroupName = "Customization Utilities",
-                            WinGetPackageId = "Taiizor.SucroseWallpaperEngine",
+                            WinGetPackageId = ["Taiizor.SucroseWallpaperEngine"],
+                            ChocoPackageId = "sucrose",
                             WebsiteUrl = "https://github.com/Taiizor/Sucrose"
                         },
                         new ItemDefinition
@@ -75,7 +81,8 @@ namespace Winhance.Core.Features.SoftwareApps.Models
                             Name = "Rainmeter",
                             Description = "Desktop customization tool for Windows",
                             GroupName = "Customization Utilities",
-                            WinGetPackageId = "Rainmeter.Rainmeter",
+                            WinGetPackageId = ["Rainmeter.Rainmeter"],
+                            ChocoPackageId = "rainmeter",
                             WebsiteUrl = "https://www.rainmeter.net/"
                         },
                         new ItemDefinition
@@ -84,7 +91,7 @@ namespace Winhance.Core.Features.SoftwareApps.Models
                             Name = "ExplorerPatcher",
                             Description = "Utility that enhances the Windows Explorer experience",
                             GroupName = "Customization Utilities",
-                            WinGetPackageId = "valinet.ExplorerPatcher",
+                            WinGetPackageId = ["valinet.ExplorerPatcher"],
                             WebsiteUrl = "https://github.com/valinet/ExplorerPatcher"
                         },
                         new ItemDefinition
@@ -93,7 +100,7 @@ namespace Winhance.Core.Features.SoftwareApps.Models
                             Name = "Nexus",
                             Description = "The advanced docking system for Windows",
                             GroupName = "Customization Utilities",
-                            WinGetPackageId = "WinStep.Nexus",
+                            WinGetPackageId = ["WinStep.Nexus"],
                             WebsiteUrl = "https://www.winstep.net/nexus.asp"
                         }
                     }

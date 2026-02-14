@@ -7,5 +7,8 @@ namespace Winhance.Core.Features.Common.Interfaces
         Task ExportConfigurationAsync();
         Task ImportConfigurationAsync();
         Task ImportRecommendedConfigurationAsync();
+        Task CreateUserBackupConfigAsync();
+        Task ApplyReviewedConfigAsync();
+        Task CancelReviewModeAsync();
     }
 }

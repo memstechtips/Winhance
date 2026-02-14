@@ -108,10 +108,10 @@ namespace Winhance.Infrastructure.Features.Common.Services
             }
 
             bool hasRegistrySettings = setting.RegistrySettings?.Any() == true;
-            bool hasCommandSettings = setting.CommandSettings?.Any() == true;
+            bool hasScheduledTaskSettings = setting.ScheduledTaskSettings?.Any() == true;
             bool hasPowerCfgSettings = setting.PowerCfgSettings?.Any() == true;
 
-            if (!hasRegistrySettings && !hasCommandSettings && !hasPowerCfgSettings)
+            if (!hasRegistrySettings && !hasScheduledTaskSettings && !hasPowerCfgSettings)
                 return null;
 
             try
@@ -119,7 +119,7 @@ namespace Winhance.Infrastructure.Features.Common.Services
                 var tooltipData = new SettingTooltipData
                 {
                     SettingId = setting.Id,
-                    CommandSettings = setting.CommandSettings?.ToList() ?? new List<CommandSetting>(),
+                    ScheduledTaskSettings = setting.ScheduledTaskSettings?.ToList() ?? new List<ScheduledTaskSetting>(),
                     PowerCfgSettings = setting.PowerCfgSettings?.ToList() ?? new List<PowerCfgSetting>()
                 };
 

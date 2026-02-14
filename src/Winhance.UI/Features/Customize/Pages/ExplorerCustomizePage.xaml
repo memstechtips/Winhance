@@ -1,0 +1,22 @@
+<?xml version="1.0" encoding="utf-8"?>
+<Page
+    x:Class="Winhance.UI.Features.Customize.Pages.ExplorerCustomizePage"
+    xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+    xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+    xmlns:local="using:Winhance.UI.Features.Customize.Pages"
+    xmlns:commonControls="using:Winhance.UI.Features.Common.Controls"
+    x:DefaultBindMode="OneWay"
+    NavigationCacheMode="Disabled">
+
+    <Page.Resources>
+        <CollectionViewSource
+            x:Name="GroupedSettingsSource"
+            Source="{x:Bind ViewModel.ExplorerViewModel.GroupedSettings}"
+            IsSourceGrouped="True"/>
+    </Page.Resources>
+
+    <commonControls:SettingsListView
+        GroupedSettingsSource="{x:Bind GroupedSettingsSource.View, Mode=OneWay}"
+        IsLoading="{x:Bind ViewModel.IsLoading}"
+        HasNoSearchResults="{x:Bind ViewModel.HasNoSearchResults}"/>
+</Page>

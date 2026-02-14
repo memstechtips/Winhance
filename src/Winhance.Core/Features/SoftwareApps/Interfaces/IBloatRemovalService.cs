@@ -9,17 +9,15 @@ namespace Winhance.Core.Features.SoftwareApps.Interfaces;
 
 public interface IBloatRemovalService
 {
-    Task<bool> RemoveAppsAsync(
-        List<ItemDefinition> selectedApps,
-        IProgress<TaskProgressDetail>? progress = null,
-        CancellationToken cancellationToken = default);
+    Task<bool> ExecuteDedicatedScriptAsync(ItemDefinition app,
+        IProgress<TaskProgressDetail>? progress = null, CancellationToken ct = default);
 
-    Task<bool> RemoveSpecialAppsAsync(
-        List<string> specialAppTypes,
-        IProgress<TaskProgressDetail>? progress = null,
-        CancellationToken cancellationToken = default);
+    Task<bool> ExecuteBloatRemovalAsync(List<ItemDefinition> apps,
+        IProgress<TaskProgressDetail>? progress = null, CancellationToken ct = default);
+
+    Task PersistRemovalScriptsAsync(List<ItemDefinition> allApps);
+    Task CleanupAllRemovalArtifactsAsync();
 
     Task<bool> RemoveItemsFromScriptAsync(List<ItemDefinition> itemsToRemove);
-    Task<bool> ExecuteRemovalScriptAsync(string scriptPath, IProgress<TaskProgressDetail>? progress = null, CancellationToken cancellationToken = default);
-    Task<bool> RegisterStartupTaskAsync(string scriptPath);
+    Task CleanupBloatRemovalArtifactsAsync();
 }

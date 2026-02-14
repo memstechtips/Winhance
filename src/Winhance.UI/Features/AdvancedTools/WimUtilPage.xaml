@@ -1,0 +1,683 @@
+<?xml version="1.0" encoding="utf-8"?>
+<Page
+    x:Class="Winhance.UI.Features.AdvancedTools.WimUtilPage"
+    xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+    xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+    xmlns:local="using:Winhance.UI.Features.AdvancedTools"
+    xmlns:models="using:Winhance.UI.Features.AdvancedTools.Models"
+    xmlns:viewmodels="using:Winhance.UI.Features.AdvancedTools.ViewModels"
+    xmlns:fluentIcons="using:FluentIcons.WinUI"
+    x:DefaultBindMode="OneWay"
+    NavigationCacheMode="Disabled">
+
+    <Page.Resources>
+        <!-- WizardActionCard DataTemplate — inner cards use subtler background -->
+        <DataTemplate x:Key="WizardActionCardTemplate" x:DataType="models:WizardActionCard">
+            <Border Background="{ThemeResource CardBackgroundFillColorSecondaryBrush}"
+                    BorderBrush="{ThemeResource CardStrokeColorDefaultBrush}"
+                    BorderThickness="1"
+                    CornerRadius="4"
+                    Padding="16"
+                    Margin="0,0,0,8"
+                    Opacity="{x:Bind Opacity, Mode=OneWay}">
+                <Grid MinHeight="40">
+                    <Grid.ColumnDefinitions>
+                        <ColumnDefinition Width="Auto"/>
+                        <ColumnDefinition Width="*"/>
+                        <ColumnDefinition Width="Auto"/>
+                        <ColumnDefinition Width="Auto"/>
+                    </Grid.ColumnDefinitions>
+
+                    <!-- Icon - FontIcon (glyph) -->
+                    <FontIcon Grid.Column="0"
+                              Glyph="{x:Bind Icon, Mode=OneWay}"
+                              FontFamily="Segoe MDL2 Assets"
+                              FontSize="24"
+                              VerticalAlignment="Center"
+                              Margin="0,0,16,0"
+                              Visibility="{x:Bind UsePathIcon, Mode=OneWay, Converter={StaticResource InverseBooleanToVisibilityConverter}}"/>
+
+                    <!-- Icon - PathIcon (Material Design path data) -->
+                    <Viewbox Grid.Column="0"
+                             Width="24" Height="24"
+                             VerticalAlignment="Center"
+                             Margin="0,0,16,0"
+                             Visibility="{x:Bind UsePathIcon, Mode=OneWay}">
+                        <Path Data="{x:Bind IconPath, Mode=OneWay, Converter={StaticResource StringToGeometryConverter}}"
+                              Fill="{ThemeResource TextFillColorPrimaryBrush}"
+                              Stretch="Uniform"/>
+                    </Viewbox>
+
+                    <!-- Title + Description -->
+                    <StackPanel Grid.Column="1" VerticalAlignment="Center">
+                        <TextBlock Text="{x:Bind Title, Mode=OneWay}"
+                                   Style="{StaticResource BodyStrongTextBlockStyle}"/>
+                        <TextBlock Text="{x:Bind Description, Mode=OneWay}"
+                                   Style="{StaticResource CaptionTextBlockStyle}"
+                                   Foreground="{ThemeResource TextFillColorSecondaryBrush}"
+                                   TextWrapping="Wrap"
+                                   Margin="0,2,0,0"/>
+                    </StackPanel>
+
+                    <!-- Status Icons -->
+                    <Grid Grid.Column="2" Width="32" Height="32" Margin="8,0,8,0" VerticalAlignment="Center">
+                        <!-- Processing spinner -->
+                        <ProgressRing IsActive="{x:Bind IsProcessing, Mode=OneWay}"
+                                      Width="20" Height="20"
+                                      Visibility="{x:Bind IsProcessing, Mode=OneWay}"/>
+                        <!-- Complete checkmark -->
+                        <fluentIcons:SymbolIcon Symbol="Checkmark" IconVariant="Regular"
+                                  FontSize="20"
+                                  Foreground="#4CAF50"
+                                  Visibility="{x:Bind IsComplete, Mode=OneWay}"
+                                  HorizontalAlignment="Center"
+                                  VerticalAlignment="Center"/>
+                        <!-- Failed X -->
+                        <fluentIcons:SymbolIcon Symbol="Dismiss" IconVariant="Regular"
+                                  FontSize="20"
+                                  Foreground="#F44336"
+                                  Visibility="{x:Bind HasFailed, Mode=OneWay}"
+                                  HorizontalAlignment="Center"
+                                  VerticalAlignment="Center"/>
+                    </Grid>
+
+                    <!-- Action Button -->
+                    <Button Grid.Column="3"
+                            Content="{x:Bind ButtonText, Mode=OneWay}"
+                            Command="{x:Bind ButtonCommand, Mode=OneWay}"
+                            IsEnabled="{x:Bind IsEnabled, Mode=OneWay}"
+                            VerticalAlignment="Center"
+                            MinWidth="100"/>
+                </Grid>
+            </Border>
+        </DataTemplate>
+    </Page.Resources>
+
+    <ScrollView Padding="0,12,0,12">
+        <!-- Wrap StackPanel in Grid to avoid visual glitches with MaxWidth -->
+        <Grid>
+        <StackPanel Spacing="8" MaxWidth="{StaticResource SettingsContentMaxWidth}" Margin="{StaticResource SettingsContentMargin}" HorizontalAlignment="Stretch">
+
+            <!-- ═══════════════════════════════════════════════════════ -->
+            <!-- STEP 1: Select ISO                                     -->
+            <!-- ═══════════════════════════════════════════════════════ -->
+            <Border Background="{ThemeResource CardBackgroundFillColorDefaultBrush}"
+                    BorderBrush="{ThemeResource CardStrokeColorDefaultBrush}"
+                    BorderThickness="1"
+                    CornerRadius="4">
+                <StackPanel>
+                    <!-- Step 1 Header -->
+                    <Border Padding="16,12"
+                            Tapped="Step1_Header_Tapped"
+                            Background="Transparent">
+                        <Grid>
+                            <Grid.ColumnDefinitions>
+                                <ColumnDefinition Width="Auto"/>
+                                <ColumnDefinition Width="*"/>
+                                <ColumnDefinition Width="Auto"/>
+                            </Grid.ColumnDefinitions>
+
+                            <fluentIcons:SymbolIcon Grid.Column="0"
+                                      Symbol="HardDrive" IconVariant="Regular"
+                                      FontSize="24"
+                                      VerticalAlignment="Center"
+                                      Margin="0,0,16,0"/>
+
+                            <StackPanel Grid.Column="1" VerticalAlignment="Center">
+                                <TextBlock Text="{x:Bind ViewModel.Step1State.Title, Mode=OneWay}"
+                                           Style="{StaticResource SubtitleTextBlockStyle}"
+                                           FontSize="16"/>
+                                <TextBlock Text="{x:Bind ViewModel.Step1State.StatusText, Mode=OneWay}"
+                                           Style="{StaticResource CaptionTextBlockStyle}"
+                                           Foreground="{ThemeResource TextFillColorSecondaryBrush}"/>
+                            </StackPanel>
+
+                            <!-- Locked: padlock -->
+                            <Viewbox Grid.Column="2" Width="16" Height="16"
+                                     VerticalAlignment="Center"
+                                     Visibility="{x:Bind ViewModel.Step1State.IsLocked, Mode=OneWay}">
+                                <Path Data="{StaticResource PrivacyIconPath}"
+                                      Fill="{ThemeResource AccentFillColorDefaultBrush}"
+                                      Stretch="Uniform"/>
+                            </Viewbox>
+                            <!-- Complete: check circle -->
+                            <Viewbox Grid.Column="2" Width="20" Height="20"
+                                     VerticalAlignment="Center"
+                                     Visibility="{x:Bind ViewModel.Step1State.IsComplete, Mode=OneWay}">
+                                <Path Data="{StaticResource CheckCircleIconPath}"
+                                      Fill="#00CC6A"
+                                      Stretch="Uniform"/>
+                            </Viewbox>
+                            <!-- Normal: chevron -->
+                            <fluentIcons:SymbolIcon Grid.Column="2"
+                                      Symbol="ChevronDown" IconVariant="Regular"
+                                      FontSize="12"
+                                      VerticalAlignment="Center"
+                                      Visibility="{x:Bind ViewModel.Step1State.ShowChevron, Mode=OneWay}"
+                                      RenderTransformOrigin="0.5,0.5">
+                                <fluentIcons:SymbolIcon.RenderTransform>
+                                    <RotateTransform Angle="{x:Bind ViewModel.Step1State.ChevronRotation, Mode=OneWay}"/>
+                                </fluentIcons:SymbolIcon.RenderTransform>
+                            </fluentIcons:SymbolIcon>
+                        </Grid>
+                    </Border>
+
+                    <!-- Step 1 Content -->
+                    <StackPanel Visibility="{x:Bind ViewModel.Step1State.IsExpanded, Mode=OneWay}"
+                                Padding="16,0,16,16"
+                                Spacing="0">
+
+                        <!-- Select ISO Card -->
+                        <ContentPresenter Content="{x:Bind ViewModel.SelectIsoCard}"
+                                          ContentTemplate="{StaticResource WizardActionCardTemplate}"/>
+
+                        <!-- Working Directory Card (custom inline — checkbox + button on same row) -->
+                        <Border Background="{ThemeResource CardBackgroundFillColorSecondaryBrush}"
+                                BorderBrush="{ThemeResource CardStrokeColorDefaultBrush}"
+                                BorderThickness="1"
+                                CornerRadius="4"
+                                Padding="16"
+                                Margin="0,0,0,8"
+                                Opacity="{x:Bind ViewModel.SelectDirectoryCard.Opacity, Mode=OneWay}">
+                            <Grid MinHeight="40">
+                                <Grid.ColumnDefinitions>
+                                    <ColumnDefinition Width="Auto"/>
+                                    <ColumnDefinition Width="*"/>
+                                    <ColumnDefinition Width="Auto"/>
+                                </Grid.ColumnDefinitions>
+
+                                <Viewbox Grid.Column="0"
+                                         Width="24" Height="24"
+                                         VerticalAlignment="Center"
+                                         Margin="0,0,16,0">
+                                    <Path Data="{StaticResource ExplorerIconPath}"
+                                          Fill="{ThemeResource TextFillColorPrimaryBrush}"
+                                          Stretch="Uniform"/>
+                                </Viewbox>
+
+                                <StackPanel Grid.Column="1" VerticalAlignment="Center">
+                                    <TextBlock Text="{x:Bind ViewModel.SelectDirectoryCard.Title, Mode=OneWay}"
+                                               Style="{StaticResource BodyStrongTextBlockStyle}"/>
+                                    <TextBlock Text="{x:Bind ViewModel.SelectDirectoryCard.Description, Mode=OneWay}"
+                                               Style="{StaticResource CaptionTextBlockStyle}"
+                                               Foreground="{ThemeResource TextFillColorSecondaryBrush}"
+                                               TextWrapping="Wrap"
+                                               Margin="0,2,0,0"/>
+                                </StackPanel>
+
+                                <StackPanel Grid.Column="2" Orientation="Horizontal" VerticalAlignment="Center" Spacing="12">
+                                    <CheckBox Content="{x:Bind ViewModel.CheckboxExtractedAlreadyText}"
+                                              IsChecked="{x:Bind ViewModel.HasExtractedIsoAlready, Mode=TwoWay}"
+                                              VerticalAlignment="Center"/>
+                                    <Button Content="{x:Bind ViewModel.ButtonSelectFolderText}"
+                                            Command="{x:Bind ViewModel.SelectWorkingDirectoryCommand}"
+                                            IsEnabled="{x:Bind ViewModel.SelectDirectoryCard.IsEnabled, Mode=OneWay}"
+                                            VerticalAlignment="Center"
+                                            MinWidth="100"/>
+                                </StackPanel>
+                            </Grid>
+                        </Border>
+
+                        <!-- Start Extraction Button -->
+                        <Button Content="{x:Bind ViewModel.ButtonStartExtractionText}"
+                                Style="{StaticResource AccentButtonStyle}"
+                                Command="{x:Bind ViewModel.StartIsoExtractionCommand}"
+                                Visibility="{x:Bind ViewModel.CanStartExtraction, Mode=OneWay}"
+                                HorizontalAlignment="Center"
+                                MinWidth="160"
+                                Margin="0,8,0,12"/>
+
+                        <!-- ═══ Conversion Section ═══ -->
+                        <StackPanel Visibility="{x:Bind ViewModel.ShowConversionCard, Mode=OneWay}">
+
+                            <TextBlock Text="{x:Bind ViewModel.OptionalConvertText}"
+                                       Style="{StaticResource BodyStrongTextBlockStyle}"
+                                       Foreground="{ThemeResource TextFillColorSecondaryBrush}"
+                                       Margin="4,4,0,8"/>
+
+                            <!-- Both formats warning with delete buttons -->
+                            <InfoBar Title="{x:Bind ViewModel.BothImagesTitle}"
+                                     Message="{x:Bind ViewModel.BothImagesDescription}"
+                                     Severity="Warning"
+                                     IsOpen="{x:Bind ViewModel.BothFormatsExist, Mode=OneWay}"
+                                     IsClosable="False"
+                                     Margin="0,0,0,8">
+                                <InfoBar.Content>
+                                    <StackPanel Spacing="8" Margin="0,8,0,4">
+                                        <Border Background="{ThemeResource CardBackgroundFillColorSecondaryBrush}"
+                                                BorderBrush="{ThemeResource CardStrokeColorDefaultBrush}"
+                                                BorderThickness="1"
+                                                CornerRadius="4"
+                                                Padding="12">
+                                            <Grid>
+                                                <Grid.ColumnDefinitions>
+                                                    <ColumnDefinition Width="*"/>
+                                                    <ColumnDefinition Width="Auto"/>
+                                                </Grid.ColumnDefinitions>
+                                                <StackPanel Grid.Column="0" VerticalAlignment="Center">
+                                                    <TextBlock Text="install.wim"
+                                                               Style="{StaticResource BodyStrongTextBlockStyle}"/>
+                                                    <TextBlock Text="{x:Bind ViewModel.WimFileSize, Mode=OneWay}"
+                                                               Style="{StaticResource CaptionTextBlockStyle}"
+                                                               Foreground="{ThemeResource TextFillColorSecondaryBrush}"/>
+                                                </StackPanel>
+                                                <Button Grid.Column="1"
+                                                        Content="{x:Bind ViewModel.ButtonDeleteWimText}"
+                                                        Command="{x:Bind ViewModel.DeleteWimCommand}"
+                                                        MinWidth="100"
+                                                        Margin="12,0,0,0"/>
+                                            </Grid>
+                                        </Border>
+
+                                        <Border Background="{ThemeResource CardBackgroundFillColorSecondaryBrush}"
+                                                BorderBrush="{ThemeResource CardStrokeColorDefaultBrush}"
+                                                BorderThickness="1"
+                                                CornerRadius="4"
+                                                Padding="12">
+                                            <Grid>
+                                                <Grid.ColumnDefinitions>
+                                                    <ColumnDefinition Width="*"/>
+                                                    <ColumnDefinition Width="Auto"/>
+                                                </Grid.ColumnDefinitions>
+                                                <StackPanel Grid.Column="0" VerticalAlignment="Center">
+                                                    <TextBlock Text="install.esd"
+                                                               Style="{StaticResource BodyStrongTextBlockStyle}"/>
+                                                    <TextBlock Text="{x:Bind ViewModel.EsdFileSize, Mode=OneWay}"
+                                                               Style="{StaticResource CaptionTextBlockStyle}"
+                                                               Foreground="{ThemeResource TextFillColorSecondaryBrush}"/>
+                                                </StackPanel>
+                                                <Button Grid.Column="1"
+                                                        Content="{x:Bind ViewModel.ButtonDeleteEsdText}"
+                                                        Command="{x:Bind ViewModel.DeleteEsdCommand}"
+                                                        MinWidth="100"
+                                                        Margin="12,0,0,0"/>
+                                            </Grid>
+                                        </Border>
+                                    </StackPanel>
+                                </InfoBar.Content>
+                            </InfoBar>
+
+                            <!-- Convert card (hidden when both formats exist) -->
+                            <ContentPresenter Content="{x:Bind ViewModel.ConvertImageCard}"
+                                              ContentTemplate="{StaticResource WizardActionCardTemplate}"
+                                              Visibility="{x:Bind ViewModel.BothFormatsExist, Mode=OneWay, Converter={StaticResource InverseBooleanToVisibilityConverter}}"/>
+                        </StackPanel>
+
+                        <!-- Download Windows ISO section -->
+                        <StackPanel Orientation="Horizontal" HorizontalAlignment="Left" Margin="4,12,0,0" Spacing="8">
+                            <TextBlock Text="{x:Bind ViewModel.DownloadIsoText}"
+                                       Style="{StaticResource BodyTextBlockStyle}"
+                                       Foreground="{ThemeResource TextFillColorSecondaryBrush}"
+                                       VerticalAlignment="Center"/>
+                            <Button Click="Windows10Download_Click" ToolTipService.ToolTip="{x:Bind ViewModel.TooltipDownloadWindows10}">
+                                <StackPanel Orientation="Horizontal" Spacing="6">
+                                    <fluentIcons:SymbolIcon Symbol="ArrowDownload" IconVariant="Regular" FontSize="14"/>
+                                    <TextBlock Text="{x:Bind ViewModel.ButtonWindows10Text}"/>
+                                </StackPanel>
+                            </Button>
+                            <Button Click="Windows11Download_Click" ToolTipService.ToolTip="{x:Bind ViewModel.TooltipDownloadWindows11}">
+                                <StackPanel Orientation="Horizontal" Spacing="6">
+                                    <fluentIcons:SymbolIcon Symbol="ArrowDownload" IconVariant="Regular" FontSize="14"/>
+                                    <TextBlock Text="{x:Bind ViewModel.ButtonWindows11Text}"/>
+                                </StackPanel>
+                            </Button>
+                        </StackPanel>
+                    </StackPanel>
+                </StackPanel>
+            </Border>
+
+
+            <!-- ═══════════════════════════════════════════════════════ -->
+            <!-- STEP 2: Add XML File                                   -->
+            <!-- ═══════════════════════════════════════════════════════ -->
+            <Border Background="{ThemeResource CardBackgroundFillColorDefaultBrush}"
+                    BorderBrush="{ThemeResource CardStrokeColorDefaultBrush}"
+                    BorderThickness="1"
+                    CornerRadius="4">
+                <Grid>
+                    <StackPanel>
+                        <!-- Step 2 Header -->
+                        <Border Padding="16,12"
+                                Tapped="Step2_Header_Tapped"
+                                Background="Transparent">
+                            <Grid>
+                                <Grid.ColumnDefinitions>
+                                    <ColumnDefinition Width="Auto"/>
+                                    <ColumnDefinition Width="*"/>
+                                    <ColumnDefinition Width="Auto"/>
+                                </Grid.ColumnDefinitions>
+
+                                <Viewbox Grid.Column="0"
+                                         Width="24" Height="24"
+                                         VerticalAlignment="Center"
+                                         Margin="0,0,16,0">
+                                    <Path Data="{StaticResource AutounattendXmlIconPath}"
+                                          Fill="{ThemeResource TextFillColorPrimaryBrush}"
+                                          Stretch="Uniform"/>
+                                </Viewbox>
+
+                                <StackPanel Grid.Column="1" VerticalAlignment="Center">
+                                    <TextBlock Text="{x:Bind ViewModel.Step2State.Title, Mode=OneWay}"
+                                               Style="{StaticResource SubtitleTextBlockStyle}"
+                                               FontSize="16"/>
+                                    <TextBlock Text="{x:Bind ViewModel.Step2State.StatusText, Mode=OneWay}"
+                                               Style="{StaticResource CaptionTextBlockStyle}"
+                                               Foreground="{ThemeResource TextFillColorSecondaryBrush}"/>
+                                </StackPanel>
+
+                                <!-- Locked: padlock -->
+                                <Viewbox Grid.Column="2" Width="16" Height="16"
+                                         VerticalAlignment="Center"
+                                         Visibility="{x:Bind ViewModel.Step2State.IsLocked, Mode=OneWay}">
+                                    <Path Data="{StaticResource PrivacyIconPath}"
+                                          Fill="{ThemeResource AccentFillColorDefaultBrush}"
+                                          Stretch="Uniform"/>
+                                </Viewbox>
+                                <!-- Complete: check circle -->
+                                <Viewbox Grid.Column="2" Width="20" Height="20"
+                                         VerticalAlignment="Center"
+                                         Visibility="{x:Bind ViewModel.Step2State.IsComplete, Mode=OneWay}">
+                                    <Path Data="{StaticResource CheckCircleIconPath}"
+                                          Fill="#00CC6A"
+                                          Stretch="Uniform"/>
+                                </Viewbox>
+                                <!-- Normal: chevron -->
+                                <fluentIcons:SymbolIcon Grid.Column="2"
+                                          Symbol="ChevronDown" IconVariant="Regular"
+                                          FontSize="12"
+                                          VerticalAlignment="Center"
+                                          Visibility="{x:Bind ViewModel.Step2State.ShowChevron, Mode=OneWay}"
+                                          RenderTransformOrigin="0.5,0.5">
+                                    <fluentIcons:SymbolIcon.RenderTransform>
+                                        <RotateTransform Angle="{x:Bind ViewModel.Step2State.ChevronRotation, Mode=OneWay}"/>
+                                    </fluentIcons:SymbolIcon.RenderTransform>
+                                </fluentIcons:SymbolIcon>
+                            </Grid>
+                        </Border>
+
+                        <!-- Step 2 Content -->
+                        <StackPanel Visibility="{x:Bind ViewModel.Step2State.IsExpanded, Mode=OneWay}"
+                                    Padding="16,0,16,16"
+                                    Spacing="0">
+
+                            <TextBlock Text="{x:Bind ViewModel.SelectOneOptionText}"
+                                       Style="{StaticResource BodyStrongTextBlockStyle}"
+                                       Foreground="{ThemeResource TextFillColorSecondaryBrush}"
+                                       Margin="4,0,0,8"/>
+
+                            <!-- Generate Winhance XML Card (custom inline — rocket logo) -->
+                            <Border Background="{ThemeResource CardBackgroundFillColorSecondaryBrush}"
+                                    BorderBrush="{ThemeResource CardStrokeColorDefaultBrush}"
+                                    BorderThickness="1"
+                                    CornerRadius="4"
+                                    Padding="16"
+                                    Margin="0,0,0,8">
+                                <Grid MinHeight="40">
+                                    <Grid.ColumnDefinitions>
+                                        <ColumnDefinition Width="Auto"/>
+                                        <ColumnDefinition Width="*"/>
+                                        <ColumnDefinition Width="Auto"/>
+                                        <ColumnDefinition Width="Auto"/>
+                                    </Grid.ColumnDefinitions>
+
+                                    <Image Grid.Column="0"
+                                           Source="ms-appx:///Assets/AppIcons/winhance-rocket-white-transparent-bg.png"
+                                           Width="36" Height="36"
+                                           VerticalAlignment="Center"
+                                           Margin="0,0,16,0"/>
+
+                                    <StackPanel Grid.Column="1" VerticalAlignment="Center">
+                                        <TextBlock Text="{x:Bind ViewModel.GenerateWinhanceXmlCard.Title, Mode=OneWay}"
+                                                   Style="{StaticResource BodyStrongTextBlockStyle}"/>
+                                        <TextBlock Text="{x:Bind ViewModel.GenerateWinhanceXmlCard.Description, Mode=OneWay}"
+                                                   Style="{StaticResource CaptionTextBlockStyle}"
+                                                   Foreground="{ThemeResource TextFillColorSecondaryBrush}"
+                                                   TextWrapping="Wrap"
+                                                   Margin="0,2,0,0"/>
+                                    </StackPanel>
+
+                                    <Grid Grid.Column="2" Width="32" Height="32" Margin="8,0,8,0" VerticalAlignment="Center">
+                                        <fluentIcons:SymbolIcon Symbol="Checkmark" IconVariant="Regular"
+                                                  FontSize="20"
+                                                  Foreground="#4CAF50"
+                                                  Visibility="{x:Bind ViewModel.GenerateWinhanceXmlCard.IsComplete, Mode=OneWay}"
+                                                  HorizontalAlignment="Center"
+                                                  VerticalAlignment="Center"/>
+                                        <fluentIcons:SymbolIcon Symbol="Dismiss" IconVariant="Regular"
+                                                  FontSize="20"
+                                                  Foreground="#F44336"
+                                                  Visibility="{x:Bind ViewModel.GenerateWinhanceXmlCard.HasFailed, Mode=OneWay}"
+                                                  HorizontalAlignment="Center"
+                                                  VerticalAlignment="Center"/>
+                                    </Grid>
+
+                                    <Button Grid.Column="3"
+                                            Content="{x:Bind ViewModel.ButtonGenerateText}"
+                                            Command="{x:Bind ViewModel.GenerateWinhanceXmlCommand}"
+                                            IsEnabled="{x:Bind ViewModel.GenerateWinhanceXmlCard.IsEnabled, Mode=OneWay}"
+                                            VerticalAlignment="Center"
+                                            MinWidth="100"/>
+                                </Grid>
+                            </Border>
+
+                            <!-- Download XML Card -->
+                            <ContentPresenter Content="{x:Bind ViewModel.DownloadXmlCard}"
+                                              ContentTemplate="{StaticResource WizardActionCardTemplate}"/>
+
+                            <!-- Select XML Card -->
+                            <ContentPresenter Content="{x:Bind ViewModel.SelectXmlCard}"
+                                              ContentTemplate="{StaticResource WizardActionCardTemplate}"/>
+
+                            <!-- Schneegans section -->
+                            <StackPanel Orientation="Horizontal" HorizontalAlignment="Left" Margin="4,8,0,0" Spacing="8">
+                                <TextBlock Text="{x:Bind ViewModel.GenerateXmlFilesText}"
+                                           Style="{StaticResource BodyTextBlockStyle}"
+                                           Foreground="{ThemeResource TextFillColorSecondaryBrush}"
+                                           VerticalAlignment="Center"/>
+                                <Button Click="SchneegansLink_Click" ToolTipService.ToolTip="{x:Bind ViewModel.TooltipSchneegans}">
+                                    <StackPanel Orientation="Horizontal" Spacing="6">
+                                        <fluentIcons:SymbolIcon Symbol="Open" IconVariant="Regular" FontSize="14"/>
+                                        <TextBlock Text="{x:Bind ViewModel.ButtonSchneegansText}"/>
+                                    </StackPanel>
+                                </Button>
+                            </StackPanel>
+                        </StackPanel>
+                    </StackPanel>
+
+                    <!-- Disabled overlay (SmokeFill) -->
+                    <Border Background="{ThemeResource SmokeFillColorDefaultBrush}"
+                            CornerRadius="4"
+                            Visibility="{x:Bind ViewModel.Step2State.IsLocked, Mode=OneWay}"/>
+                </Grid>
+            </Border>
+
+
+            <!-- ═══════════════════════════════════════════════════════ -->
+            <!-- STEP 3: Add Drivers                                    -->
+            <!-- ═══════════════════════════════════════════════════════ -->
+            <Border Background="{ThemeResource CardBackgroundFillColorDefaultBrush}"
+                    BorderBrush="{ThemeResource CardStrokeColorDefaultBrush}"
+                    BorderThickness="1"
+                    CornerRadius="4">
+                <Grid>
+                    <StackPanel>
+                        <!-- Step 3 Header -->
+                        <Border Padding="16,12"
+                                Tapped="Step3_Header_Tapped"
+                                Background="Transparent">
+                            <Grid>
+                                <Grid.ColumnDefinitions>
+                                    <ColumnDefinition Width="Auto"/>
+                                    <ColumnDefinition Width="*"/>
+                                    <ColumnDefinition Width="Auto"/>
+                                </Grid.ColumnDefinitions>
+
+                                <fluentIcons:SymbolIcon Grid.Column="0"
+                                          Symbol="PlugConnected" IconVariant="Regular"
+                                          FontSize="24"
+                                          VerticalAlignment="Center"
+                                          Margin="0,0,16,0"/>
+
+                                <StackPanel Grid.Column="1" VerticalAlignment="Center">
+                                    <TextBlock Text="{x:Bind ViewModel.Step3State.Title, Mode=OneWay}"
+                                               Style="{StaticResource SubtitleTextBlockStyle}"
+                                               FontSize="16"/>
+                                    <TextBlock Text="{x:Bind ViewModel.Step3State.StatusText, Mode=OneWay}"
+                                               Style="{StaticResource CaptionTextBlockStyle}"
+                                               Foreground="{ThemeResource TextFillColorSecondaryBrush}"/>
+                                </StackPanel>
+
+                                <!-- Locked: padlock -->
+                                <Viewbox Grid.Column="2" Width="16" Height="16"
+                                         VerticalAlignment="Center"
+                                         Visibility="{x:Bind ViewModel.Step3State.IsLocked, Mode=OneWay}">
+                                    <Path Data="{StaticResource PrivacyIconPath}"
+                                          Fill="{ThemeResource AccentFillColorDefaultBrush}"
+                                          Stretch="Uniform"/>
+                                </Viewbox>
+                                <!-- Complete: check circle -->
+                                <Viewbox Grid.Column="2" Width="20" Height="20"
+                                         VerticalAlignment="Center"
+                                         Visibility="{x:Bind ViewModel.Step3State.IsComplete, Mode=OneWay}">
+                                    <Path Data="{StaticResource CheckCircleIconPath}"
+                                          Fill="#00CC6A"
+                                          Stretch="Uniform"/>
+                                </Viewbox>
+                                <!-- Normal: chevron -->
+                                <fluentIcons:SymbolIcon Grid.Column="2"
+                                          Symbol="ChevronDown" IconVariant="Regular"
+                                          FontSize="12"
+                                          VerticalAlignment="Center"
+                                          Visibility="{x:Bind ViewModel.Step3State.ShowChevron, Mode=OneWay}"
+                                          RenderTransformOrigin="0.5,0.5">
+                                    <fluentIcons:SymbolIcon.RenderTransform>
+                                        <RotateTransform Angle="{x:Bind ViewModel.Step3State.ChevronRotation, Mode=OneWay}"/>
+                                    </fluentIcons:SymbolIcon.RenderTransform>
+                                </fluentIcons:SymbolIcon>
+                            </Grid>
+                        </Border>
+
+                        <!-- Step 3 Content -->
+                        <StackPanel Visibility="{x:Bind ViewModel.Step3State.IsExpanded, Mode=OneWay}"
+                                    Padding="16,0,16,16"
+                                    Spacing="0">
+
+                            <ContentPresenter Content="{x:Bind ViewModel.ExtractSystemDriversCard}"
+                                              ContentTemplate="{StaticResource WizardActionCardTemplate}"/>
+
+                            <ContentPresenter Content="{x:Bind ViewModel.SelectCustomDriversCard}"
+                                              ContentTemplate="{StaticResource WizardActionCardTemplate}"/>
+                        </StackPanel>
+                    </StackPanel>
+
+                    <!-- Disabled overlay (SmokeFill) -->
+                    <Border Background="{ThemeResource SmokeFillColorDefaultBrush}"
+                            CornerRadius="4"
+                            Visibility="{x:Bind ViewModel.Step3State.IsLocked, Mode=OneWay}"/>
+                </Grid>
+            </Border>
+
+
+            <!-- ═══════════════════════════════════════════════════════ -->
+            <!-- STEP 4: Create ISO                                     -->
+            <!-- ═══════════════════════════════════════════════════════ -->
+            <Border Background="{ThemeResource CardBackgroundFillColorDefaultBrush}"
+                    BorderBrush="{ThemeResource CardStrokeColorDefaultBrush}"
+                    BorderThickness="1"
+                    CornerRadius="4">
+                <Grid>
+                    <StackPanel>
+                        <!-- Step 4 Header -->
+                        <Border Padding="16,12"
+                                Tapped="Step4_Header_Tapped"
+                                Background="Transparent">
+                            <Grid>
+                                <Grid.ColumnDefinitions>
+                                    <ColumnDefinition Width="Auto"/>
+                                    <ColumnDefinition Width="*"/>
+                                    <ColumnDefinition Width="Auto"/>
+                                </Grid.ColumnDefinitions>
+
+                                <Viewbox Grid.Column="0"
+                                         Width="24" Height="24"
+                                         VerticalAlignment="Center"
+                                         Margin="0,0,16,0">
+                                    <Path Data="{StaticResource WrenchClockIconPath}"
+                                          Fill="{ThemeResource TextFillColorPrimaryBrush}"
+                                          Stretch="Uniform"/>
+                                </Viewbox>
+
+                                <StackPanel Grid.Column="1" VerticalAlignment="Center">
+                                    <TextBlock Text="{x:Bind ViewModel.Step4State.Title, Mode=OneWay}"
+                                               Style="{StaticResource SubtitleTextBlockStyle}"
+                                               FontSize="16"/>
+                                    <TextBlock Text="{x:Bind ViewModel.Step4State.StatusText, Mode=OneWay}"
+                                               Style="{StaticResource CaptionTextBlockStyle}"
+                                               Foreground="{ThemeResource TextFillColorSecondaryBrush}"/>
+                                </StackPanel>
+
+                                <!-- Locked: padlock -->
+                                <Viewbox Grid.Column="2" Width="16" Height="16"
+                                         VerticalAlignment="Center"
+                                         Visibility="{x:Bind ViewModel.Step4State.IsLocked, Mode=OneWay}">
+                                    <Path Data="{StaticResource PrivacyIconPath}"
+                                          Fill="{ThemeResource AccentFillColorDefaultBrush}"
+                                          Stretch="Uniform"/>
+                                </Viewbox>
+                                <!-- Complete: check circle -->
+                                <Viewbox Grid.Column="2" Width="20" Height="20"
+                                         VerticalAlignment="Center"
+                                         Visibility="{x:Bind ViewModel.Step4State.IsComplete, Mode=OneWay}">
+                                    <Path Data="{StaticResource CheckCircleIconPath}"
+                                          Fill="#00CC6A"
+                                          Stretch="Uniform"/>
+                                </Viewbox>
+                                <!-- Normal: chevron -->
+                                <fluentIcons:SymbolIcon Grid.Column="2"
+                                          Symbol="ChevronDown" IconVariant="Regular"
+                                          FontSize="12"
+                                          VerticalAlignment="Center"
+                                          Visibility="{x:Bind ViewModel.Step4State.ShowChevron, Mode=OneWay}"
+                                          RenderTransformOrigin="0.5,0.5">
+                                    <fluentIcons:SymbolIcon.RenderTransform>
+                                        <RotateTransform Angle="{x:Bind ViewModel.Step4State.ChevronRotation, Mode=OneWay}"/>
+                                    </fluentIcons:SymbolIcon.RenderTransform>
+                                </fluentIcons:SymbolIcon>
+                            </Grid>
+                        </Border>
+
+                        <!-- Step 4 Content -->
+                        <StackPanel Visibility="{x:Bind ViewModel.Step4State.IsExpanded, Mode=OneWay}"
+                                    Padding="16,0,16,16"
+                                    Spacing="0">
+
+                            <!-- Download Oscdimg Card (conditional - hidden when already installed) -->
+                            <ContentPresenter Content="{x:Bind ViewModel.DownloadOscdimgCard}"
+                                              ContentTemplate="{StaticResource WizardActionCardTemplate}"
+                                              Visibility="{x:Bind ViewModel.IsOscdimgAvailable, Mode=OneWay, Converter={StaticResource InverseBooleanToVisibilityConverter}}"/>
+
+                            <!-- Select Output Card -->
+                            <ContentPresenter Content="{x:Bind ViewModel.SelectOutputCard}"
+                                              ContentTemplate="{StaticResource WizardActionCardTemplate}"/>
+
+                            <!-- Create ISO Button -->
+                            <Button Content="{x:Bind ViewModel.ButtonCreateIsoText}"
+                                    Style="{StaticResource AccentButtonStyle}"
+                                    Command="{x:Bind ViewModel.CreateIsoCommand}"
+                                    HorizontalAlignment="Center"
+                                    MinWidth="160"
+                                    Margin="0,8,0,4"/>
+                        </StackPanel>
+                    </StackPanel>
+
+                    <!-- Disabled overlay (SmokeFill) -->
+                    <Border Background="{ThemeResource SmokeFillColorDefaultBrush}"
+                            CornerRadius="4"
+                            Visibility="{x:Bind ViewModel.Step4State.IsLocked, Mode=OneWay}"/>
+                </Grid>
+            </Border>
+
+        </StackPanel>
+        </Grid>
+    </ScrollView>
+</Page>

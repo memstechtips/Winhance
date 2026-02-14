@@ -1,0 +1,46 @@
+<?xml version="1.0" encoding="utf-8"?>
+<Window
+    x:Class="Winhance.UI.Features.Common.Views.ConfigImportOverlayWindow"
+    xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+    xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+    Title="Winhance">
+
+    <Grid x:Name="RootGrid" Background="Black"
+          AutomationProperties.LiveSetting="Assertive">
+        <StackPanel HorizontalAlignment="Center" VerticalAlignment="Center" Spacing="24">
+            <!-- Logo + Branding -->
+            <StackPanel Orientation="Horizontal" HorizontalAlignment="Center" Spacing="16">
+                <Image x:Name="OverlayLogo" Width="128" Height="128" VerticalAlignment="Center"/>
+                <StackPanel VerticalAlignment="Center" Spacing="-4">
+                    <TextBlock x:Name="OverlayTitleText"
+                               FontSize="80"
+                               FontWeight="Bold"
+                               Foreground="White"/>
+                    <TextBlock x:Name="OverlayTaglineText"
+                               FontSize="16"
+                               Foreground="White"
+                               Opacity="0.7"/>
+                </StackPanel>
+            </StackPanel>
+
+            <!-- Status + Spinner -->
+            <StackPanel HorizontalAlignment="Center" Spacing="16">
+                <TextBlock x:Name="OverlayStatusText"
+                           HorizontalAlignment="Center"
+                           FontSize="14"
+                           Foreground="White"
+                           Opacity="0.8"/>
+                <TextBlock x:Name="OverlayDetailText"
+                           HorizontalAlignment="Center"
+                           FontSize="13"
+                           Foreground="White"
+                           Opacity="0.5"/>
+                <ProgressRing x:Name="OverlayProgressRing"
+                              IsActive="True"
+                              Width="40" Height="40"
+                              Foreground="White"
+                              AutomationProperties.Name="Import in progress"/>
+            </StackPanel>
+        </StackPanel>
+    </Grid>
+</Window>

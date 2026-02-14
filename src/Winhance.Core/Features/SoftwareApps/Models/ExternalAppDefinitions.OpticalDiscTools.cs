@@ -21,7 +21,8 @@ namespace Winhance.Core.Features.SoftwareApps.Models
                             Name = "ImgBurn",
                             Description = "Lightweight CD / DVD / HD DVD / Blu-ray burning application",
                             GroupName = "Optical Disc Tools",
-                            WinGetPackageId = "LIGHTNINGUK.ImgBurn",
+                            WinGetPackageId = ["LIGHTNINGUK.ImgBurn"],
+                            ChocoPackageId = "imgburn",
                             WebsiteUrl = "https://www.imgburn.com/"
                         },
                         new ItemDefinition
@@ -30,7 +31,7 @@ namespace Winhance.Core.Features.SoftwareApps.Models
                             Name = "AnyBurn",
                             Description = "Lightweight CD/DVD/Blu-ray burning software",
                             GroupName = "Optical Disc Tools",
-                            WinGetPackageId = "PowerSoftware.AnyBurn",
+                            WinGetPackageId = ["PowerSoftware.AnyBurn"],
                             WebsiteUrl = "http://www.anyburn.com/"
                         },
                         new ItemDefinition
@@ -39,7 +40,8 @@ namespace Winhance.Core.Features.SoftwareApps.Models
                             Name = "MakeMKV",
                             Description = "DVD and Blu-ray to MKV converter and streaming tool",
                             GroupName = "Optical Disc Tools",
-                            WinGetPackageId = "GuinpinSoft.MakeMKV",
+                            WinGetPackageId = ["GuinpinSoft.MakeMKV"],
+                            ChocoPackageId = "makemkv",
                             WebsiteUrl = "https://www.makemkv.com/"
                         }
                     }

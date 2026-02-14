@@ -21,7 +21,8 @@ namespace Winhance.Core.Features.SoftwareApps.Models
                             Name = "LibreOffice",
                             Description = "Free and open-source office suite",
                             GroupName = "Document Viewers",
-                            WinGetPackageId = "TheDocumentFoundation.LibreOffice",
+                            WinGetPackageId = ["TheDocumentFoundation.LibreOffice"],
+                            ChocoPackageId = "libreoffice-fresh",
                             WebsiteUrl = "https://www.libreoffice.org/"
                         },
                         new ItemDefinition
@@ -30,7 +31,8 @@ namespace Winhance.Core.Features.SoftwareApps.Models
                             Name = "ONLYOFFICE Desktop Editors",
                             Description = "100% open-source free alternative to Microsoft Office",
                             GroupName = "Document Viewers",
-                            WinGetPackageId = "ONLYOFFICE.DesktopEditors",
+                            WinGetPackageId = ["ONLYOFFICE.DesktopEditors"],
+                            ChocoPackageId = "onlyoffice",
                             WebsiteUrl = "https://www.onlyoffice.com/"
                         },
                         new ItemDefinition
@@ -39,7 +41,8 @@ namespace Winhance.Core.Features.SoftwareApps.Models
                             Name = "Foxit Reader",
                             Description = "Lightweight PDF reader with advanced features",
                             GroupName = "Document Viewers",
-                            WinGetPackageId = "XPFCG5NRKXQPKT", // Changed to use MS Store instead of WinGet due to download issues
+                            WinGetPackageId = ["XPFCG5NRKXQPKT"], // Changed to use MS Store instead of WinGet due to download issues
+                            ChocoPackageId = "foxitreader",
                             WebsiteUrl = "https://www.foxit.com/pdf-reader/"
                         },
                         new ItemDefinition
@@ -48,7 +51,8 @@ namespace Winhance.Core.Features.SoftwareApps.Models
                             Name = "SumatraPDF",
                             Description = "PDF, eBook (epub, mobi), comic book (cbz/cbr), DjVu, XPS, CHM, image viewer for Windows",
                             GroupName = "Document Viewers",
-                            WinGetPackageId = "SumatraPDF.SumatraPDF",
+                            WinGetPackageId = ["SumatraPDF.SumatraPDF"],
+                            ChocoPackageId = "sumatrapdf",
                             WebsiteUrl = "https://www.sumatrapdfreader.org/"
                         },
                         new ItemDefinition
@@ -57,7 +61,8 @@ namespace Winhance.Core.Features.SoftwareApps.Models
                             Name = "OpenOffice",
                             Description = "Discontinued open-source office suite. Active successor projects is LibreOffice",
                             GroupName = "Document Viewers",
-                            WinGetPackageId = "Apache.OpenOffice",
+                            WinGetPackageId = ["Apache.OpenOffice"],
+                            ChocoPackageId = "openoffice",
                             WebsiteUrl = "https://www.openoffice.org/"
                         },
                         new ItemDefinition
@@ -66,7 +71,8 @@ namespace Winhance.Core.Features.SoftwareApps.Models
                             Name = "Adobe Acrobat Reader DC",
                             Description = "PDF reader and editor",
                             GroupName = "Document Viewers",
-                            WinGetPackageId = "XPDP273C0XHQH2",
+                            WinGetPackageId = ["XPDP273C0XHQH2"],
+                            ChocoPackageId = "adobereader",
                             WebsiteUrl = "https://www.adobe.com/acrobat/pdf-reader.html"
                         },
                         new ItemDefinition
@@ -75,7 +81,8 @@ namespace Winhance.Core.Features.SoftwareApps.Models
                             Name = "Evernote",
                             Description = "Note-taking app",
                             GroupName = "Document Viewers",
-                            WinGetPackageId = "Evernote.Evernote",
+                            WinGetPackageId = ["Evernote.Evernote"],
+                            ChocoPackageId = "evernote",
                             WebsiteUrl = "https://evernote.com/"
                         },
                         new ItemDefinition
@@ -84,7 +91,8 @@ namespace Winhance.Core.Features.SoftwareApps.Models
                             Name = "CherryTree",
                             Description = "Hierarchical note taking application with rich text and syntax highlighting",
                             GroupName = "Document Viewers",
-                            WinGetPackageId = "Giuspen.Cherrytree",
+                            WinGetPackageId = ["Giuspen.Cherrytree"],
+                            ChocoPackageId = "cherrytree",
                             WebsiteUrl = "https://www.giuspen.net/cherrytree/"
                         },
                         new ItemDefinition
@@ -93,7 +101,8 @@ namespace Winhance.Core.Features.SoftwareApps.Models
                             Name = "Okular",
                             Description = "Universal document viewer supporting PDF, eBook, and more",
                             GroupName = "Document Viewers",
-                            WinGetPackageId = "KDE.Okular",
+                            WinGetPackageId = ["KDE.Okular"],
+                            ChocoPackageId = "okular",
                             WebsiteUrl = "https://okular.kde.org/"
                         },
                         new ItemDefinition
@@ -102,7 +111,8 @@ namespace Winhance.Core.Features.SoftwareApps.Models
                             Name = "PDF24 Creator",
                             Description = "Free PDF creator and converter",
                             GroupName = "Document Viewers",
-                            WinGetPackageId = "geeksoftwareGmbH.PDF24Creator",
+                            WinGetPackageId = ["geeksoftwareGmbH.PDF24Creator"],
+                            ChocoPackageId = "pdf24",
                             WebsiteUrl = "https://www.pdf24.org/"
                         },
                         new ItemDefinition
@@ -111,7 +121,8 @@ namespace Winhance.Core.Features.SoftwareApps.Models
                             Name = "Microsoft 365",
                             Description = "Microsoft Office productivity suite",
                             GroupName = "Document Viewers",
-                            WinGetPackageId = "Microsoft.Office",
+                            WinGetPackageId = ["Microsoft.Office"],
+                            ChocoPackageId = "office365business",
                             WebsiteUrl = "https://www.microsoft.com/microsoft-365"
                         }
                     }

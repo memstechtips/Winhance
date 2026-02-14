@@ -21,7 +21,8 @@ namespace Winhance.Core.Features.SoftwareApps.Models
                             Name = "WinDirStat",
                             Description = "Disk usage statistics viewer and cleanup tool",
                             GroupName = "File & Disk Management",
-                            WinGetPackageId = "WinDirStat.WinDirStat",
+                            WinGetPackageId = ["WinDirStat.WinDirStat"],
+                            ChocoPackageId = "windirstat",
                             WebsiteUrl = "https://windirstat.net/"
                         },
                         new ItemDefinition
@@ -30,7 +31,8 @@ namespace Winhance.Core.Features.SoftwareApps.Models
                             Name = "WizTree",
                             Description = "Disk space analyzer with extremely fast scanning",
                             GroupName = "File & Disk Management",
-                            WinGetPackageId = "AntibodySoftware.WizTree",
+                            WinGetPackageId = ["AntibodySoftware.WizTree"],
+                            ChocoPackageId = "wiztree",
                             WebsiteUrl = "https://www.diskanalyzer.com/"
                         },
                         new ItemDefinition
@@ -39,7 +41,8 @@ namespace Winhance.Core.Features.SoftwareApps.Models
                             Name = "TreeSize Free",
                             Description = "Disk space manager",
                             GroupName = "File & Disk Management",
-                            WinGetPackageId = "JAMSoftware.TreeSize.Free",
+                            WinGetPackageId = ["JAMSoftware.TreeSize.Free"],
+                            ChocoPackageId = "treesizefree",
                             WebsiteUrl = "https://www.jam-software.com/treesize_free"
                         },
                         new ItemDefinition
@@ -48,7 +51,8 @@ namespace Winhance.Core.Features.SoftwareApps.Models
                             Name = "Everything",
                             Description = "Locate files and folders by name instantly",
                             GroupName = "File & Disk Management",
-                            WinGetPackageId = "voidtools.Everything",
+                            WinGetPackageId = ["voidtools.Everything"],
+                            ChocoPackageId = "everything",
                             WebsiteUrl = "https://www.voidtools.com/"
                         },
                         new ItemDefinition
@@ -57,7 +61,8 @@ namespace Winhance.Core.Features.SoftwareApps.Models
                             Name = "TeraCopy",
                             Description = "Copy files faster and more securely",
                             GroupName = "File & Disk Management",
-                            WinGetPackageId = "CodeSector.TeraCopy",
+                            WinGetPackageId = ["CodeSector.TeraCopy"],
+                            ChocoPackageId = "teracopy",
                             WebsiteUrl = "https://www.codesector.com/teracopy"
                         },
                         new ItemDefinition
@@ -66,7 +71,8 @@ namespace Winhance.Core.Features.SoftwareApps.Models
                             Name = "File Converter",
                             Description = "Batch file converter for Windows",
                             GroupName = "File & Disk Management",
-                            WinGetPackageId = "AdrienAllard.FileConverter",
+                            WinGetPackageId = ["AdrienAllard.FileConverter"],
+                            ChocoPackageId = "file-converter",
                             WebsiteUrl = "https://file-converter.io/"
                         },
                         new ItemDefinition
@@ -75,7 +81,8 @@ namespace Winhance.Core.Features.SoftwareApps.Models
                             Name = "Crystal Disk Info",
                             Description = "Hard drive health monitoring utility",
                             GroupName = "File & Disk Management",
-                            WinGetPackageId = "WsSolInfor.CrystalDiskInfo",
+                            WinGetPackageId = ["WsSolInfor.CrystalDiskInfo"],
+                            ChocoPackageId = "crystaldiskinfo",
                             WebsiteUrl = "https://crystalmark.info/en/software/crystaldiskinfo/"
                         },
                         new ItemDefinition
@@ -84,7 +91,8 @@ namespace Winhance.Core.Features.SoftwareApps.Models
                             Name = "Bulk Rename Utility",
                             Description = "File renaming software for Windows",
                             GroupName = "File & Disk Management",
-                            WinGetPackageId = "TGRMNSoftware.BulkRenameUtility",
+                            WinGetPackageId = ["TGRMNSoftware.BulkRenameUtility"],
+                            ChocoPackageId = "bulkrenameutility",
                             WebsiteUrl = "https://www.bulkrenameutility.co.uk/"
                         },
                         new ItemDefinition
@@ -93,7 +101,8 @@ namespace Winhance.Core.Features.SoftwareApps.Models
                             Name = "IObit Unlocker",
                             Description = "Tool to unlock files that are in use by other processes",
                             GroupName = "File & Disk Management",
-                            WinGetPackageId = "IObit.IObitUnlocker",
+                            WinGetPackageId = ["IObit.IObitUnlocker"],
+                            ChocoPackageId = "iobit-unlocker",
                             WebsiteUrl = "https://www.iobit.com/en/iobit-unlocker.php"
                         },
                         new ItemDefinition
@@ -102,7 +111,7 @@ namespace Winhance.Core.Features.SoftwareApps.Models
                             Name = "HiBit Uninstaller",
                             Description = "Completely Uninstall Stubborn Software, Windows Apps & Browser Extension",
                             GroupName = "File & Disk Management",
-                            WinGetPackageId = "HiBitSoftware.HiBitUninstaller",
+                            WinGetPackageId = ["HiBitSoftware.HiBitUninstaller"],
                             WebsiteUrl = "https://www.hibitsoft.ir/Uninstaller.html"
                         },
                         new ItemDefinition
@@ -111,7 +120,8 @@ namespace Winhance.Core.Features.SoftwareApps.Models
                             Name = "Ventoy",
                             Description = "Open source tool to create bootable USB drive for ISO files",
                             GroupName = "File & Disk Management",
-                            WinGetPackageId = "Ventoy.Ventoy",
+                            WinGetPackageId = ["Ventoy.Ventoy"],
+                            ChocoPackageId = "ventoy",
                             WebsiteUrl = "https://www.ventoy.net/"
                         }
                     }

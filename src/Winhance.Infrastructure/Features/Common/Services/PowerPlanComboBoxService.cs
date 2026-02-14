@@ -6,7 +6,7 @@ using Winhance.Core.Features.Optimize.Models;
 namespace Winhance.Infrastructure.Features.Common.Services
 {
     public class PowerPlanComboBoxService(
-        IPowerCfgQueryService powerCfgQueryService,
+        IPowerSettingsQueryService powerSettingsQueryService,
         ILogService logService) : IPowerPlanComboBoxService
     {
 
@@ -50,7 +50,7 @@ namespace Winhance.Infrastructure.Features.Common.Services
         {
             logService.Log(LogLevel.Info, "[PowerPlanComboBoxService] Starting power plan options discovery");
             
-            var systemPlans = await powerCfgQueryService.GetAvailablePowerPlansAsync();
+            var systemPlans = await powerSettingsQueryService.GetAvailablePowerPlansAsync();
             var options = new List<PowerPlanComboBoxOption>();
             var processedGuids = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
             var processedNames = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
@@ -154,7 +154,7 @@ namespace Winhance.Infrastructure.Features.Common.Services
         {
             try
             {
-                var activePlan = await powerCfgQueryService.GetActivePowerPlanAsync();
+                var activePlan = await powerSettingsQueryService.GetActivePowerPlanAsync();
                 if (activePlan == null) return 0;
 
                 for (int i = 0; i < options.Count; i++)
@@ -205,6 +205,11 @@ namespace Winhance.Infrastructure.Features.Common.Services
             bool hasPerformanceWord = performanceWords.Any(word => cleanName.Contains(word));
             
             return hasUltimateWord && hasPerformanceWord;
+        }
+
+        public void InvalidateCache()
+        {
+            powerSettingsQueryService.InvalidateCache();
         }
 
         private string CleanPlanName(string name)

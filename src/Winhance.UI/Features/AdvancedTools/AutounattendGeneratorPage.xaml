@@ -1,0 +1,50 @@
+<?xml version="1.0" encoding="utf-8"?>
+<Page
+    x:Class="Winhance.UI.Features.AdvancedTools.AutounattendGeneratorPage"
+    xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+    xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+    xmlns:controls="using:CommunityToolkit.WinUI.Controls"
+    x:DefaultBindMode="OneWay"
+    NavigationCacheMode="Disabled">
+
+    <ScrollView Padding="0,12,0,12">
+        <!-- Wrap StackPanel in Grid to avoid visual glitches with MaxWidth -->
+        <Grid>
+        <StackPanel Spacing="8" MaxWidth="{StaticResource SettingsContentMaxWidth}" Margin="{StaticResource SettingsContentMargin}" HorizontalAlignment="Stretch">
+
+            <!-- Generate Autounattend XML Card -->
+            <Grid>
+                <controls:SettingsCard
+                    Header="{x:Bind ViewModel.GenerateCardHeader}"
+                    Description="{x:Bind ViewModel.GenerateCardDescription}">
+                    <controls:SettingsCard.HeaderIcon>
+                        <PathIcon Data="{StaticResource AutounattendXmlIconPath}"/>
+                    </controls:SettingsCard.HeaderIcon>
+                    <Button
+                        Content="{x:Bind ViewModel.GenerateButtonText}"
+                        Style="{StaticResource AccentButtonStyle}"
+                        Command="{x:Bind ViewModel.GenerateAutounattendXmlCommand}"/>
+                </controls:SettingsCard>
+
+                <!-- Loading overlay -->
+                <Border
+                    Visibility="{x:Bind ViewModel.IsGenerating, Mode=OneWay}"
+                    Background="{ThemeResource SmokeFillColorDefaultBrush}"
+                    CornerRadius="4">
+                    <ProgressRing IsActive="{x:Bind ViewModel.IsGenerating, Mode=OneWay}" Width="24" Height="24"/>
+                </Border>
+            </Grid>
+
+            <!-- Info Bar -->
+            <InfoBar
+                Title="{x:Bind ViewModel.InfoBarTitle}"
+                Message="{x:Bind ViewModel.InfoBarMessage}"
+                Severity="Informational"
+                IsOpen="True"
+                IsClosable="False"
+                Margin="0,16,0,0"/>
+
+        </StackPanel>
+        </Grid>
+    </ScrollView>
+</Page>

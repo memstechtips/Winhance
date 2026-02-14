@@ -18,6 +18,16 @@ namespace Winhance.Core.Features.Common.Enums
         /// <summary>
         /// Import recommended configuration.
         /// </summary>
-        ImportRecommended
+        ImportRecommended,
+
+        /// <summary>
+        /// Import user backup configuration.
+        /// </summary>
+        ImportBackup,
+
+        /// <summary>
+        /// Import Windows defaults configuration.
+        /// </summary>
+        ImportWindowsDefaults
     }
 }

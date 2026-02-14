@@ -1,16 +1,13 @@
-using System.IO;
-using System.Text.RegularExpressions;
 using Winhance.Core.Features.Common.Enums;
 using Winhance.Core.Features.Common.Interfaces;
 using Winhance.Core.Features.Common.Models;
-using Winhance.Core.Features.Common.Utils;
+using Winhance.Core.Features.Common.Native;
 
 namespace Winhance.Infrastructure.Features.Common.Services;
 
 public class PowerSettingsValidationService(
-    ICommandService commandService,
     ILogService logService,
-    IPowerCfgQueryService powerCfgQueryService,
+    IPowerSettingsQueryService powerSettingsQueryService,
     IWindowsRegistryService registryService) : IPowerSettingsValidationService
 {
     public async Task<IEnumerable<SettingDefinition>> FilterSettingsByExistenceAsync(IEnumerable<SettingDefinition> settings)
@@ -18,7 +15,7 @@ public class PowerSettingsValidationService(
         var settingsList = settings.ToList();
         var originalCount = settingsList.Count;
 
-        var bulkPowerValues = await powerCfgQueryService.GetAllPowerSettingsACDCAsync("SCHEME_CURRENT");
+        var bulkPowerValues = await powerSettingsQueryService.GetAllPowerSettingsACDCAsync("SCHEME_CURRENT");
 
         if (!bulkPowerValues.Any())
         {
@@ -57,7 +54,7 @@ public class PowerSettingsValidationService(
                         logService.Log(LogLevel.Info, $"Successfully enabled hidden power setting: {settingKey}");
 
                         await Task.Delay(100);
-                        var updatedPowerValues = await powerCfgQueryService.GetAllPowerSettingsACDCAsync("SCHEME_CURRENT");
+                        var updatedPowerValues = await powerSettingsQueryService.GetAllPowerSettingsACDCAsync("SCHEME_CURRENT");
 
                         if (updatedPowerValues.ContainsKey(settingKey))
                         {
@@ -78,7 +75,7 @@ public class PowerSettingsValidationService(
 
                 foreach (var powerCfgSetting in setting.PowerCfgSettings.Where(p => p.CheckForHardwareControl))
                 {
-                    if (await powerCfgQueryService.IsSettingHardwareControlledAsync(powerCfgSetting))
+                    if (await powerSettingsQueryService.IsSettingHardwareControlledAsync(powerCfgSetting))
                     {
                         logService.Log(LogLevel.Info,
                             $"Filtering out hardware-controlled setting: {setting.Id} ({powerCfgSetting.SettingGUIDAlias})");
@@ -103,67 +100,22 @@ public class PowerSettingsValidationService(
         return validatedSettings;
     }
 
-    public async Task<bool> IsHibernationEnabledAsync()
+    public Task<bool> IsHibernationEnabledAsync()
     {
         try
         {
-            if (File.Exists(@"C:\hiberfil.sys"))
+            if (PowerProf.GetPwrCapabilities(out var caps))
             {
-                return true;
+                return Task.FromResult(caps.SystemS4 && caps.HiberFilePresent);
             }
 
-            return await CheckHibernationFromPowercfgA();
+            logService.Log(LogLevel.Warning, "GetPwrCapabilities failed, falling back to hiberfil.sys check");
+            return Task.FromResult(System.IO.File.Exists(@"C:\hiberfil.sys"));
         }
         catch (Exception ex)
         {
             logService.Log(LogLevel.Error, $"Error checking hibernation: {ex.Message}");
-            return false;
+            return Task.FromResult(false);
         }
-    }
-
-    private async Task<bool> CheckHibernationFromPowercfgA()
-    {
-        var result = await commandService.ExecuteCommandAsync("powercfg /a");
-        if (!result.Success || string.IsNullOrEmpty(result.Output))
-        {
-            return false;
-        }
-
-        var lines = result.Output.Split(new[] { '\r', '\n' }, StringSplitOptions.RemoveEmptyEntries);
-        bool inAvailableSection = false;
-
-        var hibernationKeywords = new[] {
-            "hibernate", "hibernation", "ruhezustand", "hibernación",
-            "hibernação", "ibernazione", "slaapstand"
-        };
-
-        foreach (var line in lines)
-        {
-            var trimmedLine = line.Trim().ToLowerInvariant();
-
-            if (trimmedLine.Contains("available on this system") && !trimmedLine.Contains("not available"))
-            {
-                inAvailableSection = true;
-                continue;
-            }
-            else if (trimmedLine.Contains("not available on this system"))
-            {
-                inAvailableSection = false;
-                continue;
-            }
-
-            if (inAvailableSection)
-            {
-                foreach (var keyword in hibernationKeywords)
-                {
-                    if (trimmedLine.Contains(keyword))
-                    {
-                        return true;
-                    }
-                }
-            }
-        }
-
-        return false;
     }
 }

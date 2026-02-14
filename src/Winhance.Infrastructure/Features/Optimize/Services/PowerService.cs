@@ -1,13 +1,17 @@
 using System;
 using System.Collections.Generic;
+using System.Diagnostics;
 using System.IO;
 using System.Linq;
+using System.Runtime.InteropServices;
+using System.Text;
 using System.Threading.Tasks;
 using Winhance.Core.Features.Common.Constants;
 using Winhance.Core.Features.Common.Enums;
 using Winhance.Core.Features.Common.Events;
 using Winhance.Core.Features.Common.Interfaces;
 using Winhance.Core.Features.Common.Models;
+using Winhance.Core.Features.Common.Native;
 using Winhance.Core.Features.Common.Utils;
 using Winhance.Core.Features.Optimize.Interfaces;
 using Winhance.Core.Features.Optimize.Models;
@@ -17,12 +21,12 @@ namespace Winhance.Infrastructure.Features.Optimize.Services
 {
     public class PowerService(
         ILogService logService,
-        ICommandService commandService,
-        IPowerCfgQueryService powerCfgQueryService,
+        IPowerSettingsQueryService powerSettingsQueryService,
         ICompatibleSettingsRegistry compatibleSettingsRegistry,
         IEventBus eventBus,
         IWindowsRegistryService registryService,
-        IPowerPlanComboBoxService powerPlanComboBoxService) : IPowerService
+        IPowerPlanComboBoxService powerPlanComboBoxService,
+        IScheduledTaskService scheduledTaskService) : IPowerService
     {
         private IEnumerable<SettingDefinition>? _cachedSettings;
         private readonly object _cacheLock = new object();
@@ -123,7 +127,7 @@ namespace Winhance.Infrastructure.Features.Optimize.Services
         {
             try
             {
-                return await powerCfgQueryService.GetActivePowerPlanAsync();
+                return await powerSettingsQueryService.GetActivePowerPlanAsync();
             }
             catch (Exception ex)
             {
@@ -136,15 +140,21 @@ namespace Winhance.Infrastructure.Features.Optimize.Services
         {
             try
             {
-                await commandService.ExecuteCommandAsync($"powercfg /setacvalueindex {powerPlanGuid} {subgroupGuid} {settingGuid} {acValue}");
-                await commandService.ExecuteCommandAsync($"powercfg /setdcvalueindex {powerPlanGuid} {subgroupGuid} {settingGuid} {dcValue}");
-                await commandService.ExecuteCommandAsync($"powercfg /setactive {powerPlanGuid}");
+                var schemeGuid = Guid.Parse(powerPlanGuid);
+                var subGroupGuid = Guid.Parse(subgroupGuid);
+                var settGuid = Guid.Parse(settingGuid);
+
+                PowerProf.PowerWriteACValueIndex(IntPtr.Zero, ref schemeGuid, ref subGroupGuid, ref settGuid, (uint)acValue);
+                PowerProf.PowerWriteDCValueIndex(IntPtr.Zero, ref schemeGuid, ref subGroupGuid, ref settGuid, (uint)dcValue);
+                PowerProf.PowerSetActiveScheme(IntPtr.Zero, ref schemeGuid);
             }
             catch (Exception ex)
             {
                 logService.Log(LogLevel.Error, $"Error applying advanced power setting: {ex.Message}");
                 throw;
             }
+
+            await Task.CompletedTask;
         }
 
 
@@ -152,7 +162,7 @@ namespace Winhance.Infrastructure.Features.Optimize.Services
         {
             try
             {
-                var powerPlans = await powerCfgQueryService.GetAvailablePowerPlansAsync();
+                var powerPlans = await powerSettingsQueryService.GetAvailablePowerPlansAsync();
                 return powerPlans.Cast<object>().ToList();
             }
             catch (Exception ex)
@@ -167,21 +177,23 @@ namespace Winhance.Infrastructure.Features.Optimize.Services
         {
             try
             {
-                var currentActivePlan = await powerCfgQueryService.GetActivePowerPlanAsync();
+                var currentActivePlan = await powerSettingsQueryService.GetActivePowerPlanAsync();
                 if (currentActivePlan != null && string.Equals(currentActivePlan.Guid, powerPlanGuid, StringComparison.OrdinalIgnoreCase))
                 {
                     logService.Log(LogLevel.Info, $"Power plan {powerPlanGuid} is already active, skipping application");
                     return true;
                 }
 
-                var result = await commandService.ExecuteCommandAsync($"powercfg /setactive {powerPlanGuid}");
-                
-                if (result.Success)
+                var schemeGuid = Guid.Parse(powerPlanGuid);
+                var result = PowerProf.PowerSetActiveScheme(IntPtr.Zero, ref schemeGuid);
+
+                if (result == PowerProf.ERROR_SUCCESS)
                 {
-                    powerCfgQueryService.InvalidateCache();
+                    powerSettingsQueryService.InvalidateCache();
                     return true;
                 }
-                
+
+                logService.Log(LogLevel.Warning, $"PowerSetActiveScheme failed with code {result}");
                 return false;
             }
             catch (Exception ex)
@@ -195,12 +207,15 @@ namespace Winhance.Infrastructure.Features.Optimize.Services
         {
             try
             {
-                var acCommand = $"powercfg /query {powerPlanGuid} {subgroupGuid} {settingGuid}";
-                var result = await commandService.ExecuteCommandAsync(acCommand);
+                var schemeGuid = Guid.Parse(powerPlanGuid);
+                var subGroupGuid = Guid.Parse(subgroupGuid);
+                var settGuid = Guid.Parse(settingGuid);
 
-                int acValue = OutputParser.PowerCfg.ParsePowerSettingValue(result.Output, "Current AC Power Setting Index:") ?? 0;
-                int dcValue = OutputParser.PowerCfg.ParsePowerSettingValue(result.Output, "Current DC Power Setting Index:") ?? 0;
-                return (acValue, dcValue);
+                var acResult = PowerProf.PowerReadACValueIndex(IntPtr.Zero, ref schemeGuid, ref subGroupGuid, ref settGuid, out uint acValue);
+                var dcResult = PowerProf.PowerReadDCValueIndex(IntPtr.Zero, ref schemeGuid, ref subGroupGuid, ref settGuid, out uint dcValue);
+
+                return ((int)(acResult == PowerProf.ERROR_SUCCESS ? acValue : 0),
+                        (int)(dcResult == PowerProf.ERROR_SUCCESS ? dcValue : 0));
             }
             catch (Exception ex)
             {
@@ -222,17 +237,18 @@ namespace Winhance.Infrastructure.Features.Optimize.Services
                     return false;
                 }
 
-                var result = await commandService.ExecuteCommandAsync($"powercfg /delete {powerPlanGuid}");
+                var schemeGuid = Guid.Parse(powerPlanGuid);
+                var result = PowerProf.PowerDeleteScheme(IntPtr.Zero, ref schemeGuid);
 
-                if (result.Success)
+                if (result == PowerProf.ERROR_SUCCESS)
                 {
-                    powerCfgQueryService.InvalidateCache();
+                    powerSettingsQueryService.InvalidateCache();
                     logService.Log(LogLevel.Info, $"Successfully deleted power plan: {powerPlanGuid}");
                     return true;
                 }
                 else
                 {
-                    logService.Log(LogLevel.Error, $"Failed to delete power plan: {powerPlanGuid}. Error: {result.Error}");
+                    logService.Log(LogLevel.Error, $"Failed to delete power plan: {powerPlanGuid}. Error code: {result}");
                     return false;
                 }
             }
@@ -254,7 +270,7 @@ namespace Winhance.Infrastructure.Features.Optimize.Services
 
             var previousPlan = await GetActivePowerPlanAsync();
 
-            var systemPlans = await powerCfgQueryService.GetAvailablePowerPlansAsync();
+            var systemPlans = await powerSettingsQueryService.GetAvailablePowerPlansAsync();
             var planExists = systemPlans.Any(p => string.Equals(p.Guid, powerPlanGuid, StringComparison.OrdinalIgnoreCase));
 
             bool success = false;
@@ -274,12 +290,13 @@ namespace Winhance.Infrastructure.Features.Optimize.Services
                         logService.Log(LogLevel.Info, $"[PowerService] Successfully imported '{predefinedPlan.Name}', activating");
                         await Task.Delay(200);
 
-                        var activateCommand = await commandService.ExecuteCommandAsync($"powercfg /setactive {importResult.ImportedGuid}");
-                        success = activateCommand.Success;
+                        var importedSchemeGuid = Guid.Parse(importResult.ImportedGuid);
+                        var activateResult = PowerProf.PowerSetActiveScheme(IntPtr.Zero, ref importedSchemeGuid);
+                        success = activateResult == PowerProf.ERROR_SUCCESS;
 
                         if (success)
                         {
-                            powerCfgQueryService.InvalidateCache();
+                            powerSettingsQueryService.InvalidateCache();
                             ClearSettingsCache();
                             logService.Log(LogLevel.Info, $"[PowerService] Successfully activated imported plan");
                         }
@@ -287,18 +304,18 @@ namespace Winhance.Infrastructure.Features.Optimize.Services
                         {
                             logService.Log(LogLevel.Warning, $"[PowerService] First activation failed, retrying...");
                             await Task.Delay(500);
-                            activateCommand = await commandService.ExecuteCommandAsync($"powercfg /setactive {importResult.ImportedGuid}");
-                            success = activateCommand.Success;
+                            activateResult = PowerProf.PowerSetActiveScheme(IntPtr.Zero, ref importedSchemeGuid);
+                            success = activateResult == PowerProf.ERROR_SUCCESS;
 
                             if (success)
                             {
-                                powerCfgQueryService.InvalidateCache();
+                                powerSettingsQueryService.InvalidateCache();
                                 ClearSettingsCache();
                                 logService.Log(LogLevel.Info, $"[PowerService] Successfully activated on retry");
                             }
                             else
                             {
-                                logService.Log(LogLevel.Error, $"[PowerService] Failed to activate after import: {activateCommand.Error}");
+                                logService.Log(LogLevel.Error, $"[PowerService] Failed to activate after import. Error code: {activateResult}");
                             }
                         }
 
@@ -347,7 +364,7 @@ namespace Winhance.Infrastructure.Features.Optimize.Services
             }
 
             var previousPlan = await GetActivePowerPlanAsync();
-            var systemPlans = await powerCfgQueryService.GetAvailablePowerPlansAsync();
+            var systemPlans = await powerSettingsQueryService.GetAvailablePowerPlansAsync();
             var planExists = systemPlans.Any(p => string.Equals(p.Guid, powerPlanGuid, StringComparison.OrdinalIgnoreCase));
 
             bool success = false;
@@ -382,23 +399,33 @@ namespace Winhance.Infrastructure.Features.Optimize.Services
                 {
                     logService.Log(LogLevel.Info, $"[PowerService] Custom power plan '{planName}' - creating by duplicating Balanced");
 
-                    var balancedGuid = "381b4222-f694-41f0-9685-ff5bb260df2e";
-                    var duplicateCmd = $"powercfg /duplicatescheme {balancedGuid} {powerPlanGuid}";
-                    var result = await commandService.ExecuteCommandAsync(duplicateCmd);
+                    var balancedGuid = Guid.Parse("381b4222-f694-41f0-9685-ff5bb260df2e");
+                    var dupResult = PowerProf.PowerDuplicateScheme(IntPtr.Zero, ref balancedGuid, out var destPtr);
 
-                    if (result.Success)
+                    if (dupResult == PowerProf.ERROR_SUCCESS)
                     {
-                        await commandService.ExecuteCommandAsync($"powercfg /changename {powerPlanGuid} \"{planName}\"");
+                        var newGuid = Marshal.PtrToStructure<Guid>(destPtr);
+                        PowerProf.LocalFree(destPtr);
 
-                        powerCfgQueryService.InvalidateCache();
+                        // If a specific GUID was requested, we need to use powercfg to create with that GUID
+                        // PowerDuplicateScheme doesn't support specifying destination GUID directly
+                        // Delete the auto-generated one and use Process.Start for specific GUID
+                        PowerProf.PowerDeleteScheme(IntPtr.Zero, ref newGuid);
+
+                        // Use process-based duplication for specific GUID
+                        await RunPowercfgAsync($"/duplicatescheme {balancedGuid:D} {powerPlanGuid}");
+
+                        SetPowerPlanName(Guid.Parse(powerPlanGuid), planName);
+
+                        powerSettingsQueryService.InvalidateCache();
                         logService.Log(LogLevel.Info, $"[PowerService] Successfully created custom plan '{planName}' with GUID {powerPlanGuid}");
 
                         success = await SetActivePowerPlanAsync(powerPlanGuid);
                     }
                     else
                     {
-                        logService.Log(LogLevel.Error, $"[PowerService] Failed to create custom plan: {result.Error}");
-                        throw new InvalidOperationException($"Failed to create custom power plan '{planName}': {result.Error}");
+                        logService.Log(LogLevel.Error, $"[PowerService] Failed to create custom plan. Error code: {dupResult}");
+                        throw new InvalidOperationException($"Failed to create custom power plan '{planName}'. Error code: {dupResult}");
                     }
                 }
             }
@@ -435,7 +462,7 @@ namespace Winhance.Infrastructure.Features.Optimize.Services
                 if (!powerSettings.Any())
                     return new Dictionary<string, int?>();
 
-                var allSettings = await powerCfgQueryService.GetAllPowerSettingsACDCAsync("SCHEME_CURRENT");
+                var allSettings = await powerSettingsQueryService.GetAllPowerSettingsACDCAsync("SCHEME_CURRENT");
 
                 var results = new Dictionary<string, int?>();
                 foreach (var setting in powerSettings)
@@ -468,7 +495,7 @@ namespace Winhance.Infrastructure.Features.Optimize.Services
 
                 if (predefinedPlan.Name == "Ultimate Performance")
                 {
-                    var systemPlans = await powerCfgQueryService.GetAvailablePowerPlansAsync();
+                    var systemPlans = await powerSettingsQueryService.GetAvailablePowerPlansAsync();
                     var existingPlan = systemPlans.FirstOrDefault(p => IsUltimatePerformancePlan(p.Name));
 
                     if (existingPlan != null)
@@ -481,33 +508,30 @@ namespace Winhance.Infrastructure.Features.Optimize.Services
                         systemPlans.Select(p => CleanPlanName(p.Name)),
                         StringComparer.OrdinalIgnoreCase);
 
-                    var command = $"powercfg /duplicatescheme {predefinedPlan.Guid}";
-                    var result = await commandService.ExecuteCommandAsync(command);
+                    var sourceGuid = Guid.Parse(predefinedPlan.Guid);
+                    var dupResult = PowerProf.PowerDuplicateScheme(IntPtr.Zero, ref sourceGuid, out var destPtr);
 
-                    if (result.Success)
+                    if (dupResult == PowerProf.ERROR_SUCCESS)
                     {
-                        powerCfgQueryService.InvalidateCache();
+                        var newGuid = Marshal.PtrToStructure<Guid>(destPtr);
+                        PowerProf.LocalFree(destPtr);
 
-                        // Try to parse GUID directly from output to avoid race conditions
-                        var actualGuid = OutputParser.PowerCfg.ExtractGuid(result.Output);
+                        powerSettingsQueryService.InvalidateCache();
 
-                        if (string.IsNullOrEmpty(actualGuid))
-                        {
-                            actualGuid = await FindNewlyCreatedPlanGuidAsync(predefinedPlan.Name, existingPlanNames);
-                        }
+                        var actualGuid = newGuid.ToString("D");
 
                         if (!string.IsNullOrEmpty(actualGuid))
                         {
-                            await commandService.ExecuteCommandAsync($"powercfg /changename {actualGuid} \"{predefinedPlan.Name}\" \"{predefinedPlan.Description}\"");
+                            SetPowerPlanNameAndDescription(newGuid, predefinedPlan.Name, predefinedPlan.Description);
                             return new PowerPlanImportResult(true, actualGuid);
                         }
                     }
 
-                    return new PowerPlanImportResult(false, "", result.Output ?? result.Error ?? "Ultimate Performance creation failed");
+                    return new PowerPlanImportResult(false, "", "Ultimate Performance creation failed");
                 }
                 else
                 {
-                    var systemPlans = await powerCfgQueryService.GetAvailablePowerPlansAsync();
+                    var systemPlans = await powerSettingsQueryService.GetAvailablePowerPlansAsync();
                     var existingPlan = systemPlans.FirstOrDefault(p =>
                         string.Equals(p.Guid, predefinedPlan.Guid, StringComparison.OrdinalIgnoreCase));
 
@@ -522,19 +546,17 @@ namespace Winhance.Infrastructure.Features.Optimize.Services
                         StringComparer.OrdinalIgnoreCase);
 
                     logService.Log(LogLevel.Info, $"Attempting to duplicate power plan '{predefinedPlan.Name}' using GUID {predefinedPlan.Guid}");
-                    var duplicateResult = await commandService.ExecuteCommandAsync($"powercfg /duplicatescheme {predefinedPlan.Guid}");
+                    var srcGuid = Guid.Parse(predefinedPlan.Guid);
+                    var duplicateResult = PowerProf.PowerDuplicateScheme(IntPtr.Zero, ref srcGuid, out var dupDestPtr);
 
-                    if (duplicateResult.Success)
+                    if (duplicateResult == PowerProf.ERROR_SUCCESS)
                     {
-                        powerCfgQueryService.InvalidateCache();
+                        var dupNewGuid = Marshal.PtrToStructure<Guid>(dupDestPtr);
+                        PowerProf.LocalFree(dupDestPtr);
 
-                        // Try to parse GUID directly from output to avoid race conditions
-                        var actualGuid = OutputParser.PowerCfg.ExtractGuid(duplicateResult.Output);
+                        powerSettingsQueryService.InvalidateCache();
 
-                        if (string.IsNullOrEmpty(actualGuid))
-                        {
-                            actualGuid = await FindNewlyCreatedPlanGuidAsync(predefinedPlan.Name, existingPlanNames);
-                        }
+                        var actualGuid = dupNewGuid.ToString("D");
 
                         if (!string.IsNullOrEmpty(actualGuid))
                         {
@@ -561,21 +583,21 @@ namespace Winhance.Infrastructure.Features.Optimize.Services
             {
                 await BackupCustomPlansAsync(backupDir);
 
-                var restoreResult = await commandService.ExecuteCommandAsync("powercfg /restoredefaultschemes");
-                if (!restoreResult.Success)
+                var restoreResult = PowerProf.PowerRestoreDefaultPowerSchemes();
+                if (restoreResult != PowerProf.ERROR_SUCCESS)
                     return new PowerPlanImportResult(false, "", "Failed to restore default schemes");
 
                 await Task.Delay(1000);
                 await RestoreCustomPlansAsync(backupDir);
 
-                powerCfgQueryService.InvalidateCache();
+                powerSettingsQueryService.InvalidateCache();
 
                 if (Directory.Exists(backupDir))
                 {
                     Directory.Delete(backupDir, true);
                 }
 
-                var plans = await powerCfgQueryService.GetAvailablePowerPlansAsync();
+                var plans = await powerSettingsQueryService.GetAvailablePowerPlansAsync();
                 var targetGuid = plans.FirstOrDefault(p =>
                     string.Equals(CleanPlanName(p.Name), targetPlan.Name, StringComparison.OrdinalIgnoreCase))?.Guid;
 
@@ -595,7 +617,7 @@ namespace Winhance.Infrastructure.Features.Optimize.Services
         {
             Directory.CreateDirectory(backupFolder);
 
-            var allPlans = await powerCfgQueryService.GetAvailablePowerPlansAsync();
+            var allPlans = await powerSettingsQueryService.GetAvailablePowerPlansAsync();
             var customPlans = IdentifyCustomPlans(allPlans);
 
             foreach (var plan in customPlans)
@@ -604,7 +626,8 @@ namespace Winhance.Infrastructure.Features.Optimize.Services
                 var filename = $"{SanitizeFilename(plan.Name)}_{timestamp}.pow";
                 var filepath = Path.Combine(backupFolder, filename);
 
-                await commandService.ExecuteCommandAsync($"powercfg /export \"{filepath}\" {plan.Guid}");
+                // PowerExportPowerScheme is not available as P/Invoke, use Process.Start
+                await RunPowercfgAsync($"/export \"{filepath}\" {plan.Guid}");
             }
         }
 
@@ -615,7 +638,11 @@ namespace Winhance.Infrastructure.Features.Optimize.Services
             var backupFiles = Directory.GetFiles(backupFolder, "*.pow");
             foreach (var file in backupFiles)
             {
-                await commandService.ExecuteCommandAsync($"powercfg /import \"{file}\"");
+                var importResult = PowerProf.PowerImportPowerScheme(IntPtr.Zero, file, out var importedPtr);
+                if (importResult == PowerProf.ERROR_SUCCESS)
+                {
+                    PowerProf.LocalFree(importedPtr);
+                }
                 await Task.Delay(200);
             }
         }
@@ -650,7 +677,7 @@ namespace Winhance.Infrastructure.Features.Optimize.Services
         {
             await Task.Delay(500);
 
-            var plansAfter = await powerCfgQueryService.GetAvailablePowerPlansAsync();
+            var plansAfter = await powerSettingsQueryService.GetAvailablePowerPlansAsync();
 
             var newPlans = plansAfter.Where(p => !existingPlanNames.Contains(CleanPlanName(p.Name))).ToList();
             if (newPlans.Count > 0)
@@ -710,7 +737,7 @@ namespace Winhance.Infrastructure.Features.Optimize.Services
 
             try
             {
-                var systemPlans = await powerCfgQueryService.GetAvailablePowerPlansAsync();
+                var systemPlans = await powerSettingsQueryService.GetAvailablePowerPlansAsync();
                 var existingPlan = systemPlans.FirstOrDefault(p =>
                     string.Equals(p.Guid, predefinedPlan.Guid, StringComparison.OrdinalIgnoreCase));
 
@@ -721,21 +748,20 @@ namespace Winhance.Infrastructure.Features.Optimize.Services
                 }
 
                 logService.Log(LogLevel.Info, "Creating Winhance Power Plan from Ultimate Performance");
-                var duplicateResult = await commandService.ExecuteCommandAsync(
-                    $"powercfg /duplicatescheme {ultimatePerformancePlan.Guid} {predefinedPlan.Guid}");
+                // PowerDuplicateScheme doesn't support specifying destination GUID, use Process.Start
+                var (dupSuccess, _) = await RunPowercfgAsync($"/duplicatescheme {ultimatePerformancePlan.Guid} {predefinedPlan.Guid}");
 
-                if (!duplicateResult.Success)
+                if (!dupSuccess)
                 {
-                    logService.Log(LogLevel.Error, $"Failed to duplicate plan: {duplicateResult.Error}");
-                    return new PowerPlanImportResult(false, "", duplicateResult.Error ?? "Failed to create plan");
+                    logService.Log(LogLevel.Error, "Failed to duplicate plan for Winhance Power Plan");
+                    return new PowerPlanImportResult(false, "", "Failed to create plan");
                 }
 
-                await commandService.ExecuteCommandAsync(
-                    $"powercfg /changename {predefinedPlan.Guid} \"{predefinedPlan.Name}\" \"{predefinedPlan.Description}\"");
+                SetPowerPlanNameAndDescription(Guid.Parse(predefinedPlan.Guid), predefinedPlan.Name, predefinedPlan.Description);
 
                 await ApplyRecommendedSettingsToPlanAsync(predefinedPlan.Guid);
 
-                powerCfgQueryService.InvalidateCache();
+                powerSettingsQueryService.InvalidateCache();
 
                 logService.Log(LogLevel.Info, $"Successfully created Winhance Power Plan: {predefinedPlan.Guid}");
                 return new PowerPlanImportResult(true, predefinedPlan.Guid);
@@ -771,10 +797,12 @@ namespace Winhance.Infrastructure.Features.Optimize.Services
 
                             logService.Log(LogLevel.Debug, $"Applying {setting.Id} - AC: {acValue}, DC: {dcValue}");
 
-                            await commandService.ExecuteCommandAsync(
-                                $"powercfg /setacvalueindex {planGuid} {powerCfgWithRecommended.SubgroupGuid} {powerCfgWithRecommended.SettingGuid} {acValue}");
-                            await commandService.ExecuteCommandAsync(
-                                $"powercfg /setdcvalueindex {planGuid} {powerCfgWithRecommended.SubgroupGuid} {powerCfgWithRecommended.SettingGuid} {dcValue}");
+                            var planSchemeGuid = Guid.Parse(planGuid);
+                            var subgroupGuid = Guid.Parse(powerCfgWithRecommended.SubgroupGuid);
+                            var settGuid = Guid.Parse(powerCfgWithRecommended.SettingGuid);
+
+                            PowerProf.PowerWriteACValueIndex(IntPtr.Zero, ref planSchemeGuid, ref subgroupGuid, ref settGuid, (uint)acValue);
+                            PowerProf.PowerWriteDCValueIndex(IntPtr.Zero, ref planSchemeGuid, ref subgroupGuid, ref settGuid, (uint)dcValue);
 
                             appliedCount++;
                             continue;
@@ -816,10 +844,12 @@ namespace Winhance.Infrastructure.Features.Optimize.Services
 
                                         logService.Log(LogLevel.Debug, $"Applying {setting.Id} - AC: {recommendedOptionAC} ({acValue}), DC: {recommendedOptionDC} ({dcValue})");
 
-                                        await commandService.ExecuteCommandAsync(
-                                            $"powercfg /setacvalueindex {planGuid} {powerCfgSetting.SubgroupGuid} {powerCfgSetting.SettingGuid} {acValue}");
-                                        await commandService.ExecuteCommandAsync(
-                                            $"powercfg /setdcvalueindex {planGuid} {powerCfgSetting.SubgroupGuid} {powerCfgSetting.SettingGuid} {dcValue}");
+                                        var recPlanGuid = Guid.Parse(planGuid);
+                                        var recSubGuid = Guid.Parse(powerCfgSetting.SubgroupGuid);
+                                        var recSettGuid = Guid.Parse(powerCfgSetting.SettingGuid);
+
+                                        PowerProf.PowerWriteACValueIndex(IntPtr.Zero, ref recPlanGuid, ref recSubGuid, ref recSettGuid, (uint)acValue.Value);
+                                        PowerProf.PowerWriteDCValueIndex(IntPtr.Zero, ref recPlanGuid, ref recSubGuid, ref recSettGuid, (uint)dcValue.Value);
 
                                         appliedCount++;
                                     }
@@ -863,28 +893,27 @@ namespace Winhance.Infrastructure.Features.Optimize.Services
                         }
                     }
 
-                    if (setting.CommandSettings?.Any() == true)
+                    if (setting.ScheduledTaskSettings?.Any() == true)
                     {
-                        foreach (var cmdSetting in setting.CommandSettings)
+                        foreach (var taskSetting in setting.ScheduledTaskSettings)
                         {
-                            if (cmdSetting.RecommendedState.HasValue)
+                            if (taskSetting.RecommendedState.HasValue)
                             {
                                 try
                                 {
-                                    var command = cmdSetting.RecommendedState.Value
-                                        ? cmdSetting.EnabledCommand
-                                        : cmdSetting.DisabledCommand;
+                                    bool success = taskSetting.RecommendedState.Value
+                                        ? await scheduledTaskService.EnableTaskAsync(taskSetting.TaskPath)
+                                        : await scheduledTaskService.DisableTaskAsync(taskSetting.TaskPath);
 
-                                    var result = await commandService.ExecuteCommandAsync(command);
-                                    if (result.Success)
+                                    if (success)
                                     {
                                         registrySettingsCount++;
-                                        logService.Log(LogLevel.Debug, $"Applied command setting: {setting.Id} = {cmdSetting.RecommendedState.Value}");
+                                        logService.Log(LogLevel.Debug, $"Applied scheduled task setting: {setting.Id} = {taskSetting.RecommendedState.Value}");
                                     }
                                 }
                                 catch (Exception ex)
                                 {
-                                    logService.Log(LogLevel.Warning, $"Failed to apply command setting '{setting.Id}': {ex.Message}");
+                                    logService.Log(LogLevel.Warning, $"Failed to apply scheduled task setting '{setting.Id}': {ex.Message}");
                                 }
                             }
                         }
@@ -896,6 +925,70 @@ namespace Winhance.Infrastructure.Features.Optimize.Services
             catch (Exception ex)
             {
                 logService.Log(LogLevel.Error, $"Error applying recommended settings: {ex.Message}");
+            }
+        }
+
+        private void SetPowerPlanName(Guid schemeGuid, string name)
+        {
+            var nameBytes = (uint)(name.Length * 2 + 2);
+            PowerProf.PowerWriteFriendlyName(IntPtr.Zero, ref schemeGuid, IntPtr.Zero, IntPtr.Zero, name, nameBytes);
+        }
+
+        private void SetPowerPlanNameAndDescription(Guid schemeGuid, string name, string description)
+        {
+            var nameBytes = (uint)(name.Length * 2 + 2);
+            PowerProf.PowerWriteFriendlyName(IntPtr.Zero, ref schemeGuid, IntPtr.Zero, IntPtr.Zero, name, nameBytes);
+
+            if (!string.IsNullOrEmpty(description))
+            {
+                var descBytes = (uint)(description.Length * 2 + 2);
+                PowerProf.PowerWriteDescription(IntPtr.Zero, ref schemeGuid, IntPtr.Zero, IntPtr.Zero, description, descBytes);
+            }
+        }
+
+        private static async Task<(bool Success, string Output)> RunPowercfgAsync(string arguments, bool useCmd = false)
+        {
+            try
+            {
+                ProcessStartInfo startInfo;
+                if (useCmd)
+                {
+                    startInfo = new ProcessStartInfo
+                    {
+                        FileName = "cmd.exe",
+                        Arguments = $"/c {arguments}",
+                        RedirectStandardOutput = true,
+                        RedirectStandardError = true,
+                        UseShellExecute = false,
+                        CreateNoWindow = true,
+                        StandardOutputEncoding = Encoding.UTF8
+                    };
+                }
+                else
+                {
+                    startInfo = new ProcessStartInfo
+                    {
+                        FileName = "powercfg",
+                        Arguments = arguments,
+                        RedirectStandardOutput = true,
+                        RedirectStandardError = true,
+                        UseShellExecute = false,
+                        CreateNoWindow = true,
+                        StandardOutputEncoding = Encoding.UTF8
+                    };
+                }
+
+                using var process = Process.Start(startInfo);
+                if (process == null) return (false, string.Empty);
+
+                var output = await process.StandardOutput.ReadToEndAsync();
+                await process.WaitForExitAsync();
+
+                return (process.ExitCode == 0, output.TrimEnd());
+            }
+            catch
+            {
+                return (false, string.Empty);
             }
         }
 

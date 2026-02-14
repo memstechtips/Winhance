@@ -10,8 +10,6 @@ public abstract record BaseDefinition
     public string? GroupName { get; init; }
     public string? Icon { get; init; }
     public string? IconPack { get; init; } = "Material";
-    public string? DialogTitleIcon { get; init; }
-    public string? DialogTitleIconPack { get; init; } = "Material";
     public InputType InputType { get; init; } = InputType.Toggle;
     public bool IsWindows11Only { get; init; }
     public bool IsWindows10Only { get; init; }
