@@ -18,6 +18,17 @@ jobs:
         with:
           fetch-depth: 0
 
+      - name: Detect Beta Release
+        id: beta_check
+        run: |
+          TAG=${GITHUB_REF#refs/tags/}
+          if [[ "$TAG" == *"-beta"* ]]; then
+            echo "is_beta=true" >> $GITHUB_OUTPUT
+          else
+            echo "is_beta=false" >> $GITHUB_OUTPUT
+          fi
+          echo "Tag: $TAG, Is Beta: $(grep is_beta $GITHUB_OUTPUT | cut -d= -f2)"
+
       - name: Calculate Release Number
         id: release_number
         run: |
@@ -143,8 +154,8 @@ jobs:
         uses: softprops/action-gh-release@v1
         with:
           draft: true
-          prerelease: false
-          name: "Winhance Release #${{ steps.release_number.outputs.next_number }} ${{ github.ref_name }}"
+          prerelease: ${{ steps.beta_check.outputs.is_beta == 'true' }}
+          name: "${{ steps.beta_check.outputs.is_beta == 'true' && format('Winhance Release-Preview #{0} {1}', steps.release_number.outputs.next_number, github.ref_name) || format('Winhance Release #{0} {1}', steps.release_number.outputs.next_number, github.ref_name) }}"
           body: ${{ steps.notes.outputs.BODY }}
           generate_release_notes: false
         env:
