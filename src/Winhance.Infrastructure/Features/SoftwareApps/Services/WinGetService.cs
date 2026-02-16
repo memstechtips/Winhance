@@ -26,7 +26,11 @@ namespace Winhance.Infrastructure.Features.SoftwareApps.Services
         private PackageManager? _packageManager;
         private readonly object _factoryLock = new();
         private bool _isInitialized;
+        private bool _comInitTimedOut;
         private bool _systemWinGetAvailable;
+
+        private const int ComInitTimeoutSeconds = 5;
+        private const int ComOperationTimeoutSeconds = 15;
 
         public event EventHandler? WinGetInstalled;
 
@@ -56,79 +60,32 @@ namespace Winhance.Infrastructure.Features.SoftwareApps.Services
             if (_isInitialized && _packageManager != null)
                 return true;
 
+            if (_comInitTimedOut)
+                return false;
+
             lock (_factoryLock)
             {
                 if (_isInitialized && _packageManager != null)
                     return true;
 
+                if (_comInitTimedOut)
+                    return false;
+
                 try
                 {
-                    bool isAdmin = IsRunningAsAdministrator();
-                    _logService?.LogInformation($"Initializing WinGet COM API (Admin: {isAdmin})");
-
-                    // Strategy: ElevatedFactory first (works on both Win10 and Win11 when running
-                    // as admin with framework-dependent deployment), then StandardFactory as fallback.
-
-                    // 1. ElevatedFactory via winrtact.dll
-                    if (isAdmin)
-                    {
-                        try
-                        {
-                            _logService?.LogInformation("Using ElevatedFactory for admin context");
-                            _winGetFactory = new WindowsPackageManagerElevatedFactory();
-                            _packageManager = _winGetFactory.CreatePackageManager();
-                            _isInitialized = true;
-                            _logService?.LogInformation("WinGet COM API initialized successfully with ElevatedFactory");
-                            return true;
-                        }
-                        catch (Exception ex)
-                        {
-                            _logService?.LogWarning($"ElevatedFactory failed: {ex.Message}");
-                        }
-                    }
-
-                    // 2. StandardFactory with lower trust (CoCreateInstance-based, Win11+)
-                    if (isAdmin)
-                    {
-                        try
-                        {
-                            _logService?.LogInformation("Using StandardFactory (lowerTrust: True)");
-                            _winGetFactory = new WindowsPackageManagerStandardFactory(
-                                ClsidContext.Prod,
-                                allowLowerTrustRegistration: true);
-                            _packageManager = _winGetFactory.CreatePackageManager();
-                            _isInitialized = true;
-                            _logService?.LogInformation("WinGet COM API initialized successfully with StandardFactory (lowerTrust)");
-                            return true;
-                        }
-                        catch (Exception ex)
-                        {
-                            _logService?.LogWarning($"StandardFactory (lowerTrust) failed: {ex.Message}");
-                        }
-                    }
-
-                    // 3. StandardFactory without lower trust (last resort)
-                    try
-                    {
-                        _logService?.LogInformation("Using StandardFactory (lowerTrust: False)");
-                        _winGetFactory = new WindowsPackageManagerStandardFactory(
-                            ClsidContext.Prod,
-                            allowLowerTrustRegistration: false);
-                        _packageManager = _winGetFactory.CreatePackageManager();
-                        _isInitialized = true;
-                        _logService?.LogInformation("WinGet COM API initialized successfully with StandardFactory");
-                        return true;
-                    }
-                    catch (Exception ex)
-                    {
-                        _logService?.LogWarning($"StandardFactory failed: {ex.Message}");
-                    }
-
-                    _logService?.LogError("All WinGet COM API initialization methods failed");
-                    _isInitialized = false;
-                    _packageManager = null;
-                    _winGetFactory = null;
-                    return false;
+                    // Winhance always runs as admin with self-contained AppSdk.
+                    // StandardFactory + ALLOW_LOWER_TRUST_REGISTRATION is the only approach
+                    // that works in this configuration.
+                    // ElevatedFactory (winrtact.dll) hangs in self-contained mode:
+                    // https://github.com/microsoft/winget-cli/issues/4377
+                    _logService?.LogInformation("Initializing WinGet COM API via StandardFactory");
+                    _winGetFactory = new WindowsPackageManagerStandardFactory(
+                        ClsidContext.Prod,
+                        allowLowerTrustRegistration: true);
+                    _packageManager = _winGetFactory.CreatePackageManager();
+                    _isInitialized = true;
+                    _logService?.LogInformation("WinGet COM API initialized successfully");
+                    return true;
                 }
                 catch (Exception ex)
                 {
@@ -146,6 +103,7 @@ namespace Winhance.Infrastructure.Features.SoftwareApps.Services
             lock (_factoryLock)
             {
                 _isInitialized = false;
+                _comInitTimedOut = false;
                 _packageManager = null;
                 _winGetFactory = null;
             }
@@ -575,10 +533,20 @@ namespace Winhance.Infrastructure.Features.SoftwareApps.Services
 
                 if (_systemWinGetAvailable)
                 {
-                    // System winget is present — try COM init (likely succeeds)
+                    // System winget is present — try COM init (likely succeeds).
+                    // Use Task.WhenAny to enforce a timeout without nesting Task.Run
+                    // (nested Task.Run breaks COM activation context).
                     try
                     {
-                        await Task.Run(() => EnsureComInitialized(), cancellationToken);
+                        var initTask = Task.Run(() => EnsureComInitialized(), cancellationToken);
+                        var completed = await Task.WhenAny(
+                            initTask, Task.Delay(TimeSpan.FromSeconds(ComInitTimeoutSeconds), cancellationToken));
+
+                        if (completed != initTask)
+                        {
+                            _logService?.LogWarning("COM init timed out in EnsureWinGetReadyAsync — using CLI fallback");
+                            _comInitTimedOut = true;
+                        }
                     }
                     catch (Exception ex)
                     {
@@ -743,7 +711,10 @@ namespace Winhance.Infrastructure.Features.SoftwareApps.Services
                 // Only try COM if system winget is available (COM requires DesktopAppInstaller MSIX)
                 if (_systemWinGetAvailable && EnsureComInitialized() && _packageManager != null && _winGetFactory != null)
                 {
-                    return await GetInstalledPackageIdsViaCom(cancellationToken);
+                    var comResult = await GetInstalledPackageIdsViaCom(cancellationToken);
+                    if (comResult != null)
+                        return comResult;
+                    _logService?.LogInformation("COM detection failed/timed out, falling back to CLI");
                 }
 
                 // CLI fallback (uses winget export → JSON)
@@ -757,14 +728,17 @@ namespace Winhance.Infrastructure.Features.SoftwareApps.Services
             }
         }
 
-        private async Task<HashSet<string>> GetInstalledPackageIdsViaCom(CancellationToken cancellationToken)
+        private async Task<HashSet<string>?> GetInstalledPackageIdsViaCom(CancellationToken cancellationToken)
         {
-            var installedPackageIds = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
-
-            return await Task.Run(() =>
+            try
             {
-                try
+                using var timeoutCts = CancellationTokenSource.CreateLinkedTokenSource(cancellationToken);
+                timeoutCts.CancelAfter(TimeSpan.FromSeconds(ComOperationTimeoutSeconds));
+
+                return await Task.Run(() =>
                 {
+                    var installedPackageIds = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
+
                     var catalogs = _packageManager!.GetPackageCatalogs().ToArray();
                     var wingetCatalog = catalogs.FirstOrDefault(c =>
                         c.Info.Name.Equals("winget", StringComparison.OrdinalIgnoreCase));
@@ -815,13 +789,18 @@ namespace Winhance.Infrastructure.Features.SoftwareApps.Services
 
                     _logService?.LogInformation($"WinGet COM API: Found {installedPackageIds.Count} installed packages");
                     return installedPackageIds;
-                }
-                catch (Exception ex)
-                {
-                    _logService?.LogError($"Error getting installed packages via COM API: {ex.Message}");
-                    return installedPackageIds;
-                }
-            }, cancellationToken);
+                }, timeoutCts.Token);
+            }
+            catch (OperationCanceledException) when (!cancellationToken.IsCancellationRequested)
+            {
+                _logService?.LogWarning("COM package enumeration timed out");
+                return null;
+            }
+            catch (Exception ex)
+            {
+                _logService?.LogError($"Error getting installed packages via COM API: {ex.Message}");
+                return null;
+            }
         }
 
         private async Task<HashSet<string>> GetInstalledPackageIdsViaCli(CancellationToken cancellationToken)
@@ -852,7 +831,8 @@ namespace Winhance.Infrastructure.Features.SoftwareApps.Services
                     var result = await WinGetCliRunner.RunAsync(
                         arguments,
                         cancellationToken: cancellationToken,
-                        timeoutMs: timeoutMs);
+                        timeoutMs: timeoutMs,
+                        exePathOverride: WinGetCliRunner.GetBundledWinGetExePath());
 
                     if (result.ExitCode != 0)
                     {

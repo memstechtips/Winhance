@@ -8,7 +8,6 @@
 #define MyAppExeName "Winhance.exe"
 #define DotNetRuntimeVersion "10.0.2"
 #define DotNetRuntimeInstallerName "windowsdesktop-runtime-" + DotNetRuntimeVersion + "-win-x64.exe"
-#define WinAppSdkInstallerName "WindowsAppRuntimeInstall-x64-1.7.exe"
 #define MyAppAssocName MyAppName + " File"
 #define MyAppAssocExt ".winhance"
 #define MyAppAssocKey StringChange(MyAppAssocName, " ", "") + MyAppAssocExt
@@ -63,16 +62,6 @@ begin
   // For regular installation, always install .NET Runtime
   // For portable installation, check if the user wants to install it
   if WizardIsTaskSelected('portableinstall') and not WizardIsTaskSelected('portableinstall\dotnetruntime') then
-    Result := False
-  else
-    Result := True;  // Always install for regular installation or if checkbox is selected
-end;
-
-function ShouldInstallWinAppSdkRuntime: Boolean;
-begin
-  // For regular installation, always install Windows App SDK Runtime
-  // For portable installation, check if the user wants to install it
-  if WizardIsTaskSelected('portableinstall') and not WizardIsTaskSelected('portableinstall\winappsdk') then
     Result := False
   else
     Result := True;  // Always install for regular installation or if checkbox is selected
@@ -192,7 +181,6 @@ end;
 [Tasks]
 Name: "portableinstall"; Description: "Perform a portable installation"; GroupDescription: "Installation type:"; Flags: unchecked exclusive
 Name: "portableinstall\dotnetruntime"; Description: "Install .NET 10 Runtime (recommended)"; GroupDescription: "Portable options:"; Flags: unchecked
-Name: "portableinstall\winappsdk"; Description: "Install Windows App SDK 1.7 Runtime (recommended)"; GroupDescription: "Portable options:"; Flags: unchecked
 Name: "regularinstall"; Description: "Perform a regular installation"; GroupDescription: "Installation type:"; Flags: exclusive
 Name: "regularinstall\desktopicon"; Description: "Create a shortcut on the Desktop"; GroupDescription: "Additional shortcuts:"; Flags: unchecked
 Name: "regularinstall\startmenuicon"; Description: "Create a shortcut in the Start menu"; GroupDescription: "Additional shortcuts:"; Flags: unchecked
@@ -203,8 +191,6 @@ Name: "regularinstall\startmenuicon"; Description: "Create a shortcut in the Sta
 Source: "C:\Winhance\src\Winhance.UI\bin\x64\Release\net10.0-windows10.0.19041.0\*"; Excludes: "nul"; DestDir: "{app}"; Flags: ignoreversion recursesubdirs createallsubdirs
 ; Include .NET 10 Runtime installer
 Source: "C:\Winhance\extras\prerequisites\{#DotNetRuntimeInstallerName}"; DestDir: "{tmp}"; Flags: ignoreversion deleteafterinstall
-; Include Windows App SDK 1.7 Runtime installer
-Source: "C:\Winhance\extras\prerequisites\{#WinAppSdkInstallerName}"; DestDir: "{tmp}"; Flags: ignoreversion deleteafterinstall
 ; Create a marker file for portable installations
 Source: "C:\Winhance\extras\prerequisites\{#DotNetRuntimeInstallerName}"; DestDir: "{app}"; DestName: "portable.marker"; Flags: ignoreversion; Tasks: portableinstall
 ; NOTE: Don't use "Flags: ignoreversion" on any shared system files
@@ -225,9 +211,6 @@ Name: "{autodesktop}\{#MyAppName}"; Filename: "{app}\{#MyAppExeName}"; Tasks: re
 [Run]
 ; Install .NET 10 Runtime (always for regular installation, optional for portable)
 Filename: "{tmp}\{#DotNetRuntimeInstallerName}"; Parameters: "/install /quiet /norestart"; StatusMsg: "Installing .NET 10 Runtime..."; Flags: waituntilterminated; Check: ShouldInstallDotNetRuntime
-; Install Windows App SDK 1.7 Runtime (always for regular installation, optional for portable)
-Filename: "{tmp}\{#WinAppSdkInstallerName}"; Parameters: "--quiet"; StatusMsg: "Installing Windows App SDK Runtime..."; Flags: waituntilterminated runhidden; Check: ShouldInstallWinAppSdkRuntime
-
 ; Launch application after installation
 Filename: "{app}\{#MyAppExeName}"; Description: "{cm:LaunchProgram,{#StringChange(MyAppName, '&', '&&')}}"; Flags: nowait postinstall skipifsilent
 

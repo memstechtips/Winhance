@@ -272,11 +272,13 @@ public class AppStatusDiscoveryService(
 
         try
         {
+            using var cts = new CancellationTokenSource(TimeSpan.FromSeconds(15));
             await Task.Run(() =>
             {
                 var packageManager = new PackageManager();
                 foreach (var package in packageManager.FindPackagesForUser(""))
                 {
+                    cts.Token.ThrowIfCancellationRequested();
                     try
                     {
                         packageNames.Add(package.Id.Name);
@@ -286,9 +288,22 @@ public class AppStatusDiscoveryService(
                         logService.LogWarning($"PackageManager enumeration skipped an entry: {ex.Message}");
                     }
                 }
-            });
+            }, cts.Token);
 
             logService.LogInformation($"AppX detection via PackageManager: found {packageNames.Count} packages");
+        }
+        catch (OperationCanceledException)
+        {
+            logService.LogWarning("PackageManager enumeration timed out after 15s, falling back to WMI");
+
+            // Tier 2: WMI (Win32_InstalledStoreProgram)
+            var wmiResult = await GetInstalledAppxPackageNamesViaWmiAsync();
+            if (wmiResult.Count > 0)
+                return wmiResult;
+
+            // Tier 3: Get-AppxPackage via PowerShell (last resort)
+            logService.LogWarning("WMI also returned 0 results, trying Get-AppxPackage");
+            return await GetInstalledAppxPackageNamesViaPowerShellAsync();
         }
         catch (Exception ex)
         {
