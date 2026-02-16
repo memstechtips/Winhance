@@ -1344,6 +1344,8 @@
   "Progress_WinGet_NotInstalled": "WinGet nav instalēts. Nevar atinstalēt pakotni.",
   "Progress_WinGet_StartingUninstallation": "Sāk atinstalēt {0}...",
   "Progress_WinGet_UninstalledSuccess": "Veiksmīgi atinstalēts {0}",
+  "Progress_WinGet_VerifyingUninstall": "Pārbauda, vai {0} ir atinstalēts...",
+  "Progress_WinGet_WaitingForUninstaller": "Gaida, līdz {0} atinstalētājs pabeigs darbu...",
   "Progress_WinGet_UninstallationCancelled": "Atinstalēšana {0} tika atcelta",
   "Progress_WinGet_UninstallationError": "Kļūda, atinstalējot {0}: {1}",
   "Progress_WinGet_Installing": "Instalē WinGet...",

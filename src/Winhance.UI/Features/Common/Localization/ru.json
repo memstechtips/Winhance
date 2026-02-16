@@ -1344,6 +1344,8 @@
   "Progress_WinGet_NotInstalled": "WinGet не установлен. Не удается удалить пакет.",
   "Progress_WinGet_StartingUninstallation": "Начало удаления {0}...",
   "Progress_WinGet_UninstalledSuccess": "Успешно удалено {0}",
+  "Progress_WinGet_VerifyingUninstall": "Проверка удаления {0}...",
+  "Progress_WinGet_WaitingForUninstaller": "Ожидание завершения программы удаления {0}...",
   "Progress_WinGet_UninstallationCancelled": "Удаление {0} было отменено",
   "Progress_WinGet_UninstallationError": "Ошибка удаления {0}: {1}",
   "Progress_WinGet_Installing": "Установка WinGet...",

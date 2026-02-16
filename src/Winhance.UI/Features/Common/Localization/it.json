@@ -1344,6 +1344,8 @@
   "Progress_WinGet_NotInstalled": "WinGet non è installato. Impossibile disinstallare il pacchetto.",
   "Progress_WinGet_StartingUninstallation": "Avvio della disinstallazione di {0} in corso...",
   "Progress_WinGet_UninstalledSuccess": "Disinstallato correttamente {0}",
+  "Progress_WinGet_VerifyingUninstall": "Verifica della disinstallazione di {0}...",
+  "Progress_WinGet_WaitingForUninstaller": "In attesa del completamento del programma di disinstallazione di {0}...",
   "Progress_WinGet_UninstallationCancelled": "La disinstallazione di {0} è stata annullata",
   "Progress_WinGet_UninstallationError": "Errore durante la disinstallazione di {0}: {1}",
   "Progress_WinGet_Installing": "Installazione di WinGet in corso...",

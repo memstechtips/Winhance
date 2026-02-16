@@ -1344,6 +1344,8 @@
   "Progress_WinGet_NotInstalled": "WinGet 未安装。无法卸载软件包。",
   "Progress_WinGet_StartingUninstallation": "正在开始卸载 {0}...",
   "Progress_WinGet_UninstalledSuccess": "成功卸载 {0}",
+  "Progress_WinGet_VerifyingUninstall": "正在验证 {0} 是否已卸载...",
+  "Progress_WinGet_WaitingForUninstaller": "正在等待 {0} 卸载程序完成...",
   "Progress_WinGet_UninstallationCancelled": "{0} 的卸载已取消",
   "Progress_WinGet_UninstallationError": "卸载 {0} 时出错：{1}",
   "Progress_WinGet_Installing": "正在安装 WinGet...",

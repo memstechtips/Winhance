@@ -1401,6 +1401,8 @@
   "Progress_WinGet_NotInstalled": "WinGet is not installed. Cannot uninstall package.",
   "Progress_WinGet_StartingUninstallation": "Starting uninstallation of {0}...",
   "Progress_WinGet_UninstalledSuccess": "Successfully uninstalled {0}",
+  "Progress_WinGet_VerifyingUninstall": "Verifying {0} was uninstalled...",
+  "Progress_WinGet_WaitingForUninstaller": "Waiting for {0} uninstaller to finish...",
   "Progress_WinGet_UninstallationCancelled": "Uninstallation of {0} was cancelled",
   "Progress_WinGet_UninstallationError": "Error uninstalling {0}: {1}",
   "Progress_WinGet_Installing": "Installing WinGet...",

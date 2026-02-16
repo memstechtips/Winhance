@@ -1344,6 +1344,8 @@
   "Progress_WinGet_NotInstalled": "WinGet स्थापित नहीं है। पैकेज की स्थापना रद्द नहीं की जा सकती।",
   "Progress_WinGet_StartingUninstallation": "{0} की स्थापना रद्द करना शुरू हो रहा है...",
   "Progress_WinGet_UninstalledSuccess": "सफलतापूर्वक {0} की स्थापना रद्द",
+  "Progress_WinGet_VerifyingUninstall": "{0} की स्थापना रद्द होने की पुष्टि हो रही है...",
+  "Progress_WinGet_WaitingForUninstaller": "{0} अनइंस्टॉलर के पूरा होने की प्रतीक्षा हो रही है...",
   "Progress_WinGet_UninstallationCancelled": "{0} की स्थापना रद्द करना रद्द कर दिया गया था",
   "Progress_WinGet_UninstallationError": "{0} की स्थापना रद्द करने में त्रुटि: {1}",
   "Progress_WinGet_Installing": "WinGet स्थापित किया जा रहा है...",

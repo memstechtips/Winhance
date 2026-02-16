@@ -61,7 +61,7 @@ namespace Winhance.Core.Features.SoftwareApps.Models
                             Name = "MusicBee",
                             Description = "Music manager and player",
                             GroupName = "Multimedia (Audio & Video)",
-                            WinGetPackageId = ["9P4CLT2RJ1RS"],
+                            MsStoreId = "9P4CLT2RJ1RS",
                             ChocoPackageId = "musicbee",
                             WebsiteUrl = "https://www.getmusicbee.com/"
                         },
@@ -200,7 +200,7 @@ namespace Winhance.Core.Features.SoftwareApps.Models
                             Name = "fre:ac",
                             Description = "Free audio converter and CD ripper",
                             GroupName = "Multimedia (Audio & Video)",
-                            WinGetPackageId = ["9P1XD8ZQJ7JD"],
+                            MsStoreId = "9P1XD8ZQJ7JD",
                             ChocoPackageId = "freac",
                             WebsiteUrl = "https://www.freac.org/"
                         },

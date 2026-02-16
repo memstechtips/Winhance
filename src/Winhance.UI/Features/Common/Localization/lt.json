@@ -1344,6 +1344,8 @@
   "Progress_WinGet_NotInstalled": "WinGet neįdiegtas. Negalima pašalinti paketo.",
   "Progress_WinGet_StartingUninstallation": "Pradedamas šalinimas {0}...",
   "Progress_WinGet_UninstalledSuccess": "Sėkmingai pašalinta {0}",
+  "Progress_WinGet_VerifyingUninstall": "Tikrinama, ar {0} pašalinta...",
+  "Progress_WinGet_WaitingForUninstaller": "Laukiama, kol baigsis {0} šalinimo programa...",
   "Progress_WinGet_UninstallationCancelled": "Šalinimas {0} buvo atšauktas",
   "Progress_WinGet_UninstallationError": "Klaida šalinant {0}: {1}",
   "Progress_WinGet_Installing": "Diegiama WinGet...",

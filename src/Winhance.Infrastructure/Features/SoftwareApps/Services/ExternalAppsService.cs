@@ -51,14 +51,29 @@ public class ExternalAppsService(
                     : OperationResult<bool>.Failed("Direct download installation failed");
             }
 
-            if (item.WinGetPackageId == null || !item.WinGetPackageId.Any())
-                return OperationResult<bool>.Failed("No WinGet package ID or download URL specified");
+            // Determine package ID and source
+            string? packageId = null;
+            string? source = null;
 
-            var primaryPackageId = item.WinGetPackageId[0];
-            var installerType = await winGetService.GetInstallerTypeAsync(primaryPackageId, cancellationToken);
+            if (!string.IsNullOrEmpty(item.MsStoreId))
+            {
+                packageId = item.MsStoreId;
+                source = "msstore";
+            }
+            else if (item.WinGetPackageId != null && item.WinGetPackageId.Any())
+            {
+                packageId = item.WinGetPackageId[0];
+                source = "winget";
+            }
+            else
+            {
+                return OperationResult<bool>.Failed("No WinGet package ID or Store ID specified");
+            }
+
+            var installerType = await winGetService.GetInstallerTypeAsync(packageId, cancellationToken);
             var isPortable = IsPortableInstallerType(installerType);
 
-            var wingetResult = await winGetService.InstallPackageAsync(primaryPackageId, item.Name, cancellationToken);
+            var wingetResult = await winGetService.InstallPackageAsync(packageId, source, item.Name, cancellationToken);
 
             if (wingetResult.Success)
             {

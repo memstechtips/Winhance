@@ -86,6 +86,7 @@ public class AppOperationService(
             }
 
             if ((app?.WinGetPackageId != null && app.WinGetPackageId.Any()) ||
+                !string.IsNullOrEmpty(app?.MsStoreId) ||
                 (app?.CustomProperties?.ContainsKey("RequiresDirectDownload") == true))
             {
                 // Check if this is a Windows Store app (has AppxPackageName) or External app

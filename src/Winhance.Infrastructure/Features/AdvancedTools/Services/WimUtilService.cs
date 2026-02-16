@@ -14,6 +14,7 @@ using Winhance.Core.Features.Common.Interfaces;
 using Winhance.Core.Features.Common.Models;
 using Winhance.Core.Features.SoftwareApps.Interfaces;
 using Winhance.Infrastructure.Features.AdvancedTools.Helpers;
+using Winhance.Infrastructure.Features.SoftwareApps.Services.WinGet.Utilities;
 
 namespace Winhance.Infrastructure.Features.AdvancedTools.Services
 {
@@ -773,7 +774,26 @@ namespace Winhance.Infrastructure.Features.AdvancedTools.Services
                     TerminalOutput = "Starting ADK installation via winget..."
                 });
 
-                var (exitCode, _) = await RunProcessWithProgressAsync("winget", arguments, progress, cancellationToken);
+                // Prefer system winget (kept up-to-date via Store) over bundled CLI
+                var systemAvailable = _winGetService.IsSystemWinGetAvailable
+                    || WinGetCliRunner.IsSystemWinGetAvailable();
+
+                string wingetExe;
+                if (systemAvailable)
+                {
+                    // GetWinGetExePath checks system PATH → WindowsApps → bundled, in order
+                    wingetExe = WinGetCliRunner.GetWinGetExePath() ?? "winget";
+                    _logService.LogInformation($"Using system winget for ADK install: {wingetExe}");
+                }
+                else
+                {
+                    wingetExe = WinGetCliRunner.GetBundledWinGetExePath()
+                        ?? WinGetCliRunner.GetWinGetExePath()
+                        ?? "winget";
+                    _logService.LogInformation($"No system winget — using bundled CLI for ADK install: {wingetExe}");
+                }
+
+                var (exitCode, _) = await RunProcessWithProgressAsync(wingetExe, arguments, progress, cancellationToken);
                 if (exitCode != 0)
                 {
                     throw new Exception($"winget install failed with exit code: {exitCode}");

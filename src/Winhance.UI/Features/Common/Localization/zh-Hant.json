@@ -1344,6 +1344,8 @@
   "Progress_WinGet_NotInstalled": "WinGet 未安裝。無法解除安裝套件。",
   "Progress_WinGet_StartingUninstallation": "正在開始解除安裝 {0}...",
   "Progress_WinGet_UninstalledSuccess": "成功解除安裝 {0}",
+  "Progress_WinGet_VerifyingUninstall": "正在驗證 {0} 是否已解除安裝...",
+  "Progress_WinGet_WaitingForUninstaller": "正在等待 {0} 解除安裝程式完成...",
   "Progress_WinGet_UninstallationCancelled": "{0} 的解除安裝已取消",
   "Progress_WinGet_UninstallationError": "解除安裝 {0} 時發生錯誤：{1}",
   "Progress_WinGet_Installing": "正在安裝 WinGet...",

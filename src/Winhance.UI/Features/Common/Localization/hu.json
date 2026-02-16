@@ -1347,6 +1347,8 @@
   "Progress_WinGet_NotInstalled": "A WinGet nincs telepítve. A csomag nem távolítható el.",
   "Progress_WinGet_StartingUninstallation": "{0} eltávolításának megkezdése...",
   "Progress_WinGet_UninstalledSuccess": "A(z) {0} sikeresen eltávolítva",
+  "Progress_WinGet_VerifyingUninstall": "A(z) {0} eltávolításának ellenőrzése...",
+  "Progress_WinGet_WaitingForUninstaller": "Várakozás a(z) {0} eltávolítójának befejezésére...",
   "Progress_WinGet_UninstallationCancelled": "{0} eltávolítása megszakadt",
   "Progress_WinGet_UninstallationError": "Hiba történt a(z) {0} eltávolításakor: {1}",
   "Progress_WinGet_Installing": "A WinGet telepítése...",

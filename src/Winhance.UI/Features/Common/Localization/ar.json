@@ -1316,6 +1316,8 @@
     "Progress_WinGet_NotInstalled": "WinGet غير مثبت. لا يمكن إلغاء تثبيت الحزمة.",
     "Progress_WinGet_StartingUninstallation": "جارٍ بدء إلغاء تثبيت {0}...",
     "Progress_WinGet_UninstalledSuccess": "تم إلغاء تثبيت {0} بنجاح",
+    "Progress_WinGet_VerifyingUninstall": "جارٍ التحقق من إلغاء تثبيت {0}...",
+    "Progress_WinGet_WaitingForUninstaller": "في انتظار إكمال برنامج إلغاء تثبيت {0}...",
     "Progress_WinGet_UninstallationCancelled": "تم إلغاء إلغاء تثبيت {0}",
     "Progress_WinGet_UninstallationError": "خطأ أثناء إلغاء تثبيت {0}: {1}",
     "Progress_WinGet_Installing": "جارٍ تثبيت WinGet...",

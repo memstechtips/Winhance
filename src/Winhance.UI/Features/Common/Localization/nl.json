@@ -1344,6 +1344,8 @@
   "Progress_WinGet_NotInstalled": "WinGet is niet geïnstalleerd. Kan pakket niet deïnstalleren.",
   "Progress_WinGet_StartingUninstallation": "Deïnstallatie starten van {0}...",
   "Progress_WinGet_UninstalledSuccess": "{0} succesvol gedeïnstalleerd",
+  "Progress_WinGet_VerifyingUninstall": "Verifiëren of {0} is gedeïnstalleerd...",
+  "Progress_WinGet_WaitingForUninstaller": "Wachten tot het verwijderprogramma van {0} is voltooid...",
   "Progress_WinGet_UninstallationCancelled": "Deïnstallatie van {0} was geannuleerd",
   "Progress_WinGet_UninstallationError": "Fout bij deïnstalleren {0}: {1}",
   "Progress_WinGet_Installing": "WinGet installeren...",

@@ -1344,6 +1344,8 @@
   "Progress_WinGet_NotInstalled": "WinGet chưa được cài đặt. Không thể gỡ cài đặt gói.",
   "Progress_WinGet_StartingUninstallation": "Bắt đầu gỡ cài đặt {0}...",
   "Progress_WinGet_UninstalledSuccess": "Đã gỡ cài đặt thành công {0}",
+  "Progress_WinGet_VerifyingUninstall": "Đang xác minh {0} đã được gỡ cài đặt...",
+  "Progress_WinGet_WaitingForUninstaller": "Đang chờ trình gỡ cài đặt {0} hoàn tất...",
   "Progress_WinGet_UninstallationCancelled": "Đã hủy gỡ cài đặt {0}",
   "Progress_WinGet_UninstallationError": "Lỗi khi gỡ cài đặt {0}: {1}",
   "Progress_WinGet_Installing": "Đang cài đặt WinGet...",

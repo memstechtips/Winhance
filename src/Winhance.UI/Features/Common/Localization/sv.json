@@ -1344,6 +1344,8 @@
   "Progress_WinGet_NotInstalled": "WinGet är inte installerat. Kan inte avinstallera paket.",
   "Progress_WinGet_StartingUninstallation": "Startar avinstallation av {0}...",
   "Progress_WinGet_UninstalledSuccess": "Avinstallerad {0}",
+  "Progress_WinGet_VerifyingUninstall": "Verifierar att {0} avinstallerades...",
+  "Progress_WinGet_WaitingForUninstaller": "Väntar på att avinstallationsprogrammet för {0} ska slutföras...",
   "Progress_WinGet_UninstallationCancelled": "Avinstallation av {0} avbröts",
   "Progress_WinGet_UninstallationError": "Fel vid avinstallation av {0}: {1}",
   "Progress_WinGet_Installing": "Installerar WinGet...",

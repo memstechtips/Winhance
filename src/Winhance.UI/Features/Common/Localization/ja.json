@@ -1344,6 +1344,8 @@
   "Progress_WinGet_NotInstalled": "WinGetがインストールされていません。パッケージをアンインストールできません。",
   "Progress_WinGet_StartingUninstallation": "{0}のアンインストールを開始中...",
   "Progress_WinGet_UninstalledSuccess": "{0}が正常にアンインストールされました",
+  "Progress_WinGet_VerifyingUninstall": "{0}のアンインストールを確認中...",
+  "Progress_WinGet_WaitingForUninstaller": "{0}のアンインストーラーの完了を待機中...",
   "Progress_WinGet_UninstallationCancelled": "{0}のアンインストールがキャンセルされました",
   "Progress_WinGet_UninstallationError": "{0}のアンインストール中にエラーが発生しました：{1}",
   "Progress_WinGet_Installing": "WinGetをインストール中...",

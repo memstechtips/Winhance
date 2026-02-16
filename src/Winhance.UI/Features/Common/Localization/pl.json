@@ -1344,6 +1344,8 @@
   "Progress_WinGet_NotInstalled": "WinGet nie jest zainstalowany. Nie można odinstalować pakietu.",
   "Progress_WinGet_StartingUninstallation": "Rozpoczynanie odinstalowywania {0}...",
   "Progress_WinGet_UninstalledSuccess": "Pomyślnie odinstalowano {0}",
+  "Progress_WinGet_VerifyingUninstall": "Weryfikacja odinstalowania {0}...",
+  "Progress_WinGet_WaitingForUninstaller": "Oczekiwanie na zakończenie deinstalatora {0}...",
   "Progress_WinGet_UninstallationCancelled": "Odinstalowanie {0} zostało anulowane",
   "Progress_WinGet_UninstallationError": "Błąd odinstalowania {0}: {1}",
   "Progress_WinGet_Installing": "Instalowanie WinGet...",

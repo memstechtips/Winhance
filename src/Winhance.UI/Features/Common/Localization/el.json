@@ -1344,6 +1344,8 @@
   "Progress_WinGet_NotInstalled": "Το WinGet δεν είναι εγκατεστημένο. Δεν είναι δυνατή η απεγκατάσταση του πακέτου.",
   "Progress_WinGet_StartingUninstallation": "Έναρξη απεγκατάστασης του {0}...",
   "Progress_WinGet_UninstalledSuccess": "Απεγκαταστάθηκε επιτυχώς {0}",
+  "Progress_WinGet_VerifyingUninstall": "Επαλήθευση απεγκατάστασης του {0}...",
+  "Progress_WinGet_WaitingForUninstaller": "Αναμονή ολοκλήρωσης του προγράμματος απεγκατάστασης του {0}...",
   "Progress_WinGet_UninstallationCancelled": "Η απεγκατάσταση του {0} ακυρώθηκε",
   "Progress_WinGet_UninstallationError": "Σφάλμα απεγκατάστασης {0}: {1}",
   "Progress_WinGet_Installing": "Εγκατάσταση WinGet...",

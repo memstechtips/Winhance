@@ -31,7 +31,7 @@ namespace Winhance.Core.Features.SoftwareApps.Models
                             Name = "Whatsapp",
                             Description = "Instant messaging and voice calling app",
                             GroupName = "Messaging, Email & Calendar",
-                            WinGetPackageId = ["9NKSQGP7F2NH"],
+                            MsStoreId = "9NKSQGP7F2NH",
                             WebsiteUrl = "https://www.whatsapp.com/"
                         },
                         new ItemDefinition

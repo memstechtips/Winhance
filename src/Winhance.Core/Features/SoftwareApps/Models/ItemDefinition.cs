@@ -9,6 +9,7 @@ public record ItemDefinition : BaseDefinition
     public InputType InputType { get; init; } = InputType.CheckBox;
     public string? AppxPackageName { get; init; }
     public string[]? WinGetPackageId { get; init; }
+    public string? MsStoreId { get; init; }
     public string? CapabilityName { get; init; }
     public string? OptionalFeatureName { get; init; }
     public string? ChocoPackageId { get; init; }

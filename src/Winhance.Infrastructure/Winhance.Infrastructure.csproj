@@ -27,4 +27,11 @@
         <PackageReference Include="Newtonsoft.Json" Version="13.0.3" />
 
     </ItemGroup>
+
+  <ItemGroup>
+    <None Include="Features\SoftwareApps\Services\WinGet\winget-cli\**">
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+      <Link>winget-cli\%(RecursiveDir)%(Filename)%(Extension)</Link>
+    </None>
+  </ItemGroup>
 </Project>

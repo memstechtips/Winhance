@@ -1344,6 +1344,8 @@
   "Progress_WinGet_NotInstalled": "WinGet není nainstalován. Nelze odinstalovat balíček.",
   "Progress_WinGet_StartingUninstallation": "Zahájení odinstalace {0}...",
   "Progress_WinGet_UninstalledSuccess": "Úspěšně odinstalováno {0}",
+  "Progress_WinGet_VerifyingUninstall": "Ověřování odinstalace {0}...",
+  "Progress_WinGet_WaitingForUninstaller": "Čekání na dokončení odinstalačního programu {0}...",
   "Progress_WinGet_UninstallationCancelled": "Odinstalace {0} byla zrušena",
   "Progress_WinGet_UninstallationError": "Chyba při odinstalaci {0}: {1}",
   "Progress_WinGet_Installing": "Instalace WinGet...",
