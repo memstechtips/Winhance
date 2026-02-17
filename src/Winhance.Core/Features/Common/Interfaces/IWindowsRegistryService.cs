@@ -13,6 +13,7 @@ namespace Winhance.Core.Features.Common.Interfaces
 
         bool KeyExists(string keyPath);
         bool ValueExists(string keyPath, string valueName);
+        string[] GetSubKeyNames(string keyPath);
         bool RegistryValueExists(RegistrySetting setting);
         bool IsSettingApplied(RegistrySetting setting);
 

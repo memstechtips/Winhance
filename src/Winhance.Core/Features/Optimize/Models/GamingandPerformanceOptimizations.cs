@@ -508,8 +508,8 @@ public static class GamingandPerformanceOptimizations
                 new SettingDefinition
                 {
                     Id = "gaming-nagle-algorithm",
-                    Name = "Enable Nagle's Algorithm",
-                    Description = "Batch small network packets together before sending to improve efficiency. Disabling reduces latency for real-time online gaming but may slightly increase bandwidth usage",
+                    Name = "Nagle's Algorithm",
+                    Description = "Buffers small network packets before sending to reduce overhead. Turn off to lower latency in online games, or keep on for general-purpose network efficiency",
                     GroupName = "Network",
                     Icon = "Wan",
                     InputType = InputType.Toggle,
@@ -517,23 +517,25 @@ public static class GamingandPerformanceOptimizations
                     {
                         new RegistrySetting
                         {
-                            KeyPath = @"HKEY_LOCAL_MACHINE\SYSTEM\CurrentControlSet\Services\Tcpip\Parameters",
+                            KeyPath = @"HKEY_LOCAL_MACHINE\SYSTEM\CurrentControlSet\Services\Tcpip\Parameters\Interfaces",
                             ValueName = "TcpAckFrequency",
                             RecommendedValue = 1,
-                            EnabledValue = 2,
+                            EnabledValue = null,
                             DisabledValue = 1,
-                            DefaultValue = 2,
+                            DefaultValue = null,
                             ValueType = RegistryValueKind.DWord,
+                            ApplyPerNetworkInterface = true,
                         },
                         new RegistrySetting
                         {
-                            KeyPath = @"HKEY_LOCAL_MACHINE\SYSTEM\CurrentControlSet\Services\Tcpip\Parameters",
+                            KeyPath = @"HKEY_LOCAL_MACHINE\SYSTEM\CurrentControlSet\Services\Tcpip\Parameters\Interfaces",
                             ValueName = "TCPNoDelay",
                             RecommendedValue = 1,
-                            EnabledValue = 0,
+                            EnabledValue = null,
                             DisabledValue = 1,
-                            DefaultValue = 0,
+                            DefaultValue = null,
                             ValueType = RegistryValueKind.DWord,
+                            ApplyPerNetworkInterface = true,
                         },
                     },
                 },
