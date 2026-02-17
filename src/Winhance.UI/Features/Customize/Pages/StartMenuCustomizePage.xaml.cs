@@ -27,5 +27,8 @@ public sealed partial class StartMenuCustomizePage : Page
         {
             ViewModel.SearchText = searchText;
         }
+
+        // Lightweight refresh: re-read setting states from the system
+        _ = ViewModel.StartMenuViewModel.RefreshSettingStatesAsync();
     }
 }

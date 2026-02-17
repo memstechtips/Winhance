@@ -15,6 +15,7 @@ using Winhance.Core.Features.Common.Native;
 using Winhance.Core.Features.Common.Utils;
 using Winhance.Core.Features.Optimize.Interfaces;
 using Winhance.Core.Features.Optimize.Models;
+using Microsoft.Extensions.DependencyInjection;
 using Winhance.Infrastructure.Features.Common.Services;
 
 namespace Winhance.Infrastructure.Features.Optimize.Services
@@ -24,9 +25,8 @@ namespace Winhance.Infrastructure.Features.Optimize.Services
         IPowerSettingsQueryService powerSettingsQueryService,
         ICompatibleSettingsRegistry compatibleSettingsRegistry,
         IEventBus eventBus,
-        IWindowsRegistryService registryService,
         IPowerPlanComboBoxService powerPlanComboBoxService,
-        IScheduledTaskService scheduledTaskService) : IPowerService
+        IServiceProvider serviceProvider) : IPowerService
     {
         private IEnumerable<SettingDefinition>? _cachedSettings;
         private readonly object _cacheLock = new object();
@@ -350,6 +350,11 @@ namespace Winhance.Infrastructure.Features.Optimize.Services
                     NewPlanIndex = planIndex
                 });
 
+                if (IsWinhancePowerPlan(powerPlanGuid))
+                {
+                    await ApplyWinhanceRecommendedSettingsAsync();
+                }
+
                 logService.Log(LogLevel.Info, $"[PowerService] Successfully applied power plan");
             }
         }
@@ -447,6 +452,11 @@ namespace Winhance.Infrastructure.Features.Optimize.Services
                     NewPlanName = planName,
                     NewPlanIndex = planIndex >= 0 ? planIndex : 0
                 });
+
+                if (IsWinhancePowerPlan(powerPlanGuid))
+                {
+                    await ApplyWinhanceRecommendedSettingsAsync();
+                }
 
                 logService.Log(LogLevel.Info, $"[PowerService] Successfully applied power plan '{planName}'");
             }
@@ -781,7 +791,6 @@ namespace Winhance.Infrastructure.Features.Optimize.Services
             {
                 var allSettings = await GetSettingsAsync();
                 int appliedCount = 0;
-                int registrySettingsCount = 0;
 
                 foreach (var setting in allSettings)
                 {
@@ -863,68 +872,36 @@ namespace Winhance.Infrastructure.Features.Optimize.Services
                     }
                 }
 
-                foreach (var setting in allSettings)
-                {
-                    if (setting.RegistrySettings?.Any() == true)
-                    {
-                        foreach (var regSetting in setting.RegistrySettings)
-                        {
-                            if (regSetting.RecommendedValue != null)
-                            {
-                                try
-                                {
-                                    var success = registryService.SetValue(
-                                        regSetting.KeyPath,
-                                        regSetting.ValueName ?? string.Empty,
-                                        regSetting.RecommendedValue,
-                                        regSetting.ValueType);
-
-                                    if (success)
-                                    {
-                                        registrySettingsCount++;
-                                        logService.Log(LogLevel.Debug, $"Applied registry setting: {setting.Id} = {regSetting.RecommendedValue}");
-                                    }
-                                }
-                                catch (Exception ex)
-                                {
-                                    logService.Log(LogLevel.Warning, $"Failed to apply registry setting '{setting.Id}': {ex.Message}");
-                                }
-                            }
-                        }
-                    }
-
-                    if (setting.ScheduledTaskSettings?.Any() == true)
-                    {
-                        foreach (var taskSetting in setting.ScheduledTaskSettings)
-                        {
-                            if (taskSetting.RecommendedState.HasValue)
-                            {
-                                try
-                                {
-                                    bool success = taskSetting.RecommendedState.Value
-                                        ? await scheduledTaskService.EnableTaskAsync(taskSetting.TaskPath)
-                                        : await scheduledTaskService.DisableTaskAsync(taskSetting.TaskPath);
-
-                                    if (success)
-                                    {
-                                        registrySettingsCount++;
-                                        logService.Log(LogLevel.Debug, $"Applied scheduled task setting: {setting.Id} = {taskSetting.RecommendedState.Value}");
-                                    }
-                                }
-                                catch (Exception ex)
-                                {
-                                    logService.Log(LogLevel.Warning, $"Failed to apply scheduled task setting '{setting.Id}': {ex.Message}");
-                                }
-                            }
-                        }
-                    }
-                }
-
-                logService.Log(LogLevel.Info, $"Applied {appliedCount} power settings and {registrySettingsCount} registry settings to Winhance Power Plan");
+                logService.Log(LogLevel.Info, $"Applied {appliedCount} PowerCfg settings to Winhance Power Plan");
             }
             catch (Exception ex)
             {
                 logService.Log(LogLevel.Error, $"Error applying recommended settings: {ex.Message}");
+            }
+        }
+
+        private static bool IsWinhancePowerPlan(string guid) =>
+            string.Equals(guid, "57696e68-616e-6365-506f-776572000000", StringComparison.OrdinalIgnoreCase);
+
+        private async Task ApplyWinhanceRecommendedSettingsAsync()
+        {
+            try
+            {
+                var settingApplicationService = serviceProvider.GetService<ISettingApplicationService>();
+                if (settingApplicationService != null)
+                {
+                    logService.Log(LogLevel.Info, "[PowerService] Applying recommended settings for Winhance Power Plan");
+                    await settingApplicationService.ApplyRecommendedSettingsForDomainAsync("power-plan-selection");
+                    logService.Log(LogLevel.Info, "[PowerService] Successfully applied recommended settings for Winhance Power Plan");
+                }
+                else
+                {
+                    logService.Log(LogLevel.Warning, "[PowerService] Could not resolve ISettingApplicationService to apply recommended settings");
+                }
+            }
+            catch (Exception ex)
+            {
+                logService.Log(LogLevel.Warning, $"[PowerService] Failed to apply recommended settings: {ex.Message}");
             }
         }
 

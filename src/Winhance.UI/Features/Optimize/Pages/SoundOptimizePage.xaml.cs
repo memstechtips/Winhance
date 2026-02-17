@@ -27,5 +27,8 @@ public sealed partial class SoundOptimizePage : Page
         {
             ViewModel.SearchText = searchText;
         }
+
+        // Lightweight refresh: re-read setting states from the system
+        _ = ViewModel.SoundViewModel.RefreshSettingStatesAsync();
     }
 }

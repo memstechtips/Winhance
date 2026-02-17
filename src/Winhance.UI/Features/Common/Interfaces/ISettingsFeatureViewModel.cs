@@ -55,6 +55,11 @@ public interface ISettingsFeatureViewModel : IDisposable
     Task RefreshSettingsAsync();
 
     /// <summary>
+    /// Performs a lightweight refresh of setting states from the system without reloading ViewModels.
+    /// </summary>
+    Task RefreshSettingStatesAsync();
+
+    /// <summary>
     /// Applies a search filter to the settings.
     /// </summary>
     void ApplySearchFilter(string searchText);

@@ -318,6 +318,50 @@ public partial class SettingItemViewModel : BaseViewModel
         }
     }
 
+    // Updates setting state from a fresh system state read (used during navigation refresh)
+    public void UpdateStateFromSystemState(SettingStateResult state)
+    {
+        if (!state.Success) return;
+        _isUpdatingFromEvent = true;
+        try
+        {
+            switch (InputType)
+            {
+                case InputType.Toggle:
+                case InputType.CheckBox:
+                    IsSelected = state.IsEnabled;
+                    break;
+                case InputType.Selection:
+                    if (state.CurrentValue != null)
+                        SelectedValue = state.CurrentValue;
+                    break;
+                case InputType.NumericRange:
+                    if (state.CurrentValue is int intValue)
+                        NumericValue = ConvertFromSystemUnits(intValue);
+                    break;
+            }
+        }
+        finally
+        {
+            _isUpdatingFromEvent = false;
+        }
+    }
+
+    private int ConvertFromSystemUnits(int systemValue)
+    {
+        var displayUnits = SettingDefinition?.CustomProperties?.TryGetValue("Units", out var units) == true && units is string unitsStr
+            ? unitsStr
+            : null;
+
+        return displayUnits?.ToLowerInvariant() switch
+        {
+            "minutes" => systemValue / 60,
+            "hours" => systemValue / 3600,
+            "milliseconds" => systemValue * 1000,
+            _ => systemValue
+        };
+    }
+
     #region UI Event Handlers
 
     public void OnToggleSwitchToggled(object sender, Microsoft.UI.Xaml.RoutedEventArgs e)

@@ -27,5 +27,8 @@ public sealed partial class TaskbarCustomizePage : Page
         {
             ViewModel.SearchText = searchText;
         }
+
+        // Lightweight refresh: re-read setting states from the system
+        _ = ViewModel.TaskbarViewModel.RefreshSettingStatesAsync();
     }
 }

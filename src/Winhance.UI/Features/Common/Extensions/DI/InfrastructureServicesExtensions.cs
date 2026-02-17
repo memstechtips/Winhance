@@ -102,11 +102,8 @@ public static class InfrastructureServicesExtensions
         services.AddSingleton<IRecommendedSettingsService>(provider =>
             new RecommendedSettingsService(
                 provider.GetRequiredService<IDomainServiceRouter>(),
-                provider.GetRequiredService<IWindowsRegistryService>(),
-                provider.GetRequiredService<IComboBoxResolver>(),
                 provider.GetRequiredService<IWindowsVersionService>(),
-                provider.GetRequiredService<ILogService>(),
-                provider.GetRequiredService<IEventBus>()));
+                provider.GetRequiredService<ILogService>()));
 
         // Advanced Tools Services
         services.AddSingleton<Winhance.Core.Features.AdvancedTools.Interfaces.IWimUtilService,

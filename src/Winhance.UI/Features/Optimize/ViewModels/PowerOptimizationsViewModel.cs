@@ -54,6 +54,11 @@ public partial class PowerOptimizationsViewModel : BaseSettingsFeatureViewModel
         {
             await Task.Delay(200);
             await RefreshPowerPlanComboBoxAsync();
+
+            // Refresh all setting states to pick up the new plan's PowerCfg values
+            // (display timeout, sleep timeout, etc. differ between plans)
+            await Task.Delay(500);
+            await RefreshSettingStatesAsync();
         }
         catch (Exception ex)
         {

@@ -33,4 +33,11 @@ public interface ISettingsLoadingService
     /// Used when re-entering review mode with already-loaded singleton VMs.
     /// </summary>
     void ApplyReviewDiffToViewModel(SettingItemViewModel viewModel, SettingStateResult currentState);
+
+    /// <summary>
+    /// Performs a lightweight refresh of setting states by re-reading from the system.
+    /// Returns a dictionary of setting ID to current state.
+    /// </summary>
+    Task<Dictionary<string, SettingStateResult>> RefreshSettingStatesAsync(
+        IEnumerable<SettingItemViewModel> settings);
 }
