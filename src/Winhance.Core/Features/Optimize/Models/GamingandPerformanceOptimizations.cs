@@ -486,8 +486,8 @@ public static class GamingandPerformanceOptimizations
                 new SettingDefinition
                 {
                     Id = "gaming-network-throttling",
-                    Name = "Disable Network Throttling for Gaming",
-                    Description = "Disable network packet throttling to reduce latency and improve online gaming responsiveness",
+                    Name = "Network Throttling",
+                    Description = "Controls network packet rate limiting for multimedia applications. Keeping throttling enabled (default: 10 packets/ms) is recommended as it provides better DPC latency for gaming than disabling it entirely",
                     GroupName = "Network",
                     Icon = "NetworkOffOutline",
                     InputType = InputType.Toggle,
@@ -499,8 +499,8 @@ public static class GamingandPerformanceOptimizations
                             ValueName = "NetworkThrottlingIndex",
                             RecommendedValue = 10,
                             EnabledValue = 10,
-                            DisabledValue = 5,
-                            DefaultValue = 5,
+                            DisabledValue = -1,
+                            DefaultValue = 10,
                             ValueType = RegistryValueKind.DWord,
                         },
                     },

@@ -1047,7 +1047,7 @@
           },
           {
             "Id": "gaming-network-throttling",
-            "Name": "Disable Network Throttling for Gaming",
+            "Name": "Network Throttling",
             "IsSelected": true,
             "InputType": 0
           },
