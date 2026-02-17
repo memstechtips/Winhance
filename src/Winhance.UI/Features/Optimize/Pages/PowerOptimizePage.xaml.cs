@@ -27,5 +27,8 @@ public sealed partial class PowerOptimizePage : Page
         {
             ViewModel.SearchText = searchText;
         }
+
+        // Lightweight refresh: re-read setting states from the system
+        _ = ViewModel.PowerViewModel.RefreshSettingStatesAsync();
     }
 }

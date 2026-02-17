@@ -16,6 +16,7 @@ public class WinGetInstaller
 {
     private readonly ILogService? _logService;
     private readonly ILocalizationService? _localization;
+    private readonly ITaskProgressService? _taskProgressService;
     private readonly HttpClient _httpClient;
 
     private const string GitHubBaseUrl = "https://github.com/microsoft/winget-cli/releases/latest/download";
@@ -23,25 +24,33 @@ public class WinGetInstaller
     private const string InstallerFileName = "Microsoft.DesktopAppInstaller_8wekyb3d8bbwe.msixbundle";
     private const string LicenseFileName = "e53e159d00e04f729cc2180cffd1c02e_License1.xml";
 
-    public WinGetInstaller(ILogService? logService = null, ILocalizationService? localization = null)
+    public WinGetInstaller(ILogService? logService = null, ILocalizationService? localization = null, ITaskProgressService? taskProgressService = null)
     {
         _logService = logService;
         _localization = localization;
+        _taskProgressService = taskProgressService;
         _httpClient = new HttpClient();
     }
 
     public async Task<(bool Success, string Message)> InstallAsync(
-        IProgress<TaskProgressDetail>? progress = null,
         CancellationToken cancellationToken = default)
     {
-        // First, try to provision the existing staged App Installer package
-        ReportProgress(progress, 0, GetString("Progress_WinGet_CheckingExisting"));
-        var existingResult = await TryProvisionExistingPackageAsync(progress, cancellationToken);
+        // Option 1: Use bundled winget to install Microsoft.AppInstaller (fastest, no download needed)
+        var bundledResult = await TryInstallViaBundledWinGetAsync(cancellationToken);
+        if (bundledResult.Success)
+        {
+            return bundledResult;
+        }
+
+        // Option 2a: Try to provision the existing staged App Installer package
+        ReportProgress(0, GetString("Progress_WinGet_CheckingExisting"));
+        var existingResult = await TryProvisionExistingPackageAsync(cancellationToken);
         if (existingResult.Success)
         {
             return existingResult;
         }
 
+        // Option 2b: Download from GitHub and provision
         _logService?.LogInformation("No existing App Installer package found, downloading from GitHub...");
 
         var tempDir = Path.Combine(Path.GetTempPath(), "WinGetInstall");
@@ -58,23 +67,23 @@ public class WinGetInstaller
 
             // Download all files in parallel (0-45%)
             // Only the installer (largest file) drives the progress bar; deps & license download silently alongside it.
-            ReportProgress(progress, 0, GetString("Progress_WinGet_DownloadingComponents"));
+            ReportProgress(0, GetString("Progress_WinGet_DownloadingComponents"));
             await Task.WhenAll(
-                DownloadFileAsync($"{GitHubBaseUrl}/{DependenciesFileName}", dependenciesPath, "Dependencies", null, 0, 0, cancellationToken),
-                DownloadFileAsync($"{GitHubBaseUrl}/{InstallerFileName}", installerPath, "WinGet Installer", progress, 0, 45, cancellationToken),
-                DownloadFileAsync($"{GitHubBaseUrl}/{LicenseFileName}", licensePath, "License", null, 0, 0, cancellationToken)
+                DownloadFileAsync($"{GitHubBaseUrl}/{DependenciesFileName}", dependenciesPath, "Dependencies", false, 0, 0, cancellationToken),
+                DownloadFileAsync($"{GitHubBaseUrl}/{InstallerFileName}", installerPath, "WinGet Installer", true, 0, 45, cancellationToken),
+                DownloadFileAsync($"{GitHubBaseUrl}/{LicenseFileName}", licensePath, "License", false, 0, 0, cancellationToken)
             );
 
             // Extract dependencies (45-55%)
-            ReportProgress(progress, 45, GetString("Progress_WinGet_ExtractingDependencies"));
+            ReportProgress(45, GetString("Progress_WinGet_ExtractingDependencies"));
             var extractPath = Path.Combine(tempDir, "Dependencies");
             await ExtractDependenciesAsync(dependenciesPath, extractPath);
 
             // Provision for all users (55-100%)
-            ReportProgress(progress, 55, GetString("Progress_WinGet_InstallingMachineWide"));
-            await InstallProvisionedAsync(installerPath, extractPath, licensePath, progress, cancellationToken);
+            ReportProgress(55, GetString("Progress_WinGet_InstallingMachineWide"));
+            await InstallProvisionedAsync(installerPath, extractPath, licensePath, cancellationToken);
 
-            ReportProgress(progress, 100, GetString("Progress_WinGet_InstalledSuccessfully"));
+            ReportProgress(100, GetString("Progress_WinGet_InstalledSuccessfully"));
             _logService?.LogInformation("WinGet installation completed successfully");
             return (true, GetString("Progress_WinGet_InstalledSuccessfully"));
         }
@@ -99,8 +108,128 @@ public class WinGetInstaller
         }
     }
 
+    private async Task<(bool Success, string Message)> TryInstallViaBundledWinGetAsync(
+        CancellationToken cancellationToken)
+    {
+        try
+        {
+            var bundledPath = WinGetCliRunner.GetBundledWinGetExePath();
+            if (bundledPath == null)
+            {
+                _logService?.LogInformation("Bundled winget not found — skipping Option 1");
+                return (false, "Bundled winget not available");
+            }
+
+            _logService?.LogInformation($"Attempting to install AppInstaller via bundled winget: {bundledPath}");
+            ReportProgress(5, GetString("Progress_WinGet_Installing"));
+
+            var arguments = "install Microsoft.AppInstaller --exact --silent --accept-source-agreements --accept-package-agreements --force --disable-interactivity --source winget";
+
+            var lastProgressReport = DateTime.MinValue;
+
+            var result = await WinGetCliRunner.RunAsync(
+                arguments,
+                onOutputLine: line =>
+                {
+                    try
+                    {
+                        // Translate raw resource keys to human-readable text
+                        var displayLine = WinGetProgressParser.TranslateLine(line);
+
+                        // Log the translated line (skip noise and suppressed lines)
+                        if (!IsWinGetOutputNoise(line) && displayLine != null)
+                            _logService?.LogInformation($"[winget-bundled] {displayLine}");
+
+                        // Parse progress and report to the TaskProgressControl terminal output
+                        var parsed = WinGetProgressParser.ParseLine(line);
+                        if (parsed != null)
+                        {
+                            var progressPercent = parsed.Phase switch
+                            {
+                                WinGetProgressParser.WinGetPhase.Found => 15,
+                                WinGetProgressParser.WinGetPhase.Downloading => 15 + (int)((parsed.Percent ?? 0) * 0.55),
+                                WinGetProgressParser.WinGetPhase.Installing => 70 + (int)((parsed.Percent ?? 0) * 0.25),
+                                WinGetProgressParser.WinGetPhase.Complete => 95,
+                                _ => 0
+                            };
+
+                            if (progressPercent > 0)
+                            {
+                                // Throttle progress updates to avoid flooding the UI (allow Complete through unconditionally)
+                                var now = DateTime.UtcNow;
+                                if (parsed.Phase == WinGetProgressParser.WinGetPhase.Complete
+                                    || (now - lastProgressReport).TotalMilliseconds >= 250)
+                                {
+                                    lastProgressReport = now;
+                                    _taskProgressService?.UpdateDetailedProgress(new TaskProgressDetail
+                                    {
+                                        Progress = progressPercent,
+                                        StatusText = GetString("Progress_WinGet_Installing"),
+                                        TerminalOutput = displayLine ?? line
+                                    });
+                                }
+                            }
+                        }
+                        else if (displayLine != null && !IsWinGetOutputNoise(line))
+                        {
+                            // Non-progress meaningful lines bypass throttle (infrequent, contain important info)
+                            _taskProgressService?.UpdateDetailedProgress(new TaskProgressDetail
+                            {
+                                TerminalOutput = displayLine
+                            });
+                        }
+                    }
+                    catch (Exception ex)
+                    {
+                        // Never let progress reporting errors kill the install
+                        _logService?.LogWarning($"Progress reporting error (ignored): {ex.Message}");
+                    }
+                },
+                onErrorLine: line => _logService?.LogWarning($"[winget-bundled-err] {line}"),
+                cancellationToken: cancellationToken,
+                timeoutMs: 300_000,
+                exePathOverride: bundledPath);
+
+            if (WinGetExitCodes.IsSuccess(result.ExitCode))
+            {
+                _logService?.LogInformation($"AppInstaller installed via bundled winget (exit code: 0x{result.ExitCode:X8})");
+                ReportProgress(100, GetString("Progress_WinGet_InstalledSuccessfully"));
+                return (true, GetString("Progress_WinGet_InstalledSuccessfully"));
+            }
+
+            _logService?.LogWarning($"Bundled winget install failed with exit code: 0x{result.ExitCode:X8}");
+            return (false, $"Bundled winget install failed (exit code: 0x{result.ExitCode:X8})");
+        }
+        catch (Exception ex)
+        {
+            _logService?.LogWarning($"Option 1 (bundled winget) failed: {ex.Message}");
+            return (false, ex.Message);
+        }
+    }
+
+    /// <summary>
+    /// Returns true if the winget output line is visual noise (progress bars, spinners, blank lines)
+    /// that should not be written to the log file.
+    /// </summary>
+    private static bool IsWinGetOutputNoise(string? line)
+    {
+        if (string.IsNullOrWhiteSpace(line))
+            return true;
+
+        var trimmed = line.Trim();
+
+        // Progress bar characters
+        if (trimmed.Contains('█') || trimmed.Contains('▒'))
+            return true;
+
+        // Spinner characters (single char lines like " - ", " \ ", " | ", " / ")
+        if (trimmed.Length <= 2 && (trimmed == "-" || trimmed == "\\" || trimmed == "|" || trimmed == "/"))
+            return true;
+
+        return false;
+    }
+
     private async Task<(bool Success, string Message)> TryProvisionExistingPackageAsync(
-        IProgress<TaskProgressDetail>? progress,
         CancellationToken cancellationToken)
     {
         try
@@ -117,7 +246,7 @@ public class WinGetInstaller
             }
 
             _logService?.LogInformation($"Found existing App Installer package: {existingPackagePath}");
-            ReportProgress(progress, 50, GetString("Progress_WinGet_ProvisioningExisting"));
+            ReportProgress(50, GetString("Progress_WinGet_ProvisioningExisting"));
 
             _logService?.LogInformation($"Provisioning existing package: {existingPackagePath}");
 
@@ -125,7 +254,7 @@ public class WinGetInstaller
 
             _logService?.LogInformation("Existing App Installer package provisioned successfully");
 
-            ReportProgress(progress, 100, GetString("Progress_WinGet_InstalledSuccessfully"));
+            ReportProgress(100, GetString("Progress_WinGet_InstalledSuccessfully"));
             return (true, GetString("Progress_WinGet_InstalledSuccessfully"));
         }
         catch (Exception ex)
@@ -190,7 +319,7 @@ public class WinGetInstaller
         string url,
         string destinationPath,
         string displayName,
-        IProgress<TaskProgressDetail>? progress,
+        bool reportProgress,
         int progressStart,
         int progressEnd,
         CancellationToken cancellationToken)
@@ -215,11 +344,11 @@ public class WinGetInstaller
             await fileStream.WriteAsync(buffer.AsMemory(0, bytesRead), cancellationToken);
             downloadedBytes += bytesRead;
 
-            if (totalBytes > 0 && (DateTime.UtcNow - lastReportTime).TotalMilliseconds > 200)
+            if (reportProgress && totalBytes > 0 && (DateTime.UtcNow - lastReportTime).TotalMilliseconds > 200)
             {
                 var downloadProgress = (double)downloadedBytes / totalBytes;
                 var overallProgress = progressStart + (int)((progressEnd - progressStart) * downloadProgress);
-                progress?.Report(new TaskProgressDetail
+                _taskProgressService?.UpdateDetailedProgress(new TaskProgressDetail
                 {
                     Progress = overallProgress,
                     StatusText = GetString("Progress_WinGet_DownloadingComponents"),
@@ -248,7 +377,6 @@ public class WinGetInstaller
         string installerPath,
         string dependenciesPath,
         string licensePath,
-        IProgress<TaskProgressDetail>? progress,
         CancellationToken cancellationToken)
     {
         cancellationToken.ThrowIfCancellationRequested();
@@ -269,19 +397,19 @@ public class WinGetInstaller
         // Try PowerShell Add-AppxProvisionedPackage first, fall back to PackageManager WinRT API
         try
         {
-            ReportProgress(progress, 60, GetString("Progress_WinGet_Provisioning"));
+            ReportProgress(60, GetString("Progress_WinGet_Provisioning"));
             await ProvisionWithPowerShellAsync(installerPath, dependencyPackages, licensePaths, cancellationToken);
             _logService?.LogInformation("WinGet provisioned successfully for all users");
         }
         catch (Exception ex) when (ex is not OperationCanceledException)
         {
             _logService?.LogWarning($"PowerShell provisioning failed ({ex.Message}), falling back to PackageManager");
-            ReportProgress(progress, 70, GetString("Progress_WinGet_Provisioning"));
+            ReportProgress(70, GetString("Progress_WinGet_Provisioning"));
             await InstallWithPackageManagerAsync(installerPath, dependencyPackages, cancellationToken);
             _logService?.LogInformation("WinGet installed successfully via PackageManager");
         }
 
-        ReportProgress(progress, 95, GetString("Progress_WinGet_ProvisionedSuccessfully"));
+        ReportProgress(95, GetString("Progress_WinGet_ProvisionedSuccessfully"));
     }
 
     /// <summary>
@@ -385,9 +513,9 @@ public class WinGetInstaller
         return false;
     }
 
-    private static void ReportProgress(IProgress<TaskProgressDetail>? progress, int percent, string status)
+    private void ReportProgress(int percent, string status)
     {
-        progress?.Report(new TaskProgressDetail
+        _taskProgressService?.UpdateDetailedProgress(new TaskProgressDetail
         {
             Progress = percent,
             StatusText = status,

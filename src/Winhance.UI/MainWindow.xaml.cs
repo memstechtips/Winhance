@@ -559,15 +559,32 @@ public sealed partial class MainWindow : Window
             try
             {
                 var preferencesService = App.Services.GetRequiredService<IUserPreferencesService>();
-                var backupCompleted = preferencesService.GetPreference(UserPreferenceKeys.InitialConfigBackupCompleted, "false");
+                var backupCompleted = preferencesService.GetPreference(
+                    UserPreferenceKeys.InitialConfigBackupCompleted, "false");
                 if (!string.Equals(backupCompleted, "true", StringComparison.OrdinalIgnoreCase))
                 {
                     UpdateLoadingStatus("Loading_CreatingConfigBackup");
                     StartupLogger.Log("MainWindow", "Startup: Creating user backup config...");
                     var configService = App.Services.GetRequiredService<IConfigurationService>();
-                    await configService.CreateUserBackupConfigAsync().ConfigureAwait(false);
-                    await preferencesService.SetPreferenceAsync(UserPreferenceKeys.InitialConfigBackupCompleted, "true");
-                    StartupLogger.Log("MainWindow", "Startup: User backup config done");
+
+                    var backupTask = configService.CreateUserBackupConfigAsync();
+                    var completed = await Task.WhenAny(
+                        backupTask, Task.Delay(TimeSpan.FromSeconds(90))).ConfigureAwait(false);
+
+                    if (completed == backupTask)
+                    {
+                        await backupTask; // observe exceptions
+                        await preferencesService.SetPreferenceAsync(
+                            UserPreferenceKeys.InitialConfigBackupCompleted, "true");
+                        StartupLogger.Log("MainWindow", "Startup: User backup config done");
+                    }
+                    else
+                    {
+                        StartupLogger.Log("MainWindow",
+                            "Startup: User backup config TIMED OUT (will retry next launch)");
+                        _logService?.LogWarning(
+                            "User backup config timed out after 90s — will retry next launch");
+                    }
                 }
                 else
                 {
@@ -997,6 +1014,13 @@ public sealed partial class MainWindow : Window
                 // Set localized app title and subtitle
                 AppTitleTextBlock.Text = _viewModel.AppTitle;
                 AppSubtitleTextBlock.Text = _viewModel.AppSubtitle;
+
+                // Show beta banner if this is a beta build
+                var versionService = App.Services.GetService<IVersionService>();
+                if (versionService?.GetCurrentVersion().IsBeta == true)
+                {
+                    BetaBannerText.Visibility = Microsoft.UI.Xaml.Visibility.Visible;
+                }
 
                 // Pass ViewModel to NavSidebar for localized nav button text
                 NavSidebar.ViewModel = _viewModel;

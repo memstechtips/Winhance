@@ -353,10 +353,10 @@ public static class TaskbarCustomizations
                 new SettingDefinition
                 {
                     Id = "taskbar-transparent",
-                    Name = "Make taskbar transparent",
-                    Description = "Controls the transparency of the taskbar",
+                    Name = "Taskbar Transparency",
+                    Description = "Controls the transparency level of the taskbar. Winhance automatically enables Transparency Effects when this setting is applied",
                     GroupName = "Taskbar",
-                    InputType = InputType.Toggle,
+                    InputType = InputType.Selection,
                     Icon = "Opacity",
                     IsWindows10Only = true,
                     RestartProcess = "Explorer",
@@ -376,11 +376,33 @@ public static class TaskbarCustomizations
                         {
                             KeyPath = @"HKEY_CURRENT_USER\Software\Microsoft\Windows\CurrentVersion\Explorer\Advanced",
                             ValueName = "TaskbarAcrylicOpacity",
-                            RecommendedValue = 0,
-                            EnabledValue = 0, // Transparent
-                            DisabledValue = 1, // Opaque
+                            RecommendedValue = null, // Transparent
                             DefaultValue = null,
                             ValueType = RegistryValueKind.DWord,
+                        },
+                    },
+                    CustomProperties = new Dictionary<string, object>
+                    {
+                        [CustomPropertyKeys.ComboBoxDisplayNames] = new string[]
+                        {
+                            "Windows default",
+                            "Transparent",
+                            "Opaque",
+                        },
+                        [CustomPropertyKeys.ValueMappings] = new Dictionary<int, Dictionary<string, object?>>
+                        {
+                            [0] = new Dictionary<string, object?> // Windows default (delete registry value)
+                            {
+                                ["TaskbarAcrylicOpacity"] = null,
+                            },
+                            [1] = new Dictionary<string, object?> // Transparent
+                            {
+                                ["TaskbarAcrylicOpacity"] = 0,
+                            },
+                            [2] = new Dictionary<string, object?> // Opaque
+                            {
+                                ["TaskbarAcrylicOpacity"] = 255,
+                            },
                         },
                     },
                 },

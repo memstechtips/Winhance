@@ -21,10 +21,10 @@ public class WindowsPackageManagerStandardFactory : WindowsPackageManagerFactory
         var pUnknown = IntPtr.Zero;
         try
         {
-            // Use CLSCTX_ALL for broader compatibility across Windows versions
+            // Use CLSCTX_LOCAL_SERVER — WinGet registers as an out-of-process COM server
             // Add CLSCTX_ALLOW_LOWER_TRUST_REGISTRATION for unpackaged apps running as admin
-            // This flag allows COM activation even without package identity
-            CLSCTX clsctx = CLSCTX.CLSCTX_ALL;
+            // (required for self-contained AppSdk deployments, matches UniGetUI approach)
+            CLSCTX clsctx = CLSCTX.CLSCTX_LOCAL_SERVER;
             if (_allowLowerTrustRegistration)
             {
                 clsctx |= CLSCTX.CLSCTX_ALLOW_LOWER_TRUST_REGISTRATION;

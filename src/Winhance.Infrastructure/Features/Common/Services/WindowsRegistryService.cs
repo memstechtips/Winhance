@@ -133,6 +133,20 @@ namespace Winhance.Infrastructure.Features.Common.Services
             }
         }
 
+        public string[] GetSubKeyNames(string keyPath)
+        {
+            try
+            {
+                var (rootKey, subKeyPath) = ParseKeyPath(keyPath);
+                using var key = rootKey.OpenSubKey(subKeyPath, false);
+                return key?.GetSubKeyNames() ?? Array.Empty<string>();
+            }
+            catch (Exception)
+            {
+                return Array.Empty<string>();
+            }
+        }
+
         public bool RegistryValueExists(RegistrySetting setting)
         {
             try
@@ -158,6 +172,25 @@ namespace Winhance.Infrastructure.Features.Common.Services
             {
                 if (setting == null)
                     return false;
+
+                if (setting.ApplyPerNetworkInterface)
+                {
+                    var subKeys = GetSubKeyNames(setting.KeyPath);
+                    if (subKeys.Length == 0)
+                        return false;
+
+                    foreach (var subKey in subKeys)
+                    {
+                        var expandedSetting = setting with
+                        {
+                            KeyPath = $@"{setting.KeyPath}\{subKey}",
+                            ApplyPerNetworkInterface = false
+                        };
+                        if (!IsSettingApplied(expandedSetting))
+                            return false;
+                    }
+                    return true;
+                }
 
                 // For settings that check the (Default) value with ValueName = null,
                 // we need to check if both EnabledValue and DisabledValue are null.
@@ -331,6 +364,29 @@ namespace Winhance.Infrastructure.Features.Common.Services
 
             try
             {
+                if (setting.ApplyPerNetworkInterface)
+                {
+                    var subKeys = GetSubKeyNames(setting.KeyPath);
+                    if (subKeys.Length == 0)
+                    {
+                        logService.Log(LogLevel.Warning, $"[WindowsRegistryService] No subkeys found under '{setting.KeyPath}' for per-interface setting");
+                        return false;
+                    }
+
+                    var allSucceeded = true;
+                    foreach (var subKey in subKeys)
+                    {
+                        var expandedSetting = setting with
+                        {
+                            KeyPath = $@"{setting.KeyPath}\{subKey}",
+                            ApplyPerNetworkInterface = false
+                        };
+                        if (!ApplySetting(expandedSetting, isEnabled, specificValue))
+                            allSucceeded = false;
+                    }
+                    return allSucceeded;
+                }
+
                 logService.Log(LogLevel.Info, $"[WindowsRegistryService] Applying registry setting - Path: {setting.KeyPath}, Value: {setting.ValueName}, Enabled: {isEnabled}");
 
                 if (setting.ValueName == null)

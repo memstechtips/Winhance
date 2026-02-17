@@ -87,9 +87,8 @@ public static class DomainServicesExtensions
             sp.GetRequiredService<IPowerSettingsQueryService>(),
             sp.GetRequiredService<ICompatibleSettingsRegistry>(),
             sp.GetRequiredService<IEventBus>(),
-            sp.GetRequiredService<IWindowsRegistryService>(),
             sp.GetRequiredService<IPowerPlanComboBoxService>(),
-            sp.GetRequiredService<IScheduledTaskService>()
+            sp.GetRequiredService<IServiceProvider>()
         ));
         services.AddSingleton<IDomainService>(sp => sp.GetRequiredService<PowerService>());
         // Register as IPowerService for ViewModels that still use direct injection

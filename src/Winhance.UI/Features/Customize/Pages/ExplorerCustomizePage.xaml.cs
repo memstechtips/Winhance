@@ -23,5 +23,8 @@ public sealed partial class ExplorerCustomizePage : Page
         {
             ViewModel.SearchText = searchText;
         }
+
+        // Lightweight refresh: re-read setting states from the system
+        _ = ViewModel.ExplorerViewModel.RefreshSettingStatesAsync();
     }
 }

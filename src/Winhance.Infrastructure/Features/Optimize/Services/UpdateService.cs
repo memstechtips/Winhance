@@ -106,13 +106,13 @@ namespace Winhance.Infrastructure.Features.Optimize.Services
         // Based on work by Aetherinox: https://github.com/Aetherinox/pause-windows-updates/blob/main/windows-updates-pause.reg
         private async Task ApplyPausedModeAsync(SettingDefinition setting)
         {
-            var recommendedService = serviceProvider.GetService<IRecommendedSettingsService>();
-            if (recommendedService != null)
+            var settingApplicationService = serviceProvider.GetService<ISettingApplicationService>();
+            if (settingApplicationService != null)
             {
                 logService.Log(LogLevel.Info, "[UpdateService] Applying recommended settings before pausing updates");
                 try
                 {
-                    await recommendedService.ApplyRecommendedSettingsAsync(setting.Id);
+                    await settingApplicationService.ApplyRecommendedSettingsForDomainAsync(setting.Id);
                 }
                 catch (Exception ex)
                 {
@@ -128,13 +128,13 @@ namespace Winhance.Infrastructure.Features.Optimize.Services
         // Based on work by Chris Titus: https://github.com/ChrisTitusTech/winutil/blob/main/functions/public/Invoke-WPFUpdatesdisable.ps1
         private async Task ApplyDisabledModeAsync(SettingDefinition setting)
         {
-            var recommendedService = serviceProvider.GetService<IRecommendedSettingsService>();
-            if (recommendedService != null)
+            var settingApplicationService = serviceProvider.GetService<ISettingApplicationService>();
+            if (settingApplicationService != null)
             {
                 logService.Log(LogLevel.Info, "[UpdateService] Applying recommended settings before disabling updates");
                 try
                 {
-                    await recommendedService.ApplyRecommendedSettingsAsync(setting.Id);
+                    await settingApplicationService.ApplyRecommendedSettingsForDomainAsync(setting.Id);
                 }
                 catch (Exception ex)
                 {

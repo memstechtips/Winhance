@@ -600,9 +600,9 @@
           },
           {
             "Id": "taskbar-transparent",
-            "Name": "Make taskbar transparent",
-            "IsSelected": false,
-            "InputType": 0
+            "Name": "Taskbar Transparency",
+            "InputType": 1,
+            "SelectedIndex": 0
           },
           {
             "Id": "taskbar-small",
@@ -762,7 +762,7 @@
           },
           {
             "Id": "gaming-network-throttling",
-            "Name": "Disable Network Throttling for Gaming",
+            "Name": "Network Throttling",
             "IsSelected": true,
             "InputType": 0
           },

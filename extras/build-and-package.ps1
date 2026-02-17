@@ -23,11 +23,7 @@
 #    Place at: extras\prerequisites\windowsdesktop-runtime-10.0.2-win-x64.exe
 #    Download: https://dotnet.microsoft.com/download/dotnet/10.0
 #
-# 5. Windows App SDK 1.7 Runtime installer (bundled into the installer for end users)
-#    Place at: extras\prerequisites\WindowsAppRuntimeInstall-x64-1.7.exe
-#    Download: https://learn.microsoft.com/en-us/windows/apps/windows-app-sdk/downloads
-#
-# 6. Windows SDK (only required for code signing)
+# 5. Windows SDK (only required for code signing)
 #    Provides signtool.exe. Install via VS Installer or standalone SDK installer.
 #
 # EXAMPLES:
@@ -189,7 +185,6 @@ function Set-FileSignature {
 $publishOutputPath = "$solutionDir\src\Winhance.UI\bin\x64\Release\net10.0-windows10.0.19041.0"
 $innoSetupScript = "$scriptRoot\Winhance.Installer.iss"
 $dotNetRuntimePath = "$scriptRoot\prerequisites\windowsdesktop-runtime-10.0.2-win-x64.exe"
-$winAppSdkRuntimePath = "$scriptRoot\prerequisites\WindowsAppRuntimeInstall-x64-1.7.exe"
 $tempInnoScript = "$env:TEMP\Winhance.Installer.temp.iss"
 
 # Declare certificate variable at script scope so it's accessible throughout
@@ -207,12 +202,6 @@ if (-not (Test-Path $dotNetRuntimePath)) {
     Write-Host "Download from: https://dotnet.microsoft.com/download/dotnet/10.0" -ForegroundColor Yellow
     exit 1
 }
-if (-not (Test-Path $winAppSdkRuntimePath)) {
-    Write-Host "Windows App SDK Runtime installer not found at: $winAppSdkRuntimePath" -ForegroundColor Red
-    Write-Host "Download from: https://learn.microsoft.com/en-us/windows/apps/windows-app-sdk/downloads" -ForegroundColor Yellow
-    exit 1
-}
-
 Write-Host "Building Winhance v$Version..." -ForegroundColor Cyan
 
 # Modify version if Beta flag is set
@@ -285,7 +274,7 @@ if ($LASTEXITCODE -ne 0) {
 
 # Step 2: Build the solution (WinUI3 - no separate publish step needed)
 Write-Host "Building solution..." -ForegroundColor Green
-& $msbuildPath "$projectPath" /p:Configuration=Release /p:Platform=x64 /p:WindowsAppSDKSelfContained=false -restore
+& $msbuildPath "$projectPath" /p:Configuration=Release /p:Platform=x64 /p:WindowsAppSDKSelfContained=true -restore
 if ($LASTEXITCODE -ne 0) {
     Write-Host "Failed to build solution" -ForegroundColor Red
     exit 1
@@ -330,6 +319,11 @@ $innoContent = $innoContent -replace '#define MyAppVersion ".*"', "#define MyApp
 # Update AppVerName to include version in the installer header
 $innoContent = $innoContent -replace 'AppVerName=Winhance', "AppVerName=Winhance v$displayVersion"
 
+# Change installer output filename for beta builds
+if ($Beta) {
+    $innoContent = $innoContent -replace 'OutputBaseFilename=Winhance\.Installer', 'OutputBaseFilename=Winhance.Installer.Beta'
+}
+
 # Update paths
 $publishPath = $publishOutputPath.Replace("\", "\\")
 $outputPath = $OutputDir.Replace("\", "\\")
@@ -367,7 +361,8 @@ if ($LASTEXITCODE -ne 0) {
 Remove-Item $tempInnoScript -Force
 
 # Sign the installer if the executable was signed
-$installerPath = "$OutputDir\Winhance.Installer.exe"
+$installerFilename = if ($Beta) { "Winhance.Installer.Beta.exe" } else { "Winhance.Installer.exe" }
+$installerPath = "$OutputDir\$installerFilename"
 if ($shouldSign -and $certificate -and (Test-Path $installerPath)) {
     Write-Host "Signing the installer..." -ForegroundColor Cyan
     $installerSignResult = Set-FileSignature -FilePath $installerPath -Certificate $certificate

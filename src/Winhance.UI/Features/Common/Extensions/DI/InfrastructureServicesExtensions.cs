@@ -95,15 +95,15 @@ public static class InfrastructureServicesExtensions
         // Configuration Application Bridge (for config import/export)
         services.AddSingleton<ConfigurationApplicationBridgeService>();
 
+        // Configuration Migration (for backward-compatible config imports)
+        services.AddSingleton<ConfigMigrationService>();
+
         // Recommended Settings Service
         services.AddSingleton<IRecommendedSettingsService>(provider =>
             new RecommendedSettingsService(
                 provider.GetRequiredService<IDomainServiceRouter>(),
-                provider.GetRequiredService<IWindowsRegistryService>(),
-                provider.GetRequiredService<IComboBoxResolver>(),
                 provider.GetRequiredService<IWindowsVersionService>(),
-                provider.GetRequiredService<ILogService>(),
-                provider.GetRequiredService<IEventBus>()));
+                provider.GetRequiredService<ILogService>()));
 
         // Advanced Tools Services
         services.AddSingleton<Winhance.Core.Features.AdvancedTools.Interfaces.IWimUtilService,

@@ -49,6 +49,7 @@ public partial class MainWindowViewModel : ObservableObject
     private readonly IDispatcherService _dispatcherService;
     private readonly IConfigReviewService _configReviewService;
     private readonly IWinGetService _winGetService;
+    private readonly IInternetConnectivityService _internetConnectivityService;
 
     [ObservableProperty]
     private string _appIconSource = "ms-appx:///Assets/AppIcons/winhance-rocket-white-transparent-bg.png";
@@ -142,7 +143,8 @@ public partial class MainWindowViewModel : ObservableObject
         ITaskProgressService taskProgressService,
         IDispatcherService dispatcherService,
         IConfigReviewService configReviewService,
-        IWinGetService winGetService)
+        IWinGetService winGetService,
+        IInternetConnectivityService internetConnectivityService)
     {
         _themeService = themeService;
         _configurationService = configurationService;
@@ -156,6 +158,7 @@ public partial class MainWindowViewModel : ObservableObject
         _dispatcherService = dispatcherService;
         _configReviewService = configReviewService;
         _winGetService = winGetService;
+        _internetConnectivityService = internetConnectivityService;
 
         // Subscribe to theme changes
         _themeService.ThemeChanged += OnThemeChanged;
@@ -603,6 +606,14 @@ public partial class MainWindowViewModel : ObservableObject
     {
         try
         {
+            var hasInternet = await _internetConnectivityService.IsInternetConnectedAsync(forceCheck: true);
+            if (!hasInternet)
+            {
+                _logService.Log(Core.Features.Common.Enums.LogLevel.Info,
+                    "Startup: No internet connection — skipping update check");
+                return;
+            }
+
             _logService.Log(Core.Features.Common.Enums.LogLevel.Info, "Startup: Checking for updates...");
 
             var latestVersion = await _versionService.CheckForUpdateAsync();
@@ -632,49 +643,86 @@ public partial class MainWindowViewModel : ObservableObject
     }
 
     /// <summary>
-    /// Ensures WinGet is installed and up to date on startup.
-    /// Runs silently if WinGet is ready; shows task progress if installation/update is needed.
+    /// Post-UI startup flow for WinGet / AppInstaller.
+    /// If system winget was already found (EnsureWinGetReadyAsync set it), silently attempts an upgrade.
+    /// If only the bundled winget is available, shows progress and installs AppInstaller.
     /// </summary>
     public async Task EnsureWinGetReadyOnStartupAsync()
     {
         try
         {
-            _logService.Log(Core.Features.Common.Enums.LogLevel.Info, "Startup: Checking WinGet readiness...");
-
-            bool isReady = await _winGetService.EnsureWinGetReadyAsync();
-
-            if (isReady)
+            if (_winGetService.IsSystemWinGetAvailable)
             {
-                _logService.Log(Core.Features.Common.Enums.LogLevel.Info, "Startup: WinGet already ready");
-                return;
-            }
+                // System winget already present — silently attempt upgrade
+                _logService.Log(Core.Features.Common.Enums.LogLevel.Info,
+                    "Startup: System winget available, attempting silent AppInstaller upgrade...");
 
-            _logService.Log(Core.Features.Common.Enums.LogLevel.Info, "Startup: WinGet not ready, attempting to install/update...");
+                bool upgraded = await _winGetService.UpgradeAppInstallerAsync();
+                if (upgraded)
+                {
+                    _logService.Log(Core.Features.Common.Enums.LogLevel.Info,
+                        "Startup: AppInstaller upgraded successfully");
 
-            _taskProgressService.StartTask(
-                _localizationService.GetString("Progress_CheckingWinget") ?? "Checking for winget...",
-                isIndeterminate: true);
-
-            var progress = _taskProgressService.CreateDetailedProgress();
-            bool updated = await _winGetService.EnsureWinGetUpToDateAsync(progress);
-
-            if (updated)
-            {
-                _logService.Log(Core.Features.Common.Enums.LogLevel.Info, "Startup: WinGet successfully prepared");
-                _taskProgressService.CompleteTask();
+                    // Re-init COM in case the upgrade changed the COM server
+                    await _winGetService.EnsureWinGetReadyAsync();
+                }
+                else
+                {
+                    _logService.Log(Core.Features.Common.Enums.LogLevel.Info,
+                        "Startup: AppInstaller upgrade not needed or not applicable");
+                }
             }
             else
             {
-                _logService.Log(Core.Features.Common.Enums.LogLevel.Warning, "Startup: Could not prepare WinGet - likely no internet connection");
-                _taskProgressService.UpdateProgress(0,
-                    _localizationService.GetString("Error_WinGetInstallFailed") ?? "Failed to install WinGet. Please check your internet connection.");
-                await Task.Delay(7000);
-                _taskProgressService.CompleteTask();
+                // Only bundled winget — need to install AppInstaller
+                // Check internet FIRST — all install paths require connectivity
+                var hasInternet = await _internetConnectivityService.IsInternetConnectedAsync(forceCheck: true);
+                if (!hasInternet)
+                {
+                    _logService.Log(Core.Features.Common.Enums.LogLevel.Warning,
+                        "Startup: No internet connection — skipping AppInstaller installation");
+                    return;
+                }
+
+                _logService.Log(Core.Features.Common.Enums.LogLevel.Info,
+                    "Startup: No system winget, attempting to install AppInstaller...");
+
+                _taskProgressService.StartTask(
+                    _localizationService.GetString("Progress_WinGet_Installing") ?? "Installing WinGet...",
+                    isIndeterminate: false);
+
+                try
+                {
+                    bool installed = await _winGetService.InstallWinGetAsync();
+
+                    if (installed)
+                    {
+                        _logService.Log(Core.Features.Common.Enums.LogLevel.Info,
+                            "Startup: AppInstaller installed successfully");
+                        _taskProgressService.CompleteTask();
+                    }
+                    else
+                    {
+                        _logService.Log(Core.Features.Common.Enums.LogLevel.Warning,
+                            "Startup: AppInstaller installation failed — continuing with bundled CLI");
+                        _taskProgressService.UpdateProgress(0,
+                            _localizationService.GetString("Error_WinGetInstallFailed")
+                            ?? "Failed to install WinGet. Please check your internet connection.");
+                        await Task.Delay(5000);
+                        _taskProgressService.CompleteTask();
+                    }
+                }
+                catch
+                {
+                    _taskProgressService.CompleteTask();
+                    throw;
+                }
             }
         }
         catch (Exception ex)
         {
-            _logService.Log(Core.Features.Common.Enums.LogLevel.Error, $"Startup: Error preparing WinGet: {ex.Message}");
+            _logService.Log(Core.Features.Common.Enums.LogLevel.Error,
+                $"Startup: Error in WinGet readiness flow: {ex.Message}");
         }
     }
 

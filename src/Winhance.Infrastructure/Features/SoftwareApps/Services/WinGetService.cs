@@ -1,6 +1,9 @@
 using System;
+using System.Collections.Generic;
+using System.IO;
 using System.Linq;
 using System.Security.Principal;
+using System.Text.Json;
 using System.Threading;
 using System.Threading.Tasks;
 using Microsoft.Management.Deployment;
@@ -23,8 +26,15 @@ namespace Winhance.Infrastructure.Features.SoftwareApps.Services
         private PackageManager? _packageManager;
         private readonly object _factoryLock = new();
         private bool _isInitialized;
+        private bool _comInitTimedOut;
+        private bool _systemWinGetAvailable;
+
+        private const int ComInitTimeoutSeconds = 5;
+        private const int ComOperationTimeoutSeconds = 15;
 
         public event EventHandler? WinGetInstalled;
+
+        public bool IsSystemWinGetAvailable => _systemWinGetAvailable;
 
         public WinGetService(
             ITaskProgressService taskProgressService,
@@ -43,85 +53,39 @@ namespace Winhance.Infrastructure.Features.SoftwareApps.Services
             return principal.IsInRole(WindowsBuiltInRole.Administrator);
         }
 
-        private bool EnsureInitialized()
+        #region COM Initialization (for detection)
+
+        private bool EnsureComInitialized()
         {
             if (_isInitialized && _packageManager != null)
                 return true;
+
+            if (_comInitTimedOut)
+                return false;
 
             lock (_factoryLock)
             {
                 if (_isInitialized && _packageManager != null)
                     return true;
 
+                if (_comInitTimedOut)
+                    return false;
+
                 try
                 {
-                    bool isAdmin = IsRunningAsAdministrator();
-                    _logService?.LogInformation($"Initializing WinGet COM API (Admin: {isAdmin})");
-
-                    // Strategy: ElevatedFactory first (works on both Win10 and Win11 when running
-                    // as admin with framework-dependent deployment), then StandardFactory as fallback.
-
-                    // 1. ElevatedFactory via winrtact.dll — bypasses COM registry, works on
-                    //    both Win10 and Win11 for elevated unpackaged apps.
-                    if (isAdmin)
-                    {
-                        try
-                        {
-                            _logService?.LogInformation("Using ElevatedFactory for admin context");
-                            _winGetFactory = new WindowsPackageManagerElevatedFactory();
-                            _packageManager = _winGetFactory.CreatePackageManager();
-                            _isInitialized = true;
-                            _logService?.LogInformation("WinGet COM API initialized successfully with ElevatedFactory");
-                            return true;
-                        }
-                        catch (Exception ex)
-                        {
-                            _logService?.LogWarning($"ElevatedFactory failed: {ex.Message}");
-                        }
-                    }
-
-                    // 2. StandardFactory with lower trust (CoCreateInstance-based, Win11+)
-                    if (isAdmin)
-                    {
-                        try
-                        {
-                            _logService?.LogInformation("Using StandardFactory (lowerTrust: True)");
-                            _winGetFactory = new WindowsPackageManagerStandardFactory(
-                                ClsidContext.Prod,
-                                allowLowerTrustRegistration: true);
-                            _packageManager = _winGetFactory.CreatePackageManager();
-                            _isInitialized = true;
-                            _logService?.LogInformation("WinGet COM API initialized successfully with StandardFactory (lowerTrust)");
-                            return true;
-                        }
-                        catch (Exception ex)
-                        {
-                            _logService?.LogWarning($"StandardFactory (lowerTrust) failed: {ex.Message}");
-                        }
-                    }
-
-                    // 3. StandardFactory without lower trust (last resort)
-                    try
-                    {
-                        _logService?.LogInformation("Using StandardFactory (lowerTrust: False)");
-                        _winGetFactory = new WindowsPackageManagerStandardFactory(
-                            ClsidContext.Prod,
-                            allowLowerTrustRegistration: false);
-                        _packageManager = _winGetFactory.CreatePackageManager();
-                        _isInitialized = true;
-                        _logService?.LogInformation("WinGet COM API initialized successfully with StandardFactory");
-                        return true;
-                    }
-                    catch (Exception ex)
-                    {
-                        _logService?.LogWarning($"StandardFactory failed: {ex.Message}");
-                    }
-
-                    _logService?.LogError("All WinGet COM API initialization methods failed");
-                    _isInitialized = false;
-                    _packageManager = null;
-                    _winGetFactory = null;
-                    return false;
+                    // Winhance always runs as admin with self-contained AppSdk.
+                    // StandardFactory + ALLOW_LOWER_TRUST_REGISTRATION is the only approach
+                    // that works in this configuration.
+                    // ElevatedFactory (winrtact.dll) hangs in self-contained mode:
+                    // https://github.com/microsoft/winget-cli/issues/4377
+                    _logService?.LogInformation("Initializing WinGet COM API via StandardFactory");
+                    _winGetFactory = new WindowsPackageManagerStandardFactory(
+                        ClsidContext.Prod,
+                        allowLowerTrustRegistration: true);
+                    _packageManager = _winGetFactory.CreatePackageManager();
+                    _isInitialized = true;
+                    _logService?.LogInformation("WinGet COM API initialized successfully");
+                    return true;
                 }
                 catch (Exception ex)
                 {
@@ -139,36 +103,39 @@ namespace Winhance.Infrastructure.Features.SoftwareApps.Services
             lock (_factoryLock)
             {
                 _isInitialized = false;
+                _comInitTimedOut = false;
                 _packageManager = null;
                 _winGetFactory = null;
             }
         }
 
+        #endregion
+
+        #region CLI-based Install / Uninstall
+
         public async Task<bool> IsWinGetInstalledAsync(CancellationToken cancellationToken = default)
         {
+            // Bundled CLI is always available if the app is correctly installed
+            var exePath = WinGetCliRunner.GetWinGetExePath();
+            if (exePath != null && File.Exists(exePath))
+                return true;
+
+            // Fallback: try COM init (covers edge cases)
             try
             {
-                // Use a timeout to prevent the app from hanging indefinitely
-                // if COM activation blocks (e.g. due to self-contained SDK conflicts).
-                using var timeoutCts = new CancellationTokenSource(TimeSpan.FromSeconds(30));
+                using var timeoutCts = new CancellationTokenSource(TimeSpan.FromSeconds(10));
                 using var linkedCts = CancellationTokenSource.CreateLinkedTokenSource(
                     cancellationToken, timeoutCts.Token);
 
-                return await Task.Run(() => EnsureInitialized(), linkedCts.Token);
+                return await Task.Run(() => EnsureComInitialized(), linkedCts.Token);
             }
-            catch (OperationCanceledException) when (!cancellationToken.IsCancellationRequested)
+            catch
             {
-                _logService?.LogError("WinGet COM API initialization timed out after 30 seconds");
-                return false;
-            }
-            catch (Exception ex)
-            {
-                _logService?.LogError($"Error checking if WinGet is installed: {ex.Message}");
                 return false;
             }
         }
 
-        public async Task<PackageInstallResult> InstallPackageAsync(string packageId, string? displayName = null, CancellationToken cancellationToken = default)
+        public async Task<PackageInstallResult> InstallPackageAsync(string packageId, string? source = null, string? displayName = null, CancellationToken cancellationToken = default)
         {
             if (string.IsNullOrWhiteSpace(packageId))
                 throw new ArgumentException("Package ID cannot be null or empty", nameof(packageId));
@@ -179,83 +146,111 @@ namespace Winhance.Infrastructure.Features.SoftwareApps.Services
 
             if (!await IsWinGetInstalledAsync(cancellationToken))
             {
-                _taskProgressService?.UpdateProgress(20, _localization.GetString("Progress_WinGet_InstallingManager"));
-                if (!await InstallWinGetAsync(cancellationToken))
-                {
-                    _taskProgressService?.UpdateProgress(0, _localization.GetString("Progress_WinGet_FailedInstallManager", displayName));
-                    return PackageInstallResult.Failed(InstallFailureReason.WinGetNotAvailable, "Failed to install WinGet");
-                }
-
-                // Re-initialize after installing WinGet
-                ResetFactory();
-                if (!EnsureInitialized())
-                {
-                    _taskProgressService?.UpdateProgress(0, _localization.GetString("Progress_WinGet_FailedInstallManager", displayName));
-                    return PackageInstallResult.Failed(InstallFailureReason.WinGetNotAvailable, "Failed to initialize WinGet after installation");
-                }
+                _taskProgressService?.UpdateProgress(0, _localization.GetString("Progress_WinGet_FailedInstallManager", displayName));
+                return PackageInstallResult.Failed(InstallFailureReason.WinGetNotAvailable, "WinGet CLI not found");
             }
 
             try
             {
-                _taskProgressService?.UpdateProgress(30, _localization.GetString("Progress_WinGet_StartingInstallation", displayName));
+                _taskProgressService?.UpdateProgress(20, _localization.GetString("Progress_WinGet_StartingInstallation", displayName));
 
-                // Find the package first
-                var package = await FindPackageAsync(packageId, cancellationToken);
-                if (package == null)
-                {
-                    _taskProgressService?.UpdateProgress(0, _localization.GetString("Progress_WinGet_PackageNotFound", packageId));
-                    return PackageInstallResult.Failed(InstallFailureReason.PackageNotFound, $"Package '{packageId}' not found");
-                }
+                var arguments = $"install --exact --id {packageId} --silent --accept-package-agreements --accept-source-agreements --force --disable-interactivity";
+                if (!string.IsNullOrEmpty(source))
+                    arguments += $" --source {source}";
 
-                _taskProgressService?.UpdateProgress(40, _localization.GetString("Progress_WinGet_FoundPackage", package.Name));
+                _logService?.LogInformation($"[winget] Running: winget {arguments}");
 
-                // Create install options
-                var installOptions = _winGetFactory!.CreateInstallOptions();
-                installOptions.PackageInstallMode = PackageInstallMode.Silent;
-                installOptions.PackageInstallScope = PackageInstallScope.Any;
+                var lastProgressReport = DateTime.MinValue;
 
-                // Install the package
-                _taskProgressService?.UpdateProgress(50, _localization.GetString("Progress_Installing", displayName));
+                var lastLoggedPhase = (WinGetProgressParser.WinGetPhase?)null;
 
-                var installResult = await Task.Run(async () =>
-                {
-                    var operation = _packageManager!.InstallPackageAsync(package, installOptions);
-
-                    // Set up progress reporting
-                    operation.Progress = (asyncInfo, progressInfo) =>
+                var result = await WinGetCliRunner.RunAsync(
+                    arguments,
+                    onOutputLine: line =>
                     {
-                        var progressPercent = 50 + (int)(progressInfo.DownloadProgress * 25) + (int)(progressInfo.InstallationProgress * 25);
-                        var (status, progressDisplay) = progressInfo.State switch
+                        try
                         {
-                            PackageInstallProgressState.Queued => (_localization.GetString("Progress_Processing", displayName), ""),
-                            PackageInstallProgressState.Downloading => (_localization.GetString("Progress_Downloading", displayName), $"{progressInfo.DownloadProgress:P0}"),
-                            PackageInstallProgressState.Installing => (_localization.GetString("Progress_Installing", displayName), $"{progressInfo.InstallationProgress:P0}"),
-                            PackageInstallProgressState.PostInstall => (_localization.GetString("Progress_Finalizing"), ""),
-                            PackageInstallProgressState.Finished => (_localization.GetString("Progress_InstalledSuccess", displayName), "100%"),
-                            _ => (_localization.GetString("Progress_Processing", displayName), "")
-                        };
+                            // Translate raw resource keys to human-readable text
+                            var displayLine = WinGetProgressParser.TranslateLine(line);
 
-                        _taskProgressService?.UpdateDetailedProgress(new TaskProgressDetail
+                            var progress = WinGetProgressParser.ParseLine(line);
+                            if (progress != null)
+                            {
+                                // Only log phase transitions (Found, Installing, Complete, Error) — skip noisy progress updates
+                                if (progress.Phase != lastLoggedPhase
+                                    && progress.Phase is WinGetProgressParser.WinGetPhase.Found
+                                        or WinGetProgressParser.WinGetPhase.Installing
+                                        or WinGetProgressParser.WinGetPhase.Complete
+                                        or WinGetProgressParser.WinGetPhase.Error)
+                                {
+                                    lastLoggedPhase = progress.Phase;
+                                    if (displayLine != null)
+                                        _logService?.LogInformation($"[winget] {displayLine}");
+                                }
+
+                                var progressPercent = progress.Phase switch
+                                {
+                                    WinGetProgressParser.WinGetPhase.Found => 30,
+                                    WinGetProgressParser.WinGetPhase.Downloading => 30 + (int)((progress.Percent ?? 0) * 0.4),
+                                    WinGetProgressParser.WinGetPhase.Installing => 70 + (int)((progress.Percent ?? 0) * 0.25),
+                                    WinGetProgressParser.WinGetPhase.Complete => 100,
+                                    _ => 50
+                                };
+
+                                var statusText = progress.Phase switch
+                                {
+                                    WinGetProgressParser.WinGetPhase.Found => _localization.GetString("Progress_WinGet_FoundPackage", displayName),
+                                    WinGetProgressParser.WinGetPhase.Downloading => _localization.GetString("Progress_Downloading", displayName),
+                                    WinGetProgressParser.WinGetPhase.Installing => _localization.GetString("Progress_Installing", displayName),
+                                    WinGetProgressParser.WinGetPhase.Complete => _localization.GetString("Progress_WinGet_InstalledSuccess", displayName),
+                                    _ => _localization.GetString("Progress_Processing", displayName)
+                                };
+
+                                // Throttle progress updates to avoid flooding the UI (allow Complete through unconditionally)
+                                var now = DateTime.UtcNow;
+                                if (progress.Phase == WinGetProgressParser.WinGetPhase.Complete
+                                    || (now - lastProgressReport).TotalMilliseconds >= 250)
+                                {
+                                    lastProgressReport = now;
+                                    _taskProgressService?.UpdateDetailedProgress(new TaskProgressDetail
+                                    {
+                                        Progress = progressPercent,
+                                        StatusText = statusText,
+                                        TerminalOutput = displayLine ?? line
+                                    });
+                                }
+                            }
+                            else if (displayLine != null)
+                            {
+                                // Non-parsed text lines: send to UI terminal only (skip log to avoid noise)
+                                _taskProgressService?.UpdateDetailedProgress(new TaskProgressDetail
+                                {
+                                    TerminalOutput = displayLine
+                                });
+                            }
+                        }
+                        catch (Exception ex)
                         {
-                            Progress = progressPercent,
-                            StatusText = status,
-                            TerminalOutput = progressDisplay
-                        });
-                    };
+                            _logService?.LogWarning($"Progress reporting error (ignored): {ex.Message}");
+                        }
+                    },
+                    onErrorLine: line =>
+                    {
+                        _logService?.LogWarning($"[winget-err] {line}");
+                    },
+                    cancellationToken: cancellationToken);
 
-                    return await operation.AsTask(cancellationToken);
-                }, cancellationToken);
-
-                if (installResult.Status == InstallResultStatus.Ok)
+                if (WinGetExitCodes.IsSuccess(result.ExitCode))
                 {
                     _taskProgressService?.UpdateProgress(100, _localization.GetString("Progress_WinGet_InstalledSuccess", displayName));
                     return PackageInstallResult.Succeeded();
                 }
 
-                var errorMessage = GetInstallErrorMessage(packageId, installResult);
-                _logService?.LogError($"Installation failed for {packageId}: {errorMessage}");
+                var failureReason = WinGetExitCodes.MapExitCode(result.ExitCode);
+                var errorMessage = GetInstallErrorMessageCli(packageId, failureReason, result.ExitCode);
+                _logService?.LogError($"Installation failed for {packageId}: {errorMessage} (exit code: {result.ExitCode})");
                 _taskProgressService?.UpdateProgress(0, errorMessage);
-                return PackageInstallResult.Failed(MapInstallStatus(installResult.Status), errorMessage);
+                return PackageInstallResult.Failed(failureReason, errorMessage);
             }
             catch (OperationCanceledException)
             {
@@ -266,29 +261,13 @@ namespace Winhance.Infrastructure.Features.SoftwareApps.Services
             {
                 _logService?.LogError($"Error installing {packageId}: {ex.Message}");
 
-                var isNetwork = IsNetworkRelatedError(ex.Message);
-                var errorMessage = isNetwork
-                    ? _localization.GetString("Progress_WinGet_NetworkError", displayName)
-                    : _localization.GetString("Progress_WinGet_InstallationError", displayName, ex.Message);
-
+                var errorMessage = _localization.GetString("Progress_WinGet_InstallationError", displayName, ex.Message);
                 _taskProgressService?.UpdateProgress(0, errorMessage);
-                return PackageInstallResult.Failed(
-                    isNetwork ? InstallFailureReason.NetworkError : InstallFailureReason.Other,
-                    errorMessage);
+                return PackageInstallResult.Failed(InstallFailureReason.Other, errorMessage);
             }
         }
 
-        private static InstallFailureReason MapInstallStatus(InstallResultStatus status) => status switch
-        {
-            InstallResultStatus.BlockedByPolicy => InstallFailureReason.BlockedByPolicy,
-            InstallResultStatus.DownloadError => InstallFailureReason.DownloadError,
-            InstallResultStatus.InstallError => InstallFailureReason.HashMismatchOrInstallError,
-            InstallResultStatus.NoApplicableInstallers => InstallFailureReason.NoApplicableInstallers,
-            InstallResultStatus.PackageAgreementsNotAccepted => InstallFailureReason.AgreementsNotAccepted,
-            _ => InstallFailureReason.Other
-        };
-
-        public async Task<bool> UninstallPackageAsync(string packageId, string? displayName = null, CancellationToken cancellationToken = default)
+        public async Task<bool> UninstallPackageAsync(string packageId, string? source = null, string? displayName = null, CancellationToken cancellationToken = default)
         {
             if (string.IsNullOrWhiteSpace(packageId))
                 throw new ArgumentException("Package ID cannot be null or empty", nameof(packageId));
@@ -305,59 +284,139 @@ namespace Winhance.Infrastructure.Features.SoftwareApps.Services
 
             try
             {
-                _taskProgressService?.UpdateProgress(30, _localization.GetString("Progress_WinGet_StartingUninstallation", displayName));
+                _taskProgressService?.UpdateProgress(20, _localization.GetString("Progress_WinGet_StartingUninstallation", displayName));
 
-                // Find the installed package
-                var package = await FindInstalledPackageAsync(packageId, cancellationToken);
-                if (package == null)
-                {
-                    _taskProgressService?.UpdateProgress(0, _localization.GetString("Progress_WinGet_PackageNotInstalled", packageId));
-                    return false;
-                }
+                var arguments = $"uninstall --exact --id {packageId} --silent --accept-source-agreements --force --disable-interactivity";
+                if (!string.IsNullOrEmpty(source))
+                    arguments += $" --source {source}";
 
-                // Create uninstall options
-                var uninstallOptions = _winGetFactory!.CreateUninstallOptions();
-                uninstallOptions.PackageUninstallMode = PackageUninstallMode.Silent;
-                uninstallOptions.Force = true;
+                _logService?.LogInformation($"[winget] Running: winget {arguments}");
 
-                // Uninstall the package
-                _taskProgressService?.UpdateProgress(50, _localization.GetString("Progress_Uninstalling", displayName));
+                var lastProgressReport = DateTime.MinValue;
 
-                var uninstallResult = await Task.Run(async () =>
-                {
-                    var operation = _packageManager!.UninstallPackageAsync(package, uninstallOptions);
+                var lastLoggedPhase = (WinGetProgressParser.WinGetPhase?)null;
 
-                    operation.Progress = (asyncInfo, progressInfo) =>
+                var result = await WinGetCliRunner.RunAsync(
+                    arguments,
+                    onOutputLine: line =>
                     {
-                        var progressPercent = 50 + (int)(progressInfo.UninstallationProgress * 50);
-                        var (status, progressDisplay) = progressInfo.State switch
+                        try
                         {
-                            PackageUninstallProgressState.Queued => (_localization.GetString("Progress_Processing", displayName), ""),
-                            PackageUninstallProgressState.Uninstalling => (_localization.GetString("Progress_Uninstalling", displayName), $"{progressInfo.UninstallationProgress:P0}"),
-                            PackageUninstallProgressState.PostUninstall => (_localization.GetString("Progress_Finalizing"), ""),
-                            PackageUninstallProgressState.Finished => (_localization.GetString("Progress_WinGet_UninstalledSuccess", displayName), "100%"),
-                            _ => (_localization.GetString("Progress_Processing", displayName), "")
-                        };
+                            // Translate raw resource keys to human-readable text
+                            var displayLine = WinGetProgressParser.TranslateLine(line);
 
-                        _taskProgressService?.UpdateDetailedProgress(new TaskProgressDetail
+                            var progress = WinGetProgressParser.ParseLine(line);
+                            if (progress != null)
+                            {
+                                // Only log phase transitions (Found, Uninstalling, Complete, Error) — skip noisy progress updates
+                                if (progress.Phase != lastLoggedPhase
+                                    && progress.Phase is WinGetProgressParser.WinGetPhase.Found
+                                        or WinGetProgressParser.WinGetPhase.Uninstalling
+                                        or WinGetProgressParser.WinGetPhase.Complete
+                                        or WinGetProgressParser.WinGetPhase.Error)
+                                {
+                                    lastLoggedPhase = progress.Phase;
+                                    if (displayLine != null)
+                                        _logService?.LogInformation($"[winget] {displayLine}");
+                                }
+
+                                var progressPercent = progress.Phase switch
+                                {
+                                    WinGetProgressParser.WinGetPhase.Found => 30,
+                                    WinGetProgressParser.WinGetPhase.Uninstalling => 60,
+                                    WinGetProgressParser.WinGetPhase.Complete => 100,
+                                    _ => 50
+                                };
+
+                                var statusText = progress.Phase switch
+                                {
+                                    WinGetProgressParser.WinGetPhase.Found => _localization.GetString("Progress_WinGet_FoundPackage", displayName),
+                                    WinGetProgressParser.WinGetPhase.Uninstalling => _localization.GetString("Progress_Uninstalling", displayName),
+                                    WinGetProgressParser.WinGetPhase.Complete => _localization.GetString("Progress_WinGet_UninstalledSuccess", displayName),
+                                    _ => _localization.GetString("Progress_Processing", displayName)
+                                };
+
+                                // Throttle progress updates to avoid flooding the UI (allow Complete through unconditionally)
+                                var now = DateTime.UtcNow;
+                                if (progress.Phase == WinGetProgressParser.WinGetPhase.Complete
+                                    || (now - lastProgressReport).TotalMilliseconds >= 250)
+                                {
+                                    lastProgressReport = now;
+                                    _taskProgressService?.UpdateDetailedProgress(new TaskProgressDetail
+                                    {
+                                        Progress = progressPercent,
+                                        StatusText = statusText,
+                                        TerminalOutput = displayLine ?? line
+                                    });
+                                }
+                            }
+                            else if (displayLine != null)
+                            {
+                                // Non-parsed text lines: send to UI terminal only (skip log to avoid noise)
+                                _taskProgressService?.UpdateDetailedProgress(new TaskProgressDetail
+                                {
+                                    TerminalOutput = displayLine
+                                });
+                            }
+                        }
+                        catch (Exception ex)
                         {
-                            Progress = progressPercent,
-                            StatusText = status,
-                            TerminalOutput = progressDisplay
-                        });
-                    };
+                            _logService?.LogWarning($"Progress reporting error (ignored): {ex.Message}");
+                        }
+                    },
+                    onErrorLine: line =>
+                    {
+                        _logService?.LogWarning($"[winget-err] {line}");
+                    },
+                    cancellationToken: cancellationToken);
 
-                    return await operation.AsTask(cancellationToken);
-                }, cancellationToken);
-
-                if (uninstallResult.Status == UninstallResultStatus.Ok)
+                if (WinGetExitCodes.IsSuccess(result.ExitCode))
                 {
+                    // Verify the package is actually gone — some uninstallers are interactive
+                    // and WinGet reports success as soon as it launches them.
+                    _taskProgressService?.UpdateProgress(95, _localization.GetString("Progress_WinGet_VerifyingUninstall", displayName));
+
+                    bool stillInstalled = await IsPackageStillInstalledAsync(packageId, source, cancellationToken);
+
+                    if (stillInstalled)
+                    {
+                        _logService?.LogInformation($"[winget] {packageId} still detected after uninstall — waiting for interactive uninstaller");
+                        _taskProgressService?.UpdateProgress(95, _localization.GetString("Progress_WinGet_WaitingForUninstaller", displayName));
+
+                        const int pollIntervalMs = 3000;
+                        const int maxWaitMs = 60_000;
+                        int elapsed = 0;
+
+                        while (elapsed < maxWaitMs)
+                        {
+                            cancellationToken.ThrowIfCancellationRequested();
+                            await Task.Delay(pollIntervalMs, cancellationToken);
+                            elapsed += pollIntervalMs;
+
+                            if (!await IsPackageStillInstalledAsync(packageId, source, cancellationToken))
+                            {
+                                stillInstalled = false;
+                                _logService?.LogInformation($"[winget] {packageId} confirmed uninstalled after {elapsed / 1000}s");
+                                break;
+                            }
+                        }
+                    }
+
+                    if (!stillInstalled)
+                    {
+                        _taskProgressService?.UpdateProgress(100, _localization.GetString("Progress_WinGet_UninstalledSuccess", displayName));
+                        return true;
+                    }
+
+                    // Timed out — uninstaller may require user interaction
+                    _logService?.LogWarning($"[winget] {packageId} still detected after 60s wait — uninstaller may require user interaction");
                     _taskProgressService?.UpdateProgress(100, _localization.GetString("Progress_WinGet_UninstalledSuccess", displayName));
-                    return true;
+                    return true; // WinGet did report success; don't block the UI
                 }
 
-                var errorMessage = GetUninstallErrorMessage(packageId, uninstallResult);
-                _logService?.LogError($"Uninstallation failed for {packageId}: {errorMessage}");
+                var failureReason = WinGetExitCodes.MapExitCode(result.ExitCode);
+                var errorMessage = GetUninstallErrorMessageCli(packageId, failureReason, result.ExitCode);
+                _logService?.LogError($"Uninstallation failed for {packageId}: {errorMessage} (exit code: {result.ExitCode})");
                 _taskProgressService?.UpdateProgress(0, errorMessage);
                 return false;
             }
@@ -374,78 +433,91 @@ namespace Winhance.Infrastructure.Features.SoftwareApps.Services
             }
         }
 
-        public async Task<bool> InstallWinGetAsync(CancellationToken cancellationToken = default)
+        /// <summary>
+        /// Quick check: runs "winget list --exact --id {packageId}" to see if a package is still installed.
+        /// Returns true if the package is still present.
+        /// </summary>
+        private async Task<bool> IsPackageStillInstalledAsync(string packageId, string? source, CancellationToken cancellationToken)
         {
-            if (await IsWinGetInstalledAsync(cancellationToken))
-                return true;
-
-            var progress = new Progress<TaskProgressDetail>(p => _taskProgressService?.UpdateDetailedProgress(p));
-
             try
             {
-                _taskProgressService?.UpdateProgress(0, _localization.GetString("Progress_WinGet_Installing"));
+                var arguments = $"list --exact --id {packageId} --accept-source-agreements --disable-interactivity";
+                if (!string.IsNullOrEmpty(source))
+                    arguments += $" --source {source}";
 
-                var installer = new WinGetInstaller(_logService, _localization);
-                var result = await installer.InstallAsync(progress, cancellationToken);
+                var result = await WinGetCliRunner.RunAsync(
+                    arguments,
+                    cancellationToken: cancellationToken,
+                    timeoutMs: 10_000);
 
-                if (!result.Success)
-                {
-                    _taskProgressService?.UpdateProgress(0, _localization.GetString("Progress_WinGet_InstallFailed"));
-                    return false;
-                }
-
-                // MSIX/AppX COM registration happens asynchronously after installation
-                // We need to retry multiple times with delays to wait for registration to complete
-                _taskProgressService?.UpdateProgress(50, _localization.GetString("Progress_WinGet_VerifyingInstallation"));
-
-                const int maxRetries = 10;
-                const int retryDelayMs = 3000; // 3 seconds between retries
-
-                for (int attempt = 1; attempt <= maxRetries; attempt++)
-                {
-                    _logService?.LogInformation($"Verifying WinGet COM API (attempt {attempt}/{maxRetries})...");
-
-                    await Task.Delay(retryDelayMs, cancellationToken);
-                    ResetFactory();
-
-                    if (EnsureInitialized())
-                    {
-                        _logService?.LogInformation($"WinGet COM API ready after {attempt} attempt(s)");
-                        _taskProgressService?.UpdateProgress(100, _localization.GetString("Progress_WinGet_InstalledSuccessfully"));
-                        WinGetInstalled?.Invoke(this, EventArgs.Empty);
-                        return true;
-                    }
-
-                    var progressPercent = 50 + (attempt * 5); // Progress from 50% to 100%
-                    _taskProgressService?.UpdateProgress(Math.Min(progressPercent, 95),
-                        _localization.GetString("Progress_WinGet_WaitingForRegistration"));
-                }
-
-                _logService?.LogWarning("WinGet COM API not ready after maximum retries - may need app restart");
-                _taskProgressService?.UpdateProgress(0, _localization.GetString("Progress_WinGet_VerificationFailed"));
-                return false;
+                // Exit code 0 = found (still installed), non-zero = not found
+                return result.ExitCode == 0;
             }
-            catch (Exception ex)
+            catch
             {
-                _logService?.LogError($"Failed to install WinGet: {ex.Message}");
-                _taskProgressService?.UpdateProgress(0, _localization.GetString("Progress_WinGet_InstallError", ex.Message));
+                // If the check fails, assume it's gone to avoid blocking
                 return false;
             }
         }
 
-        public async Task<bool> IsPackageInstalledAsync(string packageId, CancellationToken cancellationToken = default)
-        {
-            if (string.IsNullOrWhiteSpace(packageId) || !await IsWinGetInstalledAsync(cancellationToken))
-                return false;
+        #endregion
 
+        #region Simplified Bootstrapping
+
+        public async Task<bool> InstallWinGetAsync(CancellationToken cancellationToken = default)
+        {
             try
             {
-                var package = await FindInstalledPackageAsync(packageId, cancellationToken);
-                return package != null;
+                _logService?.LogInformation("Starting AppInstaller installation...");
+
+                var installer = new WinGetInstaller(_logService, _localization, _taskProgressService);
+                var (success, message) = await installer.InstallAsync(cancellationToken);
+
+                if (!success)
+                {
+                    _logService?.LogError($"AppInstaller installation failed: {message}");
+                    return false;
+                }
+
+                _logService?.LogInformation("AppInstaller installed, waiting for COM API readiness...");
+
+                // Retry COM init with loop (10 retries, 3s delay)
+                for (int i = 0; i < 10; i++)
+                {
+                    cancellationToken.ThrowIfCancellationRequested();
+                    await Task.Delay(3000, cancellationToken);
+
+                    ResetFactory();
+                    if (await Task.Run(() => EnsureComInitialized(), cancellationToken))
+                    {
+                        _logService?.LogInformation($"COM API ready after {i + 1} attempt(s)");
+                        _systemWinGetAvailable = true;
+                        WinGetInstalled?.Invoke(this, EventArgs.Empty);
+                        return true;
+                    }
+
+                    _logService?.LogInformation($"COM init attempt {i + 1}/10 failed, retrying...");
+                }
+
+                _logService?.LogWarning("COM API did not become ready after AppInstaller installation");
+                // Still consider it a partial success — system winget may be available
+                _systemWinGetAvailable = WinGetCliRunner.IsSystemWinGetAvailable();
+                if (_systemWinGetAvailable)
+                {
+                    WinGetInstalled?.Invoke(this, EventArgs.Empty);
+                    return true;
+                }
+
+                return false;
+            }
+            catch (OperationCanceledException)
+            {
+                _logService?.LogWarning("AppInstaller installation was cancelled");
+                throw;
             }
             catch (Exception ex)
             {
-                _logService?.LogError($"Error checking if package {packageId} is installed: {ex.Message}");
+                _logService?.LogError($"Error installing AppInstaller: {ex.Message}");
                 return false;
             }
         }
@@ -454,15 +526,49 @@ namespace Winhance.Infrastructure.Features.SoftwareApps.Services
         {
             try
             {
-                _logService?.LogInformation("Checking WinGet availability via COM API...");
-                bool isInstalled = await IsWinGetInstalledAsync(cancellationToken);
+                _logService?.LogInformation("Checking WinGet availability...");
 
-                if (!isInstalled)
+                _systemWinGetAvailable = WinGetCliRunner.IsSystemWinGetAvailable();
+                _logService?.LogInformation($"System winget available: {_systemWinGetAvailable}");
+
+                if (_systemWinGetAvailable)
                 {
-                    _logService?.LogInformation("WinGet COM API is not available - will use WMI/Registry for app detection");
+                    // System winget is present — try COM init (likely succeeds).
+                    // Use Task.WhenAny to enforce a timeout without nesting Task.Run
+                    // (nested Task.Run breaks COM activation context).
+                    try
+                    {
+                        var initTask = Task.Run(() => EnsureComInitialized(), cancellationToken);
+                        var completed = await Task.WhenAny(
+                            initTask, Task.Delay(TimeSpan.FromSeconds(ComInitTimeoutSeconds), cancellationToken));
+
+                        if (completed != initTask)
+                        {
+                            _logService?.LogWarning("COM init timed out in EnsureWinGetReadyAsync — using CLI fallback");
+                            _comInitTimedOut = true;
+                        }
+                    }
+                    catch (Exception ex)
+                    {
+                        _logService?.LogWarning($"COM init failed (detection may use CLI fallback): {ex.Message}");
+                    }
+                }
+                else
+                {
+                    // Only bundled winget available — skip COM attempt (will fail anyway)
+                    _logService?.LogInformation("No system winget — bundled CLI will be used for detection");
                 }
 
-                return isInstalled;
+                // Return true as long as bundled or system winget exists
+                var exePath = WinGetCliRunner.GetWinGetExePath();
+                if (exePath == null || !File.Exists(exePath))
+                {
+                    _logService?.LogWarning("WinGet CLI not found — install/uninstall will fail");
+                    return false;
+                }
+
+                _logService?.LogInformation($"WinGet CLI found at: {exePath}");
+                return true;
             }
             catch (Exception ex)
             {
@@ -475,81 +581,21 @@ namespace Winhance.Infrastructure.Features.SoftwareApps.Services
         {
             try
             {
-                _logService?.LogInformation("Ensuring WinGet is up to date via COM API...");
+                _logService?.LogInformation("Checking bundled WinGet CLI...");
                 progress?.Report(new TaskProgressDetail
                 {
                     Progress = 10,
                     StatusText = _localization.GetString("Progress_WinGet_CheckingUpdates")
                 });
 
-                if (!EnsureInitialized())
+                var exePath = WinGetCliRunner.GetWinGetExePath();
+                if (exePath == null || !File.Exists(exePath))
                 {
-                    _logService?.LogWarning("WinGet COM API not available, attempting installation...");
-                    return await InstallWinGetAsync(cancellationToken);
+                    _logService?.LogError("Bundled WinGet CLI not found");
+                    return false;
                 }
 
-                // Try to update WinGet via the COM API by installing Microsoft.AppInstaller
-                progress?.Report(new TaskProgressDetail
-                {
-                    Progress = 30,
-                    StatusText = _localization.GetString("Progress_WinGet_Updating")
-                });
-
-                var package = await FindPackageAsync("Microsoft.AppInstaller", cancellationToken);
-                if (package == null)
-                {
-                    _logService?.LogInformation("Microsoft.AppInstaller package not found, WinGet is likely up to date");
-                    progress?.Report(new TaskProgressDetail
-                    {
-                        Progress = 100,
-                        StatusText = _localization.GetString("Progress_WinGet_AlreadyUpToDate")
-                    });
-                    return true;
-                }
-
-                // Check if an update is available
-                if (package.IsUpdateAvailable)
-                {
-                    _logService?.LogInformation("WinGet update available, installing...");
-                    progress?.Report(new TaskProgressDetail
-                    {
-                        Progress = 50,
-                        StatusText = _localization.GetString("Progress_WinGet_Updating")
-                    });
-
-                    var installOptions = _winGetFactory!.CreateInstallOptions();
-                    installOptions.PackageInstallMode = PackageInstallMode.Silent;
-
-                    var installResult = await Task.Run(async () =>
-                    {
-                        var operation = _packageManager!.InstallPackageAsync(package, installOptions);
-                        return await operation.AsTask(cancellationToken);
-                    }, cancellationToken);
-
-                    if (installResult.Status == InstallResultStatus.Ok)
-                    {
-                        _logService?.LogInformation("WinGet updated successfully");
-
-                        // Reset factory to use new version
-                        ResetFactory();
-
-                        progress?.Report(new TaskProgressDetail
-                        {
-                            Progress = 100,
-                            StatusText = _localization.GetString("Progress_WinGet_UpdateSuccess")
-                        });
-                        return true;
-                    }
-                    else
-                    {
-                        _logService?.LogWarning($"WinGet update failed: {installResult.Status}");
-                    }
-                }
-                else
-                {
-                    _logService?.LogInformation("WinGet is already up to date");
-                }
-
+                // Bundled CLI is always "the right version" — updates ship with Winhance releases
                 progress?.Report(new TaskProgressDetail
                 {
                     Progress = 100,
@@ -559,52 +605,100 @@ namespace Winhance.Infrastructure.Features.SoftwareApps.Services
             }
             catch (Exception ex)
             {
-                _logService?.LogError($"Error updating WinGet: {ex.Message}");
-
-                try
-                {
-                    return await InstallWinGetAsync(cancellationToken);
-                }
-                catch
-                {
-                    return false;
-                }
+                _logService?.LogError($"Error checking WinGet: {ex.Message}");
+                return false;
             }
         }
 
-        public async Task<string?> GetInstallerTypeAsync(string packageId, CancellationToken cancellationToken = default)
+        public async Task<bool> UpgradeAppInstallerAsync(CancellationToken cancellationToken = default)
         {
-            if (string.IsNullOrWhiteSpace(packageId))
-                return null;
-
             try
             {
-                if (!EnsureInitialized())
-                    return null;
-
-                var package = await FindPackageAsync(packageId, cancellationToken);
-                if (package?.DefaultInstallVersion == null)
-                    return null;
-
-                // Get the installer metadata
-                var packageVersionInfo = package.DefaultInstallVersion;
-
-                // Try to get installer type from package metadata
-                // The COM API doesn't directly expose installer type, but we can infer from package info
-                var catalogInfo = packageVersionInfo.PackageCatalog?.Info;
-                if (catalogInfo != null)
+                var bundledPath = WinGetCliRunner.GetBundledWinGetExePath();
+                if (bundledPath == null)
                 {
-                    _logService?.LogInformation($"Package {packageId} from catalog: {catalogInfo.Name}");
+                    _logService?.LogWarning("Cannot upgrade AppInstaller — bundled winget not found");
+                    return false;
                 }
 
-                // For now, return null as the COM API doesn't easily expose installer type
-                // The caller should handle this by checking file extension or other heuristics
-                return null;
+                _logService?.LogInformation("Attempting to upgrade AppInstaller via bundled winget...");
+
+                var arguments = "upgrade --id Microsoft.AppInstaller --exact --silent --accept-source-agreements --accept-package-agreements --force --disable-interactivity";
+
+                var result = await WinGetCliRunner.RunAsync(
+                    arguments,
+                    onOutputLine: line =>
+                    {
+                        if (!IsWinGetOutputNoise(line))
+                            _logService?.LogInformation($"[winget-upgrade] {line}");
+                    },
+                    onErrorLine: line => _logService?.LogWarning($"[winget-upgrade-err] {line}"),
+                    cancellationToken: cancellationToken,
+                    timeoutMs: 120_000,
+                    exePathOverride: bundledPath);
+
+                if (WinGetExitCodes.IsSuccess(result.ExitCode))
+                {
+                    _logService?.LogInformation($"AppInstaller upgrade succeeded (exit code: 0x{result.ExitCode:X8})");
+                    return true;
+                }
+
+                _logService?.LogWarning($"AppInstaller upgrade returned exit code: 0x{result.ExitCode:X8}");
+                return false;
             }
             catch (Exception ex)
             {
-                _logService?.LogWarning($"Could not determine installer type for {packageId}: {ex.Message}");
-                return null;
+                _logService?.LogWarning($"AppInstaller upgrade failed: {ex.Message}");
+                return false;
+            }
+        }
+
+        /// <summary>
+        /// Returns true if the winget output line is visual noise (progress bars, spinners, blank lines)
+        /// that should not be written to the log file.
+        /// </summary>
+        private static bool IsWinGetOutputNoise(string? line)
+        {
+            if (string.IsNullOrWhiteSpace(line))
+                return true;
+
+            var trimmed = line.Trim();
+
+            // Progress bar characters
+            if (trimmed.Contains('█') || trimmed.Contains('▒'))
+                return true;
+
+            // Spinner characters (single char lines like " - ", " \ ", " | ", " / ")
+            if (trimmed.Length <= 2 && (trimmed == "-" || trimmed == "\\" || trimmed == "|" || trimmed == "/"))
+                return true;
+
+            return false;
+        }
+
+        #endregion
+
+        #region Detection (COM with CLI fallback)
+
+        public async Task<bool> IsPackageInstalledAsync(string packageId, CancellationToken cancellationToken = default)
+        {
+            if (string.IsNullOrWhiteSpace(packageId))
+                return false;
+
+            try
+            {
+                // Try COM first (fast)
+                if (EnsureComInitialized())
+                {
+                    var package = await FindInstalledPackageAsync(packageId, cancellationToken);
+                    return package != null;
+                }
+
+                return false;
+            }
+            catch (Exception ex)
+            {
+                _logService?.LogError($"Error checking if package {packageId} is installed: {ex.Message}");
+                return false;
             }
         }
 
@@ -614,77 +708,18 @@ namespace Winhance.Infrastructure.Features.SoftwareApps.Services
 
             try
             {
-                if (!EnsureInitialized() || _packageManager == null || _winGetFactory == null)
+                // Only try COM if system winget is available (COM requires DesktopAppInstaller MSIX)
+                if (_systemWinGetAvailable && EnsureComInitialized() && _packageManager != null && _winGetFactory != null)
                 {
-                    _logService?.LogWarning("WinGet COM API not available for getting installed packages");
-                    return installedPackageIds;
+                    var comResult = await GetInstalledPackageIdsViaCom(cancellationToken);
+                    if (comResult != null)
+                        return comResult;
+                    _logService?.LogInformation("COM detection failed/timed out, falling back to CLI");
                 }
 
-                return await Task.Run(() =>
-                {
-                    try
-                    {
-                        // Get the winget catalog (primary community repository)
-                        var catalogs = _packageManager.GetPackageCatalogs().ToArray();
-                        var wingetCatalog = catalogs.FirstOrDefault(c =>
-                            c.Info.Name.Equals("winget", StringComparison.OrdinalIgnoreCase));
-
-                        if (wingetCatalog == null && catalogs.Length > 0)
-                        {
-                            // Fall back to first available catalog
-                            wingetCatalog = catalogs[0];
-                            _logService?.LogInformation($"Using catalog: {wingetCatalog.Info.Name}");
-                        }
-
-                        if (wingetCatalog == null)
-                        {
-                            _logService?.LogWarning("No package catalogs available");
-                            return installedPackageIds;
-                        }
-
-                        // Create composite catalog to search for locally installed packages
-                        // that correlate with the remote catalog
-                        var compositeOptions = _winGetFactory.CreateCreateCompositePackageCatalogOptions();
-                        compositeOptions.Catalogs.Add(wingetCatalog);
-                        compositeOptions.CompositeSearchBehavior = CompositeSearchBehavior.LocalCatalogs;
-
-                        var compositeCatalogRef = _packageManager.CreateCompositePackageCatalog(compositeOptions);
-                        var connectResult = compositeCatalogRef.Connect();
-
-                        if (connectResult.Status != ConnectResultStatus.Ok)
-                        {
-                            _logService?.LogError($"Failed to connect to composite catalog: {connectResult.Status}");
-                            return installedPackageIds;
-                        }
-
-                        var findOptions = _winGetFactory.CreateFindPackagesOptions();
-                        var filter = _winGetFactory.CreatePackageMatchFilter();
-                        filter.Field = PackageMatchField.Id;
-                        filter.Option = PackageFieldMatchOption.ContainsCaseInsensitive;
-                        filter.Value = "";
-                        findOptions.Filters.Add(filter);
-
-                        var findResult = connectResult.PackageCatalog.FindPackages(findOptions);
-                        var matches = findResult.Matches.ToArray();
-
-                        foreach (var match in matches)
-                        {
-                            var packageId = match.CatalogPackage?.Id;
-                            if (!string.IsNullOrEmpty(packageId))
-                            {
-                                installedPackageIds.Add(packageId);
-                            }
-                        }
-
-                        _logService?.LogInformation($"WinGet COM API: Found {installedPackageIds.Count} installed packages");
-                        return installedPackageIds;
-                    }
-                    catch (Exception ex)
-                    {
-                        _logService?.LogError($"Error getting installed packages via COM API: {ex.Message}");
-                        return installedPackageIds;
-                    }
-                }, cancellationToken);
+                // CLI fallback (uses winget export → JSON)
+                _logService?.LogInformation("COM not available, falling back to CLI for installed package detection");
+                return await GetInstalledPackageIdsViaCli(cancellationToken);
             }
             catch (Exception ex)
             {
@@ -693,9 +728,254 @@ namespace Winhance.Infrastructure.Features.SoftwareApps.Services
             }
         }
 
+        private async Task<HashSet<string>?> GetInstalledPackageIdsViaCom(CancellationToken cancellationToken)
+        {
+            try
+            {
+                using var timeoutCts = CancellationTokenSource.CreateLinkedTokenSource(cancellationToken);
+                timeoutCts.CancelAfter(TimeSpan.FromSeconds(ComOperationTimeoutSeconds));
+
+                return await Task.Run(() =>
+                {
+                    var installedPackageIds = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
+
+                    var catalogs = _packageManager!.GetPackageCatalogs().ToArray();
+                    var wingetCatalog = catalogs.FirstOrDefault(c =>
+                        c.Info.Name.Equals("winget", StringComparison.OrdinalIgnoreCase));
+
+                    if (wingetCatalog == null && catalogs.Length > 0)
+                    {
+                        wingetCatalog = catalogs[0];
+                        _logService?.LogInformation($"Using catalog: {wingetCatalog.Info.Name}");
+                    }
+
+                    if (wingetCatalog == null)
+                    {
+                        _logService?.LogWarning("No package catalogs available");
+                        return installedPackageIds;
+                    }
+
+                    var compositeOptions = _winGetFactory!.CreateCreateCompositePackageCatalogOptions();
+                    compositeOptions.Catalogs.Add(wingetCatalog);
+                    compositeOptions.CompositeSearchBehavior = CompositeSearchBehavior.LocalCatalogs;
+
+                    var compositeCatalogRef = _packageManager.CreateCompositePackageCatalog(compositeOptions);
+                    var connectResult = compositeCatalogRef.Connect();
+
+                    if (connectResult.Status != ConnectResultStatus.Ok)
+                    {
+                        _logService?.LogError($"Failed to connect to composite catalog: {connectResult.Status}");
+                        return installedPackageIds;
+                    }
+
+                    var findOptions = _winGetFactory.CreateFindPackagesOptions();
+                    var filter = _winGetFactory.CreatePackageMatchFilter();
+                    filter.Field = PackageMatchField.Id;
+                    filter.Option = PackageFieldMatchOption.ContainsCaseInsensitive;
+                    filter.Value = "";
+                    findOptions.Filters.Add(filter);
+
+                    var findResult = connectResult.PackageCatalog.FindPackages(findOptions);
+                    var matches = findResult.Matches.ToArray();
+
+                    foreach (var match in matches)
+                    {
+                        var packageId = match.CatalogPackage?.Id;
+                        if (!string.IsNullOrEmpty(packageId))
+                        {
+                            installedPackageIds.Add(packageId);
+                        }
+                    }
+
+                    _logService?.LogInformation($"WinGet COM API: Found {installedPackageIds.Count} installed packages");
+                    return installedPackageIds;
+                }, timeoutCts.Token);
+            }
+            catch (OperationCanceledException) when (!cancellationToken.IsCancellationRequested)
+            {
+                _logService?.LogWarning("COM package enumeration timed out");
+                return null;
+            }
+            catch (Exception ex)
+            {
+                _logService?.LogError($"Error getting installed packages via COM API: {ex.Message}");
+                return null;
+            }
+        }
+
+        private async Task<HashSet<string>> GetInstalledPackageIdsViaCli(CancellationToken cancellationToken)
+        {
+            var installedPackageIds = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
+
+            var cacheDir = Path.Combine(
+                Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData),
+                "Winhance", "Cache");
+            Directory.CreateDirectory(cacheDir);
+            var exportPath = Path.Combine(cacheDir, "winget-packages.json");
+
+            const int maxRetries = 3;
+            const int retryDelayMs = 2000;
+            const int timeoutMs = 10_000;
+
+            for (int attempt = 1; attempt <= maxRetries; attempt++)
+            {
+                try
+                {
+                    // Clean up any previous export file
+                    if (File.Exists(exportPath))
+                        File.Delete(exportPath);
+
+                    var arguments = $"export -o \"{exportPath}\" --accept-source-agreements --nowarn --disable-interactivity";
+                    _logService?.LogInformation($"[winget] Running: winget {arguments} (attempt {attempt}/{maxRetries})");
+
+                    var result = await WinGetCliRunner.RunAsync(
+                        arguments,
+                        cancellationToken: cancellationToken,
+                        timeoutMs: timeoutMs,
+                        exePathOverride: WinGetCliRunner.GetBundledWinGetExePath());
+
+                    if (result.ExitCode != 0)
+                    {
+                        _logService?.LogWarning($"winget export failed with exit code 0x{result.ExitCode:X8} (attempt {attempt}/{maxRetries})");
+
+                        // FailedToOpenAllSources = sources not initialized (no internet / no AppInstaller)
+                        // No point retrying — the sources won't appear on their own
+                        if (result.ExitCode == WinGetExitCodes.FailedToOpenAllSources)
+                        {
+                            _logService?.LogWarning("Sources not available — skipping retries");
+                            return installedPackageIds;
+                        }
+
+                        if (attempt < maxRetries)
+                        {
+                            await Task.Delay(retryDelayMs, cancellationToken);
+                            continue;
+                        }
+                        return installedPackageIds;
+                    }
+
+                    if (!File.Exists(exportPath))
+                    {
+                        _logService?.LogWarning($"winget export succeeded but file not found (attempt {attempt}/{maxRetries})");
+                        if (attempt < maxRetries)
+                        {
+                            await Task.Delay(retryDelayMs, cancellationToken);
+                            continue;
+                        }
+                        return installedPackageIds;
+                    }
+
+                    // Parse JSON: root.Sources[].Packages[].PackageIdentifier
+                    var jsonBytes = await File.ReadAllBytesAsync(exportPath, cancellationToken);
+                    using var doc = JsonDocument.Parse(jsonBytes);
+
+                    if (doc.RootElement.TryGetProperty("Sources", out var sourcesElement))
+                    {
+                        foreach (var source in sourcesElement.EnumerateArray())
+                        {
+                            if (source.TryGetProperty("Packages", out var packagesElement))
+                            {
+                                foreach (var package in packagesElement.EnumerateArray())
+                                {
+                                    if (package.TryGetProperty("PackageIdentifier", out var idElement))
+                                    {
+                                        var id = idElement.GetString();
+                                        if (!string.IsNullOrEmpty(id))
+                                            installedPackageIds.Add(id);
+                                    }
+                                }
+                            }
+                        }
+                    }
+
+                    _logService?.LogInformation($"WinGet CLI (export): Found {installedPackageIds.Count} installed packages");
+                    break;
+                }
+                catch (OperationCanceledException)
+                {
+                    throw;
+                }
+                catch (Exception ex)
+                {
+                    _logService?.LogError($"Error getting installed packages via winget export (attempt {attempt}/{maxRetries}): {ex.Message}");
+                    if (attempt < maxRetries)
+                    {
+                        await Task.Delay(retryDelayMs, cancellationToken);
+                    }
+                }
+            }
+
+            // Clean up export file
+            try
+            {
+                if (File.Exists(exportPath))
+                    File.Delete(exportPath);
+            }
+            catch { }
+
+            return installedPackageIds;
+        }
+
+        public async Task<string?> GetInstallerTypeAsync(string packageId, CancellationToken cancellationToken = default)
+        {
+            if (string.IsNullOrWhiteSpace(packageId))
+                return null;
+
+            try
+            {
+                // Try COM first
+                if (EnsureComInitialized())
+                {
+                    var package = await FindPackageAsync(packageId, cancellationToken);
+                    if (package?.DefaultInstallVersion != null)
+                    {
+                        var catalogInfo = package.DefaultInstallVersion.PackageCatalog?.Info;
+                        if (catalogInfo != null)
+                        {
+                            _logService?.LogInformation($"Package {packageId} from catalog: {catalogInfo.Name}");
+                        }
+                    }
+                }
+
+                // CLI fallback: parse "winget show" output for Installer Type
+                var result = await WinGetCliRunner.RunAsync(
+                    $"show --exact --id {packageId} --accept-source-agreements --disable-interactivity",
+                    cancellationToken: cancellationToken,
+                    timeoutMs: 60_000);
+
+                if (result.ExitCode == 0)
+                {
+                    foreach (var rawLine in result.StandardOutput.Split('\n'))
+                    {
+                        var line = rawLine.Trim();
+                        if (line.StartsWith("Installer Type:", StringComparison.OrdinalIgnoreCase))
+                        {
+                            var installerType = line.Substring("Installer Type:".Length).Trim();
+                            if (!string.IsNullOrEmpty(installerType))
+                            {
+                                _logService?.LogInformation($"Package {packageId} installer type: {installerType}");
+                                return installerType;
+                            }
+                        }
+                    }
+                }
+
+                return null;
+            }
+            catch (Exception ex)
+            {
+                _logService?.LogWarning($"Could not determine installer type for {packageId}: {ex.Message}");
+                return null;
+            }
+        }
+
+        #endregion
+
+        #region COM Detection Internals (unchanged)
+
         private async Task<CatalogPackage?> FindPackageAsync(string packageId, CancellationToken cancellationToken)
         {
-            if (!EnsureInitialized() || _packageManager == null || _winGetFactory == null)
+            if (!EnsureComInitialized() || _packageManager == null || _winGetFactory == null)
                 return null;
 
             return await Task.Run(() =>
@@ -738,14 +1018,13 @@ namespace Winhance.Infrastructure.Features.SoftwareApps.Services
 
         private async Task<CatalogPackage?> FindInstalledPackageAsync(string packageId, CancellationToken cancellationToken)
         {
-            if (!EnsureInitialized() || _packageManager == null || _winGetFactory == null)
+            if (!EnsureComInitialized() || _packageManager == null || _winGetFactory == null)
                 return null;
 
             return await Task.Run(() =>
             {
                 try
                 {
-                    // Get the winget catalog
                     var catalogs = _packageManager.GetPackageCatalogs().ToArray();
                     var wingetCatalog = catalogs.FirstOrDefault(c =>
                         c.Info.Name.Equals("winget", StringComparison.OrdinalIgnoreCase));
@@ -759,7 +1038,6 @@ namespace Winhance.Infrastructure.Features.SoftwareApps.Services
                         return null;
                     }
 
-                    // Create composite catalog to search for locally installed packages
                     var compositeOptions = _winGetFactory.CreateCreateCompositePackageCatalogOptions();
                     compositeOptions.Catalogs.Add(wingetCatalog);
                     compositeOptions.CompositeSearchBehavior = CompositeSearchBehavior.LocalCatalogs;
@@ -793,57 +1071,35 @@ namespace Winhance.Infrastructure.Features.SoftwareApps.Services
             }, cancellationToken);
         }
 
-        private string GetInstallErrorMessage(string packageId, InstallResult result)
+        #endregion
+
+        #region Error Message Helpers
+
+        private string GetInstallErrorMessageCli(string packageId, InstallFailureReason reason, int exitCode)
         {
-            return result.Status switch
+            return reason switch
             {
-                InstallResultStatus.BlockedByPolicy => _localization.GetString("Progress_WinGet_Error_BlockedByPolicy", packageId),
-                InstallResultStatus.CatalogError => _localization.GetString("Progress_WinGet_Error_CatalogError", packageId),
-                InstallResultStatus.InternalError => _localization.GetString("Progress_WinGet_Error_InternalError", packageId),
-                InstallResultStatus.InvalidOptions => _localization.GetString("Progress_WinGet_Error_InvalidOptions", packageId),
-                InstallResultStatus.DownloadError => _localization.GetString("Progress_WinGet_Error_DownloadError", packageId),
-                InstallResultStatus.InstallError => _localization.GetString("Progress_WinGet_Error_InstallError", packageId, result.InstallerErrorCode),
-                InstallResultStatus.ManifestError => _localization.GetString("Progress_WinGet_Error_ManifestError", packageId),
-                InstallResultStatus.NoApplicableInstallers => _localization.GetString("Progress_WinGet_Error_NoApplicableInstallers", packageId),
-                InstallResultStatus.NoApplicableUpgrade => _localization.GetString("Progress_WinGet_Error_NoApplicableUpgrade", packageId),
-                InstallResultStatus.PackageAgreementsNotAccepted => _localization.GetString("Progress_WinGet_Error_AgreementsNotAccepted", packageId),
-                _ => _localization.GetString("Progress_WinGet_Error_InstallFailed", packageId, result.Status)
+                InstallFailureReason.PackageNotFound => _localization.GetString("Progress_WinGet_PackageNotFound", packageId),
+                InstallFailureReason.BlockedByPolicy => _localization.GetString("Progress_WinGet_Error_BlockedByPolicy", packageId),
+                InstallFailureReason.DownloadError => _localization.GetString("Progress_WinGet_Error_DownloadError", packageId),
+                InstallFailureReason.HashMismatchOrInstallError => _localization.GetString("Progress_WinGet_Error_InstallError", packageId, exitCode),
+                InstallFailureReason.NoApplicableInstallers => _localization.GetString("Progress_WinGet_Error_NoApplicableInstallers", packageId),
+                InstallFailureReason.AgreementsNotAccepted => _localization.GetString("Progress_WinGet_Error_AgreementsNotAccepted", packageId),
+                InstallFailureReason.NetworkError => _localization.GetString("Progress_WinGet_NetworkError", packageId),
+                _ => _localization.GetString("Progress_WinGet_Error_InstallFailed", packageId, exitCode)
             };
         }
 
-        private string GetUninstallErrorMessage(string packageId, UninstallResult result)
+        private string GetUninstallErrorMessageCli(string packageId, InstallFailureReason reason, int exitCode)
         {
-            return result.Status switch
+            return reason switch
             {
-                UninstallResultStatus.BlockedByPolicy => _localization.GetString("Progress_WinGet_Error_UninstallBlockedByPolicy", packageId),
-                UninstallResultStatus.CatalogError => _localization.GetString("Progress_WinGet_Error_UninstallCatalogError", packageId),
-                UninstallResultStatus.InternalError => _localization.GetString("Progress_WinGet_Error_UninstallInternalError", packageId),
-                UninstallResultStatus.InvalidOptions => _localization.GetString("Progress_WinGet_Error_UninstallInvalidOptions", packageId),
-                UninstallResultStatus.UninstallError => _localization.GetString("Progress_WinGet_Error_UninstallError", packageId, result.UninstallerErrorCode),
-                _ => _localization.GetString("Progress_WinGet_Error_UninstallFailed", packageId, result.Status)
+                InstallFailureReason.PackageNotFound => _localization.GetString("Progress_WinGet_PackageNotInstalled", packageId),
+                InstallFailureReason.BlockedByPolicy => _localization.GetString("Progress_WinGet_Error_UninstallBlockedByPolicy", packageId),
+                _ => _localization.GetString("Progress_WinGet_Error_UninstallFailed", packageId, exitCode)
             };
         }
 
-        private bool IsNetworkRelatedError(string message)
-        {
-            if (string.IsNullOrEmpty(message))
-                return false;
-
-            var lowerMessage = message.ToLowerInvariant();
-            return lowerMessage.Contains("network") ||
-                   lowerMessage.Contains("timeout") ||
-                   lowerMessage.Contains("connection") ||
-                   lowerMessage.Contains("dns") ||
-                   lowerMessage.Contains("resolve") ||
-                   lowerMessage.Contains("unreachable") ||
-                   lowerMessage.Contains("offline") ||
-                   lowerMessage.Contains("proxy") ||
-                   lowerMessage.Contains("certificate") ||
-                   lowerMessage.Contains("ssl") ||
-                   lowerMessage.Contains("tls") ||
-                   lowerMessage.Contains("download failed") ||
-                   lowerMessage.Contains("no internet") ||
-                   lowerMessage.Contains("connectivity");
-        }
+        #endregion
     }
 }

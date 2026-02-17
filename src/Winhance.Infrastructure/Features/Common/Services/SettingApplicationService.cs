@@ -69,6 +69,20 @@ namespace Winhance.Infrastructure.Features.Common.Services
             {
                 await HandleProcessAndServiceRestarts(setting);
 
+                if (checkboxResult)
+                {
+                    logService.Log(LogLevel.Info, $"[SettingApplicationService] Applying recommended settings for domain containing '{settingId}' (checkbox checked)");
+                    try
+                    {
+                        await ApplyRecommendedSettingsForDomainAsync(settingId);
+                        logService.Log(LogLevel.Info, $"[SettingApplicationService] Successfully applied recommended settings for '{settingId}'");
+                    }
+                    catch (Exception ex)
+                    {
+                        logService.Log(LogLevel.Warning, $"[SettingApplicationService] Failed to apply recommended settings for '{settingId}': {ex.Message}");
+                    }
+                }
+
                 eventBus.Publish(new SettingAppliedEvent(settingId, enable, value));
                 logService.Log(LogLevel.Info, $"[SettingApplicationService] Successfully applied setting '{settingId}' via domain service");
 
@@ -140,6 +154,80 @@ namespace Winhance.Infrastructure.Features.Common.Services
             logService.Log(LogLevel.Info, $"[SettingApplicationService] Successfully applied setting '{settingId}'");
         }
 
+        public async Task ApplyRecommendedSettingsForDomainAsync(string settingId)
+        {
+            try
+            {
+                var domainService = domainServiceRouter.GetDomainService(settingId);
+                logService.Log(LogLevel.Info, $"[SettingApplicationService] Starting to apply recommended settings for domain '{domainService.DomainName}'");
+
+                var recommendedSettings = await recommendedSettingsService.GetRecommendedSettingsAsync(settingId);
+                var settingsList = recommendedSettings.ToList();
+
+                logService.Log(LogLevel.Info, $"[SettingApplicationService] Found {settingsList.Count} recommended settings for domain '{domainService.DomainName}'");
+
+                if (settingsList.Count == 0)
+                {
+                    logService.Log(LogLevel.Info, $"[SettingApplicationService] No recommended settings found for domain '{domainService.DomainName}'");
+                    return;
+                }
+
+                foreach (var setting in settingsList)
+                {
+                    try
+                    {
+                        var recommendedValue = RecommendedSettingsService.GetRecommendedValueForSetting(setting);
+                        logService.Log(LogLevel.Debug, $"[SettingApplicationService] Applying recommended setting '{setting.Id}' with value '{recommendedValue}'");
+
+                        if (setting.InputType == InputType.Toggle)
+                        {
+                            var registrySetting = setting.RegistrySettings?.FirstOrDefault(rs => rs.RecommendedValue != null);
+                            bool enableValue = false;
+
+                            if (registrySetting != null && recommendedValue != null)
+                            {
+                                enableValue = recommendedValue.Equals(registrySetting.EnabledValue);
+                            }
+
+                            await ApplySettingAsync(setting.Id, enableValue, recommendedValue, skipValuePrerequisites: true);
+                        }
+                        else if (setting.InputType == InputType.Selection)
+                        {
+                            var recommendedOption = RecommendedSettingsService.GetRecommendedOptionFromSetting(setting);
+
+                            if (recommendedOption != null)
+                            {
+                                var registryValue = RecommendedSettingsService.GetRegistryValueFromOptionName(setting, recommendedOption);
+                                var comboBoxIndex = RecommendedSettingsService.GetCorrectSelectionIndex(setting, recommendedOption, registryValue);
+                                await ApplySettingAsync(setting.Id, true, comboBoxIndex, skipValuePrerequisites: true);
+                            }
+                            else
+                            {
+                                await ApplySettingAsync(setting.Id, true, recommendedValue, skipValuePrerequisites: true);
+                            }
+                        }
+                        else
+                        {
+                            await ApplySettingAsync(setting.Id, true, recommendedValue, skipValuePrerequisites: true);
+                        }
+
+                        logService.Log(LogLevel.Debug, $"[SettingApplicationService] Successfully applied recommended setting '{setting.Id}'");
+                    }
+                    catch (Exception ex)
+                    {
+                        logService.Log(LogLevel.Warning, $"[SettingApplicationService] Failed to apply recommended setting '{setting.Id}': {ex.Message}");
+                    }
+                }
+
+                logService.Log(LogLevel.Info, $"[SettingApplicationService] Completed applying recommended settings for domain '{domainService.DomainName}'");
+            }
+            catch (Exception ex)
+            {
+                logService.Log(LogLevel.Error, $"[SettingApplicationService] Error applying recommended settings: {ex.Message}");
+                throw;
+            }
+        }
+
         private async Task HandleDependencies(string settingId, IEnumerable<SettingDefinition> allSettings, bool enable, object? value)
         {
             if (enable)
@@ -200,7 +288,7 @@ namespace Winhance.Infrastructure.Features.Common.Services
                 logService.Log(LogLevel.Info, $"[SettingApplicationService] Applying recommended settings for domain containing '{settingId}'");
                 try
                 {
-                    await recommendedSettingsService.ApplyRecommendedSettingsAsync(settingId);
+                    await ApplyRecommendedSettingsForDomainAsync(settingId);
                     logService.Log(LogLevel.Info, $"[SettingApplicationService] Successfully applied recommended settings for '{settingId}'");
                 }
                 catch (Exception ex)

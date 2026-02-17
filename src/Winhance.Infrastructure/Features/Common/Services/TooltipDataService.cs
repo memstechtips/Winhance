@@ -134,7 +134,26 @@ namespace Winhance.Infrastructure.Features.Common.Services
                     {
                         try
                         {
-                            var currentValue = _registryService.GetValue(registrySetting.KeyPath, registrySetting.ValueName);
+                            object? currentValue;
+                            if (registrySetting.ApplyPerNetworkInterface)
+                            {
+                                // Read from the first interface subkey as a representative value
+                                var subKeys = _registryService.GetSubKeyNames(registrySetting.KeyPath);
+                                if (subKeys.Length > 0)
+                                {
+                                    currentValue = _registryService.GetValue(
+                                        $@"{registrySetting.KeyPath}\{subKeys[0]}",
+                                        registrySetting.ValueName);
+                                }
+                                else
+                                {
+                                    currentValue = null;
+                                }
+                            }
+                            else
+                            {
+                                currentValue = _registryService.GetValue(registrySetting.KeyPath, registrySetting.ValueName);
+                            }
                             var formattedValue = FormatRegistryValue(currentValue, registrySetting);
                             individualValues[registrySetting] = formattedValue;
 

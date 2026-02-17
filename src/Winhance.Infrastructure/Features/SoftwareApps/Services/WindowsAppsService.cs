@@ -62,14 +62,31 @@ public class WindowsAppsService(
     {
         try
         {
-            if ((item.WinGetPackageId != null && item.WinGetPackageId.Any()) || !string.IsNullOrEmpty(item.AppxPackageName))
+            if (!string.IsNullOrEmpty(item.MsStoreId) || (item.WinGetPackageId != null && item.WinGetPackageId.Any()) || !string.IsNullOrEmpty(item.AppxPackageName))
             {
-                var packageId = (item.WinGetPackageId?.FirstOrDefault()) ?? item.AppxPackageName;
+                // Determine package ID and source
+                string? packageId = null;
+                string? source = null;
+
+                if (!string.IsNullOrEmpty(item.MsStoreId))
+                {
+                    packageId = item.MsStoreId;
+                    source = "msstore";
+                }
+                else if (item.WinGetPackageId != null && item.WinGetPackageId.Any())
+                {
+                    packageId = item.WinGetPackageId.FirstOrDefault();
+                    source = "winget";
+                }
+                else
+                {
+                    packageId = item.AppxPackageName;
+                }
 
                 // Try WinGet first (official method)
                 logService?.LogInformation($"Attempting to install {item.Name} using WinGet...");
                 var cancellationToken = GetCurrentCancellationToken();
-                var installResult = await winGetService.InstallPackageAsync(packageId, item.Name, cancellationToken);
+                var installResult = await winGetService.InstallPackageAsync(packageId, source, item.Name, cancellationToken);
 
                 if (installResult.Success)
                 {
@@ -105,7 +122,7 @@ public class WindowsAppsService(
                             logService?.LogInformation("Update policy changed to Paused. Retrying WinGet installation...");
 
                             var cancellationToken2 = GetCurrentCancellationToken();
-                            var retryResult = await winGetService.InstallPackageAsync(packageId, item.Name, cancellationToken2);
+                            var retryResult = await winGetService.InstallPackageAsync(packageId, source, item.Name, cancellationToken2);
                             if (retryResult.Success)
                             {
                                 return OperationResult<bool>.Succeeded(true);
@@ -125,7 +142,7 @@ public class WindowsAppsService(
 
                 // If WinGet failed and we have a WinGetPackageId, try fallback to direct download
                 // This bypasses market restrictions
-                if ((item.WinGetPackageId != null && item.WinGetPackageId.Any()) && storeDownloadService != null)
+                if ((!string.IsNullOrEmpty(item.MsStoreId) || (item.WinGetPackageId != null && item.WinGetPackageId.Any())) && storeDownloadService != null)
                 {
                     logService?.LogWarning($"WinGet installation failed for {item.Name}. Checking if fallback method should be used...");
 
@@ -182,8 +199,9 @@ public class WindowsAppsService(
 
                     try
                     {
+                        var fallbackPackageId = item.MsStoreId ?? item.WinGetPackageId![0];
                         var fallbackSuccess = await storeDownloadService.DownloadAndInstallPackageAsync(
-                            item.WinGetPackageId![0],
+                            fallbackPackageId,
                             item.Name,
                             cancellationToken);
 

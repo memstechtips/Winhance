@@ -434,6 +434,40 @@ public class SettingsLoadingService : ISettingsLoadingService
         return index.ToString();
     }
 
+    public async Task<Dictionary<string, SettingStateResult>> RefreshSettingStatesAsync(
+        IEnumerable<SettingItemViewModel> settings)
+    {
+        var settingsList = settings.ToList();
+        var definitions = settingsList
+            .Where(s => s.SettingDefinition != null)
+            .Select(s => s.SettingDefinition!)
+            .ToList();
+
+        if (definitions.Count == 0)
+            return new Dictionary<string, SettingStateResult>();
+
+        var batchStates = await _discoveryService.GetSettingStatesAsync(definitions);
+
+        // Resolve combo box values for Selection type settings
+        foreach (var setting in definitions.Where(s => s.InputType == InputType.Selection))
+        {
+            if (batchStates.TryGetValue(setting.Id, out var state) && state.RawValues != null)
+            {
+                try
+                {
+                    var resolvedValue = await _comboBoxResolver.ResolveCurrentValueAsync(setting, state.RawValues);
+                    state.CurrentValue = resolvedValue;
+                }
+                catch (Exception ex)
+                {
+                    _logService.Log(LogLevel.Warning, $"Failed to resolve combo box value for '{setting.Id}': {ex.Message}");
+                }
+            }
+        }
+
+        return batchStates;
+    }
+
     /// <summary>
     /// Converts a raw powercfg API value to display units based on the setting's CustomProperties.
     /// For example, converts 1200 seconds to 20 minutes when display units are "Minutes".

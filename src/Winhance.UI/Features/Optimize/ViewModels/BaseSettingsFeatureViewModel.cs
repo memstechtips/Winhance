@@ -357,6 +357,32 @@ public abstract partial class BaseSettingsFeatureViewModel : BaseViewModel, ISet
         }
     }
 
+    public virtual async Task RefreshSettingStatesAsync()
+    {
+        if (!_settingsLoaded || Settings == null || Settings.Count == 0)
+            return;
+
+        try
+        {
+            var states = await _settingsLoadingService.RefreshSettingStatesAsync(Settings);
+
+            _dispatcherService.RunOnUIThread(() =>
+            {
+                foreach (var setting in Settings)
+                {
+                    if (states.TryGetValue(setting.SettingId, out var state))
+                    {
+                        setting.UpdateStateFromSystemState(state);
+                    }
+                }
+            });
+        }
+        catch (Exception ex)
+        {
+            _logService.Log(LogLevel.Warning, $"[{GetType().Name}] Error refreshing setting states: {ex.Message}");
+        }
+    }
+
     public virtual Task<bool> HandleDomainContextSettingAsync(SettingDefinition setting, object? value, bool additionalContext = false)
     {
         return Task.FromResult(false);

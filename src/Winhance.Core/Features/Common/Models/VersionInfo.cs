@@ -8,6 +8,7 @@ namespace Winhance.Core.Features.Common.Models
         public DateTime ReleaseDate { get; set; }
         public string DownloadUrl { get; set; } = string.Empty;
         public bool IsUpdateAvailable { get; set; }
+        public bool IsBeta { get; set; }
 
         public static VersionInfo FromTag(string tag)
         {
@@ -49,7 +50,8 @@ namespace Winhance.Core.Features.Common.Models
             return new VersionInfo
             {
                 Version = tag, // Keep the original tag with -beta if present
-                ReleaseDate = releaseDate
+                ReleaseDate = releaseDate,
+                IsBeta = isBeta
             };
         }
 
