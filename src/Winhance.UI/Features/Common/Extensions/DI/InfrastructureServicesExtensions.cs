@@ -95,6 +95,9 @@ public static class InfrastructureServicesExtensions
         // Configuration Application Bridge (for config import/export)
         services.AddSingleton<ConfigurationApplicationBridgeService>();
 
+        // Configuration Migration (for backward-compatible config imports)
+        services.AddSingleton<ConfigMigrationService>();
+
         // Recommended Settings Service
         services.AddSingleton<IRecommendedSettingsService>(provider =>
             new RecommendedSettingsService(

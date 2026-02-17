@@ -39,6 +39,7 @@ public class ConfigurationService : IConfigurationService
     private readonly ILocalizationService _localizationService;
     private readonly IConfigImportOverlayService _overlayService;
     private readonly IConfigReviewService _configReviewService;
+    private readonly ConfigMigrationService _configMigrationService;
     private bool _configImportSaveRemovalScripts = true;
 
     private static readonly JsonSerializerOptions JsonOptions = new()
@@ -62,7 +63,8 @@ public class ConfigurationService : IConfigurationService
         IWindowsThemeQueryService windowsThemeQueryService,
         ILocalizationService localizationService,
         IConfigImportOverlayService overlayService,
-        IConfigReviewService configReviewService)
+        IConfigReviewService configReviewService,
+        ConfigMigrationService configMigrationService)
     {
         _serviceProvider = serviceProvider;
         _logService = logService;
@@ -78,6 +80,7 @@ public class ConfigurationService : IConfigurationService
         _localizationService = localizationService;
         _overlayService = overlayService;
         _configReviewService = configReviewService;
+        _configMigrationService = configMigrationService;
 
         // Listen for review mode exit to clear review state from all loaded settings
         _configReviewService.ReviewModeChanged += OnReviewModeChanged;
@@ -879,6 +882,9 @@ public class ConfigurationService : IConfigurationService
             return null;
         }
 
+        // Migrate legacy config items (e.g. Toggle→Selection conversions)
+        _configMigrationService.MigrateConfig(loadedConfig);
+
         if (loadedConfig.Version != "2.0")
         {
             var versionText = loadedConfig.Version ?? "unknown";
@@ -1572,6 +1578,9 @@ public class ConfigurationService : IConfigurationService
                 _dialogService.ShowMessage("Failed to load backup configuration file.", "Error");
                 return null;
             }
+
+            // Migrate legacy config items (e.g. Toggle→Selection conversions)
+            _configMigrationService.MigrateConfig(config);
 
             _logService.Log(LogLevel.Info, "Successfully loaded user backup configuration");
             return config;
