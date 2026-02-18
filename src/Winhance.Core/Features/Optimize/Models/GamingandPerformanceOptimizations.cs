@@ -388,9 +388,11 @@ public static class GamingandPerformanceOptimizations
                         {
                             KeyPath = @"HKEY_CURRENT_USER\Software\Microsoft\DirectX\UserGpuPreferences",
                             ValueName = "DirectXUserGlobalSettings",
-                            RecommendedValue = "SwapEffectUpgradeEnable=1;",
-                            EnabledValue = null,
-                            DisabledValue = "",
+                            CompositeStringKey = "SwapEffectUpgradeEnable",
+                            RecommendedValue = "1",
+                            EnabledValue = "1",
+                            DisabledValue = "0",
+                            DefaultValue = "1",
                             ValueType = RegistryValueKind.String,
                         },
                     },
@@ -398,8 +400,8 @@ public static class GamingandPerformanceOptimizations
                 new SettingDefinition
                 {
                     Id = "gaming-directx-vrr-optimizations",
-                    Name = "Variable Refresh Rate Optimizations",
-                    Description = "Enable VRR (G-Sync/FreeSync) optimizations for smoother gameplay on compatible monitors. Disable only if experiencing issues with VRR displays",
+                    Name = "Variable Refresh Rate",
+                    Description = "Enable VRR (G-Sync/FreeSync) optimizations for smoother gameplay. Requires a VRR-compatible monitor; this setting has no effect if your monitor does not support VRR",
                     GroupName = "Graphics",
                     Icon = "MonitorShimmer",
                     InputType = InputType.Toggle,
@@ -408,12 +410,37 @@ public static class GamingandPerformanceOptimizations
                         new RegistrySetting
                         {
                             KeyPath = @"HKEY_CURRENT_USER\Software\Microsoft\DirectX\UserGpuPreferences",
-                            ValueName = "VRROptimizeEnable",
-                            RecommendedValue = 1,
-                            EnabledValue = 1,
-                            DisabledValue = 0,
-                            DefaultValue = 1,
-                            ValueType = RegistryValueKind.DWord,
+                            ValueName = "DirectXUserGlobalSettings",
+                            CompositeStringKey = "VRROptimizeEnable",
+                            RecommendedValue = "1",
+                            EnabledValue = "1",
+                            DisabledValue = "0",
+                            DefaultValue = "1",
+                            ValueType = RegistryValueKind.String,
+                        },
+                    },
+                },
+                new SettingDefinition
+                {
+                    Id = "gaming-directx-auto-hdr",
+                    Name = "Auto HDR",
+                    Description = "Automatically convert SDR content to HDR for enhanced colors and brightness. Requires an HDR-capable display with HDR enabled; this setting has no effect if your display does not support HDR",
+                    GroupName = "Graphics",
+                    Icon = "Hdr",
+                    InputType = InputType.Toggle,
+                    IsWindows11Only = true,
+                    RegistrySettings = new List<RegistrySetting>
+                    {
+                        new RegistrySetting
+                        {
+                            KeyPath = @"HKEY_CURRENT_USER\Software\Microsoft\DirectX\UserGpuPreferences",
+                            ValueName = "DirectXUserGlobalSettings",
+                            CompositeStringKey = "AutoHDREnable",
+                            RecommendedValue = "0",
+                            EnabledValue = "1",
+                            DisabledValue = "0",
+                            DefaultValue = "0",
+                            ValueType = RegistryValueKind.String,
                         },
                     },
                 },

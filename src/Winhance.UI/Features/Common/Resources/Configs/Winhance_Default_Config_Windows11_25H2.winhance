@@ -770,7 +770,13 @@
           },
           {
             "Id": "gaming-directx-vrr-optimizations",
-            "Name": "Variable Refresh Rate Optimizations",
+            "Name": "Variable Refresh Rate",
+            "IsSelected": false,
+            "InputType": 0
+          },
+          {
+            "Id": "gaming-directx-auto-hdr",
+            "Name": "Auto HDR",
             "IsSelected": false,
             "InputType": 0
           },
