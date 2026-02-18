@@ -299,6 +299,19 @@ namespace Winhance.Core.Features.Optimize.Models
                         GroupName = "Sleep",
                         Icon = "PowerSleep",
                         InputType = InputType.Toggle,
+                        RegistrySettings = new List<RegistrySetting>
+                        {
+                            new RegistrySetting
+                            {
+                                KeyPath = @"HKEY_LOCAL_MACHINE\SYSTEM\CurrentControlSet\Control\Power",
+                                ValueName = "HibernateEnabled",
+                                RecommendedValue = null,
+                                EnabledValue = 1,
+                                DisabledValue = 0,
+                                ValueType = RegistryValueKind.DWord,
+                            },
+                        },
+                        AutoEnableSettingIds = new List<string> { "start-power-hibernate-option" },
                     },
 
                     new SettingDefinition
@@ -332,14 +345,14 @@ namespace Winhance.Core.Features.Optimize.Models
                         GroupName = "Sleep",
                         Icon = "WeatherNight",
                         ParentSettingId = "power-hibernation-enable",
-                        InputType = InputType.Toggle,
+                        InputType = InputType.Selection,
                         Dependencies = new List<SettingDependency>
                         {
                             new SettingDependency
                             {
-                            DependencyType = SettingDependencyType.RequiresEnabled,
-                            DependentSettingId = "power-hybrid-sleep",
-                            RequiredSettingId = "power-hibernation-enable",
+                                DependencyType = SettingDependencyType.RequiresEnabled,
+                                DependentSettingId = "power-hybrid-sleep",
+                                RequiredSettingId = "power-hibernation-enable",
                             },
                         },
                         PowerCfgSettings = new List<PowerCfgSetting>
@@ -350,9 +363,18 @@ namespace Winhance.Core.Features.Optimize.Models
                                 SettingGUIDAlias = "HYBRIDSLEEP",
                                 SubgroupGuid = "238c9fa8-0aad-41ed-83f4-97be242c8f20",
                                 SettingGuid = "94ac6d29-73ce-41a6-809f-6363ba21b47e",
-                                PowerModeSupport = PowerModeSupport.Both
+                                PowerModeSupport = PowerModeSupport.Separate
                             }
                         },
+                        CustomProperties = new Dictionary<string, object>
+                        {
+                            [CustomPropertyKeys.ComboBoxDisplayNames] = new string[] { "Template_OnOff_Option_0", "Template_OnOff_Option_1" },
+                            [CustomPropertyKeys.ValueMappings] = new Dictionary<int, Dictionary<string, object?>>
+                            {
+                                [0] = new Dictionary<string, object?> { ["PowerCfgValue"] = 0 },
+                                [1] = new Dictionary<string, object?> { ["PowerCfgValue"] = 1 }
+                            }
+                        }
                     },
 
                     new SettingDefinition
@@ -412,7 +434,7 @@ namespace Winhance.Core.Features.Optimize.Models
                                 KeyPath = @"HKEY_LOCAL_MACHINE\SOFTWARE\Microsoft\Windows\CurrentVersion\Explorer\FlyoutMenuSettings",
                                 ValueName = "ShowHibernateOption",
                                 RecommendedValue = 0,
-                                EnabledValue = null,
+                                EnabledValue = 1,
                                 DisabledValue = 0,
                                 ValueType = RegistryValueKind.DWord,
                             },

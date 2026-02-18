@@ -1,4 +1,5 @@
 using System;
+using System.Collections.Generic;
 using System.Linq;
 using System.Threading.Tasks;
 using Winhance.Core.Features.Common.Enums;
@@ -54,6 +55,25 @@ namespace Winhance.Infrastructure.Features.Common.EventHandlers
                     {
                         _eventBus.Publish(new TooltipUpdatedEvent(settingAppliedEvent.SettingId, tooltipData));
                     }
+
+                    // Refresh sibling composite-string settings that share the same registry value
+                    var siblings = FindCompositeStringSiblings(settingDefinition);
+                    foreach (var sibling in siblings)
+                    {
+                        try
+                        {
+                            var siblingTooltip = await _tooltipDataService.RefreshTooltipDataAsync(sibling.Id, sibling);
+                            if (siblingTooltip != null)
+                            {
+                                _eventBus.Publish(new TooltipUpdatedEvent(sibling.Id, siblingTooltip));
+                            }
+                        }
+                        catch (Exception siblingEx)
+                        {
+                            _logService.Log(LogLevel.Warning,
+                                $"Failed to refresh sibling tooltip for '{sibling.Id}': {siblingEx.Message}");
+                        }
+                    }
                 }
             }
             catch (Exception ex)
@@ -84,6 +104,37 @@ namespace Winhance.Infrastructure.Features.Common.EventHandlers
             {
                 _logService.Log(LogLevel.Error, $"Failed to initialize tooltips for feature '{featureComposedEvent.ModuleId}': {ex.Message}");
             }
+        }
+
+        private List<SettingDefinition> FindCompositeStringSiblings(SettingDefinition appliedSetting)
+        {
+            var siblings = new List<SettingDefinition>();
+            var compositeRegSettings = appliedSetting.RegistrySettings
+                .Where(rs => rs.CompositeStringKey != null)
+                .ToList();
+
+            if (compositeRegSettings.Count == 0)
+                return siblings;
+
+            foreach (var setting in _settingsRegistry.GetAllSettings())
+            {
+                if (setting is not SettingDefinition def || def.Id == appliedSetting.Id)
+                    continue;
+
+                foreach (var regSetting in compositeRegSettings)
+                {
+                    if (def.RegistrySettings.Any(rs =>
+                        rs.KeyPath == regSetting.KeyPath &&
+                        rs.ValueName == regSetting.ValueName &&
+                        rs.CompositeStringKey != null))
+                    {
+                        siblings.Add(def);
+                        break;
+                    }
+                }
+            }
+
+            return siblings;
         }
 
         public void Dispose()

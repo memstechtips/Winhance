@@ -73,6 +73,82 @@
                 Click="{x:Bind OnCheckBoxClick}"/>
         </DataTemplate>
 
+        <!-- Template for Dual AC/DC Selection settings (laptop with battery) -->
+        <DataTemplate x:Key="DualSelectionSettingTemplate" x:DataType="viewModels:SettingItemViewModel">
+            <StackPanel Orientation="Horizontal" Spacing="12">
+                <StackPanel Spacing="4">
+                    <TextBlock Text="{x:Bind PluggedInText}" FontSize="12" Opacity="0.8" HorizontalAlignment="Center"/>
+                    <local:ComboBoxEx
+                        ItemsSource="{x:Bind ComboBoxOptions}"
+                        SelectedIndex="{x:Bind AcValue, Mode=OneWay}"
+                        DropDownClosed="{x:Bind OnACComboBoxDropDownClosed}"
+                        DisplayMemberPath="DisplayText"
+                        MinWidth="100"/>
+                </StackPanel>
+                <StackPanel Spacing="4">
+                    <TextBlock Text="{x:Bind OnBatteryText}" FontSize="12" Opacity="0.8" HorizontalAlignment="Center"/>
+                    <local:ComboBoxEx
+                        ItemsSource="{x:Bind ComboBoxOptions}"
+                        SelectedIndex="{x:Bind DcValue, Mode=OneWay}"
+                        DropDownClosed="{x:Bind OnDCComboBoxDropDownClosed}"
+                        DisplayMemberPath="DisplayText"
+                        MinWidth="100"/>
+                </StackPanel>
+            </StackPanel>
+        </DataTemplate>
+
+        <!-- Template for Single AC Selection settings (desktop without battery) -->
+        <DataTemplate x:Key="SingleACSelectionSettingTemplate" x:DataType="viewModels:SettingItemViewModel">
+            <local:ComboBoxEx
+                ItemsSource="{x:Bind ComboBoxOptions}"
+                SelectedIndex="{x:Bind AcValue, Mode=OneWay}"
+                DropDownClosed="{x:Bind OnACComboBoxDropDownClosed}"
+                DisplayMemberPath="DisplayText"/>
+        </DataTemplate>
+
+        <!-- Template for Dual AC/DC Numeric settings (laptop with battery) -->
+        <DataTemplate x:Key="DualNumericSettingTemplate" x:DataType="viewModels:SettingItemViewModel">
+            <StackPanel Orientation="Horizontal" Spacing="12">
+                <StackPanel Spacing="4">
+                    <TextBlock Text="{x:Bind PluggedInText}" FontSize="12" Opacity="0.8" HorizontalAlignment="Center"/>
+                    <NumberBox
+                        Value="{x:Bind AcNumericValue, Mode=OneWay}"
+                        ValueChanged="{x:Bind OnACNumberBoxValueChanged}"
+                        Minimum="{x:Bind MinValue}"
+                        Maximum="{x:Bind MaxValue}"
+                        SpinButtonPlacementMode="Inline"
+                        SmallChange="1"
+                        LargeChange="10"
+                        MinWidth="120"/>
+                </StackPanel>
+                <StackPanel Spacing="4">
+                    <TextBlock Text="{x:Bind OnBatteryText}" FontSize="12" Opacity="0.8" HorizontalAlignment="Center"/>
+                    <NumberBox
+                        Value="{x:Bind DcNumericValue, Mode=OneWay}"
+                        ValueChanged="{x:Bind OnDCNumberBoxValueChanged}"
+                        Minimum="{x:Bind MinValue}"
+                        Maximum="{x:Bind MaxValue}"
+                        SpinButtonPlacementMode="Inline"
+                        SmallChange="1"
+                        LargeChange="10"
+                        MinWidth="120"/>
+                </StackPanel>
+            </StackPanel>
+        </DataTemplate>
+
+        <!-- Template for Single AC Numeric settings (desktop without battery) -->
+        <DataTemplate x:Key="SingleACNumericSettingTemplate" x:DataType="viewModels:SettingItemViewModel">
+            <NumberBox
+                Value="{x:Bind AcNumericValue, Mode=OneWay}"
+                ValueChanged="{x:Bind OnACNumberBoxValueChanged}"
+                Minimum="{x:Bind MinValue}"
+                Maximum="{x:Bind MaxValue}"
+                SpinButtonPlacementMode="Inline"
+                SmallChange="1"
+                LargeChange="10"
+                MinWidth="120"/>
+        </DataTemplate>
+
         <!-- Template Selector -->
         <selectors:SettingTemplateSelector
             x:Key="SettingTemplateSelector"
@@ -81,7 +157,11 @@
             PowerPlanTemplate="{StaticResource PowerPlanSettingTemplate}"
             NumericTemplate="{StaticResource NumericSettingTemplate}"
             ActionTemplate="{StaticResource ActionSettingTemplate}"
-            CheckBoxTemplate="{StaticResource CheckBoxSettingTemplate}"/>
+            CheckBoxTemplate="{StaticResource CheckBoxSettingTemplate}"
+            DualSelectionTemplate="{StaticResource DualSelectionSettingTemplate}"
+            SingleACSelectionTemplate="{StaticResource SingleACSelectionSettingTemplate}"
+            DualNumericTemplate="{StaticResource DualNumericSettingTemplate}"
+            SingleACNumericTemplate="{StaticResource SingleACNumericSettingTemplate}"/>
     </UserControl.Resources>
 
     <!-- Just the content control that selects the appropriate input control -->

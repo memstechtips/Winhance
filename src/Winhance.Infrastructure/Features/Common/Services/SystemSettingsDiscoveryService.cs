@@ -26,7 +26,6 @@ namespace Winhance.Infrastructure.Features.Common.Services
             var powerCfgSettings = settingsList.Where(s => s.PowerCfgSettings?.Count > 0 && s.Id != "power-plan-selection").ToList();
             var registrySettings = settingsList.Where(s => s.RegistrySettings?.Count > 0).ToList();
             var scheduledTaskSettings = settingsList.Where(s => s.ScheduledTaskSettings?.Count > 0).ToList();
-            var hibernationSettings = settingsList.Where(s => s.Id == "power-hibernation-enable").ToList();
             var powerPlanSettings = settingsList.Where(s => s.Id == "power-plan-selection").ToList();
 
             List<PowerPlan> availablePlans = new();
@@ -46,8 +45,10 @@ namespace Winhance.Infrastructure.Features.Common.Services
                 }
                 else
                 {
-                    var powerValue = await powerSettingsQueryService.GetPowerSettingValueAsync(powerCfgSetting);
-                    rawValues["PowerCfgValue"] = powerValue;
+                    var (acValue, dcValue) = await powerSettingsQueryService.GetPowerSettingACDCValuesAsync(powerCfgSetting);
+                    rawValues["PowerCfgValue"] = acValue;
+                    rawValues["ACValue"] = acValue;
+                    rawValues["DCValue"] = dcValue;
                 }
 
                 results[setting.Id] = rawValues;
@@ -81,6 +82,8 @@ namespace Winhance.Infrastructure.Features.Common.Services
                         if (allPowerSettingsACDC.TryGetValue(settingKey, out var values))
                         {
                             rawValues["PowerCfgValue"] = values.acValue;
+                            rawValues["ACValue"] = values.acValue;
+                            rawValues["DCValue"] = values.dcValue;
                         }
                     }
 
@@ -190,21 +193,6 @@ namespace Winhance.Infrastructure.Features.Common.Services
                 catch (Exception ex)
                 {
                     logService.Log(LogLevel.Warning, $"Exception getting scheduled task state for '{setting.Id}': {ex.Message}");
-                    results[setting.Id] = new Dictionary<string, object?>();
-                }
-            }
-
-            foreach (var setting in hibernationSettings)
-            {
-                try
-                {
-                    var rawValues = new Dictionary<string, object?>();
-                    rawValues["HibernationEnabled"] = await powerSettingsValidationService.IsHibernationEnabledAsync();
-                    results[setting.Id] = rawValues;
-                }
-                catch (Exception ex)
-                {
-                    logService.Log(LogLevel.Warning, $"Exception checking hibernation state: {ex.Message}");
                     results[setting.Id] = new Dictionary<string, object?>();
                 }
             }

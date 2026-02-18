@@ -26,6 +26,7 @@ public class SettingsLoadingService : ISettingsLoadingService
     private readonly IDialogService _dialogService;
     private readonly IUserPreferencesService _userPreferencesService;
     private readonly IConfigReviewService _configReviewService;
+    private readonly IHardwareDetectionService _hardwareDetectionService;
 
     public SettingsLoadingService(
         ISystemSettingsDiscoveryService discoveryService,
@@ -42,7 +43,8 @@ public class SettingsLoadingService : ISettingsLoadingService
         ILocalizationService localizationService,
         IDialogService dialogService,
         IUserPreferencesService userPreferencesService,
-        IConfigReviewService configReviewService)
+        IConfigReviewService configReviewService,
+        IHardwareDetectionService hardwareDetectionService)
     {
         _discoveryService = discoveryService;
         _settingApplicationService = settingApplicationService;
@@ -59,6 +61,7 @@ public class SettingsLoadingService : ISettingsLoadingService
         _dialogService = dialogService;
         _userPreferencesService = userPreferencesService;
         _configReviewService = configReviewService;
+        _hardwareDetectionService = hardwareDetectionService;
     }
 
     public async Task<ObservableCollection<object>> LoadConfiguredSettingsAsync<TDomainService>(
@@ -170,6 +173,21 @@ public class SettingsLoadingService : ISettingsLoadingService
             viewModel.IsLocked = !unlocked;
         }
 
+        // Populate AC/DC values for PowerModeSupport.Separate settings
+        if (viewModel.SupportsSeparateACDC)
+        {
+            viewModel.HasBattery = await _hardwareDetectionService.HasBatteryAsync();
+
+            if (setting.InputType == InputType.NumericRange && currentState.RawValues != null)
+            {
+                if (currentState.RawValues.TryGetValue("ACValue", out var acVal) && acVal is int acInt)
+                    viewModel.AcNumericValue = ConvertFromSystemUnits(acInt, setting);
+                if (currentState.RawValues.TryGetValue("DCValue", out var dcVal) && dcVal is int dcInt)
+                    viewModel.DcNumericValue = ConvertFromSystemUnits(dcInt, setting);
+            }
+            // Note: AC/DC Selection values are set AFTER ComboBox options are populated (below)
+        }
+
         if (setting.InputType != InputType.Selection)
         {
             viewModel.SelectedValue = currentState.CurrentValue;
@@ -223,6 +241,22 @@ public class SettingsLoadingService : ISettingsLoadingService
                 {
                     viewModel.SelectedValue = currentState.CurrentValue;
                     viewModel.UpdateStatusBanner(currentState.CurrentValue);
+                }
+
+                // Resolve AC/DC Selection values AFTER ComboBox options are populated
+                // (ComboBox needs items before SelectedValue can match)
+                if (viewModel.SupportsSeparateACDC && currentState.RawValues != null)
+                {
+                    var rawAcVal = currentState.RawValues.GetValueOrDefault("ACValue");
+                    var rawDcVal = currentState.RawValues.GetValueOrDefault("DCValue");
+
+                    var acRaw = new Dictionary<string, object?>(currentState.RawValues) { ["PowerCfgValue"] = rawAcVal };
+                    var dcRaw = new Dictionary<string, object?>(currentState.RawValues) { ["PowerCfgValue"] = rawDcVal };
+                    var acIndex = await _comboBoxResolver.ResolveCurrentValueAsync(setting, acRaw);
+                    var dcIndex = await _comboBoxResolver.ResolveCurrentValueAsync(setting, dcRaw);
+
+                    viewModel.AcValue = acIndex is int ai ? ai : 0;
+                    viewModel.DcValue = dcIndex is int di ? di : 0;
                 }
             }
             catch (Exception ex)
