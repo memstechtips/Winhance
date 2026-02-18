@@ -18,6 +18,10 @@ public class SettingTemplateSelector : DataTemplateSelector
     public DataTemplate? NumericTemplate { get; set; }
     public DataTemplate? ActionTemplate { get; set; }
     public DataTemplate? CheckBoxTemplate { get; set; }
+    public DataTemplate? DualSelectionTemplate { get; set; }
+    public DataTemplate? SingleACSelectionTemplate { get; set; }
+    public DataTemplate? DualNumericTemplate { get; set; }
+    public DataTemplate? SingleACNumericTemplate { get; set; }
 
     protected override DataTemplate? SelectTemplateCore(object item)
     {
@@ -27,6 +31,15 @@ public class SettingTemplateSelector : DataTemplateSelector
             if (vm.IsPowerPlanSetting && PowerPlanTemplate != null)
             {
                 return PowerPlanTemplate;
+            }
+
+            // Check for AC/DC dual controls (power settings with Separate mode)
+            if (vm.SupportsSeparateACDC)
+            {
+                if (vm.InputType == InputType.Selection)
+                    return vm.HasBattery ? DualSelectionTemplate : SingleACSelectionTemplate;
+                if (vm.InputType == InputType.NumericRange)
+                    return vm.HasBattery ? DualNumericTemplate : SingleACNumericTemplate;
             }
 
             return vm.InputType switch

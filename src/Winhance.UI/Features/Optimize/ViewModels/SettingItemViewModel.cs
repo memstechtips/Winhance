@@ -1,3 +1,5 @@
+using System;
+using System.Collections.Generic;
 using System.Collections.ObjectModel;
 using System.Linq;
 using CommunityToolkit.Mvvm.ComponentModel;
@@ -87,6 +89,21 @@ public partial class SettingItemViewModel : BaseViewModel
 
     [ObservableProperty]
     private int _numericValue;
+
+    [ObservableProperty]
+    private int _acValue;
+
+    [ObservableProperty]
+    private int _dcValue;
+
+    [ObservableProperty]
+    private int _acNumericValue;
+
+    [ObservableProperty]
+    private int _dcNumericValue;
+
+    [ObservableProperty]
+    private bool _hasBattery;
 
     [ObservableProperty]
     private int _minValue;
@@ -250,6 +267,15 @@ public partial class SettingItemViewModel : BaseViewModel
     public bool IsPowerPlanSetting => InputType == InputType.Selection &&
         SettingDefinition?.CustomProperties?.ContainsKey("LoadDynamicOptions") == true;
 
+    public bool SupportsSeparateACDC =>
+        SettingDefinition?.PowerCfgSettings?.Any(p =>
+            p.PowerModeSupport == PowerModeSupport.Separate) == true;
+
+    public string PluggedInText =>
+        _localizationService.GetString("PowerStatus_PluggedIn") ?? "Plugged In";
+    public string OnBatteryText =>
+        _localizationService.GetString("PowerStatus_OnBattery") ?? "On Battery";
+
     public IAsyncRelayCommand ExecuteActionCommand { get; }
 
     public SettingItemViewModel(
@@ -332,12 +358,33 @@ public partial class SettingItemViewModel : BaseViewModel
                     IsSelected = state.IsEnabled;
                     break;
                 case InputType.Selection:
-                    if (state.CurrentValue != null)
+                    if (SupportsSeparateACDC && state.RawValues != null &&
+                        SettingDefinition?.CustomProperties?.TryGetValue(
+                            CustomPropertyKeys.ValueMappings, out var mappingsObj) == true)
+                    {
+                        var mappings = (Dictionary<int, Dictionary<string, object?>>)mappingsObj;
+                        if (state.RawValues.TryGetValue("ACValue", out var acRaw) && acRaw != null)
+                            AcValue = FindIndexForPowerCfgValue(mappings, Convert.ToInt32(acRaw));
+                        if (state.RawValues.TryGetValue("DCValue", out var dcRaw) && dcRaw != null)
+                            DcValue = FindIndexForPowerCfgValue(mappings, Convert.ToInt32(dcRaw));
+                    }
+                    else if (state.CurrentValue != null)
+                    {
                         SelectedValue = state.CurrentValue;
+                    }
                     break;
                 case InputType.NumericRange:
-                    if (state.CurrentValue is int intValue)
+                    if (SupportsSeparateACDC && state.RawValues != null)
+                    {
+                        if (state.RawValues.TryGetValue("ACValue", out var acNum) && acNum is int acInt)
+                            AcNumericValue = ConvertFromSystemUnits(acInt);
+                        if (state.RawValues.TryGetValue("DCValue", out var dcNum) && dcNum is int dcInt)
+                            DcNumericValue = ConvertFromSystemUnits(dcInt);
+                    }
+                    else if (state.CurrentValue is int intValue)
+                    {
                         NumericValue = ConvertFromSystemUnits(intValue);
+                    }
                     break;
             }
         }
@@ -345,6 +392,16 @@ public partial class SettingItemViewModel : BaseViewModel
         {
             _isUpdatingFromEvent = false;
         }
+    }
+
+    private static int FindIndexForPowerCfgValue(Dictionary<int, Dictionary<string, object?>> mappings, int targetValue)
+    {
+        foreach (var mapping in mappings)
+        {
+            if (mapping.Value.TryGetValue("PowerCfgValue", out var val) && val != null && Convert.ToInt32(val) == targetValue)
+                return mapping.Key;
+        }
+        return 0;
     }
 
     private int ConvertFromSystemUnits(int systemValue)
@@ -412,6 +469,42 @@ public partial class SettingItemViewModel : BaseViewModel
     {
         if (!double.IsNaN(e.NewValue))
             _ = HandleValueChangedAsync((int)e.NewValue);
+    }
+
+    public void OnACComboBoxDropDownClosed(object sender, object e)
+    {
+        if (sender is ComboBox cb && cb.SelectedIndex >= 0)
+        {
+            _acValue = cb.SelectedIndex;
+            _ = HandleACDCSelectionChangedAsync();
+        }
+    }
+
+    public void OnDCComboBoxDropDownClosed(object sender, object e)
+    {
+        if (sender is ComboBox cb && cb.SelectedIndex >= 0)
+        {
+            _dcValue = cb.SelectedIndex;
+            _ = HandleACDCSelectionChangedAsync();
+        }
+    }
+
+    public void OnACNumberBoxValueChanged(NumberBox sender, NumberBoxValueChangedEventArgs e)
+    {
+        if (!double.IsNaN(e.NewValue))
+        {
+            _acNumericValue = (int)e.NewValue;
+            _ = HandleACDCNumericChangedAsync();
+        }
+    }
+
+    public void OnDCNumberBoxValueChanged(NumberBox sender, NumberBoxValueChangedEventArgs e)
+    {
+        if (!double.IsNaN(e.NewValue))
+        {
+            _dcNumericValue = (int)e.NewValue;
+            _ = HandleACDCNumericChangedAsync();
+        }
     }
 
     #endregion
@@ -507,6 +600,52 @@ public partial class SettingItemViewModel : BaseViewModel
             _logService.Log(LogLevel.Error, $"Error changing value for setting {SettingId}: {ex.Message}");
             OnPropertyChanged(nameof(SelectedValue));
             OnPropertyChanged(nameof(NumericValue));
+        }
+        finally
+        {
+            IsApplying = false;
+        }
+    }
+
+    private async Task HandleACDCSelectionChangedAsync()
+    {
+        if (IsApplying || _isUpdatingFromEvent || SettingDefinition == null) return;
+
+        try
+        {
+            IsApplying = true;
+            var dict = new Dictionary<string, object?> { ["ACValue"] = _acValue, ["DCValue"] = _dcValue };
+            _logService.Log(LogLevel.Info, $"Changing AC/DC selection for setting: {SettingId} AC={_acValue}, DC={_dcValue}");
+            await _settingApplicationService.ApplySettingAsync(SettingId, true, dict);
+            _hasChangedThisSession = true;
+            ShowRestartBannerIfNeeded();
+        }
+        catch (Exception ex)
+        {
+            _logService.Log(LogLevel.Error, $"Error changing AC/DC selection for setting {SettingId}: {ex.Message}");
+        }
+        finally
+        {
+            IsApplying = false;
+        }
+    }
+
+    private async Task HandleACDCNumericChangedAsync()
+    {
+        if (IsApplying || _isUpdatingFromEvent || SettingDefinition == null) return;
+
+        try
+        {
+            IsApplying = true;
+            var dict = new Dictionary<string, object?> { ["ACValue"] = _acNumericValue, ["DCValue"] = _dcNumericValue };
+            _logService.Log(LogLevel.Info, $"Changing AC/DC numeric for setting: {SettingId} AC={_acNumericValue}, DC={_dcNumericValue}");
+            await _settingApplicationService.ApplySettingAsync(SettingId, true, dict);
+            _hasChangedThisSession = true;
+            ShowRestartBannerIfNeeded();
+        }
+        catch (Exception ex)
+        {
+            _logService.Log(LogLevel.Error, $"Error changing AC/DC numeric for setting {SettingId}: {ex.Message}");
         }
         finally
         {

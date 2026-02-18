@@ -15,6 +15,7 @@ public record SettingDefinition : BaseDefinition, ISettingItem
     public List<RegContentSetting> RegContents { get; init; } = new();
     public List<PowerCfgSetting>? PowerCfgSettings { get; set; }
     public List<SettingDependency> Dependencies { get; init; } = new();
+    public List<string>? AutoEnableSettingIds { get; init; }
     public bool RequiresBattery { get; init; }
     public bool RequiresLid { get; init; }
     public bool RequiresDesktop { get; init; }

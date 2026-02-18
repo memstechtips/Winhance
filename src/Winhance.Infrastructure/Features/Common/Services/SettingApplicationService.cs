@@ -244,6 +244,34 @@ namespace Winhance.Infrastructure.Features.Common.Services
                     if (!dependencyResult)
                         throw new InvalidOperationException($"Cannot enable '{settingId}' due to unsatisfied dependencies");
                 }
+
+                // Auto-enable associated settings when this setting is enabled
+                if (setting?.AutoEnableSettingIds?.Count > 0)
+                {
+                    foreach (var autoEnableId in setting.AutoEnableSettingIds)
+                    {
+                        try
+                        {
+                            var autoEnableDef = allSettings.FirstOrDefault(s => s.Id == autoEnableId)
+                                ?? globalSettingsRegistry.GetSetting(autoEnableId) as SettingDefinition;
+                            if (autoEnableDef != null)
+                            {
+                                var states = await discoveryService.GetSettingStatesAsync(new[] { autoEnableDef });
+                                if (states.TryGetValue(autoEnableId, out var st) && st.Success && !st.IsEnabled)
+                                {
+                                    logService.Log(LogLevel.Info,
+                                        $"[SettingApplicationService] Auto-enabling '{autoEnableId}' because '{settingId}' was enabled");
+                                    await ApplySettingAsync(autoEnableId, true, skipValuePrerequisites: true);
+                                }
+                            }
+                        }
+                        catch (Exception ex)
+                        {
+                            logService.Log(LogLevel.Warning,
+                                $"[SettingApplicationService] Failed to auto-enable '{autoEnableId}': {ex.Message}");
+                        }
+                    }
+                }
             }
             else
             {
