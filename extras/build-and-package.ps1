@@ -264,6 +264,14 @@ if (-not $msbuildPath -or -not (Test-Path $msbuildPath)) {
 
 Write-Host "Using MSBuild: $msbuildPath" -ForegroundColor Green
 
+# Step 0: Update bundled WinGet CLI and VC++ Runtime DLLs
+Write-Host "Updating bundled WinGet and VC++ Runtime DLLs..." -ForegroundColor Green
+& "$scriptRoot\Update-BundledWinGet.ps1"
+if ($LASTEXITCODE -ne 0) {
+    Write-Host "Failed to update bundled WinGet" -ForegroundColor Red
+    exit 1
+}
+
 # Step 1: Clean the solution
 Write-Host "Cleaning solution..." -ForegroundColor Green
 & $msbuildPath "$projectPath" /t:Clean /p:Configuration=Release /p:Platform=x64

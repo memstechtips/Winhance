@@ -9,8 +9,9 @@
     Also ensures the system has the latest Visual C++ Redistributable installed, then
     copies the desktop runtime DLLs (vcruntime140.dll, vcruntime140_1.dll, msvcp140.dll)
     into the bundle. These are needed for winget.exe to run on minimal Windows
-    installations (e.g. LTSC) that lack the VC++ Runtime. The _app.dll variants in the
-    MSIX are for UWP/AppContainer use only and do not satisfy desktop dependencies.
+    installations (e.g. LTSC) that lack the VC++ Runtime. The _app.dll variants from the
+    MSIX are excluded — they are only used inside the MSIX package context and are not
+    loaded when winget.exe runs as an unpackaged desktop process via Process.Start.
 
 .PARAMETER Version
     Optional. A specific WinGet release tag to download (e.g. "v1.10.340").
@@ -35,7 +36,8 @@ $ErrorActionPreference = 'Stop'
 $OutputDir = Join-Path $PSScriptRoot "..\src\Winhance.Infrastructure\Features\SoftwareApps\Services\WinGet\winget-cli"
 $TempDir   = Join-Path ([System.IO.Path]::GetTempPath()) "winhance-winget-update"
 
-# Files we need from the extracted MSIX
+# Files we need from the extracted MSIX (excluding _app.dll VC++ Runtime variants,
+# which are only used inside the MSIX package context).
 # NOTE: resources.pri is deliberately excluded — it conflicts with the WinUI PRI
 # generator (duplicate 'Files/App.xbf') and the standalone CLI works without it.
 $NeededFiles = @(
@@ -43,22 +45,10 @@ $NeededFiles = @(
     'WindowsPackageManager.dll'
     'Microsoft.Management.Configuration.dll'
     'Microsoft.Web.WebView2.Core.dll'
-    'concrt140_app.dll'
-    'msvcp140_app.dll'
-    'msvcp140_1_app.dll'
-    'msvcp140_2_app.dll'
-    'msvcp140_atomic_wait_app.dll'
-    'msvcp140_codecvt_ids_app.dll'
-    'vcamp140_app.dll'
-    'vccorlib140_app.dll'
-    'vcomp140_app.dll'
-    'vcruntime140_app.dll'
-    'vcruntime140_1_app.dll'
 )
 
 # Desktop VC++ Runtime DLLs needed for non-packaged (Process.Start) execution.
 # These are NOT in the WinGet MSIX — they come from the system VC++ Redistributable.
-# Each entry is the desktop counterpart of an _app.dll listed in $NeededFiles above.
 $VcRuntimeDlls = @(
     'concrt140.dll'
     'msvcp140.dll'
