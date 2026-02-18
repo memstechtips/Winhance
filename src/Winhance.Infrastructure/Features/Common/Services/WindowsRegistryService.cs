@@ -203,7 +203,34 @@ namespace Winhance.Infrastructure.Features.Common.Services
 
                 if (!KeyExists(setting.KeyPath))
                 {
+                    if (setting.CompositeStringKey != null)
+                    {
+                        // Key absent (fresh Windows) — use DefaultValue to determine implied state
+                        var defaultStr = setting.DefaultValue?.ToString();
+                        var enabledStr = setting.EnabledValue?.ToString();
+                        return string.Equals(defaultStr, enabledStr, StringComparison.OrdinalIgnoreCase);
+                    }
                     return setting.EnabledValue == null;
+                }
+
+                if (setting.CompositeStringKey != null)
+                {
+                    var compositeStr = ValueExists(setting.KeyPath, setting.ValueName)
+                        ? (GetValue(setting.KeyPath, setting.ValueName)?.ToString() ?? "")
+                        : "";
+
+                    var pairs = ParseCompositeString(compositeStr);
+
+                    if (pairs.TryGetValue(setting.CompositeStringKey, out var subValue))
+                    {
+                        var enabledStr = setting.EnabledValue?.ToString();
+                        return string.Equals(subValue, enabledStr, StringComparison.OrdinalIgnoreCase);
+                    }
+
+                    // Sub-key absent from string — use DefaultValue
+                    var defaultStr2 = setting.DefaultValue?.ToString();
+                    var enabledStr2 = setting.EnabledValue?.ToString();
+                    return string.Equals(defaultStr2, enabledStr2, StringComparison.OrdinalIgnoreCase);
                 }
 
                 if (!ValueExists(setting.KeyPath, setting.ValueName))
@@ -395,6 +422,32 @@ namespace Winhance.Infrastructure.Features.Common.Services
                     return result;
                 }
 
+                if (setting.CompositeStringKey != null)
+                {
+                    if (!CreateKey(setting.KeyPath))
+                        return false;
+
+                    var currentComposite = ValueExists(setting.KeyPath, setting.ValueName)
+                        ? (GetValue(setting.KeyPath, setting.ValueName)?.ToString() ?? "")
+                        : "";
+
+                    var pairs = ParseCompositeString(currentComposite);
+                    var newSubValue = specificValue?.ToString()
+                        ?? (isEnabled ? setting.EnabledValue?.ToString() : setting.DisabledValue?.ToString());
+
+                    if (newSubValue != null)
+                        pairs[setting.CompositeStringKey] = newSubValue;
+                    else
+                        pairs.Remove(setting.CompositeStringKey);
+
+                    var mergedValue = BuildCompositeString(pairs);
+                    var compositeResult = SetValue(setting.KeyPath, setting.ValueName, mergedValue, RegistryValueKind.String);
+
+                    logService.Log(LogLevel.Info,
+                        $"[WindowsRegistryService] Updated composite key '{setting.CompositeStringKey}' to '{newSubValue}' in '{setting.KeyPath}\\{setting.ValueName}' - Full value: '{mergedValue}' - Success: {compositeResult}");
+                    return compositeResult;
+                }
+
                 if (setting.BitMask.HasValue && setting.BinaryByteIndex.HasValue)
                 {
                     if (!CreateKey(setting.KeyPath))
@@ -460,6 +513,28 @@ namespace Winhance.Infrastructure.Features.Common.Services
                 logService.Log(LogLevel.Error, $"[WindowsRegistryService] Error applying setting '{setting.KeyPath}\\{setting.ValueName}': {ex.Message}");
                 return false;
             }
+        }
+
+        private static Dictionary<string, string> ParseCompositeString(string value)
+        {
+            var pairs = new Dictionary<string, string>(StringComparer.OrdinalIgnoreCase);
+            if (string.IsNullOrEmpty(value))
+                return pairs;
+
+            foreach (var entry in value.Split(';', StringSplitOptions.RemoveEmptyEntries))
+            {
+                var eqIndex = entry.IndexOf('=');
+                if (eqIndex > 0)
+                    pairs[entry[..eqIndex]] = entry[(eqIndex + 1)..];
+            }
+            return pairs;
+        }
+
+        private static string BuildCompositeString(Dictionary<string, string> pairs)
+        {
+            if (pairs.Count == 0)
+                return "";
+            return string.Join(";", pairs.Select(p => $"{p.Key}={p.Value}")) + ";";
         }
 
         private static (RegistryKey rootKey, string subKeyPath) ParseKeyPath(string keyPath)

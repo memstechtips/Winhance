@@ -18,5 +18,6 @@ public record RegistrySetting
     public int? BinaryByteIndex { get; init; }
     public bool ModifyByteOnly { get; init; } = false;
     public byte? BitMask { get; init; }
+    public string? CompositeStringKey { get; init; }
     public bool ApplyPerNetworkInterface { get; init; } = false;
 }
