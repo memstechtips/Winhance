@@ -183,8 +183,8 @@ public static class GamingandPerformanceOptimizations
                 new SettingDefinition
                 {
                     Id = "gaming-performance-explorer-menu-show-delay",
-                    Name = "Enable Menu Show Delay",
-                    Description = "Add a brief delay before displaying menus, or show them instantly for faster navigation",
+                    Name = "Menu Show Delay",
+                    Description = "Add a brief delay before displaying menus (400ms - Windows default), or show them instantly (0ms) for faster navigation",
                     Icon = "MenuOpen",
                     InputType = InputType.Toggle,
                     RegistrySettings = new List<RegistrySetting>
@@ -193,10 +193,10 @@ public static class GamingandPerformanceOptimizations
                         {
                             KeyPath = @"HKEY_CURRENT_USER\Control Panel\Desktop",
                             ValueName = "MenuShowDelay",
-                            RecommendedValue = 0,
-                            EnabledValue = 400, // When toggle is ON, menu show delay is enabled (default value)
-                            DisabledValue = 0, // When toggle is OFF, menu show delay is disabled
-                            DefaultValue = 400, // Default value when registry key exists but no value is set
+                            RecommendedValue = "0",
+                            EnabledValue = "400", // When toggle is ON, menu show delay is enabled (default value)
+                            DisabledValue = "0", // When toggle is OFF, menu show delay is disabled
+                            DefaultValue = "400", // Default value when registry key exists but no value is set
                             ValueType = RegistryValueKind.String,
                         },
                     },
