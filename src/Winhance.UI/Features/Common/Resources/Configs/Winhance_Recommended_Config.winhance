@@ -1716,8 +1716,11 @@
           {
             "Id": "power-hybrid-sleep",
             "Name": "Allow hybrid sleep",
-            "IsSelected": true,
-            "InputType": 0
+            "InputType": 1,
+            "PowerSettings": {
+              "ACIndex": 0,
+              "DCIndex": 0
+            }
           },
           {
             "Id": "power-fast-startup",
