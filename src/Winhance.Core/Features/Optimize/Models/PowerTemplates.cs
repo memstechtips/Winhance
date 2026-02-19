@@ -218,8 +218,8 @@ namespace Winhance.Core.Features.Optimize.Models
             [CustomPropertyKeys.ComboBoxDisplayNames] = new string[] { "Template_JavaScriptTimers_Option_0", "Template_JavaScriptTimers_Option_1" },
             [CustomPropertyKeys.ValueMappings] = new Dictionary<int, Dictionary<string, object?>>
             {
-                [0] = new Dictionary<string, object?> { ["PowerCfgValue"] = 1 },
-                [1] = new Dictionary<string, object?> { ["PowerCfgValue"] = 0 }
+                [0] = new Dictionary<string, object?> { ["PowerCfgValue"] = 0 },
+                [1] = new Dictionary<string, object?> { ["PowerCfgValue"] = 1 }
             }
         };
 
