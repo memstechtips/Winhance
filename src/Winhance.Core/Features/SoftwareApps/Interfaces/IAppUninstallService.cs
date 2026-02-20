@@ -20,6 +20,7 @@ public enum UninstallMethod
 {
     None,
     WinGet,
+    Chocolatey,
     Registry,
     CustomScript
 }

@@ -1,6 +1,7 @@
 using System.Collections.Generic;
 using Winhance.Core.Features.Common.Enums;
 using Winhance.Core.Features.Common.Models;
+using Winhance.Core.Features.SoftwareApps.Enums;
 
 namespace Winhance.Core.Features.SoftwareApps.Models;
 
@@ -21,6 +22,7 @@ public record ItemDefinition : BaseDefinition
     public string[]? ProcessesToStop { get; init; }
     public string? WebsiteUrl { get; init; }
     public bool IsInstalled { get; set; }
+    public DetectionSource DetectedVia { get; set; }
     public bool IsSelected { get; set; }
     public string Version { get; set; } = string.Empty;
     public string? LastOperationError { get; set; }

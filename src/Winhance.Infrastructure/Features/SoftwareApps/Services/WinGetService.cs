@@ -520,6 +520,52 @@ namespace Winhance.Infrastructure.Features.SoftwareApps.Services
                     return true; // WinGet did report success; don't block the UI
                 }
 
+                // WinGet wraps any non-zero exit code from the underlying uninstaller
+                // into EXEC_UNINSTALL_COMMAND_FAILED (0x8A150030), even when the uninstall
+                // actually succeeded (e.g. Chromium-based apps always return exit code 19).
+                // Before declaring failure, verify whether the package is actually still installed.
+                if (WinGetExitCodes.IsUninstallVerifiable(result.ExitCode))
+                {
+                    _logService?.LogInformation($"[winget] {packageId} returned 0x{result.ExitCode:X8} — verifying whether package was actually removed");
+                    _taskProgressService?.UpdateProgress(95, _localization.GetString("Progress_WinGet_VerifyingUninstall", displayName));
+
+                    bool stillInstalled = await IsPackageStillInstalledAsync(packageId, source, cancellationToken);
+
+                    if (stillInstalled)
+                    {
+                        _logService?.LogInformation($"[winget] {packageId} still detected after failed uninstall — waiting for interactive uninstaller");
+                        _taskProgressService?.UpdateProgress(95, _localization.GetString("Progress_WinGet_WaitingForUninstaller", displayName));
+
+                        const int pollIntervalMs = 3000;
+                        const int maxWaitMs = 60_000;
+                        int elapsed = 0;
+
+                        while (elapsed < maxWaitMs)
+                        {
+                            cancellationToken.ThrowIfCancellationRequested();
+                            await Task.Delay(pollIntervalMs, cancellationToken);
+                            elapsed += pollIntervalMs;
+
+                            if (!await IsPackageStillInstalledAsync(packageId, source, cancellationToken))
+                            {
+                                stillInstalled = false;
+                                _logService?.LogInformation($"[winget] {packageId} confirmed uninstalled after {elapsed / 1000}s (despite exit code 0x{result.ExitCode:X8})");
+                                break;
+                            }
+                        }
+                    }
+
+                    if (!stillInstalled)
+                    {
+                        _logService?.LogInformation($"[winget] {packageId} verified as uninstalled despite WinGet exit code 0x{result.ExitCode:X8}");
+                        _taskProgressService?.UpdateProgress(100, _localization.GetString("Progress_WinGet_UninstalledSuccess", displayName));
+                        return true;
+                    }
+
+                    // Package is genuinely still installed — fall through to failure reporting
+                    _logService?.LogWarning($"[winget] {packageId} is still installed after verification — uninstall truly failed");
+                }
+
                 var failureReason = WinGetExitCodes.MapExitCode(result.ExitCode);
                 var errorMessage = GetUninstallErrorMessageCli(packageId, failureReason, result.ExitCode);
                 _logService?.LogError($"Uninstallation failed for {packageId}: {errorMessage} (exit code: {result.ExitCode})");
