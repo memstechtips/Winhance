@@ -1,4 +1,6 @@
 using Microsoft.UI.Xaml;
+using Winhance.Core.Features.Common.Events;
+using Winhance.Core.Features.Common.Events.Settings;
 using Winhance.Core.Features.Common.Interfaces;
 using Winhance.UI.Features.Common.Interfaces;
 using Windows.UI.ViewManagement;
@@ -25,7 +27,8 @@ public class ThemeService : IThemeService
     public ThemeService(
         IUserPreferencesService userPreferences,
         IWindowsRegistryService registryService,
-        IInteractiveUserService interactiveUserService)
+        IInteractiveUserService interactiveUserService,
+        IEventBus eventBus)
     {
         _userPreferences = userPreferences;
         _registryService = registryService;
@@ -34,6 +37,13 @@ public class ThemeService : IThemeService
 
         // Listen for Windows theme changes to update System theme followers
         _uiSettings.ColorValuesChanged += OnWindowsThemeChanged;
+
+        // Under OTS, UISettings.ColorValuesChanged tracks the admin's theme.
+        // Listen for the theme setting being applied so we can update the window.
+        if (_interactiveUserService.IsOtsElevation)
+        {
+            eventBus.Subscribe<SettingAppliedEvent>(OnSettingApplied);
+        }
     }
 
     /// <inheritdoc />
@@ -101,7 +111,12 @@ public class ThemeService : IThemeService
         switch (theme)
         {
             case WinhanceTheme.System:
-                rootElement.RequestedTheme = ElementTheme.Default;
+                // Under OTS, ElementTheme.Default follows the admin's theme.
+                // Explicitly set based on the interactive user's registry instead.
+                if (_interactiveUserService.IsOtsElevation)
+                    rootElement.RequestedTheme = IsWindowsDarkTheme() ? ElementTheme.Dark : ElementTheme.Light;
+                else
+                    rootElement.RequestedTheme = ElementTheme.Default;
                 break;
 
             case WinhanceTheme.LightNative:
@@ -167,6 +182,18 @@ public class ThemeService : IThemeService
         return foreground.R > 128 && foreground.G > 128 && foreground.B > 128;
     }
 
+    private void OnSettingApplied(SettingAppliedEvent evt)
+    {
+        if (evt.SettingId != "theme-mode-windows" || _currentTheme != WinhanceTheme.System)
+            return;
+
+        App.MainWindow?.DispatcherQueue.TryEnqueue(() =>
+        {
+            ApplyTheme(WinhanceTheme.System);
+            ThemeChanged?.Invoke(this, WinhanceTheme.System);
+        });
+    }
+
     private void OnWindowsThemeChanged(UISettings sender, object args)
     {
         // Only react if we're following system theme
@@ -175,7 +202,10 @@ public class ThemeService : IThemeService
             // Must dispatch to UI thread
             App.MainWindow?.DispatcherQueue.TryEnqueue(() =>
             {
-                // Re-apply to trigger any listeners that depend on effective theme
+                // Under OTS, re-apply explicitly since ElementTheme.Default tracks the admin
+                if (_interactiveUserService.IsOtsElevation)
+                    ApplyTheme(WinhanceTheme.System);
+
                 ThemeChanged?.Invoke(this, WinhanceTheme.System);
             });
         }
