@@ -29,7 +29,6 @@ public static class InfrastructureServicesExtensions
 
         // Windows Services
         services.AddSingleton<IWindowsVersionService, WindowsVersionService>();
-        services.AddSingleton<IWindowsThemeQueryService, WindowsThemeQueryService>();
         services.AddSingleton<IWindowsUIManagementService, WindowsUIManagementService>();
 
         // User Preferences Service

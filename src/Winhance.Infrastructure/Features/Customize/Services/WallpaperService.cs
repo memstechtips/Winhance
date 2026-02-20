@@ -14,6 +14,8 @@ namespace Winhance.Infrastructure.Features.Customize.Services
     public class WallpaperService : IWallpaperService
     {
         private readonly ILogService _logService;
+        private readonly IInteractiveUserService _interactiveUserService;
+        private readonly IWindowsRegistryService _registryService;
 
         // P/Invoke constants
         private const int SPI_SETDESKWALLPAPER = 0x0014;
@@ -23,13 +25,14 @@ namespace Winhance.Infrastructure.Features.Customize.Services
         [DllImport("user32.dll", SetLastError = true, CharSet = CharSet.Auto)]
         private static extern int SystemParametersInfo(int uAction, int uParam, string lpvParam, int fuWinIni);
 
-        /// <summary>
-        /// Initializes a new instance of the <see cref="WallpaperService"/> class.
-        /// </summary>
-        /// <param name="logService">The log service.</param>
-        public WallpaperService(ILogService logService)
+        public WallpaperService(
+            ILogService logService,
+            IInteractiveUserService interactiveUserService,
+            IWindowsRegistryService registryService)
         {
             _logService = logService ?? throw new ArgumentNullException(nameof(logService));
+            _interactiveUserService = interactiveUserService;
+            _registryService = registryService;
         }
 
         /// <inheritdoc/>
@@ -50,8 +53,26 @@ namespace Winhance.Infrastructure.Features.Customize.Services
         {
             try
             {
-                bool success = SystemParametersInfo(SPI_SETDESKWALLPAPER, 0, wallpaperPath,
-                                                  SPIF_UPDATEINIFILE | SPIF_SENDCHANGE) != 0;
+                int flags;
+
+                if (_interactiveUserService.IsOtsElevation)
+                {
+                    // Under OTS, SPIF_UPDATEINIFILE would persist to the admin's profile.
+                    // Write to the interactive user's registry instead, then only broadcast.
+                    _registryService.SetValue(
+                        @"HKEY_CURRENT_USER\Control Panel\Desktop",
+                        "Wallpaper",
+                        wallpaperPath,
+                        Microsoft.Win32.RegistryValueKind.String);
+
+                    flags = SPIF_SENDCHANGE;
+                }
+                else
+                {
+                    flags = SPIF_UPDATEINIFILE | SPIF_SENDCHANGE;
+                }
+
+                bool success = SystemParametersInfo(SPI_SETDESKWALLPAPER, 0, wallpaperPath, flags) != 0;
 
                 if (success)
                 {
@@ -62,7 +83,7 @@ namespace Winhance.Infrastructure.Features.Customize.Services
                     _logService.Log(LogLevel.Error, $"Failed to set wallpaper: {Marshal.GetLastWin32Error()}");
                 }
 
-                await Task.CompletedTask; // To keep the async signature
+                await Task.CompletedTask;
                 return success;
             }
             catch (Exception ex)

@@ -35,7 +35,6 @@ public class ConfigurationService : IConfigurationService
     private readonly ConfigurationApplicationBridgeService _bridgeService;
     private readonly IWindowsUIManagementService _windowsUIManagementService;
     private readonly IWindowsVersionService _windowsVersionService;
-    private readonly IWindowsThemeQueryService _windowsThemeQueryService;
     private readonly ILocalizationService _localizationService;
     private readonly IConfigImportOverlayService _overlayService;
     private readonly IConfigReviewService _configReviewService;
@@ -61,7 +60,6 @@ public class ConfigurationService : IConfigurationService
         ConfigurationApplicationBridgeService bridgeService,
         IWindowsUIManagementService windowsUIManagementService,
         IWindowsVersionService windowsVersionService,
-        IWindowsThemeQueryService windowsThemeQueryService,
         ILocalizationService localizationService,
         IConfigImportOverlayService overlayService,
         IConfigReviewService configReviewService,
@@ -78,7 +76,6 @@ public class ConfigurationService : IConfigurationService
         _bridgeService = bridgeService;
         _windowsUIManagementService = windowsUIManagementService;
         _windowsVersionService = windowsVersionService;
-        _windowsThemeQueryService = windowsThemeQueryService;
         _localizationService = localizationService;
         _overlayService = overlayService;
         _configReviewService = configReviewService;

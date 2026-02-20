@@ -11,6 +11,8 @@ namespace Winhance.UI.Features.Common.Services;
 public class ThemeService : IThemeService
 {
     private readonly IUserPreferencesService _userPreferences;
+    private readonly IWindowsRegistryService _registryService;
+    private readonly IInteractiveUserService _interactiveUserService;
     private readonly UISettings _uiSettings;
     private WinhanceTheme _currentTheme = WinhanceTheme.System;
 
@@ -20,9 +22,14 @@ public class ThemeService : IThemeService
     /// <inheritdoc />
     public event EventHandler<WinhanceTheme>? ThemeChanged;
 
-    public ThemeService(IUserPreferencesService userPreferences)
+    public ThemeService(
+        IUserPreferencesService userPreferences,
+        IWindowsRegistryService registryService,
+        IInteractiveUserService interactiveUserService)
     {
         _userPreferences = userPreferences;
+        _registryService = registryService;
+        _interactiveUserService = interactiveUserService;
         _uiSettings = new UISettings();
 
         // Listen for Windows theme changes to update System theme followers
@@ -145,9 +152,18 @@ public class ThemeService : IThemeService
 
     private bool IsWindowsDarkTheme()
     {
-        // Check Windows apps use dark theme setting
+        if (_interactiveUserService.IsOtsElevation)
+        {
+            // Under OTS elevation, UISettings reflects the admin's theme.
+            // Read from the interactive user's registry hive instead.
+            var value = _registryService.GetValue(
+                @"HKEY_CURRENT_USER\Software\Microsoft\Windows\CurrentVersion\Themes\Personalize",
+                "AppsUseLightTheme");
+            if (value is int intVal)
+                return intVal == 0;
+        }
+
         var foreground = _uiSettings.GetColorValue(UIColorType.Foreground);
-        // If foreground is light, it's dark mode
         return foreground.R > 128 && foreground.G > 128 && foreground.B > 128;
     }
 
