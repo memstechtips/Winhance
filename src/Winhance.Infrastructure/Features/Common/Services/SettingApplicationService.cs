@@ -70,20 +70,6 @@ namespace Winhance.Infrastructure.Features.Common.Services
             {
                 await HandleProcessAndServiceRestarts(setting);
 
-                if (checkboxResult)
-                {
-                    logService.Log(LogLevel.Info, $"[SettingApplicationService] Applying recommended settings for domain containing '{settingId}' (checkbox checked)");
-                    try
-                    {
-                        await ApplyRecommendedSettingsForDomainAsync(settingId);
-                        logService.Log(LogLevel.Info, $"[SettingApplicationService] Successfully applied recommended settings for '{settingId}'");
-                    }
-                    catch (Exception ex)
-                    {
-                        logService.Log(LogLevel.Warning, $"[SettingApplicationService] Failed to apply recommended settings for '{settingId}': {ex.Message}");
-                    }
-                }
-
                 eventBus.Publish(new SettingAppliedEvent(settingId, enable, value));
                 logService.Log(LogLevel.Info, $"[SettingApplicationService] Successfully applied setting '{settingId}' via domain service");
 
