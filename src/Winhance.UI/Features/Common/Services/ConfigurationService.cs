@@ -512,6 +512,10 @@ public class ConfigurationService : IConfigurationService
                 _logService.Log(LogLevel.Info, $"Silently filtered {incompatibleSettings.Count} incompatible settings from config");
             }
 
+            // Force filter ON before computing diffs so version-filtered settings
+            // don't generate phantom diffs when the user had the filter toggled off
+            _compatibleSettingsRegistry.SetFilterEnabled(true);
+
             // Enter review mode on the service (eagerly computes diffs and fires events)
             await _configReviewService.EnterReviewModeAsync(config);
 
@@ -1720,7 +1724,7 @@ public class ConfigurationService : IConfigurationService
 
             foreach (var feature in section.Value.Features)
             {
-                var allSettings = _compatibleSettingsRegistry.GetFilteredSettings(feature.Key);
+                var allSettings = _compatibleSettingsRegistry.GetBypassedSettings(feature.Key);
 
                 foreach (var configItem in feature.Value.Items)
                 {
@@ -1744,6 +1748,15 @@ public class ConfigurationService : IConfigurationService
                         else if (settingDef.MaximumBuildNumber.HasValue && buildNumber > settingDef.MaximumBuildNumber.Value)
                         {
                             isIncompatible = true;
+                        }
+                        else if (settingDef.SupportedBuildRanges?.Count > 0)
+                        {
+                            bool inRange = settingDef.SupportedBuildRanges.Any(range =>
+                                buildNumber >= range.MinBuild && buildNumber <= range.MaxBuild);
+                            if (!inRange)
+                            {
+                                isIncompatible = true;
+                            }
                         }
 
                         if (isIncompatible)
@@ -1791,7 +1804,7 @@ public class ConfigurationService : IConfigurationService
 
         foreach (var feature in section.Features)
         {
-            var allSettings = _compatibleSettingsRegistry.GetFilteredSettings(feature.Key);
+            var allSettings = _compatibleSettingsRegistry.GetBypassedSettings(feature.Key);
             var filteredItems = new List<ConfigurationItem>();
 
             foreach (var item in feature.Value.Items)
@@ -1816,6 +1829,15 @@ public class ConfigurationService : IConfigurationService
                     else if (settingDef.MaximumBuildNumber.HasValue && buildNumber > settingDef.MaximumBuildNumber.Value)
                     {
                         isCompatible = false;
+                    }
+                    else if (settingDef.SupportedBuildRanges?.Count > 0)
+                    {
+                        bool inRange = settingDef.SupportedBuildRanges.Any(range =>
+                            buildNumber >= range.MinBuild && buildNumber <= range.MaxBuild);
+                        if (!inRange)
+                        {
+                            isCompatible = false;
+                        }
                     }
 
                     if (isCompatible)
