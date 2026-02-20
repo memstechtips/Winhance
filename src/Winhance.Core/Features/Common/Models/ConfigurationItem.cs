@@ -34,16 +34,16 @@ namespace Winhance.Core.Features.Common.Models
         public int? SelectedIndex { get; set; }
 
         [JsonProperty(NullValueHandling = NullValueHandling.Ignore)]
-        public Dictionary<string, object> CustomStateValues { get; set; }
+        public Dictionary<string, object>? CustomStateValues { get; set; }
 
         [JsonProperty(NullValueHandling = NullValueHandling.Ignore)]
         public Dictionary<string, object> PowerSettings { get; set; }
 
         [JsonProperty(NullValueHandling = NullValueHandling.Ignore)]
-        public string PowerPlanGuid { get; set; }
+        public string? PowerPlanGuid { get; set; }
 
         [JsonProperty(NullValueHandling = NullValueHandling.Ignore)]
-        public string PowerPlanName { get; set; }
+        public string? PowerPlanName { get; set; }
 
         [JsonProperty(NullValueHandling = NullValueHandling.Ignore)]
         [Obsolete("SelectedValue is only used for backward compatibility during migration. Use SelectedIndex instead.")]

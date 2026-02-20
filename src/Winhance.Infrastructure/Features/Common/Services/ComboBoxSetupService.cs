@@ -11,9 +11,8 @@ using Winhance.Core.Features.Common.Models;
 namespace Winhance.Infrastructure.Features.Common.Services
 {
     public class ComboBoxSetupService(
-        ILogService logService, 
-        IDomainServiceRouter domainServiceRouter, 
-        IComboBoxResolver comboBoxResolver, 
+        ILogService logService,
+        IComboBoxResolver comboBoxResolver,
         IPowerPlanComboBoxService powerPlanComboBoxService,
         ISystemSettingsDiscoveryService systemSettingsDiscoveryService) : IComboBoxSetupService
     {

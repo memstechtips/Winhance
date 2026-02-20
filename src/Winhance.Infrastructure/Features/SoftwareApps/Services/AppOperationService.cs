@@ -18,7 +18,6 @@ namespace Winhance.Infrastructure.Features.SoftwareApps.Services;
 public class AppOperationService(
     ILegacyCapabilityService capabilityService,
     IOptionalFeatureService featureService,
-    IAppLoadingService appLoadingService,
     ILogService logService,
     IEventBus eventBus,
     IWindowsAppsService windowsAppsService,

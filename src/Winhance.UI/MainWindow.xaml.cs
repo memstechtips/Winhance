@@ -731,7 +731,10 @@ public sealed partial class MainWindow : Window
         try
         {
             var startupNotifications = App.Services.GetRequiredService<IStartupNotificationService>();
-            await startupNotifications.ShowBackupNotificationAsync(_backupResult);
+            if (_backupResult != null)
+            {
+                await startupNotifications.ShowBackupNotificationAsync(_backupResult);
+            }
         }
         catch (Exception ex)
         {

@@ -13,7 +13,6 @@ namespace Winhance.Infrastructure.Features.Common.Services
         IWindowsRegistryService registryService,
         ILogService logService,
         IPowerSettingsQueryService powerSettingsQueryService,
-        IPowerSettingsValidationService powerSettingsValidationService,
         IDomainServiceRouter domainServiceRouter,
         IScheduledTaskService scheduledTaskService) : ISystemSettingsDiscoveryService
     {

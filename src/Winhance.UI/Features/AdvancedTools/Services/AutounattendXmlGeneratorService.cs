@@ -159,9 +159,9 @@ public class AutounattendXmlGeneratorService : IAutounattendXmlGeneratorService
 
                 if (state?.RawValues != null && state.RawValues.Count > 0)
                 {
-                    item.CustomStateValues = state.RawValues.ToDictionary(
-                        k => k.Key,
-                        v => (object)v.Value);
+                    item.CustomStateValues = state.RawValues
+                        .Where(v => v.Value != null)
+                        .ToDictionary(k => k.Key, v => v.Value!);
                 }
 
                 return item;
@@ -231,8 +231,8 @@ public class AutounattendXmlGeneratorService : IAutounattendXmlGeneratorService
         }
     }
 
-    private (int? selectedIndex, Dictionary<string, object> customStateValues, string powerPlanGuid, string powerPlanName)
-        GetSelectionStateFromState(SettingDefinition setting, SettingStateResult state)
+    private (int? selectedIndex, Dictionary<string, object>? customStateValues, string? powerPlanGuid, string? powerPlanName)
+        GetSelectionStateFromState(SettingDefinition setting, SettingStateResult? state)
     {
         if (setting.InputType != InputType.Selection)
             return (null, null, null, null);

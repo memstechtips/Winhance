@@ -128,7 +128,7 @@ namespace Winhance.Core.Features.Common.Services
                     _logWriter?.Close();
                     _logWriter?.Dispose();
                 }
-                catch (Exception ex)
+                catch (Exception)
                 {
                     // Error stopping log
                 }
@@ -180,7 +180,7 @@ namespace Winhance.Core.Features.Common.Services
                     _logWriter?.WriteLine(logEntry);
 
                 }
-                catch (Exception ex)
+                catch (Exception)
                 {
                     // Logging failed
                 }

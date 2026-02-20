@@ -193,7 +193,7 @@ public abstract partial class BaseSettingsFeatureViewModel : BaseViewModel, ISet
 
             await LoadSettingsAsync();
 
-            _logService.Log(LogLevel.Info, $"Successfully refreshed {Settings.Count} settings for {DisplayName}");
+            _logService.Log(LogLevel.Info, $"Successfully refreshed {Settings!.Count} settings for {DisplayName}");
         }
         catch (Exception ex)
         {
@@ -349,7 +349,7 @@ public abstract partial class BaseSettingsFeatureViewModel : BaseViewModel, ISet
 
             await LoadSettingsAsync();
 
-            _logService.Log(LogLevel.Info, $"Successfully refreshed {Settings.Count} settings for {DisplayName}");
+            _logService.Log(LogLevel.Info, $"Successfully refreshed {Settings!.Count} settings for {DisplayName}");
         }
         catch (Exception ex)
         {

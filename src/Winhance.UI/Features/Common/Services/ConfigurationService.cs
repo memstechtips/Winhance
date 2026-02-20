@@ -443,16 +443,14 @@ public class ConfigurationService : IConfigurationService
                 ?? "Sit back, relax and watch while Winhance enhances Windows with your desired settings...";
             _overlayService.ShowOverlay(overlayStatus);
 
-            bool success = true;
             _windowsUIManagementService.IsConfigImportMode = true;
 
             try
             {
                 await ApplyConfigurationWithOptionsAsync(config, selectedSections, importOptions);
             }
-            catch (Exception ex)
+            catch (Exception)
             {
-                success = false;
                 throw;
             }
             finally
@@ -1193,7 +1191,7 @@ public class ConfigurationService : IConfigurationService
             groupTasks.Add(Task.Run(async () =>
             {
                 var success = await ApplyFeatureGroupWithOptionsAsync(
-                    config.Optimize, "Optimize", options, selectedSections, onFeatureCompleted);
+                    config.Optimize!, "Optimize", options, selectedSections, onFeatureCompleted);
                 _logService.Log(LogLevel.Info, $"  Optimize group: {(success ? "Success" : "Failed")}");
             }));
         }
@@ -1203,7 +1201,7 @@ public class ConfigurationService : IConfigurationService
             groupTasks.Add(Task.Run(async () =>
             {
                 var success = await ApplyFeatureGroupWithOptionsAsync(
-                    config.Customize, "Customize", options, selectedSections, onFeatureCompleted);
+                    config.Customize!, "Customize", options, selectedSections, onFeatureCompleted);
                 _logService.Log(LogLevel.Info, $"  Customize group: {(success ? "Success" : "Failed")}");
             }));
         }
@@ -1333,7 +1331,7 @@ public class ConfigurationService : IConfigurationService
         foreach (var featureKey in unprocessedActionOnly)
         {
             var featureName = featureKey.Substring(groupName.Length + 1);
-            var actionItems = BuildActionItems(options, featureName);
+            var actionItems = BuildActionItems(options!, featureName);
 
             // Handle WindowsTheme action-only case
             if (options?.ApplyThemeWallpaper == true && featureName == FeatureIds.WindowsTheme)
@@ -1791,7 +1789,7 @@ public class ConfigurationService : IConfigurationService
         bool isWindows11,
         int buildNumber)
     {
-        if (section?.Features == null) return section;
+        if (section?.Features == null) return section!;
 
         var filteredSection = new FeatureGroupSection
         {
@@ -1987,7 +1985,6 @@ public class ConfigurationService : IConfigurationService
                 ?? "Sit back, relax and watch while Winhance enhances Windows with your desired settings...";
             _overlayService.ShowOverlay(overlayStatus);
 
-            bool success = true;
             _windowsUIManagementService.IsConfigImportMode = true;
 
             try
@@ -1996,7 +1993,6 @@ public class ConfigurationService : IConfigurationService
             }
             catch (Exception ex)
             {
-                success = false;
                 _logService.Log(LogLevel.Error, $"Error applying reviewed config: {ex.Message}");
             }
             finally

@@ -433,7 +433,7 @@ public partial class WimUtilViewModel : ObservableObject
             _taskProgressService.StartTask(_localizationService.GetString("WIMUtil_Status_Extracting"), true);
             var progress = _taskProgressService.CreatePowerShellProgress();
 
-            var success = await _wimUtilService.ExtractIsoAsync(SelectedIsoPath, WorkingDirectory, progress, _taskProgressService.CurrentTaskCancellationSource.Token);
+            var success = await _wimUtilService.ExtractIsoAsync(SelectedIsoPath, WorkingDirectory, progress, _taskProgressService.CurrentTaskCancellationSource!.Token);
 
             ResetExtractionState();
 
@@ -877,7 +877,7 @@ public partial class WimUtilViewModel : ObservableObject
             _taskProgressService.StartTask(_localizationService.GetString("WIMUtil_Status_CreatingIso"), true);
             var progress = _taskProgressService.CreatePowerShellProgress();
 
-            var success = await _wimUtilService.CreateIsoAsync(WorkingDirectory, OutputIsoPath, progress, _taskProgressService.CurrentTaskCancellationSource.Token);
+            var success = await _wimUtilService.CreateIsoAsync(WorkingDirectory, OutputIsoPath, progress, _taskProgressService.CurrentTaskCancellationSource!.Token);
 
             SelectOutputCard.IsEnabled = true;
             SelectOutputCard.Opacity = 1.0;
@@ -1084,7 +1084,7 @@ public partial class WimUtilViewModel : ObservableObject
             _taskProgressService.StartTask(string.Format(_localizationService.GetString("WIMUtil_Status_ConvertingToFormat"), currentFormatName, targetFormatName), true);
             var progress = _taskProgressService.CreatePowerShellProgress();
 
-            var success = await _wimUtilService.ConvertImageAsync(WorkingDirectory, targetFormat, progress, _taskProgressService.CurrentTaskCancellationSource.Token);
+            var success = await _wimUtilService.ConvertImageAsync(WorkingDirectory, targetFormat, progress, _taskProgressService.CurrentTaskCancellationSource!.Token);
 
             if (success)
             {

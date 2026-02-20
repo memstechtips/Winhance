@@ -10,8 +10,7 @@ using Winhance.Core.Features.Common.Models;
 namespace Winhance.Infrastructure.Features.Common.Services
 {
     public class ComboBoxResolver(
-        ISystemSettingsDiscoveryService discoveryService,
-        ILogService logService) : IComboBoxResolver
+        ISystemSettingsDiscoveryService discoveryService) : IComboBoxResolver
     {
         public const int CUSTOM_STATE_INDEX = -1;
 
