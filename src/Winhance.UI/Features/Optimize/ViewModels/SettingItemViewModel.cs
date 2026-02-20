@@ -919,8 +919,6 @@ public partial class SettingItemViewModel : BaseViewModel
                     _logService.Log(LogLevel.Warning, $"[TechnicalDetails] KeyExists failed for '{reg.KeyPath}': {kex.GetType().Name}: {kex.Message}");
                 }
 
-                _logService.Log(LogLevel.Debug, $"[TechnicalDetails] {reg.KeyPath} → KeyExists={keyExists}, Value='{kvp.Value ?? "(not set)"}'");
-
                 TechnicalDetails.Add(new TechnicalDetailRow
                 {
                     RowType = DetailRowType.Registry,
