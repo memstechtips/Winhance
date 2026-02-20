@@ -165,7 +165,8 @@ public class WinGetInstaller
                                     {
                                         Progress = progressPercent,
                                         StatusText = GetString("Progress_WinGet_Installing"),
-                                        TerminalOutput = displayLine ?? line
+                                        TerminalOutput = parsed.Percent.HasValue && parsed.Phase != WinGetProgressParser.WinGetPhase.Complete
+                                            ? null : (displayLine ?? line),
                                     });
                                 }
                             }
@@ -188,7 +189,23 @@ public class WinGetInstaller
                 onErrorLine: line => _logService?.LogWarning($"[winget-bundled-err] {line}"),
                 cancellationToken: cancellationToken,
                 timeoutMs: 300_000,
-                exePathOverride: bundledPath);
+                exePathOverride: bundledPath,
+                onProgressLine: line =>
+                {
+                    try
+                    {
+                        var displayLine = WinGetProgressParser.TranslateLine(line);
+                        _taskProgressService?.UpdateDetailedProgress(new TaskProgressDetail
+                        {
+                            TerminalOutput = displayLine ?? line,
+                            IsProgressIndicator = true
+                        });
+                    }
+                    catch (Exception ex)
+                    {
+                        _logService?.LogWarning($"Progress reporting error (ignored): {ex.Message}");
+                    }
+                });
 
             if (WinGetExitCodes.IsSuccess(result.ExitCode))
             {

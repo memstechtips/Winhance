@@ -11,6 +11,7 @@ public enum InstallFailureReason
     NoApplicableInstallers,
     AgreementsNotAccepted,
     WinGetNotAvailable,
+    UserCancelled,
     Other
 }
 

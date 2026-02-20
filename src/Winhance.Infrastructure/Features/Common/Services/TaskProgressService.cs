@@ -19,6 +19,8 @@ namespace Winhance.Infrastructure.Features.Common.Services
         private bool _isTaskRunning;
         private bool _isIndeterminate;
         private List<string> _logMessages = new List<string>();
+        private List<string> _terminalOutputLines = new List<string>();
+        private bool _lastTerminalLineWasProgress;
         private CancellationTokenSource _cancellationSource;
 
         // Queue sticky state
@@ -28,6 +30,7 @@ namespace Winhance.Infrastructure.Features.Common.Services
 
         // Multi-script slot state
         private int _activeScriptSlotCount;
+        private string[]? _scriptSlotNames;
 
         // Skip-next flag
         private volatile bool _skipNextRequested;
@@ -112,6 +115,8 @@ namespace Winhance.Infrastructure.Features.Common.Services
             _isTaskRunning = true;
             _isIndeterminate = isIndeterminate;
             _logMessages.Clear();
+            _terminalOutputLines.Clear();
+            _lastTerminalLineWasProgress = false;
             _queueTotal = 0;
             _queueCurrent = 0;
             _queueNextItemName = null;
@@ -171,9 +176,6 @@ namespace Winhance.Infrastructure.Features.Common.Services
                 {
                     Progress = progressPercentage,
                     StatusText = _currentStatusText,
-                    TerminalOutput = progressPercentage > 0 && progressPercentage < 100
-                        ? $"{progressPercentage}%"
-                        : null,
                 }
             );
         }
@@ -208,6 +210,43 @@ namespace Winhance.Infrastructure.Features.Common.Services
             }
 
             _isIndeterminate = detail.IsIndeterminate;
+
+            // Accumulate terminal output lines for the details dialog,
+            // filtering out noise (blank lines).
+            // Always remove the last progress line
+            // before adding ANY new line. This handles:
+            //   progress → progress: replacement (progress bar filling)
+            //   progress → permanent: cleanup (stale progress/spinner removed)
+            //   permanent → permanent: normal append
+            //   permanent → progress: normal append
+            if (!string.IsNullOrEmpty(detail.TerminalOutput))
+            {
+                if (IsTerminalNoise(detail.TerminalOutput))
+                {
+                    detail.TerminalOutput = null; // Suppress noise from event subscribers
+                }
+                else
+                {
+                    if (_lastTerminalLineWasProgress && _terminalOutputLines.Count > 0)
+                    {
+                        _terminalOutputLines.RemoveAt(_terminalOutputLines.Count - 1);
+                    }
+                    else if (detail.IsProgressIndicator && _terminalOutputLines.Count > 0)
+                    {
+                        // The first progress bar sometimes arrives as a permanent line
+                        // (winget's initial render uses \n before switching to \r).
+                        // Detect and remove it so it doesn't duplicate.
+                        var lastLine = _terminalOutputLines[_terminalOutputLines.Count - 1];
+                        if (LooksLikeProgressBar(lastLine))
+                        {
+                            _terminalOutputLines.RemoveAt(_terminalOutputLines.Count - 1);
+                        }
+                    }
+                    _terminalOutputLines.Add(detail.TerminalOutput);
+                    _lastTerminalLineWasProgress = detail.IsProgressIndicator;
+                }
+            }
+
             if (!string.IsNullOrEmpty(detail.DetailedMessage))
             {
                 _logService.Log(detail.LogLevel, detail.DetailedMessage); // Corrected Log call
@@ -264,6 +303,17 @@ namespace Winhance.Infrastructure.Features.Common.Services
             _logMessages.Add(message);
             LogMessageAdded?.Invoke(this, message);
         }
+
+        /// <summary>
+        /// Gets a snapshot of all log messages accumulated during the current (or last) task.
+        /// </summary>
+        public IReadOnlyList<string> GetLogMessages() => _logMessages.AsReadOnly();
+
+        /// <summary>
+        /// Gets a snapshot of all terminal output lines accumulated during the current (or last) task.
+        /// These are the raw output lines from winget/process stdout.
+        /// </summary>
+        public IReadOnlyList<string> GetTerminalOutputLines() => _terminalOutputLines.AsReadOnly();
 
         /// <summary>
         /// Cancels the current task.
@@ -357,9 +407,12 @@ namespace Winhance.Infrastructure.Features.Common.Services
             _cancellationSource = new CancellationTokenSource();
             _isTaskRunning = true;
             _activeScriptSlotCount = scriptNames.Length;
+            _scriptSlotNames = scriptNames;
             _currentProgress = 0;
             _currentStatusText = string.Empty;
             _logMessages.Clear();
+            _terminalOutputLines.Clear();
+            _lastTerminalLineWasProgress = false;
             _queueTotal = 0;
             _queueCurrent = 0;
             _queueNextItemName = null;
@@ -390,10 +443,37 @@ namespace Winhance.Infrastructure.Features.Common.Services
         public IProgress<TaskProgressDetail> CreateScriptProgress(int slotIndex)
         {
             var slotCount = _activeScriptSlotCount;
+            var slotName = _scriptSlotNames != null && slotIndex < _scriptSlotNames.Length
+                ? _scriptSlotNames[slotIndex] : null;
             return new Progress<TaskProgressDetail>(detail =>
             {
                 detail.ScriptSlotIndex = slotIndex;
                 detail.ScriptSlotCount = slotCount;
+
+                // Prefix terminal output with script name when multiple scripts run in parallel
+                if (slotName != null && slotCount > 1 && !string.IsNullOrEmpty(detail.TerminalOutput))
+                    detail.TerminalOutput = $"[{slotName}] {detail.TerminalOutput}";
+
+                // Accumulate terminal output for the details dialog
+                if (!string.IsNullOrEmpty(detail.TerminalOutput)
+                    && !IsTerminalNoise(detail.TerminalOutput))
+                {
+                    if (_lastTerminalLineWasProgress && _terminalOutputLines.Count > 0)
+                    {
+                        _terminalOutputLines.RemoveAt(_terminalOutputLines.Count - 1);
+                    }
+                    else if (detail.IsProgressIndicator && _terminalOutputLines.Count > 0)
+                    {
+                        var lastLine = _terminalOutputLines[_terminalOutputLines.Count - 1];
+                        if (LooksLikeProgressBar(lastLine))
+                        {
+                            _terminalOutputLines.RemoveAt(_terminalOutputLines.Count - 1);
+                        }
+                    }
+                    _terminalOutputLines.Add(detail.TerminalOutput);
+                    _lastTerminalLineWasProgress = detail.IsProgressIndicator;
+                }
+
                 // Fire directly without sticky queue logic
                 ProgressUpdated?.Invoke(this, detail);
             });
@@ -406,6 +486,7 @@ namespace Winhance.Infrastructure.Features.Common.Services
         {
             _isTaskRunning = false;
             _activeScriptSlotCount = 0;
+            _scriptSlotNames = null;
             _queueTotal = 0;
             _queueCurrent = 0;
             _queueNextItemName = null;
@@ -480,6 +561,34 @@ namespace Winhance.Infrastructure.Features.Common.Services
                 this,
                 TaskProgressEventArgs.FromTaskProgressDetail(detail, _isTaskRunning)
             );
+        }
+
+        /// <summary>
+        /// Returns true if the line is noise that doesn't add value
+        /// (e.g. blank/whitespace-only lines).
+        /// Spinner characters (-, \, |, /) are NOT filtered — they are
+        /// delivered as IsProgressIndicator=true and animate in-place via
+        /// the removal pattern in the live terminal dialog.
+        /// </summary>
+        private static bool IsTerminalNoise(string line)
+        {
+            var trimmed = line.Trim();
+            return string.IsNullOrEmpty(trimmed);
+        }
+
+        /// <summary>
+        /// Detects whether a line looks like a progress bar (contains Unicode block elements).
+        /// Used to catch the duplicate first progress bar line that winget sometimes emits
+        /// with \n before switching to \r.
+        /// </summary>
+        private static bool LooksLikeProgressBar(string line)
+        {
+            foreach (char c in line)
+            {
+                if (c >= '\u2588' && c <= '\u258F') return true;
+                if (c == '\u2591') return true; // ░ (unfilled track)
+            }
+            return false;
         }
     }
 }

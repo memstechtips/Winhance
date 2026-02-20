@@ -235,7 +235,12 @@ namespace Winhance.Infrastructure.Features.SoftwareApps.Services
                                     {
                                         Progress = progressPercent,
                                         StatusText = statusText,
-                                        TerminalOutput = displayLine ?? line,
+                                        // Don't emit TerminalOutput for lines with a parsed percentage —
+                                        // these are \r\n re-emissions of progress lines already handled
+                                        // by the onProgressLine callback. But allow Complete phase through
+                                        // so "Successfully installed" appears in the terminal output.
+                                        TerminalOutput = progress.Percent.HasValue && progress.Phase != WinGetProgressParser.WinGetPhase.Complete
+                                            ? null : (displayLine ?? line),
                                     });
                                 }
                             }
@@ -420,7 +425,8 @@ namespace Winhance.Infrastructure.Features.SoftwareApps.Services
                                     {
                                         Progress = progressPercent,
                                         StatusText = statusText,
-                                        TerminalOutput = displayLine ?? line,
+                                        TerminalOutput = progress.Percent.HasValue && progress.Phase != WinGetProgressParser.WinGetPhase.Complete
+                                            ? null : (displayLine ?? line),
                                     });
                                 }
                             }

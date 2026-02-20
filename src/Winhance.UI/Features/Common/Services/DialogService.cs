@@ -1,11 +1,14 @@
+using Microsoft.UI.Dispatching;
 using Microsoft.UI.Xaml;
 using Microsoft.UI.Xaml.Automation;
 using Microsoft.UI.Xaml.Controls;
+using Microsoft.UI.Xaml.Documents;
 using Microsoft.UI.Xaml.Media;
 using Winhance.Core.Features.Common.Enums;
 using Winhance.Core.Features.Common.Interfaces;
 using Winhance.Core.Features.Common.Models;
 using Winhance.UI.Features.Common.Constants;
+using Winhance.UI.Features.Common.Utilities;
 
 namespace Winhance.UI.Features.Common.Services;
 
@@ -20,6 +23,7 @@ public class DialogService : IDialogService
 {
     private readonly ILocalizationService _localization;
     private readonly ILogService _logService;
+    private readonly ITaskProgressService _taskProgressService;
     private readonly SemaphoreSlim _dialogSemaphore = new(1, 1);
 
     /// <summary>
@@ -28,10 +32,11 @@ public class DialogService : IDialogService
     /// </summary>
     public XamlRoot? XamlRoot { get; set; }
 
-    public DialogService(ILocalizationService localization, ILogService logService)
+    public DialogService(ILocalizationService localization, ILogService logService, ITaskProgressService taskProgressService)
     {
         _localization = localization;
         _logService = logService;
+        _taskProgressService = taskProgressService;
     }
 
     /// <summary>
@@ -1161,6 +1166,197 @@ public class DialogService : IDialogService
                 Confirmed = result == ContentDialogResult.Primary,
                 CheckboxChecked = checkBox?.IsChecked == true
             };
+        }
+        finally
+        {
+            _dialogSemaphore.Release();
+        }
+    }
+
+    public async Task ShowTaskOutputDialogAsync(string title, IReadOnlyList<string> logMessages)
+    {
+        await _dialogSemaphore.WaitAsync();
+        try
+        {
+            if (XamlRoot == null)
+            {
+                _logService.LogWarning("XamlRoot not set, cannot show dialog");
+                return;
+            }
+
+            // Mutable list of all lines — snapshot + live additions.
+            // Used by Copy to Clipboard at click time.
+            var allLines = new List<string>(logMessages);
+
+            // Build a single RichTextBlock with one Paragraph containing Runs.
+            // Unlike individual TextBlocks, RichTextBlock renders block characters
+            // (█, ═, ▒) with consistent line height — no overlapping artifacts.
+            var par = new Paragraph();
+            foreach (var line in logMessages)
+            {
+                foreach (var run in TerminalLineRenderer.CreateLineRuns(line))
+                    par.Inlines.Add(run);
+            }
+
+            var richTextBlock = new RichTextBlock
+            {
+                FontFamily = TerminalLineRenderer.MonoFont,
+                FontSize = 12,
+                Foreground = TerminalLineRenderer.DefaultBrush,
+                TextWrapping = TextWrapping.Wrap,
+                IsTextSelectionEnabled = true
+            };
+            richTextBlock.Blocks.Add(par);
+
+            var scrollViewer = new ScrollViewer
+            {
+                Content = richTextBlock,
+                VerticalScrollBarVisibility = ScrollBarVisibility.Auto,
+                HorizontalScrollBarVisibility = ScrollBarVisibility.Auto,
+                Padding = new Thickness(14, 10, 14, 10)
+            };
+
+            // Auto-scroll to bottom on initial load
+            scrollViewer.Loaded += (_, _) =>
+                scrollViewer.ChangeView(null, scrollViewer.ScrollableHeight, null, true);
+
+            var container = new Border
+            {
+                Child = scrollViewer,
+                Background = new SolidColorBrush(TerminalLineRenderer.TerminalBackground),
+                CornerRadius = new CornerRadius(6),
+                BorderBrush = new SolidColorBrush(Windows.UI.Color.FromArgb(0xFF, 0x3E, 0x3E, 0x3E)),
+                BorderThickness = new Thickness(1)
+            };
+
+            var dialog = new ContentDialog
+            {
+                Title = title,
+                Content = container,
+                CloseButtonText = _localization.GetString("Button_Close") ?? "Close",
+                SecondaryButtonText = _localization.GetString("Button_CopyToClipboard") ?? "Copy to Clipboard",
+                DefaultButton = ContentDialogButton.Close
+            };
+
+            // Blow out WinUI's built-in ContentDialog size caps so that the
+            // SizeChanged handler below can drive actual content dimensions.
+            dialog.Resources["ContentDialogMaxWidth"] = 8192;
+            dialog.Resources["ContentDialogMaxHeight"] = 4096;
+
+            ConfigureDialog(dialog);
+
+            dialog.SizeChanged += (_, _) =>
+            {
+                if (dialog.Content is FrameworkElement content && XamlRoot?.Size.Width > 0)
+                {
+                    double winWidth = XamlRoot.Size.Width;
+                    double winHeight = XamlRoot.Size.Height;
+
+                    // 90% of window width, floor 600px, minus dialog chrome padding (~48px)
+                    content.Width = Math.Min(Math.Max(600, winWidth * 0.90) - 48, 8192);
+
+                    // 70% of window height, floor 300px, minus title+buttons chrome (~120px)
+                    content.Height = Math.Min(Math.Max(300, winHeight * 0.70) - 120, 4096);
+                }
+            };
+
+            // Copy to Clipboard — build text dynamically to include live lines
+            dialog.SecondaryButtonClick += (_, _) =>
+            {
+                var dataPackage = new Windows.ApplicationModel.DataTransfer.DataPackage();
+                dataPackage.SetText(string.Join("\n", allLines));
+                Windows.ApplicationModel.DataTransfer.Clipboard.SetContent(dataPackage);
+            };
+
+            // Live update subscription: append/replace terminal lines in real-time
+            var isSubscribed = false;
+            var lastLineWasProgress = false;
+            var lastLineRunCount = 1;
+            EventHandler<TaskProgressDetail>? liveHandler = null;
+
+            if (_taskProgressService.IsTaskRunning)
+            {
+                var dispatcherQueue = DispatcherQueue.GetForCurrentThread();
+                isSubscribed = true;
+
+                liveHandler = (_, detail) =>
+                {
+                    if (string.IsNullOrEmpty(detail.TerminalOutput))
+                        return;
+
+                    var line = detail.TerminalOutput;
+                    var isProgress = detail.IsProgressIndicator;
+
+                    dispatcherQueue.TryEnqueue(() =>
+                    {
+                        // Always remove the last progress line
+                        // before adding ANY new line. This handles:
+                        //   progress → progress: replacement (progress bar filling)
+                        //   progress → permanent: cleanup (stale progress/spinner removed)
+                        //   permanent → permanent: normal append
+                        //   permanent → progress: normal append
+                        if (lastLineWasProgress && par.Inlines.Count > 0)
+                        {
+                            for (int r = 0; r < lastLineRunCount && par.Inlines.Count > 0; r++)
+                                par.Inlines.RemoveAt(par.Inlines.Count - 1);
+                            allLines.RemoveAt(allLines.Count - 1);
+                        }
+                        else if (isProgress && allLines.Count > 0
+                            && TerminalLineRenderer.LooksLikeProgressBar(allLines[allLines.Count - 1]))
+                        {
+                            // First progress bar sometimes arrives as a permanent line
+                            // (winget's initial render uses \n before switching to \r).
+                            // Detect and remove it so it doesn't duplicate.
+                            for (int r = 0; r < lastLineRunCount && par.Inlines.Count > 0; r++)
+                                par.Inlines.RemoveAt(par.Inlines.Count - 1);
+                            allLines.RemoveAt(allLines.Count - 1);
+                        }
+
+                        allLines.Add(line);
+                        var runs = TerminalLineRenderer.CreateLineRuns(line);
+                        foreach (var run in runs)
+                            par.Inlines.Add(run);
+                        lastLineRunCount = runs.Length;
+                        lastLineWasProgress = isProgress;
+
+                        // Auto-scroll only if the user is near the bottom;
+                        // if they scrolled up, leave the view where they put it.
+                        scrollViewer.UpdateLayout();
+                        var isNearBottom = scrollViewer.VerticalOffset
+                            >= scrollViewer.ScrollableHeight - 20;
+                        if (isNearBottom)
+                            scrollViewer.ChangeView(null, scrollViewer.ScrollableHeight, null, true);
+                    });
+
+                    // Unsubscribe only when the overall task has actually stopped
+                    // (not on per-item completion signals like IsCompletion/Progress==100,
+                    // which fire for each item in a queued batch).
+                    if (!_taskProgressService.IsTaskRunning)
+                    {
+                        if (isSubscribed)
+                        {
+                            isSubscribed = false;
+                            _taskProgressService.ProgressUpdated -= liveHandler;
+                        }
+                    }
+                };
+
+                _taskProgressService.ProgressUpdated += liveHandler;
+            }
+
+            try
+            {
+                await dialog.ShowAsync();
+            }
+            finally
+            {
+                // Unsubscribe when dialog closes (task may still be running)
+                if (isSubscribed && liveHandler != null)
+                {
+                    isSubscribed = false;
+                    _taskProgressService.ProgressUpdated -= liveHandler;
+                }
+            }
         }
         finally
         {

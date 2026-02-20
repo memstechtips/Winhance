@@ -1158,10 +1158,36 @@ public sealed partial class MainWindow : Window
                 var taskProgressService = App.Services.GetService<ITaskProgressService>();
                 var isActuallyRunning = taskProgressService?.IsTaskRunning == true;
 
-                TaskProgressControl.IsProgressVisible = _viewModel.IsLoading ? Visibility.Visible : Visibility.Collapsed;
-                // Only show cancel button and running state when the task is actively running
-                TaskProgressControl.CanCancel = isActuallyRunning ? Visibility.Visible : Visibility.Collapsed;
-                TaskProgressControl.IsTaskRunning = isActuallyRunning;
+                if (_viewModel.IsLoading)
+                {
+                    TaskProgressControl.IsProgressVisible = Visibility.Visible;
+                    if (isActuallyRunning)
+                    {
+                        TaskProgressControl.CanCancel = Visibility.Visible;
+                        TaskProgressControl.IsTaskRunning = true;
+                        TaskProgressControl.CancelCommand = _viewModel.CancelCommand;
+                        TaskProgressControl.CancelText = _viewModel.CancelButtonLabel;
+                    }
+                    else if (_viewModel.IsTaskFailed)
+                    {
+                        // Failure state: show Close button to dismiss the bar
+                        TaskProgressControl.CanCancel = Visibility.Visible;
+                        TaskProgressControl.IsTaskRunning = true;
+                        TaskProgressControl.CancelCommand = _viewModel.CloseFailedTaskCommand;
+                        TaskProgressControl.CancelText = _viewModel.CloseButtonLabel;
+                    }
+                    else
+                    {
+                        TaskProgressControl.CanCancel = Visibility.Collapsed;
+                        TaskProgressControl.IsTaskRunning = false;
+                    }
+                }
+                else
+                {
+                    TaskProgressControl.IsProgressVisible = Visibility.Collapsed;
+                    TaskProgressControl.CanCancel = Visibility.Collapsed;
+                    TaskProgressControl.IsTaskRunning = false;
+                }
             });
         }
         else if (e.PropertyName == nameof(MainWindowViewModel.AppName) && _viewModel != null)

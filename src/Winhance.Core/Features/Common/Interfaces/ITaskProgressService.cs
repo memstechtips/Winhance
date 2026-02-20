@@ -1,4 +1,5 @@
 using System;
+using System.Collections.Generic;
 using System.Threading;
 using System.Threading.Tasks;
 using Winhance.Core.Features.Common.Models;
@@ -130,6 +131,17 @@ namespace Winhance.Core.Features.Common.Interfaces
         /// </summary>
         /// <returns>True if a skip was requested since the last call.</returns>
         bool ConsumeSkipNextRequest();
+
+        /// <summary>
+        /// Gets a snapshot of all log messages accumulated during the current (or last) task.
+        /// </summary>
+        IReadOnlyList<string> GetLogMessages();
+
+        /// <summary>
+        /// Gets a snapshot of all terminal output lines accumulated during the current (or last) task.
+        /// These are the raw output lines from winget/process stdout.
+        /// </summary>
+        IReadOnlyList<string> GetTerminalOutputLines();
 
         /// <summary>
         /// Event raised when a log message is added.

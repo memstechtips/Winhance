@@ -142,7 +142,8 @@ namespace Winhance.Infrastructure.Features.SoftwareApps.Services.WinGet.Utilitie
             CancellationToken cancellationToken = default,
             int timeoutMs = DefaultTimeoutMs,
             string? exePathOverride = null,
-            IInteractiveUserService? interactiveUserService = null)
+            IInteractiveUserService? interactiveUserService = null,
+            Action<string>? onProgressLine = null)
         {
             var exePath = exePathOverride ?? GetWinGetExePath(interactiveUserService)
                 ?? throw new FileNotFoundException("winget.exe not found. Bundled CLI may be missing.");
@@ -153,8 +154,31 @@ namespace Winhance.Infrastructure.Features.SoftwareApps.Services.WinGet.Utilitie
                 && interactiveUserService.HasInteractiveUserToken)
             {
                 var result = await interactiveUserService.RunProcessAsInteractiveUserAsync(
-                    exePath, arguments, onOutputLine, onErrorLine, cancellationToken, timeoutMs);
+                    exePath, arguments, onOutputLine, onErrorLine, cancellationToken, timeoutMs, onProgressLine);
                 return new WinGetCliResult(result.ExitCode, result.StandardOutput, result.StandardError);
+            }
+
+            // When real-time progress is requested, use ConPTY so that winget sees
+            // isatty(stdout)==true and outputs progress bars with std::flush.
+            // Without ConPTY, winget detects a pipe and suppresses progress output.
+            if (onProgressLine != null)
+            {
+                try
+                {
+                    using var conPty = new ConPtyProcess();
+                    return await conPty.RunAsync(
+                        exePath, arguments,
+                        onOutputLine, onErrorLine, onProgressLine,
+                        cancellationToken, timeoutMs);
+                }
+                catch (Exception ex) when (
+                    ex is InvalidOperationException or
+                    EntryPointNotFoundException or
+                    DllNotFoundException)
+                {
+                    // ConPTY unavailable (old Windows build or API failure)
+                    // — fall through silently to pipe mode
+                }
             }
 
             var stdoutBuilder = new StringBuilder();
@@ -184,14 +208,13 @@ namespace Winhance.Infrastructure.Features.SoftwareApps.Services.WinGet.Utilitie
                 try { process.Kill(entireProcessTree: true); } catch { }
             });
 
-            // Read stdout and stderr in parallel tasks to avoid deadlocks
+            // Read stdout char-by-char to detect \r (progress) vs \n (permanent) immediately.
+            // ReadLineAsync peeks ahead after \r which blocks until the next char arrives,
+            // preventing real-time progress bar updates.
             var readStdout = Task.Run(async () =>
             {
-                while (await process.StandardOutput.ReadLineAsync() is { } line)
-                {
-                    stdoutBuilder.AppendLine(line);
-                    onOutputLine?.Invoke(line);
-                }
+                await ReadStdoutCharByCharAsync(
+                    process.StandardOutput, stdoutBuilder, onOutputLine, onProgressLine);
             }, CancellationToken.None);
 
             var readStderr = Task.Run(async () =>
@@ -210,6 +233,69 @@ namespace Winhance.Infrastructure.Features.SoftwareApps.Services.WinGet.Utilitie
                 process.ExitCode,
                 stdoutBuilder.ToString(),
                 stderrBuilder.ToString());
+        }
+
+        /// <summary>
+        /// Reads stdout char-by-char, classifying lines by their terminator:
+        /// \r → progress (transient, emitted immediately via onProgressLine)
+        /// \n → permanent (emitted via onOutputLine)
+        /// \r\n → permanent (emitted via onOutputLine; \r fires onProgressLine first)
+        /// </summary>
+        internal static async Task ReadStdoutCharByCharAsync(
+            StreamReader reader,
+            StringBuilder outputBuilder,
+            Action<string>? onOutputLine,
+            Action<string>? onProgressLine)
+        {
+            var currentLine = new StringBuilder();
+            var buffer = new char[1];
+            string? lastStringBeforeLF = null;
+
+            while (await reader.ReadBlockAsync(buffer, 0, 1) > 0)
+            {
+                char c = buffer[0];
+
+                if (c == '\n')
+                {
+                    if (currentLine.Length == 0)
+                    {
+                        if (lastStringBeforeLF is not null)
+                        {
+                            // \r\n sequence: already emitted as progress on \r,
+                            // now re-emit as permanent line
+                            onOutputLine?.Invoke(lastStringBeforeLF);
+                            lastStringBeforeLF = null;
+                        }
+                        continue;
+                    }
+                    string line = currentLine.ToString();
+                    outputBuilder.AppendLine(line);
+                    onOutputLine?.Invoke(line);
+                    currentLine.Clear();
+                    lastStringBeforeLF = null;
+                }
+                else if (c == '\r')
+                {
+                    if (currentLine.Length == 0) continue;
+                    string line = currentLine.ToString();
+                    lastStringBeforeLF = line;
+                    outputBuilder.AppendLine(line);
+                    onProgressLine?.Invoke(line);
+                    currentLine.Clear();
+                }
+                else
+                {
+                    currentLine.Append(c);
+                }
+            }
+
+            // Flush remaining content at EOF
+            if (currentLine.Length > 0)
+            {
+                string line = currentLine.ToString();
+                outputBuilder.AppendLine(line);
+                onOutputLine?.Invoke(line);
+            }
         }
     }
 }

@@ -1,7 +1,9 @@
 using Microsoft.UI.Xaml;
 using Microsoft.UI.Xaml.Automation.Peers;
 using Microsoft.UI.Xaml.Controls;
+using Microsoft.UI.Xaml.Documents;
 using System.Windows.Input;
+using Winhance.UI.Features.Common.Utilities;
 
 namespace Winhance.UI.Features.Common.Controls;
 
@@ -25,7 +27,7 @@ public sealed partial class TaskProgressControl : UserControl
             nameof(LastTerminalLine),
             typeof(string),
             typeof(TaskProgressControl),
-            new PropertyMetadata(string.Empty));
+            new PropertyMetadata(string.Empty, OnLastTerminalLineChanged));
 
     public static readonly DependencyProperty IsProgressVisibleProperty =
         DependencyProperty.Register(
@@ -82,6 +84,13 @@ public sealed partial class TaskProgressControl : UserControl
             typeof(Visibility),
             typeof(TaskProgressControl),
             new PropertyMetadata(Visibility.Collapsed));
+
+    public static readonly DependencyProperty ShowDetailsCommandProperty =
+        DependencyProperty.Register(
+            nameof(ShowDetailsCommand),
+            typeof(ICommand),
+            typeof(TaskProgressControl),
+            new PropertyMetadata(null));
 
     #endregion
 
@@ -147,6 +156,12 @@ public sealed partial class TaskProgressControl : UserControl
         set => SetValue(IsQueueInfoVisibleProperty, value);
     }
 
+    public ICommand ShowDetailsCommand
+    {
+        get => (ICommand)GetValue(ShowDetailsCommandProperty);
+        set => SetValue(ShowDetailsCommandProperty, value);
+    }
+
     #endregion
 
     public TaskProgressControl()
@@ -190,5 +205,24 @@ public sealed partial class TaskProgressControl : UserControl
             AutomationNotificationProcessing.ImportantMostRecent,
             message,
             "TaskProgress");
+    }
+
+    private static void OnLastTerminalLineChanged(DependencyObject d, DependencyPropertyChangedEventArgs e)
+    {
+        if (d is not TaskProgressControl control) return;
+        var text = e.NewValue as string ?? string.Empty;
+
+        var rtb = control.TerminalLineRichText;
+        if (rtb == null) return;
+
+        // Clear existing content and rebuild with color-coded runs
+        rtb.Blocks.Clear();
+        if (string.IsNullOrEmpty(text)) return;
+
+        var par = new Paragraph();
+        foreach (var run in TerminalLineRenderer.CreateLineRuns(text, appendNewline: false))
+            par.Inlines.Add(run);
+
+        rtb.Blocks.Add(par);
     }
 }

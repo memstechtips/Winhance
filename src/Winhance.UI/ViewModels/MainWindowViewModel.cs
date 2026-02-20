@@ -68,7 +68,8 @@ public partial class MainWindowViewModel : ObservableObject
 
     // Tracks whether the last single-task ended in failure (progress was set to 0 with an error).
     // Used to keep the TaskProgressControl visible so the user can click to see details.
-    private bool _lastTaskFailed;
+    [ObservableProperty]
+    private bool _isTaskFailed;
     private CancellationTokenSource? _hideDelayCts;
 
     [ObservableProperty]
@@ -226,6 +227,7 @@ public partial class MainWindowViewModel : ObservableObject
 
         // Task progress
         OnPropertyChanged(nameof(CancelButtonLabel));
+        OnPropertyChanged(nameof(CloseButtonLabel));
 
         // Update InfoBar
         OnPropertyChanged(nameof(InstallNowButtonText));
@@ -387,6 +389,9 @@ public partial class MainWindowViewModel : ObservableObject
     // Task progress
     public string CancelButtonLabel =>
         _localizationService.GetString("Button_Cancel") ?? "Cancel";
+
+    public string CloseButtonLabel =>
+        _localizationService.GetString("Button_Close") ?? "Close";
 
     // Update InfoBar
     public string InstallNowButtonText =>
@@ -583,16 +588,23 @@ public partial class MainWindowViewModel : ObservableObject
     private void Cancel() => _taskProgressService.CancelCurrentTask();
 
     [RelayCommand]
+    private void CloseFailedTask()
+    {
+        IsTaskFailed = false;
+        IsLoading = false;
+    }
+
+    [RelayCommand]
     private async Task ShowDetailsAsync()
     {
         var terminalLines = _taskProgressService.GetTerminalOutputLines();
-        var title = !string.IsNullOrEmpty(AppName) ? AppName : "Task Output";
+        var title = _localizationService.GetString("Dialog_TerminalOutput_Title");
         await _dialogService.ShowTaskOutputDialogAsync(title, terminalLines);
 
         // After the dialog is closed, dismiss the progress control if the task is no longer running
         if (!_taskProgressService.IsTaskRunning)
         {
-            _lastTaskFailed = false;
+            IsTaskFailed = false;
             IsLoading = false;
         }
     }
@@ -1011,7 +1023,7 @@ public partial class MainWindowViewModel : ObservableObject
                     // Cancel any pending hide-delay from a previous task
                     _hideDelayCts?.Cancel();
                     _hideDelayCts = null;
-                    _lastTaskFailed = false;
+                    IsTaskFailed = false;
 
                     IsLoading = true;
                     if (!string.IsNullOrEmpty(detail.StatusText))
@@ -1020,12 +1032,12 @@ public partial class MainWindowViewModel : ObservableObject
 
                     // Track failure: progress == 0 with a status text means an error was reported
                     if (detail.Progress.HasValue && detail.Progress.Value == 0 && !string.IsNullOrEmpty(detail.StatusText))
-                        _lastTaskFailed = true;
+                        IsTaskFailed = true;
                 }
                 else if (wasRunning)
                 {
                     // Task just stopped running — handle completion
-                    if (_lastTaskFailed)
+                    if (IsTaskFailed)
                     {
                         // Failed: keep the control visible with "click to see details"
                         IsLoading = true;
