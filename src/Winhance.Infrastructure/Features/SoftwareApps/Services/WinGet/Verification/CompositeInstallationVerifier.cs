@@ -42,7 +42,7 @@ namespace Winhance.Infrastructure.Features.SoftwareApps.Services.WinGet.Verifica
             await Task.Delay(TimeSpan.FromSeconds(2), cancellationToken).ConfigureAwait(false);
 
             var results = new List<VerificationResult>();
-            VerificationResult successfulResult = null;
+            VerificationResult? successfulResult = null;
 
             // Try verification with up to 3 attempts with increasing delays
             for (int attempt = 1; attempt <= 3; attempt++)
@@ -126,7 +126,7 @@ namespace Winhance.Infrastructure.Features.SoftwareApps.Services.WinGet.Verifica
                 );
 
             var results = new List<VerificationResult>();
-            VerificationResult successfulResult = null;
+            VerificationResult? successfulResult = null;
 
             foreach (var method in _verificationMethods)
             {

@@ -6,7 +6,7 @@ namespace Winhance.UI.Features.SoftwareApps.Converters;
 /// <summary>
 /// Converts a boolean (IsInstalled) to a brush for status indicators.
 /// </summary>
-public class BoolToStatusBrushConverter : IValueConverter
+public partial class BoolToStatusBrushConverter : IValueConverter
 {
     public object Convert(object value, Type targetType, object parameter, string language)
     {

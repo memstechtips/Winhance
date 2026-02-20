@@ -25,7 +25,7 @@ namespace Winhance.Core.Features.Common.Interfaces
 
         Task<(Dictionary<string, bool> sections, ImportOptions options)?> ShowUnifiedConfigurationImportDialogAsync(string title, string description, Dictionary<string, (bool IsSelected, bool IsAvailable, int ItemCount)> sections);
 
-        Task<(bool? Result, bool DontShowAgain)> ShowDonationDialogAsync(string title = null, string supportMessage = null);
+        Task<(bool? Result, bool DontShowAgain)> ShowDonationDialogAsync(string? title = null, string? supportMessage = null);
 
         Task<(ImportOption? Option, ImportOptions Options)> ShowConfigImportOptionsDialogAsync();
 
@@ -42,8 +42,8 @@ namespace Winhance.Core.Features.Common.Interfaces
             int successCount,
             int totalCount,
             IEnumerable<string> successItems,
-            IEnumerable<string> failedItems = null,
-            IEnumerable<string> skippedItems = null,
+            IEnumerable<string>? failedItems = null,
+            IEnumerable<string>? skippedItems = null,
             bool hasConnectivityIssues = false,
             bool isUserCancelled = false);
 

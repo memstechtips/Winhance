@@ -125,7 +125,7 @@ namespace Winhance.Infrastructure.Features.Common.Services
 
                 if (hasRegistrySettings)
                 {
-                    var registrySettings = setting.RegistrySettings.ToList();
+                    var registrySettings = setting.RegistrySettings!.ToList();
                     var individualValues = new Dictionary<RegistrySetting, string?>();
                     var primaryRegistrySetting = registrySettings.First();
                     string primaryDisplayValue = "(not set)";
@@ -143,7 +143,7 @@ namespace Winhance.Infrastructure.Features.Common.Services
                                 {
                                     currentValue = _registryService.GetValue(
                                         $@"{registrySetting.KeyPath}\{subKeys[0]}",
-                                        registrySetting.ValueName);
+                                        registrySetting.ValueName!);
                                 }
                                 else
                                 {
@@ -152,7 +152,7 @@ namespace Winhance.Infrastructure.Features.Common.Services
                             }
                             else
                             {
-                                currentValue = _registryService.GetValue(registrySetting.KeyPath, registrySetting.ValueName);
+                                currentValue = _registryService.GetValue(registrySetting.KeyPath, registrySetting.ValueName!);
                             }
                             var formattedValue = FormatRegistryValue(currentValue, registrySetting);
                             individualValues[registrySetting] = formattedValue;

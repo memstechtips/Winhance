@@ -201,12 +201,16 @@ public partial class ExternalAppsViewModel : BaseViewModel
 
     private void UpdateIsAllSelectedState()
     {
+        // Direct field access is intentional — using the property setter would trigger
+        // OnIsAllSelectedChanged, which iterates all items and causes a re-entrant loop.
+#pragma warning disable MVVMTK0034
         var allSelected = Items.All(a => a.IsSelected);
         if (_isAllSelected != allSelected)
         {
             _isAllSelected = allSelected;
             OnPropertyChanged(nameof(IsAllSelected));
         }
+#pragma warning restore MVVMTK0034
     }
 
     /// <summary>
@@ -555,9 +559,13 @@ public partial class ExternalAppsViewModel : BaseViewModel
         {
             item.IsSelected = false;
         }
+        // Direct field access is intentional — using the property setters would trigger
+        // OnIsAllSelectedChanged which iterates all items redundantly.
+#pragma warning disable MVVMTK0034
         _isAllSelected = false;
         _isAllSelectedInstalled = false;
         _isAllSelectedNotInstalled = false;
+#pragma warning restore MVVMTK0034
         OnPropertyChanged(nameof(IsAllSelected));
         OnPropertyChanged(nameof(IsAllSelectedInstalled));
         OnPropertyChanged(nameof(IsAllSelectedNotInstalled));

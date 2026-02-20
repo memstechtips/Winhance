@@ -393,7 +393,7 @@ namespace Winhance.Infrastructure.Features.Optimize.Services
             {
                 try
                 {
-                    if (valueMapping.TryGetValue(registrySetting.ValueName, out var value))
+                    if (valueMapping.TryGetValue(registrySetting.ValueName!, out var value))
                     {
                         if (value == null)
                         {

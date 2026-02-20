@@ -39,7 +39,7 @@ namespace Winhance.Core.Features.SoftwareApps.Verification
         /// <returns>A task that represents the asynchronous operation. The task result contains the verification result.</returns>
         public async Task<VerificationResult> VerifyAsync(
             string packageId,
-            string version = null,
+            string? version = null,
             CancellationToken cancellationToken = default)
         {
             if (string.IsNullOrWhiteSpace(packageId))

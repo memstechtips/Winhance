@@ -46,11 +46,11 @@ public class AppStatusDiscoveryService(
 
             if (capabilities.Any())
             {
-                var capabilityNames = capabilities.Select(c => c.CapabilityName).ToList();
+                var capabilityNames = capabilities.Select(c => c.CapabilityName!).ToList();
                 var capabilityResults = await CheckCapabilitiesAsync(capabilityNames);
                 foreach (var capability in capabilities)
                 {
-                    if (capabilityResults.TryGetValue(capability.CapabilityName, out bool isInstalled))
+                    if (capabilityResults.TryGetValue(capability.CapabilityName!, out bool isInstalled))
                     {
                         result[capability.Id] = isInstalled;
                         if (isInstalled)
@@ -64,11 +64,11 @@ public class AppStatusDiscoveryService(
 
             if (features.Any())
             {
-                var featureNames = features.Select(f => f.OptionalFeatureName).ToList();
+                var featureNames = features.Select(f => f.OptionalFeatureName!).ToList();
                 var featureResults = await CheckFeaturesAsync(featureNames);
                 foreach (var feature in features)
                 {
-                    if (featureResults.TryGetValue(feature.OptionalFeatureName, out bool isInstalled))
+                    if (featureResults.TryGetValue(feature.OptionalFeatureName!, out bool isInstalled))
                     {
                         result[feature.Id] = isInstalled;
                         if (isInstalled)
@@ -85,7 +85,7 @@ public class AppStatusDiscoveryService(
                 var installedPackageNames = await GetInstalledAppxPackageNamesAsync();
                 foreach (var app in apps)
                 {
-                    if (installedPackageNames.Contains(app.AppxPackageName))
+                    if (installedPackageNames.Contains(app.AppxPackageName!))
                     {
                         result[app.Id] = true;
                         appxCount++;

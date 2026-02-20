@@ -187,7 +187,7 @@ public class ScheduledTaskService(ILogService logService) : IScheduledTaskServic
         });
     }
 
-    private bool RegisterTaskInternal(string taskName, string scriptPath, string username, TaskTriggerType triggerType, string command = null)
+    private bool RegisterTaskInternal(string taskName, string? scriptPath, string? username, TaskTriggerType triggerType, string? command = null)
     {
         var taskService = CreateTaskService();
         var folder = GetOrCreateWinhanceFolder(taskService);
@@ -212,8 +212,8 @@ public class ScheduledTaskService(ILogService logService) : IScheduledTaskServic
 
     private dynamic CreateTaskService()
     {
-        Type taskSchedulerType = Type.GetTypeFromProgID("Schedule.Service");
-        dynamic taskService = Activator.CreateInstance(taskSchedulerType);
+        Type taskSchedulerType = Type.GetTypeFromProgID("Schedule.Service")!;
+        dynamic taskService = Activator.CreateInstance(taskSchedulerType)!;
         taskService.Connect();
         return taskService;
     }
@@ -231,7 +231,7 @@ public class ScheduledTaskService(ILogService logService) : IScheduledTaskServic
         }
     }
 
-    private dynamic GetWinhanceFolder(dynamic taskService)
+    private dynamic? GetWinhanceFolder(dynamic taskService)
     {
         try
         {
@@ -427,13 +427,13 @@ public class ScheduledTaskService(ILogService logService) : IScheduledTaskServic
     {
         if (!File.Exists(script.ActualScriptPath) && !string.IsNullOrEmpty(script.Content))
         {
-            string directoryPath = Path.GetDirectoryName(script.ActualScriptPath);
-            if (!Directory.Exists(directoryPath))
+            string? directoryPath = Path.GetDirectoryName(script.ActualScriptPath);
+            if (directoryPath != null && !Directory.Exists(directoryPath))
             {
                 Directory.CreateDirectory(directoryPath);
             }
 
-            File.WriteAllText(script.ActualScriptPath, script.Content);
+            File.WriteAllText(script.ActualScriptPath!, script.Content);
         }
     }
 

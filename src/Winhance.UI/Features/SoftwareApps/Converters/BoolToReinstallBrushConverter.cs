@@ -7,7 +7,7 @@ namespace Winhance.UI.Features.SoftwareApps.Converters;
 /// <summary>
 /// Converts a boolean (CanBeReinstalled) to a brush for the reinstallable icon.
 /// </summary>
-public class BoolToReinstallBrushConverter : IValueConverter
+public partial class BoolToReinstallBrushConverter : IValueConverter
 {
     public object Convert(object value, Type targetType, object parameter, string language)
     {

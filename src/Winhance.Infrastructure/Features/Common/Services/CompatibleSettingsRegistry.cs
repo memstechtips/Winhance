@@ -196,7 +196,7 @@ namespace Winhance.Infrastructure.Features.Common.Services
                             .FirstOrDefault(m =>
                                 m.GetParameters().Length == 0 &&
                                 m.ReturnType.GetProperty("Settings") != null &&
-                                IsSettingDefinitionEnumerable(m.ReturnType.GetProperty("Settings").PropertyType));
+                                IsSettingDefinitionEnumerable(m.ReturnType.GetProperty("Settings")!.PropertyType));
 
                         if (method != null)
                         {
@@ -206,8 +206,8 @@ namespace Winhance.Infrastructure.Features.Common.Services
                                 try
                                 {
                                     var result = method.Invoke(null, null);
-                                    var settingsProperty = result.GetType().GetProperty("Settings");
-                                    return (IEnumerable<SettingDefinition>)settingsProperty.GetValue(result);
+                                    var settingsProperty = result!.GetType().GetProperty("Settings");
+                                    return (IEnumerable<SettingDefinition>)settingsProperty!.GetValue(result)!;
                                 }
                                 catch
                                 {
@@ -243,8 +243,8 @@ namespace Winhance.Infrastructure.Features.Common.Services
             try
             {
                 var result = method.Invoke(null, null);
-                var featureIdProperty = result.GetType().GetProperty("FeatureId");
-                return (string)featureIdProperty.GetValue(result);
+                var featureIdProperty = result!.GetType().GetProperty("FeatureId");
+                return (string)featureIdProperty!.GetValue(result)!;
             }
             catch
             {

@@ -83,9 +83,9 @@ namespace Winhance.Infrastructure.Features.SoftwareApps.Services.WinGet.Verifica
         /// <param name="version">The version to check for, or null to check for any version.</param>
         /// <returns>A <see cref="VerificationResult"/> indicating whether the package was found.</returns>
         private static VerificationResult CheckRegistryKey(
-            RegistryKey uninstallKey,
+            RegistryKey? uninstallKey,
             string packageId,
-            string version
+            string? version
         )
         {
             if (uninstallKey == null)
@@ -109,7 +109,7 @@ namespace Winhance.Infrastructure.Features.SoftwareApps.Services.WinGet.Verifica
                         // If a version is specified, check if it matches
                         if (version != null)
                         {
-                            var displayVersion = subKey.GetValue("DisplayVersion") as string;
+                            var displayVersion = subKey!.GetValue("DisplayVersion") as string;
                             if (
                                 !string.Equals(
                                     displayVersion,
@@ -122,7 +122,7 @@ namespace Winhance.Infrastructure.Features.SoftwareApps.Services.WinGet.Verifica
                             }
                         }
 
-                        var installLocation = subKey.GetValue("InstallLocation") as string;
+                        var installLocation = subKey!.GetValue("InstallLocation") as string;
                         var uninstallString = subKey.GetValue("UninstallString") as string;
                         var foundVersion = subKey.GetValue("DisplayVersion") as string;
 

@@ -235,8 +235,8 @@ finally {
 ";
 
         public static async Task<(bool Success, string Message)> InstallWinGetAsync(
-            IProgress<TaskProgressDetail> progress = null,
-            ILogService logger = null,
+            IProgress<TaskProgressDetail>? progress = null,
+            ILogService? logger = null,
             CancellationToken cancellationToken = default
         )
         {

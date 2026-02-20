@@ -21,13 +21,13 @@ public interface IWinGetService
     /// </summary>
     bool IsSystemWinGetAvailable { get; }
 
-    Task<PackageInstallResult> InstallPackageAsync(string packageId, string? source = null, string displayName = null, CancellationToken cancellationToken = default);
-    Task<bool> UninstallPackageAsync(string packageId, string? source = null, string displayName = null, CancellationToken cancellationToken = default);
+    Task<PackageInstallResult> InstallPackageAsync(string packageId, string? source = null, string? displayName = null, CancellationToken cancellationToken = default);
+    Task<bool> UninstallPackageAsync(string packageId, string? source = null, string? displayName = null, CancellationToken cancellationToken = default);
     Task<bool> InstallWinGetAsync(CancellationToken cancellationToken = default);
     Task<bool> IsWinGetInstalledAsync(CancellationToken cancellationToken = default);
     Task<bool> IsPackageInstalledAsync(string packageId, CancellationToken cancellationToken = default);
     Task<bool> EnsureWinGetReadyAsync(CancellationToken cancellationToken = default);
-    Task<bool> EnsureWinGetUpToDateAsync(IProgress<TaskProgressDetail> progress = null, CancellationToken cancellationToken = default);
+    Task<bool> EnsureWinGetUpToDateAsync(IProgress<TaskProgressDetail>? progress = null, CancellationToken cancellationToken = default);
     Task<string?> GetInstallerTypeAsync(string packageId, CancellationToken cancellationToken = default);
     Task<HashSet<string>> GetInstalledPackageIdsAsync(CancellationToken cancellationToken = default);
     Task<bool> UpgradeAppInstallerAsync(CancellationToken cancellationToken = default);

@@ -15,7 +15,7 @@ public class OptionalFeatureService(
 {
     public async Task<bool> EnableFeatureAsync(
         string featureName,
-        string displayName = null,
+        string? displayName = null,
         IProgress<TaskProgressDetail>? progress = null,
         CancellationToken cancellationToken = default)
     {
@@ -69,7 +69,7 @@ public class OptionalFeatureService(
 
     public async Task<bool> DisableFeatureAsync(
         string featureName,
-        string displayName = null,
+        string? displayName = null,
         IProgress<TaskProgressDetail>? progress = null,
         CancellationToken cancellationToken = default)
     {

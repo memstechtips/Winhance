@@ -66,7 +66,7 @@ namespace Winhance.Infrastructure.Features.Common.Services
                 await HandleDependencies(settingId, allSettings, enable, value);
             }
 
-            if (await domainService.TryApplySpecialSettingAsync(setting, value, checkboxResult))
+            if (await domainService.TryApplySpecialSettingAsync(setting, value!, checkboxResult))
             {
                 await HandleProcessAndServiceRestarts(setting);
 
@@ -680,7 +680,7 @@ namespace Winhance.Infrastructure.Features.Common.Services
             };
         }
 
-        private int ConvertToSystemUnits(int displayValue, string units)
+        private int ConvertToSystemUnits(int displayValue, string? units)
         {
             return units?.ToLowerInvariant() switch
             {
@@ -821,7 +821,7 @@ namespace Winhance.Infrastructure.Features.Common.Services
             }
         }
 
-        private int ExtractSingleValue(object value)
+        private int ExtractSingleValue(object? value)
         {
             return value switch
             {

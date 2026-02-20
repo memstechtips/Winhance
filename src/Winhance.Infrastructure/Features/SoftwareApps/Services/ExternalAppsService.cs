@@ -166,7 +166,7 @@ public class ExternalAppsService(
                 var exeName = Path.GetFileNameWithoutExtension(exePath);
                 var shortcutPath = Path.Combine(startMenuFolder, $"{exeName}.lnk");
 
-                await CreateShortcutAsync(shortcutPath, exePath, Path.GetDirectoryName(exePath), item.Name);
+                await CreateShortcutAsync(shortcutPath, exePath, Path.GetDirectoryName(exePath)!, item.Name);
             }
 
             logService.LogInformation($"Created Start Menu folder with {exeFiles.Count} shortcuts for {item.Name}");

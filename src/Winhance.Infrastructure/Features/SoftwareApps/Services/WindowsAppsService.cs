@@ -22,13 +22,13 @@ public class WindowsAppsService(
     ILogService logService,
     IWinGetService winGetService,
     IAppStatusDiscoveryService appStatusDiscoveryService,
-    IStoreDownloadService storeDownloadService = null,
-    IDialogService dialogService = null,
-    IUserPreferencesService userPreferencesService = null,
-    ITaskProgressService taskProgressService = null,
-    ILocalizationService localizationService = null,
-    ISettingApplicationService settingApplicationService = null,
-    ISystemSettingsDiscoveryService systemSettingsDiscoveryService = null) : IWindowsAppsService
+    IStoreDownloadService? storeDownloadService = null,
+    IDialogService? dialogService = null,
+    IUserPreferencesService? userPreferencesService = null,
+    ITaskProgressService? taskProgressService = null,
+    ILocalizationService? localizationService = null,
+    ISettingApplicationService? settingApplicationService = null,
+    ISystemSettingsDiscoveryService? systemSettingsDiscoveryService = null) : IWindowsAppsService
 {
     public string DomainName => FeatureIds.WindowsApps;
     private const string FallbackConfirmationPreferenceKey = "StoreDownloadFallback_DontShowAgain";
@@ -86,7 +86,7 @@ public class WindowsAppsService(
                 // Try WinGet first (official method)
                 logService?.LogInformation($"Attempting to install {item.Name} using WinGet...");
                 var cancellationToken = GetCurrentCancellationToken();
-                var installResult = await winGetService.InstallPackageAsync(packageId, source, item.Name, cancellationToken);
+                var installResult = await winGetService.InstallPackageAsync(packageId!, source, item.Name, cancellationToken);
 
                 if (installResult.Success)
                 {
@@ -122,7 +122,7 @@ public class WindowsAppsService(
                             logService?.LogInformation("Update policy changed to Paused. Retrying WinGet installation...");
 
                             var cancellationToken2 = GetCurrentCancellationToken();
-                            var retryResult = await winGetService.InstallPackageAsync(packageId, source, item.Name, cancellationToken2);
+                            var retryResult = await winGetService.InstallPackageAsync(packageId!, source, item.Name, cancellationToken2);
                             if (retryResult.Success)
                             {
                                 return OperationResult<bool>.Succeeded(true);

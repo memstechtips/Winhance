@@ -6,7 +6,7 @@ namespace Winhance.UI.Features.SoftwareApps.Converters;
 /// <summary>
 /// Converts a boolean (IsInstalled) to a color for status indicators.
 /// </summary>
-public class BoolToColorConverter : IValueConverter
+public partial class BoolToColorConverter : IValueConverter
 {
     public object Convert(object value, Type targetType, object parameter, string language)
     {

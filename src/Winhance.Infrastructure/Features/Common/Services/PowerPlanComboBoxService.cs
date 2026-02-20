@@ -161,7 +161,7 @@ namespace Winhance.Infrastructure.Features.Common.Services
                 {
                     if (options[i].ExistsOnSystem && options[i].SystemPlan != null)
                     {
-                        if (string.Equals(options[i].SystemPlan.Guid, activePlan.Guid, StringComparison.OrdinalIgnoreCase))
+                        if (string.Equals(options[i].SystemPlan!.Guid, activePlan.Guid, StringComparison.OrdinalIgnoreCase))
                         {
                             logService.Log(LogLevel.Info, $"Found active plan at index {i}: {activePlan.Name} ({activePlan.Guid})");
                             return i;

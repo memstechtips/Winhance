@@ -30,15 +30,15 @@ namespace Winhance.Infrastructure.Features.Common.Services
         private readonly ILogService _logService;
 
         // Monitoring-related fields
-        private CancellationTokenSource _monitoringCts;
-        private Task _monitoringTask;
+        private CancellationTokenSource? _monitoringCts;
+        private Task? _monitoringTask;
         private bool _isMonitoring;
         private int _monitoringIntervalSeconds;
 
         /// <summary>
         /// Event that is raised when the internet connectivity status changes.
         /// </summary>
-        public event EventHandler<ConnectivityChangedEventArgs> ConnectivityChanged;
+        public event EventHandler<ConnectivityChangedEventArgs>? ConnectivityChanged;
 
         /// <summary>
         /// Initializes a new instance of the <see cref="InternetConnectivityService"/> class.

@@ -21,11 +21,11 @@ public class AutounattendScriptBuilder
 
     private class PowerSettingData
     {
-        public string SubgroupGuid { get; set; }
-        public string SettingGuid { get; set; }
+        public string SubgroupGuid { get; set; } = string.Empty;
+        public string SettingGuid { get; set; } = string.Empty;
         public int AcValue { get; set; }
         public int DcValue { get; set; }
-        public string Description { get; set; }
+        public string Description { get; set; } = string.Empty;
     }
 
     public AutounattendScriptBuilder(IServiceProvider serviceProvider, ILogService logService, IComboBoxResolver comboBoxResolver)
@@ -648,7 +648,7 @@ public class AutounattendScriptBuilder
 
             // Check if we have a raw value from the registry to use instead of definitions
             var key = regSetting.ValueName ?? "KeyExists";
-            object customValue = null;
+            object? customValue = null;
             bool hasCustomValue = configItem.CustomStateValues?.TryGetValue(key, out customValue) == true;
 
             // Pattern 1: Key-Based Settings (CLSID folders, etc.)
@@ -775,7 +775,7 @@ public class AutounattendScriptBuilder
         var escapedDescription = EscapePowerShellString(setting.Description);
         var varName = SanitizeVariableName(setting.Id);
 
-        foreach (var regContent in setting.RegContents)
+        foreach (var regContent in setting.RegContents!)
         {
             var content = isEnabled == true ? regContent.EnabledContent : regContent.DisabledContent;
 
@@ -860,7 +860,7 @@ public class AutounattendScriptBuilder
                  setting.CustomProperties?.ContainsKey(CustomPropertyKeys.ValueMappings) == true)
         {
             var resolvedValues = _comboBoxResolver.ResolveIndexToRawValues(setting, configItem.SelectedIndex.Value);
-            valuesToApply = resolvedValues.ToDictionary(kvp => kvp.Key, kvp => kvp.Value);
+            valuesToApply = resolvedValues.ToDictionary(kvp => kvp.Key, kvp => kvp.Value!);
         }
         else
         {
@@ -1514,7 +1514,7 @@ try {
         return name.Replace("-", "_");
     }
 
-private string EscapePowerShellString(string input)
+private string? EscapePowerShellString(string? input)
     {
         if (string.IsNullOrEmpty(input))
             return input;
@@ -1552,7 +1552,7 @@ private string EscapePowerShellString(string input)
         return valueType switch
         {
             RegistryValueKind.String or RegistryValueKind.ExpandString => $"'{value}'",
-            RegistryValueKind.DWord or RegistryValueKind.QWord => value.ToString(),
+            RegistryValueKind.DWord or RegistryValueKind.QWord => value.ToString()!,
             RegistryValueKind.Binary when value is byte[] byteArray => $"@({string.Join(",", byteArray.Select(b => $"0x{b:X2}"))})",
             RegistryValueKind.Binary => $"@(0x{Convert.ToByte(value):X2})",
             _ => $"'{value}'"

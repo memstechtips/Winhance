@@ -41,8 +41,8 @@ namespace Winhance.Infrastructure.Features.Optimize.Services
 
                 if (value is Dictionary<string, object> planDict)
                 {
-                    var guid = planDict["Guid"].ToString();
-                    var name = planDict["Name"].ToString();
+                    var guid = planDict["Guid"].ToString()!;
+                    var name = planDict["Name"].ToString()!;
 
                     logService.Log(LogLevel.Info, $"[PowerService] Config import: applying power plan {name} ({guid})");
                     await ApplyPowerPlanByGuidAsync(setting, guid, name);
@@ -477,7 +477,7 @@ namespace Winhance.Infrastructure.Features.Optimize.Services
                 var results = new Dictionary<string, int?>();
                 foreach (var setting in powerSettings)
                 {
-                    var powerCfgSetting = setting.PowerCfgSettings[0];
+                    var powerCfgSetting = setting.PowerCfgSettings![0];
                     var key = powerCfgSetting.SettingGuid;
                     if (allSettings.TryGetValue(key, out var value))
                     {

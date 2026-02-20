@@ -15,17 +15,17 @@ namespace Winhance.Core.Features.Common.Models
         /// <summary>
         /// Gets or sets the activity description.
         /// </summary>
-        public string Activity { get; set; }
+        public string Activity { get; set; } = string.Empty;
 
         /// <summary>
         /// Gets or sets the status description.
         /// </summary>
-        public string StatusDescription { get; set; }
+        public string StatusDescription { get; set; } = string.Empty;
 
         /// <summary>
         /// Gets or sets the current operation description.
         /// </summary>
-        public string CurrentOperation { get; set; }
+        public string CurrentOperation { get; set; } = string.Empty;
 
         /// <summary>
         /// Gets or sets the PowerShell stream type.
@@ -35,6 +35,6 @@ namespace Winhance.Core.Features.Common.Models
         /// <summary>
         /// Gets or sets the message content.
         /// </summary>
-        public string Message { get; set; }
+        public string Message { get; set; } = string.Empty;
     }
 }

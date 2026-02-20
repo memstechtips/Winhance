@@ -12,9 +12,9 @@ public enum PowerModeSupport
 public class PowerCfgSetting
 {
     public string? SubgroupGUIDAlias { get; set; }
-    public string SettingGUIDAlias { get; set; }
-    public string SubgroupGuid { get; set; }
-    public string SettingGuid { get; set; }
+    public string SettingGUIDAlias { get; set; } = string.Empty;
+    public string SubgroupGuid { get; set; } = string.Empty;
+    public string SettingGuid { get; set; } = string.Empty;
     public PowerModeSupport PowerModeSupport { get; set; } = PowerModeSupport.Both;
     public string? Units { get; set; }
     public RegistrySetting? EnablementRegistrySetting { get; set; }

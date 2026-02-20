@@ -12,7 +12,7 @@ namespace Winhance.Core.Features.Common.Interfaces
         /// </summary>
         /// <param name="parameter">The object to serialize.</param>
         /// <returns>A string representation of the object.</returns>
-        string Serialize(object parameter);
+        string? Serialize(object parameter);
 
         /// <summary>
         /// Deserializes a string to an object of the specified type.
@@ -20,7 +20,7 @@ namespace Winhance.Core.Features.Common.Interfaces
         /// <param name="targetType">The type to deserialize to.</param>
         /// <param name="value">The string to deserialize.</param>
         /// <returns>The deserialized object.</returns>
-        object Deserialize(Type targetType, string value);
+        object? Deserialize(Type targetType, string value);
 
         /// <summary>
         /// Deserializes a string to an object of the specified type.

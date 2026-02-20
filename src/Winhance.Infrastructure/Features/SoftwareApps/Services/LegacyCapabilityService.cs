@@ -15,7 +15,7 @@ public class LegacyCapabilityService(
 {
     public async Task<bool> EnableCapabilityAsync(
         string capabilityName,
-        string displayName = null,
+        string? displayName = null,
         IProgress<TaskProgressDetail>? progress = null,
         CancellationToken cancellationToken = default)
     {
@@ -69,7 +69,7 @@ public class LegacyCapabilityService(
 
     public async Task<bool> DisableCapabilityAsync(
         string capabilityName,
-        string displayName = null,
+        string? displayName = null,
         IProgress<TaskProgressDetail>? progress = null,
         CancellationToken cancellationToken = default)
     {

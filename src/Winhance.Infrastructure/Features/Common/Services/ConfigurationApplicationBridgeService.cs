@@ -125,7 +125,7 @@ public class ConfigurationApplicationBridgeService
         throw new InvalidOperationException("Configuration file is invalid or corrupted.");
     }
 
-    private object ResolveNumericRangeValue(ConfigurationItem item)
+    private object? ResolveNumericRangeValue(ConfigurationItem item)
     {
         if (item.PowerSettings == null || item.PowerSettings.Count == 0)
             return null;
@@ -270,7 +270,7 @@ public class ConfigurationApplicationBridgeService
                 checkboxResult = checkbox;
             }
 
-            object valueToApply = null;
+            object? valueToApply = null;
 
             if (setting.InputType == InputType.Selection)
             {
@@ -314,7 +314,7 @@ public class ConfigurationApplicationBridgeService
         }
     }
 
-    private SettingDefinition FindSettingById(string id, IReadOnlyDictionary<string, IEnumerable<SettingDefinition>> allSettings)
+    private SettingDefinition? FindSettingById(string id, IReadOnlyDictionary<string, IEnumerable<SettingDefinition>> allSettings)
     {
         foreach (var featureSettings in allSettings.Values)
         {

@@ -33,7 +33,7 @@ namespace Winhance.Infrastructure.Features.Common.Events
 
             var eventType = typeof(TEvent);
 
-            List<Subscription> subscriptions;
+            List<Subscription>? subscriptions;
             lock (_lock)
             {
                 if (!_subscriptions.TryGetValue(eventType, out subscriptions))

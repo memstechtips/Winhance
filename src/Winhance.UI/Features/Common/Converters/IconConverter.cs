@@ -10,7 +10,7 @@ namespace Winhance.UI.Features.Common.Converters;
 /// Supports Material, MaterialDesign, and Fluent icon packs.
 /// Returns IconElement types (PathIcon, FontIcon, SymbolIcon) that are compatible with SettingsCard.HeaderIcon.
 /// </summary>
-public class IconConverter : IValueConverter
+public partial class IconConverter : IValueConverter
 {
 
     public object? Convert(object value, Type targetType, object parameter, string language)

@@ -478,7 +478,7 @@ public partial class SettingItemViewModel : BaseViewModel
     {
         if (sender is ComboBox cb && cb.SelectedIndex >= 0)
         {
-            _acValue = cb.SelectedIndex;
+            AcValue = cb.SelectedIndex;
             _ = HandleACDCSelectionChangedAsync();
         }
     }
@@ -487,7 +487,7 @@ public partial class SettingItemViewModel : BaseViewModel
     {
         if (sender is ComboBox cb && cb.SelectedIndex >= 0)
         {
-            _dcValue = cb.SelectedIndex;
+            DcValue = cb.SelectedIndex;
             _ = HandleACDCSelectionChangedAsync();
         }
     }
@@ -496,7 +496,7 @@ public partial class SettingItemViewModel : BaseViewModel
     {
         if (!double.IsNaN(e.NewValue))
         {
-            _acNumericValue = (int)e.NewValue;
+            AcNumericValue = (int)e.NewValue;
             _ = HandleACDCNumericChangedAsync();
         }
     }
@@ -505,7 +505,7 @@ public partial class SettingItemViewModel : BaseViewModel
     {
         if (!double.IsNaN(e.NewValue))
         {
-            _dcNumericValue = (int)e.NewValue;
+            DcNumericValue = (int)e.NewValue;
             _ = HandleACDCNumericChangedAsync();
         }
     }
@@ -585,8 +585,7 @@ public partial class SettingItemViewModel : BaseViewModel
 
             _logService.LogDebug($"[SettingItemViewModel] ApplySettingAsync completed for {SettingId}");
 
-            _selectedValue = value;
-            OnPropertyChanged(nameof(SelectedValue));
+            SelectedValue = value;
 
             if (value is int intValue)
                 NumericValue = intValue;
@@ -617,8 +616,8 @@ public partial class SettingItemViewModel : BaseViewModel
         try
         {
             IsApplying = true;
-            var dict = new Dictionary<string, object?> { ["ACValue"] = _acValue, ["DCValue"] = _dcValue };
-            _logService.Log(LogLevel.Info, $"Changing AC/DC selection for setting: {SettingId} AC={_acValue}, DC={_dcValue}");
+            var dict = new Dictionary<string, object?> { ["ACValue"] = AcValue, ["DCValue"] = DcValue };
+            _logService.Log(LogLevel.Info, $"Changing AC/DC selection for setting: {SettingId} AC={AcValue}, DC={DcValue}");
             await _settingApplicationService.ApplySettingAsync(SettingId, true, dict);
             _hasChangedThisSession = true;
             ShowRestartBannerIfNeeded();
@@ -640,8 +639,8 @@ public partial class SettingItemViewModel : BaseViewModel
         try
         {
             IsApplying = true;
-            var dict = new Dictionary<string, object?> { ["ACValue"] = _acNumericValue, ["DCValue"] = _dcNumericValue };
-            _logService.Log(LogLevel.Info, $"Changing AC/DC numeric for setting: {SettingId} AC={_acNumericValue}, DC={_dcNumericValue}");
+            var dict = new Dictionary<string, object?> { ["ACValue"] = AcNumericValue, ["DCValue"] = DcNumericValue };
+            _logService.Log(LogLevel.Info, $"Changing AC/DC numeric for setting: {SettingId} AC={AcNumericValue}, DC={DcNumericValue}");
             await _settingApplicationService.ApplySettingAsync(SettingId, true, dict);
             _hasChangedThisSession = true;
             ShowRestartBannerIfNeeded();

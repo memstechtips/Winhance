@@ -21,7 +21,7 @@ namespace Winhance.Infrastructure.Features.Common.Services
         private List<string> _logMessages = new List<string>();
         private List<string> _terminalOutputLines = new List<string>();
         private bool _lastTerminalLineWasProgress;
-        private CancellationTokenSource _cancellationSource;
+        private CancellationTokenSource? _cancellationSource;
 
         // Queue sticky state
         private int _queueTotal;

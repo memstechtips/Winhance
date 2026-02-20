@@ -76,12 +76,12 @@ namespace Winhance.Infrastructure.Features.Common.Services
                 return false;
             }
 
-            var displayNames = setting.CustomProperties[CustomPropertyKeys.ComboBoxDisplayNames] as string[];
-            var valueMappings = setting.CustomProperties[CustomPropertyKeys.ValueMappings] as Dictionary<int, Dictionary<string, object?>>;
+            var displayNames = setting.CustomProperties![CustomPropertyKeys.ComboBoxDisplayNames] as string[];
+            var valueMappings = setting.CustomProperties![CustomPropertyKeys.ValueMappings] as Dictionary<int, Dictionary<string, object?>>;
 
             if (displayNames == null || valueMappings == null)
             {
-                var simpleValueMappings = setting.CustomProperties[CustomPropertyKeys.ValueMappings] as Dictionary<int, int>;
+                var simpleValueMappings = setting.CustomProperties![CustomPropertyKeys.ValueMappings] as Dictionary<int, int>;
                 if (displayNames != null && simpleValueMappings != null)
                 {
                     return SetupFromSimpleValueMappings(setting, currentIndex, result, displayNames, simpleValueMappings);

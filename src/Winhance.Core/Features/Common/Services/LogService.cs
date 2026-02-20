@@ -12,7 +12,7 @@ namespace Winhance.Core.Features.Common.Services
         private string _logPath;
         private StreamWriter? _logWriter;
         private readonly object _lockObject = new object();
-        private IWindowsVersionService _versionService;
+        private IWindowsVersionService? _versionService;
         private IInteractiveUserService? _interactiveUserService;
 
         public event EventHandler<LogMessageEventArgs>? LogMessageGenerated;

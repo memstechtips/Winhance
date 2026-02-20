@@ -33,7 +33,7 @@ namespace Winhance.Infrastructure.Features.Common.Services
             {
                 var setting = powerCfgSettings[0];
                 var rawValues = new Dictionary<string, object?>();
-                var powerCfgSetting = setting.PowerCfgSettings[0];
+                var powerCfgSetting = setting.PowerCfgSettings![0];
 
                 if (powerCfgSetting.PowerModeSupport == PowerModeSupport.Separate)
                 {
@@ -64,7 +64,7 @@ namespace Winhance.Infrastructure.Features.Common.Services
                 foreach (var setting in powerCfgSettings)
                 {
                     var rawValues = new Dictionary<string, object?>();
-                    var powerCfgSetting = setting.PowerCfgSettings[0];
+                    var powerCfgSetting = setting.PowerCfgSettings![0];
                     var settingKey = powerCfgSetting.SettingGuid;
 
                     if (powerCfgSetting.PowerModeSupport == PowerModeSupport.Separate)

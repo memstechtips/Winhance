@@ -11,7 +11,7 @@ namespace Winhance.Core.Features.Common.Models
         /// <summary>
         /// Gets or sets the type of configuration (e.g., "ExternalApps", "WindowsApps").
         /// </summary>
-        public string ConfigType { get; set; }
+        public string ConfigType { get; set; } = string.Empty;
 
         /// <summary>
         /// Gets or sets the version of the configuration file format.

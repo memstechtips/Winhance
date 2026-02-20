@@ -13,7 +13,7 @@ namespace Winhance.Core.Features.Common.Interfaces
         string Id { get; }
         string Name { get; }
         string Description { get; }
-        string GroupName { get; }
+        string? GroupName { get; }
         InputType InputType { get; }
         List<SettingDependency> Dependencies { get; }
 

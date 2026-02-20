@@ -214,8 +214,8 @@ namespace Winhance.Infrastructure.Features.Common.Services
 
                 if (setting.CompositeStringKey != null)
                 {
-                    var compositeStr = ValueExists(setting.KeyPath, setting.ValueName)
-                        ? (GetValue(setting.KeyPath, setting.ValueName)?.ToString() ?? "")
+                    var compositeStr = ValueExists(setting.KeyPath, setting.ValueName!)
+                        ? (GetValue(setting.KeyPath, setting.ValueName!)?.ToString() ?? "")
                         : "";
 
                     var pairs = ParseCompositeString(compositeStr);
@@ -232,19 +232,19 @@ namespace Winhance.Infrastructure.Features.Common.Services
                     return string.Equals(defaultStr2, enabledStr2, StringComparison.OrdinalIgnoreCase);
                 }
 
-                if (!ValueExists(setting.KeyPath, setting.ValueName))
+                if (!ValueExists(setting.KeyPath, setting.ValueName!))
                 {
                     return setting.EnabledValue == null;
                 }
 
                 if (setting.BitMask.HasValue && setting.BinaryByteIndex.HasValue)
                 {
-                    return IsBitSet(setting.KeyPath, setting.ValueName, setting.BinaryByteIndex.Value, setting.BitMask.Value);
+                    return IsBitSet(setting.KeyPath, setting.ValueName!, setting.BinaryByteIndex.Value, setting.BitMask.Value);
                 }
 
                 if (setting.ModifyByteOnly && setting.BinaryByteIndex.HasValue)
                 {
-                    var currentByte = GetBinaryByte(setting.KeyPath, setting.ValueName, setting.BinaryByteIndex.Value);
+                    var currentByte = GetBinaryByte(setting.KeyPath, setting.ValueName!, setting.BinaryByteIndex.Value);
                     if (currentByte == null)
                         return false;
 
@@ -258,7 +258,7 @@ namespace Winhance.Infrastructure.Features.Common.Services
                     return currentByte.Value == enabledByte;
                 }
 
-                var currentValue = GetValue(setting.KeyPath, setting.ValueName);
+                var currentValue = GetValue(setting.KeyPath, setting.ValueName!);
 
                 // When EnabledValue is null, absence is the enabled state.
                 // If value exists but doesn't match DisabledValue, treat as enabled.
@@ -566,7 +566,7 @@ namespace Winhance.Infrastructure.Features.Common.Services
             return (rootKey, parts[1]);
         }
 
-        public Dictionary<string, object?> GetBatchValues(IEnumerable<(string keyPath, string valueName)> queries)
+        public Dictionary<string, object?> GetBatchValues(IEnumerable<(string keyPath, string? valueName)> queries)
         {
             var results = new Dictionary<string, object?>();
             var queriesByHive = queries.GroupBy(q => GetHiveFromPath(q.keyPath));

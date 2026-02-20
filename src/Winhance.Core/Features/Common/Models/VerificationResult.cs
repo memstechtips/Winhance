@@ -15,23 +15,23 @@ namespace Winhance.Core.Features.Common.Models
         /// <summary>
         /// Gets or sets the version that was verified, if applicable.
         /// </summary>
-        public string Version { get; set; }
+        public string? Version { get; set; }
 
         /// <summary>
         /// Gets or sets an optional message providing additional information about the verification.
         /// </summary>
-        public string Message { get; set; }
+        public string? Message { get; set; }
 
         /// <summary>
         /// Gets or sets the name of the verification method that was used.
         /// </summary>
-        public string MethodUsed { get; set; }
+        public string? MethodUsed { get; set; }
 
         /// <summary>
         /// Gets or sets additional information about the verification result.
         /// This can be any object containing relevant details.
         /// </summary>
-        public object AdditionalInfo { get; set; }
+        public object? AdditionalInfo { get; set; }
 
         /// <summary>
         /// Creates a successful verification result.
@@ -40,7 +40,7 @@ namespace Winhance.Core.Features.Common.Models
         /// <param name="methodUsed">The name of the verification method that was used.</param>
         /// <param name="additionalInfo">Additional information about the verification result.</param>
         /// <returns>A successful verification result.</returns>
-        public static VerificationResult Success(string version = null, string methodUsed = null, object additionalInfo = null)
+        public static VerificationResult Success(string? version = null, string? methodUsed = null, object? additionalInfo = null)
         {
             return new VerificationResult
             {
@@ -58,7 +58,7 @@ namespace Winhance.Core.Features.Common.Models
         /// <param name="methodUsed">The name of the verification method that was used.</param>
         /// <param name="additionalInfo">Additional information about the verification result.</param>
         /// <returns>A failed verification result.</returns>
-        public static VerificationResult Failure(string message = null, string methodUsed = null, object additionalInfo = null)
+        public static VerificationResult Failure(string? message = null, string? methodUsed = null, object? additionalInfo = null)
         {
             return new VerificationResult
             {

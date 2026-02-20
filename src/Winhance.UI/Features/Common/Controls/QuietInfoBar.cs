@@ -11,13 +11,13 @@ namespace Winhance.UI.Features.Common.Controls;
 /// Narrator enters a page. QuietInfoBar replaces that peer so the banner
 /// is still accessible on focus but doesn't interrupt on page navigation.
 /// </summary>
-public class QuietInfoBar : InfoBar
+public partial class QuietInfoBar : InfoBar
 {
     protected override AutomationPeer OnCreateAutomationPeer()
         => new QuietInfoBarAutomationPeer(this);
 }
 
-internal class QuietInfoBarAutomationPeer : FrameworkElementAutomationPeer
+internal partial class QuietInfoBarAutomationPeer : FrameworkElementAutomationPeer
 {
     public QuietInfoBarAutomationPeer(QuietInfoBar owner) : base(owner) { }
 

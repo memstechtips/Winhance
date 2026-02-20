@@ -20,7 +20,7 @@ namespace Winhance.Infrastructure.Features.SoftwareApps.Services;
 public class StoreDownloadService : IStoreDownloadService
 {
     private readonly ITaskProgressService _taskProgressService;
-    private readonly ILogService _logService;
+    private readonly ILogService? _logService;
     private readonly ILocalizationService _localization;
     private readonly HttpClient _httpClient;
 
@@ -30,7 +30,7 @@ public class StoreDownloadService : IStoreDownloadService
     public StoreDownloadService(
         ITaskProgressService taskProgressService,
         ILocalizationService localization,
-        ILogService logService = null)
+        ILogService? logService = null)
     {
         _taskProgressService = taskProgressService;
         _localization = localization;
@@ -43,7 +43,7 @@ public class StoreDownloadService : IStoreDownloadService
 
     public async Task<bool> DownloadAndInstallPackageAsync(
         string productId,
-        string displayName = null,
+        string? displayName = null,
         CancellationToken cancellationToken = default)
     {
         displayName ??= productId;
@@ -115,10 +115,10 @@ public class StoreDownloadService : IStoreDownloadService
         }
     }
 
-    public async Task<string> DownloadPackageAsync(
+    public async Task<string?> DownloadPackageAsync(
         string productId,
         string downloadPath,
-        string displayName = null,
+        string? displayName = null,
         CancellationToken cancellationToken = default)
     {
         displayName ??= productId;
@@ -405,7 +405,7 @@ public class StoreDownloadService : IStoreDownloadService
     }
 
 
-    private async Task<string> DownloadFileAsync(
+    private async Task<string?> DownloadFileAsync(
         string url,
         string downloadPath,
         string fileName,
@@ -630,7 +630,7 @@ public class StoreDownloadService : IStoreDownloadService
 
     private class PackageLink
     {
-        public string Url { get; set; }
-        public string FileName { get; set; }
+        public string Url { get; set; } = string.Empty;
+        public string FileName { get; set; } = string.Empty;
     }
 }
