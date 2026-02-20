@@ -63,82 +63,82 @@ public partial class WimUtilViewModel : ObservableObject
     public string ButtonCreateIsoText => _localizationService.GetString("WIMUtil_ButtonCreateISO");
 
     [ObservableProperty]
-    private int _currentStep = 1;
+    public partial int CurrentStep { get; set; }
 
     [ObservableProperty]
-    private WizardStepState _step1State = new();
+    public partial WizardStepState Step1State { get; set; }
 
     [ObservableProperty]
-    private WizardStepState _step2State = new();
+    public partial WizardStepState Step2State { get; set; }
 
     [ObservableProperty]
-    private WizardStepState _step3State = new();
+    public partial WizardStepState Step3State { get; set; }
 
     [ObservableProperty]
-    private WizardStepState _step4State = new();
+    public partial WizardStepState Step4State { get; set; }
 
     [ObservableProperty]
-    private string _selectedIsoPath = string.Empty;
+    public partial string SelectedIsoPath { get; set; }
 
     [ObservableProperty]
-    private string _workingDirectory = string.Empty;
+    public partial string WorkingDirectory { get; set; }
 
     [ObservableProperty]
-    private bool _canStartExtraction;
+    public partial bool CanStartExtraction { get; set; }
 
     [ObservableProperty]
-    private bool _isExtractionComplete;
+    public partial bool IsExtractionComplete { get; set; }
 
     [ObservableProperty]
-    private bool _isExtracting;
+    public partial bool IsExtracting { get; set; }
 
     [ObservableProperty]
-    private bool _hasExtractedIsoAlready;
+    public partial bool HasExtractedIsoAlready { get; set; }
 
     [ObservableProperty]
-    private ImageFormatInfo? _currentImageFormat;
+    public partial ImageFormatInfo? CurrentImageFormat { get; set; }
 
     [ObservableProperty]
-    private bool _showConversionCard;
+    public partial bool ShowConversionCard { get; set; }
 
     [ObservableProperty]
-    private bool _isConverting;
+    public partial bool IsConverting { get; set; }
 
     [ObservableProperty]
-    private string _conversionStatus = string.Empty;
+    public partial string ConversionStatus { get; set; }
 
     [ObservableProperty]
-    private bool _bothFormatsExist;
+    public partial bool BothFormatsExist { get; set; }
 
     [ObservableProperty]
-    private string _wimFileSize = string.Empty;
+    public partial string WimFileSize { get; set; }
 
     [ObservableProperty]
-    private string _esdFileSize = string.Empty;
+    public partial string EsdFileSize { get; set; }
 
     [ObservableProperty]
-    private ImageDetectionResult? _detectionResult;
+    public partial ImageDetectionResult? DetectionResult { get; set; }
 
     [ObservableProperty]
-    private string _selectedXmlPath = string.Empty;
+    public partial string SelectedXmlPath { get; set; }
 
     [ObservableProperty]
-    private string _xmlStatus = string.Empty;
+    public partial string XmlStatus { get; set; }
 
     [ObservableProperty]
-    private bool _isXmlAdded;
+    public partial bool IsXmlAdded { get; set; }
 
     [ObservableProperty]
-    private bool _areDriversAdded;
+    public partial bool AreDriversAdded { get; set; }
 
     [ObservableProperty]
-    private string _outputIsoPath = string.Empty;
+    public partial string OutputIsoPath { get; set; }
 
     [ObservableProperty]
-    private bool _isOscdimgAvailable;
+    public partial bool IsOscdimgAvailable { get; set; }
 
     [ObservableProperty]
-    private bool _isIsoCreated;
+    public partial bool IsIsoCreated { get; set; }
 
     public WizardActionCard SelectIsoCard { get; private set; } = new();
     public WizardActionCard SelectDirectoryCard { get; private set; } = new();
@@ -167,6 +167,19 @@ public partial class WimUtilViewModel : ObservableObject
         _serviceProvider = serviceProvider;
         _localizationService = localizationService;
         _dispatcherService = dispatcherService;
+
+        // Initialize partial property defaults
+        CurrentStep = 1;
+        Step1State = new WizardStepState();
+        Step2State = new WizardStepState();
+        Step3State = new WizardStepState();
+        Step4State = new WizardStepState();
+        SelectedIsoPath = string.Empty;
+        ConversionStatus = string.Empty;
+        WimFileSize = string.Empty;
+        EsdFileSize = string.Empty;
+        SelectedXmlPath = string.Empty;
+        OutputIsoPath = string.Empty;
 
         XmlStatus = _localizationService.GetString("WIMUtil_Status_NoXmlAdded");
         WorkingDirectory = Path.Combine(Path.GetTempPath(), "WinhanceWIM");

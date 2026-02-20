@@ -31,19 +31,19 @@ public abstract partial class BaseSettingsFeatureViewModel : BaseViewModel, ISet
     private Dictionary<string, List<SettingItemViewModel>> _childrenByParentId = new();
 
     [ObservableProperty]
-    private ObservableCollection<SettingItemViewModel> _settings = new();
+    public partial ObservableCollection<SettingItemViewModel> Settings { get; set; }
 
     [ObservableProperty]
-    private ObservableCollection<SettingsGroup> _groupedSettings = new();
+    public partial ObservableCollection<SettingsGroup> GroupedSettings { get; set; }
 
     [ObservableProperty]
-    private bool _isLoading;
+    public partial bool IsLoading { get; set; }
 
     [ObservableProperty]
-    private bool _isExpanded = true;
+    public partial bool IsExpanded { get; set; }
 
     [ObservableProperty]
-    private string _searchText = string.Empty;
+    public partial string SearchText { get; set; }
 
     public abstract string ModuleId { get; }
     public virtual string DisplayName => GetDisplayName();
@@ -103,6 +103,12 @@ public abstract partial class BaseSettingsFeatureViewModel : BaseViewModel, ISet
         _dispatcherService = dispatcherService ?? throw new ArgumentNullException(nameof(dispatcherService));
         _eventBus = eventBus ?? throw new ArgumentNullException(nameof(eventBus));
         _mainWindowViewModel = mainWindowViewModel;
+
+        // Initialize partial property defaults
+        Settings = new ObservableCollection<SettingItemViewModel>();
+        GroupedSettings = new ObservableCollection<SettingsGroup>();
+        IsExpanded = true;
+        SearchText = string.Empty;
 
         LoadSettingsCommand = new RelayCommand(() => _ = LoadSettingsAsync());
         ToggleExpandCommand = new RelayCommand(() => IsExpanded = !IsExpanded);

@@ -12,7 +12,7 @@ public partial class AdvancedToolsViewModel : ObservableObject
     private readonly ILocalizationService _localizationService;
 
     [ObservableProperty]
-    private string _currentSectionKey = "Overview";
+    public partial string CurrentSectionKey { get; set; }
 
     /// <summary>
     /// Gets the localized page title.
@@ -71,6 +71,7 @@ public partial class AdvancedToolsViewModel : ObservableObject
     public AdvancedToolsViewModel(ILocalizationService localizationService)
     {
         _localizationService = localizationService;
+        CurrentSectionKey = "Overview";
         _localizationService.LanguageChanged += OnLanguageChanged;
     }
 

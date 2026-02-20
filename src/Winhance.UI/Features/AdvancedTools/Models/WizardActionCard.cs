@@ -9,44 +9,55 @@ namespace Winhance.UI.Features.AdvancedTools.Models;
 /// </summary>
 public partial class WizardActionCard : ObservableObject
 {
-    [ObservableProperty]
-    private string _icon = string.Empty;
+    public WizardActionCard()
+    {
+        Icon = string.Empty;
+        IconPath = string.Empty;
+        Title = string.Empty;
+        Description = string.Empty;
+        ButtonText = string.Empty;
+        IsEnabled = true;
+        Opacity = 1.0;
+    }
 
     [ObservableProperty]
-    private string _iconPath = string.Empty;
+    public partial string Icon { get; set; }
 
     [ObservableProperty]
-    private bool _usePathIcon;
+    public partial string IconPath { get; set; }
 
     [ObservableProperty]
-    private string _title = string.Empty;
+    public partial bool UsePathIcon { get; set; }
 
     [ObservableProperty]
-    private string _description = string.Empty;
+    public partial string Title { get; set; }
 
     [ObservableProperty]
-    private Brush? _descriptionForeground;
+    public partial string Description { get; set; }
 
     [ObservableProperty]
-    private string _buttonText = string.Empty;
+    public partial Brush? DescriptionForeground { get; set; }
 
     [ObservableProperty]
-    private ICommand? _buttonCommand;
+    public partial string ButtonText { get; set; }
 
     [ObservableProperty]
-    private bool _isEnabled = true;
+    public partial ICommand? ButtonCommand { get; set; }
 
     [ObservableProperty]
-    private bool _isComplete;
+    public partial bool IsEnabled { get; set; }
 
     [ObservableProperty]
-    private bool _hasFailed;
+    public partial bool IsComplete { get; set; }
 
     [ObservableProperty]
-    private bool _isProcessing;
+    public partial bool HasFailed { get; set; }
 
     [ObservableProperty]
-    private double _opacity = 1.0;
+    public partial bool IsProcessing { get; set; }
+
+    [ObservableProperty]
+    public partial double Opacity { get; set; }
 
     partial void OnIconPathChanged(string value)
     {

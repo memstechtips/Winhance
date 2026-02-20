@@ -33,7 +33,7 @@ public partial class AutounattendGeneratorViewModel : ObservableObject
     public string GenerateButtonText => _localizationService.GetString("WIMUtil_ButtonGenerate") ?? "Generate";
 
     [ObservableProperty]
-    private bool _isGenerating;
+    public partial bool IsGenerating { get; set; }
 
     /// <summary>
     /// Raised when the user wants to navigate to WimUtil after successful generation.

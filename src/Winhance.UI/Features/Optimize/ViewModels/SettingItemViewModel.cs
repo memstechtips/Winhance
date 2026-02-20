@@ -40,37 +40,37 @@ public partial class SettingItemViewModel : BaseViewModel
     public SettingDefinition? SettingDefinition { get; set; }
 
     [ObservableProperty]
-    private string _settingId = string.Empty;
+    public partial string SettingId { get; set; }
 
     [ObservableProperty]
-    private string _name = string.Empty;
+    public partial string Name { get; set; }
 
     [ObservableProperty]
-    private string _description = string.Empty;
+    public partial string Description { get; set; }
 
     [ObservableProperty]
-    private string _groupName = string.Empty;
+    public partial string GroupName { get; set; }
 
     [ObservableProperty]
-    private string _icon = string.Empty;
+    public partial string Icon { get; set; }
 
     [ObservableProperty]
-    private string _iconPack = "Material";
+    public partial string IconPack { get; set; }
 
     [ObservableProperty]
-    private bool _isSelected;
+    public partial bool IsSelected { get; set; }
 
     [ObservableProperty]
-    private bool _isApplying;
+    public partial bool IsApplying { get; set; }
 
     [ObservableProperty]
-    private string _status = string.Empty;
+    public partial string Status { get; set; }
 
     [ObservableProperty]
-    private string? _statusBannerMessage;
+    public partial string? StatusBannerMessage { get; set; }
 
     [ObservableProperty]
-    private InfoBarSeverity _statusBannerSeverity = InfoBarSeverity.Informational;
+    public partial InfoBarSeverity StatusBannerSeverity { get; set; }
 
     public bool HasStatusBanner => !string.IsNullOrEmpty(StatusBannerMessage);
 
@@ -80,40 +80,40 @@ public partial class SettingItemViewModel : BaseViewModel
     }
 
     [ObservableProperty]
-    private InputType _inputType;
+    public partial InputType InputType { get; set; }
 
     [ObservableProperty]
-    private object? _selectedValue;
+    public partial object? SelectedValue { get; set; }
 
     [ObservableProperty]
-    private ObservableCollection<ComboBoxOption> _comboBoxOptions = new();
+    public partial ObservableCollection<ComboBoxOption> ComboBoxOptions { get; set; }
 
     [ObservableProperty]
-    private int _numericValue;
+    public partial int NumericValue { get; set; }
 
     [ObservableProperty]
-    private int _acValue;
+    public partial int AcValue { get; set; }
 
     [ObservableProperty]
-    private int _dcValue;
+    public partial int DcValue { get; set; }
 
     [ObservableProperty]
-    private int _acNumericValue;
+    public partial int AcNumericValue { get; set; }
 
     [ObservableProperty]
-    private int _dcNumericValue;
+    public partial int DcNumericValue { get; set; }
 
     [ObservableProperty]
-    private bool _hasBattery;
+    public partial bool HasBattery { get; set; }
 
     [ObservableProperty]
-    private int _minValue;
+    public partial int MinValue { get; set; }
 
     [ObservableProperty]
-    private int _maxValue = 100;
+    public partial int MaxValue { get; set; }
 
     [ObservableProperty]
-    private string _units = string.Empty;
+    public partial string Units { get; set; }
 
     public string OnText { get; set; } = "On";
     public string OffText { get; set; } = "Off";
@@ -121,13 +121,13 @@ public partial class SettingItemViewModel : BaseViewModel
 
     // Technical Details panel
     [ObservableProperty]
-    private bool _isTechnicalDetailsExpanded;
+    public partial bool IsTechnicalDetailsExpanded { get; set; }
 
     [ObservableProperty]
-    private bool _isTechnicalDetailsGloballyVisible;
+    public partial bool IsTechnicalDetailsGloballyVisible { get; set; }
 
     [ObservableProperty]
-    private ObservableCollection<TechnicalDetailRow> _technicalDetails = new();
+    public partial ObservableCollection<TechnicalDetailRow> TechnicalDetails { get; set; }
 
     public bool HasTechnicalDetails => TechnicalDetails.Count > 0;
 
@@ -165,17 +165,17 @@ public partial class SettingItemViewModel : BaseViewModel
     public IRelayCommand<string> OpenRegeditCommand { get; }
 
     [ObservableProperty]
-    private bool _isVisible = true;
+    public partial bool IsVisible { get; set; }
 
     [ObservableProperty]
-    private bool _isEnabled = true;
+    public partial bool IsEnabled { get; set; }
 
     // Pre-built message for cross-group child settings (built during initialization)
     public string? CrossGroupInfoMessage { get; set; }
 
     // Advanced unlock support
     [ObservableProperty]
-    private bool _isLocked;
+    public partial bool IsLocked { get; set; }
 
     public bool RequiresAdvancedUnlock => SettingDefinition?.RequiresAdvancedUnlock == true;
     public string ClickToUnlockText => _localizationService.GetString("Common_ClickToUnlock") ?? "Click to unlock";
@@ -183,19 +183,19 @@ public partial class SettingItemViewModel : BaseViewModel
 
     // Review mode properties
     [ObservableProperty]
-    private bool _isInReviewMode;
+    public partial bool IsInReviewMode { get; set; }
 
     [ObservableProperty]
-    private bool _hasReviewDiff;
+    public partial bool HasReviewDiff { get; set; }
 
     [ObservableProperty]
-    private string? _reviewDiffMessage;
+    public partial string? ReviewDiffMessage { get; set; }
 
     [ObservableProperty]
-    private bool _isReviewApproved = false;
+    public partial bool IsReviewApproved { get; set; }
 
     [ObservableProperty]
-    private bool _isReviewRejected = false;
+    public partial bool IsReviewRejected { get; set; }
 
     public bool IsReviewDecisionMade => IsReviewApproved || IsReviewRejected;
 
@@ -251,7 +251,7 @@ public partial class SettingItemViewModel : BaseViewModel
     }
 
     [ObservableProperty]
-    private bool _parentIsEnabled = true;
+    public partial bool ParentIsEnabled { get; set; }
 
     partial void OnParentIsEnabledChanged(bool value)
     {
@@ -297,6 +297,22 @@ public partial class SettingItemViewModel : BaseViewModel
         _eventBus = eventBus;
         _userPreferencesService = userPreferencesService;
         _interactiveUserService = interactiveUserService;
+
+        // Initialize partial property defaults
+        SettingId = string.Empty;
+        Name = string.Empty;
+        Description = string.Empty;
+        GroupName = string.Empty;
+        Icon = string.Empty;
+        IconPack = "Material";
+        Status = string.Empty;
+        ComboBoxOptions = new ObservableCollection<ComboBoxOption>();
+        MaxValue = 100;
+        Units = string.Empty;
+        TechnicalDetails = new ObservableCollection<TechnicalDetailRow>();
+        IsVisible = true;
+        IsEnabled = true;
+        ParentIsEnabled = true;
 
         ExecuteActionCommand = new AsyncRelayCommand(HandleActionAsync);
         UnlockCommand = new AsyncRelayCommand(HandleUnlockAsync);

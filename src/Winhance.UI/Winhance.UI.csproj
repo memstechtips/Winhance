@@ -19,6 +19,8 @@
     <EnableMsixTooling>false</EnableMsixTooling>
     <Nullable>enable</Nullable>
     <ImplicitUsings>enable</ImplicitUsings>
+    <!-- Required for CommunityToolkit.Mvvm 8.4.0 partial property source generators on .NET 10 -->
+    <LangVersion>preview</LangVersion>
     <!-- MRT/PRI generation - requires Visual Studio MSBuild -->
     <GenerateAppxPackageOnBuild>false</GenerateAppxPackageOnBuild>
     <AppxPackage>false</AppxPackage>

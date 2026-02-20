@@ -16,16 +16,16 @@ public partial class CustomizeViewModel : ObservableObject
     private bool _isInitialized;
 
     [ObservableProperty]
-    private bool _isLoading = true;
+    public partial bool IsLoading { get; set; }
 
     [ObservableProperty]
-    private string _searchText = string.Empty;
+    public partial string SearchText { get; set; }
 
     [ObservableProperty]
-    private string _currentSectionKey = "Overview";
+    public partial string CurrentSectionKey { get; set; }
 
     [ObservableProperty]
-    private ObservableCollection<SearchSuggestionItem> _searchSuggestions = new();
+    public partial ObservableCollection<SearchSuggestionItem> SearchSuggestions { get; set; }
 
     /// <summary>
     /// Gets the localized page title.
@@ -131,6 +131,13 @@ public partial class CustomizeViewModel : ObservableObject
         StartMenuViewModel = startMenuViewModel;
         TaskbarViewModel = taskbarViewModel;
         WindowsThemeViewModel = windowsThemeViewModel;
+
+        // Initialize partial property defaults (collections first, then
+        // properties with change handlers that may reference them)
+        SearchSuggestions = new ObservableCollection<SearchSuggestionItem>();
+        IsLoading = true;
+        CurrentSectionKey = "Overview";
+        SearchText = string.Empty;
 
         // Subscribe to language changes to update localized strings
         _localizationService.LanguageChanged += OnLanguageChanged;

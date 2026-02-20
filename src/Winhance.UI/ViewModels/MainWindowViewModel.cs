@@ -53,51 +53,51 @@ public partial class MainWindowViewModel : ObservableObject
     private readonly IInteractiveUserService _interactiveUserService;
 
     [ObservableProperty]
-    private string _appIconSource = "ms-appx:///Assets/AppIcons/winhance-rocket-white-transparent-bg.png";
+    public partial string AppIconSource { get; set; }
 
     [ObservableProperty]
-    private string _versionInfo = "Winhance";
+    public partial string VersionInfo { get; set; }
 
     [ObservableProperty]
     [NotifyPropertyChangedFor(nameof(WindowsFilterTooltip))]
     [NotifyPropertyChangedFor(nameof(WindowsFilterIcon))]
-    private bool _isWindowsVersionFilterEnabled = true;
+    public partial bool IsWindowsVersionFilterEnabled { get; set; }
 
     [ObservableProperty]
-    private bool _isLoading;
+    public partial bool IsLoading { get; set; }
 
     // Tracks whether the last single-task ended in failure (progress was set to 0 with an error).
     // Used to keep the TaskProgressControl visible so the user can click to see details.
     [ObservableProperty]
-    private bool _isTaskFailed;
+    public partial bool IsTaskFailed { get; set; }
     private CancellationTokenSource? _hideDelayCts;
 
     [ObservableProperty]
-    private string _appName = string.Empty;
+    public partial string AppName { get; set; }
 
     [ObservableProperty]
-    private string _lastTerminalLine = string.Empty;
+    public partial string LastTerminalLine { get; set; }
 
     [ObservableProperty]
-    private string _queueStatusText = string.Empty;
+    public partial string QueueStatusText { get; set; }
 
     [ObservableProperty]
-    private string _queueNextItemName = string.Empty;
+    public partial string QueueNextItemName { get; set; }
 
     [ObservableProperty]
-    private bool _isQueueVisible;
+    public partial bool IsQueueVisible { get; set; }
 
     [ObservableProperty]
-    private int _activeScriptCount;
+    public partial int ActiveScriptCount { get; set; }
 
     [ObservableProperty]
-    private bool _isUpdateInfoBarOpen;
+    public partial bool IsUpdateInfoBarOpen { get; set; }
 
     [ObservableProperty]
-    private string _updateInfoBarTitle = string.Empty;
+    public partial string UpdateInfoBarTitle { get; set; }
 
     [ObservableProperty]
-    private string _updateInfoBarMessage = string.Empty;
+    public partial string UpdateInfoBarMessage { get; set; }
 
     // Tracks InfoBar state for re-rendering on language change
     private UpdateInfoBarState _updateInfoBarState = UpdateInfoBarState.None;
@@ -106,34 +106,34 @@ public partial class MainWindowViewModel : ObservableObject
     private string _cachedErrorMessage = string.Empty;
 
     [ObservableProperty]
-    private InfoBarSeverity _updateInfoBarSeverity;
+    public partial InfoBarSeverity UpdateInfoBarSeverity { get; set; }
 
     [ObservableProperty]
-    private bool _isUpdateActionButtonVisible;
+    public partial bool IsUpdateActionButtonVisible { get; set; }
 
     [ObservableProperty]
-    private bool _isUpdateCheckInProgress;
+    public partial bool IsUpdateCheckInProgress { get; set; }
 
     // Review mode properties
     [ObservableProperty]
     [NotifyPropertyChangedFor(nameof(IsWindowsFilterButtonEnabled))]
-    private bool _isInReviewMode;
+    public partial bool IsInReviewMode { get; set; }
 
     [ObservableProperty]
-    private string _reviewModeStatusText = string.Empty;
+    public partial string ReviewModeStatusText { get; set; }
 
     [ObservableProperty]
-    private bool _canApplyReviewedConfig;
+    public partial bool CanApplyReviewedConfig { get; set; }
 
     // OTS Elevation InfoBar properties
     [ObservableProperty]
-    private bool _isOtsInfoBarOpen;
+    public partial bool IsOtsInfoBarOpen { get; set; }
 
     [ObservableProperty]
-    private string _otsInfoBarTitle = string.Empty;
+    public partial string OtsInfoBarTitle { get; set; }
 
     [ObservableProperty]
-    private string _otsInfoBarMessage = string.Empty;
+    public partial string OtsInfoBarMessage { get; set; }
 
     /// <summary>
     /// Event raised when the Windows version filter state changes.
@@ -176,6 +176,20 @@ public partial class MainWindowViewModel : ObservableObject
         _winGetService = winGetService;
         _internetConnectivityService = internetConnectivityService;
         _interactiveUserService = interactiveUserService;
+
+        // Initialize partial property defaults
+        AppIconSource = "ms-appx:///Assets/AppIcons/winhance-rocket-white-transparent-bg.png";
+        VersionInfo = "Winhance";
+        IsWindowsVersionFilterEnabled = true;
+        AppName = string.Empty;
+        LastTerminalLine = string.Empty;
+        QueueStatusText = string.Empty;
+        QueueNextItemName = string.Empty;
+        UpdateInfoBarTitle = string.Empty;
+        UpdateInfoBarMessage = string.Empty;
+        ReviewModeStatusText = string.Empty;
+        OtsInfoBarTitle = string.Empty;
+        OtsInfoBarMessage = string.Empty;
 
         // Subscribe to theme changes
         _themeService.ThemeChanged += OnThemeChanged;

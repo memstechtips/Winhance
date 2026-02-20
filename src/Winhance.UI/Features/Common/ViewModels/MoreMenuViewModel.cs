@@ -30,7 +30,7 @@ public partial class MoreMenuViewModel : ObservableObject
     private readonly IApplicationCloseService _applicationCloseService;
 
     [ObservableProperty]
-    private string _versionInfo = "Winhance";
+    public partial string VersionInfo { get; set; }
 
     public MoreMenuViewModel(
         ILocalizationService localizationService,
@@ -42,6 +42,7 @@ public partial class MoreMenuViewModel : ObservableObject
         _versionService = versionService;
         _logService = logService;
         _applicationCloseService = applicationCloseService;
+        VersionInfo = "Winhance";
 
         // Subscribe to language changes
         _localizationService.LanguageChanged += OnLanguageChanged;

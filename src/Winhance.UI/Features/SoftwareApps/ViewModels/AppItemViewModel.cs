@@ -36,6 +36,8 @@ public partial class AppItemViewModel : ObservableObject, ISelectable
         _localizationService = localizationService;
         _dispatcherService = dispatcherService;
 
+        Status = string.Empty;
+
         InstallCommand = new AsyncRelayCommand(InstallAsync, () => !IsInstalling && !Definition.IsInstalled);
         UninstallCommand = new AsyncRelayCommand(UninstallAsync, () => !IsUninstalling && Definition.IsInstalled);
         OpenWebsiteCommand = new AsyncRelayCommand(OpenWebsiteAsync, () => !string.IsNullOrEmpty(Definition.WebsiteUrl));
@@ -52,18 +54,18 @@ public partial class AppItemViewModel : ObservableObject, ISelectable
     public ItemDefinition Definition => _definition;
 
     [ObservableProperty]
-    private bool _isSelected;
+    public partial bool IsSelected { get; set; }
 
     public string Name => Definition.Name;
 
     [ObservableProperty]
-    private bool _isInstalling;
+    public partial bool IsInstalling { get; set; }
 
     [ObservableProperty]
-    private bool _isUninstalling;
+    public partial bool IsUninstalling { get; set; }
 
     [ObservableProperty]
-    private string _status = string.Empty;
+    public partial string Status { get; set; }
 
     public string Description => Definition.Description;
     public string GroupName => Definition.GroupName ?? string.Empty;

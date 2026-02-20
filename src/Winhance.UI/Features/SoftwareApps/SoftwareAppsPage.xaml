@@ -725,11 +725,14 @@
                                 <!-- Selection Checkboxes -->
                                 <StackPanel Orientation="Horizontal" Spacing="12">
                                     <CheckBox Content="{x:Bind ViewModel.WindowsAppsViewModel.SelectAllLabel, Mode=OneWay}" MinWidth="0"
-                                              IsChecked="{x:Bind ViewModel.WindowsAppsViewModel.IsAllSelected, Mode=TwoWay}"/>
+                                              IsChecked="{x:Bind ViewModel.WindowsAppsViewModel.IsAllSelected, Mode=OneWay}"
+                                              Command="{x:Bind ViewModel.WindowsAppsViewModel.ToggleSelectAllCommand}"/>
                                     <CheckBox Content="{x:Bind ViewModel.WindowsAppsViewModel.SelectAllInstalledLabel, Mode=OneWay}" MinWidth="0"
-                                              IsChecked="{x:Bind ViewModel.WindowsAppsViewModel.IsAllSelectedInstalled, Mode=TwoWay}"/>
+                                              IsChecked="{x:Bind ViewModel.WindowsAppsViewModel.IsAllSelectedInstalled, Mode=OneWay}"
+                                              Command="{x:Bind ViewModel.WindowsAppsViewModel.ToggleSelectAllInstalledCommand}"/>
                                     <CheckBox Content="{x:Bind ViewModel.WindowsAppsViewModel.SelectAllNotInstalledLabel, Mode=OneWay}" MinWidth="0"
-                                              IsChecked="{x:Bind ViewModel.WindowsAppsViewModel.IsAllSelectedNotInstalled, Mode=TwoWay}"/>
+                                              IsChecked="{x:Bind ViewModel.WindowsAppsViewModel.IsAllSelectedNotInstalled, Mode=OneWay}"
+                                              Command="{x:Bind ViewModel.WindowsAppsViewModel.ToggleSelectAllNotInstalledCommand}"/>
                                 </StackPanel>
 
                                 <!-- Windows Apps Section -->
@@ -951,11 +954,14 @@
                                 <!-- Selection Checkboxes -->
                                 <StackPanel Orientation="Horizontal" Spacing="12">
                                     <CheckBox Content="{x:Bind ViewModel.ExternalAppsViewModel.SelectAllLabel, Mode=OneWay}" MinWidth="0"
-                                              IsChecked="{x:Bind ViewModel.ExternalAppsViewModel.IsAllSelected, Mode=TwoWay}"/>
+                                              IsChecked="{x:Bind ViewModel.ExternalAppsViewModel.IsAllSelected, Mode=OneWay}"
+                                              Command="{x:Bind ViewModel.ExternalAppsViewModel.ToggleSelectAllCommand}"/>
                                     <CheckBox Content="{x:Bind ViewModel.ExternalAppsViewModel.SelectAllInstalledLabel, Mode=OneWay}" MinWidth="0"
-                                              IsChecked="{x:Bind ViewModel.ExternalAppsViewModel.IsAllSelectedInstalled, Mode=TwoWay}"/>
+                                              IsChecked="{x:Bind ViewModel.ExternalAppsViewModel.IsAllSelectedInstalled, Mode=OneWay}"
+                                              Command="{x:Bind ViewModel.ExternalAppsViewModel.ToggleSelectAllInstalledCommand}"/>
                                     <CheckBox Content="{x:Bind ViewModel.ExternalAppsViewModel.SelectAllNotInstalledLabel, Mode=OneWay}" MinWidth="0"
-                                              IsChecked="{x:Bind ViewModel.ExternalAppsViewModel.IsAllSelectedNotInstalled, Mode=TwoWay}"/>
+                                              IsChecked="{x:Bind ViewModel.ExternalAppsViewModel.IsAllSelectedNotInstalled, Mode=OneWay}"
+                                              Command="{x:Bind ViewModel.ExternalAppsViewModel.ToggleSelectAllNotInstalledCommand}"/>
                                 </StackPanel>
 
                                 <!-- Categories -->

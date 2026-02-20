@@ -29,9 +29,14 @@ public partial class SoftwareAppsViewModel : BaseViewModel
         _userPreferencesService = userPreferencesService;
         _configReviewService = configReviewService;
 
+        // Initialize partial property defaults (SearchText first since
+        // tab-change handlers forward it to child ViewModels)
+        SearchText = string.Empty;
+        IsWindowsAppsTabSelected = true;
+
         // Load saved view mode preference (default: Card)
         var savedViewMode = _userPreferencesService.GetPreference("SoftwareAppsViewMode", "Card");
-        _isCardViewMode = savedViewMode == "Card";
+        IsCardViewMode = savedViewMode == "Card";
 
         WindowsAppsViewModel.PropertyChanged += ChildViewModel_PropertyChanged;
         ExternalAppsViewModel.PropertyChanged += ChildViewModel_PropertyChanged;
@@ -47,44 +52,44 @@ public partial class SoftwareAppsViewModel : BaseViewModel
     public ExternalAppsViewModel ExternalAppsViewModel { get; }
 
     [ObservableProperty]
-    private bool _isWindowsAppsTabSelected = true;
+    public partial bool IsWindowsAppsTabSelected { get; set; }
 
     [ObservableProperty]
-    private bool _isExternalAppsTabSelected = false;
+    public partial bool IsExternalAppsTabSelected { get; set; }
 
     [ObservableProperty]
-    private string _searchText = string.Empty;
+    public partial string SearchText { get; set; }
 
     [ObservableProperty]
-    private bool _isCardViewMode = true;
+    public partial bool IsCardViewMode { get; set; }
 
     [ObservableProperty]
-    private bool _isInReviewMode = false;
+    public partial bool IsInReviewMode { get; set; }
 
     [ObservableProperty]
-    private int _windowsAppsSelectedCount = 0;
+    public partial int WindowsAppsSelectedCount { get; set; }
 
     [ObservableProperty]
-    private int _externalAppsSelectedCount = 0;
+    public partial int ExternalAppsSelectedCount { get; set; }
 
     // Action choice properties for review mode
     [ObservableProperty]
-    private bool _isWindowsAppsInstallAction = false;
+    public partial bool IsWindowsAppsInstallAction { get; set; }
 
     [ObservableProperty]
-    private bool _isWindowsAppsRemoveAction = false;
+    public partial bool IsWindowsAppsRemoveAction { get; set; }
 
     [ObservableProperty]
-    private bool _isExternalAppsInstallAction = false;
+    public partial bool IsExternalAppsInstallAction { get; set; }
 
     [ObservableProperty]
-    private bool _isExternalAppsRemoveAction = false;
+    public partial bool IsExternalAppsRemoveAction { get; set; }
 
     [ObservableProperty]
-    private bool _canInstallItems = false;
+    public partial bool CanInstallItems { get; set; }
 
     [ObservableProperty]
-    private bool _canRemoveItems = false;
+    public partial bool CanRemoveItems { get; set; }
 
     public bool IsWindowsAppsActionChosen => IsWindowsAppsInstallAction || IsWindowsAppsRemoveAction;
     public bool IsExternalAppsActionChosen => IsExternalAppsInstallAction || IsExternalAppsRemoveAction;

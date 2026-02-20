@@ -61,6 +61,11 @@ public partial class WindowsAppsViewModel : BaseViewModel
         ItemsView.Filter = FilterItem;
         ItemsView.SortDescriptions.Add(new SortDescription("IsInstalled", SortDirection.Descending));
         ItemsView.SortDescriptions.Add(new SortDescription("Name", SortDirection.Ascending));
+
+        // Initialize partial property defaults (after Items/ItemsView,
+        // since OnSearchTextChanged uses ItemsView)
+        StatusText = "Ready";
+        SearchText = string.Empty;
     }
 
     public ObservableCollection<AppItemViewModel> Items { get; }
@@ -90,16 +95,16 @@ public partial class WindowsAppsViewModel : BaseViewModel
         .ThenBy(a => a.Name);
 
     [ObservableProperty]
-    private bool _isLoading;
+    public partial bool IsLoading { get; set; }
 
     [ObservableProperty]
-    private bool _isInitialized;
+    public partial bool IsInitialized { get; set; }
 
     [ObservableProperty]
-    private string _statusText = "Ready";
+    public partial string StatusText { get; set; }
 
     [ObservableProperty]
-    private string _searchText = string.Empty;
+    public partial string SearchText { get; set; }
 
     public string SectionAppsHeader => _localizationService.GetString("WindowsApps_Section_Apps") ?? "Windows Apps";
     public string SectionCapabilitiesHeader => _localizationService.GetString("WindowsApps_Section_Capabilities") ?? "Windows Capabilities";
@@ -109,17 +114,51 @@ public partial class WindowsAppsViewModel : BaseViewModel
     public string SelectAllInstalledLabel => _localizationService.GetString("Common_SelectAll_Installed") ?? "Select All Installed";
     public string SelectAllNotInstalledLabel => _localizationService.GetString("Common_SelectAll_NotInstalled") ?? "Select All Not Installed";
 
-    [ObservableProperty]
-    private bool _isAllSelected;
+    public bool IsAllSelected =>
+        Items.Count > 0 && Items.All(a => a.IsSelected);
+    public bool IsAllSelectedInstalled =>
+        Items.Any(a => a.IsInstalled) && Items.Where(a => a.IsInstalled).All(a => a.IsSelected);
+    public bool IsAllSelectedNotInstalled =>
+        Items.Any(a => !a.IsInstalled) && Items.Where(a => !a.IsInstalled).All(a => a.IsSelected);
+
+    [RelayCommand]
+    private void ToggleSelectAll()
+    {
+        var newValue = !IsAllSelected;
+        foreach (var item in Items)
+            item.IsSelected = newValue;
+        NotifySelectionStateChanged();
+    }
+
+    [RelayCommand]
+    private void ToggleSelectAllInstalled()
+    {
+        var newValue = !IsAllSelectedInstalled;
+        foreach (var item in Items.Where(a => a.IsInstalled))
+            item.IsSelected = newValue;
+        NotifySelectionStateChanged();
+    }
+
+    [RelayCommand]
+    private void ToggleSelectAllNotInstalled()
+    {
+        var newValue = !IsAllSelectedNotInstalled;
+        foreach (var item in Items.Where(a => !a.IsInstalled))
+            item.IsSelected = newValue;
+        NotifySelectionStateChanged();
+    }
+
+    private void NotifySelectionStateChanged()
+    {
+        OnPropertyChanged(nameof(IsAllSelected));
+        OnPropertyChanged(nameof(IsAllSelectedInstalled));
+        OnPropertyChanged(nameof(IsAllSelectedNotInstalled));
+        OnPropertyChanged(nameof(HasSelectedItems));
+        SelectedItemsChanged?.Invoke(this, EventArgs.Empty);
+    }
 
     [ObservableProperty]
-    private bool _isAllSelectedInstalled;
-
-    [ObservableProperty]
-    private bool _isAllSelectedNotInstalled;
-
-    [ObservableProperty]
-    private bool _isTaskRunning;
+    public partial bool IsTaskRunning { get; set; }
 
     public event EventHandler? SelectedItemsChanged;
 
@@ -148,54 +187,6 @@ public partial class WindowsAppsViewModel : BaseViewModel
             return SearchHelper.MatchesSearchTerm(SearchText, app.Name, app.Description, app.Id);
         }
         return true;
-    }
-
-    partial void OnIsAllSelectedChanged(bool value)
-    {
-        foreach (var item in Items)
-        {
-            item.IsSelected = value;
-        }
-        IsAllSelectedInstalled = value;
-        IsAllSelectedNotInstalled = value;
-        OnPropertyChanged(nameof(HasSelectedItems));
-        SelectedItemsChanged?.Invoke(this, EventArgs.Empty);
-    }
-
-    partial void OnIsAllSelectedInstalledChanged(bool value)
-    {
-        foreach (var item in Items.Where(a => a.IsInstalled))
-        {
-            item.IsSelected = value;
-        }
-        UpdateIsAllSelectedState();
-        OnPropertyChanged(nameof(HasSelectedItems));
-        SelectedItemsChanged?.Invoke(this, EventArgs.Empty);
-    }
-
-    partial void OnIsAllSelectedNotInstalledChanged(bool value)
-    {
-        foreach (var item in Items.Where(a => !a.IsInstalled))
-        {
-            item.IsSelected = value;
-        }
-        UpdateIsAllSelectedState();
-        OnPropertyChanged(nameof(HasSelectedItems));
-        SelectedItemsChanged?.Invoke(this, EventArgs.Empty);
-    }
-
-    private void UpdateIsAllSelectedState()
-    {
-        // Direct field access is intentional — using the property setter would trigger
-        // OnIsAllSelectedChanged, which iterates all items and causes a re-entrant loop.
-#pragma warning disable MVVMTK0034
-        var allSelected = Items.All(a => a.IsSelected);
-        if (_isAllSelected != allSelected)
-        {
-            _isAllSelected = allSelected;
-            OnPropertyChanged(nameof(IsAllSelected));
-        }
-#pragma warning restore MVVMTK0034
     }
 
     /// <summary>
@@ -244,7 +235,7 @@ public partial class WindowsAppsViewModel : BaseViewModel
 
         try
         {
-            IsAllSelected = false;
+            NotifySelectionStateChanged();
             IsInitialized = true;
             StatusText = $"Loaded {Items.Count} items";
             NotifyCardViewProperties();
@@ -281,9 +272,7 @@ public partial class WindowsAppsViewModel : BaseViewModel
     {
         if (e.PropertyName == nameof(AppItemViewModel.IsSelected))
         {
-            UpdateIsAllSelectedState();
-            OnPropertyChanged(nameof(HasSelectedItems));
-            SelectedItemsChanged?.Invoke(this, EventArgs.Empty);
+            NotifySelectionStateChanged();
         }
     }
 
@@ -540,17 +529,7 @@ public partial class WindowsAppsViewModel : BaseViewModel
         {
             item.IsSelected = false;
         }
-        // Direct field access is intentional — using the property setters would trigger
-        // OnIsAllSelectedChanged which iterates all items redundantly.
-#pragma warning disable MVVMTK0034
-        _isAllSelected = false;
-        _isAllSelectedInstalled = false;
-        _isAllSelectedNotInstalled = false;
-#pragma warning restore MVVMTK0034
-        OnPropertyChanged(nameof(IsAllSelected));
-        OnPropertyChanged(nameof(IsAllSelectedInstalled));
-        OnPropertyChanged(nameof(IsAllSelectedNotInstalled));
-        OnPropertyChanged(nameof(HasSelectedItems));
+        NotifySelectionStateChanged();
     }
 
     private void OnLanguageChanged(object? sender, EventArgs e)
