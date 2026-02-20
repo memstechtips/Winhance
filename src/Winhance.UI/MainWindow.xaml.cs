@@ -1028,12 +1028,23 @@ public sealed partial class MainWindow : Window
                 // Wire up Task Progress Control
                 TaskProgressControl.CancelCommand = _viewModel.CancelCommand;
                 TaskProgressControl.CancelText = _viewModel.CancelButtonLabel;
+                TaskProgressControl.ShowDetailsCommand = _viewModel.ShowDetailsCommand;
+                TaskProgressControl2.ShowDetailsCommand = _viewModel.ShowDetailsCommand;
+                TaskProgressControl3.ShowDetailsCommand = _viewModel.ShowDetailsCommand;
 
                 // Subscribe to multi-script progress updates
                 _viewModel.ScriptProgressReceived += OnScriptProgressReceived;
 
                 // Load filter preference asynchronously
                 _ = _viewModel.LoadFilterPreferenceAsync();
+
+                // Apply initial OTS InfoBar state (set during ViewModel ctor, before PropertyChanged was subscribed)
+                if (_viewModel.IsOtsInfoBarOpen)
+                {
+                    OtsElevationInfoBar.Title = _viewModel.OtsInfoBarTitle;
+                    OtsElevationInfoBar.Message = _viewModel.OtsInfoBarMessage;
+                    OtsElevationInfoBar.IsOpen = true;
+                }
 
                 // Subscribe to review mode badge events
                 _configReviewService = App.Services.GetService<IConfigReviewService>();
@@ -1144,9 +1155,39 @@ public sealed partial class MainWindow : Window
                 // Skip single-task IsLoading updates when multi-script mode is active
                 if (_viewModel.ActiveScriptCount > 0) return;
 
-                TaskProgressControl.IsProgressVisible = _viewModel.IsLoading ? Visibility.Visible : Visibility.Collapsed;
-                TaskProgressControl.CanCancel = _viewModel.IsLoading ? Visibility.Visible : Visibility.Collapsed;
-                TaskProgressControl.IsTaskRunning = _viewModel.IsLoading;
+                var taskProgressService = App.Services.GetService<ITaskProgressService>();
+                var isActuallyRunning = taskProgressService?.IsTaskRunning == true;
+
+                if (_viewModel.IsLoading)
+                {
+                    TaskProgressControl.IsProgressVisible = Visibility.Visible;
+                    if (isActuallyRunning)
+                    {
+                        TaskProgressControl.CanCancel = Visibility.Visible;
+                        TaskProgressControl.IsTaskRunning = true;
+                        TaskProgressControl.CancelCommand = _viewModel.CancelCommand;
+                        TaskProgressControl.CancelText = _viewModel.CancelButtonLabel;
+                    }
+                    else if (_viewModel.IsTaskFailed)
+                    {
+                        // Failure state: show Close button to dismiss the bar
+                        TaskProgressControl.CanCancel = Visibility.Visible;
+                        TaskProgressControl.IsTaskRunning = true;
+                        TaskProgressControl.CancelCommand = _viewModel.CloseFailedTaskCommand;
+                        TaskProgressControl.CancelText = _viewModel.CloseButtonLabel;
+                    }
+                    else
+                    {
+                        TaskProgressControl.CanCancel = Visibility.Collapsed;
+                        TaskProgressControl.IsTaskRunning = false;
+                    }
+                }
+                else
+                {
+                    TaskProgressControl.IsProgressVisible = Visibility.Collapsed;
+                    TaskProgressControl.CanCancel = Visibility.Collapsed;
+                    TaskProgressControl.IsTaskRunning = false;
+                }
             });
         }
         else if (e.PropertyName == nameof(MainWindowViewModel.AppName) && _viewModel != null)
@@ -1198,6 +1239,18 @@ public sealed partial class MainWindow : Window
               || e.PropertyName == nameof(MainWindowViewModel.InstallNowButtonText) && _viewModel != null)
         {
             DispatcherQueue.TryEnqueue(UpdateInfoBarActionButton);
+        }
+        else if (e.PropertyName == nameof(MainWindowViewModel.IsOtsInfoBarOpen) && _viewModel != null)
+        {
+            DispatcherQueue.TryEnqueue(() => OtsElevationInfoBar.IsOpen = _viewModel.IsOtsInfoBarOpen);
+        }
+        else if (e.PropertyName == nameof(MainWindowViewModel.OtsInfoBarTitle) && _viewModel != null)
+        {
+            DispatcherQueue.TryEnqueue(() => OtsElevationInfoBar.Title = _viewModel.OtsInfoBarTitle);
+        }
+        else if (e.PropertyName == nameof(MainWindowViewModel.OtsInfoBarMessage) && _viewModel != null)
+        {
+            DispatcherQueue.TryEnqueue(() => OtsElevationInfoBar.Message = _viewModel.OtsInfoBarMessage);
         }
         else if (e.PropertyName == nameof(MainWindowViewModel.IsWindowsFilterButtonEnabled) && _viewModel != null)
         {
@@ -1273,7 +1326,7 @@ public sealed partial class MainWindow : Window
 
     /// <summary>
     /// Routes multi-script progress updates to the correct TaskProgressControl.
-    /// Hides the control when its slot completes (Progress == 100).
+    /// Adds a 2-second delay before hiding a slot on completion.
     /// </summary>
     private void OnScriptProgressReceived(int slotIndex, TaskProgressDetail detail)
     {
@@ -1286,11 +1339,12 @@ public sealed partial class MainWindow : Window
         };
         if (control == null) return;
 
-        // Slot completed — hide this control only on intentional completion signal
+        // Slot completed — keep visible briefly so the user can see the result
         if (detail.IsCompletion)
         {
-            control.IsProgressVisible = Visibility.Collapsed;
             control.IsTaskRunning = false;
+            control.CanCancel = Visibility.Collapsed;
+            _ = HideControlAfterDelayAsync(control, 2000);
             return;
         }
 
@@ -1304,6 +1358,18 @@ public sealed partial class MainWindow : Window
             control.QueueNextItemName = !string.IsNullOrEmpty(detail.QueueNextItemName)
                 ? $"Next: {detail.QueueNextItemName}" : "";
         }
+    }
+
+    /// <summary>
+    /// Hides a TaskProgressControl after the specified delay.
+    /// </summary>
+    private async Task HideControlAfterDelayAsync(Features.Common.Controls.TaskProgressControl control, int delayMs)
+    {
+        await Task.Delay(delayMs);
+        DispatcherQueue.TryEnqueue(() =>
+        {
+            control.IsProgressVisible = Visibility.Collapsed;
+        });
     }
 
     /// <summary>
@@ -1370,6 +1436,14 @@ public sealed partial class MainWindow : Window
         {
             UpdateInfoBar.ActionButton = null;
         }
+    }
+
+    /// <summary>
+    /// Handles the OTS Elevation InfoBar Closed event.
+    /// </summary>
+    private void OtsElevationInfoBar_Closed(InfoBar sender, InfoBarClosedEventArgs args)
+    {
+        _viewModel?.DismissOtsInfoBar();
     }
 
     /// <summary>

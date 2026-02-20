@@ -13,6 +13,7 @@ namespace Winhance.Core.Features.Common.Services
         private StreamWriter? _logWriter;
         private readonly object _lockObject = new object();
         private IWindowsVersionService _versionService;
+        private IInteractiveUserService? _interactiveUserService;
 
         public event EventHandler<LogMessageEventArgs>? LogMessageGenerated;
 
@@ -29,6 +30,11 @@ namespace Winhance.Core.Features.Common.Services
         public void Initialize(IWindowsVersionService versionService)
         {
             _versionService = versionService;
+        }
+
+        public void SetInteractiveUserService(IInteractiveUserService interactiveUserService)
+        {
+            _interactiveUserService = interactiveUserService;
         }
 
         public void Log(LogLevel level, string message, Exception? exception = null)
@@ -83,7 +89,15 @@ namespace Winhance.Core.Features.Common.Services
                 // Write initial log header
                 LogInformation($"==== Winhance Log Started ====");
                 LogInformation($"Timestamp: {DateTime.Now}");
-                LogInformation($"User: {Environment.UserName}");
+                if (_interactiveUserService != null && _interactiveUserService.IsOtsElevation)
+                {
+                    LogInformation($"User: {_interactiveUserService.InteractiveUserName}");
+                    LogInformation($"Elevated User: {Environment.UserName}");
+                }
+                else
+                {
+                    LogInformation($"User: {Environment.UserName}");
+                }
                 LogInformation($"Machine: {Environment.MachineName}");
 
                 if (_versionService != null)

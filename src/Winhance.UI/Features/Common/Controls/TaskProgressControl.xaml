@@ -22,11 +22,12 @@
                     <RowDefinition Height="Auto"/>
                 </Grid.RowDefinitions>
 
-                <!-- Row 0: App Name | Last Terminal Line | Cancel Button -->
+                <!-- Row 0: App Name | Last Terminal Line | Details Button | Cancel Button -->
                 <Grid Grid.Row="0" Margin="0,0,0,8">
                     <Grid.ColumnDefinitions>
                         <ColumnDefinition Width="Auto"/>
                         <ColumnDefinition Width="*"/>
+                        <ColumnDefinition Width="Auto"/>
                         <ColumnDefinition Width="Auto"/>
                     </Grid.ColumnDefinitions>
 
@@ -38,20 +39,36 @@
                                VerticalAlignment="Center"
                                Margin="0,0,10,0"/>
 
-                    <Border Grid.Column="1"
+                    <Button Grid.Column="1"
+                            Command="{x:Bind ShowDetailsCommand, Mode=OneWay}"
+                            AutomationProperties.Name="Show task output details"
+                            HorizontalAlignment="Stretch"
+                            HorizontalContentAlignment="Left"
                             Background="{ThemeResource LayerFillColorDefaultBrush}"
                             CornerRadius="3"
                             Height="30"
-                            Margin="0,0,10,0">
-                        <TextBlock Text="{x:Bind LastTerminalLine, Mode=OneWay}"
-                                   FontFamily="Consolas, 'Courier New', monospace"
-                                   Foreground="{ThemeResource TextFillColorPrimaryBrush}"
-                                   VerticalAlignment="Center"
-                                   TextTrimming="CharacterEllipsis"
-                                   Margin="8,0"/>
-                    </Border>
+                            Margin="0,0,6,0"
+                            Padding="0"
+                            BorderThickness="0">
+                        <RichTextBlock x:Name="TerminalLineRichText"
+                                       FontFamily="Consolas, 'Courier New', monospace"
+                                       Foreground="{ThemeResource TextFillColorPrimaryBrush}"
+                                       VerticalAlignment="Center"
+                                       TextTrimming="CharacterEllipsis"
+                                       MaxLines="1"
+                                       Margin="8,0"/>
+                    </Button>
 
                     <Button Grid.Column="2"
+                            Command="{x:Bind ShowDetailsCommand, Mode=OneWay}"
+                            AutomationProperties.Name="View task log"
+                            VerticalAlignment="Center"
+                            Padding="6,4"
+                            Margin="0,0,6,0">
+                        <fluentIcons:SymbolIcon Symbol="Info" IconVariant="Regular" FontSize="14"/>
+                    </Button>
+
+                    <Button Grid.Column="3"
                             Command="{x:Bind CancelCommand, Mode=OneWay}"
                             IsEnabled="{x:Bind IsTaskRunning, Mode=OneWay}"
                             Visibility="{x:Bind CanCancel, Mode=OneWay}"

@@ -64,6 +64,8 @@ namespace Winhance.Core.Features.Common.Interfaces
             string continueButtonText = "Continue",
             string cancelButtonText = "Cancel");
 
+        Task ShowTaskOutputDialogAsync(string title, IReadOnlyList<string> logMessages);
+
         void ShowLocalizedDialog(
             string titleKey,
             string messageKey,

@@ -28,6 +28,7 @@ public partial class WindowsAppsViewModel : BaseViewModel
     private readonly IInternetConnectivityService _connectivityService;
     private readonly IDispatcherService _dispatcherService;
     private readonly IWinGetService _winGetService;
+    private readonly IAppStatusDiscoveryService _appStatusDiscoveryService;
 
     public WindowsAppsViewModel(
         IWindowsAppsService windowsAppsService,
@@ -38,7 +39,8 @@ public partial class WindowsAppsViewModel : BaseViewModel
         ILocalizationService localizationService,
         IInternetConnectivityService connectivityService,
         IDispatcherService dispatcherService,
-        IWinGetService winGetService)
+        IWinGetService winGetService,
+        IAppStatusDiscoveryService appStatusDiscoveryService)
     {
         _windowsAppsService = windowsAppsService;
         _appOperationService = appOperationService;
@@ -49,6 +51,7 @@ public partial class WindowsAppsViewModel : BaseViewModel
         _connectivityService = connectivityService;
         _dispatcherService = dispatcherService;
         _winGetService = winGetService;
+        _appStatusDiscoveryService = appStatusDiscoveryService;
 
         _localizationService.LanguageChanged += OnLanguageChanged;
         _winGetService.WinGetInstalled += OnWinGetInstalled;
@@ -322,6 +325,7 @@ public partial class WindowsAppsViewModel : BaseViewModel
 
         try
         {
+            _appStatusDiscoveryService.InvalidateWinGetCache();
             await CheckInstallationStatusAsync();
             NotifyCardViewProperties();
             StatusText = $"Refreshed status for {Items.Count} items";
@@ -344,6 +348,7 @@ public partial class WindowsAppsViewModel : BaseViewModel
             if (IsInitialized)
             {
                 _logService.LogInformation("WinGet installed — refreshing Windows Apps installation status");
+                _appStatusDiscoveryService.InvalidateWinGetCache();
                 await CheckInstallationStatusAsync();
                 NotifyCardViewProperties();
             }
@@ -518,6 +523,7 @@ public partial class WindowsAppsViewModel : BaseViewModel
 
     private async Task RefreshAfterOperationAsync()
     {
+        _appStatusDiscoveryService.InvalidateWinGetCache();
         await CheckInstallationStatusAsync();
         NotifyCardViewProperties();
         ClearSelections();

@@ -7,6 +7,7 @@ using System.Threading.Tasks;
 using Microsoft.Win32;
 using Winhance.Core.Features.Common.Interfaces;
 using Winhance.Core.Features.Common.Models;
+using Winhance.Core.Features.SoftwareApps.Enums;
 using Winhance.Core.Features.SoftwareApps.Interfaces;
 using Winhance.Core.Features.SoftwareApps.Models;
 
@@ -14,7 +15,10 @@ namespace Winhance.Infrastructure.Features.SoftwareApps.Services;
 
 public class AppUninstallService(
     IWinGetService winGetService,
-    ILogService logService) : IAppUninstallService
+    IChocolateyService chocolateyService,
+    ILogService logService,
+    IInteractiveUserService interactiveUserService,
+    ITaskProgressService taskProgressService) : IAppUninstallService
 {
     public async Task<OperationResult<bool>> UninstallAsync(
         ItemDefinition item,
@@ -26,6 +30,7 @@ public class AppUninstallService(
         return method switch
         {
             UninstallMethod.WinGet => await UninstallViaWinGetAsync(item, cancellationToken),
+            UninstallMethod.Chocolatey => await UninstallViaChocolateyAsync(item, cancellationToken),
             UninstallMethod.Registry => await UninstallViaRegistryAsync(item, cancellationToken),
             _ => OperationResult<bool>.Failed($"No uninstall method available for {item.Name}")
         };
@@ -33,10 +38,33 @@ public class AppUninstallService(
 
     public async Task<UninstallMethod> DetermineUninstallMethodAsync(ItemDefinition item)
     {
+        // Use the detection source to pick the most appropriate uninstall method.
+        // If the app was detected via Chocolatey, prefer Chocolatey uninstall
+        // (WinGet won't know about Chocolatey-installed packages).
+        switch (item.DetectedVia)
+        {
+            case DetectionSource.Chocolatey when !string.IsNullOrEmpty(item.ChocoPackageId):
+                return UninstallMethod.Chocolatey;
+
+            case DetectionSource.Registry:
+                var (regFound, _) = await GetUninstallStringAsync(item.Name);
+                if (regFound)
+                    return UninstallMethod.Registry;
+                break;
+        }
+
+        // Default: prefer WinGet if available, then Registry
         if (!string.IsNullOrEmpty(item.MsStoreId) || (item.WinGetPackageId != null && item.WinGetPackageId.Any()))
             return UninstallMethod.WinGet;
 
-        var (found, _) = await GetUninstallStringAsync(item.Name);
+        if (!string.IsNullOrEmpty(item.ChocoPackageId))
+        {
+            var chocoIds = await chocolateyService.GetInstalledPackageIdsAsync();
+            if (chocoIds.Contains(item.ChocoPackageId))
+                return UninstallMethod.Chocolatey;
+        }
+
+        var (found, _2) = await GetUninstallStringAsync(item.Name);
         if (found)
             return UninstallMethod.Registry;
 
@@ -65,6 +93,15 @@ public class AppUninstallService(
 
             if (!success)
             {
+                // Fallback: try Chocolatey if available, then registry
+                if (!string.IsNullOrEmpty(item.ChocoPackageId))
+                {
+                    logService.LogWarning($"WinGet uninstall failed for {item.Name}, attempting Chocolatey fallback");
+                    var chocoResult = await UninstallViaChocolateyAsync(item, cancellationToken);
+                    if (chocoResult.Success)
+                        return chocoResult;
+                }
+
                 logService.LogWarning($"WinGet uninstall failed for {item.Name}, attempting registry fallback");
                 return await UninstallViaRegistryAsync(item, cancellationToken);
             }
@@ -78,6 +115,40 @@ public class AppUninstallService(
         catch (Exception ex)
         {
             logService.LogError($"WinGet uninstall error for {item.Name}: {ex.Message}", ex);
+            return await UninstallViaRegistryAsync(item, cancellationToken);
+        }
+    }
+
+    private async Task<OperationResult<bool>> UninstallViaChocolateyAsync(ItemDefinition item, CancellationToken cancellationToken)
+    {
+        try
+        {
+            if (string.IsNullOrEmpty(item.ChocoPackageId))
+                return OperationResult<bool>.Failed($"No Chocolatey package ID for {item.Name}");
+
+            if (!await chocolateyService.IsChocolateyInstalledAsync(cancellationToken))
+            {
+                logService.LogWarning($"Chocolatey not available for uninstalling {item.Name}");
+                return OperationResult<bool>.Failed($"Chocolatey is not installed");
+            }
+
+            var success = await chocolateyService.UninstallPackageAsync(item.ChocoPackageId, item.Name, cancellationToken);
+
+            if (!success)
+            {
+                logService.LogWarning($"Chocolatey uninstall failed for {item.Name}, attempting registry fallback");
+                return await UninstallViaRegistryAsync(item, cancellationToken);
+            }
+
+            return OperationResult<bool>.Succeeded(true);
+        }
+        catch (OperationCanceledException)
+        {
+            return OperationResult<bool>.Cancelled("Uninstall cancelled");
+        }
+        catch (Exception ex)
+        {
+            logService.LogError($"Chocolatey uninstall error for {item.Name}: {ex.Message}", ex);
             return await UninstallViaRegistryAsync(item, cancellationToken);
         }
     }
@@ -111,6 +182,7 @@ public class AppUninstallService(
             }
 
             logService.LogInformation($"Uninstall process for {item.Name} completed successfully");
+            taskProgressService.UpdateProgress(100, $"Uninstall process for {item.Name} completed successfully");
 
             return OperationResult<bool>.Succeeded(true);
         }
@@ -129,11 +201,28 @@ public class AppUninstallService(
     {
         return await Task.Run(() =>
         {
+            // OTS: redirect HKCU to HKU\{interactive user SID} so we read
+            // the standard user's uninstall keys, not the admin's.
+            var hkcuUninstallPath = @"SOFTWARE\Microsoft\Windows\CurrentVersion\Uninstall";
+            RegistryKey hkcuHive;
+            string hkcuPath;
+
+            if (interactiveUserService.IsOtsElevation && interactiveUserService.InteractiveUserSid != null)
+            {
+                hkcuHive = Registry.Users;
+                hkcuPath = $@"{interactiveUserService.InteractiveUserSid}\{hkcuUninstallPath}";
+            }
+            else
+            {
+                hkcuHive = Registry.CurrentUser;
+                hkcuPath = hkcuUninstallPath;
+            }
+
             var registryPaths = new[]
             {
                 (Registry.LocalMachine, @"SOFTWARE\Microsoft\Windows\CurrentVersion\Uninstall"),
                 (Registry.LocalMachine, @"SOFTWARE\WOW6432Node\Microsoft\Windows\CurrentVersion\Uninstall"),
-                (Registry.CurrentUser, @"SOFTWARE\Microsoft\Windows\CurrentVersion\Uninstall")
+                (hkcuHive, hkcuPath)
             };
 
             foreach (var (hive, path) in registryPaths)

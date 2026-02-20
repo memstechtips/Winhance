@@ -45,6 +45,7 @@
   "Dialog_Warning": "Warning",
   "Dialog_Error": "Error",
   "Dialog_Confirmation": "Confirmation",
+  "Dialog_TerminalOutput_Title": "Terminal Output",
   "Dialog_ConfirmInstallation": "Confirm Installation",
   "Dialog_ConfirmRemoval": "Confirm Removal",
   "Dialog_ConfirmOperation": "Confirm {0}",
@@ -149,6 +150,7 @@
   "Button_Yes": "Yes",
   "Button_No": "No",
   "Button_Close": "Close",
+  "Button_CopyToClipboard": "Copy to Clipboard",
   "Button_Apply": "Apply",
   "Button_Refresh": "Refresh",
   "Button_Help": "Help",
@@ -1503,6 +1505,8 @@
   "Progress_Choco_Installed": "Chocolatey installed successfully",
   "Progress_Choco_InstallingPackage": "Installing '{0}' via Chocolatey...",
   "Progress_Choco_FallbackAttempt": "WinGet failed, trying Chocolatey for '{0}'...",
+  "Progress_Choco_UninstallingPackage": "Uninstalling '{0}' via Chocolatey...",
+  "Progress_UninstalledSuccess": "Successfully uninstalled {0}",
   "TechnicalDetails_Toggle": "Technical Details",
   "TechnicalDetails_OpenRegedit": "Open in Registry Editor",
   "TechnicalDetails_ToggleTooltip": "Toggle Technical Details",
@@ -1518,5 +1522,8 @@
   "Accessibility_ApplyingSetting": "Applying setting",
   "Accessibility_Selected": "Selected",
   "Accessibility_Checked": "Checked",
-  "Accessibility_Unchecked": "Unchecked"
+  "Accessibility_Unchecked": "Unchecked",
+  "Progress_ClickToSeeDetails": "Click to see details",
+  "InfoBar_OtsElevation_Title": "Running as a different user",
+  "InfoBar_OtsElevation_Message": "This app was elevated with a different account's credentials. Settings will still be applied to the logged-in user ({0}). This message is informational only."
 }

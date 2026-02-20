@@ -3,6 +3,7 @@ using System.IO;
 using System.Linq;
 using System.Threading;
 using System.Threading.Tasks;
+using Winhance.Core.Features.Common.Interfaces;
 using Winhance.Core.Features.Common.Models;
 using Winhance.Core.Features.SoftwareApps.Verification;
 using Winhance.Infrastructure.Features.SoftwareApps.Services.WinGet.Interfaces;
@@ -14,25 +15,28 @@ namespace Winhance.Infrastructure.Features.SoftwareApps.Services.WinGet.Verifica
     /// </summary>
     public class FileSystemVerificationMethod : VerificationMethodBase, IVerificationMethod
     {
-        private static readonly string[] CommonInstallPaths = new[]
-        {
-            Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.ProgramFiles)),
-            Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.ProgramFilesX86)),
-            Path.Combine(
-                Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData),
-                "Programs"
-            ),
-            Path.Combine(
-                Environment.GetFolderPath(Environment.SpecialFolder.CommonApplicationData),
-                @"Microsoft\Windows\Start Menu\Programs"
-            ),
-        };
+        private readonly string[] _commonInstallPaths;
 
         /// <summary>
         /// Initializes a new instance of the <see cref="FileSystemVerificationMethod"/> class.
         /// </summary>
-        public FileSystemVerificationMethod()
-            : base("FileSystem", priority: 20) { }
+        public FileSystemVerificationMethod(IInteractiveUserService interactiveUserService)
+            : base("FileSystem", priority: 20)
+        {
+            _commonInstallPaths = new[]
+            {
+                Environment.GetFolderPath(Environment.SpecialFolder.ProgramFiles),
+                Environment.GetFolderPath(Environment.SpecialFolder.ProgramFilesX86),
+                Path.Combine(
+                    interactiveUserService.GetInteractiveUserFolderPath(Environment.SpecialFolder.LocalApplicationData),
+                    "Programs"
+                ),
+                Path.Combine(
+                    Environment.GetFolderPath(Environment.SpecialFolder.CommonApplicationData),
+                    @"Microsoft\Windows\Start Menu\Programs"
+                ),
+            };
+        }
 
         /// <inheritdoc/>
         protected override async Task<VerificationResult> VerifyPresenceAsync(
@@ -81,7 +85,7 @@ namespace Winhance.Infrastructure.Features.SoftwareApps.Services.WinGet.Verifica
                         }
 
                         // Second try: Check common installation directories
-                        foreach (var basePath in CommonInstallPaths)
+                        foreach (var basePath in _commonInstallPaths)
                         {
                             if (!Directory.Exists(basePath))
                                 continue;

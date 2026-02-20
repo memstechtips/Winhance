@@ -19,5 +19,6 @@ namespace Winhance.Core.Features.Common.Models
         public int ScriptSlotIndex { get; set; } = -1;  // -1 = single-mode (existing behavior)
         public int ScriptSlotCount { get; set; }         // 0 = single-mode
         public bool IsCompletion { get; set; }           // true = intentional task completion signal
+        public bool IsProgressIndicator { get; set; }   // true = replaces previous progress line (like \r in a terminal)
     }
 }

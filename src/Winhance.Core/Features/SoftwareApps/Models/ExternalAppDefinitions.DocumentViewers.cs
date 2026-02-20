@@ -41,7 +41,7 @@ namespace Winhance.Core.Features.SoftwareApps.Models
                             Name = "Foxit Reader",
                             Description = "Lightweight PDF reader with advanced features",
                             GroupName = "Document Viewers",
-                            WinGetPackageId = ["XPFCG5NRKXQPKT"], // Changed to use MS Store instead of WinGet due to download issues
+                            MsStoreId = "XPFCG5NRKXQPKT", // MS Store package
                             ChocoPackageId = "foxitreader",
                             WebsiteUrl = "https://www.foxit.com/pdf-reader/"
                         },
@@ -71,7 +71,7 @@ namespace Winhance.Core.Features.SoftwareApps.Models
                             Name = "Adobe Acrobat Reader DC",
                             Description = "PDF reader and editor",
                             GroupName = "Document Viewers",
-                            WinGetPackageId = ["XPDP273C0XHQH2"],
+                            MsStoreId = "XPDP273C0XHQH2", // MS Store package
                             ChocoPackageId = "adobereader",
                             WebsiteUrl = "https://www.adobe.com/acrobat/pdf-reader.html"
                         },

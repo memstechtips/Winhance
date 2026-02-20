@@ -32,9 +32,34 @@ public class BloatRemovalService(
             Directory.CreateDirectory(ScriptPaths.ScriptsDirectory);
             await File.WriteAllTextAsync(scriptPath, scriptContent, ct);
 
+            // Emit metadata header for the task output dialog
+            var startTime = DateTime.Now;
+            progress?.Report(new TaskProgressDetail
+            {
+                TerminalOutput = $"Command: powershell.exe -ExecutionPolicy Bypass -NoProfile -File \"{scriptPath}\""
+            });
+            progress?.Report(new TaskProgressDetail
+            {
+                TerminalOutput = $"Start Time: \"{startTime:yyyy/MM/dd HH:mm:ss}\""
+            });
+            progress?.Report(new TaskProgressDetail { TerminalOutput = "---" });
+
             logService.LogInformation($"Executing dedicated removal script for '{app.Name}' from {scriptPath}...");
             await PowerShellRunner.RunScriptFileAsync(scriptPath, progress: progress, ct: ct);
             logService.LogInformation($"Dedicated removal script for '{app.Name}' completed successfully");
+
+            // Emit metadata footer
+            var endTime = DateTime.Now;
+            progress?.Report(new TaskProgressDetail { TerminalOutput = "---" });
+            progress?.Report(new TaskProgressDetail
+            {
+                TerminalOutput = $"End Time: \"{endTime:yyyy/MM/dd HH:mm:ss}\""
+            });
+            progress?.Report(new TaskProgressDetail
+            {
+                TerminalOutput = "Process return value: \"0\" (0x00000000)"
+            });
+
             return true;
         }
         catch (OperationCanceledException)
@@ -44,6 +69,18 @@ public class BloatRemovalService(
         }
         catch (InvalidOperationException ex)
         {
+            // Emit metadata footer with non-zero exit code
+            var endTime = DateTime.Now;
+            progress?.Report(new TaskProgressDetail { TerminalOutput = "---" });
+            progress?.Report(new TaskProgressDetail
+            {
+                TerminalOutput = $"End Time: \"{endTime:yyyy/MM/dd HH:mm:ss}\""
+            });
+            progress?.Report(new TaskProgressDetail
+            {
+                TerminalOutput = $"Process return value: \"{ex.Message}\""
+            });
+
             logService.LogWarning($"Dedicated script for '{app.Name}' completed with warnings: {ex.Message}");
             return true;
         }
@@ -85,9 +122,34 @@ public class BloatRemovalService(
 
             await File.WriteAllTextAsync(scriptPath, scriptContent, ct);
 
+            // Emit metadata header for the task output dialog
+            var startTime = DateTime.Now;
+            progress?.Report(new TaskProgressDetail
+            {
+                TerminalOutput = $"Command: powershell.exe -ExecutionPolicy Bypass -NoProfile -File \"{scriptPath}\""
+            });
+            progress?.Report(new TaskProgressDetail
+            {
+                TerminalOutput = $"Start Time: \"{startTime:yyyy/MM/dd HH:mm:ss}\""
+            });
+            progress?.Report(new TaskProgressDetail { TerminalOutput = "---" });
+
             logService.LogInformation($"Executing BloatRemoval script from {scriptPath} ({packages.Count} packages, {capabilities.Count} capabilities, {optionalFeatures.Count} features, {specialApps.Count} special)...");
             await PowerShellRunner.RunScriptFileAsync(scriptPath, progress: progress, ct: ct);
             logService.LogInformation("BloatRemoval script completed successfully");
+
+            // Emit metadata footer
+            var endTime = DateTime.Now;
+            progress?.Report(new TaskProgressDetail { TerminalOutput = "---" });
+            progress?.Report(new TaskProgressDetail
+            {
+                TerminalOutput = $"End Time: \"{endTime:yyyy/MM/dd HH:mm:ss}\""
+            });
+            progress?.Report(new TaskProgressDetail
+            {
+                TerminalOutput = "Process return value: \"0\" (0x00000000)"
+            });
+
             return true;
         }
         catch (OperationCanceledException)
@@ -97,6 +159,18 @@ public class BloatRemovalService(
         }
         catch (InvalidOperationException ex)
         {
+            // Emit metadata footer with non-zero exit code
+            var endTime = DateTime.Now;
+            progress?.Report(new TaskProgressDetail { TerminalOutput = "---" });
+            progress?.Report(new TaskProgressDetail
+            {
+                TerminalOutput = $"End Time: \"{endTime:yyyy/MM/dd HH:mm:ss}\""
+            });
+            progress?.Report(new TaskProgressDetail
+            {
+                TerminalOutput = $"Process return value: \"{ex.Message}\""
+            });
+
             logService.LogWarning($"BloatRemoval script completed with warnings: {ex.Message}");
             return true;
         }

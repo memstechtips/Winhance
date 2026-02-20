@@ -21,7 +21,8 @@ public class ExternalAppsService(
     IDirectDownloadService directDownloadService,
     ITaskProgressService taskProgressService,
     IChocolateyService chocolateyService,
-    IChocolateyConsentService chocolateyConsentService) : IExternalAppsService
+    IChocolateyConsentService chocolateyConsentService,
+    IInteractiveUserService interactiveUserService) : IExternalAppsService
 {
     public string DomainName => FeatureIds.ExternalApps;
 
@@ -155,7 +156,7 @@ public class ExternalAppsService(
             }
 
             var startMenuFolder = Path.Combine(
-                Environment.GetFolderPath(Environment.SpecialFolder.Programs),
+                interactiveUserService.GetInteractiveUserFolderPath(Environment.SpecialFolder.Programs),
                 item.Name);
 
             Directory.CreateDirectory(startMenuFolder);
@@ -204,7 +205,7 @@ public class ExternalAppsService(
             }
 
             var startMenuFolder = Path.Combine(
-                Environment.GetFolderPath(Environment.SpecialFolder.Programs),
+                interactiveUserService.GetInteractiveUserFolderPath(Environment.SpecialFolder.Programs),
                 item.Name);
 
             Directory.CreateDirectory(startMenuFolder);
@@ -224,12 +225,12 @@ public class ExternalAppsService(
         }
     }
 
-    private static string? FindChocoPackageDirectory(string chocoPackageId)
+    private string? FindChocoPackageDirectory(string chocoPackageId)
     {
         var searchPaths = new[]
         {
             @"C:\ProgramData\chocolatey\lib",
-            Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData),
+            Path.Combine(interactiveUserService.GetInteractiveUserFolderPath(Environment.SpecialFolder.LocalApplicationData),
                 "UniGetUI", "Chocolatey", "lib")
         };
 
@@ -253,13 +254,21 @@ public class ExternalAppsService(
 
     private string? FindPortableAppDirectory(ItemDefinition item)
     {
-        var searchPaths = new[]
+        var searchPaths = new List<string>
         {
-            Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData),
+            Path.Combine(interactiveUserService.GetInteractiveUserFolderPath(Environment.SpecialFolder.LocalApplicationData),
                 "Microsoft", "WinGet", "Packages"),
             @"C:\Program Files\WinGet\Packages",
             @"C:\Program Files (x86)\WinGet\Packages"
         };
+
+        // Under OTS, also search the process user's (admin) AppData since WinGet runs as admin
+        if (interactiveUserService.IsOtsElevation)
+        {
+            searchPaths.Add(Path.Combine(
+                Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData),
+                "Microsoft", "WinGet", "Packages"));
+        }
 
         foreach (var basePath in searchPaths)
         {
@@ -340,7 +349,7 @@ $Shortcut.Save()
         try
         {
             var startMenuFolder = Path.Combine(
-                Environment.GetFolderPath(Environment.SpecialFolder.Programs),
+                interactiveUserService.GetInteractiveUserFolderPath(Environment.SpecialFolder.Programs),
                 appName);
 
             if (Directory.Exists(startMenuFolder))

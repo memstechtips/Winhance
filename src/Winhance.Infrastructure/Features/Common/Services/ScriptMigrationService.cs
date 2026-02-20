@@ -12,6 +12,7 @@ namespace Winhance.Infrastructure.Features.Common.Services
         private readonly ILogService _logService;
         private readonly IScheduledTaskService _scheduledTaskService;
         private readonly IUserPreferencesService _prefsService;
+        private readonly IInteractiveUserService _interactiveUserService;
 
         private static readonly string[] TaskNames = { "BloatRemoval", "EdgeRemoval", "OneDriveRemoval" };
         private static readonly string[] ScriptNames = { "BloatRemoval.ps1", "EdgeRemoval.ps1", "OneDriveRemoval.ps1" };
@@ -19,11 +20,13 @@ namespace Winhance.Infrastructure.Features.Common.Services
         public ScriptMigrationService(
             ILogService logService,
             IScheduledTaskService scheduledTaskService,
-            IUserPreferencesService prefsService)
+            IUserPreferencesService prefsService,
+            IInteractiveUserService interactiveUserService)
         {
             _logService = logService;
             _scheduledTaskService = scheduledTaskService;
             _prefsService = prefsService;
+            _interactiveUserService = interactiveUserService;
         }
 
         public async Task<ScriptMigrationResult> MigrateFromOldPathsAsync()
@@ -71,7 +74,7 @@ namespace Winhance.Infrastructure.Features.Common.Services
 
         private string GetOldScriptsPath()
         {
-            var localAppData = Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData);
+            var localAppData = _interactiveUserService.GetInteractiveUserFolderPath(Environment.SpecialFolder.LocalApplicationData);
             return Path.Combine(localAppData, "Winhance", "Scripts");
         }
 

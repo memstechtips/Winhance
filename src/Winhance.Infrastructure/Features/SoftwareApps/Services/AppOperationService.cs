@@ -412,12 +412,12 @@ public class AppOperationService(
 
             logService.LogInformation($"[UninstallAppsParallel] ScriptApps={scriptApps.Count}, RegularApps={regularApps.Count}");
 
-            // Step 2: Build slot names
+            // Step 2: Build slot names (script-style names used as terminal output prefixes)
             var slotNames = new List<string>();
             foreach (var app in scriptApps)
-                slotNames.Add(app.Name);
+                slotNames.Add(GetScriptSlotName(app));
             if (regularApps.Count > 0)
-                slotNames.Add("Removing Apps");
+                slotNames.Add("BloatRemoval");
 
             // Step 3: Start multi-script task
             var cts = taskProgressService.StartMultiScriptTask(slotNames.ToArray());
@@ -539,6 +539,13 @@ public class AppOperationService(
             _ => throw new NotSupportedException($"No dedicated script defined for {appId}")
         };
     }
+
+    private static string GetScriptSlotName(ItemDefinition app) => app.Id switch
+    {
+        "windows-app-edge" => "EdgeRemoval",
+        "windows-app-onedrive" => "OneDriveRemoval",
+        _ => app.Name
+    };
 
     private async Task CleanupOpenWebSearchAsync()
     {

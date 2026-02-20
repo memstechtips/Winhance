@@ -28,7 +28,7 @@ namespace Winhance.Core.Features.SoftwareApps.Models
                             Name = "Wise Registry Cleaner",
                             Description = "Registry cleaning and optimization tool",
                             GroupName = "Other Utilities",
-                            WinGetPackageId = ["XPDLS1XBTXVPP4"],
+                            MsStoreId = "XPDLS1XBTXVPP4", // MS Store package
                             WebsiteUrl = "https://www.wisecleaner.com/wise-registry-cleaner.html"
                         },
                         new ItemDefinition

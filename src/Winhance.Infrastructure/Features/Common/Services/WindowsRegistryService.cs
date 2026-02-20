@@ -11,7 +11,7 @@ using Winhance.Core.Features.Common.Models;
 namespace Winhance.Infrastructure.Features.Common.Services
 {
     [SupportedOSPlatform("windows")]
-    public class WindowsRegistryService(ILogService logService) : IWindowsRegistryService
+    public class WindowsRegistryService(ILogService logService, IInteractiveUserService interactiveUserService) : IWindowsRegistryService
     {
         public bool CreateKey(string keyPath)
         {
@@ -537,13 +537,24 @@ namespace Winhance.Infrastructure.Features.Common.Services
             return string.Join(";", pairs.Select(p => $"{p.Key}={p.Value}")) + ";";
         }
 
-        private static (RegistryKey rootKey, string subKeyPath) ParseKeyPath(string keyPath)
+        private (RegistryKey rootKey, string subKeyPath) ParseKeyPath(string keyPath)
         {
             var parts = keyPath.Split('\\', 2);
             if (parts.Length < 2)
                 throw new ArgumentException($"Invalid registry key path: {keyPath}");
 
-            var rootKey = parts[0].ToUpperInvariant() switch
+            var hive = parts[0].ToUpperInvariant();
+
+            // OTS elevation: redirect HKCU to HKU\{interactive user SID}
+            if ((hive == "HKEY_CURRENT_USER" || hive == "HKCU")
+                && interactiveUserService.IsOtsElevation
+                && interactiveUserService.InteractiveUserSid != null)
+            {
+                var redirectedSubKey = $"{interactiveUserService.InteractiveUserSid}\\{parts[1]}";
+                return (Registry.Users, redirectedSubKey);
+            }
+
+            var rootKey = hive switch
             {
                 "HKEY_CURRENT_USER" or "HKCU" => Registry.CurrentUser,
                 "HKEY_LOCAL_MACHINE" or "HKLM" => Registry.LocalMachine,
@@ -598,10 +609,20 @@ namespace Winhance.Infrastructure.Features.Common.Services
             return results;
         }
 
-        private static RegistryKey GetHiveFromPath(string keyPath)
+        private RegistryKey GetHiveFromPath(string keyPath)
         {
             var parts = keyPath.Split('\\', 2);
-            return parts[0].ToUpperInvariant() switch
+            var hive = parts[0].ToUpperInvariant();
+
+            // OTS: redirect HKCU to HKU
+            if ((hive == "HKEY_CURRENT_USER" || hive == "HKCU")
+                && interactiveUserService.IsOtsElevation
+                && interactiveUserService.InteractiveUserSid != null)
+            {
+                return Registry.Users;
+            }
+
+            return hive switch
             {
                 "HKEY_CURRENT_USER" or "HKCU" => Registry.CurrentUser,
                 "HKEY_LOCAL_MACHINE" or "HKLM" => Registry.LocalMachine,

@@ -29,6 +29,7 @@ public partial class SettingItemViewModel : BaseViewModel
     private readonly IDialogService _dialogService;
     private readonly ILocalizationService _localizationService;
     private readonly IUserPreferencesService? _userPreferencesService;
+    private readonly IInteractiveUserService? _interactiveUserService;
     private readonly IEventBus? _eventBus;
     private ISubscriptionToken? _tooltipUpdatedSubscription;
     private bool _isUpdatingFromEvent;
@@ -285,7 +286,8 @@ public partial class SettingItemViewModel : BaseViewModel
         IDialogService dialogService,
         ILocalizationService localizationService,
         IEventBus? eventBus = null,
-        IUserPreferencesService? userPreferencesService = null)
+        IUserPreferencesService? userPreferencesService = null,
+        IInteractiveUserService? interactiveUserService = null)
     {
         _settingApplicationService = settingApplicationService;
         _logService = logService;
@@ -294,6 +296,7 @@ public partial class SettingItemViewModel : BaseViewModel
         _localizationService = localizationService;
         _eventBus = eventBus;
         _userPreferencesService = userPreferencesService;
+        _interactiveUserService = interactiveUserService;
 
         ExecuteActionCommand = new AsyncRelayCommand(HandleActionAsync);
         UnlockCommand = new AsyncRelayCommand(HandleUnlockAsync);
@@ -898,61 +901,80 @@ public partial class SettingItemViewModel : BaseViewModel
 
     private void UpdateTechnicalDetails(SettingTooltipData tooltipData)
     {
-        TechnicalDetails.Clear();
-
-        // Registry rows
-        foreach (var kvp in tooltipData.IndividualRegistryValues)
+        try
         {
-            var reg = kvp.Key;
-            TechnicalDetails.Add(new TechnicalDetailRow
-            {
-                RowType = DetailRowType.Registry,
-                RegistryPath = reg.KeyPath,
-                ValueName = reg.ValueName ?? "(Default)",
-                ValueType = reg.ValueType.ToString(),
-                CurrentValue = kvp.Value ?? "(not set)",
-                RecommendedValue = reg.RecommendedValue?.ToString() ?? "",
-                OpenRegeditCommand = OpenRegeditCommand,
-                RegeditIconSource = RegeditIconProvider.CachedIcon,
-                CanOpenRegedit = RegeditLauncher.KeyExists(reg.KeyPath)
-            });
-        }
+            TechnicalDetails.Clear();
 
-        // Scheduled task rows
-        foreach (var task in tooltipData.ScheduledTaskSettings)
+            // Registry rows
+            foreach (var kvp in tooltipData.IndividualRegistryValues)
+            {
+                var reg = kvp.Key;
+                var keyExists = false;
+                try
+                {
+                    keyExists = RegeditLauncher.KeyExists(reg.KeyPath, _interactiveUserService);
+                }
+                catch (Exception kex)
+                {
+                    _logService.Log(LogLevel.Warning, $"[TechnicalDetails] KeyExists failed for '{reg.KeyPath}': {kex.GetType().Name}: {kex.Message}");
+                }
+
+                _logService.Log(LogLevel.Debug, $"[TechnicalDetails] {reg.KeyPath} → KeyExists={keyExists}, Value='{kvp.Value ?? "(not set)"}'");
+
+                TechnicalDetails.Add(new TechnicalDetailRow
+                {
+                    RowType = DetailRowType.Registry,
+                    RegistryPath = reg.KeyPath,
+                    ValueName = reg.ValueName ?? "(Default)",
+                    ValueType = reg.ValueType.ToString(),
+                    CurrentValue = kvp.Value ?? "(not set)",
+                    RecommendedValue = reg.RecommendedValue?.ToString() ?? "",
+                    OpenRegeditCommand = OpenRegeditCommand,
+                    RegeditIconSource = RegeditIconProvider.CachedIcon,
+                    CanOpenRegedit = keyExists
+                });
+            }
+
+            // Scheduled task rows
+            foreach (var task in tooltipData.ScheduledTaskSettings)
+            {
+                TechnicalDetails.Add(new TechnicalDetailRow
+                {
+                    RowType = DetailRowType.ScheduledTask,
+                    TaskPath = task.TaskPath,
+                    RecommendedState = task.RecommendedState == true ? "Enabled" : "Disabled"
+                });
+            }
+
+            // Power config rows
+            foreach (var pcfg in tooltipData.PowerCfgSettings)
+            {
+                TechnicalDetails.Add(new TechnicalDetailRow
+                {
+                    RowType = DetailRowType.PowerConfig,
+                    SubgroupGuid = pcfg.SubgroupGuid,
+                    SettingGuid = pcfg.SettingGuid,
+                    SubgroupAlias = pcfg.SubgroupGUIDAlias ?? "",
+                    SettingAlias = pcfg.SettingGUIDAlias,
+                    PowerUnits = pcfg.Units ?? "",
+                    RecommendedAC = pcfg.RecommendedValueAC?.ToString() ?? "",
+                    RecommendedDC = pcfg.RecommendedValueDC?.ToString() ?? ""
+                });
+            }
+
+            OnPropertyChanged(nameof(HasTechnicalDetails));
+            OnPropertyChanged(nameof(ShowTechnicalDetailsBar));
+        }
+        catch (Exception ex)
         {
-            TechnicalDetails.Add(new TechnicalDetailRow
-            {
-                RowType = DetailRowType.ScheduledTask,
-                TaskPath = task.TaskPath,
-                RecommendedState = task.RecommendedState == true ? "Enabled" : "Disabled"
-            });
+            _logService.Log(LogLevel.Error, $"[TechnicalDetails] UpdateTechnicalDetails failed for '{SettingId}': {ex.GetType().Name}: {ex.Message}\n{ex.StackTrace}");
         }
-
-        // Power config rows
-        foreach (var pcfg in tooltipData.PowerCfgSettings)
-        {
-            TechnicalDetails.Add(new TechnicalDetailRow
-            {
-                RowType = DetailRowType.PowerConfig,
-                SubgroupGuid = pcfg.SubgroupGuid,
-                SettingGuid = pcfg.SettingGuid,
-                SubgroupAlias = pcfg.SubgroupGUIDAlias ?? "",
-                SettingAlias = pcfg.SettingGUIDAlias,
-                PowerUnits = pcfg.Units ?? "",
-                RecommendedAC = pcfg.RecommendedValueAC?.ToString() ?? "",
-                RecommendedDC = pcfg.RecommendedValueDC?.ToString() ?? ""
-            });
-        }
-
-        OnPropertyChanged(nameof(HasTechnicalDetails));
-        OnPropertyChanged(nameof(ShowTechnicalDetailsBar));
     }
 
     private void OpenRegeditAtPath(string? path)
     {
         if (!string.IsNullOrEmpty(path))
-            RegeditLauncher.OpenAtPath(path);
+            RegeditLauncher.OpenAtPath(path, _interactiveUserService);
     }
 
     protected override void Dispose(bool disposing)

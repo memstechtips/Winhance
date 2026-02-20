@@ -84,6 +84,7 @@ public static class StringKeys
         public const string ItemsWillBeInstalled = "Dialog_ItemsWillBeInstalled";
         public const string ItemsWillBeRemoved = "Dialog_ItemsWillBeRemoved";
         public const string ItemsWillBeProcessed = "Dialog_ItemsWillBeProcessed";
+        public const string TerminalOutput_Title = "Dialog_TerminalOutput_Title";
 
         // Chocolatey consent dialogs
         public const string Choco_ConsentTitle = "Dialog_Choco_ConsentTitle";
@@ -324,6 +325,7 @@ public static class StringKeys
         public static string Dialog_ItemsWillBeInstalled => Get(Dialogs.ItemsWillBeInstalled);
         public static string Dialog_ItemsWillBeRemoved => Get(Dialogs.ItemsWillBeRemoved);
         public static string Dialog_ItemsWillBeProcessed => Get(Dialogs.ItemsWillBeProcessed);
+        public static string Dialog_TerminalOutput_Title => Get(Dialogs.TerminalOutput_Title);
 
         // Buttons
         public static string Button_OK => Get(Buttons.OK);

@@ -15,22 +15,24 @@ namespace Winhance.Infrastructure.Features.Common.Services
     {
         private const string PreferencesFileName = "UserPreferences.json";
         private readonly ILogService _logService;
+        private readonly IInteractiveUserService _interactiveUserService;
 
-        public UserPreferencesService(ILogService logService)
+        public UserPreferencesService(ILogService logService, IInteractiveUserService interactiveUserService)
         {
             _logService = logService ?? throw new ArgumentNullException(nameof(logService));
+            _interactiveUserService = interactiveUserService ?? throw new ArgumentNullException(nameof(interactiveUserService));
         }
 
         private string GetPreferencesFilePath()
         {
             try
             {
-                string localAppData = Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData);
+                string localAppData = _interactiveUserService.GetInteractiveUserFolderPath(Environment.SpecialFolder.LocalApplicationData);
 
                 if (string.IsNullOrEmpty(localAppData))
                 {
                     _logService.Log(LogLevel.Error, "LocalApplicationData folder path is empty");
-                    localAppData = Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.UserProfile), "AppData", "Local");
+                    localAppData = Path.Combine(_interactiveUserService.GetInteractiveUserFolderPath(Environment.SpecialFolder.UserProfile), "AppData", "Local");
                     _logService.Log(LogLevel.Info, $"Using fallback path: {localAppData}");
                 }
 

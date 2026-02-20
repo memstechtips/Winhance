@@ -40,6 +40,7 @@ public class ConfigurationService : IConfigurationService
     private readonly IConfigImportOverlayService _overlayService;
     private readonly IConfigReviewService _configReviewService;
     private readonly ConfigMigrationService _configMigrationService;
+    private readonly IInteractiveUserService _interactiveUserService;
     private bool _configImportSaveRemovalScripts = true;
 
     private static readonly JsonSerializerOptions JsonOptions = new()
@@ -64,7 +65,8 @@ public class ConfigurationService : IConfigurationService
         ILocalizationService localizationService,
         IConfigImportOverlayService overlayService,
         IConfigReviewService configReviewService,
-        ConfigMigrationService configMigrationService)
+        ConfigMigrationService configMigrationService,
+        IInteractiveUserService interactiveUserService)
     {
         _serviceProvider = serviceProvider;
         _logService = logService;
@@ -81,6 +83,7 @@ public class ConfigurationService : IConfigurationService
         _overlayService = overlayService;
         _configReviewService = configReviewService;
         _configMigrationService = configMigrationService;
+        _interactiveUserService = interactiveUserService;
 
         // Listen for review mode exit to clear review state from all loaded settings
         _configReviewService.ReviewModeChanged += OnReviewModeChanged;
@@ -509,6 +512,10 @@ public class ConfigurationService : IConfigurationService
                 _logService.Log(LogLevel.Info, $"Silently filtered {incompatibleSettings.Count} incompatible settings from config");
             }
 
+            // Force filter ON before computing diffs so version-filtered settings
+            // don't generate phantom diffs when the user had the filter toggled off
+            _compatibleSettingsRegistry.SetFilterEnabled(true);
+
             // Enter review mode on the service (eagerly computes diffs and fires events)
             await _configReviewService.EnterReviewModeAsync(config);
 
@@ -835,7 +842,7 @@ public class ConfigurationService : IConfigurationService
             var config = await CreateConfigurationFromSystemAsync(isBackup: true);
 
             var configDir = Path.Combine(
-                Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData),
+                _interactiveUserService.GetInteractiveUserFolderPath(Environment.SpecialFolder.LocalApplicationData),
                 "Winhance", "Backup");
 
             Directory.CreateDirectory(configDir);
@@ -1466,7 +1473,7 @@ public class ConfigurationService : IConfigurationService
         try
         {
             var logDir = Path.Combine(
-                Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData),
+                _interactiveUserService.GetInteractiveUserFolderPath(Environment.SpecialFolder.LocalApplicationData),
                 "Winhance");
             Directory.CreateDirectory(logDir);
 
@@ -1514,7 +1521,7 @@ public class ConfigurationService : IConfigurationService
         try
         {
             var configDir = Path.Combine(
-                Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData),
+                _interactiveUserService.GetInteractiveUserFolderPath(Environment.SpecialFolder.LocalApplicationData),
                 "Winhance", "Backup");
 
             if (!Directory.Exists(configDir))
@@ -1717,7 +1724,7 @@ public class ConfigurationService : IConfigurationService
 
             foreach (var feature in section.Value.Features)
             {
-                var allSettings = _compatibleSettingsRegistry.GetFilteredSettings(feature.Key);
+                var allSettings = _compatibleSettingsRegistry.GetBypassedSettings(feature.Key);
 
                 foreach (var configItem in feature.Value.Items)
                 {
@@ -1741,6 +1748,15 @@ public class ConfigurationService : IConfigurationService
                         else if (settingDef.MaximumBuildNumber.HasValue && buildNumber > settingDef.MaximumBuildNumber.Value)
                         {
                             isIncompatible = true;
+                        }
+                        else if (settingDef.SupportedBuildRanges?.Count > 0)
+                        {
+                            bool inRange = settingDef.SupportedBuildRanges.Any(range =>
+                                buildNumber >= range.MinBuild && buildNumber <= range.MaxBuild);
+                            if (!inRange)
+                            {
+                                isIncompatible = true;
+                            }
                         }
 
                         if (isIncompatible)
@@ -1788,7 +1804,7 @@ public class ConfigurationService : IConfigurationService
 
         foreach (var feature in section.Features)
         {
-            var allSettings = _compatibleSettingsRegistry.GetFilteredSettings(feature.Key);
+            var allSettings = _compatibleSettingsRegistry.GetBypassedSettings(feature.Key);
             var filteredItems = new List<ConfigurationItem>();
 
             foreach (var item in feature.Value.Items)
@@ -1813,6 +1829,15 @@ public class ConfigurationService : IConfigurationService
                     else if (settingDef.MaximumBuildNumber.HasValue && buildNumber > settingDef.MaximumBuildNumber.Value)
                     {
                         isCompatible = false;
+                    }
+                    else if (settingDef.SupportedBuildRanges?.Count > 0)
+                    {
+                        bool inRange = settingDef.SupportedBuildRanges.Any(range =>
+                            buildNumber >= range.MinBuild && buildNumber <= range.MaxBuild);
+                        if (!inRange)
+                        {
+                            isCompatible = false;
+                        }
                     }
 
                     if (isCompatible)

@@ -154,6 +154,75 @@ public class ChocolateyService : IChocolateyService
         }
     }
 
+    public async Task<bool> UninstallPackageAsync(string chocoPackageId, string? displayName = null, CancellationToken cancellationToken = default)
+    {
+        displayName ??= chocoPackageId;
+
+        var chocoPath = FindChocoExecutable();
+        if (chocoPath == null)
+        {
+            _logService.LogError("Chocolatey executable not found");
+            return false;
+        }
+
+        try
+        {
+            _taskProgressService?.UpdateProgress(10, _localization.GetString("Progress_Choco_UninstallingPackage", displayName));
+            _logService.LogInformation($"Uninstalling '{chocoPackageId}' via Chocolatey...");
+
+            var startInfo = new ProcessStartInfo
+            {
+                FileName = chocoPath,
+                Arguments = $"uninstall {chocoPackageId} -y --no-progress",
+                UseShellExecute = false,
+                CreateNoWindow = true,
+                RedirectStandardOutput = true,
+                RedirectStandardError = true
+            };
+
+            using var process = new Process { StartInfo = startInfo };
+
+            process.OutputDataReceived += (_, e) =>
+            {
+                if (string.IsNullOrEmpty(e.Data)) return;
+                _logService.LogInformation($"[choco] {e.Data}");
+
+                _taskProgressService?.UpdateDetailedProgress(new TaskProgressDetail
+                {
+                    Progress = 50,
+                    StatusText = _localization.GetString("Progress_Choco_UninstallingPackage", displayName),
+                    TerminalOutput = e.Data
+                });
+            };
+
+            process.Start();
+            process.BeginOutputReadLine();
+
+            var stderr = await process.StandardError.ReadToEndAsync();
+            await process.WaitForExitAsync(cancellationToken);
+
+            if (process.ExitCode == 0)
+            {
+                _logService.LogInformation($"Chocolatey successfully uninstalled '{chocoPackageId}'");
+                _taskProgressService?.UpdateProgress(100, _localization.GetString("Progress_UninstalledSuccess", displayName));
+                return true;
+            }
+
+            _logService.LogError($"Chocolatey uninstall of '{chocoPackageId}' failed (exit code {process.ExitCode}): {stderr}");
+            return false;
+        }
+        catch (OperationCanceledException)
+        {
+            _logService.LogInformation($"Chocolatey uninstall of '{chocoPackageId}' was cancelled");
+            throw;
+        }
+        catch (Exception ex)
+        {
+            _logService.LogError($"Error uninstalling '{chocoPackageId}' via Chocolatey: {ex.Message}");
+            return false;
+        }
+    }
+
     public async Task<HashSet<string>> GetInstalledPackageIdsAsync(CancellationToken cancellationToken = default)
     {
         var result = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
