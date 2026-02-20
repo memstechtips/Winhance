@@ -14,6 +14,7 @@ using Microsoft.Win32.SafeHandles;
 using Winhance.Core.Features.Common.Enums;
 using Winhance.Core.Features.Common.Interfaces;
 using Winhance.Core.Features.Common.Native;
+using Winhance.Infrastructure.Features.SoftwareApps.Services.WinGet.Utilities;
 
 namespace Winhance.Infrastructure.Features.Common.Services
 {
@@ -124,15 +125,16 @@ namespace Winhance.Infrastructure.Features.Common.Services
             Action<string>? onOutputLine = null,
             Action<string>? onErrorLine = null,
             CancellationToken cancellationToken = default,
-            int timeoutMs = 300_000)
+            int timeoutMs = 300_000,
+            Action<string>? onProgressLine = null)
         {
             if (!_isOtsElevation || _interactiveUserToken == IntPtr.Zero)
             {
                 // No OTS or no token — fall back to normal process execution
-                return await RunProcessNormalAsync(fileName, arguments, onOutputLine, onErrorLine, cancellationToken, timeoutMs);
+                return await RunProcessNormalAsync(fileName, arguments, onOutputLine, onErrorLine, cancellationToken, timeoutMs, onProgressLine);
             }
 
-            return await RunProcessWithTokenAsync(fileName, arguments, onOutputLine, onErrorLine, cancellationToken, timeoutMs);
+            return await RunProcessWithTokenAsync(fileName, arguments, onOutputLine, onErrorLine, cancellationToken, timeoutMs, onProgressLine);
         }
 
         /// <summary>
@@ -144,7 +146,8 @@ namespace Winhance.Infrastructure.Features.Common.Services
             Action<string>? onOutputLine,
             Action<string>? onErrorLine,
             CancellationToken cancellationToken,
-            int timeoutMs)
+            int timeoutMs,
+            Action<string>? onProgressLine = null)
         {
             var stdoutBuilder = new StringBuilder();
             var stderrBuilder = new StringBuilder();
@@ -173,11 +176,8 @@ namespace Winhance.Infrastructure.Features.Common.Services
 
             var readStdout = Task.Run(async () =>
             {
-                while (await process.StandardOutput.ReadLineAsync() is { } line)
-                {
-                    stdoutBuilder.AppendLine(line);
-                    onOutputLine?.Invoke(line);
-                }
+                await WinGetCliRunner.ReadStdoutCharByCharAsync(
+                    process.StandardOutput, stdoutBuilder, onOutputLine, onProgressLine);
             }, CancellationToken.None);
 
             var readStderr = Task.Run(async () =>
@@ -207,7 +207,8 @@ namespace Winhance.Infrastructure.Features.Common.Services
             Action<string>? onOutputLine,
             Action<string>? onErrorLine,
             CancellationToken cancellationToken,
-            int timeoutMs)
+            int timeoutMs,
+            Action<string>? onProgressLine = null)
         {
             // Create pipes for stdout and stderr
             var sa = new UserTokenApi.SECURITY_ATTRIBUTES
@@ -325,11 +326,8 @@ namespace Winhance.Infrastructure.Features.Common.Services
                     {
                         using var stream = new FileStream(stdoutSafeHandle, FileAccess.Read, bufferSize: 4096, isAsync: false);
                         using var reader = new StreamReader(stream, Encoding.UTF8);
-                        while (await reader.ReadLineAsync() is { } line)
-                        {
-                            stdoutBuilder.AppendLine(line);
-                            onOutputLine?.Invoke(line);
-                        }
+                        await WinGetCliRunner.ReadStdoutCharByCharAsync(
+                            reader, stdoutBuilder, onOutputLine, onProgressLine);
                     }, CancellationToken.None);
 
                     var readStderr = Task.Run(async () =>
@@ -374,6 +372,69 @@ namespace Winhance.Infrastructure.Features.Common.Services
                 if (stderrWriteHandle != IntPtr.Zero) UserTokenApi.CloseHandle(stderrWriteHandle);
                 if (stdinReadHandle != IntPtr.Zero) UserTokenApi.CloseHandle(stdinReadHandle);
                 if (stdinWriteHandle != IntPtr.Zero) UserTokenApi.CloseHandle(stdinWriteHandle);
+            }
+        }
+
+        /// <summary>
+        /// Launches a GUI process as the interactive user (fire-and-forget).
+        /// Uses CreateProcessWithTokenW without pipe redirection so the child
+        /// process can create its own window on the interactive user's desktop.
+        /// </summary>
+        public void LaunchProcessAsInteractiveUser(string fileName, string arguments = "")
+        {
+            if (!_isOtsElevation || _interactiveUserToken == IntPtr.Zero)
+            {
+                // Not OTS or no token — fall back to normal Process.Start
+                Process.Start(new ProcessStartInfo(fileName, arguments) { UseShellExecute = true });
+                return;
+            }
+
+            IntPtr envBlock = IntPtr.Zero;
+            try
+            {
+                UserTokenApi.CreateEnvironmentBlock(out envBlock, _interactiveUserToken, false);
+
+                var si = new UserTokenApi.STARTUPINFO
+                {
+                    cb = Marshal.SizeOf<UserTokenApi.STARTUPINFO>(),
+                    lpDesktop = "winsta0\\default",
+                };
+
+                var commandLine = string.IsNullOrEmpty(arguments)
+                    ? $"\"{fileName}\""
+                    : $"\"{fileName}\" {arguments}";
+
+                int creationFlags = UserTokenApi.CREATE_UNICODE_ENVIRONMENT;
+
+                if (!UserTokenApi.CreateProcessWithTokenW(
+                    _interactiveUserToken,
+                    UserTokenApi.LOGON_WITH_PROFILE,
+                    null,
+                    commandLine,
+                    creationFlags,
+                    envBlock,
+                    null,
+                    ref si,
+                    out UserTokenApi.PROCESS_INFORMATION pi))
+                {
+                    var error = Marshal.GetLastWin32Error();
+                    _logService.Log(LogLevel.Warning,
+                        $"LaunchProcessAsInteractiveUser: CreateProcessWithTokenW failed (error {error}), falling back to Process.Start");
+                    Process.Start(new ProcessStartInfo(fileName, arguments) { UseShellExecute = true });
+                    return;
+                }
+
+                _logService.Log(LogLevel.Debug,
+                    $"Launched GUI process as interactive user '{_interactiveUserName}' (PID {pi.dwProcessId}): {fileName}");
+
+                // Close both handles — we don't need to wait for the process
+                UserTokenApi.CloseHandle(pi.hThread);
+                UserTokenApi.CloseHandle(pi.hProcess);
+            }
+            finally
+            {
+                if (envBlock != IntPtr.Zero)
+                    UserTokenApi.DestroyEnvironmentBlock(envBlock);
             }
         }
 

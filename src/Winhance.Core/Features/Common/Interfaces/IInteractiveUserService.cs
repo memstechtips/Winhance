@@ -53,7 +53,14 @@ namespace Winhance.Core.Features.Common.Interfaces
             Action<string>? onOutputLine = null,
             Action<string>? onErrorLine = null,
             CancellationToken cancellationToken = default,
-            int timeoutMs = 300_000);
+            int timeoutMs = 300_000,
+            Action<string>? onProgressLine = null);
+
+        /// <summary>
+        /// Launches a GUI process as the interactive user without waiting for it to exit.
+        /// Falls back to normal Process.Start if not OTS or no token is available.
+        /// </summary>
+        void LaunchProcessAsInteractiveUser(string fileName, string arguments = "");
     }
 
     /// <summary>

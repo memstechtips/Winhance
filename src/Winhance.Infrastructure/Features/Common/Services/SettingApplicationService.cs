@@ -33,7 +33,8 @@ namespace Winhance.Infrastructure.Features.Common.Services
         IPowerSettingsQueryService powerSettingsQueryService,
         IHardwareDetectionService hardwareDetectionService,
         IWindowsCompatibilityFilter compatibilityFilter,
-        IScheduledTaskService scheduledTaskService) : ISettingApplicationService
+        IScheduledTaskService scheduledTaskService,
+        IInteractiveUserService interactiveUserService) : ISettingApplicationService
     {
 
         public async Task ApplySettingAsync(string settingId, bool enable, object? value = null, bool checkboxResult = false, string? commandString = null, bool applyRecommended = false, bool skipValuePrerequisites = false)
@@ -465,13 +466,45 @@ namespace Winhance.Infrastructure.Features.Common.Services
 
                     if (!string.IsNullOrEmpty(regContent))
                     {
-                        var tempFile = Path.Combine(Path.GetTempPath(), $"winhance_{Guid.NewGuid()}.reg");
+                        // OTS: write temp file to the interactive user's temp folder
+                        // so reg.exe running as that user can access it.
+                        string tempDir;
+                        if (interactiveUserService.IsOtsElevation)
+                        {
+                            var userLocalAppData = interactiveUserService.GetInteractiveUserFolderPath(
+                                Environment.SpecialFolder.LocalApplicationData);
+                            tempDir = Path.Combine(userLocalAppData, "Temp");
+                            Directory.CreateDirectory(tempDir);
+                        }
+                        else
+                        {
+                            tempDir = Path.GetTempPath();
+                        }
+
+                        var tempFile = Path.Combine(tempDir, $"winhance_{Guid.NewGuid()}.reg");
                         try
                         {
                             await File.WriteAllTextAsync(tempFile, regContent);
                             logService.Log(LogLevel.Debug, $"[SettingApplicationService] Wrote registry content to temp file: {tempFile}");
 
-                            await RunCommandAsync($"reg import \"{tempFile}\"");
+                            // OTS: run reg import as the interactive user so HKCU
+                            // entries land in the standard user's hive, not the admin's.
+                            if (interactiveUserService.IsOtsElevation
+                                && interactiveUserService.HasInteractiveUserToken)
+                            {
+                                logService.Log(LogLevel.Debug, "[SettingApplicationService] OTS mode — running reg import as interactive user");
+                                var result = await interactiveUserService.RunProcessAsInteractiveUserAsync(
+                                    "reg.exe", $"import \"{tempFile}\"");
+
+                                if (result.ExitCode != 0)
+                                {
+                                    logService.Log(LogLevel.Warning, $"[SettingApplicationService] reg import as interactive user failed (exit {result.ExitCode}): {result.StandardError}");
+                                }
+                            }
+                            else
+                            {
+                                await RunCommandAsync($"reg import \"{tempFile}\"");
+                            }
 
                             logService.Log(LogLevel.Info, $"[SettingApplicationService] Registry import completed for '{setting.Id}'");
                         }

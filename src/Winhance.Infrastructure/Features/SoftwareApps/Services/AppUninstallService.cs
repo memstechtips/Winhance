@@ -14,7 +14,9 @@ namespace Winhance.Infrastructure.Features.SoftwareApps.Services;
 
 public class AppUninstallService(
     IWinGetService winGetService,
-    ILogService logService) : IAppUninstallService
+    ILogService logService,
+    IInteractiveUserService interactiveUserService,
+    ITaskProgressService taskProgressService) : IAppUninstallService
 {
     public async Task<OperationResult<bool>> UninstallAsync(
         ItemDefinition item,
@@ -111,6 +113,7 @@ public class AppUninstallService(
             }
 
             logService.LogInformation($"Uninstall process for {item.Name} completed successfully");
+            taskProgressService.UpdateProgress(100, $"Uninstall process for {item.Name} completed successfully");
 
             return OperationResult<bool>.Succeeded(true);
         }
@@ -129,11 +132,28 @@ public class AppUninstallService(
     {
         return await Task.Run(() =>
         {
+            // OTS: redirect HKCU to HKU\{interactive user SID} so we read
+            // the standard user's uninstall keys, not the admin's.
+            var hkcuUninstallPath = @"SOFTWARE\Microsoft\Windows\CurrentVersion\Uninstall";
+            RegistryKey hkcuHive;
+            string hkcuPath;
+
+            if (interactiveUserService.IsOtsElevation && interactiveUserService.InteractiveUserSid != null)
+            {
+                hkcuHive = Registry.Users;
+                hkcuPath = $@"{interactiveUserService.InteractiveUserSid}\{hkcuUninstallPath}";
+            }
+            else
+            {
+                hkcuHive = Registry.CurrentUser;
+                hkcuPath = hkcuUninstallPath;
+            }
+
             var registryPaths = new[]
             {
                 (Registry.LocalMachine, @"SOFTWARE\Microsoft\Windows\CurrentVersion\Uninstall"),
                 (Registry.LocalMachine, @"SOFTWARE\WOW6432Node\Microsoft\Windows\CurrentVersion\Uninstall"),
-                (Registry.CurrentUser, @"SOFTWARE\Microsoft\Windows\CurrentVersion\Uninstall")
+                (hkcuHive, hkcuPath)
             };
 
             foreach (var (hive, path) in registryPaths)

@@ -235,7 +235,7 @@ namespace Winhance.Infrastructure.Features.SoftwareApps.Services
                                     {
                                         Progress = progressPercent,
                                         StatusText = statusText,
-                                        TerminalOutput = displayLine ?? line
+                                        TerminalOutput = displayLine ?? line,
                                     });
                                 }
                             }
@@ -258,7 +258,25 @@ namespace Winhance.Infrastructure.Features.SoftwareApps.Services
                         _logService?.LogWarning($"[winget-err] {line}");
                     },
                     cancellationToken: cancellationToken,
-                    interactiveUserService: _interactiveUserService);
+                    interactiveUserService: _interactiveUserService,
+                    onProgressLine: line =>
+                    {
+                        try
+                        {
+                            // Progress lines (\r-terminated) are transient — send to terminal output
+                            // with IsProgressIndicator=true for real-time display and replacement
+                            var displayLine = WinGetProgressParser.TranslateLine(line);
+                            _taskProgressService?.UpdateDetailedProgress(new TaskProgressDetail
+                            {
+                                TerminalOutput = displayLine ?? line,
+                                IsProgressIndicator = true
+                            });
+                        }
+                        catch (Exception ex)
+                        {
+                            _logService?.LogWarning($"Progress reporting error (ignored): {ex.Message}");
+                        }
+                    });
 
                 // Emit metadata footer for the task output dialog
                 var endTime = DateTime.Now;
@@ -402,7 +420,7 @@ namespace Winhance.Infrastructure.Features.SoftwareApps.Services
                                     {
                                         Progress = progressPercent,
                                         StatusText = statusText,
-                                        TerminalOutput = displayLine ?? line
+                                        TerminalOutput = displayLine ?? line,
                                     });
                                 }
                             }
@@ -425,7 +443,23 @@ namespace Winhance.Infrastructure.Features.SoftwareApps.Services
                         _logService?.LogWarning($"[winget-err] {line}");
                     },
                     cancellationToken: cancellationToken,
-                    interactiveUserService: _interactiveUserService);
+                    interactiveUserService: _interactiveUserService,
+                    onProgressLine: line =>
+                    {
+                        try
+                        {
+                            var displayLine = WinGetProgressParser.TranslateLine(line);
+                            _taskProgressService?.UpdateDetailedProgress(new TaskProgressDetail
+                            {
+                                TerminalOutput = displayLine ?? line,
+                                IsProgressIndicator = true
+                            });
+                        }
+                        catch (Exception ex)
+                        {
+                            _logService?.LogWarning($"Progress reporting error (ignored): {ex.Message}");
+                        }
+                    });
 
                 // Emit metadata footer for the task output dialog
                 var endTime = DateTime.Now;
@@ -606,24 +640,36 @@ namespace Winhance.Infrastructure.Features.SoftwareApps.Services
 
                 if (_systemWinGetAvailable)
                 {
-                    // System winget is present — try COM init (likely succeeds).
-                    // Use Task.WhenAny to enforce a timeout without nesting Task.Run
-                    // (nested Task.Run breaks COM activation context).
-                    try
+                    // OTS: COM activation uses the admin's MSIX registration but the
+                    // desktop session belongs to the standard user — the out-of-process
+                    // COM server cannot start in this mismatched state. Skip straight
+                    // to CLI fallback.
+                    if (_interactiveUserService.IsOtsElevation)
                     {
-                        var initTask = Task.Run(() => EnsureComInitialized(), cancellationToken);
-                        var completed = await Task.WhenAny(
-                            initTask, Task.Delay(TimeSpan.FromSeconds(ComInitTimeoutSeconds), cancellationToken));
-
-                        if (completed != initTask)
-                        {
-                            _logService?.LogWarning("COM init timed out in EnsureWinGetReadyAsync — using CLI fallback");
-                            _comInitTimedOut = true;
-                        }
+                        _logService?.LogInformation("OTS elevation detected — skipping COM init (CLI fallback will be used)");
+                        _comInitTimedOut = true;
                     }
-                    catch (Exception ex)
+                    else
                     {
-                        _logService?.LogWarning($"COM init failed (detection may use CLI fallback): {ex.Message}");
+                        // System winget is present — try COM init (likely succeeds).
+                        // Use Task.WhenAny to enforce a timeout without nesting Task.Run
+                        // (nested Task.Run breaks COM activation context).
+                        try
+                        {
+                            var initTask = Task.Run(() => EnsureComInitialized(), cancellationToken);
+                            var completed = await Task.WhenAny(
+                                initTask, Task.Delay(TimeSpan.FromSeconds(ComInitTimeoutSeconds), cancellationToken));
+
+                            if (completed != initTask)
+                            {
+                                _logService?.LogWarning("COM init timed out in EnsureWinGetReadyAsync — using CLI fallback");
+                                _comInitTimedOut = true;
+                            }
+                        }
+                        catch (Exception ex)
+                        {
+                            _logService?.LogWarning($"COM init failed (detection may use CLI fallback): {ex.Message}");
+                        }
                     }
                 }
                 else
@@ -899,7 +945,7 @@ namespace Winhance.Infrastructure.Features.SoftwareApps.Services
                         File.Delete(exportPath);
 
                     var arguments = $"export -o \"{exportPath}\" --accept-source-agreements --nowarn --disable-interactivity";
-                    _logService?.LogInformation($"[winget] Running: winget {arguments} (attempt {attempt}/{maxRetries})");
+                    _logService?.LogInformation($"[winget-bundled] Running: winget {arguments} (attempt {attempt}/{maxRetries})");
 
                     var result = await WinGetCliRunner.RunAsync(
                         arguments,

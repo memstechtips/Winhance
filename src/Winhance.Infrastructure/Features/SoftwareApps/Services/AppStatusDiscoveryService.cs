@@ -18,13 +18,18 @@ namespace Winhance.Infrastructure.Features.SoftwareApps.Services;
 public class AppStatusDiscoveryService(
     ILogService logService,
     IWinGetService winGetService,
-    IChocolateyService chocolateyService) : IAppStatusDiscoveryService
+    IChocolateyService chocolateyService,
+    IInteractiveUserService interactiveUserService) : IAppStatusDiscoveryService
 {
     private HashSet<string>? _cachedWinGetPackageIds;
 
-    public async Task<Dictionary<string, bool>> GetInstallationStatusBatchAsync(IEnumerable<ItemDefinition> definitions)
+    public void InvalidateWinGetCache()
     {
         _cachedWinGetPackageIds = null;
+    }
+
+    public async Task<Dictionary<string, bool>> GetInstallationStatusBatchAsync(IEnumerable<ItemDefinition> definitions)
+    {
         var result = new Dictionary<string, bool>(StringComparer.OrdinalIgnoreCase);
         var definitionList = definitions.ToList();
 
@@ -418,7 +423,6 @@ public class AppStatusDiscoveryService(
 
     public async Task<Dictionary<string, bool>> GetExternalAppsInstallationStatusAsync(IEnumerable<ItemDefinition> definitions)
     {
-        _cachedWinGetPackageIds = null;
         var result = new Dictionary<string, bool>(StringComparer.OrdinalIgnoreCase);
         var definitionList = definitions.ToList();
 
@@ -563,11 +567,28 @@ public class AppStatusDiscoveryService(
 
         await Task.Run(() =>
         {
+            // OTS: redirect HKCU to HKU\{interactive user SID} so we read
+            // the standard user's uninstall keys, not the admin's.
+            var hkcuUninstallPath = @"SOFTWARE\Microsoft\Windows\CurrentVersion\Uninstall";
+            RegistryKey hkcuHive;
+            string hkcuPath;
+
+            if (interactiveUserService.IsOtsElevation && interactiveUserService.InteractiveUserSid != null)
+            {
+                hkcuHive = Registry.Users;
+                hkcuPath = $@"{interactiveUserService.InteractiveUserSid}\{hkcuUninstallPath}";
+            }
+            else
+            {
+                hkcuHive = Registry.CurrentUser;
+                hkcuPath = hkcuUninstallPath;
+            }
+
             var registryPaths = new[]
             {
                 (Registry.LocalMachine, @"SOFTWARE\Microsoft\Windows\CurrentVersion\Uninstall"),
                 (Registry.LocalMachine, @"SOFTWARE\WOW6432Node\Microsoft\Windows\CurrentVersion\Uninstall"),
-                (Registry.CurrentUser, @"SOFTWARE\Microsoft\Windows\CurrentVersion\Uninstall")
+                (hkcuHive, hkcuPath)
             };
 
             foreach (var (hive, path) in registryPaths)
