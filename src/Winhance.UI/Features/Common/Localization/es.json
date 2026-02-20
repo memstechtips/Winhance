@@ -114,6 +114,7 @@
   "Button_Yes": "Sí",
   "Button_No": "No",
   "Button_Close": "Cerrar",
+  "Button_CopyToClipboard": "Copiar al portapapeles",
   "Button_Apply": "Aplicar",
   "Button_Refresh": "Actualizar",
   "Button_Help": "Ayuda",
@@ -1518,5 +1519,8 @@
   "Accessibility_ApplyingSetting": "Applying setting",
   "Accessibility_Selected": "Seleccionado",
   "Accessibility_Checked": "Marcado",
-  "Accessibility_Unchecked": "Desmarcado"
+  "Accessibility_Unchecked": "Desmarcado",
+  "Progress_ClickToSeeDetails": "Haga clic para ver detalles",
+  "InfoBar_OtsElevation_Title": "Ejecutando como otro usuario",
+  "InfoBar_OtsElevation_Message": "Esta aplicación se elevó con las credenciales de otra cuenta. La configuración se aplicará al usuario que inició sesión ({0}). Este mensaje es solo informativo."
 }

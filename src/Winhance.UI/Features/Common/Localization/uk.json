@@ -114,6 +114,7 @@
   "Button_Yes": "Так",
   "Button_No": "Ні",
   "Button_Close": "Закрити",
+  "Button_CopyToClipboard": "Копіювати до буфера обміну",
   "Button_Apply": "Застосувати",
   "Button_Refresh": "Оновити",
   "Button_Help": "Допомога",
@@ -1518,5 +1519,8 @@
   "Accessibility_ApplyingSetting": "Applying setting",
   "Accessibility_Selected": "Вибрано",
   "Accessibility_Checked": "Позначено",
-  "Accessibility_Unchecked": "Не позначено"
+  "Accessibility_Unchecked": "Не позначено",
+  "Progress_ClickToSeeDetails": "Натисніть, щоб побачити деталі",
+  "InfoBar_OtsElevation_Title": "Запущено від імені іншого користувача",
+  "InfoBar_OtsElevation_Message": "Цей додаток було підвищено з обліковими даними іншого облікового запису. Налаштування будуть застосовані до користувача, який увійшов у систему ({0}). Це повідомлення має лише інформаційний характер."
 }

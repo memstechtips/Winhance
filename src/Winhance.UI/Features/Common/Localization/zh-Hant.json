@@ -114,6 +114,7 @@
   "Button_Yes": "是",
   "Button_No": "否",
   "Button_Close": "關閉",
+  "Button_CopyToClipboard": "複製到剪貼簿",
   "Button_Apply": "套用",
   "Button_Refresh": "重新整理",
   "Button_Help": "說明",
@@ -1518,5 +1519,8 @@
   "Accessibility_ApplyingSetting": "Applying setting",
   "Accessibility_Selected": "已選擇",
   "Accessibility_Checked": "已勾選",
-  "Accessibility_Unchecked": "未勾選"
+  "Accessibility_Unchecked": "未勾選",
+  "Progress_ClickToSeeDetails": "點擊查看詳情",
+  "InfoBar_OtsElevation_Title": "以其他使用者身分執行",
+  "InfoBar_OtsElevation_Message": "此應用程式使用其他帳戶的認證提升了權限。設定仍將套用於已登入的使用者 ({0})。此訊息僅供參考。"
 }

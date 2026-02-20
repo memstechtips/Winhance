@@ -105,6 +105,7 @@
     "Button_Yes": "نعم",
     "Button_No": "لا",
     "Button_Close": "إغلاق",
+    "Button_CopyToClipboard": "نسخ إلى الحافظة",
     "Button_Apply": "تطبيق",
     "Button_Refresh": "تحديث",
     "Button_Help": "مساعدة",
@@ -1518,5 +1519,8 @@
   "Accessibility_ApplyingSetting": "Applying setting",
   "Accessibility_Selected": "محدد",
   "Accessibility_Checked": "محدد",
-  "Accessibility_Unchecked": "غير محدد"
+  "Accessibility_Unchecked": "غير محدد",
+  "Progress_ClickToSeeDetails": "انقر لعرض التفاصيل",
+  "InfoBar_OtsElevation_Title": "يعمل كمستخدم مختلف",
+  "InfoBar_OtsElevation_Message": "تم رفع صلاحيات هذا التطبيق باستخدام بيانات اعتماد حساب مختلف. سيتم تطبيق الإعدادات على المستخدم الذي سجّل الدخول ({0}). هذه الرسالة للمعلومات فقط."
   }

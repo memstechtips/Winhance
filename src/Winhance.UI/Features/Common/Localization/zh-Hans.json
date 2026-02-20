@@ -114,6 +114,7 @@
   "Button_Yes": "是",
   "Button_No": "否",
   "Button_Close": "关闭",
+  "Button_CopyToClipboard": "复制到剪贴板",
   "Button_Apply": "应用",
   "Button_Refresh": "刷新",
   "Button_Help": "帮助",
@@ -1518,5 +1519,8 @@
   "Accessibility_ApplyingSetting": "Applying setting",
   "Accessibility_Selected": "已选择",
   "Accessibility_Checked": "已选中",
-  "Accessibility_Unchecked": "未选中"
+  "Accessibility_Unchecked": "未选中",
+  "Progress_ClickToSeeDetails": "点击查看详情",
+  "InfoBar_OtsElevation_Title": "以其他用户身份运行",
+  "InfoBar_OtsElevation_Message": "此应用使用其他帐户的凭据提升了权限。设置仍将应用于已登录的用户 ({0})。此消息仅供参考。"
 }

@@ -114,6 +114,7 @@
   "Button_Yes": "Oui",
   "Button_No": "Non",
   "Button_Close": "Fermer",
+  "Button_CopyToClipboard": "Copier dans le presse-papiers",
   "Button_Apply": "Appliquer",
   "Button_Refresh": "Actualiser",
   "Button_Help": "Aide",
@@ -1518,5 +1519,8 @@
   "Accessibility_ApplyingSetting": "Applying setting",
   "Accessibility_Selected": "Sélectionné",
   "Accessibility_Checked": "Coché",
-  "Accessibility_Unchecked": "Décoché"
+  "Accessibility_Unchecked": "Décoché",
+  "Progress_ClickToSeeDetails": "Cliquer pour voir les détails",
+  "InfoBar_OtsElevation_Title": "Exécution en tant qu'utilisateur différent",
+  "InfoBar_OtsElevation_Message": "Cette application a été élevée avec les identifiants d'un autre compte. Les paramètres seront appliqués à l'utilisateur connecté ({0}). Ce message est uniquement informatif."
 }

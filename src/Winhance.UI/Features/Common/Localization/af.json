@@ -114,6 +114,7 @@
   "Button_Yes": "Ja",
   "Button_No": "Nee",
   "Button_Close": "Maak toe",
+  "Button_CopyToClipboard": "Kopieer na knipbord",
   "Button_Apply": "Pas toe",
   "Button_Refresh": "Verfris",
   "Button_Help": "Hulp",
@@ -1518,5 +1519,8 @@
   "Accessibility_ApplyingSetting": "Applying setting",
   "Accessibility_Selected": "Gekies",
   "Accessibility_Checked": "Gemerk",
-  "Accessibility_Unchecked": "Ongemerk"
+  "Accessibility_Unchecked": "Ongemerk",
+  "Progress_ClickToSeeDetails": "Klik om besonderhede te sien",
+  "InfoBar_OtsElevation_Title": "Werk as 'n ander gebruiker",
+  "InfoBar_OtsElevation_Message": "Hierdie toepassing is verhoog met 'n ander rekening se geloofsbriewe. Instellings sal steeds op die aangemelde gebruiker ({0}) toegepas word. Hierdie boodskap is slegs ter inligting."
 }

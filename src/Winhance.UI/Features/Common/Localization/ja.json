@@ -114,6 +114,7 @@
   "Button_Yes": "はい",
   "Button_No": "いいえ",
   "Button_Close": "閉じる",
+  "Button_CopyToClipboard": "クリップボードにコピー",
   "Button_Apply": "適用",
   "Button_Refresh": "更新",
   "Button_Help": "ヘルプ",
@@ -1518,5 +1519,8 @@
   "Accessibility_ApplyingSetting": "Applying setting",
   "Accessibility_Selected": "選択済み",
   "Accessibility_Checked": "チェック済み",
-  "Accessibility_Unchecked": "未チェック"
+  "Accessibility_Unchecked": "未チェック",
+  "Progress_ClickToSeeDetails": "クリックして詳細を表示",
+  "InfoBar_OtsElevation_Title": "別のユーザーとして実行中",
+  "InfoBar_OtsElevation_Message": "このアプリは別のアカウントの資格情報で昇格されました。設定はログインしているユーザー ({0}) に引き続き適用されます。このメッセージは情報提供のみです。"
 }

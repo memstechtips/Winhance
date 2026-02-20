@@ -114,6 +114,7 @@
   "Button_Yes": "Taip",
   "Button_No": "Ne",
   "Button_Close": "Uždaryti",
+  "Button_CopyToClipboard": "Kopijuoti į iškarpinę",
   "Button_Apply": "Taikyti",
   "Button_Refresh": "Atnaujinti",
   "Button_Help": "Pagalba",
@@ -1518,5 +1519,8 @@
   "Accessibility_ApplyingSetting": "Applying setting",
   "Accessibility_Selected": "Pasirinkta",
   "Accessibility_Checked": "Pažymėta",
-  "Accessibility_Unchecked": "Nepažymėta"
+  "Accessibility_Unchecked": "Nepažymėta",
+  "Progress_ClickToSeeDetails": "Paspauskite norėdami pamatyti informaciją",
+  "InfoBar_OtsElevation_Title": "Vykdoma kaip kitas vartotojas",
+  "InfoBar_OtsElevation_Message": "Ši programa buvo paleista su kitos paskyros kredencialais. Nustatymai bus pritaikyti prisijungusiam vartotojui ({0}). Ši žinutė yra tik informacinė."
 }

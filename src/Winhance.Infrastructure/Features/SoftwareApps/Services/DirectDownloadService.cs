@@ -32,13 +32,16 @@ public class DirectDownloadService : IDirectDownloadService
     private readonly ILogService _logService;
     private readonly HttpClient _httpClient;
     private readonly ILocalizationService _localization;
+    private readonly IInteractiveUserService _interactiveUserService;
 
     public DirectDownloadService(
         ILogService logService,
-        ILocalizationService localization)
+        ILocalizationService localization,
+        IInteractiveUserService interactiveUserService)
     {
         _logService = logService;
         _localization = localization;
+        _interactiveUserService = interactiveUserService;
         _httpClient = new HttpClient
         {
             Timeout = TimeSpan.FromMinutes(30)
@@ -564,7 +567,7 @@ public class DirectDownloadService : IDirectDownloadService
             _logService?.LogInformation($"Extracting ZIP: {zipPath}");
 
             var extractPath = Path.Combine(
-                Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData),
+                _interactiveUserService.GetInteractiveUserFolderPath(Environment.SpecialFolder.LocalApplicationData),
                 "Winhance",
                 "Apps",
                 displayName

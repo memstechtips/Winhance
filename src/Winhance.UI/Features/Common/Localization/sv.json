@@ -114,6 +114,7 @@
   "Button_Yes": "Ja",
   "Button_No": "Nej",
   "Button_Close": "Stäng",
+  "Button_CopyToClipboard": "Kopiera till urklipp",
   "Button_Apply": "Verkställ",
   "Button_Refresh": "Uppdatera",
   "Button_Help": "Hjälp",
@@ -1518,5 +1519,8 @@
   "Accessibility_ApplyingSetting": "Applying setting",
   "Accessibility_Selected": "Vald",
   "Accessibility_Checked": "Markerad",
-  "Accessibility_Unchecked": "Avmarkerad"
+  "Accessibility_Unchecked": "Avmarkerad",
+  "Progress_ClickToSeeDetails": "Klicka för att se detaljer",
+  "InfoBar_OtsElevation_Title": "Körs som en annan användare",
+  "InfoBar_OtsElevation_Message": "Den här appen höjdes med en annan kontos autentiseringsuppgifter. Inställningarna kommer fortfarande att tillämpas på den inloggade användaren ({0}). Detta meddelande är endast informativt."
 }

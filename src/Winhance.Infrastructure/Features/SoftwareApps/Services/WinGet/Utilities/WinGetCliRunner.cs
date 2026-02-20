@@ -4,6 +4,7 @@ using System.IO;
 using System.Text;
 using System.Threading;
 using System.Threading.Tasks;
+using Winhance.Core.Features.Common.Interfaces;
 
 namespace Winhance.Infrastructure.Features.SoftwareApps.Services.WinGet.Utilities
 {
@@ -21,8 +22,29 @@ namespace Winhance.Infrastructure.Features.SoftwareApps.Services.WinGet.Utilitie
         /// Priority: system-installed winget (stays current via Store updates) →
         /// bundled copy (fallback for fresh installs / missing DesktopAppInstaller).
         /// </summary>
-        public static string? GetWinGetExePath()
+        public static string? GetWinGetExePath(IInteractiveUserService? interactiveUserService = null)
         {
+            // Under OTS elevation, the system PATH contains the admin user's WindowsApps.
+            // We must skip PATH and resolve from the interactive (logged-in) user's paths,
+            // falling back to the bundled copy.
+            if (interactiveUserService != null && interactiveUserService.IsOtsElevation)
+            {
+                // 1. Interactive user's WindowsApps (DesktopAppInstaller registered for them)
+                var interactiveAppData = interactiveUserService.GetInteractiveUserFolderPath(
+                    Environment.SpecialFolder.LocalApplicationData);
+                var interactiveWinGet = Path.Combine(interactiveAppData, "Microsoft", "WindowsApps", "winget.exe");
+                if (File.Exists(interactiveWinGet))
+                    return interactiveWinGet;
+
+                // 2. Bundled copy (fallback)
+                var bundled = Path.Combine(AppContext.BaseDirectory, "winget-cli", "winget.exe");
+                if (File.Exists(bundled))
+                    return bundled;
+
+                return null;
+            }
+
+            // Non-OTS: standard resolution order
             // 1. System PATH (preferred — kept up-to-date via Microsoft Store)
             var pathDirs = Environment.GetEnvironmentVariable("PATH")?.Split(Path.PathSeparator) ?? Array.Empty<string>();
             foreach (var dir in pathDirs)
@@ -59,8 +81,18 @@ namespace Winhance.Infrastructure.Features.SoftwareApps.Services.WinGet.Utilitie
         /// (indicates DesktopAppInstaller MSIX is registered).
         /// Does NOT check the bundled path.
         /// </summary>
-        public static bool IsSystemWinGetAvailable()
+        public static bool IsSystemWinGetAvailable(IInteractiveUserService? interactiveUserService = null)
         {
+            // Under OTS, check the interactive user's WindowsApps (not admin's PATH)
+            if (interactiveUserService != null && interactiveUserService.IsOtsElevation)
+            {
+                var interactiveAppData = interactiveUserService.GetInteractiveUserFolderPath(
+                    Environment.SpecialFolder.LocalApplicationData);
+                var interactiveWinGet = Path.Combine(interactiveAppData, "Microsoft", "WindowsApps", "winget.exe");
+                return File.Exists(interactiveWinGet);
+            }
+
+            // Non-OTS: standard check
             // 1. System PATH
             var pathDirs = Environment.GetEnvironmentVariable("PATH")?.Split(Path.PathSeparator) ?? Array.Empty<string>();
             foreach (var dir in pathDirs)
@@ -99,16 +131,31 @@ namespace Winhance.Infrastructure.Features.SoftwareApps.Services.WinGet.Utilitie
         /// If provided, uses this path instead of auto-resolving via <see cref="GetWinGetExePath"/>.
         /// Useful for forcing the bundled copy (e.g. when installing AppInstaller itself).
         /// </param>
+        /// <param name="interactiveUserService">
+        /// If provided and OTS elevation is active, runs winget as the interactive user
+        /// so packages install to the correct user's scope.
+        /// </param>
         public static async Task<WinGetCliResult> RunAsync(
             string arguments,
             Action<string>? onOutputLine = null,
             Action<string>? onErrorLine = null,
             CancellationToken cancellationToken = default,
             int timeoutMs = DefaultTimeoutMs,
-            string? exePathOverride = null)
+            string? exePathOverride = null,
+            IInteractiveUserService? interactiveUserService = null)
         {
-            var exePath = exePathOverride ?? GetWinGetExePath()
+            var exePath = exePathOverride ?? GetWinGetExePath(interactiveUserService)
                 ?? throw new FileNotFoundException("winget.exe not found. Bundled CLI may be missing.");
+
+            // OTS: run winget as the interactive user so packages install to their scope
+            if (interactiveUserService != null
+                && interactiveUserService.IsOtsElevation
+                && interactiveUserService.HasInteractiveUserToken)
+            {
+                var result = await interactiveUserService.RunProcessAsInteractiveUserAsync(
+                    exePath, arguments, onOutputLine, onErrorLine, cancellationToken, timeoutMs);
+                return new WinGetCliResult(result.ExitCode, result.StandardOutput, result.StandardError);
+            }
 
             var stdoutBuilder = new StringBuilder();
             var stderrBuilder = new StringBuilder();

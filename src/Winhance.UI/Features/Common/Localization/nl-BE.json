@@ -114,6 +114,7 @@
   "Button_Yes": "Ja",
   "Button_No": "Nee",
   "Button_Close": "Sluiten",
+  "Button_CopyToClipboard": "Kopiëren naar klembord",
   "Button_Apply": "Toepassen",
   "Button_Refresh": "Vernieuwen",
   "Button_Help": "Help",
@@ -1518,5 +1519,8 @@
   "Accessibility_ApplyingSetting": "Applying setting",
   "Accessibility_Selected": "Geselecteerd",
   "Accessibility_Checked": "Aangevinkt",
-  "Accessibility_Unchecked": "Niet aangevinkt"
+  "Accessibility_Unchecked": "Niet aangevinkt",
+  "Progress_ClickToSeeDetails": "Klik voor details",
+  "InfoBar_OtsElevation_Title": "Uitgevoerd als andere gebruiker",
+  "InfoBar_OtsElevation_Message": "Deze app is verhoogd met de aanmeldingsgegevens van een ander account. Instellingen worden nog steeds toegepast op de aangemelde gebruiker ({0}). Dit bericht is alleen ter informatie."
 }

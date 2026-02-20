@@ -114,6 +114,7 @@
   "Button_Yes": "Ano",
   "Button_No": "Ne",
   "Button_Close": "Zavřít",
+  "Button_CopyToClipboard": "Kopírovat do schránky",
   "Button_Apply": "Použít",
   "Button_Refresh": "Aktualizovat",
   "Button_Help": "Nápověda",
@@ -1518,5 +1519,8 @@
   "Accessibility_ApplyingSetting": "Applying setting",
   "Accessibility_Selected": "Vybráno",
   "Accessibility_Checked": "Zaškrtnuto",
-  "Accessibility_Unchecked": "Nezaškrtnuto"
+  "Accessibility_Unchecked": "Nezaškrtnuto",
+  "Progress_ClickToSeeDetails": "Klikněte pro zobrazení podrobností",
+  "InfoBar_OtsElevation_Title": "Spuštěno jako jiný uživatel",
+  "InfoBar_OtsElevation_Message": "Tato aplikace byla spuštěna s oprávněními jiného účtu. Nastavení budou stále aplikována na přihlášeného uživatele ({0}). Tato zpráva je pouze informativní."
 }

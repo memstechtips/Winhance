@@ -21,6 +21,7 @@ namespace Winhance.Infrastructure.Features.SoftwareApps.Services
         private readonly ITaskProgressService _taskProgressService;
         private readonly ILogService _logService;
         private readonly ILocalizationService _localization;
+        private readonly IInteractiveUserService _interactiveUserService;
 
         private WindowsPackageManagerFactory? _winGetFactory;
         private PackageManager? _packageManager;
@@ -39,11 +40,13 @@ namespace Winhance.Infrastructure.Features.SoftwareApps.Services
         public WinGetService(
             ITaskProgressService taskProgressService,
             ILogService logService,
-            ILocalizationService localization)
+            ILocalizationService localization,
+            IInteractiveUserService interactiveUserService)
         {
             _taskProgressService = taskProgressService;
             _logService = logService;
             _localization = localization;
+            _interactiveUserService = interactiveUserService;
         }
 
         private bool IsRunningAsAdministrator()
@@ -116,7 +119,7 @@ namespace Winhance.Infrastructure.Features.SoftwareApps.Services
         public async Task<bool> IsWinGetInstalledAsync(CancellationToken cancellationToken = default)
         {
             // Bundled CLI is always available if the app is correctly installed
-            var exePath = WinGetCliRunner.GetWinGetExePath();
+            var exePath = WinGetCliRunner.GetWinGetExePath(_interactiveUserService);
             if (exePath != null && File.Exists(exePath))
                 return true;
 
@@ -154,11 +157,27 @@ namespace Winhance.Infrastructure.Features.SoftwareApps.Services
             {
                 _taskProgressService?.UpdateProgress(20, _localization.GetString("Progress_WinGet_StartingInstallation", displayName));
 
-                var arguments = $"install --exact --id {packageId} --silent --accept-package-agreements --accept-source-agreements --force --disable-interactivity";
+                var arguments = $"install --id {packageId} --silent --accept-package-agreements --accept-source-agreements --force --disable-interactivity";
                 if (!string.IsNullOrEmpty(source))
                     arguments += $" --source {source}";
 
                 _logService?.LogInformation($"[winget] Running: winget {arguments}");
+
+                // Emit metadata header for the task output dialog
+                var wingetExe = WinGetCliRunner.GetWinGetExePath(_interactiveUserService) ?? "winget";
+                var startTime = DateTime.Now;
+                _taskProgressService?.UpdateDetailedProgress(new TaskProgressDetail
+                {
+                    TerminalOutput = $"Command: {wingetExe} {arguments}"
+                });
+                _taskProgressService?.UpdateDetailedProgress(new TaskProgressDetail
+                {
+                    TerminalOutput = $"Start Time: \"{startTime:yyyy/MM/dd HH:mm:ss}\""
+                });
+                _taskProgressService?.UpdateDetailedProgress(new TaskProgressDetail
+                {
+                    TerminalOutput = "---"
+                });
 
                 var lastProgressReport = DateTime.MinValue;
 
@@ -238,7 +257,28 @@ namespace Winhance.Infrastructure.Features.SoftwareApps.Services
                     {
                         _logService?.LogWarning($"[winget-err] {line}");
                     },
-                    cancellationToken: cancellationToken);
+                    cancellationToken: cancellationToken,
+                    interactiveUserService: _interactiveUserService);
+
+                // Emit metadata footer for the task output dialog
+                var endTime = DateTime.Now;
+                _taskProgressService?.UpdateDetailedProgress(new TaskProgressDetail
+                {
+                    TerminalOutput = "---"
+                });
+                _taskProgressService?.UpdateDetailedProgress(new TaskProgressDetail
+                {
+                    TerminalOutput = $"End Time: \"{endTime:yyyy/MM/dd HH:mm:ss}\""
+                });
+                _taskProgressService?.UpdateDetailedProgress(new TaskProgressDetail
+                {
+                    TerminalOutput = $"Process return value: \"{result.ExitCode}\" (0x{result.ExitCode:X8})"
+                });
+
+                // If the user cancelled while the process was running, throw before
+                // checking the exit code so the OperationCanceledException handler fires
+                // and the Chocolatey fallback prompt is never reached.
+                cancellationToken.ThrowIfCancellationRequested();
 
                 if (WinGetExitCodes.IsSuccess(result.ExitCode))
                 {
@@ -286,11 +326,27 @@ namespace Winhance.Infrastructure.Features.SoftwareApps.Services
             {
                 _taskProgressService?.UpdateProgress(20, _localization.GetString("Progress_WinGet_StartingUninstallation", displayName));
 
-                var arguments = $"uninstall --exact --id {packageId} --silent --accept-source-agreements --force --disable-interactivity";
+                var arguments = $"uninstall --id {packageId} --silent --accept-source-agreements --force --disable-interactivity";
                 if (!string.IsNullOrEmpty(source))
                     arguments += $" --source {source}";
 
                 _logService?.LogInformation($"[winget] Running: winget {arguments}");
+
+                // Emit metadata header for the task output dialog
+                var wingetExe = WinGetCliRunner.GetWinGetExePath(_interactiveUserService) ?? "winget";
+                var startTime = DateTime.Now;
+                _taskProgressService?.UpdateDetailedProgress(new TaskProgressDetail
+                {
+                    TerminalOutput = $"Command: {wingetExe} {arguments}"
+                });
+                _taskProgressService?.UpdateDetailedProgress(new TaskProgressDetail
+                {
+                    TerminalOutput = $"Start Time: \"{startTime:yyyy/MM/dd HH:mm:ss}\""
+                });
+                _taskProgressService?.UpdateDetailedProgress(new TaskProgressDetail
+                {
+                    TerminalOutput = "---"
+                });
 
                 var lastProgressReport = DateTime.MinValue;
 
@@ -368,7 +424,23 @@ namespace Winhance.Infrastructure.Features.SoftwareApps.Services
                     {
                         _logService?.LogWarning($"[winget-err] {line}");
                     },
-                    cancellationToken: cancellationToken);
+                    cancellationToken: cancellationToken,
+                    interactiveUserService: _interactiveUserService);
+
+                // Emit metadata footer for the task output dialog
+                var endTime = DateTime.Now;
+                _taskProgressService?.UpdateDetailedProgress(new TaskProgressDetail
+                {
+                    TerminalOutput = "---"
+                });
+                _taskProgressService?.UpdateDetailedProgress(new TaskProgressDetail
+                {
+                    TerminalOutput = $"End Time: \"{endTime:yyyy/MM/dd HH:mm:ss}\""
+                });
+                _taskProgressService?.UpdateDetailedProgress(new TaskProgressDetail
+                {
+                    TerminalOutput = $"Process return value: \"{result.ExitCode}\" (0x{result.ExitCode:X8})"
+                });
 
                 if (WinGetExitCodes.IsSuccess(result.ExitCode))
                 {
@@ -441,14 +513,15 @@ namespace Winhance.Infrastructure.Features.SoftwareApps.Services
         {
             try
             {
-                var arguments = $"list --exact --id {packageId} --accept-source-agreements --disable-interactivity";
+                var arguments = $"list --id {packageId} --accept-source-agreements --disable-interactivity";
                 if (!string.IsNullOrEmpty(source))
                     arguments += $" --source {source}";
 
                 var result = await WinGetCliRunner.RunAsync(
                     arguments,
                     cancellationToken: cancellationToken,
-                    timeoutMs: 10_000);
+                    timeoutMs: 10_000,
+                    interactiveUserService: _interactiveUserService);
 
                 // Exit code 0 = found (still installed), non-zero = not found
                 return result.ExitCode == 0;
@@ -501,7 +574,7 @@ namespace Winhance.Infrastructure.Features.SoftwareApps.Services
 
                 _logService?.LogWarning("COM API did not become ready after AppInstaller installation");
                 // Still consider it a partial success — system winget may be available
-                _systemWinGetAvailable = WinGetCliRunner.IsSystemWinGetAvailable();
+                _systemWinGetAvailable = WinGetCliRunner.IsSystemWinGetAvailable(_interactiveUserService);
                 if (_systemWinGetAvailable)
                 {
                     WinGetInstalled?.Invoke(this, EventArgs.Empty);
@@ -528,7 +601,7 @@ namespace Winhance.Infrastructure.Features.SoftwareApps.Services
             {
                 _logService?.LogInformation("Checking WinGet availability...");
 
-                _systemWinGetAvailable = WinGetCliRunner.IsSystemWinGetAvailable();
+                _systemWinGetAvailable = WinGetCliRunner.IsSystemWinGetAvailable(_interactiveUserService);
                 _logService?.LogInformation($"System winget available: {_systemWinGetAvailable}");
 
                 if (_systemWinGetAvailable)
@@ -560,7 +633,7 @@ namespace Winhance.Infrastructure.Features.SoftwareApps.Services
                 }
 
                 // Return true as long as bundled or system winget exists
-                var exePath = WinGetCliRunner.GetWinGetExePath();
+                var exePath = WinGetCliRunner.GetWinGetExePath(_interactiveUserService);
                 if (exePath == null || !File.Exists(exePath))
                 {
                     _logService?.LogWarning("WinGet CLI not found — install/uninstall will fail");
@@ -588,7 +661,7 @@ namespace Winhance.Infrastructure.Features.SoftwareApps.Services
                     StatusText = _localization.GetString("Progress_WinGet_CheckingUpdates")
                 });
 
-                var exePath = WinGetCliRunner.GetWinGetExePath();
+                var exePath = WinGetCliRunner.GetWinGetExePath(_interactiveUserService);
                 if (exePath == null || !File.Exists(exePath))
                 {
                     _logService?.LogError("Bundled WinGet CLI not found");
@@ -808,7 +881,7 @@ namespace Winhance.Infrastructure.Features.SoftwareApps.Services
             var installedPackageIds = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
 
             var cacheDir = Path.Combine(
-                Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData),
+                _interactiveUserService.GetInteractiveUserFolderPath(Environment.SpecialFolder.LocalApplicationData),
                 "Winhance", "Cache");
             Directory.CreateDirectory(cacheDir);
             var exportPath = Path.Combine(cacheDir, "winget-packages.json");
@@ -832,7 +905,8 @@ namespace Winhance.Infrastructure.Features.SoftwareApps.Services
                         arguments,
                         cancellationToken: cancellationToken,
                         timeoutMs: timeoutMs,
-                        exePathOverride: WinGetCliRunner.GetBundledWinGetExePath());
+                        exePathOverride: WinGetCliRunner.GetBundledWinGetExePath(),
+                        interactiveUserService: _interactiveUserService);
 
                     if (result.ExitCode != 0)
                     {
@@ -939,9 +1013,10 @@ namespace Winhance.Infrastructure.Features.SoftwareApps.Services
 
                 // CLI fallback: parse "winget show" output for Installer Type
                 var result = await WinGetCliRunner.RunAsync(
-                    $"show --exact --id {packageId} --accept-source-agreements --disable-interactivity",
+                    $"show --id {packageId} --accept-source-agreements --disable-interactivity",
                     cancellationToken: cancellationToken,
-                    timeoutMs: 60_000);
+                    timeoutMs: 60_000,
+                    interactiveUserService: _interactiveUserService);
 
                 if (result.ExitCode == 0)
                 {

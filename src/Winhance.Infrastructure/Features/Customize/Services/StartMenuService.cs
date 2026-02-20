@@ -18,7 +18,8 @@ namespace Winhance.Infrastructure.Features.Customize.Services
     public class StartMenuService(
         IScheduledTaskService scheduledTaskService,
         ILogService logService,
-        ICompatibleSettingsRegistry compatibleSettingsRegistry) : IDomainService
+        ICompatibleSettingsRegistry compatibleSettingsRegistry,
+        IInteractiveUserService interactiveUserService) : IDomainService
     {
         // Caching fields
         private IEnumerable<SettingDefinition>? _cachedSettings;
@@ -136,7 +137,7 @@ namespace Winhance.Infrastructure.Features.Customize.Services
                 }
 
                 // Step 2: Delete start.bin and start2.bin files from LocalState directory
-                string localAppData = Environment.GetFolderPath(
+                string localAppData = interactiveUserService.GetInteractiveUserFolderPath(
                     Environment.SpecialFolder.LocalApplicationData
                 );
                 string startMenuLocalStatePath = Path.Combine(
@@ -267,7 +268,7 @@ namespace Winhance.Infrastructure.Features.Customize.Services
         {
             try
             {
-                var currentUsername = Environment.UserName;
+                var currentUsername = interactiveUserService.InteractiveUserName;
                 var otherUsernames = GetOtherUsernames();
 
                 logService?.LogInformation(
@@ -356,7 +357,7 @@ namespace Winhance.Infrastructure.Features.Customize.Services
         {
             try
             {
-                var currentUsername = Environment.UserName;
+                var currentUsername = interactiveUserService.InteractiveUserName;
                 var otherUsernames = GetOtherUsernames();
 
                 logService?.Log(
@@ -459,7 +460,7 @@ namespace Winhance.Infrastructure.Features.Customize.Services
         private List<string> GetOtherUsernames()
         {
             var usernames = new List<string>();
-            string currentUsername = Environment.UserName;
+            string currentUsername = interactiveUserService.InteractiveUserName;
 
             try
             {

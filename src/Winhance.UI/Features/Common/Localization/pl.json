@@ -114,6 +114,7 @@
   "Button_Yes": "Tak",
   "Button_No": "Nie",
   "Button_Close": "Zamknij",
+  "Button_CopyToClipboard": "Kopiuj do schowka",
   "Button_Apply": "Zastosuj",
   "Button_Refresh": "Odśwież",
   "Button_Help": "Pomoc",
@@ -1518,5 +1519,8 @@
   "Accessibility_ApplyingSetting": "Applying setting",
   "Accessibility_Selected": "Wybrano",
   "Accessibility_Checked": "Zaznaczono",
-  "Accessibility_Unchecked": "Odznaczono"
+  "Accessibility_Unchecked": "Odznaczono",
+  "Progress_ClickToSeeDetails": "Kliknij, aby zobaczyć szczegóły",
+  "InfoBar_OtsElevation_Title": "Uruchomiono jako inny użytkownik",
+  "InfoBar_OtsElevation_Message": "Ta aplikacja została podniesiona przy użyciu poświadczeń innego konta. Ustawienia będą nadal stosowane do zalogowanego użytkownika ({0}). Ta wiadomość ma charakter wyłącznie informacyjny."
 }

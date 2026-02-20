@@ -114,6 +114,7 @@
   "Button_Yes": "Jā",
   "Button_No": "Nē",
   "Button_Close": "Aizvērt",
+  "Button_CopyToClipboard": "Kopēt starpliktuvē",
   "Button_Apply": "Lietot",
   "Button_Refresh": "Atsvaidzināt",
   "Button_Help": "Palīdzība",
@@ -1518,5 +1519,8 @@
   "Accessibility_ApplyingSetting": "Applying setting",
   "Accessibility_Selected": "Atlasīts",
   "Accessibility_Checked": "Atzīmēts",
-  "Accessibility_Unchecked": "Neatzīmēts"
+  "Accessibility_Unchecked": "Neatzīmēts",
+  "Progress_ClickToSeeDetails": "Noklikšķiniet, lai skatītu informāciju",
+  "InfoBar_OtsElevation_Title": "Darbojas kā cits lietotājs",
+  "InfoBar_OtsElevation_Message": "Šī lietotne tika paaugstināta ar cita konta akreditācijas datiem. Iestatījumi joprojām tiks piemēroti pieteicušamies lietotājam ({0}). Šis ziņojums ir tikai informatīvs."
 }

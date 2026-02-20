@@ -54,7 +54,8 @@ public static class DomainServicesExtensions
         services.AddSingleton<StartMenuService>(sp => new StartMenuService(
             sp.GetRequiredService<IScheduledTaskService>(),
             sp.GetRequiredService<ILogService>(),
-            sp.GetRequiredService<ICompatibleSettingsRegistry>()
+            sp.GetRequiredService<ICompatibleSettingsRegistry>(),
+            sp.GetRequiredService<IInteractiveUserService>()
         ));
         services.AddSingleton<IDomainService>(sp => sp.GetRequiredService<StartMenuService>());
 

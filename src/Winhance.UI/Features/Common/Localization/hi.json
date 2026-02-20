@@ -114,6 +114,7 @@
   "Button_Yes": "हाँ",
   "Button_No": "नहीं",
   "Button_Close": "बंद करें",
+  "Button_CopyToClipboard": "क्लिपबोर्ड पर कॉपी करें",
   "Button_Apply": "लागू करें",
   "Button_Refresh": "रीफ्रेश",
   "Button_Help": "सहायता",
@@ -1518,5 +1519,8 @@
   "Accessibility_ApplyingSetting": "Applying setting",
   "Accessibility_Selected": "चयनित",
   "Accessibility_Checked": "चेक किया गया",
-  "Accessibility_Unchecked": "अनचेक किया गया"
+  "Accessibility_Unchecked": "अनचेक किया गया",
+  "Progress_ClickToSeeDetails": "विवरण देखने के लिए क्लिक करें",
+  "InfoBar_OtsElevation_Title": "एक अलग उपयोगकर्ता के रूप में चल रहा है",
+  "InfoBar_OtsElevation_Message": "यह ऐप किसी अन्य खाते के क्रेडेंशियल्स से एलिवेट किया गया था। सेटिंग्स अभी भी लॉग-इन उपयोगकर्ता ({0}) पर लागू होंगी। यह संदेश केवल सूचनात्मक है।"
 }

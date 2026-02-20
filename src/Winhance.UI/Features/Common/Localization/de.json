@@ -114,6 +114,7 @@
   "Button_Yes": "Ja",
   "Button_No": "Nein",
   "Button_Close": "Schließen",
+  "Button_CopyToClipboard": "In Zwischenablage kopieren",
   "Button_Apply": "Anwenden",
   "Button_Refresh": "Aktualisieren",
   "Button_Help": "Hilfe",
@@ -1518,5 +1519,8 @@
   "Accessibility_ApplyingSetting": "Applying setting",
   "Accessibility_Selected": "Ausgewählt",
   "Accessibility_Checked": "Aktiviert",
-  "Accessibility_Unchecked": "Deaktiviert"
+  "Accessibility_Unchecked": "Deaktiviert",
+  "Progress_ClickToSeeDetails": "Klicken für Details",
+  "InfoBar_OtsElevation_Title": "Als anderer Benutzer ausgeführt",
+  "InfoBar_OtsElevation_Message": "Diese App wurde mit den Anmeldedaten eines anderen Kontos erhöht. Einstellungen werden weiterhin auf den angemeldeten Benutzer ({0}) angewendet. Diese Meldung dient nur zur Information."
 }

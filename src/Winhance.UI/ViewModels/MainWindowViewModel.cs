@@ -50,6 +50,7 @@ public partial class MainWindowViewModel : ObservableObject
     private readonly IConfigReviewService _configReviewService;
     private readonly IWinGetService _winGetService;
     private readonly IInternetConnectivityService _internetConnectivityService;
+    private readonly IInteractiveUserService _interactiveUserService;
 
     [ObservableProperty]
     private string _appIconSource = "ms-appx:///Assets/AppIcons/winhance-rocket-white-transparent-bg.png";
@@ -64,6 +65,11 @@ public partial class MainWindowViewModel : ObservableObject
 
     [ObservableProperty]
     private bool _isLoading;
+
+    // Tracks whether the last single-task ended in failure (progress was set to 0 with an error).
+    // Used to keep the TaskProgressControl visible so the user can click to see details.
+    private bool _lastTaskFailed;
+    private CancellationTokenSource? _hideDelayCts;
 
     [ObservableProperty]
     private string _appName = string.Empty;
@@ -118,7 +124,15 @@ public partial class MainWindowViewModel : ObservableObject
     [ObservableProperty]
     private bool _canApplyReviewedConfig;
 
+    // OTS Elevation InfoBar properties
+    [ObservableProperty]
+    private bool _isOtsInfoBarOpen;
 
+    [ObservableProperty]
+    private string _otsInfoBarTitle = string.Empty;
+
+    [ObservableProperty]
+    private string _otsInfoBarMessage = string.Empty;
 
     /// <summary>
     /// Event raised when the Windows version filter state changes.
@@ -144,7 +158,8 @@ public partial class MainWindowViewModel : ObservableObject
         IDispatcherService dispatcherService,
         IConfigReviewService configReviewService,
         IWinGetService winGetService,
-        IInternetConnectivityService internetConnectivityService)
+        IInternetConnectivityService internetConnectivityService,
+        IInteractiveUserService interactiveUserService)
     {
         _themeService = themeService;
         _configurationService = configurationService;
@@ -159,6 +174,7 @@ public partial class MainWindowViewModel : ObservableObject
         _configReviewService = configReviewService;
         _winGetService = winGetService;
         _internetConnectivityService = internetConnectivityService;
+        _interactiveUserService = interactiveUserService;
 
         // Subscribe to theme changes
         _themeService.ThemeChanged += OnThemeChanged;
@@ -179,6 +195,9 @@ public partial class MainWindowViewModel : ObservableObject
 
         // Initialize version info
         InitializeVersionInfo();
+
+        // Show OTS elevation InfoBar if needed
+        InitializeOtsInfoBar();
     }
 
     /// <summary>
@@ -215,6 +234,12 @@ public partial class MainWindowViewModel : ObservableObject
             RefreshUpdateInfoBarText();
         }
 
+        // OTS InfoBar
+        if (IsOtsInfoBarOpen)
+        {
+            RefreshOtsInfoBarText();
+        }
+
         // Review Mode bar
         if (IsInReviewMode)
         {
@@ -241,6 +266,42 @@ public partial class MainWindowViewModel : ObservableObject
             VersionInfo = "Winhance";
         }
     }
+
+    #region OTS Elevation InfoBar
+
+    /// <summary>
+    /// Initializes the OTS InfoBar if the app is running under OTS elevation.
+    /// </summary>
+    private void InitializeOtsInfoBar()
+    {
+        if (_interactiveUserService.IsOtsElevation)
+        {
+            RefreshOtsInfoBarText();
+            IsOtsInfoBarOpen = true;
+        }
+    }
+
+    /// <summary>
+    /// Refreshes the OTS InfoBar text from localization.
+    /// </summary>
+    private void RefreshOtsInfoBarText()
+    {
+        OtsInfoBarTitle = _localizationService.GetString("InfoBar_OtsElevation_Title")
+            ?? "Running as a different user";
+        var messageTemplate = _localizationService.GetString("InfoBar_OtsElevation_Message")
+            ?? "This app was elevated with a different account's credentials. Settings will still be applied to the logged-in user ({0}). This message is informational only.";
+        OtsInfoBarMessage = string.Format(messageTemplate, _interactiveUserService.InteractiveUserName);
+    }
+
+    /// <summary>
+    /// Dismisses the OTS InfoBar.
+    /// </summary>
+    public void DismissOtsInfoBar()
+    {
+        IsOtsInfoBarOpen = false;
+    }
+
+    #endregion
 
     #region Localized Strings
 
@@ -520,6 +581,21 @@ public partial class MainWindowViewModel : ObservableObject
 
     [RelayCommand]
     private void Cancel() => _taskProgressService.CancelCurrentTask();
+
+    [RelayCommand]
+    private async Task ShowDetailsAsync()
+    {
+        var terminalLines = _taskProgressService.GetTerminalOutputLines();
+        var title = !string.IsNullOrEmpty(AppName) ? AppName : "Task Output";
+        await _dialogService.ShowTaskOutputDialogAsync(title, terminalLines);
+
+        // After the dialog is closed, dismiss the progress control if the task is no longer running
+        if (!_taskProgressService.IsTaskRunning)
+        {
+            _lastTaskFailed = false;
+            IsLoading = false;
+        }
+    }
 
     [RelayCommand]
     private async Task CheckForUpdatesAsync()
@@ -927,11 +1003,43 @@ public partial class MainWindowViewModel : ObservableObject
             }
             else
             {
-                // Existing single-task mode (unchanged)
-                IsLoading = _taskProgressService.IsTaskRunning;
-                if (!string.IsNullOrEmpty(detail.StatusText))
-                    AppName = detail.StatusText;
-                LastTerminalLine = detail.TerminalOutput ?? string.Empty;
+                var wasRunning = IsLoading;
+                var isNowRunning = _taskProgressService.IsTaskRunning;
+
+                if (isNowRunning)
+                {
+                    // Cancel any pending hide-delay from a previous task
+                    _hideDelayCts?.Cancel();
+                    _hideDelayCts = null;
+                    _lastTaskFailed = false;
+
+                    IsLoading = true;
+                    if (!string.IsNullOrEmpty(detail.StatusText))
+                        AppName = detail.StatusText;
+                    LastTerminalLine = detail.TerminalOutput ?? string.Empty;
+
+                    // Track failure: progress == 0 with a status text means an error was reported
+                    if (detail.Progress.HasValue && detail.Progress.Value == 0 && !string.IsNullOrEmpty(detail.StatusText))
+                        _lastTaskFailed = true;
+                }
+                else if (wasRunning)
+                {
+                    // Task just stopped running — handle completion
+                    if (_lastTaskFailed)
+                    {
+                        // Failed: keep the control visible with "click to see details"
+                        IsLoading = true;
+                        LastTerminalLine = _localizationService.GetString("Progress_ClickToSeeDetails");
+                    }
+                    else
+                    {
+                        // Success: show the completion state briefly, then hide after 2 seconds
+                        if (!string.IsNullOrEmpty(detail.StatusText))
+                            AppName = detail.StatusText;
+                        LastTerminalLine = detail.TerminalOutput ?? string.Empty;
+                        ScheduleHideProgressAsync();
+                    }
+                }
 
                 // Queue display
                 if (detail.QueueTotal > 1)
@@ -950,6 +1058,30 @@ public partial class MainWindowViewModel : ObservableObject
                 }
             }
         });
+    }
+
+    /// <summary>
+    /// Hides the TaskProgressControl after a 2-second delay, unless a new task starts.
+    /// </summary>
+    private async void ScheduleHideProgressAsync()
+    {
+        _hideDelayCts?.Cancel();
+        var cts = new CancellationTokenSource();
+        _hideDelayCts = cts;
+
+        try
+        {
+            await Task.Delay(2000, cts.Token);
+            _dispatcherService.RunOnUIThread(() =>
+            {
+                if (!_taskProgressService.IsTaskRunning)
+                    IsLoading = false;
+            });
+        }
+        catch (OperationCanceledException)
+        {
+            // A new task started before the delay expired — do nothing
+        }
     }
 
     #endregion

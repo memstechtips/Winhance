@@ -120,6 +120,12 @@ public partial class App : Application
                 // Start file logging to C:\ProgramData\Winhance\Logs
                 try
                 {
+                    // Wire up interactive user service for OTS-aware logging
+                    var interactiveUserService = Services.GetService<IInteractiveUserService>();
+                    if (interactiveUserService != null && _logService is Winhance.Core.Features.Common.Services.LogService concreteLogService)
+                    {
+                        concreteLogService.SetInteractiveUserService(interactiveUserService);
+                    }
                     _logService?.StartLog();
                     StartupLogger.Log("App", "LogService.StartLog() called - file logging initialized");
                     var logPath = _logService?.GetLogPath();

@@ -114,6 +114,7 @@
   "Button_Yes": "Igen",
   "Button_No": "Nem",
   "Button_Close": "Bezárás",
+  "Button_CopyToClipboard": "Másolás a vágólapra",
   "Button_Apply": "Alkalmaz",
   "Button_Refresh": "Frissítés",
   "Button_Help": "Súgó",
@@ -1518,5 +1519,8 @@
   "Accessibility_ApplyingSetting": "Applying setting",
   "Accessibility_Selected": "Kiválasztva",
   "Accessibility_Checked": "Bejelölve",
-  "Accessibility_Unchecked": "Nincs bejelölve"
+  "Accessibility_Unchecked": "Nincs bejelölve",
+  "Progress_ClickToSeeDetails": "Kattintson a részletekhez",
+  "InfoBar_OtsElevation_Title": "Más felhasználóként fut",
+  "InfoBar_OtsElevation_Message": "Ez az alkalmazás egy másik fiók hitelesítő adataival lett megemelve. A beállítások a bejelentkezett felhasználóra ({0}) lesznek alkalmazva. Ez az üzenet csak tájékoztató jellegű."
 }

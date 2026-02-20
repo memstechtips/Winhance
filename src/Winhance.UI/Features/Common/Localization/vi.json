@@ -114,6 +114,7 @@
   "Button_Yes": "Có",
   "Button_No": "Không",
   "Button_Close": "Đóng",
+  "Button_CopyToClipboard": "Sao chép vào bộ nhớ tạm",
   "Button_Apply": "Áp dụng",
   "Button_Refresh": "Làm mới",
   "Button_Help": "Trợ giúp",
@@ -1518,5 +1519,8 @@
   "Accessibility_ApplyingSetting": "Applying setting",
   "Accessibility_Selected": "Đã chọn",
   "Accessibility_Checked": "Đã chọn",
-  "Accessibility_Unchecked": "Bỏ chọn"
+  "Accessibility_Unchecked": "Bỏ chọn",
+  "Progress_ClickToSeeDetails": "Nhấn để xem chi tiết",
+  "InfoBar_OtsElevation_Title": "Đang chạy với tư cách người dùng khác",
+  "InfoBar_OtsElevation_Message": "Ứng dụng này đã được nâng quyền bằng thông tin đăng nhập của tài khoản khác. Các cài đặt vẫn sẽ được áp dụng cho người dùng đã đăng nhập ({0}). Thông báo này chỉ mang tính chất thông tin."
 }

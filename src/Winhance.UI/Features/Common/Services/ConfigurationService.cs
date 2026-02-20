@@ -40,6 +40,7 @@ public class ConfigurationService : IConfigurationService
     private readonly IConfigImportOverlayService _overlayService;
     private readonly IConfigReviewService _configReviewService;
     private readonly ConfigMigrationService _configMigrationService;
+    private readonly IInteractiveUserService _interactiveUserService;
     private bool _configImportSaveRemovalScripts = true;
 
     private static readonly JsonSerializerOptions JsonOptions = new()
@@ -64,7 +65,8 @@ public class ConfigurationService : IConfigurationService
         ILocalizationService localizationService,
         IConfigImportOverlayService overlayService,
         IConfigReviewService configReviewService,
-        ConfigMigrationService configMigrationService)
+        ConfigMigrationService configMigrationService,
+        IInteractiveUserService interactiveUserService)
     {
         _serviceProvider = serviceProvider;
         _logService = logService;
@@ -81,6 +83,7 @@ public class ConfigurationService : IConfigurationService
         _overlayService = overlayService;
         _configReviewService = configReviewService;
         _configMigrationService = configMigrationService;
+        _interactiveUserService = interactiveUserService;
 
         // Listen for review mode exit to clear review state from all loaded settings
         _configReviewService.ReviewModeChanged += OnReviewModeChanged;
@@ -835,7 +838,7 @@ public class ConfigurationService : IConfigurationService
             var config = await CreateConfigurationFromSystemAsync(isBackup: true);
 
             var configDir = Path.Combine(
-                Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData),
+                _interactiveUserService.GetInteractiveUserFolderPath(Environment.SpecialFolder.LocalApplicationData),
                 "Winhance", "Backup");
 
             Directory.CreateDirectory(configDir);
@@ -1466,7 +1469,7 @@ public class ConfigurationService : IConfigurationService
         try
         {
             var logDir = Path.Combine(
-                Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData),
+                _interactiveUserService.GetInteractiveUserFolderPath(Environment.SpecialFolder.LocalApplicationData),
                 "Winhance");
             Directory.CreateDirectory(logDir);
 
@@ -1514,7 +1517,7 @@ public class ConfigurationService : IConfigurationService
         try
         {
             var configDir = Path.Combine(
-                Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData),
+                _interactiveUserService.GetInteractiveUserFolderPath(Environment.SpecialFolder.LocalApplicationData),
                 "Winhance", "Backup");
 
             if (!Directory.Exists(configDir))

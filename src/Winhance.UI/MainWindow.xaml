@@ -28,6 +28,7 @@
         </Grid.KeyboardAccelerators>
         <Grid.RowDefinitions>
             <RowDefinition Height="48"/>    <!-- TitleBar -->
+            <RowDefinition Height="Auto"/>  <!-- OTS Elevation InfoBar -->
             <RowDefinition Height="Auto"/>  <!-- Update InfoBar -->
             <RowDefinition Height="Auto"/>  <!-- Review Mode Bar -->
             <RowDefinition Height="*"/>     <!-- Main Content -->
@@ -152,15 +153,22 @@
             </StackPanel>
         </Grid>
 
+        <!-- OTS Elevation InfoBar -->
+        <InfoBar x:Name="OtsElevationInfoBar"
+                 Grid.Row="1"
+                 Severity="Warning"
+                 IsClosable="True"
+                 Closed="OtsElevationInfoBar_Closed"/>
+
         <!-- Update InfoBar -->
         <InfoBar x:Name="UpdateInfoBar"
-                 Grid.Row="1"
+                 Grid.Row="2"
                  IsClosable="True"
                  Closed="UpdateInfoBar_Closed"/>
 
         <!-- Review Mode Bar (visible during config review) -->
         <Grid x:Name="ReviewModeBar"
-              Grid.Row="2"
+              Grid.Row="3"
               Background="{ThemeResource AccentFillColorDefaultBrush}"
               Visibility="Collapsed"
               Padding="16,10,16,10">
@@ -237,7 +245,7 @@
         </Grid>
 
         <!-- Main Content Area -->
-        <Grid Grid.Row="3">
+        <Grid Grid.Row="4">
             <Grid.ColumnDefinitions>
                 <ColumnDefinition Width="Auto"/>  <!-- NavSidebar -->
                 <ColumnDefinition Width="*"/>     <!-- Content -->
@@ -269,7 +277,7 @@
 
         <!-- Loading Overlay (shown during startup initialization) -->
         <Grid x:Name="LoadingOverlay"
-              Grid.RowSpan="4"
+              Grid.RowSpan="5"
               Background="{ThemeResource SolidBackgroundFillColorBaseBrush}"
               Visibility="Visible"
               AutomationProperties.LiveSetting="Polite">

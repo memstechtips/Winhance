@@ -114,6 +114,7 @@
   "Button_Yes": "Да",
   "Button_No": "Нет",
   "Button_Close": "Закрыть",
+  "Button_CopyToClipboard": "Копировать в буфер обмена",
   "Button_Apply": "Применить",
   "Button_Refresh": "Обновить",
   "Button_Help": "Справка",
@@ -1518,5 +1519,8 @@
   "Accessibility_ApplyingSetting": "Applying setting",
   "Accessibility_Selected": "Выбрано",
   "Accessibility_Checked": "Отмечено",
-  "Accessibility_Unchecked": "Не отмечено"
+  "Accessibility_Unchecked": "Не отмечено",
+  "Progress_ClickToSeeDetails": "Нажмите, чтобы увидеть подробности",
+  "InfoBar_OtsElevation_Title": "Запущено от имени другого пользователя",
+  "InfoBar_OtsElevation_Message": "Это приложение было запущено с учётными данными другой учётной записи. Настройки будут применены к вошедшему в систему пользователю ({0}). Это сообщение носит информационный характер."
 }

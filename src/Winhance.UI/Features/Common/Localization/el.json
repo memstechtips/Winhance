@@ -114,6 +114,7 @@
   "Button_Yes": "Ναι",
   "Button_No": "Όχι",
   "Button_Close": "Κλείσιμο",
+  "Button_CopyToClipboard": "Αντιγραφή στο πρόχειρο",
   "Button_Apply": "Εφαρμογή",
   "Button_Refresh": "Ανανέωση",
   "Button_Help": "Βοήθεια",
@@ -1518,5 +1519,8 @@
   "Accessibility_ApplyingSetting": "Applying setting",
   "Accessibility_Selected": "Επιλέχθηκε",
   "Accessibility_Checked": "Επιλεγμένο",
-  "Accessibility_Unchecked": "Μη επιλεγμένο"
+  "Accessibility_Unchecked": "Μη επιλεγμένο",
+  "Progress_ClickToSeeDetails": "Κάντε κλικ για λεπτομέρειες",
+  "InfoBar_OtsElevation_Title": "Εκτέλεση ως διαφορετικός χρήστης",
+  "InfoBar_OtsElevation_Message": "Αυτή η εφαρμογή ανυψώθηκε με τα διαπιστευτήρια διαφορετικού λογαριασμού. Οι ρυθμίσεις θα εφαρμοστούν στον συνδεδεμένο χρήστη ({0}). Αυτό το μήνυμα είναι μόνο ενημερωτικό."
 }
