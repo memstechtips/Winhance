@@ -175,7 +175,7 @@ public class ConfigurationApplicationBridgeService
         Failed
     }
 
-    private List<List<(ConfigurationItem item, SettingDefinition setting)>> BuildDependencyWaves(List<ConfigurationItem> items)
+    private List<List<(ConfigurationItem item, SettingDefinition setting)>> BuildDependencyWaves(IReadOnlyList<ConfigurationItem> items)
     {
         var waves = new List<List<(ConfigurationItem, SettingDefinition)>>();
         var processedIds = new HashSet<string>();

@@ -16,12 +16,12 @@ namespace Winhance.Core.Features.Common.Models
     public class FeatureGroupSection
     {
         public bool IsIncluded { get; set; } = false;
-        public Dictionary<string, ConfigSection> Features { get; set; } = new Dictionary<string, ConfigSection>();
+        public IReadOnlyDictionary<string, ConfigSection> Features { get; set; } = new Dictionary<string, ConfigSection>();
     }
 
     public class ConfigSection
     {
         public bool IsIncluded { get; set; } = false;
-        public List<ConfigurationItem> Items { get; set; } = new List<ConfigurationItem>();
+        public IReadOnlyList<ConfigurationItem> Items { get; set; } = new List<ConfigurationItem>();
     }
 }

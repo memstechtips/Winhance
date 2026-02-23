@@ -12,6 +12,6 @@ namespace Winhance.Core.Features.Common.Models
         public bool ApplyCleanTaskbar { get; set; }
         public bool ApplyCleanStartMenu { get; set; }
         public bool ReviewBeforeApplying { get; set; }
-        public HashSet<string> ActionOnlySubsections { get; set; } = new HashSet<string>();
+        public IReadOnlyCollection<string> ActionOnlySubsections { get; set; } = new HashSet<string>();
     }
 }

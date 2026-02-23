@@ -26,6 +26,6 @@ namespace Winhance.Core.Features.Common.Models
         /// <summary>
         /// Gets or sets the collection of configuration items.
         /// </summary>
-        public List<ConfigurationItem> Items { get; set; } = new List<ConfigurationItem>();
+        public IReadOnlyList<ConfigurationItem> Items { get; set; } = new List<ConfigurationItem>();
     }
 }

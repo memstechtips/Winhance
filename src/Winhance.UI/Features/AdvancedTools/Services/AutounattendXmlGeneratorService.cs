@@ -99,6 +99,8 @@ public class AutounattendXmlGeneratorService : IAutounattendXmlGeneratorService
 
         int totalOptimizeSettings = 0;
         int totalCustomizeSettings = 0;
+        var optimizeFeatures = new Dictionary<string, ConfigSection>();
+        var customizeFeatures = new Dictionary<string, ConfigSection>();
 
         foreach (var kvp in allSettingsByFeature)
         {
@@ -175,20 +177,22 @@ public class AutounattendXmlGeneratorService : IAutounattendXmlGeneratorService
 
             if (isOptimize)
             {
-                config.Optimize.Features[featureId] = section;
+                optimizeFeatures[featureId] = section;
                 config.Optimize.IsIncluded = true;
                 totalOptimizeSettings += items.Count;
                 _logService.Log(LogLevel.Info, $"Exported {items.Count} settings from {featureId} (Optimize)");
             }
             else
             {
-                config.Customize.Features[featureId] = section;
+                customizeFeatures[featureId] = section;
                 config.Customize.IsIncluded = true;
                 totalCustomizeSettings += items.Count;
                 _logService.Log(LogLevel.Info, $"Exported {items.Count} settings from {featureId} (Customize)");
             }
         }
 
+        config.Optimize.Features = optimizeFeatures;
+        config.Customize.Features = customizeFeatures;
         _logService.Log(LogLevel.Info, $"Total exported: {totalOptimizeSettings} Optimize settings, {totalCustomizeSettings} Customize settings");
     }
 

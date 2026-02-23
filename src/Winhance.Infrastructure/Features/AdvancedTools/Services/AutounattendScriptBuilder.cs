@@ -1225,7 +1225,7 @@ function Set-BinaryByte {
         sb.AppendLine();
     }
 
-    private async Task AppendBloatRemovalScriptAsync(StringBuilder sb, List<ConfigurationItem> selectedApps, string indent = "")
+    private async Task AppendBloatRemovalScriptAsync(StringBuilder sb, IReadOnlyList<ConfigurationItem> selectedApps, string indent = "")
     {
         // Categorize apps by type
         var regularApps = new List<string>();

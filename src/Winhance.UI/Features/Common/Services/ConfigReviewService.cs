@@ -314,7 +314,7 @@ public class ConfigReviewService : IConfigReviewService
 
     private async Task ComputeFeatureDiffsAsync(
         string featureId,
-        List<ConfigurationItem> configItems,
+        IReadOnlyList<ConfigurationItem> configItems,
         string onText,
         string offText)
     {

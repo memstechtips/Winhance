@@ -29,8 +29,6 @@ namespace Winhance.Infrastructure.Features.Common.Services
             IProgress<TaskProgressDetail>? progress = null,
             CancellationToken cancellationToken = default)
         {
-            var result = new BackupResult();
-
             try
             {
                 _logService.Log(LogLevel.Info, "Starting backup process - checking for existing restore point...");
@@ -46,9 +44,7 @@ namespace Winhance.Infrastructure.Features.Common.Services
                 if (existingPoint != null)
                 {
                     _logService.Log(LogLevel.Info, $"Restore point '{RestorePointName}' already exists (created: {existingPoint.Value}). Skipping creation.");
-                    result.RestorePointDate = existingPoint.Value;
-                    result.Success = true;
-                    return result;
+                    return BackupResult.CreateSuccess(restorePointDate: existingPoint.Value);
                 }
 
                 _logService.Log(LogLevel.Info, $"No existing restore point found with name '{RestorePointName}'");
@@ -60,11 +56,12 @@ namespace Winhance.Infrastructure.Features.Common.Services
                     IsIndeterminate = true
                 });
 
+                bool systemRestoreWasDisabled = false;
                 var isEnabled = await CheckSystemRestoreEnabledAsync();
                 if (!isEnabled)
                 {
                     _logService.Log(LogLevel.Warning, "System Restore is currently disabled");
-                    result.SystemRestoreWasDisabled = true;
+                    systemRestoreWasDisabled = true;
 
                     // Report: Enabling System Restore
                     progress?.Report(new TaskProgressDetail
@@ -78,8 +75,7 @@ namespace Winhance.Infrastructure.Features.Common.Services
                     if (!enabled)
                     {
                         _logService.Log(LogLevel.Error, "Failed to enable System Restore - cannot create restore point");
-                        result.Success = true;
-                        return result;
+                        return BackupResult.CreateSuccess(systemRestoreWasDisabled: true);
                     }
 
                     _logService.Log(LogLevel.Info, "System Restore enabled successfully");
@@ -102,27 +98,25 @@ namespace Winhance.Infrastructure.Features.Common.Services
 
                 if (created)
                 {
-                    result.RestorePointCreated = true;
-                    result.RestorePointDate = DateTime.Now;
-                    result.Success = true;
                     _logService.Log(LogLevel.Info, $"Successfully created restore point '{RestorePointName}'");
+                    return BackupResult.CreateSuccess(
+                        restorePointDate: DateTime.Now,
+                        restorePointCreated: true,
+                        systemRestoreWasDisabled: systemRestoreWasDisabled);
                 }
                 else
                 {
-                    result.Success = false;
-                    result.ErrorMessage = "Failed to create system restore point";
                     _logService.Log(LogLevel.Error, $"Failed to create restore point '{RestorePointName}'");
-                    return result;
+                    return BackupResult.CreateFailure(
+                        "Failed to create system restore point",
+                        systemRestoreWasDisabled: systemRestoreWasDisabled);
                 }
             }
             catch (Exception ex)
             {
-                result.Success = false;
-                result.ErrorMessage = ex.Message;
                 _logService.Log(LogLevel.Error, $"Error ensuring initial backups: {ex.Message}");
+                return BackupResult.CreateFailure(ex.Message);
             }
-
-            return result;
         }
 
         private async Task<bool> CheckSystemRestoreEnabledAsync()

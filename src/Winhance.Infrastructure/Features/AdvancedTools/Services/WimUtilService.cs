@@ -267,6 +267,7 @@ namespace Winhance.Infrastructure.Features.AdvancedTools.Services
                 }
 
                 int imageCount = 0;
+                var editionNames = new List<string>();
                 foreach (var line in stdout.Split('\n'))
                 {
                     var trimmed = line.Trim();
@@ -280,10 +281,11 @@ namespace Winhance.Infrastructure.Features.AdvancedTools.Services
                     {
                         var name = trimmed.Substring(trimmed.IndexOf(':') + 1).Trim();
                         if (!string.IsNullOrEmpty(name))
-                            info.EditionNames.Add(name);
+                            editionNames.Add(name);
                     }
                 }
 
+                info.EditionNames = editionNames;
                 info.ImageCount = imageCount > 0 ? imageCount : 1;
                 _logService.LogInformation($"Image: {format}, {info.ImageCount} editions, {info.FileSizeBytes:N0} bytes");
             }

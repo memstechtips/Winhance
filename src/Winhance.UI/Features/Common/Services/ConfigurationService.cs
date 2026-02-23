@@ -419,24 +419,26 @@ public class ConfigurationService : IConfigurationService
             };
 
             // Add action-only subsections for Customize actions that the user enabled
+            var actionOnlySubsections = new HashSet<string>();
             if (importOptions.ApplyCleanTaskbar && !selectedSections.Contains($"Customize_{FeatureIds.Taskbar}"))
             {
                 if (!selectedSections.Contains("Customize")) selectedSections.Add("Customize");
                 selectedSections.Add($"Customize_{FeatureIds.Taskbar}");
-                importOptions.ActionOnlySubsections.Add($"Customize_{FeatureIds.Taskbar}");
+                actionOnlySubsections.Add($"Customize_{FeatureIds.Taskbar}");
             }
             if (importOptions.ApplyCleanStartMenu && !selectedSections.Contains($"Customize_{FeatureIds.StartMenu}"))
             {
                 if (!selectedSections.Contains("Customize")) selectedSections.Add("Customize");
                 selectedSections.Add($"Customize_{FeatureIds.StartMenu}");
-                importOptions.ActionOnlySubsections.Add($"Customize_{FeatureIds.StartMenu}");
+                actionOnlySubsections.Add($"Customize_{FeatureIds.StartMenu}");
             }
             if (importOptions.ApplyThemeWallpaper && !selectedSections.Contains($"Customize_{FeatureIds.WindowsTheme}"))
             {
                 if (!selectedSections.Contains("Customize")) selectedSections.Add("Customize");
                 selectedSections.Add($"Customize_{FeatureIds.WindowsTheme}");
-                importOptions.ActionOnlySubsections.Add($"Customize_{FeatureIds.WindowsTheme}");
+                actionOnlySubsections.Add($"Customize_{FeatureIds.WindowsTheme}");
             }
+            importOptions.ActionOnlySubsections = actionOnlySubsections;
 
             // Show overlay during config application
             var overlayStatus = _localizationService.GetString("Config_Import_Status_Applying")
@@ -558,6 +560,8 @@ public class ConfigurationService : IConfigurationService
 
         int totalOptimizeSettings = 0;
         int totalCustomizeSettings = 0;
+        var optimizeFeatures = new Dictionary<string, ConfigSection>();
+        var customizeFeatures = new Dictionary<string, ConfigSection>();
 
         foreach (var kvp in allSettingsByFeature)
         {
@@ -676,20 +680,22 @@ public class ConfigurationService : IConfigurationService
 
             if (isOptimize)
             {
-                config.Optimize.Features[featureId] = section;
+                optimizeFeatures[featureId] = section;
                 config.Optimize.IsIncluded = true;
                 totalOptimizeSettings += items.Count;
                 _logService.Log(LogLevel.Info, $"Exported {items.Count} settings from {featureId} (Optimize)");
             }
             else
             {
-                config.Customize.Features[featureId] = section;
+                customizeFeatures[featureId] = section;
                 config.Customize.IsIncluded = true;
                 totalCustomizeSettings += items.Count;
                 _logService.Log(LogLevel.Info, $"Exported {items.Count} settings from {featureId} (Customize)");
             }
         }
 
+        config.Optimize.Features = optimizeFeatures;
+        config.Customize.Features = customizeFeatures;
         _logService.Log(LogLevel.Info, $"Total exported: {totalOptimizeSettings} Optimize settings, {totalCustomizeSettings} Customize settings");
     }
 
@@ -1791,11 +1797,7 @@ public class ConfigurationService : IConfigurationService
     {
         if (section?.Features == null) return section!;
 
-        var filteredSection = new FeatureGroupSection
-        {
-            IsIncluded = section.IsIncluded,
-            Features = new Dictionary<string, ConfigSection>()
-        };
+        var filteredFeatures = new Dictionary<string, ConfigSection>();
 
         foreach (var feature in section.Features)
         {
@@ -1846,14 +1848,18 @@ public class ConfigurationService : IConfigurationService
                 }
             }
 
-            filteredSection.Features[feature.Key] = new ConfigSection
+            filteredFeatures[feature.Key] = new ConfigSection
             {
                 IsIncluded = feature.Value.IsIncluded,
                 Items = filteredItems
             };
         }
 
-        return filteredSection;
+        return new FeatureGroupSection
+        {
+            IsIncluded = section.IsIncluded,
+            Features = filteredFeatures
+        };
     }
 
     public async Task ApplyReviewedConfigAsync()
@@ -1927,24 +1933,26 @@ public class ConfigurationService : IConfigurationService
             };
 
             // Ensure action settings add their parent feature sections even if no regular settings approved
+            var actionOnlySubsections = new HashSet<string>();
             if (importOptions.ApplyCleanTaskbar && !selectedSections.Contains($"Customize_{FeatureIds.Taskbar}"))
             {
                 if (!selectedSections.Contains("Customize")) selectedSections.Add("Customize");
                 selectedSections.Add($"Customize_{FeatureIds.Taskbar}");
-                importOptions.ActionOnlySubsections.Add($"Customize_{FeatureIds.Taskbar}");
+                actionOnlySubsections.Add($"Customize_{FeatureIds.Taskbar}");
             }
             if (importOptions.ApplyCleanStartMenu && !selectedSections.Contains($"Customize_{FeatureIds.StartMenu}"))
             {
                 if (!selectedSections.Contains("Customize")) selectedSections.Add("Customize");
                 selectedSections.Add($"Customize_{FeatureIds.StartMenu}");
-                importOptions.ActionOnlySubsections.Add($"Customize_{FeatureIds.StartMenu}");
+                actionOnlySubsections.Add($"Customize_{FeatureIds.StartMenu}");
             }
             if (importOptions.ApplyThemeWallpaper && !selectedSections.Contains($"Customize_{FeatureIds.WindowsTheme}"))
             {
                 if (!selectedSections.Contains("Customize")) selectedSections.Add("Customize");
                 selectedSections.Add($"Customize_{FeatureIds.WindowsTheme}");
-                importOptions.ActionOnlySubsections.Add($"Customize_{FeatureIds.WindowsTheme}");
+                actionOnlySubsections.Add($"Customize_{FeatureIds.WindowsTheme}");
             }
+            importOptions.ActionOnlySubsections = actionOnlySubsections;
 
             if (!selectedSections.Any())
             {
@@ -2067,11 +2075,7 @@ public class ConfigurationService : IConfigurationService
         FeatureGroupSection original,
         HashSet<string> approvedSettingIds)
     {
-        var filtered = new FeatureGroupSection
-        {
-            IsIncluded = original.IsIncluded,
-            Features = new Dictionary<string, ConfigSection>()
-        };
+        var filteredFeatures = new Dictionary<string, ConfigSection>();
 
         foreach (var feature in original.Features)
         {
@@ -2081,7 +2085,7 @@ public class ConfigurationService : IConfigurationService
 
             if (approvedItems.Any())
             {
-                filtered.Features[feature.Key] = new ConfigSection
+                filteredFeatures[feature.Key] = new ConfigSection
                 {
                     IsIncluded = feature.Value.IsIncluded,
                     Items = approvedItems
@@ -2089,6 +2093,10 @@ public class ConfigurationService : IConfigurationService
             }
         }
 
-        return filtered;
+        return new FeatureGroupSection
+        {
+            IsIncluded = original.IsIncluded,
+            Features = filteredFeatures
+        };
     }
 }

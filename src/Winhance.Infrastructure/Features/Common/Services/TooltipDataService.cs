@@ -40,7 +40,7 @@ namespace Winhance.Infrastructure.Features.Common.Services
             return value.ToString() ?? "(not set)";
         }
 
-        public async Task<Dictionary<string, SettingTooltipData>> GetTooltipDataAsync(IEnumerable<SettingDefinition> settings)
+        public async Task<IReadOnlyDictionary<string, SettingTooltipData>> GetTooltipDataAsync(IEnumerable<SettingDefinition> settings)
         {
             var tooltipData = new Dictionary<string, SettingTooltipData>();
 
@@ -75,7 +75,7 @@ namespace Winhance.Infrastructure.Features.Common.Services
             }
         }
 
-        public async Task<Dictionary<string, SettingTooltipData>> RefreshMultipleTooltipDataAsync(IEnumerable<SettingDefinition> settings)
+        public async Task<IReadOnlyDictionary<string, SettingTooltipData>> RefreshMultipleTooltipDataAsync(IEnumerable<SettingDefinition> settings)
         {
             var tooltipData = new Dictionary<string, SettingTooltipData>();
 

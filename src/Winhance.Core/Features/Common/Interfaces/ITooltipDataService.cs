@@ -15,7 +15,7 @@ namespace Winhance.Core.Features.Common.Interfaces
         /// </summary>
         /// <param name="settings">The settings to get tooltip data for</param>
         /// <returns>A dictionary mapping setting IDs to tooltip data</returns>
-        Task<Dictionary<string, SettingTooltipData>> GetTooltipDataAsync(IEnumerable<SettingDefinition> settings);
+        Task<IReadOnlyDictionary<string, SettingTooltipData>> GetTooltipDataAsync(IEnumerable<SettingDefinition> settings);
 
         /// <summary>
         /// Refreshes tooltip data for a specific setting by retrieving current registry values
@@ -30,6 +30,6 @@ namespace Winhance.Core.Features.Common.Interfaces
         /// </summary>
         /// <param name="settings">The settings to refresh tooltip data for</param>
         /// <returns>A dictionary mapping setting IDs to updated tooltip data</returns>
-        Task<Dictionary<string, SettingTooltipData>> RefreshMultipleTooltipDataAsync(IEnumerable<SettingDefinition> settings);
+        Task<IReadOnlyDictionary<string, SettingTooltipData>> RefreshMultipleTooltipDataAsync(IEnumerable<SettingDefinition> settings);
     }
 }
