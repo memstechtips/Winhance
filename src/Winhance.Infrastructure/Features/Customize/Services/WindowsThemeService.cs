@@ -13,7 +13,8 @@ namespace Winhance.Infrastructure.Features.Customize.Services
         IWindowsUIManagementService uiManagementService,
         IWindowsRegistryService registryService,
         ILogService logService,
-        ICompatibleSettingsRegistry compatibleSettingsRegistry) : IDomainService
+        ICompatibleSettingsRegistry compatibleSettingsRegistry,
+        IConfigImportState configImportState) : IDomainService
     {
         public string DomainName => FeatureIds.WindowsTheme;
 
@@ -96,7 +97,7 @@ namespace Winhance.Infrastructure.Features.Customize.Services
             {
                 // In config import mode, explorer restart is handled at the end
                 // So just send the theme change messages without killing explorer
-                bool shouldKillExplorer = !uiManagementService.IsConfigImportMode;
+                bool shouldKillExplorer = !configImportState.IsActive;
 
                 await uiManagementService.RefreshWindowsGUI(killExplorer: shouldKillExplorer).ConfigureAwait(false);
             }

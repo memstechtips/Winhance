@@ -10,13 +10,14 @@ namespace Winhance.Infrastructure.Features.Common.Services
 {
     public class ProcessRestartManager(
         IWindowsUIManagementService uiManagementService,
+        IConfigImportState configImportState,
         ILogService logService) : IProcessRestartManager
     {
         public async Task HandleProcessAndServiceRestartsAsync(SettingDefinition setting)
         {
             if (!string.IsNullOrEmpty(setting.RestartProcess))
             {
-                if (uiManagementService.IsConfigImportMode)
+                if (configImportState.IsActive)
                 {
                     logService.Log(LogLevel.Debug, $"[ProcessRestartManager] Skipping process restart for '{setting.RestartProcess}' (config import mode - will restart at end)");
                 }

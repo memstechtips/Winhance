@@ -42,6 +42,7 @@ public class ConfigurationService : IConfigurationService
     private readonly ConfigMigrationService _configMigrationService;
     private readonly IInteractiveUserService _interactiveUserService;
     private readonly IProcessExecutor _processExecutor;
+    private readonly IConfigImportState _configImportState;
     private bool _configImportSaveRemovalScripts = true;
 
     private static readonly JsonSerializerOptions JsonOptions = new()
@@ -68,10 +69,12 @@ public class ConfigurationService : IConfigurationService
         IConfigReviewDiffService configReviewDiffService,
         ConfigMigrationService configMigrationService,
         IInteractiveUserService interactiveUserService,
-        IProcessExecutor processExecutor)
+        IProcessExecutor processExecutor,
+        IConfigImportState configImportState)
     {
         _serviceProvider = serviceProvider;
         _processExecutor = processExecutor;
+        _configImportState = configImportState;
         _logService = logService;
         _dialogService = dialogService;
         _globalSettingsRegistry = globalSettingsRegistry;
@@ -451,7 +454,7 @@ public class ConfigurationService : IConfigurationService
                 ?? "Sit back, relax and watch while Winhance enhances Windows with your desired settings...";
             _overlayService.ShowOverlay(overlayStatus);
 
-            _windowsUIManagementService.IsConfigImportMode = true;
+            _configImportState.IsActive = true;
 
             try
             {
@@ -463,7 +466,7 @@ public class ConfigurationService : IConfigurationService
             }
             finally
             {
-                _windowsUIManagementService.IsConfigImportMode = false;
+                _configImportState.IsActive = false;
                 _overlayService.HideOverlay();
             }
 
@@ -1989,7 +1992,7 @@ public class ConfigurationService : IConfigurationService
                 ?? "Sit back, relax and watch while Winhance enhances Windows with your desired settings...";
             _overlayService.ShowOverlay(overlayStatus);
 
-            _windowsUIManagementService.IsConfigImportMode = true;
+            _configImportState.IsActive = true;
 
             try
             {
@@ -2001,7 +2004,7 @@ public class ConfigurationService : IConfigurationService
             }
             finally
             {
-                _windowsUIManagementService.IsConfigImportMode = false;
+                _configImportState.IsActive = false;
                 _overlayService.HideOverlay();
             }
 

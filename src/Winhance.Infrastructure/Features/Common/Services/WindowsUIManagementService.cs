@@ -12,16 +12,6 @@ namespace Winhance.Infrastructure.Features.Common.Services
         private readonly ILogService _logService;
         private readonly IProcessExecutor _processExecutor;
 
-        public bool IsConfigImportMode { get; set; }
-
-        [DllImport("user32.dll", SetLastError = true)]
-        private static extern bool SystemParametersInfo(uint uiAction, uint uiParam, IntPtr pvParam, uint fWinIni);
-
-        private const uint SPI_SETDESKWALLPAPER = 0x0014;
-
-        private const uint SPIF_UPDATEINIFILE = 0x01;
-        private const uint SPIF_SENDCHANGE = 0x02;
-
         public WindowsUIManagementService(ILogService logService, IProcessExecutor processExecutor)
         {
             _logService = logService ?? throw new ArgumentNullException(nameof(logService));

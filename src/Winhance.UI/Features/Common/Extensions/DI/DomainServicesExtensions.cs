@@ -45,7 +45,8 @@ public static class DomainServicesExtensions
             sp.GetRequiredService<IWindowsUIManagementService>(),
             sp.GetRequiredService<IWindowsRegistryService>(),
             sp.GetRequiredService<ILogService>(),
-            sp.GetRequiredService<ICompatibleSettingsRegistry>()
+            sp.GetRequiredService<ICompatibleSettingsRegistry>(),
+            sp.GetRequiredService<IConfigImportState>()
         ));
         // Register as IDomainService for registry
         services.AddSingleton<IDomainService>(sp => sp.GetRequiredService<WindowsThemeService>());
