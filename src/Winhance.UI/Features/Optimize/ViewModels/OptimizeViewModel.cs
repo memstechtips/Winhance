@@ -1,6 +1,9 @@
 using System.Collections.ObjectModel;
 using CommunityToolkit.Mvvm.ComponentModel;
+using Winhance.Core.Features.Common.Constants;
 using Winhance.Core.Features.Common.Interfaces;
+using Winhance.UI.Features.Common.Interfaces;
+using Winhance.UI.Features.Optimize.Interfaces;
 using Winhance.UI.Features.Optimize.Models;
 
 namespace Winhance.UI.Features.Optimize.ViewModels;
@@ -12,6 +15,8 @@ public partial class OptimizeViewModel : ObservableObject
 {
     private readonly ILogService _logService;
     private readonly ILocalizationService _localizationService;
+    private readonly IReadOnlyList<ISettingsFeatureViewModel> _featureViewModels;
+    private readonly Dictionary<string, ISettingsFeatureViewModel> _viewModelBySectionKey;
     private bool _isInitialized;
 
     [ObservableProperty]
@@ -71,21 +76,12 @@ public partial class OptimizeViewModel : ObservableObject
             if (string.IsNullOrWhiteSpace(SearchText))
                 return false;
 
-            return CurrentSectionKey switch
-            {
-                "Sound" => !SoundViewModel.HasVisibleSettings,
-                "Update" => !UpdateViewModel.HasVisibleSettings,
-                "Notification" => !NotificationViewModel.HasVisibleSettings,
-                "Privacy" => !PrivacyViewModel.HasVisibleSettings,
-                "Power" => !PowerViewModel.HasVisibleSettings,
-                "Gaming" => !GamingViewModel.HasVisibleSettings,
-                _ => !SoundViewModel.HasVisibleSettings &&
-                     !UpdateViewModel.HasVisibleSettings &&
-                     !NotificationViewModel.HasVisibleSettings &&
-                     !PrivacyViewModel.HasVisibleSettings &&
-                     !PowerViewModel.HasVisibleSettings &&
-                     !GamingViewModel.HasVisibleSettings
-            };
+            var currentVm = GetSectionViewModel(CurrentSectionKey);
+            if (currentVm != null)
+                return !currentVm.HasVisibleSettings;
+
+            // Overview: check all children
+            return _featureViewModels.All(vm => !vm.HasVisibleSettings);
         }
     }
 
@@ -94,62 +90,47 @@ public partial class OptimizeViewModel : ObservableObject
     /// </summary>
     public static readonly List<OptimizeSectionInfo> Sections = new()
     {
-        new("Privacy", "PrivacyIconPath", "Privacy & Security"),
-        new("Power", "PowerIconPath", "Power"),
-        new("Gaming", "GamingIconPath", "Gaming and Performance"),
-        new("Update", "UpdateIconSymbol", "Updates"),
-        new("Notification", "NotificationIconPath", "Notifications"),
-        new("Sound", "SoundIconSymbol", "Sound"),
+        new("Privacy", "PrivacyIconPath", "Privacy & Security", FeatureIds.Privacy),
+        new("Power", "PowerIconPath", "Power", FeatureIds.Power),
+        new("Gaming", "GamingIconPath", "Gaming and Performance", FeatureIds.GamingPerformance),
+        new("Update", "UpdateIconSymbol", "Updates", FeatureIds.Update),
+        new("Notification", "NotificationIconPath", "Notifications", FeatureIds.Notifications),
+        new("Sound", "SoundIconSymbol", "Sound", FeatureIds.Sound),
     };
 
-    /// <summary>
-    /// Sound optimization settings ViewModel.
-    /// </summary>
-    public SoundOptimizationsViewModel SoundViewModel { get; }
-
-    /// <summary>
-    /// Update optimization settings ViewModel.
-    /// </summary>
-    public UpdateOptimizationsViewModel UpdateViewModel { get; }
-
-    /// <summary>
-    /// Notification optimization settings ViewModel.
-    /// </summary>
-    public NotificationOptimizationsViewModel NotificationViewModel { get; }
-
-    /// <summary>
-    /// Privacy optimization settings ViewModel.
-    /// </summary>
-    public PrivacyOptimizationsViewModel PrivacyViewModel { get; }
-
-    /// <summary>
-    /// Power optimization settings ViewModel.
-    /// </summary>
-    public PowerOptimizationsViewModel PowerViewModel { get; }
-
-    /// <summary>
-    /// Gaming and performance optimization settings ViewModel.
-    /// </summary>
-    public GamingOptimizationsViewModel GamingViewModel { get; }
+    // Named properties for XAML binding (typed as interface, not concrete)
+    public ISettingsFeatureViewModel SoundViewModel { get; }
+    public ISettingsFeatureViewModel UpdateViewModel { get; }
+    public ISettingsFeatureViewModel NotificationViewModel { get; }
+    public ISettingsFeatureViewModel PrivacyViewModel { get; }
+    public ISettingsFeatureViewModel PowerViewModel { get; }
+    public ISettingsFeatureViewModel GamingViewModel { get; }
 
     public OptimizeViewModel(
         ILogService logService,
         ILocalizationService localizationService,
-        SoundOptimizationsViewModel soundViewModel,
-        UpdateOptimizationsViewModel updateViewModel,
-        NotificationOptimizationsViewModel notificationViewModel,
-        PrivacyOptimizationsViewModel privacyViewModel,
-        PowerOptimizationsViewModel powerViewModel,
-        GamingOptimizationsViewModel gamingViewModel)
+        IEnumerable<IOptimizationFeatureViewModel> featureViewModels)
     {
         _logService = logService;
         _localizationService = localizationService;
-        SoundViewModel = soundViewModel;
-        UpdateViewModel = updateViewModel;
-        NotificationViewModel = notificationViewModel;
-        PrivacyViewModel = privacyViewModel;
-        PowerViewModel = powerViewModel;
-        GamingViewModel = gamingViewModel;
+        _featureViewModels = featureViewModels.Cast<ISettingsFeatureViewModel>().ToList();
+
+        // Build section-key → VM dictionary from Sections metadata + injected collection
+        var byModuleId = _featureViewModels.ToDictionary(vm => vm.ModuleId);
+        _viewModelBySectionKey = new Dictionary<string, ISettingsFeatureViewModel>();
+        foreach (var section in Sections)
+        {
+            if (byModuleId.TryGetValue(section.ModuleId, out var vm))
+                _viewModelBySectionKey[section.Key] = vm;
+        }
+
+        // Populate named properties for XAML binding
+        SoundViewModel = byModuleId[FeatureIds.Sound];
+        UpdateViewModel = byModuleId[FeatureIds.Update];
+        NotificationViewModel = byModuleId[FeatureIds.Notifications];
+        PrivacyViewModel = byModuleId[FeatureIds.Privacy];
+        PowerViewModel = byModuleId[FeatureIds.Power];
+        GamingViewModel = byModuleId[FeatureIds.GamingPerformance];
 
         // Initialize partial property defaults (collections first, then
         // properties with change handlers that may reference them)
@@ -189,37 +170,25 @@ public partial class OptimizeViewModel : ObservableObject
             _logService.Log(Core.Features.Common.Enums.LogLevel.Info, "OptimizeViewModel: Starting initialization");
 
             // Load all feature settings, catching individual failures
-            var loadTasks = new (string Name, Func<Task> LoadTask)[]
-            {
-                ("Sound", () => SoundViewModel.LoadSettingsAsync()),
-                ("Update", () => UpdateViewModel.LoadSettingsAsync()),
-                ("Notification", () => NotificationViewModel.LoadSettingsAsync()),
-                ("Privacy", () => PrivacyViewModel.LoadSettingsAsync()),
-                ("Power", () => PowerViewModel.LoadSettingsAsync()),
-                ("Gaming", () => GamingViewModel.LoadSettingsAsync())
-            };
-
-            foreach (var (name, loadTask) in loadTasks)
+            foreach (var vm in _featureViewModels)
             {
                 try
                 {
-                    await loadTask();
+                    await vm.LoadSettingsAsync();
                 }
                 catch (Exception ex)
                 {
                     _logService.Log(Core.Features.Common.Enums.LogLevel.Error,
-                        $"OptimizeViewModel: Failed to load {name} settings - {ex.Message}");
+                        $"OptimizeViewModel: Failed to load {vm.DisplayName} settings - {ex.Message}");
                 }
             }
 
             _isInitialized = true;
 
             // Log settings count for each feature
+            var counts = string.Join(", ", _featureViewModels.Select(vm => $"{vm.DisplayName}:{vm.SettingsCount}"));
             _logService.Log(Core.Features.Common.Enums.LogLevel.Info,
-                $"OptimizeViewModel: Loaded settings - Sound:{SoundViewModel.SettingsCount}, " +
-                $"Update:{UpdateViewModel.SettingsCount}, Notification:{NotificationViewModel.SettingsCount}, " +
-                $"Privacy:{PrivacyViewModel.SettingsCount}, Power:{PowerViewModel.SettingsCount}, " +
-                $"Gaming:{GamingViewModel.SettingsCount}");
+                $"OptimizeViewModel: Loaded settings - {counts}");
             _logService.Log(Core.Features.Common.Enums.LogLevel.Info, "OptimizeViewModel: Initialization complete");
         }
         catch (Exception ex)
@@ -244,18 +213,9 @@ public partial class OptimizeViewModel : ObservableObject
     /// <summary>
     /// Gets the ViewModel for the specified section key.
     /// </summary>
-    public BaseSettingsFeatureViewModel? GetSectionViewModel(string sectionKey)
+    public ISettingsFeatureViewModel? GetSectionViewModel(string sectionKey)
     {
-        return sectionKey switch
-        {
-            "Sound" => SoundViewModel,
-            "Update" => UpdateViewModel,
-            "Notification" => NotificationViewModel,
-            "Privacy" => PrivacyViewModel,
-            "Power" => PowerViewModel,
-            "Gaming" => GamingViewModel,
-            _ => null
-        };
+        return _viewModelBySectionKey.GetValueOrDefault(sectionKey);
     }
 
     /// <summary>
@@ -347,12 +307,10 @@ public partial class OptimizeViewModel : ObservableObject
         else
         {
             // On overview, filter all ViewModels
-            SoundViewModel.ApplySearchFilter(value);
-            UpdateViewModel.ApplySearchFilter(value);
-            NotificationViewModel.ApplySearchFilter(value);
-            PrivacyViewModel.ApplySearchFilter(value);
-            PowerViewModel.ApplySearchFilter(value);
-            GamingViewModel.ApplySearchFilter(value);
+            foreach (var vm in _featureViewModels)
+            {
+                vm.ApplySearchFilter(value);
+            }
         }
 
         // Update suggestions (searches all sections, excludes current section if on detail page)

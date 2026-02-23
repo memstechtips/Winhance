@@ -2,13 +2,14 @@ using Winhance.Core.Features.Common.Constants;
 using Winhance.Core.Features.Common.Events;
 using Winhance.Core.Features.Common.Interfaces;
 using Winhance.UI.Features.Common.Interfaces;
+using Winhance.UI.Features.Customize.Interfaces;
 using Winhance.UI.Features.Optimize.ViewModels;
 using Winhance.UI.ViewModels;
 using ISettingsLoadingService = Winhance.UI.Features.Common.Interfaces.ISettingsLoadingService;
 
 namespace Winhance.UI.Features.Customize.ViewModels;
 
-public partial class StartMenuCustomizationsViewModel : BaseSettingsFeatureViewModel
+public partial class StartMenuCustomizationsViewModel : BaseSettingsFeatureViewModel, ICustomizationFeatureViewModel
 {
     public StartMenuCustomizationsViewModel(
         IDomainServiceRouter domainServiceRouter,

@@ -20,10 +20,16 @@ public class CustomizeSectionInfo
     /// </summary>
     public string DisplayName { get; }
 
-    public CustomizeSectionInfo(string key, string iconGlyphKey, string displayName)
+    /// <summary>
+    /// Gets the FeatureIds constant that identifies the ViewModel for this section.
+    /// </summary>
+    public string ModuleId { get; }
+
+    public CustomizeSectionInfo(string key, string iconGlyphKey, string displayName, string moduleId)
     {
         Key = key;
         IconGlyphKey = iconGlyphKey;
         DisplayName = displayName;
+        ModuleId = moduleId;
     }
 }

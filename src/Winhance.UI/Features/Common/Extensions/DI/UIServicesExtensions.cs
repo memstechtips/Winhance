@@ -6,8 +6,10 @@ using Winhance.UI.Features.AdvancedTools.ViewModels;
 using Winhance.UI.Features.Common.Interfaces;
 using Winhance.UI.Features.Common.Services;
 using Winhance.UI.Features.Common.ViewModels;
+using Winhance.UI.Features.Customize.Interfaces;
 using Winhance.UI.Features.Customize.ViewModels;
 using Winhance.UI.Features.Optimize;
+using Winhance.UI.Features.Optimize.Interfaces;
 using Winhance.UI.Features.Optimize.ViewModels;
 using Winhance.UI.Features.Settings.ViewModels;
 using Winhance.UI.Features.SoftwareApps.ViewModels;
@@ -69,20 +71,24 @@ public static class UIServicesExtensions
         services.AddTransient<SettingsViewModel>();
 
         // Optimize ViewModels (Singleton for state preservation during inner navigation)
+        // Child VMs registered as IOptimizationFeatureViewModel so OptimizeViewModel
+        // receives them via IEnumerable<IOptimizationFeatureViewModel> injection.
         services.AddSingleton<OptimizeViewModel>();
-        services.AddSingleton<SoundOptimizationsViewModel>();
-        services.AddSingleton<UpdateOptimizationsViewModel>();
-        services.AddSingleton<NotificationOptimizationsViewModel>();
-        services.AddSingleton<PrivacyOptimizationsViewModel>();
-        services.AddSingleton<PowerOptimizationsViewModel>();
-        services.AddSingleton<GamingOptimizationsViewModel>();
+        services.AddSingleton<IOptimizationFeatureViewModel, SoundOptimizationsViewModel>();
+        services.AddSingleton<IOptimizationFeatureViewModel, UpdateOptimizationsViewModel>();
+        services.AddSingleton<IOptimizationFeatureViewModel, NotificationOptimizationsViewModel>();
+        services.AddSingleton<IOptimizationFeatureViewModel, PrivacyOptimizationsViewModel>();
+        services.AddSingleton<IOptimizationFeatureViewModel, PowerOptimizationsViewModel>();
+        services.AddSingleton<IOptimizationFeatureViewModel, GamingOptimizationsViewModel>();
 
         // Customize ViewModels (Singleton for state preservation during inner navigation)
+        // Child VMs registered as ICustomizationFeatureViewModel so CustomizeViewModel
+        // receives them via IEnumerable<ICustomizationFeatureViewModel> injection.
         services.AddSingleton<CustomizeViewModel>();
-        services.AddSingleton<ExplorerCustomizationsViewModel>();
-        services.AddSingleton<StartMenuCustomizationsViewModel>();
-        services.AddSingleton<TaskbarCustomizationsViewModel>();
-        services.AddSingleton<WindowsThemeCustomizationsViewModel>();
+        services.AddSingleton<ICustomizationFeatureViewModel, ExplorerCustomizationsViewModel>();
+        services.AddSingleton<ICustomizationFeatureViewModel, StartMenuCustomizationsViewModel>();
+        services.AddSingleton<ICustomizationFeatureViewModel, TaskbarCustomizationsViewModel>();
+        services.AddSingleton<ICustomizationFeatureViewModel, WindowsThemeCustomizationsViewModel>();
 
         // AdvancedTools ViewModels
         services.AddSingleton<AdvancedToolsViewModel>();

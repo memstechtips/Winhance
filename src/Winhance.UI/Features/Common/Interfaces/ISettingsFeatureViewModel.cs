@@ -1,4 +1,5 @@
 using System.Collections.ObjectModel;
+using System.ComponentModel;
 using Winhance.Core.Features.Common.Models;
 using Winhance.UI.Features.Optimize.ViewModels;
 
@@ -7,7 +8,7 @@ namespace Winhance.UI.Features.Common.Interfaces;
 /// <summary>
 /// Interface for feature ViewModels that display settings.
 /// </summary>
-public interface ISettingsFeatureViewModel : IDisposable
+public interface ISettingsFeatureViewModel : INotifyPropertyChanged, IDisposable
 {
     /// <summary>
     /// Module identifier for this feature.
@@ -43,6 +44,16 @@ public interface ISettingsFeatureViewModel : IDisposable
     /// Number of settings in this feature.
     /// </summary>
     int SettingsCount { get; }
+
+    /// <summary>
+    /// Summary text listing the group names within this feature (for overview cards).
+    /// </summary>
+    string GroupDescriptionText { get; }
+
+    /// <summary>
+    /// Settings organized into groups for display in a grouped ListView.
+    /// </summary>
+    ObservableCollection<SettingsGroup> GroupedSettings { get; }
 
     /// <summary>
     /// Loads all settings for this feature.

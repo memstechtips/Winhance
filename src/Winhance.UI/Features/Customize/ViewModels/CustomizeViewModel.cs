@@ -1,8 +1,10 @@
 using System.Collections.ObjectModel;
 using CommunityToolkit.Mvvm.ComponentModel;
+using Winhance.Core.Features.Common.Constants;
 using Winhance.Core.Features.Common.Interfaces;
+using Winhance.UI.Features.Common.Interfaces;
+using Winhance.UI.Features.Customize.Interfaces;
 using Winhance.UI.Features.Customize.Models;
-using Winhance.UI.Features.Optimize.ViewModels;
 
 namespace Winhance.UI.Features.Customize.ViewModels;
 
@@ -13,6 +15,8 @@ public partial class CustomizeViewModel : ObservableObject
 {
     private readonly ILogService _logService;
     private readonly ILocalizationService _localizationService;
+    private readonly IReadOnlyList<ISettingsFeatureViewModel> _featureViewModels;
+    private readonly Dictionary<string, ISettingsFeatureViewModel> _viewModelBySectionKey;
     private bool _isInitialized;
 
     [ObservableProperty]
@@ -72,17 +76,12 @@ public partial class CustomizeViewModel : ObservableObject
             if (string.IsNullOrWhiteSpace(SearchText))
                 return false;
 
-            return CurrentSectionKey switch
-            {
-                "Explorer" => !ExplorerViewModel.HasVisibleSettings,
-                "StartMenu" => !StartMenuViewModel.HasVisibleSettings,
-                "Taskbar" => !TaskbarViewModel.HasVisibleSettings,
-                "WindowsTheme" => !WindowsThemeViewModel.HasVisibleSettings,
-                _ => !ExplorerViewModel.HasVisibleSettings &&
-                     !StartMenuViewModel.HasVisibleSettings &&
-                     !TaskbarViewModel.HasVisibleSettings &&
-                     !WindowsThemeViewModel.HasVisibleSettings
-            };
+            var currentVm = GetSectionViewModel(CurrentSectionKey);
+            if (currentVm != null)
+                return !currentVm.HasVisibleSettings;
+
+            // Overview: check all children
+            return _featureViewModels.All(vm => !vm.HasVisibleSettings);
         }
     }
 
@@ -91,46 +90,41 @@ public partial class CustomizeViewModel : ObservableObject
     /// </summary>
     public static readonly List<CustomizeSectionInfo> Sections = new()
     {
-        new("Explorer", "ExplorerIconGlyph", "Explorer"),
-        new("StartMenu", "StartMenuIconGlyph", "Start Menu"),
-        new("Taskbar", "TaskbarIconGlyph", "Taskbar"),
-        new("WindowsTheme", "WindowsThemeIconGlyph", "Windows Theme"),
+        new("Explorer", "ExplorerIconGlyph", "Explorer", FeatureIds.ExplorerCustomization),
+        new("StartMenu", "StartMenuIconGlyph", "Start Menu", FeatureIds.StartMenu),
+        new("Taskbar", "TaskbarIconGlyph", "Taskbar", FeatureIds.Taskbar),
+        new("WindowsTheme", "WindowsThemeIconGlyph", "Windows Theme", FeatureIds.WindowsTheme),
     };
 
-    /// <summary>
-    /// Explorer customization settings ViewModel.
-    /// </summary>
-    public ExplorerCustomizationsViewModel ExplorerViewModel { get; }
-
-    /// <summary>
-    /// Start Menu customization settings ViewModel.
-    /// </summary>
-    public StartMenuCustomizationsViewModel StartMenuViewModel { get; }
-
-    /// <summary>
-    /// Taskbar customization settings ViewModel.
-    /// </summary>
-    public TaskbarCustomizationsViewModel TaskbarViewModel { get; }
-
-    /// <summary>
-    /// Windows Theme customization settings ViewModel.
-    /// </summary>
-    public WindowsThemeCustomizationsViewModel WindowsThemeViewModel { get; }
+    // Named properties for XAML binding (typed as interface, not concrete)
+    public ISettingsFeatureViewModel ExplorerViewModel { get; }
+    public ISettingsFeatureViewModel StartMenuViewModel { get; }
+    public ISettingsFeatureViewModel TaskbarViewModel { get; }
+    public ISettingsFeatureViewModel WindowsThemeViewModel { get; }
 
     public CustomizeViewModel(
         ILogService logService,
         ILocalizationService localizationService,
-        ExplorerCustomizationsViewModel explorerViewModel,
-        StartMenuCustomizationsViewModel startMenuViewModel,
-        TaskbarCustomizationsViewModel taskbarViewModel,
-        WindowsThemeCustomizationsViewModel windowsThemeViewModel)
+        IEnumerable<ICustomizationFeatureViewModel> featureViewModels)
     {
         _logService = logService;
         _localizationService = localizationService;
-        ExplorerViewModel = explorerViewModel;
-        StartMenuViewModel = startMenuViewModel;
-        TaskbarViewModel = taskbarViewModel;
-        WindowsThemeViewModel = windowsThemeViewModel;
+        _featureViewModels = featureViewModels.Cast<ISettingsFeatureViewModel>().ToList();
+
+        // Build section-key → VM dictionary from Sections metadata + injected collection
+        var byModuleId = _featureViewModels.ToDictionary(vm => vm.ModuleId);
+        _viewModelBySectionKey = new Dictionary<string, ISettingsFeatureViewModel>();
+        foreach (var section in Sections)
+        {
+            if (byModuleId.TryGetValue(section.ModuleId, out var vm))
+                _viewModelBySectionKey[section.Key] = vm;
+        }
+
+        // Populate named properties for XAML binding
+        ExplorerViewModel = byModuleId[FeatureIds.ExplorerCustomization];
+        StartMenuViewModel = byModuleId[FeatureIds.StartMenu];
+        TaskbarViewModel = byModuleId[FeatureIds.Taskbar];
+        WindowsThemeViewModel = byModuleId[FeatureIds.WindowsTheme];
 
         // Initialize partial property defaults (collections first, then
         // properties with change handlers that may reference them)
@@ -170,34 +164,25 @@ public partial class CustomizeViewModel : ObservableObject
             _logService.Log(Core.Features.Common.Enums.LogLevel.Info, "CustomizeViewModel: Starting initialization");
 
             // Load all feature settings, catching individual failures
-            var loadTasks = new (string Name, Func<Task> LoadTask)[]
-            {
-                ("Explorer", () => ExplorerViewModel.LoadSettingsAsync()),
-                ("StartMenu", () => StartMenuViewModel.LoadSettingsAsync()),
-                ("Taskbar", () => TaskbarViewModel.LoadSettingsAsync()),
-                ("WindowsTheme", () => WindowsThemeViewModel.LoadSettingsAsync())
-            };
-
-            foreach (var (name, loadTask) in loadTasks)
+            foreach (var vm in _featureViewModels)
             {
                 try
                 {
-                    await loadTask();
+                    await vm.LoadSettingsAsync();
                 }
                 catch (Exception ex)
                 {
                     _logService.Log(Core.Features.Common.Enums.LogLevel.Error,
-                        $"CustomizeViewModel: Failed to load {name} settings - {ex.Message}");
+                        $"CustomizeViewModel: Failed to load {vm.DisplayName} settings - {ex.Message}");
                 }
             }
 
             _isInitialized = true;
 
             // Log settings count for each feature
+            var counts = string.Join(", ", _featureViewModels.Select(vm => $"{vm.DisplayName}:{vm.SettingsCount}"));
             _logService.Log(Core.Features.Common.Enums.LogLevel.Info,
-                $"CustomizeViewModel: Loaded settings - Explorer:{ExplorerViewModel.SettingsCount}, " +
-                $"StartMenu:{StartMenuViewModel.SettingsCount}, Taskbar:{TaskbarViewModel.SettingsCount}, " +
-                $"WindowsTheme:{WindowsThemeViewModel.SettingsCount}");
+                $"CustomizeViewModel: Loaded settings - {counts}");
             _logService.Log(Core.Features.Common.Enums.LogLevel.Info, "CustomizeViewModel: Initialization complete");
         }
         catch (Exception ex)
@@ -222,16 +207,9 @@ public partial class CustomizeViewModel : ObservableObject
     /// <summary>
     /// Gets the ViewModel for the specified section key.
     /// </summary>
-    public BaseSettingsFeatureViewModel? GetSectionViewModel(string sectionKey)
+    public ISettingsFeatureViewModel? GetSectionViewModel(string sectionKey)
     {
-        return sectionKey switch
-        {
-            "Explorer" => ExplorerViewModel,
-            "StartMenu" => StartMenuViewModel,
-            "Taskbar" => TaskbarViewModel,
-            "WindowsTheme" => WindowsThemeViewModel,
-            _ => null
-        };
+        return _viewModelBySectionKey.GetValueOrDefault(sectionKey);
     }
 
     /// <summary>
@@ -323,10 +301,10 @@ public partial class CustomizeViewModel : ObservableObject
         else
         {
             // On overview, filter all ViewModels
-            ExplorerViewModel.ApplySearchFilter(value);
-            StartMenuViewModel.ApplySearchFilter(value);
-            TaskbarViewModel.ApplySearchFilter(value);
-            WindowsThemeViewModel.ApplySearchFilter(value);
+            foreach (var vm in _featureViewModels)
+            {
+                vm.ApplySearchFilter(value);
+            }
         }
 
         // Update suggestions (searches all sections, excludes current section if on detail page)

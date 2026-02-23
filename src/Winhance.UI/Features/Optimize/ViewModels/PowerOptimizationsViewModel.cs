@@ -6,11 +6,12 @@ using Winhance.Core.Features.Common.Interfaces;
 using Winhance.Core.Features.Common.Models;
 using Winhance.Core.Features.Optimize.Interfaces;
 using Winhance.UI.Features.Common.Interfaces;
+using Winhance.UI.Features.Optimize.Interfaces;
 using Winhance.UI.ViewModels;
 
 namespace Winhance.UI.Features.Optimize.ViewModels;
 
-public partial class PowerOptimizationsViewModel : BaseSettingsFeatureViewModel
+public partial class PowerOptimizationsViewModel : BaseSettingsFeatureViewModel, IOptimizationFeatureViewModel
 {
     private readonly IDialogService _dialogService;
     private readonly IPowerPlanComboBoxService _powerPlanComboBoxService;

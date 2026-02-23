@@ -2,11 +2,12 @@ using Winhance.Core.Features.Common.Constants;
 using Winhance.Core.Features.Common.Events;
 using Winhance.Core.Features.Common.Interfaces;
 using Winhance.UI.Features.Common.Interfaces;
+using Winhance.UI.Features.Optimize.Interfaces;
 using Winhance.UI.ViewModels;
 
 namespace Winhance.UI.Features.Optimize.ViewModels;
 
-public partial class PrivacyOptimizationsViewModel : BaseSettingsFeatureViewModel
+public partial class PrivacyOptimizationsViewModel : BaseSettingsFeatureViewModel, IOptimizationFeatureViewModel
 {
     public override string ModuleId => FeatureIds.Privacy;
 
